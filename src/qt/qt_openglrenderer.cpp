@@ -1123,7 +1123,7 @@ OpenGLRenderer::initialize()
         for (auto &flag : buf_usage)
             flag.test_and_set();
 
-        main_window->showMessage(MBX_ERROR, tr("Error initializing OpenGL"), e.what() + tr("\nFalling back to software rendering."), false);
+        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing OpenGL.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
 
         context->doneCurrent();
         isFinalized   = true;

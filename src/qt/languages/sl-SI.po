@@ -776,9 +776,6 @@ msgstr "Sistem \"%s\" ni na voljo zaradi manjkajočih ROM-ov v mapi roms/machine
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Grafična kartica \"%s\" ni na voljo zaradi manjkajočih ROM-ov v mapi roms/video. Preklapljam na drugo grafično kartico, ki je na voljo."
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Grafična kartica 2 \"%s\" ni na voljo zaradi manjkajočih ROM-ov v mapi roms/video. Onemogočam drugo grafično kartico."
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Naprava \"%s\" ni na voljo zaradi manjkajočih ROM-ov. Preziram napravo."
 
@@ -876,11 +873,11 @@ msgstr[3] "%n čakalnih stanj"
 msgid "Type"
 msgstr "Vrsta"
 
-msgid "No PCap devices found"
-msgstr "Najdena ni bila nobena naprava PCap"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Najdena ni bila nobena naprava PCap. Prepičajte se, da je nameščen %1 in da ste na omrežni povezavi, združljivi z %1."
 
-msgid "Invalid PCap device"
-msgstr "Neveljavna naprava PCap"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Neveljavna naprava PCap. Prepičajte se, da je nameščen %1 in da ste na omrežni povezavi, združljivi z %1."
 
 msgid "Generic paddle controller(s)"
 msgstr "Generični krmilnik z lopatico"
@@ -990,11 +987,11 @@ msgstr "Ste prepričani, da želite ponovno zagnati emulirani sistem?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Ste prepričani, da želite zapreti 86Box?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Ghostscript-a ni bilo mogoče inicializirati"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Ghostscript-a ni bilo mogoče inicializirati. %1 je potreben za samodejno pretvorbo datotek PostScript v PDF.\n\nVsi dokumenti, poslani generičnemu tiskalniku PostScript bodo shranjeni kot datoteke PostScript (.ps)."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "GhostPCL-ja ni bilo mogoče inicializirati"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "GhostPCL-ja ni bilo mogoče inicializirati. %1 je potreben za samodejno pretvorbo datotek PCL v PDF.\n\nVsi dokumenti, poslani generičnemu tiskalniku PCL bodo shranjeni kot datoteke Printer Command Language (.pcl)."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1049,18 +1046,6 @@ msgstr "Emulator starih računalnikov\n\nAvtorji: Miran Grča (OBattler), Richar
 
 msgid "Hardware not available"
 msgstr "Strojna oprema ni na voljo"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Prepičajte se, da je nameščen %1 in da ste na omrežni povezavi, združljivi z %1."
-
-msgid "Invalid configuration"
-msgstr "Neveljavna konfiguracija"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 je potreben za samodejno pretvorbo datotek PostScript v PDF.\n\nVsi dokumenti, poslani generičnemu tiskalniku PostScript bodo shranjeni kot datoteke PostScript (.ps)."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 je potreben za samodejno pretvorbo datotek PCL v PDF.\n\nVsi dokumenti, poslani generičnemu tiskalniku PCL bodo shranjeni kot datoteke Printer Command Language (.pcl)."
 
 msgid "Don't show this message again"
 msgstr "Ne pokaži več tega sporočila"
@@ -1420,9 +1405,6 @@ msgstr "Zaustavitev ACP&I"
 msgid "Hard disk (%1)"
 msgstr "Trdi disk (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL ali ESDI pogoni CD-ROM niso nikoli obstajali"
-
 msgid "Custom…"
 msgstr "Po meri…"
 
@@ -1662,11 +1644,8 @@ msgstr "Slika se ustvarja…"
 msgid "(System Default)"
 msgstr "(Sistemsko privzeto)"
 
-msgid "Failed to initialize network driver"
-msgstr "Inicializacija omrežnega gonilnika ni uspela"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Omrežne nastavitve bodo preklopljene na ničelni gonilnik"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Inicializacija omrežnega gonilnika ni uspela:\n\n%s\n\nOmrežne nastavitve bodo preklopljene na ničelni gonilnik."
 
 msgid "Mouse sensitivity:"
 msgstr "Občutljivost miške:"
@@ -1803,11 +1782,11 @@ msgstr "Ni bilo mogoče preklopiti na kontekst OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Potrebna je OpenGL različica 3.0 ali novejša. Trenutna različica je %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Napaka pri inicializaciji OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Napaka pri inicializaciji OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nVrnitev na programsko upodabljanje."
+msgid "Falling back to software rendering."
+msgstr "Vrnitev na programsko upodabljanje."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Pri izbiri medijskih slik (CD-ROM, disketa itd.) se bo odprto pogovorno okno začelo v istem imeniku kot konfiguracijska datoteka 86Box. Ta nastavitev bo verjetno imela pomen le v operacijskem sistemu MacOS.</p></body></html>"
@@ -2862,11 +2841,8 @@ msgstr "Generična ura v realnem času MM58167"
 msgid "OPL2Board (External Device)"
 msgstr "OPL2Board (zunanja naprava)"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Ni bilo mogoče najti matričnih pisav"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "Za emulacijo generičnega ESC/P 2 matričnega tiskalnika so potrebne TrueType pisave v imeniku \"roms/printer/fonts\"."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Ni bilo mogoče najti matričnih pisav. Za emulacijo generičnega ESC/P 2 matričnega tiskalnika so potrebne TrueType pisave v imeniku \"roms/printer/fonts\"."
 
 msgid "Inhibit multimedia keys"
 msgstr "Blokiraj multimedijske tipke"

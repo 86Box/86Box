@@ -775,9 +775,6 @@ msgstr "roms/machines 디렉토리에 필요한 롬파일이 없어 기종 \"%s\
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 \"%s\"을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 2 \"%s\"을(를) 사용할 수 없습니다. 두 번째 비디오 카드를 비활성화합니다."
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "필요한 롬파일이 없어 장치 \"%s\"을(를) 사용할 수 없습니다. 장치를 무시합니다."
 
@@ -872,11 +869,11 @@ msgstr[0] "%n 대기 상태"
 msgid "Type"
 msgstr "형식"
 
-msgid "No PCap devices found"
-msgstr "PCap 장치가 없습니다"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "PCap 장치가 없습니다. 이 설치되었는지 %1에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
 
-msgid "Invalid PCap device"
-msgstr "PCap 장치가 올바르지 않습니다"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "PCap 장치가 올바르지 않습니다. 이 설치되었는지 %1에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
 
 msgid "Generic paddle controller(s)"
 msgstr "일반 패들 컨트롤러"
@@ -986,11 +983,11 @@ msgstr "실행중인 머신을 재시작하시겠습니까?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "86Box를 끝내시겠습니까?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Ghostscript를 초기화할 수 없습니다"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Ghostscript를 초기화할 수 없습니다. %1은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "GhostPCL를 초기화할 수 없습니다"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "GhostPCL를 초기화할 수 없습니다. %1은(는) PCL 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PCL 프린터로 보내신 임의의 문서는 Printer Command Language (.pcl) 파일로 저장됩니다."
 
 msgid "MO %1 (%2): %3"
 msgstr "광자기 %1 (%2): %3"
@@ -1045,18 +1042,6 @@ msgstr "고전 컴퓨터 에뮬레이터\n\n저자: Miran Grča (OBattler), Rich
 
 msgid "Hardware not available"
 msgstr "하드웨어를 이용할 수 없습니다"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "이 설치되었는지 %1에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
-
-msgid "Invalid configuration"
-msgstr "올바르지 않은 설정입니다"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1은(는) PCL 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PCL 프린터로 보내신 임의의 문서는 Printer Command Language (.pcl) 파일로 저장됩니다."
 
 msgid "Don't show this message again"
 msgstr "이 메시지 그만 보기"
@@ -1401,9 +1386,6 @@ msgstr "ACPI 종료(&I)"
 msgid "Hard disk (%1)"
 msgstr "하드 디스크 (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL 또는 ESDI CD-ROM 드라이브가 존재하지 않습니다"
-
 msgid "Custom…"
 msgstr "사용자 설정…"
 
@@ -1638,11 +1620,8 @@ msgstr "이미지 생성 중…"
 msgid "(System Default)"
 msgstr "(시스템 기본값)"
 
-msgid "Failed to initialize network driver"
-msgstr "네트워크 드라이버를 초기화하지 못했습니다"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "네트워크 구성이 널 드라이버로 전환됩니다"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "네트워크 드라이버를 초기화하지 못했습니다:\n\n%s\n\n네트워크 구성이 널 드라이버로 전환됩니다."
 
 msgid "Mouse sensitivity:"
 msgstr "마우스 감도:"
@@ -1779,11 +1758,11 @@ msgstr "OpenGL 컨텍스트로 전환할 수 없습니다."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL 버전 3.0 이상이 필요합니다. 현재 버전은 %1.%2입니다"
 
-msgid "Error initializing OpenGL"
-msgstr "OpenGL 초기화 중 오류 발생"
+msgid "Error initializing OpenGL."
+msgstr "OpenGL 초기화 중 오류 발생."
 
-msgid "\nFalling back to software rendering."
-msgstr "\n소프트웨어 렌더링으로 돌아가기."
+msgid "Falling back to software rendering."
+msgstr "소프트웨어 렌더링으로 돌아가기."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>미디어 이미지(CD-ROM, 플로피 등)를 선택하면 86Box 구성 파일과 동일한 디렉터리에서 열기 대화 상자가 시작됩니다. 이 설정은 macOS에서만 차이가 있을 수 있습니다.</p></body></html>"
@@ -2841,11 +2820,8 @@ msgstr ""
 msgid "OPL2Board (External Device)"
 msgstr ""
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "도트 매트릭스 글꼴을 찾을 수 없습니다"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "일반 ESC/P 2 도트 매트릭스 프린터의 에뮬레이션을 사용하려면 \"roms/printer/fonts\" 디렉터리에 있는 트루타입 글꼴이 필요합니다."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "도트 매트릭스 글꼴을 찾을 수 없습니다. 일반 ESC/P 2 도트 매트릭스 프린터의 에뮬레이션을 사용하려면 \"roms/printer/fonts\" 디렉터리에 있는 트루타입 글꼴이 필요합니다."
 
 msgid "Inhibit multimedia keys"
 msgstr "멀티미디어 키 사용 금지"

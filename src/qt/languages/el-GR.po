@@ -774,9 +774,6 @@ msgstr "Το σύστημα \"%s\" δεν είναι διαθέσιμο λόγω
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Η κάρτα γραφικών \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Η κάρτα γραφικών #2 \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Η συσκευή \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs. Παράκαμψη συσκευής."
 
@@ -872,11 +869,11 @@ msgstr[1] "%n Κατάσταση αναμονής"
 msgid "Type"
 msgstr "Τύπος"
 
-msgid "No PCap devices found"
-msgstr "Δεν βέθηκαν PCap συσκευές"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Δεν βέθηκαν PCap συσκευές. Βεβαιωθήτε οτι το %1 είναι εγκατεστημένο και οτι είστε σε %1-συμβατό δίκτυο."
 
-msgid "Invalid PCap device"
-msgstr "Μη έγκυρη PCap συσκευή"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Μη έγκυρη PCap συσκευή. Βεβαιωθήτε οτι το %1 είναι εγκατεστημένο και οτι είστε σε %1-συμβατό δίκτυο."
 
 msgid "Generic paddle controller(s)"
 msgstr "Generic paddle controller(s)"
@@ -988,11 +985,11 @@ msgstr ""
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Είστε σίγουρος για την έξοδο απο το 86Box;"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Αδυναμία αρχικοποίησης Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Αδυναμία αρχικοποίησης Ghostscript. %1 απαιτείται για αυτόματη μετατροπή αρχείων PostScript σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PostScript θα αποθηκεύονται ως αρχεία PostScript (.ps)."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Αδυναμία αρχικοποίησης GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Αδυναμία αρχικοποίησης GhostPCL. %1 απαιτείται για αυτόματη μετατροπή αρχείων PCL σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PCL θα αποθηκεύονται ως αρχεία Printer Command Language (.pcl)."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1047,18 +1044,6 @@ msgstr "Εξομειωτής παλαιών υπολογιστών\n\nAuthors: M
 
 msgid "Hardware not available"
 msgstr "Μη διαθέσιμο υλικό"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Βεβαιωθήτε οτι το %1 είναι εγκατεστημένο και οτι είστε σε %1-συμβατό δίκτυο."
-
-msgid "Invalid configuration"
-msgstr "Μη έγκυρη προσαρμογή"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 απαιτείται για αυτόματη μετατροπή αρχείων PostScript σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PostScript θα αποθηκεύονται ως αρχεία PostScript (.ps)."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 απαιτείται για αυτόματη μετατροπή αρχείων PCL σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PCL θα αποθηκεύονται ως αρχεία Printer Command Language (.pcl)."
 
 msgid "Don't show this message again"
 msgstr "Να μην ξαναεμφανιστεί αυτό το μήνυμα"
@@ -1418,9 +1403,6 @@ msgstr "Τερματισμός ACP&I"
 msgid "Hard disk (%1)"
 msgstr "Σκληρός δίσκος (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Δεν υπήρξαν ποτέ οδηγοί MFM/RLL ή ESDI CD-ROM"
-
 msgid "Custom…"
 msgstr "Προσαρμογή…"
 
@@ -1655,11 +1637,8 @@ msgstr "Δημιουργία εικόνας…"
 msgid "(System Default)"
 msgstr "(Προεπιλογή Συστήματος)"
 
-msgid "Failed to initialize network driver"
-msgstr "Αποτυχία αρχικοποίησης οδηγού δικτύου"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Η παραμετροποίηση δικτύου θα αλλάξει σε άκυρο οδηγό"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Αποτυχία αρχικοποίησης οδηγού δικτύου:\n\n%s\n\nΗ παραμετροποίηση δικτύου θα αλλάξει σε άκυρο οδηγό."
 
 msgid "Mouse sensitivity:"
 msgstr "Ευαισθησία ποντικιού:"
@@ -1809,13 +1788,11 @@ msgstr "Αδυναμία εναλλαγής σε περιεχόμενο OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Απαιτείται έκδοση OpenGL 3.0 ή νεότερη. Η τρέχουσα έκδοση είναι %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Σφάλμα αρχικοποίησης OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Σφάλμα αρχικοποίησης OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr ""
-"\n"
-"Εναλλαγή σε απεικόνιση λογισμικού."
+msgid "Falling back to software rendering."
+msgstr "Εναλλαγή σε απεικόνιση λογισμικού."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
@@ -2879,13 +2856,8 @@ msgstr "Γενικό MM58167 RTC"
 msgid "OPL2Board (External Device)"
 msgstr "OPL2Board (Εξωτερική Συσκευή)"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Αδυναμία εύρεσης γραμματοσειρών Dot-Matrix"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr ""
-"Απαιτούνται γραμματοσειρές TrueType στον κατάλογο \"roms/printer/fonts\" για "
-"την εξομοίωση Γενικού εκτυπωτή ESC/P 2 Dot-Matrix."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Αδυναμία εύρεσης γραμματοσειρών Dot-Matrix. Απαιτούνται γραμματοσειρές TrueType στον κατάλογο \"roms/printer/fonts\" για την εξομοίωση Γενικού εκτυπωτή ESC/P 2 Dot-Matrix."
 
 msgid "Inhibit multimedia keys"
 msgstr "Αναστολή πλήκτρων πολυμέσων"

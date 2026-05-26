@@ -775,9 +775,6 @@ msgstr "Maskin \"%s\" er ikke tilgjengelig på grunn av manglende ROM-er i roms/
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Grafikkort \"%s\" er ikke tilgjengelig på grunn av manglende ROM-er i roms/video-mappen. Bytter til et tilgjengelig grafikkort."
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Grafikkort #2 \"%s\" er ikke tilgjengelig på grunn av manglende ROM-er i roms/video-mappen. Deaktiverer det andre grafikkortet."
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Enhet \"%s\" er ikke tilgjengelig på grunn av manglende ROM-er. Ignorerer enheten."
 
@@ -873,11 +870,11 @@ msgstr[1] "%n ventetilstander"
 msgid "Type"
 msgstr "Type"
 
-msgid "No PCap devices found"
-msgstr "Ingen PCap-enheter funnet"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Ingen PCap-enheter funnet. Sørg for at %1 er installert og at du er på en %1-kompatibel nettverkstilkobling."
 
-msgid "Invalid PCap device"
-msgstr "Ugyldig PCap-enhet"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Ugyldig PCap-enhet. Sørg for at %1 er installert og at du er på en %1-kompatibel nettverkstilkobling."
 
 msgid "Generic paddle controller(s)"
 msgstr "Generisk padle-kontroller(e)"
@@ -987,11 +984,11 @@ msgstr "Er du sikker på at du vil utføre en hard tilbakestilling på den emule
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Er du sikker på at du vil avslutte 86Box?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Kan ikke initialisere Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Kan ikke initialisere Ghostscript. %1 kreves for automatisk konvertering av PostScript-filer til PDF.\n\nDokumenter sendt til den generiske PostScript-skriveren vil lagres som PostScript (.ps)-filer."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Kan ikke initialisere GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Kan ikke initialisere GhostPCL. %1 kreves for automatisk konvertering av PCL-filer til PDF.\n\nDokumenter sendt til den generiske PCL-skriveren vil lagres som Printer Command Language (.pcl)-filer."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1046,18 +1043,6 @@ msgstr "En emulator for gamle datamaskiner\n\nForfattere: Miran Grča (OBattler)
 
 msgid "Hardware not available"
 msgstr "Maskinvare ikke tilgjengelig"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Sørg for at %1 er installert og at du er på en %1-kompatibel nettverkstilkobling."
-
-msgid "Invalid configuration"
-msgstr "Ugyldig konfigurasjon"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 kreves for automatisk konvertering av PostScript-filer til PDF.\n\nDokumenter sendt til den generiske PostScript-skriveren vil lagres som PostScript (.ps)-filer."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 kreves for automatisk konvertering av PCL-filer til PDF.\n\nDokumenter sendt til den generiske PCL-skriveren vil lagres som Printer Command Language (.pcl)-filer."
 
 msgid "Don't show this message again"
 msgstr "Ikke vis denne meldingen igjen"
@@ -1409,9 +1394,6 @@ msgstr "ACP&I-avstenging"
 msgid "Hard disk (%1)"
 msgstr "Harddisk (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL eller ESDI CD-ROM-stasjoner eksisterte aldri"
-
 msgid "Custom…"
 msgstr "Tilpasset…"
 
@@ -1646,11 +1628,8 @@ msgstr "Fil opprettes…"
 msgid "(System Default)"
 msgstr "(Systemstandard)"
 
-msgid "Failed to initialize network driver"
-msgstr "Kunne ikke initialisere nettverksdriver"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Nettverkskonfigurasjonen vil bli byttet til null-driver"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Kunne ikke initialisere nettverksdriver:\n\n%s\n\nNettverkskonfigurasjonen vil bli byttet til null-driver."
 
 msgid "Mouse sensitivity:"
 msgstr "Musesensitivitet:"
@@ -1787,11 +1766,11 @@ msgstr "Kunne ikke bytte til OpenGL-kontekst."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL versjon 3.0 eller høyere kreves. Nåværende versjon er %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Feil ved initialisering av OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Feil ved initialisering av OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nFaller tilbake til programvaregjengivelse."
+msgid "Falling back to software rendering."
+msgstr "Faller tilbake til programvaregjengivelse."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Når du velger mediebilder (CD-ROM, diskett osv.), vil åpningsdialogen starte i samme mappe som 86Box-konfigurasjonsfilen. Denne innstillingen vil sannsynligvis bare ha betydning på macOS.</p></body></html>"
@@ -2847,11 +2826,8 @@ msgstr ""
 msgid "OPL2Board (External Device)"
 msgstr ""
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Kan ikke finne matriseskriver-fonter"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "TrueType-fonter i mappen \"roms/printer/fonts\" kreves for emulering av generisk ESC/P 2-matriseskriver."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Kan ikke finne matriseskriver-fonter. TrueType-fonter i mappen \"roms/printer/fonts\" kreves for emulering av generisk ESC/P 2-matriseskriver."
 
 msgid "Inhibit multimedia keys"
 msgstr "Deaktiver multimedietaster"

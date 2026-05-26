@@ -98,25 +98,25 @@ plat_get_string(int i)
         case STRING_MOUSE_RELEASE_MMB:
             return "Press CTRL-END or middle button to release mouse";
         case STRING_PCAP_ERROR_NO_DEVICES:
-            return "No PCap devices found";
+            return "No PCap devices found. Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case STRING_PCAP_ERROR_INVALID_DEVICE:
-            return "Invalid PCap device";
-        case STRING_GHOSTSCRIPT_ERROR_DESC:
-            return "libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case STRING_PCAP_ERROR_DESC:
-            return "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
-        case STRING_GHOSTSCRIPT_ERROR_TITLE:
-            return "Unable to initialize Ghostscript";
-        case STRING_GHOSTPCL_ERROR_TITLE:
-            return "Unable to initialize GhostPCL";
-        case STRING_GHOSTPCL_ERROR_DESC:
-            return "libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
+            return "Invalid PCap device. Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
+        case STRING_GHOSTSCRIPT_ERROR:
+            return "Unable to initialize Ghostscript. libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+        case STRING_GHOSTPCL_ERROR:
+            return "Unable to initialize GhostPCL. libgpcl6 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files.";
         case STRING_HW_NOT_AVAILABLE_MACHINE:
             return "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
         case STRING_HW_NOT_AVAILABLE_VIDEO:
             return "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
+        case STRING_HW_NOT_AVAILABLE_DEVICE:
+            return "Device \"%s\" is not available due to missing ROMs. Ignoring the device.";
         case STRING_HW_NOT_AVAILABLE_TITLE:
             return "Hardware not available";
+        case STRING_NET_ERROR:
+            return "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.";
+        case STRING_ESCP_ERROR:
+            return "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.";
         case STRING_EDID_TOO_LARGE:
             return "EDID file \"%s\" is too large.";
     }

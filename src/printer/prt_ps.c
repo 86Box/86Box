@@ -523,7 +523,7 @@ ps_init(const device_t *info)
         }
 
         if (ghostscript_handle == NULL) {
-            ui_msgbox_header(MBX_WARNING, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
+            ui_msgbox(MBX_WARNING, plat_get_string(STRING_GHOSTSCRIPT_ERROR));
         } else {
             if (gsapi_revision(&rev, sizeof(rev)) == 0) {
                 pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
@@ -578,7 +578,7 @@ pcl_init(const device_t *info)
         }
 
         if (ghostscript_handle == NULL) {
-            ui_msgbox_header(MBX_WARNING, plat_get_string(STRING_GHOSTPCL_ERROR_TITLE), plat_get_string(STRING_GHOSTPCL_ERROR_DESC));
+            ui_msgbox(MBX_WARNING, plat_get_string(STRING_GHOSTPCL_ERROR));
         } else {
             if (gsapi_revision(&rev, sizeof(rev)) == 0) {
                 pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);

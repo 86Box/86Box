@@ -775,9 +775,6 @@ msgstr "Konetta \"%s\" ei voida käyttää, koska roms/machines-hakemistosta puu
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Näytönohjainta \"%s\" ei voida käyttää, koska roms/video-hakemistosta puuttuu ROM-tiedostoja. Vaihdetaan käyttökelpoiseen näytönohjaimeen."
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Toista näytönohjainta \"%s\" ei voida käyttää, koska roms/video-hakemistosta puuttuu ROM-tiedostoja. Toinen näytönohjain poistetaan käytöstä."
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Laitetta \"%s\" ei voida käyttää puuttuvien ROM-tiedostojen vuoksi. Laite jätetään huomiotta."
 
@@ -873,11 +870,11 @@ msgstr[1] "%n odotustilaa"
 msgid "Type"
 msgstr "Tyyppi"
 
-msgid "No PCap devices found"
-msgstr "PCap-laitteita ei löytynyt"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "PCap-laitteita ei löytynyt. Varmista, että %1 on asennettu ja että verkkoyhteytesi on %1-yhteensopiva."
 
-msgid "Invalid PCap device"
-msgstr "Virheellinen PCap-laite"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Virheellinen PCap-laite. Varmista, että %1 on asennettu ja että verkkoyhteytesi on %1-yhteensopiva."
 
 msgid "Generic paddle controller(s)"
 msgstr "Yleinen melainohjain"
@@ -987,11 +984,11 @@ msgstr "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Haluatko varmasti sulkea 86Boxin?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Ghostscriptin alustus epäonnistui"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Ghostscriptin alustus epäonnistui. %1 vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "GhostPCLin alustus epäonnistui"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "GhostPCLin alustus epäonnistui. %1 vaaditaan PCL-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PCL-tulostimelle lähetetyt asiakirjat tallennetaan Printer Command Language (.ps) -tiedostoina."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1046,18 +1043,6 @@ msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), 
 
 msgid "Hardware not available"
 msgstr "Laitteisto ei ole saatavilla"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Varmista, että %1 on asennettu ja että verkkoyhteytesi on %1-yhteensopiva."
-
-msgid "Invalid configuration"
-msgstr "Virheellinen määritys"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 vaaditaan PCL-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PCL-tulostimelle lähetetyt asiakirjat tallennetaan Printer Command Language (.ps) -tiedostoina."
 
 msgid "Don't show this message again"
 msgstr "Älä näytä tätä viestiä uudelleen"
@@ -1410,9 +1395,6 @@ msgstr "ACP&I-sammutus"
 msgid "Hard disk (%1)"
 msgstr "Kiintolevy (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
-
 msgid "Custom…"
 msgstr "Mukautettu…"
 
@@ -1647,11 +1629,8 @@ msgstr "Luodaan levykuvaa…"
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"
 
-msgid "Failed to initialize network driver"
-msgstr "Verkkoajurin alustaminen epäonnistui"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Verkkokokoonpano vaihtuu nolla-ajuriin"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Verkkoajurin alustaminen epäonnistui:\n\n%s\n\nVerkkokokoonpano vaihtuu nolla-ajuriin."
 
 msgid "Mouse sensitivity:"
 msgstr "Hiiren herkkyys:"
@@ -1788,11 +1767,11 @@ msgstr "Ei voitu siirtyä OpenGL-kontekstiin."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Tarvitaan OpenGL-versio 3.0 tai uudempi. Nykyinen versio on %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Virhe OpenGL:n alustamisessa"
+msgid "Error initializing OpenGL."
+msgstr "Virhe OpenGL:n alustamisessa."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nPalataan ohjelmistopohjaiseen renderöintiin."
+msgid "Falling back to software rendering."
+msgstr "Palataan ohjelmistopohjaiseen renderöintiin."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Kun valitset levykuvia (CD-ROM, levykkeet jne.), avausikkuna aukeaa 86Boxin määritystiedoston hakemistoon. Tällä asetuksella on todennäköisesti merkitystä vain macOS-käyttöjärjestelmässä.</p></body></html>"
@@ -2848,11 +2827,8 @@ msgstr ""
 msgid "OPL2Board (External Device)"
 msgstr ""
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Pistematriisifontteja ei löydy"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "\"roms/printer/fonts\"-hakemiston TrueType-fontteja vaaditaan ESC/P 2-pistematriisitulostimen emulointiin."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Pistematriisifontteja ei löydy. \"roms/printer/fonts\"-hakemiston TrueType-fontteja vaaditaan ESC/P 2-pistematriisitulostimen emulointiin."
 
 msgid "Inhibit multimedia keys"
 msgstr "Estä multimedianäppäimet"

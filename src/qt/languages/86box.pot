@@ -774,9 +774,6 @@ msgstr ""
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr ""
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr ""
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr ""
 
@@ -871,10 +868,10 @@ msgstr[0] ""
 msgid "Type"
 msgstr ""
 
-msgid "No PCap devices found"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
 msgstr ""
 
-msgid "Invalid PCap device"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
 msgstr ""
 
 msgid "Generic paddle controller(s)"
@@ -985,10 +982,10 @@ msgstr ""
 msgid "Are you sure you want to exit 86Box?"
 msgstr ""
 
-msgid "Unable to initialize Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr ""
 
-msgid "Unable to initialize GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr ""
 
 msgid "MO %1 (%2): %3"
@@ -1043,18 +1040,6 @@ msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG
 msgstr ""
 
 msgid "Hardware not available"
-msgstr ""
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr ""
-
-msgid "Invalid configuration"
-msgstr ""
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr ""
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr ""
 
 msgid "Don't show this message again"
@@ -1400,9 +1385,6 @@ msgstr ""
 msgid "Hard disk (%1)"
 msgstr ""
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr ""
-
 msgid "Custom…"
 msgstr ""
 
@@ -1637,10 +1619,7 @@ msgstr ""
 msgid "(System Default)"
 msgstr ""
 
-msgid "Failed to initialize network driver"
-msgstr ""
-
-msgid "The network configuration will be switched to the null driver"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
 msgstr ""
 
 msgid "Mouse sensitivity:"
@@ -1778,10 +1757,10 @@ msgstr ""
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr ""
 
-msgid "Error initializing OpenGL"
+msgid "Error initializing OpenGL."
 msgstr ""
 
-msgid "\nFalling back to software rendering."
+msgid "Falling back to software rendering."
 msgstr ""
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
@@ -2837,10 +2816,7 @@ msgstr ""
 msgid "OPL2Board (External Device)"
 msgstr ""
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr ""
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr ""
 
 msgid "Inhibit multimedia keys"

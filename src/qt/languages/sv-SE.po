@@ -774,9 +774,6 @@ msgstr "Maskinen \"%s\" är inte tillgänglig på grund av saknade ROM-avbildnin
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Bildskärmskortet \"%s\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Byter till ett tillgängligt bildskärmskort."
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Bildskärmskort #2 \"%s\" är inte tillgängligt på grund av saknade ROM-avbildningar i mappen roms/video. Avaktiverar det andra bildskärmskortet."
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Enheten \"%s\" är inte tillgänglig på grund av saknade ROM-avbildningar. Ignorerar enheten."
 
@@ -872,11 +869,11 @@ msgstr[1] "%n väntelägen"
 msgid "Type"
 msgstr "Typ"
 
-msgid "No PCap devices found"
-msgstr "Inga PCap-enheter hittade"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Inga PCap-enheter hittade. Säkerställ att %1 är installerad och att du använder en %1-kompatibel nätverksanslutning."
 
-msgid "Invalid PCap device"
-msgstr "Ogiltig PCap-enhet"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Ogiltig PCap-enhet. Säkerställ att %1 är installerad och att du använder en %1-kompatibel nätverksanslutning."
 
 msgid "Generic paddle controller(s)"
 msgstr "Generisk paddelkontroll(er)"
@@ -986,11 +983,11 @@ msgstr "Är du säker på att du vill göra en hård omstart av den emulerade ma
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Är du säker på att du vill avsluta 86Box?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Ej möjligt att initialisera Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Ej möjligt att initialisera Ghostscript. %1 krävs för automatisk omvandling av PostScript-filer till PDF.\n\nAlla dokument som skickats till den allmänna PostScript-skrivaren kommer att sparas som PostScript-filer (.ps)."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Ej möjligt att initialisera GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Ej möjligt att initialisera GhostPCL. %1 krävs för automatisk omvandling av PCL-filer till PDF.\n\nAlla dokument som skickas till den allmänna PCL-skrivaren kommer att sparas som Printer Command Language-filer (.pcl)."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1045,18 +1042,6 @@ msgstr "En emulator av gamla datorer\n\nUpphovsmän: Miran Grča (OBattler), Ric
 
 msgid "Hardware not available"
 msgstr "Hårdvara ej tillgänglig"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Säkerställ att %1 är installerad och att du använder en %1-kompatibel nätverksanslutning."
-
-msgid "Invalid configuration"
-msgstr "Ogiltig konfiguration"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 krävs för automatisk omvandling av PostScript-filer till PDF.\n\nAlla dokument som skickats till den allmänna PostScript-skrivaren kommer att sparas som PostScript-filer (.ps)."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 krävs för automatisk omvandling av PCL-filer till PDF.\n\nAlla dokument som skickas till den allmänna PCL-skrivaren kommer att sparas som Printer Command Language-filer (.pcl)."
 
 msgid "Don't show this message again"
 msgstr "Visa inte detta meddelande igen"
@@ -1408,9 +1393,6 @@ msgstr "ACP&I-avstängning"
 msgid "Hard disk (%1)"
 msgstr "Hårddisk (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL eller ESDI CD-ROM-enheter fanns aldrig"
-
 msgid "Custom…"
 msgstr "Egen…"
 
@@ -1650,11 +1632,8 @@ msgstr "Skapar avbildning…"
 msgid "(System Default)"
 msgstr "(Systemstandard)"
 
-msgid "Failed to initialize network driver"
-msgstr "Kunde inte initialisera drivrutiner för nätverk"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Nätverkskonfigurationen kommer att bytas till den tomma drivrutinen"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Kunde inte initialisera drivrutiner för nätverk:\n\n%s\n\nNätverkskonfigurationen kommer att bytas till den tomma drivrutinen."
 
 msgid "Mouse sensitivity:"
 msgstr "Muskänslighet:"
@@ -1791,11 +1770,11 @@ msgstr "Kunde inte växla till OpenGL-sammanhang."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL version 3.0 eller högre krävs. Nuvarande version är %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Fel vid initialisering av OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Fel vid initialisering av OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nFaller tillbaka på mjukvarurendering."
+msgid "Falling back to software rendering."
+msgstr "Faller tillbaka på mjukvarurendering."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Vid val av medieavbildningar (CD-ROM, diskett, osv.) så kommer fönstret att börja i samma mapp som 86Box konfigurationsfil. Denna inställning kommer troligtvis endast göra en skillnad på macOS.</p></body></html>"
@@ -2850,11 +2829,8 @@ msgstr "Allmän MM58167 realtidsklocka"
 msgid "OPL2Board (External Device)"
 msgstr "OPL2Board (extern enhet)"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Kunde inte hitta typsnitt för punktmatris"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "TrueType-typsnitt i mappen \"roms/printer/fonts\" krävs för emulering av den allmänna ESC/P 2 punktmatrisskrivaren."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Kunde inte hitta typsnitt för punktmatris. TrueType-typsnitt i mappen \"roms/printer/fonts\" krävs för emulering av den allmänna ESC/P 2 punktmatrisskrivaren."
 
 msgid "Inhibit multimedia keys"
 msgstr "Hindra multimediatangenter"

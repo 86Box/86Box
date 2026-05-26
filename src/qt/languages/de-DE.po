@@ -774,9 +774,6 @@ msgstr "Das System \"%s\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/ma
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Die Videokarte \"%s\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
 
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Die Videokarte 2 \"%s\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird deaktiviert."
-
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Das Gerät \"%s\" ist aufgrund von fehlenden ROMs nicht verfügbar. Es wird ignoriert."
 
@@ -872,11 +869,11 @@ msgstr[1] "%n Wartezustände"
 msgid "Type"
 msgstr "Typ"
 
-msgid "No PCap devices found"
-msgstr "Keine PCap-Geräte gefunden"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Keine PCap-Geräte gefunden. Make sure %1 is installed and that you are on a %1-compatible network connection."
 
-msgid "Invalid PCap device"
-msgstr "Ungültiges PCap-Gerät"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Ungültiges PCap-Gerät. Überprüfe, dass %1 installiert ist, und eine %1-kompatible Netzwerkverbindung genutzt wird."
 
 msgid "Generic paddle controller(s)"
 msgstr "Generischer Paddel-Controller(s)"
@@ -986,11 +983,11 @@ msgstr "Sind Sie sich sicher, dass Sie einen Kaltstart für das emulierte System
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Sind Sie sich sicher, dass Sie 86Box beenden wollen?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Ghostscript konnte nicht initialisiert werden"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Ghostscript konnte nicht initialisiert werden. %1 wird zur automatischen Konvertierung von PostScript-Dateien ins PDF-Format benötigt.\n\nSämtliche an den generischen PostScript-Drucker gesendete Dateien werden als PostScript (*.ps) Dateien gesichert."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "GhostPCL konnte nicht initialisiert werden"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "GhostPCL konnte nicht initialisiert werden. %1 wird zur automatischen Konvertierung von PCL-Dateien ins PDF-Format benötigt.\n\nSämtliche an den generischen PCL-Drucker gesendete Dateien werden als Printer Command Language (*.pcl) Dateien gesichert."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1045,18 +1042,6 @@ msgstr "Ein Emulator für alte Computer\n\nAutoren: Miran Grča (OBattler), Rich
 
 msgid "Hardware not available"
 msgstr "Diese Hardware ist nicht verfügbar"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Überprüfe, dass %1 installiert ist, und eine %1-kompatible Netzwerkverbindung genutzt wird."
-
-msgid "Invalid configuration"
-msgstr "Ungültige Konfiguration"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 wird zur automatischen Konvertierung von PostScript-Dateien ins PDF-Format benötigt.\n\nSämtliche an den generischen PostScript-Drucker gesendete Dateien werden als PostScript (*.ps) Dateien gesichert."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 wird zur automatischen Konvertierung von PCL-Dateien ins PDF-Format benötigt.\n\nSämtliche an den generischen PCL-Drucker gesendete Dateien werden als Printer Command Language (*.pcl) Dateien gesichert."
 
 msgid "Don't show this message again"
 msgstr "Diese Nachricht nicht mehr anzeigen"
@@ -1408,9 +1393,6 @@ msgstr "Über ACP&I herunterfahren"
 msgid "Hard disk (%1)"
 msgstr "Festplatte (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL- oder ESDI-CD-ROM-Laufwerke existieren nicht"
-
 msgid "Custom…"
 msgstr "Angepasst…"
 
@@ -1650,11 +1632,8 @@ msgstr "Bild wird erstellt…"
 msgid "(System Default)"
 msgstr "(Systemstandard)"
 
-msgid "Failed to initialize network driver"
-msgstr "Netzwerktreiber konnte nicht initialisiert werden"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Die Netzwerkkonfiguration wird auf den Nulltreiber umgestellt"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Netzwerktreiber konnte nicht initialisiert werden:\n\n%s\n\nDie Netzwerkkonfiguration wird auf den Nulltreiber umgestellt."
 
 msgid "Mouse sensitivity:"
 msgstr "Empfindlichkeit der Maus:"
@@ -1791,11 +1770,11 @@ msgstr "Konnte nicht in den OpenGL-Kontext wechseln."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL-Version 3.0 oder höher ist erforderlich. Die aktuelle Version ist %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Fehler beim Initialisieren von OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Fehler beim Initialisieren von OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nRückgriff auf Software-Rendering."
+msgid "Falling back to software rendering."
+msgstr "Rückgriff auf Software-Rendering."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Bei der Auswahl von Medien-Abbildern (CD-ROM, Diskette usw.) wird der Öffnungsdialog im selben Verzeichnis wie die 86Box-Konfigurationsdatei gestartet. Diese Einstellung macht wahrscheinlich nur unter macOS einen Unterschied.</p></body></html>"
@@ -2850,11 +2829,8 @@ msgstr "Generischer MM58167-RTC"
 msgid "OPL2Board (External Device)"
 msgstr "OPL2Board (externes Gerät)"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Nadel-Schriften konnten nicht gefunden werden"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "TrueType-Schriften in das \"roms/printer/fonts\"-Verzeichnis sind für die Allgemeines ESC/P 2 Nadel-Druckers erforderlich."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Nadel-Schriften konnten nicht gefunden werden. TrueType-Schriften in das \"roms/printer/fonts\"-Verzeichnis sind für die Allgemeines ESC/P 2 Nadel-Druckers erforderlich."
 
 msgid "Inhibit multimedia keys"
 msgstr "Multimedia-Tasten unterdrücken"
