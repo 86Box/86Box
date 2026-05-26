@@ -1206,16 +1206,23 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
         return 0;
     f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
-    if (!titleq.isEmpty()) {
+#    ifdef Q_OS_MACOS
+    bool title_is_dir = (titleq == QDir(QDir::cleanPath(process->workingDirectory())).dirName());
+    if (title_is_dir)
+        titleq = QStringLiteral("");
+    f.write("cd '");
+    f.write(process->workingDirectory().replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
+    f.write("'\n. /etc/bashrc_Apple_Terminal\nupdate_terminal_cwd\n");
+#    endif
+    if (
+#    ifdef Q_OS_MACOS
+        title_is_dir ||
+#    endif
+        !titleq.isEmpty()) {
         f.write("printf '\\e]0;%s\\a' '");
         f.write(titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
         f.write("'\n");
     }
-#    ifdef Q_OS_MACOS
-    f.write("cd '");
-    f.write(QString(process->workingDirectory()).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
-    f.write("'\n. /etc/bashrc_Apple_Terminal\nupdate_terminal_cwd\n");
-#    endif
     if (!titleq.isNull()) {
         if (env && *env) { /* set environment variables for terminal execution */
             f.write("export");
