@@ -2297,8 +2297,11 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             version     = 2;
 
             fseek(fp, 0, SEEK_SET);
-            if (fread(&mds_hdr, 1, sizeof(mds_hdr_t), fp) != sizeof(mds_hdr_t))
+            if (fread(&mds_hdr, 1, sizeof(mds_hdr_t), fp) != sizeof(mds_hdr_t)) {
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
+            }
         }
         image_log(img->log, "ret = %i\n", ret);
     } else
@@ -2307,14 +2310,20 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
     if (img->is_dvd) {
         if (mds_hdr.disc_struct_offs != 0x00) {
             fseek(fp, mds_hdr.disc_struct_offs, SEEK_SET);
-            if (fread(&(img->dstruct.layers[0]), 1, sizeof(layer_t), fp) != sizeof(layer_t))
+            if (fread(&(img->dstruct.layers[0]), 1, sizeof(layer_t), fp) != sizeof(layer_t)) {
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
+            }
             img->has_dstruct = 1;
 
             if (((img->dstruct.layers[0].f0[2] & 0x60) >> 4) == 0x01) {
                 fseek(fp, mds_hdr.disc_struct_offs, SEEK_SET);
-                if (fread(&(img->dstruct.layers[1]), 1, sizeof(layer_t), fp) != sizeof(layer_t))
+                if (fread(&(img->dstruct.layers[1]), 1, sizeof(layer_t), fp) != sizeof(layer_t)) {
+                    if (fp != NULL)
+                        fclose(fp);
                     return 0;
+                }
                 img->has_dstruct++;
             }
         }
@@ -2350,6 +2359,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
         fseek(fp, mds_hdr.dpm_blocks_offs, SEEK_SET);
         if (LOG_VAR(dbnret) fread(&mds_dpm_blocks_num, 1, sizeof(uint32_t), fp) != sizeof(uint32_t)) {
             image_log(img->log, "dbnret = %i (expected: %i)\n", (int) dbnret, (int) sizeof(uint32_t));
+            if (fp != NULL)
+                fclose(fp);
             return 0;
         }
 
@@ -2357,12 +2368,16 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             fseek(fp, mds_hdr.dpm_blocks_offs + 4 + (b * 4), SEEK_SET);
             if (LOG_VAR(dboret) fread(&mds_dpm_block_offs, 1, sizeof(uint32_t), fp) != sizeof(uint32_t)) {
                 image_log(img->log, "dboret = %i (expected: %i)\n", (int) dboret, (int) sizeof(uint32_t));
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
             }
 
             fseek(fp, mds_dpm_block_offs, SEEK_SET);
             if (LOG_VAR(dbret) fread(&mds_dpm_block, 1, sizeof(mds_dpm_block_t), fp) != sizeof(mds_dpm_block_t)) {
                 image_log(img->log, "dbret = %i (expected: %i)\n", (int) dbret, (int) sizeof(mds_dpm_block_t));
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
             }
 
@@ -2375,6 +2390,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 int read_size = img->bad_sectors_num * sizeof(uint32_t);
                 if (LOG_VAR(dbtret) fread(img->bad_sectors, 1, read_size, fp) != read_size) {
                     image_log(img->log, "dbtret = %i (expected: %i)\n", (int) dbtret, (int) read_size);
+                    if (fp != NULL)
+                        fclose(fp);
                     return 0;
                 }
                 break;
@@ -2387,6 +2404,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_v2_sess_block_t)), SEEK_SET);
             if (LOG_VAR(hret) fread(&mds_v2_sess_block, 1, sizeof(mds_v2_sess_block_t), fp) != sizeof(mds_v2_sess_block_t)) {
                 image_log(img->log, "hret = %i (expected: %i)\n", (int) hret, (int) sizeof(mds_v2_sess_block_t));
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
             }
             memcpy(&mds_sess_block, &mds_v2_sess_block, sizeof(mds_sess_block_t));
@@ -2396,6 +2415,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             fseek(fp, mds_hdr.sess_blocks_offs + (s * sizeof(mds_sess_block_t)), SEEK_SET);
             if (LOG_VAR(hret2) fread(&mds_sess_block, 1, sizeof(mds_sess_block_t), fp) != sizeof(mds_sess_block_t)) {
                 image_log(img->log, "hret2 = %i (expected: %i)\n", (int) hret2, (int) sizeof(mds_sess_block_t));
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
             }
         }
@@ -2404,6 +2425,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             fseek(fp, mds_sess_block.trk_blocks_offs + (t * sizeof(mds_trk_block_t)), SEEK_SET);
             if (LOG_VAR(tbret) fread(&mds_trk_block, 1, sizeof(mds_trk_block_t), fp) != sizeof(mds_trk_block_t)) {
                 image_log(img->log, "tbret = %i (expected: %i)\n", (int) tbret, (int) sizeof(mds_trk_block));
+                if (fp != NULL)
+                    fclose(fp);
                 return 0;
             }
 
@@ -2439,6 +2462,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 fseek(fp, mds_trk_block.ex_offs, SEEK_SET);
                 if (LOG_VAR(tret) fread(&mds_trk_ex_block, 1, sizeof(mds_trk_ex_block), fp) != sizeof(mds_trk_ex_block)) {
                     image_log(img->log, "tret = %i (expected: %i)\n", (int) tret, (int) sizeof(mds_trk_ex_block));
+                    if (fp != NULL)
+                        fclose(fp);
                     return 0;
                 }
             }
@@ -2455,6 +2480,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                     fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_v2_footer_t)), SEEK_SET);
                     if (LOG_VAR(fret) fread(&mds_v2_footer, 1, sizeof(mds_v2_footer_t), fp) != sizeof(mds_v2_footer_t)) {
                         image_log(img->log, "fret = %i (expected: %i)\n", (int) fret, (int) sizeof(mds_v2_footer_t));
+                        if (fp != NULL)
+                            fclose(fp);
                         return 0;
                     } 
                     memcpy(&mds_footer, &mds_v2_footer, sizeof(mds_footer));
@@ -2463,6 +2490,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                     fseek(fp, mds_trk_block.footer_offs + (ff * sizeof(mds_footer_t)), SEEK_SET);
                     if (LOG_VAR(fret2) fread(&mds_footer, 1, sizeof(mds_footer_t), fp) != sizeof(mds_footer_t)) {
                         image_log(img->log, "fret2 = %i (expected: %i)\n", (int) fret2, (int) sizeof(mds_footer_t));
+                        if (fp != NULL)
+                            fclose(fp);
                         return 0;
                     }
                 }
@@ -2480,6 +2509,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                         for (int i = 0; i < 256; i++) {
                             if (LOG_VAR(fnret) fread(&(wfn[i]), 1, 2, fp) != 2) {
                                 image_log(img->log, "fnret = %i (expected: %i)\n", (int) fnret, (int) 2);
+                                if (fp != NULL)
+                                    fclose(fp);
                                 return 0;
                             }
                             if (wfn[i] == 0x0000)
@@ -2489,6 +2520,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                     } else  for (int i = 0; i < 512; i++) {
                         if (LOG_VAR(fnret2) fread(&fn[i], 1, 1, fp) != 1) {
                             image_log(img->log, "fnret2 = %i (expected: %i)\n", (int) fnret2, (int) 1);
+                            if (fp != NULL)
+                                fclose(fp);
                             return 0;
                         }
                         if (fn[i] == 0x00)
