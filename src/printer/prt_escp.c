@@ -2000,9 +2000,9 @@ handle_char(escp_t *dev, uint8_t ch)
         line_y = PIXY;
 
         if (dev->font_style & STYLE_UNDERLINE)
-            line_y = (PIXY + (uint16_t) (dev->fontface->size->metrics.height * 0.9));
+            line_y = (PIXY + (uint16_t) (dev->fontface->size->metrics.y_ppem * 0.9));
         if (dev->font_style & STYLE_STRIKETHROUGH)
-            line_y = (PIXY + (uint16_t) (dev->fontface->size->metrics.height * 0.45));
+            line_y = (PIXY + (uint16_t) (dev->fontface->size->metrics.y_ppem * 0.45));
         if (dev->font_style & STYLE_OVERSCORE)
             line_y = PIXY - ((dev->font_score == SCORE_DOUBLE || dev->font_score == SCORE_DOUBLEBROKEN) ? 5 : 0);
 
