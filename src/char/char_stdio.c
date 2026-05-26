@@ -294,7 +294,7 @@ char_stdio_init(const device_t *info)
         if (stdio_claimed_by) {
             char_stdio_log(dev->log, "Standard input/output already claimed by %s\n", stdio_claimed_by);
 
-            snprintf(msg, sizeof(msg), "%s: Virtual console already in use by %s", dev->port->name, stdio_claimed_by);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_VCON_IN_USE), dev->port->name, stdio_claimed_by);
             ui_msgbox(MBX_INFO, msg);
 
             dev->fd_in = dev->fd_out =
@@ -381,7 +381,7 @@ use_stdout:
 #    endif
 
                         if (mode == CHAR_STDIO_MODE_PTY) {
-                            snprintf(msg, sizeof(msg), "%s: Attached to %s", dev->port->name, pty);
+                            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_ATTACHED), dev->port->name, pty);
                             ui_msgbox(MBX_INFO, msg);
                         } else {
                             /* Build environment variables. */
@@ -441,7 +441,7 @@ use_stdout:
             err = errno;
             char_stdio_log(dev->log, "posix_openpt failed (%d)\n", err);
 errmsg:
-            snprintf(msg, sizeof(msg), "%s: Could not create terminal: %s", dev->port->name, strerror(err));
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_TERMINAL_ERROR), dev->port->name, strerror(err));
             ui_msgbox(MBX_ERROR, msg);
             close(dev->fd_out);
             dev->fd_out = -1;

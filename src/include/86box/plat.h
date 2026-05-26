@@ -48,6 +48,11 @@ enum {
     STRING_CDROM_LOAD_IMAGE_ERROR,    /* "Unable to load CD-ROM image: %s" */
     STRING_CDROM_LOAD_MDSX_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
     STRING_CDROM_DVD_IN_CD_DRIVE,     /* "DVD image \"%s\" in a CD-only drive..." */
+    STRING_CHARDEV_CONNECT_ERROR,     /* "%s: Could not connect to %s: %s" */
+    STRING_CHARDEV_CREATE_ERROR,      /* "%s: Could not create %s: %s" */
+    STRING_CHARDEV_ATTACHED,          /* "%s: Attached to %s" */
+    STRING_CHARDEV_VCON_IN_USE,       /* "%s: Virtual console already in use by %s" */
+    STRING_CHARDEV_TERMINAL_ERROR,    /* "%s: Could not create terminal: %s" */
 };
 
 /* The Win32 API uses _wcsicmp. */

@@ -255,7 +255,7 @@ char_serial_connect(char_serial_t *dev, int startup)
         char fmt[512];
         snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
         FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-        snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
+        snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, path, fmt);
         goto errmsg;
     }
 
@@ -284,7 +284,7 @@ char_serial_connect(char_serial_t *dev, int startup)
         char_serial_log(dev->log, "Path is not a TTY\n");
     }
     if (err) {
-        snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, strerror(err));
+        snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, path, strerror(err));
         goto errmsg;
     }
 

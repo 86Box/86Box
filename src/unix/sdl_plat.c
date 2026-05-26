@@ -131,6 +131,16 @@ plat_get_string(int i)
             return "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support.";
         case STRING_CDROM_DVD_IN_CD_DRIVE:
             return "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.";
+        case STRING_CHARDEV_CONNECT_ERROR:
+            return "%s: Could not connect to %s: %s";
+        case STRING_CHARDEV_CREATE_ERROR:
+            return "%s: Could not create %s: %s";
+        case STRING_CHARDEV_ATTACHED:
+            return "%s: Attached to %s";
+        case STRING_CHARDEV_VCON_IN_USE:
+            return "%s: Virtual console already in use by %s";
+        case STRING_CHARDEV_TERMINAL_ERROR:
+            return "%s: Could not create terminal: %s";
     }
     return "";
 }

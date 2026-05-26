@@ -157,7 +157,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
 
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, create_err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "%s: Could not create %s: %s", dev->port->name, dev->path, fmt);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CREATE_ERROR), dev->port->name, dev->path, fmt);
             if (dev->mode == CHAR_PIPE_MODE_SERVER)
                 goto errmsg;
             else
@@ -190,7 +190,7 @@ client:
             }
             snprintf(fmt, sizeof(fmt), "FormatMessageA failed");
             FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), fmt, sizeof(fmt), NULL);
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path, fmt);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, dev->path, fmt);
             goto errmsg;
         }
     }
@@ -210,7 +210,7 @@ client:
                 int err = errno;
                 char_pipe_log(dev->log, "PTY open failed (%d)\n", err);
 
-                snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, dev->path_out, strerror(err));
+                snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, dev->path_out, strerror(err));
                 ui_msgbox(MBX_ERROR, msg);
                 dev->path_out[dev->path_len] = prev;
                 goto errmsg;
@@ -268,7 +268,7 @@ client:
                 continue;
 
             for (int j = 0; j <= 1; j++) {
-                snprintf(msg, sizeof(msg), (j == 0) ? "%s: Could not connect to %s: %s" : "%s: Could not create %s: %s", dev->port->name, path, strerror(err));
+                snprintf(msg, sizeof(msg), (j == 0) ? plat_get_string(STRING_CHARDEV_CONNECT_ERROR) : plat_get_string(STRING_CHARDEV_CREATE_ERROR), dev->port->name, path, strerror(err));
                 if (startup)
                     ui_msgbox(MBX_ERROR, msg);
                 else
