@@ -582,25 +582,15 @@ HarddiskDialog::recalcSelection()
 void
 HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
 {
-    // TODO : Over to non-existing file selected
-#if 0
-    if (!(existing & 1)) {
-        fp = _wfopen(wopenfilestring, L"rb");
-        if (fp != NULL) {
-            fclose(fp);
-            if (settings_msgbox_ex(MBX_QUESTION_YN, L"Disk image file already exists", L"The selected file will be overwritten. Are you sure you want to use it?", L"Overwrite", L"Don't overwrite", NULL) != 0)	/ * yes * /
-                return false;
-        }
-    }
+    QByteArray fileNameUtf8 = fileName.toUtf8();
 
-    fp = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
-    if (fp == NULL) {
-    hdd_add_file_open_error:
+    FILE *fp = plat_fopen(fileNameUtf8.data(), "rb");
+    if (fp != NULL) {
         fclose(fp);
-        settings_msgbox_header(MBX_ERROR, (existing & 1) ? L"Make sure the file exists and is readable." : L"Make sure the file is being saved to a writable directory.", (existing & 1) ? L"Unable to read file" : L"Unable to write file");
-        return true;
+        QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Disk image file already exists"), tr("The selected file will be overwritten. Are you sure you want to use it?"), QMessageBox::Yes | QMessageBox::No);
+        if (btn == QMessageBox::No)
+            return;
     }
-#endif
 
     uint64_t size        = 0;
     uint32_t sector_size = 0;
@@ -610,7 +600,6 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     int      vhd_error   = 0;
 
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
-    QByteArray fileNameUtf8 = fileName.toUtf8();
 
     /* Check if this is a block device FIRST - QFile may not handle them properly */
     if (plat_is_block_device(fileNameUtf8.data())) {
