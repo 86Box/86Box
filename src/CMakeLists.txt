@@ -55,12 +55,6 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     add_compile_definitions(_FILE_OFFSET_BITS=64 _LARGEFILE_SOURCE=1 _LARGEFILE64_SOURCE=1)
 endif()
 
-if(MINGW)
-    # UCRT's printf implementations tend to crash the program a lot, even if the library is explicitly linked.
-    # Always use MinGW's printf implementations.
-    add_compile_definitions(__USE_MINGW_ANSI_STDIO=1)
-endif()
-
 if(CPPTHREADS)
     target_sources(86Box PRIVATE thread.cpp)
 endif()
