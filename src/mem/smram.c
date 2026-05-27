@@ -341,10 +341,7 @@ smram_enable_ex(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t si
 
         mem_mapping_set_addr(&(smr->mapping), smr->host_base, smr->size);
         if (!use_separate_smram || (smr->ram_base >= 0x000a0000)) {
-            if (smr->ram_base < (1 << 30))
-                mem_mapping_set_exec(&(smr->mapping), ram + smr->ram_base);
-            else
-                mem_mapping_set_exec(&(smr->mapping), ram2 + smr->ram_base - (1 << 30));
+            mem_mapping_set_exec(&(smr->mapping), ram + smr->ram_base);
         } else {
             if (smr->ram_base == 0x00030000)
                 mem_mapping_set_exec(&(smr->mapping), smram);

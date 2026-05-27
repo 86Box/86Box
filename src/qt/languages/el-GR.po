@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-15 14:00+0000\n"
+"PO-Revision-Date: 2026-05-24 12:01+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -177,7 +177,6 @@ msgstr "Τύπος μετατροπής κλίμακας του γκρι:"
 msgid "Average"
 msgstr "Σχετικό"
 
-#, fuzzy
 msgid "Overscan"
 msgstr "Υπερσάρωση"
 
@@ -356,16 +355,16 @@ msgid "Machine type:"
 msgstr "Τύπος συστήματος:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr "[1989] i486 (Υποδοχή 168 και 1)"
+msgstr "[1989] i486 (Socket 168 και 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
 msgstr "[1994] i486 (Ανάμεικτα)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr "[1995] Υποδοχή 7 (μονή τάση)"
+msgstr "[1995] Socket 7 (Μονό Voltage)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr "[1996] Υποδοχή 7 (διπλή τάση)"
+msgstr "[1996] Socket 7 (Διπλό Voltage)"
 
 msgid "Miscellaneous"
 msgstr "Διάφορα"
@@ -2601,7 +2600,7 @@ msgid "Color"
 msgstr "Έγχρωμο"
 
 msgid "U.S. English"
-msgstr "Αγγλικά Η.Π."
+msgstr "Αγγλικά Η.Π.Α."
 
 msgid "Scandinavian"
 msgstr "Σκανδιναβικά"
@@ -2684,9 +2683,8 @@ msgstr "Dongle προστασίας για το Savage Quest"
 msgid "Loopback Plug"
 msgstr "Βύσμα Loopback"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Συσκευή Σειριακής Διέλευσης"
+msgstr "Σειριακή Διέλευση"
 
 msgid "Passthrough Mode"
 msgstr "Λειτουργία Διέλευσης"

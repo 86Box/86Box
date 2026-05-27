@@ -12,8 +12,8 @@
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *          Cacodemon345
  *
- *          Copyright 2019 David Hrdlička.
- *          Copyright 2024 Cacodemon345.
+ *          Copyright 2019-2026 David Hrdlička.
+ *          Copyright 2024-2026 Cacodemon345.
  */
 #include <inttypes.h>
 #include <memory.h>
@@ -21,18 +21,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
-#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/pit.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
-#include <86box/prt_devs.h>
 #include "cpu.h"
 
 #ifdef _WIN32
@@ -42,7 +39,7 @@
 #endif
 
 #define GS_ARG_ENCODING_UTF8 1
-#define gs_error_Quit        -101
+#define gs_error_Quit        (-101)
 
 #define POSTSCRIPT_BUFFER_LENGTH 65536
 
@@ -56,8 +53,6 @@ enum {
 };
 
 typedef struct ps_t {
-    const char *name;
-
     void *      lpt;
 
     pc_timer_t  pulse_timer;
@@ -65,21 +60,18 @@ typedef struct ps_t {
 
     bool        ack;
     bool        select;
-    bool        busy;
-    bool        int_pending;
-    bool        error;
     bool        autofeed;
     bool        pcl;
     bool        pending;
     bool        pjl;
     bool        pjl_command;
 
-    char        data;
+    uint8_t     data;
 
     char        printer_path[260];
     char        filename[260];
 
-    char        buffer[POSTSCRIPT_BUFFER_LENGTH];
+    uint8_t     buffer[POSTSCRIPT_BUFFER_LENGTH];
 
     uint8_t     ctrl;
     uint8_t     pcl_escape;
@@ -205,9 +197,6 @@ convert_to_pdf(ps_t *dev)
 static void
 reset_ps(ps_t *dev)
 {
-    if (dev == NULL)
-        return;
-
     dev->ack = false;
 
     if (dev->pending) {
@@ -257,7 +246,7 @@ write_buffer(ps_t *dev, bool finish)
     if (dev->pcl)
         fwrite(dev->buffer, 1, dev->buffer_pos, fp);
     else
-        fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer);
+        fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, (const char *) dev->buffer);
 
     fclose(fp);
 
@@ -302,7 +291,7 @@ ps_write_data(uint8_t val, void *priv)
     if (dev == NULL)
         return;
 
-    dev->data = (char) val;
+    dev->data = val;
 }
 
 static int
@@ -313,6 +302,8 @@ process_escape(ps_t *dev, int do_pjl)
     if (dev->data == 0x1b)
         dev->pcl_escape = 1;
     else  switch (dev->pcl_escape) {
+        default:
+            break;
         case 1:
             dev->pcl_escape = (dev->data == 0x25) ? 2 : 0;
             break;

@@ -3555,17 +3555,20 @@ save_image_file(char *cat, char *var, char *src)
     char *above2     = NULL;
     char *above3     = NULL;
 
-    if ((slash = memrmem(usr_path + strlen(usr_path) - 2, usr_path, "/")) != NULL) {
+    size_t len = strlen(usr_path);
+    if ((len >= 2) && ((slash = memrmem(usr_path + len - 2, usr_path, "/")) != NULL)) {
         slash++;
         above = (char *) calloc(1, slash - usr_path + 1);
         memcpy(above, usr_path, slash - usr_path);
 
-        if ((slash = memrmem(above + strlen(above) - 2, above, "/")) != NULL) {
+        len = strlen(above);
+        if ((len >= 2) && ((slash = memrmem(above + len - 2, above, "/")) != NULL)) {
             slash++;
             above2 = (char *) calloc(1, slash - above + 1);
             memcpy(above2, above, slash - above);
 
-            if ((slash = memrmem(above2 + strlen(above2) - 2, above2, "/")) != NULL) {
+            len = strlen(above2);
+            if ((len >= 2) && ((slash = memrmem(above2 + len - 2, above2, "/")) != NULL)) {
                 slash++;
                 above3 = (char *) calloc(1, slash - above2 + 1);
                 memcpy(above3, above2, slash - above2);

@@ -1206,7 +1206,19 @@ plat_run_command(const char *cmd, const char **env, const char *title)
     if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
         return 0;
     f.write("#!/bin/sh\nrm -f -- \"$0\"\n");
-    if (!titleq.isEmpty()) {
+#    ifdef Q_OS_MACOS
+    bool title_is_dir = (titleq == QDir(QDir::cleanPath(process->workingDirectory())).dirName());
+    if (title_is_dir)
+        titleq = QStringLiteral("");
+    f.write("cd '");
+    f.write(process->workingDirectory().replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
+    f.write("'\n. /etc/bashrc_Apple_Terminal\nupdate_terminal_cwd\n");
+#    endif
+    if (
+#    ifdef Q_OS_MACOS
+        title_is_dir ||
+#    endif
+        !titleq.isEmpty()) {
         f.write("printf '\\e]0;%s\\a' '");
         f.write(titleq.replace(QStringLiteral("\a"), QStringLiteral("")).replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
         f.write("'\n");
@@ -1226,8 +1238,8 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             }
             f.write("\n");
         }
-        f.write("clear\n");
     }
+    f.write("clear\n");
     f.write(cmd);
     f.write("\n");
     f.close();
@@ -1241,8 +1253,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             return 1;
     } else {
 #    ifdef Q_OS_MACOS
-        /* This (and AppleScript which requires user consent) opens an interactive shell and types the path in, so
-           we can't control the working directory displayed in the title bar, nor the lack of auto-exit by default. */
+        /* We can't control the lack of auto-exit by default. */
         process->setProgram(QStringLiteral("open"));
         process->setArguments(QStringList() << QStringLiteral("-b") << QStringLiteral("com.apple.Terminal") << script);
         process->start();
@@ -1291,14 +1302,19 @@ plat_run_command(const char *cmd, const char **env, const char *title)
             if (terminal == QStringLiteral("xdg-terminal-exec")) {
                 args << QStringLiteral("--title=" EMU_NAME) << QStringLiteral("--dir=").append(process->workingDirectory()) << QStringLiteral("--");
             } else if (terminal == QStringLiteral("gnome-terminal")) {
-                args << QStringLiteral("--");
+                /* Really old versions will ignore -t and print a warning. */
+                args << QStringLiteral("-t") << QStringLiteral(EMU_NAME) << QStringLiteral("--");
             } else {
                 /* Hide script name in the Konsole title bar. */
                 bool is_konsole = (terminal == QStringLiteral("konsole"));
                 if (is_konsole && is_kde) /* KDE konsole */
                     args << QStringLiteral("-p") << QStringLiteral("tabtitle=%w");
-                else if (is_konsole || (terminal == QStringLiteral("x-terminal-emulator"))) /* Trinity Konsole (no effect on KDE Konsole) */
+                else if (is_konsole || /* Trinity Konsole (no effect on KDE Konsole) */
+                         (terminal == QStringLiteral("x-terminal-emulator")) ||
+                         (terminal == QStringLiteral("xterm")) || terminal.endsWith(QStringLiteral("rxvt")))
                     args << QStringLiteral("-T") << QStringLiteral(EMU_NAME);
+                else if (terminal == QStringLiteral("mate-terminal"))
+                    args << QStringLiteral("-t") << QStringLiteral(EMU_NAME);
                 args << QStringLiteral("-e");
             }
             process->setArguments(args << script);

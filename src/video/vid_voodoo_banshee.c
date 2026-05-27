@@ -533,7 +533,9 @@ banshee_render_16bpp_tiled(svga_t *svga)
     uint32_t   addr;
     int        drawn = 0;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (banshee->vidProcCfg & VIDPROCCFG_HALF_MODE)
@@ -3405,7 +3407,8 @@ banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 }
 
 static void *
-banshee_init_common(const device_t *info, const char *fn, int has_sgram, int type, int voodoo_type, int agp)
+banshee_init_common(const device_t *info, const char *fn, const int has_sgram,
+                    const int type, const int voodoo_type, const int agp, const int clamp)
 {
     int        mem_size;
     banshee_t *banshee = calloc(1, sizeof(banshee_t));
@@ -3421,6 +3424,9 @@ banshee_init_common(const device_t *info, const char *fn, int has_sgram, int typ
         mem_mapping_disable(&banshee->bios_rom.mapping);
     }
 
+    const uint64_t bios_flags = clamp ? device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                        0x0000000000000000ULL;
+
     if (!banshee->has_bios)
 #if 0
         mem_size = info->local; /* fixed size for on-board chips */
@@ -3435,6 +3441,9 @@ banshee_init_common(const device_t *info, const char *fn, int has_sgram, int typ
             mem_size = device_get_config_int("memory");
     } else
         mem_size = 16; /* SDRAM Banshee only supports 16 MB */
+
+    if (clamp)
+        video_clamp_vram(bios_flags, &mem_size);
 
     svga_init(info, &banshee->svga, banshee, mem_size << 20,
               banshee_recalctimings,
@@ -3612,70 +3621,70 @@ banshee_bios_init(const device_t *info)
     uint32_t local = device_get_bios_local(info, device_get_config_bios("bios"));
 
     return banshee_init_common(info, device_get_bios_file(info, device_get_config_bios("bios"), 0),
-                               (local >> 8) & 0xff, local & 0xff,
-                               VOODOO_BANSHEE, 0);
+                               (uint8_t) ((local >> 8) & 0xff), (uint8_t) (local & 0xff),
+                               VOODOO_BANSHEE, 0, 1);
 }
 
 static void *
 v3_1000_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 0);
+    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 0, 0);
 }
 
 static void *
 v3_1000_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 1, 0);
 }
 
 static void *
 v3_2000_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VOODOO3_2000, 0, TYPE_V3_2000, VOODOO_3, 0);
+    return banshee_init_common(info, ROM_VOODOO3_2000, 0, TYPE_V3_2000, VOODOO_3, 0, 0);
 }
 
 static void *
 v3_2000_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VOODOO3_2000, 0, TYPE_V3_2000, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VOODOO3_2000, 0, TYPE_V3_2000, VOODOO_3, 1, 0);
 }
 
 static void *
 v3_2000_agp_onboard_init(const device_t *info)
 {
-    return banshee_init_common(info, NULL, 1, TYPE_V3_2000, VOODOO_3, 1);
+    return banshee_init_common(info, NULL, 1, TYPE_V3_2000, VOODOO_3, 1, 0);
 }
 
 static void *
 v3_3000_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VOODOO3_3000, 0, TYPE_V3_3000, VOODOO_3, 0);
+    return banshee_init_common(info, ROM_VOODOO3_3000, 0, TYPE_V3_3000, VOODOO_3, 0, 0);
 }
 
 static void *
 v3_3000_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VOODOO3_3000, 0, TYPE_V3_3000, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VOODOO3_3000, 0, TYPE_V3_3000, VOODOO_3, 1, 0);
 }
 
 static void *
 v3_3500_agp_bios_init(const device_t *info)
 {
     return banshee_init_common(info, device_get_bios_file(info, device_get_config_bios("bios"), 0),
-                               0, device_get_bios_local(info, device_get_config_bios("bios")),
-                               VOODOO_3, 1);
+                               0, (int) device_get_bios_local(info, device_get_config_bios("bios")),
+                               VOODOO_3, 1, 1);
 }
 
 static void *
 velocity_100_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VELOCITY_100, 1, TYPE_VELOCITY100, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VELOCITY_100, 1, TYPE_VELOCITY100, VOODOO_3, 1, 0);
 }
 
 static void *
 velocity_200_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, ROM_VELOCITY_200, 1, TYPE_VELOCITY200, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VELOCITY_200, 1, TYPE_VELOCITY200, VOODOO_3, 1, 0);
 }
 
 static int

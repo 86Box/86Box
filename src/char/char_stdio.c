@@ -79,6 +79,7 @@ typedef struct {
 #ifdef _WIN32
     HANDLE       fd_in;
     HANDLE       fd_out;
+    unsigned int stdout_redirected   : 1;
     unsigned int prev_in_mode_valid  : 1;
     unsigned int prev_out_mode_valid : 1;
     DWORD        prev_in_mode;
@@ -216,6 +217,13 @@ char_stdio_close(void *priv)
     char_stdio_t *dev = (char_stdio_t *) priv;
 
     /* Resume logging to stdout if it had been stopped. */
+#ifdef _WIN32
+    if (dev->stdout_redirected) {
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+        CloseHandle(dev->fd_out);
+    } else
+#endif
     if (dev->prev_log) {
         fclose(stdlog);
         stdlog = dev->prev_log;
@@ -309,9 +317,16 @@ char_stdio_init(const device_t *info)
         /* Spawn a console if one isn't present. (GUI executable) */
         char_stdio_log(dev->log, "No Windows console, spawning one\n");
         pc_debug_console();
-        dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
+        dev->fd_in  = GetStdHandle(STD_INPUT_HANDLE);
+        dev->fd_out = CreateFileA("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+        if (CHAR_FD_VALID(dev->fd_out))
+            dev->stdout_redirected = 1;
+        else
+            goto use_stdout;
+    } else {
+use_stdout:
+        dev->fd_out = GetStdHandle(STD_OUTPUT_HANDLE);
     }
-    dev->fd_out = GetStdHandle(STD_OUTPUT_HANDLE);
 
     /* Set console title. */
     if (CHAR_FD_VALID(dev->fd_in) || CHAR_FD_VALID(dev->fd_out)) {
@@ -388,7 +403,7 @@ char_stdio_init(const device_t *info)
                             /* Determine command to execute. */
                             const char *cmd;
                             if (mode == CHAR_STDIO_MODE_TERM) {
-                                cmd = "eval $PIPECMD";
+                                cmd = "sh -c \"$PIPECMD\";reset;clear";
                             } else {
                                 cmd = device_get_config_string("command");
                                 if (!cmd || !cmd[0]) {
@@ -426,7 +441,7 @@ char_stdio_init(const device_t *info)
             err = errno;
             char_stdio_log(dev->log, "posix_openpt failed (%d)\n", err);
 errmsg:
-            snprintf(msg, sizeof(msg), "%s: Could not create pseudoterminal: %s", dev->port->name, strerror(err));
+            snprintf(msg, sizeof(msg), "%s: Could not create terminal: %s", dev->port->name, strerror(err));
             ui_msgbox(MBX_ERROR, msg);
             close(dev->fd_out);
             dev->fd_out = -1;
@@ -472,7 +487,12 @@ errmsg:
         char_stdio_log(dev->log, "Disconnecting logging from stdout\n");
         dev->prev_log = stdlog;
 #ifdef _WIN32
-        stdlog = plat_fopen("NUL", "w");
+        if (dev->stdout_redirected) {
+            freopen("NUL", "w", stdout);
+            freopen("NUL", "w", stderr);
+        } else {
+            stdlog = plat_fopen("NUL", "w");
+        }
 #else
         stdlog = plat_fopen("/dev/null", "w");
 #endif

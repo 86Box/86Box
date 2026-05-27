@@ -78,15 +78,6 @@ static const device_config_t prosignias31x_config[] = {
                 .size          = 262144,
                 .files         = { "roms/machines/prosignias31x_bx/p6bxt-a-56-6990cdf1659c7829277668.bin", "" }
             },
-            {
-                .name          = "Phoenix - AwardBIOS v6.00PG - Unofficial Version 6.0 (by rushieda)",
-                .internal_name = "p6bxt_600pg",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/prosignias31x_bx/p6bxtap-600-67b8bfdce5de3470118202.bin", "" }
-            },
             { .files_no = 0 }
         }
     },

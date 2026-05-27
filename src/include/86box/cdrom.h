@@ -157,6 +157,8 @@ static const struct cdrom_drive_types_s {
     { "LITE-ON",  "LTN48125S",        "1S07", "liteon_48125s",  BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  2 } },
     /* Confirmed to be 52x, was the basis for deducing the other one's speed. */
     { "LITE-ON",  "LTN526D",          "YSR5", "liteon_526d",    BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  2 } },
+    /* TODO: Version is from the CR-581-M, find an IDENTIFY and/or INQUIRY dup of te CR-581-M. */
+    { "MATSHITA", "CD-ROM CR-581-B",  "1.05", "matshita_581",   BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  4,  2,  2, -1 } },
     { "MATSHITA", "CD-ROM CR-583",    "1.07", "matshita_583",   BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  4,  2,  2, -1 } },
     { "MATSHITA", "CD-ROM CR-585",    "Z18P", "matshita_585",   BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2, -1 } },
     { "MATSHITA", "CD-ROM CR-587",    "7S13", "matshita_587",   BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2, -1 } },

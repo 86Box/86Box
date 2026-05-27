@@ -295,7 +295,9 @@ xga_render_blank(svga_t *svga)
 {
     xga_t *xga = (xga_t *) svga->xga;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->firstline_draw == 2000)
@@ -2791,7 +2793,9 @@ xga_hwcursor_draw(svga_t *svga, int displine)
 static void
 xga_render_overscan_left(xga_t *xga, svga_t *svga)
 {
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->scrblank || (xga->h_disp == 0))
@@ -2807,7 +2811,9 @@ xga_render_overscan_right(xga_t *xga, svga_t *svga)
 {
     int right;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->scrblank || (xga->h_disp == 0))
@@ -2826,7 +2832,9 @@ xga_render_4bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -2871,7 +2879,9 @@ xga_render_8bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -2909,7 +2919,9 @@ xga_render_16bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {

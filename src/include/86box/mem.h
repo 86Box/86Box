@@ -254,7 +254,6 @@ typedef struct _page_ {
 #endif
 
 extern uint8_t *ram;
-extern uint8_t *ram2;
 extern uint32_t rammask;
 
 extern uint8_t *rom;

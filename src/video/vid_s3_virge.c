@@ -101,7 +101,8 @@ enum {
     S3_VIRGE_GX,
     S3_VIRGE_GX2,
     S3_DIAMOND_STEALTH3D_4000,
-    S3_TRIO_3D2X
+    S3_TRIO_3D2X,
+    S3_VIRGE_USE_CONFIG_BIOS
 };
 
 enum {
@@ -5331,10 +5332,14 @@ s3_virge_init(const device_t *info)
     reset_state         = calloc(1, sizeof(virge_t));
     uint32_t    local   = info->local;
 
-    if (local == 0x00000000)
+    if (local == S3_VIRGE_USE_CONFIG_BIOS)
         local = device_get_bios_local(info, device_get_config_bios("bios"));
 
     virge->type = (local & 0xff);
+
+    const uint64_t bios_flags = (info->local == S3_VIRGE_USE_CONFIG_BIOS) ?
+                                device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                0x0000000000000000ULL;
 
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
@@ -5346,6 +5351,8 @@ s3_virge_init(const device_t *info)
         virge->memory_size = 2;
     else
         virge->memory_size = device_get_config_int("memory");
+
+    video_clamp_vram(bios_flags, &virge->memory_size);
 
     virge->color_key_enabled = !!device_get_config_int("colorkey");
     virge->onboard = !!(local & 0x100);
@@ -6200,7 +6207,7 @@ const device_t s3_virge_pci_device = {
     .name          = "S3 ViRGE PCI",
     .internal_name = "virge_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = S3_VIRGE_USE_CONFIG_BIOS,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
@@ -6228,7 +6235,7 @@ const device_t s3_virge_vx_pci_device = {
     .name          = "S3 ViRGE/VX PCI",
     .internal_name = "virge_vx_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = S3_VIRGE_USE_CONFIG_BIOS,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
@@ -6242,7 +6249,7 @@ const device_t s3_virge_dx_pci_device = {
     .name          = "S3 ViRGE/DX PCI",
     .internal_name = "virge_dx_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = S3_VIRGE_USE_CONFIG_BIOS,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,

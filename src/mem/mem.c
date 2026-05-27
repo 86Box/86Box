@@ -70,7 +70,6 @@ page_t  *pages;       /* RAM page table */
 uint32_t pages_sz;    /* #pages in table */
 
 uint8_t *ram;  /* the virtual RAM */
-uint8_t *ram2; /* the virtual RAM */
 uint8_t  page_ff[4096];
 uint32_t rammask;
 uint32_t addr_space_size;
@@ -1810,45 +1809,6 @@ mem_read_raml(uint32_t addr, UNUSED(void *priv))
     return *(uint32_t *) &ram[addr];
 }
 
-uint8_t
-mem_read_ram_2gb(uint32_t addr, UNUSED(void *priv))
-{
-#ifdef ENABLE_MEM_LOG
-    if ((addr >= 0xa0000) && (addr <= 0xbffff))
-        mem_log("Read  B       %02X from %08X\n", ram[addr], addr);
-#endif
-
-    addreadlookup(mem_logical_addr, addr);
-
-    return ram2[addr - (1 << 30)];
-}
-
-uint16_t
-mem_read_ram_2gbw(uint32_t addr, UNUSED(void *priv))
-{
-#ifdef ENABLE_MEM_LOG
-    if ((addr >= 0xa0000) && (addr <= 0xbffff))
-        mem_log("Read  W     %04X from %08X\n", *(uint16_t *) &ram[addr], addr);
-#endif
-
-    addreadlookup(mem_logical_addr, addr);
-
-    return *(uint16_t *) &ram2[addr - (1 << 30)];
-}
-
-uint32_t
-mem_read_ram_2gbl(uint32_t addr, UNUSED(void *priv))
-{
-#ifdef ENABLE_MEM_LOG
-    if ((addr >= 0xa0000) && (addr <= 0xbffff))
-        mem_log("Read  L %08X from %08X\n", *(uint32_t *) &ram[addr], addr);
-#endif
-
-    addreadlookup(mem_logical_addr, addr);
-
-    return *(uint32_t *) &ram2[addr - (1 << 30)];
-}
-
 #ifdef USE_NEW_DYNAREC
 static inline int
 page_index(page_t *page)
@@ -2922,7 +2882,6 @@ mem_init(void)
 {
     /* Perform a one-time init. */
     ram = rom = NULL;
-    ram2      = NULL;
     pages     = NULL;
 }
 

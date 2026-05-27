@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-14 08:00+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-05-24 12:01+0000\n"
+"Last-Translator: Canadew <chun-awa@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -65,7 +65,7 @@ msgid "Re&nderer"
 msgstr "渲染器(&N)"
 
 msgid "&Qt (Software)"
-msgstr "Qt (软件)(&Q)"
+msgstr "Qt (软渲)(&Q)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0 Core)(&G)"
@@ -437,7 +437,7 @@ msgid "Video:"
 msgstr "显卡:"
 
 msgid "Video #2:"
-msgstr "显卡 2:"
+msgstr "显卡 #2:"
 
 msgid "Monitor"
 msgstr "显示器"
@@ -650,7 +650,7 @@ msgid "Turbo timings"
 msgstr "加速时序"
 
 msgid "Check BPB"
-msgstr "检查 BPB"
+msgstr "检查 BIOS 参数块 (BPB)"
 
 msgid "CD-ROM drives"
 msgstr "光盘驱动器"
@@ -1052,10 +1052,17 @@ msgid "Invalid configuration"
 msgstr "无效配置"
 
 msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
+msgstr ""
+"需要 %1 库将 PostScript 文件转换为 PDF。\n"
+"\n"
+"使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
 
 msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 是将 PCL 文件转换为 PDF 所需要的库。\n\n使用通用 PCL 打印机打印的文档将被保存为 Printer Command Language (.pcl) 文件。"
+msgstr ""
+"需要 %1 库将 PCL 文件转换为 PDF。\n"
+"\n"
+"使用通用 PCL 打印机打印的文档将被保存为 Printer Command Language (.pcl) "
+"文件。"
 
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
@@ -1715,10 +1722,10 @@ msgid "NIC:"
 msgstr "网卡:"
 
 msgid "NIC %1 (%2) %3"
-msgstr "NIC %1 (%2) %3"
+msgstr "网卡 %1 (%2) %3"
 
 msgid "&NIC %1 (%2) %3"
-msgstr "NIC %1 (%2) %3(&N)"
+msgstr "网卡 %1 (%2) %3(&N)"
 
 msgid "Render behavior"
 msgstr "渲染行为"
@@ -1757,7 +1764,9 @@ msgid "Error initializing OpenGL"
 msgstr "初始化 OpenGL 时出错"
 
 msgid "\nFalling back to software rendering."
-msgstr "\n回到软件渲染。"
+msgstr ""
+"\n"
+"退回到软件渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>选择媒体镜像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
@@ -1781,10 +1790,10 @@ msgid "No MCA devices."
 msgstr "无 MCA 设备。"
 
 msgid "MiB"
-msgstr "兆字节"
+msgstr "MiB"
 
 msgid "GiB"
-msgstr "吉字节"
+msgstr "GiB"
 
 msgid "Adapter 1"
 msgstr "适配器 1"
@@ -2285,10 +2294,10 @@ msgid "Font"
 msgstr "字体"
 
 msgid "Bilinear filtering"
-msgstr "双线性滤波"
+msgstr "双线性过滤"
 
 msgid "Video chroma-keying"
-msgstr "视频色键透明处理"
+msgstr "视频色键抠像"
 
 msgid "Dithering"
 msgstr "抖动"
@@ -2639,13 +2648,13 @@ msgid "Generic PCL Printer"
 msgstr "通用 PCL 打印机"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "Parallel Line Internet Protocol"
+msgstr "并行线路因特网协议"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest 保护加密狗"
 
 msgid "Loopback Plug"
-msgstr "环回插头"
+msgstr "回环插头"
 
 msgid "Serial Passthrough"
 msgstr "串口直通"

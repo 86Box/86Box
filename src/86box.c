@@ -400,7 +400,7 @@ void
 pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
 {
 #ifndef RELEASE_BUILD
-    char temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
 
     if (!fmt || !fmt[0])
         return;
@@ -421,6 +421,8 @@ pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
     }
 
     fflush(stdlog);
+
+    free(temp);
 #endif
 }
 
@@ -475,7 +477,7 @@ always_log(const char *fmt, ...)
 void
 fatal(const char *fmt, ...)
 {
-    char    temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
     va_list ap;
     char   *sp;
 
@@ -491,7 +493,13 @@ fatal(const char *fmt, ...)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
     fflush(stdlog);
     va_end(ap);
 
@@ -500,10 +508,6 @@ fatal(const char *fmt, ...)
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
 #endif
-
-    /* Make sure the message does not have a trailing newline. */
-    if ((sp = strchr(temp, '\n')) != NULL)
-        *sp = '\0';
 
     do_pause(2);
 
@@ -514,6 +518,7 @@ fatal(const char *fmt, ...)
     do_stop();
 
     fflush(stdlog);
+    free(temp);
 
     exit(-1);
 }
@@ -534,7 +539,13 @@ fatal_ex(const char *fmt, va_list ap)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL)
+        *sp = '\0';
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
     fflush(stdlog);
 
     nvr_save();
@@ -542,10 +553,6 @@ fatal_ex(const char *fmt, va_list ap)
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
 #endif
-
-    /* Make sure the message does not have a trailing newline. */
-    if ((sp = strchr(temp, '\n')) != NULL)
-        *sp = '\0';
 
     do_pause(2);
 
@@ -562,7 +569,7 @@ fatal_ex(const char *fmt, va_list ap)
 void
 warning(const char *fmt, ...)
 {
-    char    temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
     va_list ap;
     char   *sp;
 
@@ -578,21 +585,24 @@ warning(const char *fmt, ...)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
-    if (pclog_hook)
-        pclog_hook(temp);
-    fflush(stdlog);
-    va_end(ap);
 
     /* Make sure the message does not have a trailing newline. */
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
+    if (pclog_hook)
+        pclog_hook(temp);
+    fflush(stdlog);
+    va_end(ap);
 
     do_pause(2);
 
     ui_msgbox(MBX_ERROR, temp);
 
     fflush(stdlog);
+    free(temp);
 
     do_pause(0);
 }
@@ -600,7 +610,7 @@ warning(const char *fmt, ...)
 void
 warning_ex(const char *fmt, va_list ap)
 {
-    char  temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
     char *sp;
 
     if (stdlog == NULL) {
@@ -613,18 +623,22 @@ warning_ex(const char *fmt, va_list ap)
     }
 
     vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
-    fflush(stdlog);
 
     /* Make sure the message does not have a trailing newline. */
     if ((sp = strchr(temp, '\n')) != NULL)
         *sp = '\0';
+
+
+    /* Re-add the newline into the log. */
+    fprintf(stdlog, "%s\n", temp);
+    fflush(stdlog);
 
     do_pause(2);
 
     ui_msgbox(MBX_ERROR, temp);
 
     fflush(stdlog);
+    free(temp);
 
     do_pause(0);
 }

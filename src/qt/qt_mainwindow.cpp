@@ -388,7 +388,12 @@ MainWindow::MainWindow(QWidget *parent)
     emit updateMenuResizeOptions();
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
+        const int old_mouse_capture = mouse_capture;
         mouse_capture = state ? 1 : 0;
+
+        if (mouse_capture == old_mouse_capture)
+            return;
+
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
             if (hook_enabled)
