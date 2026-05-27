@@ -719,7 +719,7 @@ const device_config_t vid_1512_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "PC-CM (Colour)",     .value = 0 },
+            { .description = "PC-CM (Color)",      .value = 0 },
             { .description = "PC-MM (Monochrome)", .value = 3 },
             { .description = ""                               }
         },
