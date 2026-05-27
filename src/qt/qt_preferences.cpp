@@ -124,6 +124,8 @@ Preferences *Preferences::preferences = nullptr;
 Preferences::CustomTranslator *Preferences::translator   = nullptr;
 QTranslator                   *Preferences::qtTranslator = nullptr;
 
+bool Preferences::translationsLoaded = false;
+
 QVector<QPair<QString, QString>> Preferences::languages = {
     { "system", "(System Default)"         },
     { "ca-ES",  "Català"                   },
@@ -375,6 +377,7 @@ Preferences::loadTranslators(QObject *parent)
         if (QCoreApplication::installTranslator(qtTranslator))
             qDebug() << "Qt translations loaded.";
     }
+    translationsLoaded = true;
 }
 
 bool

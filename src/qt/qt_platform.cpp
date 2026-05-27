@@ -865,8 +865,11 @@ Preferences::reloadStrings()
 char *
 plat_get_string(int i)
 {
-    if (Preferences::translatedstrings.empty())
+    if (Preferences::translatedstrings.empty()) {
+        if (!Preferences::translationsLoaded)
+            Preferences::loadTranslators(QCoreApplication::instance());
         Preferences::reloadStrings();
+    }
 
     return Preferences::translatedstrings[i].data();
 }
