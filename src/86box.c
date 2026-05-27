@@ -399,7 +399,7 @@ void
 pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
 {
 #ifndef RELEASE_BUILD
-    char temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
 
     if (!fmt || !fmt[0])
         return;
@@ -420,6 +420,8 @@ pclog_ex(UNUSED(const char *fmt), UNUSED(va_list ap))
     }
 
     fflush(stdlog);
+
+    free(temp);
 #endif
 }
 
@@ -474,7 +476,7 @@ always_log(const char *fmt, ...)
 void
 fatal(const char *fmt, ...)
 {
-    char    temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
     va_list ap;
     char   *sp;
 
@@ -515,6 +517,7 @@ fatal(const char *fmt, ...)
     do_stop();
 
     fflush(stdlog);
+    free(temp);
 
     exit(-1);
 }
@@ -565,7 +568,7 @@ fatal_ex(const char *fmt, va_list ap)
 void
 warning(const char *fmt, ...)
 {
-    char    temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
     va_list ap;
     char   *sp;
 
@@ -598,6 +601,7 @@ warning(const char *fmt, ...)
     ui_msgbox(MBX_ERROR, temp);
 
     fflush(stdlog);
+    free(temp);
 
     do_pause(0);
 }
@@ -605,7 +609,7 @@ warning(const char *fmt, ...)
 void
 warning_ex(const char *fmt, va_list ap)
 {
-    char  temp[LOG_SIZE_BUFFER];
+    char *temp = calloc(1, LOG_SIZE_BUFFER);
     char *sp;
 
     if (stdlog == NULL) {
@@ -633,6 +637,7 @@ warning_ex(const char *fmt, va_list ap)
     ui_msgbox(MBX_ERROR, temp);
 
     fflush(stdlog);
+    free(temp);
 
     do_pause(0);
 }
