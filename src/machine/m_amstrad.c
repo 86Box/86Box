@@ -1878,7 +1878,7 @@ const device_config_t vid_200_config[] = {
         .spinner        = { 0 },
         .selection      = {
             { .description = "US English", .value = 3 },
-            { .description = "Portugese",  .value = 2 },
+            { .description = "Portuguese", .value = 2 },
             { .description = "Norwegian",  .value = 1 },
             { .description = "Greek",      .value = 0 },
             { .description = ""                       }
