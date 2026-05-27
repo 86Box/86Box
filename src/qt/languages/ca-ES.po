@@ -1525,8 +1525,8 @@ msgstr "Fitxers VHD"
 msgid "Select the parent VHD"
 msgstr "Escolliu el VHD pare"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Això podria significar que la imatge pare es va modificar després de que es creés la imatge diferencial.\n\nTambé pot passar si les imatges han sigut mogudes o copiades, o a causa d'un error all programa que va crear aquest disc.\n\nVoleu corregir les marques de temps?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Les marques de temps del pare e fill no coincideixen. Això podria significar que la imatge pare es va modificar després de que es creés la imatge diferencial.\n\nTambé pot passar si les imatges han sigut mogudes o copiades, o a causa d'un error all programa que va crear aquest disc.\n\nVoleu corregir les marques de temps?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Les marques de temps del pare e fill no coincideixen"

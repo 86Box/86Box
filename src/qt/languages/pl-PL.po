@@ -1536,8 +1536,8 @@ msgstr "Pliki VHD"
 msgid "Select the parent VHD"
 msgstr "Wybierz nadrzędny plik VHD"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Może to oznaczać, że obraz nadrzędny został zmodyfikowany po utworzeniu obrazu różnicowego.\n\nMoże się to również zdarzyć, jeśli pliki obrazów zostały przeniesione lub skopiowane, lub wystąpił błąd w programie, który utworzył ten dysk.\n\nCzy chcesz naprawić sygnatury czasowe?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Sygnatury czasowe dysku nadrzędnego i podrzędnego nie zgadzają się. Może to oznaczać, że obraz nadrzędny został zmodyfikowany po utworzeniu obrazu różnicowego.\n\nMoże się to również zdarzyć, jeśli pliki obrazów zostały przeniesione lub skopiowane, lub wystąpił błąd w programie, który utworzył ten dysk.\n\nCzy chcesz naprawić sygnatury czasowe?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Sygnatury czasowe dysku nadrzędnego i podrzędnego nie zgadzają się"

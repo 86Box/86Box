@@ -1525,8 +1525,8 @@ msgstr "VHD-bestanden"
 msgid "Select the parent VHD"
 msgstr "Selecteer de bovenliggende VHD"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Dit kan betekenen dat de bovenliggende image is gewijzigd nadat de verschil-image is gemaakt.\n\nDit kan ook gebeuren als de imagebestanden zijn verplaatst of gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt.\n\nWil je de tijdstempels herstellen?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen. Dit kan betekenen dat de bovenliggende image is gewijzigd nadat de verschil-image is gemaakt.\n\nDit kan ook gebeuren als de imagebestanden zijn verplaatst of gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt.\n\nWil je de tijdstempels herstellen?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen"

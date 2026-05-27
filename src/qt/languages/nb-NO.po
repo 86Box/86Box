@@ -1529,8 +1529,8 @@ msgstr "VHD-filer"
 msgid "Select the parent VHD"
 msgstr "Velg overordnet VHD"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Dette kan bety at det overordnede bildet ble endret etter at differansebildet ble opprettet.\n\nDet kan også skje hvis bildefilene ble flyttet eller kopiert, eller på grunn av en feil i programmet som opprettet denne disken.\n\nVil du rette tidsstemplene?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Tidsstemplene til overordnet og underordnet disk samsvarer ikke. Dette kan bety at det overordnede bildet ble endret etter at differansebildet ble opprettet.\n\nDet kan også skje hvis bildefilene ble flyttet eller kopiert, eller på grunn av en feil i programmet som opprettet denne disken.\n\nVil du rette tidsstemplene?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Tidsstemplene til overordnet og underordnet disk samsvarer ikke"

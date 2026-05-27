@@ -1525,8 +1525,8 @@ msgstr "Fichiers VHD"
 msgid "Select the parent VHD"
 msgstr "Sélectionnez le VHD parent"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Il est possible que l'image parente ai été modifiée après la création de l'image différentielle.\n\nIl est même possible que les fichiers de l’image ont été déplacés ou copiés ou il existe un bogue dans le programme qui a créé ce disque.\n\nVoulez-vous réparer l'horodatage ?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Les horodatages des disques parents et enfants ne correspondent pas. Il est possible que l'image parente ai été modifiée après la création de l'image différentielle.\n\nIl est même possible que les fichiers de l’image ont été déplacés ou copiés ou il existe un bogue dans le programme qui a créé ce disque.\n\nVoulez-vous réparer l'horodatage ?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Les horodatages des disques parents et enfants ne correspondent pas"

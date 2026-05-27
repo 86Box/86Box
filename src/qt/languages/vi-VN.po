@@ -1521,8 +1521,8 @@ msgstr "File VHD"
 msgid "Select the parent VHD"
 msgstr "Chọn file VHD cha (parent)"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Ở đây tức là ảnh đĩa cha (parent) có thể đã bị chỉnh sửa sau khi ảnh đĩa đa chủng (differencing image) được tạo ra.\n\nCũng có thể do ảnh đĩa bị chuyển đi hay bị copy, hoặc do bug/lỗi của phần mềm tạo ảnh đĩa gây ra.\n\nBạn có muốn sửa lại mốc thời gian (timestamp) không?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Mốc timestamp của đĩa con (child) và đĩa cha (parent) không trùng khớp. Ở đây tức là ảnh đĩa cha (parent) có thể đã bị chỉnh sửa sau khi ảnh đĩa đa chủng (differencing image) được tạo ra.\n\nCũng có thể do ảnh đĩa bị chuyển đi hay bị copy, hoặc do bug/lỗi của phần mềm tạo ảnh đĩa gây ra.\n\nBạn có muốn sửa lại mốc thời gian (timestamp) không?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Mốc timestamp của đĩa con (child) và đĩa cha (parent) không trùng khớp"

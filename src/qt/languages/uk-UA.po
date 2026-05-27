@@ -1538,8 +1538,8 @@ msgstr "Файли VHD"
 msgid "Select the parent VHD"
 msgstr "Виберіть батьківський VHD"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Це може означати, що батьківський образ був змінений після того, як було створено диференційований образ.\n\nЦе також може статися, якщо файли зображення були переміщені або скопійовані, або через помилку в програмі, що створила цей диск.\n\nВи хочете виправити тимчасові позначки?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Тимчасові мітки батьківського та дочірнього дисків не співпадають. Це може означати, що батьківський образ був змінений після того, як було створено диференційований образ.\n\nЦе також може статися, якщо файли зображення були переміщені або скопійовані, або через помилку в програмі, що створила цей диск.\n\nВи хочете виправити тимчасові позначки?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Тимчасові мітки батьківського та дочірнього дисків не співпадають"

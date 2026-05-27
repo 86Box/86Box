@@ -1521,8 +1521,8 @@ msgstr "VHD 파일"
 msgid "Select the parent VHD"
 msgstr "부모 VHD 선택"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "이는 디퍼런싱 이미지가 생성된 후 부모 이미지가 수정되었음을 의미할 수 있습니다.\n\n이미지 파일이 이동 또는 복사된 경우 또는 이 디스크를 만든 프로그램의 버그로 인해 발생할 수도 있습니다.\n\n타임스탬프를 수정하시겠습니까?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "부모 디스크와 자식 디스크의 타임스탬프가 일치하지 않습니다. 이는 디퍼런싱 이미지가 생성된 후 부모 이미지가 수정되었음을 의미할 수 있습니다.\n\n이미지 파일이 이동 또는 복사된 경우 또는 이 디스크를 만든 프로그램의 버그로 인해 발생할 수도 있습니다.\n\n타임스탬프를 수정하시겠습니까?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "부모 디스크와 자식 디스크의 타임스탬프가 일치하지 않습니다"

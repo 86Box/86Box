@@ -1520,7 +1520,7 @@ msgstr ""
 msgid "Select the parent VHD"
 msgstr ""
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
 msgstr ""
 
 msgid "Parent and child disk timestamps do not match"

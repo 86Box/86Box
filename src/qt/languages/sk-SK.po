@@ -1540,8 +1540,8 @@ msgstr "Súbory VHD"
 msgid "Select the parent VHD"
 msgstr "Vyberte nadradený virtuálny disk"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "To môže znamenať, že sa obsahy nadradeného disku zmenili po vytvorení rozdielového disku.\n\nTáto chyba tiež môže nastať, ak bol obraz disku kopírovaný alebo presunutý, alebo kvôli chybe v programe, ktorý ho vytvoril.\n\nChcete časové pečiatky opraviť?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Časové pečiatky nadradeného a podradeného disku nesúhlasia. To môže znamenať, že sa obsahy nadradeného disku zmenili po vytvorení rozdielového disku.\n\nTáto chyba tiež môže nastať, ak bol obraz disku kopírovaný alebo presunutý, alebo kvôli chybe v programe, ktorý ho vytvoril.\n\nChcete časové pečiatky opraviť?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Časové pečiatky nadradeného a podradeného disku nesúhlasia"
