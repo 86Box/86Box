@@ -2812,33 +2812,6 @@ msgstr ""
 msgid "Virtual Console"
 msgstr ""
 
-msgid "Passthrough Mode"
-msgstr "Geçiş Modu"
-
-msgid "Host Serial Device"
-msgstr ""
-
-msgid "Name of pipe"
-msgstr "Boru adı"
-
-msgid "Data bits"
-msgstr "Veri bitleri"
-
-msgid "Stop bits"
-msgstr "Dur bitleri"
-
-msgid "Baud Rate of Passthrough"
-msgstr "Geçişin Baud Hızı"
-
-msgid "Named Pipe (Server)"
-msgstr " ()"
-
-msgid "Named Pipe (Client)"
-msgstr "Adlandırılmış Boru ()"
-
-msgid "Host Serial Passthrough"
-msgstr "Ana Sistem Seri Geçişi"
-
 msgid "E&ject %1"
 msgstr "%1 görüntüsünü &çıkar"
 
