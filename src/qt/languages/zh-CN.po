@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-24 12:01+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-05-28 17:34+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -1464,31 +1464,31 @@ msgid "Unsupported disk image"
 msgstr "不支持的磁盘映像"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "无法读取设备"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
-msgstr ""
+msgstr "无法获取块设备大小，请确认访问权限。"
 
 msgid "Device too large"
-msgstr ""
+msgstr "设备过大"
 
 msgid "Block device is too large to be used as a hard disk."
 msgstr ""
 
 msgid "Block device detected"
-msgstr ""
+msgstr "检测到块设备"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "写入磁盘镜像失败。"
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "读取磁盘镜像失败。"
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "磁盘镜像创建成功。"
 
 msgid "Raw image"
 msgstr "原始映像"
@@ -2711,13 +2711,13 @@ msgid "Named Pipe"
 msgstr "命名管道"
 
 msgid "Output file"
-msgstr ""
+msgstr "输出文件"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "当文件存在时，附加到文件尾"
 
 msgid "Input file"
-msgstr ""
+msgstr "输入文件"
 
 msgid "Loop input file"
 msgstr ""
@@ -2744,7 +2744,7 @@ msgid "FIFO / terminal"
 msgstr ""
 
 msgid "Mode"
-msgstr ""
+msgstr "模式"
 
 msgid "Server"
 msgstr "服务器"
@@ -2753,25 +2753,25 @@ msgid "Client"
 msgstr "客户端"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "自动重新连接"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "使用标准输入输出"
 
 msgid "Create pseudoterminal"
 msgstr ""
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "启动终端模拟器"
 
 msgid "Run custom command"
 msgstr ""
 
 msgid "Custom command"
-msgstr ""
+msgstr "自定义指令"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "在终端中运行自定义指令"
 
 msgid "Virtual Console"
 msgstr ""
@@ -3170,7 +3170,7 @@ msgid "System Default"
 msgstr "系统默认"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "无法打开镜像或文件夹：“%s”。"
 
 msgid "Unable to open cue sheet \"%s\"."
 msgstr ""
@@ -3203,7 +3203,7 @@ msgid "%s: Could not create terminal: %s"
 msgstr ""
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "自动检测"
 
 msgid "Channel"
 msgstr ""
@@ -3218,7 +3218,7 @@ msgid "Right Channel"
 msgstr ""
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "允许刷写BIOS更新"
 
 msgid "Slot #"
 msgstr ""
@@ -3227,7 +3227,7 @@ msgid "Parallel Port"
 msgstr ""
 
 msgid "Paper Size"
-msgstr ""
+msgstr "纸张尺寸"
 
 msgid "Legal (sideways)"
 msgstr ""
@@ -3266,10 +3266,10 @@ msgid "Diagnostic mode"
 msgstr ""
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA监视器"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA监视器"
 
 msgid "Television"
 msgstr ""
@@ -3302,7 +3302,7 @@ msgid "2048 MB"
 msgstr ""
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "刷新率"
 
 msgid "US (CP 437)"
 msgstr ""
