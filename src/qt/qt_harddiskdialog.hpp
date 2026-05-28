@@ -39,6 +39,7 @@ private slots:
     void on_comboBoxBus_currentIndexChanged(int index);
     void on_comboBoxFormat_currentIndexChanged(int index);
     void onCreateNewFile();
+    void onNewFileSelected(const QString &fileName);
     void onExistingFileSelected(const QString &fileName, bool precheck);
 
 private:

@@ -114,17 +114,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
         setWindowTitle(tr("Add New Hard Disk"));
         ui->fileField->setCreateFile(true);
 
-        // Enable the OK button as long as the filename length is non-zero
-        connect(ui->fileField, &FileField::fileTextEntered, this, [this] {
-            ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled((this->fileName().length() > 0));
-        });
-
-        connect(ui->fileField, &FileField::fileSelected, this, [this] {
-            int filter = filters.indexOf(ui->fileField->selectedFilter());
-            if (filter > -1)
-                ui->comboBoxFormat->setCurrentIndex(filter);
-            ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
-        });
+        connect(ui->fileField, &FileField::fileSelected, this, &HarddiskDialog::onNewFileSelected);
         // Set the default format to Dynamic-size VHD. Do it last after everything is set up
         // so the currentIndexChanged signal can do what is needed
         ui->comboBoxFormat->setCurrentIndex(DEFAULT_DISK_FORMAT);
@@ -580,8 +570,12 @@ HarddiskDialog::recalcSelection()
 }
 
 void
-HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
+HarddiskDialog::onNewFileSelected(const QString &fileName)
 {
+    int filter = filters.indexOf(ui->fileField->selectedFilter());
+    if (filter > -1)
+        ui->comboBoxFormat->setCurrentIndex(filter);
+
     QByteArray fileNameUtf8 = fileName.toUtf8();
 
     FILE *fp = plat_fopen(fileNameUtf8.data(), "rb");
@@ -591,6 +585,14 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
         if (btn == QMessageBox::No)
             return;
     }
+
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+}
+
+void
+HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
+{
+    QByteArray fileNameUtf8 = fileName.toUtf8();
 
     uint64_t size        = 0;
     uint32_t sector_size = 0;
