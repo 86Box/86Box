@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-13 07:02+0000\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
 "Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -1475,31 +1475,36 @@ msgid "Unsupported disk image"
 msgstr "Desteklenmeyen disk görüntüsü"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Cihaz okunamıyor"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Blok cihaz boyutu belirlenemedi. Bu cihaz için erişim izniniz olduğundan "
+"emin olun."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Cihaz fazla büyük"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Blok cihazı, sabit disk olarak kullanılması için fazla büyük."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Blok cihazı tespit edildi"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Tespit edilen blok cihazı: %1\n"
+"Boyut: %2 MB\n"
+"Geometri: &3 silindir, %4 kafa, %5 sektör"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Disk görüntüsüne yazma başarısız."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Disk görüntüsünü okuma başarısız."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Disk görüntüsü başarılı bir şekilde oluşturuldu."
 
 msgid "Raw image"
 msgstr "Ham görüntü"
@@ -2426,40 +2431,40 @@ msgid "Frame Address"
 msgstr "Çerçeve adresi"
 
 msgid "English"
-msgstr ""
+msgstr "İngilizce"
 
 msgid "English (US)"
-msgstr ""
+msgstr "İngilizce (ABD)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "İngilizce (Birleşik Krallık)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "İngilizce (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Almanca"
 
 msgid "French"
-msgstr ""
+msgstr "Fransızca"
 
 msgid "Spanish"
-msgstr ""
+msgstr "İspanyolca"
 
 msgid "Swedish"
-msgstr ""
+msgstr "İsveççe"
 
 msgid "Italian"
-msgstr ""
+msgstr "İtalyanca"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portekizce"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norveççe"
 
 msgid "Greek"
-msgstr ""
+msgstr "Yunanca"
 
 msgid "Danish"
 msgstr "Danca"
@@ -2747,40 +2752,40 @@ msgid "Named Pipe"
 msgstr "Adlandırılmış Boru"
 
 msgid "Output file"
-msgstr ""
+msgstr "Çıkış dosyası"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Varsa dosyaya iliştir"
 
 msgid "Input file"
-msgstr ""
+msgstr "Giriş dosyası"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Döngü giriş dosyası"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "STROBE sinyali gereksin"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Geri Döngü Tipi"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Paralel kablo"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Tek yönlü (8-bit) / LapLink (4-bit)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Çift yönlü (8-bit)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Boru yolu"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Mod"
 
 msgid "Server"
 msgstr "Sunucu"
@@ -2789,28 +2794,28 @@ msgid "Client"
 msgstr "İstemci"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Otomatik olarak yeniden bağlan"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Standart giriş/çıkışı kullan"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Pseudoterminal oluştur"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Terminal öykünücüsünü çalıştır"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Özel komut çalıştır"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Özel komut"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Terminalde özel komut çalıştır"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Sanal Konsol"
 
 msgid "E&ject %1"
 msgstr "%1 görüntüsünü &çıkar"
@@ -3212,154 +3217,158 @@ msgid "System Default"
 msgstr "Sistem Varsayılanı"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Görüntü veya dosya \"%s\" açılamıyor."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Cue sheet \"%s\" açılamıyor."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "MDS dosyası \"%s\" açılamıyor."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "CD-ROM görüntüsü \"%s\" yüklenemiyor."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Görüntü \"%s\" yüklenemiyor: Daemon Tools MDS v2 ve MDX görüntü desteği için "
+"zorunlu olan mdsx.so eksik."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"DVD görüntüsü \"%s\" DVD ortamını desteklemeyen bir sürücüye takıldı ve göz "
+"ardı edilecektir."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: %s'ye bağlanamadı: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: %s oluşturulamadı: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: %s'ye bağlandı"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Sanal konsol halen %s tarafından kullanılıyor"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Terminal oluşturulamadı: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Otomatik tespit"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanal"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Her İki Kanal"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Sol Kanal"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Sağ Kanal"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Flash BIOS güncellemelerine izin ver"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot #"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Paralel Bağlantı Noktası"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Kağıt Boyutu"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (yanlamasına)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (yanlamasına)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kalite"
 
 msgid "Draft"
-msgstr ""
+msgstr "Taslak"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "Mektup ('a yakın)"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Auto LF"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJ Klonu"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (Çok Renkli)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (Tek Renkli)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Beyaz Renkli"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Donanım yazı tipi"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnostik modu"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA monitörü"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA monitörü"
 
 msgid "Television"
-msgstr ""
+msgstr "Televizyon"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "LCD renklerini tersine çevir"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (CGA modu)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (MDA modu)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Devre dışı (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Etkin (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Test modu"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Yenileme hızı"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "ABD (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM İskandinav (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Çekçe Kamenicky (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Çekçe Kamenicky (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (Japonca)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (Geleneksel Çince)"
