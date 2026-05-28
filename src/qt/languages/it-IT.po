@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it-IT\n"
 "MIME-Version: 1.0\n"
@@ -1506,31 +1506,36 @@ msgid "Unsupported disk image"
 msgstr "Immagine disco non supportata"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Errore di lettura del dispositivo"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Non è stato possible determinare le dimensioni del dispositivo di blocco. "
+"Assicurarsi di avere il peremesso per accedere a questo dispositivo."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Dispositivo troppo grande"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Il dispositivo di blocco verrà utilizzato come un hard disk."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Dispositivo di blocco trovato"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Dispositivo di blocco trovato: %1\n"
+"Dimensioni: %2 MB\n"
+"Geometria: %3 cilindri, %4 testine, %5 settori"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Errore di scrittura dell'immagine di disco."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Errore di lettura dell'immagine di disco."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "L'immagine di disco è stata creata con successo."
 
 msgid "Raw image"
 msgstr "Immagine grezza"
@@ -2460,40 +2465,40 @@ msgid "Frame Address"
 msgstr "Indirizzo frame"
 
 msgid "English"
-msgstr ""
+msgstr "Inglese"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Inglese (Stati Uniti)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Inglese (Regno Unito)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Inglese (Canada)"
 
 msgid "German"
-msgstr ""
+msgstr "Tedesco"
 
 msgid "French"
-msgstr ""
+msgstr "Francese"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Spagnolo"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Svedese"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italiano"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portoghese"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norvegese"
 
 msgid "Greek"
-msgstr ""
+msgstr "Greco"
 
 msgid "Danish"
 msgstr "Danese"
@@ -2771,7 +2776,6 @@ msgstr "Supporto di protezione per Savage Quest"
 msgid "Loopback Plug"
 msgstr "Connettore loopback"
 
-#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Dispositivo passaggio porta seriale"
 
@@ -2782,40 +2786,40 @@ msgid "Named Pipe"
 msgstr "Pipe denominata"
 
 msgid "Output file"
-msgstr ""
+msgstr "File di uscita"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Appendere al file se esiste"
 
 msgid "Input file"
-msgstr ""
+msgstr "File di entrata"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Ripetere il file di entrata"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Esigere il segnale STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Tipo di loopback"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Cavo parallelo"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Unidirezionale (8-bit) / LapLink (4-bit)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Bidirezionale (8-bit)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Percorso del pipe"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminale"
 
 msgid "Mode"
-msgstr ""
+msgstr "Modo"
 
 msgid "Server"
 msgstr "Server"
@@ -2824,28 +2828,28 @@ msgid "Client"
 msgstr "Client"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Riconnettere automaticamente"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Utilizzare entrata/uscita standard"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Crea pseudoterminale"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Avvia emulatore del terminale"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Esegui comando personalizzato"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Comando personalizzato"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Esegui comando personalizzato nel terminale"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Console virtuale"
 
 msgid "E&ject %1"
 msgstr "&Espelli %1"
@@ -3269,154 +3273,158 @@ msgid "System Default"
 msgstr "Predefinito del sistema"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Impossibile aprire immagine o cartella \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Impossibile aprire il cue sheet \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Impossibile aprire il file MDS \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Impossibile aprire l'immagine CD-ROM \"%s\"."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Impossibile aprire l'immagine \"%s\": manca mdx.so, necessaria per il "
+"supporto delle immagini MDS v2 e MDX di Daemon Tools."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"L'immagine DVD \"%s\" è stata inserita in un lettore che non supporta i "
+"media DVD e sarà ignorata."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Impossibile connettersi a %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Impossibile creare %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Connesso a %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Console virtuale già in uso da parte di %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Impossibile creare il terminale: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Rilevamento automatico"
 
 msgid "Channel"
-msgstr ""
+msgstr "Canale"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Entrambi i canali"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Canale sinistro"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Canale destro"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Permetti aggiornamenti di BIOS via Flash"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot nr."
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Porta parallela"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Dimensioni di carta"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legale (orizzontale)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (orizzontale)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Qualità"
 
 msgid "Draft"
-msgstr ""
+msgstr "Bozza"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Quasi) Lettera"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Avanzamento automatico della riga"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Clone del PSSJ Tandy"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (a colori)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monocromatico)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Monocromatico bianco"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Carattere di hardware"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Modalità diagnostica"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Monitor CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Monitor MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Televisore"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Invertire i colori LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (modo CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (modo MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Disabilitato (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Abilitato (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Modalità di prova"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Frequenza di aggiornamento"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "Stati Uniti (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "Nordico IBM (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Ceco Kamenicky (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Ceco Kamenicky (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (giapponese)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (cinese tradizionale)"
