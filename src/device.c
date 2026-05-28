@@ -494,6 +494,36 @@ device_get_common_priv(void)
 }
 
 void
+device_close(const device_t *device)
+{
+    int16_t c;
+
+    for (c = (DEVICE_MAX - 1); c >= 0; c--) {
+        if (devices[c] == device) {
+#ifdef ENABLE_DEVICE_LOG
+            if (devices[c]->name)
+                device_log("Closing device: \"%s\"...\n", devices[c]->name);
+#endif
+            if (devices[c]->close != NULL)
+                devices[c]->close(device_priv[c]);
+            devices[c]     = NULL;
+            device_priv[c] = NULL;
+            break;
+        }
+    }
+
+    if (c >= 0)  for (int16_t d = c; d <= (DEVICE_MAX - 1); d++) {
+        if (d == (DEVICE_MAX - 1)) {
+            devices[d]     = NULL;
+            device_priv[d] = NULL;
+        } else {
+            devices[d]     = devices[d + 1];
+            device_priv[d] = device_priv[d + 1];
+        }
+    }
+}
+
+void
 device_close_all(void)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {

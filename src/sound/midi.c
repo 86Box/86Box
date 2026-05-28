@@ -25,6 +25,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/midi.h>
+#include <86box/sound.h>
 #include <86box/plat.h>
 
 #define MIDI_SYSEX_MAX_ITERATIONS 1000
@@ -37,6 +38,9 @@ static int midi_input_device_last     = 0;
 
 midi_t *midi_out = NULL;
 midi_t *midi_in  = NULL;
+
+const device_t *midi_out_device = NULL;
+const device_t *midi_in_device  = NULL;
 
 midi_in_handler_t *mih_first = NULL;
 midi_in_handler_t *mih_last = NULL;
@@ -153,8 +157,10 @@ midi_out_device_get_from_internal_name(char *s)
 void
 midi_out_device_init(void)
 {
-    if ((midi_output_device_current > 0) && midi_out_devices[midi_output_device_current].device)
-        device_add(midi_out_devices[midi_output_device_current].device);
+    if ((midi_output_device_current > 0) && midi_out_devices[midi_output_device_current].device) {
+        midi_out_device = midi_out_devices[midi_output_device_current].device;
+        device_add(midi_out_device);
+    }
     midi_output_device_last = midi_output_device_current;
 }
 
@@ -269,16 +275,32 @@ midi_in_device_get_from_internal_name(char *s)
 void
 midi_in_device_init(void)
 {
-    if ((midi_input_device_current > 0) && midi_in_devices[midi_input_device_current].device)
-        device_add(midi_in_devices[midi_input_device_current].device);
+    if ((midi_input_device_current > 0) && midi_in_devices[midi_input_device_current].device) {
+        midi_in_device = midi_in_devices[midi_input_device_current].device;
+        device_add(midi_in_device);
+    }
     midi_input_device_last = midi_input_device_current;
 }
 
 void
 midi_config_changed(void)
 {
+    if (midi_out_device) {
+        device_close(midi_out_device);
+        midi_out_device = NULL;
+    }
+
     midi_out_close();
+
+    if (midi_in_device) {
+        device_close(midi_in_device);
+        midi_in_device = NULL;
+    }
+
     midi_in_close();
+
+    closeal();
+    inital();
 
     midi_out_device_init();
     midi_in_device_init();
