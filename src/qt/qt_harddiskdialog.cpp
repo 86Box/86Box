@@ -114,7 +114,17 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
         setWindowTitle(tr("Add New Hard Disk"));
         ui->fileField->setCreateFile(true);
 
-        connect(ui->fileField, &FileField::fileSelected, this, &HarddiskDialog::onNewFileSelected);
+        // Enable the OK button as long as the filename length is non-zero
+        connect(ui->fileField, &FileField::fileTextEntered, this, [this] {
+            ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled((this->fileName().length() > 0));
+        });
+
+        connect(ui->fileField, &FileField::fileSelected, this, [this] {
+            int filter = filters.indexOf(ui->fileField->selectedFilter());
+            if (filter > -1)
+                ui->comboBoxFormat->setCurrentIndex(filter);
+            ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
+        });
         // Set the default format to Dynamic-size VHD. Do it last after everything is set up
         // so the currentIndexChanged signal can do what is needed
         ui->comboBoxFormat->setCurrentIndex(DEFAULT_DISK_FORMAT);
@@ -365,6 +375,14 @@ HarddiskDialog::onCreateNewFile()
         return;
     }
 
+    FILE *fp = plat_fopen(fileNameUtf8.data(), "rb");
+    if (fp != NULL) {
+        fclose(fp);
+        QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Disk image file already exists"), tr("The selected file will be overwritten. Are you sure you want to use it?"), QMessageBox::Yes | QMessageBox::No);
+        if (btn == QMessageBox::No)
+            return;
+    }
+
     for (auto &curObject : children()) {
         if (qobject_cast<QWidget *>(curObject))
             qobject_cast<QWidget *>(curObject)->setDisabled(true);
@@ -567,26 +585,6 @@ HarddiskDialog::recalcSelection()
         selection = 128;
     }
     ui->comboBoxType->setCurrentIndex(selection);
-}
-
-void
-HarddiskDialog::onNewFileSelected(const QString &fileName)
-{
-    int filter = filters.indexOf(ui->fileField->selectedFilter());
-    if (filter > -1)
-        ui->comboBoxFormat->setCurrentIndex(filter);
-
-    QByteArray fileNameUtf8 = fileName.toUtf8();
-
-    FILE *fp = plat_fopen(fileNameUtf8.data(), "rb");
-    if (fp != NULL) {
-        fclose(fp);
-        QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Disk image file already exists"), tr("The selected file will be overwritten. Are you sure you want to use it?"), QMessageBox::Yes | QMessageBox::No);
-        if (btn == QMessageBox::No)
-            return;
-    }
-
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
 }
 
 void
