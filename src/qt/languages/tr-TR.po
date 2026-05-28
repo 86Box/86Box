@@ -1474,11 +1474,32 @@ msgstr "Seçili dosyanın üzerine yazılacaktır. Bu dosyayı kullanmak istedi�
 msgid "Unsupported disk image"
 msgstr "Desteklenmeyen disk görüntüsü"
 
-msgid "Overwrite"
-msgstr "Üzerine yaz"
+msgid "Unable to read device"
+msgstr ""
 
-msgid "Don't overwrite"
-msgstr "Üzerine yazma"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr ""
+
+msgid "Device too large"
+msgstr ""
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr ""
+
+msgid "Block device detected"
+msgstr ""
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+
+msgid "Failed to write the disk image."
+msgstr ""
+
+msgid "Failed to read the disk image."
+msgstr ""
+
+msgid "The disk image has been successfully created."
+msgstr ""
 
 msgid "Raw image"
 msgstr "Ham görüntü"
@@ -2398,20 +2419,47 @@ msgstr "EMS 2 bellek büyüklüğü"
 msgid "Enable EMS"
 msgstr "EMS'yi etkinleştir"
 
-msgid "Enable EMS 1"
-msgstr "EMS 1'i etkinleştir"
-
-msgid "Enable EMS 2"
-msgstr "EMS 2'yi etkinleştir"
-
 msgid "Address for > 2 MB"
 msgstr "> 2 MB için adres"
 
 msgid "Frame Address"
 msgstr "Çerçeve adresi"
 
-msgid "USA"
-msgstr "ABD"
+msgid "English"
+msgstr ""
+
+msgid "English (US)"
+msgstr ""
+
+msgid "English (UK)"
+msgstr ""
+
+msgid "English (Canada)"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "Swedish"
+msgstr ""
+
+msgid "Italian"
+msgstr ""
+
+msgid "Portuguese"
+msgstr ""
+
+msgid "Norwegian"
+msgstr ""
+
+msgid "Greek"
+msgstr ""
 
 msgid "Danish"
 msgstr "Danca"
@@ -2608,9 +2656,6 @@ msgstr "Gri tonlu"
 msgid "Color"
 msgstr "Renk"
 
-msgid "U.S. English"
-msgstr "ABD İngilizcesi"
-
 msgid "Scandinavian"
 msgstr "İskandinav"
 
@@ -2695,11 +2740,83 @@ msgstr "Geri Döngü Adaptörü"
 msgid "Serial Passthrough"
 msgstr "Seri Geçiş Cihazı"
 
+msgid "Host serial device"
+msgstr "Ana sistemdeki seri cihaz"
+
+msgid "Named Pipe"
+msgstr "Adlandırılmış Boru"
+
+msgid "Output file"
+msgstr ""
+
+msgid "Append to file if it exists"
+msgstr ""
+
+msgid "Input file"
+msgstr ""
+
+msgid "Loop input file"
+msgstr ""
+
+msgid "Require STROBE signal"
+msgstr ""
+
+msgid "Loopback Type"
+msgstr ""
+
+msgid "Parallel cable"
+msgstr ""
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr ""
+
+msgid "Bidirectional (8-bit)"
+msgstr ""
+
+msgid "Pipe path"
+msgstr ""
+
+msgid "FIFO / terminal"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Server"
+msgstr "Sunucu"
+
+msgid "Client"
+msgstr "İstemci"
+
+msgid "Reconnect automatically"
+msgstr ""
+
+msgid "Use standard input/output"
+msgstr ""
+
+msgid "Create pseudoterminal"
+msgstr ""
+
+msgid "Start terminal emulator"
+msgstr ""
+
+msgid "Run custom command"
+msgstr ""
+
+msgid "Custom command"
+msgstr ""
+
+msgid "Run custom command in terminal"
+msgstr ""
+
+msgid "Virtual Console"
+msgstr ""
+
 msgid "Passthrough Mode"
 msgstr "Geçiş Modu"
 
 msgid "Host Serial Device"
-msgstr "Ana Sistemdeki Seri Cihaz"
+msgstr ""
 
 msgid "Name of pipe"
 msgstr "Boru adı"
@@ -2714,10 +2831,10 @@ msgid "Baud Rate of Passthrough"
 msgstr "Geçişin Baud Hızı"
 
 msgid "Named Pipe (Server)"
-msgstr "Adlandırılmış Boru (Sunucu)"
+msgstr " ()"
 
 msgid "Named Pipe (Client)"
-msgstr "Adlandırılmış Boru (İstemci)"
+msgstr "Adlandırılmış Boru ()"
 
 msgid "Host Serial Passthrough"
 msgstr "Ana Sistem Seri Geçişi"
@@ -2764,8 +2881,8 @@ msgstr "[Genel] 1998 (5400 RPM)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Genel] 2000 (7200 RPM)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "IBM 8514/A klonu (ISA)"
+msgid "IBM 8514/A clone"
+msgstr "IBM 8514/A klonu"
 
 msgid "Vendor"
 msgstr "Üretici"
@@ -3121,28 +3238,85 @@ msgstr "Ses çıkış aygıtı:"
 msgid "System Default"
 msgstr "Sistem Varsayılanı"
 
-msgid "Server"
+msgid "Unable to open image or folder \"%s\"."
 msgstr ""
 
-msgid "Client"
+msgid "Unable to open cue sheet \"%s\"."
 msgstr ""
 
-msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgid "Unable to open MDS file \"%s\"."
 msgstr ""
 
-msgid "Bidirectional (8-bit)"
+msgid "Unable to load CD-ROM image \"%s\"."
 msgstr ""
 
-msgid "DirectParallel FAST"
+msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 
-msgid "Clock 1"
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 
-msgid "Clock 2"
+msgid "%s: Could not connect to %s: %s"
 msgstr ""
 
-msgid "Plug and Play"
+msgid "%s: Could not create %s: %s"
+msgstr ""
+
+msgid "%s: Attached to %s"
+msgstr ""
+
+msgid "%s: Virtual console already in use by %s"
+msgstr ""
+
+msgid "%s: Could not create terminal: %s"
+msgstr ""
+
+msgid "Auto-detect"
+msgstr ""
+
+msgid "Channel"
+msgstr ""
+
+msgid "Both Channels"
+msgstr ""
+
+msgid "Left Channel"
+msgstr ""
+
+msgid "Right Channel"
+msgstr ""
+
+msgid "Allow Flash BIOS Updates"
+msgstr ""
+
+msgid "Slot #"
+msgstr ""
+
+msgid "Parallel Port"
+msgstr ""
+
+msgid "Paper Size"
+msgstr ""
+
+msgid "Legal (sideways)"
+msgstr ""
+
+msgid "B4 (sideways)"
+msgstr ""
+
+msgid "Quality"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "(Near) Letter"
+msgstr ""
+
+msgid "Auto LF"
+msgstr ""
+
+msgid "Tandy PSSJ Clone"
 msgstr ""
 
 msgid "PC-CM (Color)"
@@ -3151,28 +3325,10 @@ msgstr ""
 msgid "PC-MM (Monochrome)"
 msgstr ""
 
-msgid "US English"
+msgid "White Monochrome"
 msgstr ""
 
-msgid "Greek"
-msgstr ""
-
-msgid "English"
-msgstr ""
-
-msgid "German"
-msgstr ""
-
-msgid "French"
-msgstr ""
-
-msgid "Spanish"
-msgstr ""
-
-msgid "Swedish"
-msgstr ""
-
-msgid "Italian"
+msgid "Hardware font"
 msgstr ""
 
 msgid "Diagnostic mode"
@@ -3187,16 +3343,7 @@ msgstr ""
 msgid "Television"
 msgstr ""
 
-msgid "RGB"
-msgstr ""
-
-msgid "White Monochrome"
-msgstr ""
-
-msgid "Portuguese"
-msgstr ""
-
-msgid "Norwegian"
+msgid "Invert LCD colors"
 msgstr ""
 
 msgid "LCD (CGA mode)"
@@ -3211,40 +3358,19 @@ msgstr ""
 msgid "Enabled (350h)"
 msgstr ""
 
-msgid "RGB (IBM 5153)"
+msgid "Test mode"
 msgstr ""
 
-msgid "A (Font 16)"
+msgid "32 MB"
 msgstr ""
 
-msgid "B (Font 24)"
+msgid "64 MB"
 msgstr ""
 
-msgid "Letter"
+msgid "2048 MB"
 msgstr ""
 
-msgid "Legal (sideways)"
-msgstr ""
-
-msgid "B4 (sideways)"
-msgstr ""
-
-msgid "Draft"
-msgstr ""
-
-msgid "(Near) Letter"
-msgstr ""
-
-msgid "Auto-detect"
-msgstr ""
-
-msgid "Both Channels"
-msgstr ""
-
-msgid "Left Channel"
-msgstr ""
-
-msgid "Right Channel"
+msgid "Refresh rate"
 msgstr ""
 
 msgid "US (CP 437)"
@@ -3263,112 +3389,4 @@ msgid "932 (Japanese)"
 msgstr ""
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
-
-msgid "Text files (*.txt *.log)|*.txt,*.log"
-msgstr ""
-
-msgid "Output file"
-msgstr ""
-
-msgid "Append to file if it exists"
-msgstr ""
-
-msgid "Input file"
-msgstr ""
-
-msgid "Loop input file"
-msgstr ""
-
-msgid "Require STROBE signal"
-msgstr ""
-
-msgid "Loopback Type"
-msgstr ""
-
-msgid "Parallel cable"
-msgstr ""
-
-msgid "Pipe path"
-msgstr ""
-
-msgid "FIFO / terminal (*.*)|*.*"
-msgstr ""
-
-msgid "Mode"
-msgstr ""
-
-msgid "Reconnect automatically"
-msgstr ""
-
-msgid "Use standard input/output"
-msgstr ""
-
-msgid "Create pseudoterminal"
-msgstr ""
-
-msgid "Start terminal emulator"
-msgstr ""
-
-msgid "Run custom command"
-msgstr ""
-
-msgid "Custom command"
-msgstr ""
-
-msgid "Run custom command in terminal"
-msgstr ""
-
-msgid "Virtual Console"
-msgstr ""
-
-msgid "Host serial device"
-msgstr ""
-
-msgid "Channel"
-msgstr ""
-
-msgid "Allow Flash BIOS Updates"
-msgstr ""
-
-msgid "Slot #"
-msgstr ""
-
-msgid "Parallel Port"
-msgstr ""
-
-msgid "Paper Size"
-msgstr ""
-
-msgid "Quality"
-msgstr ""
-
-msgid "Auto LF"
-msgstr ""
-
-msgid "Tandy PSSJ Clone"
-msgstr ""
-
-msgid "Invert LCD colors"
-msgstr ""
-
-msgid "English (US)"
-msgstr ""
-
-msgid "English (UK)"
-msgstr ""
-
-msgid "English (Canada)"
-msgstr ""
-
-msgid "32 MB"
-msgstr ""
-
-msgid "64 MB"
-msgstr ""
-
-msgid "2048 MB"
-msgstr ""
-
-msgid "Refresh rate"
 msgstr ""

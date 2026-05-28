@@ -1468,11 +1468,32 @@ msgstr "Выбранный файл будет перезаписан. Вы ув
 msgid "Unsupported disk image"
 msgstr "Неподдерживаемый образ диска"
 
-msgid "Overwrite"
-msgstr "Перезаписать"
+msgid "Unable to read device"
+msgstr "Невозможно прочитать устройство"
 
-msgid "Don't overwrite"
-msgstr "Не перезаписывать"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr "Не удалось определить размер блочного устройства. Убедитесть, что у вас есть разрешение на доступ к этому устройству."
+
+msgid "Device too large"
+msgstr "Устройство слишком большое"
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr "Блочное устройство слишком большое для использования его в качестве жёсткого диска."
+
+msgid "Block device detected"
+msgstr "Обнаружено блочное устройство"
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr "Обнаружено блочное устройство: %1\nРазмер: %2 МБ\nГеометрия: %3 цилиндра, %4 головок, %5 секторов"
+
+msgid "Failed to write the disk image."
+msgstr "Не удалось записать образ диска."
+
+msgid "Failed to read the disk image."
+msgstr "Не удалось считать образ диска."
+
+msgid "The disk image has been successfully created."
+msgstr "Образ диска был успешно создан."
 
 msgid "Raw image"
 msgstr "Сырой образ"
@@ -2365,20 +2386,47 @@ msgstr "Размер памяти EMS 2"
 msgid "Enable EMS"
 msgstr "Включить EMS"
 
-msgid "Enable EMS 1"
-msgstr "Включить EMS 1"
-
-msgid "Enable EMS 2"
-msgstr "Включить EMS 2"
-
 msgid "Address for > 2 MB"
 msgstr "Адрес для > 2 МБ"
 
 msgid "Frame Address"
 msgstr "Адрес кадра"
 
-msgid "USA"
-msgstr "США"
+msgid "English"
+msgstr "Английский"
+
+msgid "English (US)"
+msgstr "Английский (США)"
+
+msgid "English (UK)"
+msgstr "Ангийский (Великобритания)"
+
+msgid "English (Canada)"
+msgstr "Английский (Канада)"
+
+msgid "German"
+msgstr "Немецкий"
+
+msgid "French"
+msgstr "Французский"
+
+msgid "Spanish"
+msgstr "Испанский"
+
+msgid "Swedish"
+msgstr "Шведский"
+
+msgid "Italian"
+msgstr "Итальянский"
+
+msgid "Portuguese"
+msgstr "Португальский"
+
+msgid "Norwegian"
+msgstr "Норвежский"
+
+msgid "Greek"
+msgstr "Греческий"
 
 msgid "Danish"
 msgstr "Датский"
@@ -2575,9 +2623,6 @@ msgstr "Монохромный"
 msgid "Color"
 msgstr "Цветной"
 
-msgid "U.S. English"
-msgstr "Английский США"
-
 msgid "Scandinavian"
 msgstr "Скандинавский"
 
@@ -2662,32 +2707,77 @@ msgstr "Loopback-кабель"
 msgid "Serial Passthrough"
 msgstr "Проброс через последовательный порт"
 
-msgid "Passthrough Mode"
-msgstr "Режим проброса"
-
-msgid "Host Serial Device"
+msgid "Host serial device"
 msgstr "Последовательное устройство хоста"
 
-msgid "Name of pipe"
-msgstr "Название пайпа"
+msgid "Named Pipe"
+msgstr "Именованный канал"
 
-msgid "Data bits"
-msgstr "Биты данных"
+msgid "Output file"
+msgstr "Выходной файл"
 
-msgid "Stop bits"
-msgstr "Стоп-биты"
+msgid "Append to file if it exists"
+msgstr "Дописывать в конец существующего файла"
 
-msgid "Baud Rate of Passthrough"
-msgstr "Скорость передачи данных через канал"
+msgid "Input file"
+msgstr "Входной файл"
 
-msgid "Named Pipe (Server)"
-msgstr "Именованный пайп (Сервер)"
+msgid "Loop input file"
+msgstr "Закольцевать входной файл"
 
-msgid "Named Pipe (Client)"
-msgstr "Именованный пайп (Клиент)"
+msgid "Require STROBE signal"
+msgstr "Требовать сигнал STROBE"
 
-msgid "Host Serial Passthrough"
-msgstr "Последовательный порт хоста"
+msgid "Loopback Type"
+msgstr "Тип кабеля"
+
+msgid "Parallel cable"
+msgstr "LPT-кабель"
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr "Однонаправленный (8 бит) / LapLink (4 бит)"
+
+msgid "Bidirectional (8-bit)"
+msgstr "Двунаправленный (8 бит)"
+
+msgid "Pipe path"
+msgstr "Путь к каналу"
+
+msgid "FIFO / terminal"
+msgstr "FIFO / терминал"
+
+msgid "Mode"
+msgstr "Режим"
+
+msgid "Server"
+msgstr "Сервер"
+
+msgid "Client"
+msgstr "Клиент"
+
+msgid "Reconnect automatically"
+msgstr "Автоматически переподключаться"
+
+msgid "Use standard input/output"
+msgstr "Исполюзовать стандартный ввод/вывод"
+
+msgid "Create pseudoterminal"
+msgstr "Создать псевдо-терминал"
+
+msgid "Start terminal emulator"
+msgstr "Запустить эмулятор терминала"
+
+msgid "Run custom command"
+msgstr "Выполнить пользовательскую команду"
+
+msgid "Custom command"
+msgstr "Пользовательская команда"
+
+msgid "Run custom command in terminal"
+msgstr "Выполнять польз. команду в терминале"
+
+msgid "Virtual Console"
+msgstr "Виртуальная консоль"
 
 msgid "E&ject %1"
 msgstr "И&звлечь %1"
@@ -2731,8 +2821,8 @@ msgstr "[Стандартный] 1998 (5400 RPM)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Стандартный] 2000 (7200 RPM)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "Клон IBM 8514/A (ISA)"
+msgid "IBM 8514/A clone"
+msgstr "Клон IBM 8514/A"
 
 msgid "Vendor"
 msgstr "Производитель"
@@ -3082,254 +3172,155 @@ msgstr "Устройство вывода звука:"
 msgid "System Default"
 msgstr "Системный"
 
-msgid "Server"
-msgstr ""
+msgid "Unable to open image or folder \"%s\"."
+msgstr "Невозможно открыть образ или папку «%s»."
 
-msgid "Client"
-msgstr ""
+msgid "Unable to open cue sheet \"%s\"."
+msgstr "Невозможно открыть файл CUE «%s»."
 
-msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgid "Unable to open MDS file \"%s\"."
+msgstr "Невозможно открыть файл MDS «%s»."
 
-msgid "Bidirectional (8-bit)"
-msgstr ""
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr "Невозможно загрузить образ CD-ROM «%s»."
 
-msgid "DirectParallel FAST"
-msgstr ""
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr "Невозможно загрузить образ «%s»: отсутствеут библитека %1, необходимая для поддержки образов Daemon Tools MDS v2 и MDX."
 
-msgid "Clock 1"
-msgstr ""
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr "Образ DVD «%s» был вставлен в дисковод, не поддерживающий DVD, и будет проигнорирован."
 
-msgid "Clock 2"
-msgstr ""
+msgid "%s: Could not connect to %s: %s"
+msgstr "%s: Не удалось соединиться с %s: %s"
 
-msgid "Plug and Play"
-msgstr ""
+msgid "%s: Could not create %s: %s"
+msgstr "%s: Не удалось создать %s: %s"
 
-msgid "PC-CM (Color)"
-msgstr ""
+msgid "%s: Attached to %s"
+msgstr "%s: Присоединён к %s"
 
-msgid "PC-MM (Monochrome)"
-msgstr ""
+msgid "%s: Virtual console already in use by %s"
+msgstr "%s: Виртуальная консоль уже используется %s"
 
-msgid "US English"
-msgstr ""
-
-msgid "Greek"
-msgstr ""
-
-msgid "English"
-msgstr ""
-
-msgid "German"
-msgstr ""
-
-msgid "French"
-msgstr ""
-
-msgid "Spanish"
-msgstr ""
-
-msgid "Swedish"
-msgstr ""
-
-msgid "Italian"
-msgstr ""
-
-msgid "Diagnostic mode"
-msgstr ""
-
-msgid "CGA monitor"
-msgstr ""
-
-msgid "MDA monitor"
-msgstr ""
-
-msgid "Television"
-msgstr ""
-
-msgid "RGB"
-msgstr ""
-
-msgid "White Monochrome"
-msgstr ""
-
-msgid "Portuguese"
-msgstr ""
-
-msgid "Norwegian"
-msgstr ""
-
-msgid "LCD (CGA mode)"
-msgstr ""
-
-msgid "LCD (MDA mode)"
-msgstr ""
-
-msgid "Disabled (250h)"
-msgstr ""
-
-msgid "Enabled (350h)"
-msgstr ""
-
-msgid "RGB (IBM 5153)"
-msgstr ""
-
-msgid "A (Font 16)"
-msgstr ""
-
-msgid "B (Font 24)"
-msgstr ""
-
-msgid "Letter"
-msgstr ""
-
-msgid "Legal (sideways)"
-msgstr ""
-
-msgid "B4 (sideways)"
-msgstr ""
-
-msgid "Draft"
-msgstr ""
-
-msgid "(Near) Letter"
-msgstr ""
+msgid "%s: Could not create terminal: %s"
+msgstr "%s: Не удалось создать терминал: %s"
 
 msgid "Auto-detect"
-msgstr ""
-
-msgid "Both Channels"
-msgstr ""
-
-msgid "Left Channel"
-msgstr ""
-
-msgid "Right Channel"
-msgstr ""
-
-msgid "US (CP 437)"
-msgstr ""
-
-msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
-
-msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
-
-msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
-
-msgid "932 (Japanese)"
-msgstr ""
-
-msgid "938 (Traditional Chinese)"
-msgstr ""
-
-msgid "Text files (*.txt *.log)|*.txt,*.log"
-msgstr ""
-
-msgid "Output file"
-msgstr ""
-
-msgid "Append to file if it exists"
-msgstr ""
-
-msgid "Input file"
-msgstr ""
-
-msgid "Loop input file"
-msgstr ""
-
-msgid "Require STROBE signal"
-msgstr ""
-
-msgid "Loopback Type"
-msgstr ""
-
-msgid "Parallel cable"
-msgstr ""
-
-msgid "Pipe path"
-msgstr ""
-
-msgid "FIFO / terminal (*.*)|*.*"
-msgstr ""
-
-msgid "Mode"
-msgstr ""
-
-msgid "Reconnect automatically"
-msgstr ""
-
-msgid "Use standard input/output"
-msgstr ""
-
-msgid "Create pseudoterminal"
-msgstr ""
-
-msgid "Start terminal emulator"
-msgstr ""
-
-msgid "Run custom command"
-msgstr ""
-
-msgid "Custom command"
-msgstr ""
-
-msgid "Run custom command in terminal"
-msgstr ""
-
-msgid "Virtual Console"
-msgstr ""
-
-msgid "Host serial device"
-msgstr ""
+msgstr "Автоопределение"
 
 msgid "Channel"
-msgstr ""
+msgstr "Канал"
+
+msgid "Both Channels"
+msgstr "Оба канала"
+
+msgid "Left Channel"
+msgstr "Левый канал"
+
+msgid "Right Channel"
+msgstr "Правый канал"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Разрешить обновления BIOS"
 
 msgid "Slot #"
-msgstr ""
+msgstr "№ слота"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Параллельный порт"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Размер бумаги"
+
+msgid "Legal (sideways)"
+msgstr "Legal ()"
+
+msgid "B4 (sideways)"
+msgstr "B4 ()"
 
 msgid "Quality"
-msgstr ""
+msgstr "Качество"
+
+msgid "Draft"
+msgstr "Черновое"
+
+msgid "(Near) Letter"
+msgstr "Высокое"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Автоперенос"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Клон Tandy PSSJ"
+
+msgid "PC-CM (Color)"
+msgstr "PC-CM (цветной)"
+
+msgid "PC-MM (Monochrome)"
+msgstr "PC-MM (монохромный)"
+
+msgid "White Monochrome"
+msgstr "Белый монохромный"
+
+msgid "Hardware font"
+msgstr "Аппаратный шрифт"
+
+msgid "Diagnostic mode"
+msgstr "Режим диагностики"
+
+msgid "CGA monitor"
+msgstr "Монитор CGA"
+
+msgid "MDA monitor"
+msgstr "Монитор MDA"
+
+msgid "Television"
+msgstr "Телевизор"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Инвертировать цвета ЖК-дисплея"
 
-msgid "English (US)"
-msgstr ""
+msgid "LCD (CGA mode)"
+msgstr "ЖК-дисплей (режим CGA)"
 
-msgid "English (UK)"
-msgstr ""
+msgid "LCD (MDA mode)"
+msgstr "ЖК-дисплей (режим MDA)"
 
-msgid "English (Canada)"
-msgstr ""
+msgid "Disabled (250h)"
+msgstr "Отключён (250h)"
+
+msgid "Enabled (350h)"
+msgstr "Включён (350h)"
+
+msgid "Test mode"
+msgstr "Тестовый режим"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 МБ"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 МБ"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 МБ"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Частота обновления экрана"
+
+msgid "US (CP 437)"
+msgstr "США (CP 437)"
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr "IBM Nordic (CP 437-Nordic)"
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr "Чешская Kamenicky (CP 895) № 1"
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr "Чешская Kamenicky (CP 895) № 2"
+
+msgid "932 (Japanese)"
+msgstr "932 (японский)"
+
+msgid "938 (Traditional Chinese)"
+msgstr "938 (китайский, традиционное письмо)"

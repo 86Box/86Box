@@ -1455,10 +1455,31 @@ msgstr ""
 msgid "Unsupported disk image"
 msgstr ""
 
-msgid "Overwrite"
+msgid "Unable to read device"
 msgstr ""
 
-msgid "Don't overwrite"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr ""
+
+msgid "Device too large"
+msgstr ""
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr ""
+
+msgid "Block device detected"
+msgstr ""
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+
+msgid "Failed to write the disk image."
+msgstr ""
+
+msgid "Failed to read the disk image."
+msgstr ""
+
+msgid "The disk image has been successfully created."
 msgstr ""
 
 msgid "Raw image"
@@ -2352,19 +2373,46 @@ msgstr ""
 msgid "Enable EMS"
 msgstr ""
 
-msgid "Enable EMS 1"
-msgstr ""
-
-msgid "Enable EMS 2"
-msgstr ""
-
 msgid "Address for > 2 MB"
 msgstr ""
 
 msgid "Frame Address"
 msgstr ""
 
-msgid "USA"
+msgid "English"
+msgstr ""
+
+msgid "English (US)"
+msgstr ""
+
+msgid "English (UK)"
+msgstr ""
+
+msgid "English (Canada)"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "Swedish"
+msgstr ""
+
+msgid "Italian"
+msgstr ""
+
+msgid "Portuguese"
+msgstr ""
+
+msgid "Norwegian"
+msgstr ""
+
+msgid "Greek"
 msgstr ""
 
 msgid "Danish"
@@ -2562,9 +2610,6 @@ msgstr ""
 msgid "Color"
 msgstr ""
 
-msgid "U.S. English"
-msgstr ""
-
 msgid "Scandinavian"
 msgstr ""
 
@@ -2649,31 +2694,76 @@ msgstr ""
 msgid "Serial Passthrough"
 msgstr ""
 
-msgid "Passthrough Mode"
+msgid "Host serial device"
 msgstr ""
 
-msgid "Host Serial Device"
+msgid "Named Pipe"
 msgstr ""
 
-msgid "Name of pipe"
+msgid "Output file"
 msgstr ""
 
-msgid "Data bits"
+msgid "Append to file if it exists"
 msgstr ""
 
-msgid "Stop bits"
+msgid "Input file"
 msgstr ""
 
-msgid "Baud Rate of Passthrough"
+msgid "Loop input file"
 msgstr ""
 
-msgid "Named Pipe (Server)"
+msgid "Require STROBE signal"
 msgstr ""
 
-msgid "Named Pipe (Client)"
+msgid "Loopback Type"
 msgstr ""
 
-msgid "Host Serial Passthrough"
+msgid "Parallel cable"
+msgstr ""
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr ""
+
+msgid "Bidirectional (8-bit)"
+msgstr ""
+
+msgid "Pipe path"
+msgstr ""
+
+msgid "FIFO / terminal"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Server"
+msgstr ""
+
+msgid "Client"
+msgstr ""
+
+msgid "Reconnect automatically"
+msgstr ""
+
+msgid "Use standard input/output"
+msgstr ""
+
+msgid "Create pseudoterminal"
+msgstr ""
+
+msgid "Start terminal emulator"
+msgstr ""
+
+msgid "Run custom command"
+msgstr ""
+
+msgid "Custom command"
+msgstr ""
+
+msgid "Run custom command in terminal"
+msgstr ""
+
+msgid "Virtual Console"
 msgstr ""
 
 msgid "E&ject %1"
@@ -2718,7 +2808,7 @@ msgstr ""
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr ""
 
-msgid "IBM 8514/A clone (ISA)"
+msgid "IBM 8514/A clone"
 msgstr ""
 
 msgid "Vendor"
@@ -3063,28 +3153,85 @@ msgstr ""
 msgid "Use EDC/ECC emulation"
 msgstr ""
 
-msgid "Server"
+msgid "Unable to open image or folder \"%s\"."
 msgstr ""
 
-msgid "Client"
+msgid "Unable to open cue sheet \"%s\"."
 msgstr ""
 
-msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgid "Unable to open MDS file \"%s\"."
 msgstr ""
 
-msgid "Bidirectional (8-bit)"
+msgid "Unable to load CD-ROM image \"%s\"."
 msgstr ""
 
-msgid "DirectParallel FAST"
+msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 
-msgid "Clock 1"
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 
-msgid "Clock 2"
+msgid "%s: Could not connect to %s: %s"
 msgstr ""
 
-msgid "Plug and Play"
+msgid "%s: Could not create %s: %s"
+msgstr ""
+
+msgid "%s: Attached to %s"
+msgstr ""
+
+msgid "%s: Virtual console already in use by %s"
+msgstr ""
+
+msgid "%s: Could not create terminal: %s"
+msgstr ""
+
+msgid "Auto-detect"
+msgstr ""
+
+msgid "Channel"
+msgstr ""
+
+msgid "Both Channels"
+msgstr ""
+
+msgid "Left Channel"
+msgstr ""
+
+msgid "Right Channel"
+msgstr ""
+
+msgid "Allow Flash BIOS Updates"
+msgstr ""
+
+msgid "Slot #"
+msgstr ""
+
+msgid "Parallel Port"
+msgstr ""
+
+msgid "Paper Size"
+msgstr ""
+
+msgid "Legal (sideways)"
+msgstr ""
+
+msgid "B4 (sideways)"
+msgstr ""
+
+msgid "Quality"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "(Near) Letter"
+msgstr ""
+
+msgid "Auto LF"
+msgstr ""
+
+msgid "Tandy PSSJ Clone"
 msgstr ""
 
 msgid "PC-CM (Color)"
@@ -3093,28 +3240,10 @@ msgstr ""
 msgid "PC-MM (Monochrome)"
 msgstr ""
 
-msgid "US English"
+msgid "White Monochrome"
 msgstr ""
 
-msgid "Greek"
-msgstr ""
-
-msgid "English"
-msgstr ""
-
-msgid "German"
-msgstr ""
-
-msgid "French"
-msgstr ""
-
-msgid "Spanish"
-msgstr ""
-
-msgid "Swedish"
-msgstr ""
-
-msgid "Italian"
+msgid "Hardware font"
 msgstr ""
 
 msgid "Diagnostic mode"
@@ -3129,16 +3258,7 @@ msgstr ""
 msgid "Television"
 msgstr ""
 
-msgid "RGB"
-msgstr ""
-
-msgid "White Monochrome"
-msgstr ""
-
-msgid "Portuguese"
-msgstr ""
-
-msgid "Norwegian"
+msgid "Invert LCD colors"
 msgstr ""
 
 msgid "LCD (CGA mode)"
@@ -3153,40 +3273,19 @@ msgstr ""
 msgid "Enabled (350h)"
 msgstr ""
 
-msgid "RGB (IBM 5153)"
+msgid "Test mode"
 msgstr ""
 
-msgid "A (Font 16)"
+msgid "32 MB"
 msgstr ""
 
-msgid "B (Font 24)"
+msgid "64 MB"
 msgstr ""
 
-msgid "Letter"
+msgid "2048 MB"
 msgstr ""
 
-msgid "Legal (sideways)"
-msgstr ""
-
-msgid "B4 (sideways)"
-msgstr ""
-
-msgid "Draft"
-msgstr ""
-
-msgid "(Near) Letter"
-msgstr ""
-
-msgid "Auto-detect"
-msgstr ""
-
-msgid "Both Channels"
-msgstr ""
-
-msgid "Left Channel"
-msgstr ""
-
-msgid "Right Channel"
+msgid "Refresh rate"
 msgstr ""
 
 msgid "US (CP 437)"
@@ -3205,112 +3304,4 @@ msgid "932 (Japanese)"
 msgstr ""
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
-
-msgid "Text files (*.txt *.log)|*.txt,*.log"
-msgstr ""
-
-msgid "Output file"
-msgstr ""
-
-msgid "Append to file if it exists"
-msgstr ""
-
-msgid "Input file"
-msgstr ""
-
-msgid "Loop input file"
-msgstr ""
-
-msgid "Require STROBE signal"
-msgstr ""
-
-msgid "Loopback Type"
-msgstr ""
-
-msgid "Parallel cable"
-msgstr ""
-
-msgid "Pipe path"
-msgstr ""
-
-msgid "FIFO / terminal (*.*)|*.*"
-msgstr ""
-
-msgid "Mode"
-msgstr ""
-
-msgid "Reconnect automatically"
-msgstr ""
-
-msgid "Use standard input/output"
-msgstr ""
-
-msgid "Create pseudoterminal"
-msgstr ""
-
-msgid "Start terminal emulator"
-msgstr ""
-
-msgid "Run custom command"
-msgstr ""
-
-msgid "Custom command"
-msgstr ""
-
-msgid "Run custom command in terminal"
-msgstr ""
-
-msgid "Virtual Console"
-msgstr ""
-
-msgid "Host serial device"
-msgstr ""
-
-msgid "Channel"
-msgstr ""
-
-msgid "Allow Flash BIOS Updates"
-msgstr ""
-
-msgid "Slot #"
-msgstr ""
-
-msgid "Parallel Port"
-msgstr ""
-
-msgid "Paper Size"
-msgstr ""
-
-msgid "Quality"
-msgstr ""
-
-msgid "Auto LF"
-msgstr ""
-
-msgid "Tandy PSSJ Clone"
-msgstr ""
-
-msgid "Invert LCD colors"
-msgstr ""
-
-msgid "English (US)"
-msgstr ""
-
-msgid "English (UK)"
-msgstr ""
-
-msgid "English (Canada)"
-msgstr ""
-
-msgid "32 MB"
-msgstr ""
-
-msgid "64 MB"
-msgstr ""
-
-msgid "2048 MB"
-msgstr ""
-
-msgid "Refresh rate"
 msgstr ""
