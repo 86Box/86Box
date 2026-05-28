@@ -3072,3 +3072,255 @@ msgstr "Uređaj za izlaz zvuka:"
 
 msgid "System Default"
 msgstr "Zadana postavka operativnog sustava"
+
+msgid "Server"
+msgstr ""
+
+msgid "Client"
+msgstr ""
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr ""
+
+msgid "Bidirectional (8-bit)"
+msgstr ""
+
+msgid "DirectParallel FAST"
+msgstr ""
+
+msgid "Clock 1"
+msgstr ""
+
+msgid "Clock 2"
+msgstr ""
+
+msgid "Plug and Play"
+msgstr ""
+
+msgid "PC-CM (Color)"
+msgstr ""
+
+msgid "PC-MM (Monochrome)"
+msgstr ""
+
+msgid "US English"
+msgstr ""
+
+msgid "Greek"
+msgstr ""
+
+msgid "English"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "Swedish"
+msgstr ""
+
+msgid "Italian"
+msgstr ""
+
+msgid "Diagnostic mode"
+msgstr ""
+
+msgid "CGA monitor"
+msgstr ""
+
+msgid "MDA monitor"
+msgstr ""
+
+msgid "Television"
+msgstr ""
+
+msgid "RGB"
+msgstr ""
+
+msgid "White Monochrome"
+msgstr ""
+
+msgid "Portuguese"
+msgstr ""
+
+msgid "Norwegian"
+msgstr ""
+
+msgid "LCD (CGA mode)"
+msgstr ""
+
+msgid "LCD (MDA mode)"
+msgstr ""
+
+msgid "Disabled (250h)"
+msgstr ""
+
+msgid "Enabled (350h)"
+msgstr ""
+
+msgid "RGB (IBM 5153)"
+msgstr ""
+
+msgid "A (Font 16)"
+msgstr ""
+
+msgid "B (Font 24)"
+msgstr ""
+
+msgid "Letter"
+msgstr ""
+
+msgid "Legal (sideways)"
+msgstr ""
+
+msgid "B4 (sideways)"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "(Near) Letter"
+msgstr ""
+
+msgid "Auto-detect"
+msgstr ""
+
+msgid "Both Channels"
+msgstr ""
+
+msgid "Left Channel"
+msgstr ""
+
+msgid "Right Channel"
+msgstr ""
+
+msgid "US (CP 437)"
+msgstr ""
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr ""
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr ""
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr ""
+
+msgid "932 (Japanese)"
+msgstr ""
+
+msgid "938 (Traditional Chinese)"
+msgstr ""
+
+msgid "Text files (*.txt *.log)|*.txt,*.log"
+msgstr ""
+
+msgid "Output file"
+msgstr ""
+
+msgid "Append to file if it exists"
+msgstr ""
+
+msgid "Input file"
+msgstr ""
+
+msgid "Loop input file"
+msgstr ""
+
+msgid "Require STROBE signal"
+msgstr ""
+
+msgid "Loopback Type"
+msgstr ""
+
+msgid "Parallel cable"
+msgstr ""
+
+msgid "Pipe path"
+msgstr ""
+
+msgid "FIFO / terminal (*.*)|*.*"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Reconnect automatically"
+msgstr ""
+
+msgid "Use standard input/output"
+msgstr ""
+
+msgid "Create pseudoterminal"
+msgstr ""
+
+msgid "Start terminal emulator"
+msgstr ""
+
+msgid "Run custom command"
+msgstr ""
+
+msgid "Custom command"
+msgstr ""
+
+msgid "Run custom command in terminal"
+msgstr ""
+
+msgid "Virtual Console"
+msgstr ""
+
+msgid "Host serial device"
+msgstr ""
+
+msgid "Channel"
+msgstr ""
+
+msgid "Allow Flash BIOS Updates"
+msgstr ""
+
+msgid "Slot #"
+msgstr ""
+
+msgid "Parallel Port"
+msgstr ""
+
+msgid "Paper Size"
+msgstr ""
+
+msgid "Quality"
+msgstr ""
+
+msgid "Auto LF"
+msgstr ""
+
+msgid "Tandy PSSJ Clone"
+msgstr ""
+
+msgid "Invert LCD colors"
+msgstr ""
+
+msgid "English (US)"
+msgstr ""
+
+msgid "English (UK)"
+msgstr ""
+
+msgid "English (Canada)"
+msgstr ""
+
+msgid "32 MB"
+msgstr ""
+
+msgid "64 MB"
+msgstr ""
+
+msgid "2048 MB"
+msgstr ""
+
+msgid "Refresh rate"
+msgstr ""

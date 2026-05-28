@@ -108,3 +108,6 @@ msgstr "Audio output device:"
 
 msgid "System Default"
 msgstr "System Default"
+
+msgid "PC-CM (Color)"
+msgstr "PC-CM (Colour)"
