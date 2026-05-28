@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-24 12:01+0000\n"
+"PO-Revision-Date: 2026-05-28 17:34+0000\n"
 "Last-Translator: Canadew <chun-awa@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -1464,31 +1464,34 @@ msgid "Unsupported disk image"
 msgstr "不支持的磁盘映像"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "无法读取设备"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
-msgstr ""
+msgstr "无法获取块设备大小，请确认访问权限。"
 
 msgid "Device too large"
-msgstr ""
+msgstr "设备过大"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "块设备太大，无法用作硬盘。"
 
 msgid "Block device detected"
-msgstr ""
+msgstr "检测到块设备"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"检测到块设备: %1\n"
+"大小: %2 MB\n"
+"几何结构: %3 柱头, %4 磁头, %5 扇区"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "写入磁盘镜像失败。"
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "读取磁盘镜像失败。"
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "磁盘镜像创建成功。"
 
 msgid "Raw image"
 msgstr "原始映像"
@@ -2390,40 +2393,40 @@ msgid "Frame Address"
 msgstr "帧地址"
 
 msgid "English"
-msgstr ""
+msgstr "英语"
 
 msgid "English (US)"
-msgstr ""
+msgstr "英语 (美国)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "英语 (英国)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "英语 (加拿大)"
 
 msgid "German"
-msgstr ""
+msgstr "德语"
 
 msgid "French"
-msgstr ""
+msgstr "法语"
 
 msgid "Spanish"
-msgstr ""
+msgstr "西班牙语"
 
 msgid "Swedish"
-msgstr ""
+msgstr "瑞典语"
 
 msgid "Italian"
-msgstr ""
+msgstr "意大利语"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "葡萄牙语"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "挪威语"
 
 msgid "Greek"
-msgstr ""
+msgstr "希腊语"
 
 msgid "Danish"
 msgstr "丹麦语"
@@ -2711,40 +2714,40 @@ msgid "Named Pipe"
 msgstr "命名管道"
 
 msgid "Output file"
-msgstr ""
+msgstr "输出文件"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "当文件存在时，附加到文件尾"
 
 msgid "Input file"
-msgstr ""
+msgstr "输入文件"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "回环输入文件"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "需要 STROBE 信号"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "回环类型"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "并行线缆"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "单向 (8位) / LapLink (4位)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "双向 (8位)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "管道路径"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / 终端"
 
 msgid "Mode"
-msgstr ""
+msgstr "模式"
 
 msgid "Server"
 msgstr "服务器"
@@ -2753,28 +2756,28 @@ msgid "Client"
 msgstr "客户端"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "自动重新连接"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "使用标准输入输出"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "创建伪终端"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "启动终端模拟器"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "运行自定义指令"
 
 msgid "Custom command"
-msgstr ""
+msgstr "自定义指令"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "在终端中运行自定义指令"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "虚拟控制台"
 
 msgid "E&ject %1"
 msgstr "弹出 %1(&J)"
@@ -3170,154 +3173,155 @@ msgid "System Default"
 msgstr "系统默认"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "无法打开镜像或文件夹：“%s”。"
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "无法打开 cue 表 \"%s\"。"
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "无法打开 MDS 文件 \"%s\"。"
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "无法加载 CD-ROM 映像 \"%s\"。"
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr ""
+msgstr "无法加载映像 \"%s\"：缺少 mdsx.so，这是 Daemon Tools MDS v2和 MDX "
+"映像支持所必需的。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr ""
+msgstr "DVD 映像 \"%s\" 已插入不支持 DVD 介质的驱动器，将被忽略。"
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: 无法连接至 %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: 无法创建 %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: 附加到 %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: 虚拟控制台已被 %s 占用"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: 无法创建终端: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "自动检测"
 
 msgid "Channel"
-msgstr ""
+msgstr "声道"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "双声道"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "左声道"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "右声道"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "允许刷写BIOS更新"
 
 msgid "Slot #"
-msgstr ""
+msgstr "插槽 #"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "并行端口"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "纸张尺寸"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "法律用纸 (横向)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (横向)"
 
 msgid "Quality"
-msgstr ""
+msgstr "品质"
 
 msgid "Draft"
-msgstr ""
+msgstr "草稿"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(近)信件 (NLQ)"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "自动换行"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJ 兼容"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (彩色)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (单色)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "白色单色"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "硬件字体"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "诊断模式"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA监视器"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA监视器"
 
 msgid "Television"
-msgstr ""
+msgstr "电视"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "反转液晶屏显示颜色"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "液晶显示屏 (CGA 模式)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "液晶显示屏 (MDA 模式)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "禁用 (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "启用 (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "测试模式"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "刷新率"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "美式英语 (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM Nordic (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "智利卡梅尼茨基编码 (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "智利卡梅尼茨基编码 (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (日语)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (繁体中文)"

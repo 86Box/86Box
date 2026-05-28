@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-27 21:00+0000\n"
+"PO-Revision-Date: 2026-05-28 17:34+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -1456,31 +1456,36 @@ msgid "Unsupported disk image"
 msgstr "Nepodporovaný obraz disku"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Nebylo možné číst ze zařízení"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Nebylo možné zjistit velikost blokového zařízení. Zkontrolujte, zda máte "
+"oprávnění přistupovat k tomuto zařízení."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Zařízení je moc velké"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Blokové zařízení je moc velké, aby mohlo být použito jako pevný disk."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Detekováno blokové zařízení"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Detekováno blokové zařízení: %1\n"
+"Velikost: %2 MB\n"
+"Geometrie: %3 cylindrů, %4 hlav, %5 sektorů"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Selhal zápis obrazu disku."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Selhalo čtení obrazu disku."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Obraz disku byl úspěšně vytvořen."
 
 msgid "Raw image"
 msgstr "Surový obraz"
@@ -2382,40 +2387,40 @@ msgid "Frame Address"
 msgstr "Adresa rámce"
 
 msgid "English"
-msgstr ""
+msgstr "Angličtina"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Angličtina (USA)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Angličtina (Spojené království)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Angličtina (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Němčina"
 
 msgid "French"
-msgstr ""
+msgstr "Francouzština"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Španělština"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Švédština"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italština"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugalština"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norština"
 
 msgid "Greek"
-msgstr ""
+msgstr "Řečtina"
 
 msgid "Danish"
 msgstr "Dánština"
@@ -2704,40 +2709,40 @@ msgid "Named Pipe"
 msgstr "Pojmenovaná roura"
 
 msgid "Output file"
-msgstr ""
+msgstr "Výstupní soubor"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Přidat do souboru, pokud již existuje"
 
 msgid "Input file"
-msgstr ""
+msgstr "Vstupní soubor"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Vstupní soubor smyčky"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Vyžadovat signál STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Typ loopbacku"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Paralelní kabel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Jednosměrný (8bitový) / LapLink (4bitový)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Obousměrný (8bitový)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Cesta k rouře"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminál"
 
 msgid "Mode"
-msgstr ""
+msgstr "Režim"
 
 msgid "Server"
 msgstr "Server"
@@ -2746,28 +2751,28 @@ msgid "Client"
 msgstr "Klient"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Automaticky se připojit znova"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Použít standardní vstup/výstup"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Vytvořit pseudoterminál"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Spustit emulátor terminálu"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Spustit vlastní příkaz"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Vlastní příkaz"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Spustit vlastní příkaz v terminálu"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Virtuální konzole"
 
 msgid "E&ject %1"
 msgstr "&Vyjmout %1"
@@ -3163,154 +3168,158 @@ msgid "System Default"
 msgstr "Výchozí nastavení systému"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Nebylo možné otevřít obraz nebo složku \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Nebylo možné otevřít cue seznam \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Nebylo možné otevřít MDS soubor \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Nebylo možné načíst obraz CD-ROM disku \"%s\"."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Nebylo možné načíst obraz \"%s\": nebyla nalezena knihovna mdsx.so, která je "
+"potřeba pro podporu obrazů v Daemon Tools formátech MDS v2 a MDX."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Obraz DVD disku \"%s\" byl vložen do jednotky, která nepodporuje média DVD a "
+"bude ignorován."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Nebylo možné se připojit k %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Nebylo možné vytvořit %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Připojeno k %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Virtuální konzoli již používá %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Nebylo možné vytvořit terminál: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Automaticky detekovat"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanál"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Oba kanály"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Levý kanál"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Pravý kanál"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Povolit aktualizace Flash BIOS"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Číslo slotu"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Paralelní port"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Velikost papíru"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (na šířku)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (na šířku)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kvalita"
 
 msgid "Draft"
-msgstr ""
+msgstr "Koncept"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Téměř) dopisová"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automatický posun řádku"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Klon Tandy PSSJ"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (barevný)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monochromatický)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Bílý monochromatický"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Hardwarové písmo"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnostický režím"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Monitor CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Monitor MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Televizor"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Převrátit barvy LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (režim CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (režim MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Vypnuto (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Zapnuto (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testovací režím"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Obnovovací frekvence"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "USA (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM severské (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "České - kód Kamenických (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "České - kód Kamenických (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (japonština)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (klasická čínština)"

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-07 05:04+0000\n"
+"PO-Revision-Date: 2026-05-28 17:34+0000\n"
 "Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -1457,31 +1457,36 @@ msgid "Unsupported disk image"
 msgstr "Niewspierany obraz dysku"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Nie można odczytać urządzenia"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Nie udało się ustalić rozmiaru urządzenia blokowego. Upewnij się, że masz "
+"uprawnienia dostępu do tego urządzenia."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Urządzenie zbyt duże"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Urządzenie blokowe jest zbyt duże, by użyć jako dysk twardy."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Wykryto urządzenie blokowe"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Wykryte urządzenie blokowe: %1\n"
+"Rozmiar: %2 MB\n"
+"Geometria: cylindry - %3, głowice - %4, sektory - %5"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Nie udało się zapisać obrazu dysku."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Nie udało się odczytać obrazu dysku."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Obraz dysku został pomyślnie utworzony."
 
 msgid "Raw image"
 msgstr "Surowy obraz"
@@ -2381,40 +2386,40 @@ msgid "Frame Address"
 msgstr "Adres ramki"
 
 msgid "English"
-msgstr ""
+msgstr "Angielski"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Angielski (USA)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Angielski (UK)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Angielski (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Niemiecki"
 
 msgid "French"
-msgstr ""
+msgstr "Francuski"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Hiszpański"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Szwedzki"
 
 msgid "Italian"
-msgstr ""
+msgstr "Włoski"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugalski"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norweski"
 
 msgid "Greek"
-msgstr ""
+msgstr "Grecki"
 
 msgid "Danish"
 msgstr "Duński"
@@ -2703,40 +2708,40 @@ msgid "Named Pipe"
 msgstr "Nazwany potok"
 
 msgid "Output file"
-msgstr ""
+msgstr "Plik wyjściowy"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Dołącz do pliku jeśli istnieje"
 
 msgid "Input file"
-msgstr ""
+msgstr "Plik wejściowy"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Plik wejściowy pętli"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Wymagaj sygnału STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Typ pętli zwrotnej"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Kabel równoległy"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Jednokierunkowy (8-bitowy) / LapLink (4-bitowy)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Dwukierunkowy (8-bitowy)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Ścieżka potoku"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Tryb"
 
 msgid "Server"
 msgstr "Serwer"
@@ -2745,28 +2750,28 @@ msgid "Client"
 msgstr "Klient"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Podłącz ponownie automatycznie"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Użyj standardowego wejścia/wyjścia"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Utwórz pseudoterminal"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Uruchom emulator terminala"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Uruchom własną komendę"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Własna komenda"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Uruchom własną komendę w terminalu"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Wirtualna konsola"
 
 msgid "E&ject %1"
 msgstr "W&yjmij %1"
@@ -3162,154 +3167,158 @@ msgid "System Default"
 msgstr "Domyślne ustawienie systemowe"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Nie udało się otworzyć obrazu lub folderu „%s”."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Nie udało się otworzyć arkusza cue „%s”."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Nie udało się otworzyć pliku MDS „%s”."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Nie udało się wczytać obrazu CD-ROM „%s”."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Nie udało się wczytać obrazu „%s”: brakuje mdsx.so, potrzebnego do obsługi "
+"obrazów Daemon Tools MDS v2 i MDX."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Obraz DVD „%s” został włożony do stacji dysków nieobsługującej dysków DVD i "
+"zostanie zignorowany."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Nie udało się połączyć do %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Nie udało się utworzyć %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Podłączona do: %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Wirtualna konsola jest już w użyciu przez: %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Nie udało się utworzyć terminala %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Wykryj automatycznie"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanał"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Oba kanały"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Lewy kanał"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Prawy kanał"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Zezwól na aktualizację flashu BIOS"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot #"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Port równoległy"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Rozmiar papieru"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (poziomo)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (poziomo)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Jakość"
 
 msgid "Draft"
-msgstr ""
+msgstr "Robocza"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Niemal) Listowa"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automatyczny LF"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Klon Tandy PSSJ"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (kolorowy)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monochromatyczny)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Biały monochromatyczny"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Font sprzętowy"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Tryb diagnostyczny"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Monitor CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Monitor MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Telewizor"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Odwróć kolory LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (tryb CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (tryb MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Zdjęta (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Założona (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Tryb testowy"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Częstotliwość odświeżania"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "USA (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM Nordic (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Czeski Kamenický (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Czeski Kamenický (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (japoński)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (chiński uproszczony)"

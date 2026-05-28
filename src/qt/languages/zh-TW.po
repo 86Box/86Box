@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-28 17:34+0000\n"
+"Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
 "Language: zh-TW\n"
@@ -1457,31 +1457,34 @@ msgid "Unsupported disk image"
 msgstr "不支援的磁碟影像"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "無法讀取裝置"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
-msgstr ""
+msgstr "無法得知區塊裝置大小。請確認你有權限存取此裝置。"
 
 msgid "Device too large"
-msgstr ""
+msgstr "裝置過大"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "區塊裝置過大，無法做為硬碟使用。"
 
 msgid "Block device detected"
-msgstr ""
+msgstr "偵測到區塊裝置"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"偵測到的區塊裝置: %1\n"
+"大小: %2 MB\n"
+"參數: %3 磁柱, %4 磁頭, %5 磁區"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "寫入磁碟影像失敗。"
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "讀取磁碟影像失敗。"
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "成功創建磁碟影像。"
 
 msgid "Raw image"
 msgstr "原始影像"
@@ -2381,40 +2384,40 @@ msgid "Frame Address"
 msgstr "頁框位址"
 
 msgid "English"
-msgstr ""
+msgstr "英語"
 
 msgid "English (US)"
-msgstr ""
+msgstr "英語 (美國)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "英語 (英國)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "英語 (加拿大)"
 
 msgid "German"
-msgstr ""
+msgstr "德語"
 
 msgid "French"
-msgstr ""
+msgstr "法語"
 
 msgid "Spanish"
-msgstr ""
+msgstr "西班牙語"
 
 msgid "Swedish"
-msgstr ""
+msgstr "瑞典語"
 
 msgid "Italian"
-msgstr ""
+msgstr "義大利語"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "葡萄牙語"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "挪威語"
 
 msgid "Greek"
-msgstr ""
+msgstr "希臘語"
 
 msgid "Danish"
 msgstr "丹麥語"
@@ -2692,7 +2695,6 @@ msgstr "用於 Savage Quest 的防拷保護鎖"
 msgid "Loopback Plug"
 msgstr "回授測試接頭"
 
-#, fuzzy
 msgid "Serial Passthrough"
 msgstr "序列埠直通裝置"
 
@@ -2703,40 +2705,40 @@ msgid "Named Pipe"
 msgstr "已命名管道"
 
 msgid "Output file"
-msgstr ""
+msgstr "輸出檔案"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "附加到已存在檔案"
 
 msgid "Input file"
-msgstr ""
+msgstr "輸入檔案"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "輸入檔案回送"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "要求 STROBE 訊號"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "回送型式"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "並列纜線"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "單向 (8位元) / LapLink (4位元)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "雙向 (8位元)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "管道路徑"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / 終端機"
 
 msgid "Mode"
-msgstr ""
+msgstr "模式"
 
 msgid "Server"
 msgstr "伺服器"
@@ -2745,28 +2747,28 @@ msgid "Client"
 msgstr "用戶端"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "自動重新連線"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "使用標準輸入/輸出"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "建立虛擬終端機"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "開始終端機模擬"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "執行自訂命令"
 
 msgid "Custom command"
-msgstr ""
+msgstr "自訂命令"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "在終端機執行自訂命令"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "虛擬控制台"
 
 msgid "E&ject %1"
 msgstr "退出 %1(&J)"
@@ -3162,154 +3164,155 @@ msgid "System Default"
 msgstr "系統預設"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "無法開啟影像或資夾 \\\"%s\\\"。"
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "無法開啟 cue sheet \\\"%s\\\"。"
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "無法開啟 MDS 檔 \\\"%s\\\"。"
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "無法開啟光碟影像 \\\"%s\\\"。"
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr ""
+msgstr "無法開啟影像 \\\"%s\\\": mdsx.so 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
+"影像之必要檔案。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr ""
+msgstr "DVD 影像 \\\"%s\\\" 被置入不支援 DVD 之光碟機，將被忽略。"
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: 無法連接到 %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: 無法創建 %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: 附加到 %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: 虛擬控制台已被 %s 使用中"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: 無法創建終端機: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "自動偵測"
 
 msgid "Channel"
-msgstr ""
+msgstr "聲道"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "雙聲道"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "左聲道"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "右聲道"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "允許更新 BIOS 快閃記憶體"
 
 msgid "Slot #"
-msgstr ""
+msgstr "插槽 #"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "並列埠"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "紙張大小"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (橫向)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (橫向)"
 
 msgid "Quality"
-msgstr ""
+msgstr "品質"
 
 msgid "Draft"
-msgstr ""
+msgstr "草稿"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "近信件 (NLQ)"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "自動送行"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJ 相容"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (彩色)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (單色)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "白色單色"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "硬體字型"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "診斷模式"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA 監視器"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA 監視器"
 
 msgid "Television"
-msgstr ""
+msgstr "電視"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "反轉液晶顯示色彩"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "液晶顯示 (CGA 模式)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "液晶顯示 (MDA 模式)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "停用 (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "啟用 (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "測試模式"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "更新頻率"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "US (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM Nordic (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Czech Kamenicky (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Czech Kamenicky (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (日文)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (正體中文)"
