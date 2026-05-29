@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -3232,7 +3232,7 @@ msgid "Paper Size"
 msgstr "Розмір паперу"
 
 msgid "Legal (sideways)"
-msgstr "Юридичний (горизонтальний)"
+msgstr "Legal (горизонтальний)"
 
 msgid "B4 (sideways)"
 msgstr "B4 (горизонтальний)"
