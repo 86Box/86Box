@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 08:39+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 09:22+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -3243,7 +3243,7 @@ msgid "Paper Size"
 msgstr "纸张尺寸"
 
 msgid "Legal (sideways)"
-msgstr "Legal (横向)"
+msgstr "法律专用纸 (横向)"
 
 msgid "B4 (sideways)"
 msgstr "B4 (横向)"
