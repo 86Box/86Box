@@ -504,12 +504,6 @@ msgstr ""
 msgid "Use FLOAT32 sound"
 msgstr ""
 
-msgid "Audio output device:"
-msgstr ""
-
-msgid "System Default"
-msgstr ""
-
 msgid "FM synth driver:"
 msgstr ""
 
@@ -3169,6 +3163,12 @@ msgid "Raw"
 msgstr ""
 
 msgid "Use EDC/ECC emulation"
+msgstr ""
+
+msgid "Audio output device:"
+msgstr ""
+
+msgid "System Default"
 msgstr ""
 
 msgid "Unable to open image or folder \"%s\"."

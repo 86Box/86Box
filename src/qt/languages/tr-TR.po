@@ -898,7 +898,7 @@ msgid "Default"
 msgstr "Varsayılan"
 
 msgid "%n wait state(s)"
-msgid_plural "%n wait state(s)"
+msgid_plural "%n wait states"
 msgstr[0] "%n Bekleme durumları"
 msgstr[1] "%n Bekleme durumları"
 

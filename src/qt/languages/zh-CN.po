@@ -1206,7 +1206,7 @@ msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgid_plural "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
