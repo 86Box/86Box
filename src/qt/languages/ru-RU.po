@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -3235,10 +3235,10 @@ msgid "Paper Size"
 msgstr "Размер бумаги"
 
 msgid "Legal (sideways)"
-msgstr "Юридический (горизонтальный)"
+msgstr "Legal (горизонтально)"
 
 msgid "B4 (sideways)"
-msgstr "B4 (горизонтальный)"
+msgstr "B4 (горизонтально)"
 
 msgid "Quality"
 msgstr "Качество"

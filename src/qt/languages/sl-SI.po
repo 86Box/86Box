@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
 "Language: sl-SI\n"
@@ -3231,7 +3231,7 @@ msgid "Paper Size"
 msgstr "Velikost papirja"
 
 msgid "Legal (sideways)"
-msgstr "Pravna (vodoravna)"
+msgstr "Legal (vodoravna)"
 
 msgid "B4 (sideways)"
 msgstr "B4 (vodoravna)"

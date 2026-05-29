@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -43,7 +43,7 @@ msgid "E&xit"
 msgstr "A&vsluta"
 
 msgid "&View"
-msgstr "&Visa"
+msgstr "&Fönster"
 
 msgid "&Hide status bar"
 msgstr "&Dölj statusfältet"
@@ -160,7 +160,7 @@ msgid "RGB Grayscale"
 msgstr "RGB gråskala"
 
 msgid "Generic RGBI color monitor"
-msgstr "Allmän RGBI färgskärm"
+msgstr "Allmän RGBI-färgskärm"
 
 msgid "Amber monitor"
 msgstr "Bärnstensfärgad skärm"
@@ -177,7 +177,6 @@ msgstr "Konverteringstyp till gråskala:"
 msgid "Average"
 msgstr "Genomsnittlig"
 
-#, fuzzy
 msgid "Overscan"
 msgstr "Överskanning"
 
@@ -647,7 +646,7 @@ msgid "Floppy drives"
 msgstr "Diskettenhet"
 
 msgid "Turbo timings"
-msgstr "Turbo timings"
+msgstr "Turbo-timingar"
 
 msgid "Check BPB"
 msgstr "Kontrollera BPB"
@@ -866,7 +865,7 @@ msgid "Default"
 msgstr "Standard"
 
 msgid "%1 Wait state(s)"
-msgstr "%1 Wait state(s)"
+msgstr "%1 vänteläge(n)"
 
 msgid "Type"
 msgstr "Typ"
@@ -1070,7 +1069,7 @@ msgid "Monitor in sleep mode"
 msgstr "Skärm i viloläge"
 
 msgid "GLSL shaders"
-msgstr "GLSL shaders"
+msgstr "GLSL-shaders"
 
 msgid "You are loading an unsupported configuration"
 msgstr "Du laddar en konfiguration som inte stöds"
@@ -1325,7 +1324,7 @@ msgid "Some files in the machine's directory were unable to be deleted. Please d
 msgstr "Några filer i maskinens mapp kunde inte tas bort. Ta bort de manuellt."
 
 msgid "Build"
-msgstr "Build"
+msgstr "Version"
 
 msgid "Version"
 msgstr "Version"
@@ -1995,7 +1994,6 @@ msgstr "BIOS-version"
 msgid "BIOS Language"
 msgstr "BIOS-språk"
 
-#, fuzzy
 msgid "Variant"
 msgstr "Variant"
 
@@ -2129,7 +2127,7 @@ msgid "RTS toggle"
 msgstr "RTS-brytare"
 
 msgid "Revision"
-msgstr "Revision"
+msgstr "Revidering"
 
 msgid "Controller"
 msgstr "Styrenhet"
@@ -2249,7 +2247,7 @@ msgid "Enable CMS"
 msgstr "Aktivera CMS"
 
 msgid "Mixer"
-msgstr "Mixer"
+msgstr "Blandare"
 
 msgid "High DMA"
 msgstr "Hög DMA"
@@ -2315,7 +2313,7 @@ msgid "Bilinear filtering"
 msgstr "Bilinjär filtrering"
 
 msgid "Video chroma-keying"
-msgstr "Video chroma-keying"
+msgstr "Chroma key för video"
 
 msgid "Dithering"
 msgstr "Dithering"
@@ -2648,7 +2646,7 @@ msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
+msgstr "Obsidian SB50 + Amethyst (2 TMUer)"
 
 msgid "8-bit"
 msgstr "8-bitar"
@@ -2675,7 +2673,7 @@ msgid "LPT DAC / Covox Speech Thing"
 msgstr "LPT DAC / Covox Speech Thing"
 
 msgid "Stereo LPT DAC"
-msgstr "Stereo LPT DAC"
+msgstr "Stereofonisk D/A-omvandlare på LPT"
 
 msgid "Generic Text Printer"
 msgstr "Allmän textskrivare"
@@ -2735,13 +2733,13 @@ msgid "Bidirectional (8-bit)"
 msgstr "Dubbelriktad (8-bitars)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Pipe-väg"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Läge"
 
 msgid "Server"
 msgstr "Server"
@@ -2750,28 +2748,28 @@ msgid "Client"
 msgstr "Klient"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Återanslut automatiskt"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Använd vanlig inmatning/utmatning"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Skapa pseudoterminal"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Starta terminal-emulator"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Kör eget kommando"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Eget kommando"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Kör eget kommando i terminal"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Virtuell konsol"
 
 msgid "E&ject %1"
 msgstr "M&ata ut %1"
@@ -2834,10 +2832,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Allmän minnesexpansion PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Allmän MM58167 realtidsklocka"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (extern enhet)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Kunde inte hitta typsnitt för punktmatris"
@@ -2903,10 +2901,10 @@ msgid "Could not load file %1"
 msgstr "Kunde inte ladda fil %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Inmatning"
 
 msgid "Key bindings"
 msgstr "Tangentbindningar"
@@ -3026,7 +3024,7 @@ msgid "Update check complete"
 msgstr "Uppdateringskontroll klar"
 
 msgid "stable"
-msgstr "stable"
+msgstr "stabil"
 
 msgid "beta"
 msgstr "beta"
@@ -3038,7 +3036,7 @@ msgid "version"
 msgstr "version"
 
 msgid "build"
-msgstr "build"
+msgstr "version"
 
 msgid "You are currently running version <b>%1</b>."
 msgstr "Du kör just ny version <b>%1</b>."
@@ -3158,7 +3156,7 @@ msgid "Raw"
 msgstr "Rå"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Använd EDC/ECC-emulering"
 
 msgid "Audio output device:"
 msgstr "Ljudutdataenhet:"
@@ -3167,127 +3165,131 @@ msgid "System Default"
 msgstr "Systemstandard"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Avbildning eller mapp \"%s\" kunde ej öppnas."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Cue-ark \"%s\" kunde ej öppnas."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "MDS-fil \"%s\" kunde ej öppnas."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "CD-ROM-avbildning \"%s\" kunde ej öppnas."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Avbildning \"%s\" kunde ej laddas: mdsx.so saknas, vilket krävs för stöd för "
+"Daemon Tools MDS v2 och MDX-avbildningar."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"DVD-avbildningen \"%s\" har matats in i en skivläsare som inte stödjer DVD-"
+"medium och kommer att frånses."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Kunde inte ansluta till %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Kunde inte skapa %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Fäst till %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Virtuell konsol redan använd av %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Kunde inte skapa terminal: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Upptäck automatiskt"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanal"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Båda kanalerna"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Vänstra kanalen"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Högra kanalen"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Tillåt flashning av BIOS-uppdateringar"
 
 msgid "Slot #"
 msgstr ""
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Parallellport"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Pappersstorlek"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (liggande)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (liggande)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kvalitet"
 
 msgid "Draft"
-msgstr ""
+msgstr "Utkast"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Nära) Letter"
 
 msgid "Auto LF"
 msgstr ""
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJ-klon"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (färg)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monokrom)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Vit monokrom"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Maskinvarufont"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnostiskt läge"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA-skärm"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA-skärm"
 
 msgid "Television"
-msgstr ""
+msgstr "Television"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Invertera LCD-färger"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (CGA-läge)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (MDA-läge)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Inaktiverad (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Aktiverad (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testläge"
 
 msgid "32 MB"
 msgstr ""
@@ -3299,10 +3301,10 @@ msgid "2048 MB"
 msgstr ""
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Uppdateringsfrekvens"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "Förenta staterna (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
 msgstr ""
@@ -3314,7 +3316,7 @@ msgid "Czech Kamenicky (CP 895) #2"
 msgstr ""
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (Japansk)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (Traditionell kinesiska)"
