@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-28 17:34+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -3173,7 +3173,7 @@ msgid "System Default"
 msgstr "系统默认"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr "无法打开镜像或文件夹：“%s”。"
+msgstr "无法打开镜像或文件夹“%s”。"
 
 msgid "Unable to open cue sheet \"%s\"."
 msgstr "无法打开 cue 表 \"%s\"。"
@@ -3240,19 +3240,19 @@ msgid "B4 (sideways)"
 msgstr "B4 (横向)"
 
 msgid "Quality"
-msgstr "品质"
+msgstr "印刷质量"
 
 msgid "Draft"
 msgstr "草稿"
 
 msgid "(Near) Letter"
-msgstr "(近)信件 (NLQ)"
+msgstr "（近似）信函体质量（NLQ）"
 
 msgid "Auto LF"
 msgstr "自动换行"
 
 msgid "Tandy PSSJ Clone"
-msgstr "Tandy PSSJ 兼容"
+msgstr "Tandy PSSJ 克隆"
 
 msgid "PC-CM (Color)"
 msgstr "PC-CM (彩色)"
@@ -3312,13 +3312,13 @@ msgid "US (CP 437)"
 msgstr "美式英语 (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr "IBM Nordic (CP 437-Nordic)"
+msgstr "IBM北欧字符集 (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr "智利卡梅尼茨基编码 (CP 895) #1"
+msgstr "智利Kamenický编码 (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr "智利卡梅尼茨基编码 (CP 895) #2"
+msgstr "智利Kamenický编码 (CP 895) #2"
 
 msgid "932 (Japanese)"
 msgstr "932 (日语)"

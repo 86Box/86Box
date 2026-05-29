@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-28 17:34+0000\n"
-"Last-Translator: RichardG867 <richardg867@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
 "Language: pt-BR\n"
@@ -1459,7 +1459,6 @@ msgstr "Imagem de disco não suportada"
 msgid "Unable to read device"
 msgstr "Não foi possível ler o dispositivo"
 
-#, fuzzy
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
 "Não foi possível determinar o tamanho do dispositivo de bloco. Certifique-se "
@@ -3170,7 +3169,6 @@ msgstr "Padrão do sistema"
 msgid "Unable to open image or folder \"%s\"."
 msgstr "Não foi possível abrir a imagem ou pasta \"%s\"."
 
-#, fuzzy
 msgid "Unable to open cue sheet \"%s\"."
 msgstr "Não foi possível abrir o arquivo cue \"%s\"."
 
@@ -3180,13 +3178,11 @@ msgstr "Não foi possível abrir o arquivo MDS \"%s\"."
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "Não foi possível carregar a imagem de CD-ROM \"%s\"."
 
-#, fuzzy
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 "Não foi possível carregar a imagem \"%s\": Falta mdsx.so, necessário para "
 "suporte a imagens Daemon Tools MDS v2 e MDX."
 
-#, fuzzy
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 "A imagem de DVD \"%s\" foi inserida em uma unidade que não suporta mídia DVD "
@@ -3246,11 +3242,9 @@ msgstr "Qualidade"
 msgid "Draft"
 msgstr "Rascunho"
 
-#, fuzzy
 msgid "(Near) Letter"
 msgstr "(Próxima a) Carta"
 
-#, fuzzy
 msgid "Auto LF"
 msgstr "Quebra automática de linha"
 
@@ -3269,7 +3263,6 @@ msgstr "Monocromático branco"
 msgid "Hardware font"
 msgstr "Fonte de hardware"
 
-#, fuzzy
 msgid "Diagnostic mode"
 msgstr "Modo de diagnóstico"
 
@@ -3297,7 +3290,6 @@ msgstr "Desativado (250h)"
 msgid "Enabled (350h)"
 msgstr "Ativado (350h)"
 
-#, fuzzy
 msgid "Test mode"
 msgstr "Modo de teste"
 

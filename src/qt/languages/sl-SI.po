@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
 "Language: sl-SI\n"
@@ -1458,31 +1458,36 @@ msgid "Unsupported disk image"
 msgstr "Nepodprta slika diska"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Ne morem prebrati naprave"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Ni bilo mogoče določiti blokovne velikosti naprave. Prepričajte se, da imate "
+"do te naprave dostop."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Naprava je prevelika"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Naprava je prevelika za uporabo kot trdi disk."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Najdena blokovna naprava"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Najdena blokovna naprava: %1\n"
+"Velikost: %2 MB\n"
+"Geometrija: %3 cilindrov, %4 glav, %5 sektorjev"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Ni bilo mogoče zapisati slike diska."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Ni bilo mogoče prebrati slike diska."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Slika diska je bila uspešno ustvarjena."
 
 msgid "Raw image"
 msgstr "Surova slika"
@@ -2382,40 +2387,40 @@ msgid "Frame Address"
 msgstr "Naslov okvirja"
 
 msgid "English"
-msgstr ""
+msgstr "Angleščina"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Angleščina (ZDA)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Angleščina (Združeno kraljestvo)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Angleščina (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Nemščina"
 
 msgid "French"
-msgstr ""
+msgstr "Francoščina"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Španščina"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Švedščina"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italijanščina"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugalščina"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norveščina"
 
 msgid "Greek"
-msgstr ""
+msgstr "Grščina"
 
 msgid "Danish"
 msgstr "Danski"
@@ -2693,9 +2698,8 @@ msgstr "Zaščitni ključek za Savage Quest"
 msgid "Loopback Plug"
 msgstr "Priključek Loopback"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Naprava za prepust serijskih vrat"
+msgstr "Prepust serijskih vrat"
 
 msgid "Host serial device"
 msgstr "Gostiteljska serijska naprava"
@@ -2704,40 +2708,40 @@ msgid "Named Pipe"
 msgstr "Poimenovana cev"
 
 msgid "Output file"
-msgstr ""
+msgstr "Izhodna datoteka"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Dodaj v datoteko, če že obstaja"
 
 msgid "Input file"
-msgstr ""
+msgstr "Vhodna datoteka"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Ponavljaj vhodno datoteko"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Zahtevaj signal STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Tip looback-a"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Paralelni kabel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Enosmerni (8-bitni) / LapLink (4-bitni)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Dvosmerni (8-bitni)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Pot cevi"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Način"
 
 msgid "Server"
 msgstr "Strežnik"
@@ -2746,28 +2750,28 @@ msgid "Client"
 msgstr "Odjemalec"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Samodejno se ponovno poveži"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Uporabi standardni vhod/izhod"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Ustvari psevdoterminal"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Zaženi emulator terminala"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Izvedi ukaz po meri"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Ukaz po meri"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Izvedi ukaz po meri v terminalu"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Navidezna konzola"
 
 msgid "E&ject %1"
 msgstr "I&zvrzi %1"
@@ -3163,154 +3167,158 @@ msgid "System Default"
 msgstr "Sistemsko privzeto"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Ni bilo mogoče odpreti slike ali mape \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Ni bilo mogoče odpreti seznama cue \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Ni bilo mogoče odpreti datoteke MDS \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Ni bilo mogoče odpreti slike CD-ROM-a \"%s\"."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Ni bilo mogoče odpreti slike \"%s\": manjka knjižnica mdsx.so, potrebna za "
+"podporo slik formatov MDS v2 in MDX programa Daemon Tools."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Slika DVD-ja \"%s\" je bila vstavljena v pogon, ki ne podpira medije DVD in "
+"bo prezrta."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Ni se bilo mogoče povezati s %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Ni bilo mogoče ustvariti %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Priklopljen na %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Navidezno konzolo že uporablja %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Ni bilo mogoče ustvariti terminal: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Najdi samodejno"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanal"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Oba kanala"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Levi kanal"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Desni kanal"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Dovoli posodobitev BIOS-a preko Flash-a"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot št."
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Paralelna vrata"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Velikost papirja"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Pravna (vodoravna)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (vodoravna)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kakovost"
 
 msgid "Draft"
-msgstr ""
+msgstr "Osnutek"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Skoraj) pisemska"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Samodejni preskok vrstice"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Klon PSSJ Tandy"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (barvni)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (enobarvni)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Beli enobarvni"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Strojna pisava"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnostični način"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Monitor CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Monitor MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Televizor"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Obrni barve zaslona LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (način CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (način MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Onemogočen (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Omogočen (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testni način"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Hitrost osveževanja"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "ZDA (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM nordijska (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Češka - nabor bratov Kamenický (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Češka - nabor bratov Kamenický (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (japonščina)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (tradicionalna kitajščina)"

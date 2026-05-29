@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-28 17:34+0000\n"
-"Last-Translator: RichardG867 <richardg867@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://weblate.86box.net/projects/"
 "86box/86box/pt_PT/>\n"
 "Language: pt-PT\n"
@@ -1456,45 +1456,37 @@ msgstr "O ficheiro selecionado será sobrescrito. Tem a certeza de que quer util
 msgid "Unsupported disk image"
 msgstr "Imagem de disco sem suporte"
 
-#, fuzzy
 msgid "Unable to read device"
 msgstr "Não foi possível ler o dispositivo"
 
-#, fuzzy
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
 "Não foi possível determinar o tamanho do dispositivo de bloco. Certifique-se "
-"que você tenha permissão para acessar este dispositivo."
+"que tenha permissão para acessar este dispositivo."
 
-#, fuzzy
 msgid "Device too large"
-msgstr "Dispositivo grande demais"
+msgstr "O dispositivo é demasiado grande"
 
-#, fuzzy
 msgid "Block device is too large to be used as a hard disk."
 msgstr ""
-"O dispositivo de bloco é grande demais para ser usado como disco rígido."
+"O dispositivo de bloco é demasiado grande para ser utilizado como disco "
+"rígido."
 
-#, fuzzy
 msgid "Block device detected"
 msgstr "Dispositivo de bloco detectado"
 
-#, fuzzy
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
 "Dispositivo de bloco detectado: %1\n"
 "Tamanho: %2 MB\n"
 "Geometria: %3 cilindros, %4 cabeças, %5 setores"
 
-#, fuzzy
 msgid "Failed to write the disk image."
 msgstr "Não foi possível gravar a imagem de disco."
 
-#, fuzzy
 msgid "Failed to read the disk image."
 msgstr "Não foi possível ler a imagem de disco."
 
-#, fuzzy
 msgid "The disk image has been successfully created."
 msgstr "A imagem de disco foi criada com sucesso."
 
@@ -2395,51 +2387,39 @@ msgstr "Endereço para > 2 MB"
 msgid "Frame Address"
 msgstr "Endereço do quadro"
 
-#, fuzzy
 msgid "English"
 msgstr "Inglês"
 
-#, fuzzy
 msgid "English (US)"
 msgstr "Inglês (Estados Unidos)"
 
-#, fuzzy
 msgid "English (UK)"
 msgstr "Inglês (Reino Unido)"
 
-#, fuzzy
 msgid "English (Canada)"
 msgstr "Inglês (Canadá)"
 
-#, fuzzy
 msgid "German"
 msgstr "Alemão"
 
-#, fuzzy
 msgid "French"
 msgstr "Francês"
 
-#, fuzzy
 msgid "Spanish"
 msgstr "Espanhol"
 
-#, fuzzy
 msgid "Swedish"
 msgstr "Sueco"
 
-#, fuzzy
 msgid "Italian"
 msgstr "Italiano"
 
-#, fuzzy
 msgid "Portuguese"
 msgstr "Português"
 
-#, fuzzy
 msgid "Norwegian"
 msgstr "Norueguês"
 
-#, fuzzy
 msgid "Greek"
 msgstr "Grego"
 
@@ -2728,51 +2708,39 @@ msgstr "Dispositivo de série anfitrião"
 msgid "Named Pipe"
 msgstr "Tubo nomeado"
 
-#, fuzzy
 msgid "Output file"
 msgstr "Ficheiro de saída"
 
-#, fuzzy
 msgid "Append to file if it exists"
 msgstr "Adicionar ao ficheiro caso exista"
 
-#, fuzzy
 msgid "Input file"
 msgstr "Ficheiro de entrada"
 
-#, fuzzy
 msgid "Loop input file"
-msgstr "Repetir ficheiro de entrada"
+msgstr "Repetir o ficheiro de entrada"
 
-#, fuzzy
 msgid "Require STROBE signal"
-msgstr "Exigir sinal STROBE"
+msgstr "Requerir sinal STROBE"
 
-#, fuzzy
 msgid "Loopback Type"
 msgstr "Tipo de loopback"
 
-#, fuzzy
 msgid "Parallel cable"
 msgstr "Cabo paralelo"
 
-#, fuzzy
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
 msgstr "Unidirecional (8 bits) / LapLink (4 bits)"
 
-#, fuzzy
 msgid "Bidirectional (8-bit)"
 msgstr "Bidirecional (8 bits)"
 
-#, fuzzy
 msgid "Pipe path"
 msgstr "Caminho do tubo"
 
-#, fuzzy
 msgid "FIFO / terminal"
 msgstr "FIFO ou terminal"
 
-#, fuzzy
 msgid "Mode"
 msgstr "Modo"
 
@@ -2782,35 +2750,27 @@ msgstr "Servidor"
 msgid "Client"
 msgstr "Cliente"
 
-#, fuzzy
 msgid "Reconnect automatically"
-msgstr "Reconectar automaticamente"
+msgstr "Reestabelecer a ligação automaticamente"
 
-#, fuzzy
 msgid "Use standard input/output"
-msgstr "Utilizar entrada/saída padrão"
+msgstr "Utilizar a entrada/saída padrão"
 
-#, fuzzy
 msgid "Create pseudoterminal"
 msgstr "Criar pseudoterminal"
 
-#, fuzzy
 msgid "Start terminal emulator"
 msgstr "Iniciar emulador de terminal"
 
-#, fuzzy
 msgid "Run custom command"
 msgstr "Executar comando personalizado"
 
-#, fuzzy
 msgid "Custom command"
 msgstr "Comando personalizado"
 
-#, fuzzy
 msgid "Run custom command in terminal"
 msgstr "Executar comando personalizado em um terminal"
 
-#, fuzzy
 msgid "Virtual Console"
 msgstr "Console Virtual"
 
@@ -3207,209 +3167,159 @@ msgstr "Dispositivo de saída de áudio:"
 msgid "System Default"
 msgstr "Padrão do sistema"
 
-#, fuzzy
 msgid "Unable to open image or folder \"%s\"."
 msgstr "Não foi possível abrir a imagem ou pasta \"%s\"."
 
-#, fuzzy
 msgid "Unable to open cue sheet \"%s\"."
 msgstr "Não foi possível abrir o ficheiro cue \"%s\"."
 
-#, fuzzy
 msgid "Unable to open MDS file \"%s\"."
 msgstr "Não foi possível abrir o ficheiro MDS \"%s\"."
 
-#, fuzzy
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "Não foi possível carregar a imagem de CD-ROM \"%s\"."
 
-#, fuzzy
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
-"Não foi possível carregar a imagem \"%s\": Falta mdsx.so, necessário para "
-"suporte a imagens Daemon Tools MDS v2 e MDX."
+"Não foi possível carregar a imagem \"%s\": Falta o mdsx.so, necessário para "
+"o suporte a imagens Daemon Tools MDS v2 e MDX."
 
-#, fuzzy
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 "A imagem de DVD \"%s\" foi inserida em uma unidade que não suporta mídia DVD "
 "e será ignorada."
 
-#, fuzzy
 msgid "%s: Could not connect to %s: %s"
-msgstr "%s: Não foi possível conectar a %s: %s"
+msgstr "%s: Não foi possível ligar a %s: %s"
 
-#, fuzzy
 msgid "%s: Could not create %s: %s"
 msgstr "%s: Não foi possível criar %s: %s"
 
-#, fuzzy
 msgid "%s: Attached to %s"
-msgstr "%s: Conectado a %s"
+msgstr "%s: Ligado a %s"
 
-#, fuzzy
 msgid "%s: Virtual console already in use by %s"
-msgstr "%s: Console virtual já está em uso por %s"
+msgstr "%s: A console virtual já está a ser utilizada por %s"
 
-#, fuzzy
 msgid "%s: Could not create terminal: %s"
 msgstr "%s: Não foi possível criar o terminal: %s"
 
-#, fuzzy
 msgid "Auto-detect"
-msgstr "Detectar automaticamente"
+msgstr "Detecção automática"
 
-#, fuzzy
 msgid "Channel"
 msgstr "Canal"
 
-#, fuzzy
 msgid "Both Channels"
 msgstr "Ambos os canais"
 
-#, fuzzy
 msgid "Left Channel"
 msgstr "Canal esquerdo"
 
-#, fuzzy
 msgid "Right Channel"
 msgstr "Canal direito"
 
-#, fuzzy
 msgid "Allow Flash BIOS Updates"
-msgstr "Permitir atualizações de BIOS Flash"
+msgstr "Permitir atualizações de BIOS via Flash"
 
 msgid "Slot #"
 msgstr "Slot no."
 
-#, fuzzy
 msgid "Parallel Port"
 msgstr "Porta paralela"
 
-#, fuzzy
 msgid "Paper Size"
 msgstr "Tamanho do papel"
 
-#, fuzzy
 msgid "Legal (sideways)"
-msgstr "Ofício (de lado)"
+msgstr "Legal (horizontal)"
 
-#, fuzzy
 msgid "B4 (sideways)"
-msgstr "B4 (de lado)"
+msgstr "B4 (horizontal)"
 
-#, fuzzy
 msgid "Quality"
 msgstr "Qualidade"
 
-#, fuzzy
 msgid "Draft"
 msgstr "Rascunho"
 
-#, fuzzy
 msgid "(Near) Letter"
 msgstr "(Próxima a) Carta"
 
-#, fuzzy
 msgid "Auto LF"
 msgstr "Quebra automática de linha"
 
-#, fuzzy
 msgid "Tandy PSSJ Clone"
-msgstr "Clone Tandy PSSJ"
+msgstr "Clone do Tandy PSSJ"
 
-#, fuzzy
 msgid "PC-CM (Color)"
-msgstr "PC-CM (Cor)"
+msgstr "PC-CM (Cores)"
 
-#, fuzzy
 msgid "PC-MM (Monochrome)"
 msgstr "PC-MM (Monocromático)"
 
-#, fuzzy
 msgid "White Monochrome"
 msgstr "Monocromático branco"
 
-#, fuzzy
 msgid "Hardware font"
 msgstr "Fonte de hardware"
 
-#, fuzzy
 msgid "Diagnostic mode"
 msgstr "Modo de diagnóstico"
 
-#, fuzzy
 msgid "CGA monitor"
 msgstr "Monitor CGA"
 
-#, fuzzy
 msgid "MDA monitor"
 msgstr "Monitor MDA"
 
-#, fuzzy
 msgid "Television"
 msgstr "Televisão"
 
-#, fuzzy
 msgid "Invert LCD colors"
 msgstr "Inverter cores do LCD"
 
-#, fuzzy
 msgid "LCD (CGA mode)"
 msgstr "LCD (modo CGA)"
 
-#, fuzzy
 msgid "LCD (MDA mode)"
 msgstr "LCD (modo MDA)"
 
-#, fuzzy
 msgid "Disabled (250h)"
 msgstr "Desativado (250h)"
 
-#, fuzzy
 msgid "Enabled (350h)"
 msgstr "Ativado (350h)"
 
-#, fuzzy
 msgid "Test mode"
 msgstr "Modo de teste"
 
-#, fuzzy
 msgid "32 MB"
 msgstr "32 MB"
 
-#, fuzzy
 msgid "64 MB"
 msgstr "64 MB"
 
-#, fuzzy
 msgid "2048 MB"
 msgstr "2048 MB"
 
-#, fuzzy
 msgid "Refresh rate"
 msgstr "Taxa de atualização"
 
-#, fuzzy
 msgid "US (CP 437)"
 msgstr "Estados Unidos (CP 437)"
 
-#, fuzzy
 msgid "IBM Nordic (CP 437-Nordic)"
 msgstr "Nórdica IBM (CP 437-Nordic)"
 
-#, fuzzy
 msgid "Czech Kamenicky (CP 895) #1"
 msgstr "Checa Kamenicky (CP 895) no. 1"
 
-#, fuzzy
 msgid "Czech Kamenicky (CP 895) #2"
 msgstr "Checa Kamenicky (CP 895) no. 2"
 
-#, fuzzy
 msgid "932 (Japanese)"
 msgstr "932 (Japonês)"
 
-#, fuzzy
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Chinês tradicional)"

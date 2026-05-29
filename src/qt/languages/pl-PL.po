@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-28 17:34+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -2697,9 +2697,8 @@ msgstr "Klucz ochronny dla Savage Quest"
 msgid "Loopback Plug"
 msgstr "Wtyczka loopback"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Urządzenie przelotowe portu szeregowego"
+msgstr "Przekierowanie portu szeregowego"
 
 msgid "Host serial device"
 msgstr "Urządzenie szeregowe hosta"

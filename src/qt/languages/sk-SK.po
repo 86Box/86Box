@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovak <https://weblate.86box.net/projects/86box/86box/sk/>\n"
 "Language: sk-SK\n"
 "MIME-Version: 1.0\n"
@@ -177,9 +177,8 @@ msgstr "Konverzia na odtiene sivej:"
 msgid "Average"
 msgstr "Priemer"
 
-#, fuzzy
 msgid "Overscan"
-msgstr "Prekrytie obrazu"
+msgstr "Presah obrazu"
 
 msgid "Change contrast for monochrome display"
 msgstr "Úprava kontrastu čiernobielej obrazovky"
@@ -356,19 +355,19 @@ msgid "Machine type:"
 msgstr "Typ počítača:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (pätice 168 a 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (ostatné)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (jednonapäťový)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (dvojnapäťový)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Ostatné"
 
 msgid "Machine:"
 msgstr "Počítač:"
@@ -530,43 +529,43 @@ msgid "CD-ROM controller:"
 msgstr "Radič CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Rozhranie Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Rozhranie MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Rozhranie MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Radič IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Radič IDE (dvojkanálový)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Radič IDE pre PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Radič IDE pre PC/AT (dvojkanálový)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE pre PC/AT (len primárny kanál)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "AT XTIDE pre PS/2 (1.1.5) (len primárny kanál)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terciárny a kvartérny kanál)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terciárny a kvartérny kanál)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terciárny a kvartérny kanál)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Radič McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tretí radič IDE"
@@ -1457,31 +1456,37 @@ msgid "Unsupported disk image"
 msgstr "Nepodporovaný obraz disku"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Nebolo možné prečítať zo zariadenia"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Nepodarilo sa zistiť veľkosť blokového zariadenia. Skontrolujte, či máte "
+"oprávnenie na prístup k tomuto zariadeniu."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Zariadenie je príliš veľké"
 
 msgid "Block device is too large to be used as a hard disk."
 msgstr ""
+"Blokové zariadenie je príliš veľké na to, aby sa dalo použiť ako pevný disk."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Zistené blokové zariadenie"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Zistené blokové zariadenie: %1\n"
+"Veľkosť: %2 MB\n"
+"Geometria: %3 valcov, %4 hláv, %5 sektorov"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Zlyhal zápis obrazu disku."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Zlyhalo načítanie obrazu disku."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Obraz disku bol úspešne vytvorený."
 
 msgid "Raw image"
 msgstr "Surový obraz"
@@ -1991,7 +1996,7 @@ msgid "BIOS Language"
 msgstr "Jazyk BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Varianta"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Rozširujúca jednotka IBM 5161"
@@ -2234,7 +2239,7 @@ msgid "Receive MIDI input (MPU-401)"
 msgstr "Príjem vstupu MIDI (MPU-401)"
 
 msgid "SB low DMA"
-msgstr "SB low DMA"
+msgstr "Nízky DMA kanál SB"
 
 msgid "6CH variant (6-channel)"
 msgstr "Variant 6CH (6-kanálový)"
@@ -2381,40 +2386,40 @@ msgid "Frame Address"
 msgstr "Adresa rámu"
 
 msgid "English"
-msgstr ""
+msgstr "Angličtina"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Angličtina (USA)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Angličtina (Spojené kráľovstvo)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Angličtina (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Nemčina"
 
 msgid "French"
-msgstr ""
+msgstr "Francúzština"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Španielčina"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Švédčina"
 
 msgid "Italian"
-msgstr ""
+msgstr "Taliančina"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugalčina"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Nórčina"
 
 msgid "Greek"
-msgstr ""
+msgstr "Gréčtina"
 
 msgid "Danish"
 msgstr "Dánsky"
@@ -2639,7 +2644,7 @@ msgid "3Dfx Voodoo Graphics"
 msgstr "Grafický akcelerátor 3dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr "3Dfx Voodoo 2"
+msgstr "Grafický akcelerátor 3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 zariadenia TMU)"
@@ -2690,11 +2695,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Ochranný kľúč pre Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback adaptér"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Zariadenie priechodu sériového portu"
+msgstr "Prechod sériového portu"
 
 msgid "Host serial device"
 msgstr "Hostiteľské sériové zariadenie"
@@ -2703,40 +2707,40 @@ msgid "Named Pipe"
 msgstr "Pomenovaná rúrka"
 
 msgid "Output file"
-msgstr ""
+msgstr "Výstupný súbor"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Pridať do súboru, ak už existuje"
 
 msgid "Input file"
-msgstr ""
+msgstr "Vstupný súbor"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Vstupný súbor slučky"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Vyžadovať signál STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Typ slučky"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Paralelný kábel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Jednosmerný (8-bitový) / LapLink (4-bitový)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Dvojitý (8-bitový)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Cesta k rúre"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminál"
 
 msgid "Mode"
-msgstr ""
+msgstr "Režim"
 
 msgid "Server"
 msgstr "Server"
@@ -2745,28 +2749,28 @@ msgid "Client"
 msgstr "Klient"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Automaticky sa pripojiť znova"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Použiť štandardný vstup/výstup"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Vytvoriť pseudoterminál"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Spustiť emulátor terminálu"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Spustiť vlastný príkaz"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Vlastný príkaz"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Spustiť vlastný príkaz v termináli"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Virtuálna konzola"
 
 msgid "E&ject %1"
 msgstr "&Vystrihnúť %1"
@@ -2829,10 +2833,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Všeobecné rozšírenie pamäte PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Obecné hodiny s reálnym časom MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (externé zariadenie)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Nastala chyba pri hľadaní ihličkových písem"
@@ -2898,10 +2902,10 @@ msgid "Could not load file %1"
 msgstr "Nebolo možné načítať súbor %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulátor"
 
 msgid "Input"
-msgstr ""
+msgstr "Vstup"
 
 msgid "Key bindings"
 msgstr "Nastavenie klávesov"
@@ -3153,7 +3157,7 @@ msgid "Raw"
 msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Povoliť emuláciu EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Výstupné zvukové zariadenie:"
@@ -3162,154 +3166,158 @@ msgid "System Default"
 msgstr "Predvolené nastavenie systému"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Nepodarilo sa otvoriť obraz alebo priečinok \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Nepodarilo sa otvoriť cue zoznam \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Nepodarilo sa otvoriť MDS súbor \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Nepodarilo sa otvoriť obraz CD-ROM disku \"%s\"."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Nepodarilo sa načítať obraz „%s“: nenašla sa knižnica mdsx.so, ktorá je "
+"potrebná na podporu obrazov vo Daemon Tools formátoch MDS v2 a MDX."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Obraz DVD disku \"%s\" bol vložený do mechaniky, ktorá nepodporuje médiá "
+"DVD, a bude ignorovaný."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Nepodarilo sa pripojiť k %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Nepodarilo sa vytvoriť %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Pripojené k %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Virtuálnu konzolu už používa %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Nepodarilo sa vytvoriť terminál: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Automaticky detekovať"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanál"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Oba kanály"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Ľavý kanál"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Pravý kanál"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Povoliť aktualizácie Flash BIOS"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Číslo slotu"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Paralelný port"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Veľkosť papiera"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (na šírku)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (na šírku)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kvalita"
 
 msgid "Draft"
-msgstr ""
+msgstr "Koncepcia"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Takmer) písomná"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automatický posun riadku"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Klon Tandy PSSJ"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (farebný)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monochromatický)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Biely monochromatický"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Hardvérové písmo"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnostický režim"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Monitor CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Monitor MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Televízor"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Obrátiť farby LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (režim CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (režim MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Vypnuté (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Zapnuté (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testovací režim"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Obnovovacia frekvencia"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "USA (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM severské (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "České – kód Kamenických (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "České – kód Kamenických (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (japončina)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (klasická čínština)"
