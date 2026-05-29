@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:11+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 18:36+0000\n"
+"Last-Translator: RichardG867 <richardg867@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
 "Language: pt-BR\n"
@@ -3255,7 +3255,7 @@ msgid "Paper Size"
 msgstr "Tamanho do papel"
 
 msgid "Letter"
-msgstr ""
+msgstr "Carta"
 
 msgid "Legal (sideways)"
 msgstr "Legal (de lado)"
