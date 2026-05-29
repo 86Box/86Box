@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 18:11+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Croatian <https://weblate.86box.net/projects/86box/86box/hr/>"
 "\n"
 "Language: hr-HR\n"
@@ -179,7 +179,6 @@ msgstr "Vrsta konverzije nijansa sive boje:"
 msgid "Average"
 msgstr "Prosjek"
 
-#, fuzzy
 msgid "Overscan"
 msgstr "Višak slike"
 
@@ -358,19 +357,19 @@ msgid "Machine type:"
 msgstr "Tip sistema:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 i 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Razno)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (jednostruko napajanje)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (dvostruko napajanje)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Razno"
 
 msgid "Machine:"
 msgstr "Sistem:"
@@ -532,43 +531,43 @@ msgid "CD-ROM controller:"
 msgstr "Kontroler CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Sučelje Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Sučelje MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Sučelje MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Kontroler IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Kontroler IDE (dvokanalni)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Kontroler IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Kontroler IDE PC/AT (dvokanalni)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE PC/AT (samo primarni)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "XTIDE AT PS/2 (1.1.5) (samo primarni)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (tercijarni i kvartarni)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (tercijarni i kvartarni)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (tercijarni i kvartarni)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Kontroler McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tercijarni IDE kontroler"
@@ -1170,21 +1169,18 @@ msgstr "Čeka"
 msgid "Powered Off"
 msgstr "Isključen"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n se ppokreće"
-msgstr[1] "%n se ppokreće"
+msgstr[1] "%n se ppokreću"
 msgstr[2] "%n se ppokreće"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
-msgstr[0] "%n pauziranih"
-msgstr[1] "%n pauziranih"
+msgstr[0] "%n pauziran"
+msgstr[1] "%n pauzirani"
 msgstr[2] "%n pauziranih"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n čeka"
@@ -1495,31 +1491,36 @@ msgid "Unsupported disk image"
 msgstr "Nepodržana slika diska"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Ne možem prečitati uređaj"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Nije bilo moguće odrediti veličinu bloka uređaja. Provjerite, imate li "
+"dozvolu za pristup ovom uređaju."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Uređaj je prevelik"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Blokovni uređaj je prevelik da bi se koristio kao tvrdi disk."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Detektiran blokovni uređaj"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Otkriven blokovni uređaj: %1\n"
+"Veličina: %2 MB\n"
+"Geometrija: %3 cilindara, %4 glava, %5 sektora"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Nije bilo moguće zapisati sliku diska."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Nije bilo mogući prečitati sliku diska."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Slika diska je uspješno stvorena."
 
 msgid "Raw image"
 msgstr "Slika neobrađenih podataka"
@@ -2026,7 +2027,7 @@ msgid "BIOS Language"
 msgstr "Jezik BIOS-a"
 
 msgid "Variant"
-msgstr ""
+msgstr "Varijanta"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Jedinica za proširenj IBM 5161"
@@ -2416,40 +2417,40 @@ msgid "Frame Address"
 msgstr "Adresa za frame"
 
 msgid "English"
-msgstr ""
+msgstr "Engleski"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Engleski (SAD)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Engleski (UK)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Engleski (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Njemački"
 
 msgid "French"
-msgstr ""
+msgstr "Francuski"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Španjolski"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Švedski"
 
 msgid "Italian"
-msgstr ""
+msgstr "Talijanski"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugalski"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norveški"
 
 msgid "Greek"
-msgstr ""
+msgstr "Grčki"
 
 msgid "Danish"
 msgstr "Danski"
@@ -2725,11 +2726,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Zaštitni uređaj za Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Kabel za povrat"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Uređaj prolaza serijskih vrata"
+msgstr "Prolaz serijskih vrata"
 
 msgid "Host serial device"
 msgstr "Serijska vrata nositelja"
@@ -2738,40 +2738,40 @@ msgid "Named Pipe"
 msgstr "Imenovani vod"
 
 msgid "Output file"
-msgstr ""
+msgstr "Izlazna datoteka"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Dodaj u datoteku ako ona postoji"
 
 msgid "Input file"
-msgstr ""
+msgstr "Ulazna datoteka"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Povrat ulazne datoteke"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Zahtijevaj signal STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Tip povrata"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Paralelni kabel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Jednosmjerni (8-bitni) / LapLink (4-bitni)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Dvosmjerni (8-bitni)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Put voda"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Način"
 
 msgid "Server"
 msgstr "Server"
@@ -2780,28 +2780,28 @@ msgid "Client"
 msgstr "Klijent"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Automatski se ponovno poveži"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Koristi standardni unos/izlaz"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Kreiraj pseudoterminal"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Pokreni emulator terminala"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Pokreni prilagođenu naredbu"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Prilagođena naredba"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Pokreni prilagođenu naredbu u terminalu"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Virtualna konzola"
 
 msgid "E&ject %1"
 msgstr "&Izbaci %1"
@@ -2864,10 +2864,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generičko proširenje memorije PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Generični sat u stvarnom veremenu MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (vanjski uređaj)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "Nije moguće pronaći matrične fontove. TrueType fontovi u mapi \"roms/printer/fonts\" potrebni su za emulaciju generičnog matričnog pisača ESC/P 2."
@@ -2930,10 +2930,10 @@ msgid "Could not load file %1"
 msgstr "Nije moguće učitati datoteku %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Upad"
 
 msgid "Key bindings"
 msgstr "Veze tipki"
@@ -3188,7 +3188,7 @@ msgid "Raw"
 msgstr "Neobrađeni podaci"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Koristite emulaciju EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Uređaj za izlaz zvuka:"
@@ -3197,154 +3197,158 @@ msgid "System Default"
 msgstr "Zadana postavka operativnog sustava"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Nije bilo moguće otvoriti sliku ili mapu \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Nije bolo moguće otvoriti cue listu \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Nije bilo moguće otvoriti datoteku MDS \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Nije bilo moguće otvoriti sliku CD-ROM-a \"%s\"."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Nije bilo moguće otvoriti sliku \"%s\": nedostaje biblioteka %1, potrebna za "
+"podršku slika formata MDS v2 i MDX programa Daemon Tools."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Slika DVD-a \"%s\" bila je umetnuta u pogon, koji ne podržava medije DVD i "
+"bit će ignorirana."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Nije se bilo moguće povezati s %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Nije bilo moguće kreirati %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Priključen na %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Virtualnu konzolu već upotreblja %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Nije bio moguće kreirati terminal: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Automatsko otkrivanje"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanal"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Oba kanala"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Lijevi kanal"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Desni kanal"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Omogoući ažiriranje BIOS-a kroz Flash"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot br."
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Paralelna vrata"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Veličina papira"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (bočna)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (bočna)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kvaliteta"
 
 msgid "Draft"
-msgstr ""
+msgstr "Nacrt"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Skoro) Letter"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automatski unos redaka"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Klon PSSJ Tandy"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (bojni)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (jednobojni)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Beli jednobojni"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Strojni font"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Dijagnostički način"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Monitor CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Monitor MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Televizija"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Obrni boje LCD-a"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (način CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (način MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Otključen (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Uključen (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testni način"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Stopa osvježavanja"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "SAD (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM nordijski (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Češki - skup braće Kamenický (CP 895) 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Češki - skup braće Kamenický (CP 895) 2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (japanski)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (tradicionalni kineski)"

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 08:39+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 18:11+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -1166,19 +1166,16 @@ msgstr "Wartend"
 msgid "Powered Off"
 msgstr "Ausgeschaltet"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n laufend"
 msgstr[1] "%n laufend"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
 msgstr[0] "%n pausiert"
 msgstr[1] "%n pausiert"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n wartend"
