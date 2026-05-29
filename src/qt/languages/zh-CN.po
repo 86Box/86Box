@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
+"Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -3315,10 +3315,10 @@ msgid "IBM Nordic (CP 437-Nordic)"
 msgstr "IBM北欧字符集 (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr "智利Kamenický编码 (CP 895) #1"
+msgstr "捷克Kamenický编码 (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr "智利Kamenický编码 (CP 895) #2"
+msgstr "捷克Kamenický编码 (CP 895) #2"
 
 msgid "932 (Japanese)"
 msgstr "932 (日语)"
