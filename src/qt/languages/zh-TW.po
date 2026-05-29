@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -251,13 +251,13 @@ msgid "&About 86Box…"
 msgstr "關於 86Box(&A)…"
 
 msgid "&New image…"
-msgstr "新增影像(&N)…"
+msgstr "新增映像(&N)…"
 
 msgid "&Existing image…"
-msgstr "開啟已存在的影像(&E)…"
+msgstr "開啟已存在的映像(&E)…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "以防寫保護開啟已存在的影像(&W)…"
+msgstr "以防寫保護開啟已存在的映像(&W)…"
 
 msgid "&Record"
 msgstr "錄製(&R)"
@@ -275,7 +275,7 @@ msgid "E&ject"
 msgstr "退出(&J)"
 
 msgid "&Image…"
-msgstr "影像(&I)…"
+msgstr "映像(&I)…"
 
 msgid "E&xport to 86F…"
 msgstr "匯出為 86F 格式(&X)…"
@@ -287,7 +287,7 @@ msgid "E&mpty"
 msgstr "卸載(&M)"
 
 msgid "Reload previous image"
-msgstr "載入上一個影像"
+msgstr "載入上一個映像"
 
 msgid "&Folder…"
 msgstr "資料夾(&F)…"
@@ -299,7 +299,7 @@ msgid "Sound Gain"
 msgstr "音量增益"
 
 msgid "New Image"
-msgstr "新增影像"
+msgstr "新增映像"
 
 msgid "Settings"
 msgstr "設定"
@@ -638,7 +638,7 @@ msgid "Type:"
 msgstr "類型:"
 
 msgid "Image Format:"
-msgstr "影像格式:"
+msgstr "映像格式:"
 
 msgid "Block Size:"
 msgstr "區塊大小:"
@@ -728,7 +728,7 @@ msgid "&Removable disk %1 (%2): %3"
 msgstr "抽取式磁碟 %1 (%2): %3(&R)"
 
 msgid "Removable disk images"
-msgstr "抽取式磁碟影像"
+msgstr "抽取式磁碟映像"
 
 msgid "Tape %1 (%2): %3"
 msgstr "磁帶機 %1 (%2): %3"
@@ -737,13 +737,17 @@ msgid "&Tape %1 (%2): %3"
 msgstr "磁帶機 %1 (%2): %3(&T)"
 
 msgid "Tape images"
-msgstr "磁帶影像"
+msgstr "磁帶映像"
 
 msgid "Image %1"
-msgstr "影像 %1"
+msgstr "映像 %1"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box 找不到任何可用的 ROM 影像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
+msgstr ""
+"86Box 找不到任何可用的 ROM 映像。\n"
+"\n"
+"請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a> ROM "
+"套件並將其解壓到 \"roms\" 資料夾。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -761,13 +765,13 @@ msgid "Off"
 msgstr "關"
 
 msgid "All images"
-msgstr "所有影像"
+msgstr "所有映像"
 
 msgid "Basic sector images"
-msgstr "基本磁區影像"
+msgstr "基本磁區映像"
 
 msgid "Surface images"
-msgstr "表面影像"
+msgstr "表面映像"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "由於 roms/machines 資料夾中缺少合適的 ROM，機型 \"%s\" 不可用。將切換到其他可用機型。"
@@ -974,10 +978,10 @@ msgid "&Floppy %1 (%2): %3"
 msgstr "軟碟 %1 (%2): %3(&F)"
 
 msgid "Advanced sector images"
-msgstr "進階磁區影像"
+msgstr "進階磁區映像"
 
 msgid "Flux images"
-msgstr "Flux 影像"
+msgstr "Flux 映像"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
 msgstr "確定要硬重設模擬器嗎？"
@@ -998,7 +1002,7 @@ msgid "&MO %1 (%2): %3"
 msgstr "磁光碟 %1 (%2): %3(&M)"
 
 msgid "MO images"
-msgstr "磁光碟影像"
+msgstr "磁光碟映像"
 
 msgid "Welcome to 86Box!"
 msgstr "歡迎使用 86Box！"
@@ -1061,7 +1065,7 @@ msgid "Don't show this message again"
 msgstr "不要再顯示此訊息"
 
 msgid "CD-ROM images"
-msgstr "光碟影像"
+msgstr "光碟映像"
 
 msgid "%1 Device Configuration"
 msgstr "%1 裝置組態"
@@ -1088,7 +1092,7 @@ msgid "C&assette: %1"
 msgstr "卡帶: %1(&A)"
 
 msgid "Cassette images"
-msgstr "卡帶影像"
+msgstr "卡帶映像"
 
 msgid "Cartridge %1: %2"
 msgstr "卡匣 %1: %2"
@@ -1097,7 +1101,7 @@ msgid "Car&tridge %1: %2"
 msgstr "卡匣 %1: %2(&T)"
 
 msgid "Cartridge images"
-msgstr "卡匣影像"
+msgstr "卡匣映像"
 
 msgid "Resume execution"
 msgstr "恢復執行"
@@ -1412,13 +1416,13 @@ msgid "Add Existing Hard Disk"
 msgstr "增加已存在的硬碟"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 磁碟影像不能超過 4 GB。"
+msgstr "HDI 磁碟映像不能超過 4 GB。"
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "磁碟影像不能超過 127 GB。"
+msgstr "磁碟映像不能超過 127 GB。"
 
 msgid "Hard disk images"
-msgstr "硬碟影像"
+msgstr "硬碟映像"
 
 msgid "Unable to read file"
 msgstr "無法讀取檔案"
@@ -1427,16 +1431,16 @@ msgid "Unable to write file"
 msgstr "無法寫入檔案"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "不支援非 512 位元組磁區大小的 HDI 或 HDX 影像。"
+msgstr "不支援非 512 位元組磁區大小的 HDI 或 HDX 映像。"
 
 msgid "Disk image file already exists"
-msgstr "磁碟影像檔案已存在"
+msgstr "磁碟映像檔案已存在"
 
 msgid "Please specify a valid file name."
 msgstr "請指定有效的檔案名。"
 
 msgid "Disk image created"
-msgstr "已創建磁碟影像"
+msgstr "已創建磁碟映像"
 
 msgid "Make sure the file exists and is readable."
 msgstr "請確定此檔案已存在並可讀取。"
@@ -1445,7 +1449,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "請確定此檔案儲存在可寫目錄中。"
 
 msgid "Disk image too large"
-msgstr "磁碟影像太大"
+msgstr "磁碟映像太大"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "請記得為新創建的影像建立分割區並格式化。"
@@ -1454,7 +1458,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "選定的檔案將被覆蓋。確定繼續使用此檔案嗎？"
 
 msgid "Unsupported disk image"
-msgstr "不支援的磁碟影像"
+msgstr "不支援的磁碟映像"
 
 msgid "Unable to read device"
 msgstr "無法讀取裝置"
@@ -1478,22 +1482,22 @@ msgstr ""
 "參數: %3 磁柱, %4 磁頭, %5 磁區"
 
 msgid "Failed to write the disk image."
-msgstr "寫入磁碟影像失敗。"
+msgstr "寫入磁碟映像失敗。"
 
 msgid "Failed to read the disk image."
-msgstr "讀取磁碟影像失敗。"
+msgstr "讀取磁碟映像失敗。"
 
 msgid "The disk image has been successfully created."
-msgstr "成功創建磁碟影像。"
+msgstr "成功創建磁碟映像。"
 
 msgid "Raw image"
-msgstr "原始影像"
+msgstr "原始映像"
 
 msgid "HDI image"
-msgstr "HDI 影像"
+msgstr "HDI 映像"
 
 msgid "HDX image"
-msgstr "HDX 影像"
+msgstr "HDX 映像"
 
 msgid "Fixed-size VHD"
 msgstr "固定大小 VHD"
@@ -1508,13 +1512,13 @@ msgid "(N/A)"
 msgstr "(不適用)"
 
 msgid "Raw image (.img)"
-msgstr "原始影像 (.img)"
+msgstr "原始映像 (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI 影像 (.hdi)"
+msgstr "HDI 映像 (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX 影像 (.hdx)"
+msgstr "HDX 映像 (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "固定大小 VHD (.vhd)"
@@ -1538,7 +1542,13 @@ msgid "Select the parent VHD"
 msgstr "選取父 VHD 檔案"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "父影像可能在創建差異影像後被修改。\n\n如果影像檔案被移動或複製，或創建此磁碟的程式中存在錯誤，也可能發生這種情況。\n\n是否需要修復時間戳？"
+msgstr ""
+"父映像可能在創建差異映像後被修改。\n"
+"\n"
+"如果映像檔案被移動或複製，或創建此磁碟的程式中存在錯誤，也可能發生這種情況。"
+"\n"
+"\n"
+"是否需要修復時間戳？"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "父碟與子碟的時間戳不匹配"
@@ -1631,22 +1641,22 @@ msgid "2% below perfect RPM"
 msgstr "低於標準轉速的 2%"
 
 msgid "Creating image…"
-msgstr "新建影像…"
+msgstr "新建映像…"
 
 msgid "(System Default)"
 msgstr "(系統預設)"
 
 msgid "Failed to initialize network driver"
-msgstr "初始化網路驅動程式失敗"
+msgstr "初始化網路驅動器失敗"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "網路組態將切換為空驅動程式"
+msgstr "網路組態將切換為空驅動器"
 
 msgid "Mouse sensitivity:"
 msgstr "滑鼠靈敏度:"
 
 msgid "Select media images from program working directory"
-msgstr "從程式工作目錄中選擇媒體影像"
+msgstr "從程式工作目錄中選擇媒體映像"
 
 msgid "PIT mode:"
 msgstr "PIT 模式:"
@@ -1721,7 +1731,7 @@ msgid "&Connected"
 msgstr "已連線(&C)"
 
 msgid "Clear image &history"
-msgstr "清除影像歷史記錄(&H)"
+msgstr "清除映像歷史記錄(&H)"
 
 msgid "Create…"
 msgstr "建立…"
@@ -1733,7 +1743,7 @@ msgid "Unknown Bus"
 msgstr "未知匯流排"
 
 msgid "Null Driver"
-msgstr "空驅動程式"
+msgstr "空驅動器"
 
 msgid "NIC:"
 msgstr "網路介面控制器："
@@ -1784,7 +1794,10 @@ msgid "\nFalling back to software rendering."
 msgstr "\n退回到軟體渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>當選擇媒體影像 (CD-ROM、軟碟等) 時，開啟對話框會在與 86Box 組態檔相同的目錄中開始。此設定可能只會在 macOS 上有所影響。</p></body></html>"
+msgstr ""
+"<html><head/><body><p>當選擇媒體映像 (CD-ROM、軟碟等) 時，開啟對話框會在與 "
+"86Box 組態檔相同的目錄中開始。此設定可能只會在 macOS "
+"上有所影響。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "這台機器可能已被移動或複製。"
@@ -3164,7 +3177,7 @@ msgid "System Default"
 msgstr "系統預設"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr "無法開啟影像或資夾 \"%s\"。"
+msgstr "無法開啟影映或資料夾 \"%s\"。"
 
 msgid "Unable to open cue sheet \"%s\"."
 msgstr "無法開啟 cue sheet \"%s\"。"
@@ -3173,14 +3186,14 @@ msgid "Unable to open MDS file \"%s\"."
 msgstr "無法開啟 MDS 檔 \"%s\"。"
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "無法開啟光碟影像 \"%s\"。"
+msgstr "無法開啟光碟映像 \"%s\"。"
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr "無法開啟影像 \"%s\": mdsx.so 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
-"影像之必要檔案。"
+msgstr "無法開啟映像 \"%s\": mdsx.so 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
+"映像之必要檔案。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr "DVD 影像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
+msgstr "DVD 映像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
 
 msgid "%s: Could not connect to %s: %s"
 msgstr "%s: 無法連接到 %s: %s"
