@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:11+0000\n"
+"PO-Revision-Date: 2026-05-29 19:36+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Croatian <https://weblate.86box.net/projects/86box/86box/hr/>"
 "\n"
@@ -3261,7 +3261,7 @@ msgid "Paper Size"
 msgstr "Veličina papira"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
 msgstr "Legal (bočna)"
@@ -3276,7 +3276,7 @@ msgid "Draft"
 msgstr "Nacrt"
 
 msgid "(Near) Letter"
-msgstr "(Skoro) Letter"
+msgstr "(Skoro) Pismo"
 
 msgid "Auto LF"
 msgstr "Automatski unos redaka"

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:11+0000\n"
+"PO-Revision-Date: 2026-05-29 19:36+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Catalan <https://weblate.86box.net/projects/86box/86box/ca/>\n"
 "Language: ca-ES\n"
@@ -1498,19 +1498,22 @@ msgid "Block device is too large to be used as a hard disk."
 msgstr "El dispositiu de bloc és massa gran per utilitzar-lo com a disc dur."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Dispositiu de bloc detectat"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Dispositiu de bloc detectat: %1\n"
+"Mida: %2 MB\n"
+"Geometria: %3 cilindres, %4 caps, %5 sectors"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "No ha estat possible gravar la imatge del disc."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "No ha estat possible llegir la imatge del disc."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "La imatge del disc s'ha creat correctament."
 
 msgid "Raw image"
 msgstr "Imatge en brut"
@@ -2017,7 +2020,7 @@ msgid "BIOS Language"
 msgstr "Idioma de la BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unitat d'expansió IBM 5161"
@@ -2407,40 +2410,40 @@ msgid "Frame Address"
 msgstr "Adreça del marc"
 
 msgid "English"
-msgstr ""
+msgstr "Anglès"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Anglès (EUA)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Anglès (Regne Unit)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Anglès (Canadà)"
 
 msgid "German"
-msgstr ""
+msgstr "Alemany"
 
 msgid "French"
-msgstr ""
+msgstr "Francès"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Espanyol"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Suec"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italià"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portuguès"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Noruec"
 
 msgid "Greek"
-msgstr ""
+msgstr "Grec"
 
 msgid "Danish"
 msgstr "Danés"
@@ -2716,53 +2719,52 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle de protecció per a Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Conector de Loopback"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Dispositiu de passatge de port sèrie"
+msgstr "Passatge de port sèrie"
 
 msgid "Host serial device"
 msgstr "Dispositiu serie del amfitrió"
 
 msgid "Named Pipe"
-msgstr ""
+msgstr "Canó amb nom"
 
 msgid "Output file"
-msgstr ""
+msgstr "Fitxer de sortida"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Afegeix al fitxer de sortida si existeix"
 
 msgid "Input file"
-msgstr ""
+msgstr "Fitxer d'entrada"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Repeteix el fitxer d'entrada"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Requereix el senyal STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Tipus de loopback"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Cable paral·lel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Unidireccional (8 bits) / LapLink (4 bits)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Bidireccional (8 bits)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Caminada del canó"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO o terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Mode"
 
 msgid "Server"
 msgstr "Servidor"
@@ -2771,28 +2773,28 @@ msgid "Client"
 msgstr "Client"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Reconeixement automàtic"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Utilitza l'entrada/sortida estàndard"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Crea pseudo-terminal"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Inicia l'emulador de terminal"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Executa un comandament personalitzat"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Comandament personalitzat"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Executa un comandament personalitzat al terminal"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Console Virtual"
 
 msgid "E&ject %1"
 msgstr "E&xpulsa %1"
@@ -2855,10 +2857,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Expansió genèrica PC/AT de memòria"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "RTC MM58167 genèric"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (Dispositiu extern)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "No fou possible trobar els tipus de lletra matricials. Els tipus de lletra TrueType en el directori \"roms/printer/fonts\" són imprescindibles per l'emulació de la impressora genèrica matricial ESC/P 2."
@@ -2921,10 +2923,10 @@ msgid "Could not load file %1"
 msgstr "Error en carregar el fitxer %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulador"
 
 msgid "Input"
-msgstr ""
+msgstr "Entrada"
 
 msgid "Key bindings"
 msgstr "Dreceres de teclat"
@@ -3178,7 +3180,7 @@ msgid "Raw"
 msgstr "En brut"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Utilitza l'emulació EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Dispositiu de sortida de so:"
@@ -3187,157 +3189,161 @@ msgid "System Default"
 msgstr "Per defecte del sistema"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "No ha estat possible obrir la imatge o la carpeta \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "No ha estat possible obrir el fitxer CUE \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "No ha estat possible obrir el fitxer MDS \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "No ha estat possible carregar la imatge de CD-ROM \"%s\"."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"No ha esta possible carregar la imatge \"%s\": falta %1, que és necessari "
+"per donar suport a les imatges Daemon Tools MDS v2 i MDX."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"La imatge del DVD \"%s\" s'ha inserit en una unitat que no admet DVD i "
+"s'ignorarà."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: No ha estat possible connectar a %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: No ha estat possible crear %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Adjuntat a %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: La consola virtual ja està sent utilitzada per %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: No ha estat possible crear el terminal: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Detecció automàtica"
 
 msgid "Channel"
-msgstr ""
+msgstr "Canal"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Ambdós canals"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Canal esquerre"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Canal dret"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Permetre actualitzacions del BIOS mitjançant Flash"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot núm."
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Puerto paral·lel"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Mida del paper"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (de costat)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (de costat)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Qualitat"
 
 msgid "Draft"
-msgstr ""
+msgstr "Borrador"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Gairebé) Carta"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Alimentació automàtica de línia"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Clon del Tandy PSSJ"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (colors)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monocrom)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Monocrom blanc"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Font de maquinari"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Mode de diagnòstic"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Monitor CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Monitor MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Televisió"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Inverteix els colors del LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (mode CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (mode MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Desactivat (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Activat (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Mode de prova"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Taxa de refresc"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "EUA (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM nòrdic (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Txec Kamenicky (CP 895) 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Txec Kamenicky (CP 895) 2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (japonès)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (xinès tradicional)"
