@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-28 17:34+0000\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -2693,7 +2693,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "用於 Savage Quest 的防拷保護鎖"
 
 msgid "Loopback Plug"
-msgstr "回授測試接頭"
+msgstr "回送測試接頭"
 
 msgid "Serial Passthrough"
 msgstr "序列埠直通裝置"
@@ -2702,7 +2702,7 @@ msgid "Host serial device"
 msgstr "主機序列裝置"
 
 msgid "Named Pipe"
-msgstr "已命名管道"
+msgstr "命名管道"
 
 msgid "Output file"
 msgstr "輸出檔案"
@@ -3155,7 +3155,7 @@ msgid "Raw"
 msgstr "原始"
 
 msgid "Use EDC/ECC emulation"
-msgstr "使用 EDC/ECC 摸擬"
+msgstr "使用 EDC/ECC 模擬"
 
 msgid "Audio output device:"
 msgstr "音訊輸出裝置:"
@@ -3164,23 +3164,23 @@ msgid "System Default"
 msgstr "系統預設"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr "無法開啟影像或資夾 \\\"%s\\\"。"
+msgstr "無法開啟影像或資夾 \"%s\"。"
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr "無法開啟 cue sheet \\\"%s\\\"。"
+msgstr "無法開啟 cue sheet \"%s\"。"
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr "無法開啟 MDS 檔 \\\"%s\\\"。"
+msgstr "無法開啟 MDS 檔 \"%s\"。"
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "無法開啟光碟影像 \\\"%s\\\"。"
+msgstr "無法開啟光碟影像 \"%s\"。"
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr "無法開啟影像 \\\"%s\\\": mdsx.so 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
+msgstr "無法開啟影像 \"%s\": mdsx.so 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
 "影像之必要檔案。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr "DVD 影像 \\\"%s\\\" 被置入不支援 DVD 之光碟機，將被忽略。"
+msgstr "DVD 影像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
 
 msgid "%s: Could not connect to %s: %s"
 msgstr "%s: 無法連接到 %s: %s"
