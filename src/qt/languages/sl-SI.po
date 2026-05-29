@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 08:39+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 18:11+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovenian <https://weblate.86box.net/projects/86box/86box/sl/>"
 "\n"
 "Language: sl-SI\n"
@@ -1170,7 +1170,6 @@ msgstr "Čaka"
 msgid "Powered Off"
 msgstr "Izklopljena"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n se izvaja"
@@ -1178,7 +1177,6 @@ msgstr[1] "%n se izvajata"
 msgstr[2] "%n se izvajajo"
 msgstr[3] "%n se izvaja"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
 msgstr[0] "%n v pavzi"
@@ -1186,7 +1184,6 @@ msgstr[1] "%n v pavzi"
 msgstr[2] "%n v pavzi"
 msgstr[3] "%n v pavzi"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n čaka"
@@ -1503,8 +1500,8 @@ msgstr "Ne morem prebrati naprave"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
-"Ni bilo mogoče določiti blokovne velikosti naprave. Prepričajte se, da imate "
-"do te naprave dostop."
+"Ni bilo mogoče določiti blokovne velikosti naprave. Prepričajte se, ali "
+"imate dovoljenje za dostop do te naprave."
 
 msgid "Device too large"
 msgstr "Naprava je prevelika"
@@ -3270,10 +3267,10 @@ msgid "Paper Size"
 msgstr "Velikost papirja"
 
 msgid "Legal (sideways)"
-msgstr "Legal (vodoravna)"
+msgstr "Legal (bočna)"
 
 msgid "B4 (sideways)"
-msgstr "B4 (vodoravna)"
+msgstr "B4 (bočna)"
 
 msgid "Quality"
 msgstr "Kakovost"
@@ -3282,7 +3279,7 @@ msgid "Draft"
 msgstr "Osnutek"
 
 msgid "(Near) Letter"
-msgstr "(Skoraj) pisemska"
+msgstr "(Skoraj) Letter"
 
 msgid "Auto LF"
 msgstr "Samodejni preskok vrstice"
