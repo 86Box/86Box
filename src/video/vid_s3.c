@@ -85,6 +85,10 @@
 #define ROM_NUMBER9_9FX_771            "roms/video/s3/no9motionfx771.BIN"
 #define ROM_PHOENIX_VISION968          "roms/video/s3/1-DSV3968P.BIN"
 #define ROM_DIAMOND_STEALTH64_968      "roms/video/s3/vv_303.rom"
+#define ROM_DIAMOND_STEALTH64_864      "roms/video/s3/Diamond Stealth64 Graphics 2000 PCI (S3 Vision864).BIN"
+#define ROM_LEADTEK_VISION864          "roms/video/s3/Leadtek WinFast S430 PCI (S3 Vision864).bin"
+#define ROM_GENOA_VISION868            "roms/video/s3/Genoa Phantom 64 PCI (S3 Vision868).bin"
+#define ROM_MIROVIDEO_VISION868        "roms/video/s3/miroVIDEO 20SD PCI (S3 Vision868).bin"
 
 enum {
     S3_NUMBER9_9FX,
@@ -132,6 +136,10 @@ enum {
     S3_86C805_ONBOARD,
     S3_DIAMOND_STEALTH64_968,
     S3_WINNER1000_805,
+    S3_DIAMOND_STEALTH64_864,
+    S3_LEADTEK_VISION864,
+    S3_GENOA_VISION868,
+    S3_MIROVIDEO_VISION868,
     S3_USE_CONFIG_BIOS
 };
 
@@ -10600,8 +10608,28 @@ s3_init(const device_t *info)
             chip    = S3_VISION864;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
             break;
+        case S3_DIAMOND_STEALTH64_864:
+            bios_fn = ROM_DIAMOND_STEALTH64_864;
+            chip    = S3_VISION864;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+            break;
+        case S3_LEADTEK_VISION864:
+            bios_fn = ROM_LEADTEK_VISION864;
+            chip    = S3_VISION864;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_pci);
+            break;
         case S3_NUMBER9_9FX_531:
             bios_fn = ROM_NUMBER9_9FX_531;
+            chip    = S3_VISION868;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
+            break;
+        case S3_GENOA_VISION868:
+            bios_fn = ROM_GENOA_VISION868;
+            chip    = S3_VISION868;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
+            break;
+        case S3_MIROVIDEO_VISION868:
+            bios_fn = ROM_MIROVIDEO_VISION868;
             chip    = S3_VISION868;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
             break;
@@ -11156,6 +11184,8 @@ s3_init(const device_t *info)
 
         case S3_PARADISE_BAHAMAS64:
         case S3_PHOENIX_VISION864:
+        case S3_DIAMOND_STEALTH64_864:
+        case S3_LEADTEK_VISION864:
         case S3_DEC_VISION864:
         case S3_MIROCRYSTAL20SD_864: /*BIOS 3.xx has a SDAC ramdac.*/
             svga->decode_mask = (8 << 20) - 1;
@@ -11256,6 +11286,8 @@ s3_init(const device_t *info)
             }
             break;
 
+        case S3_GENOA_VISION868:
+        case S3_MIROVIDEO_VISION868:
         case S3_NUMBER9_9FX_531:
         case S3_PHOENIX_VISION868:
             svga->decode_mask = (8 << 20) - 1;
@@ -12084,6 +12116,36 @@ static const device_config_t s3_vision864_pci_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
+                .name          = "DECpc Celebris PCXAG-AL",
+                .internal_name = "dec_vision864_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DEC_VISION864,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_DEC_VISION864, "" }
+            },
+            {
+                .name          = "Diamond Stealth64 Graphics 2000",
+                .internal_name = "diamond_vision864_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIAMOND_STEALTH64_864,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_DEC_VISION864, "" }
+            },
+            {
+                .name          = "Leadtek (ASUS) WinFast S430",
+                .internal_name = "leadtek_vision864_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_LEADTEK_VISION864,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_DEC_VISION864, "" }
+            },
+            {
                 .name          = "Paradise Bahamas 64",
                 .internal_name = "bahamas64_pci",
                 .bios_type     = BIOS_NORMAL,
@@ -12102,16 +12164,6 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .size          = 32768,
                 .flags         = 0,
                 .files         = { ROM_PHOENIX_VISION864, "" }
-            },
-            {
-                .name          = "DIGITAL PCXAG-AL S3-864 PCI",
-                .internal_name = "dec_vision864_pci",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = S3_DEC_VISION864,
-                .size          = 32768,
-                .flags         = 0,
-                .files         = { ROM_DEC_VISION864, "" }
             },
             { .files_no = 0 }
         },
@@ -12498,6 +12550,26 @@ static const device_config_t s3_vision868_pci_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .bios           = {
+            {
+                .name          = "Genoa Phantom 64",
+                .internal_name = "phantom64_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_GENOA_VISION868,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_ELSAWIN2KPROX, "" }
+            },
+            {
+                .name          = "miroVIDEO 20SD",
+                .internal_name = "mirovideo20sd_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_MIROVIDEO_VISION868,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_ELSAWIN2KPROX, "" }
+            },
             {
                 .name          = "Number Nine 9FX Motion 531",
                 .internal_name = "n9_9fx_531_pci",
