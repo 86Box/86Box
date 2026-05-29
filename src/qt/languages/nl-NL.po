@@ -355,19 +355,19 @@ msgid "Machine type:"
 msgstr "Machinetype:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 en 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Diversen)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (Enkel Voltage)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (Tweevoudig Voltage)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Diversen"
 
 msgid "Machine:"
 msgstr "Machine:"
@@ -529,43 +529,43 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROM controller:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi interface"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic interface"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic interface (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE-controller"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE-controller (Twee-kanaals)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE-controller"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE-controller (Twee-kanaals)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (Alleen Primaire)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (Alleen Primaire)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (Tertiare and Quaternaire)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (Tertiare and Quaternaire)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (Tertiare and Quaternaire)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE-controller"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiaire IDE-controller"
@@ -1484,31 +1484,31 @@ msgid "Unsupported disk image"
 msgstr "Niet-ondersteunde schijfimage"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Kan apparaat niet lezen"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
-msgstr ""
+msgstr "Bepaling blokapparaat grootte niet gelukt. Zorg dat je toegangspermissie hebt voor dit apparaat."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Apparaat te groot"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Blokapparaat is te groot voor gebruik als harde schijf"
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Blokapparaat gedetecteerd"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
-msgstr ""
+msgstr "Gedetecteerd blokapparaat: %1\nGrootte: %2 MB\nGeometrie: %3 cilinders, %4 koppen, %5 sectoren"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Schrijven van de schijfimage mislukt."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Lezen van de schijfimage mislukt."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "De schijfimage is succesvol aangemaakt."
 
 msgid "Raw image"
 msgstr "Ruw image"
@@ -2405,40 +2405,40 @@ msgid "Frame Address"
 msgstr "Frameadres"
 
 msgid "English"
-msgstr ""
+msgstr "Engels"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Engels (VS)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Engels (VK)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Engels (Canada)"
 
 msgid "German"
-msgstr ""
+msgstr "Duits"
 
 msgid "French"
-msgstr ""
+msgstr "Frans"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Spaans"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Zweeds"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italiaans"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugees"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Noors"
 
 msgid "Greek"
-msgstr ""
+msgstr "Grieks"
 
 msgid "Danish"
 msgstr "Deens"
@@ -2724,43 +2724,43 @@ msgid "Host serial device"
 msgstr "Host serieel apparaat"
 
 msgid "Named Pipe"
-msgstr "Genoemd pipe"
+msgstr "Benoemde pipe"
 
 msgid "Output file"
-msgstr ""
+msgstr "Uitvoerbestand"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Aan bestand toevoegen als het bestaat"
 
 msgid "Input file"
-msgstr ""
+msgstr "Invoerbestand"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Invoerbestand herhalen"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Vereis STROBE signaal"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Loopbacktype"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Parallelkabel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Unidirectioneel (8-bit) / LapLink (4-bit)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Bidirectioneel (8-bit)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Pipepad"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Modus"
 
 msgid "Server"
 msgstr "Server"
@@ -2769,28 +2769,28 @@ msgid "Client"
 msgstr "Client"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Automatisch opnieuw verbinden"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Gebruik staandaardinvoer/uitvoer"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Pseudoterminal aanmaken"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Start terminalemulator"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Aangepaste opdracht uitvoeren"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Aangepaste opdracht"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Aangepaste opdracht uitvoeren in terminal"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Virtuele console"
 
 msgid "E&ject %1"
 msgstr "&Uitwerpen %1"
