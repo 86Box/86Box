@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
+"PO-Revision-Date: 2026-05-29 21:41+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
 "MIME-Version: 1.0\n"
@@ -177,7 +177,6 @@ msgstr "Harmaasävymuunnoksen tyyppi:"
 msgid "Average"
 msgstr "Keskiarvo"
 
-#, fuzzy
 msgid "Overscan"
 msgstr "Yliskannaus"
 
@@ -362,10 +361,10 @@ msgid "[1994] i486 (Miscellaneous)"
 msgstr "[1994] i486 (Sekalaiset)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (Single Voltage)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (Dual Voltage)"
 
 msgid "Miscellaneous"
 msgstr "Sekalaiset"
@@ -542,31 +541,31 @@ msgid "IDE Controller"
 msgstr "IDE-ohjain"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE-ohjain (kaksikanavainen)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE-ohjain"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE-ohjain (kaksikanavainen)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (vain ensisijainen)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (vain ensisijainen)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (kolmas ja neljäs IDE-kanava)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (kolmas ja neljäs IDE-kanava)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (kolmas ja neljäs IDE-kanava)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE-ohjain"
 
 msgid "Tertiary IDE Controller"
 msgstr "Kolmas IDE-ohjain"
@@ -1167,19 +1166,16 @@ msgstr "Odottaa"
 msgid "Powered Off"
 msgstr "Sammutettu"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n käynnissä"
 msgstr[1] "%n käynnissä"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
 msgstr[0] "%n pysäytetty"
 msgstr[1] "%n pysäytetty"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n odottaa"
@@ -1212,11 +1208,14 @@ msgstr "Valittua määritystä ei voitu avata: %1"
 msgid "Use regular expressions in search box"
 msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
-#, fuzzy
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] ""
-msgstr[1] "%n konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea virtuaalikoneiden hallinnan?"
+"%n kone on tällä hetkellä aktiivisena. Haluatko silti sulkea "
+"virtuaalikoneiden hallinnan?"
+msgstr[1] ""
+"%n konetta on tällä hetkellä aktiivisena. Haluatko silti sulkea "
+"virtuaalikoneiden hallinnan?"
 
 msgid "Add new system wizard"
 msgstr "Koneenlisäysohjelma"
@@ -1489,31 +1488,36 @@ msgid "Unsupported disk image"
 msgstr "Levykuvaa ei tueta"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Laitteen lukeminen epäonnistui"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Lohkolaitteen kokoa ei voitu määrittää. Varmista, että sinulla on laitteen "
+"käyttöoikeudet."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Laite on liian suuri"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Lohkolaite on liian suuri kovalevynä käytettäväksi."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Lohkolaite havaittu"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Havaittu lohkolaite: %1\n"
+"Koko: %2 MT\n"
+"Geometria: %3 sylinteriä, %4 päätä, %5 sektoria"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Levykuvan kirjoittaminen ei onnistunut."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Levykuvan luku epäonnistui."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Levykuva luotiin onnistuneesti."
 
 msgid "Raw image"
 msgstr "Raaka levykuva"
@@ -1831,10 +1835,10 @@ msgid "No MCA devices."
 msgstr "Ei MCA-laitteita."
 
 msgid "MiB"
-msgstr ""
+msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Adapter 1"
 msgstr "Sovitin 1"
@@ -2020,7 +2024,7 @@ msgid "BIOS Language"
 msgstr "BIOS-kieli"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variantti"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161-laajennusyksikkö"
@@ -2092,37 +2096,37 @@ msgid "Output Gain"
 msgstr "Lähtötaso"
 
 msgid "Chorus"
-msgstr ""
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr ""
+msgstr "Chorus Voices"
 
 msgid "Chorus Level"
-msgstr ""
+msgstr "Chorus Level"
 
 msgid "Chorus Speed"
-msgstr ""
+msgstr "Chorus Speed"
 
 msgid "Chorus Depth"
-msgstr ""
+msgstr "Chorus Depth"
 
 msgid "Chorus Waveform"
-msgstr ""
+msgstr "Chorus Waveform"
 
 msgid "Reverb"
 msgstr "Jälkikaiunta"
 
 msgid "Reverb Room Size"
-msgstr ""
+msgstr "Reverb Room Size"
 
 msgid "Reverb Damping"
-msgstr ""
+msgstr "Reverb Damping"
 
 msgid "Reverb Width"
-msgstr ""
+msgstr "Reverb Width"
 
 msgid "Reverb Level"
-msgstr ""
+msgstr "Reverb Level"
 
 msgid "Interpolation Method"
 msgstr "Interpolointimenetelmä"
@@ -2137,7 +2141,7 @@ msgid "Reversed stereo"
 msgstr "Käänteinen stereo"
 
 msgid "Nice ramp"
-msgstr ""
+msgstr "Nice ramp"
 
 msgid "Hz"
 msgstr "Hz"
@@ -2410,43 +2414,43 @@ msgid "Frame Address"
 msgstr "Kehyksen osoite"
 
 msgid "English"
-msgstr ""
+msgstr "Englanti"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Englanti (USA)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Englanti (UK)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Englanti (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Saksa"
 
 msgid "French"
-msgstr ""
+msgstr "Ranska"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Espanja"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Ruotsi"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italia"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugali"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norja"
 
 msgid "Greek"
-msgstr ""
+msgstr "Kreikka"
 
 msgid "Danish"
-msgstr "Tanskalainen"
+msgstr "Tanska"
 
 msgid "Always at selected speed"
 msgstr "Aina valitulla nopeudella"
@@ -2557,7 +2561,7 @@ msgid "Composite"
 msgstr "Komposiitti"
 
 msgid "True color"
-msgstr ""
+msgstr "True color"
 
 msgid "Old"
 msgstr "Vanha"
@@ -2719,9 +2723,8 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Questin suojausdongle"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-pistoke"
 
-#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Sarjaportin läpivientilaite"
 
@@ -2732,40 +2735,40 @@ msgid "Named Pipe"
 msgstr "Nimetty putki"
 
 msgid "Output file"
-msgstr ""
+msgstr "Ulostulotiedosto"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Lisää tiedoston perään jos se on olemassa"
 
 msgid "Input file"
-msgstr ""
+msgstr "Syötetiedosto"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Silmukan syötetiedosto"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Vaadi STROBE-signaali"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Silmukan tyyppi"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Rinnakkaiskaapeli"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Yksisuuntainen (8-bittinen) / LapLink (4-bittinen)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Kaksisuuntainen (8-bittinen)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Putkipolku"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / pääte"
 
 msgid "Mode"
-msgstr ""
+msgstr "Tila"
 
 msgid "Server"
 msgstr "Palvelin"
@@ -2774,28 +2777,28 @@ msgid "Client"
 msgstr "Päätelaite"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Uudelleenyhdistä automaattisesti"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Käytä vakiotuloa/lähtöä"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Luo pseudopääte"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Käynnistä pääte-emulaattori"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Aja mukautettu komento"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Mukautettu komento"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Aja mukautettu komento päätteessä"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Virtuaalipääte"
 
 msgid "E&ject %1"
 msgstr "&Poista %1"
@@ -2858,10 +2861,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Yleinen PC/AT-muistilaajennus"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Yleinen MM58167-RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (ulkoinen)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "Pistematriisifontteja ei löydy. \"roms/printer/fonts\"-hakemiston TrueType-fontteja vaaditaan ESC/P 2-pistematriisitulostimen emulointiin."
@@ -3002,10 +3005,10 @@ msgid "Hostname:"
 msgstr "Isäntänimi:"
 
 msgid "ISA RAM:"
-msgstr ""
+msgstr "ISA RAM:"
 
 msgid "ISA ROM:"
-msgstr ""
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Tyhjennä NVRAM"
@@ -3190,130 +3193,134 @@ msgid "System Default"
 msgstr "Järjestelmän oletus"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Levykuvaa tai kansiota \"%s\" ei voitu avata."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Cue-tiedostoa \"%s\" ei voitu avata."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "MDS-tiedostoa \"%s\" ei voitu avata."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "CD-ROM-levykuvaa \"%s\" ei voitu avata."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Levykuvaa \"%s\" ei voitu ladata: Daemon Tools MDS v2- ja MDX-levykuvatukeen "
+"tarvittava %1 puuttuu."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"DVD-levykuva \"%s\" on asetettu asemaan joka ei tue DVD-levyjä. Se jätetään "
+"huomiotta."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Ei voitu yhdistää kohteeseen %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: kohdetta %s ei voitu luoda: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Liitetty sijaintiin %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: %s käyttää jo virtuaalikonsolia"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Päätettä ei voitu luoda: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Automaattinen tunnistus"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanava"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Molemmat kanavat"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Vasen kanava"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Oikea kanava"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Salli BIOS-päivitykset"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Paikka #"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Rinnakkaisportti"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Paperin koko"
 
 msgid "Letter"
-msgstr ""
+msgstr "Kirje"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (sivuttain)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (sivuttain)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Laatu"
 
 msgid "Draft"
-msgstr ""
+msgstr "Luonnos"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Near) Letter"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automaattinen LF"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJ-klooni"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (väri)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (yksivärinen)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Valkoinen yksivärinen"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Laitteistofontti"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnostiikkatila"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA-näyttö"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA-näyttö"
 
 msgid "Television"
-msgstr ""
+msgstr "Televisio"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Käänteiset LCD-värit"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (CGA-tila)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (MDA-tila)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Pois käytöstä (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Käytössä (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testitila"
 
 msgid "32 MB"
 msgstr "32 Mt"
@@ -3325,22 +3332,22 @@ msgid "2048 MB"
 msgstr "2048 Mt"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Virkistystaajuus"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "USA (koodisivu 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM Nordic (koodisivu 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Tšekkiläinen Kamenicky (koodisivu 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Tšekkiläinen Kamenicky (koodisivu 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (japani)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (perinteinen kiina)"
