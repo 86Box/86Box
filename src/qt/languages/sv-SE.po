@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 08:39+0000\n"
-"Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 18:11+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
 "MIME-Version: 1.0\n"
@@ -1166,19 +1166,16 @@ msgstr "Väntar"
 msgid "Powered Off"
 msgstr "Avstängd"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n körs"
 msgstr[1] "%n körs"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
 msgstr[0] "%n pausad"
 msgstr[1] "%n pausade"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n väntar"
@@ -3247,7 +3244,7 @@ msgid "Allow Flash BIOS Updates"
 msgstr "Tillåt flashning av BIOS-uppdateringar"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot nr"
 
 msgid "Parallel Port"
 msgstr "Parallellport"
@@ -3271,7 +3268,7 @@ msgid "(Near) Letter"
 msgstr "(Nära) Letter"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automatisk radmatning"
 
 msgid "Tandy PSSJ Clone"
 msgstr "Tandy PSSJ-klon"
@@ -3319,13 +3316,13 @@ msgid "Test mode"
 msgstr "Testläge"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
 msgstr "Uppdateringsfrekvens"
@@ -3334,13 +3331,13 @@ msgid "US (CP 437)"
 msgstr "Förenta staterna (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM nordisk (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Tjeckiska Kamenicky (CP 895) 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Tjeckiska Kamenicky (CP 895) 2"
 
 msgid "932 (Japanese)"
 msgstr "932 (Japansk)"
