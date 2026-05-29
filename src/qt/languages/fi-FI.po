@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-05-29 21:41+0000\n"
-"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
 "MIME-Version: 1.0\n"
@@ -177,7 +177,6 @@ msgstr "Harmaasävymuunnoksen tyyppi:"
 msgid "Average"
 msgstr "Keskiarvo"
 
-#, fuzzy
 msgid "Overscan"
 msgstr "Yliskannaus"
 
@@ -362,10 +361,10 @@ msgid "[1994] i486 (Miscellaneous)"
 msgstr "[1994] i486 (Sekalaiset)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (Single Voltage)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (Dual Voltage)"
 
 msgid "Miscellaneous"
 msgstr "Sekalaiset"
@@ -1167,19 +1166,16 @@ msgstr "Odottaa"
 msgid "Powered Off"
 msgstr "Sammutettu"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n käynnissä"
 msgstr[1] "%n käynnissä"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
 msgstr[0] "%n pysäytetty"
 msgstr[1] "%n pysäytetty"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n odottaa"
@@ -1839,10 +1835,10 @@ msgid "No MCA devices."
 msgstr "Ei MCA-laitteita."
 
 msgid "MiB"
-msgstr ""
+msgstr "MiB"
 
 msgid "GiB"
-msgstr ""
+msgstr "GiB"
 
 msgid "Adapter 1"
 msgstr "Sovitin 1"
@@ -2100,37 +2096,37 @@ msgid "Output Gain"
 msgstr "Lähtötaso"
 
 msgid "Chorus"
-msgstr ""
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr ""
+msgstr "Chorus Voices"
 
 msgid "Chorus Level"
-msgstr ""
+msgstr "Chorus Level"
 
 msgid "Chorus Speed"
-msgstr ""
+msgstr "Chorus Speed"
 
 msgid "Chorus Depth"
-msgstr ""
+msgstr "Chorus Depth"
 
 msgid "Chorus Waveform"
-msgstr ""
+msgstr "Chorus Waveform"
 
 msgid "Reverb"
 msgstr "Jälkikaiunta"
 
 msgid "Reverb Room Size"
-msgstr ""
+msgstr "Reverb Room Size"
 
 msgid "Reverb Damping"
-msgstr ""
+msgstr "Reverb Damping"
 
 msgid "Reverb Width"
-msgstr ""
+msgstr "Reverb Width"
 
 msgid "Reverb Level"
-msgstr ""
+msgstr "Reverb Level"
 
 msgid "Interpolation Method"
 msgstr "Interpolointimenetelmä"
@@ -2145,7 +2141,7 @@ msgid "Reversed stereo"
 msgstr "Käänteinen stereo"
 
 msgid "Nice ramp"
-msgstr ""
+msgstr "Nice ramp"
 
 msgid "Hz"
 msgstr "Hz"
@@ -2565,7 +2561,7 @@ msgid "Composite"
 msgstr "Komposiitti"
 
 msgid "True color"
-msgstr ""
+msgstr "True color"
 
 msgid "Old"
 msgstr "Vanha"
@@ -2729,7 +2725,6 @@ msgstr "Savage Questin suojausdongle"
 msgid "Loopback Plug"
 msgstr "Loopback-pistoke"
 
-#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Sarjaportin läpivientilaite"
 
@@ -3010,10 +3005,10 @@ msgid "Hostname:"
 msgstr "Isäntänimi:"
 
 msgid "ISA RAM:"
-msgstr ""
+msgstr "ISA RAM:"
 
 msgid "ISA ROM:"
-msgstr ""
+msgstr "ISA ROM:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Tyhjennä NVRAM"
@@ -3277,7 +3272,7 @@ msgid "Draft"
 msgstr "Luonnos"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Near) Letter"
 
 msgid "Auto LF"
 msgstr "Automaattinen LF"
