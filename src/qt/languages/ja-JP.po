@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-16 15:51+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
 "Language: ja-JP\n"
@@ -356,16 +356,16 @@ msgid "Machine type:"
 msgstr "マシンタイプ:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 and 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (その他)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (単一電圧)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (デュアル電圧)"
 
 msgid "Miscellaneous"
 msgstr "その他"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi インターフェース"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic インターフェース"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic インターフェース (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDEコントローラ"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE コントローラ (デュアルチャネル)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE コントローラ"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE コントローラ (デュアルチャネル)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (プライマリのみ)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (プライマリのみ)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (第三級および第四級)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (第三級および第四級)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (第三級および第四級)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE コントローラ"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三IDEコントローラー"
@@ -1457,31 +1457,36 @@ msgid "Unsupported disk image"
 msgstr "非対応のディスクイメージ"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "デバイスを読み取れません"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
-msgstr ""
+msgstr "ブロックデバイスのサイズを特定できませんでした。このデバイスにアクセスする権"
+"限があることを確認してください。"
 
 msgid "Device too large"
-msgstr ""
+msgstr "デバイスが大きすぎます"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "ブロックデバイスのサイズが大きすぎるため、ハードディスクとして使用できません"
+"。"
 
 msgid "Block device detected"
-msgstr ""
+msgstr "ブロックデバイスが検出されました"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"検出されたブロックデバイス: %1\n"
+"サイズ: %2 MB\n"
+"構成: %3 シリンダ、%4 ヘッド、%5 セクタ"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "ディスクイメージの書き込みに失敗しました。"
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "ディスクイメージの読み込みに失敗しました。"
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "ディスクイメージの作成に成功しました。"
 
 msgid "Raw image"
 msgstr "生のイメージ"
@@ -2381,40 +2386,40 @@ msgid "Frame Address"
 msgstr "フレームアドレス"
 
 msgid "English"
-msgstr ""
+msgstr "英語"
 
 msgid "English (US)"
-msgstr ""
+msgstr "英語 (米国)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "英語 (英国)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "英語 (カナダ)"
 
 msgid "German"
-msgstr ""
+msgstr "ドイツ語"
 
 msgid "French"
-msgstr ""
+msgstr "フランス語"
 
 msgid "Spanish"
-msgstr ""
+msgstr "スペイン語"
 
 msgid "Swedish"
-msgstr ""
+msgstr "スウェーデン語"
 
 msgid "Italian"
-msgstr ""
+msgstr "イタリア語"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "ポルトガル語"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "ノルウェー語"
 
 msgid "Greek"
-msgstr ""
+msgstr "ギリシャ語"
 
 msgid "Danish"
 msgstr "デンマーク語"
@@ -2690,11 +2695,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "サベージクエスト用プロテクションドングル"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "ループバックプラグ"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "シリアルポートパススルーデバイス"
+msgstr "シリアルポートパススルー"
 
 msgid "Host serial device"
 msgstr "ホストシリアルデバイス"
@@ -2703,40 +2707,40 @@ msgid "Named Pipe"
 msgstr "名前付きパイプ"
 
 msgid "Output file"
-msgstr ""
+msgstr "出力ファイル"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "ファイルが存在する場合は、そのファイルに追加する"
 
 msgid "Input file"
-msgstr ""
+msgstr "入力ファイル"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "入力ファイルをループ処理する"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "STROBE信号が必要"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "ループバックタイプ"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "パラレルケーブル"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "単方向 (8ビット) / LapLink (4ビット)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "双方向 (8ビット)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "パイプへのパス"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / ターミナル"
 
 msgid "Mode"
-msgstr ""
+msgstr "モード"
 
 msgid "Server"
 msgstr "サーバー"
@@ -2745,28 +2749,28 @@ msgid "Client"
 msgstr "クライアント"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "自動的に再接続する"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "標準入出力を使用する"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "疑似ターミナルを作成する"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "ターミナルエミュレータを起動する"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "カスタムコマンドを実行する"
 
 msgid "Custom command"
-msgstr ""
+msgstr "カスタムコマンド"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "ターミナルでカスタムコマンドを実行する"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "バーチャルコンソール"
 
 msgid "E&ject %1"
 msgstr "%1を取り出す(&J)"
@@ -2829,10 +2833,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "汎用PC/ATメモリ拡張カード"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "汎用 MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (外部デバイス)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "ドットマトリクスフォントが見つかりません"
@@ -2898,7 +2902,7 @@ msgid "Could not load file %1"
 msgstr "ファイル %1 をロードできませんでした"
 
 msgid "Emulator"
-msgstr ""
+msgstr "エミュレーター"
 
 msgid "Input"
 msgstr "入力"
@@ -3153,7 +3157,7 @@ msgid "Raw"
 msgstr "生"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "EDC/ECCエミュレーションを使用する"
 
 msgid "Audio output device:"
 msgstr "音声出力デバイス:"
@@ -3162,154 +3166,157 @@ msgid "System Default"
 msgstr "システム既定値"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "画像またはフォルダ「%s」を開けません。"
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "キューシート「%s」を開けません。"
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "MDSファイル「%s」を開けません。"
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "CD-ROMイメージ「%s」を読み込めません。"
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"画像「%s」を読み込めません：Daemon Tools MDS v2 および MDX "
+"イメージのサポートに必要な mdsx.so が見つかりません。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr ""
+msgstr "DVDイメージ「%s」は、DVDメディアに対応していないドライブに挿入されたため、無"
+"視されます。"
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: %s に接続できませんでした: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: %s を作成できませんでした: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: %s に添付されています"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: %s によってバーチャルコンソールがすでに使用されています"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: ターミナルを作成できませんでした: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "自動検出"
 
 msgid "Channel"
-msgstr ""
+msgstr "チャンネル"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "両チャンネル"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "左チャンネル"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "右チャンネル"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "フラッシュ経由でのBIOSの更新を許可する"
 
 msgid "Slot #"
-msgstr ""
+msgstr "スロット"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "パラレルポート"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "用紙サイズ"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "法律 (横書き)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (横書き)"
 
 msgid "Quality"
-msgstr ""
+msgstr "品質"
 
 msgid "Draft"
-msgstr ""
+msgstr "草案"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(ほぼ) 手紙"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "自動改行"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJのクローン"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (カラー)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (モノクロ)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "ホワイト・モノクローム"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "ハードウェアフォント"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "診断モード"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGAモニター"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDAモニター"
 
 msgid "Television"
-msgstr ""
+msgstr "テレビ"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "LCDの色を反転させる"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (CGA モード)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (MDA モード)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "無効 (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "有効 (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "テストモード"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "リフレッシュレート"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "米国 (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM ノルディック (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "チェコのカメニツキー (CP 895) 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "チェコのカメニツキー (CP 895) 2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (日本語)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (繁体字中国語)"
