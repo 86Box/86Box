@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"PO-Revision-Date: 2026-05-29 18:11+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Slovak <https://weblate.86box.net/projects/86box/86box/sk/>\n"
 "Language: sk-SK\n"
@@ -897,7 +897,6 @@ msgstr "KB"
 msgid "Default"
 msgstr "Východiskové"
 
-#, fuzzy
 msgid "%n wait state(s)"
 msgid_plural "%n wait states"
 msgstr[0] "%n čakací stav"
@@ -1168,21 +1167,18 @@ msgstr "Čeká"
 msgid "Powered Off"
 msgstr "Vypnuté"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n beží"
 msgstr[1] "%n bežía"
 msgstr[2] "%n beží"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
 msgstr[0] "%n pozostavený"
-msgstr[1] "%n pozostavených"
+msgstr[1] "%n pozostavené"
 msgstr[2] "%n pozostavených"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n čeká"
