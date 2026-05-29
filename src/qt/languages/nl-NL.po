@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 22:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
 "MIME-Version: 1.0\n"
@@ -529,13 +529,13 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROM controller:"
 
 msgid "Mitsumi interface"
-msgstr "Mitsumi interface"
+msgstr "Mitsumi-interface"
 
 msgid "MKE/Panasonic interface"
-msgstr "MKE/Panasonic interface"
+msgstr "MKE/Panasonic-interface"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr "MKE/Panasonic interface (Creative)"
+msgstr "MKE/Panasonic-interface (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE-controller"
@@ -1168,8 +1168,8 @@ msgstr "Uitgeschakeld"
 
 msgid "%n running"
 msgid_plural "%n running"
-msgstr[0] "%n actief"
-msgstr[1] "%n actief"
+msgstr[0] "%n actieve"
+msgstr[1] "%n actieve"
 
 msgid "%n paused"
 msgid_plural "%n paused"
@@ -1493,7 +1493,7 @@ msgid "Device too large"
 msgstr "Apparaat te groot"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr "Blokapparaat is te groot voor gebruik als harde schijf"
+msgstr "Blokapparaat is te groot voor gebruik als harde schijf."
 
 msgid "Block device detected"
 msgstr "Blokapparaat gedetecteerd"
@@ -2015,7 +2015,7 @@ msgid "BIOS Language"
 msgstr "BIOS-taal"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Uitbreidingseenheid"
@@ -2714,9 +2714,8 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Beschermingsdongle voor Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-stekker"
 
-#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Serieel doorvoerapparaat"
 
@@ -2853,10 +2852,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generieke PC/AT geheugenuitbreiding"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Generieke MM58167 RTC"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (extern apparaat)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "Dot-matrix-lettertypen niet gevonden. TrueType lettertypen in de map \"roms/printer/fonts\" zijn nodig voor de emulatie van de generieke ESC/P 2 dot-matrix-printer."
@@ -2919,10 +2918,10 @@ msgid "Could not load file %1"
 msgstr "Kon bestand %1 niet laden"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Invoer"
 
 msgid "Key bindings"
 msgstr "Toetskoppelingen"
@@ -3176,7 +3175,7 @@ msgid "Raw"
 msgstr "Ruw"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Gebruik EDC/ECC-emulatie"
 
 msgid "Audio output device:"
 msgstr "Audio-uitvoerapparaat:"
@@ -3185,157 +3184,161 @@ msgid "System Default"
 msgstr "Systeemstandaard"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Het bestand of de map „%s“ kan niet worden geopend."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "De cue-lijst „%s“ kan niet worden geopend."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Het MDS-bestand „%s“ kan niet worden geopend."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "De cd-rom-image „%s“ kan niet worden geladen."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"De image „%s“ kan niet worden geladen: het bestand „%1“ ontbreekt, dat nodig "
+"is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"De DVD-image „%s“ is in een station geplaatst dat geen DVD-media ondersteunt "
+"en wordt daarom genegeerd."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Er kon geen verbinding worden gemaakt met %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: %s kon niet worden aangemaakt: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Toegevoegd aan %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: De Virtual Console wordt al gebruikt door %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: De terminal kon niet worden aangemaakt: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Automatische herkenning"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanaal"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Beide kanalen"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Linkerkanaal"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Rechterkanaal"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Flash-BIOS-updates toestaan"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot nr."
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Parallelaansluiting"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Papierformaat"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (zijdelings)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (zijdelings)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kwaliteit"
 
 msgid "Draft"
-msgstr ""
+msgstr "Concept"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Bijna) Brief"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automatische regelafbreking"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJ-kloon"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (kleur)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monochroom)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Wit monochroom"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Hardware-lettertype"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnosemodus"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA-monitor"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA-monitor"
 
 msgid "Television"
-msgstr ""
+msgstr "Televisie"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "LCD-kleuren omkeren"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (CGA-modus)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (MDA-modus)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Uitgeschakeld (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Ingeschakeld (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testmodus"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Vernieuwingsfrequentie"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "VS (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM Noords (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Tsjechisch Kamenický (CP 895) 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Tsjechisch Kamenický (CP 895) 2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (Japans)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (Traditioneel Chinees)"
