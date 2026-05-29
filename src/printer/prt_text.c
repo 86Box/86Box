@@ -88,7 +88,7 @@ typedef struct psurface_t {
     uint8_t w; /* size //INFO */
     uint8_t h;
 
-    char *chars; /* character data */
+    uint8_t *chars; /* character data */
 } psurface_t;
 
 typedef struct prnt_t {
@@ -138,7 +138,6 @@ static void
 dump_page(prnt_t *dev)
 {
     char     path[1024];
-    uint8_t  ch;
     FILE    *fp;
 
     /* Create the full path for this file. */
@@ -163,7 +162,7 @@ dump_page(prnt_t *dev)
 
     for (uint16_t y = 0; y < dev->curr_y; y++) {
         for (uint16_t x = 0; x < dev->page->w; x++) {
-            ch = dev->page->chars[(y * dev->page->w) + x];
+            const uint8_t ch = dev->page->chars[(y * dev->page->w) + x];
             if (ch == 0x00) {
                 /* End of line marker. */
                 fputc('\n', fp);
@@ -334,7 +333,7 @@ process_char(prnt_t *dev, uint8_t ch)
 static void
 handle_char(prnt_t *dev)
 {
-    uint8_t ch = dev->data;
+    const uint8_t ch = dev->data;
 
     if (dev->page == NULL)
         return;
@@ -470,7 +469,7 @@ prnt_init(const device_t *info)
     dev->page        = (psurface_t *) calloc(1, sizeof(psurface_t));
     dev->page->w     = dev->max_chars;
     dev->page->h     = dev->max_lines;
-    dev->page->chars = (char *) calloc(dev->page->w, dev->page->h);
+    dev->page->chars = (uint8_t *) calloc(dev->page->w, dev->page->h);
 
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
