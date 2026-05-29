@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"PO-Revision-Date: 2026-05-29 19:36+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
@@ -3260,7 +3260,7 @@ msgid "Paper Size"
 msgstr "Rozmiar papieru"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
 msgstr "Legal (poziomo)"
