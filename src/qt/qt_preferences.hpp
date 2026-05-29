@@ -43,6 +43,7 @@ protected:
             return QTranslator::translate("", sourceText, disambiguation, n);
         }
     };
+    static bool                             translationsLoaded;
     static CustomTranslator                *translator;
     static QTranslator                     *qtTranslator;
     static QVector<QPair<QString, QString>> languages;

@@ -95,7 +95,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     waitStatesModel->setData(idx, 0, Qt::UserRole);
     for (int i = 0; i < 8; ++i) {
         idx = waitStatesModel->index(i + 1, 0);
-        waitStatesModel->setData(idx, tr("%1 Wait state(s)").arg(i), Qt::DisplayRole);
+        waitStatesModel->setData(idx, tr("%n wait state(s)", "", i), Qt::DisplayRole);
         waitStatesModel->setData(idx, i + 1, Qt::UserRole);
     }
 
@@ -390,7 +390,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         for (const char *fpuName         = fpu_get_name_from_index(cpuFamily, cpuId, i);
              fpuName != nullptr; fpuName = fpu_get_name_from_index(cpuFamily, cpuId, ++i)) {
             auto fpuType = fpu_get_type_from_index(cpuFamily, cpuId, i);
-            Models::AddEntry(modelFpu, tr(QString("%1").arg(fpuName).toUtf8().data()), fpuType);
+            Models::AddEntry(modelFpu, tr(fpuName), fpuType);
             if (fpu_type == fpuType)
                 selectedFpuRow = i;
         }

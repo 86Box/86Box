@@ -643,7 +643,7 @@ main(int argc, char *argv[])
 
     if (!pc_init_roms()) {
         QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
-                             QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."),
+                             QObject::tr("%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory.").arg(EMU_NAME, EMU_ROMS_URL),
                              QMessageBox::Ok);
         fatalbox.setTextFormat(Qt::TextFormat::RichText);
         fatalbox.exec();

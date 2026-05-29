@@ -1498,7 +1498,7 @@ image_load_iso(cd_image_t *img, const char *filename)
         log_warning(img->log, "Unable to open image or folder \"%s\"\n",
                     filename);
 #else
-        warning("Unable to open image or folder \"%s\"\n", filename);
+        warning(plat_get_string(STRING_CDROM_OPEN_ISO_ERROR), filename);
 #endif
         return 0;
     }
@@ -1894,7 +1894,7 @@ image_load_cue(cd_image_t *img, const char *cuefile)
 #ifdef ENABLE_IMAGE_LOG
         log_warning(img->log, "    [CUE   ] Unable to open Cue sheet \"%s\"\n", cuefile);
 #else
-        warning("Unable to open Cue sheet \"%s\"\n", cuefile);
+        warning(plat_get_string(STRING_CDROM_OPEN_CUE_ERROR), cuefile);
 #endif
 
     return success;
@@ -2268,7 +2268,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 #ifdef ENABLE_IMAGE_LOG
             log_warning(img->log, "    [MDS   ] Error initializing dynamic library %s\n", mdsfile);
 #else
-            warning("Error initializing dynamic library %s\n", mdsfile);
+            warning(plat_get_string(STRING_CDROM_LOAD_MDSX_ERROR), mdsfile);
 #endif
             if (fp != NULL)
                 fclose(fp);
@@ -2667,7 +2667,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
 #ifdef ENABLE_IMAGE_LOG
         log_warning(img->log, "    [MDS   ] Unable to open MDS sheet \"%s\"\n", mdsfile);
 #else
-        warning("Unable to open MDS sheet \"%s\"\n", mdsfile);
+        warning(plat_get_string(STRING_CDROM_OPEN_MDS_ERROR), mdsfile);
 #endif
 
     return success;
@@ -3110,7 +3110,11 @@ image_open(cdrom_t *dev, const char *path)
 
             dev->ops = &image_ops;
         } else {
+#ifdef ENABLE_IMAGE_LOG
             log_warning(img->log, "Unable to load CD-ROM image: %s\n", path);
+#else
+            warning(plat_get_string(STRING_CDROM_LOAD_IMAGE_ERROR), path);
+#endif
 
             image_close(img);
             img = NULL;

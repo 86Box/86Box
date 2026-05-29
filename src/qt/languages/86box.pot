@@ -477,16 +477,16 @@ msgstr ""
 msgid "Joystick 4…"
 msgstr ""
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr ""
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr ""
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr ""
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr ""
 
 msgid "MIDI Out Device:"
@@ -645,6 +645,42 @@ msgstr ""
 msgid "Floppy drives"
 msgstr ""
 
+msgid "5.25\" 180k"
+msgstr ""
+
+msgid "5.25\" 360k"
+msgstr ""
+
+msgid "5.25\" 720k"
+msgstr ""
+
+msgid "5.25\" 1.2M"
+msgstr ""
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr ""
+
+msgid "3.5\" 360k"
+msgstr ""
+
+msgid "3.5\" 720k"
+msgstr ""
+
+msgid "3.5\" 1.44M"
+msgstr ""
+
+msgid "3.5\" 1.25M PC-98"
+msgstr ""
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr ""
+
+msgid "3.5\" 2.88M"
+msgstr ""
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr ""
+
 msgid "Turbo timings"
 msgstr ""
 
@@ -741,7 +777,7 @@ msgstr ""
 msgid "Image %1"
 msgstr ""
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr ""
 
 msgid "(empty)"
@@ -772,9 +808,6 @@ msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines 
 msgstr ""
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr ""
-
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 msgstr ""
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
@@ -864,16 +897,17 @@ msgstr ""
 msgid "Default"
 msgstr ""
 
-msgid "%1 Wait state(s)"
-msgstr ""
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] ""
 
 msgid "Type"
 msgstr ""
 
-msgid "No PCap devices found"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
 msgstr ""
 
-msgid "Invalid PCap device"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
 msgstr ""
 
 msgid "Generic paddle controller(s)"
@@ -984,10 +1018,10 @@ msgstr ""
 msgid "Are you sure you want to exit 86Box?"
 msgstr ""
 
-msgid "Unable to initialize Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr ""
 
-msgid "Unable to initialize GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr ""
 
 msgid "MO %1 (%2): %3"
@@ -1042,18 +1076,6 @@ msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG
 msgstr ""
 
 msgid "Hardware not available"
-msgstr ""
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr ""
-
-msgid "Invalid configuration"
-msgstr ""
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr ""
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
 msgstr ""
 
 msgid "Don't show this message again"
@@ -1144,13 +1166,16 @@ msgid "Powered Off"
 msgstr ""
 
 msgid "%n running"
-msgstr ""
+msgid_plural "%n running"
+msgstr[0] ""
 
 msgid "%n paused"
-msgstr ""
+msgid_plural "%n paused"
+msgstr[0] ""
 
 msgid "%n waiting"
-msgstr ""
+msgid_plural "%n waiting"
+msgstr[0] ""
 
 msgid "%1 total"
 msgstr ""
@@ -1180,7 +1205,8 @@ msgid "Use regular expressions in search box"
 msgstr ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr ""
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] ""
 
 msgid "Add new system wizard"
 msgstr ""
@@ -1395,9 +1421,6 @@ msgstr ""
 msgid "Hard disk (%1)"
 msgstr ""
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr ""
-
 msgid "Custom…"
 msgstr ""
 
@@ -1533,7 +1556,7 @@ msgstr ""
 msgid "Select the parent VHD"
 msgstr ""
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
 msgstr ""
 
 msgid "Parent and child disk timestamps do not match"
@@ -1632,10 +1655,7 @@ msgstr ""
 msgid "(System Default)"
 msgstr ""
 
-msgid "Failed to initialize network driver"
-msgstr ""
-
-msgid "The network configuration will be switched to the null driver"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
 msgstr ""
 
 msgid "Mouse sensitivity:"
@@ -1773,10 +1793,10 @@ msgstr ""
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr ""
 
-msgid "Error initializing OpenGL"
+msgid "Error initializing OpenGL."
 msgstr ""
 
-msgid "\nFalling back to software rendering."
+msgid "Falling back to software rendering."
 msgstr ""
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
@@ -2832,10 +2852,7 @@ msgstr ""
 msgid "OPL2Board (External Device)"
 msgstr ""
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr ""
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr ""
 
 msgid "Inhibit multimedia keys"
@@ -2998,7 +3015,8 @@ msgid "%1 VM Manager"
 msgstr ""
 
 msgid "%n disk(s)"
-msgstr ""
+msgid_plural "%n disks"
+msgstr[0] ""
 
 msgid "Unknown Status"
 msgstr ""
@@ -3165,7 +3183,7 @@ msgstr ""
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr ""
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."

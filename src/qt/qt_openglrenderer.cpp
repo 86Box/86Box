@@ -204,7 +204,7 @@ OpenGLRenderer::create_program(struct shader_program *program)
         glw.glGetProgramiv(program->id, GL_INFO_LOG_LENGTH, &maxLength);
         char *log = (char *) malloc(maxLength);
         glw.glGetProgramInfoLog(program->id, maxLength, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log), false);
+        main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Program not linked:\n\n%1").arg(log), false);
         // wx_simple_messagebox("GLSL Error", "Program not linked:\n%s", log);
         free(log);
         return 0;
@@ -258,7 +258,7 @@ OpenGLRenderer::compile_shader(GLenum shader_type, const char *prepend, const ch
         glw.glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
         char *log = (char *) malloc(length);
         glw.glGetShaderInfoLog(shader, length, &length, log);
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log), false);
+        main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Could not compile shader:\n\n%1").arg(log), false);
         // wx_simple_messagebox("GLSL Error", "Could not compile shader:\n%s", log);
 
         ogl3_log("Could not compile shader: %s\n", log);
@@ -658,7 +658,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
 
             if (!load_texture(file, &tex->texture)) {
                 // QMessageBox::critical(main_window, tr("GLSL Error"), tr("Could not load texture: %s").arg(file));
-                main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load texture: %1").arg(file), false);
+                main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Could not load texture: %1").arg(file), false);
                 ogl3_log("Could not load texture %s!\n", file);
                 failed = 1;
                 break;
@@ -704,7 +704,7 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
                 ogl3_log("Creating pass %u (%s)\n", (i + 1), pass->alias);
                 ogl3_log("Loading shader %s...\n", shader->shader_fn);
                 if (!shader->shader_program) {
-                    main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn), false);
+                    main_window->showMessage(MBX_ERROR, tr("GLSL Error"), tr("Could not load shader: %1").arg(shader->shader_fn), false);
                     // wx_simple_messagebox("GLSL Error", "Could not load shader: %s", shader->shader_fn);
                     ogl3_log("Could not load shader %s\n", shader->shader_fn);
                     failed = 1;
@@ -1123,7 +1123,7 @@ OpenGLRenderer::initialize()
         for (auto &flag : buf_usage)
             flag.test_and_set();
 
-        main_window->showMessage(MBX_ERROR | MBX_FATAL, tr("Error initializing OpenGL"), e.what() + tr("\nFalling back to software rendering."), false);
+        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing OpenGL.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
 
         context->doneCurrent();
         isFinalized   = true;

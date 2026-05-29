@@ -424,7 +424,7 @@ RendererStack::createRenderer(Renderer renderer)
                 try {
                     hw = new VulkanWindowRenderer(this);
                 } catch (std::runtime_error &e) {
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + tr("\nFalling back to software rendering."), QMessageBox::Ok);
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, QString(), tr("Failed to initialize Vulkan renderer.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), QMessageBox::Ok);
                     msgBox->setAttribute(Qt::WA_DeleteOnClose);
                     msgBox->show();
                     imagebufs = {};
@@ -442,7 +442,7 @@ RendererStack::createRenderer(Renderer renderer)
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", tr("Failed to initialize Vulkan renderer.") % tr("\nFalling back to software rendering."), QMessageBox::Ok);
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, QString(), tr("Failed to initialize Vulkan renderer.") % QStringLiteral("\n") % tr("Falling back to software rendering."), QMessageBox::Ok);
                     msgBox->setAttribute(Qt::WA_DeleteOnClose);
                     msgBox->show();
                     imagebufs = {};

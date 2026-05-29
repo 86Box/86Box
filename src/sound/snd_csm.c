@@ -569,10 +569,10 @@ static const device_config_t soundmaster_config[] = {
         .description = "DMA",
         .type        = CONFIG_SELECTION,
         .selection   = {
-            { .description = "none", .value = 0 },
-            { .description = "1",    .value = 1 },
-            { .description = "3",    .value = 3 },
-            { .description = ""                 }
+            { .description = "None",  .value = 0 },
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
         },
         .default_int = 0
     },
@@ -581,10 +581,10 @@ static const device_config_t soundmaster_config[] = {
         .description = "IRQ",
         .type        = CONFIG_SELECTION,
         .selection   = {
-            { .description = "none", .value = 0 },
-            { .description = "3",    .value = 3 },
-            { .description = "7",    .value = 7 },
-            { .description = ""                 }
+            { .description = "None",  .value = 0 },
+            { .description = "IRQ 3", .value = 3 },
+            { .description = "IRQ 7", .value = 7 },
+            { .description = ""                  }
         },
         .default_int = 0
     },

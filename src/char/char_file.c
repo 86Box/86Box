@@ -165,7 +165,7 @@ char_file_init(const device_t *info)
 #endif
         char_file_log(dev->log, "%s output file [%s]\n", dev->file_out ? "Opened" : "Could not open", path);
         if (!dev->file_out) {
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, path, fmt);
             ui_msgbox(MBX_ERROR, msg);
         }
     } else {
@@ -185,7 +185,7 @@ char_file_init(const device_t *info)
 #endif
         char_file_log(dev->log, "%s input file [%s]\n", dev->file_in ? "Opened" : "Could not open", path);
         if (!dev->file_in) {
-            snprintf(msg, sizeof(msg), "%s: Could not connect to %s: %s", dev->port->name, path, fmt);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_CONNECT_ERROR), dev->port->name, path, fmt);
             ui_msgbox(MBX_ERROR, msg);
         }
     } else {

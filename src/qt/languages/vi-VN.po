@@ -484,16 +484,16 @@ msgstr "Cần điều khiển 3…"
 msgid "Joystick 4…"
 msgstr "Cần điều khiển 4…"
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr "Card âm thanh 1:"
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr "Card âm thanh 2:"
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr "Card âm thanh 3:"
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr "Card âm thanh 4:"
 
 msgid "MIDI Out Device:"
@@ -646,6 +646,42 @@ msgstr "Kích thước bloc:"
 msgid "Floppy drives"
 msgstr "Ổ đĩa mềm"
 
+msgid "5.25\" 180k"
+msgstr "5.25\" 180k"
+
+msgid "5.25\" 360k"
+msgstr "5.25\" 360k"
+
+msgid "5.25\" 720k"
+msgstr "5.25\" 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5.25\" 1.2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5.25\" 1.2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3.5\" 360k"
+
+msgid "3.5\" 720k"
+msgstr "3.5\" 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3.5\" 1.44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3.5\" 1.25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3.5\" 1.44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3.5\" 2.88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3.5\" 2.88M 300/360 RPM"
+
 msgid "Turbo timings"
 msgstr "Thời gian turbo"
 
@@ -742,8 +778,8 @@ msgstr "Ảnh băng"
 msgid "Image %1"
 msgstr "Ảnh %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box không tìm được bản ROM nào.\n\nVui lòng <a href=\"https://github.com/86Box/roms/releases/latest\">tải về</a> bộ ROM và trích xuất về thư mục \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 không tìm được bản ROM nào.\n\nVui lòng <a href=\"%2\">tải về</a> bộ ROM và trích xuất về thư mục \"roms\"."
 
 msgid "(empty)"
 msgstr "(trống trơn)"
@@ -774,9 +810,6 @@ msgstr "Mẫu máy \"%s\" không giả lập được do thiếu file ROM tươn
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Card đồ họa \"%s\" không giả lập được do thiếu file ROM tương ứng trong thư mục roms/video. Hãy chọn card đồ họa khác."
-
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Card đồ họa 2 \"%s\" không giả lập được do thiếu file ROM tương ứng trong mục roms/video. Vô hiệu hóa card đồ họa thứ hai."
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Thiết bị \"%s\" không giả lập được do thiếu file ROM. Bỏ qua thiết bị."
@@ -865,17 +898,18 @@ msgstr "KB"
 msgid "Default"
 msgstr "Mặc định"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 trạng thái chờ"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n trạng thái chờ"
 
 msgid "Type"
 msgstr "Loại"
 
-msgid "No PCap devices found"
-msgstr "Không tìm thấy thiết bị PCap"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Không tìm thấy thiết bị PCap. Đảm bảo rằng %1 đã được cài đặt vào và bạn đang dùng kết nối mạng tương thích %1."
 
-msgid "Invalid PCap device"
-msgstr "Thiết bị PCap không hợp quy"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Thiết bị PCap không hợp quy. Đảm bảo rằng %1 đã được cài đặt vào và bạn đang dùng kết nối mạng tương thích %1."
 
 msgid "Generic paddle controller(s)"
 msgstr "Bộ điều khiển dạng mái chèo thông dụng"
@@ -985,11 +1019,11 @@ msgstr "Bạn có thật sự buộc máy khởi động lại không?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Bạn có muốn thoát 86Box?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Không thể khởi tạo Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Không thể khởi tạo Ghostscript. Cần có %1 để tự động chuyển đổi file PostScript qua PDF.\n\nMọi tài liệu được đưa qua máy in generic PostScript sẽ lưu ở dạng PostScript (.ps)."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Không thể khởi tạo GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Không thể khởi tạo GhostPCL. Cần có %1 để tự động chuyển đổi file PCL qua PDF.\n\nMọi tài liệu được đưa qua máy in generic PCL sẽ lưu ở dạng Printer Command Language (.pcl)."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1044,18 +1078,6 @@ msgstr "Trình giả lập các dòng máy tính cổ.\n\nTác giả: Miran Grč
 
 msgid "Hardware not available"
 msgstr "Phần cứng không có sẵn"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Đảm bảo rằng %1 đã được cài đặt vào và bạn đang dùng kết nối mạng tương thích %1."
-
-msgid "Invalid configuration"
-msgstr "Tinh chỉnh không hợp lý"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "Cần có %1 để tự động chuyển đổi file PostScript qua PDF.\n\nMọi tài liệu được đưa qua máy in generic PostScript sẽ lưu ở dạng PostScript (.ps)."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "Cần có %1 để tự động chuyển đổi file PCL qua PDF.\n\nMọi tài liệu được đưa qua máy in generic PCL sẽ lưu ở dạng Printer Command Language (.pcl)."
 
 msgid "Don't show this message again"
 msgstr "Không hiện thông báo này nữa"
@@ -1145,13 +1167,16 @@ msgid "Powered Off"
 msgstr "Đã tắt máy"
 
 msgid "%n running"
-msgstr "%n đang chạy"
+msgid_plural "%n running"
+msgstr[0] "%n đang chạy"
 
 msgid "%n paused"
-msgstr "%n đã tạm dừng"
+msgid_plural "%n paused"
+msgstr[0] "%n đã tạm dừng"
 
 msgid "%n waiting"
-msgstr "%n đang chờ"
+msgid_plural "%n waiting"
+msgstr[0] "%n đang chờ"
 
 msgid "%1 total"
 msgstr "%1 tổng"
@@ -1181,7 +1206,8 @@ msgid "Use regular expressions in search box"
 msgstr "Dùng regex trong hộp tìm kiếm"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
 
 msgid "Add new system wizard"
 msgstr "Thêm trình thuật sĩ hệ thống mới"
@@ -1396,9 +1422,6 @@ msgstr "Tắt máy theo ACP&I"
 msgid "Hard disk (%1)"
 msgstr "Ổ cứng (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Không hề có ổ CD-ROM MFM/RLL hay ESDI nào tồn tại"
-
 msgid "Custom…"
 msgstr "Tùy chỉnh…"
 
@@ -1534,8 +1557,8 @@ msgstr "File VHD"
 msgid "Select the parent VHD"
 msgstr "Chọn file VHD cha (parent)"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Ở đây tức là ảnh đĩa cha (parent) có thể đã bị chỉnh sửa sau khi ảnh đĩa đa chủng (differencing image) được tạo ra.\n\nCũng có thể do ảnh đĩa bị chuyển đi hay bị copy, hoặc do bug/lỗi của phần mềm tạo ảnh đĩa gây ra.\n\nBạn có muốn sửa lại mốc thời gian (timestamp) không?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Mốc timestamp của đĩa con (child) và đĩa cha (parent) không trùng khớp. Ở đây tức là ảnh đĩa cha (parent) có thể đã bị chỉnh sửa sau khi ảnh đĩa đa chủng (differencing image) được tạo ra.\n\nCũng có thể do ảnh đĩa bị chuyển đi hay bị copy, hoặc do bug/lỗi của phần mềm tạo ảnh đĩa gây ra.\n\nBạn có muốn sửa lại mốc thời gian (timestamp) không?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Mốc timestamp của đĩa con (child) và đĩa cha (parent) không trùng khớp"
@@ -1633,11 +1656,8 @@ msgstr "Đang tạo hình ảnh…"
 msgid "(System Default)"
 msgstr "(Mặc định hệ thống)"
 
-msgid "Failed to initialize network driver"
-msgstr "Không thể khởi tạo trình điều khiển (driver) mạng"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Cấu hình mạng sẽ chuyển sang null driver (không có mạng)"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Không thể khởi tạo trình điều khiển (driver) mạng:\n\n%s\n\nCấu hình mạng sẽ chuyển sang null driver (không có mạng)."
 
 msgid "Mouse sensitivity:"
 msgstr "Độ nhạy chuột:"
@@ -1774,11 +1794,11 @@ msgstr "Không thể chuyển sang bối cảnh OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL phiên bản 3.0 trở lên là bắt buộc. Phiên bản hiện tại là %1. %2"
 
-msgid "Error initializing OpenGL"
-msgstr "Lỗi khởi tạo OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Lỗi khởi tạo OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nQuay trở lại kết xuất phần mềm."
+msgid "Falling back to software rendering."
+msgstr "Quay trở lại kết xuất phần mềm."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Khi chọn hình ảnh phương tiện (CD-ROM, ổ mềm, v.v.), hộp thoại mở sẽ bắt đầu trong cùng thư mục với tệp cấu hình 86box. Cài đặt này có thể sẽ chỉ tạo ra sự khác biệt trên macOS.</p></body></html>"
@@ -2834,11 +2854,8 @@ msgstr ""
 msgid "OPL2Board (External Device)"
 msgstr ""
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Không tìm thấy phông chữ ma trận chấm"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "Cần có phông chữ TrueType trong thư mục \"roms/printer/fonts\" để mô phỏng máy in generic ESC/P 2 ma trận chấm."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Không tìm thấy phông chữ ma trận chấm. Cần có phông chữ TrueType trong thư mục \"roms/printer/fonts\" để mô phỏng máy in generic ESC/P 2 ma trận chấm."
 
 msgid "Inhibit multimedia keys"
 msgstr "Không dùng dãy phím multimedia"
@@ -3000,7 +3017,8 @@ msgid "%1 VM Manager"
 msgstr "Trình quản lý máy ảo %1"
 
 msgid "%n disk(s)"
-msgstr "%n đĩa"
+msgid_plural "%n disks"
+msgstr[0] "%n đĩa"
 
 msgid "Unknown Status"
 msgstr "Trạng thái không biết"
@@ -3173,7 +3191,7 @@ msgstr ""
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr ""
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
