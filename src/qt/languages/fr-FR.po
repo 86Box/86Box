@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
@@ -3284,13 +3284,13 @@ msgid "Test mode"
 msgstr ""
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 Mo"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 Mo"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 Mo"
 
 msgid "Refresh rate"
 msgstr ""
