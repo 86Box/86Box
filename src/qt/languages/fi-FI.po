@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 08:39+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 19:36+0000\n"
+"Last-Translator: Daniel Gurney <daniel@gurney.dev>\n"
 "Language-Team: Finnish <https://weblate.86box.net/projects/86box/86box/fi/>\n"
 "Language: fi-FI\n"
 "MIME-Version: 1.0\n"
@@ -530,13 +530,13 @@ msgid "CD-ROM controller:"
 msgstr "CD-ohjain:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi-liitäntä"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic-liitäntä"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic-liitäntä (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE-ohjain"
