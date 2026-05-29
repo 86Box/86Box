@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 02:46+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 08:39+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
 "Language: ja-JP\n"
@@ -3229,7 +3229,7 @@ msgid "Paper Size"
 msgstr "用紙サイズ"
 
 msgid "Legal (sideways)"
-msgstr "法律 (横書き)"
+msgstr "Legal (横書き)"
 
 msgid "B4 (sideways)"
 msgstr "B4 (横書き)"
