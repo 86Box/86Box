@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -357,19 +357,19 @@ msgid "Machine type:"
 msgstr "Тип машини:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 та 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (різне)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (без подвійного живлення)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (подвійне живлення)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Різне"
 
 msgid "Machine:"
 msgstr "Системна плата:"
@@ -504,7 +504,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI In при-ій:"
 
 msgid "MIDI Out:"
-msgstr "MIDI Out:"
+msgstr "Вихід MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Окремий MPU-401"
@@ -531,43 +531,43 @@ msgid "CD-ROM controller:"
 msgstr "Контролер CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Інтерфейс Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Інтерфейс MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Інтерфейс MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Контролер IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Контролер IDE (двоканальний)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Контролер IDE PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Контролер IDE PC/AT (двоканальний)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (лише первинний канал)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (лише первинний канал)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (третинний і четвертинний)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (третинний і четвертинний)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (третинний і четвертинний)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Контролер McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Третинний контролер IDE"
@@ -1458,31 +1458,37 @@ msgid "Unsupported disk image"
 msgstr "Образ диска, що не підтримується"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Неможливо зчитати пристрій"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Не вдалося визначити розмір блокового пристрою. Переконайтеся, що у вас є "
+"дозвіл на доступ до цього пристрою."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Пристрій занадто великий"
 
 msgid "Block device is too large to be used as a hard disk."
 msgstr ""
+"Блоковий пристрій занадто великий, щоб використовувати його як жорсткий диск."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Виявлено блоковий пристрій"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Виявлено блоковий пристрій: %1\n"
+"Розмір: %2 МБ\n"
+"Геометрія: %3 циліндрів, %4 голівок, %5 секторів"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Не вдалося записати образ диска."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Не вдалося зчитати образ диска."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Образ диска був успішно створен."
 
 msgid "Raw image"
 msgstr "Сирий образ"
@@ -1992,7 +1998,7 @@ msgid "BIOS Language"
 msgstr "Мова BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Варіант"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Блок розширення IBM 5161"
@@ -2382,40 +2388,40 @@ msgid "Frame Address"
 msgstr "Адреса кадру"
 
 msgid "English"
-msgstr ""
+msgstr "Англійська"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Англійська (США)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Англійська (Велика Британія)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Англійська (Канада)"
 
 msgid "German"
-msgstr ""
+msgstr "Німецька"
 
 msgid "French"
-msgstr ""
+msgstr "Французька"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Іспанська"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Шведська"
 
 msgid "Italian"
-msgstr ""
+msgstr "Італійська"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Португальська"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Норвезька"
 
 msgid "Greek"
-msgstr ""
+msgstr "Грецька"
 
 msgid "Danish"
 msgstr "Данська"
@@ -2691,11 +2697,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Ключовий захист для Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-кабель"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Пристрій для пропуску послідовного порту"
+msgstr "Передача даних через послідовний порт"
 
 msgid "Host serial device"
 msgstr "Послідовний пристрій хоста"
@@ -2704,40 +2709,40 @@ msgid "Named Pipe"
 msgstr "Іменований пайп"
 
 msgid "Output file"
-msgstr ""
+msgstr "Вихідний файл"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Додавати наприкінці існуючого файлу"
 
 msgid "Input file"
-msgstr ""
+msgstr "Вхідний файл"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Створити цикл для вхідного файлу"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Вимагати сигнал STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Тип кабелю"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "LPT-кабель"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Односпрямований (8 біт) / LapLink (4 біт)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Двонаправлений (8 біт)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Шлях до каналу"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / термінал"
 
 msgid "Mode"
-msgstr ""
+msgstr "Режим"
 
 msgid "Server"
 msgstr "Сервер"
@@ -2746,28 +2751,28 @@ msgid "Client"
 msgstr "Клієнт"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Автоматично перепідключатися"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Використовувати стандартний ввід/вивід"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Створити псевдотермінал"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Запустити емулятор терміналу"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Виконати команду користувача"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Команда користувача"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Виконати команду корис. в терміналі"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Віртуальна консоль"
 
 msgid "E&ject %1"
 msgstr "&Вилучити %1"
@@ -2830,10 +2835,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Загальне розширення пам'яті PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Стандартний RTC MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (зовнішній пристрій)"
 
 msgid "Unable to find Dot-Matrix fonts"
 msgstr "Неможливо знайти матричні шрифти"
@@ -2899,10 +2904,10 @@ msgid "Could not load file %1"
 msgstr "Не вдалося завантажити файл %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Емулятор"
 
 msgid "Input"
-msgstr ""
+msgstr "Введення"
 
 msgid "Key bindings"
 msgstr "Прив'язки клавіш"
@@ -3154,7 +3159,7 @@ msgid "Raw"
 msgstr "Сирий"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Використовувати емуляцію EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Пристрій виведення звуку:"
@@ -3163,154 +3168,158 @@ msgid "System Default"
 msgstr "Системний"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Неможливо відкрити файл або папку «%s»."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Неможливо відкрити файл CUE «%s»."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Неможливо відкрити файл MDS «%s»."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Неможливо завантажити образ CD-ROM «%s»."
 
 msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Неможливо завантажити образ «%s»: відсутня бібліотека %1, необхідна для "
+"підтримки образів Daemon Tools MDS v2 та MDX."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Образ DVD «%s» було вставлено в дисковод, який не підтримує DVD, і його буде "
+"проігноровано."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Не вдалося встановити з'єднання з %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Не вдалося створити %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Приєднано до %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Віртуальна консоль уже використовується %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Не вдалося створити термінал: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Самовизначення"
 
 msgid "Channel"
-msgstr ""
+msgstr "Канал"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Обидва канали"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Лівий канал"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Правий канал"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Увімкнути оновлення BIOS"
 
 msgid "Slot #"
-msgstr ""
+msgstr "№ слота"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Паралельний порт"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Розмір паперу"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Юридичний (горизонтальний)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (горизонтальний)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Якість"
 
 msgid "Draft"
-msgstr ""
+msgstr "Чернетка"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "Висока"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Автоматичне перенесення"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Клон Tandy PSSJ"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (кольоровий)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (монохромний)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Білий монохромний"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Апаратний шрифт"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Режим діагностики"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Монітор CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Монітор MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Телевізор"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Інвертувати кольори РК-дисплея"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "РК-дисплей (режим CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "РК-дисплей (режим MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Вимкнений (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Увімкнений (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Тестовий режим"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 МБ"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 МБ"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 МБ"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Частота оновлення екрана"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "США (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM Nordic (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Чеська Kamenicky (CP 895) № 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Чеська Kamenicky (CP 895) № 2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (японська)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (китайська, традиційне письмо)"
