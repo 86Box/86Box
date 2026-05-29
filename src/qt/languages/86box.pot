@@ -645,6 +645,42 @@ msgstr ""
 msgid "Floppy drives"
 msgstr ""
 
+msgid "5.25\" 180k"
+msgstr ""
+
+msgid "5.25\" 360k"
+msgstr ""
+
+msgid "5.25\" 720k"
+msgstr ""
+
+msgid "5.25\" 1.2M"
+msgstr ""
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr ""
+
+msgid "3.5\" 360k"
+msgstr ""
+
+msgid "3.5\" 720k"
+msgstr ""
+
+msgid "3.5\" 1.44M"
+msgstr ""
+
+msgid "3.5\" 1.25M PC-98"
+msgstr ""
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr ""
+
+msgid "3.5\" 2.88M"
+msgstr ""
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr ""
+
 msgid "Turbo timings"
 msgstr ""
 

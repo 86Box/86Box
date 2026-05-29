@@ -645,6 +645,42 @@ msgstr "Blockgröße:"
 msgid "Floppy drives"
 msgstr "Diskettenlaufwerke"
 
+msgid "5.25\" 180k"
+msgstr "5,25-Zoll 180k"
+
+msgid "5.25\" 360k"
+msgstr "5,25-Zoll 360k"
+
+msgid "5.25\" 720k"
+msgstr "5,25-Zoll 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5,25-Zoll 1,2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5,25-Zoll 1,2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3,5-Zoll 360k"
+
+msgid "3.5\" 720k"
+msgstr "3,5-Zoll 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3,5-Zoll 1,44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3,5-Zoll 1,25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3,5-Zoll 1,44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3,5-Zoll 2,88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3,5-Zoll 2,88M 300/360 RPM"
+
 msgid "Turbo timings"
 msgstr "Turbo-Timings"
 
@@ -1567,13 +1603,13 @@ msgid "720 KB"
 msgstr "720 KB"
 
 msgid "1.2 MB"
-msgstr "1.2 MB"
+msgstr "1,2 MB"
 
 msgid "1.25 MB"
-msgstr "1.25 MB"
+msgstr "1,25 MB"
 
 msgid "1.44 MB"
-msgstr "1.44 MB"
+msgstr "1,44 MB"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (1024 Cluster)"
@@ -1582,37 +1618,37 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (2048 Cluster)"
 
 msgid "2.88 MB"
-msgstr "2.88 MB"
+msgstr "2,88 MB"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3.5-Zoll 128 MB (ISO 10090)"
+msgstr "3,5-Zoll 128 MB (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
-msgstr "3.5-Zoll 230 MB (ISO 13963)"
+msgstr "3,5-Zoll 230 MB (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3.5-Zoll 540 MB (ISO 15498)"
+msgstr "3,5-Zoll 540 MB (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
-msgstr "3.5-Zoll 640 MB (ISO 15498)"
+msgstr "3,5-Zoll 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5-Zoll 1,3 GB (GigaMO)"
+msgstr "3,5-Zoll 1,3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5-Zoll 2,3 GB (GigaMO 2)"
+msgstr "3,5-Zoll 2,3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5.25-Zoll 600 MB"
+msgstr "5,25-Zoll 600 MB"
 
 msgid "5.25\" 650 MB"
-msgstr "5.25-Zoll 650 MB"
+msgstr "5,25-Zoll 650 MB"
 
 msgid "5.25\" 1 GB"
 msgstr "5,25-Zoll 1 GB"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5.25-Zoll 1,3 GB"
+msgstr "5,25-Zoll 1,3 GB"
 
 msgid "Perfect RPM"
 msgstr "Perfekte Drehzahl"
@@ -1621,7 +1657,7 @@ msgid "1% below perfect RPM"
 msgstr "1% unterhalb der perfekten Drehzahl"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% unterhalb der perfekten Drehzahl"
+msgstr "1,5% unterhalb der perfekten Drehzahl"
 
 msgid "2% below perfect RPM"
 msgstr "2% unterhalb der perfekten Drehzahl"
