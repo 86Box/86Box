@@ -900,7 +900,7 @@ msgid "Default"
 msgstr "Privzeto"
 
 msgid "%n wait state(s)"
-msgid_plural "%n wait state(s)"
+msgid_plural "%n wait states"
 msgstr[0] "%n čakalno stanje"
 msgstr[1] "%n čakalni stanji"
 msgstr[2] "%n čakalna stanja"
