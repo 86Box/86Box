@@ -3253,6 +3253,9 @@ msgstr "Parallelanschluss"
 msgid "Paper Size"
 msgstr "Papierformat"
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr "Legal (seitlich)"
 

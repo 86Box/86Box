@@ -778,7 +778,7 @@ msgstr "磁帶映像"
 msgid "Image %1"
 msgstr "映像 %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box 找不到任何可用的 ROM 映像。\n\n請<a href=\"%2\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
 
 msgid "(empty)"
@@ -1659,7 +1659,7 @@ msgstr "新建映像…"
 msgid "(System Default)"
 msgstr "(系統預設)"
 
-msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
 msgstr "初始化網路驅動器失敗:\n\n%s\n\n網路組態將切換為空驅動器"
 
 msgid "Mouse sensitivity:"
@@ -3196,7 +3196,7 @@ msgstr "無法開啟 MDS 檔 \"%s\"。"
 msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "無法開啟光碟映像 \"%s\"。"
 
-msgid "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr "無法開啟映像 \"%s\": %1 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
 "映像之必要檔案。"
 
@@ -3244,6 +3244,9 @@ msgstr "並列埠"
 
 msgid "Paper Size"
 msgstr "紙張大小"
+
+msgid "Letter"
+msgstr ""
 
 msgid "Legal (sideways)"
 msgstr "Legal (橫向)"

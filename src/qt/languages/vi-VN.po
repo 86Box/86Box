@@ -3239,6 +3239,9 @@ msgstr ""
 msgid "Paper Size"
 msgstr ""
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr ""
 

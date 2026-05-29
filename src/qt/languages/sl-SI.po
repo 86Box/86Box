@@ -3266,6 +3266,9 @@ msgstr "Paralelna vrata"
 msgid "Paper Size"
 msgstr "Velikost papirja"
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr "Legal (bočna)"
 

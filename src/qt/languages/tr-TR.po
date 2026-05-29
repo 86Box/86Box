@@ -3294,6 +3294,9 @@ msgstr "Paralel Bağlantı Noktası"
 msgid "Paper Size"
 msgstr "Kağıt Boyutu"
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr "Legal (yanlamasına)"
 

@@ -3264,6 +3264,9 @@ msgstr "Параллельный порт"
 msgid "Paper Size"
 msgstr "Размер бумаги"
 
+msgid "Letter"
+msgstr "Letter"
+
 msgid "Legal (sideways)"
 msgstr "Legal (горизонтально)"
 

@@ -3253,6 +3253,9 @@ msgstr "Puerto paralelo"
 msgid "Paper Size"
 msgstr "Tamaño del papel"
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr "Legal (de lado)"
 

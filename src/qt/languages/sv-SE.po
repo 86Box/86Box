@@ -3202,7 +3202,7 @@ msgstr "CD-ROM-avbildning \"%s\" kunde ej öppnas."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
-"Avbildning \"%s\" kunde ej laddas: mdsx.so saknas, vilket krävs för stöd för "
+"Avbildning \"%s\" kunde ej laddas: %1 saknas, vilket krävs för stöd för "
 "Daemon Tools MDS v2 och MDX-avbildningar."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
@@ -3251,6 +3251,9 @@ msgstr "Parallellport"
 
 msgid "Paper Size"
 msgstr "Pappersstorlek"
+
+msgid "Letter"
+msgstr ""
 
 msgid "Legal (sideways)"
 msgstr "Legal (liggande)"

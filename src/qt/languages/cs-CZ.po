@@ -3282,6 +3282,9 @@ msgstr "Paralelní port"
 msgid "Paper Size"
 msgstr "Velikost papíru"
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr "Legal (na šířku)"
 

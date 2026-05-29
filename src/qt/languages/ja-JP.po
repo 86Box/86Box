@@ -3246,6 +3246,9 @@ msgstr "パラレルポート"
 msgid "Paper Size"
 msgstr "用紙サイズ"
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr "Legal (横書き)"
 

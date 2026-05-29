@@ -3334,6 +3334,9 @@ msgstr "Porta parallela"
 msgid "Paper Size"
 msgstr "Dimensioni di carta"
 
+msgid "Letter"
+msgstr ""
+
 msgid "Legal (sideways)"
 msgstr "Legal (orizzontale)"
 
