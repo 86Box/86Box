@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 02:46+0000\n"
+"Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
 "MIME-Version: 1.0\n"
@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "Maskintyp:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Sockel 168 och 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (övriga)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Sockel 7 (enkelspänning)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Sockel 7 (dubbelspänning)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Övriga"
 
 msgid "Machine:"
 msgstr "Maskin:"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "Styrenhet för CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi-gränssnitt"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic-gränssnitt"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic-gränssnitt (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE-styrenhet"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE-styrenhet (dubbelkanalig)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE-styrenhet"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE-styrenhet (dubbelkanalig)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (endast primär)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (endast primär)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (tertiär och kvartär)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (tertiär och kvartär)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (tertiär och kvartär)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE-styrenhet"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiär IDE-kontroller"
@@ -1457,31 +1457,36 @@ msgid "Unsupported disk image"
 msgstr "Avbildning stöds inte"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Kan inte läsa enhet"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Storleken på blockenhet kunde ej bestämmas. Säkerställ att du har behörighet "
+"att komma åt enheten."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Enhet för stor"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Blockenhet är för stor för att användas som hårddisk."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Blockenhet upptäckt"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Upptäckt blockenhet: %1\n"
+"Storlek: %2 MB\n"
+"Geometri: %3 cylindrar, %4 huvuden, %5 sektorer"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Skrivning av diskavbildning misslyckades."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Läsning av diskavbildning misslyckades."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Skapa diskavbildning lyckades."
 
 msgid "Raw image"
 msgstr "Rå avbildning"
@@ -1990,8 +1995,9 @@ msgstr "BIOS-version"
 msgid "BIOS Language"
 msgstr "BIOS-språk"
 
+#, fuzzy
 msgid "Variant"
-msgstr ""
+msgstr "Variant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 expansionsenhet"
@@ -2381,40 +2387,40 @@ msgid "Frame Address"
 msgstr "Bildadress"
 
 msgid "English"
-msgstr ""
+msgstr "Engelska"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Engelska (Förenta staterna)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Engelska (Storbritannien)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Engelska (Kanada)"
 
 msgid "German"
-msgstr ""
+msgstr "Tyska"
 
 msgid "French"
-msgstr ""
+msgstr "Franska"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Spanska"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Svenska"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italienska"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugisiska"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norska"
 
 msgid "Greek"
-msgstr ""
+msgstr "Grekiska"
 
 msgid "Danish"
 msgstr "Danska"
@@ -2690,11 +2696,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Skyddsdongel till Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-plugg"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Seriepassthrough-enhet"
+msgstr "Seriell passthrough"
 
 msgid "Host serial device"
 msgstr "Värd-serieenhet"
@@ -2703,31 +2708,31 @@ msgid "Named Pipe"
 msgstr "Namngiven pipe"
 
 msgid "Output file"
-msgstr ""
+msgstr "Utmatningsfil"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Bifoga till fil om den finns"
 
 msgid "Input file"
-msgstr ""
+msgstr "Inmatningsfil"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Loop-inmatningsfil"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Kräv STROBE-signal"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Loopback-typ"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Parallellkabel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Enkelriktad (8-bitars) / LapLink (4-bitars)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Dubbelriktad (8-bitars)"
 
 msgid "Pipe path"
 msgstr ""
