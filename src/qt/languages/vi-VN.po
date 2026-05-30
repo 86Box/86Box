@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 07:04+0000\n"
+"PO-Revision-Date: 2026-05-30 16:09+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -2018,7 +2018,7 @@ msgid "BIOS Language"
 msgstr "Ngôn ngữ BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Biến thể"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Bộ mở rộng IBM 5161"
@@ -2408,40 +2408,40 @@ msgid "Frame Address"
 msgstr "Địa chỉ khung"
 
 msgid "English"
-msgstr ""
+msgstr "Tiếng Anh"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Tiếng Anh (Mỹ)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Tiếng Anh (Anh)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Tiếng Anh (Canada)"
 
 msgid "German"
-msgstr ""
+msgstr "Tiếng Đức"
 
 msgid "French"
-msgstr ""
+msgstr "Tiếng Pháp"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Tiếng Tây Ban Nha"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Tiếng Thuỵ Điển"
 
 msgid "Italian"
-msgstr ""
+msgstr "Tiếng Ý"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Tiếng Bồ Đào Nha"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Tiếng Na Uy"
 
 msgid "Greek"
-msgstr ""
+msgstr "Tiếng Hi Lạp"
 
 msgid "Danish"
 msgstr "Đan Mạch"
@@ -2717,7 +2717,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle bảo vệ cho Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Đầu cắm loopback"
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2730,40 +2730,40 @@ msgid "Named Pipe"
 msgstr "Đường ống có tên"
 
 msgid "Output file"
-msgstr ""
+msgstr "File đầu ra"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Nối tiếp vào file nếu đã tồn tại"
 
 msgid "Input file"
-msgstr ""
+msgstr "File đầu vào"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "File đầu vào vòng lặp"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Yêu cầu tín hiệu STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Loại loopback"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Cáp song song"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Đơn hướng (8-bit) / LapLink (4-bit)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Song hướng (8-bit)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Đường dẫn ống"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / trình đầu cuối"
 
 msgid "Mode"
-msgstr ""
+msgstr "Chế độ"
 
 msgid "Server"
 msgstr "Máy chủ"
@@ -2772,28 +2772,28 @@ msgid "Client"
 msgstr "Máy khách"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Tự kết nối lại"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Dùng đầu vào/ra tiêu chuẩn"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Tạo trình đầu cuối giả"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Khởi động giả lập đầu cuối"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Chạy câu lệnh tùy biến"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Câu lệnh tùy biến"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Chạy câu lệnh tùy chỉnh trong trình đầu cuối"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Giao diện điều khiển ảo"
 
 msgid "E&ject %1"
 msgstr "Đẩy đĩ&a ra %1"
@@ -2856,10 +2856,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Mở rộng bộ nhớ chung qua PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "RTC MM58167 chung"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (Thiết bị ngoài)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "Không tìm thấy phông chữ ma trận chấm. Cần có phông chữ TrueType trong thư mục \"roms/printer/fonts\" để mô phỏng máy in generic ESC/P 2 ma trận chấm."
@@ -2922,10 +2922,10 @@ msgid "Could not load file %1"
 msgstr "Không thể nạp tập tin %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Trình giả lập"
 
 msgid "Input"
-msgstr ""
+msgstr "Đầu vào"
 
 msgid "Key bindings"
 msgstr "Phím nóng"
@@ -3187,157 +3187,161 @@ msgid "System Default"
 msgstr "Mặc định hệ thống"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Không thể mở ảnh đĩa hoặc thư mục \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Không thể mở file cue \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Không thể mở file MDS \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Không thể mở ảnh đĩa CD-ROM \"%s\"."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Không thể mở ảnh đĩa \"%s\": Hỗ trợ cho ảnh đĩa MDS v2 của Daemon Tools và "
+"MDX cần có %1, hiện không tìm thấy."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Ảnh đĩa DVD \"%s\" đã được đưa vào ổ không hỗ trợ phương tiện DVD và sẽ bị "
+"bỏ qua."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Không thể kết nối tới %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Không thể tạo %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Đã gắn vào %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Giao diện điều khiển ảo đã được %s sử dụng"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Không thể tạo trình đầu cuối: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Tự phát hiện"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kênh"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Cả kênh"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Kênh trái"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Kênh phải"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Cho phép flash cập nhật BIOS"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Khe #"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Cổng song song"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Cỡ giấy"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (chiều ngang)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (chiều ngang)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Chất lượng"
 
 msgid "Draft"
-msgstr ""
+msgstr "Bản nháp"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Gần) Letter"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Tự động xuống dòng"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Bản sao PSSJ Tandy"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (Màu)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (Đơn sắc)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Đơn sắc trắng"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Font chữ phần cứng"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Chế độ chẩn đoán"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Màn CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Màn MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Tivi"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Đảo màu LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (chế độ CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (chế độ MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Đã tắt (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Đã bật (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Chế độ thử"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Tần số quét"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "Mỹ (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM bộ chữ Bắc Âu (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Kamenicky Séc (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Kamenicky Séc (CP 985) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (tiếng Nhật)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (Trung phồn thể)"
