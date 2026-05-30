@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-30 07:04+0000\n"
+"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
@@ -142,13 +142,13 @@ msgid "&Integer scale"
 msgstr "&Celočíselné škálování"
 
 msgid "4:&3 Integer scale"
-msgstr "4:&3 Celočíselné škálování"
+msgstr "Celočíselné škálování 4:&3"
 
 msgid "Inverted VGA monitor"
-msgstr "Převrátit barvy"
+msgstr "Monitor VGA s převrácenými barvami"
 
 msgid "VGA screen type:"
-msgstr "Typ VGA monitoru:"
+msgstr "Typ monitoru VGA:"
 
 msgid "RGB Color"
 msgstr "RGB barevný"
@@ -157,7 +157,7 @@ msgid "RGB (no brown)"
 msgstr "RGB (bez hnědé)"
 
 msgid "RGB Grayscale"
-msgstr "Odstíny šedi"
+msgstr "RGB odstíny šedi"
 
 msgid "Generic RGBI color monitor"
 msgstr "Obecný RGBI barevný monitor"
@@ -286,7 +286,7 @@ msgid "E&mpty"
 msgstr "&Vyjmout"
 
 msgid "Reload previous image"
-msgstr "Načíst znova předchozí obraz"
+msgstr "Načíst znovu předchozí obraz"
 
 msgid "&Folder…"
 msgstr "&Složka…"
@@ -568,10 +568,10 @@ msgid "McIDE Controller"
 msgstr "Řadič McIDE"
 
 msgid "Tertiary IDE Controller"
-msgstr "Třetí řadič IDE"
+msgstr "Terciární řadič IDE"
 
 msgid "Quaternary IDE Controller"
-msgstr "Čtvrtý řadič IDE"
+msgstr "Kvartérní řadič IDE"
 
 msgid "Hard disk controllers"
 msgstr "Řadiče pevných disků"
@@ -646,40 +646,40 @@ msgid "Floppy drives"
 msgstr "Disketové mechaniky"
 
 msgid "5.25\" 180k"
-msgstr "5.25\" 180k"
+msgstr "5,25\" 180k"
 
 msgid "5.25\" 360k"
-msgstr "5.25\" 360k"
+msgstr "5,25\" 360k"
 
 msgid "5.25\" 720k"
-msgstr "5.25\" 720k"
+msgstr "5,25\" 720k"
 
 msgid "5.25\" 1.2M"
-msgstr "5.25\" 1.2M"
+msgstr "5,25\" 1,2M"
 
 msgid "5.25\" 1.2M 300/360 RPM"
-msgstr "5.25\" 1.2M 300/360 ot./m"
+msgstr "5,25\" 1,2M 300/360 ot./m"
 
 msgid "3.5\" 360k"
-msgstr "3.5\" 360k"
+msgstr "3,5\" 360k"
 
 msgid "3.5\" 720k"
-msgstr "3.5\" 720k"
+msgstr "3,5\" 720k"
 
 msgid "3.5\" 1.44M"
-msgstr "3.5\" 1.44M"
+msgstr "3,5\" 1,44M"
 
 msgid "3.5\" 1.25M PC-98"
-msgstr "3.5\" 1.25M PC-98"
+msgstr "3,5\" 1,25M PC-98"
 
 msgid "3.5\" 1.44M 300/360 RPM"
-msgstr "3.5\" 1.44M 300/360 ot./m"
+msgstr "3,5\" 1,44M 300/360 ot./m"
 
 msgid "3.5\" 2.88M"
-msgstr "3.5\" 2.88M"
+msgstr "3,5\" 2,88M"
 
 msgid "3.5\" 2.88M 300/360 RPM"
-msgstr "3.5\" 2.88M 300/360 ot./m"
+msgstr "3,5\" 2,88M 300/360 ot./m"
 
 msgid "Turbo timings"
 msgstr "Turbo časování"
@@ -709,7 +709,7 @@ msgid "Tape drives:"
 msgstr "Páskové mechaniky:"
 
 msgid "ISA RTC:"
-msgstr "ISA hodiny:"
+msgstr "ISA hodiny reálného času (RTC):"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA rozšíření paměti"
@@ -1379,10 +1379,11 @@ msgid "Remove directory failed"
 msgstr "Odstranění adresáře se nezdařilo"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr "Některé soubory v adresáři zařízení nebylo možné odstranit. Odstraňte je prosím ručně."
+msgstr ""
+"Některé soubory v adresáři nebylo možné odstranit. Odstraňte je prosím ručně."
 
 msgid "Build"
-msgstr "Build"
+msgstr "Sestavení"
 
 msgid "Version"
 msgstr "Verze"
@@ -1529,7 +1530,7 @@ msgstr "Detekováno blokové zařízení"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
-"Detekováno blokové zařízení: %1\n"
+"Detekované blokové zařízení: %1\n"
 "Velikost: %2 MB\n"
 "Geometrie: %3 cylindrů, %4 hlav, %5 sektorů"
 
@@ -1594,7 +1595,15 @@ msgid "Select the parent VHD"
 msgstr "Vyberte nadřazený VHD disk"
 
 msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí. Toto může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl obraz disku kopírován nebo přesunut, nebo kvůli chybě v programu, který jej vytvořil.\n\nChcete časová razítka opravit?"
+msgstr ""
+"Časová razítka nadřazeného a podřazeného disku nesouhlasí. Toto může "
+"znamenat, že se obsah nadřazeného disku po vytvoření rozdílového disku "
+"změnil.\n"
+"\n"
+"Tato situace také může nastat, pokud byly obrazy zkopírovány nebo přesunuty, "
+"nebo kvůli chybě v programu, který jej vytvořil.\n"
+"\n"
+"Chcete časová razítka opravit?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí"
@@ -1627,13 +1636,13 @@ msgid "720 KB"
 msgstr "720 KB"
 
 msgid "1.2 MB"
-msgstr "1.2 MB"
+msgstr "1,2 MB"
 
 msgid "1.25 MB"
-msgstr "1.25 MB"
+msgstr "1,25 MB"
 
 msgid "1.44 MB"
-msgstr "1.44 MB"
+msgstr "1,44 MB"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (cluster 1024)"
@@ -1642,49 +1651,49 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
-msgstr "2.88 MB"
+msgstr "2,88 MB"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3.5\" 128 MB (ISO 10090)"
+msgstr "3,5\" 128 MB (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
 msgstr "3.5\" 230 MB (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3.5\" 540 MB (ISO 15498)"
+msgstr "3,5\" 540 MB (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
 msgstr "3.5\" 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5\" 1.3 GB (GigaMO)"
+msgstr "3,5\" 1,3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3,5\" 2,3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5.25\" 600 MB"
+msgstr "5,25\" 600 MB"
 
 msgid "5.25\" 650 MB"
-msgstr "5.25\" 650 MB"
+msgstr "5,25\" 650 MB"
 
 msgid "5.25\" 1 GB"
-msgstr "5.25\" 1 GB"
+msgstr "5,25\" 1 GB"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5.25\" 1.3 GB"
+msgstr "5,25\" 1,3 GB"
 
 msgid "Perfect RPM"
-msgstr "Dokonalé otáčky za minutu"
+msgstr "Ideální otáčky za minutu"
 
 msgid "1% below perfect RPM"
-msgstr "1% pod dokonalými ot./m"
+msgstr "1% pod ideálními otáčkami"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% pod dokonalými ot./m"
+msgstr "1.5% pod ideálními otáčkami"
 
 msgid "2% below perfect RPM"
-msgstr "2% pod dokonalými ot./m"
+msgstr "2% pod ideálními otáčkami"
 
 msgid "Creating image…"
 msgstr "Vytváření obrazu probíhá…"
@@ -1699,10 +1708,10 @@ msgid "Mouse sensitivity:"
 msgstr "Citlivost myší:"
 
 msgid "Select media images from program working directory"
-msgstr "Výběr mediálních obrazů z pracovního adresáře programu"
+msgstr "Vybírat obrazy médií z pracovního adresáře programu"
 
 msgid "PIT mode:"
-msgstr "Režim PIT:"
+msgstr "Režim časovače:"
 
 msgid "Auto"
 msgstr "Automatický"
@@ -1762,7 +1771,7 @@ msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Použít režim roztá&hnutí při celé obrazovce pro maximalizované okno"
 
 msgid "&Cursor/Puck"
-msgstr "&Kurzor/Puk"
+msgstr "&Kurzor/puk"
 
 msgid "&Pen"
 msgstr "&Pero"
@@ -1774,7 +1783,7 @@ msgid "&Connected"
 msgstr "&Připojeno"
 
 msgid "Clear image &history"
-msgstr "Vymaž &historie snímků"
+msgstr "Vymaž &historii snímků"
 
 msgid "Create…"
 msgstr "Vytvořit…"
@@ -1837,7 +1846,11 @@ msgid "Falling back to software rendering."
 msgstr "Obnoví se softwarové vykreslování."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>Při výběru obrazů médií (CD-ROM, disketa atd.) se otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému MacOS.</p></body></html>"
+msgstr ""
+"<html><head/><body><p>Při výběru obrazů médií (CD-ROM, disketa atd.) se "
+"otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor "
+"programu 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému "
+"macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Tento počítač mohl být přemístěn nebo zkopírován."
@@ -1852,7 +1865,7 @@ msgid "I Copied It"
 msgstr "Zkopíroval jsem jej"
 
 msgid "86Box Monitor #%1"
-msgstr "86Box Monitor %1"
+msgstr "86Box obrazovka %1"
 
 msgid "No MCA devices."
 msgstr "Žádné zařízení MCA."
@@ -2020,7 +2033,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "Povolit zápis do paměti ROM s rozšířením BIOS (ROM 4)"
 
 msgid "Linear framebuffer base"
-msgstr "Začátek lineárního framebufferu"
+msgstr "Základní adresa lineárního framebufferu"
 
 msgid "Address"
 msgstr "Adresa"
@@ -2116,31 +2129,31 @@ msgid "MIDI Clockout"
 msgstr "Výstup MIDI hodin"
 
 msgid "Output Gain"
-msgstr "Zesílení výstupu"
+msgstr "Výstupní zesílení"
 
 msgid "Chorus"
-msgstr "Sbor"
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr "Hlasy sboru"
+msgstr "Hlasy chorusu"
 
 msgid "Chorus Level"
-msgstr "Úroveň sboru"
+msgstr "Úroveň chorusu"
 
 msgid "Chorus Speed"
-msgstr "Rychlost sboru"
+msgstr "Rychlost chorusu"
 
 msgid "Chorus Depth"
-msgstr "Hloubka sboru"
+msgstr "Hloubka chorusu"
 
 msgid "Chorus Waveform"
-msgstr "Průběh sboru"
+msgstr "Tvar vlny chorusu"
 
 msgid "Reverb"
 msgstr "Dozvuk"
 
 msgid "Reverb Room Size"
-msgstr "Velikost místnosti pro dozvuk"
+msgstr "Velikost místnosti"
 
 msgid "Reverb Damping"
 msgstr "Tlumení dozvuku"
@@ -2158,13 +2171,13 @@ msgid "Dynamic Sample Loading"
 msgstr "Dynamické načítání vzorků"
 
 msgid "Reverb Output Gain"
-msgstr "Zesílení výstupu dozvuku"
+msgstr "Výstupní zesílení dozvuku"
 
 msgid "Reversed stereo"
-msgstr "Obrácené stereo"
+msgstr "Prohozené stereo"
 
 msgid "Nice ramp"
-msgstr "Pěkná rampa"
+msgstr "Hladký náběh"
 
 msgid "Hz"
 msgstr "Hz"
@@ -2482,12 +2495,12 @@ msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Nastavení BIOS + klávesové zkratky (vypnuto během POST)"
 
 msgid "64 KB starting from F0000"
-msgstr "64 KB počínajíce F0000"
+msgstr "64 KB počínaje adresou F0000"
 
 msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
 msgstr ""
-"128 KB počínajíce E0000 (invertovaný nejvyšší bit adresy, nejprve posledních "
-"64 KB)"
+"128 KB počínaje adresou E0000 (invertovaný nejvyšší bit adresy, nejprve "
+"posledních 64 KB)"
 
 msgid "Sine"
 msgstr "Sinusový"
