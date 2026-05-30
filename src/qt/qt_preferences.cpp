@@ -124,35 +124,37 @@ Preferences *Preferences::preferences = nullptr;
 Preferences::CustomTranslator *Preferences::translator   = nullptr;
 QTranslator                   *Preferences::qtTranslator = nullptr;
 
+bool Preferences::translationsLoaded = false;
+
 QVector<QPair<QString, QString>> Preferences::languages = {
     { "system", "(System Default)"         },
-    { "ca-ES",  "Catalan (Spain)"          },
-    { "zh-CN",  "Chinese (Simplified)"     },
-    { "zh-TW",  "Chinese (Traditional)"    },
-    { "hr-HR",  "Croatian (Croatia)"       },
-    { "cs-CZ",  "Czech (Czech Republic)"   },
-    { "de-DE",  "German (Germany)"         },
-    { "el-GR",  "Greek (Greece)"           },
+    { "ca-ES",  "Català"                   },
+    { "cs-CZ",  "Čeština"                  },
+    { "de-DE",  "Deutsch"                  },
+    { "el-GR",  "Ελληνικά"                 },
     { "en-GB",  "English (United Kingdom)" },
     { "en-US",  "English (United States)"  },
-    { "fi-FI",  "Finnish (Finland)"        },
-    { "fr-FR",  "French (France)"          },
-    { "it-IT",  "Italian (Italy)"          },
-    { "ja-JP",  "Japanese (Japan)"         },
-    { "ko-KR",  "Korean (Korea)"           },
-    { "nl-NL",  "Dutch (Netherlands)"      },
-    { "nb-NO",  "Norwegian (Bokmål)"       },
-    { "pl-PL",  "Polish (Poland)"          },
-    { "pt-BR",  "Portuguese (Brazil)"      },
-    { "pt-PT",  "Portuguese (Portugal)"    },
-    { "ru-RU",  "Russian (Russia)"         },
-    { "sk-SK",  "Slovak (Slovakia)"        },
-    { "sl-SI",  "Slovenian (Slovenia)"     },
-    { "sv-SE",  "Swedish (Sweden)"         },
-    { "es-ES",  "Spanish (Spain)"          },
-    { "tr-TR",  "Turkish (Turkey)"         },
-    { "uk-UA",  "Ukrainian (Ukraine)"      },
-    { "vi-VN",  "Vietnamese (Vietnam)"     },
+    { "es-ES",  "Español (España)"         },
+    { "fi-FI",  "Suomi"                    },
+    { "fr-FR",  "Français"                 },
+    { "hr-HR",  "Hrvatski"                 },
+    { "it-IT",  "Italiano"                 },
+    { "ja-JP",  "日本語"                    },
+    { "ko-KR",  "한국어"                    },
+    { "nb-NO",  "Norsk (bokmål)"           },
+    { "nl-NL",  "Nederlands"               },
+    { "pl-PL",  "Polski"                   },
+    { "pt-BR",  "Português (Brasil)"       },
+    { "pt-PT",  "Português (Portugal)"     },
+    { "ru-RU",  "Русский"                  },
+    { "sk-SK",  "Slovenčina"               },
+    { "sl-SI",  "Slovenščina"              },
+    { "sv-SE",  "Svenska"                  },
+    { "tr-TR",  "Türkçe"                   },
+    { "uk-UA",  "Українська"               },
+    { "vi-VN",  "Tiếng Việt"               },
+    { "zh-CN",  "简体中文"                  },
+    { "zh-TW",  "繁體中文"                  },
 };
 
 Preferences::Preferences(QWidget *parent)
@@ -375,6 +377,7 @@ Preferences::loadTranslators(QObject *parent)
         if (QCoreApplication::installTranslator(qtTranslator))
             qDebug() << "Qt translations loaded.";
     }
+    translationsLoaded = true;
 }
 
 bool

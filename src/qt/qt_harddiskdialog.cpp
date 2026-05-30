@@ -375,6 +375,14 @@ HarddiskDialog::onCreateNewFile()
         return;
     }
 
+    FILE *fp = plat_fopen(fileNameUtf8.data(), "rb");
+    if (fp != NULL) {
+        fclose(fp);
+        QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Disk image file already exists"), tr("The selected file will be overwritten. Are you sure you want to use it?"), QMessageBox::Yes | QMessageBox::No);
+        if (btn == QMessageBox::No)
+            return;
+    }
+
     for (auto &curObject : children()) {
         if (qobject_cast<QWidget *>(curObject))
             qobject_cast<QWidget *>(curObject)->setDisabled(true);
@@ -420,7 +428,7 @@ HarddiskDialog::onCreateNewFile()
 
     QFile file(fileName);
     if (!file.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
+        QMessageBox::critical(this, tr("Unable to write file"), tr("Failed to write the disk image.") % QChar(' ') % tr("Make sure the file is being saved to a writable directory."));
         return;
     }
 
@@ -489,10 +497,10 @@ HarddiskDialog::onCreateNewFile()
         }
 
         if (_86box_geometry.cyl == 0 && _86box_geometry.heads == 0 && _86box_geometry.spt == 0) {
-            QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
+            QMessageBox::critical(this, tr("Unable to write file"), tr("Failed to write the disk image.") % QChar(' ') % tr("Make sure the file is being saved to a writable directory."));
             return;
         } else if (img_format != IMG_FMT_VHD_DIFF) {
-            QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
+            QMessageBox::information(this, tr("Disk image created"), tr("The disk image has been successfully created.") % QStringLiteral("\n\n") % tr("Remember to partition and format the newly-created drive."));
         }
 
         ui->lineEditCylinders->setText(QString::number(_86box_geometry.cyl));
@@ -534,11 +542,11 @@ HarddiskDialog::onCreateNewFile()
     int ret = ftruncate(file.handle(), (size_t) size);
 
     if (ret) {
-        QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
+        QMessageBox::critical(this, tr("Unable to write file"), tr("Failed to write the disk image.") % QChar(' ') % tr("Make sure the file is being saved to a writable directory."));
     }
 #endif
 
-    QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
+    QMessageBox::information(this, tr("Disk image created"), tr("The disk image has been successfully created.") % QStringLiteral("\n\n") % tr("Remember to partition and format the newly-created drive."));
     setResult(QDialog::Accepted);
 }
 
@@ -583,14 +591,6 @@ void
 HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
 {
     QByteArray fileNameUtf8 = fileName.toUtf8();
-
-    FILE *fp = plat_fopen(fileNameUtf8.data(), "rb");
-    if (fp != NULL) {
-        fclose(fp);
-        QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Disk image file already exists"), tr("The selected file will be overwritten. Are you sure you want to use it?"), QMessageBox::Yes | QMessageBox::No);
-        if (btn == QMessageBox::No)
-            return;
-    }
 
     uint64_t size        = 0;
     uint32_t sector_size = 0;
@@ -646,7 +646,7 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
         // No message box during precheck (performed when the file input loses focus and this function is called)
         // If precheck is false, the file has been chosen from a file dialog and the alert should display.
         if (!precheck) {
-            QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
+            QMessageBox::critical(this, tr("Unable to read file"), tr("Failed to read the disk image.") % QChar(' ') % tr("Make sure the file exists and is readable."));
         }
         return;
     }
@@ -669,10 +669,10 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     } else if (image_is_vhd(fileNameUtf8.data(), 1)) {
         MVHDMeta *vhd = mvhd_open(fileNameUtf8.data(), 0, &vhd_error);
         if (vhd == nullptr) {
-            QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
+            QMessageBox::critical(this, tr("Unable to read file"), tr("Failed to read the disk image.") % QChar(' ') % tr("Make sure the file exists and is readable."));
             return;
         } else if (vhd_error == MVHD_ERR_TIMESTAMP) {
-            QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Parent and child disk timestamps do not match"), tr("This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"), QMessageBox::Yes | QMessageBox::No);
+            QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Parent and child disk timestamps do not match"), tr("Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"), QMessageBox::Yes | QMessageBox::No);
             if (btn == QMessageBox::Yes) {
                 int ts_res = mvhd_diff_update_par_timestamp(vhd, &vhd_error);
                 if (ts_res != 0) {
@@ -721,7 +721,7 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
     }
 
     if ((sectors > max_sectors) || (heads > max_heads) || (cylinders > max_cylinders)) {
-        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
+        QMessageBox::critical(this, tr("Unable to read file"), tr("Failed to read the disk image.") % QChar(' ') % tr("Make sure the file exists and is readable."));
         return;
     }
 

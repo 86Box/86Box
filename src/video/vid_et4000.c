@@ -670,12 +670,10 @@ et4000_recalctimings(svga_t *svga)
     }
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
-    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
+    if (svga->seqregs[7] & 0x01)
+        svga->clock *= 4.0;
+    else if (svga->seqregs[7] & 0x40)
         svga->clock *= 2.0;
-    } else {
-        if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20))
-            svga->clock *= 2.0;
-    }
 
     switch (svga->bpp) {
         case 15:

@@ -483,17 +483,17 @@ msgstr "Joystick 3…"
 msgid "Joystick 4…"
 msgstr "Joystick 4…"
 
-msgid "Sound card #1:"
-msgstr "Κάρτα ήχου #1:"
+msgid "Sound card 1:"
+msgstr "Κάρτα ήχου 1:"
 
-msgid "Sound card #2:"
-msgstr "Κάρτα ήχου #2:"
+msgid "Sound card 2:"
+msgstr "Κάρτα ήχου 2:"
 
-msgid "Sound card #3:"
-msgstr "Κάρτα ήχου #3:"
+msgid "Sound card 3:"
+msgstr "Κάρτα ήχου 3:"
 
-msgid "Sound card #4:"
-msgstr "Κάρτα ήχου #4:"
+msgid "Sound card 4:"
+msgstr "Κάρτα ήχου 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Συσκευή MIDI Out:"
@@ -645,6 +645,42 @@ msgstr "Μέγεθος Block:"
 msgid "Floppy drives"
 msgstr "Οδηγοί δισκέτας"
 
+msgid "5.25\" 180k"
+msgstr "5.25\" 180k"
+
+msgid "5.25\" 360k"
+msgstr "5.25\" 360k"
+
+msgid "5.25\" 720k"
+msgstr "5.25\" 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5.25\" 1.2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5.25\" 1.2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3.5\" 360k"
+
+msgid "3.5\" 720k"
+msgstr "3.5\" 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3.5\" 1.44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3.5\" 1.25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3.5\" 1.44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3.5\" 2.88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3.5\" 2.88M 300/360 RPM"
+
 msgid "Turbo timings"
 msgstr "Χρονισμοί Turbo"
 
@@ -741,8 +777,8 @@ msgstr "Εικόνες ταινίας"
 msgid "Image %1"
 msgstr "Εικόνα %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "Το 86Box δεν μπόρεσε να εντοπίσει καμία ROM.\n\nΠαρακαλώ <a href=\"https://github.com/86Box/roms/releases/latest\">κατεβάστε</a> το πακέτο ROM και εξάγετέ το στον κατάλογο \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "Το %1 δεν μπόρεσε να εντοπίσει καμία ROM.\n\nΠαρακαλώ <a href=\"%2\">κατεβάστε</a> το πακέτο ROM και εξάγετέ το στον κατάλογο \"roms\"."
 
 msgid "(empty)"
 msgstr "(κενό)"
@@ -773,9 +809,6 @@ msgstr "Το σύστημα \"%s\" δεν είναι διαθέσιμο λόγω
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Η κάρτα γραφικών \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
-
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Η κάρτα γραφικών #2 \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs στον κατάλογο roms/video. Αλλάξτε σε διαθέσιμη κάρτα γραφικών."
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "Η συσκευή \"%s\" δεν είναι διαθέσιμη λόγω έλλειψης των ROMs. Παράκαμψη συσκευής."
@@ -864,17 +897,19 @@ msgstr "KB"
 msgid "Default"
 msgstr "Προεπιλογή"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 Κατάσταση αναμονής(ών)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n Κατάσταση αναμονής"
+msgstr[1] "%n Κατάσταση αναμονής"
 
 msgid "Type"
 msgstr "Τύπος"
 
-msgid "No PCap devices found"
-msgstr "Δεν βέθηκαν PCap συσκευές"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Δεν βέθηκαν PCap συσκευές. Βεβαιωθήτε οτι το %1 είναι εγκατεστημένο και οτι είστε σε %1-συμβατό δίκτυο."
 
-msgid "Invalid PCap device"
-msgstr "Μη έγκυρη PCap συσκευή"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Μη έγκυρη PCap συσκευή. Βεβαιωθήτε οτι το %1 είναι εγκατεστημένο και οτι είστε σε %1-συμβατό δίκτυο."
 
 msgid "Generic paddle controller(s)"
 msgstr "Generic paddle controller(s)"
@@ -986,11 +1021,11 @@ msgstr ""
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Είστε σίγουρος για την έξοδο απο το 86Box;"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Αδυναμία αρχικοποίησης Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Αδυναμία αρχικοποίησης Ghostscript. %1 απαιτείται για αυτόματη μετατροπή αρχείων PostScript σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PostScript θα αποθηκεύονται ως αρχεία PostScript (.ps)."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Αδυναμία αρχικοποίησης GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Αδυναμία αρχικοποίησης GhostPCL. %1 απαιτείται για αυτόματη μετατροπή αρχείων PCL σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PCL θα αποθηκεύονται ως αρχεία Printer Command Language (.pcl)."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1045,18 +1080,6 @@ msgstr "Εξομειωτής παλαιών υπολογιστών\n\nAuthors: M
 
 msgid "Hardware not available"
 msgstr "Μη διαθέσιμο υλικό"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Βεβαιωθήτε οτι το %1 είναι εγκατεστημένο και οτι είστε σε %1-συμβατό δίκτυο."
-
-msgid "Invalid configuration"
-msgstr "Μη έγκυρη προσαρμογή"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 απαιτείται για αυτόματη μετατροπή αρχείων PostScript σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PostScript θα αποθηκεύονται ως αρχεία PostScript (.ps)."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 απαιτείται για αυτόματη μετατροπή αρχείων PCL σε PDF.\n\nΈγγραφα που στέλνονται στον γενικό εκτυπωτή PCL θα αποθηκεύονται ως αρχεία Printer Command Language (.pcl)."
 
 msgid "Don't show this message again"
 msgstr "Να μην ξαναεμφανιστεί αυτό το μήνυμα"
@@ -1155,13 +1178,19 @@ msgid "Powered Off"
 msgstr "Κλειστή"
 
 msgid "%n running"
-msgstr "%n τρέχει"
+msgid_plural "%n running"
+msgstr[0] "%n τρέχει"
+msgstr[1] "%n τρέχουν"
 
 msgid "%n paused"
-msgstr "%n σε παύση"
+msgid_plural "%n paused"
+msgstr[0] "%n σε παύση"
+msgstr[1] "%n σε παύση"
 
 msgid "%n waiting"
-msgstr "%n σε αναμονή"
+msgid_plural "%n waiting"
+msgstr[0] "%n σε αναμονή"
+msgstr[1] "%n σε αναμονή"
 
 msgid "%1 total"
 msgstr "%1 σύνολο"
@@ -1191,7 +1220,9 @@ msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n μηχανής(ών) είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n μηχανή είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
+msgstr[1] "%n μηχανές είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
 
 msgid "Add new system wizard"
 msgstr "Οδηγός προσθήκης νέο συστήματος"
@@ -1408,9 +1439,6 @@ msgstr "Τερματισμός ACP&I"
 msgid "Hard disk (%1)"
 msgstr "Σκληρός δίσκος (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Δεν υπήρξαν ποτέ οδηγοί MFM/RLL ή ESDI CD-ROM"
-
 msgid "Custom…"
 msgstr "Προσαρμογή…"
 
@@ -1468,11 +1496,32 @@ msgstr "Το επιλεγμένο αρχείο θα επανεγγραφεί. Θ
 msgid "Unsupported disk image"
 msgstr "Μη υποστηριζόμενη εικόνα δίσκου"
 
-msgid "Overwrite"
-msgstr "Επανεγγραφή"
+msgid "Unable to read device"
+msgstr ""
 
-msgid "Don't overwrite"
-msgstr "Να μην γίνει επανεγγραφή"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr ""
+
+msgid "Device too large"
+msgstr ""
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr ""
+
+msgid "Block device detected"
+msgstr ""
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+
+msgid "Failed to write the disk image."
+msgstr ""
+
+msgid "Failed to read the disk image."
+msgstr ""
+
+msgid "The disk image has been successfully created."
+msgstr ""
 
 msgid "Raw image"
 msgstr "Εικόνα Raw"
@@ -1525,8 +1574,8 @@ msgstr "Αρχεία VHD"
 msgid "Select the parent VHD"
 msgstr "Επιλέξτε το αρχικό VHD"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Αυτό μπορεί να σημαίνει οτι η αρχική εικόνα έχει τροποποιηθεί μετά την δημιουργία differencing image.\n\nΜπορεί επίσης να συμβεί αν τα αρχεία εικόνας έχουν μετακινηθεί ή αντιγραφεί, ή ένα bug του προγράμματος που δημιουργήθηκε αυτός ο δίσκος.\n\nΕπιθυμείτε να διορθώσετε τις χρονικές σημάνσεις;"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Οι χρονικές σημάνσεις αρχικού και δευτερεύον δίσκου δεν ταιριάζουν. Αυτό μπορεί να σημαίνει οτι η αρχική εικόνα έχει τροποποιηθεί μετά την δημιουργία differencing image.\n\nΜπορεί επίσης να συμβεί αν τα αρχεία εικόνας έχουν μετακινηθεί ή αντιγραφεί, ή ένα bug του προγράμματος που δημιουργήθηκε αυτός ο δίσκος.\n\nΕπιθυμείτε να διορθώσετε τις χρονικές σημάνσεις;"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Οι χρονικές σημάνσεις αρχικού και δευτερεύον δίσκου δεν ταιριάζουν"
@@ -1624,11 +1673,8 @@ msgstr "Δημιουργία εικόνας…"
 msgid "(System Default)"
 msgstr "(Προεπιλογή Συστήματος)"
 
-msgid "Failed to initialize network driver"
-msgstr "Αποτυχία αρχικοποίησης οδηγού δικτύου"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Η παραμετροποίηση δικτύου θα αλλάξει σε άκυρο οδηγό"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Αποτυχία αρχικοποίησης οδηγού δικτύου:\n\n%s\n\nΗ παραμετροποίηση δικτύου θα αλλάξει σε άκυρο οδηγό."
 
 msgid "Mouse sensitivity:"
 msgstr "Ευαισθησία ποντικιού:"
@@ -1778,13 +1824,11 @@ msgstr "Αδυναμία εναλλαγής σε περιεχόμενο OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Απαιτείται έκδοση OpenGL 3.0 ή νεότερη. Η τρέχουσα έκδοση είναι %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Σφάλμα αρχικοποίησης OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Σφάλμα αρχικοποίησης OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr ""
-"\n"
-"Εναλλαγή σε απεικόνιση λογισμικού."
+msgid "Falling back to software rendering."
+msgstr "Εναλλαγή σε απεικόνιση λογισμικού."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
@@ -2388,20 +2432,47 @@ msgstr "Μέγεθος μνήμης EMS 2"
 msgid "Enable EMS"
 msgstr "Ενεργοποίηση EMS"
 
-msgid "Enable EMS 1"
-msgstr "Ενεργοποίηση EMS 1"
-
-msgid "Enable EMS 2"
-msgstr "Ενεργοποίηση EMS 2"
-
 msgid "Address for > 2 MB"
 msgstr "Διεύθυνση για > 2 MB"
 
 msgid "Frame Address"
 msgstr "Διεύθυνση πλαισίου"
 
-msgid "USA"
-msgstr "ΗΠΑ"
+msgid "English"
+msgstr ""
+
+msgid "English (US)"
+msgstr ""
+
+msgid "English (UK)"
+msgstr ""
+
+msgid "English (Canada)"
+msgstr ""
+
+msgid "German"
+msgstr ""
+
+msgid "French"
+msgstr ""
+
+msgid "Spanish"
+msgstr ""
+
+msgid "Swedish"
+msgstr ""
+
+msgid "Italian"
+msgstr ""
+
+msgid "Portuguese"
+msgstr ""
+
+msgid "Norwegian"
+msgstr ""
+
+msgid "Greek"
+msgstr ""
 
 msgid "Danish"
 msgstr "Δανικά"
@@ -2599,9 +2670,6 @@ msgstr "Κλίμακα του γκρι"
 msgid "Color"
 msgstr "Έγχρωμο"
 
-msgid "U.S. English"
-msgstr "Αγγλικά Η.Π.Α."
-
 msgid "Scandinavian"
 msgstr "Σκανδιναβικά"
 
@@ -2686,32 +2754,77 @@ msgstr "Βύσμα Loopback"
 msgid "Serial Passthrough"
 msgstr "Σειριακή Διέλευση"
 
-msgid "Passthrough Mode"
-msgstr "Λειτουργία Διέλευσης"
+msgid "Host serial device"
+msgstr "Σειριακή συσκευή οικοδεσπότη"
 
-msgid "Host Serial Device"
-msgstr "Σειριακή Συσκευή Οικοδεσπότη"
+msgid "Named Pipe"
+msgstr "Ονομασμένο Pipe"
 
-msgid "Name of pipe"
-msgstr "Όνομα pipe"
+msgid "Output file"
+msgstr ""
 
-msgid "Data bits"
-msgstr "Bits δεδομένων"
+msgid "Append to file if it exists"
+msgstr ""
 
-msgid "Stop bits"
-msgstr "Bits σταματήματος"
+msgid "Input file"
+msgstr ""
 
-msgid "Baud Rate of Passthrough"
-msgstr "Ρυθμός Baud της Διέλευσης"
+msgid "Loop input file"
+msgstr ""
 
-msgid "Named Pipe (Server)"
-msgstr "Ονομασμένο Pipe (Διακομιστής)"
+msgid "Require STROBE signal"
+msgstr ""
 
-msgid "Named Pipe (Client)"
-msgstr "Ονομασμένο Pipe (Πελάτης)"
+msgid "Loopback Type"
+msgstr ""
 
-msgid "Host Serial Passthrough"
-msgstr "Σειριακή Διέλευση Οικοδεσπότη"
+msgid "Parallel cable"
+msgstr ""
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr ""
+
+msgid "Bidirectional (8-bit)"
+msgstr ""
+
+msgid "Pipe path"
+msgstr ""
+
+msgid "FIFO / terminal"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Server"
+msgstr "Διακομιστής"
+
+msgid "Client"
+msgstr "Πελάτης"
+
+msgid "Reconnect automatically"
+msgstr ""
+
+msgid "Use standard input/output"
+msgstr ""
+
+msgid "Create pseudoterminal"
+msgstr ""
+
+msgid "Start terminal emulator"
+msgstr ""
+
+msgid "Run custom command"
+msgstr ""
+
+msgid "Custom command"
+msgstr ""
+
+msgid "Run custom command in terminal"
+msgstr ""
+
+msgid "Virtual Console"
+msgstr ""
 
 msgid "E&ject %1"
 msgstr "&Εξαγωγή %1"
@@ -2755,8 +2868,8 @@ msgstr "[Γενικό] 1998 (5400 RPM)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Γενικό] 2000 (7200 RPM)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "Κλώνος IBM 8514/A (ISA)"
+msgid "IBM 8514/A clone"
+msgstr "Κλώνος IBM 8514/A"
 
 msgid "Vendor"
 msgstr "Πωλητής"
@@ -2779,13 +2892,8 @@ msgstr "Γενικό MM58167 RTC"
 msgid "OPL2Board (External Device)"
 msgstr "OPL2Board (Εξωτερική Συσκευή)"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Αδυναμία εύρεσης γραμματοσειρών Dot-Matrix"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr ""
-"Απαιτούνται γραμματοσειρές TrueType στον κατάλογο \"roms/printer/fonts\" για "
-"την εξομοίωση Γενικού εκτυπωτή ESC/P 2 Dot-Matrix."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Αδυναμία εύρεσης γραμματοσειρών Dot-Matrix. Απαιτούνται γραμματοσειρές TrueType στον κατάλογο \"roms/printer/fonts\" για την εξομοίωση Γενικού εκτυπωτή ESC/P 2 Dot-Matrix."
 
 msgid "Inhibit multimedia keys"
 msgstr "Αναστολή πλήκτρων πολυμέσων"
@@ -2962,7 +3070,9 @@ msgid "%1 VM Manager"
 msgstr "%1 VM Manager"
 
 msgid "%n disk(s)"
-msgstr "%n δίσκος(οι)"
+msgid_plural "%n disks"
+msgstr[0] "%n δίσκος"
+msgstr[1] "%n δίσκοι"
 
 msgid "Unknown Status"
 msgstr "Άγνωστη Κατάσταση"
@@ -3129,3 +3239,162 @@ msgstr "Συσκευή εξόδου ήχου:"
 
 msgid "System Default"
 msgstr "Προεπιλογή Συστήματος"
+
+msgid "Unable to open image or folder \"%s\"."
+msgstr ""
+
+msgid "Unable to open cue sheet \"%s\"."
+msgstr ""
+
+msgid "Unable to open MDS file \"%s\"."
+msgstr ""
+
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr ""
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr ""
+
+msgid "%s: Could not connect to %s: %s"
+msgstr ""
+
+msgid "%s: Could not create %s: %s"
+msgstr ""
+
+msgid "%s: Attached to %s"
+msgstr ""
+
+msgid "%s: Virtual console already in use by %s"
+msgstr ""
+
+msgid "%s: Could not create terminal: %s"
+msgstr ""
+
+msgid "Auto-detect"
+msgstr ""
+
+msgid "Channel"
+msgstr ""
+
+msgid "Both Channels"
+msgstr ""
+
+msgid "Left Channel"
+msgstr ""
+
+msgid "Right Channel"
+msgstr ""
+
+msgid "Allow Flash BIOS Updates"
+msgstr ""
+
+msgid "Slot #"
+msgstr ""
+
+msgid "Parallel Port"
+msgstr ""
+
+msgid "Paper Size"
+msgstr ""
+
+msgid "Letter"
+msgstr ""
+
+msgid "Legal (sideways)"
+msgstr ""
+
+msgid "B4 (sideways)"
+msgstr ""
+
+msgid "Quality"
+msgstr ""
+
+msgid "Draft"
+msgstr ""
+
+msgid "(Near) Letter"
+msgstr ""
+
+msgid "Auto LF"
+msgstr ""
+
+msgid "Tandy PSSJ Clone"
+msgstr ""
+
+msgid "PC-CM (Color)"
+msgstr ""
+
+msgid "PC-MM (Monochrome)"
+msgstr ""
+
+msgid "White Monochrome"
+msgstr ""
+
+msgid "Hardware font"
+msgstr ""
+
+msgid "Diagnostic mode"
+msgstr ""
+
+msgid "CGA monitor"
+msgstr ""
+
+msgid "MDA monitor"
+msgstr ""
+
+msgid "Television"
+msgstr ""
+
+msgid "Invert LCD colors"
+msgstr ""
+
+msgid "LCD (CGA mode)"
+msgstr ""
+
+msgid "LCD (MDA mode)"
+msgstr ""
+
+msgid "Disabled (250h)"
+msgstr ""
+
+msgid "Enabled (350h)"
+msgstr ""
+
+msgid "Test mode"
+msgstr ""
+
+msgid "32 MB"
+msgstr ""
+
+msgid "64 MB"
+msgstr ""
+
+msgid "2048 MB"
+msgstr ""
+
+msgid "Refresh rate"
+msgstr ""
+
+msgid "US (CP 437)"
+msgstr ""
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr ""
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr ""
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr ""
+
+msgid "932 (Japanese)"
+msgstr ""
+
+msgid "938 (Traditional Chinese)"
+msgstr ""
+
+msgid "Sample rate:"
+msgstr ""

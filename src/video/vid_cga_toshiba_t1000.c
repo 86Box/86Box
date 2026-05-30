@@ -707,8 +707,8 @@ static const device_config_t t1000_config[] = {
         .description = "Language",
         .type = CONFIG_SELECTION,
         .selection = {
-            { .description = "USA", .value = 0 },
-            { .description = "Danish", .value = 1 }
+            { .description = "English (US)", .value = 0 },
+            { .description = "Danish",       .value = 1 }
         },
         .default_int = 0
     },

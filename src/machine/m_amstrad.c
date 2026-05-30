@@ -719,7 +719,7 @@ const device_config_t vid_1512_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "PC-CM (Colour)",     .value = 0 },
+            { .description = "PC-CM (Color)",      .value = 0 },
             { .description = "PC-MM (Monochrome)", .value = 3 },
             { .description = ""                               }
         },
@@ -751,16 +751,16 @@ const device_config_t vid_1512_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "US English", .value = 3 },
-            { .description = "Danish",     .value = 1 },
-            { .description = "Greek",      .value = 0 },
-            { .description = ""                       }
+            { .description = "English (US)", .value = 3 },
+            { .description = "Danish",       .value = 1 },
+            { .description = "Greek",        .value = 0 },
+            { .description = ""                         }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -961,7 +961,7 @@ const device_config_t vid_1640_config[] = {
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -1877,17 +1877,17 @@ const device_config_t vid_200_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "US English", .value = 3 },
-            { .description = "Portugese",  .value = 2 },
-            { .description = "Norwegian",  .value = 1 },
-            { .description = "Greek",      .value = 0 },
-            { .description = ""                       }
+            { .description = "English (US)", .value = 3 },
+            { .description = "Portuguese",   .value = 2 },
+            { .description = "Norwegian",    .value = 1 },
+            { .description = "Greek",        .value = 0 },
+            { .description = ""                         }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -1974,17 +1974,17 @@ const device_config_t vid_ppc512_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "US English", .value = 3 },
-            { .description = "Portugese",  .value = 2 },
-            { .description = "Norwegian",  .value = 1 },
-            { .description = "Greek",      .value = 0 },
-            { .description = ""                       }
+            { .description = "English (US)", .value = 3 },
+            { .description = "Portuguese",   .value = 2 },
+            { .description = "Norwegian",    .value = 1 },
+            { .description = "Greek",        .value = 0 },
+            { .description = ""                         }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,

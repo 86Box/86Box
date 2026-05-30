@@ -166,7 +166,7 @@ opl2board_device_close(void *priv)
 static const device_config_t opl2board_config[] = {
     {
         .name           = "host_serial_path",
-        .description    = "Host Serial Device",
+        .description    = "Host serial device",
         .type           = CONFIG_SERPORT,
         .default_string = "",
         .default_int    = 0,

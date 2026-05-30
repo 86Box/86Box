@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-24 12:01+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-05-29 18:36+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -484,16 +484,16 @@ msgstr "操纵杆 3…"
 msgid "Joystick 4…"
 msgstr "操纵杆 4…"
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr "声卡 1:"
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr "声卡 2:"
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr "声卡 3:"
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr "声卡 4:"
 
 msgid "MIDI Out Device:"
@@ -646,6 +646,42 @@ msgstr "块大小:"
 msgid "Floppy drives"
 msgstr "软盘驱动器"
 
+msgid "5.25\" 180k"
+msgstr "5.25 英寸 180k"
+
+msgid "5.25\" 360k"
+msgstr "5.25 英寸 360k"
+
+msgid "5.25\" 720k"
+msgstr "5.25 英寸 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5.25 英寸 1.2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5.25 英寸 1.2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3.5 英寸 360k"
+
+msgid "3.5\" 720k"
+msgstr "3.5 英寸 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3.5 英寸 1.44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3.5 英寸 1.25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3.5 英寸 1.44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3.5 英寸 2.88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3.5 英寸 2.88M 300/360 RPM"
+
 msgid "Turbo timings"
 msgstr "加速时序"
 
@@ -742,8 +778,8 @@ msgstr "磁带镜像"
 msgid "Image %1"
 msgstr "映像 %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box 找不到任何可用的 ROM 映像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a> ROM 包并将其解压到 \"roms\" 文件夹中。"
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 找不到任何可用的 ROM 映像。\n\n请<a href=\"%2\">下载</a> ROM 包并将其解压到 \"roms\" 文件夹中。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -774,9 +810,6 @@ msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%s\" 不
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 \"%s\" 不可用。将切换到其他可用显卡。"
-
-msgid "Video card #2 \"%s\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 2 \"%s\" 不可用。禁用第二块显卡。"
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "由于缺少合适的 ROM，设备 \"%s\" 不可用。忽略设备。"
@@ -865,17 +898,18 @@ msgstr "KB"
 msgid "Default"
 msgstr "默认"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 等待状态 (WS)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n 等待状态 (WS)"
 
 msgid "Type"
 msgstr "类型"
 
-msgid "No PCap devices found"
-msgstr "未找到 PCap 设备"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "未找到 PCap 设备。请确认 %1 已安装且使用兼容 %1 的网络连接。"
 
-msgid "Invalid PCap device"
-msgstr "无效 PCap 设备"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "无效 PCap 设备。请确认 %1 已安装且使用兼容 %1 的网络连接。"
 
 msgid "Generic paddle controller(s)"
 msgstr "通用桨式控制器"
@@ -985,11 +1019,11 @@ msgstr "确定要硬重置模拟器吗？"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "确定要退出 86Box 吗？"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "无法初始化 Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "无法初始化 Ghostscript。需要 %1 库将 PostScript 文件转换为 PDF。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
 
-msgid "Unable to initialize GhostPCL"
-msgstr "无法初始化 GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "无法初始化 GhostPCL。需要 %1 库将 PCL 文件转换为 PDF。\n\n使用通用 PCL 打印机打印的文档将被保存为 Printer Command Language (.pcl) 文件。"
 
 msgid "MO %1 (%2): %3"
 msgstr "磁光盘 %1 (%2): %3"
@@ -1044,25 +1078,6 @@ msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、Richa
 
 msgid "Hardware not available"
 msgstr "硬件不可用"
-
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "请确认 %1 已安装且使用兼容 %1 的网络连接。"
-
-msgid "Invalid configuration"
-msgstr "无效配置"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr ""
-"需要 %1 库将 PostScript 文件转换为 PDF。\n"
-"\n"
-"使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr ""
-"需要 %1 库将 PCL 文件转换为 PDF。\n"
-"\n"
-"使用通用 PCL 打印机打印的文档将被保存为 Printer Command Language (.pcl) "
-"文件。"
 
 msgid "Don't show this message again"
 msgstr "不要再显示此消息"
@@ -1152,13 +1167,16 @@ msgid "Powered Off"
 msgstr "已关机"
 
 msgid "%n running"
-msgstr "%n 正在运行"
+msgid_plural "%n running"
+msgstr[0] "%n 正在运行"
 
 msgid "%n paused"
-msgstr "%n 已暂停"
+msgid_plural "%n paused"
+msgstr[0] "%n 已暂停"
 
 msgid "%n waiting"
-msgstr "%n 等待中"
+msgid_plural "%n waiting"
+msgstr[0] "%n 等待中"
 
 msgid "%1 total"
 msgstr "%1 总计"
@@ -1188,7 +1206,8 @@ msgid "Use regular expressions in search box"
 msgstr "在搜索框中使用正则表达式"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"
@@ -1403,9 +1422,6 @@ msgstr "ACPI 关机(&I)"
 msgid "Hard disk (%1)"
 msgstr "硬盘 (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "不存在 MFM/RLL 或 ESDI CD-ROM 驱动器"
-
 msgid "Custom…"
 msgstr "自定义…"
 
@@ -1463,11 +1479,35 @@ msgstr "选定的文件将被覆盖。确定继续使用此文件吗？"
 msgid "Unsupported disk image"
 msgstr "不支持的磁盘映像"
 
-msgid "Overwrite"
-msgstr "覆盖"
+msgid "Unable to read device"
+msgstr "无法读取设备"
 
-msgid "Don't overwrite"
-msgstr "不覆盖"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr "无法获取块设备大小，请确认访问权限。"
+
+msgid "Device too large"
+msgstr "设备过大"
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr "块设备太大，无法用作硬盘。"
+
+msgid "Block device detected"
+msgstr "检测到块设备"
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+"检测到块设备: %1\n"
+"大小: %2 MB\n"
+"几何结构: %3 柱头, %4 磁头, %5 扇区"
+
+msgid "Failed to write the disk image."
+msgstr "写入磁盘镜像失败。"
+
+msgid "Failed to read the disk image."
+msgstr "读取磁盘镜像失败。"
+
+msgid "The disk image has been successfully created."
+msgstr "磁盘镜像创建成功。"
 
 msgid "Raw image"
 msgstr "原始映像"
@@ -1520,8 +1560,14 @@ msgstr "VHD 文件"
 msgid "Select the parent VHD"
 msgstr "选择父 VHD 文件"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "父映像可能在创建差异映像后被修改。\n\n如果映像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr ""
+"父盘与子盘的时间戳不匹配。父盘可能曾在创建差分镜像后被修改。\n"
+"\n"
+"如果镜像文件被移动或复制，或创建此磁盘镜像的程序中存在错误，也可能发生这种情"
+"况。\n"
+"\n"
+"是否需要修复时间戳？"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "父盘与子盘的时间戳不匹配"
@@ -1619,11 +1665,8 @@ msgstr "正在创建镜像…"
 msgid "(System Default)"
 msgstr "(系统默认)"
 
-msgid "Failed to initialize network driver"
-msgstr "网络驱动程序初始化失败"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "网络配置将切换为空驱动程序"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "网络驱动程序初始化失败:\n\n%s\n\n网络配置将切换为空驱动程序。"
 
 msgid "Mouse sensitivity:"
 msgstr "鼠标灵敏度:"
@@ -1760,13 +1803,11 @@ msgstr "无法切换到 OpenGL 上下文。"
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "需要 OpenGL 3.0 或更高版本。当前版本为 %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "初始化 OpenGL 时出错"
+msgid "Error initializing OpenGL."
+msgstr "初始化 OpenGL 时出错。"
 
-msgid "\nFalling back to software rendering."
-msgstr ""
-"\n"
-"退回到软件渲染。"
+msgid "Falling back to software rendering."
+msgstr "退回到软件渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>选择媒体镜像（光盘、软盘等）时，打开对话框将从与 86Box 配置文件相同的目录开始。这一设置可能只会在 macOS 上产生影响。</p></body></html>"
@@ -2362,20 +2403,47 @@ msgstr "EMS 2 内存大小"
 msgid "Enable EMS"
 msgstr "启用 EMS"
 
-msgid "Enable EMS 1"
-msgstr "启用 EMS 1"
-
-msgid "Enable EMS 2"
-msgstr "启用 EMS 2"
-
 msgid "Address for > 2 MB"
 msgstr "地址 > 2 MB"
 
 msgid "Frame Address"
 msgstr "帧地址"
 
-msgid "USA"
-msgstr "美国英语"
+msgid "English"
+msgstr "英语"
+
+msgid "English (US)"
+msgstr "英语 (美国)"
+
+msgid "English (UK)"
+msgstr "英语 (英国)"
+
+msgid "English (Canada)"
+msgstr "英语 (加拿大)"
+
+msgid "German"
+msgstr "德语"
+
+msgid "French"
+msgstr "法语"
+
+msgid "Spanish"
+msgstr "西班牙语"
+
+msgid "Swedish"
+msgstr "瑞典语"
+
+msgid "Italian"
+msgstr "意大利语"
+
+msgid "Portuguese"
+msgstr "葡萄牙语"
+
+msgid "Norwegian"
+msgstr "挪威语"
+
+msgid "Greek"
+msgstr "希腊语"
 
 msgid "Danish"
 msgstr "丹麦语"
@@ -2572,9 +2640,6 @@ msgstr "灰阶"
 msgid "Color"
 msgstr "彩色"
 
-msgid "U.S. English"
-msgstr "美国英语"
-
 msgid "Scandinavian"
 msgstr "斯堪的纳维亚语系"
 
@@ -2659,32 +2724,77 @@ msgstr "回环插头"
 msgid "Serial Passthrough"
 msgstr "串口直通"
 
-msgid "Passthrough Mode"
-msgstr "直通模式"
-
-msgid "Host Serial Device"
+msgid "Host serial device"
 msgstr "主机串口设备"
 
-msgid "Name of pipe"
-msgstr "管道名称"
+msgid "Named Pipe"
+msgstr "命名管道"
 
-msgid "Data bits"
-msgstr "数据位"
+msgid "Output file"
+msgstr "输出文件"
 
-msgid "Stop bits"
-msgstr "停止位"
+msgid "Append to file if it exists"
+msgstr "当文件存在时，附加到文件尾"
 
-msgid "Baud Rate of Passthrough"
-msgstr "直通波特率"
+msgid "Input file"
+msgstr "输入文件"
 
-msgid "Named Pipe (Server)"
-msgstr "命名管道（服务器）"
+msgid "Loop input file"
+msgstr "回环输入文件"
 
-msgid "Named Pipe (Client)"
-msgstr "命名管道（客户端）"
+msgid "Require STROBE signal"
+msgstr "需要 STROBE 信号"
 
-msgid "Host Serial Passthrough"
-msgstr "主机串口直通"
+msgid "Loopback Type"
+msgstr "回环类型"
+
+msgid "Parallel cable"
+msgstr "并行线缆"
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr "单向 (8位) / LapLink (4位)"
+
+msgid "Bidirectional (8-bit)"
+msgstr "双向 (8位)"
+
+msgid "Pipe path"
+msgstr "管道路径"
+
+msgid "FIFO / terminal"
+msgstr "FIFO / 终端"
+
+msgid "Mode"
+msgstr "模式"
+
+msgid "Server"
+msgstr "服务器"
+
+msgid "Client"
+msgstr "客户端"
+
+msgid "Reconnect automatically"
+msgstr "自动重新连接"
+
+msgid "Use standard input/output"
+msgstr "使用标准输入输出"
+
+msgid "Create pseudoterminal"
+msgstr "创建伪终端"
+
+msgid "Start terminal emulator"
+msgstr "启动终端模拟器"
+
+msgid "Run custom command"
+msgstr "运行自定义指令"
+
+msgid "Custom command"
+msgstr "自定义指令"
+
+msgid "Run custom command in terminal"
+msgstr "在终端中运行自定义指令"
+
+msgid "Virtual Console"
+msgstr "虚拟控制台"
 
 msgid "E&ject %1"
 msgstr "弹出 %1(&J)"
@@ -2728,8 +2838,8 @@ msgstr "[通用] 1998 (5400转)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[通用] 2000 (7200转)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "IBM 8514/A 克隆 (ISA)"
+msgid "IBM 8514/A clone"
+msgstr "IBM 8514/A 克隆"
 
 msgid "Vendor"
 msgstr "制造商"
@@ -2752,11 +2862,8 @@ msgstr "通用 MM58167 RTC"
 msgid "OPL2Board (External Device)"
 msgstr "OPL2Board（外置设备）"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "无法找到点阵字体"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "仿真通用 ESC/P 2 点阵打印机需要使用 \"roms/printer/fonts\" 目录中的 TrueType 字体。"
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "无法找到点阵字体。仿真通用 ESC/P 2 点阵打印机需要使用 \"roms/printer/fonts\" 目录中的 TrueType 字体。"
 
 msgid "Inhibit multimedia keys"
 msgstr "禁止多媒体按键"
@@ -2918,7 +3025,8 @@ msgid "%1 VM Manager"
 msgstr "%1 虚拟机管理器"
 
 msgid "%n disk(s)"
-msgstr "%n 磁盘"
+msgid_plural "%n disks"
+msgstr[0] "%n 磁盘"
 
 msgid "Unknown Status"
 msgstr "未知状态"
@@ -3078,3 +3186,163 @@ msgstr "音频输出设备:"
 
 msgid "System Default"
 msgstr "系统默认"
+
+msgid "Unable to open image or folder \"%s\"."
+msgstr "无法打开镜像或文件夹“%s”。"
+
+msgid "Unable to open cue sheet \"%s\"."
+msgstr "无法打开 cue 表 \"%s\"。"
+
+msgid "Unable to open MDS file \"%s\"."
+msgstr "无法打开 MDS 文件 \"%s\"。"
+
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr "无法加载 CD-ROM 映像 \"%s\"。"
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr "无法加载映像 \"%s\"：缺少 %1，这是 Daemon Tools MDS v2和 MDX "
+"映像支持所必需的。"
+
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr "DVD 映像 \"%s\" 已插入不支持 DVD 介质的驱动器，将被忽略。"
+
+msgid "%s: Could not connect to %s: %s"
+msgstr "%s: 无法连接至 %s: %s"
+
+msgid "%s: Could not create %s: %s"
+msgstr "%s: 无法创建 %s: %s"
+
+msgid "%s: Attached to %s"
+msgstr "%s: 附加到 %s"
+
+msgid "%s: Virtual console already in use by %s"
+msgstr "%s: 虚拟控制台已被 %s 占用"
+
+msgid "%s: Could not create terminal: %s"
+msgstr "%s: 无法创建终端: %s"
+
+msgid "Auto-detect"
+msgstr "自动检测"
+
+msgid "Channel"
+msgstr "声道"
+
+msgid "Both Channels"
+msgstr "双声道"
+
+msgid "Left Channel"
+msgstr "左声道"
+
+msgid "Right Channel"
+msgstr "右声道"
+
+msgid "Allow Flash BIOS Updates"
+msgstr "允许刷写BIOS更新"
+
+msgid "Slot #"
+msgstr "插槽 #"
+
+msgid "Parallel Port"
+msgstr "并行端口"
+
+msgid "Paper Size"
+msgstr "纸张尺寸"
+
+msgid "Letter"
+msgstr "信纸"
+
+msgid "Legal (sideways)"
+msgstr "法律专用纸 (横向)"
+
+msgid "B4 (sideways)"
+msgstr "B4 (横向)"
+
+msgid "Quality"
+msgstr "印刷质量"
+
+msgid "Draft"
+msgstr "草稿"
+
+msgid "(Near) Letter"
+msgstr "（近似）信函体质量（NLQ）"
+
+msgid "Auto LF"
+msgstr "自动换行"
+
+msgid "Tandy PSSJ Clone"
+msgstr "Tandy PSSJ 克隆"
+
+msgid "PC-CM (Color)"
+msgstr "PC-CM (彩色)"
+
+msgid "PC-MM (Monochrome)"
+msgstr "PC-MM (单色)"
+
+msgid "White Monochrome"
+msgstr "白色单色"
+
+msgid "Hardware font"
+msgstr "硬件字体"
+
+msgid "Diagnostic mode"
+msgstr "诊断模式"
+
+msgid "CGA monitor"
+msgstr "CGA监视器"
+
+msgid "MDA monitor"
+msgstr "MDA监视器"
+
+msgid "Television"
+msgstr "电视"
+
+msgid "Invert LCD colors"
+msgstr "反转液晶屏显示颜色"
+
+msgid "LCD (CGA mode)"
+msgstr "液晶显示屏 (CGA 模式)"
+
+msgid "LCD (MDA mode)"
+msgstr "液晶显示屏 (MDA 模式)"
+
+msgid "Disabled (250h)"
+msgstr "禁用 (250h)"
+
+msgid "Enabled (350h)"
+msgstr "启用 (350h)"
+
+msgid "Test mode"
+msgstr "测试模式"
+
+msgid "32 MB"
+msgstr "32 MB"
+
+msgid "64 MB"
+msgstr "64 MB"
+
+msgid "2048 MB"
+msgstr "2048 MB"
+
+msgid "Refresh rate"
+msgstr "刷新率"
+
+msgid "US (CP 437)"
+msgstr "美式英语 (CP 437)"
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr "IBM北欧字符集 (CP 437-Nordic)"
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr "捷克Kamenický编码 (CP 895) #1"
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr "捷克Kamenický编码 (CP 895) #2"
+
+msgid "932 (Japanese)"
+msgstr "932 (日语)"
+
+msgid "938 (Traditional Chinese)"
+msgstr "938 (繁体中文)"
+
+msgid "Sample rate:"
+msgstr ""

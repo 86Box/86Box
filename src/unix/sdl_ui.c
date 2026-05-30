@@ -19,8 +19,14 @@ ui_msgbox_header(int flags, char *header, char *message)
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
-    if (!header)
-        header = EMU_NAME;
+    if (!header) {
+        if (flags & MBX_FATAL)
+            header = "Fatal error";
+        else if (flags & MBX_ERROR)
+            header = "Error";
+        else
+            header = EMU_NAME;
+    }
 
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
@@ -29,9 +35,9 @@ ui_msgbox_header(int flags, char *header, char *message)
     msgdata.numbuttons = 1;
     msgdata.buttons    = &msgbtn;
     int msgflags       = 0;
-    if (msgflags & MBX_FATAL)
+    if ((flags & MBX_ERROR) || (flags & MBX_FATAL))
         msgflags |= SDL_MESSAGEBOX_ERROR;
-    else if (msgflags & MBX_ERROR || msgflags & MBX_WARNING)
+    else if (flags & MBX_WARNING)
         msgflags |= SDL_MESSAGEBOX_WARNING;
     else
         msgflags |= SDL_MESSAGEBOX_INFORMATION;

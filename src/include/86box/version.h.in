@@ -35,8 +35,10 @@
 
 #ifdef BETA_BUILD
 # define EMU_VERSION_SUFFIX " Beta"
+# define EMU_VERSION_ROMS_SUFFIX "-beta"
 #else
 # define EMU_VERSION_SUFFIX ""
+# define EMU_VERSION_ROMS_SUFFIX ""
 #endif
 #ifdef EMU_BUILD
 # define EMU_BUILD_W      LSTR(EMU_BUILD)
@@ -54,13 +56,14 @@
 /* Web URL info. */
 #define EMU_SITE       "86box.net"
 #define EMU_SITE_W     LSTR(EMU_SITE)
-#define EMU_ROMS_URL   "https://github.com/@CMAKE_PROJECT_NAME@/roms/releases/latest"
-#define EMU_ROMS_URL_W LSTR(EMU_ROMS_URL)
 #if defined(RELEASE_BUILD) || defined(BETA_BUILD)
+# define EMU_ROMS_URL  "https://github.com/@CMAKE_PROJECT_NAME@/roms/releases/v@CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@" EMU_VERSION_ROMS_SUFFIX
 # define EMU_DOCS_URL  "https://86box.readthedocs.io/en/v@CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@/"
 #else
+# define EMU_ROMS_URL  "https://github.com/@CMAKE_PROJECT_NAME@/roms/releases/latest"
 # define EMU_DOCS_URL  "https://86box.readthedocs.io"
 #endif
+#define EMU_ROMS_URL_W LSTR(EMU_ROMS_URL)
 #define EMU_DOCS_URL_W LSTR(EMU_DOCS_URL)
 
 #endif /*EMU_VERSION_H*/
