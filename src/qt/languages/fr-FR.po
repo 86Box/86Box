@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:09+0000\n"
-"Last-Translator: DDX <djdeedahx2011@gmail.com>\n"
+"PO-Revision-Date: 2026-05-30 16:42+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
@@ -22,7 +22,7 @@ msgid "&Right CTRL is left ALT"
 msgstr "CTRL &droite devient ALT gauche"
 
 msgid "&Hard reset"
-msgstr "&Hard reset"
+msgstr "&Réinitialisation complète"
 
 msgid "&Ctrl+Alt+Del"
 msgstr "&Ctrl+Alt+Suppr"
@@ -1153,7 +1153,7 @@ msgid "Press Ctrl+Alt+Esc"
 msgstr "Appuyer sur Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Réinitialisation complète"
 
 msgid "Force shutdown"
 msgstr "Arrêt forcé"
@@ -3287,13 +3287,13 @@ msgid "Draft"
 msgstr "Brouillon"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Presque) Lettre"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Saut de ligne automatique"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Clone du PSSJ Tandy"
 
 msgid "PC-CM (Color)"
 msgstr "PC-CM (couleur)"
@@ -3356,10 +3356,10 @@ msgid "IBM Nordic (CP 437-Nordic)"
 msgstr "IBM Nordic (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr "Czech Kamenicky (CP 895) #1"
+msgstr "Tchèque Kamenicky (CP 895) 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr "Czech Kamenicky (CP 895) #2"
+msgstr "Tchèque Kamenicky (CP 895) 2"
 
 msgid "932 (Japanese)"
 msgstr "932 (japonais)"
