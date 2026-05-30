@@ -56,14 +56,12 @@ jobs:
             qt: off
             qt6: off
             sdl_shader: on
-            imgui: off
             slug: -SDL
             static: on
           - name: Qt 5 GUI
             qt: on
             qt6: off
             sdl_shader: off
-            imgui: off
             slug: -Qt5
             packages: >-
               qtbase5-dev
@@ -76,7 +74,6 @@ jobs:
             qt: on
             qt6: on
             sdl_shader: off
-            imgui: off
             slug: -Qt6
             packages: >-
               qt6-base-dev
@@ -135,7 +132,6 @@ jobs:
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
           -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
-          -D USE_IMGUI=${{ matrix.ui.imgui }}
 
       - name: Build
         run: |
