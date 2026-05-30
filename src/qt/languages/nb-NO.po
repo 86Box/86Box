@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-30 16:09+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Norwegian Bokmål <https://weblate.86box.net/projects/86box/"
 "86box/nb_NO/>\n"
 "Language: nb-NO\n"
@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "Maskintype:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Sokkel 168 og 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (øvrige)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Sokkel 7 (enkel spenning)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Sokkel 7 (dobbel spenning)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Øvrige"
 
 msgid "Machine:"
 msgstr "Maskin:"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROM-kontroller:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Mitsumi-grensesnitt"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "MKE/Panasonic-grensesnitt"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "MKE/Panasonic-grensesnitt (Creative)"
 
 msgid "IDE Controller"
 msgstr "IDE-kontroller"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "IDE-kontroller (dobbel kanal)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "PC/AT IDE-kontroller"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "PC/AT IDE-kontroller (dobbel kanal)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "PC/AT XTIDE (kun primær)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "PS/2 AT XTIDE (1.1.5) (kun primær)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (tertiær og kvartær)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (tertiær og kvartær)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (tertiær og kvartær)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "McIDE-kontroller"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiær IDE-kontroller"
@@ -1167,19 +1167,16 @@ msgstr "Venter"
 msgid "Powered Off"
 msgstr "Slått av"
 
-#, fuzzy
 msgid "%n running"
 msgid_plural "%n running"
 msgstr[0] "%n kjørende"
 msgstr[1] "%n kjørende"
 
-#, fuzzy
 msgid "%n paused"
 msgid_plural "%n paused"
 msgstr[0] "%n satt på pause"
 msgstr[1] "%n satt på pause"
 
-#, fuzzy
 msgid "%n waiting"
 msgid_plural "%n waiting"
 msgstr[0] "%n venter"
@@ -1488,31 +1485,36 @@ msgid "Unsupported disk image"
 msgstr "Ustøttet diskbilde"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Kan ikke lese enheten"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Størrelsen på blokkenheten kunne ikke fastslås. Sørg for at du har tilgang "
+"til enheten."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Enheten er for stor"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Blokkenheten er for stor til å brukes som harddisk."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Blokkenhet oppdaget"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Oppdaget blokkenhet: %1\n"
+"Størrelse: %2 MB\n"
+"Geometri: %3 sylindere, %4 hoder, %5 sektorer"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Opptaket av diskbildet mislyktes."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Det gikk ikke å lese diskbildet."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Opprettelsen av diskbuildet lyktes."
 
 msgid "Raw image"
 msgstr "Råbilde"
@@ -2019,7 +2021,7 @@ msgid "BIOS Language"
 msgstr "BIOS-språk"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161-utvidelsesenhet"
@@ -2409,40 +2411,40 @@ msgid "Frame Address"
 msgstr "Rammeadresse"
 
 msgid "English"
-msgstr ""
+msgstr "Engelsk"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Engelsk (USA)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Engelsk (Storbritannia)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Engelsk (Canada)"
 
 msgid "German"
-msgstr ""
+msgstr "Tysk"
 
 msgid "French"
-msgstr ""
+msgstr "Fransk"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Spansk"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Svensk"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italiensk"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugisisk"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norsk"
 
 msgid "Greek"
-msgstr ""
+msgstr "Gresk"
 
 msgid "Danish"
 msgstr "Dansk"
@@ -2718,11 +2720,10 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Beskyttelsesdongle for Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback-plugg"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Seriell gjennomkoblingsenhet"
+msgstr "Serielt passthrough"
 
 msgid "Host serial device"
 msgstr "Verts-seriellenhet"
@@ -2731,40 +2732,40 @@ msgid "Named Pipe"
 msgstr "Navngitt pipe"
 
 msgid "Output file"
-msgstr ""
+msgstr "Utdatafil"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Legg ved filen hvis den finnes"
 
 msgid "Input file"
-msgstr ""
+msgstr "Inndatafil"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Loop-inndatafil"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Be om STROBE-signal"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Loopback-type"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Parallellkabel"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Enveis (8-bit) / LapLink (4-bit)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Toveis (8-bit)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Pipe-veien"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / terminal"
 
 msgid "Mode"
-msgstr ""
+msgstr "Modus"
 
 msgid "Server"
 msgstr "Server"
@@ -2773,28 +2774,28 @@ msgid "Client"
 msgstr "Klient"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Koble til igjen automatisk"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Bruk vanlig inn- og utmating"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Opprett pseudoterminal"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Start terminalemulator"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Kjør egen kommando"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Egen kommando"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Kjør egen kommando i terminalen"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Virtuell konsoll"
 
 msgid "E&ject %1"
 msgstr "M&at ut %1"
@@ -2857,10 +2858,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Generisk PC/AT-minneutvidelse"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Generisk MM58167 sanntidsklokke"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (ekstern enhet)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "Kan ikke finne matriseskriver-fonter. TrueType-fonter i mappen \"roms/printer/fonts\" kreves for emulering av generisk ESC/P 2-matriseskriver."
@@ -2923,10 +2924,10 @@ msgid "Could not load file %1"
 msgstr "Kunne ikke laste fil %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulator"
 
 msgid "Input"
-msgstr ""
+msgstr "Inntasting"
 
 msgid "Key bindings"
 msgstr "Tastebindinger"
@@ -3180,7 +3181,7 @@ msgid "Raw"
 msgstr "Rå"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Bruk EDC/ECC-emulering"
 
 msgid "Audio output device:"
 msgstr "Lydutdataenhet:"
@@ -3189,157 +3190,161 @@ msgid "System Default"
 msgstr "Systemstandard"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Bildet eller mappen «%s» kunne ikke åpnes."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Cue-arket «%s» kunne ikke åpnes."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "MDS-filen «%s» kunne ikke åpnes."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "CD-ROM-bildet «%s» kunne ikke åpnes."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Bildet «%s» kunne ikke lastes inn: %1 mangler, noe som er nødvendig for å "
+"støtte Daemon Tools MDS v2- og MDX-bilder."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"DVD-bildet «%s» er lagt inn i en diskleser som ikke støtter DVD-medier, og "
+"vil bli ignorert."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Kunne ikke koble til %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Kunne ikke opprette %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Fest til %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Virtuell konsoll er allerede i bruk av %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Kunne ikke opprette terminal: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Oppdag automatisk"
 
 msgid "Channel"
-msgstr ""
+msgstr "Kanal"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Begge kanalene"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Venstre kanal"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Høyre kanal"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Tillat oppdatering av BIOS via flash"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot nr"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Parallellport"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Papirstørrelse"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (liggende)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (liggende)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Kvalitet"
 
 msgid "Draft"
-msgstr ""
+msgstr "Utkast"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Nær) Letter"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Automatisk radmating"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Tandy PSSJ-klon"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (farge)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (monokrom)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Hvit monokrom"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Maskinvarefont"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Diagnostisk modus"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "CGA-skjerm"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "MDA-skjerm"
 
 msgid "Television"
-msgstr ""
+msgstr "Fjernsyn"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Inverter LCD-farger"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (CGA-modus)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (MDA-modus)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Deaktivert (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Aktivert (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Testmodus"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Oppdateringsfrekvens"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "USA (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM nordisk (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Tsjekkisk Kamenicky (CP 895) 1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Tsjekkisk Kamenicky (CP 895) 2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (Japansk)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
+msgstr "938 (Tradisjonell kinesisk)"
