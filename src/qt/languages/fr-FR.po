@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 08:39+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-30 16:09+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
@@ -355,16 +355,16 @@ msgid "Machine type:"
 msgstr "Type de machine :"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (Socket 168 et 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (Divers)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Socket 7 (tension unique)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Socket 7 (deux tensions)"
 
 msgid "Miscellaneous"
 msgstr ""
@@ -1484,31 +1484,38 @@ msgid "Unsupported disk image"
 msgstr "Image disque non prise en charge"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Impossible de lire le dispositif"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Ne feut pass possible déterminer la tille du dispositif de blocs. Assurez-"
+"vous que vous disposez des autorisations nécessaires pour accéder à ce "
+"dispositif."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Dispositif trop grand"
 
 msgid "Block device is too large to be used as a hard disk."
 msgstr ""
+"Le dispositif de blocs est trop grand por être utilisé comme disque dur."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Dispositif de blocs detecté"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Dispositif de blocs detecté : %1\n"
+"Taille : %2 MB\n"
+"Géométrie : %3 cylindres, %4 têtes, %5 secteurs"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Ne faut pas possible écrire l'image disque."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Ne feut pas possible lire l'image disque."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "L'image disque a été créée avec succès."
 
 msgid "Raw image"
 msgstr "Image brute"
@@ -2015,7 +2022,7 @@ msgid "BIOS Language"
 msgstr "Langue du BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Variante"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unité d'extension IBM 5161"
@@ -2405,40 +2412,40 @@ msgid "Frame Address"
 msgstr "Adresse du frame"
 
 msgid "English"
-msgstr ""
+msgstr "Anglais"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Anglais (États-Unis)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Anglais (Royaume-Uni)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Anglais (Canada)"
 
 msgid "German"
-msgstr ""
+msgstr "Allemand"
 
 msgid "French"
-msgstr ""
+msgstr "Français"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Espagnol"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Suédois"
 
 msgid "Italian"
-msgstr ""
+msgstr "Italien"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Portugais"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Norvégien"
 
 msgid "Greek"
-msgstr ""
+msgstr "Grec"
 
 msgid "Danish"
 msgstr "Danois"
@@ -2716,9 +2723,8 @@ msgstr "Clé de protection pour Savage Quest"
 msgid "Loopback Plug"
 msgstr ""
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Dispositif de transfert du port série"
+msgstr "Réexpédition du port série"
 
 msgid "Host serial device"
 msgstr "Dispositif série de l'hôte"
@@ -2772,10 +2778,10 @@ msgid "Reconnect automatically"
 msgstr ""
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Utiliser l'entrée/sortie standard"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Créer pseudo-terminal"
 
 msgid "Start terminal emulator"
 msgstr ""
@@ -2790,7 +2796,7 @@ msgid "Run custom command in terminal"
 msgstr ""
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Console virtuelle"
 
 msgid "E&ject %1"
 msgstr "É&jecter %1"
@@ -2922,7 +2928,7 @@ msgid "Emulator"
 msgstr ""
 
 msgid "Input"
-msgstr ""
+msgstr "Entrée"
 
 msgid "Key bindings"
 msgstr "Raccourcis clavier"
@@ -3188,40 +3194,45 @@ msgid "Unable to open image or folder \"%s\"."
 msgstr ""
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Ne feut past possible ouvrir la liste cue \" %s \"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Ne feut pas possible ouvrir le fichier MDS \" %s \"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Ne feut pas possible ouvrir l'image CD-ROM \" %s \"."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Ne feut pas possible ouvrir l'image \" %s \" : la bibliothèque %1 est "
+"manquante, qui est nécessaire pour pouvoir ouvrir les images MDS v2 et MDX "
+"de Daemon Tools."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"L'image DVD \" %s \" a été insérée dans un lecteur qui non peut pas lire les "
+"supports DVD et sera ignorée."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s : Ne feut pas possible se connecter à %s : %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s : Ne feut pas possible créer %s : %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s : Joint à %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s : La console virtuelle est déjà utilisée pour %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s : Ne feut pas possible créer le terminal : %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Détection automatique"
 
 msgid "Channel"
-msgstr ""
+msgstr "Canal"
 
 msgid "Both Channels"
 msgstr ""
@@ -3233,25 +3244,25 @@ msgid "Right Channel"
 msgstr ""
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Permettre la mise à jour du BIOS via Flash"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Slot n°"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Port parallèle"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Format du papier"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (de côté)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (de côté)"
 
 msgid "Quality"
 msgstr ""
