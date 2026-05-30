@@ -899,8 +899,7 @@ msgstr "Varsayılan"
 
 msgid "%n wait state(s)"
 msgid_plural "%n wait states"
-msgstr[0] "%n Bekleme durumları"
-msgstr[1] "%n Bekleme durumları"
+msgstr "%n Bekleme durumları"
 
 msgid "Type"
 msgstr "Tür"
@@ -1177,18 +1176,15 @@ msgstr "Kapalı"
 
 msgid "%n running"
 msgid_plural "%n running"
-msgstr[0] "Çalışan %n"
-msgstr[1] "Çalışan %n"
+msgstr "Çalışan %n"
 
 msgid "%n paused"
 msgid_plural "%n paused"
-msgstr[0] "Duraklatılmış %n"
-msgstr[1] "Duraklatılmış %n"
+msgstr "Duraklatılmış %n"
 
 msgid "%n waiting"
 msgid_plural "%n waiting"
-msgstr[0] "Bekleyen %n"
-msgstr[1] "Bekleyen %n"
+msgstr "Bekleyen %n"
 
 msgid "%1 total"
 msgstr "Toplam %1"
@@ -1219,8 +1215,7 @@ msgstr "Arama kutusunda düzenli ifadeler kullan"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr[0] "%n makine şu anda aktif. Yine de sanal makine yöneticisinden çıkmak istediğinize emin misiniz?"
-msgstr[1] "%n makine şu anda aktif. Yine de sanal makine yöneticisinden çıkmak istediğinize emin misiniz?"
+msgstr "%n makine şu anda aktif. Yine de sanal makine yöneticisinden çıkmak istediğinize emin misiniz?"
 
 msgid "Add new system wizard"
 msgstr "Yeni sistem ekleme sihirbazı"
@@ -3068,8 +3063,7 @@ msgstr "%1 Sanal Makine Yöneticisi"
 
 msgid "%n disk(s)"
 msgid_plural "%n disks"
-msgstr[0] "%n disk"
-msgstr[1] "%n disk"
+msgstr "%n disk"
 
 msgid "Unknown Status"
 msgstr "Bilinmeyen Durum"
