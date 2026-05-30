@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-30 07:04+0000\n"
+"Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
 "MIME-Version: 1.0\n"
@@ -181,7 +181,7 @@ msgid "Overscan"
 msgstr "Överskanning"
 
 msgid "Change contrast for monochrome display"
-msgstr "Ändra kontrast för svartvita skärmar"
+msgstr "Ändra kontrast för monokroma skärmar"
 
 msgid "&Media"
 msgstr "&Media"
@@ -397,7 +397,7 @@ msgid "Internal"
 msgstr "Integrerad"
 
 msgid "Wait states:"
-msgstr "Väntcykler:"
+msgstr "Väntelägen:"
 
 msgid "MB"
 msgstr "MB"
@@ -418,10 +418,10 @@ msgid "Enabled (UTC)"
 msgstr "Aktiverad (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "Använd 486-tolken för 286- och 386-processorer"
+msgstr "Använd 486-programtolk för 286- och 386-processorer"
 
 msgid "Dynamic Recompiler"
-msgstr "Dynamisk omkompilering"
+msgstr "Dynamisk omkompilator"
 
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
@@ -574,7 +574,7 @@ msgid "Quaternary IDE Controller"
 msgstr "Kvartär IDE-kontroller"
 
 msgid "Hard disk controllers"
-msgstr "Hårddiskkontroller"
+msgstr "Styrenheter för hårddisk"
 
 msgid "SCSI controllers"
 msgstr "SCSI-styrenheter"
@@ -658,28 +658,28 @@ msgid "5.25\" 1.2M"
 msgstr "5.25\" 1.2M"
 
 msgid "5.25\" 1.2M 300/360 RPM"
-msgstr "5.25\" 1.2M 300/360 RPM"
+msgstr "5.25-tums 1.2M 300/360 varv/min"
 
 msgid "3.5\" 360k"
-msgstr "3.5\" 360k"
+msgstr "3.5-tums 360k"
 
 msgid "3.5\" 720k"
-msgstr "3.5\" 720k"
+msgstr "3.5-tums 720k"
 
 msgid "3.5\" 1.44M"
-msgstr "3.5\" 1.44M"
+msgstr "3.5-tums 1.44M"
 
 msgid "3.5\" 1.25M PC-98"
-msgstr "3.5\" 1.25M PC-98"
+msgstr "3.5-tums 1.25M PC-98"
 
 msgid "3.5\" 1.44M 300/360 RPM"
-msgstr "3.5\" 1.44M 300/360 RPM"
+msgstr "3.5-tums 1.44M 300/360 varv/min"
 
 msgid "3.5\" 2.88M"
-msgstr "3.5\" 2.88M"
+msgstr "3.5-tums 2.88M"
 
 msgid "3.5\" 2.88M 300/360 RPM"
-msgstr "3.5\" 2.88M 300/360 RPM"
+msgstr "3.5-tums 2.88M 300/360 varv/min"
 
 msgid "Turbo timings"
 msgstr "Turbo-timingar"
@@ -730,7 +730,7 @@ msgid "Card 4:"
 msgstr "Kort 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "Allmän ISA ROM-kort"
+msgstr "Allmänt ISA ROM-kort"
 
 msgid "Generic Dual ISA ROM Board"
 msgstr "Allmän dubbel ISA ROM-kort"

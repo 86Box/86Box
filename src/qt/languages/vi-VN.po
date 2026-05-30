@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-25 15:00+0000\n"
+"PO-Revision-Date: 2026-05-30 07:04+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -16,8 +16,9 @@ msgstr ""
 msgid "&Action"
 msgstr "&Thực hiện"
 
+#, fuzzy
 msgid "&Keyboard requires capture"
-msgstr "Bàn phím &hoạt động cần 'bắt' chuột"
+msgstr "Bàn phím chỉ &hoạt động khi khóa chuột vào"
 
 msgid "&Right CTRL is left ALT"
 msgstr "Gắn ALT trái vào CTRL ph&ải"
@@ -874,8 +875,9 @@ msgstr "Thiết bị ngoại vi khác"
 msgid "Other devices"
 msgstr "Các thiết bị khác"
 
+#, fuzzy
 msgid "Click to capture mouse"
-msgstr "Nhấp vào khung hình để 'nhốt' chuột vào"
+msgstr "Nhấp vào khung hình để khóa chuột vào"
 
 msgid "Press %1 to release mouse"
 msgstr "Nhấn %1 để thả chuột"
@@ -1480,31 +1482,36 @@ msgid "Unsupported disk image"
 msgstr "File ảnh đĩa không được hỗ trợ"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Không đọc được thiết bị"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Không xác định được cỡ block của thiết bị. Chắc chắn rằng bạn có quyền truy "
+"cập vào thiết bị này."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Thiết bị quá lớn"
 
 msgid "Block device is too large to be used as a hard disk."
-msgstr ""
+msgstr "Thiết bị block quá lớn không thể dùng như ổ cứng."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Phát hiện thiết bị block"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Thiết bị được phát hiện: %1\n"
+"Kích thước: %2 MB\n"
+"Hình thái: %3 trụ, %4 đầu ghi, %5 sector"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Không thể ghi vào ảnh đĩa."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Không thể đọc ảnh đĩa."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Ảnh đĩa đã được tạo thành công."
 
 msgid "Raw image"
 msgstr "Ảnh đĩa thô"
