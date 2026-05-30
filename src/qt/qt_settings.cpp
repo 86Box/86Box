@@ -149,22 +149,28 @@ Settings::Settings(QWidget *parent)
     : QDialog(parent)
     , ui(new Ui::Settings)
 {
+    uint32_t base = plat_get_ticks();
+    uint32_t next;
+    QString measurement = QString("start = %1\n").arg(base);
+
     ui->setupUi(this);
+    next = plat_get_ticks(); measurement += QString("setupUi = %1\n").arg(next - base); base = next;
     auto *model = new SettingsModel(this);
     ui->listView->setModel(model);
+    next = plat_get_ticks(); measurement += QString("model = %1\n").arg(next - base); base = next;
 
-    Harddrives::busTrackClass = new SettingsBusTracking;
-    machine                   = new SettingsMachine(this);
-    display                   = new SettingsDisplay(this);
-    input                     = new SettingsInput(this);
-    sound                     = new SettingsSound(this);
-    network                   = new SettingsNetwork(this);
-    ports                     = new SettingsPorts(this);
-    storageControllers        = new SettingsStorageControllers(this);
-    harddisks                 = new SettingsHarddisks(this);
-    floppyCdrom               = new SettingsFloppyCDROM(this);
-    otherRemovable            = new SettingsOtherRemovable(this);
-    otherPeripherals          = new SettingsOtherPeripherals(this);
+    Harddrives::busTrackClass = new SettingsBusTracking; next = plat_get_ticks(); measurement += QString("busTrack = %1\n").arg(next - base); base = next;
+    machine                   = new SettingsMachine(this); next = plat_get_ticks(); measurement += QString("machine = %1\n").arg(next - base); base = next;
+    display                   = new SettingsDisplay(this); next = plat_get_ticks(); measurement += QString("display = %1\n").arg(next - base); base = next;
+    input                     = new SettingsInput(this); next = plat_get_ticks(); measurement += QString("input = %1\n").arg(next - base); base = next;
+    sound                     = new SettingsSound(this); next = plat_get_ticks(); measurement += QString("sound = %1\n").arg(next - base); base = next;
+    network                   = new SettingsNetwork(this); next = plat_get_ticks(); measurement += QString("network = %1\n").arg(next - base); base = next;
+    ports                     = new SettingsPorts(this); next = plat_get_ticks(); measurement += QString("ports = %1\n").arg(next - base); base = next;
+    storageControllers        = new SettingsStorageControllers(this); next = plat_get_ticks(); measurement += QString("storage = %1\n").arg(next - base); base = next;
+    harddisks                 = new SettingsHarddisks(this); next = plat_get_ticks(); measurement += QString("hdd = %1\n").arg(next - base); base = next;
+    floppyCdrom               = new SettingsFloppyCDROM(this); next = plat_get_ticks(); measurement += QString("floppycdrom = %1\n").arg(next - base); base = next;
+    otherRemovable            = new SettingsOtherRemovable(this); next = plat_get_ticks(); measurement += QString("removable = %1\n").arg(next - base); base = next;
+    otherPeripherals          = new SettingsOtherPeripherals(this); next = plat_get_ticks(); measurement += QString("peripherals = %1\n").arg(next - base); base = next;
 
     ui->stackedWidget->addWidget(machine);
     ui->stackedWidget->addWidget(display);
@@ -177,6 +183,7 @@ Settings::Settings(QWidget *parent)
     ui->stackedWidget->addWidget(floppyCdrom);
     ui->stackedWidget->addWidget(otherRemovable);
     ui->stackedWidget->addWidget(otherPeripherals);
+     next = plat_get_ticks(); measurement += QString("widgets = %1\n").arg(next - base); base = next;
 
     connect(machine, &SettingsMachine::currentMachineChanged, display,
             &SettingsDisplay::onCurrentMachineChanged);
@@ -241,6 +248,10 @@ Settings::Settings(QWidget *parent)
     ui->listView->setCurrentIndex(model->index(0, 0));
 
     Settings::settings = this;
+
+    next = plat_get_ticks(); measurement += QString("connections = %1").arg(next - base);
+    QMessageBox msgBox(QMessageBox::Icon::Information, QString(""), measurement);
+    msgBox.exec();
 }
 
 Settings::~Settings()
@@ -286,11 +297,10 @@ Settings::accept()
 
     if ((changed & SETTINGS_REQUIRE_HARD_RESET) && confirm_save && !settings_only) {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box",
-                                tr("Do you want to save the settings?"),
+                                QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")),
                                 QMessageBox::Save | QMessageBox::Cancel, this);
         QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
-        questionbox.setInformativeText(tr("This will hard reset the emulated machine."));
         chkbox->setChecked(!confirm_save);
         QObject::connect(chkbox, &QCheckBox::CHECK_STATE_CHANGED, [](int state) { confirm_save = (state == Qt::CheckState::Unchecked); });
         questionbox.exec();
