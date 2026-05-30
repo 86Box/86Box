@@ -3018,6 +3018,10 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->ops           = NULL;
         dev->image_path[0] = 0;
 
+        plat_cdrom_ui_update(dev->id, 0);
+
+        config_save();
+
         ret = 1;
     } else {
         /* All good, reset state. */
