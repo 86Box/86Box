@@ -28,7 +28,6 @@
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
-#include <86box/config.h>
 #include <86box/device.h>
 #include "cpu.h"
 #include <86box/machine.h>
@@ -174,8 +173,7 @@ pc_cas_set_fname(pc_cassette_t *cas, char *fname)
     cas->position_load = 0;
 
     if (fname == NULL) {
-        cassette_eject();
-        config_save();
+        ui_sb_update_icon_state(SB_CASSETTE, 1);
         return 0;
     }
 
@@ -192,8 +190,7 @@ pc_cas_set_fname(pc_cassette_t *cas, char *fname)
         cas->fp = plat_fopen(fname, "w+b");
 
     if (cas->fp == NULL) {
-        cassette_eject();
-        config_save();
+        ui_sb_update_icon_state(SB_CASSETTE, 1);
         return 1;
     }
 
