@@ -20,6 +20,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/config.h>
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/plat.h>
@@ -71,7 +72,8 @@ cart_load_error(int drive, UNUSED(char *fn))
 {
     cartridge_log("Cartridge: could not load '%s'\n", fn);
     memset(cart_fns[drive], 0, sizeof(cart_fns[drive]));
-    ui_sb_update_icon_state(SB_CARTRIDGE | drive, 1);
+    cartridge_eject(drive);
+    config_save();
 }
 
 static void
@@ -167,7 +169,8 @@ cart_close(int drive)
 
     cart_image_close(drive);
     cart_fns[drive][0] = 0;
-    ui_sb_update_icon_state(SB_CARTRIDGE | drive, 1);
+    cartridge_eject(drive);
+    config_save();
     resetx86();
 }
 

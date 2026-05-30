@@ -27,6 +27,7 @@
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/timer.h>
 #include <86box/machine.h>
 #include <86box/path.h>
@@ -687,7 +688,8 @@ fdd_load(int drive, char *fn)
         if (floppyfns[drive][0] == '\0') {
             drive_empty[drive] = 1;
             fdd_set_head(drive, 0);
-            ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+            floppy_eject(drive);
+            config_save();
             return;
         }
 
@@ -729,7 +731,8 @@ fdd_load(int drive, char *fn)
     drive_empty[drive] = 1;
     fdd_set_head(drive, 0);
     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-    ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+    floppy_eject(drive);
+    config_save();
 }
 
 void
