@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-05-30 16:09+0000\n"
-"Last-Translator: nguyen <barnacl437@disroot.org>\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
 "Language: vi-VN\n"
@@ -16,7 +16,6 @@ msgstr ""
 msgid "&Action"
 msgstr "&Thực hiện"
 
-#, fuzzy
 msgid "&Keyboard requires capture"
 msgstr "Bàn phím chỉ &hoạt động khi khóa chuột vào"
 
@@ -875,7 +874,6 @@ msgstr "Thiết bị ngoại vi khác"
 msgid "Other devices"
 msgstr "Các thiết bị khác"
 
-#, fuzzy
 msgid "Click to capture mouse"
 msgstr "Nhấp vào khung hình để khóa chuột vào"
 
@@ -2719,7 +2717,6 @@ msgstr "Dongle bảo vệ cho Savage Quest"
 msgid "Loopback Plug"
 msgstr "Đầu cắm loopback"
 
-#, fuzzy
 msgid "Serial Passthrough"
 msgstr "Thiết bị thông qua cổng serial"
 
