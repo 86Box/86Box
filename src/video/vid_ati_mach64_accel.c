@@ -1133,7 +1133,6 @@ mach64_blit_line(uint32_t cpu_dat, int count, mach64_t* mach64)
 {
     svga_t *svga    = &mach64->svga;
     int     cmp_clr = 0;
-    int     mix = 0;
 
     if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
         int x = 0;

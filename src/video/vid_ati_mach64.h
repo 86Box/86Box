@@ -357,9 +357,9 @@ typedef struct mach64_t {
     void   *ddc;
 } mach64_t;
 
-static video_timings_t timing_mach64_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
-static video_timings_t timing_mach64_vlb = { .type = VIDEO_BUS, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
-static video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+extern video_timings_t timing_mach64_isa;
+extern video_timings_t timing_mach64_vlb;
+extern video_timings_t timing_mach64_pci;
 
 enum {
     SRC_BG      = 0,
