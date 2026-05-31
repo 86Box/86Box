@@ -17,6 +17,8 @@ void qt_osd_shutdown(void);
 
 bool qt_osd_is_visible(void);
 
+void qt_osd_toggle(void);
+
 void qt_osd_set_layout_scale_hint(float scale);
 
 void qt_osd_render(int output_w, int output_h, float dpr);

@@ -998,6 +998,7 @@ MainWindow::updateShortcuts()
     ui->actionPause->setShortcut(QKeySequence());
     ui->actionMute_Unmute->setShortcut(QKeySequence());
     ui->actionForce_interpretation->setShortcut(QKeySequence());
+    ui->actionToggle_OSD->setShortcut(QKeySequence());
 
     int          accID;
     QKeySequence seq;
@@ -1049,6 +1050,10 @@ MainWindow::updateShortcuts()
     accID = FindAccelerator("force_interpretation");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionForce_interpretation->setShortcut(seq);
+
+    accID = FindAccelerator("toggle_osd");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionToggle_OSD->setShortcut(seq);
 }
 
 void
@@ -1242,6 +1247,12 @@ void
 MainWindow::on_actionPause_triggered()
 {
     plat_pause(dopause ^ 1);
+}
+
+void
+MainWindow::on_actionToggle_OSD_triggered()
+{
+    qt_osd_toggle();
 }
 
 void
@@ -1541,35 +1552,26 @@ MainWindow::FindAcceleratorSeq(const char *name)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
-    /* Handle the OSD hotkey here because the render window has no focus.
-     * Grab Right-Ctrl+F11 at ShortcutOverride so Qt does not fire the
-     * screenshot action first, while Left-Ctrl+F11 keeps the screenshot. */
-    static bool osd_right_ctrl_down = false;
-
-    const auto is_right_ctrl = [](const QKeyEvent *ke) {
-        /* Right Control native scancode: 105 on X11 (XKB), 97 on evdev/Wayland. */
-        return ke->key() == Qt::Key_Control
-            && (ke->nativeScanCode() == 105 || ke->nativeScanCode() == 97);
-    };
-
     if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
-        auto *ke = static_cast<QKeyEvent *>(event);
-        if (is_right_ctrl(ke))
-            osd_right_ctrl_down = (event->type() == QEvent::KeyPress);
-        if (QApplication::activeWindow() == this || qt_osd_is_visible()) {
-            if (qt_osd_key(ke->key(), ke->modifiers(), event->type() == QEvent::KeyPress, ke->isAutoRepeat())) {
+        auto      *ke   = static_cast<QKeyEvent *>(event);
+        const bool down = event->type() == QEvent::KeyPress;
+
+        /* While the OSD is open, route all key input to it, except for the
+         * toggle accelerator itself so it can still close the overlay. */
+        if (qt_osd_is_visible()) {
+            const QKeySequence osdSeq = ui->actionToggle_OSD->shortcut();
+            if (down && !ke->isAutoRepeat() && !osdSeq.isEmpty()
+                && (((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == osdSeq)
+                    || ((QKeySequence) (ke->key() | ke->modifiers()) == osdSeq))) {
+                ui->actionToggle_OSD->trigger();
                 event->accept();
                 return true;
             }
-        }
-    } else if (event->type() == QEvent::ShortcutOverride) {
-        auto *ke = static_cast<QKeyEvent *>(event);
-        if (ke->key() == Qt::Key_F11 && (ke->modifiers() & Qt::ControlModifier)
-            && osd_right_ctrl_down && (QApplication::activeWindow() == this || qt_osd_is_visible())) {
-            /* Accept so Qt delivers a normal key-press instead of firing the
-             * screenshot shortcut; the key handler above then toggles the OSD. */
-            event->accept();
-            return true;
+
+            if (qt_osd_key(ke->key(), ke->modifiers(), down, ke->isAutoRepeat())) {
+                event->accept();
+                return true;
+            }
         }
     }
 
@@ -1611,6 +1613,10 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen")) {
                 ui->actionFullscreen->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_osd")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_osd")) {
+                ui->actionToggle_OSD->trigger();
             }
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset")) {

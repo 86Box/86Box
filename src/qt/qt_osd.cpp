@@ -202,8 +202,6 @@ osd_open(void)
 
     /* Release any guest-held keys so the toggle modifiers do not stay stuck. */
     keyboard_all_up();
-    if (getenv("OSD_DEBUG"))
-        fprintf(stderr, "[osd] open: released guest keys (keyboard_all_up)\n");
 }
 
 void
@@ -224,6 +222,15 @@ bool
 qt_osd_is_visible(void)
 {
     return g_visible;
+}
+
+void
+qt_osd_toggle(void)
+{
+    if (g_visible)
+        osd_close();
+    else
+        osd_open();
 }
 
 void
@@ -316,17 +323,6 @@ qt_osd_render_software(int logical_w, int logical_h, float dpr)
 bool
 qt_osd_key(int qt_key, int qt_modifiers, bool down, bool repeat)
 {
-    /* Toggle hotkey: Right-Ctrl+F11. Ignore auto-repeat. */
-    if (down && !repeat && qt_key == Qt::Key_F11 && (qt_modifiers & Qt::ControlModifier)) {
-        if (g_visible)
-            osd_close();
-        else
-            osd_open();
-        if (getenv("OSD_DEBUG"))
-            fprintf(stderr, "[osd] toggle -> visible=%d\n", g_visible);
-        return true;
-    }
-
     if (!g_visible)
         return false;
 

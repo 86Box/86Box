@@ -308,6 +308,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="force_interpretation",
         .desc="Force interpretation",
         .seq="Ctrl+Alt+I"
+    },
+    {
+        .name="toggle_osd",
+        .desc="Toggle on-screen display",
+        .seq="Ctrl+Alt+O"
     }
 };
 
