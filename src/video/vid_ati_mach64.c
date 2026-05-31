@@ -3300,206 +3300,87 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t *svga = &mach64->svga;
 
-
     uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
 
     // the value to or the final address for write into
 
     uint8_t addr_or_value = 0;
-    
-    mach64_log("mach64_ext_outb : port %04X val %02X\n", port, val);
-    switch (port) {
-        case 0x02ec:
-        case 0x02ed:
-        case 0x02ee:
-        case 0x02ef:
-        case 0x7eec:
-        case 0x7eed:
-        case 0x7eee:
-        case 0x7eef:
-            mach64_ext_writeb(0x400 | 0x00 | (port & 3), val, priv);
-            break;
-        case 0x06ec:
-        case 0x06ed:
-        case 0x06ee:
-        case 0x06ef:
-            mach64_ext_writeb(0x400 | 0x04 | (port & 3), val, priv);
-            break;
-        case 0x0aec:
-        case 0x0aed:
-        case 0x0aee:
-        case 0x0aef:
-            mach64_ext_writeb(0x400 | 0x08 | (port & 3), val, priv);
-            break;
-        case 0x0eec:
-        case 0x0eed:
-        case 0x0eee:
-        case 0x0eef:
-            mach64_ext_writeb(0x400 | 0x0c | (port & 3), val, priv);
-            break;
 
-        case 0x16ec:
-        case 0x16ed:
-        case 0x16ee:
-        case 0x16ef:
-            mach64_ext_writeb(0x400 | 0x14 | (port & 3), val, priv);
-            break;
-
-        case 0x1aec:
-            mach64_ext_writeb(0x400 | 0x18, val, priv);
-            break;
-
-        case 0x1eec:
-        case 0x1eed:
-        case 0x1eee:
-        case 0x1eef:
-            mach64_ext_writeb(0x400 | 0x1c | (port & 3), val, priv);
-            break;
-
-        case 0x22ec:
-        case 0x22ed:
-        case 0x22ee:
-        case 0x22ef:
-            mach64_ext_writeb(0x400 | 0x40 | (port & 3), val, priv);
-            break;
-        case 0x26ec:
-        case 0x26ed:
-        case 0x26ee:
-        case 0x26ef:
-            mach64_ext_writeb(0x400 | 0x44 | (port & 3), val, priv);
-            break;
-        case 0x2aec:
-        case 0x2aed:
-        case 0x2aee:
-        case 0x2aef:
-            mach64_ext_writeb(0x400 | 0x48 | (port & 3), val, priv);
-            break;
-        case 0x2eec:
-        case 0x2eed:
-        case 0x2eee:
-        case 0x2eef:
-            mach64_ext_writeb(0x400 | 0x60 | (port & 3), val, priv);
-            break;
-
-        case 0x32ec:
-        case 0x32ed:
-        case 0x32ee:
-        case 0x32ef:
-            mach64_ext_writeb(0x400 | 0x64 | (port & 3), val, priv);
-            break;
-        case 0x36ec:
-        case 0x36ed:
-        case 0x36ee:
-        case 0x36ef:
-            mach64_ext_writeb(0x400 | 0x68 | (port & 3), val, priv);
-            break;
-        case 0x3aec:
-        case 0x3aed:
-        case 0x3aee:
-        case 0x3aef:
-            mach64_ext_writeb(0x400 | 0x6c | (port & 3), val, priv);
-            break;
-        case 0x3eec:
-        case 0x3eed:
-        case 0x3eee:
-        case 0x3eef:
-            mach64_ext_writeb(0x400 | 0x70 | (port & 3), val, priv);
-            break;
-
-        case 0x42ec:
-        case 0x42ed:
-        case 0x42ee:
-        case 0x42ef:
-            mach64_ext_writeb(0x400 | 0x80 | (port & 3), val, priv);
-            break;
-        case 0x46ec:
-        case 0x46ed:
-        case 0x46ee:
-        case 0x46ef:
-            mach64_ext_writeb(0x400 | 0x84 | (port & 3), val, priv);
-            break;
-        case 0x4aec:
-        case 0x4aed:
-        case 0x4aee:
-        case 0x4aef:
-            mach64_ext_writeb(0x400 | 0x90 | (port & 3), val, priv);
-            break;
-
-        case 0x52ec:
-        case 0x52ed:
-        case 0x52ee:
-        case 0x52ef:
-            mach64_ext_writeb(0x400 | 0xb0 | (port & 3), val, priv);
-            break;
-
-        case 0x56ec:
-            mach64_ext_writeb(0x400 | 0xb4, val, priv);
-            break;
-        case 0x56ed:
-        case 0x56ee:
-            mach64_ext_writeb(0x400 | 0xb5, val, priv);
-            break;
-        case 0x5aec:
-            mach64_ext_writeb(0x400 | 0xb8, val, priv);
-            break;
-        case 0x5aed:
-        case 0x5aee:
-            mach64_ext_writeb(0x400 | 0xb9, val, priv);
-            break;
-
-        case 0x5eec:
-        case 0x5eed:
-        case 0x5eee:
-        case 0x5eef:
-            if (mach64->type == MACH64_GX)
-                ati68860_ramdac_out((port & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
-            else {
-                switch (port & 3) {
-                    case 0:
-                        svga_out(0x3c8, val, svga);
-                        break;
-                    case 1:
-                        svga_out(0x3c9, val, svga);
-                        break;
-                    case 2:
-                        svga_out(0x3c6, val, svga);
-                        break;
-                    case 3:
-                        svga_out(0x3c7, val, svga);
-                        break;
+    // we only care about (ec...ef)
+    if (port_low >= 0xEC && port_low <= 0xEF)
+    {
+        switch (port_high)
+        {
+             case 0x56: // 56ec-56ef
+                if (port_low == 0xEC)                 
+                    mach64_ext_writeb(0x400 | 0xb4, val, priv);
+                else
+                    mach64_ext_writeb(0x400 | 0xb5, val, priv);
+                break; 
+            case 0x5a: // 5aec-5aef
+                if (port_low == 0xEC)                 
+                    mach64_ext_writeb(0x400 | 0xb8, val, priv);
+                else
+                    mach64_ext_writeb(0x400 | 0xb9, val, priv);
+                break; 
+            case 0x5e: // 5eec-5eef
+                if (mach64->type == MACH64_GX)
+                    ati68860_ramdac_out((port & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
+                else {
+                    switch (port & 3) {
+                        case 0:
+                            svga_out(0x3c8, val, svga);
+                            break;
+                        case 1:
+                            svga_out(0x3c9, val, svga);
+                            break;
+                        case 2:
+                            svga_out(0x3c6, val, svga);
+                            break;
+                        case 3:
+                            svga_out(0x3c7, val, svga);
+                            break;
+                    }
                 }
-            }
-            break;
+                break;
+            case 0x6a: // 6eec-6eef
+                WRITE8(port, mach64->config_cntl, val);
+                if (mach64->vlb)
+                    mach64->linear_base = (mach64->config_cntl & 0x3ff0) << 18;
 
-        case 0x62ec:
-        case 0x62ed:
-        case 0x62ee:
-        case 0x62ef:
-            mach64_ext_writeb(0x400 | 0xc4 | (port & 3), val, priv);
-            break;
+                mach64_updatemapping(mach64);
+                break;
+            default:
+                 // there must be a more rational rule here
+                if (port_high <= 0x1E)
+                    addr_or_value = port_high - 2;
+                else if (port_high >= 0x22 && port_high <= 0x2A)
+                    addr_or_value = port_high + 0x1E; // 0x40 - 0x48
+                else if (port_high >= 0x2E && port_high <= 0x3E)
+                    addr_or_value = port_high + 0x32;
+                else if (port_high >= 0x42 && port_high <= 0x46)
+                    addr_or_value = port_high + 0x3E;
+                else if (port_high == 0x4A) 
+                    addr_or_value = 0x90;
+                else if (port_high == 0x52)
+                    addr_or_value = 0xb0;
+                else if (port_high == 0x62)
+                    addr_or_value = 0xc4;
+                else if (port_high == 0x66)
+                    addr_or_value = 0xd0;
+                else if (port_high >= 0x6e && port_high <= 0x72)
+                    addr_or_value = port_high + 0x72;
+                else if (port_high == 0x7e)
+                    addr_or_value = 0x00; // must be 0
 
-        case 0x66ec:
-        case 0x66ed:
-        case 0x66ee:
-        case 0x66ef:
-            mach64_ext_writeb(0x400 | 0xd0 | (port & 3), val, priv);
-            break;
+                mach64_ext_writeb(0x400 | addr_or_value | (port & 3), val, priv);
 
-        case 0x6aec:
-        case 0x6aed:
-        case 0x6aee:
-        case 0x6aef:
-            WRITE8(port, mach64->config_cntl, val);
-            if (mach64->vlb)
-                mach64->linear_base = (mach64->config_cntl & 0x3ff0) << 18;
-
-            mach64_updatemapping(mach64);
-            break;
-
-        default:
-            break;
+                break;
+        }
     }
+
+    mach64_log("mach64_ext_outb : port %04X val %02X\n", port, val);
 }
 void
 mach64_ext_outw(uint16_t port, uint16_t val, void *priv)
@@ -4049,7 +3930,6 @@ mach64_overlay_draw(svga_t *svga, int displine)
                 case 0xf:
                     use_video = ~gr_cmp & ~vid_cmp;
                     break;
-
                 default:
                     break;
             }
