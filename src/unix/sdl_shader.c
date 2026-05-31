@@ -10,6 +10,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <86box/ini.h>
+#include <86box/config.h>
+
 #include "sdl_shader.h"
 
 static SDL_GLContext gl_ctx;
@@ -96,6 +99,18 @@ resolve_glslp(const char *glslp_path)
 
     free(content);
     return result;
+}
+
+static const char *
+path_basename(const char *path)
+{
+    const char *slash;
+
+    if (!path)
+        return "";
+
+    slash = strrchr(path, '/');
+    return slash ? (slash + 1) : path;
 }
 
 static GLuint
@@ -271,6 +286,45 @@ apply_glslp_overrides(GLuint program, const char *glslp_path)
     free(content);
 }
 
+/* Reuse the Qt preset override sections for SDL shader parameters. */
+static void
+apply_config_overrides(GLuint program, const char *shader_name, const char *source)
+{
+    char        section[512];
+    const char *p = source;
+
+    if (!shader_name || !shader_name[0] || !source)
+        return;
+
+    snprintf(section, sizeof(section), "GL3 Shaders - %s", shader_name);
+
+    while ((p = strstr(p, "#pragma parameter")) != NULL) {
+        p += 17; /* strlen("#pragma parameter") */
+        while (*p == ' ' || *p == '\t')
+            p++;
+
+        const char *ns = p;
+        while (*p && *p != ' ' && *p != '\t' && *p != '\n')
+            p++;
+
+        size_t nlen = (size_t) (p - ns);
+        if (nlen == 0 || nlen >= 128)
+            continue;
+
+        char name[128];
+        memcpy(name, ns, nlen);
+        name[nlen] = '\0';
+
+        GLint loc = glGetUniformLocation(program, name);
+        if (loc < 0)
+            continue;
+
+        float current = 0.0f;
+        glGetUniformfv(program, loc, &current);
+        glUniform1f(loc, (float) config_get_double(section, name, current));
+    }
+}
+
 int
 sdl_shader_init(SDL_Window *win, const char *shader_path)
 {
@@ -356,10 +410,12 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
 
     glUseProgram(prog);
     set_parameter_defaults(prog, source);
-    free(source);
 
     if (ext && strcmp(ext, ".glslp") == 0)
         apply_glslp_overrides(prog, shader_path);
+
+    apply_config_overrides(prog, path_basename(shader_path), source);
+    free(source);
 
     a_vtx = glGetAttribLocation(prog, "VertexCoord");
     a_tc  = glGetAttribLocation(prog, "TexCoord");
