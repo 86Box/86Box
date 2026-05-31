@@ -60,7 +60,7 @@ fluidsynth_poll(void)
 {
     fluidsynth_t *data = &fsdev;
     data->midi_pos++;
-    if (data->midi_pos == SOUND_FREQ / RENDER_RATE) {
+    if (data->midi_pos == sound_sample_rate / RENDER_RATE) {
         data->midi_pos = 0;
         thread_set_event(data->event);
     }

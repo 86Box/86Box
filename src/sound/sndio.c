@@ -36,7 +36,7 @@
 extern bool fast_forward;
 static struct sio_hdl* audio[7] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static struct sio_par  info[7];
-static int             freqs[7] = { SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, SOUND_FREQ, 0 };
+static int             freqs[7] = { 0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, 0 };
 const char *
 sound_get_output_devices(void)
 {
@@ -73,6 +73,55 @@ sound_get_output_devices(void)
     return NULL; /* sndiod not running or no devices */
 }
 
+int
+sound_get_device_sample_rate(const char *device_name)
+{
+    const char     *devname = (device_name && device_name[0]) ? device_name : SIO_DEVANY;
+    struct sio_hdl *hdl     = sio_open(devname, SIO_PLAY, 0);
+    int             rate    = 0;
+
+    if (hdl != NULL) {
+        struct sio_par par;
+        sio_getpar(hdl, &par);
+        rate = (int) par.rate;
+        sio_close(hdl);
+    }
+    return rate;
+}
+
+int
+sound_get_device_supported_rates(const char *device_name, int *rates_out, int max_rates)
+{
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+    const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
+    const char      *devname      = (device_name && device_name[0]) ? device_name : SIO_DEVANY;
+    int              count        = 0;
+
+    for (int i = 0; i < num_cands && count < max_rates; i++) {
+        struct sio_hdl *hdl = sio_open(devname, SIO_PLAY, 0);
+        if (hdl == NULL)
+            continue;
+
+        struct sio_par par;
+        sio_initpar(&par);
+        par.rate = (unsigned int) candidates[i];
+        sio_setpar(hdl, &par);
+        sio_getpar(hdl, &par);
+        sio_close(hdl);
+
+        if ((int) par.rate == candidates[i])
+            rates_out[count++] = candidates[i];
+    }
+
+    if (count == 0) {
+        for (int i = 0; i < num_cands && i < max_rates; i++)
+            rates_out[i] = candidates[i];
+        count = num_cands;
+    }
+
+    return count;
+}
+
 void
 closeal(void)
 {
@@ -87,6 +136,8 @@ closeal(void)
 void
 inital(void)
 {
+    freqs[I_NORMAL] = freqs[I_FDD] = freqs[I_HDD] = sound_sample_rate;
+
     const char *devname = (sound_output_device[0] != '\0') ? sound_output_device : SIO_DEVANY;
 
     for (int i = 0; i < sizeof(audio) / sizeof(audio[0]); i++) {
@@ -161,7 +212,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
 void
 givealbuffer(const void *buf)
 {
-    givealbuffer_common(buf, I_NORMAL, SOUNDBUFLEN << 1);
+    givealbuffer_common(buf, I_NORMAL, (sound_sample_rate / 50) << 1);
 }
 
 void

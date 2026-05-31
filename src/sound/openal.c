@@ -33,8 +33,6 @@
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
 
-#define FREQ   SOUND_FREQ
-#define BUFLEN SOUNDBUFLEN
 
 #define I_NORMAL 0
 #define I_MUSIC  1
@@ -75,6 +73,71 @@ sound_get_output_devices(void)
     if (alcIsExtensionPresent(NULL, "ALC_ENUMERATION_EXT"))
         return alcGetString(NULL, ALC_DEVICE_SPECIFIER);
     return NULL;
+}
+
+int
+sound_get_device_sample_rate(const char *device_name)
+{
+    const ALCchar *dev_name = (device_name && device_name[0]) ? device_name : NULL;
+    ALCdevice     *dev      = alcOpenDevice(dev_name);
+    ALCint         freq     = 0;
+
+    if (dev != NULL) {
+        ALCcontext *prev_ctx = alcGetCurrentContext();
+        ALCcontext *ctx      = alcCreateContext(dev, NULL);
+        if (ctx != NULL) {
+            alcMakeContextCurrent(ctx);
+            alcGetIntegerv(dev, ALC_FREQUENCY, 1, &freq);
+            alcMakeContextCurrent(prev_ctx);
+            alcDestroyContext(ctx);
+        }
+        alcCloseDevice(dev);
+    }
+    return (int) freq;
+}
+
+int
+sound_get_device_supported_rates(const char *device_name, int *rates_out, int max_rates)
+{
+    /* Candidate rates: only those where rate/50 <= SOUNDBUFLEN to avoid overflowing
+       static device buffers. */
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+    const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
+
+    const ALCchar *dev_name = (device_name && device_name[0]) ? device_name : NULL;
+    ALCdevice     *dev      = alcOpenDevice(dev_name);
+    int            count    = 0;
+
+    if (dev != NULL) {
+        ALCcontext *prev_ctx = alcGetCurrentContext();
+
+        for (int i = 0; i < num_cands && count < max_rates; i++) {
+            ALCint      attrs[] = { ALC_FREQUENCY, candidates[i], 0 };
+            ALCcontext *ctx     = alcCreateContext(dev, attrs);
+            ALCint      got     = 0;
+
+            if (ctx != NULL) {
+                alcMakeContextCurrent(ctx);
+                alcGetIntegerv(dev, ALC_FREQUENCY, 1, &got);
+                alcMakeContextCurrent(prev_ctx);
+                alcDestroyContext(ctx);
+            }
+
+            if (got == candidates[i])
+                rates_out[count++] = candidates[i];
+        }
+
+        alcCloseDevice(dev);
+    }
+
+    /* Fallback: if detection failed entirely, return all candidates. */
+    if (count == 0) {
+        for (int i = 0; i < num_cands && i < max_rates; i++)
+            rates_out[i] = candidates[i];
+        count = num_cands;
+    }
+
+    return count;
 }
 
 ALvoid
@@ -163,23 +226,25 @@ inital(void)
         init_midi = 1; /* If the device is neither none, nor system MIDI, initialize the
                           MIDI buffer and source, otherwise, do not. */
 
+    const int pcm_buf_len = sound_sample_rate / 50;
+
     sources = 6 + !!init_midi;
     if (sound_is_float) {
-        buf       = (float *) calloc((BUFLEN << 1), sizeof(float));
+        buf       = (float *) calloc((pcm_buf_len << 1), sizeof(float));
         music_buf = (float *) calloc((MUSICBUFLEN << 1), sizeof(float));
         wt_buf    = (float *) calloc((WTBUFLEN << 1), sizeof(float));
         cd_buf    = (float *) calloc((CD_BUFLEN << 1), sizeof(float));
-        fdd_buf   = (float *) calloc((BUFLEN << 1), sizeof(float));
-        hdd_buf   = (float *) calloc((BUFLEN << 1), sizeof(float));
+        fdd_buf   = (float *) calloc((pcm_buf_len << 1), sizeof(float));
+        hdd_buf   = (float *) calloc((pcm_buf_len << 1), sizeof(float));
         if (init_midi)
             midi_buf = (float *) calloc(midi_buf_size, sizeof(float));
     } else {
-        buf_int16       = (int16_t *) calloc((BUFLEN << 1), sizeof(int16_t));
+        buf_int16       = (int16_t *) calloc((pcm_buf_len << 1), sizeof(int16_t));
         music_buf_int16 = (int16_t *) calloc((MUSICBUFLEN << 1), sizeof(int16_t));
         wt_buf_int16    = (int16_t *) calloc((WTBUFLEN << 1), sizeof(int16_t));
         cd_buf_int16    = (int16_t *) calloc((CD_BUFLEN << 1), sizeof(int16_t));
-        fdd_buf_int16   = (int16_t *) calloc((BUFLEN << 1), sizeof(int16_t));
-        hdd_buf_int16   = (int16_t *) calloc((BUFLEN << 1), sizeof(int16_t));
+        fdd_buf_int16   = (int16_t *) calloc((pcm_buf_len << 1), sizeof(int16_t));
+        hdd_buf_int16   = (int16_t *) calloc((pcm_buf_len << 1), sizeof(int16_t));
         if (init_midi)
             midi_buf_int16 = (int16_t *) calloc(midi_buf_size, sizeof(int16_t));
     }
@@ -244,42 +309,42 @@ inital(void)
     }
 
     if (sound_is_float) {
-        memset(buf, 0, BUFLEN * 2 * sizeof(float));
+        memset(buf, 0, pcm_buf_len * 2 * sizeof(float));
         memset(cd_buf, 0, CD_BUFLEN * 2 * sizeof(float));
         memset(music_buf, 0, MUSICBUFLEN * 2 * sizeof(float));
         memset(wt_buf, 0, WTBUFLEN * 2 * sizeof(float));
-        memset(fdd_buf, 0, BUFLEN * 2 * sizeof(float));
-        memset(hdd_buf, 0, BUFLEN * 2 * sizeof(float));
+        memset(fdd_buf, 0, pcm_buf_len * 2 * sizeof(float));
+        memset(hdd_buf, 0, pcm_buf_len * 2 * sizeof(float));
         if (init_midi)
             memset(midi_buf, 0, midi_buf_size * sizeof(float));
     } else {
-        memset(buf_int16, 0, BUFLEN * 2 * sizeof(int16_t));
+        memset(buf_int16, 0, pcm_buf_len * 2 * sizeof(int16_t));
         memset(cd_buf_int16, 0, CD_BUFLEN * 2 * sizeof(int16_t));
         memset(music_buf_int16, 0, MUSICBUFLEN * 2 * sizeof(int16_t));
         memset(wt_buf_int16, 0, WTBUFLEN * 2 * sizeof(int16_t));
-        memset(fdd_buf_int16, 0, BUFLEN * 2 * sizeof(int16_t));
-        memset(hdd_buf_int16, 0, BUFLEN * 2 * sizeof(int16_t));
+        memset(fdd_buf_int16, 0, pcm_buf_len * 2 * sizeof(int16_t));
+        memset(hdd_buf_int16, 0, pcm_buf_len * 2 * sizeof(int16_t));
         if (init_midi)
             memset(midi_buf_int16, 0, midi_buf_size * sizeof(int16_t));
     }
 
     for (uint8_t c = 0; c < 4; c++) {
         if (sound_is_float) {
-            alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN * 2 * sizeof(float), FREQ);
-            alBufferData(buffers_music[c], AL_FORMAT_STEREO_FLOAT32, music_buf, MUSICBUFLEN * 2 * sizeof(float), MUSIC_FREQ);
-            alBufferData(buffers_wt[c], AL_FORMAT_STEREO_FLOAT32, wt_buf, WTBUFLEN * 2 * sizeof(float), WT_FREQ);
-            alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN * 2 * sizeof(float), CD_FREQ);
-            alBufferData(buffers_fdd[c], AL_FORMAT_STEREO_FLOAT32, fdd_buf, BUFLEN * 2 * sizeof(float), FREQ);
-            alBufferData(buffers_hdd[c], AL_FORMAT_STEREO_FLOAT32, hdd_buf, BUFLEN * 2 * sizeof(float), FREQ);
+            alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, pcm_buf_len * 2 * (int) sizeof(float), sound_sample_rate);
+            alBufferData(buffers_music[c], AL_FORMAT_STEREO_FLOAT32, music_buf, MUSICBUFLEN * 2 * (int) sizeof(float), MUSIC_FREQ);
+            alBufferData(buffers_wt[c], AL_FORMAT_STEREO_FLOAT32, wt_buf, WTBUFLEN * 2 * (int) sizeof(float), WT_FREQ);
+            alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN * 2 * (int) sizeof(float), CD_FREQ);
+            alBufferData(buffers_fdd[c], AL_FORMAT_STEREO_FLOAT32, fdd_buf, pcm_buf_len * 2 * (int) sizeof(float), sound_sample_rate);
+            alBufferData(buffers_hdd[c], AL_FORMAT_STEREO_FLOAT32, hdd_buf, pcm_buf_len * 2 * (int) sizeof(float), sound_sample_rate);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO_FLOAT32, midi_buf, midi_buf_size * (int) sizeof(float), midi_freq);
         } else {
-            alBufferData(buffers[c], AL_FORMAT_STEREO16, buf_int16, BUFLEN * 2 * sizeof(int16_t), FREQ);
-            alBufferData(buffers_music[c], AL_FORMAT_STEREO16, music_buf_int16, MUSICBUFLEN * 2 * sizeof(int16_t), MUSIC_FREQ);
-            alBufferData(buffers_wt[c], AL_FORMAT_STEREO16, wt_buf_int16, WTBUFLEN * 2 * sizeof(int16_t), WT_FREQ);
-            alBufferData(buffers_cd[c], AL_FORMAT_STEREO16, cd_buf_int16, CD_BUFLEN * 2 * sizeof(int16_t), CD_FREQ);
-            alBufferData(buffers_fdd[c], AL_FORMAT_STEREO16, fdd_buf_int16, BUFLEN * 2 * sizeof(int16_t), FREQ);
-            alBufferData(buffers_hdd[c], AL_FORMAT_STEREO16, hdd_buf_int16, BUFLEN * 2 * sizeof(int16_t), FREQ);
+            alBufferData(buffers[c], AL_FORMAT_STEREO16, buf_int16, pcm_buf_len * 2 * (int) sizeof(int16_t), sound_sample_rate);
+            alBufferData(buffers_music[c], AL_FORMAT_STEREO16, music_buf_int16, MUSICBUFLEN * 2 * (int) sizeof(int16_t), MUSIC_FREQ);
+            alBufferData(buffers_wt[c], AL_FORMAT_STEREO16, wt_buf_int16, WTBUFLEN * 2 * (int) sizeof(int16_t), WT_FREQ);
+            alBufferData(buffers_cd[c], AL_FORMAT_STEREO16, cd_buf_int16, CD_BUFLEN * 2 * (int) sizeof(int16_t), CD_FREQ);
+            alBufferData(buffers_fdd[c], AL_FORMAT_STEREO16, fdd_buf_int16, pcm_buf_len * 2 * (int) sizeof(int16_t), sound_sample_rate);
+            alBufferData(buffers_hdd[c], AL_FORMAT_STEREO16, hdd_buf_int16, pcm_buf_len * 2 * (int) sizeof(int16_t), sound_sample_rate);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO16, midi_buf_int16, midi_buf_size * (int) sizeof(int16_t), midi_freq);
         }
@@ -361,7 +426,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size, const in
 void
 givealbuffer(const void *buf)
 {
-    givealbuffer_common(buf, I_NORMAL, BUFLEN << 1, FREQ);
+    givealbuffer_common(buf, I_NORMAL, (sound_sample_rate / 50) << 1, sound_sample_rate);
 }
 
 void
@@ -391,11 +456,11 @@ givealbuffer_midi(const void *buf, const uint32_t size)
 void
 givealbuffer_fdd(const void *buf, const uint32_t size)
 {
-    givealbuffer_common(buf, I_FDD, (int) size, FREQ);
+    givealbuffer_common(buf, I_FDD, (int) size, sound_sample_rate);
 }
 
 void
 givealbuffer_hdd(const void *buf, const uint32_t size)
 {
-    givealbuffer_common(buf, I_HDD, (int) size, FREQ);
+    givealbuffer_common(buf, I_HDD, (int) size, sound_sample_rate);
 }

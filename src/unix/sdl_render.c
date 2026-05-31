@@ -40,7 +40,6 @@ SDL_Window         *sdl_win     = NULL;
 SDL_Renderer       *sdl_render  = NULL;
 #ifndef USE_SDL_SHADER_PIPELINE
 static SDL_Texture *sdl_tex     = NULL;
-static SDL_Texture *sdl_osd_tex = NULL;
 #endif
 int                 sdl_w       = SCREEN_RES_X;
 int                 sdl_h       = SCREEN_RES_Y;
@@ -227,7 +226,7 @@ sdl_real_blit(SDL_Rect *r_src)
 #else
     SDL_Rect src_rect = { 0, 0, r_src->w, r_src->h };
 
-    if (sdl_render == NULL || sdl_tex == NULL || sdl_osd_tex == NULL)
+    if (sdl_render == NULL || sdl_tex == NULL)
         return;
 
     if (SDL_UpdateTexture(sdl_tex, &src_rect, pixeldata, 2048 * (int) sizeof(uint32_t)) < 0)
@@ -238,15 +237,6 @@ sdl_real_blit(SDL_Rect *r_src)
     SDL_RenderCopy(sdl_render, sdl_tex, &src_rect, &r_dst);
 
     osd_present(r_src->w, r_src->h);
-
-    if (osd_is_visible()) {
-        SDL_Surface *osd_surface = osd_get_surface();
-
-        if (osd_surface && osd_surface->w == r_src->w && osd_surface->h == r_src->h) {
-            if (SDL_UpdateTexture(sdl_osd_tex, &src_rect, osd_surface->pixels, osd_surface->pitch) == 0)
-                SDL_RenderCopy(sdl_render, sdl_osd_tex, &src_rect, &r_dst);
-        }
-    }
 
     SDL_RenderPresent(sdl_render);
 #endif
@@ -306,10 +296,6 @@ sdl_destroy_texture(void)
 #ifdef USE_SDL_SHADER_PIPELINE
     sdl_shader_close();
 #else
-    if (sdl_osd_tex != NULL) {
-        SDL_DestroyTexture(sdl_osd_tex);
-        sdl_osd_tex = NULL;
-    }
     if (sdl_tex != NULL) {
         SDL_DestroyTexture(sdl_tex);
         sdl_tex = NULL;
@@ -391,9 +377,7 @@ sdl_reinit_texture(void)
     if (pixeldata == NULL)
         return;
 
-#ifdef USE_IMGUI
     osd_deinit();
-#endif
 
     sdl_destroy_texture();
 
@@ -407,18 +391,12 @@ sdl_reinit_texture(void)
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
                                 SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
-    sdl_osd_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ABGR8888,
-                                    SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
-    if (sdl_tex == NULL || sdl_osd_tex == NULL) {
+    if (sdl_tex == NULL) {
         sdl_destroy_texture();
         return;
     }
 
-    SDL_SetTextureBlendMode(sdl_osd_tex, SDL_BLENDMODE_BLEND);
-
-#ifdef USE_IMGUI
     osd_init();
-#endif
 #endif
 }
 
