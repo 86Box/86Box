@@ -1,4 +1,4 @@
-/* ImGui OSD for 86Box SDL2. Uses either the stock SDL_Renderer or OpenGL3 backend. */
+/* SDL OSD for 86Box. Uses either the stock SDL_Renderer or the GL shader backend. */
 #ifdef USE_SDL_SHADER_PIPELINE
 #include <GLES2/gl2.h>
 #endif
@@ -75,7 +75,7 @@ enum OsdView {
     VIEW_CD_FOLDER
 };
 
-static bool      imgui_inited   = false;
+static bool      osd_inited     = false;
 static bool      osd_visible    = false;
 static bool      pending_close  = false;
 static OsdView   current_view   = VIEW_MENU;
@@ -399,7 +399,7 @@ static void run_cmd(const char *cmd)
 }
 
 /* ------------------------------------------------------------------ */
-/*  ImGui theme — retro / CRT-inspired                                */
+/*  OSD theme: retro / CRT-inspired                                   */
 /* ------------------------------------------------------------------ */
 static void setup_retro_style(void)
 {
@@ -446,7 +446,7 @@ static void setup_retro_style(void)
 /* ------------------------------------------------------------------ */
 void osd_init(void)
 {
-    if (imgui_inited)
+    if (osd_inited)
         return;
 
     IMGUI_CHECKVERSION();
@@ -466,12 +466,12 @@ void osd_init(void)
     log_mutex = SDL_CreateMutex();
     pclog_hook = osd_log_push;
 
-    imgui_inited = true;
+    osd_inited = true;
 }
 
 void osd_deinit(void)
 {
-    if (!imgui_inited)
+    if (!osd_inited)
         return;
 
     pclog_hook = nullptr;
@@ -479,7 +479,7 @@ void osd_deinit(void)
 
     osd_backend_shutdown();
     ImGui::DestroyContext();
-    imgui_inited = false;
+    osd_inited = false;
 }
 
 /* ------------------------------------------------------------------ */
@@ -495,7 +495,7 @@ int osd_open(SDL_Event event)
     plat_mouse_capture(0);
 
     /* Prevent stale ESC from firing on re-open. */
-    if (imgui_inited)
+    if (osd_inited)
         ImGui::GetIO().ClearInputKeys();
 
     return 1;
@@ -518,10 +518,10 @@ int osd_close(SDL_Event event)
 /* ------------------------------------------------------------------ */
 int osd_handle(SDL_Event event)
 {
-    if (!osd_visible || !imgui_inited)
+    if (!osd_visible || !osd_inited)
         return 0;
 
-    /* Handle ESC manually — imgui nav would interfere. */
+    /* Handle ESC manually so keyboard navigation stays predictable. */
     if ((event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
         && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
         if (event.type == SDL_KEYUP) {
@@ -1083,7 +1083,7 @@ static void flip_draw_data_y(ImDrawData *dd)
 /* ------------------------------------------------------------------ */
 void osd_present(int fb_w, int fb_h)
 {
-    if (!osd_visible || !imgui_inited)
+    if (!osd_visible || !osd_inited)
         return;
 
 #ifdef USE_SDL_SHADER_PIPELINE
@@ -1096,7 +1096,7 @@ void osd_present(int fb_w, int fb_h)
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplSDL2_NewFrame();
 
-    /* Use FBO resolution so imgui renders into the texture. */
+    /* Use FBO resolution so the OSD renders into the texture. */
     ImGuiIO &io = ImGui::GetIO();
     io.DisplaySize = ImVec2((float)fb_w, (float)fb_h);
     io.DisplayFramebufferScale = ImVec2(1.0f, 1.0f);
@@ -1146,7 +1146,7 @@ void osd_present(int fb_w, int fb_h)
     /* Render */
     ImGui::Render();
 
-    /* Y-flip draw data: FBO has Y=0 at bottom, imgui expects Y=0 at top. */
+    /* Y-flip draw data: the FBO has Y=0 at bottom, the UI uses Y=0 at top. */
     ImDrawData *dd = ImGui::GetDrawData();
     flip_draw_data_y(dd);
     ImGui_ImplOpenGL3_RenderDrawData(dd);
@@ -1183,16 +1183,6 @@ void osd_present(int fb_w, int fb_h)
     ImGui::Render();
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_render);
 #endif
-}
-
-int osd_is_visible(void)
-{
-    return osd_visible ? 1 : 0;
-}
-
-SDL_Surface *osd_get_surface(void)
-{
-    return NULL;
 }
 
 /* ------------------------------------------------------------------ */
