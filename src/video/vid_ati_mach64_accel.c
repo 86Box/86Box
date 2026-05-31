@@ -19,7 +19,7 @@
  *          Copyright 2026 Connor Hyde.
  */
 
-#include <86box/vid_ati_mach64.h>
+#include "vid_ati_mach64.h"
 
 static void
 mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t val);
@@ -515,7 +515,6 @@ void
 mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
     fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_write_idx & FIFO_MASK];
-    int limit = 0;
 
     // Before me, there was some code that checked if the address was 0x11b (if a byte), 0x11a (if a word), or 0x118 (if a dword), and only fired the FIFO thread
     // if there were 16 or more entries in the FIFO. It was introduced in a commit on 8/21/2024 with no discussion that I can find even related to it. 
@@ -885,6 +884,8 @@ mach64_blit_calc_cmp_clr(mach64_t* mach64, uint32_t src_dat, uint32_t dest_dat)
         default:
             break;
     }
+
+    return cmp_clr; 
 }
 
 void
@@ -1366,10 +1367,6 @@ mach64_blit_line(uint32_t cpu_dat, int count, mach64_t* mach64)
 void
 mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 {
-    svga_t *svga    = &mach64->svga;
-    int     cmp_clr = 0;
-    int     mix = 0;
-
     if (!mach64->accel.busy) {
         mach64_log("mach64_blit : return as not busy\n");
         return;
