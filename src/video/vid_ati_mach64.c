@@ -19,6 +19,7 @@
  *          Copyright 2026 Connor Hyde.
  */
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -96,6 +97,7 @@ enum {
 };
 
 #define MACH64_FLAG_ONBOARD (1 << 19)
+#define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
 
 typedef struct mach64_t {
     mem_mapping_t linear_mapping;
@@ -848,10 +850,8 @@ mach64_recalc_dp_set_engine(mach64_t *mach64)
     switch ((mach64->dp_set_gui_engine >> 20) & 0xf)
     {
         case 0:
-            {
-                pclog("unknown drawing combo2\n");
-                break;
-            }
+            pclog("unknown drawing combo2\n");
+            break;
         case 1:
             mach64->dp_mix = 0x070003;
             mach64->dp_src = 0x0000100;
@@ -918,10 +918,8 @@ mach64_recalc_dp_set_engine(mach64_t *mach64)
             mach64->gui_traj_cntl = 0x0004001B;
             break;
         case 14:
-        {
             pclog("unknown drawing combo\n");
             break;
-        }
         case 15:
             mach64->dp_src = 0x300;
             mach64->dp_mix = 0x70007;
@@ -3871,7 +3869,7 @@ mach64_overlay_draw(svga_t *svga, int displine)
 }
 
 static void
-mach64_io_remove(mach64_t *mach64)
+mach64_io_unmap(mach64_t *mach64)
 {
     uint16_t io_base = MACH64_IO_BASE_2EC;
 
@@ -3907,11 +3905,11 @@ mach64_io_remove(mach64_t *mach64)
 }
 
 static void
-mach64_io_set(mach64_t *mach64)
+mach64_io_map(mach64_t *mach64)
 {
     uint16_t io_base = MACH64_IO_BASE_2EC;
 
-    mach64_io_remove(mach64);
+    mach64_io_unmap(mach64);
 
     switch (mach64->io_base) {
         default:
@@ -4097,71 +4095,72 @@ mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
     return mach64_writel_linear(addr, bswap32(val), priv);
 }
 
+// PCI config space I/O read function
 uint8_t
 mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const mach64_t *mach64 = (mach64_t *) priv;
 
     switch (addr) {
-        case 0x00:
+        case PCI_REG_VENDOR_ID_L:
             return 0x02; /*ATi*/
-        case 0x01:
+        case PCI_REG_VENDOR_ID_H:
             return 0x10;
-        case 0x02:
+        case PCI_REG_DEVICE_ID_L:
             return mach64->pci_id & 0xff;
-        case 0x03:
+        case PCI_REG_DEVICE_ID_H:
             return mach64->pci_id >> 8;
         case PCI_REG_COMMAND:
             return mach64->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
-        case 0x07:
+        case PCI_REG_STATUS_H:
             return 1 << 1; /*Medium DEVSEL timing*/
-        case 0x08: /*Revision ID*/
+        case PCI_REG_REVISION: /*Revision ID*/
             if (mach64->type == MACH64_GX)
                 return 0;
             return 0x40;
-        case 0x09:
+        case PCI_REG_PROG_IF:
             return 0; /*Programming interface*/
-        case 0x0a:
+        case PCI_REG_SUBCLASS:
             return 0x01; /*Supports VGA interface, XGA compatible*/
-        case 0x0b:
+        case PCI_REG_CLASS:
             return 0x03;
-        case 0x10:
+        case PCI_REG_BAR0_BYTE0:
             return 0x00; /*Linear frame buffer address*/
-        case 0x11:
+        case PCI_REG_BAR0_BYTE1:
             return 0x00;
-        case 0x12:
+        case PCI_REG_BAR0_BYTE2:
             return mach64->linear_base >> 16;
-        case 0x13:
+        case PCI_REG_BAR0_BYTE3:
             return mach64->linear_base >> 24;
-        case 0x14:
+        case PCI_REG_BAR1_BYTE0:
             if (mach64->type >= MACH64_CT)
                 return 0x01; /*Block decoded IO address*/
             return 0x00;
-        case 0x15:
+        case PCI_REG_BAR1_BYTE1:
             if (mach64->type >= MACH64_CT)
                 return mach64->block_decoded_io >> 8;
             return 0x00;
-        case 0x16:
+        case PCI_REG_BAR1_BYTE2:
             if (mach64->type >= MACH64_CT)
                 return mach64->block_decoded_io >> 16;
             return 0x00;
-        case 0x17:
+        case PCI_REG_BAR1_BYTE3:
             if (mach64->type >= MACH64_CT)
                 return mach64->block_decoded_io >> 24;
             return 0x00;
-        case 0x30:
+        case PCI_REG_ROM_BAR_BYTE0:
             return (mach64->on_board) ? 0 : (mach64->pci_regs[0x30] & 0x01); /*BIOS ROM address*/
-        case 0x31:
+        case PCI_REG_ROM_BAR_BYTE1:
             return 0x00;
-        case 0x32:
+        case PCI_REG_ROM_BAR_BYTE2:
             return (mach64->on_board) ? 0 : mach64->pci_regs[0x32];
-        case 0x33:
+        case PCI_REG_ROM_BAR_BYTE3:
             return (mach64->on_board) ? 0 : mach64->pci_regs[0x33];
-        case 0x3c:
+        case PCI_REG_INT_LINE:
             return mach64->int_line;
-        case 0x3d:
+        case PCI_REG_INT_PIN:
             return PCI_INTA;
-        case 0x40:
+        case MACH64_PCI_IOCONFIG:
             return mach64->use_block_decoded_io | mach64->io_base;
         default:
             break;
@@ -4169,63 +4168,60 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
     return 0;
 }
 
+// PCI config space I/O write function
 void
 mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
 
+    // Addresses that DON'T need to 
+    bool dont_remap_io = (addr == PCI_REG_COMMAND // controls the mapping so we don't use the default behaviour  
+    || addr == PCI_REG_BAR0_BYTE2
+    || addr == PCI_REG_BAR0_BYTE3);
+
+    if (!dont_remap_io
+    && (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO))
+    {
+        mach64_io_unmap(mach64);
+    }
+
     switch (addr) {
         case PCI_REG_COMMAND:
             mach64->pci_regs[PCI_REG_COMMAND] = val & 0x27;
             if (val & PCI_COMMAND_IO)
-                mach64_io_set(mach64);
+                mach64_io_map(mach64);
             else
-                mach64_io_remove(mach64);
+                mach64_io_unmap(mach64);
             mach64_updatemapping(mach64);
             break;
-
-        case 0x12:
+        case PCI_REG_BAR0_BYTE2:
             if (mach64->type >= MACH64_CT)
                 val = 0;
             mach64->linear_base = (mach64->linear_base & 0xff000000) | ((val & 0x80) << 16);
             mach64_updatemapping(mach64);
             break;
-        case 0x13:
+        case PCI_REG_BAR0_BYTE3:
             mach64->linear_base = (mach64->linear_base & 0x800000) | (val << 24);
             mach64_updatemapping(mach64);
             break;
-        case 0x15:
-            if (mach64->type >= MACH64_CT) {
-                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                    mach64_io_remove(mach64);
+        case PCI_REG_BAR1_BYTE1:
+            if (mach64->type >= MACH64_CT)
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff0000) | ((val & 0xff) << 8);
-                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                    mach64_io_set(mach64);
-            }
             break;
-        case 0x16:
-            if (mach64->type >= MACH64_CT) {
-                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                    mach64_io_remove(mach64);
+        case PCI_REG_BAR1_BYTE2:
+            if (mach64->type >= MACH64_CT)
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0xff00fc00) | (val << 16);
-                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                    mach64_io_set(mach64);
-            }
             break;
-        case 0x17:
-            if (mach64->type >= MACH64_CT) {
-                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                    mach64_io_remove(mach64);
+        case PCI_REG_BAR1_BYTE3:
+            if (mach64->type >= MACH64_CT)
                 mach64->block_decoded_io = (mach64->block_decoded_io & 0x00fffc00) | (val << 24);
-                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                    mach64_io_set(mach64);
-            }
             break;
-        case 0x30:
-        case 0x32 ... 0x33:
-            if (mach64->on_board) return;
+        case PCI_REG_ROM_BAR_BYTE0:
+        case PCI_REG_ROM_BAR_BYTE2 ... PCI_REG_ROM_BAR_BYTE3:
+            if (mach64->on_board) 
+                return;
             mach64->pci_regs[addr] = val;
-            if (mach64->pci_regs[0x30] & 0x01) {
+            if (mach64->pci_regs[PCI_REG_ROM_BAR_BYTE0] & 0x01) {
                 uint32_t biosaddr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
                 mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
                 mem_mapping_set_addr(&mach64->bios_rom.mapping, biosaddr, 0x8000);
@@ -4234,27 +4230,29 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
                 mem_mapping_disable(&mach64->bios_rom.mapping);
             }
             return;
-        case 0x3c:
+        case PCI_REG_INT_LINE:
             mach64->int_line = val;
             break;
-        case 0x40:
-            if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                mach64_io_remove(mach64);
+        case MACH64_PCI_IOCONFIG:
             mach64->io_base = val & 0x03;
             if (mach64->type >= MACH64_CT)
                 mach64->use_block_decoded_io = val & 0x04;
-            if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                mach64_io_set(mach64);
             break;
         default:
             break;
+    }
+
+    if (!dont_remap_io
+    && (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO))
+    {
+        mach64_io_map(mach64);
     }
 }
 
 static void
 mach64_disable_handlers(mach64_t *dev)
 {
-    mach64_io_remove(dev);
+    mach64_io_unmap(dev);
 
     mem_mapping_disable(&dev->linear_mapping);
     mem_mapping_disable(&dev->linear_mapping_big_endian);
@@ -4293,7 +4291,7 @@ mach64_reset(void *priv)
         reset_state[dev->svga.monitor_index]->pci_slot = dev->pci_slot;
 
         *dev = *reset_state[dev->svga.monitor_index];
-        mach64_io_set(dev);
+        mach64_io_map(dev);
         memset(dev->svga.vram, 0, dev->svga.vram_max);
         memset(dev->svga.changedvram, 0, (dev->svga.vram_max >> 12) + 1);
         dev->svga.dpms = 1;
@@ -4335,7 +4333,7 @@ mach64_common_init(const device_t *info)
     mem_mapping_add(&mach64->mmio_mapping, 0xbf000, 0x1000, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_disable(&mach64->mmio_mapping);
 
-    mach64_io_set(mach64);
+    mach64_io_map(mach64);
 
     if (info->flags & DEVICE_PCI)
         pci_add_card((info->local & (1 << 19)) ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
