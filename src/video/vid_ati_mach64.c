@@ -7,6 +7,8 @@
  *          This file is part of the 86Box distribution.
  *
  *          ATi Mach64 graphics card emulation.
+ *          The ATi Mach64 is a 1994 Windows 2D accelerator.
+ *          Technical information is available at: https://bitsavers.org/components/ati/RRG-S00700-05_mach64_Register_Reference_Guide_1999410.pdf
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
@@ -449,6 +451,7 @@ mach64_log(const char *fmt, ...)
 
 static mach64_t *reset_state[2] = { NULL, NULL };
 
+// x86 I/O port output function
 void
 mach64_out(uint16_t addr, uint8_t val, void *priv)
 {
@@ -469,10 +472,7 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
                 svga_recalctimings(svga);
             break;
 
-        case 0x3C6:
-        case 0x3C7:
-        case 0x3C8:
-        case 0x3C9:
+        case 0x3C6 ... 0x3C9:
             if (mach64->type == MACH64_GX)
                 ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
             else
@@ -536,10 +536,7 @@ mach64_in(uint16_t addr, void *priv)
         case 0x1cf:
             return mach64->regs[mach64->index & 0x3f];
 
-        case 0x3C6:
-        case 0x3C7:
-        case 0x3C8:
-        case 0x3C9:
+        case 0x3C6 ... 0x3C9:
             if (mach64->type == MACH64_GX)
                 return ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, svga->ramdac, svga);
             return svga_in(addr, svga);
@@ -931,46 +928,28 @@ static void
 mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
 {
     switch (addr & 0x3ff) {
-        case 0x100:
-        case 0x101:
-        case 0x102:
-        case 0x103:
+        case 0x100 ... 0x103:
             WRITE8(addr, mach64->dst_off_pitch, val);
             break;
-        case 0x104:
-        case 0x105:
-        case 0x11c:
-        case 0x11d:
+        case 0x104 ... 0x105:
+        case 0x11c ... 0x11d:
             WRITE8(addr + 2, mach64->dst_y_x, val);
             break;
-        case 0x108:
-        case 0x109:
+        case 0x108 ... 0x109:
             WRITE8(addr, mach64->dst_y_x, val);
             break;
-        case 0x10c:
-        case 0x10d:
-        case 0x10e:
-        case 0x10f:
+        case 0x10c ... 0x10f:
             WRITE8(addr, mach64->dst_y_x, val);
             break;
-        case 0x2e8:
-        case 0x2e9:
-        case 0x2ea:
-        case 0x2eb:
+        case 0x2e8 ... 0x2eb:
             WRITE8(addr ^ 2, mach64->dst_y_x, val);
             break;
-        case 0x110:
-        case 0x111:
+        case 0x110 ... 0x111:
             WRITE8(addr + 2, mach64->dst_height_width, val);
             break;
-        case 0x114:
-        case 0x115:
-        case 0x118:
-        case 0x119:
-        case 0x11a:
-        case 0x11b:
-        case 0x11e:
-        case 0x11f:
+        case 0x114 ... 0x115:
+        case 0x118 ... 0x11b:
+        case 0x11e ... 0x11f:
             WRITE8(addr, mach64->dst_height_width, val);
             fallthrough;
         case 0x113:
@@ -985,20 +964,14 @@ start_blit_op:
             }
             break;
 
-        case 0x2ec:
-        case 0x2ed:
-        case 0x2ee:
-        case 0x2ef:
+        case 0x2ec ... 0x2ef:
             WRITE8(addr ^ 2, mach64->dst_height_width, val);
             if ((addr & 0x3ff) == 0x2ef) {
                 goto start_blit_op;
             }
             break;
 
-        case 0x120:
-        case 0x121:
-        case 0x122:
-        case 0x123:
+        case 0x120 ... 0x123:
             WRITE8(addr, mach64->dst_bres_lnth, val);
             if ((addr & 0x3ff) == 0x123 && !(val & 0x80)) {
                 mach64_start_line(mach64);
@@ -1007,99 +980,58 @@ start_blit_op:
                     mach64_blit(0, -1, mach64);
             }
             break;
-        case 0x124:
-        case 0x125:
-        case 0x126:
-        case 0x127:
+        case 0x124 ... 0x127:
             WRITE8(addr, mach64->dst_bres_err, val);
             break;
-        case 0x128:
-        case 0x129:
-        case 0x12a:
-        case 0x12b:
+        case 0x128 ... 0x12b:
             WRITE8(addr, mach64->dst_bres_inc, val);
             break;
-        case 0x12c:
-        case 0x12d:
-        case 0x12e:
-        case 0x12f:
+        case 0x12c ... 0x12f:
             WRITE8(addr, mach64->dst_bres_dec, val);
             break;
-
-        case 0x130:
-        case 0x131:
-        case 0x132:
-        case 0x133:
+        case 0x130 ... 0x133:
             WRITE8(addr, mach64->dst_cntl, val);
             break;
-
-        case 0x180:
-        case 0x181:
-        case 0x182:
-        case 0x183:
+        case 0x180 ... 0x183:
             WRITE8(addr, mach64->src_off_pitch, val);
             break;
-        case 0x184:
-        case 0x185:
+        case 0x184 ... 0x185:
             WRITE8(addr, mach64->src_y_x, val);
             break;
-        case 0x188:
-        case 0x189:
+        case 0x188 ... 0x189:
             WRITE8(addr + 2, mach64->src_y_x, val);
             break;
-        case 0x18c:
-        case 0x18d:
-        case 0x18e:
-        case 0x18f:
+        case 0x18c ... 0x18f:
             WRITE8(addr, mach64->src_y_x, val);
             break;
-        case 0x190:
-        case 0x191:
+        case 0x190 ... 0x191:
             WRITE8(addr + 2, mach64->src_height1_width1, val);
             break;
-        case 0x194:
-        case 0x195:
+        case 0x194 ... 0x195:
             WRITE8(addr, mach64->src_height1_width1, val);
             break;
-        case 0x198:
-        case 0x199:
-        case 0x19a:
-        case 0x19b:
+        case 0x198 ... 0x19b:
             WRITE8(addr, mach64->src_height1_width1, val);
             break;
-        case 0x19c:
-        case 0x19d:
+        case 0x19c ... 0x19d:
             WRITE8(addr, mach64->src_y_x_start, val);
             break;
-        case 0x1a0:
-        case 0x1a1:
+        case 0x1a0 ... 0x1a1:
             WRITE8(addr + 2, mach64->src_y_x_start, val);
             break;
-        case 0x1a4:
-        case 0x1a5:
-        case 0x1a6:
-        case 0x1a7:
+        case 0x1a4 ... 0x1a7:
             WRITE8(addr, mach64->src_y_x_start, val);
             break;
-        case 0x1a8:
-        case 0x1a9:
+        case 0x1a8 ... 0x1a9:
             WRITE8(addr + 2, mach64->src_height2_width2, val);
             break;
-        case 0x1ac:
-        case 0x1ad:
+        case 0x1ac ... 0x1ad:
             WRITE8(addr, mach64->src_height2_width2, val);
             break;
-        case 0x1b0:
-        case 0x1b1:
-        case 0x1b2:
-        case 0x1b3:
+        case 0x1b0 ... 0x1b3:
             WRITE8(addr, mach64->src_height2_width2, val);
             break;
-
-        case 0x1b4:
-        case 0x1b5:
-        case 0x1b6:
-        case 0x1b7:
+        case 0x1b4 ... 0x1b7:
             WRITE8(addr, mach64->src_cntl, val);
 #ifdef DMA_BM
             if (mach64->src_cntl & (1 << 9))
@@ -1108,210 +1040,79 @@ start_blit_op:
                 pclog("Bus master disabled\n");
 #endif
             break;
-
-        case 0x200:
-        case 0x201:
-        case 0x202:
-        case 0x203:
-        case 0x204:
-        case 0x205:
-        case 0x206:
-        case 0x207:
-        case 0x208:
-        case 0x209:
-        case 0x20a:
-        case 0x20b:
-        case 0x20c:
-        case 0x20d:
-        case 0x20e:
-        case 0x20f:
-        case 0x210:
-        case 0x211:
-        case 0x212:
-        case 0x213:
-        case 0x214:
-        case 0x215:
-        case 0x216:
-        case 0x217:
-        case 0x218:
-        case 0x219:
-        case 0x21a:
-        case 0x21b:
-        case 0x21c:
-        case 0x21d:
-        case 0x21e:
-        case 0x21f:
-        case 0x220:
-        case 0x221:
-        case 0x222:
-        case 0x223:
-        case 0x224:
-        case 0x225:
-        case 0x226:
-        case 0x227:
-        case 0x228:
-        case 0x229:
-        case 0x22a:
-        case 0x22b:
-        case 0x22c:
-        case 0x22d:
-        case 0x22e:
-        case 0x22f:
-        case 0x230:
-        case 0x231:
-        case 0x232:
-        case 0x233:
-        case 0x234:
-        case 0x235:
-        case 0x236:
-        case 0x237:
-        case 0x238:
-        case 0x239:
-        case 0x23a:
-        case 0x23b:
-        case 0x23c:
-        case 0x23d:
-        case 0x23e:
-        case 0x23f:
+        case 0x200 ... 0x23f:
             mach64_blit(val, 8, mach64);
             break;
-
-        case 0x240:
-        case 0x241:
-        case 0x242:
-        case 0x243:
+        case 0x240 ... 0x243:
             WRITE8(addr, mach64->host_cntl, val);
             break;
-
-        case 0x280:
-        case 0x281:
-        case 0x282:
-        case 0x283:
+        case 0x280 ... 0x283:
             WRITE8(addr, mach64->pat_reg0, val);
             break;
-        case 0x284:
-        case 0x285:
-        case 0x286:
-        case 0x287:
+        case 0x284 ... 0x287:
             WRITE8(addr, mach64->pat_reg1, val);
             break;
-
-        case 0x288:
-        case 0x289:
-        case 0x28a:
-        case 0x28b:
+        case 0x288 ... 0x28b:
             WRITE8(addr, mach64->pat_cntl, val);
             break;
-
-        case 0x2a0:
-        case 0x2a1:
-        case 0x2a8:
-        case 0x2a9:
+        case 0x2a0 ... 0x2a1:
+        case 0x2a8 ... 0x2a9:
             WRITE8(addr, mach64->sc_left_right, val);
             break;
-        case 0x2a4:
-        case 0x2a5:
+        case 0x2a4 ... 0x2a5: // doesn't seem right.
             addr += 2;
             fallthrough;
-        case 0x2aa:
-        case 0x2ab:
+        case 0x2aa ... 0x2ab:
             WRITE8(addr, mach64->sc_left_right, val);
             break;
-
-        case 0x2ac:
-        case 0x2ad:
-        case 0x2b4:
-        case 0x2b5:
+        case 0x2ac ... 0x2ad:
+        case 0x2b4 ... 0x2b5:
             WRITE8(addr, mach64->sc_top_bottom, val);
             break;
-        case 0x2b0:
-        case 0x2b1:
+        case 0x2b0 ... 0x2b1:
             addr += 2;
             fallthrough;
-        case 0x2b6:
-        case 0x2b7:
+        case 0x2b6 ... 0x2b7:
             WRITE8(addr, mach64->sc_top_bottom, val);
             break;
-
-        case 0x2c0:
-        case 0x2c1:
-        case 0x2c2:
-        case 0x2c3:
+        case 0x2c0 ... 0x2c3:
             WRITE8(addr, mach64->dp_bkgd_clr, val);
             break;
-        case 0x2c4:
-        case 0x2c5:
-        case 0x2c6:
-        case 0x2c7:
+        case 0x2c4 ... 0x2c7:
             WRITE8(addr, mach64->dp_frgd_clr, val);
             break;
-        case 0x2c8:
-        case 0x2c9:
-        case 0x2ca:
-        case 0x2cb:
+        case 0x2c8 ... 0x2cb:
             WRITE8(addr, mach64->write_mask, val);
             break;
-        case 0x2cc:
-        case 0x2cd:
-        case 0x2ce:
-        case 0x2cf:
+        case 0x2cc ... 0x2cf:
             WRITE8(addr, mach64->chain_mask, val);
             break;
-
-        case 0x2d0:
-        case 0x2d1:
-        case 0x2d2:
-        case 0x2d3:
+        case 0x2d0 ... 0x2d3:
             WRITE8(addr, mach64->dp_pix_width, val);
             break;
-        case 0x2d4:
-        case 0x2d5:
-        case 0x2d6:
-        case 0x2d7:
+        case 0x2d4 ... 0x2d7:
             WRITE8(addr, mach64->dp_mix, val);
             break;
-        case 0x2d8:
-        case 0x2d9:
-        case 0x2da:
-        case 0x2db:
+        case 0x2d8 ... 0x2db:
             WRITE8(addr, mach64->dp_src, val);
             break;
-        case 0x2fc:
-        case 0x2fd:
-        case 0x2fe:
-        case 0x2ff:
+        case 0x2fc ... 0x2ff:
             WRITE8(addr, mach64->dp_set_gui_engine, val);
             mach64_recalc_dp_set_engine(mach64);
             break;
-
-        case 0x300:
-        case 0x301:
-        case 0x302:
-        case 0x303:
+        case 0x300 ... 0x303:
             WRITE8(addr, mach64->clr_cmp_clr, val);
             break;
-        case 0x304:
-        case 0x305:
-        case 0x306:
-        case 0x307:
+        case 0x304 ... 0x307:
             WRITE8(addr, mach64->clr_cmp_mask, val);
             break;
-        case 0x308:
-        case 0x309:
-        case 0x30a:
-        case 0x30b:
+        case 0x308 ... 0x30b:
             WRITE8(addr, mach64->clr_cmp_cntl, val);
             break;
-
-        case 0x320:
-        case 0x321:
-        case 0x322:
-        case 0x323:
+        case 0x320 ... 0x323:
             WRITE8(addr, mach64->context_mask, val);
             break;
-
-        case 0x330:
-        case 0x331:
+        case 0x330 ... 0x331:
             WRITE8(addr, mach64->dst_cntl, val);
             break;
         case 0x332:
@@ -1332,98 +1133,60 @@ start_blit_op:
 static void
 mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t val)
 {
-    switch (addr & 0x3fe) {
-        case 0x200:
-        case 0x202:
-        case 0x204:
-        case 0x206:
-        case 0x208:
-        case 0x20a:
-        case 0x20c:
-        case 0x20e:
-        case 0x210:
-        case 0x212:
-        case 0x214:
-        case 0x216:
-        case 0x218:
-        case 0x21a:
-        case 0x21c:
-        case 0x21e:
-        case 0x220:
-        case 0x222:
-        case 0x224:
-        case 0x226:
-        case 0x228:
-        case 0x22a:
-        case 0x22c:
-        case 0x22e:
-        case 0x230:
-        case 0x232:
-        case 0x234:
-        case 0x236:
-        case 0x238:
-        case 0x23a:
-        case 0x23c:
-        case 0x23e:
-            mach64_blit(val, 16, mach64);
-            break;
+    // if the address is word aligned and we are between 200-23e, do a 16 pixel blit.
 
-        case 0x2fc:
-            mach64->dp_set_gui_engine |= (mach64->dp_set_gui_engine & 0xffff0000) | val;
-            mach64_recalc_dp_set_engine(mach64);
-            break;
-
-        case 0x2fe:
-            mach64->dp_set_gui_engine |= (mach64->dp_set_gui_engine & 0xffff) | (val << 16);
-            mach64_recalc_dp_set_engine(mach64);
-            break;
-
-        case 0x32c:
-            mach64->context_load_cntl = (mach64->context_load_cntl & 0xffff0000) | val;
-            break;
-
-        case 0x32e:
-            mach64->context_load_cntl = (mach64->context_load_cntl & 0x0000ffff) | (val << 16);
-            if (val & 0x30000)
-                mach64_load_context(mach64);
-            break;
-
-        default:
-            mach64_accel_write_fifo(mach64, addr, val);
-            mach64_accel_write_fifo(mach64, addr + 1, val >> 8);
-            break;
+    if (addr & 2
+    && (addr >= 0x200 && addr <= 0x23e))
+        mach64_blit(val, 16, mach64);
+    else
+    {
+        switch (addr & 0x3fe) {
+            case 0x2fc:
+                mach64->dp_set_gui_engine |= (mach64->dp_set_gui_engine & 0xffff0000) | val;
+                mach64_recalc_dp_set_engine(mach64);
+                break;
+            case 0x2fe:
+                mach64->dp_set_gui_engine |= (mach64->dp_set_gui_engine & 0xffff) | (val << 16);
+                mach64_recalc_dp_set_engine(mach64);
+                break;
+            case 0x32c:
+                mach64->context_load_cntl = (mach64->context_load_cntl & 0xffff0000) | val;
+                break;
+            case 0x32e:
+                mach64->context_load_cntl = (mach64->context_load_cntl & 0x0000ffff) | (val << 16);
+                if (val & 0x30000)
+                    mach64_load_context(mach64);
+                break;
+            default:
+                mach64_accel_write_fifo(mach64, addr, val);
+                mach64_accel_write_fifo(mach64, addr + 1, val >> 8);
+                break;
+            }
     }
+    
 }
 static void
 mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t val)
 {
+    if (addr & 4
+    && (addr >= 0x200 && addr <= 0x23e))
+    {
+        if (mach64->accel.source_host || (mach64->dp_pix_width & DP_BYTE_PIX_ORDER))
+            mach64_blit(val, 32, mach64);
+        else
+            mach64_blit(((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24), 32, mach64);
+        
+    }
+    else
+    {
+
+    }
+
     switch (addr & 0x3fc) {
         case 0x32c:
             mach64->context_load_cntl = val;
             if (val & 0x30000)
                 mach64_load_context(mach64);
-            break;
-
-        case 0x200:
-        case 0x204:
-        case 0x208:
-        case 0x20c:
-        case 0x210:
-        case 0x214:
-        case 0x218:
-        case 0x21c:
-        case 0x220:
-        case 0x224:
-        case 0x228:
-        case 0x22c:
-        case 0x230:
-        case 0x234:
-        case 0x238:
-        case 0x23c:
-            if (mach64->accel.source_host || (mach64->dp_pix_width & DP_BYTE_PIX_ORDER))
-                mach64_blit(val, 32, mach64);
-            else
-                mach64_blit(((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24), 32, mach64);
             break;
 
         case 0x2fc:
