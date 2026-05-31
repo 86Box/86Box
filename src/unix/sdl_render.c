@@ -240,7 +240,7 @@ sdl_real_blit(SDL_Rect *r_src)
     SDL_RenderClear(sdl_render);
     SDL_RenderCopy(sdl_render, sdl_tex, &src_rect, &r_dst);
 
-    osd_present(r_src->w, r_src->h);
+    osd_present(r_dst.w, r_dst.h);
 
     SDL_RenderPresent(sdl_render);
 #endif

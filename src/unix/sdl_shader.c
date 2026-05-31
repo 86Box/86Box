@@ -23,13 +23,6 @@ static int           use_bgra;
 static uint8_t      *packed_pixels;
 static size_t        packed_pixels_size;
 
-/* FBO for OSD compositing */
-static GLuint osd_fbo;
-static int    osd_fbo_inited;
-
-/* Last blit viewport (for mouse coordinate mapping) */
-static int last_dst_x, last_dst_y, last_dst_w, last_dst_h;
-
 /* Uniform locations */
 static GLint u_mvp, u_frame_dir, u_frame_cnt;
 static GLint u_out_size, u_tex_size, u_in_size, u_sampler;
@@ -37,7 +30,7 @@ static GLint u_out_size, u_tex_size, u_in_size, u_sampler;
 /* Attribute locations */
 static GLint a_vtx, a_tc;
 
-extern void osd_present(int fb_w, int fb_h);
+extern void osd_present(int output_w, int output_h);
 
 static char *
 read_text_file(const char *path)
@@ -320,7 +313,6 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
             SDL_SetWindowDisplayMode(win, &dm);
         if (need_set_fs)
             SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
-
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -440,20 +432,8 @@ sdl_shader_blit(SDL_Window *win, const void *pixels,
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, src_w, src_h,
                     fmt, GL_UNSIGNED_BYTE, packed_pixels);
 
-    /* Composite OSD into fb_tex via FBO at emulator resolution
-       so the shader (CRT etc.) applies to the OSD. */
-    sdl_shader_begin_osd(src_w, src_h);
-    osd_present(src_w, src_h);
-    sdl_shader_end_osd();
-
     int win_w, win_h;
     SDL_GL_GetDrawableSize(win, &win_w, &win_h);
-
-    /* Store blit viewport for OSD mouse coordinate mapping. */
-    last_dst_x = dst_x;
-    last_dst_y = dst_y;
-    last_dst_w = dst_w;
-    last_dst_h = dst_h;
 
     glViewport(0, 0, win_w, win_h);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -499,6 +479,10 @@ sdl_shader_blit(SDL_Window *win, const void *pixels,
     if (a_vtx >= 0) glDisableVertexAttribArray(a_vtx);
     if (a_tc >= 0) glDisableVertexAttribArray(a_tc);
 
+    /* Draw the OSD crisp on top of the shaded image, in the default
+       framebuffer at full window resolution. */
+    osd_present(dst_w, dst_h);
+
     SDL_GL_SwapWindow(win);
 }
 
@@ -511,11 +495,6 @@ sdl_shader_close(void)
     if (fb_tex) {
         glDeleteTextures(1, &fb_tex);
         fb_tex = 0;
-    }
-    if (osd_fbo) {
-        glDeleteFramebuffers(1, &osd_fbo);
-        osd_fbo = 0;
-        osd_fbo_inited = 0;
     }
     if (vbo) {
         glDeleteBuffers(1, &vbo);
@@ -544,49 +523,10 @@ sdl_shader_active(void)
     return is_active;
 }
 
-/* ------------------------------------------------------------------ */
-/*  FBO for OSD compositing                                            */
-/* ------------------------------------------------------------------ */
-void
-sdl_shader_begin_osd(int src_w, int src_h)
-{
-    if (!is_active || !fb_tex)
-        return;
-
-    if (!osd_fbo_inited) {
-        glGenFramebuffers(1, &osd_fbo);
-        osd_fbo_inited = 1;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, osd_fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_2D, fb_tex, 0);
-    glViewport(0, 0, src_w, src_h);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-
-void
-sdl_shader_end_osd(void)
-{
-    glDisable(GL_BLEND);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
 SDL_GLContext
 sdl_shader_get_context(void)
 {
     return gl_ctx;
-}
-
-void
-sdl_shader_get_viewport(int *dst_x, int *dst_y, int *dst_w, int *dst_h)
-{
-    if (dst_x) *dst_x = last_dst_x;
-    if (dst_y) *dst_y = last_dst_y;
-    if (dst_w) *dst_w = last_dst_w;
-    if (dst_h) *dst_h = last_dst_h;
 }
 
 /* ------------------------------------------------------------------ */

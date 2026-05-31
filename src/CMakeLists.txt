@@ -286,6 +286,8 @@ if (APPLE)
     add_subdirectory(mac)
 endif()
 
+add_subdirectory(osd)
+
 if (QT)
     add_subdirectory(qt)
 else()
