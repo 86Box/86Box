@@ -1135,6 +1135,8 @@ mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t val)
 {
     // if the address is word aligned and we are between 200-23e, do a 16 pixel blit.
 
+    addr &= 0x3fe;
+
     if (addr & 2
     && (addr >= 0x200 && addr <= 0x23e))
         mach64_blit(val, 16, mach64);
@@ -1168,8 +1170,9 @@ mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t val)
 static void
 mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t val)
 {
-    if (addr & 4
-    && (addr >= 0x200 && addr <= 0x23e))
+    addr &= 0x3fc;
+
+    if (addr >= 0x200 && addr <= 0x23c)
     {
         if (mach64->accel.source_host || (mach64->dp_pix_width & DP_BYTE_PIX_ORDER))
             mach64_blit(val, 32, mach64);
@@ -1194,10 +1197,8 @@ mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t val)
                 mach64_accel_write_fifo_w(mach64, addr, val);
                 mach64_accel_write_fifo_w(mach64, addr + 2, val >> 16);
                 break;
+        }
     }
-    }
-
-   
 }
 
 #ifdef DMA_BM
