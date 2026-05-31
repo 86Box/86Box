@@ -1187,12 +1187,10 @@ mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t val)
                 if (val & 0x30000)
                     mach64_load_context(mach64);
                 break;
-
             case 0x2fc:
                 mach64->dp_set_gui_engine = val;
                 mach64_recalc_dp_set_engine(mach64);
                 break;
-
             default:
                 mach64_accel_write_fifo_w(mach64, addr, val);
                 mach64_accel_write_fifo_w(mach64, addr + 2, val >> 16);
@@ -2354,243 +2352,125 @@ mach64_ext_readb(uint32_t addr, void *priv)
     if (!(addr & 0x400)) {
         mach64_log("nmach64_ext_readb: addr=%04x\n", addr);
         switch (addr & 0x3ff) {
-            case 0x00:
-            case 0x01:
-            case 0x02:
-            case 0x03:
+            case 0x00 ... 0x03:
                 READ8(addr, mach64->overlay_y_x_start);
                 break;
-            case 0x04:
-            case 0x05:
-            case 0x06:
-            case 0x07:
+            case 0x04 ... 0x07:
                 READ8(addr, mach64->overlay_y_x_end);
                 break;
-            case 0x08:
-            case 0x09:
-            case 0x0a:
-            case 0x0b:
+            case 0x08 ... 0x0b:
                 READ8(addr, mach64->overlay_video_key_clr);
                 break;
-            case 0x0c:
-            case 0x0d:
-            case 0x0e:
-            case 0x0f:
+            case 0x0c ... 0x0f:
                 READ8(addr, mach64->overlay_video_key_msk);
                 break;
-            case 0x10:
-            case 0x11:
-            case 0x12:
-            case 0x13:
+            case 0x10 ... 0x13:
                 READ8(addr, mach64->overlay_graphics_key_clr);
                 break;
-            case 0x14:
-            case 0x15:
-            case 0x16:
-            case 0x17:
+            case 0x14 ... 0x17: 
                 READ8(addr, mach64->overlay_graphics_key_msk);
                 break;
-            case 0x18:
-            case 0x19:
-            case 0x1a:
-            case 0x1b:
+            case 0x18 ... 0x1b:
                 READ8(addr, mach64->overlay_key_cntl);
                 break;
-
-            case 0x20:
-            case 0x21:
-            case 0x22:
-            case 0x23:
+            case 0x20 ... 0x23:
                 READ8(addr, mach64->overlay_scale_inc);
                 break;
-            case 0x24:
-            case 0x25:
-            case 0x26:
-            case 0x27:
+            case 0x24 ... 0x27:
                 READ8(addr, mach64->overlay_scale_cntl);
                 break;
-            case 0x28:
-            case 0x29:
-            case 0x2a:
-            case 0x2b:
+            case 0x28 ... 0x2b:
                 READ8(addr, mach64->scaler_height_width);
                 break;
-
-            case 0x34:
-            case 0x35:
-            case 0x36:
-            case 0x37:
+            case 0x34 ... 0x37:
                 READ8(addr, mach64->scaler_buf_offset[0]);
                 break;
-
-            case 0x38:
-            case 0x39:
-            case 0x3a:
-            case 0x3b:
+            case 0x38 ... 0x3b: // optimise
                 READ8(addr, mach64->scaler_buf_offset[1]);
                 break;
-
-            case 0x3c:
-            case 0x3d:
-            case 0x3e:
-            case 0x3f:
+            case 0x3c ... 0x3f:
                 READ8(addr, mach64->scaler_buf_pitch);
                 break;
-
-            case 0x58:
-            case 0x59:
-            case 0x5a:
-            case 0x5b:
+            case 0x58 ... 0x5b:
                 READ8(addr, mach64->overlay_exclusive_horz);
                 break;
-
-            case 0x5c:
-            case 0x5d:
-            case 0x5e:
-            case 0x5f:
+            case 0x5c ... 0x5f:
                 READ8(addr, mach64->overlay_exclusive_vert);
                 break;
-
             case 0x4a:
                 ret = mach64->scaler_format;
                 break;
-
             case 0x4b:
                 ret = mach64->scaler_yuv_aper;
                 break;
-
             default:
                 ret = 0xff;
                 break;
         }
     } else {
         switch (addr & 0x3ff) {
-            case 0x00:
-            case 0x01:
-            case 0x02:
-            case 0x03:
+            case 0x00 ... 0x03:
                 READ8(addr, mach64->crtc_h_total_disp);
                 break;
-            case 0x04:
-            case 0x05:
-            case 0x06:
-            case 0x07:
+            case 0x04 ... 0x07:
                 READ8(addr, mach64->crtc_h_sync_strt_wid);
                 break;
-            case 0x08:
-            case 0x09:
-            case 0x0a:
-            case 0x0b:
+            case 0x08 ... 0x0b:
                 READ8(addr, mach64->crtc_v_total_disp);
                 break;
-            case 0x0c:
-            case 0x0d:
-            case 0x0e:
-            case 0x0f:
+            case 0x0c ... 0x0f:
                 READ8(addr, mach64->crtc_v_sync_strt_wid);
                 break;
-
-            case 0x12:
-            case 0x13:
+            case 0x12 ... 0x13:
                 READ8(addr - 2, mach64->svga.vc);
                 break;
-
-            case 0x14:
-            case 0x15:
-            case 0x16:
-            case 0x17:
+            case 0x14 ... 0x17:
                 READ8(addr, mach64->crtc_off_pitch);
                 break;
-
             case 0x18:
                 ret = mach64->crtc_int_cntl & ~1;
                 if (mach64->svga.cgastat & 8)
                     ret |= 1;
                 break;
-
-            case 0x1c:
-            case 0x1d:
-            case 0x1e:
-            case 0x1f:
+            case 0x1c ... 0x1f:
                 READ8(addr, mach64->crtc_gen_cntl);
                 break;
-
-            case 0x20:
-            case 0x21:
-            case 0x22:
-            case 0x23:
+            case 0x20 ... 0x23:
                 READ8(addr, mach64->dsp_config);
                 break;
-
-            case 0x24:
-            case 0x25:
-            case 0x26:
-            case 0x27:
+            case 0x24 ... 0x27:
                 READ8(addr, mach64->dsp_on_off);
                 break;
-
-            case 0x40:
-            case 0x41:
-            case 0x42:
-            case 0x43:
+            case 0x40 ... 0x43: 
                 READ8(addr, mach64->ovr_clr);
                 break;
-            case 0x44:
-            case 0x45:
-            case 0x46:
-            case 0x47:
+            case 0x44 ... 0x47:
                 READ8(addr, mach64->ovr_wid_left_right);
                 break;
-            case 0x48:
-            case 0x49:
-            case 0x4a:
-            case 0x4b:
+            case 0x48 ... 0x4b:
                 READ8(addr, mach64->ovr_wid_top_bottom);
                 break;
-            case 0x4c:
-            case 0x4d:
-            case 0x4e:
-            case 0x4f:
+            case 0x4c ... 0x4f:
                 READ8(addr, mach64->vga_dsp_config);
                 break;
-            case 0x50:
-            case 0x51:
-            case 0x52:
-            case 0x53:
+            case 0x50 ... 0x53:
                 READ8(addr, mach64->vga_dsp_on_off);
                 break;
-
-            case 0x60:
-            case 0x61:
-            case 0x62:
-            case 0x63:
+            case 0x60 ... 0x63:
                 READ8(addr, mach64->cur_clr0);
                 break;
-            case 0x64:
-            case 0x65:
-            case 0x66:
-            case 0x67:
+            case 0x64 ... 0x67:
                 READ8(addr, mach64->cur_clr1);
                 break;
-            case 0x68:
-            case 0x69:
-            case 0x6a:
-            case 0x6b:
+            case 0x68 ... 0x6b:
                 READ8(addr, mach64->cur_offset);
                 break;
-            case 0x6c:
-            case 0x6d:
-            case 0x6e:
-            case 0x6f:
+            case 0x6c ... 0x6f:
                 READ8(addr, mach64->cur_horz_vert_posn);
                 break;
-            case 0x70:
-            case 0x71:
-            case 0x72:
-            case 0x73:
+            case 0x70 ... 0x73:
                 READ8(addr, mach64->cur_horz_vert_off);
                 break;
-
             case 0x79:
                 ret = 0x30;
                 if (mach64->type == MACH64_VT3)
@@ -2607,50 +2487,29 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     ret = ((i2c_gpio_get_sda(mach64->i2c_tv) << 4) & (~(mach64->gp_io >> 16) & 0xFF)) | ((mach64->gp_io & 0xFF) & ((mach64->gp_io >> 16) & 0xFF));
                     break;
                 }
-            case 0x7A:
-            case 0x7B:
+            case 0x7A ... 0x7B:
                 if (mach64->type == MACH64_VT3)
-                {
                     READ8(addr, mach64->gp_io);
-                }
 //                pclog("GPIO READ 0x%X, 0x00\n", addr & 0x3ff);
 
                 break;
-            case 0x80:
-            case 0x81:
-            case 0x82:
-            case 0x83:
+            case 0x80 ... 0x83:
                 READ8(addr, mach64->scratch_reg0);
                 break;
-            case 0x84:
-            case 0x85:
-            case 0x86:
-            case 0x87:
+            case 0x84 ... 0x87:
                 READ8(addr, mach64->scratch_reg1);
                 break;
-
-            case 0x90:
-            case 0x91:
-            case 0x92:
-            case 0x93:
+            case 0x90 ... 0x93:
                 READ8(addr, mach64->clock_cntl);
                 break;
-
-            case 0xb0:
-            case 0xb1:
-            case 0xb2:
-            case 0xb3:
+            case 0xb0 ... 0xb3:
                 READ8(addr, mach64->mem_cntl);
                 break;
-
-            case 0xc0:
-            case 0xc1:
-            case 0xc2:
-            case 0xc3:
+            case 0xc0 ... 0xc3:
                 if (mach64->type == MACH64_GX)
                     ret = ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
                 else {
-                    switch (addr & 3) {
+                    switch (addr & 3) {//optimise
                         case 0:
                             ret = svga_in(0x3c8, svga);
                             break;
@@ -2666,9 +2525,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     }
                 }
                 break;
-            case 0xc4:
-            case 0xc5:
-            case 0xc6:
+            case 0xc4 ... 0xc6: // optimise
                 READ8(addr, mach64->dac_cntl);
                 break;
 
@@ -2682,18 +2539,10 @@ mach64_ext_readb(uint32_t addr, void *priv)
                         ret |= 0x02;
                 }
                 break;
-
-            case 0xd0:
-            case 0xd1:
-            case 0xd2:
-            case 0xd3:
+            case 0xd0 ... 0xd3:
                 READ8(addr, mach64->gen_test_cntl);
                 break;
-
-            case 0xdc:
-            case 0xdd:
-            case 0xde:
-            case 0xdf:
+            case 0xdc ... 0xdf:
                 if (mach64->type != MACH64_VT2 && mach64->type != MACH64_VT)
                     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
                 else
@@ -2701,339 +2550,206 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
                 READ8(addr, mach64->config_cntl);
                 break;
-            case 0xe0:
-            case 0xe1:
-            case 0xe2:
-            case 0xe3:
+            case 0xe0 ... 0xe3:
                 READ8(addr, mach64->config_chip_id);
                 break;
-            case 0xe4:
-            case 0xe5:
-            case 0xe6:
-            case 0xe7:
+            case 0xe4 ... 0xe7:
                 READ8(addr, mach64->config_stat0);
                 break;
-
-            case 0x100:
-            case 0x101:
-            case 0x102:
-            case 0x103:
+            case 0x100 ... 0x103:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_off_pitch);
                 break;
-            case 0x104:
-            case 0x105:
+            case 0x104 ... 0x105:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_y_x);
                 break;
-            case 0x108:
-            case 0x109:
-            case 0x11c:
-            case 0x11d:
+            case 0x108 ... 0x109:
+            case 0x11c ... 0x11d:
                 mach64_wait_fifo_idle(mach64);
-                READ8(addr + 2, mach64->dst_y_x);
+                READ8(addr + 2, mach64->dst_y_x); // optimise
                 break;
-            case 0x10c:
-            case 0x10d:
-            case 0x10e:
-            case 0x10f:
+            case 0x10c ... 0x10f:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_y_x);
                 break;
-            case 0x2e8:
-            case 0x2e9:
-            case 0x2ea:
-            case 0x2eb:
+            case 0x2e8 ... 0x2eb:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr ^ 2, mach64->dst_y_x);
                 break;
-            case 0x2ec:
-            case 0x2ed:
-            case 0x2ee:
-            case 0x2ef:
+            case 0x2ec ... 0x2ef:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr ^ 2, mach64->dst_height_width);
                 break;
-
-            case 0x110:
-            case 0x111:
+            case 0x110 ... 0x111: // optimise
                 addr += 2;
                 fallthrough;
-            case 0x114:
-            case 0x115:
-            case 0x118:
-            case 0x119:
-            case 0x11a:
-            case 0x11b:
-            case 0x11e:
-            case 0x11f:
+
+                // probably can be optimised but might be a little slower?
+            case 0x114 ... 0x115:
+            case 0x118 ... 0x119:
+            case 0x11a ... 0x11b:
+            case 0x11e ... 0x11f:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_height_width);
                 break;
-
-            case 0x120:
-            case 0x121:
-            case 0x122:
-            case 0x123:
+            case 0x120 ... 0x123:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_bres_lnth);
                 break;
-            case 0x124:
-            case 0x125:
-            case 0x126:
-            case 0x127:
+            case 0x124 ... 0x127:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_bres_err);
                 break;
-            case 0x128:
-            case 0x129:
-            case 0x12a:
-            case 0x12b:
+            case 0x128 ... 0x12b:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_bres_inc);
                 break;
-            case 0x12c:
-            case 0x12d:
-            case 0x12e:
-            case 0x12f:
+            case 0x12c ... 0x12f:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_bres_dec);
                 break;
-
-            case 0x130:
-            case 0x131:
-            case 0x132:
-            case 0x133:
+            case 0x130 ... 0x133:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_cntl);
                 break;
-
-            case 0x180:
-            case 0x181:
-            case 0x182:
-            case 0x183:
+            case 0x180 ... 0x183:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_off_pitch);
                 break;
-            case 0x184:
-            case 0x185:
+            case 0x184 ... 0x185:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_y_x);
                 break;
-            case 0x188:
-            case 0x189:
+            case 0x188 ... 0x189:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr + 2, mach64->src_y_x);
                 break;
-            case 0x18c:
-            case 0x18d:
-            case 0x18e:
-            case 0x18f:
+            case 0x18c ... 0x18f:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_y_x);
                 break;
-            case 0x190:
-            case 0x191:
+            case 0x190 ... 0x191:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr + 2, mach64->src_height1_width1);
                 break;
-            case 0x194:
-            case 0x195:
+            case 0x194 ... 0x195:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_height1_width1);
                 break;
-            case 0x198:
-            case 0x199:
-            case 0x19a:
-            case 0x19b:
+            case 0x198 ... 0x19b:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_height1_width1);
                 break;
-            case 0x19c:
-            case 0x19d:
+            case 0x19c ... 0x19d:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_y_x_start);
                 break;
-            case 0x1a0:
-            case 0x1a1:
+            case 0x1a0 ... 0x1a1:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr + 2, mach64->src_y_x_start);
                 break;
-            case 0x1a4:
-            case 0x1a5:
-            case 0x1a6:
-            case 0x1a7:
+            case 0x1a4 ... 0x1a7:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_y_x_start);
                 break;
-            case 0x1a8:
-            case 0x1a9:
+            case 0x1a8 ... 0x1a9:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr + 2, mach64->src_height2_width2);
                 break;
-            case 0x1ac:
-            case 0x1ad:
+            case 0x1ac ... 0x1ad:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_height2_width2);
                 break;
-            case 0x1b0:
-            case 0x1b1:
-            case 0x1b2:
-            case 0x1b3:
+            case 0x1b0 ... 0x1b3:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_height2_width2);
                 break;
-
-            case 0x1b4:
-            case 0x1b5:
-            case 0x1b6:
-            case 0x1b7:
+            case 0x1b4 ... 0x1b7:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->src_cntl);
                 break;
-
-            case 0x240:
-            case 0x241:
-            case 0x242:
-            case 0x243:
+            case 0x240 ... 0x243:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->host_cntl);
                 break;
-
-            case 0x280:
-            case 0x281:
-            case 0x282:
-            case 0x283:
+            case 0x280 ... 0x283:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->pat_reg0);
                 break;
-            case 0x284:
-            case 0x285:
-            case 0x286:
-            case 0x287:
+            case 0x284 ... 0x287:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->pat_reg1);
                 break;
-
-            case 0x288:
-            case 0x289:
-            case 0x28a:
-            case 0x28b:
+            case 0x288 ... 0x28b:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->pat_cntl);
                 break;
-
-            case 0x2a0:
-            case 0x2a1:
-            case 0x2a8:
-            case 0x2a9:
+            case 0x2a0 ... 0x2a1:
+            case 0x2a8 ... 0x2a9: // optimise
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->sc_left_right);
                 break;
-            case 0x2a4:
-            case 0x2a5:
+            case 0x2a4 ... 0x2a5:
                 addr += 2;
                 fallthrough;
-            case 0x2aa:
-            case 0x2ab:
+            case 0x2aa ... 0x2ab:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->sc_left_right);
                 break;
-
-            case 0x2ac:
-            case 0x2ad:
-            case 0x2b4:
-            case 0x2b5:
+            case 0x2ac ... 0x2ad:
+            case 0x2b4 ... 0x2b5:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->sc_top_bottom);
                 break;
-            case 0x2b0:
-            case 0x2b1:
+            case 0x2b0 ... 0x2b1:
                 addr += 2;
                 fallthrough;
-            case 0x2b6:
-            case 0x2b7:
+            case 0x2b6 ... 0x2b7:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->sc_top_bottom);
                 break;
-
-            case 0x2c0:
-            case 0x2c1:
-            case 0x2c2:
-            case 0x2c3:
+            case 0x2c0 ... 0x2c3:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dp_bkgd_clr);
                 break;
-            case 0x2c4:
-            case 0x2c5:
-            case 0x2c6:
-            case 0x2c7:
+            case 0x2c4 ... 0x2c7:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dp_frgd_clr);
                 break;
-
-            case 0x2c8:
-            case 0x2c9:
-            case 0x2ca:
-            case 0x2cb:
+            case 0x2c8 ... 0x2cb:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->write_mask);
                 break;
-
-            case 0x2cc:
-            case 0x2cd:
-            case 0x2ce:
-            case 0x2cf:
+            case 0x2cc ... 0x2cf:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->chain_mask);
                 break;
-
-            case 0x2d0:
-            case 0x2d1:
-            case 0x2d2:
-            case 0x2d3:
+            case 0x2d0 ... 0x2d3:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dp_pix_width);
                 break;
-            case 0x2d4:
-            case 0x2d5:
-            case 0x2d6:
-            case 0x2d7:
+            case 0x2d4 ... 0x2d7:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dp_mix);
                 break;
-            case 0x2d8:
-            case 0x2d9:
-            case 0x2da:
-            case 0x2db:
+            case 0x2d8 ... 0x2db:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dp_src);
                 break;
-
-            case 0x300:
-            case 0x301:
-            case 0x302:
-            case 0x303:
+            case 0x300 ... 0x303:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->clr_cmp_clr);
                 break;
-            case 0x304:
-            case 0x305:
-            case 0x306:
-            case 0x307:
+            case 0x304 ... 0x307:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->clr_cmp_mask);
                 break;
-            case 0x308:
-            case 0x309:
-            case 0x30a:
-            case 0x30b:
+            case 0x308 ... 0x30b:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->clr_cmp_cntl);
                 break;
-
-            case 0x310:
-            case 0x311:
+            case 0x310 ... 0x311:
                 if (!mach64->blitter_busy)
                     wake_fifo_thread(mach64);
 
@@ -3042,16 +2758,12 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     ret = 0xff;
                 break;
 
-            case 0x320:
-            case 0x321:
-            case 0x322:
-            case 0x323:
+            case 0x320 ... 0x323:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->context_mask);
                 break;
 
-            case 0x330:
-            case 0x331:
+            case 0x330 ... 0x331:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_cntl);
                 break;
@@ -3063,18 +2775,15 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr - 3, mach64->pat_cntl);
                 break;
-
             case 0x338:
                 if (!mach64->blitter_busy)
                     wake_fifo_thread(mach64);
 
                 ret = FIFO_EMPTY ? 0 : 1;
                 break;
-
             case 0x33a:
                 ret = FIFO_EMPTY ? 32 : 31;
                 break;
-
             default:
                 ret = 0;
                 break;
@@ -3094,7 +2803,7 @@ mach64_ext_readw(uint32_t addr, void *priv)
         mach64_log("mach64_ext_readw: addr=%04x\n", addr);
         ret = mach64_ext_readb(addr, priv);
         ret |= mach64_ext_readb(addr + 1, priv) << 8;
-    } else
+    } else // optimise
         switch (addr & 0x3ff) {
             case 0xb4:
             case 0xb6:
@@ -3104,7 +2813,6 @@ mach64_ext_readw(uint32_t addr, void *priv)
             case 0xba:
                 ret = (mach64->bank_r[(addr & 2) >> 1] >> 15);
                 break;
-
             default:
                 ret = mach64_ext_readb(addr, priv);
                 ret |= mach64_ext_readb(addr + 1, priv) << 8;
@@ -3131,14 +2839,12 @@ mach64_ext_readl(uint32_t addr, void *priv)
                 if (mach64->svga.cgastat & 8)
                     ret |= 1;
                 break;
-
             case 0xb4:
                 ret = (mach64->bank_w[0] >> 15) | ((mach64->bank_w[1] >> 15) << 16);
                 break;
             case 0xb8:
                 ret = (mach64->bank_r[0] >> 15) | ((mach64->bank_r[1] >> 15) << 16);
                 break;
-
             default:
                 ret = mach64_ext_readw(addr, priv);
                 ret |= mach64_ext_readw(addr + 2, priv) << 16;
@@ -3159,139 +2865,69 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 
     if (!(addr & 0x400)) {
         switch (addr & 0x3ff) {
-            case 0x00:
-            case 0x01:
-            case 0x02:
-            case 0x03:
+            case 0x00 ... 0x03:
                 WRITE8(addr, mach64->overlay_y_x_start, val);
                 break;
-            case 0x04:
-            case 0x05:
-            case 0x06:
-            case 0x07:
+            case 0x04 ... 0x07:
                 WRITE8(addr, mach64->overlay_y_x_end, val);
                 break;
-            case 0x08:
-            case 0x09:
-            case 0x0a:
-            case 0x0b:
+            case 0x08 ... 0x0b:
                 WRITE8(addr, mach64->overlay_video_key_clr, val);
                 break;
-            case 0x0c:
-            case 0x0d:
-            case 0x0e:
-            case 0x0f:
+            case 0x0c ... 0x0f:
                 WRITE8(addr, mach64->overlay_video_key_msk, val);
                 break;
-            case 0x10:
-            case 0x11:
-            case 0x12:
-            case 0x13:
+            case 0x10 ... 0x13:
                 WRITE8(addr, mach64->overlay_graphics_key_clr, val);
                 break;
-            case 0x14:
-            case 0x15:
-            case 0x16:
-            case 0x17:
+            case 0x14 ... 0x17:
                 WRITE8(addr, mach64->overlay_graphics_key_msk, val);
                 break;
-            case 0x18:
-            case 0x19:
-            case 0x1a:
-            case 0x1b:
+            case 0x18 ... 0x1b:
                 WRITE8(addr, mach64->overlay_key_cntl, val);
                 break;
-
-            case 0x20:
-            case 0x21:
-            case 0x22:
-            case 0x23:
+            case 0x20 ... 0x23:
                 WRITE8(addr, mach64->overlay_scale_inc, val);
                 break;
-            case 0x24:
-            case 0x25:
-            case 0x26:
-            case 0x27:
+            case 0x24 ... 0x27:
                 WRITE8(addr, mach64->overlay_scale_cntl, val);
                 break;
-            case 0x28:
-            case 0x29:
-            case 0x2a:
-            case 0x2b:
+            case 0x28 ... 0x2b:
                 WRITE8(addr, mach64->scaler_height_width, val);
                 break;
-
-            case 0x34:
-            case 0x35:
-            case 0x36:
-            case 0x37:
+            case 0x34 ... 0x37:
                 WRITE8(addr, mach64->scaler_buf_offset[0], val);
                 break;
-
-            case 0x38:
-            case 0x39:
-            case 0x3a:
-            case 0x3b:
+            case 0x38 ... 0x3b: // optimise
                 WRITE8(addr, mach64->scaler_buf_offset[1], val);
                 break;
-
-            case 0x3c:
-            case 0x3d:
-            case 0x3e:
-            case 0x3f:
+            case 0x3c ... 0x3f:
                 WRITE8(addr, mach64->scaler_buf_pitch, val);
                 break;
-
             case 0x4a:
                 mach64->scaler_format = val & 0xf;
                 break;
-
             case 0x4b:
                 mach64->scaler_yuv_aper = val;
                 break;
-
-            case 0x58:
-            case 0x59:
-            case 0x5a:
-            case 0x5b:
+            case 0x58 ... 0x5b:
                 WRITE8(addr, mach64->overlay_exclusive_horz, val);
                 break;
-
-            case 0x5c:
-            case 0x5d:
-            case 0x5e:
-            case 0x5f:
+            case 0x5c ... 0x5f:
                 WRITE8(addr, mach64->overlay_exclusive_vert, val);
                 break;
-
-            case 0x80:
-            case 0x81:
-            case 0x82:
-            case 0x83:
+            case 0x80 ... 0x83:
                 WRITE8(addr, mach64->buf_offset[0], val);
                 break;
-
-            case 0x8c:
-            case 0x8d:
-            case 0x8e:
-            case 0x8f:
+            case 0x8c ... 0x8f:
                 WRITE8(addr, mach64->buf_pitch[0], val);
                 break;
-
-            case 0x98:
-            case 0x99:
-            case 0x9a:
-            case 0x9b:
+            case 0x98 ... 0x9b:
                 WRITE8(addr, mach64->buf_offset[1], val);
                 break;
-
-            case 0xa4:
-            case 0xa5:
-            case 0xa6:
-            case 0xa7:
+            case 0xa4 ... 0xa7:
                 WRITE8(addr, mach64->buf_pitch[1], val);
                 break;
-
             default:
                 break;
         }
@@ -3302,59 +2938,38 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
     } else {
         mach64_log("mach64_ext_writeb: addr=%04x val=%02x\n", addr & 0x3ff, val);
         switch (addr & 0x3ff) {
-            case 0x00:
-            case 0x01:
-            case 0x02:
-            case 0x03:
+            case 0x00 ... 0x03:
                 WRITE8(addr, mach64->crtc_h_total_disp, val);
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
-            case 0x04:
-            case 0x05:
-            case 0x06:
-            case 0x07:
+            case 0x04 ... 0x07:
                 WRITE8(addr, mach64->crtc_h_sync_strt_wid, val);
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
-            case 0x08:
-            case 0x09:
-            case 0x0a:
-            case 0x0b:
+            case 0x08 ... 0x0b:
                 WRITE8(addr, mach64->crtc_v_total_disp, val);
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
-            case 0x0c:
-            case 0x0d:
-            case 0x0e:
-            case 0x0f:
+            case 0x0c ... 0x0f:
                 WRITE8(addr, mach64->crtc_v_sync_strt_wid, val);
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
-
-            case 0x14:
-            case 0x15:
-            case 0x16:
-            case 0x17:
+            case 0x14 ... 0x17:
                 WRITE8(addr, mach64->crtc_off_pitch, val);
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
-
             case 0x18:
                 mach64->crtc_int_cntl = (mach64->crtc_int_cntl & 0x75) | (val & ~0x75);
                 if (val & 4)
                     mach64->crtc_int_cntl &= ~4;
                 mach64_update_irqs(mach64);
                 break;
-
-            case 0x1c:
-            case 0x1d:
-            case 0x1e:
-            case 0x1f:
+            case 0x1c ... 0x1f:
                 WRITE8(addr, mach64->crtc_gen_cntl, val);
                 if (((mach64->crtc_gen_cntl >> 24) & 3) == 3)
                     svga->fb_only = 1;
@@ -3365,79 +2980,41 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
 
-            case 0x20:
-            case 0x21:
-            case 0x22:
-            case 0x23:
+            case 0x20 ... 0x23:
                 WRITE8(addr, mach64->dsp_config, val);
                 break;
-
-            case 0x24:
-            case 0x25:
-            case 0x26:
-            case 0x27:
+            case 0x24 ... 0x27:
                 WRITE8(addr, mach64->dsp_on_off, val);
                 break;
-
-            case 0x4c:
-            case 0x4d:
-            case 0x4e:
-            case 0x4f:
+            case 0x4c ... 0x4f:
                 WRITE8(addr, mach64->vga_dsp_config, val);
                 break;
-
-            case 0x50:
-            case 0x51:
-            case 0x52:
-            case 0x53:
+            case 0x50 ... 0x53:
                 WRITE8(addr, mach64->vga_dsp_on_off, val);
                 break;
-
-            case 0x40:
-            case 0x41:
-            case 0x42:
-            case 0x43:
+            case 0x40 ... 0x43:
                 WRITE8(addr, mach64->ovr_clr, val);
                 break;
-            case 0x44:
-            case 0x45:
-            case 0x46:
-            case 0x47:
+            case 0x44 ... 0x47:
                 WRITE8(addr, mach64->ovr_wid_left_right, val);
                 break;
-            case 0x48:
-            case 0x49:
-            case 0x4a:
-            case 0x4b:
+            case 0x48 ... 0x4b:
                 WRITE8(addr, mach64->ovr_wid_top_bottom, val);
                 break;
-
-            case 0x60:
-            case 0x61:
-            case 0x62:
-            case 0x63:
+            case 0x60 ... 0x63:
                 WRITE8(addr, mach64->cur_clr0, val);
                 break;
-            case 0x64:
-            case 0x65:
-            case 0x66:
-            case 0x67:
+            case 0x64 ... 0x67:
                 WRITE8(addr, mach64->cur_clr1, val);
                 break;
-            case 0x68:
-            case 0x69:
-            case 0x6a:
-            case 0x6b:
+            case 0x68 ... 0x6b:
                 WRITE8(addr, mach64->cur_offset, val);
                 if (mach64->type == MACH64_GX)
                     svga->dac_hwcursor.addr = (mach64->cur_offset & 0xfffff) << 3;
                 else
                     svga->hwcursor.addr = (mach64->cur_offset & 0xfffff) << 3;
                 break;
-            case 0x6c:
-            case 0x6d:
-            case 0x6e:
-            case 0x6f:
+            case 0x6c ... 0x6f:
                 WRITE8(addr, mach64->cur_horz_vert_posn, val);
                 if (mach64->type == MACH64_GX) {
                     svga->dac_hwcursor.x = mach64->cur_horz_vert_posn & 0x7ff;
@@ -3447,10 +3024,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     svga->hwcursor.y = (mach64->cur_horz_vert_posn >> 16) & 0x7ff;
                 }
                 break;
-            case 0x70:
-            case 0x71:
-            case 0x72:
-            case 0x73:
+            case 0x70 ... 0x73:
                 WRITE8(addr, mach64->cur_horz_vert_off, val);
                 if (mach64->type == MACH64_GX) {
                     svga->dac_hwcursor.xoff = mach64->cur_horz_vert_off & 0x3f;
@@ -3460,11 +3034,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     svga->hwcursor.yoff = (mach64->cur_horz_vert_off >> 16) & 0x3f;
                 }
                 break;
-
-            case 0x78:
-            case 0x79:
-            case 0x7A:
-            case 0x7B:
+            case 0x78 ... 0x7b:
                 if (mach64->type == MACH64_VT3) {
                     WRITE8(addr, mach64->gp_io, val);
                     {
@@ -3473,24 +3043,13 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     }
                 }
                 break;
-
-            case 0x80:
-            case 0x81:
-            case 0x82:
-            case 0x83:
+            case 0x80 ... 0x83:
                 WRITE8(addr, mach64->scratch_reg0, val);
                 break;
-            case 0x84:
-            case 0x85:
-            case 0x86:
-            case 0x87:
+            case 0x84 ... 0x87:
                 WRITE8(addr, mach64->scratch_reg1, val);
                 break;
-
-            case 0x90:
-            case 0x91:
-            case 0x92:
-            case 0x93:
+            case 0x90 ... 0x93:
                 WRITE8(addr, mach64->clock_cntl, val);
                 if (mach64->type == MACH64_GX)
                     ics2595_write(svga->clock_gen, val & 0x40, val & 0xf);
@@ -3500,41 +3059,31 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 }
                 svga_recalctimings(&mach64->svga);
                 break;
-
-            case 0xb0:
-            case 0xb1:
-            case 0xb2:
-            case 0xb3:
+            case 0xb0 ... 0xb3:
                 WRITE8(addr, mach64->mem_cntl, val);
                 break;
-
+            // optimise
             case 0xb4:
-                mach64->bank_w[0] = val * 32768;
+                mach64->bank_w[0] = val << 15; // *32768
                 mach64_log("mach64 : write bank A0000-A7FFF set to %08X\n", mach64->bank_w[0]);
                 break;
-            case 0xb5:
-            case 0xb6:
-                mach64->bank_w[1] = val * 32768;
+            case 0xb5 ... 0xb6:
+                mach64->bank_w[1] = val << 15; // *32768
                 mach64_log("mach64 : write bank A8000-AFFFF set to %08X\n", mach64->bank_w[1]);
                 break;
             case 0xb8:
-                mach64->bank_r[0] = val * 32768;
+                mach64->bank_r[0] = val << 15; // *32768
                 mach64_log("mach64 :  read bank A0000-A7FFF set to %08X\n", mach64->bank_r[0]);
                 break;
-            case 0xb9:
-            case 0xba:
-                mach64->bank_r[1] = val * 32768;
+            case 0xb9 ... 0xba:
+                mach64->bank_r[1] = val << 15; // *32768
                 mach64_log("mach64 :  read bank A8000-AFFFF set to %08X\n", mach64->bank_r[1]);
                 break;
-
-            case 0xc0:
-            case 0xc1:
-            case 0xc2:
-            case 0xc3:
+            case 0xc0 ... 0xc3:
                 if (mach64->type == MACH64_GX)
                     ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
                 else {
-                    switch (addr & 3) {
+                    switch (addr & 3) { // optimise
                         case 0:
                             svga_out(0x3c8, val, svga);
                             break;
@@ -3550,10 +3099,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     }
                 }
                 break;
-            case 0xc4:
-            case 0xc5:
-            case 0xc6:
-            case 0xc7:
+            case 0xc4 ... 0xc7:
                 WRITE8(addr, mach64->dac_cntl, val);
                 mach64_log("Ext RAMDAC TYPE write=%x, bit set=%03x.\n", addr & 0x3ff, mach64->dac_cntl & 0x100);
                 if ((addr & 3) >= 1) {
@@ -3564,11 +3110,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 if (mach64->type != MACH64_VT3)
                     i2c_gpio_set(mach64->i2c, !(mach64->dac_cntl & 0x20000000) || (mach64->dac_cntl & 0x04000000), !(mach64->dac_cntl & 0x10000000) || (mach64->dac_cntl & 0x02000000));
                 break;
-
-            case 0xd0:
-            case 0xd1:
-            case 0xd2:
-            case 0xd3:
+            case 0xd0 ... 0xd3:
                 WRITE8(addr, mach64->gen_test_cntl, val);
                 ati_eeprom_write(&mach64->eeprom, mach64->gen_test_cntl & 0x10, mach64->gen_test_cntl & 2, mach64->gen_test_cntl & 1);
                 mach64->gen_test_cntl  = (mach64->gen_test_cntl & ~8) | (ati_eeprom_read(&mach64->eeprom) ? 8 : 0);
@@ -3577,23 +3119,14 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 else
                     svga->hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
                 break;
-
-            case 0xdc:
-            case 0xdd:
-            case 0xde:
-            case 0xdf:
+            case 0xdc ... 0xdf:
                 WRITE8(addr, mach64->config_cntl, val);
                 mach64_updatemapping(mach64);
                 break;
-
-            case 0xe4:
-            case 0xe5:
-            case 0xe6:
-            case 0xe7:
+            case 0xe4 ... 0xe7:
                 if (mach64->type != MACH64_GX)
                     WRITE8(addr, mach64->config_stat0, val);
                 break;
-
             default:
                 break;
         }
