@@ -3946,20 +3946,20 @@ mach64_io_remove(mach64_t *mach64)
 static void
 mach64_io_set(mach64_t *mach64)
 {
-    uint16_t io_base = 0x02ec;
+    uint16_t io_base = MACH64_IO_BASE_2EC;
 
     mach64_io_remove(mach64);
 
     switch (mach64->io_base) {
         default:
         case 0:
-            io_base = 0x02ec;
+            io_base = MACH64_IO_BASE_2EC;
             break;
         case 1:
-            io_base = 0x01cc;
+            io_base = MACH64_IO_BASE_1CC;
             break;
         case 2:
-            io_base = 0x01c8;
+            io_base = MACH64_IO_BASE_1C8;
             break;
         case 3:
             fatal("Attempting to use the reserved value for I/O Base\n");
@@ -4064,7 +4064,8 @@ mach64_writel_linear(uint32_t addr, uint32_t val, void *priv)
 
     if (((mach64->scaler_yuv_aper >> 4) & 0xc) && !!(addr & 0x800000) == !(mach64->scaler_yuv_aper & 0x20)) {
         uint32_t offset_from_base = addr & 0x7FFFFF;
-        if (addr & 0x800000) bswap32s(&val);
+        if (addr & 0x800000) 
+            bswap32s(&val);
         if (((mach64->scaler_yuv_aper >> 4) & 0xc) == 0x4) { // Y plane
             offset_from_base <<= 1;
             svga->vram[offset_from_base & svga->vram_mask] = (val & 0xFF);
