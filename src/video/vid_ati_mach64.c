@@ -95,6 +95,8 @@ enum {
     MACH64_VT3
 };
 
+#define MACH64_FLAG_ONBOARD (1 << 19)
+
 typedef struct mach64_t {
     mem_mapping_t linear_mapping;
     mem_mapping_t mmio_mapping;
@@ -4753,7 +4755,7 @@ const device_t mach64ct_device_onboard = {
     .name          = "ATI Mach64CT (On-Board)",
     .internal_name = "mach64ct_onboard",
     .flags         = DEVICE_PCI,
-    .local         = MACH64_CT | (1 << 19),
+    .local         = MACH64_CT | MACH64_FLAG_ONBOARD,
     .init          = mach64ct_init,
     .close         = mach64_close,
     .reset         = NULL,
@@ -4795,7 +4797,7 @@ const device_t mach64vt3_onboard_device = {
     .name          = "ATI Mach64VT3 (On-Board)",
     .internal_name = "mach64vt3_onboard",
     .flags         = DEVICE_PCI,
-    .local         = MACH64_VT3 | (1 << 19),
+    .local         = MACH64_VT3 | MACH64_FLAG_ONBOARD,
     .init          = mach64vt3_onboard_init,
     .close         = mach64_close,
     .reset         = mach64_reset,
