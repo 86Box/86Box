@@ -74,6 +74,14 @@ enum {
     FIFO_WRITE_DWORD = (0x03 << 24)
 };
 
+enum
+{
+    MACH64_IO_BASE_2EC = 0x02EC,    // Sparse I/O Base Address is 0x02ec
+    MACH64_IO_BASE_1CC = 0x01CC,    // Sparse I/O Base Address is 0x01cc
+    MACH64_IO_BASE_1C8 = 0x01C8,    // Sparse I/O Base Address is 0x01c8
+    MACH64_IO_BASE_INVALID
+};
+
 typedef struct fifo_entry_t {
     uint32_t addr_type;
     uint32_t val;
@@ -3103,7 +3111,6 @@ mach64_ext_writew(uint32_t addr, uint16_t val, void *priv)
     mach64_log("mach64_ext_writew : addr %08X val %04X\n", addr, val);
     if (!(addr & 0x400)) {
         mach64_log("mach64_ext_writew: addr=%04x val=%04x\n", addr, val);
-
         mach64_ext_writeb(addr, val, priv);
         mach64_ext_writeb(addr + 1, val >> 8, priv);
     } else if (addr & 0x300) {
@@ -3139,11 +3146,16 @@ mach64_ext_inb(uint16_t port, void *priv)
     svga_t   *svga   = &mach64->svga;
     uint8_t   ret    = 0x00; // default value based on invaid port
 
+    // Code is written with the assumption that IO_BASE = 2cc. so we can rewrite it liek this
+    if (mach64->io_base == MACH64_IO_BASE_1CC)
+        port -= 0x120;
+    else if (mach64->io_base == MACH64_IO_BASE_1C8)
+        port -= 0x124;
+
     uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
 
-    // the value to or the final address for write into
-
+    // the value to or the final address for write into space
     uint8_t addr_or_value = 0;
 
     // we only care about (ec...ef)
@@ -3241,6 +3253,12 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t *svga = &mach64->svga;
+
+    // Code is written with the assumption that IO_BASE = 2cc. so we can rewrite it for other I/O bases like this
+    if (mach64->io_base == MACH64_IO_BASE_1CC)
+        port -= 0x120;
+    else if (mach64->io_base == MACH64_IO_BASE_1C8)
+        port -= 0x124;
 
     uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
@@ -3890,18 +3908,18 @@ mach64_overlay_draw(svga_t *svga, int displine)
 static void
 mach64_io_remove(mach64_t *mach64)
 {
-    uint16_t io_base = 0x02ec;
+    uint16_t io_base = MACH64_IO_BASE_2EC;
 
     switch (mach64->io_base) {
         default:
         case 0:
-            io_base = 0x02ec;
+            io_base = MACH64_IO_BASE_2EC;
             break;
         case 1:
-            io_base = 0x01cc;
+            io_base = MACH64_IO_BASE_1CC;
             break;
         case 2:
-            io_base = 0x01c8;
+            io_base = MACH64_IO_BASE_1C8;
             break;
         case 3:
             fatal("Attempting to use the reserved value for I/O Base\n");
