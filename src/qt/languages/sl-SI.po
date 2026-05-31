@@ -3361,6 +3361,3 @@ msgstr "932 (japonščina)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (tradicionalna kitajščina)"
-
-msgid "Sample rate:"
-msgstr ""

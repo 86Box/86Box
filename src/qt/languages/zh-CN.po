@@ -3343,6 +3343,3 @@ msgstr "932 (日语)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体中文)"
-
-msgid "Sample rate:"
-msgstr ""

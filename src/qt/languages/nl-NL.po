@@ -3342,6 +3342,3 @@ msgstr "932 (Japans)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditioneel Chinees)"
-
-msgid "Sample rate:"
-msgstr ""

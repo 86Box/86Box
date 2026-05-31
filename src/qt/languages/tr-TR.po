@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-30 16:09+0000\n"
+"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -397,7 +397,7 @@ msgid "Internal"
 msgstr "Dahili"
 
 msgid "Wait states:"
-msgstr "Bekleme süreleri:"
+msgstr "Bekleme durumları:"
 
 msgid "MB"
 msgstr "MB"
@@ -899,7 +899,7 @@ msgstr "Varsayılan"
 
 msgid "%n wait state(s)"
 msgid_plural "%n wait states"
-msgstr[0] "%n Bekleme durumları"
+msgstr[0] "%n Bekleme durumu"
 
 msgid "Type"
 msgstr "Tür"
@@ -3383,6 +3383,3 @@ msgstr "932 (Japonca)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Geleneksel Çince)"
-
-msgid "Sample rate:"
-msgstr ""

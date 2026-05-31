@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-24 12:01+0000\n"
+"PO-Revision-Date: 2026-05-30 16:09+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1497,31 +1497,37 @@ msgid "Unsupported disk image"
 msgstr "Μη υποστηριζόμενη εικόνα δίσκου"
 
 msgid "Unable to read device"
-msgstr ""
+msgstr "Αδυναμία ανάγνωσης συσκευής"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
 msgstr ""
+"Δεν ήταν δυνατός ο προσδιορισμός του μεγέθους blosck της συσκευής. "
+"Βεβαιωθείτε ότι έχετε άδεια πρόσβασης σε αυτήν τη συσκευή."
 
 msgid "Device too large"
-msgstr ""
+msgstr "Συσκευή πολύ μεγάλη"
 
 msgid "Block device is too large to be used as a hard disk."
 msgstr ""
+"Η συσκευή block είναι πολύ μεγάλη για να χρησιμοποιηθεί ως σκληρός δίσκος."
 
 msgid "Block device detected"
-msgstr ""
+msgstr "Εντοπίστηκε συσκευή block"
 
 msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
+"Εντοπίστηκε συσκευή block: %1\n"
+"Μέγεθος: %2 MB\n"
+"Γεωμετρία: %3 κύλινδροι, %4 κεφαλές, %5 τομείς"
 
 msgid "Failed to write the disk image."
-msgstr ""
+msgstr "Αποτυχία εγγραφής εικόνας δίσκου."
 
 msgid "Failed to read the disk image."
-msgstr ""
+msgstr "Αποτυχία ανάγνωσης εικόνας δίσκου."
 
 msgid "The disk image has been successfully created."
-msgstr ""
+msgstr "Η εικόνα δίσκου δημιουργήθηκε επιτυχώς."
 
 msgid "Raw image"
 msgstr "Εικόνα Raw"
@@ -2439,40 +2445,40 @@ msgid "Frame Address"
 msgstr "Διεύθυνση πλαισίου"
 
 msgid "English"
-msgstr ""
+msgstr "Αγγλικά"
 
 msgid "English (US)"
-msgstr ""
+msgstr "Αγγλικά (ΗΠΑ)"
 
 msgid "English (UK)"
-msgstr ""
+msgstr "Αγγλικά (ΗΒ)"
 
 msgid "English (Canada)"
-msgstr ""
+msgstr "Αγγλικά (Καναδά)"
 
 msgid "German"
-msgstr ""
+msgstr "Γερμανικά"
 
 msgid "French"
-msgstr ""
+msgstr "Γαλλικά"
 
 msgid "Spanish"
-msgstr ""
+msgstr "Ισπανικά"
 
 msgid "Swedish"
-msgstr ""
+msgstr "Σουηδικά"
 
 msgid "Italian"
-msgstr ""
+msgstr "Ιταλικά"
 
 msgid "Portuguese"
-msgstr ""
+msgstr "Πορτογαλικά"
 
 msgid "Norwegian"
-msgstr ""
+msgstr "Νορβηγικά"
 
 msgid "Greek"
-msgstr ""
+msgstr "Ελληνικά"
 
 msgid "Danish"
 msgstr "Δανικά"
@@ -2761,40 +2767,40 @@ msgid "Named Pipe"
 msgstr "Ονομασμένο Pipe"
 
 msgid "Output file"
-msgstr ""
+msgstr "Αρχείο εξόδου"
 
 msgid "Append to file if it exists"
-msgstr ""
+msgstr "Προσθήκη στο αρχείο εάν υπάρχει"
 
 msgid "Input file"
-msgstr ""
+msgstr "Αρχείο εισόδου"
 
 msgid "Loop input file"
-msgstr ""
+msgstr "Επανάληψή αρχείου εισόδου"
 
 msgid "Require STROBE signal"
-msgstr ""
+msgstr "Aπαιτείται σήμα STROBE"
 
 msgid "Loopback Type"
-msgstr ""
+msgstr "Τύπος επαναφοράς"
 
 msgid "Parallel cable"
-msgstr ""
+msgstr "Παράλληλο καλώδιο"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
-msgstr ""
+msgstr "Μονής κατεύθυνσης (8-bit) / LapLink (4-bit)"
 
 msgid "Bidirectional (8-bit)"
-msgstr ""
+msgstr "Αμφίδρομο (8-bit)"
 
 msgid "Pipe path"
-msgstr ""
+msgstr "Διαδρομή διαύλου"
 
 msgid "FIFO / terminal"
-msgstr ""
+msgstr "FIFO / τερματικό"
 
 msgid "Mode"
-msgstr ""
+msgstr "Λειτουργία"
 
 msgid "Server"
 msgstr "Διακομιστής"
@@ -2803,28 +2809,28 @@ msgid "Client"
 msgstr "Πελάτης"
 
 msgid "Reconnect automatically"
-msgstr ""
+msgstr "Αυτόματη επανασύνδεση"
 
 msgid "Use standard input/output"
-msgstr ""
+msgstr "Χρήση τυπικής εισαγωγής/εξαγωγής"
 
 msgid "Create pseudoterminal"
-msgstr ""
+msgstr "Δημιουργία ψευδοτερματικού"
 
 msgid "Start terminal emulator"
-msgstr ""
+msgstr "Έναρξη εξομοιωτή τερματικού"
 
 msgid "Run custom command"
-msgstr ""
+msgstr "Εκτέλεση προσαρμοσμένης εντολής"
 
 msgid "Custom command"
-msgstr ""
+msgstr "Προσαρμοσμένη εντολή"
 
 msgid "Run custom command in terminal"
-msgstr ""
+msgstr "Εκτέλεση προσαρμοσμένης εντολής στο τερματικό"
 
 msgid "Virtual Console"
-msgstr ""
+msgstr "Εικονική Κονσόλα"
 
 msgid "E&ject %1"
 msgstr "&Εξαγωγή %1"
@@ -3241,160 +3247,161 @@ msgid "System Default"
 msgstr "Προεπιλογή Συστήματος"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr ""
+msgstr "Αδυναμία ανοίγματος εικόνας ή φακέλου \"%s\"."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr ""
+msgstr "Αδυναμία ανοίγματος φύλλου cue \"%s\"."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr ""
+msgstr "Αδυναμία ανοίγματος αρχείου MDS \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr ""
+msgstr "Αδυναμία φόρτωσης εικόνας CD-ROM \"%s\"."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
+"Αδυναμία φόρτωσης της εικόνας \"%s\": Το %1 λείπει, το οποίο απαιτείται για "
+"την υποστήριξη εικόνων MDS v2 και MDX του Daemon Tools."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
+"Η εικόνα DVD \"%s\" έχει εισαχθεί σε μια μονάδα που δεν υποστηρίζει μέσα DVD "
+"και θα αγνοηθεί."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr ""
+msgstr "%s: Αδυναμία σύνδεσης σε %s: %s"
 
 msgid "%s: Could not create %s: %s"
-msgstr ""
+msgstr "%s: Αδυναμία δημιουργίας %s: %s"
 
 msgid "%s: Attached to %s"
-msgstr ""
+msgstr "%s: Συνδεδεμένο σε %s"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr ""
+msgstr "%s: Η εικονική κονσόλα χρησιμοποιείται ήδη από %s"
 
 msgid "%s: Could not create terminal: %s"
-msgstr ""
+msgstr "%s: Αδυναμία δημιουργίας τερματικού: %s"
 
 msgid "Auto-detect"
-msgstr ""
+msgstr "Αυτόματος-εντοπισμός"
 
 msgid "Channel"
-msgstr ""
+msgstr "Κανάλι"
 
 msgid "Both Channels"
-msgstr ""
+msgstr "Και τα δύο κανάλια"
 
 msgid "Left Channel"
-msgstr ""
+msgstr "Αριστερό κανάλι"
 
 msgid "Right Channel"
-msgstr ""
+msgstr "Δεξί κανάλι"
 
 msgid "Allow Flash BIOS Updates"
-msgstr ""
+msgstr "Να επιτρέπονται οι ενημερώσεις Flash BIOS"
 
 msgid "Slot #"
-msgstr ""
+msgstr "Υποδοχή #"
 
 msgid "Parallel Port"
-msgstr ""
+msgstr "Παράλληλη Πόρτα"
 
 msgid "Paper Size"
-msgstr ""
+msgstr "Μέγεθος Χαρτιού"
 
 msgid "Letter"
-msgstr ""
+msgstr "Letter"
 
 msgid "Legal (sideways)"
-msgstr ""
+msgstr "Legal (οριζόντια)"
 
 msgid "B4 (sideways)"
-msgstr ""
+msgstr "B4 (οριζόντια)"
 
 msgid "Quality"
-msgstr ""
+msgstr "Ποιότητα"
 
 msgid "Draft"
-msgstr ""
+msgstr "Προσχέδιο"
 
 msgid "(Near) Letter"
-msgstr ""
+msgstr "(Near) Letter"
 
 msgid "Auto LF"
-msgstr ""
+msgstr "Αυτόματο LF"
 
 msgid "Tandy PSSJ Clone"
-msgstr ""
+msgstr "Κλώνος Tandy PSSJ"
 
 msgid "PC-CM (Color)"
-msgstr ""
+msgstr "PC-CM (Έγχρωμο)"
 
 msgid "PC-MM (Monochrome)"
-msgstr ""
+msgstr "PC-MM (Μονόχρωμο)"
 
 msgid "White Monochrome"
-msgstr ""
+msgstr "Άσπρο Μονόχρωμο"
 
 msgid "Hardware font"
-msgstr ""
+msgstr "Γραμματοσειρά υλικού"
 
 msgid "Diagnostic mode"
-msgstr ""
+msgstr "Διαγνωστική λειτουργία"
 
 msgid "CGA monitor"
-msgstr ""
+msgstr "Οθόνη CGA"
 
 msgid "MDA monitor"
-msgstr ""
+msgstr "Οθόνη MDA"
 
 msgid "Television"
-msgstr ""
+msgstr "Τηλεόραση"
 
 msgid "Invert LCD colors"
-msgstr ""
+msgstr "Αντιστροφή χρωμάτων LCD"
 
 msgid "LCD (CGA mode)"
-msgstr ""
+msgstr "LCD (Λειτουργία CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr ""
+msgstr "LCD (Λειτουργία MDA)"
 
 msgid "Disabled (250h)"
-msgstr ""
+msgstr "Ανενεργό (250h)"
 
 msgid "Enabled (350h)"
-msgstr ""
+msgstr "Ενεργό (350h)"
 
 msgid "Test mode"
-msgstr ""
+msgstr "Λειτουργία δοκιμής"
 
 msgid "32 MB"
-msgstr ""
+msgstr "32 MB"
 
 msgid "64 MB"
-msgstr ""
+msgstr "64 MB"
 
 msgid "2048 MB"
-msgstr ""
+msgstr "2048 MB"
 
 msgid "Refresh rate"
-msgstr ""
+msgstr "Ρυθμός ανανέωσης"
 
 msgid "US (CP 437)"
-msgstr ""
+msgstr "ΗΠΑ (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr ""
+msgstr "IBM Nordic (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
-msgstr ""
+msgstr "Czech Kamenicky (CP 895) #1"
 
 msgid "Czech Kamenicky (CP 895) #2"
-msgstr ""
+msgstr "Czech Kamenicky (CP 895) #2"
 
 msgid "932 (Japanese)"
-msgstr ""
+msgstr "932 (Ιαπωνικά)"
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
-
-msgid "Sample rate:"
-msgstr ""
+msgstr "938 (Παραδοσιακά Κινέζικα)"

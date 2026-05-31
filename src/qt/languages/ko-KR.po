@@ -356,19 +356,19 @@ msgid "Machine type:"
 msgstr "머신 종류:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr "[1989] i486 (Socket 168 및 1)"
+msgstr ""
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr "[1994] i486 (기타)"
+msgstr ""
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr "[1995] Socket 7 (단일 전압)"
+msgstr ""
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr "[1996] Socket 7 (이중 전압)"
+msgstr ""
 
 msgid "Miscellaneous"
-msgstr "기타"
+msgstr ""
 
 msgid "Machine:"
 msgstr "기종:"
@@ -530,43 +530,43 @@ msgid "CD-ROM controller:"
 msgstr "CD-ROM 컨트롤러:"
 
 msgid "Mitsumi interface"
-msgstr "Mitsumi 인터페이스"
+msgstr ""
 
 msgid "MKE/Panasonic interface"
-msgstr "MKE/Panasonic 인터페이스"
+msgstr ""
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr "MKE/Panasonic 인터페이스 (Creative)"
+msgstr ""
 
 msgid "IDE Controller"
 msgstr "IDE 컨트롤러"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr "IDE 컨트롤러 (듀얼 채널)"
+msgstr ""
 
 msgid "PC/AT IDE Controller"
-msgstr "PC/AT IDE 컨트롤러"
+msgstr ""
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr "PC/AT IDE 컨트롤러 (듀얼 채널)"
+msgstr ""
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr "PC/AT XTIDE (기본만)"
+msgstr ""
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr "PS/2 AT XTIDE (1.1.5) (기본만)"
+msgstr ""
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr "CMD PCI-0646 (3차 및 4차)"
+msgstr ""
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr "CMD PCI-0648 (3차 및 4차)"
+msgstr ""
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr "CMD PCI-0649 (3차 및 4차)"
+msgstr ""
 
 msgid "McIDE Controller"
-msgstr "McIDE 컨트롤러"
+msgstr ""
 
 msgid "Tertiary IDE Controller"
 msgstr "제3의 IDE 컨트롤러"
@@ -2011,7 +2011,7 @@ msgid "BIOS Language"
 msgstr "BIOS 언어"
 
 msgid "Variant"
-msgstr "변형"
+msgstr ""
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 확장 유닛"
@@ -2712,7 +2712,7 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "새비지 퀘스트용 보호 동글"
 
 msgid "Loopback Plug"
-msgstr "루프백 플러그"
+msgstr ""
 
 #, fuzzy
 msgid "Serial Passthrough"
@@ -2851,10 +2851,10 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "일반 PC/AT 메모리 확장 카드"
 
 msgid "Generic MM58167 RTC"
-msgstr "일반 MM58167 RTC"
+msgstr ""
 
 msgid "OPL2Board (External Device)"
-msgstr "OPL2Board (외부 장치)"
+msgstr ""
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
 msgstr "도트 매트릭스 글꼴을 찾을 수 없습니다. 일반 ESC/P 2 도트 매트릭스 프린터의 에뮬레이션을 사용하려면 \"roms/printer/fonts\" 디렉터리에 있는 트루타입 글꼴이 필요합니다."
@@ -2917,10 +2917,10 @@ msgid "Could not load file %1"
 msgstr "파일 %1을 로드할 수 없습니다"
 
 msgid "Emulator"
-msgstr "에뮬레이터"
+msgstr ""
 
 msgid "Input"
-msgstr "입력"
+msgstr ""
 
 msgid "Key bindings"
 msgstr "키 바인딩"
@@ -3173,7 +3173,7 @@ msgid "Raw"
 msgstr "원본"
 
 msgid "Use EDC/ECC emulation"
-msgstr "EDC/ECC 에뮬레이션 사용"
+msgstr ""
 
 msgid "Audio output device:"
 msgstr "오디오 출력 장치:"
@@ -3335,7 +3335,4 @@ msgid "932 (Japanese)"
 msgstr ""
 
 msgid "938 (Traditional Chinese)"
-msgstr ""
-
-msgid "Sample rate:"
 msgstr ""
