@@ -1615,6 +1615,27 @@ mach64_start_line(mach64_t *mach64)
         svga->changedvram[(((addr) >> 3) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount; \
     }
 
+// calculates colour compare function for mach64 blit
+int32_t
+mach64_blit_calc_cmp_clr(mach64_t* mach64, uint32_t src_dat, uint32_t dest_dat)
+{
+    int32_t cmp_clr = 0;
+
+    switch (mach64->accel.clr_cmp_fn) {
+        case 1: /*TRUE*/
+            cmp_clr = 1;
+            break;
+        case 4: /*DST_CLR != CLR_CMP_CLR*/
+            cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) != mach64->accel.clr_cmp_clr;
+            break;
+        case 5: /*DST_CLR == CLR_CMP_CLR*/
+            cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
+            break;
+        default:
+            break;
+    }
+}
+
 void
 mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 {
@@ -1764,19 +1785,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     if (!(mach64->dst_cntl & DST_POLYGON_EN) || mach64->accel.poly_draw) {
                         READ(mach64->accel.dst_offset + ((dst_y) *mach64->accel.dst_pitch) + (dst_x), dest_dat, mach64->accel.dst_size);
 
-                        switch (mach64->accel.clr_cmp_fn) {
-                            case 1: /*TRUE*/
-                                cmp_clr = 1;
-                                break;
-                            case 4: /*DST_CLR != CLR_CMP_CLR*/
-                                cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) != mach64->accel.clr_cmp_clr;
-                                break;
-                            case 5: /*DST_CLR == CLR_CMP_CLR*/
-                                cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
-                                break;
-                            default:
-                                break;
-                        }
+                        cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
 
                         if (!cmp_clr) {
                             old_dest_dat = dest_dat;
@@ -1956,19 +1965,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                         READ(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, dest_dat, mach64->accel.dst_size);
 
-                        switch (mach64->accel.clr_cmp_fn) {
-                            case 1: /*TRUE*/
-                                cmp_clr = 1;
-                                break;
-                            case 4: /*DST_CLR != CLR_CMP_CLR*/
-                                cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) != mach64->accel.clr_cmp_clr;
-                                break;
-                            case 5: /*DST_CLR == CLR_CMP_CLR*/
-                                cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
-                                break;
-                            default:
-                                break;
-                        }
+                        cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
 
                         if (!cmp_clr)
                             MIX
@@ -2075,19 +2072,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                         READ(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, dest_dat, mach64->accel.dst_size);
 
-                        switch (mach64->accel.clr_cmp_fn) {
-                            case 1: /*TRUE*/
-                                cmp_clr = 1;
-                                break;
-                            case 4: /*DST_CLR != CLR_CMP_CLR*/
-                                cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) != mach64->accel.clr_cmp_clr;
-                                break;
-                            case 5: /*DST_CLR == CLR_CMP_CLR*/
-                                cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
-                                break;
-                            default:
-                                break;
-                        }
+                        cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
 
                         if (!cmp_clr)
                             MIX
@@ -2127,7 +2112,6 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 }
             }
             break;
-
         default:
             break;
     }
@@ -3709,7 +3693,6 @@ mach64_overlay_draw(svga_t *svga, int displine)
                 case 5:
                     vid_cmp = !((mach64->overlay_dat[h] ^ mach64->overlay_video_key_clr) & mach64->overlay_video_key_msk);
                     break;
-
                 default:
                     break;
             }
