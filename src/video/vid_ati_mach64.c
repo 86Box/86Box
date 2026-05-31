@@ -1175,30 +1175,29 @@ mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t val)
             mach64_blit(val, 32, mach64);
         else
             mach64_blit(((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24), 32, mach64);
-        
     }
     else
     {
+        switch (addr & 0x3fc) {
+            case 0x32c:
+                mach64->context_load_cntl = val;
+                if (val & 0x30000)
+                    mach64_load_context(mach64);
+                break;
 
+            case 0x2fc:
+                mach64->dp_set_gui_engine = val;
+                mach64_recalc_dp_set_engine(mach64);
+                break;
+
+            default:
+                mach64_accel_write_fifo_w(mach64, addr, val);
+                mach64_accel_write_fifo_w(mach64, addr + 2, val >> 16);
+                break;
+    }
     }
 
-    switch (addr & 0x3fc) {
-        case 0x32c:
-            mach64->context_load_cntl = val;
-            if (val & 0x30000)
-                mach64_load_context(mach64);
-            break;
-
-        case 0x2fc:
-            mach64->dp_set_gui_engine = val;
-            mach64_recalc_dp_set_engine(mach64);
-            break;
-
-        default:
-            mach64_accel_write_fifo_w(mach64, addr, val);
-            mach64_accel_write_fifo_w(mach64, addr + 2, val >> 16);
-            break;
-    }
+   
 }
 
 #ifdef DMA_BM
