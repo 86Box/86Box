@@ -19,7 +19,7 @@
  *          Copyright 2026 Connor Hyde.
  */
 
-#include <86box/vid_ati_mach64.h>
+#include "vid_ati_mach64.h"
 
 // x86 I/O port output function
 void
