@@ -623,7 +623,7 @@ mach64_recalctimings(svga_t *svga)
                 if (mach64->type != MACH64_GX)
                     svga->render = svga_render_24bpp_highres;
                 svga->hdisp <<= 3;
-                svga->rowoffset = (svga->rowoffset * 3) / 2;
+                svga->rowoffset = (svga->rowoffset * 3) >> 1;
                 svga->bpp = 24;
                 break;
             case BPP_32:
@@ -977,7 +977,6 @@ start_blit_op:
                 goto start_blit_op;
             }
             break;
-
         case 0x120 ... 0x123:
             WRITE8(addr, mach64->dst_bres_lnth, val);
             if ((addr & 0x3ff) == 0x123 && !(val & 0x80)) {
@@ -1270,50 +1269,14 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_write_idx & FIFO_MASK];
     int limit = 0;
 
-    switch (type) {
-        case FIFO_WRITE_BYTE:
-            switch (addr & 0x3ff) {
-                case 0x11b:
-                    limit = 1;
-                    break;
-                default:
-                    break;
-            }
-            break;
-        case FIFO_WRITE_WORD:
-            switch (addr & 0x3fe) {
-                case 0x11a:
-                    limit = 1;
-                    break;
-                default:
-                    break;
-            }
-            break;
-        case FIFO_WRITE_DWORD:
-            switch (addr & 0x3fc) {
-                case 0x118:
-                    limit = 1;
-                    break;
-                default:
-                    break;
-            }
-            break;
-        default:
-            break;
-    }
+    // Before me, there was some code that checked if the address was 0x11b (if a byte), 0x11a (if a word), or 0x118 (if a dword), and only fired the FIFO thread
+    // if there were 16 or more entries in the FIFO. It was introduced in a commit on 8/21/2024 with no discussion that I can find even related to it. 
+    // It didn't break anything to remove it and I can't think of any design reason for it to exist.
 
-    if (limit) {
-        if (FIFO_ENTRIES >= 16) {
-            thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_ENTRIES >= 16)
-                thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-        }
-    } else {
-        if (FIFO_FULL) {
-            thread_reset_event(mach64->fifo_not_full_event);
-            if (FIFO_FULL)
-                thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
-        }
+    if (FIFO_FULL) {
+        thread_reset_event(mach64->fifo_not_full_event);
+        if (FIFO_FULL)
+            thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
     }
 
     fifo->val       = val;
