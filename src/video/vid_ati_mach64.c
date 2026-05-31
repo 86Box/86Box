@@ -12,9 +12,11 @@
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Connor Hyde, <mario64crashed@gmail.com> <https://starfrost.net>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2026 Connor Hyde.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -1232,7 +1234,6 @@ fifo_thread(void *param)
                 case FIFO_WRITE_DWORD:
                     mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, val);
                     break;
-
                 default:
                     break;
             }
@@ -2091,7 +2092,6 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             case 2:
                                 count -= 32;
                                 break;
-
                             default:
                                 break;
                         }
@@ -2511,7 +2511,6 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0xc4 ... 0xc6: // optimise
                 READ8(addr, mach64->dac_cntl);
                 break;
-
             case 0xc7:
                 READ8(addr, mach64->dac_cntl);
                 if (mach64->type >= MACH64_CT && mach64->type != MACH64_VT3) {
@@ -2567,7 +2566,6 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0x110 ... 0x111: // optimise
                 addr += 2;
                 fallthrough;
-
                 // probably can be optimised but might be a little slower?
             case 0x114 ... 0x115:
             case 0x118 ... 0x119:
@@ -2740,12 +2738,10 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 if (FIFO_FULL)
                     ret = 0xff;
                 break;
-
             case 0x320 ... 0x323:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->context_mask);
                 break;
-
             case 0x330 ... 0x331:
                 mach64_wait_fifo_idle(mach64);
                 READ8(addr, mach64->dst_cntl);
@@ -2761,7 +2757,6 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0x338:
                 if (!mach64->blitter_busy)
                     wake_fifo_thread(mach64);
-
                 ret = FIFO_EMPTY ? 0 : 1;
                 break;
             case 0x33a:
@@ -2788,12 +2783,10 @@ mach64_ext_readw(uint32_t addr, void *priv)
         ret |= mach64_ext_readb(addr + 1, priv) << 8;
     } else // optimise
         switch (addr & 0x3ff) {
-            case 0xb4:
-            case 0xb6:
+            case 0xb4 ... 0xb6:
                 ret = (mach64->bank_w[(addr & 2) >> 1] >> 15);
                 break;
-            case 0xb8:
-            case 0xba:
+            case 0xb8 ... 0xba:
                 ret = (mach64->bank_r[(addr & 2) >> 1] >> 15);
                 break;
             default:
@@ -2962,7 +2955,6 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
-
             case 0x20 ... 0x23:
                 WRITE8(addr, mach64->dsp_config, val);
                 break;
