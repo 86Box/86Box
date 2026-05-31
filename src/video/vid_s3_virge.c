@@ -1820,7 +1820,7 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
 }
 
 static void
-fifo_thread(void *param)
+mach64_fifo_thread(void *param)
 {
     virge_t *virge = (virge_t *) param;
 
@@ -5591,7 +5591,7 @@ s3_virge_init(const device_t *info)
     virge->fifo_thread_run     = 1;
     virge->wake_fifo_thread    = thread_create_event();
     virge->fifo_not_full_event = thread_create_event();
-    virge->fifo_thread         = thread_create(fifo_thread, virge);
+    virge->fifo_thread         = thread_create(mach64_fifo_thread, virge);
 
     timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 1);
 

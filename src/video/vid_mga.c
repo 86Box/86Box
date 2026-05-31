@@ -3138,7 +3138,7 @@ run_dma(mystique_t *mystique)
 }
 
 static void
-fifo_thread(void *priv)
+mach64_fifo_thread(void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 
@@ -6902,7 +6902,7 @@ mystique_init(const device_t *info)
     mystique->wake_fifo_thread    = thread_create_event();
     mystique->fifo_not_full_event = thread_create_event();
     mystique->thread_run          = 1;
-    mystique->fifo_thread         = thread_create(fifo_thread, mystique);
+    mystique->fifo_thread         = thread_create(mach64_fifo_thread, mystique);
     mystique->dma.lock            = thread_create_mutex();
 
     timer_add(&mystique->wake_timer, mystique_wake_timer, (void *) mystique, 0);

@@ -10338,7 +10338,7 @@ s3_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pri
 }
 
 static void
-fifo_thread(void *param)
+mach64_fifo_thread(void *param)
 {
     s3_t    *s3 = (s3_t *) param;
     uint64_t start_time;
@@ -11417,7 +11417,7 @@ s3_init(const device_t *info)
     s3->wake_fifo_thread    = thread_create_event();
     s3->fifo_not_full_event = thread_create_event();
     s3->fifo_thread_run     = 1;
-    s3->fifo_thread         = thread_create(fifo_thread, s3);
+    s3->fifo_thread         = thread_create(mach64_fifo_thread, s3);
 
     *reset_state = *s3;
 
