@@ -1635,10 +1635,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 uint32_t dest_dat;
                 uint32_t host_dat = 0;
                 uint32_t old_dest_dat;
-                int      dst_x;
-                int      dst_y;
-                int      src_x;
-                int      src_y;
+                int      dst_x, dst_y;
+                int      src_x, src_y;
 
                 dst_x = (mach64->accel.dst_x + mach64->accel.dst_x_start) & 0xfff;
                 dst_y = (mach64->accel.dst_y + mach64->accel.dst_y_start) & 0x3fff;
@@ -1652,22 +1650,11 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                 if (mach64->accel.source_host) {
                     host_dat = cpu_dat;
-                    switch (mach64->accel.host_size) {
-                        case 0:
-                            cpu_dat >>= 8;
-                            count -= 8;
-                            break;
-                        case 1:
-                            cpu_dat >>= 16;
-                            count -= 16;
-                            break;
-                        case 2:
-                            count -= 32;
-                            break;
 
-                        default:
-                            break;
-                    }
+                    if (mach64->accel.host_size < 2)
+                        cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
+
+                    count -= (8 << mach64->accel.host_size);
                 } else
                     count--;
 
@@ -1698,7 +1685,6 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, mix, WIDTH_1BIT);
                         }
                         break;
-
                     default:
                         break;
                 }
@@ -1788,7 +1774,6 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             case 5: /*DST_CLR == CLR_CMP_CLR*/
                                 cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
                                 break;
-
                             default:
                                 break;
                         }
@@ -1908,22 +1893,11 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                     if (mach64->accel.source_host) {
                         host_dat = cpu_dat;
-                        switch (mach64->accel.host_size) {
-                            case 0:
-                                cpu_dat >>= 8;
-                                count -= 8;
-                                break;
-                            case 1:
-                                cpu_dat >>= 16;
-                                count -= 16;
-                                break;
-                            case 2:
-                                count -= 32;
-                                break;
 
-                            default:
-                                break;
-                        }
+                        if (mach64->accel.host_size < 2)
+                            cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
+
+                        count -= (8 << mach64->accel.host_size);
                     } else
                         count--;
 
@@ -1946,7 +1920,6 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         case MONO_SRC_BLITSRC:
                             READ(mach64->accel.src_offset + (mach64->accel.src_y * mach64->accel.src_pitch) + mach64->accel.src_x, mix, WIDTH_1BIT);
                             break;
-
                         default:
                             break;
                     }
@@ -1993,7 +1966,6 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             case 5: /*DST_CLR == CLR_CMP_CLR*/
                                 cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
                                 break;
-
                             default:
                                 break;
                         }
@@ -2051,21 +2023,10 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                     if (mach64->accel.source_host) {
                         host_dat = cpu_dat;
-                        switch (mach64->accel.host_size) {
-                            case 0:
-                                cpu_dat >>= 8;
-                                count -= 8;
-                                break;
-                            case 1:
-                                cpu_dat >>= 16;
-                                count -= 16;
-                                break;
-                            case 2:
-                                count -= 32;
-                                break;
-                            default:
-                                break;
-                        }
+                        if (mach64->accel.host_size < 2)
+                            cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
+
+                        count -= (8 << mach64->accel.host_size);
                     } else
                         count--;
 
@@ -2124,7 +2085,6 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             case 5: /*DST_CLR == CLR_CMP_CLR*/
                                 cmp_clr = (((mach64->accel.clr_cmp_src) ? src_dat : dest_dat) & mach64->accel.clr_cmp_mask) == mach64->accel.clr_cmp_clr;
                                 break;
-
                             default:
                                 break;
                         }
@@ -2457,7 +2417,6 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 if (mach64->type == MACH64_VT3)
                     READ8(addr, mach64->gp_io);
 //                pclog("GPIO READ 0x%X, 0x00\n", addr & 0x3ff);
-
                 break;
             case 0x80 ... 0x83:
                 READ8(addr, mach64->scratch_reg0);
@@ -3891,12 +3850,8 @@ mach64_io_unmap(mach64_t *mach64)
 
     io_removehandler(0x03c0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
-    for (uint8_t c = 0; c < 8; c++) {
-        io_removehandler((c * 0x1000) + 0x0000 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-        io_removehandler((c * 0x1000) + 0x0400 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-        io_removehandler((c * 0x1000) + 0x0800 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-        io_removehandler((c * 0x1000) + 0x0c00 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-    }
+    for (uint8_t c = 0; c < 32; c++) // *0x400
+        io_removehandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
 
     io_removehandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
@@ -3930,12 +3885,9 @@ mach64_io_map(mach64_t *mach64)
     io_sethandler(0x03c0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     if (!mach64->use_block_decoded_io) {
-        for (uint8_t c = 0; c < 8; c++) {
-            io_sethandler((c * 0x1000) + 0x0000 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-            io_sethandler((c * 0x1000) + 0x0400 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-            io_sethandler((c * 0x1000) + 0x0800 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-            io_sethandler((c * 0x1000) + 0x0c00 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
-        }
+
+        for (uint8_t c = 0; c < 32; c++) // *0x400
+            io_sethandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
     }
 
     io_sethandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
