@@ -471,14 +471,12 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
             if ((mach64->index & 0x3f) == 0x36)
                 svga_recalctimings(svga);
             break;
-
         case 0x3C6 ... 0x3C9:
             if (mach64->type == MACH64_GX)
                 ati68860_ramdac_out((addr & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
             else
                 svga_out(addr, val, svga);
             return;
-
         case 0x3cf:
             if (svga->gdcaddr == 6) {
                 uint8_t old_val = svga->gdcreg[6];
@@ -488,7 +486,6 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
                 return;
             }
             break;
-
         case 0x3D4:
             svga->crtcreg = val & 0x3f;
             return;
@@ -535,12 +532,10 @@ mach64_in(uint16_t addr, void *priv)
             return mach64->index;
         case 0x1cf:
             return mach64->regs[mach64->index & 0x3f];
-
         case 0x3C6 ... 0x3C9:
             if (mach64->type == MACH64_GX)
                 return ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, svga->ramdac, svga);
             return svga_in(addr, svga);
-
         case 0x3D4:
             return svga->crtcreg;
         case 0x3D5:
@@ -4281,7 +4276,6 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             mach64->linear_base = (mach64->linear_base & 0x800000) | (val << 24);
             mach64_updatemapping(mach64);
             break;
-
         case 0x15:
             if (mach64->type >= MACH64_CT) {
                 if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
@@ -4309,10 +4303,8 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
                     mach64_io_set(mach64);
             }
             break;
-
         case 0x30:
-        case 0x32:
-        case 0x33:
+        case 0x32 ... 0x33:
             if (mach64->on_board) return;
             mach64->pci_regs[addr] = val;
             if (mach64->pci_regs[0x30] & 0x01) {
@@ -4324,11 +4316,9 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
                 mem_mapping_disable(&mach64->bios_rom.mapping);
             }
             return;
-
         case 0x3c:
             mach64->int_line = val;
             break;
-
         case 0x40:
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_remove(mach64);
@@ -4338,7 +4328,6 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
                 mach64_io_set(mach64);
             break;
-
         default:
             break;
     }
