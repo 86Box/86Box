@@ -470,7 +470,8 @@ mach64_log(const char *fmt, ...)
 #    define mach64_log(fmt, ...)
 #endif
 
-static mach64_t *reset_state[2] = { NULL, NULL };
+extern mach64_t* reset_state[2];
+
 
 
 

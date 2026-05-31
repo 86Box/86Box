@@ -25,6 +25,9 @@ video_timings_t timing_mach64_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w 
 video_timings_t timing_mach64_vlb = { .type = VIDEO_BUS, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
+mach64_t *reset_state[2] = { NULL, NULL };
+
+
 // x86 I/O port output function
 void
 mach64_out(uint16_t addr, uint8_t val, void *priv)
