@@ -107,6 +107,7 @@ void qt_set_sequence_auto_mnemonic(bool b);
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
+#include "qt_osd.hpp"
 
 #if defined __unix__ && !defined __HAIKU__
 #    ifndef Q_OS_MACOS
@@ -1540,6 +1541,38 @@ MainWindow::FindAcceleratorSeq(const char *name)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+    /* Handle the OSD hotkey here because the render window has no focus.
+     * Grab Right-Ctrl+F11 at ShortcutOverride so Qt does not fire the
+     * screenshot action first, while Left-Ctrl+F11 keeps the screenshot. */
+    static bool osd_right_ctrl_down = false;
+
+    const auto is_right_ctrl = [](const QKeyEvent *ke) {
+        /* Right Control native scancode: 105 on X11 (XKB), 97 on evdev/Wayland. */
+        return ke->key() == Qt::Key_Control
+            && (ke->nativeScanCode() == 105 || ke->nativeScanCode() == 97);
+    };
+
+    if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
+        auto *ke = static_cast<QKeyEvent *>(event);
+        if (is_right_ctrl(ke))
+            osd_right_ctrl_down = (event->type() == QEvent::KeyPress);
+        if (QApplication::activeWindow() == this || qt_osd_is_visible()) {
+            if (qt_osd_key(ke->key(), ke->modifiers(), event->type() == QEvent::KeyPress, ke->isAutoRepeat())) {
+                event->accept();
+                return true;
+            }
+        }
+    } else if (event->type() == QEvent::ShortcutOverride) {
+        auto *ke = static_cast<QKeyEvent *>(event);
+        if (ke->key() == Qt::Key_F11 && (ke->modifiers() & Qt::ControlModifier)
+            && osd_right_ctrl_down && (QApplication::activeWindow() == this || qt_osd_is_visible())) {
+            /* Accept so Qt delivers a normal key-press instead of firing the
+             * screenshot shortcut; the key handler above then toggles the OSD. */
+            event->accept();
+            return true;
+        }
+    }
+
     // Detect shortcuts when menubar is hidden
     // TODO: Could this be simplified by proxying the event and manually
     // shoving it into the menubar?
