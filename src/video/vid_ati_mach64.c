@@ -3223,24 +3223,15 @@ mach64_ext_inw(uint16_t port, void *priv)
     mach64_log("mach64_ext_inw : port %04X ret %04X\n", port, ret);
     return ret;
 }
+
 uint32_t
 mach64_ext_inl(uint16_t port, void *priv)
 {
     uint32_t ret;
 
-    switch (port) {
-        case 0x56ec:
-            ret = mach64_ext_readl(0x400 | 0xb4, priv);
-            break;
-        case 0x5aec:
-            ret = mach64_ext_readl(0x400 | 0xb8, priv);
-            break;
+    ret = mach64_ext_inw(port, priv);
+    ret |= (mach64_ext_inw(port + 2, priv) << 16);
 
-        default:
-            ret = mach64_ext_inw(port, priv);
-            ret |= (mach64_ext_inw(port + 2, priv) << 16);
-            break;
-    }
     mach64_log("mach64_ext_inl : port %04X ret %08X\n", port, ret);
     return ret;
 }
@@ -3517,7 +3508,6 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
                     case 3:
                         p[x_pos] ^= 0xffffff;
                         break;
-
                     default:
                         break;
                 }
