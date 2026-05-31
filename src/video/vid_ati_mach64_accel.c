@@ -888,6 +888,482 @@ mach64_blit_calc_cmp_clr(mach64_t* mach64, uint32_t src_dat, uint32_t dest_dat)
 }
 
 void
+mach64_blit_rect(uint32_t cpu_dat, int count, mach64_t* mach64)
+{
+    svga_t *svga    = &mach64->svga;
+    int     cmp_clr = 0;
+    int     mix = 0;
+
+    while (count) {
+        uint8_t  write_mask = 0;
+        uint32_t src_dat = 0;
+        uint32_t dest_dat;
+        uint32_t host_dat = 0;
+        uint32_t old_dest_dat;
+        int      dst_x, dst_y;
+        int      src_x, src_y;
+
+        dst_x = (mach64->accel.dst_x + mach64->accel.dst_x_start) & 0xfff;
+        dst_y = (mach64->accel.dst_y + mach64->accel.dst_y_start) & 0x3fff;
+
+        if (mach64->src_cntl & SRC_LINEAR_EN)
+            src_x = mach64->accel.src_x;
+        else
+            src_x = (mach64->accel.src_x + mach64->accel.src_x_start) & 0xfff;
+
+        src_y = (mach64->accel.src_y + mach64->accel.src_y_start) & 0x3fff;
+
+        if (mach64->accel.source_host) {
+            host_dat = cpu_dat;
+
+            if (mach64->accel.host_size < 2)
+                cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
+
+            count -= (8 << mach64->accel.host_size);
+        } else
+            count--;
+
+        switch (mach64->accel.source_mix) {
+            case MONO_SRC_HOST:
+                if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER) {
+                    mix = cpu_dat & 1;
+                    cpu_dat >>= 1;
+                } else {
+                    mix = cpu_dat >> 0x1f;
+                    cpu_dat <<= 1;
+                }
+                break;
+            case MONO_SRC_PAT:
+                if (mach64->dst_cntl & DST_24_ROT_EN) {
+                    if (!mach64->accel.xx_count)
+                        mix = mach64->accel.pattern[dst_y & 7][(dst_x / 3) & 7];
+                } else
+                    mix = mach64->accel.pattern[dst_y & 7][dst_x & 7];
+                break;
+            case MONO_SRC_1:
+                mix = 1;
+                break;
+            case MONO_SRC_BLITSRC:
+                if (mach64->src_cntl & SRC_LINEAR_EN) {
+                    READ(mach64->accel.src_offset + src_x, mix, WIDTH_1BIT);
+                } else {
+                    READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, mix, WIDTH_1BIT);
+                }
+                break;
+            default:
+                break;
+        }
+
+        if (dst_x >= mach64->accel.sc_left && dst_x <= mach64->accel.sc_right && dst_y >= mach64->accel.sc_top && dst_y <= mach64->accel.sc_bottom) {
+            switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
+                case SRC_HOST:
+                    src_dat = host_dat;
+                    break;
+                case SRC_BLITSRC:
+                    if (mach64->accel.src_size == 0 && mach64->type == MACH64_VT3 && (mach64->src_cntl & SRC_8x8x8_BRUSH))
+                        src_dat = mach64->accel.pattern_clr8x8[dst_y & 7][dst_x & 7];
+                    else
+                        READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, src_dat, mach64->accel.src_size);
+                    break;
+                case SRC_FG:
+                    if (mach64->dst_cntl & DST_24_ROT_EN) {
+                        if (mach64->accel.xinc == -1) {
+                            if (mach64->accel.xx_count == 2)
+                                src_dat = mach64->accel.dp_frgd_clr & 0xff;
+                            else if (mach64->accel.xx_count == 1)
+                                src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
+                            else
+                                src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
+                        } else {
+                            if (mach64->accel.xx_count == 2)
+                                src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
+                            else if (mach64->accel.xx_count == 1)
+                                src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
+                            else
+                                src_dat = mach64->accel.dp_frgd_clr & 0xff;
+                        }
+                    } else
+                        src_dat = mach64->accel.dp_frgd_clr;
+                    break;
+                case SRC_BG:
+                    if (mach64->dst_cntl & DST_24_ROT_EN) {
+                        if (mach64->accel.xinc == -1) {
+                            if (mach64->accel.xx_count == 2)
+                                src_dat = mach64->accel.dp_bkgd_clr & 0xff;
+                            else if (mach64->accel.xx_count == 1)
+                                src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
+                            else
+                                src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
+                        } else {
+                            if (mach64->accel.xx_count == 2)
+                                src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
+                            else if (mach64->accel.xx_count == 1)
+                                src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
+                            else
+                                src_dat = mach64->accel.dp_bkgd_clr & 0xff;
+                        }
+                    } else
+                        src_dat = mach64->accel.dp_bkgd_clr;
+                    break;
+                case SRC_PAT:
+                    if (mach64->pat_cntl & 2) {
+                        src_dat = mach64->accel.pattern_clr4x2[dst_y & 1][dst_x & 3];
+                        break;
+                    } else if (mach64->pat_cntl & 4) {
+                        src_dat = mach64->accel.pattern_clr8x1[dst_x & 7];
+                        break;
+                    }
+
+                default:
+                    src_dat = 0;
+                    break;
+            }
+
+            if (mach64->dst_cntl & DST_POLYGON_EN) {
+                int poly_src;
+                READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, poly_src, mach64->accel.src_size);
+                if (poly_src)
+                    mach64->accel.poly_draw = !mach64->accel.poly_draw;
+            }
+
+            if (!(mach64->dst_cntl & DST_POLYGON_EN) || mach64->accel.poly_draw) {
+                READ(mach64->accel.dst_offset + ((dst_y) *mach64->accel.dst_pitch) + (dst_x), dest_dat, mach64->accel.dst_size);
+
+                cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
+
+                if (!cmp_clr) {
+                    old_dest_dat = dest_dat;
+                    MIX
+                    if (mach64->dst_cntl & DST_24_ROT_EN) {
+                        if (mach64->accel.xinc == -1) {
+                            if (mach64->accel.xx_count == 2)
+                                write_mask = mach64->accel.write_mask & 0xff;
+                            else if (mach64->accel.xx_count == 1)
+                                write_mask = (mach64->accel.write_mask >> 8) & 0xff;
+                            else
+                                write_mask = (mach64->accel.write_mask >> 16) & 0xff;
+                        } else {
+                            if (mach64->accel.xx_count == 2)
+                                write_mask = (mach64->accel.write_mask >> 16) & 0xff;
+                            else if (mach64->accel.xx_count == 1)
+                                write_mask = (mach64->accel.write_mask >> 8) & 0xff;
+                            else
+                                write_mask = mach64->accel.write_mask & 0xff;
+                        }
+                        dest_dat = (dest_dat & write_mask) | (old_dest_dat & ~write_mask);
+                    } else
+                        dest_dat = (dest_dat & mach64->accel.write_mask) | (old_dest_dat & ~mach64->accel.write_mask);
+                }
+
+                WRITE(mach64->accel.dst_offset + ((dst_y) * mach64->accel.dst_pitch) + (dst_x), mach64->accel.dst_size);
+            }
+        }
+
+        mach64->accel.src_x += mach64->accel.xinc;
+        mach64->accel.dst_x += mach64->accel.xinc;
+        if (!(mach64->src_cntl & SRC_LINEAR_EN)) {
+            mach64->accel.src_x_count--;
+            if (mach64->accel.src_x_count <= 0) {
+                mach64->accel.src_x = 0;
+                if ((mach64->src_cntl & (SRC_PATT_ROT_EN | SRC_PATT_EN)) == (SRC_PATT_ROT_EN | SRC_PATT_EN)) {
+                    mach64->accel.src_x_start = (mach64->src_y_x_start >> 16) & 0xfff;
+                    if ((mach64->src_y_x_start >> 16) & 0x1000)
+                        mach64->accel.src_x_start |= ~0xfff;
+                    mach64->accel.src_x_count = mach64->accel.src_width2;
+                } else
+                    mach64->accel.src_x_count = mach64->accel.src_width1;
+            }
+        }
+
+        mach64->accel.x_count--;
+        mach64->accel.xx_count = (mach64->accel.xx_count + 1) % 3;
+        if (mach64->accel.x_count <= 0) {
+            mach64->accel.x_count  = mach64->accel.dst_width;
+            mach64->accel.xx_count = 0;
+            mach64->accel.dst_x    = 0;
+            mach64->accel.dst_y += mach64->accel.yinc;
+            mach64->accel.src_x_start = (mach64->src_y_x >> 16) & 0xfff;
+            mach64->accel.src_x_count = mach64->accel.src_width1;
+
+            if (!(mach64->src_cntl & SRC_LINEAR_EN)) {
+                mach64->accel.src_x = 0;
+                mach64->accel.src_y += mach64->accel.yinc;
+                mach64->accel.src_y_count--;
+                if (mach64->accel.src_y_count <= 0) {
+                    mach64->accel.src_y = 0;
+                    if ((mach64->src_cntl & (SRC_PATT_ROT_EN | SRC_PATT_EN)) == (SRC_PATT_ROT_EN | SRC_PATT_EN)) {
+                        mach64->accel.src_y_start = mach64->src_y_x_start & 0x3fff;
+                        if (mach64->src_y_x_start & 0x4000)
+                            mach64->accel.src_y_start |= ~0x3fff;
+                        mach64->accel.src_y_count = mach64->accel.src_height2;
+                    } else
+                        mach64->accel.src_y_count = mach64->accel.src_height1;
+                }
+            }
+
+            mach64->accel.poly_draw = 0;
+            mach64->accel.dst_height--;
+            if (mach64->accel.dst_height <= 0) {
+                /*Blit finished*/
+                mach64_log("mach64 blit finished\n");
+                mach64->accel.busy = 0;
+                if (mach64->dst_cntl & DST_X_TILE)
+                    mach64->dst_y_x = (mach64->dst_y_x & 0xfff) | ((mach64->dst_y_x + (mach64->accel.dst_width << 16)) & 0xfff0000);
+                if (mach64->dst_cntl & DST_Y_TILE)
+                    mach64->dst_y_x = (mach64->dst_y_x & 0xfff0000) | ((mach64->dst_y_x + (mach64->dst_height_width & 0x1fff)) & 0xfff);
+                return;
+            }
+            if (mach64->host_cntl & HOST_BYTE_ALIGN) {
+                if (mach64->accel.source_mix == MONO_SRC_HOST) {
+                    if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)
+                        cpu_dat >>= (count & 7);
+                    else
+                        cpu_dat <<= (count & 7);
+
+                    count &= ~7;
+                }
+            }
+        }
+    }
+}
+
+void
+mach64_blit_line(uint32_t cpu_dat, int count, mach64_t* mach64)
+{
+    svga_t *svga    = &mach64->svga;
+    int     cmp_clr = 0;
+    int     mix = 0;
+
+    if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+        int x = 0;
+        while (count) {
+            uint32_t src_dat = 0;
+            uint32_t dest_dat;
+            uint32_t host_dat = 0;
+            int      mix      = 0;
+            int      draw_pixel = !(mach64->dst_cntl & DST_POLYGON_EN);
+
+            if (mach64->dst_cntl & DST_POLYGON_EN) {
+                if (mach64->dst_cntl & DST_Y_MAJOR)
+                    draw_pixel = 1;
+                else if (mach64->accel.err >= 0)
+                    draw_pixel = 1;
+            }
+
+            if (mach64->accel.source_host) {
+                host_dat = cpu_dat;
+
+                if (mach64->accel.host_size < 2)
+                    cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
+
+                count -= (8 << mach64->accel.host_size);
+            } else
+                count--;
+
+            switch (mach64->accel.source_mix) {
+                case MONO_SRC_HOST:
+                    if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER) {
+                        mix = cpu_dat & 1;
+                        cpu_dat >>= 1;
+                    } else {
+                        mix = cpu_dat >> 31;
+                        cpu_dat <<= 1;
+                    }
+                    break;
+                case MONO_SRC_PAT:
+                    mix = mach64->accel.pattern[mach64->accel.dst_y & 7][mach64->accel.dst_x & 7];
+                    break;
+                case MONO_SRC_1:
+                    mix = 1;
+                    break;
+                case MONO_SRC_BLITSRC:
+                    READ(mach64->accel.src_offset + (mach64->accel.src_y * mach64->accel.src_pitch) + mach64->accel.src_x, mix, WIDTH_1BIT);
+                    break;
+                default:
+                    break;
+            }
+
+            if ((mach64->accel.dst_x >= mach64->accel.sc_left) && (mach64->accel.dst_x <= mach64->accel.sc_right) && (mach64->accel.dst_y >= mach64->accel.sc_top) && (mach64->accel.dst_y <= mach64->accel.sc_bottom) && draw_pixel) {
+                switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
+                    case SRC_HOST:
+                        src_dat = host_dat;
+                        break;
+                    case SRC_BLITSRC:
+                        if (mach64->accel.src_size == 0 && mach64->type == MACH64_VT3 && (mach64->src_cntl & SRC_8x8x8_BRUSH))
+                            src_dat = mach64->accel.pattern_clr8x8[mach64->accel.dst_y & 7][mach64->accel.dst_x & 7];
+                        else
+                            READ(mach64->accel.src_offset + (mach64->accel.src_y * mach64->accel.src_pitch) + mach64->accel.src_x, src_dat, mach64->accel.src_size);
+                        break;
+                    case SRC_FG:
+                        src_dat = mach64->accel.dp_frgd_clr;
+                        break;
+                    case SRC_BG:
+                        src_dat = mach64->accel.dp_bkgd_clr;
+                        break;
+                    case SRC_PAT:
+                        if (mach64->pat_cntl & 2) {
+                            src_dat = mach64->accel.pattern_clr4x2[mach64->accel.dst_y & 1][mach64->accel.dst_x & 3];
+                            break;
+                        } else if (mach64->pat_cntl & 4) {
+                            src_dat = mach64->accel.pattern_clr8x1[mach64->accel.dst_x & 7];
+                            break;
+                        }
+                    default:
+                        src_dat = 0;
+                        break;
+                }
+
+                READ(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, dest_dat, mach64->accel.dst_size);
+
+                cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
+
+                if (!cmp_clr)
+                    MIX
+
+                if (!(mach64->dst_cntl & DST_Y_MAJOR)) {
+                    if (!x)
+                        dest_dat &= ~1;
+                } else {
+                    if (x == (mach64->accel.x_count - 1))
+                        dest_dat &= ~1;
+                }
+
+                WRITE(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, mach64->accel.dst_size);
+            }
+
+            x++;
+            if (x >= mach64->accel.x_count) {
+                mach64->accel.busy = 0;
+                mach64_log("mach64 line24 finished\n");
+                return;
+            }
+
+            if (mach64->dst_cntl & DST_Y_MAJOR) {
+                mach64->accel.dst_y += mach64->accel.yinc;
+                mach64->accel.src_y += mach64->accel.yinc;
+                if (mach64->accel.err >= 0) {
+                    mach64->accel.err += mach64->dst_bres_dec;
+                    mach64->accel.dst_x += mach64->accel.xinc;
+                    mach64->accel.src_x += mach64->accel.xinc;
+                } else {
+                    mach64->accel.err += mach64->dst_bres_inc;
+                }
+            } else {
+                mach64->accel.dst_x += mach64->accel.xinc;
+                mach64->accel.src_x += mach64->accel.xinc;
+                if (mach64->accel.err >= 0) {
+                    mach64->accel.err += mach64->dst_bres_dec;
+                    mach64->accel.dst_y += mach64->accel.yinc;
+                    mach64->accel.src_y += mach64->accel.yinc;
+                } else {
+                    mach64->accel.err += mach64->dst_bres_inc;
+                }
+            }
+        }
+    } else {
+        while (count) {
+            uint32_t src_dat = 0;
+            uint32_t dest_dat;
+            uint32_t host_dat   = 0;
+            int      mix        = 0;
+            int      draw_pixel = !(mach64->dst_cntl & DST_POLYGON_EN);
+
+            if (mach64->accel.source_host) {
+                host_dat = cpu_dat;
+                if (mach64->accel.host_size < 2)
+                    cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
+
+                count -= (8 << mach64->accel.host_size);
+            } else
+                count--;
+
+            switch (mach64->accel.source_mix) {
+                case MONO_SRC_HOST:
+                    mix = cpu_dat >> 31;
+                    cpu_dat <<= 1;
+                    break;
+                case MONO_SRC_PAT:
+                    mix = mach64->accel.pattern[mach64->accel.dst_y & 7][mach64->accel.dst_x & 7];
+                    break;
+                case MONO_SRC_1:
+                default:
+                    mix = 1;
+                    break;
+            }
+
+            if (mach64->dst_cntl & DST_POLYGON_EN) {
+                if (mach64->dst_cntl & DST_Y_MAJOR)
+                    draw_pixel = 1;
+                else if (mach64->accel.err >= 0)
+                    draw_pixel = 1;
+            }
+
+            if (mach64->accel.x_count == 1 && !(mach64->dst_cntl & DST_LAST_PEL))
+                draw_pixel = 0;
+
+            if (mach64->accel.dst_x >= mach64->accel.sc_left && mach64->accel.dst_x <= mach64->accel.sc_right && mach64->accel.dst_y >= mach64->accel.sc_top && mach64->accel.dst_y <= mach64->accel.sc_bottom && draw_pixel) {
+                switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
+                    case SRC_HOST:
+                        src_dat = host_dat;
+                        break;
+                    case SRC_BLITSRC:
+                        READ(mach64->accel.src_offset + (mach64->accel.src_y * mach64->accel.src_pitch) + mach64->accel.src_x, src_dat, mach64->accel.src_size);
+                        break;
+                    case SRC_FG:
+                        src_dat = mach64->accel.dp_frgd_clr;
+                        break;
+                    case SRC_BG:
+                        src_dat = mach64->accel.dp_bkgd_clr;
+                        break;
+                    default:
+                        src_dat = 0;
+                        break;
+                }
+
+                READ(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, dest_dat, mach64->accel.dst_size);
+
+                cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
+
+                if (!cmp_clr)
+                    MIX
+
+                WRITE(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, mach64->accel.dst_size);
+            }
+
+            mach64->accel.x_count--;
+            if (mach64->accel.x_count <= 0) {
+                /*Blit finished*/
+                mach64_log("mach64 blit finished\n");
+                mach64->accel.busy = 0;
+                return;
+            }
+
+            if (mach64->dst_cntl & DST_Y_MAJOR) {
+                mach64->accel.dst_y += mach64->accel.yinc;
+                mach64->accel.src_y += mach64->accel.yinc;
+                if (mach64->accel.err >= 0) {
+                    mach64->accel.err += mach64->dst_bres_dec;
+                    mach64->accel.dst_x += mach64->accel.xinc;
+                    mach64->accel.src_x += mach64->accel.xinc;
+                } else {
+                    mach64->accel.err += mach64->dst_bres_inc;
+                }
+            } else {
+                mach64->accel.dst_x += mach64->accel.xinc;
+                mach64->accel.src_x += mach64->accel.xinc;
+                if (mach64->accel.err >= 0) {
+                    mach64->accel.err += mach64->dst_bres_dec;
+                    mach64->accel.dst_y += mach64->accel.yinc;
+                    mach64->accel.src_y += mach64->accel.yinc;
+                } else {
+                    mach64->accel.err += mach64->dst_bres_inc;
+                }
+            }
+        }
+    }
+}
+
+void
 mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 {
     svga_t *svga    = &mach64->svga;
@@ -901,467 +1377,10 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
     switch (mach64->accel.op) {
         case OP_RECT:
-            while (count) {
-                uint8_t  write_mask = 0;
-                uint32_t src_dat = 0;
-                uint32_t dest_dat;
-                uint32_t host_dat = 0;
-                uint32_t old_dest_dat;
-                int      dst_x, dst_y;
-                int      src_x, src_y;
-
-                dst_x = (mach64->accel.dst_x + mach64->accel.dst_x_start) & 0xfff;
-                dst_y = (mach64->accel.dst_y + mach64->accel.dst_y_start) & 0x3fff;
-
-                if (mach64->src_cntl & SRC_LINEAR_EN)
-                    src_x = mach64->accel.src_x;
-                else
-                    src_x = (mach64->accel.src_x + mach64->accel.src_x_start) & 0xfff;
-
-                src_y = (mach64->accel.src_y + mach64->accel.src_y_start) & 0x3fff;
-
-                if (mach64->accel.source_host) {
-                    host_dat = cpu_dat;
-
-                    if (mach64->accel.host_size < 2)
-                        cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
-
-                    count -= (8 << mach64->accel.host_size);
-                } else
-                    count--;
-
-                switch (mach64->accel.source_mix) {
-                    case MONO_SRC_HOST:
-                        if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER) {
-                            mix = cpu_dat & 1;
-                            cpu_dat >>= 1;
-                        } else {
-                            mix = cpu_dat >> 0x1f;
-                            cpu_dat <<= 1;
-                        }
-                        break;
-                    case MONO_SRC_PAT:
-                        if (mach64->dst_cntl & DST_24_ROT_EN) {
-                            if (!mach64->accel.xx_count)
-                                mix = mach64->accel.pattern[dst_y & 7][(dst_x / 3) & 7];
-                        } else
-                            mix = mach64->accel.pattern[dst_y & 7][dst_x & 7];
-                        break;
-                    case MONO_SRC_1:
-                        mix = 1;
-                        break;
-                    case MONO_SRC_BLITSRC:
-                        if (mach64->src_cntl & SRC_LINEAR_EN) {
-                            READ(mach64->accel.src_offset + src_x, mix, WIDTH_1BIT);
-                        } else {
-                            READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, mix, WIDTH_1BIT);
-                        }
-                        break;
-                    default:
-                        break;
-                }
-
-                if (dst_x >= mach64->accel.sc_left && dst_x <= mach64->accel.sc_right && dst_y >= mach64->accel.sc_top && dst_y <= mach64->accel.sc_bottom) {
-                    switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
-                        case SRC_HOST:
-                            src_dat = host_dat;
-                            break;
-                        case SRC_BLITSRC:
-                            if (mach64->accel.src_size == 0 && mach64->type == MACH64_VT3 && (mach64->src_cntl & SRC_8x8x8_BRUSH))
-                                src_dat = mach64->accel.pattern_clr8x8[dst_y & 7][dst_x & 7];
-                            else
-                                READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, src_dat, mach64->accel.src_size);
-                            break;
-                        case SRC_FG:
-                            if (mach64->dst_cntl & DST_24_ROT_EN) {
-                                if (mach64->accel.xinc == -1) {
-                                    if (mach64->accel.xx_count == 2)
-                                        src_dat = mach64->accel.dp_frgd_clr & 0xff;
-                                    else if (mach64->accel.xx_count == 1)
-                                        src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
-                                    else
-                                        src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
-                                } else {
-                                    if (mach64->accel.xx_count == 2)
-                                        src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
-                                    else if (mach64->accel.xx_count == 1)
-                                        src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
-                                    else
-                                        src_dat = mach64->accel.dp_frgd_clr & 0xff;
-                                }
-                            } else
-                                src_dat = mach64->accel.dp_frgd_clr;
-                            break;
-                        case SRC_BG:
-                            if (mach64->dst_cntl & DST_24_ROT_EN) {
-                                if (mach64->accel.xinc == -1) {
-                                    if (mach64->accel.xx_count == 2)
-                                        src_dat = mach64->accel.dp_bkgd_clr & 0xff;
-                                    else if (mach64->accel.xx_count == 1)
-                                        src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
-                                    else
-                                        src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
-                                } else {
-                                    if (mach64->accel.xx_count == 2)
-                                        src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
-                                    else if (mach64->accel.xx_count == 1)
-                                        src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
-                                    else
-                                        src_dat = mach64->accel.dp_bkgd_clr & 0xff;
-                                }
-                            } else
-                                src_dat = mach64->accel.dp_bkgd_clr;
-                            break;
-                        case SRC_PAT:
-                            if (mach64->pat_cntl & 2) {
-                                src_dat = mach64->accel.pattern_clr4x2[dst_y & 1][dst_x & 3];
-                                break;
-                            } else if (mach64->pat_cntl & 4) {
-                                src_dat = mach64->accel.pattern_clr8x1[dst_x & 7];
-                                break;
-                            }
-
-                        default:
-                            src_dat = 0;
-                            break;
-                    }
-
-                    if (mach64->dst_cntl & DST_POLYGON_EN) {
-                        int poly_src;
-                        READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, poly_src, mach64->accel.src_size);
-                        if (poly_src)
-                            mach64->accel.poly_draw = !mach64->accel.poly_draw;
-                    }
-
-                    if (!(mach64->dst_cntl & DST_POLYGON_EN) || mach64->accel.poly_draw) {
-                        READ(mach64->accel.dst_offset + ((dst_y) *mach64->accel.dst_pitch) + (dst_x), dest_dat, mach64->accel.dst_size);
-
-                        cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
-
-                        if (!cmp_clr) {
-                            old_dest_dat = dest_dat;
-                            MIX
-                            if (mach64->dst_cntl & DST_24_ROT_EN) {
-                                if (mach64->accel.xinc == -1) {
-                                    if (mach64->accel.xx_count == 2)
-                                        write_mask = mach64->accel.write_mask & 0xff;
-                                    else if (mach64->accel.xx_count == 1)
-                                        write_mask = (mach64->accel.write_mask >> 8) & 0xff;
-                                    else
-                                        write_mask = (mach64->accel.write_mask >> 16) & 0xff;
-                                } else {
-                                    if (mach64->accel.xx_count == 2)
-                                        write_mask = (mach64->accel.write_mask >> 16) & 0xff;
-                                    else if (mach64->accel.xx_count == 1)
-                                        write_mask = (mach64->accel.write_mask >> 8) & 0xff;
-                                    else
-                                        write_mask = mach64->accel.write_mask & 0xff;
-                                }
-                                dest_dat = (dest_dat & write_mask) | (old_dest_dat & ~write_mask);
-                            } else
-                                dest_dat = (dest_dat & mach64->accel.write_mask) | (old_dest_dat & ~mach64->accel.write_mask);
-                        }
-
-                        WRITE(mach64->accel.dst_offset + ((dst_y) * mach64->accel.dst_pitch) + (dst_x), mach64->accel.dst_size);
-                    }
-                }
-
-                mach64->accel.src_x += mach64->accel.xinc;
-                mach64->accel.dst_x += mach64->accel.xinc;
-                if (!(mach64->src_cntl & SRC_LINEAR_EN)) {
-                    mach64->accel.src_x_count--;
-                    if (mach64->accel.src_x_count <= 0) {
-                        mach64->accel.src_x = 0;
-                        if ((mach64->src_cntl & (SRC_PATT_ROT_EN | SRC_PATT_EN)) == (SRC_PATT_ROT_EN | SRC_PATT_EN)) {
-                            mach64->accel.src_x_start = (mach64->src_y_x_start >> 16) & 0xfff;
-                            if ((mach64->src_y_x_start >> 16) & 0x1000)
-                                mach64->accel.src_x_start |= ~0xfff;
-                            mach64->accel.src_x_count = mach64->accel.src_width2;
-                        } else
-                            mach64->accel.src_x_count = mach64->accel.src_width1;
-                    }
-                }
-
-                mach64->accel.x_count--;
-                mach64->accel.xx_count = (mach64->accel.xx_count + 1) % 3;
-                if (mach64->accel.x_count <= 0) {
-                    mach64->accel.x_count  = mach64->accel.dst_width;
-                    mach64->accel.xx_count = 0;
-                    mach64->accel.dst_x    = 0;
-                    mach64->accel.dst_y += mach64->accel.yinc;
-                    mach64->accel.src_x_start = (mach64->src_y_x >> 16) & 0xfff;
-                    mach64->accel.src_x_count = mach64->accel.src_width1;
-
-                    if (!(mach64->src_cntl & SRC_LINEAR_EN)) {
-                        mach64->accel.src_x = 0;
-                        mach64->accel.src_y += mach64->accel.yinc;
-                        mach64->accel.src_y_count--;
-                        if (mach64->accel.src_y_count <= 0) {
-                            mach64->accel.src_y = 0;
-                            if ((mach64->src_cntl & (SRC_PATT_ROT_EN | SRC_PATT_EN)) == (SRC_PATT_ROT_EN | SRC_PATT_EN)) {
-                                mach64->accel.src_y_start = mach64->src_y_x_start & 0x3fff;
-                                if (mach64->src_y_x_start & 0x4000)
-                                    mach64->accel.src_y_start |= ~0x3fff;
-                                mach64->accel.src_y_count = mach64->accel.src_height2;
-                            } else
-                                mach64->accel.src_y_count = mach64->accel.src_height1;
-                        }
-                    }
-
-                    mach64->accel.poly_draw = 0;
-                    mach64->accel.dst_height--;
-                    if (mach64->accel.dst_height <= 0) {
-                        /*Blit finished*/
-                        mach64_log("mach64 blit finished\n");
-                        mach64->accel.busy = 0;
-                        if (mach64->dst_cntl & DST_X_TILE)
-                            mach64->dst_y_x = (mach64->dst_y_x & 0xfff) | ((mach64->dst_y_x + (mach64->accel.dst_width << 16)) & 0xfff0000);
-                        if (mach64->dst_cntl & DST_Y_TILE)
-                            mach64->dst_y_x = (mach64->dst_y_x & 0xfff0000) | ((mach64->dst_y_x + (mach64->dst_height_width & 0x1fff)) & 0xfff);
-                        return;
-                    }
-                    if (mach64->host_cntl & HOST_BYTE_ALIGN) {
-                        if (mach64->accel.source_mix == MONO_SRC_HOST) {
-                            if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)
-                                cpu_dat >>= (count & 7);
-                            else
-                                cpu_dat <<= (count & 7);
-
-                            count &= ~7;
-                        }
-                    }
-                }
-            }
+            mach64_blit_rect(cpu_dat, count, mach64);
             break;
-
         case OP_LINE:
-            if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
-                int x = 0;
-                while (count) {
-                    uint32_t src_dat = 0;
-                    uint32_t dest_dat;
-                    uint32_t host_dat = 0;
-                    int      mix      = 0;
-                    int      draw_pixel = !(mach64->dst_cntl & DST_POLYGON_EN);
-
-                    if (mach64->dst_cntl & DST_POLYGON_EN) {
-                        if (mach64->dst_cntl & DST_Y_MAJOR)
-                            draw_pixel = 1;
-                        else if (mach64->accel.err >= 0)
-                            draw_pixel = 1;
-                    }
-
-                    if (mach64->accel.source_host) {
-                        host_dat = cpu_dat;
-
-                        if (mach64->accel.host_size < 2)
-                            cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
-
-                        count -= (8 << mach64->accel.host_size);
-                    } else
-                        count--;
-
-                    switch (mach64->accel.source_mix) {
-                        case MONO_SRC_HOST:
-                            if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER) {
-                                mix = cpu_dat & 1;
-                                cpu_dat >>= 1;
-                            } else {
-                                mix = cpu_dat >> 31;
-                                cpu_dat <<= 1;
-                            }
-                            break;
-                        case MONO_SRC_PAT:
-                            mix = mach64->accel.pattern[mach64->accel.dst_y & 7][mach64->accel.dst_x & 7];
-                            break;
-                        case MONO_SRC_1:
-                            mix = 1;
-                            break;
-                        case MONO_SRC_BLITSRC:
-                            READ(mach64->accel.src_offset + (mach64->accel.src_y * mach64->accel.src_pitch) + mach64->accel.src_x, mix, WIDTH_1BIT);
-                            break;
-                        default:
-                            break;
-                    }
-
-                    if ((mach64->accel.dst_x >= mach64->accel.sc_left) && (mach64->accel.dst_x <= mach64->accel.sc_right) && (mach64->accel.dst_y >= mach64->accel.sc_top) && (mach64->accel.dst_y <= mach64->accel.sc_bottom) && draw_pixel) {
-                        switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
-                            case SRC_HOST:
-                                src_dat = host_dat;
-                                break;
-                            case SRC_BLITSRC:
-                                if (mach64->accel.src_size == 0 && mach64->type == MACH64_VT3 && (mach64->src_cntl & SRC_8x8x8_BRUSH))
-                                    src_dat = mach64->accel.pattern_clr8x8[mach64->accel.dst_y & 7][mach64->accel.dst_x & 7];
-                                else
-                                    READ(mach64->accel.src_offset + (mach64->accel.src_y * mach64->accel.src_pitch) + mach64->accel.src_x, src_dat, mach64->accel.src_size);
-                                break;
-                            case SRC_FG:
-                                src_dat = mach64->accel.dp_frgd_clr;
-                                break;
-                            case SRC_BG:
-                                src_dat = mach64->accel.dp_bkgd_clr;
-                                break;
-                            case SRC_PAT:
-                                if (mach64->pat_cntl & 2) {
-                                    src_dat = mach64->accel.pattern_clr4x2[mach64->accel.dst_y & 1][mach64->accel.dst_x & 3];
-                                    break;
-                                } else if (mach64->pat_cntl & 4) {
-                                    src_dat = mach64->accel.pattern_clr8x1[mach64->accel.dst_x & 7];
-                                    break;
-                                }
-                            default:
-                                src_dat = 0;
-                                break;
-                        }
-
-                        READ(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, dest_dat, mach64->accel.dst_size);
-
-                        cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
-
-                        if (!cmp_clr)
-                            MIX
-
-                        if (!(mach64->dst_cntl & DST_Y_MAJOR)) {
-                            if (!x)
-                                dest_dat &= ~1;
-                        } else {
-                            if (x == (mach64->accel.x_count - 1))
-                                dest_dat &= ~1;
-                        }
-
-                        WRITE(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, mach64->accel.dst_size);
-                    }
-
-                    x++;
-                    if (x >= mach64->accel.x_count) {
-                        mach64->accel.busy = 0;
-                        mach64_log("mach64 line24 finished\n");
-                        return;
-                    }
-
-                    if (mach64->dst_cntl & DST_Y_MAJOR) {
-                        mach64->accel.dst_y += mach64->accel.yinc;
-                        mach64->accel.src_y += mach64->accel.yinc;
-                        if (mach64->accel.err >= 0) {
-                            mach64->accel.err += mach64->dst_bres_dec;
-                            mach64->accel.dst_x += mach64->accel.xinc;
-                            mach64->accel.src_x += mach64->accel.xinc;
-                        } else {
-                            mach64->accel.err += mach64->dst_bres_inc;
-                        }
-                    } else {
-                        mach64->accel.dst_x += mach64->accel.xinc;
-                        mach64->accel.src_x += mach64->accel.xinc;
-                        if (mach64->accel.err >= 0) {
-                            mach64->accel.err += mach64->dst_bres_dec;
-                            mach64->accel.dst_y += mach64->accel.yinc;
-                            mach64->accel.src_y += mach64->accel.yinc;
-                        } else {
-                            mach64->accel.err += mach64->dst_bres_inc;
-                        }
-                    }
-                }
-            } else {
-                while (count) {
-                    uint32_t src_dat = 0;
-                    uint32_t dest_dat;
-                    uint32_t host_dat   = 0;
-                    int      mix        = 0;
-                    int      draw_pixel = !(mach64->dst_cntl & DST_POLYGON_EN);
-
-                    if (mach64->accel.source_host) {
-                        host_dat = cpu_dat;
-                        if (mach64->accel.host_size < 2)
-                            cpu_dat >>= (8 << mach64->accel.host_size); // shift by 8 for a word, 16 for a word, not at all for a dword.
-
-                        count -= (8 << mach64->accel.host_size);
-                    } else
-                        count--;
-
-                    switch (mach64->accel.source_mix) {
-                        case MONO_SRC_HOST:
-                            mix = cpu_dat >> 31;
-                            cpu_dat <<= 1;
-                            break;
-                        case MONO_SRC_PAT:
-                            mix = mach64->accel.pattern[mach64->accel.dst_y & 7][mach64->accel.dst_x & 7];
-                            break;
-                        case MONO_SRC_1:
-                        default:
-                            mix = 1;
-                            break;
-                    }
-
-                    if (mach64->dst_cntl & DST_POLYGON_EN) {
-                        if (mach64->dst_cntl & DST_Y_MAJOR)
-                            draw_pixel = 1;
-                        else if (mach64->accel.err >= 0)
-                            draw_pixel = 1;
-                    }
-
-                    if (mach64->accel.x_count == 1 && !(mach64->dst_cntl & DST_LAST_PEL))
-                        draw_pixel = 0;
-
-                    if (mach64->accel.dst_x >= mach64->accel.sc_left && mach64->accel.dst_x <= mach64->accel.sc_right && mach64->accel.dst_y >= mach64->accel.sc_top && mach64->accel.dst_y <= mach64->accel.sc_bottom && draw_pixel) {
-                        switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
-                            case SRC_HOST:
-                                src_dat = host_dat;
-                                break;
-                            case SRC_BLITSRC:
-                                READ(mach64->accel.src_offset + (mach64->accel.src_y * mach64->accel.src_pitch) + mach64->accel.src_x, src_dat, mach64->accel.src_size);
-                                break;
-                            case SRC_FG:
-                                src_dat = mach64->accel.dp_frgd_clr;
-                                break;
-                            case SRC_BG:
-                                src_dat = mach64->accel.dp_bkgd_clr;
-                                break;
-                            default:
-                                src_dat = 0;
-                                break;
-                        }
-
-                        READ(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, dest_dat, mach64->accel.dst_size);
-
-                        cmp_clr = mach64_blit_calc_cmp_clr(mach64, src_dat, dest_dat);
-
-                        if (!cmp_clr)
-                            MIX
-
-                        WRITE(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, mach64->accel.dst_size);
-                    }
-
-                    mach64->accel.x_count--;
-                    if (mach64->accel.x_count <= 0) {
-                        /*Blit finished*/
-                        mach64_log("mach64 blit finished\n");
-                        mach64->accel.busy = 0;
-                        return;
-                    }
-
-                    if (mach64->dst_cntl & DST_Y_MAJOR) {
-                        mach64->accel.dst_y += mach64->accel.yinc;
-                        mach64->accel.src_y += mach64->accel.yinc;
-                        if (mach64->accel.err >= 0) {
-                            mach64->accel.err += mach64->dst_bres_dec;
-                            mach64->accel.dst_x += mach64->accel.xinc;
-                            mach64->accel.src_x += mach64->accel.xinc;
-                        } else {
-                            mach64->accel.err += mach64->dst_bres_inc;
-                        }
-                    } else {
-                        mach64->accel.dst_x += mach64->accel.xinc;
-                        mach64->accel.src_x += mach64->accel.xinc;
-                        if (mach64->accel.err >= 0) {
-                            mach64->accel.err += mach64->dst_bres_dec;
-                            mach64->accel.dst_y += mach64->accel.yinc;
-                            mach64->accel.src_y += mach64->accel.yinc;
-                        } else {
-                            mach64->accel.err += mach64->dst_bres_inc;
-                        }
-                    }
-                }
-            }
+            mach64_blit_line(cpu_dat, count, mach64);
             break;
         default:
             break;
