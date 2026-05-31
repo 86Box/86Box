@@ -1,3 +1,25 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          ATi Mach64 graphics card emulation headers.
+ *          The ATi Mach64 is a 1994 Windows 2D accelerator.
+ *          Technical information is available at: https://bitsavers.org/components/ati/RRG-S00700-05_mach64_Register_Reference_Guide_1999410.pdf
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Connor Hyde, <mario64crashed@gmail.com> <https://starfrost.net>
+ *
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2026 Connor Hyde.
+ */
+
+
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -483,4 +505,3 @@ static mach64_t *reset_state[2] = { NULL, NULL };
             var = (var & 0x00ffffff) | ((val) << 24); \
             break;                                    \
     }
-    
