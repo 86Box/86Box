@@ -297,7 +297,7 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
     {
         .name="pause",
         .desc="Toggle pause",
-        .seq="Ctrl+Alt+F1"
+        .seq="Ctrl+Alt+P"
     },
     {
         .name="mute",
