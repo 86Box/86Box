@@ -6,8 +6,8 @@
     },
     "configurePresets": [
         {
-            "name": "base",
-            "binaryDir": "${sourceDir}/build/${presetName}",
+            "name": "regular",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/artifacts",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
@@ -15,119 +15,79 @@
                 "NEW_DYNAREC": "OFF",
                 "QT": "ON"
             },
-            "generator": "Ninja",
-            "hidden": true
+            "generator": "Ninja Multi-Config"
         },
         {
-            "name": "regular",
+            "name": "regular-ndr",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
+                "NEW_DYNAREC": "ON"
             },
-            "inherits": "base"
-        },
-        {
-            "name": "optimized",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Optimized"
-            },
-            "inherits": "base"
-        },
-        {
-            "name": "debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            },
-            "inherits": "base"
+            "inherits": "regular"
         },
         {
             "name": "development",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
                 "DEV_BRANCH": "ON"
-            },
-            "inherits": "base"
-        },
-        {
-            "name": "dev_debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "DEV_BRANCH": "ON"
-            },
-            "inherits": "base"
-        },
-        {
-            "name": "ultra_debug",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "UltraDebug",
-                "DEV_BRANCH": "ON"
-            },
-            "inherits": "base"
-        },
-        {
-            "name": "llvm-macos-aarch64.cmake",
-            "displayName": "MacOS clang regular",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "cacheVariables": {
-                "NEW_DYNAREC": "ON",
-                "QT": "ON",
-                "USE_QT6": "OFF",
-                "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
-                "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
-                "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
-                "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
-                "LIBSERIALPORT_ROOT": "/opt/homebrew/opt/libserialport"
             },
             "inherits": "regular"
         },
         {
-            "name": "llvm-macos-aarch64-debug",
-            "displayName": "MacOS clang debug",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "name": "development-ndr",
             "cacheVariables": {
-                "NEW_DYNAREC": "ON",
-                "QT": "ON",
-                "USE_QT6": "OFF",
-                "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
-                "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
-                "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
-                "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
-                "LIBSERIALPORT_ROOT": "/opt/homebrew/opt/libserialport",
-                "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
-                "CMAKE_C_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG"
+                "DEV_BRANCH": "ON"
             },
-            "inherits": "debug"
+            "inherits": "regular-ndr"
         },
         {
-            "name": "flags-gcc-aarch64-debug",
-            "displayName": "Linux ARM 64 - Debug",
-            "description": "Linux ARM64 - Debug build",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "name": "regular-sdl",
             "cacheVariables": {
-                "NEW_DYNAREC": "ON",
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
-                "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
-                "CMAKE_C_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG"
-            },
-            "inherits": "debug"
-        },
-        {
-            "name": "flags-gcc-aarch64-regular",
-            "displayName": "Linux ARM 64 - Regular",
-            "description": "Linux ARM64 - Release build",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "cacheVariables": {
-                "NEW_DYNAREC": "ON",
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+                "QT": "OFF"
             },
             "inherits": "regular"
+        },
+        {
+            "name": "regular-ndr-sdl",
+            "cacheVariables": {
+                "QT": "OFF"
+            },
+            "inherits": "regular-ndr"
+        },
+        {
+            "name": "development-sdl",
+            "cacheVariables": {
+                "QT": "OFF"
+            },
+            "inherits": "development"
+        },
+        {
+            "name": "development-ndr-sdl",
+            "cacheVariables": {
+                "QT": "OFF"
+            },
+            "inherits": "development-ndr"
         }
     ],
-    "buildPresets": [],
+    "buildPresets": [
+        {
+            "name": "release",
+            "configurePreset": "regular",
+            "configuration": "Release"
+        },
+        {
+            "name": "debug",
+            "configurePreset": "regular",
+            "configuration": "Debug"
+        },
+        {
+            "name": "ultradebug",
+            "configurePreset": "regular",
+            "configuration": "UltraDebug"
+        },
+        {
+            "name": "optimized",
+            "configurePreset": "regular",
+            "configuration": "Optimized"
+        }
+    ],
     "testPresets": []
 }

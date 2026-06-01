@@ -55,12 +55,18 @@ jobs:
         language: [ 'cpp' ]
         build:
 #          - name: Regular
-#            preset: regular
+#            preset:
+#              configure: regular
+#              build: release
           - name: Debug
-            preset: dev_debug
+            preset:
+              configure: development
+              build: debug
             slug: -Debug
 #          - name: Dev
-#            preset: development
+#            preset:
+#              configure: development
+#              build: release
 #            slug: -Dev
         dynarec:
           - name: ODR
@@ -143,17 +149,17 @@ jobs:
 
       - name: Configure CMake
         run: >-
-          cmake -S . -B build --preset ${{ matrix.build.preset }}
+          cmake --preset ${{ matrix.build.preset.configure }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
 
       # - name: Build
       #   run: |
-      #     .sonar/build-wrapper-win-x86/build-wrapper-win-x86-64.exe --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+      #     .sonar/build-wrapper-win-x86/build-wrapper-win-x86-64.exe --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build --preset ${{ matrix.build.preset.build }}
 
       - name: Build
-        run: cmake --build build
+        run: cmake --build --preset ${{ matrix.build.preset.build }}
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
