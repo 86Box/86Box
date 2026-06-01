@@ -118,6 +118,9 @@ static void *filter_cd_audio_p                                          = NULL;
 void (*filter_pc_speaker)(int channel, double *buffer, void *priv) = NULL;
 void *filter_pc_speaker_p                                          = NULL;
 
+void (*filter_midi)(int channel, double *buffer, void *priv) = NULL;
+void *filter_midi_p                                          = NULL;
+
 static const SOUND_CARD sound_cards[] = {
     // clang-format off
     { &device_none                  },
@@ -614,6 +617,15 @@ sound_set_pc_speaker_filter(void (*filter)(int channel, double *buffer, void *pr
 }
 
 void
+sound_set_midi_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
+{
+    if ((filter_midi == NULL) || (filter == NULL)) {
+        filter_midi   = filter;
+        filter_midi_p = priv;
+    }
+}
+
+void
 sound_poll(UNUSED(void *priv))
 {
     const uint8_t handler_count = (sound_handlers_num < NUM_SOUND_HANDLERS) ? sound_handlers_num : NUM_SOUND_HANDLERS;
@@ -651,7 +663,7 @@ sound_poll(UNUSED(void *priv))
         if (cd_thread_enable) {
             cd_buf_update--;
             if (!cd_buf_update) {
-                cd_buf_update = (SOUND_FREQ / SOUNDBUFLEN) / (CD_FREQ / CD_BUFLEN);
+                cd_buf_update = 50 / (CD_FREQ / CD_BUFLEN);
                 thread_set_event(sound_cd_event);
             }
         }
@@ -784,6 +796,9 @@ sound_reset(void)
 
     filter_pc_speaker   = NULL;
     filter_pc_speaker_p = NULL;
+
+    filter_midi   = NULL;
+    filter_midi_p = NULL;
 
     sound_set_cd_volume(65535, 65535);
 

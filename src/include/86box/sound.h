@@ -80,9 +80,15 @@ extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
 extern void sound_set_pc_speaker_filter(void (*filter)(int     channel,
                                                        double *buffer, void *priv),
                                         void *priv);
+extern void sound_set_midi_filter(void (*filter)(int     channel,
+                                                 double *buffer, void *priv),
+                                  void *priv);
 
 extern void (*filter_pc_speaker)(int channel, double *buffer, void *priv);
 extern void *filter_pc_speaker_p;
+
+extern void (*filter_midi)(int channel, double *buffer, void *priv);
+extern void *filter_midi_p;
 
 extern int sound_card_available(int card);
 #ifdef EMU_DEVICE_H

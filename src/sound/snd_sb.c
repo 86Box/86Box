@@ -677,6 +677,42 @@ sb16_awe32_filter_pc_speaker(int channel, double *buffer, void *priv)
 }
 
 void
+sb16_awe32_filter_midi(int channel, double *buffer, void *priv)
+{
+    const sb_t              *sb          = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer       = &sb->mixer_sb16;
+    const double             fm          = channel ? mixer->fm_r : mixer->fm_l /* / 3.0 */;
+    const double             master      = channel ? mixer->master_r : mixer->master_l;
+    const int32_t            bass        = channel ? mixer->bass_r : mixer->bass_l;
+    const int32_t            treble      = channel ? mixer->treble_r : mixer->treble_l;
+    const double             output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
+    double                   bass_treble;
+    double                   c           = (((*buffer) * fm) / 3.0) * master;
+
+    /* This is not exactly how one does bass/treble controls, but the end result is like it.
+       A better implementation would reduce the CPU usage. */
+    if (bass != 8) {
+        bass_treble = sb_bass_treble_4bits[bass];
+
+        if (bass > 8)
+            c += (low_iir(5, channel, c) * bass_treble);
+        else
+            c = (c * bass_treble + low_cut_iir(5, channel, c) * (1.0 - bass_treble));
+    }
+
+    if (treble != 8) {
+        bass_treble = sb_bass_treble_4bits[treble];
+
+        if (treble > 8)
+            c += (high_iir(5, channel, c) * bass_treble);
+        else
+            c = (c * bass_treble + high_cut_iir(5, channel, c) * (1.0 - bass_treble));
+    }
+
+    *buffer = c * output_gain;
+}
+
+void
 sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 {
     sb_t              *ess   = (sb_t *) priv;
@@ -769,6 +805,20 @@ ess_filter_pc_speaker(int channel, double *buffer, void *priv)
     c *= master;
 
     *buffer = c;
+}
+
+void
+ess_filter_midi(int channel, double *buffer, void *priv)
+{
+    const sb_t        *ess   = (sb_t *) priv;
+    const ess_mixer_t *mixer = &ess->mixer_ess;
+    double             c;
+    double             fm     = channel ? mixer->fm_r : mixer->fm_l;
+    double             master = channel ? mixer->master_r : mixer->master_l;
+
+    /* TODO: recording from the mixer. */
+    c       = (*buffer * fm) / 3.0;
+    *buffer = c * master;
 }
 
 void
@@ -3396,6 +3446,8 @@ sb_16_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(sb16_awe32_filter_midi, sb);
 
     if (mpu_addr) {
         sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -3443,6 +3495,8 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(sb16_awe32_filter_midi, sb);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
@@ -3498,6 +3552,8 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(sb16_awe32_filter_midi, sb);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
@@ -3602,6 +3658,8 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(sb16_awe32_filter_midi, sb);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
@@ -3804,6 +3862,8 @@ sb_awe32_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(sb16_awe32_filter_midi, sb);
 
     if (mpu_addr) {
         sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -3897,6 +3957,8 @@ sb_awe32_pnp_init(const device_t *info)
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(sb16_awe32_filter_midi, sb);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
@@ -4071,6 +4133,8 @@ ess_x688_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
     if (info->local && device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(ess_filter_pc_speaker, ess);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(ess_filter_midi, ess);
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
@@ -4142,6 +4206,8 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
     if ((info->local & 1) && device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(ess_filter_pc_speaker, ess);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(ess_filter_midi, ess);
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
@@ -4229,6 +4295,8 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
     if (info->local && device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(ess_filter_pc_speaker, ess);
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(ess_filter_midi, ess);
 
     if (info->local) {
         ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -5071,6 +5139,17 @@ static const device_config_t sb_16_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+{
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
@@ -5230,6 +5309,17 @@ static const device_config_t sb_vibra16_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+{
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
@@ -5267,6 +5357,17 @@ static const device_config_t sb_16_pnp_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+{
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
@@ -5313,6 +5414,17 @@ static const device_config_t sb_vibra16_pnp_config[] = {
     {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5393,6 +5505,17 @@ static const device_config_t sb_32_pnp_config[] = {
     {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5578,6 +5701,17 @@ static const device_config_t sb_awe32_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
@@ -5624,6 +5758,17 @@ static const device_config_t sb_awe32_pnp_config[] = {
     {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5693,6 +5838,17 @@ static const device_config_t sb_awe64_value_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
@@ -5752,6 +5908,17 @@ static const device_config_t sb_awe64_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+{
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
@@ -5800,6 +5967,17 @@ static const device_config_t sb_awe64_gold_config[] = {
     {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -6019,6 +6197,17 @@ static const device_config_t ess_1688_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
         .type           = CONFIG_BINARY,
@@ -6088,6 +6277,17 @@ static const device_config_t ess_1688_pnp_config[] = {
     {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "control_midi",
+        .description    = "Control MIDI",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,

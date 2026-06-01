@@ -19,6 +19,7 @@
  *          Copyright 2026 Jasmine Iwanek.
  *          Copyright 2026 win2kgamer
  */
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -279,6 +280,16 @@ soundcanvas_thread(void *param)
             for (int i = 0; i < frames_per_seg; i++) {
                 buf[i * 2 + 0] = data->buf_left[i] * data->vol_ctrl;
                 buf[i * 2 + 1] = data->buf_right[i] * data->vol_ctrl;
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    double dl = (double) buf[i * 2 + 0];
+                    double dr = (double) buf[i * 2 + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    buf[i * 2 + 0] = (float) dl;
+                    buf[i * 2 + 1] = (float) dr;
+                }
             }
             buf_pos += seg_bytes;
             if (buf_pos >= data->buf_size) {
@@ -297,6 +308,16 @@ soundcanvas_thread(void *param)
                 if (r < -32768.0f) r = -32768.0f;
                 buf[i * 2 + 0] = (int16_t)l;
                 buf[i * 2 + 1] = (int16_t)r;
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    double dl = (double) buf[i * 2 + 0];
+                    double dr = (double) buf[i * 2 + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    buf[i * 2 + 0] = (int16_t) round(dl);
+                    buf[i * 2 + 1] = (int16_t) round(dr);
+                }
             }
             buf_pos += seg_bytes;
             if (buf_pos >= data->buf_size) {
