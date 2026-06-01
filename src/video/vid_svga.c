@@ -1941,7 +1941,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
                 vall.b[i] = !!(val & (1 << i)) * 0xff;
 
             if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
-                for (; i < count; i++) {
+                for (i = orig_i; i < count; i++) {
                     if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                         if (writemask2 & (0x80 >> i))
                             svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
