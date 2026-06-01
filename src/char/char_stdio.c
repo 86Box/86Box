@@ -44,6 +44,7 @@
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/version.h>
 #include <86box/device.h>
 #include <86box/char.h>
 #include <86box/log.h>
@@ -399,6 +400,7 @@ use_stdout:
                             snprintf(env[0], sizeof(env[0]), "PTY=%s", pty);
                             snprintf(env[1], sizeof(env[1]), "VMNAME=%s", vm_name);
                             snprintf(env[2], sizeof(env[2]), "PORT=%s", dev->port->name);
+                            /* ARGV0 (set by constant later) overrides macOS Terminal running program name during cat */
 
                             /* Determine command to execute. */
                             const char *cmd;
@@ -419,7 +421,7 @@ use_stdout:
                                 msg[0] = '\0';
 
                             /* Execute command. */
-                            if (!plat_run_command(cmd, (const char *[]) { pipe_cmd, env[0], env[1], env[2], NULL }, msg[0] ? msg : NULL))
+                            if (!plat_run_command(cmd, (const char *[]) { pipe_cmd, env[0], env[1], env[2], "ARGV0=" EMU_NAME, NULL }, msg[0] ? msg : NULL))
                                 char_stdio_log(dev->log, "plat_run_command(%s) failed\n", cmd);
                         }
                     } else {
