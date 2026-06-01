@@ -86,11 +86,9 @@ jobs:
               libxkbcommon-x11-dev
         environment:
           - arch: x86_64
-            toolchain: ./cmake/flags-gcc-x86_64.cmake
             slug: "-x86_64"
             runner: ubuntu-22.04
 #          - arch: arm64
-#            toolchain: ./cmake/flags-gcc-aarch64.cmake
 #            slug: -arm64
 #            runner: ubuntu-22.04-arm
 #        exclude:
@@ -135,7 +133,6 @@ jobs:
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}

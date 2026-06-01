@@ -69,7 +69,6 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "cmake/llvm-macos-aarch64.cmake",
                 "NEW_DYNAREC": "ON",
                 "QT": "ON",
                 "USE_QT6": "OFF",
@@ -87,7 +86,6 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
-                "CMAKE_TOOLCHAIN_FILE": "cmake/llvm-macos-aarch64.cmake",
                 "NEW_DYNAREC": "ON",
                 "QT": "ON",
                 "USE_QT6": "OFF",
@@ -110,7 +108,6 @@
             "cacheVariables": {
                 "NEW_DYNAREC": "ON",
                 "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_TOOLCHAIN_FILE": "cmake/flags-gcc-aarch64.cmake",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
                 "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
                 "CMAKE_C_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG"
@@ -126,7 +123,6 @@
             "cacheVariables": {
                 "NEW_DYNAREC": "ON",
                 "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_TOOLCHAIN_FILE": "cmake/flags-gcc-aarch64.cmake",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
             },
             "inherits": "regular"
