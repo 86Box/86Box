@@ -3031,7 +3031,7 @@ static const device_config_t et4000w32p_vlb_config[] = {
   // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "et4000w32p_nc_vlb",
         .default_int    = 0,
@@ -3114,7 +3114,7 @@ static const device_config_t et4000w32p_pci_config[] = {
   // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "et4000w32p_nc_pci",
         .default_int    = 0,

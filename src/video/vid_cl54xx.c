@@ -4808,7 +4808,7 @@ static const device_config_t gd542x_config[] = {
 static const device_config_t gd5422_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "cl_gd5422_isa",
         .default_int    = 0,
@@ -4879,7 +4879,7 @@ static const device_config_t gd5426_config[] = {
 static const device_config_t gd5426_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "cl_gd5426_isa",
         .default_int    = 0,
@@ -4932,7 +4932,7 @@ static const device_config_t gd5426_isa_config[] = {
 static const device_config_t gd5428_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "cl_gd5428_vlb",
         .default_int    = 0,
@@ -5023,7 +5023,7 @@ static const device_config_t gd5429_config[] = {
 static const device_config_t gd5430_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "cl_gd5430_vlb",
         .default_int    = 0,
@@ -5165,7 +5165,7 @@ static const device_config_t gd5434_config[] = {
 static const device_config_t gd5434_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "cl_gd5434_isa",
         .default_int    = 0,
@@ -5273,7 +5273,7 @@ static const device_config_t gd5434_onboard_config[] = {
 static const device_config_t gd5446_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "cl_gd5446_pci",
         .default_int    = 0,

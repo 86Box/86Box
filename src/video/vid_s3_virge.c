@@ -5720,7 +5720,7 @@ static const device_config_t s3_virge_pci_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "virge325_pci",
         .default_int    = 0,
@@ -5850,7 +5850,7 @@ static const device_config_t s3_virge_vx_pci_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "stealth3d_3000_pci",
         .default_int    = 0,
@@ -5934,7 +5934,7 @@ static const device_config_t s3_virge_dx_pci_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "virge375_pci",
         .default_int    = 0,
@@ -6069,7 +6069,7 @@ static const device_config_t s3_virge_gx2_agp_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "virge357_agp",
         .default_int    = 0,
