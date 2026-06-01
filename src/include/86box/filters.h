@@ -395,7 +395,7 @@ sb_iir(int c, int i, double NewSample)
 #define NCoef      1
 #define SB16_NCoef 51
 
-extern double low_fir_sb16_coef[5][SB16_NCoef];
+extern double low_fir_sb16_coef[6][SB16_NCoef];
 
 static inline double
 low_fir_sb16(int c, int i, double NewSample)

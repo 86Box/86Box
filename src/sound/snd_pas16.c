@@ -662,7 +662,8 @@ recalc_pas16_filter(const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
     double       gain = 0.0;
 
     for (n = 0; n < SB16_NCoef; n++) {

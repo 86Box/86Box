@@ -272,7 +272,7 @@ uint16_t espcm3_dpcm_tables[1024] =
 };
 // clang-format on
 
-double low_fir_sb16_coef[5][SB16_NCoef];
+double low_fir_sb16_coef[6][SB16_NCoef];
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -305,7 +305,8 @@ recalc_sb16_filter(const int c, const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
 
     for (n = 0; n < SB16_NCoef; n++) {
         /* Blackman window */
@@ -356,6 +357,35 @@ recalc_opl_filter(const int playback_freq)
     /* Normalise filter, to produce unity gain */
     for (n = 0; n < SB16_NCoef; n++)
         low_fir_sb16_coef[1][n] /= gain;
+}
+
+static void
+recalc_midi_filter(const int playback_freq)
+{
+    /* Cutoff frequency = playback / 2 */
+    int          n;
+    const double fC = ((double) playback_freq) / (double) (midi_freq * 2);
+
+    for (n = 0; n < SB16_NCoef; n++) {
+        /* Blackman window */
+        const double w = 0.42 - (0.5 * cos((2.0 * n * M_PI) / (double) (SB16_NCoef - 1))) +
+                     (0.08 * cos((4.0 * n * M_PI) / (double) (SB16_NCoef - 1)));
+        /* Sinc filter */
+        const double h = sinc(2.0 * fC * ((double) n - ((double) (SB16_NCoef - 1) / 2.0)));
+
+        /* Create windowed-sinc filter */
+        low_fir_sb16_coef[5][n] = w * h;
+    }
+
+    low_fir_sb16_coef[5][(SB16_NCoef - 1) / 2] = 1.0;
+
+    double gain = 0.0;
+    for (n = 0; n < SB16_NCoef; n++)
+        gain += low_fir_sb16_coef[5][n];
+
+    /* Normalise filter, to produce unity gain */
+    for (n = 0; n < SB16_NCoef; n++)
+        low_fir_sb16_coef[5][n] /= gain;
 }
 
 static void
@@ -2311,6 +2341,8 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     recalc_sb16_filter(3, 18939);
     /* E-MU 8000 is stereo. */
     recalc_sb16_filter(4, FREQ_44100 * 2);
+    /* MIDI is stereo. */
+    recalc_midi_filter(midi_freq * 2);
 
     /* Initialize SB16 8051 RAM and ASP internal RAM */
     memset(dsp->sb_8051_ram, 0x00, sizeof(dsp->sb_8051_ram));

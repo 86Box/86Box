@@ -52,6 +52,9 @@ extern int gated;
 extern int speakval;
 extern int speakon;
 
+extern int midi_freq;
+extern int midi_buf_size;
+
 extern int sound_pos_global;
 
 extern int music_pos_global;

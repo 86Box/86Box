@@ -45,8 +45,6 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-static int                     midi_freq     = FREQ_44100;
-static int                     midi_buf_size = 4410;
 static int                     initialized   = 0;
 static IXAudio2               *xaudio2       = NULL;
 static IXAudio2MasteringVoice *mastervoice   = NULL;
@@ -255,7 +253,7 @@ sound_get_output_devices(void)
 void
 inital(void)
 {
-#if defined(_WIN32) && !defined(USE_FAUDIO)
+    #if defined(_WIN32) && !defined(USE_FAUDIO)
     if (xaudio2_handle == NULL)
         xaudio2_handle = dynld_module("xaudio2_9.dll", xaudio2_imports);
 
@@ -291,7 +289,7 @@ inital(void)
         fmt.wBitsPerSample = 16;
     }
 
-    fmt.nSamplesPerSec  = FREQ;
+    fmt.nSamplesPerSec  = sound_sample_rate;
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
     fmt.cbSize          = 0;
@@ -322,7 +320,7 @@ inital(void)
 
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicecd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
 
-    fmt.nSamplesPerSec  = FREQ;
+    fmt.nSamplesPerSec  = sound_sample_rate;
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
 
@@ -427,7 +425,7 @@ givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const siz
 void
 givealbuffer(const void *buf)
 {
-    givealbuffer_common(buf, srcvoice, BUFLEN << 1);
+    givealbuffer_common(buf, srcvoice, (sound_sample_rate / 50) << 1);
 }
 
 void
@@ -506,4 +504,21 @@ void
 givealbuffer_midi(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, srcvoicemidi, size);
+}
+
+int
+sound_get_device_supported_rates(const char *device_name, int *rates_out, int max_rates)
+{
+    /* Candidate rates: only those where rate/50 <= SOUNDBUFLEN to avoid overflowing
+       static device buffers. */
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+    const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
+    int            count    = 0;
+
+    /* Fallback: if detection failed entirely, return all candidates. */
+    for (int i = 0; i < num_cands && i < max_rates; i++)
+        rates_out[i] = candidates[i];
+    count = num_cands;
+
+    return count;
 }

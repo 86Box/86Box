@@ -51,8 +51,6 @@ ALuint        buffers_hdd[4];   /* front and back buffers */
 ALuint        buffers_midi[4];  /* front and back buffers */
 static ALuint source[7];        /* audio sources */
 
-static int         midi_freq     = 44100;
-static int         midi_buf_size = 4410;
 static int         initialized   = 0;
 static int         sources       = 2;
 static ALCcontext *Context;

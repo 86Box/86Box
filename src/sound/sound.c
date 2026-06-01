@@ -56,6 +56,9 @@ int  wavetable_pos_global               = 0;
 int  sound_gain                         = 0;
 char sound_output_device[512]           = { 0 };
 
+int  midi_freq                          = 44100;
+int  midi_buf_size                      = 4410;
+
 #define NUM_SOUND_HANDLERS 16
 #define NUM_MUSIC_HANDLERS 16
 #define NUM_WAVETABLE_HANDLERS 16
