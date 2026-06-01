@@ -3342,3 +3342,6 @@ msgstr "932 (tiếng Nhật)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Trung phồn thể)"
+
+msgid "Sample rate:"
+msgstr ""

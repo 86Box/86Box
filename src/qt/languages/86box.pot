@@ -3326,3 +3326,6 @@ msgstr ""
 
 msgid "938 (Traditional Chinese)"
 msgstr ""
+
+msgid "Sample rate:"
+msgstr ""

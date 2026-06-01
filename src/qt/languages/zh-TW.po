@@ -3345,3 +3345,6 @@ msgstr "932 (日文)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (正體中文)"
+
+msgid "Sample rate:"
+msgstr ""
