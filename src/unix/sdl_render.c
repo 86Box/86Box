@@ -14,6 +14,7 @@
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 #include <86box/ui.h>
 #include <86box/version.h>
 #include <86box/ini.h>
@@ -22,6 +23,7 @@
 #include "sdl_render.h"
 #include "sdl_osd.h"
 #include "sdl_shader.h"
+#include "cpu.h"
 
 #define RENDERER_FULL_SCREEN 1
 #define RENDERER_HARDWARE    2
@@ -59,6 +61,8 @@ int                 resize_pending    = 0;
 int                 resize_w          = 0;
 int                 resize_h          = 0;
 static void        *pixeldata         = NULL;
+static char         mouse_msg[3][300];
+
 
 void sdl_reinit_texture(void);
 
@@ -595,6 +599,30 @@ plat_resize(int w, int h, UNUSED(int monitor_index))
     SDL_UnlockMutex(sdl_mutex);
 }
 
+void
+update_mouse_msg(void)
+{
+    char  cpufamily[128];
+    char *cp;
+
+    if (!cpu_override)
+        strncpy(cpufamily, cpu_f->name, sizeof(cpufamily) - 1);
+    else
+        snprintf(cpufamily, sizeof(cpufamily), "[U] %s", cpu_f->name);
+
+    cp = strchr(cpufamily, '(');
+    if (cp) /* remove parentheses */
+        *(cp - 1) = '\0';
+    snprintf(mouse_msg[0], sizeof(mouse_msg[0]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
+             "Click to capture mouse");
+    snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
+             (mouse_get_buttons() > 2) ? "Press CTRL-END to release mouse" : "Press CTRL-END or middle button to release mouse");
+    snprintf(mouse_msg[2], sizeof(mouse_msg[2]), "%s v%s - %%i%%%% - %s - %s/%s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name);
+}
+
 char    sdl_win_title[512] = EMU_NAME;
 SDL_mutex *titlemtx           = NULL;
 
@@ -628,6 +656,15 @@ ui_window_title(char *str)
     title_set = 1;
 #endif
     return str;
+}
+
+void
+ui_emu_status(int speed_percent)
+{
+    int mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
+    char temp[200];
+    snprintf(temp, sizeof(temp), mouse_msg[mouse_msg_idx], speed_percent);
+    ui_window_title(temp);
 }
 
 void

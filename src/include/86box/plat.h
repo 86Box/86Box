@@ -28,9 +28,6 @@
 
 /* String ID numbers. */
 enum {
-    STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
-    STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
-    STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
     STRING_NET_ERROR,                 /* "Failed to initialize network driver..." */
     STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found..." */
     STRING_PCAP_ERROR_INVALID_DEVICE, /* "Invalid PCap device..." */

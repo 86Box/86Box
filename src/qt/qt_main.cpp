@@ -906,6 +906,7 @@ main(int argc, char *argv[])
         NewDarkMode = util::isWindowsLightTheme();
 #endif
         pc_reset_hard_init();
+        main_window->updateMouseStrings();
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
