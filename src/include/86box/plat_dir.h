@@ -9,8 +9,10 @@
  *          Definitions for the platform OpenDir module.
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2017 Fred N. van Kempen.
+ *          Copyright 2026 RichardG.
  */
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
@@ -486,14 +488,22 @@ plat_dir_read(plat_dir_t *context)
 #        define plat_dir_get_gid(context)   (LIKELY((context)->data.gid) ? *(context)->data.gid : 0)
 #        define plat_dir_get_dev(context)   (LIKELY((context)->data.devtype) ? *(context)->data.devtype : 0)
 #    endif
-#    define plat_dir_is_file(context)       (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VREG) : 0)
-#    define plat_dir_is_dir(context)        (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VDIR) : 0)
-#    define plat_dir_is_char(context)       (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VCHR) : 0)
-#    define plat_dir_is_block(context)      (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VBLK) : 0)
-#    define plat_dir_is_pipe(context)       (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VFIFO) : 0)
-#    define plat_dir_is_socket(context)     (LIKELY((context)->data.objtype) ? (*(context)->data.objtype == VSOCK) : 0)
+#    define plat_dir_is_file(context)       (LIKELY((context)->data.objtype) && (*(context)->data.objtype == VREG))
+#    define plat_dir_is_dir(context)        (LIKELY((context)->data.objtype) && (*(context)->data.objtype == VDIR))
+#    define plat_dir_is_char(context)       (LIKELY((context)->data.objtype) && (*(context)->data.objtype == VCHR))
+#    define plat_dir_is_block(context)      (LIKELY((context)->data.objtype) && (*(context)->data.objtype == VBLK))
+#    define plat_dir_is_pipe(context)       (LIKELY((context)->data.objtype) && (*(context)->data.objtype == VFIFO))
+#    define plat_dir_is_socket(context)     (LIKELY((context)->data.objtype) && (*(context)->data.objtype == VSOCK))
 #    define plat_dir_is_hidden(context)     (plat_dir_get_name((context))[0] == '.')
-#    define plat_dir_is_system(context)     (plat_dir_is_char((context)) || plat_dir_is_block((context)) || plat_dir_is_socket((context)))
+
+static inline int
+plat_dir_is_system(plat_dir_t *context)
+{
+    if (UNLIKELY(!context->data.objtype))
+        return 0;
+    fsobj_type_t objtype = *context->data.objtype;
+    return (objtype == VCHR) || (objtype == VBLK) || (objtype == VFIFO) || (objtype == VSOCK);
+}
 #else
 #    ifndef _LARGEFILE_SOURCE
 #        define _LARGEFILE_SOURCE
@@ -615,31 +625,30 @@ plat_dir_read(plat_dir_t *context)
 #        define plat_dir_get_dev(context)   (plat_dir_stat((context))->st_rdev)
 #    endif
 
-#    define plat_dir_is_file_stat(context)    (S_ISREG(plat_dir_stat((context))->st_mode))
-#    define plat_dir_is_dir_stat(context)     (S_ISDIR(plat_dir_stat((context))->st_mode))
-#    define plat_dir_is_char_stat(context)    (S_ISCHR(plat_dir_stat((context))->st_mode))
-#    define plat_dir_is_block_stat(context)   (S_ISBLK(plat_dir_stat((context))->st_mode))
-#    define plat_dir_is_pipe_stat(context)    (S_ISFIFO(plat_dir_stat((context))->st_mode))
-#    define plat_dir_is_socket_stat(context)  (S_ISSOCK(plat_dir_stat((context))->st_mode))
+#    define plat_dir_is_file_stat(context)   (S_ISREG(plat_dir_stat((context))->st_mode))
+#    define plat_dir_is_dir_stat(context)    (S_ISDIR(plat_dir_stat((context))->st_mode))
+#    define plat_dir_is_char_stat(context)   (S_ISCHR(plat_dir_stat((context))->st_mode))
+#    define plat_dir_is_block_stat(context)  (S_ISBLK(plat_dir_stat((context))->st_mode))
+#    define plat_dir_is_pipe_stat(context)   (S_ISFIFO(plat_dir_stat((context))->st_mode))
+#    define plat_dir_is_socket_stat(context) (S_ISSOCK(plat_dir_stat((context))->st_mode))
 
 #    if defined(DT_UNKNOWN) && defined(DT_REG) && defined(DT_DIR)
-#        define plat_dir_is_file(context)    (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_file_stat((context)) : ((context)->data->d_type == DT_REG))
-#        define plat_dir_is_dir(context)     (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_dir_stat((context)) : ((context)->data->d_type == DT_DIR))
-#        define plat_dir_is_char(context)    (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_char_stat((context)) : ((context)->data->d_type == DT_CHR))
-#        define plat_dir_is_block(context)   (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_block_stat((context)) : ((context)->data->d_type == DT_BLK))
-#        define plat_dir_is_pipe(context)    (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_pipe_stat((context)) : ((context)->data->d_type == DT_FIFO))
-#        define plat_dir_is_socket(context)  (((context)->data->d_type == DT_UNKNOWN) ? plat_dir_is_socket_stat((context)) : ((context)->data->d_type == DT_SOCK))
+#        define plat_dir_is_file(context)   (((context)->data->d_type == DT_REG) || (((context)->data->d_type == DT_UNKNOWN) && plat_dir_is_file_stat((context))))
+#        define plat_dir_is_dir(context)    (((context)->data->d_type == DT_DIR) || (((context)->data->d_type == DT_UNKNOWN) && plat_dir_is_dir_stat((context))))
+#        define plat_dir_is_char(context)   (((context)->data->d_type == DT_CHR) || (((context)->data->d_type == DT_UNKNOWN) && plat_dir_is_char_stat((context))))
+#        define plat_dir_is_block(context)  (((context)->data->d_type == DT_BLK) || (((context)->data->d_type == DT_UNKNOWN) && plat_dir_is_block_stat((context))))
+#        define plat_dir_is_pipe(context)   (((context)->data->d_type == DT_FIFO) || (((context)->data->d_type == DT_UNKNOWN) && plat_dir_is_pipe_stat((context))))
+#        define plat_dir_is_socket(context) (((context)->data->d_type == DT_SOCK) || (((context)->data->d_type == DT_UNKNOWN) && plat_dir_is_socket_stat((context))))
 #    else
-#        define plat_dir_is_file    plat_dir_is_file_stat
-#        define plat_dir_is_dir     plat_dir_is_dir_stat
-#        define plat_dir_is_char    plat_dir_is_char_stat
-#        define plat_dir_is_block   plat_dir_is_block_stat
-#        define plat_dir_is_pipe    plat_dir_is_pipe_stat
-#        define plat_dir_is_socket  plat_dir_is_socket_stat
+#        define plat_dir_is_file   plat_dir_is_file_stat
+#        define plat_dir_is_dir    plat_dir_is_dir_stat
+#        define plat_dir_is_char   plat_dir_is_char_stat
+#        define plat_dir_is_block  plat_dir_is_block_stat
+#        define plat_dir_is_pipe   plat_dir_is_pipe_stat
+#        define plat_dir_is_socket plat_dir_is_socket_stat
 #    endif
 
 #    define plat_dir_is_hidden(context) (plat_dir_get_name((context))[0] == '.')
-#    define plat_dir_is_system(context) (plat_dir_is_char((context)) || plat_dir_is_block((context)) || plat_dir_is_socket((context)))
 #endif
 
 static const char *
@@ -675,6 +684,13 @@ plat_dir_stat(plat_dir_t *context)
             memset(&context->stats, 0, sizeof(context->stats));
     }
     return &context->stats;
+}
+
+static inline int
+plat_dir_is_system(plat_dir_t *context)
+{
+    mode_t mode = plat_dir_stat(context)->st_mode;
+    return S_ISCHR(mode) || S_ISBLK(mode) || S_ISFIFO(mode) || S_ISSOCK(mode);
 }
 #endif
 
