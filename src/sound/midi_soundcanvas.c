@@ -230,7 +230,7 @@ soundcanvas_poll(void)
 {
     soundcanvas_t *data = &scdev;
     data->midi_pos++;
-    if (data->midi_pos == SOUND_FREQ / RENDER_RATE) {
+    if (data->midi_pos == sound_sample_rate / RENDER_RATE) {
         data->midi_pos = 0;
         thread_set_event(data->event);
     }
@@ -277,18 +277,19 @@ soundcanvas_thread(void *param)
         /* Interleave into output buffer */
         if (sound_is_float) {
             float *buf = (float *)((uint8_t *)data->out_buffer + buf_pos);
-            for (int i = 0; i < frames_per_seg; i++) {
-                buf[i * 2 + 0] = data->buf_left[i] * data->vol_ctrl;
-                buf[i * 2 + 1] = data->buf_right[i] * data->vol_ctrl;
 
+            for (int i = 0; i < frames_per_seg; i++) {
                 /* Apply sound card MIDI volume and filters */
                 if (filter_midi != NULL) {
-                    double dl = (double) buf[i * 2 + 0];
-                    double dr = (double) buf[i * 2 + 1];
+                    double dl = (double) (data->buf_left[i] * data->vol_ctrl);
+                    double dr = (double) (data->buf_right[i] * data->vol_ctrl);
                     filter_midi(0, &dl, filter_midi_p);
                     filter_midi(1, &dr, filter_midi_p);
                     buf[i * 2 + 0] = (float) dl;
                     buf[i * 2 + 1] = (float) dr;
+                } else {
+                    buf[i * 2 + 0] = data->buf_left[i] * data->vol_ctrl;
+                    buf[i * 2 + 1] = data->buf_right[i] * data->vol_ctrl;
                 }
             }
             buf_pos += seg_bytes;
@@ -299,25 +300,28 @@ soundcanvas_thread(void *param)
             }
         } else {
             int16_t *buf = (int16_t *)((uint8_t *)data->out_buffer_int16 + buf_pos);
+
             for (int i = 0; i < frames_per_seg; i++) {
                 float l = data->buf_left[i]  * 32767.0f * data->vol_ctrl;
                 float r = data->buf_right[i] * 32767.0f * data->vol_ctrl;
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    double dl = (double) l;
+                    double dr = (double) r;
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    l = (float) l;
+                    r = (float) r;
+                }
+
                 if (l >  32767.0f) l =  32767.0f;
                 if (l < -32768.0f) l = -32768.0f;
                 if (r >  32767.0f) r =  32767.0f;
                 if (r < -32768.0f) r = -32768.0f;
+
                 buf[i * 2 + 0] = (int16_t)l;
                 buf[i * 2 + 1] = (int16_t)r;
-
-                /* Apply sound card MIDI volume and filters */
-                if (filter_midi != NULL) {
-                    double dl = (double) buf[i * 2 + 0];
-                    double dr = (double) buf[i * 2 + 1];
-                    filter_midi(0, &dl, filter_midi_p);
-                    filter_midi(1, &dr, filter_midi_p);
-                    buf[i * 2 + 0] = (int16_t) round(dl);
-                    buf[i * 2 + 1] = (int16_t) round(dr);
-                }
             }
             buf_pos += seg_bytes;
             if (buf_pos >= data->buf_size) {
