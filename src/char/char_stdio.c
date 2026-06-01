@@ -44,6 +44,7 @@
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/version.h>
 #include <86box/device.h>
 #include <86box/char.h>
 #include <86box/log.h>
@@ -393,6 +394,9 @@ use_stdout:
                                                           "exec kill $$)"     /* (stop script once the read connection is broken) */
                                                           "<\"$PTY\"&"        /* ...from pty in the background */
                                                           "clear;"            /* suppress background task indicator (zsh prints it to stdout) */
+#    ifdef __APPLE__
+                                                          "ARGV0='" EMU_NAME "' " /* override title bar command on macOS Terminal + zsh */
+#    endif
                                                           "cat>\"$PTY\";"     /* pipe from stdin to pty */
                                                           "exec kill $!";     /* stop script once the write connection is broken */
                             char               env[3][2048];
@@ -403,7 +407,13 @@ use_stdout:
                             /* Determine command to execute. */
                             const char *cmd;
                             if (mode == CHAR_STDIO_MODE_TERM) {
-                                cmd = "sh -c \"$PIPECMD\";reset;clear";
+                                cmd =
+#    ifdef __APPLE__
+                                      "$(which zsh || echo sh)"
+#    else
+                                      "sh"
+#    endif
+                                      " -c \"$PIPECMD\";reset;clear";
                             } else {
                                 cmd = device_get_config_string("command");
                                 if (!cmd || !cmd[0]) {
@@ -419,7 +429,7 @@ use_stdout:
                                 msg[0] = '\0';
 
                             /* Execute command. */
-                            if (!plat_run_command(cmd, (const char *[]) { pipe_cmd, env[0], env[1], env[2], NULL }, msg[0] ? msg : NULL))
+                            if (!plat_run_command(cmd, (const char *[]) { pipe_cmd, env[0], env[1], env[2], "ARGV0=" EMU_NAME, NULL }, msg[0] ? msg : NULL))
                                 char_stdio_log(dev->log, "plat_run_command(%s) failed\n", cmd);
                         }
                     } else {

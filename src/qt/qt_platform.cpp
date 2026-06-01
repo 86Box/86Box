@@ -1226,7 +1226,7 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         titleq = QStringLiteral("");
     f.write("cd '");
     f.write(process->workingDirectory().replace(QStringLiteral("'"), QStringLiteral("'\\''")).toUtf8());
-    f.write("'\n. /etc/bashrc_Apple_Terminal\nupdate_terminal_cwd\n");
+    f.write("'\n. /etc/$([ -n \"$BASH\" ] && echo ba || ([ -n \"$ZSH_VERSION\" ] && echo z))shrc_$TERM_PROGRAM\nupdate_terminal_cwd\n");
 #    endif
     if (
 #    ifdef Q_OS_MACOS
