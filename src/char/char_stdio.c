@@ -394,18 +394,26 @@ use_stdout:
                                                           "exec kill $$)"     /* (stop script once the read connection is broken) */
                                                           "<\"$PTY\"&"        /* ...from pty in the background */
                                                           "clear;"            /* suppress background task indicator (zsh prints it to stdout) */
+#    ifdef __APPLE__
+                                                          "ARGV0='" EMU_NAME "' " /* override title bar command on macOS Terminal + zsh */
+#    endif
                                                           "cat>\"$PTY\";"     /* pipe from stdin to pty */
                                                           "exec kill $!";     /* stop script once the write connection is broken */
                             char               env[3][2048];
                             snprintf(env[0], sizeof(env[0]), "PTY=%s", pty);
                             snprintf(env[1], sizeof(env[1]), "VMNAME=%s", vm_name);
                             snprintf(env[2], sizeof(env[2]), "PORT=%s", dev->port->name);
-                            /* ARGV0 (set by constant later) overrides macOS Terminal running program name during cat */
 
                             /* Determine command to execute. */
                             const char *cmd;
                             if (mode == CHAR_STDIO_MODE_TERM) {
-                                cmd = "sh -c \"$PIPECMD\";reset;clear";
+                                cmd =
+#    ifdef __APPLE__
+                                      "$(which zsh || echo sh)"
+#    else
+                                      "sh"
+#    endif
+                                      " -c \"$PIPECMD\";reset;clear";
                             } else {
                                 cmd = device_get_config_string("command");
                                 if (!cmd || !cmd[0]) {
