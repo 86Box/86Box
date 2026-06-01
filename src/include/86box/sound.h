@@ -106,6 +106,7 @@ extern void sound_init(void);
 extern void sound_reset(void);
 
 extern void sound_card_reset(void);
+extern void sound_close(void);
 
 extern void sound_cd_thread_end(void);
 extern void sound_cd_thread_reset(void);

@@ -981,3 +981,15 @@ sound_hdd_thread_end(void)
     }
 }
 
+void
+sound_close(void)
+{
+    filter_cd_audio   = NULL;
+    filter_cd_audio_p = NULL;
+
+    filter_pc_speaker   = NULL;
+    filter_pc_speaker_p = NULL;
+
+    filter_midi   = NULL;
+    filter_midi_p = NULL;
+}
