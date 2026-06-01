@@ -5140,7 +5140,7 @@ static const device_config_t sb_16_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5310,7 +5310,7 @@ static const device_config_t sb_vibra16_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5358,7 +5358,7 @@ static const device_config_t sb_16_pnp_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5424,7 +5424,7 @@ static const device_config_t sb_vibra16_pnp_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5515,7 +5515,7 @@ static const device_config_t sb_32_pnp_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5702,7 +5702,7 @@ static const device_config_t sb_awe32_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5768,7 +5768,7 @@ static const device_config_t sb_awe32_pnp_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5839,7 +5839,7 @@ static const device_config_t sb_awe64_value_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5909,7 +5909,7 @@ static const device_config_t sb_awe64_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -5977,7 +5977,7 @@ static const device_config_t sb_awe64_gold_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -6198,7 +6198,7 @@ static const device_config_t ess_1688_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
@@ -6287,7 +6287,7 @@ static const device_config_t ess_1688_pnp_config[] = {
     },
     {
         .name           = "control_midi",
-        .description    = "Control MIDI",
+        .description    = "Control MIDI volume",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,

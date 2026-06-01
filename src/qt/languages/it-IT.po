@@ -2334,6 +2334,9 @@ msgstr "DMA alto"
 msgid "Control PC speaker"
 msgstr "Controlla l'altoparlante del PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Dimensione della memoria"
 

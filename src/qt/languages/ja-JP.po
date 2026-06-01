@@ -2276,6 +2276,9 @@ msgstr "ハイDMA"
 msgid "Control PC speaker"
 msgstr "コントロールPCスピーカー"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "メモリーサイズ"
 

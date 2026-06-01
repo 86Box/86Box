@@ -2275,6 +2275,9 @@ msgstr "Hoge DMA"
 msgid "Control PC speaker"
 msgstr "Bestuur pc-luidspreker"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Geheugengrootte"
 

@@ -2282,6 +2282,9 @@ msgstr "高 DMA"
 msgid "Control PC speaker"
 msgstr "控制電腦喇叭"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "記憶體大小"
 

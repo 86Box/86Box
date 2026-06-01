@@ -2315,6 +2315,9 @@ msgstr "Υψηλό DMA"
 msgid "Control PC speaker"
 msgstr "Έλεγχος ηχείου PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Μέγεθος μνήμης"
 

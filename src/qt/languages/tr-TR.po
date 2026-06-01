@@ -2311,6 +2311,9 @@ msgstr "Yüksek DMA"
 msgid "Control PC speaker"
 msgstr "PC hoparlörünü kontrol et"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Bellek boyutu"
 

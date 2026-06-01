@@ -2286,6 +2286,9 @@ msgstr "Vysoký DMA"
 msgid "Control PC speaker"
 msgstr "Ovládací reproduktor PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Veľkosť pamäte"
 

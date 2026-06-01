@@ -2264,6 +2264,9 @@ msgstr ""
 msgid "Control PC speaker"
 msgstr ""
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr ""
 

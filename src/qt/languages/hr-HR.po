@@ -2287,6 +2287,9 @@ msgstr "Visoki DMA"
 msgid "Control PC speaker"
 msgstr "Kontroliraj zvučnik računala"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Veličina memorije"
 

@@ -2340,6 +2340,9 @@ msgstr "높은 DMA"
 msgid "Control PC speaker"
 msgstr "PC 스피커 제어"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "메모리 크기"
 

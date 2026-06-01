@@ -2280,6 +2280,9 @@ msgstr "DMA alt"
 msgid "Control PC speaker"
 msgstr "Controla l'altaveu del PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Mida de memòria"
 

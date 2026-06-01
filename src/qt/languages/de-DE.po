@@ -2280,6 +2280,9 @@ msgstr "Hohe DMA"
 msgid "Control PC speaker"
 msgstr "PC-Lautsprecher steuern"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Speichergröße"
 
