@@ -1828,7 +1828,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     latch_t vall;
     uint8_t wm         = svga->writemask;
     uint8_t count;
-    uint8_t i;
+    uint8_t i, orig_i;
 
     if (svga->adv_flags & FLAG_ADDR_BY8)
         writemask2 = svga->seqregs[2];
@@ -1896,6 +1896,8 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     i = ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) ? (__builtin_clz(writemask2) - 24) : __builtin_ctz(writemask2);
     count = 8 - (((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) ? (__builtin_ctz(writemask2)) : (__builtin_clz(writemask2) - 24));
 #endif
+
+    orig_i = i;
 
     /* Undocumented Cirrus Logic behavior: The datasheet says that, with EXT_WRITE and FLAG_ADDR_BY8, the write mask only
        changes meaning in write modes 4 and 5, as well as write mode 1. In reality, however, all other write modes are also
@@ -1969,7 +1971,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
 
     switch (svga->gdcreg[3] & 0x18) {
         case 0x00: /* Set */
-            for (; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
@@ -1980,7 +1982,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             break;
         case 0x08: /* AND */
-            for (; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] | ~svga->gdcreg[8]) & svga->latch.b[i];
@@ -1991,7 +1993,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             break;
         case 0x10: /* OR */
-            for (; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | svga->latch.b[i];
@@ -2002,7 +2004,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             break;
         case 0x18: /* XOR */
-            for (; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) ^ svga->latch.b[i];
