@@ -134,7 +134,7 @@ jobs:
         run: cmake --build --preset ${{ matrix.build.preset.build }}
 
       - name: Generate package
-        run: cmake --install build
+        run: cmake --build --preset ${{ matrix.build.preset.build }} --target install
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
