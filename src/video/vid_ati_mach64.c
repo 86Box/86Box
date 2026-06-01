@@ -27,6 +27,7 @@ video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w 
 
 mach64_t *reset_state[2] = { NULL, NULL };
 
+int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
 
 // x86 I/O port output function
 void
