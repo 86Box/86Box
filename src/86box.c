@@ -1999,6 +1999,9 @@ pc_run(void)
     }
 
     if (title_update) {
+#ifdef __APPLE__
+        static
+#endif
         int      speed_percent;
         int      target_fps;
         uint32_t elapsed_ms;
