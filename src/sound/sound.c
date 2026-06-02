@@ -52,7 +52,7 @@ int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int  sound_pos_global                   = 0;
 static int sound_buf_len                = SOUNDBUFLEN;
 int  music_pos_global                   = 0;
-int  ym2151_pos_global                   = 0;
+int  ym2151_pos_global                  = 0;
 int  cqm_pos_global                     = 0;
 int  wavetable_pos_global               = 0;
 int  sound_gain                         = 0;
@@ -831,7 +831,7 @@ ym2151_poll(UNUSED(void *priv))
 
         for (uint8_t c = 0; c < handler_count; c++)
             if (ym2151_handlers[c].get_buffer != NULL)
-                ym2151_handlers[c].get_buffer(outbuffer_m, YM2151BUFLEN, music_handlers[c].priv);
+                ym2151_handlers[c].get_buffer(outbuffer_y, YM2151BUFLEN, ym2151_handlers[c].priv);
 
         for (uint32_t c = 0; c < YM2151BUFLEN * 2; c++) {
             if (sound_is_float)
