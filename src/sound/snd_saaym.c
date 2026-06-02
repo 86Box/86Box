@@ -96,7 +96,7 @@ saaym_read(uint16_t addr, void *priv)
 }
 
 static void
-saaym_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
+saaym_get_ym2151_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     const saaym_t *saaym   = (const saaym_t *) priv;
     const int32_t *opm_buf = NULL;
@@ -135,7 +135,7 @@ saaym_init(UNUSED(const device_t *info))
 
     /* OPM init */
     fm_driver_get(FM_YM2151, &saaym->opm);
-    music_add_handler(saaym_get_music_buffer, saaym);
+    ym2151_add_handler(saaym_get_ym2151_buffer, saaym);
 
     return saaym;
 }

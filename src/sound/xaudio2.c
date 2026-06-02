@@ -45,17 +45,18 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-static int                     initialized   = 0;
-static IXAudio2               *xaudio2       = NULL;
-static IXAudio2MasteringVoice *mastervoice   = NULL;
-static IXAudio2SourceVoice    *srcvoice      = NULL;
-static IXAudio2SourceVoice    *srcvoicemusic = NULL;
-static IXAudio2SourceVoice    *srcvoicewt    = NULL;
-static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
-static IXAudio2SourceVoice    *srcvoicecd    = NULL;
-static IXAudio2SourceVoice    *srcvoicefdd   = NULL;
-static IXAudio2SourceVoice    *srcvoicehdd   = NULL;
-static IXAudio2SourceVoice    *srcvoicecqm   = NULL;
+static int                     initialized    = 0;
+static IXAudio2               *xaudio2        = NULL;
+static IXAudio2MasteringVoice *mastervoice    = NULL;
+static IXAudio2SourceVoice    *srcvoice       = NULL;
+static IXAudio2SourceVoice    *srcvoicemusic  = NULL;
+static IXAudio2SourceVoice    *srcvoicewt     = NULL;
+static IXAudio2SourceVoice    *srcvoicemidi   = NULL;
+static IXAudio2SourceVoice    *srcvoicecd     = NULL;
+static IXAudio2SourceVoice    *srcvoicefdd    = NULL;
+static IXAudio2SourceVoice    *srcvoicehdd    = NULL;
+static IXAudio2SourceVoice    *srcvoiceym2151 = NULL;
+static IXAudio2SourceVoice    *srcvoicecqm    = NULL;
 
 extern bool fast_forward;
 
@@ -328,6 +329,12 @@ inital(void)
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicefdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicehdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
 
+    fmt.nSamplesPerSec  = YM2151_FREQ;
+    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
+    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
+
+    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoiceym2151, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+
     fmt.nSamplesPerSec  = CQM_FREQ;
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
@@ -375,6 +382,8 @@ closeal(void)
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicefdd);
     (void) IXAudio2SourceVoice_Stop(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicehdd);
+    (void) IXAudio2SourceVoice_Stop(srcvoiceym2151, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoiceym2151);
     (void) IXAudio2SourceVoice_Stop(srcvoicecqm, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicecqm);
     if (srcvoicemidi) {
@@ -387,6 +396,7 @@ closeal(void)
     IXAudio2SourceVoice_DestroyVoice(srcvoicefdd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicehdd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicemusic);
+    IXAudio2SourceVoice_DestroyVoice(srcvoiceym2151);
     IXAudio2SourceVoice_DestroyVoice(srcvoicecqm);
     IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
@@ -442,6 +452,12 @@ void
 givealbuffer_music(const void *buf)
 {
     givealbuffer_common(buf, srcvoicemusic, MUSICBUFLEN << 1);
+}
+
+void
+givealbuffer_ym2151(const void *buf)
+{
+    givealbuffer_common(buf, srcvoiceym2151, YM2151BUFLEN << 1);
 }
 
 void
