@@ -847,9 +847,9 @@ ym2151_poll(UNUSED(void *priv))
         }
 
         if (sound_is_float)
-            givealbuffer_music(outbuffer_y_ex);
+            givealbuffer_ym2151(outbuffer_y_ex);
         else
-            givealbuffer_music(outbuffer_y_ex_int16);
+            givealbuffer_ym2151(outbuffer_y_ex_int16);
 
         ym2151_pos_global = 0;
     }
