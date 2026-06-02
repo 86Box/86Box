@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-01 07:01+0000\n"
+"PO-Revision-Date: 2026-06-02 17:02+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -2341,7 +2341,7 @@ msgid "Control PC speaker"
 msgstr "PC 스피커 제어"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "MIDI 음량 조절"
 
 msgid "Memory size"
 msgstr "메모리 크기"
@@ -3420,4 +3420,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (중국어 번체)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "샘플링 주파수:"
