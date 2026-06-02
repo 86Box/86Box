@@ -1040,7 +1040,7 @@ plat_get_cpu_string(char *outbuf, uint8_t len)
     auto command_result = QString(process->readAll());
     auto idx = command_result.indexOf(':');
     if (idx > -1)
-        cpu_string = command_result.remove(idx + 1).trimmed();
+        cpu_string = command_result.mid(idx + 1).trimmed();
 #endif
 
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
