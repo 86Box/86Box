@@ -26,6 +26,7 @@ extern char sound_output_device[512]; /* selected audio output device name, empt
 
 #define FREQ_44100  44100
 #define FREQ_48000  48000
+#define FREQ_48558  48558
 #define FREQ_49716  49716
 #define FREQ_88200  88200
 #define FREQ_96000  96000
@@ -35,6 +36,10 @@ extern char sound_output_device[512]; /* selected audio output device name, empt
 
 #define MUSIC_FREQ  FREQ_49716
 #define MUSICBUFLEN (MUSIC_FREQ / 36)
+
+/* Unfortunately, 48558 / 6 = 8093, which is a prime number. */
+#define CQM_FREQ    FREQ_48558
+#define CQMBUFLEN   (CQM_FREQ / 6)
 
 #define CD_FREQ     FREQ_44100
 #define CD_BUFLEN   (CD_FREQ / 10)
@@ -56,8 +61,8 @@ extern int midi_freq;
 extern int midi_buf_size;
 
 extern int sound_pos_global;
-
 extern int music_pos_global;
+extern int cqm_pos_global;
 extern int wavetable_pos_global;
 
 extern int sound_card_current[SOUND_CARD_MAX];
@@ -69,6 +74,10 @@ extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
 extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),
                               void *priv);
+
+extern void cqm_add_handler(void (*get_buffer)(int32_t *buffer,
+                                               uint16_t len, void *priv),
+                            void *priv);
 
 extern void wavetable_add_handler(void (*get_buffer)(int32_t *buffer,
                                                      uint16_t len, void *priv),
@@ -125,6 +134,7 @@ extern void        closeal(void);
 extern void        inital(void);
 extern void givealbuffer(const void *buf);
 extern void givealbuffer_music(const void *buf);
+extern void givealbuffer_cqm(const void *buf);
 extern void givealbuffer_wt(const void *buf);
 extern void givealbuffer_cd(const void *buf);
 extern void givealbuffer_fdd(const void *buf, const uint32_t size);

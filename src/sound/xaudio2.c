@@ -55,6 +55,7 @@ static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
 static IXAudio2SourceVoice    *srcvoicecd    = NULL;
 static IXAudio2SourceVoice    *srcvoicefdd   = NULL;
 static IXAudio2SourceVoice    *srcvoicehdd   = NULL;
+static IXAudio2SourceVoice    *srcvoicecqm   = NULL;
 
 extern bool fast_forward;
 
@@ -327,6 +328,12 @@ inital(void)
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicefdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicehdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
 
+    fmt.nSamplesPerSec  = CQM_FREQ;
+    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
+    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
+
+    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicecqm, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+
     (void) IXAudio2SourceVoice_SetVolume(srcvoice, 1, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoice, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoicecd, 0, XAUDIO2_COMMIT_NOW);
@@ -368,6 +375,8 @@ closeal(void)
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicefdd);
     (void) IXAudio2SourceVoice_Stop(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicehdd);
+    (void) IXAudio2SourceVoice_Stop(srcvoicecqm, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicecqm);
     if (srcvoicemidi) {
         (void) IXAudio2SourceVoice_Stop(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
         (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemidi);
@@ -378,6 +387,7 @@ closeal(void)
     IXAudio2SourceVoice_DestroyVoice(srcvoicefdd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicehdd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicemusic);
+    IXAudio2SourceVoice_DestroyVoice(srcvoicecqm);
     IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
     IXAudio2_Release(xaudio2);
@@ -432,6 +442,12 @@ void
 givealbuffer_music(const void *buf)
 {
     givealbuffer_common(buf, srcvoicemusic, MUSICBUFLEN << 1);
+}
+
+void
+givealbuffer_cqm(const void *buf)
+{
+    givealbuffer_common(buf, srcvoicecqm, CQMBUFLEN << 1);
 }
 
 void
