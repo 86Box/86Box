@@ -963,22 +963,27 @@ sound_reset(void)
 
     inital();
 
+    memset(&sound_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
 
+    memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&music_poll_timer, music_poll, NULL, 1);
     music_handlers_num = 0;
     memset(music_handlers, 0x00, NUM_MUSIC_HANDLERS * sizeof(sound_handler_t));
 
+    memset(&ym2151_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&ym2151_poll_timer, ym2151_poll, NULL, 1);
     ym2151_handlers_num = 0;
     memset(ym2151_handlers, 0x00, NUM_YM2151_HANDLERS * sizeof(sound_handler_t));
 
+    memset(&cqm_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&cqm_poll_timer, cqm_poll, NULL, 1);
     cqm_handlers_num = 0;
     memset(cqm_handlers, 0x00, NUM_CQM_HANDLERS * sizeof(sound_handler_t));
 
+    memset(&wavetable_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&wavetable_poll_timer, wavetable_poll, NULL, 1);
     wavetable_handlers_num = 0;
     memset(wavetable_handlers, 0x00, NUM_WAVETABLE_HANDLERS * sizeof(sound_handler_t));
@@ -1174,8 +1179,44 @@ sound_hdd_thread_end(void)
 }
 
 void
+sound_recalc_timers(void)
+{
+    if (music_handlers_num == 0)
+        timer_disable(&music_poll_timer);
+
+    if (ym2151_handlers_num == 0)
+        timer_disable(&ym2151_poll_timer);
+
+    if (cqm_handlers_num == 0)
+        timer_disable(&cqm_poll_timer);
+
+    if (wavetable_handlers_num == 0)
+        timer_disable(&wavetable_poll_timer);
+}
+
+void
 sound_close(void)
 {
+    timer_disable(&sound_poll_timer);
+    sound_handlers_num = 0;
+    memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&music_poll_timer);
+    music_handlers_num = 0;
+    memset(music_handlers, 0x00, NUM_MUSIC_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&ym2151_poll_timer);
+    ym2151_handlers_num = 0;
+    memset(ym2151_handlers, 0x00, NUM_YM2151_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&cqm_poll_timer);
+    cqm_handlers_num = 0;
+    memset(cqm_handlers, 0x00, NUM_CQM_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&wavetable_poll_timer);
+    wavetable_handlers_num = 0;
+    memset(wavetable_handlers, 0x00, NUM_WAVETABLE_HANDLERS * sizeof(sound_handler_t));
+
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;
 

@@ -1854,6 +1854,9 @@ pc_reset_hard_init(void)
        the IDE controllers present are not some form of PCI. */
     ide_drives_set_shadow();
 
+    /* Make sure to disable any sound timers with no handlers. */
+    sound_recalc_timers();
+
     /* Reset the CPU module. */
     resetx86();
     dma_reset();
