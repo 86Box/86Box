@@ -76,30 +76,41 @@ typedef struct {
     size_t           path_len;
     HANDLE           find;
     WIN32_FIND_DATAA data;
+    char            *temp;
 } plat_dir_t;
 
 static inline int
 plat_dir_open(plat_dir_t *context, const char *path)
 {
+    if (LIKELY(context->find && (context->find != INVALID_HANDLE_VALUE)))
+        FindClose(context->find);
+
     context->path_dir_len = strlen(path);
-    context->path_len     = context->path_dir_len + MAX_PATH + 2;
-    context->path         = (char *) malloc(context->path_len);
+    size_t len            = context->path_dir_len + 3;
+    if (len > context->path_len) {
+        if (context->path)
+            free(context->path);
+        else if (len <= MAX_PATH)
+            len = MAX_PATH + 1;
+        context->path     = (char *) malloc(len);
+        context->path_len = len;
+    }
     snprintf(context->path, context->path_len, "%s\\*", path);
 
     /* First entry is always . so we pre-load it for the default entry behavior. */
     context->find = FindFirstFileExA(context->path, FindExInfoBasic, &context->data, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
-    if (context->find == INVALID_HANDLE_VALUE) {
-        free(context->path);
-        return 0;
-    }
-    return 1;
+    return LIKELY(context->find != INVALID_HANDLE_VALUE);
 }
 
 static inline void
 plat_dir_close(plat_dir_t *context)
 {
-    FindClose(context->find);
-    free(context->path);
+    if (context->find && (context->find != INVALID_HANDLE_VALUE))
+        FindClose(context->find);
+    if (context->path)
+        free(context->path);
+    if (context->temp)
+        free(context->temp);
 }
 
 static inline int
@@ -112,11 +123,7 @@ plat_dir_rewind(plat_dir_t *context)
     context->path[context->path_dir_len + 2] = '\0';
 
     context->find = FindFirstFileExA(context->path, FindExInfoBasic, &context->data, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
-    if (context->find == INVALID_HANDLE_VALUE) {
-        free(context->path);
-        return 0;
-    }
-    return 1;
+    return LIKELY(context->find != INVALID_HANDLE_VALUE);
 }
 
 static inline size_t
@@ -153,12 +160,13 @@ plat_dir_read(plat_dir_t *context)
             if ((context->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (context->data.dwReserved0 == IO_REPARSE_TAG_SYMLINK)) {
                 HANDLE file = CreateFileA(plat_dir_get_path(context), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_ALWAYS, FILE_FLAG_BACKUP_SEMANTICS, NULL);
                 if (file != INVALID_HANDLE_VALUE) {
-                    char buf[4096];
-                    if (UNLIKELY(GetFinalPathNameByHandleA(file, buf, sizeof(buf), FILE_NAME_NORMALIZED | VOLUME_NAME_DOS) <= 0))
-                        buf[0] = '\0';
+                    if (UNLIKELY(!context->temp))
+                        context->temp = (char *) malloc(4096);
+                    if (UNLIKELY(GetFinalPathNameByHandleA(file, context->temp, 4095, FILE_NAME_NORMALIZED | VOLUME_NAME_DOS) <= 0))
+                        context->temp[0] = '\0';
                     CloseHandle(file);
-                    if (LIKELY(buf[0])) {
-                        HANDLE find = FindFirstFileExA(buf, FindExInfoBasic, &context->data, FindExSearchNameMatch, NULL, FIND_FIRST_EX_LARGE_FETCH);
+                    if (LIKELY(context->temp[0])) {
+                        HANDLE find = FindFirstFileExA(context->temp, FindExInfoBasic, &context->data, FindExSearchNameMatch, NULL, 0);
                         if (LIKELY(find != INVALID_HANDLE_VALUE)) {
                             FindClose(find);
                             return 1;
@@ -214,6 +222,7 @@ typedef struct {
     uint8_t        *attr_ptr;
     size_t          attr_len;
     int             attr_remain;
+    uint8_t        *temp;
 
     struct {
         attribute_set_t *returned;
@@ -356,7 +365,7 @@ plat_dir_read_base(plat_dir_t *context)
 {
     /* Get base directory attributes, including the child count. */
     context->attr_list.dirattr |= ATTR_DIR_ENTRYCOUNT;
-    if (!fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0))
+    if (LIKELY(!fgetattrlist(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0)))
         plat_dir_fill_attributes(context, context->attr_buf);
     else
         memset(&context->data, 0, sizeof(context->data));
@@ -372,20 +381,32 @@ plat_dir_read_base(plat_dir_t *context)
 static inline int
 plat_dir_open(plat_dir_t *context, const char *path)
 {
+    if (LIKELY(context->find != -1))
+        close(context->find);
+
     /* Open directory for reading. */
     context->find = open(path, O_RDONLY, 0);
-    if (context->find == -1)
+    if (UNLIKELY(context->find == -1))
         return 0;
 
     /* Initialize path buffer. */
     context->path_dir_len = strlen(path);
-    context->path_len     = context->path_dir_len + PATH_MAX + 2;
-    context->path         = (char *) malloc(context->path_len);
-    strcpy(context->path, path);
+    size_t len            = context->path_dir_len + 1;
+    if (len > context->path_len) {
+        if (context->path)
+            free(context->path);
+        else if (len <= PATH_MAX)
+            len = PATH_MAX + 1;
+        context->path     = (char *) malloc(len);
+        context->path_len = len;
+    }
+    strncpy(context->path, path, context->path_len - 1);
 
     /* Initialize attribute buffer. */
-    context->attr_len    = 131072;
-    context->attr_buf    = (uint8_t *) malloc(context->attr_len);
+    if (UNLIKELY(!context->attr_buf)) {
+        context->attr_len = 131072;
+        context->attr_buf = (uint8_t *) malloc(context->attr_len);
+    }
     context->attr_ptr    = NULL;
     context->attr_remain = 0;
 
@@ -414,15 +435,20 @@ plat_dir_open(plat_dir_t *context, const char *path)
 static inline void
 plat_dir_close(plat_dir_t *context)
 {
-    close(context->find);
-    free(context->path);
-    free(context->attr_buf);
+    if (context->find != -1)
+        close(context->find);
+    if (context->path)
+        free(context->path);
+    if (context->attr_buf)
+        free(context->attr_buf);
+    if (context->temp)
+        free(context->temp);
 }
 
 static inline int
 plat_dir_rewind(plat_dir_t *context)
 {
-    if (lseek(context->find, 0, SEEK_SET))
+    if (UNLIKELY(lseek(context->find, 0, SEEK_SET)))
         return 0;
     context->attr_remain = 0;
     plat_dir_read_base(context);
@@ -438,9 +464,10 @@ plat_dir_count_children(plat_dir_t *context)
         context->dir_entrycount = 0;
         lseek(context->find, 0, SEEK_SET);
         struct attrlist attr_list = { .commonattr = ATTR_CMN_RETURNED_ATTRS | ATTR_CMN_NAME };
-        uint8_t buf[4096];
+        if (UNLIKELY(!context->temp))
+            context->temp = (uint8_t *) malloc(4096);
         int entries;
-        while ((entries = getattrlistbulk(context->find, &attr_list, buf, sizeof(buf), 0)) > 0)
+        while ((entries = getattrlistbulk(context->find, &attr_list, context->temp, 4096, 0)) > 0)
             context->dir_entrycount += entries;
         lseek(context->find, 0, SEEK_SET);
     }
@@ -453,7 +480,7 @@ plat_dir_read(plat_dir_t *context)
     /* Fetch next attribute batch if required. */
     if (context->attr_remain <= 0) {
         context->attr_remain = getattrlistbulk(context->find, &context->attr_list, context->attr_buf, context->attr_len, 0);
-        if (context->attr_remain <= 0)
+        if (UNLIKELY(context->attr_remain <= 0))
             return 0;
         context->attr_ptr = context->attr_buf;
     }
@@ -466,9 +493,10 @@ plat_dir_read(plat_dir_t *context)
 
     /* If this entry is a symlink, follow it and fill the target's attributes instead. */
     if (LIKELY(context->data.objtype) && (*context->data.objtype == VLNK)) {
-        uint8_t buf[4096];
-        if (!getattrlistat(context->find, context->data.name, &context->attr_list, buf, sizeof(buf), 0))
-            plat_dir_fill_attributes(context, buf);
+        if (UNLIKELY(!context->temp))
+            context->temp = (uint8_t *) malloc(4096);
+        if (!getattrlistat(context->find, context->data.name, &context->attr_list, context->temp, 4096, 0))
+            plat_dir_fill_attributes(context, context->temp);
     }
 
     return 1;
@@ -511,7 +539,6 @@ plat_dir_is_system(plat_dir_t *context)
 #    ifndef _LARGEFILE64_SOURCE
 #        define _LARGEFILE64_SOURCE
 #    endif
-#    include <86box/plat_dir.h>
 #    include <sys/stat.h>
 #    include <limits.h>
 
@@ -529,21 +556,28 @@ typedef struct {
 static inline int
 plat_dir_open(plat_dir_t *context, const char *path)
 {
+    if (LIKELY(context->find))
+        closedir(context->find);
+
     context->path_dir_len = strlen(path);
-    context->path_len     = context->path_dir_len + PATH_MAX + 2;
-    context->path         = (char *) malloc(context->path_len);
-    strcpy(context->path, path);
+    size_t len            = context->path_dir_len + 1;
+    if (len > context->path_len) {
+        if (context->path)
+            free(context->path);
+        else if (len <= PATH_MAX)
+            len = PATH_MAX + 1;
+        context->path     = (char *) malloc(len);
+        context->path_len = len;
+    }
+    strncpy(context->path, path, context->path_len - 1);
 
     context->find = opendir(path);
-    if (!context->find) {
-        free(context->path);
+    if (UNLIKELY(!context->find))
         return 0;
-    }
 
     context->stats_valid = !stat(path, &context->stats);
-    if (!context->stats_valid || !S_ISDIR(context->stats.st_mode)) {
+    if (UNLIKELY(!context->stats_valid || !S_ISDIR(context->stats.st_mode))) {
         closedir(context->find);
-        free(context->path);
         return 0;
     }
 
@@ -560,8 +594,10 @@ plat_dir_open(plat_dir_t *context, const char *path)
 static inline void
 plat_dir_close(plat_dir_t *context)
 {
-    closedir(context->find);
-    free(context->path);
+    if (context->find)
+        closedir(context->find);
+    if (context->path)
+        free(context->path);
 }
 
 static inline int
@@ -569,7 +605,7 @@ plat_dir_rewind(plat_dir_t *context)
 {
     rewinddir(context->find);
     context->path[context->path_dir_len] = '\0';
-    if (context->data != &context->base_data) {
+    if (LIKELY(context->data != &context->base_data)) {
         context->data        = &context->base_data;
         context->stats_valid = !stat(context->path, &context->stats);
     }
@@ -660,8 +696,7 @@ plat_dir_get_path(plat_dir_t *context)
         return context->path;
     size_t len = context->path_dir_len + strlen(plat_dir_get_name(context)) + 2;
     if (len > context->path_len) {
-        free(context->path);
-        context->path     = (char *) malloc(len);
+        context->path     = (char *) realloc(context->path, len);
         context->path_len = len;
     }
     snprintf(&context->path[context->path_dir_len], context->path_len - context->path_dir_len,
