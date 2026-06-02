@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:36+0000\n"
+"PO-Revision-Date: 2026-06-02 17:02+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -2281,7 +2281,7 @@ msgid "Control PC speaker"
 msgstr "控制电脑扬声器"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "控制MIDI音量"
 
 msgid "Memory size"
 msgstr "内存大小"
@@ -3348,4 +3348,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体中文)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "采样率："
