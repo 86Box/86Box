@@ -409,7 +409,6 @@ enum {
 
 extern int mach64_width[8];
 
-int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
 
 enum {
     DST_X_DIR      = 0x01,
