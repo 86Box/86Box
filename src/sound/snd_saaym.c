@@ -107,8 +107,8 @@ saaym_get_ym2151_buffer(int32_t *buffer, uint16_t len, void *priv)
         double out_l = 0.0;
         double out_r = 0.0;
 
-        out_l = ((double) opm_buf[c]);
-        out_r = ((double) opm_buf[c + 1]);
+        out_l = ((double) opm_buf[c] * 0.5);
+        out_r = ((double) opm_buf[c + 1] * 0.5);
 
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
