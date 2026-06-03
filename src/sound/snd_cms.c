@@ -119,7 +119,7 @@ cms_get_buffer(int32_t *buffer, const uint16_t len, void *priv)
     cms_update(cms);
 
     for (uint16_t c = 0; c < len * 2; c++)
-        buffer[c] += cms->buffer[c];
+        buffer[c] += cms->buffer[c] * 2.5;
 
     cms->pos = 0;
 }
