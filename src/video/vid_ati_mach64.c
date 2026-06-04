@@ -1201,7 +1201,6 @@ mach64_ext_inb(uint16_t port, void *priv)
 
     // the value to or the final address for write into space
     uint8_t addr_or_value = 0;
-
     // we only care about (ec...ef)
     if (port_low >= 0xEC && port_low <= 0xEF)
     {
@@ -1211,17 +1210,18 @@ mach64_ext_inb(uint16_t port, void *priv)
             // some special cases
             case 0x56: // 56ec-56ef
             case 0x5a: 
-                uint8_t or_value = 0xb4; 
+
+                addr_or_value = 0xB4;
 
                 if (port_high == 0x5a)
-                    or_value = 0xb8;    
+                    addr_or_value = 0xb8;    
 
                 if (port_low == 0xEF)
                     ret = 0x00;
                 else if (port_low == 0xEC)                 
-                    ret = mach64_ext_readb(0x400 | or_value, priv);
+                    ret = mach64_ext_readb(0x400 | addr_or_value, priv);
                 else
-                    ret = mach64_ext_readb(0x400 | or_value + 1, priv);
+                    ret = mach64_ext_readb(0x400 | addr_or_value + 1, priv);
                 break; 
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
