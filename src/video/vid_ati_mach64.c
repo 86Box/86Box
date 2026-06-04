@@ -1197,6 +1197,8 @@ mach64_ext_inb(uint16_t port, void *priv)
     uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
 
+    uint8_t lane = port & 3;
+
     // the value to or the final address for write into space
     uint8_t addr_or_value = 0;
 
@@ -1208,27 +1210,25 @@ mach64_ext_inb(uint16_t port, void *priv)
         {
             // some special cases
             case 0x56: // 56ec-56ef
+            case 0x5a: 
+                uint8_t or_value = 0xb4; 
+
+                if (port_high == 0x5a)
+                    or_value = 0xb8;    
+
                 if (port_low == 0xEF)
                     ret = 0x00;
                 else if (port_low == 0xEC)                 
-                    ret = mach64_ext_readb(0x400 | 0xb4, priv);
+                    ret = mach64_ext_readb(0x400 | or_value, priv);
                 else
-                    ret = mach64_ext_readb(0x400 | 0xb5, priv);
-                break; 
-            case 0x5a: // 5aec-5aef
-                if (port_low == 0xEF)
-                    ret = 0x00;
-                else if (port_low == 0xEC)                 
-                    ret = mach64_ext_readb(0x400 | 0xb8, priv);
-                else
-                    ret = mach64_ext_readb(0x400 | 0xb9, priv);
+                    ret = mach64_ext_readb(0x400 | or_value + 1, priv);
                 break; 
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
-                    ret = ati68860_ramdac_in((port & 3) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
+                    ret = ati68860_ramdac_in((lane) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
                 else {
                     uint16_t port_list[4] = { 0x3c8, 0x3c9, 0x3c6, 0x3c7 }; 
-                    ret = svga_in(port_list[port & 3], svga);
+                    ret = svga_in(port_list[lane], svga);
                 }
                 break;
             case 0x6a: // 6eec-6eef
@@ -1258,7 +1258,7 @@ mach64_ext_inb(uint16_t port, void *priv)
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
 
-                ret = mach64_ext_readb(0x400 | addr_or_value | (port & 3), priv);
+                ret = mach64_ext_readb(0x400 | addr_or_value | (lane), priv);
                 break;
         }
     }
