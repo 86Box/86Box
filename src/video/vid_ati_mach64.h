@@ -454,10 +454,10 @@ uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);
 
 #ifdef ENABLE_MACH64_LOG
-int mach64_do_log = ENABLE_MACH64_LOG;
+extern int mach64_do_log;
 
-static void
-mach64_log(const char *fmt, ...)
+void
+mach64_log(const char *fmt, ...);
 {
     va_list ap;
 

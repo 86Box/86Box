@@ -29,6 +29,10 @@ mach64_t *reset_state[2] = { NULL, NULL };
 
 int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
 
+#ifdef ENABLE_MACH64_LOG
+int mach64_do_log = ENABLE_MACH64_LOG;
+#endif 
+
 // x86 I/O port output function
 void
 mach64_out(uint16_t addr, uint8_t val, void *priv)
@@ -380,7 +384,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
     uint8_t ret = 0xff;
     if (!(addr & 0x400)) {
-        mach64_log("nmach64_ext_readb: addr=%04x\n", addr);
+        mach64_log("mach64_ext_readb: addr=%04x\n", addr);
         switch (addr & 0x3ff) {
             case 0x00 ... 0x03:
                 READ8(addr, mach64->overlay_y_x_start);
