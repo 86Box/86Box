@@ -33,6 +33,7 @@ public slots:
 protected:
     std::array<std::unique_ptr<QImage>, 2> images;
     int                                    cur_image = -1;
+    bool                                   osd_drawn_last = false;
 
     void onPaint(QPaintDevice *device);
     void resizeEvent(QResizeEvent *event) override;
