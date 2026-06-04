@@ -458,15 +458,6 @@ extern int mach64_do_log;
 
 void
 mach64_log(const char *fmt, ...);
-{
-    va_list ap;
-
-    if (mach64_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
-}
 #else
 #    define mach64_log(fmt, ...)
 #endif

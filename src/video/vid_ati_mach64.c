@@ -31,6 +31,18 @@ int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
 
 #ifdef ENABLE_MACH64_LOG
 int mach64_do_log = ENABLE_MACH64_LOG;
+
+void
+mach64_log(const char *fmt, ...);
+{
+    va_list ap;
+
+    if (mach64_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
 #endif 
 
 // x86 I/O port output function
