@@ -44,6 +44,7 @@
 #    include <stdexcept>
 
 #    include "qt_mainwindow.hpp"
+#    include "qt_osd.hpp"
 #    include "qt_vulkanrenderer.hpp"
 
 extern "C" {
@@ -838,6 +839,12 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     setFlags(Flag::PersistentResources);
     buf_usage = std::vector<std::atomic_flag>(1);
     buf_usage[0].clear();
+}
+
+void
+VulkanWindowRenderer::finalize()
+{
+    qt_osd_shutdown();
 }
 
 QVulkanWindowRenderer *

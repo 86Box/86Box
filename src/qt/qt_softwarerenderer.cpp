@@ -48,6 +48,12 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
 }
 
 void
+SoftwareRenderer::finalize()
+{
+    qt_osd_shutdown();
+}
+
+void
 SoftwareRenderer::paintEvent(QPaintEvent *event)
 {
     (void) event;
