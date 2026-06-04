@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:09+0000\n"
+"PO-Revision-Date: 2026-06-02 17:02+0000\n"
 "Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -2311,6 +2311,9 @@ msgstr "Yüksek DMA"
 msgid "Control PC speaker"
 msgstr "PC hoparlörünü kontrol et"
 
+msgid "Control MIDI volume"
+msgstr "MIDI ses düzeyini kontrol et"
+
 msgid "Memory size"
 msgstr "Bellek boyutu"
 
@@ -3383,3 +3386,6 @@ msgstr "932 (Japonca)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Geleneksel Çince)"
+
+msgid "Sample rate:"
+msgstr "Örnekleme hızı:"

@@ -2276,6 +2276,9 @@ msgstr "DMA cao"
 msgid "Control PC speaker"
 msgstr "Kiểm soát loa PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Kích thước bộ nhớ"
 
@@ -3342,3 +3345,6 @@ msgstr "932 (tiếng Nhật)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Trung phồn thể)"
+
+msgid "Sample rate:"
+msgstr ""

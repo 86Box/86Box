@@ -2315,6 +2315,9 @@ msgstr "Υψηλό DMA"
 msgid "Control PC speaker"
 msgstr "Έλεγχος ηχείου PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Μέγεθος μνήμης"
 
@@ -3405,3 +3408,6 @@ msgstr "932 (Ιαπωνικά)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Παραδοσιακά Κινέζικα)"
+
+msgid "Sample rate:"
+msgstr ""

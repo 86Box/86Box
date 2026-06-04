@@ -2291,7 +2291,10 @@ msgid "High DMA"
 msgstr "Высокий DMA"
 
 msgid "Control PC speaker"
-msgstr "Управление динамиком ПК"
+msgstr "Управлять динамиком ПК"
+
+msgid "Control MIDI volume"
+msgstr "Управлять громкостью MIDI"
 
 msgid "Memory size"
 msgstr "Размер памяти"
@@ -3359,3 +3362,6 @@ msgstr "932 (японский)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (китайский, традиционное письмо)"
+
+msgid "Sample rate:"
+msgstr "Частота дискретизации:"

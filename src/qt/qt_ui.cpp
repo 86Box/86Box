@@ -22,6 +22,7 @@
 
 #include <QStatusBar>
 #include <QApplication>
+#include <QStringBuilder>
 
 #include "qt_mainwindow.hpp"
 #include "qt_machinestatus.hpp"
@@ -70,16 +71,18 @@ plat_delay_ms(uint32_t count)
 #endif
 }
 
-char *
-ui_window_title(char *str)
+void
+ui_emu_status(int speed_percent)
 {
-    if (str == nullptr) {
-        QString title = main_window->getTitle();
-        str = title.toUtf8().data();
-    } else
-        emit main_window->setTitle(QString::fromUtf8(str));
+    QString str = QString::number(speed_percent);
+    if ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1))
+        str += QStringLiteral("%");
+    else if (mouse_capture == 1)
+        str += QStringLiteral("% - ") % main_window->mouseStringCaptured;
+    else
+        str += QStringLiteral("% - ") % main_window->mouseStringUncaptured;
 
-    return str;
+    emit main_window->setTitle(str);
 }
 
 void

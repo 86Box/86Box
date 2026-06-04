@@ -477,22 +477,6 @@ dword_remap(const svga_t *svga, const uint32_t in_addr)
 
     return ((in_addr << 2) & 0x3fff0) | ((in_addr >> 14) & 0xc) | (in_addr & ~0x3fffc);
 }
-static __inline uint32_t
-dword_remap_w(const svga_t *svga, const uint32_t in_addr)
-{
-    if (svga->packed_chain4 || svga->force_old_addr)
-        return in_addr;
-
-    return ((in_addr << 2) & 0x1fff8) | ((in_addr >> 14) & 0x6) | (in_addr & ~0x1fffe);
-}
-static __inline uint32_t
-dword_remap_l(const svga_t *svga, const uint32_t in_addr)
-{
-    if (svga->packed_chain4 || svga->force_old_addr)
-        return in_addr;
-
-    return ((in_addr << 2) & 0xfffc) | ((in_addr >> 14) & 0x3) | (in_addr & ~0xffff);
-}
 
 static __inline void
 wake_fifo_thread(const s3_t *s3)
@@ -11602,7 +11586,7 @@ const device_t s3_trio64v2dx_onboard_pci_device = {
 static const device_config_t s3_86c911_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "orchid_s3_911",
         .default_int    = 0,
@@ -11653,7 +11637,7 @@ static const device_config_t s3_86c911_isa_config[] = {
 static const device_config_t s3_86c924_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "ami_s3_924",
         .default_int    = 0,
@@ -11694,7 +11678,7 @@ static const device_config_t s3_86c924_isa_config[] = {
 static const device_config_t s3_86c928_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "elsawin2k928_isa",
         .default_int    = 0,
@@ -11746,7 +11730,7 @@ static const device_config_t s3_86c928_isa_config[] = {
 static const device_config_t s3_86c928_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "elsawin1k928_vlb",
         .default_int    = 0,
@@ -11798,7 +11782,7 @@ static const device_config_t s3_86c928_vlb_config[] = {
 static const device_config_t s3_86c928_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "elsawin1k928_pci",
         .default_int    = 0,
@@ -11851,7 +11835,7 @@ static const device_config_t s3_86c928_pci_config[] = {
 static const device_config_t s3_86c801_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_86c801_isa",
         .default_int    = 0,
@@ -11902,7 +11886,7 @@ static const device_config_t s3_86c801_isa_config[] = {
 static const device_config_t s3_86c805_isa_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "winner1000_805_isa",
         .default_int    = 0,
@@ -11943,7 +11927,7 @@ static const device_config_t s3_86c805_isa_config[] = {
 static const device_config_t s3_86c805_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_86c805_vlb",
         .default_int    = 0,
@@ -12014,7 +11998,7 @@ static const device_config_t s3_86c805_vlb_config[] = {
 static const device_config_t s3_vision864_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_vision864_vlb",
         .default_int    = 0,
@@ -12076,7 +12060,7 @@ static const device_config_t s3_vision864_vlb_config[] = {
 static const device_config_t s3_vision864_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_vision864_pci",
         .default_int    = 0,
@@ -12138,7 +12122,7 @@ static const device_config_t s3_vision864_pci_config[] = {
 static const device_config_t s3_trio32_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_trio32_vlb",
         .default_int    = 0,
@@ -12190,7 +12174,7 @@ static const device_config_t s3_trio32_vlb_config[] = {
 static const device_config_t s3_trio32_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_trio32_pci",
         .default_int    = 0,
@@ -12242,7 +12226,7 @@ static const device_config_t s3_trio32_pci_config[] = {
 static const device_config_t s3_vision964_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "stealth64v_vlb",
         .default_int    = 0,
@@ -12294,7 +12278,7 @@ static const device_config_t s3_vision964_vlb_config[] = {
 static const device_config_t s3_vision964_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "elsawin2kprox_964_pci",
         .default_int    = 0,
@@ -12357,7 +12341,7 @@ static const device_config_t s3_vision964_pci_config[] = {
 static const device_config_t s3_trio64_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_trio64_vlb",
         .default_int    = 0,
@@ -12429,7 +12413,7 @@ static const device_config_t s3_trio64_vlb_config[] = {
 static const device_config_t s3_trio64_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_trio64_pci",
         .default_int    = 0,
@@ -12491,7 +12475,7 @@ static const device_config_t s3_trio64_pci_config[] = {
 static const device_config_t s3_vision868_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_vision868_pci",
         .default_int    = 0,
@@ -12543,7 +12527,7 @@ static const device_config_t s3_vision868_pci_config[] = {
 static const device_config_t s3_vision968_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "stealth64vv_vlb",
         .default_int    = 0,
@@ -12584,7 +12568,7 @@ static const device_config_t s3_vision968_vlb_config[] = {
 static const device_config_t s3_vision968_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "elsawin2kprox_pci",
         .default_int    = 0,
@@ -12677,7 +12661,7 @@ static const device_config_t s3_vision968_pci_config[] = {
 static const device_config_t s3_trio64vplus_vlb_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "stb_trio64vplus_vlb",
         .default_int    = 0,
@@ -12729,7 +12713,7 @@ static const device_config_t s3_trio64vplus_vlb_config[] = {
 static const device_config_t s3_trio64vplus_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "px_trio64vplus_pci",
         .default_int    = 0,
@@ -12792,7 +12776,7 @@ static const device_config_t s3_trio64vplus_pci_config[] = {
 static const device_config_t s3_trio64v2dx_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "trio64v2dx_pci",
         .default_int    = 0,

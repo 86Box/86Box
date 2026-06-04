@@ -21,6 +21,8 @@
 #include <86box/version.h>
 #include "cpu.h"
 
+#include "sdl_render.h"
+
 /*
  * File system manipulation
  */
@@ -91,12 +93,6 @@ char *
 plat_get_string(int i)
 {
     switch (i) {
-        case STRING_MOUSE_CAPTURE:
-            return "Click to capture mouse";
-        case STRING_MOUSE_RELEASE:
-            return "Press CTRL-END to release mouse";
-        case STRING_MOUSE_RELEASE_MMB:
-            return "Press CTRL-END or middle button to release mouse";
         case STRING_PCAP_ERROR_NO_DEVICES:
             return "No PCap devices found. Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case STRING_PCAP_ERROR_INVALID_DEVICE:

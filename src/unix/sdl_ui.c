@@ -115,10 +115,11 @@ ui_sb_mt32lcd(UNUSED(char *str))
     /* No-op. */
 }
 
+extern void update_mouse_msg(void);
 void
 ui_hard_reset_completed(void)
 {
-    /* No-op. */
+    update_mouse_msg();
 }
 
 void

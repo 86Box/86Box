@@ -2334,6 +2334,9 @@ msgstr "DMA alto"
 msgid "Control PC speaker"
 msgstr "Controlla l'altoparlante del PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Dimensione della memoria"
 
@@ -3429,3 +3432,6 @@ msgstr "932 (giapponese)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (cinese tradizionale)"
+
+msgid "Sample rate:"
+msgstr ""

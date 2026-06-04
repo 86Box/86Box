@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:36+0000\n"
+"PO-Revision-Date: 2026-06-04 01:22+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -593,7 +593,7 @@ msgid "Controller 4:"
 msgstr "控制器 4:"
 
 msgid "Cassette"
-msgstr "磁带"
+msgstr "盒式磁带"
 
 msgid "Hard disks:"
 msgstr "硬盘:"
@@ -1104,22 +1104,22 @@ msgid "Continue"
 msgstr "继续"
 
 msgid "Cassette: %1"
-msgstr "磁带: %1"
+msgstr "盒式磁带: %1"
 
 msgid "C&assette: %1"
-msgstr "磁带: %1(&A)"
+msgstr "盒式磁带: %1(&A)"
 
 msgid "Cassette images"
-msgstr "磁带映像"
+msgstr "盒式磁带镜像"
 
 msgid "Cartridge %1: %2"
-msgstr "卡带 %1: %2"
+msgstr "卡式磁带 %1: %2"
 
 msgid "Car&tridge %1: %2"
-msgstr "卡带 %1: %2(&A)"
+msgstr "卡式磁带 %1: %2(&A)"
 
 msgid "Cartridge images"
-msgstr "卡带映像"
+msgstr "卡式磁带镜像"
 
 msgid "Resume execution"
 msgstr "恢复执行"
@@ -2280,6 +2280,9 @@ msgstr "高 DMA"
 msgid "Control PC speaker"
 msgstr "控制电脑扬声器"
 
+msgid "Control MIDI volume"
+msgstr "控制MIDI音量"
+
 msgid "Memory size"
 msgstr "内存大小"
 
@@ -3343,3 +3346,6 @@ msgstr "932 (日语)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体中文)"
+
+msgid "Sample rate:"
+msgstr "采样率："

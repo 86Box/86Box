@@ -570,7 +570,6 @@ check_flags:
             sdl_blit(params.x, params.y, params.w, params.h);
         }
         if (title_set) {
-            extern void ui_window_title_real(void);
             ui_window_title_real();
         }
         if (video_fullscreen && keyboard_isfsexit()) {

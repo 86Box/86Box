@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -226,7 +227,21 @@ mt32_thread(UNUSED(void *param))
             buf = (float *) ((uint8_t *) buffer + buf_pos);
             memset(buf, 0, bsize);
             mt32_stream(buf, bsize / (2 * sizeof(float)));
+
+            /* Apply sound card MIDI volume and filters */
+            if (filter_midi != NULL) {
+                for (int i = 0; i < (bsize / sizeof(float)); i += 2) {
+                    double dl = (double) buf[i];
+                    double dr = (double) buf[i + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    buf[i] = (float) dl;
+                    buf[i + 1] = (float) dr;
+                }
+            }
+
             buf_pos += bsize;
+
             if (buf_pos >= buf_size) {
                 givealbuffer_midi(buffer, buf_size / sizeof(float));
                 buf_pos = 0;
@@ -235,7 +250,21 @@ mt32_thread(UNUSED(void *param))
             buf16 = (int16_t *) ((uint8_t *) buffer_int16 + buf_pos);
             memset(buf16, 0, bsize);
             mt32_stream_int16(buf16, bsize / (2 * sizeof(int16_t)));
+
+            /* Apply sound card MIDI volume and filters */
+            if (filter_midi != NULL) {
+                for (int i = 0; i < (bsize / sizeof(int16_t)); i += 2) {
+                    double dl = (double) buf16[i];
+                    double dr = (double) buf16[i + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    buf16[i] = (int16_t) round(dl);
+                    buf16[i + 1] = (int16_t) round(dr);
+                }
+            }
+
             buf_pos += bsize;
+
             if (buf_pos >= buf_size) {
                 givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
                 buf_pos = 0;

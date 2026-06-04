@@ -39,17 +39,19 @@
 #define I_CD 3
 #define I_FDD 4
 #define I_HDD 5
-#define I_MIDI 6
+#define I_YM2151 6
+#define I_CQM 7
+#define I_MIDI 8
 
-static int audio[7] = {-1, -1, -1, -1, -1, -1, -1};
+static int audio[9] = {-1, -1, -1, -1, -1, -1, -1, -1,-1};
 extern bool fast_forward;
 
 #ifdef USE_NEW_API
-static struct audio_swpar info[7];
+static struct audio_swpar info[9];
 #else
-static audio_info_t info[7];
+static audio_info_t info[9];
 #endif
-static int freqs[7] = {0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, 0};
+static int freqs[9] = {0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, CQM_FREQ, 0};
 const char *
 sound_get_output_devices(void)
 {
@@ -305,6 +307,18 @@ void
 givealbuffer_hdd(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, I_HDD, (int) size);
+}
+
+void
+givealbuffer_ym2151(const void *buf)
+{
+    givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1);
+}
+
+void
+givealbuffer_cqm(const void *buf)
+{
+    givealbuffer_common(buf, I_CQM, CQMBUFLEN << 1);
 }
 
 void

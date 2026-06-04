@@ -116,6 +116,8 @@ public:
         m_type           = type;
         if (m_48k)
             m_buf_pos_global = &sound_pos_global;
+        else if (samplerate == FREQ_55930)
+            m_buf_pos_global = &ym2151_pos_global;
         else
             m_buf_pos_global = (samplerate == FREQ_49716) ? &music_pos_global : &wavetable_pos_global;
 
@@ -390,7 +392,7 @@ ymfm_drv_init(const device_t *info)
 
         case FM_YM2151: /* OPM */
             // TODO: Check rates and frequency
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2151>(14318181, FM_YM2151, FREQ_49716, is_48k);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym2151>(14318181, FM_YM2151, FREQ_55930, is_48k);
             break;
 
         case FM_YM2203: /* OPN */

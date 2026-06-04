@@ -2284,6 +2284,9 @@ msgstr "Korkea DMA"
 msgid "Control PC speaker"
 msgstr "Ohjaa PC-kaiutinta"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Muistin koko"
 
@@ -3351,3 +3354,6 @@ msgstr "932 (japani)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (perinteinen kiina)"
+
+msgid "Sample rate:"
+msgstr ""

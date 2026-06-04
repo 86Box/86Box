@@ -2280,6 +2280,9 @@ msgstr "Hög DMA"
 msgid "Control PC speaker"
 msgstr "Styr PC-speaker"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Minnesstorlek"
 
@@ -3347,3 +3350,6 @@ msgstr "932 (Japansk)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditionell kinesiska)"
+
+msgid "Sample rate:"
+msgstr ""

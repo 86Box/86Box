@@ -134,6 +134,7 @@ private:
     void delete_shader(struct glsl_shader *glsl);
     void delete_glsl(glsl_t *glsl);
     void read_shader_config();
+    QRect sceneRenderRect() const;
 
     void render_pass(struct render_data *data);
 

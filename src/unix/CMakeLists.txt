@@ -88,23 +88,23 @@ endif()
 
 target_sources(ui PRIVATE sdl_osd.cpp)
 
+# Build the SDL ImGui backend separately so AUTOMOC skips it.
+set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
 add_library(osd_backend OBJECT
-    imgui/imgui.cpp
-    imgui/imgui_draw.cpp
-    imgui/imgui_tables.cpp
-    imgui/imgui_widgets.cpp
-    imgui/imgui_impl_sdl2.cpp
+    ${OSD_DIR}/imgui/imgui_impl_sdl2.cpp
 )
 
 if(USE_SDL_SHADER)
-    target_sources(osd_backend PRIVATE imgui/imgui_impl_opengl3.cpp)
+    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp)
     target_compile_definitions(osd_backend PRIVATE IMGUI_IMPL_OPENGL_ES2)
 else()
-    target_sources(osd_backend PRIVATE imgui/imgui_impl_sdlrenderer2.cpp)
+    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_sdlrenderer2.cpp)
 endif()
 
-target_include_directories(ui PRIVATE imgui)
+target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
 target_link_libraries(86Box osd_backend)
+
+target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(plat PRIVATE linux_cdrom_ioctl.c)

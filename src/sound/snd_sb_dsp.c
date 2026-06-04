@@ -272,7 +272,7 @@ uint16_t espcm3_dpcm_tables[1024] =
 };
 // clang-format on
 
-double low_fir_sb16_coef[5][SB16_NCoef];
+double low_fir_sb16_coef[6][SB16_NCoef];
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -305,7 +305,8 @@ recalc_sb16_filter(const int c, const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
 
     for (n = 0; n < SB16_NCoef; n++) {
         /* Blackman window */
