@@ -1302,7 +1302,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
     else if (mach64->io_base == MACH64_IO_BASE_1C8)
         port -= 0x124;
 
-    uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
+    uint8_t port_high = (port >> 8) & 0xFE; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
 
     // the value to or the final address for write into
@@ -1348,6 +1348,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                 mach64_updatemapping(mach64);
                 break;
             default:
+
                  // there must be a more rational rule here
                 if (port_high <= 0x1E)
                     addr_or_value = port_high - 2;
