@@ -134,7 +134,6 @@ ensure_fonts(void)
     unsigned char *px = nullptr;
     int w = 0, h = 0;
     io.Fonts->GetTexDataAsRGBA32(&px, &w, &h);
-    io.Fonts->SetTexID((ImTextureID) (intptr_t) 1);
     g_fonts_ready = true;
 }
 

@@ -16,6 +16,7 @@ class SoftwareRenderer :
     Q_OBJECT
 public:
     explicit SoftwareRenderer(QWidget *parent = nullptr);
+    void finalize() override final;
 
     void paintEvent(QPaintEvent *event) override;
 
