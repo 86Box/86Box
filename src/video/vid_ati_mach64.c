@@ -2016,6 +2016,7 @@ mach64_common_init(const device_t *info)
     mach64->type = info->local & 0xff;
     mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
+    mach64->io_base = MACH64_IO_BASE_2EC;
 
     if (mach64->type > MACH64_GX)
         svga_init(info, svga, mach64, mach64->vram_size << 20,
