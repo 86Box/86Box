@@ -1315,12 +1315,18 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
         switch (port_high)
         {
              case 0x56: // 56ec-56ef
+                if (port_low == 0xEF)
+                    break;
+
                 if (port_low == 0xEC)                 
                     mach64_ext_writeb(0x400 | 0xb4, val, priv);
                 else
                     mach64_ext_writeb(0x400 | 0xb5, val, priv);
                 break; 
             case 0x5a: // 5aec-5aef
+                if (port_low == 0xEF)
+                    break;
+
                 if (port_low == 0xEC)                 
                     mach64_ext_writeb(0x400 | 0xb8, val, priv);
                 else
@@ -1876,12 +1882,98 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 void
 mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
+    /* 
+        mach64_t *mach64 = (mach64_t *) priv;
+
+    switch (addr) {
+        case PCI_REG_COMMAND:
+            mach64->pci_regs[PCI_REG_COMMAND] = val & 0x27;
+            if (val & PCI_COMMAND_IO)
+                mach64_io_set(mach64);
+            else
+                mach64_io_remove(mach64);
+            mach64_updatemapping(mach64);
+            break;
+
+        case 0x12:
+            if (mach64->type >= MACH64_CT)
+                val = 0;
+            mach64->linear_base = (mach64->linear_base & 0xff000000) | ((val & 0x80) << 16);
+            mach64_updatemapping(mach64);
+            break;
+        case 0x13:
+            mach64->linear_base = (mach64->linear_base & 0x800000) | (val << 24);
+            mach64_updatemapping(mach64);
+            break;
+
+        case 0x15:
+            if (mach64->type >= MACH64_CT) {
+                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                    mach64_io_remove(mach64);
+                mach64->block_decoded_io = (mach64->block_decoded_io & 0xffff0000) | ((val & 0xff) << 8);
+                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                    mach64_io_set(mach64);
+            }
+            break;
+        case 0x16:
+            if (mach64->type >= MACH64_CT) {
+                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                    mach64_io_remove(mach64);
+                mach64->block_decoded_io = (mach64->block_decoded_io & 0xff00fc00) | (val << 16);
+                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                    mach64_io_set(mach64);
+            }
+            break;
+        case 0x17:
+            if (mach64->type >= MACH64_CT) {
+                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                    mach64_io_remove(mach64);
+                mach64->block_decoded_io = (mach64->block_decoded_io & 0x00fffc00) | (val << 24);
+                if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                    mach64_io_set(mach64);
+            }
+            break;
+
+        case 0x30:
+        case 0x32:
+        case 0x33:
+            if (mach64->on_board) return;
+            mach64->pci_regs[addr] = val;
+            if (mach64->pci_regs[0x30] & 0x01) {
+                uint32_t biosaddr = (mach64->pci_regs[0x32] << 16) | (mach64->pci_regs[0x33] << 24);
+                mach64_log("Mach64 bios_rom enabled at %08x\n", biosaddr);
+                mem_mapping_set_addr(&mach64->bios_rom.mapping, biosaddr, 0x8000);
+            } else {
+                mach64_log("Mach64 bios_rom disabled\n");
+                mem_mapping_disable(&mach64->bios_rom.mapping);
+            }
+            return;
+
+        case 0x3c:
+            mach64->int_line = val;
+            break;
+
+        case 0x40:
+            if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                mach64_io_remove(mach64);
+            mach64->io_base = val & 0x03;
+            if (mach64->type >= MACH64_CT)
+                mach64->use_block_decoded_io = val & 0x04;
+            if (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
+                mach64_io_set(mach64);
+            break;
+
+        default:
+            break;
+    }
+            */
     mach64_t *mach64 = (mach64_t *) priv;
 
     // Addresses that DON'T need to 
     bool dont_remap_io = (addr == PCI_REG_COMMAND // controls the mapping so we don't use the default behaviour  
     || addr == PCI_REG_BAR0_BYTE2
-    || addr == PCI_REG_BAR0_BYTE3);
+    || addr == PCI_REG_BAR0_BYTE3
+    || (addr >= PCI_REG_ROM_BAR_BYTE0 || addr <= PCI_REG_ROM_BAR_BYTE3));
 
     if (!dont_remap_io
     && (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO))
