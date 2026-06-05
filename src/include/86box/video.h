@@ -479,6 +479,7 @@ extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
 extern const device_t millennium_ii_device;
+extern const device_t millennium_ii_agp_device;
 #ifdef USE_G100
 extern const device_t productiva_g100_device;
 #endif /* USE_G100 */

@@ -438,7 +438,7 @@ typedef struct mystique_t {
 
     rom_t bios_rom;
 
-    int type;
+    int type, is_agp;
 
     mem_mapping_t lfb_mapping, ctrl_mapping,
         iload_mapping;
@@ -663,8 +663,9 @@ static double bayer_mat[4][4] =
     { 15. / 16., 7. / 16., 13. / 16., 5. / 16.},
 };
 
-static video_timings_t timing_matrox_millennium = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
-static video_timings_t timing_matrox_mystique   = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
+static video_timings_t timing_matrox_millennium     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
+static video_timings_t timing_matrox_mystique       = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
+static video_timings_t timing_matrox_mystique_agp   = { .type = VIDEO_AGP, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
 
 static void mystique_start_blit(mystique_t *mystique);
 static void mystique_update_irqs(mystique_t *mystique);
@@ -6478,7 +6479,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 break;
 
             case 0x34:
-                ret = (mystique->type == MGA_G100) ? 0xdc : 0x00;
+                ret = (mystique->type == MGA_G100 || mystique->is_agp) ? 0xdc : 0x00;
                 break;
 
             case 0x3c:
@@ -6783,7 +6784,8 @@ mystique_init(const device_t *info)
     mystique_t *mystique = calloc(1, sizeof(mystique_t));
     const char *romfn = NULL;
 
-    mystique->type = info->local;
+    mystique->type   = info->local;
+    mystique->is_agp = !!(info->flags & DEVICE_AGP);
 
     if (mystique->type == MGA_2064W)
         romfn = ROM_MILLENNIUM;
@@ -6810,7 +6812,7 @@ mystique_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
 
     if (mystique->type == MGA_2064W || mystique->type == MGA_2164W) {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, (mystique->type == MGA_2164W) ? &timing_matrox_mystique : &timing_matrox_millennium);
+        video_inform(VIDEO_FLAG_TYPE_SPECIAL, (mystique->type == MGA_2164W) ? (mystique->is_agp ? &timing_matrox_mystique_agp : &timing_matrox_mystique) : &timing_matrox_millennium);
         svga_init(info, &mystique->svga, mystique, mystique->vram_size << 20,
                   mystique_recalctimings,
                   mystique_in, mystique_out,
@@ -7083,6 +7085,20 @@ const device_t millennium_ii_device = {
     .name          = "Matrox Millennium II",
     .internal_name = "millennium_ii",
     .flags         = DEVICE_PCI,
+    .local         = MGA_2164W,
+    .init          = mystique_init,
+    .close         = mystique_close,
+    .reset         = NULL,
+    .available     = millennium_ii_available,
+    .speed_changed = mystique_speed_changed,
+    .force_redraw  = mystique_force_redraw,
+    .config        = millennium_ii_config
+};
+
+const device_t millennium_ii_agp_device = {
+    .name          = "Matrox Millennium II AGP",
+    .internal_name = "millennium_ii_agp",
+    .flags         = DEVICE_AGP,
     .local         = MGA_2164W,
     .init          = mystique_init,
     .close         = mystique_close,
