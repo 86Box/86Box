@@ -72,6 +72,7 @@ extern void win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include "qt_rendererstack.hpp"
 #include "qt_util.hpp"
 #include "ui_qt_mainwindow.h"
+#include "qt_osd.hpp"
 
 bool NewDarkMode = FALSE;
 
@@ -483,8 +484,9 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
     RAWKEYBOARD rawKB = raw->data.keyboard;
 
-    win_keyboard_handle(rawKB.MakeCode, (rawKB.Flags & RI_KEY_BREAK),
-                        (rawKB.Flags & RI_KEY_E0), (rawKB.Flags & RI_KEY_E1));
+    if (!qt_osd_is_visible())
+        win_keyboard_handle(rawKB.MakeCode, (rawKB.Flags & RI_KEY_BREAK),
+                            (rawKB.Flags & RI_KEY_E0), (rawKB.Flags & RI_KEY_E1));
 }
 
 void
