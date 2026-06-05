@@ -318,22 +318,22 @@ namespace emu::filesystem {
     class directory_entry {
     public:
         directory_entry() = default;
-        directory_entry(path entry_path, file_status status) : path_(std::move(entry_path)), status_(status) {}
+        directory_entry(::emu::filesystem::path entry_path, ::emu::filesystem::file_status status) : path_(std::move(entry_path)), status_(status) {}
 
-        const path &path() const
+        const ::emu::filesystem::path &path() const
         {
             return path_;
         }
 
-        file_status status(std::error_code &error) const
+        ::emu::filesystem::file_status status(std::error_code &error) const
         {
             error.clear();
             return status_;
         }
 
     private:
-        class path        path_;
-        class file_status status_;
+        ::emu::filesystem::path        path_;
+        ::emu::filesystem::file_status status_;
     };
 
     class directory_iterator {
