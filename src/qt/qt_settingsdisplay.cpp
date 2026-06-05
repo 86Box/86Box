@@ -62,8 +62,9 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     connect(ui->lineEditCustomEDID, &FileField::fileSelected, [this](const QString &fileName) {
-        QFileInfo edidFile(fileName);
-        if (edidFile.isFile() && edidFile.size() > 256) {
+        uint8_t dummyBuffer[384] = { 0 };
+        size_t size = ddc_load_edid(fileName.toUtf8().data(), dummyBuffer, sizeof(dummyBuffer));
+        if (size > 256) {
             QMessageBox::critical(this, "EDID", tr("EDID file \"%s\" is too large.").replace("%s", "%1").arg(fileName));
             this->ui->lineEditCustomEDID->setFileName(this->previousEDIDPath);
         } else
