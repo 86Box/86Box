@@ -4,10 +4,17 @@
 #include <cctype>
 #include <cstdio>
 #include <cstring>
-#include <filesystem>
 #include <vector>
 
 #include "imgui.h"
+
+#ifdef USE_STD_FILESYSTEM
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include "filesystem.hpp"
+namespace fs = emu::filesystem;
+#endif
 
 namespace {
 
@@ -53,7 +60,7 @@ bool matches_filter(const char *name, const char *const *patterns)
     return false;
 }
 
-void copy_path(std::array<char, 1024> *buffer, const std::filesystem::path &path)
+void copy_path(std::array<char, 1024> *buffer, const fs::path &path)
 {
     const std::string path_string = path.generic_string();
     snprintf(buffer->data(), buffer->size(), "%s", path_string.c_str());
@@ -87,19 +94,19 @@ OsdExplorer::Open(const OsdExplorerConfig &config)
     ResetSelection();
     filename_input_.fill('\0');
 
-    std::filesystem::path initial_path;
+    fs::path initial_path;
     if (config.initial_path != nullptr && config.initial_path[0] != '\0') {
-        initial_path = std::filesystem::path(config.initial_path).lexically_normal();
+        initial_path = fs::path(config.initial_path).lexically_normal();
     }
     else {
         std::error_code error;
-        initial_path = std::filesystem::current_path(error).lexically_normal();
+        initial_path = fs::current_path(error).lexically_normal();
     }
 
     if (!initial_path.empty()) {
         std::error_code error;
-        const std::filesystem::file_status status = std::filesystem::status(initial_path, error);
-        if (!error && std::filesystem::exists(status) && !std::filesystem::is_directory(status)) {
+        const fs::file_status status = fs::status(initial_path, error);
+        if (!error && fs::exists(status) && !fs::is_directory(status)) {
             if (initial_path == initial_path.parent_path())
                 initial_path.clear();
             else
@@ -438,7 +445,7 @@ OsdExplorer::Draw()
         ImGui::EndChild();
     }
 
-    std::filesystem::path accepted_path;
+    fs::path accepted_path;
     const bool  can_accept = BuildAcceptedPath(&accepted_path);
 
     if (!filename_input_active && enter) {
@@ -496,7 +503,7 @@ OsdExplorer::QueueFocusSlot(FocusSlot slot)
 }
 
 bool
-OsdExplorer::SetCurrentPath(const std::filesystem::path &path)
+OsdExplorer::SetCurrentPath(const fs::path &path)
 {
     if (path.empty()) {
 #ifdef _WIN32
@@ -506,7 +513,7 @@ OsdExplorer::SetCurrentPath(const std::filesystem::path &path)
 #endif
     } else {
         std::error_code error;
-        if (!std::filesystem::is_directory(std::filesystem::status(path, error)))
+        if (!fs::is_directory(fs::status(path, error)))
             return false;
 
         current_path_ = path.lexically_normal();
@@ -542,11 +549,11 @@ OsdExplorer::RefreshEntries()
         for (char drive = 'A'; drive <= 'Z'; drive++) {
             Entry entry;
             entry.kind = EntryKind::Drive;
-            entry.path = std::filesystem::path(std::string(1, drive) + ":\\");
+            entry.path = fs::path(std::string(1, drive) + ":\\");
 
             std::error_code error;
-            const std::filesystem::file_status status = std::filesystem::status(entry.path, error);
-            if (error || !std::filesystem::exists(status) || !std::filesystem::is_directory(status))
+            const fs::file_status status = fs::status(entry.path, error);
+            if (error || !fs::exists(status) || !fs::is_directory(status))
                 continue;
 
 #ifdef USE_SDL_OSD_EXPLORER_OLD_STYLE
@@ -570,7 +577,7 @@ OsdExplorer::RefreshEntries()
         parent.kind = EntryKind::Parent;
         parent.name = "..";
 #if defined(_WIN32) && !defined(USE_SDL_OSD_EXPLORER_OLD_STYLE)
-        parent.path = (current_path_ == current_path_.parent_path()) ? std::filesystem::path() : current_path_.parent_path();
+        parent.path = (current_path_ == current_path_.parent_path()) ? fs::path() : current_path_.parent_path();
 #else
         parent.path = current_path_.parent_path();
 #endif
@@ -579,20 +586,20 @@ OsdExplorer::RefreshEntries()
     }
 
     std::error_code error;
-    const auto options = std::filesystem::directory_options::skip_permission_denied;
-    std::filesystem::directory_iterator iterator(current_path_, options, error);
-    for (const std::filesystem::directory_entry &directory_entry : iterator) {
+    const auto options = fs::directory_options::skip_permission_denied;
+    fs::directory_iterator iterator(current_path_, options, error);
+    for (const fs::directory_entry &directory_entry : iterator) {
         Entry entry;
         entry.path = directory_entry.path();
         entry.name = entry.path.filename().string();
 
-        const std::filesystem::file_status status = directory_entry.status(error);
+        const fs::file_status status = directory_entry.status(error);
         if (error)
             continue;
 
-        if (std::filesystem::is_directory(status)) {
+        if (fs::is_directory(status)) {
             entry.kind = EntryKind::Directory;
-            entry.name += std::filesystem::path::preferred_separator;
+            entry.name += fs::path::preferred_separator;
             directory_entries_.push_back(entry);
         } else if (config_.mode == OsdExplorerMode::File && (show_all_files_ || matches_filter(entry.name.c_str(), config_.extension_globs))) {
             entry.kind = EntryKind::File;
@@ -629,15 +636,15 @@ OsdExplorer::ResetSelection()
 }
 
 bool
-OsdExplorer::ResolveTypedPath(std::filesystem::path *path, bool *is_directory, bool *is_file) const
+OsdExplorer::ResolveTypedPath(fs::path *path, bool *is_directory, bool *is_file) const
 {
     *is_directory = false;
     *is_file      = false;
 
     std::string typed = filename_input_.data();
 
-    const std::filesystem::path typed_path(typed);
-    std::filesystem::path       resolved_path = typed_path;
+    const fs::path typed_path(typed);
+    fs::path       resolved_path = typed_path;
     if (!typed_path.is_absolute())
         resolved_path = current_path_ / typed_path;
 
@@ -645,9 +652,9 @@ OsdExplorer::ResolveTypedPath(std::filesystem::path *path, bool *is_directory, b
         return false;
 
     std::error_code error;
-    const std::filesystem::file_status status = std::filesystem::status(resolved_path, error);
-    *is_directory = !error && std::filesystem::is_directory(status);
-    *is_file      = !error && std::filesystem::exists(status) && !std::filesystem::is_directory(status);
+    const fs::file_status status = fs::status(resolved_path, error);
+    *is_directory = !error && fs::is_directory(status);
+    *is_file      = !error && fs::exists(status) && !fs::is_directory(status);
 
     if (!*is_directory && !*is_file)
         return false;
@@ -659,7 +666,7 @@ OsdExplorer::ResolveTypedPath(std::filesystem::path *path, bool *is_directory, b
 bool
 OsdExplorer::TryHandleFilenameInput(OsdExplorerResult *result)
 {
-    std::filesystem::path path;
+    fs::path path;
     bool        is_directory = false;
     bool        is_file      = false;
 
@@ -707,9 +714,9 @@ OsdExplorer::TryActivateEntry(const Entry &entry, OsdExplorerResult *result)
 }
 
 bool
-OsdExplorer::BuildAcceptedPath(std::filesystem::path *path) const
+OsdExplorer::BuildAcceptedPath(fs::path *path) const
 {
-    std::filesystem::path resolved_path;
+    fs::path resolved_path;
     bool        is_directory = false;
     bool        is_file      = false;
     if (ResolveTypedPath(&resolved_path, &is_directory, &is_file)) {
