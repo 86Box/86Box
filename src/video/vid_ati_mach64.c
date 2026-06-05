@@ -1194,7 +1194,7 @@ mach64_ext_inb(uint16_t port, void *priv)
     else if (mach64->io_base == MACH64_IO_BASE_1C8)
         port -= 0x124;
 
-    uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
+    uint8_t port_high = (port >> 8) & 0xFE; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
 
     uint8_t lane = port & 3;
@@ -1202,7 +1202,7 @@ mach64_ext_inb(uint16_t port, void *priv)
     // the value to or the final address for write into space
     uint8_t addr_or_value = 0;
     // we only care about (ec...ef)
-    if (port_low >= 0xEC && port_low <= 0xEF)
+    if ((port_low >= 0xEC) && (port_low <= 0xEF))
     {
         // exclude everything we don't want
         switch (port_high)
@@ -1239,11 +1239,11 @@ mach64_ext_inb(uint16_t port, void *priv)
                 // there must be a more rational rule here
                 if (port_high <= 0x1E)
                     addr_or_value = port_high - 2;
-                else if (port_high >= 0x22 && port_high <= 0x2A)
+                else if ((port_high >= 0x22) && (port_high <= 0x2A))
                     addr_or_value = port_high + 0x1E; // 0x40 - 0x48
-                else if (port_high >= 0x2E && port_high <= 0x3E)
+                else if ((port_high >= 0x2E) && (port_high <= 0x3E))
                     addr_or_value = port_high + 0x32;
-                else if (port_high >= 0x42 && port_high <= 0x46)
+                else if ((port_high >= 0x42) && (port_high <= 0x46))
                     addr_or_value = port_high + 0x3E;
                 else if (port_high == 0x4A) 
                     addr_or_value = 0x90;
@@ -1253,7 +1253,7 @@ mach64_ext_inb(uint16_t port, void *priv)
                     addr_or_value = 0xc4;
                 else if (port_high == 0x66)
                     addr_or_value = 0xd0;
-                else if (port_high >= 0x6e && port_high <= 0x72)
+                else if ((port_high >= 0x6e) && (port_high <= 0x72))
                     addr_or_value = port_high + 0x72;
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
@@ -1310,7 +1310,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
     uint8_t addr_or_value = 0;
 
     // we only care about (ec...ef)
-    if (port_low >= 0xEC && port_low <= 0xEF)
+    if ((port_low >= 0xEC) && (port_low <= 0xEF))
     {
         switch (port_high)
         {
@@ -1352,11 +1352,11 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                  // there must be a more rational rule here
                 if (port_high <= 0x1E)
                     addr_or_value = port_high - 2;
-                else if (port_high >= 0x22 && port_high <= 0x2A)
+                else if ((port_high >= 0x22) && (port_high <= 0x2A))
                     addr_or_value = port_high + 0x1E; // 0x40 - 0x48
-                else if (port_high >= 0x2E && port_high <= 0x3E)
+                else if ((port_high >= 0x2E) && (port_high <= 0x3E))
                     addr_or_value = port_high + 0x32;
-                else if (port_high >= 0x42 && port_high <= 0x46)
+                else if ((port_high >= 0x42) && (port_high <= 0x46))
                     addr_or_value = port_high + 0x3E;
                 else if (port_high == 0x4A) 
                     addr_or_value = 0x90;
@@ -1366,7 +1366,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                     addr_or_value = 0xc4;
                 else if (port_high == 0x66)
                     addr_or_value = 0xd0;
-                else if (port_high >= 0x6e && port_high <= 0x72)
+                else if ((port_high >= 0x6e) && (port_high <= 0x72))
                     addr_or_value = port_high + 0x72;
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
