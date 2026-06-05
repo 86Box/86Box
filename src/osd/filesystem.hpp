@@ -466,7 +466,8 @@ namespace emu::filesystem {
             return file_status(file_type::not_found);
         }
 
-        std::vector<char> buffer(path_value.generic_string().begin(), path_value.generic_string().end());
+        const std::string path_string = path_value.generic_string();
+        std::vector<char> buffer(path_string.begin(), path_string.end());
         buffer.push_back('\0');
         if (plat_dir_check(buffer.data())) {
             error.clear();
