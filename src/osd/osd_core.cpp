@@ -612,30 +612,6 @@ static bool focused_button(const char *label, bool focused)
     return clicked;
 }
 
-/* Up/Down/PageUp/PageDown/Home/End navigation for a vertical list. Updates sel
- * in place and returns true when it moved. swallowed_up suppresses one Up that
- * was already consumed handing focus back from a button. */
-static bool list_key_nav(int &sel, int total, bool swallowed_up)
-{
-    if (total <= 0)
-        return false;
-
-    const int prev = sel;
-    if (ImGui::IsKeyPressed(ImGuiKey_UpArrow,   true) && sel > 0 && !swallowed_up)
-        sel--;
-    if (ImGui::IsKeyPressed(ImGuiKey_DownArrow, true) && sel < total - 1)
-        sel++;
-    if (ImGui::IsKeyPressed(ImGuiKey_PageUp,    true))
-        sel = std::max(0, sel - OSD_LIST_PAGE);
-    if (ImGui::IsKeyPressed(ImGuiKey_PageDown,  true))
-        sel = std::min(total - 1, sel + OSD_LIST_PAGE);
-    if (ImGui::IsKeyPressed(ImGuiKey_Home,      true))
-        sel = 0;
-    if (ImGui::IsKeyPressed(ImGuiKey_End,       true))
-        sel = total - 1;
-    return sel != prev;
-}
-
 static bool draw_log(void)
 {
     /* Slots: 0=log area, 1=Back. Tab cycles; ESC → osd_handle. */
