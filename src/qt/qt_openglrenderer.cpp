@@ -823,8 +823,18 @@ OpenGLRenderer::read_shader_config()
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow((QWindow*)nullptr)
     , renderTimer(new QTimer(this))
+    , osdRenderTimer(new QTimer(this))
 {
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
+    connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
+        if (video_framerate == -1 && dopause && qt_osd_is_visible())
+            this->render();
+
+        if (video_framerate == -1 && !qt_osd_is_visible() && was_osd_visible)
+            this->render();
+
+        was_osd_visible = qt_osd_is_visible();
+    });
     imagebufs[0] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
     imagebufs[1] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
 
@@ -916,6 +926,8 @@ OpenGLRenderer::initialize()
         if (video_framerate != -1) {
             renderTimer->start(ceilf(1000.f / (float) video_framerate));
         }
+
+        osdRenderTimer->start(16);
 
         scene_texture.data            = NULL;
         scene_texture.width           = 2048;

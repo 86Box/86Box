@@ -30,6 +30,7 @@
 #include <86box/cdrom.h>
 
 #include "osd_core.hpp"
+#include "osd_explorer.hpp"
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -65,8 +66,9 @@ enum OsdView {
 
 static OsdView   current_view   = VIEW_MENU;
 static int       menu_sel       = -1;
-static int       file_sel       = 0;
-static bool      file_list_focus_pending = false;
+
+static OsdExplorer       explorer;
+static OsdExplorerConfig explorer_config;
 
 static char      files[OSD_FILE_CAPACITY][OSD_PATH_CAPACITY];
 static int       file_count     = 0;
@@ -170,15 +172,6 @@ osd_core_rebuild_default_font(int pixel_size)
 
     osd_font_raster_scale = (float) pixel_size / (float) OSD_FONT_SIZE;
     apply_layout_scale();
-}
-
-static void normalize_slashes(char *path)
-{
-    while (*path != '\0') {
-        if (*path == '\\')
-            *path = '/';
-        path++;
-    }
 }
 
 static void osd_log_push(const char *line)
@@ -311,113 +304,35 @@ static void scan_dir_recursive(char path[], size_t path_len, const char *const *
     closedir(dir);
 }
 
-static void load_files(OsdView view)
-{
-    file_count = 0;
-    file_sel   = 0;
-    file_list_focus_pending = true;
-    memset(files, 0, sizeof(files));
-    const char *const *exts = exts_for_view(view);
-    if (!exts)
-        return;
-
-    char path[OSD_PATH_CAPACITY];
-    int len;
-    DirSet visited; /* (dev,ino) dedup — handles symlinks and bind-mounts */
-
-    len = snprintf(path, sizeof(path), ".");
-    scan_dir_recursive(path, (size_t)len, exts, visited);
-    len = snprintf(path, sizeof(path), "/mnt");
-    scan_dir_recursive(path, (size_t)len, exts, visited);
-    len = snprintf(path, sizeof(path), "/media");
-    scan_dir_recursive(path, (size_t)len, exts, visited);
-}
-
-/* ------------------------------------------------------------------ */
-/*  State: CD folder browser (VISO)                                   */
-/* ------------------------------------------------------------------ */
-static char  cd_folder_path[OSD_PATH_CAPACITY];
-static char  cd_folder_entries[OSD_FILE_CAPACITY][256];
-static int   cd_folder_count   = 0;
-static int   cd_folder_sel     = 0;
-static bool  cd_folder_pending = false;
-
-static void load_cd_folders(void)
-{
-    cd_folder_count = 0;
-    DIR *dir = opendir(cd_folder_path);
-    if (!dir)
-        return;
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        const char *name = entry->d_name;
-        if (name[0] != '.') {
-            char tmp[OSD_PATH_CAPACITY];
-            snprintf(tmp, sizeof(tmp), "%s/%s", cd_folder_path, name);
-            struct stat st;
-            if (stat(tmp, &st) == 0 && S_ISDIR(st.st_mode) && cd_folder_count < OSD_FILE_CAPACITY) {
-                snprintf(cd_folder_entries[cd_folder_count], 256, "%s", name);
-                cd_folder_count++;
-            }
-        }
-    }
-
-    closedir(dir);
-}
-
-static void cd_folder_go_up(void)
-{
-    char *slash = strrchr(cd_folder_path, '/');
-    if (!slash) return;
-    if (slash == cd_folder_path)
-        slash[1] = '\0'; /* /foo → / */
-    else
-        *slash = '\0';   /* /a/b → /a */
-    cd_folder_sel = 0;
-    load_cd_folders();
-}
-
-static void cd_folder_enter(int idx)
-{
-    size_t len = strlen(cd_folder_path);
-    if (len > 1 && cd_folder_path[len - 1] == '/')
-        cd_folder_path[--len] = '\0';
-    if (len + 1 + strlen(cd_folder_entries[idx]) >= OSD_PATH_CAPACITY)
-        return;
-    snprintf(cd_folder_path + len, OSD_PATH_CAPACITY - len, "/%s", cd_folder_entries[idx]);
-    cd_folder_sel = 0;
-    load_cd_folders();
-}
-
-static void open_cd_folder_browser(void)
-{
-    if (!plat_getcwd(cd_folder_path, sizeof(cd_folder_path)))
-        snprintf(cd_folder_path, sizeof(cd_folder_path), ".");
-    normalize_slashes(cd_folder_path);
-    cd_folder_pending = true;
-    load_cd_folders();
-}
-
 /* ------------------------------------------------------------------ */
 /*  Mount helpers                                                      */
 /* ------------------------------------------------------------------ */
-static void mount_selected(void)
+static void mount_path(const char *path)
 {
-    char *f = files[file_sel];
-
     /* Disable log suppression around mount to capture all output. */
     char msg[OSD_PATH_CAPACITY + 32];
-    snprintf(msg, sizeof(msg), "Loading: %s", f);
+    snprintf(msg, sizeof(msg), "Loading: %s", path);
     osd_log_push(msg);
     pclog_toggle_suppr();
     switch (current_view) {
-        case VIEW_FILE_FLOPPY: floppy_mount(0, f, 0);    break;
-        case VIEW_FILE_CD:     cdrom_mount(0, f);         break;
-        case VIEW_FILE_RDISK:  rdisk_mount(0, f, 0);      break;
-        case VIEW_FILE_CART:   cartridge_mount(0, f, 0);  break;
-        case VIEW_FILE_MO:     mo_mount(0, f, 0);         break;
-        default: pclog_toggle_suppr(); return;
+        case VIEW_FILE_FLOPPY:
+            floppy_mount(0, (char *) path, 0);
+            break;
+        case VIEW_FILE_CD:
+            cdrom_mount(0, (char *) path);
+            break;
+        case VIEW_FILE_RDISK:
+            rdisk_mount(0, (char *) path, 0);
+            break;
+        case VIEW_FILE_CART:
+            cartridge_mount(0, (char *) path, 0);
+            break;
+        case VIEW_FILE_MO:
+            mo_mount(0, (char *) path, 0);
+            break;
+        default:
+            pclog_toggle_suppr();
+            return;
     }
     pclog_toggle_suppr();
 }
@@ -545,6 +460,46 @@ static void show_main_menu(void)
     menu_normalize_selection();
 }
 
+static const char *
+view_title(OsdView v)
+{
+    switch (v) {
+        case VIEW_FILE_FLOPPY:
+            return "Select Floppy Image";
+        case VIEW_FILE_CD:
+            return "Select CD-ROM Image";
+        case VIEW_FILE_RDISK:
+            return "Select Removable Disk Image";
+        case VIEW_FILE_CART:
+            return "Select Cartridge";
+        case VIEW_FILE_MO:
+            return "Select MO Image";
+        case VIEW_CD_FOLDER:
+            return "Mount Folder as CD-ROM";
+        default:
+            return "Select File";
+    }
+}
+
+static const char *
+view_accept_label(OsdView v)
+{
+    return (v == VIEW_CD_FOLDER) ? "Mount" : "Load";
+}
+
+static void
+open_browser(OsdView view)
+{
+    explorer_config.title           = view_title(view);
+    explorer_config.accept_label    = view_accept_label(view);
+    explorer_config.mode            = (view == VIEW_CD_FOLDER) ? OsdExplorerMode::Directory : OsdExplorerMode::File;
+    explorer_config.extension_globs = exts_for_view(view);
+    explorer_config.initial_path    = nullptr;
+
+    explorer.Open(explorer_config);
+    current_view = view;
+}
+
 static void activate_menu_item(int idx, bool *close_osd)
 {
     const MenuItem &mi = menu_items[idx];
@@ -572,11 +527,11 @@ static void activate_menu_item(int idx, bool *close_osd)
 
     if (mi.view == VIEW_LOG)
         log_scroll_pending = true;
-    else if (mi.view == VIEW_CD_FOLDER)
-        open_cd_folder_browser();
     else
-        load_files(mi.view);
-    current_view = mi.view;
+        open_browser(mi.view);
+
+    if (mi.view == VIEW_LOG)
+        current_view = mi.view;
 }
 
 /* ------------------------------------------------------------------ */
@@ -644,19 +599,6 @@ static bool draw_menu(void)
 /* ------------------------------------------------------------------ */
 /*  Draw: Log viewer                                                   */
 /* ------------------------------------------------------------------ */
-/* Next focus slot on Tab. 0=list, 1=Mount (if files), 2=Back. */
-static int tab_cycle(int slot, bool shift, bool has_mount)
-{
-    if (!shift) {
-        if (slot == 0) return has_mount ? 1 : 2;
-        if (slot == 1) return 2;
-        return 0;
-    } else {
-        if (slot == 0) return 2;
-        if (slot == 1) return 0;
-        return has_mount ? 1 : 0;
-    }
-}
 
 /* Button with keyboard-focus highlight; Enter handled by caller. */
 static bool focused_button(const char *label, bool focused)
@@ -768,254 +710,18 @@ static bool draw_log(void)
 }
 
 /* ------------------------------------------------------------------ */
-/*  Draw: CD folder browser (VISO)                                     */
+/*  Draw: File selector                                               */
 /* ------------------------------------------------------------------ */
-static bool draw_folder_browser(void)
+static bool draw_browser(void)
 {
-    static int  focused_slot  = 0;
-    static bool focus_list    = false;
-    static bool scroll_to_sel = false;
-
-    const ImGuiIO &io = ImGui::GetIO();
-    const bool tab   = ImGui::IsKeyPressed(ImGuiKey_Tab,         false);
-    const bool up    = ImGui::IsKeyPressed(ImGuiKey_UpArrow,     true);
-    const bool enter = ImGui::IsKeyPressed(ImGuiKey_Enter,       false)
-                    || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
-
-    if (cd_folder_pending) {
-        focused_slot  = 0;
-        focus_list    = true;
-        scroll_to_sel = false;
-        cd_folder_pending = false;
-    }
-
-    if (tab) {
-        focused_slot = tab_cycle(focused_slot, io.KeyShift, true);
-        if (focused_slot == 0) focus_list = true;
-    }
-
-    bool swallowed_up = false;
-    if (focused_slot > 0 && up) {
-        focused_slot = 0;
-        focus_list   = true;
-        swallowed_up = true;
-    }
-
-    const bool has_parent = (strcmp(cd_folder_path, "/") != 0 && cd_folder_path[0] != '\0');
-    const int  total      = has_parent ? cd_folder_count + 1 : cd_folder_count;
-
-    auto do_mount = [&]() {
-        char msg[OSD_PATH_CAPACITY + 32];
-        snprintf(msg, sizeof(msg), "Loading: %s", cd_folder_path);
-        osd_log_push(msg);
-        pclog_toggle_suppr();
-        cdrom_mount(0, cd_folder_path);
-        pclog_toggle_suppr();
+    OsdExplorerResult result = explorer.Draw();
+    if (result.type == OsdExplorerResultType::Accepted) {
+        mount_path(result.path.data());
         current_view       = VIEW_LOG;
         log_scroll_pending = true;
-    };
-
-    if (enter && focused_slot == 1) do_mount();
-    if (enter && focused_slot == 2)
+    } else if (result.type == OsdExplorerResultType::Cancelled)
         show_main_menu();
 
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(osd_scaled_size(520.0f, 320.0f), ImGuiCond_Always);
-    ImGui::Begin("Mount Folder as CD-ROM", nullptr,
-                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoNav);
-
-    ImGui::TextDisabled("%s", cd_folder_path);
-    ImGui::Separator();
-
-    if (focus_list) { ImGui::SetNextWindowFocus(); focus_list = false; }
-
-    ImGui::BeginChild("##folders",
-                      ImVec2(0, ImGui::GetContentRegionAvail().y - ImGui::GetFrameHeightWithSpacing()),
-                      true, ImGuiWindowFlags_NoNav);
-
-    if (total == 0) {
-        ImGui::TextDisabled("No subdirectories.");
-    } else {
-        int hovered_idx = -1;
-        for (int i = 0; i < total; i++) {
-            const bool is_dotdot = has_parent && i == 0;
-            const char *disp     = is_dotdot ? ".." : cd_folder_entries[i - (has_parent ? 1 : 0)];
-            const bool sel       = (i == cd_folder_sel);
-            ImGui::PushID(i);
-            if (is_dotdot)
-                ImGui::PushStyleColor(ImGuiCol_Text,
-                    ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
-            if (ImGui::Selectable(disp, sel, ImGuiSelectableFlags_AllowDoubleClick)) {
-                cd_folder_sel = i;
-                focused_slot  = 0;
-                if (ImGui::IsMouseDoubleClicked(0)) {
-                    if (is_dotdot) cd_folder_go_up();
-                    else           cd_folder_enter(i - (has_parent ? 1 : 0));
-                }
-            }
-            if (is_dotdot)
-                ImGui::PopStyleColor();
-            if (ImGui::IsItemHovered()) hovered_idx = i;
-            if (sel) {
-                if (scroll_to_sel) { ImGui::SetScrollHereY(0.5f); scroll_to_sel = false; }
-                ImGui::GetWindowDrawList()->AddRect(
-                    ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
-                    ImGui::GetColorU32(ImGuiCol_NavHighlight), 0.0f, 0, 1.5f);
-            }
-            ImGui::PopID();
-        }
-
-        if (io.MouseWheel != 0.0f && hovered_idx >= 0)
-            cd_folder_sel = hovered_idx;
-
-        if (focused_slot == 0) {
-            if (list_key_nav(cd_folder_sel, total, swallowed_up))
-                scroll_to_sel = true;
-            if (enter) {
-                const bool is_dotdot = has_parent && cd_folder_sel == 0;
-                if (is_dotdot)      cd_folder_go_up();
-                else if (total > 0) cd_folder_enter(cd_folder_sel - (has_parent ? 1 : 0));
-            }
-        }
-    }
-
-    ImGui::EndChild();
-
-    if (focused_button("Mount", focused_slot == 1)) do_mount();
-    if (ImGui::IsItemClicked()) focused_slot = 1;
-    ImGui::SameLine();
-    if (focused_button("Back", focused_slot == 2))
-        show_main_menu();
-    if (ImGui::IsItemClicked()) focused_slot = 2;
-
-    ImGui::End();
-    return true;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Draw: File selector                                                */
-/* ------------------------------------------------------------------ */
-static const char *view_title(OsdView v)
-{
-    switch (v) {
-        case VIEW_FILE_FLOPPY: return "Select Floppy Image";
-        case VIEW_FILE_CD:     return "Select CD-ROM Image";
-        case VIEW_FILE_RDISK:  return "Select Removable Disk Image";
-        case VIEW_FILE_CART:   return "Select Cartridge";
-        case VIEW_FILE_MO:     return "Select MO Image";
-        default:               return "Select File";
-    }
-}
-
-static bool draw_file_selector(void)
-{
-    /* NoNav on both parent+child avoids ghost Tab stops.
-       focused_button fakes visual focus; Enter handled before Begin(). */
-    static int  focused_slot  = 0;   /* 0 = list, 1 = Mount, 2 = Back */
-    static bool focus_list    = false;
-    static bool scroll_to_sel = false;
-
-    const ImGuiIO &io = ImGui::GetIO();
-
-    /* Snapshot keys before Begin(). */
-    const bool tab   = ImGui::IsKeyPressed(ImGuiKey_Tab,         false);
-    const bool up    = ImGui::IsKeyPressed(ImGuiKey_UpArrow,     true);
-    const bool enter = ImGui::IsKeyPressed(ImGuiKey_Enter,       false)
-                    || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
-
-    if (file_list_focus_pending) {
-        focused_slot  = 0;
-        focus_list    = true;
-        scroll_to_sel = false;
-        file_list_focus_pending = false;
-    }
-
-    if (tab) {
-        focused_slot = tab_cycle(focused_slot, io.KeyShift, file_count > 0);
-        if (focused_slot == 0) focus_list = true;
-    }
-
-    /* Up from button: return focus to list; swallowed_up avoids double-move. */
-    bool swallowed_up = false;
-    if (focused_slot > 0 && up) {
-        focused_slot = 0;
-        focus_list   = true;
-        swallowed_up = true;
-    }
-
-    if (enter && focused_slot == 1 && file_count > 0) {
-        mount_selected();
-        current_view = VIEW_LOG;
-        log_scroll_pending = true;
-    }
-    if (enter && focused_slot == 2)
-        show_main_menu();
-
-    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(osd_scaled_size(520.0f, 320.0f), ImGuiCond_Always);
-    ImGui::Begin(view_title(current_view), nullptr,
-                 ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
-                 ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoNav);
-
-    if (file_count == 0) {
-        ImGui::TextDisabled("No files found.");
-    } else {
-        if (focus_list) { ImGui::SetNextWindowFocus(); focus_list = false; }
-
-        ImGui::BeginChild("##filelist", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()),
-                          true, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_NoNav);
-
-        int hovered_idx = -1;
-        for (int i = 0; i < file_count; i++) {
-            const bool sel = (i == file_sel);
-            ImGui::PushID(i);
-            if (ImGui::Selectable(files[i], sel, ImGuiSelectableFlags_AllowDoubleClick)) {
-                file_sel     = i;
-                focused_slot = 0;
-                if (ImGui::IsMouseDoubleClicked(0)) {
-                    mount_selected();
-                    current_view = VIEW_LOG;
-                    log_scroll_pending = true;
-                }
-            }
-            if (ImGui::IsItemHovered()) hovered_idx = i;
-            if (sel) {
-                if (scroll_to_sel) { ImGui::SetScrollHereY(0.5f); scroll_to_sel = false; }
-                ImGui::GetWindowDrawList()->AddRect(
-                    ImGui::GetItemRectMin(), ImGui::GetItemRectMax(),
-                    ImGui::GetColorU32(ImGuiCol_NavHighlight), 0.0f, 0, 1.5f);
-            }
-            ImGui::PopID();
-        }
-
-        /* Wheel: sync keyboard sel to hovered item (no scroll_to_sel). */
-        if (io.MouseWheel != 0.0f && hovered_idx >= 0)
-            file_sel = hovered_idx;
-
-        if (focused_slot == 0) {
-            if (list_key_nav(file_sel, file_count, swallowed_up))
-                scroll_to_sel = true;
-            if (enter) { mount_selected(); current_view = VIEW_LOG; log_scroll_pending = true; }
-        }
-
-        ImGui::EndChild();
-    }
-
-    if (file_count > 0) {
-        if (focused_button("Mount", focused_slot == 1)) {
-            mount_selected();
-            current_view = VIEW_LOG;
-            log_scroll_pending = true;
-        }
-        if (ImGui::IsItemClicked()) focused_slot = 1;
-        ImGui::SameLine();
-    }
-    if (focused_button("Back", focused_slot == 2))
-        show_main_menu();
-    if (ImGui::IsItemClicked()) focused_slot = 2;
-
-    ImGui::End();
     return true;
 }
 
@@ -1055,8 +761,7 @@ bool osd_core_build_ui(void)
     switch (current_view) {
         case VIEW_MENU:      return draw_menu();
         case VIEW_LOG:       return draw_log();
-        case VIEW_CD_FOLDER: return draw_folder_browser();
-        default:             return draw_file_selector();
+        default:             return draw_browser();
     }
 }
 

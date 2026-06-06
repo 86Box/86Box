@@ -11,6 +11,7 @@
 
 add_library(osd OBJECT
     osd_core.cpp
+    osd_explorer.cpp
     imgui/imgui.cpp
     imgui/imgui_draw.cpp
     imgui/imgui_tables.cpp
