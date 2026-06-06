@@ -585,6 +585,7 @@ extern const device_t ps1vga_mca_device;
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
 extern const device_t voodoo_banshee_pci_device;
+extern const device_t voodoo_banshee_agp_device;
 extern const device_t voodoo_3_1000_device;
 extern const device_t voodoo_3_1000_agp_device;
 extern const device_t voodoo_3_2000_device;

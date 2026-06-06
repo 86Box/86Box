@@ -3626,6 +3626,16 @@ banshee_bios_init(const device_t *info)
 }
 
 static void *
+banshee_bios_agp_init(const device_t *info)
+{
+    uint32_t local = device_get_bios_local(info, device_get_config_bios("bios"));
+
+    return banshee_init_common(info, device_get_bios_file(info, device_get_config_bios("bios"), 0),
+                               (uint8_t) ((local >> 8) & 0xff), (uint8_t) (local & 0xff),
+                               VOODOO_BANSHEE, 1, 1);
+}
+
+static void *
 v3_1000_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 0, 0);
@@ -4205,6 +4215,20 @@ const device_t voodoo_banshee_pci_device = {
     .flags         = DEVICE_PCI | DEVICE_BIOS_ALIAS,
     .local         = 0,
     .init          = banshee_bios_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    .config        = voodoo_banshee_pci_config
+};
+
+const device_t voodoo_banshee_agp_device = {
+    .name          = "3dfx Voodoo Banshee",
+    .internal_name = "voodoo_banshee_agp",
+    .flags         = DEVICE_AGP | DEVICE_BIOS_ALIAS,
+    .local         = 0,
+    .init          = banshee_bios_agp_init,
     .close         = banshee_close,
     .reset         = NULL,
     .available     = NULL,
