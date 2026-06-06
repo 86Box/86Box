@@ -243,6 +243,10 @@ extern const device_t ess_ess0968_pnp_device;
 extern const device_t ess_soundpiper_16_mca_device;
 extern const device_t ess_soundpiper_32_mca_device;
 extern const device_t ess_chipchat_16_mca_device;
+extern const device_t ess_1788_device;
+extern const device_t ess_1888_device;
+extern const device_t ess_1888_compaq_device;
+extern const device_t ess_1887_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1370_device;

@@ -15,6 +15,9 @@
 #define SB_SUBTYPE_YMF7XX              7 /* Yamaha YMF-701/71x */
 #define SB_SUBTYPE_ESS_ES688           8 /* ESS Technology ES688 */
 #define SB_SUBTYPE_ESS_ES1688          9 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_ESS_ES1788        0xa /* ESS Technology ES1788 */
+#define SB_SUBTYPE_ESS_ES1888        0xb /* ESS Technology ES1888 */
+#define SB_SUBTYPE_ESS_ES1887        0xc /* ESS Technology ES1887 */
 
 /* ESS-related */
 #define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
@@ -188,6 +191,9 @@ typedef struct sb_dsp_t {
 
     /* OPL3-SA switchable DSP version */
     uint8_t   opl3sa_dsp_ver;
+
+    /* ESS ES188x IRQ mode */
+    uint8_t  es188x_irq_mode;
 
     mpu_t *mpu;
 } sb_dsp_t;
