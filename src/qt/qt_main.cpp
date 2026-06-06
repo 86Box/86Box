@@ -929,3 +929,14 @@ main(int argc, char *argv[])
     socket.close();
     return ret;
 }
+
+void
+plat_clean_up(void)
+{
+#ifdef Q_OS_WINDOWS
+    if (llhook) {
+        UnhookWindowsHookEx(llhook);
+        llhook = nullptr;
+    }
+#endif
+}
