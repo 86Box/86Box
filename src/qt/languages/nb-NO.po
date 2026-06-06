@@ -454,6 +454,9 @@ msgstr "XGA-grafikk"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 skjermadapter-grafikk"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Tastatur:"
 
@@ -691,6 +694,9 @@ msgstr "Sjekk BPB"
 msgid "CD-ROM drives"
 msgstr "CD-ROM-stasjoner"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "MO-stasjoner"
 
@@ -841,11 +847,35 @@ msgstr "Seriellporter"
 msgid "Serial ports:"
 msgstr "Seriellporter:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Parallellporter"
 
 msgid "Parallel ports:"
 msgstr "Parallellporter:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Lagringskontrollere"

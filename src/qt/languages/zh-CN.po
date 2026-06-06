@@ -454,6 +454,9 @@ msgstr "XGA 图形"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 显示适配器图形"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "键盘:"
 
@@ -691,6 +694,9 @@ msgstr "检查 BIOS 参数块 (BPB)"
 msgid "CD-ROM drives"
 msgstr "光盘驱动器"
 
+msgid "CD-ROM:"
+msgstr "光盘:"
+
 msgid "MO drives"
 msgstr "磁光盘驱动器"
 
@@ -841,11 +847,35 @@ msgstr "串口"
 msgid "Serial ports:"
 msgstr "串口:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "并口"
 
 msgid "Parallel ports:"
 msgstr "并口:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "存储控制器"

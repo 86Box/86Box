@@ -453,6 +453,9 @@ msgstr "XGA-grafiikkasuoritin"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55-näyttöadapteri"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Näppäimistö:"
 
@@ -690,6 +693,9 @@ msgstr "Tarkista BPB"
 msgid "CD-ROM drives"
 msgstr "CD-ROM-asemat"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "Magneettisoptiset asemat (MO)"
 
@@ -840,11 +846,35 @@ msgstr "Sarjaportit"
 msgid "Serial ports:"
 msgstr "Sarjaportit:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Rinnakkaisportit"
 
 msgid "Parallel ports:"
 msgstr "Rinnakkaisportit:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Tallennusohjaimet"

@@ -447,6 +447,9 @@ msgstr ""
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr ""
 
+msgid "Voodoo:"
+msgstr ""
+
 msgid "Keyboard:"
 msgstr ""
 
@@ -684,6 +687,9 @@ msgstr ""
 msgid "CD-ROM drives"
 msgstr ""
 
+msgid "CD-ROM:"
+msgstr ""
+
 msgid "MO drives"
 msgstr ""
 
@@ -834,10 +840,34 @@ msgstr ""
 msgid "Serial ports:"
 msgstr ""
 
+msgid "COM1:"
+msgstr ""
+
+msgid "COM2:"
+msgstr ""
+
+msgid "COM3:"
+msgstr ""
+
+msgid "COM4:"
+msgstr ""
+
 msgid "Parallel ports"
 msgstr ""
 
 msgid "Parallel ports:"
+msgstr ""
+
+msgid "LPT1:"
+msgstr ""
+
+msgid "LPT2:"
+msgstr ""
+
+msgid "LPT3:"
+msgstr ""
+
+msgid "LPT4:"
 msgstr ""
 
 msgid "Storage controllers"

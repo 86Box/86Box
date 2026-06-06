@@ -453,6 +453,9 @@ msgstr "XGA 그래픽"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 디스플레이 어댑터 그래픽스"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "키보드:"
 
@@ -690,6 +693,9 @@ msgstr "BPB 확인"
 msgid "CD-ROM drives"
 msgstr "CD-ROM 드라이브"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "광자기 드라이브"
 
@@ -847,11 +853,35 @@ msgstr "시리얼 포트"
 msgid "Serial ports:"
 msgstr "시리얼 포트:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "병렬 포트"
 
 msgid "Parallel ports:"
 msgstr "병렬 포트:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "장치 컨트롤러"
