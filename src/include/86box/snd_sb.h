@@ -222,7 +222,6 @@ typedef struct sb_t {
     uint8_t    ess_dac2_irq;
     uint8_t    ess_dac2_dma;
     pc_timer_t ess_dac2_timer;
-    uint16_t   ess_dac2_dat;
     uint16_t   ess_dac2_datl;
     uint16_t   ess_dac2_datr;
     int        ess_dac2_pos;

@@ -3803,20 +3803,20 @@ ess_dac2_poll(void *priv)
         ess_dac2_update(ess);
         switch (format) {
             case 0x00: /* Unsigned 8-bit mono */
-                ess->ess_dac2_dat = ess_dac2_dmaread(ess, ess->ess_dac2_dma);
-                if (ess->ess_dac2_dat == DMA_NODATA)
+                data[0] = ess_dac2_dmaread(ess, ess->ess_dac2_dma);
+                if (data[0] == DMA_NODATA)
                     break;
-                ess->ess_dac2_dat = (int16_t) ((ess->ess_dac2_dat ^ 0x80) << 8);
-                ess->ess_dac2_datl = ess->ess_dac2_datr = ess->ess_dac2_dat;
+                data[0] = (int16_t) ((data[0] ^ 0x80) << 8);
+                ess->ess_dac2_datl = ess->ess_dac2_datr = data[0];
                 if ((ess->ess_dac2_dma <= 3) || ((ess->ess_dac2_dma >= 4) && !ess->ess_dac2_dmaff))
                     ess->ess_dac2_counter--;
                 break;
             case 0x01: /* Signed 8-bit mono */
-                ess->ess_dac2_dat = ess_dac2_dmaread(ess, ess->ess_dac2_dma);
-                if (ess->ess_dac2_dat == DMA_NODATA)
+                data[0] = ess_dac2_dmaread(ess, ess->ess_dac2_dma);
+                if (data[0] == DMA_NODATA)
                     break;
-                ess->ess_dac2_dat = (int16_t) (ess->ess_dac2_dat << 8);
-                ess->ess_dac2_datl = ess->ess_dac2_datr = ess->ess_dac2_dat;
+                data[0] = (int16_t) (data[0] << 8);
+                ess->ess_dac2_datl = ess->ess_dac2_datr = data[0];
                 if ((ess->ess_dac2_dma <= 3) || ((ess->ess_dac2_dma >= 4) && !ess->ess_dac2_dmaff))
                     ess->ess_dac2_counter--;
                 break;
@@ -3846,14 +3846,14 @@ ess_dac2_poll(void *priv)
                 break;
             case 0x04: /* Unsigned 16-bit mono */
                 if (ess->ess_dac2_dma >= 4)
-                    ess->ess_dac2_dat = dma_channel_read(ess->ess_dac2_dma);
+                    data[0] = dma_channel_read(ess->ess_dac2_dma);
                 else {
                     temp = (int32_t) ess_dac2_dmaread(ess, ess->ess_dac2_dma);
-                    ess->ess_dac2_dat = (int16_t) ((ess_dac2_dmaread(ess, ess->ess_dac2_dma) << 8) | temp);
+                    data[0] = (int16_t) ((ess_dac2_dmaread(ess, ess->ess_dac2_dma) << 8) | temp);
                 }
-                if (ess->ess_dac2_dat == DMA_NODATA)
+                if (data[0] == DMA_NODATA)
                     break;
-                ess->ess_dac2_datl = ess->ess_dac2_datr = (int16_t) ((ess->ess_dac2_dat & 0xffff) ^ 0x8000);
+                ess->ess_dac2_datl = ess->ess_dac2_datr = (int16_t) ((data[0] & 0xffff) ^ 0x8000);
                 if (ess->ess_dac2_dma >= 4)
                     ess->ess_dac2_counter--;
                 else
@@ -3861,14 +3861,14 @@ ess_dac2_poll(void *priv)
                 break;
             case 0x05: /* Signed 16-bit mono */
                 if (ess->ess_dac2_dma >= 4)
-                    ess->ess_dac2_dat = dma_channel_read(ess->ess_dac2_dma);
+                    data[0] = dma_channel_read(ess->ess_dac2_dma);
                 else {
                     temp = (int32_t) ess_dac2_dmaread(ess, ess->ess_dac2_dma);
-                    ess->ess_dac2_dat = (int16_t) ((ess_dac2_dmaread(ess, ess->ess_dac2_dma) << 8) | temp);
+                    data[0] = (int16_t) ((ess_dac2_dmaread(ess, ess->ess_dac2_dma) << 8) | temp);
                 }
-                if (ess->ess_dac2_dat == DMA_NODATA)
+                if (data[0] == DMA_NODATA)
                     break;
-                ess->ess_dac2_datl = ess->ess_dac2_datr = (int16_t) (ess->ess_dac2_dat & 0xffff);
+                ess->ess_dac2_datl = ess->ess_dac2_datr = (int16_t) (data[0] & 0xffff);
                 if (ess->ess_dac2_dma >= 4)
                     ess->ess_dac2_counter--;
                 else
