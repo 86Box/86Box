@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:09+0000\n"
+"PO-Revision-Date: 2026-06-06 17:20+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -2316,7 +2316,7 @@ msgid "Control PC speaker"
 msgstr "Έλεγχος ηχείου PC"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Έλεγχος έντασης MIDI"
 
 msgid "Memory size"
 msgstr "Μέγεθος μνήμης"
@@ -3410,4 +3410,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Παραδοσιακά Κινέζικα)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Ρυθμός δειγματοληψίας:"
