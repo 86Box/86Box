@@ -17380,7 +17380,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM, /* Machine has internal audio: ESS ES1869F */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1888F */
         .ram       = {
             .min  = 16384,
             .max  = 49152,
@@ -17402,7 +17402,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
-        .snd_device               = NULL,
+        .snd_device               = &ess_1888_compaq_device,
         .net_device               = NULL,
         .aliases                  = { "MiTAC/Trigon TITAN-M", "" }
     },
@@ -17429,7 +17429,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM, /* Machine has internal audio: ESS ES1869F */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1887F */
         .ram       = {
             .min  = 16384,
             .max  = 49152,
@@ -17451,7 +17451,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
-        .snd_device               = NULL,
+        .snd_device               = &ess_1887_device,
         .net_device               = NULL,
         .aliases                  = { "MiTAC/Trigon SNIPER", "" }
     },
