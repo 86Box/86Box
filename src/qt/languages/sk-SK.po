@@ -3177,6 +3177,9 @@ msgstr "Exportovať…"
 msgid "Export EDID"
 msgstr "Exportovať EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "Súbor EDID \"%s\" je príliš veľký."
 

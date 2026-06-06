@@ -3239,6 +3239,9 @@ msgstr "내보내기…"
 msgid "Export EDID"
 msgstr "EDID 내보내기"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID 파일 \"%s\"가 너무 큽니다."
 

@@ -3171,6 +3171,9 @@ msgstr "Eksporter…"
 msgid "Export EDID"
 msgstr "Eksporter EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID-filen \"%s\" er for stor."
 

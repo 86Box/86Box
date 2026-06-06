@@ -3184,6 +3184,9 @@ msgstr "Izvoz…"
 msgid "Export EDID"
 msgstr "Izvoz EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "Datoteka EDID \"%s\" je prevelika."
 

@@ -846,6 +846,7 @@ Preferences::reloadStrings()
     translatedstrings[STRING_HW_NOT_AVAILABLE_TITLE]    = QCoreApplication::translate("", "Hardware not available").toUtf8();
     translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.").toUtf8();
     translatedstrings[STRING_ESCP_ERROR]                = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.").toUtf8();
+    translatedstrings[STRING_EDID_READ_ERROR]           = QCoreApplication::translate("", "EDID file \"%s\" is invalid.").toUtf8();
     translatedstrings[STRING_EDID_TOO_LARGE]            = QCoreApplication::translate("", "EDID file \"%s\" is too large.").toUtf8();
     translatedstrings[STRING_CDROM_OPEN_ISO_ERROR]      = QCoreApplication::translate("", "Unable to open image or folder \"%s\".").toUtf8();
     translatedstrings[STRING_CDROM_OPEN_CUE_ERROR]      = QCoreApplication::translate("", "Unable to open cue sheet \"%s\".").toUtf8();
