@@ -689,6 +689,7 @@ void
 plat_power_off(void)
 {
     plat_mouse_capture(0);
+    plat_clean_up();
     confirm_exit_cmdl = 0;
     hdd_image_sync_all();
     nvr_save();

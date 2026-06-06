@@ -574,13 +574,15 @@ main(int argc, char *argv[])
     if (!util::isWindowsLightTheme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
-        if (!f.exists()) {
+        if (!f.exists())
             printf("Unable to set stylesheet, file not found\n");
-        } else {
-            f.open(QFile::ReadOnly | QFile::Text);
-            QTextStream ts(&f);
-            qApp->setStyleSheet(ts.readAll());
-            wasDarkTheme = true;
+        else {
+            if (f.open(QFile::ReadOnly | QFile::Text)) {
+                QTextStream ts(&f);
+                qApp->setStyleSheet(ts.readAll());
+                wasDarkTheme = true;
+            } else
+                printf("Unable to set stylesheet, unable to open file\n");
         }
         QPalette palette(qApp->palette());
         palette.setColor(QPalette::Link, Qt::white);
@@ -930,4 +932,15 @@ main(int argc, char *argv[])
 
     socket.close();
     return ret;
+}
+
+void
+plat_clean_up(void)
+{
+#ifdef Q_OS_WINDOWS
+    if (llhook) {
+        UnhookWindowsHookEx(llhook);
+        llhook = nullptr;
+    }
+#endif
 }

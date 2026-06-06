@@ -317,9 +317,11 @@ selectDarkMode()
         if (!f.exists())
             printf("Unable to set stylesheet, file not found\n");
         else {
-            f.open(QFile::ReadOnly | QFile::Text);
-            QTextStream ts(&f);
-            qApp->setStyleSheet(ts.readAll());
+            if (f.open(QFile::ReadOnly | QFile::Text)) {
+                QTextStream ts(&f);
+                qApp->setStyleSheet(ts.readAll());
+            } else
+                printf("Unable to set stylesheet, unable to open file\n");
         }
         QPalette palette(qApp->palette());
         palette.setColor(QPalette::Link, Qt::white);
@@ -393,9 +395,11 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                             if (!f.exists())
                                 printf("Unable to set stylesheet, file not found\n");
                             else {
-                                f.open(QFile::ReadOnly | QFile::Text);
-                                QTextStream ts(&f);
-                                qApp->setStyleSheet(ts.readAll());
+                                if (f.open(QFile::ReadOnly | QFile::Text)) {
+                                    QTextStream ts(&f);
+                                    qApp->setStyleSheet(ts.readAll());
+                                } else
+                                    printf("Unable to set stylesheet, unable to open file\n");
                             }
                             QPalette palette(qApp->palette());
                             palette.setColor(QPalette::Link, Qt::white);

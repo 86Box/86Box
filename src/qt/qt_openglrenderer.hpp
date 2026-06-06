@@ -85,6 +85,8 @@ private:
     std::array<std::unique_ptr<uint8_t>, 2> imagebufs;
 
     QTimer *renderTimer;
+    QTimer *osdRenderTimer;
+    bool was_osd_visible = false;
 
     QString glslVersion = "";
 
