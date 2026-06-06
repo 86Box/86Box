@@ -3858,7 +3858,7 @@ static const device_config_t voodoo_sgram_config[] = {
 static const device_config_t voodoo_banshee_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "voodoo_banshee_pci",
         .default_int    = 0,
@@ -3992,7 +3992,7 @@ static const device_config_t voodoo_banshee_pci_config[] = {
 static const device_config_t voodoo_banshee_agp_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "voodoo_banshee_agp",
         .default_int    = 0,
@@ -4203,7 +4203,7 @@ static const device_config_t voodoo_nomem_config[] = {
 static const device_config_t voodoo_3_3500_agp_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "voodoo3_3500_si_agp",
         .default_int    = 0,
