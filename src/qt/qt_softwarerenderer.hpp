@@ -40,6 +40,8 @@ protected:
     void resizeEvent(QResizeEvent *event) override;
     bool event(QEvent *event) override;
 
+    bool was_osd_visible = false;
+
     void render();
 
     QScopedPointer<QBackingStore> m_backingStore;

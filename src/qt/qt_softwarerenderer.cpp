@@ -45,6 +45,18 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
     buf_usage[0].clear();
     buf_usage[1].clear();
     this->setMouseTracking(true);
+
+    /* The OSD animates and reacts to input even when the machine is paused, so
+     * keep refreshing while it is on screen. */
+    connect(new QTimer(this), &QTimer::timeout, this, [this]() {
+        if (dopause && qt_osd_is_visible())
+            this->render();
+
+        if (!qt_osd_is_visible() && was_osd_visible)
+            this->render();
+
+        was_osd_visible = qt_osd_is_visible();
+    });
 }
 
 void
@@ -207,7 +219,7 @@ SoftwareRenderer::onPaint(QPaintDevice *device)
 
     /* The OSD animates and reacts to input even when the machine is paused, so
      * keep refreshing while it is on screen. */
-    if (qt_osd_is_visible())
+    if (qt_osd_is_visible() && !dopause)
         QTimer::singleShot(16, this, [this] { update(); });
 }
 
