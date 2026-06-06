@@ -3009,6 +3009,9 @@ msgstr "Pause umschalten"
 msgid "Toggle mute"
 msgstr "Stummschaltung umschalten"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Textdateien"
 

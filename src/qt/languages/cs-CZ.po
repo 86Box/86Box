@@ -3051,6 +3051,9 @@ msgstr "Pozastavit nebo obnovit"
 msgid "Toggle mute"
 msgstr "Přepnout ztišení"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Textové soubory"
 

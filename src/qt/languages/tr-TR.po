@@ -3040,6 +3040,9 @@ msgstr "Duraklamayı ayarla"
 msgid "Toggle mute"
 msgstr "Sessize almayı ayarla"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Metin dosyaları"
 

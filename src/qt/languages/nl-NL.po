@@ -3004,6 +3004,9 @@ msgstr "Pauzeren omschakelen"
 msgid "Toggle mute"
 msgstr "Geluiddemping omschakelen"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Tekstbestanden"
 

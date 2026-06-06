@@ -3021,6 +3021,9 @@ msgstr "Preklopi pavzo"
 msgid "Toggle mute"
 msgstr "Preklopti tišino"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Datoteke z besedilom"
 

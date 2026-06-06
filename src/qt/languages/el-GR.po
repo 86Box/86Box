@@ -3051,6 +3051,9 @@ msgstr "Εναλλαγή παύσης"
 msgid "Toggle mute"
 msgstr "Εναλλαγή σίγασης"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Αρχεία κειμένου"
 

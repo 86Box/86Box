@@ -3012,6 +3012,9 @@ msgstr "Alternar a pausa"
 msgid "Toggle mute"
 msgstr "Alternar o estado silenciado"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Ficheiros de texto"
 

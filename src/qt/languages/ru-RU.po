@@ -3022,6 +3022,9 @@ msgstr "Переключить паузу"
 msgid "Toggle mute"
 msgstr "Переключить беззвучный режим"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Текстовые файлы"
 

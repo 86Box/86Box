@@ -3010,6 +3010,9 @@ msgstr "Veksle pause"
 msgid "Toggle mute"
 msgstr "Veksle lyd av/på"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Tekstfiler"
 

@@ -3011,6 +3011,9 @@ msgstr "Alternar pausa"
 msgid "Toggle mute"
 msgstr "Alternar mudo"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Arquivos de texto"
 

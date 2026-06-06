@@ -3018,6 +3018,9 @@ msgstr "切換暫停"
 msgid "Toggle mute"
 msgstr "切換靜音"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "文字檔案"
 

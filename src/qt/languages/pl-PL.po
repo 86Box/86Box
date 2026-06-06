@@ -3015,6 +3015,9 @@ msgstr "Przełącz pauzę"
 msgid "Toggle mute"
 msgstr "Przełącz wyciszenie"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Pliki tekstowe"
 

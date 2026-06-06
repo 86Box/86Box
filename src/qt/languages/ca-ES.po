@@ -3009,6 +3009,9 @@ msgstr "Alterna pausa"
 msgid "Toggle mute"
 msgstr "Alterna silenci"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Fitxers de text"
 

@@ -3005,6 +3005,9 @@ msgstr "Tạm dừng/tiếp tục"
 msgid "Toggle mute"
 msgstr "Bật/tắt tiếng"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Tập tin văn bản"
 

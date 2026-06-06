@@ -3009,6 +3009,9 @@ msgstr "Pausa"
 msgid "Toggle mute"
 msgstr "Tysta"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Textfiler"
 

@@ -3015,6 +3015,9 @@ msgstr "Pozastaviť alebo obnoviť"
 msgid "Toggle mute"
 msgstr "Prepnúť stlmenie"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Textové súbory"
 
