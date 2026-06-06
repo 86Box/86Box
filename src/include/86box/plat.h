@@ -38,7 +38,8 @@ enum {
     STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%s\" is not available..." */
     STRING_GHOSTPCL_ERROR,            /* "Unable to initialize GhostPCL..." */
     STRING_ESCP_ERROR,                /* "Unable to find Dot-Matrix fonts..." */
-    STRING_EDID_TOO_LARGE,            /* "EDID file \"%s\" is too large (%lld bytes)." */
+    STRING_EDID_READ_ERROR,           /* "EDID file \"%s\" is invalid." */
+    STRING_EDID_TOO_LARGE,            /* "EDID file \"%s\" is too large." */
     STRING_CDROM_OPEN_ISO_ERROR,      /* "Unable to open image or folder \"%s\"" */
     STRING_CDROM_OPEN_CUE_ERROR,      /* "Unable to open Cue sheet \"%s\"" */
     STRING_CDROM_OPEN_MDS_ERROR,      /* "Unable to open MDS file \"%s\"" */

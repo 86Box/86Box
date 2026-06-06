@@ -3173,6 +3173,9 @@ msgstr "Exporta…"
 msgid "Export EDID"
 msgstr "Exporta l'EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "El fitxer EDID \"%s\" és massa gran."
 

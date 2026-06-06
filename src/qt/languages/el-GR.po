@@ -3231,6 +3231,9 @@ msgstr "Εξαγωγή…"
 msgid "Export EDID"
 msgstr "Εξαγωγή EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "Το αρχείο EDID \"%s\" είναι πολύ μεγάλο."
 

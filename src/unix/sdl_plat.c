@@ -113,6 +113,8 @@ plat_get_string(int i)
             return "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.";
         case STRING_ESCP_ERROR:
             return "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.";
+        case STRING_EDID_READ_ERROR:
+            return "EDID file \"%s\" is invalid.";
         case STRING_EDID_TOO_LARGE:
             return "EDID file \"%s\" is too large.";
         case STRING_CDROM_OPEN_ISO_ERROR:

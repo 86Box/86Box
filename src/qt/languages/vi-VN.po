@@ -3168,6 +3168,9 @@ msgstr "Xuất ra file…"
 msgid "Export EDID"
 msgstr "Xuất ra file EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "Tệp EDID \"%s\" quá lớn."
 

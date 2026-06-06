@@ -3177,6 +3177,9 @@ msgstr "Vie…"
 msgid "Export EDID"
 msgstr "Vie EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID-tiedosto \"%s\" on liian suuri."
 
