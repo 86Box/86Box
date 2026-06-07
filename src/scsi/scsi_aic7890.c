@@ -26,7 +26,8 @@
 #include <86box/nmc93cxx.h>
 #include <86box/plat_unused.h>
 
-#define AIC7890_LOCAL_ONBOARD 0x00000001
+#define AIC7890_LOCAL_ONBOARD       0x00000001
+#define AIC7890_LOCAL_LARGE_SEEPROM 0x00000002
 
 #define AIC7890_PCI_IO_SIZE   0x100
 #define AIC7890_PCI_MMIO_SIZE 0x1000
@@ -303,7 +304,7 @@ typedef struct aic7890_t {
     bool          io_enabled;
     mem_mapping_t mmio_mapping;
 
-    uint16_t      eeprom_default[64];
+    uint16_t      eeprom_default[256];
     nmc93cxx_eeprom_t *eeprom;
 } aic7890_t;
 
@@ -771,24 +772,33 @@ aic7890_reset_regs(aic7890_t *dev)
 }
 
 static void
-aic7890_create_eeprom(aic7890_t *dev)
+aic7890_create_eeprom_config(uint16_t *config)
 {
     uint32_t checksum = 0;
 
-    memset(dev->eeprom_default, 0, sizeof(dev->eeprom_default));
-
     for (int i = 0; i < 16; i++)
-        dev->eeprom_default[i] = CFXFER | CFSYNCH | CFDISC | CFWIDEB | CFSYNCHISULTRA | CFINCBIOS;
+        config[i] = CFXFER | CFSYNCH | CFDISC | CFWIDEB | CFSYNCHISULTRA | CFINCBIOS;
 
-    dev->eeprom_default[16] = 0x0000;
-    dev->eeprom_default[17] = CFAUTOTERM | CFULTRAEN | CFSPARITY | CFRESETB | CFSEAUTOTERM;
-    dev->eeprom_default[18] = AIC7890_HOST_ID;
-    dev->eeprom_default[19] = 16;
-    dev->eeprom_default[30] = CFSIGNATURE2;
+    config[16] = 0x0000;
+    config[17] = CFAUTOTERM | CFULTRAEN | CFSPARITY | CFRESETB | CFSEAUTOTERM;
+    config[18] = AIC7890_HOST_ID;
+    config[19] = 16;
+    config[30] = CFSIGNATURE2;
 
     for (int i = 0; i < 31; i++)
-        checksum += dev->eeprom_default[i];
-    dev->eeprom_default[31] = checksum & 0xffff;
+        checksum += config[i];
+    config[31] = checksum & 0xffff;
+}
+
+static void
+aic7890_create_eeprom(aic7890_t *dev, bool large)
+{
+    memset(dev->eeprom_default, 0, sizeof(dev->eeprom_default));
+
+    aic7890_create_eeprom_config(&dev->eeprom_default[0]);
+
+    if (large)
+        aic7890_create_eeprom_config(&dev->eeprom_default[32]);
 }
 
 static uint8_t
@@ -1632,23 +1642,32 @@ aic7890_has_pending_work(const aic7890_t *dev)
 static void
 aic7890_emulate_sequencer_run(aic7890_t *dev)
 {
+    bool reset_pulse;
+
     if (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)
         return;
 
     aic7890_process_pending(dev);
 
+    reset_pulse = !!(dev->regs[REG_SCSISEQ] & SCSISEQ_SCSIRSTO);
     if (aic7890_seqaddr(dev) == 0x0004
         && !(dev->regs[REG_HCNTRL] & HCNTRL_INTEN)
-        && !(dev->regs[REG_SCSISEQ] & SCSISEQ_SCSIRSTO)
         && !(dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
         && !aic7890_has_pending_work(dev)) {
         dev->seq_idle_pauses++;
+        /*
+         * The onboard BIOS asserts SCSIRSTO and waits for the sequencer
+         * to report idle again.  Since we do not execute the downloaded
+         * sequencer, complete that reset pulse with the synthetic SEQINT.
+         */
+        if (reset_pulse)
+            dev->regs[REG_SCSISEQ] &= ~SCSISEQ_SCSIRSTO;
         dev->regs[REG_INTSTAT] |= INTSTAT_SEQINT;
         dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
         aic7890_log(1,
-                    "AIC7890: sequencer idle self-pause %u seqaddr=%04x intstat=%02x\n",
+                    "AIC7890: sequencer idle self-pause %u seqaddr=%04x reset=%u intstat=%02x\n",
                     dev->seq_idle_pauses, aic7890_seqaddr(dev),
-                    dev->regs[REG_INTSTAT]);
+                    reset_pulse, dev->regs[REG_INTSTAT]);
         aic7890_update_irq(dev);
     }
 }
@@ -2319,15 +2338,16 @@ aic7890_init(const device_t *info)
     nmc93cxx_eeprom_params_t eeprom_params;
     char eeprom_name[64];
     int inst = device_get_instance();
+    bool large_seeprom = !!(info->local & AIC7890_LOCAL_LARGE_SEEPROM);
 
     dev->scsi_bus = scsi_get_bus();
     if (dev->scsi_bus < SCSI_BUS_MAX)
         scsi_bus_set_speed(dev->scsi_bus, 80000000.0);
 
-    aic7890_create_eeprom(dev);
+    aic7890_create_eeprom(dev, large_seeprom);
     snprintf(eeprom_name, sizeof(eeprom_name), "nmc93cxx_eeprom_%s_%d.nvr",
              info->internal_name, inst);
-    eeprom_params.type = NMC_93C46_x16_64;
+    eeprom_params.type = large_seeprom ? NMC_93C66_x16_256 : NMC_93C46_x16_64;
     eeprom_params.filename = eeprom_name;
     eeprom_params.default_content = dev->eeprom_default;
     dev->eeprom = device_add_inst_params(&nmc93cxx_device, inst, &eeprom_params);
@@ -2379,7 +2399,7 @@ const device_t aic7890_onboard_pci_device = {
     .name          = "Adaptec AIC-7890AB Ultra2 SCSI",
     .internal_name = "aic7890_onboard",
     .flags         = DEVICE_PCI | DEVICE_ONBOARD,
-    .local         = AIC7890_LOCAL_ONBOARD,
+    .local         = AIC7890_LOCAL_ONBOARD | AIC7890_LOCAL_LARGE_SEEPROM,
     .init          = aic7890_init,
     .close         = aic7890_close,
     .reset         = NULL,
