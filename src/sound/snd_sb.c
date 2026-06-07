@@ -49,41 +49,51 @@
 #include <86box/plat_unused.h>
 #include <86box/snd_azt2316a.h>
 
-#define SB_1         0
-#define SB_15        1
-#define SB_2         2
-#define THUNDERBOARD 3
-
-#define SB_16_PNP_NOIDE 0
-#define SB_16_PNP_IDE   1
-
-#define SB_VIBRA16XV 0
-#define SB_VIBRA16C  1
-#define SB_VIBRA16CL 2
-
-#define SB_32_PNP      0
-#define SB_AWE32_PNP   1
-#define SB_AWE64_VALUE 2
-#define SB_AWE64_NOIDE 3
-#define SB_AWE64_IDE   4
-#define SB_AWE64_GOLD  5
-
-#define PNP_ROM_SB_16_PNP_NOIDE "roms/sound/creative/CT2941 PnP.BIN"
-#define PNP_ROM_SB_16_PNP_IDE   "roms/sound/creative/CTL0024A.BIN" /* CT2940 */
-#define PNP_ROM_SB_VIBRA16C     "roms/sound/creative/CT4180 PnP.BIN"
-#define PNP_ROM_SB_VIBRA16CL    "roms/sound/creative/CT4100 PnP.BIN"
-#define PNP_ROM_SB_VIBRA16XV    "roms/sound/creative/CT4170 PnP.BIN"
-#define PNP_ROM_SB_GOLDFINCH    "roms/sound/creative/CT1920 PnP.BIN"
-#define PNP_ROM_SB_32_PNP       "roms/sound/creative/CT3600 PnP.BIN"
-#define PNP_ROM_SB_AWE32_PNP    "roms/sound/creative/CT3980 PnP.BIN"
-#define PNP_ROM_SB_AWE64_VALUE  "roms/sound/creative/CT4520 PnP.BIN"
-#define PNP_ROM_SB_AWE64_NOIDE  "roms/sound/creative/CT4380 PnP noIDE.BIN"
-#define PNP_ROM_SB_AWE64_IDE    "roms/sound/creative/CTL009DA.BIN" /* CT4381? */
-#define PNP_ROM_SB_AWE64_GOLD   "roms/sound/creative/CT4540 PnP.BIN"
+#define PNP_ROM_SB_16_PNP_NOIDE  "roms/sound/creative/CT2941 PnP.BIN"
+#define PNP_ROM_SB_16_PNP_IDE    "roms/sound/creative/CTL0024A.BIN" /* CT2940 */
+#define PNP_ROM_SB_VIBRA16C      "roms/sound/creative/CT4180 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16CL     "roms/sound/creative/CT4100 PnP.BIN"
+#define PNP_ROM_SB_VIBRA16XV     "roms/sound/creative/CT4170 PnP.BIN"
+#define PNP_ROM_SB_GOLDFINCH     "roms/sound/creative/CT1920 PnP.BIN"
+#define PNP_ROM_SB_32_PNP        "roms/sound/creative/CT3600 PnP.BIN"
+#define PNP_ROM_SB_AWE32_PNP     "roms/sound/creative/CT3980 PnP.BIN"
+#define PNP_ROM_SB_AWE32_IDE_PNP "roms/sound/creative/CT3990 PnP.BIN"
+#define PNP_ROM_SB_AWE64_VALUE   "roms/sound/creative/CT4520 PnP.BIN"
+#define PNP_ROM_SB_AWE64_NOIDE   "roms/sound/creative/CT4380 PnP noIDE.BIN"
+#define PNP_ROM_SB_AWE64_IDE     "roms/sound/creative/CTL009DA.BIN" /* CT4381? */
+#define PNP_ROM_SB_AWE64_GOLD    "roms/sound/creative/CT4540 PnP.BIN"
 /* TODO: Find real ESS PnP ROM dumps. */
-#define PNP_ROM_ESS0100         "roms/sound/ess/ESS0100.BIN"
-#define PNP_ROM_ESS0102         "roms/sound/ess/ESS0102.BIN"
-#define PNP_ROM_ESS0968         "roms/sound/ess/ESS0968.BIN"
+#define PNP_ROM_ESS0100          "roms/sound/ess/ESS0100.BIN"
+#define PNP_ROM_ESS0102          "roms/sound/ess/ESS0102.BIN"
+#define PNP_ROM_ESS0968          "roms/sound/ess/ESS0968.BIN"
+
+enum {
+    SB_1 = 0,
+    SB_15,
+    SB_2,
+    THUNDERBOARD
+};
+
+enum {
+    SB_16_PNP_NOIDE = 0,
+    SB_16_PNP_IDE
+};
+
+enum {
+    SB_VIBRA16XV = 0,
+    SB_VIBRA16C,
+    SB_VIBRA16CL
+};
+
+enum {
+    SB_32_PNP = 0,
+    SB_AWE32_PNP,
+    SB_AWE32_IDE_PNP,
+    SB_AWE64_VALUE,
+    SB_AWE64_NOIDE,
+    SB_AWE64_IDE,
+    SB_AWE64_GOLD
+};
 
 /* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
    Note that for positive dB values, this is not amplitude, it is amplitude - 1. */
@@ -510,6 +520,106 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *priv)
 
         if (sb->dsp.sb_enable_i) {
             const int c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / MUSIC_FREQ);
+
+            in_l <<= mixer->input_gain_L;
+            in_r <<= mixer->input_gain_R;
+
+            /* Clip signal */
+            if (in_l < -32768)
+                in_l = -32768;
+            else if (in_l > 32767)
+                in_l = 32767;
+
+            if (in_r < -32768)
+                in_r = -32768;
+            else if (in_r > 32767)
+                in_r = 32767;
+
+            sb->dsp.record_buffer[c_record & 0xffff]       = (int16_t) in_l;
+            sb->dsp.record_buffer[(c_record + 1) & 0xffff] = (int16_t) in_r;
+        }
+
+        buffer[c] += (int32_t) (out_l * mixer->output_gain_L);
+        buffer[c + 1] += (int32_t) (out_r * mixer->output_gain_R);
+    }
+
+    sb->dsp.record_pos_write += ((len * sb->dsp.sb_freq) / 24000);
+    sb->dsp.record_pos_write &= 0xffff;
+
+    if (sb->opl_enabled)
+        sb->opl.reset_buffer(sb->opl.priv);
+}
+
+static void
+sb_get_cqm_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *priv)
+{
+    sb_t                    *sb          = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer       = &sb->mixer_sb16;
+    const int                dsp_rec_pos = sb->dsp.record_pos_write;
+    double                   bass_treble;
+    const int32_t           *opl_buf     = NULL;
+
+    if (sb->opl_enabled)
+        opl_buf = sb->opl.update(sb->opl.priv);
+
+    for (int c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
+
+        if (sb->opl_enabled) {
+            out_l = ((double) opl_buf[c]) * mixer->fm_l * 0.7171630859375;
+            out_r = ((double) opl_buf[c + 1]) * mixer->fm_r * 0.7171630859375;
+        }
+
+        /* TODO: Multi-recording mic with agc/+20db, CD, and line in with channel inversion */
+        int32_t in_l = (mixer->input_selector_left & INPUT_MIDI_L) ?
+                       ((int32_t) out_l) : 0 + (mixer->input_selector_left & INPUT_MIDI_R) ? ((int32_t) out_r) : 0;
+        int32_t in_r = (mixer->input_selector_right & INPUT_MIDI_L) ?
+                       ((int32_t) out_l) : 0 + (mixer->input_selector_right & INPUT_MIDI_R) ? ((int32_t) out_r) : 0;
+
+        out_l *= mixer->master_l;
+        out_r *= mixer->master_r;
+
+        /* This is not exactly how one does bass/treble controls, but the end result is like it.
+           A better implementation would reduce the CPU usage. */
+        if (mixer->bass_l != 8) {
+            bass_treble = sb_bass_treble_4bits[mixer->bass_l];
+
+            if (mixer->bass_l > 8)
+                out_l += (low_iir(1, 0, out_l) * bass_treble);
+            else
+                out_l = (out_l *bass_treble + low_cut_iir(1, 0, out_l) * (1.0 - bass_treble));
+        }
+
+        if (mixer->bass_r != 8) {
+            bass_treble = sb_bass_treble_4bits[mixer->bass_r];
+
+            if (mixer->bass_r > 8)
+                out_r += (low_iir(1, 1, out_r) * bass_treble);
+            else
+                out_r = (out_r *bass_treble + low_cut_iir(1, 1, out_r) * (1.0 - bass_treble));
+        }
+
+        if (mixer->treble_l != 8) {
+            bass_treble = sb_bass_treble_4bits[mixer->treble_l];
+
+            if (mixer->treble_l > 8)
+                out_l += (high_iir(1, 0, out_l) * bass_treble);
+            else
+                out_l = (out_l *bass_treble + high_cut_iir(1, 0, out_l) * (1.0 - bass_treble));
+        }
+
+        if (mixer->treble_r != 8) {
+            bass_treble = sb_bass_treble_4bits[mixer->treble_r];
+
+            if (mixer->treble_r > 8)
+                out_r += (high_iir(1, 1, out_r) * bass_treble);
+            else
+                out_r = (out_l *bass_treble + high_cut_iir(1, 1, out_r) * (1.0 - bass_treble));
+        }
+
+        if (sb->dsp.sb_enable_i) {
+            const int c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / CQM_FREQ);
 
             in_l <<= mixer->input_gain_L;
             in_r <<= mixer->input_gain_R;
@@ -4356,6 +4466,7 @@ sb_16_init(UNUSED(const device_t *info))
         fm_driver_get((int) (intptr_t) info->local, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
+
     sb_dsp_init(&sb->dsp, (info->local == FM_YMF289B) ? SBAWE32_DSP_413 : dspver, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
@@ -4483,8 +4594,9 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
-    fm_driver_get(FM_YMF262, &sb->opl);
+    fm_driver_get((int) (intptr_t) FM_CQM, &sb->opl);
 
+    sb_dsp_set_cqm(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, dspver, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
@@ -4492,7 +4604,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    cqm_add_handler(sb_get_cqm_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -4587,9 +4699,9 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
-    fm_driver_get(FM_YMF262, &sb->opl);
+    fm_driver_get(FM_CQM, &sb->opl);
 
-    sb_dsp_set_real_opl(&sb->dsp, 1);
+    sb_dsp_set_cqm(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, (info->local == SB_VIBRA16XV) ? SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
     /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
     sb_dsp_setdma16_supported(&sb->dsp, info->local != SB_VIBRA16XV);
@@ -4598,7 +4710,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    cqm_add_handler(sb_get_cqm_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -4881,22 +4993,29 @@ sb_awe32_pnp_init(const device_t *info)
 {
     sb_t *sb          = calloc(1, sizeof(sb_t));
     int   onboard_ram = device_get_config_int("onboard_ram");
+    int   cqm         = (info->local != SB_AWE32_PNP);
 
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
-    fm_driver_get(FM_YMF262, &sb->opl);
+    fm_driver_get(cqm ? FM_CQM : FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, (info->local >= SB_AWE64_VALUE) ?
                 SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
-    sb_dsp_set_real_opl(&sb->dsp, 1);
+    if (cqm)
+        sb_dsp_set_cqm(&sb->dsp, 1);
+    else
+        sb_dsp_set_real_opl(&sb->dsp, 1);
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
-    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    if (cqm)
+        cqm_add_handler(sb_get_cqm_buffer_sb16_awe32, sb);
+    else
+        music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     wavetable_add_handler(sb_get_wavetable_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
@@ -7881,6 +8000,21 @@ const device_t sb_awe32_pnp_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe32_pnp_config
+};
+
+const device_t sb_awe32_ide_pnp_device = {
+    .name          = "Sound Blaster AWE32 IDE PnP",
+    .internal_name = "sbawe32_pnp",
+    .flags         = DEVICE_ISA16,
+    .local         = SB_AWE32_IDE_PNP,
+    .init          = sb_awe32_pnp_init,
+    .close         = sb_awe32_close,
+    .reset         = NULL,
+    .available     = sb_awe32_pnp_available,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_awe32_pnp_config,
+    .alias         = "Sound Blaster AWE32 IDE PnP Internet Enhanced"
 };
 
 const device_t sb_awe64_value_device = {

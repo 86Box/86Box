@@ -20,6 +20,7 @@ add_library(snd OBJECT
     snd_opl.c
     snd_opl2_nuked.c
     snd_opl3_nuked.c
+    snd_cqm_nuked.c
     snd_opl_ymfm.cpp
     snd_resid.cpp
     midi.c

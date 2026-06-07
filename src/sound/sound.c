@@ -448,6 +448,8 @@ sound_cd_thread(UNUSED(void *param))
 static void
 sound_realloc_buffers(void)
 {
+    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+
     if (outbuffer_ex != NULL) {
         free(outbuffer_ex);
         outbuffer_ex = NULL;
@@ -458,7 +460,7 @@ sound_realloc_buffers(void)
         outbuffer_ex_int16 = NULL;
     }
 
-    const int buf_len = sound_sample_rate / 50;
+    const int buf_len = sound_sample_rate / divisor;
 
     if (sound_is_float) {
         outbuffer_ex = calloc(buf_len * 2, sizeof(float));
@@ -560,6 +562,8 @@ wavetable_realloc_buffers(void)
 void
 sound_init(void)
 {
+    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+
     int available_cdrom_drives = 0;
 
     outbuffer_ex       = NULL;
@@ -577,7 +581,7 @@ sound_init(void)
     outbuffer_w_ex       = NULL;
     outbuffer_w_ex_int16 = NULL;
 
-    const int init_buf_len = sound_sample_rate / 50;
+    const int init_buf_len = sound_sample_rate / divisor;
 
     outbuffer = NULL;
     outbuffer = calloc(init_buf_len * 2, sizeof(int32_t));
@@ -765,7 +769,8 @@ sound_poll(UNUSED(void *priv))
         if (cd_thread_enable) {
             cd_buf_update--;
             if (!cd_buf_update) {
-                cd_buf_update = 50 / (CD_FREQ / CD_BUFLEN);
+                const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+                cd_buf_update = divisor / (CD_FREQ / CD_BUFLEN);
                 thread_set_event(sound_cd_event);
             }
         }
@@ -932,7 +937,9 @@ wavetable_poll(UNUSED(void *priv))
 void
 sound_speed_changed(void)
 {
-    sound_buf_len = sound_sample_rate / 50;
+    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+
+    sound_buf_len = sound_sample_rate / divisor;
 
     sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
 

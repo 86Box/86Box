@@ -360,6 +360,35 @@ recalc_opl_filter(const int playback_freq)
 }
 
 static void
+recalc_cqm_filter(const int playback_freq)
+{
+    /* Cutoff frequency = playback / 2 */
+    int          n;
+    const double fC = ((double) playback_freq) / (double) (FREQ_48558 * 2);
+
+    for (n = 0; n < SB16_NCoef; n++) {
+        /* Blackman window */
+        const double w = 0.42 - (0.5 * cos((2.0 * n * M_PI) / (double) (SB16_NCoef - 1))) +
+                     (0.08 * cos((4.0 * n * M_PI) / (double) (SB16_NCoef - 1)));
+        /* Sinc filter */
+        const double h = sinc(2.0 * fC * ((double) n - ((double) (SB16_NCoef - 1) / 2.0)));
+
+        /* Create windowed-sinc filter */
+        low_fir_sb16_coef[1][n] = w * h;
+    }
+
+    low_fir_sb16_coef[1][(SB16_NCoef - 1) / 2] = 1.0;
+
+    double gain = 0.0;
+    for (n = 0; n < SB16_NCoef; n++)
+        gain += low_fir_sb16_coef[1][n];
+
+    /* Normalise filter, to produce unity gain */
+    for (n = 0; n < SB16_NCoef; n++)
+        low_fir_sb16_coef[1][n] /= gain;
+}
+
+static void
 sb_irq_update_pic(void *priv, const int set)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
@@ -2303,6 +2332,8 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
         /* OPL3 or dual OPL2 is stereo. */
         if (dsp->sb_has_real_opl)
             recalc_opl_filter(FREQ_49716 * 2);
+        else if (dsp->sb_has_cqm)
+            recalc_cqm_filter(FREQ_48558 * 2);
         else
             recalc_sb16_filter(1, FREQ_48000 * 2);
     } else {
@@ -2350,6 +2381,12 @@ void
 sb_dsp_set_real_opl(sb_dsp_t *dsp, uint8_t has_real_opl)
 {
     dsp->sb_has_real_opl = has_real_opl;
+}
+
+void
+sb_dsp_set_cqm(sb_dsp_t *dsp, uint8_t has_cqm)
+{
+    dsp->sb_has_cqm = has_cqm;
 }
 
 void

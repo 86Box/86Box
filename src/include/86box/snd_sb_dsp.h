@@ -125,6 +125,7 @@ typedef struct sb_dsp_t {
     int sb_irqm401;
 
     uint8_t sb_has_real_opl;
+    uint8_t sb_has_cqm;
 
     uint8_t sb_asp_regs[256];
     uint8_t sb_asp_mode;
@@ -221,6 +222,7 @@ extern void sb_dsp_speed_changed(sb_dsp_t *dsp);
 extern void sb_dsp_poll(sb_dsp_t *dsp, int16_t *l, int16_t *r);
 
 extern void sb_dsp_set_real_opl(sb_dsp_t *dsp, uint8_t has_real_opl);
+extern void sb_dsp_set_cqm(sb_dsp_t *dsp, uint8_t has_cqm);
 
 extern void sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo);
 

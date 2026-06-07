@@ -348,6 +348,8 @@ inital(void)
     (void) IXAudio2SourceVoice_Start(srcvoicewt, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoicefdd, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_Start(srcvoiceym2151, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_Start(srcvoicecqm, 0, XAUDIO2_COMMIT_NOW);
 
     const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
 
@@ -401,13 +403,18 @@ closeal(void)
     IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
     IXAudio2_Release(xaudio2);
-    srcvoice     = NULL;
-    srcvoicecd   = NULL;
-    srcvoicemidi = NULL;
-    srcvoicefdd  = NULL;
-    srcvoicehdd  = NULL;
-    mastervoice  = NULL;
-    xaudio2      = NULL;
+    srcvoice       = NULL;
+    srcvoicemusic  = NULL;
+    srcvoicewt     = NULL;
+    srcvoice       = NULL;
+    srcvoicecd     = NULL;
+    srcvoicemidi   = NULL;
+    srcvoicefdd    = NULL;
+    srcvoicehdd    = NULL;
+    srcvoiceym2151 = NULL;
+    srcvoicecqm    = NULL;
+    mastervoice    = NULL;
+    xaudio2        = NULL;
 
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     dynld_close(xaudio2_handle);
@@ -445,7 +452,9 @@ givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const siz
 void
 givealbuffer(const void *buf)
 {
-    givealbuffer_common(buf, srcvoice, (sound_sample_rate / 50) << 1);
+    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+
+    givealbuffer_common(buf, srcvoice, (sound_sample_rate / divisor) << 1);
 }
 
 void
@@ -543,7 +552,7 @@ sound_get_device_supported_rates(const char *device_name, int *rates_out, int ma
 {
     /* Candidate rates: only those where rate/50 <= SOUNDBUFLEN to avoid overflowing
        static device buffers. */
-    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+    static const int candidates[] = { 6896, FREQ_44100, FREQ_48000 };
     const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
     int            count    = 0;
 
