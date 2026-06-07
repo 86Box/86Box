@@ -260,7 +260,6 @@
 #define CFSIGNATURE2          0x0300
 
 #define AIC_MIN(a, b)         (((a) < (b)) ? (a) : (b))
-#define AIC7890_STARTUP_SEQINTS 2
 
 typedef struct aic7890_t {
     uint8_t       pci_slot;
@@ -293,7 +292,7 @@ typedef struct aic7890_t {
     uint32_t      seqram_reads;
     uint32_t      seqram_write_hash;
     uint32_t      seqram_read_hash;
-    uint8_t       seq_startup_pauses;
+    uint32_t      seq_idle_pauses;
     uint8_t       trace_last_read[AIC7890_REG_WINDOW];
     uint32_t      trace_same_reads[AIC7890_REG_WINDOW];
     bool          trace_read_valid[AIC7890_REG_WINDOW];
@@ -762,7 +761,7 @@ aic7890_reset_regs(aic7890_t *dev)
     dev->seqram_reads = 0;
     dev->seqram_write_hash = AIC7890_TRACE_HASH_INIT;
     dev->seqram_read_hash = AIC7890_TRACE_HASH_INIT;
-    dev->seq_startup_pauses = 0;
+    dev->seq_idle_pauses = 0;
     memset(dev->trace_read_valid, 0, sizeof(dev->trace_read_valid));
     memset(dev->trace_same_reads, 0, sizeof(dev->trace_same_reads));
     dev->trace_irq_valid = false;
@@ -1006,7 +1005,7 @@ aic7890_scsi_bus_reset(aic7890_t *dev, bool external)
     dev->qin_count = 0;
     dev->qout_head = dev->qout_tail = 0;
     dev->qout_count = 0;
-    dev->seq_startup_pauses = 0;
+    dev->seq_idle_pauses = 0;
     dev->win_last_inquiry_target = SCB_LIST_NULL;
     dev->regs[REG_WAITING_SCBH] = SCB_LIST_NULL;
     dev->regs[REG_CLRSINT0_SSTAT0] = 0;
@@ -1466,6 +1465,8 @@ aic7890_windows_hscb_stale_inquiry(aic7890_t *dev, uint8_t candidate,
 {
     uint8_t target = hscb[WIN_SCB_TARGET] & 0x0f;
 
+    if (candidate == first_tag)
+        return false;
     if (hscb[WIN_SCB_CDB] != GPCMD_INQUIRY)
         return false;
     if (dev->win_last_inquiry_target == SCB_LIST_NULL)
@@ -1636,18 +1637,18 @@ aic7890_emulate_sequencer_run(aic7890_t *dev)
 
     aic7890_process_pending(dev);
 
-    if (dev->seq_startup_pauses < AIC7890_STARTUP_SEQINTS
-        && aic7890_seqaddr(dev) == 0x0004
+    if (aic7890_seqaddr(dev) == 0x0004
+        && !(dev->regs[REG_HCNTRL] & HCNTRL_INTEN)
         && !(dev->regs[REG_SCSISEQ] & SCSISEQ_SCSIRSTO)
-        && !(dev->regs[REG_INTSTAT] & (INTSTAT_SCSIINT | INTSTAT_SEQINT | INTSTAT_BRKADRINT))
+        && !(dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
         && !aic7890_has_pending_work(dev)) {
-        dev->seq_startup_pauses++;
+        dev->seq_idle_pauses++;
         dev->regs[REG_INTSTAT] |= INTSTAT_SEQINT;
         dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
         aic7890_log(1,
-                    "AIC7890: sequencer startup self-pause %u/%u seqaddr=%04x intstat=%02x\n",
-                    dev->seq_startup_pauses, AIC7890_STARTUP_SEQINTS,
-                    aic7890_seqaddr(dev), dev->regs[REG_INTSTAT]);
+                    "AIC7890: sequencer idle self-pause %u seqaddr=%04x intstat=%02x\n",
+                    dev->seq_idle_pauses, aic7890_seqaddr(dev),
+                    dev->regs[REG_INTSTAT]);
         aic7890_update_irq(dev);
     }
 }
