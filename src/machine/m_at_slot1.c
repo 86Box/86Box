@@ -37,6 +37,7 @@
 #include <86box/sound.h>
 #include <86box/clock.h>
 #include <86box/snd_ac97.h>
+#include <86box/scsi_aic7890.h>
 
 /* ALi ALADDiN-PRO II */
 int
@@ -965,6 +966,7 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(ics9xxx_get(ICS9150_08)); /* setting proper speeds requires some interaction with the AS97127F ASIC */
 #endif
     device_add(&sst_flash_39sf020_device);
+    device_add(&aic7890_onboard_pci_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&w83781d_device);     /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
     hwm_values.temperatures[1] = 0;  /* unused */
