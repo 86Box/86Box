@@ -3739,7 +3739,7 @@ ess_chipchat_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
-    if (port < 0x102)
+    if ((port < 0x102) || (port == 0x103))
         return;
 
     sb_log("ess_chipchat_mca_write: port=%04x val=%02x\n", port, val);
@@ -5382,6 +5382,8 @@ ess_x688_mca_init(UNUSED(const device_t *info))
         mca_add(ess_x688_mca_read, ess_chipchat_mca_write, sb_mcv_feedb, NULL, ess);
         ess->pos_regs[0] = 0x50;
         ess->pos_regs[1] = 0x51;
+        ess->pos_regs[3] = 0x50;
+        ess->dsp.is_chipchat = 1;
     } else {
         mca_add(ess_x688_mca_read, ess_soundpiper_mca_write, sb_mcv_feedb, NULL, ess);
         ess->pos_regs[0] = 0x30;
