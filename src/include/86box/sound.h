@@ -238,6 +238,7 @@ extern const device_t ess_688_device;
 extern const device_t ess_ess0100_pnp_device;
 extern const device_t ess_ess0968_pnp_688_device;
 extern const device_t ess_1688_device;
+extern const device_t ess_1688_compaq_device;
 extern const device_t ess_ess0102_pnp_device;
 extern const device_t ess_ess0968_pnp_device;
 extern const device_t ess_soundpiper_16_mca_device;
