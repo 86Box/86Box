@@ -186,6 +186,7 @@ closeal(void)
 
     if (sources >= 8)
         alDeleteBuffers(4, buffers_midi);
+    alDeleteBuffers(4, buffers_ym2151);
     alDeleteBuffers(4, buffers_cqm);
     alDeleteBuffers(4, buffers_fdd);
     alDeleteBuffers(4, buffers_hdd);
@@ -206,10 +207,10 @@ inital(void)
     float   *wt_buf           = NULL;
     float   *cd_buf           = NULL;
     float   *midi_buf         = NULL;
-    float   *fdd_buf          = NULL;
-    float   *hdd_buf          = NULL;
     float   *ym2151_buf       = NULL;
     float   *cqm_buf          = NULL;
+    float   *fdd_buf          = NULL;
+    float   *hdd_buf          = NULL;
     int16_t *buf_int16        = NULL;
     int16_t *music_buf_int16  = NULL;
     int16_t *wt_buf_int16     = NULL;
@@ -235,7 +236,7 @@ inital(void)
 
     const int pcm_buf_len = sound_sample_rate / 50;
 
-    sources = 6 + !!init_midi;
+    sources = 8 + !!init_midi;
     if (sound_is_float) {
         buf        = (float *) calloc((pcm_buf_len << 1), sizeof(float));
         music_buf  = (float *) calloc((MUSICBUFLEN << 1), sizeof(float));
