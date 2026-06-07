@@ -6,6 +6,7 @@
  *
  *          Adaptec AIC-7890 Ultra2 SCSI HBA emulation.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -2364,7 +2365,7 @@ aic7890_init(const device_t *info)
     pci_add_card((info->local & AIC7890_LOCAL_ONBOARD) ? (PCI_ADD_SCSI | PCI_ADD_STRICT) : PCI_ADD_NORMAL,
                  aic7890_pci_read, aic7890_pci_write, dev, &dev->pci_slot);
 
-    aic7890_log(1, "AIC7890: init bus=%u pci_slot=%u local=%08x\n",
+    aic7890_log(1, "AIC7890: init bus=%u pci_slot=%u local=%08" PRIxPTR "\n",
                 dev->scsi_bus, dev->pci_slot, info->local);
 
     return dev;
@@ -2382,7 +2383,7 @@ aic7890_close(void *priv)
 }
 
 const device_t aic7890_pci_device = {
-    .name          = "Adaptec AIC-7890 Ultra2 SCSI",
+    .name          = "Adaptec AIC-7890",
     .internal_name = "aic7890",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -2396,7 +2397,7 @@ const device_t aic7890_pci_device = {
 };
 
 const device_t aic7890_onboard_pci_device = {
-    .name          = "Adaptec AIC-7890AB Ultra2 SCSI",
+    .name          = "Adaptec AIC-7890 (On-Board)",
     .internal_name = "aic7890_onboard",
     .flags         = DEVICE_PCI | DEVICE_ONBOARD,
     .local         = AIC7890_LOCAL_ONBOARD | AIC7890_LOCAL_LARGE_SEEPROM,
