@@ -12175,7 +12175,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &gd5430_onboard_pci_device,
-        .snd_device               = &ess_1688_device, /* Onboard variant not yet emulated */
+        .snd_device               = &ess_1688_compaq_device,
         .net_device               = NULL,
         .aliases                  = { "MiTAC/Trigon PL4600C", "" }
     },
@@ -14871,7 +14871,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64_onboard_pci_device,
-        .snd_device               = &ess_1688_device, /* Onboard variant not yet emulated */
+        .snd_device               = &ess_1688_compaq_device,
         .net_device               = NULL,
         .aliases                  = { "MiTAC/Trigon PL5600D-I", "" }
     },
