@@ -34,6 +34,7 @@
 #include <86box/sio.h>
 #include <86box/sound.h>
 #include <86box/snd_ac97.h>
+#include <86box/scsi_aic7890.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/plat_unused.h>
@@ -21259,6 +21260,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
+        .scsi_device              = &aic7890_onboard_pci_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -23467,6 +23469,15 @@ machine_get_snd_device(int m)
 }
 
 const device_t *
+machine_get_scsi_device(int m)
+{
+    if (machines[m].scsi_device)
+        return (machines[m].scsi_device);
+
+    return (NULL);
+}
+
+const device_t *
 machine_get_net_device(int m)
 {
     if (machines[m].net_device)
@@ -23666,4 +23677,3 @@ machine_get_nvr_name(void)
 {
     return machine_get_nvr_name_ex(machine);
 }
-

@@ -54,6 +54,7 @@ typedef const struct {
 static SCSI_CARD scsi_cards[] = {
   // clang-format off
     { &device_none,              },
+    { &device_internal,          },
     /* ISA */
     { &scsi_lcs6821n_device,     },
     { &scsi_rt1000b_device,      },
@@ -176,7 +177,7 @@ scsi_card_init(void)
            bus left. */
     if (max > 0) {
         for (int i = 0; i < max; i++) {
-            if ((scsi_card_current[i] > 0) && scsi_cards[scsi_card_current[i]].device)
+            if ((scsi_card_current[i] > SCSI_CARD_INTERNAL) && scsi_cards[scsi_card_current[i]].device)
                 device_add_inst(scsi_cards[scsi_card_current[i]].device, i + 1);
         }
     }

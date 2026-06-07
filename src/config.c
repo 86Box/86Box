@@ -1355,8 +1355,10 @@ load_storage_controllers(void)
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL)
             scsi_card_current[c] = scsi_card_get_from_internal_name(p);
+        else if ((c == 0) && machine_has_flags(machine, MACHINE_SCSI) && machine_get_scsi_device(machine))
+            scsi_card_current[c] = SCSI_CARD_INTERNAL;
         else
-            scsi_card_current[c] = 0;
+            scsi_card_current[c] = SCSI_CARD_NONE;
     }
 
     p = ini_section_get_string(cat, "fdc", NULL);
@@ -3618,6 +3620,7 @@ save_storage_controllers(void)
     ini_section_t cat = ini_find_or_create_section(config, "Storage controllers");
     char          temp[512];
     int           c;
+    const char   *def_scsi;
     char          *def_hdc;
 
     ini_section_delete_var(cat, "scsicard");
@@ -3625,7 +3628,13 @@ save_storage_controllers(void)
     for (c = 0; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
-        if (scsi_card_current[c] == 0)
+        if ((c == 0) && machine_has_flags(machine, MACHINE_SCSI) && machine_get_scsi_device(machine))
+            def_scsi = "internal";
+        else
+            def_scsi = "none";
+
+        if (!strcmp(scsi_card_get_internal_name(scsi_card_current[c]), def_scsi) ||
+            ((c > 0) && (scsi_card_current[c] == SCSI_CARD_INTERNAL)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp,
