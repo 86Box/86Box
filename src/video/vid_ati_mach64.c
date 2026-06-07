@@ -25,6 +25,26 @@ video_timings_t timing_mach64_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w 
 video_timings_t timing_mach64_vlb = { .type = VIDEO_BUS, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
+mach64_t *reset_state[2] = { NULL, NULL };
+
+int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
+
+#ifdef ENABLE_MACH64_LOG
+int mach64_do_log = ENABLE_MACH64_LOG;
+
+void
+mach64_log(const char *fmt, ...);
+{
+    va_list ap;
+
+    if (mach64_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#endif 
+
 // x86 I/O port output function
 void
 mach64_out(uint16_t addr, uint8_t val, void *priv)
@@ -376,7 +396,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
     uint8_t ret = 0xff;
     if (!(addr & 0x400)) {
-        mach64_log("nmach64_ext_readb: addr=%04x\n", addr);
+        mach64_log("mach64_ext_readb: addr=%04x\n", addr);
         switch (addr & 0x3ff) {
             case 0x00 ... 0x03:
                 READ8(addr, mach64->overlay_y_x_start);
@@ -1174,41 +1194,41 @@ mach64_ext_inb(uint16_t port, void *priv)
     else if (mach64->io_base == MACH64_IO_BASE_1C8)
         port -= 0x124;
 
-    uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
+    uint8_t port_high = (port >> 8) & 0xFE; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
+
+    uint8_t lane = port & 3;
 
     // the value to or the final address for write into space
     uint8_t addr_or_value = 0;
-
     // we only care about (ec...ef)
-    if (port_low >= 0xEC && port_low <= 0xEF)
+    if ((port_low >= 0xEC) && (port_low <= 0xEF))
     {
         // exclude everything we don't want
         switch (port_high)
         {
             // some special cases
             case 0x56: // 56ec-56ef
+            case 0x5a: 
+
+                addr_or_value = 0xB4;
+
+                if (port_high == 0x5a)
+                    addr_or_value = 0xb8;    
+
                 if (port_low == 0xEF)
                     ret = 0x00;
                 else if (port_low == 0xEC)                 
-                    ret = mach64_ext_readb(0x400 | 0xb4, priv);
+                    ret = mach64_ext_readb(0x400 | addr_or_value, priv);
                 else
-                    ret = mach64_ext_readb(0x400 | 0xb5, priv);
-                break; 
-            case 0x5a: // 5aec-5aef
-                if (port_low == 0xEF)
-                    ret = 0x00;
-                else if (port_low == 0xEC)                 
-                    ret = mach64_ext_readb(0x400 | 0xb8, priv);
-                else
-                    ret = mach64_ext_readb(0x400 | 0xb9, priv);
+                    ret = mach64_ext_readb(0x400 | (addr_or_value + 1), priv);
                 break; 
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
-                    ret = ati68860_ramdac_in((port & 3) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
+                    ret = ati68860_ramdac_in((lane) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
                 else {
                     uint16_t port_list[4] = { 0x3c8, 0x3c9, 0x3c6, 0x3c7 }; 
-                    ret = svga_in(port_list[port & 3], svga);
+                    ret = svga_in(port_list[lane], svga);
                 }
                 break;
             case 0x6a: // 6eec-6eef
@@ -1219,11 +1239,11 @@ mach64_ext_inb(uint16_t port, void *priv)
                 // there must be a more rational rule here
                 if (port_high <= 0x1E)
                     addr_or_value = port_high - 2;
-                else if (port_high >= 0x22 && port_high <= 0x2A)
+                else if ((port_high >= 0x22) && (port_high <= 0x2A))
                     addr_or_value = port_high + 0x1E; // 0x40 - 0x48
-                else if (port_high >= 0x2E && port_high <= 0x3E)
+                else if ((port_high >= 0x2E) && (port_high <= 0x3E))
                     addr_or_value = port_high + 0x32;
-                else if (port_high >= 0x42 && port_high <= 0x46)
+                else if ((port_high >= 0x42) && (port_high <= 0x46))
                     addr_or_value = port_high + 0x3E;
                 else if (port_high == 0x4A) 
                     addr_or_value = 0x90;
@@ -1233,12 +1253,12 @@ mach64_ext_inb(uint16_t port, void *priv)
                     addr_or_value = 0xc4;
                 else if (port_high == 0x66)
                     addr_or_value = 0xd0;
-                else if (port_high >= 0x6e && port_high <= 0x72)
+                else if ((port_high >= 0x6e) && (port_high <= 0x72))
                     addr_or_value = port_high + 0x72;
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
 
-                ret = mach64_ext_readb(0x400 | addr_or_value | (port & 3), priv);
+                ret = mach64_ext_readb(0x400 | addr_or_value | (lane), priv);
                 break;
         }
     }
@@ -1282,7 +1302,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
     else if (mach64->io_base == MACH64_IO_BASE_1C8)
         port -= 0x124;
 
-    uint8_t port_high = (port >> 8) & 0xFC; // we only care about the upper 5 bits
+    uint8_t port_high = (port >> 8) & 0xFE; // we only care about the upper 5 bits
     uint8_t port_low = port & 0xFF;
 
     // the value to or the final address for write into
@@ -1290,17 +1310,23 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
     uint8_t addr_or_value = 0;
 
     // we only care about (ec...ef)
-    if (port_low >= 0xEC && port_low <= 0xEF)
+    if ((port_low >= 0xEC) && (port_low <= 0xEF))
     {
         switch (port_high)
         {
              case 0x56: // 56ec-56ef
+                if (port_low == 0xEF)
+                    break;
+
                 if (port_low == 0xEC)                 
                     mach64_ext_writeb(0x400 | 0xb4, val, priv);
                 else
                     mach64_ext_writeb(0x400 | 0xb5, val, priv);
                 break; 
             case 0x5a: // 5aec-5aef
+                if (port_low == 0xEF)
+                    break;
+
                 if (port_low == 0xEC)                 
                     mach64_ext_writeb(0x400 | 0xb8, val, priv);
                 else
@@ -1322,14 +1348,15 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                 mach64_updatemapping(mach64);
                 break;
             default:
+
                  // there must be a more rational rule here
                 if (port_high <= 0x1E)
                     addr_or_value = port_high - 2;
-                else if (port_high >= 0x22 && port_high <= 0x2A)
+                else if ((port_high >= 0x22) && (port_high <= 0x2A))
                     addr_or_value = port_high + 0x1E; // 0x40 - 0x48
-                else if (port_high >= 0x2E && port_high <= 0x3E)
+                else if ((port_high >= 0x2E) && (port_high <= 0x3E))
                     addr_or_value = port_high + 0x32;
-                else if (port_high >= 0x42 && port_high <= 0x46)
+                else if ((port_high >= 0x42) && (port_high <= 0x46))
                     addr_or_value = port_high + 0x3E;
                 else if (port_high == 0x4A) 
                     addr_or_value = 0x90;
@@ -1339,7 +1366,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                     addr_or_value = 0xc4;
                 else if (port_high == 0x66)
                     addr_or_value = 0xd0;
-                else if (port_high >= 0x6e && port_high <= 0x72)
+                else if ((port_high >= 0x6e) && (port_high <= 0x72))
                     addr_or_value = port_high + 0x72;
                 else if (port_high == 0x7e)
                     addr_or_value = 0x00; // must be 0
@@ -1861,7 +1888,8 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
     // Addresses that DON'T need to 
     bool dont_remap_io = (addr == PCI_REG_COMMAND // controls the mapping so we don't use the default behaviour  
     || addr == PCI_REG_BAR0_BYTE2
-    || addr == PCI_REG_BAR0_BYTE3);
+    || addr == PCI_REG_BAR0_BYTE3
+    || (addr >= PCI_REG_ROM_BAR_BYTE0 || addr <= PCI_REG_ROM_BAR_BYTE3));
 
     if (!dont_remap_io
     && (mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO))
@@ -1996,6 +2024,7 @@ mach64_common_init(const device_t *info)
     mach64->type = info->local & 0xff;
     mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
+    mach64->io_base = MACH64_IO_BASE_2EC;
 
     if (mach64->type > MACH64_GX)
         svga_init(info, svga, mach64, mach64->vram_size << 20,

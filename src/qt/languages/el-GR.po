@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:09+0000\n"
+"PO-Revision-Date: 2026-06-06 17:20+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -453,6 +453,9 @@ msgstr "Γραφικά XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Προσαρμογέας Γραφικών IBM PS/55"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Πληκτρολόγιο:"
 
@@ -690,6 +693,9 @@ msgstr "Έλεγχος BPB"
 msgid "CD-ROM drives"
 msgstr "Οδηγοί CD-ROM"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "Οδηγοί MO"
 
@@ -840,11 +846,35 @@ msgstr "Σειριακές θύρες"
 msgid "Serial ports:"
 msgstr "Σειριακές θύρες:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Παράλληλες θύρες"
 
 msgid "Parallel ports:"
 msgstr "Παράλληλες θύρες:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Ελεγκτές αποθήκευσης"
@@ -2316,7 +2346,7 @@ msgid "Control PC speaker"
 msgstr "Έλεγχος ηχείου PC"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Έλεγχος έντασης MIDI"
 
 msgid "Memory size"
 msgstr "Μέγεθος μνήμης"
@@ -3021,6 +3051,9 @@ msgstr "Εναλλαγή παύσης"
 msgid "Toggle mute"
 msgstr "Εναλλαγή σίγασης"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Αρχεία κειμένου"
 
@@ -3197,6 +3230,9 @@ msgstr "Εξαγωγή…"
 
 msgid "Export EDID"
 msgstr "Εξαγωγή EDID"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Το αρχείο EDID \"%s\" είναι πολύ μεγάλο."
@@ -3410,4 +3446,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Παραδοσιακά Κινέζικα)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Ρυθμός δειγματοληψίας:"

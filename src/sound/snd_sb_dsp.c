@@ -360,6 +360,35 @@ recalc_opl_filter(const int playback_freq)
 }
 
 static void
+recalc_cqm_filter(const int playback_freq)
+{
+    /* Cutoff frequency = playback / 2 */
+    int          n;
+    const double fC = ((double) playback_freq) / (double) (FREQ_48558 * 2);
+
+    for (n = 0; n < SB16_NCoef; n++) {
+        /* Blackman window */
+        const double w = 0.42 - (0.5 * cos((2.0 * n * M_PI) / (double) (SB16_NCoef - 1))) +
+                     (0.08 * cos((4.0 * n * M_PI) / (double) (SB16_NCoef - 1)));
+        /* Sinc filter */
+        const double h = sinc(2.0 * fC * ((double) n - ((double) (SB16_NCoef - 1) / 2.0)));
+
+        /* Create windowed-sinc filter */
+        low_fir_sb16_coef[1][n] = w * h;
+    }
+
+    low_fir_sb16_coef[1][(SB16_NCoef - 1) / 2] = 1.0;
+
+    double gain = 0.0;
+    for (n = 0; n < SB16_NCoef; n++)
+        gain += low_fir_sb16_coef[1][n];
+
+    /* Normalise filter, to produce unity gain */
+    for (n = 0; n < SB16_NCoef; n++)
+        low_fir_sb16_coef[1][n] /= gain;
+}
+
+static void
 sb_irq_update_pic(void *priv, const int set)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
@@ -418,9 +447,10 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
             break;
     }
 
-    /* NOTE: not on ES1688, apparently; investigate on ES1868 */
-    if (IS_ESS(dsp) && (dsp->sb_subtype > SB_SUBTYPE_ESS_ES1688)) {
+    /* NOTE: not on ES1688/ES1788, apparently; investigate on ES1868 */
+    if (IS_ESS(dsp) && (dsp->sb_subtype > SB_SUBTYPE_ESS_ES1887)) {
         /* TODO: Investigate real hardware for this (the ES1887 datasheet documents this bit somewhat oddly.) */
+        /* ES1887 note: Windows NT 3.5x driver fails to initialize after a soft reset if this check is done */
         if (dsp->ess_playback_mode && bit <= 1 && set && !masked) {
             if (!(ESSreg(0xB1) & 0x40)) // if ESS playback, and IRQ disabled, do not fire
             {
@@ -1106,21 +1136,23 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
 
         case 0xB1:                                              /* Legacy Audio Interrupt Control */
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            switch (data & 0x0C) {
-                default:
-                    break;
-                case 0x00:
-                    dsp->sb_irqnum = 2;
-                    break;
-                case 0x04:
-                    dsp->sb_irqnum = 5;
-                    break;
-                case 0x08:
-                    dsp->sb_irqnum = 7;
-                    break;
-                case 0x0C:
-                    dsp->sb_irqnum = 10;
-                    break;
+            if (!dsp->es188x_irq_mode || dsp->sb_subtype <= SB_SUBTYPE_ESS_ES1788) {
+                switch (data & 0x0C) {
+                    default:
+                        break;
+                    case 0x00:
+                        dsp->sb_irqnum = 2;
+                        break;
+                    case 0x04:
+                        dsp->sb_irqnum = 5;
+                        break;
+                    case 0x08:
+                        dsp->sb_irqnum = 7;
+                        break;
+                    case 0x0C:
+                        dsp->sb_irqnum = 10;
+                        break;
+                }
             }
             sb_dsp_log("Legacy Audio IRQ control=%d.\n", dsp->sb_irqnum);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
@@ -1856,6 +1888,9 @@ sb_exec_command(sb_dsp_t *dsp)
                         sb_add_data(dsp, 0x80 | ((dsp->mpu != NULL) ? 0x04 : 0x06));
                         break;
                     case SB_SUBTYPE_ESS_ES1688:
+                    case SB_SUBTYPE_ESS_ES1788:
+                    case SB_SUBTYPE_ESS_ES1888:
+                    case SB_SUBTYPE_ESS_ES1887:
                         sb_add_data(dsp, 0x68);
                         /*
                            89h:     ES1688, returned by DOSBox-X, determined via Windows driver
@@ -2297,6 +2332,8 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
         /* OPL3 or dual OPL2 is stereo. */
         if (dsp->sb_has_real_opl)
             recalc_opl_filter(FREQ_49716 * 2);
+        else if (dsp->sb_has_cqm)
+            recalc_cqm_filter(FREQ_48558 * 2);
         else
             recalc_sb16_filter(1, FREQ_48000 * 2);
     } else {
@@ -2344,6 +2381,12 @@ void
 sb_dsp_set_real_opl(sb_dsp_t *dsp, uint8_t has_real_opl)
 {
     dsp->sb_has_real_opl = has_real_opl;
+}
+
+void
+sb_dsp_set_cqm(sb_dsp_t *dsp, uint8_t has_cqm)
+{
+    dsp->sb_has_cqm = has_cqm;
 }
 
 void

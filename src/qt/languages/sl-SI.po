@@ -455,6 +455,9 @@ msgstr "Grafika XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Grafika prikazovalnika IBM PS/55"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Tipkovnica:"
 
@@ -692,6 +695,9 @@ msgstr "Preverjaj BPB"
 msgid "CD-ROM drives"
 msgstr "Pogoni CD-ROM"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "Magnetno-optični pogoni"
 
@@ -842,11 +848,35 @@ msgstr "Serijska vrata"
 msgid "Serial ports:"
 msgstr "Serijska vrata:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Paralelna vrata"
 
 msgid "Parallel ports:"
 msgstr "Paralelna vrata:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Krmilniki shrambe"
@@ -2991,6 +3021,9 @@ msgstr "Preklopi pavzo"
 msgid "Toggle mute"
 msgstr "Preklopti tišino"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Datoteke z besedilom"
 
@@ -3153,6 +3186,9 @@ msgstr "Izvoz…"
 
 msgid "Export EDID"
 msgstr "Izvoz EDID"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Datoteka EDID \"%s\" je prevelika."

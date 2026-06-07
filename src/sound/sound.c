@@ -52,6 +52,7 @@ int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int  sound_pos_global                   = 0;
 static int sound_buf_len                = SOUNDBUFLEN;
 int  music_pos_global                   = 0;
+int  ym2151_pos_global                  = 0;
 int  cqm_pos_global                     = 0;
 int  wavetable_pos_global               = 0;
 int  sound_gain                         = 0;
@@ -62,11 +63,13 @@ int  midi_buf_size                      = 4410;
 
 #define NUM_SOUND_HANDLERS 16
 #define NUM_MUSIC_HANDLERS 16
+#define NUM_YM2151_HANDLERS 16
 #define NUM_CQM_HANDLERS 16
 #define NUM_WAVETABLE_HANDLERS 16
 
 static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS];
 static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS];
+static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS];
 static sound_handler_t cqm_handlers[NUM_CQM_HANDLERS];
 static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS];
 
@@ -81,6 +84,9 @@ static int16_t   *outbuffer_ex_int16;
 static int32_t   *outbuffer_m;
 static float     *outbuffer_m_ex;
 static int16_t   *outbuffer_m_ex_int16;
+static int32_t   *outbuffer_y;
+static float     *outbuffer_y_ex;
+static int16_t   *outbuffer_y_ex_int16;
 static int32_t   *outbuffer_c;
 static float     *outbuffer_c_ex;
 static int16_t   *outbuffer_c_ex_int16;
@@ -89,12 +95,15 @@ static float     *outbuffer_w_ex;
 static int16_t   *outbuffer_w_ex_int16;
 static uint8_t    sound_handlers_num;
 static uint8_t    music_handlers_num;
+static uint8_t    ym2151_handlers_num;
 static uint8_t    cqm_handlers_num;
 static uint8_t    wavetable_handlers_num;
 static pc_timer_t sound_poll_timer;
 static uint64_t   sound_poll_latch;
 static pc_timer_t music_poll_timer;
 static uint64_t   music_poll_latch;
+static pc_timer_t ym2151_poll_timer;
+static uint64_t   ym2151_poll_latch;
 static pc_timer_t cqm_poll_timer;
 static uint64_t   cqm_poll_latch;
 static pc_timer_t wavetable_poll_timer;
@@ -439,6 +448,8 @@ sound_cd_thread(UNUSED(void *param))
 static void
 sound_realloc_buffers(void)
 {
+    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+
     if (outbuffer_ex != NULL) {
         free(outbuffer_ex);
         outbuffer_ex = NULL;
@@ -449,7 +460,7 @@ sound_realloc_buffers(void)
         outbuffer_ex_int16 = NULL;
     }
 
-    const int buf_len = sound_sample_rate / 50;
+    const int buf_len = sound_sample_rate / divisor;
 
     if (sound_is_float) {
         outbuffer_ex = calloc(buf_len * 2, sizeof(float));
@@ -479,6 +490,28 @@ music_realloc_buffers(void)
     } else {
         outbuffer_m_ex_int16 = calloc(MUSICBUFLEN * 2, sizeof(int16_t));
         memset(outbuffer_m_ex_int16, 0x00, MUSICBUFLEN * 2 * sizeof(int16_t));
+    }
+}
+
+static void
+ym2151_realloc_buffers(void)
+{
+    if (outbuffer_y_ex != NULL) {
+        free(outbuffer_y_ex);
+        outbuffer_y_ex = NULL;
+    }
+
+    if (outbuffer_y_ex_int16 != NULL) {
+        free(outbuffer_y_ex_int16);
+        outbuffer_y_ex_int16 = NULL;
+    }
+
+    if (sound_is_float) {
+        outbuffer_y_ex = calloc(YM2151BUFLEN * 2, sizeof(float));
+        memset(outbuffer_y_ex, 0x00, YM2151BUFLEN * 2 * sizeof(float));
+    } else {
+        outbuffer_y_ex_int16 = calloc(YM2151BUFLEN * 2, sizeof(int16_t));
+        memset(outbuffer_y_ex_int16, 0x00, YM2151BUFLEN * 2 * sizeof(int16_t));
     }
 }
 
@@ -529,6 +562,8 @@ wavetable_realloc_buffers(void)
 void
 sound_init(void)
 {
+    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+
     int available_cdrom_drives = 0;
 
     outbuffer_ex       = NULL;
@@ -537,13 +572,16 @@ sound_init(void)
     outbuffer_m_ex       = NULL;
     outbuffer_m_ex_int16 = NULL;
 
+    outbuffer_y_ex       = NULL;
+    outbuffer_y_ex_int16 = NULL;
+
     outbuffer_c_ex       = NULL;
     outbuffer_c_ex_int16 = NULL;
 
     outbuffer_w_ex       = NULL;
     outbuffer_w_ex_int16 = NULL;
 
-    const int init_buf_len = sound_sample_rate / 50;
+    const int init_buf_len = sound_sample_rate / divisor;
 
     outbuffer = NULL;
     outbuffer = calloc(init_buf_len * 2, sizeof(int32_t));
@@ -552,6 +590,10 @@ sound_init(void)
     outbuffer_m = NULL;
     outbuffer_m = calloc(MUSICBUFLEN * 2, sizeof(int32_t));
     memset(outbuffer_m, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
+
+    outbuffer_y = NULL;
+    outbuffer_y = calloc(YM2151BUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer_y, 0x00, YM2151BUFLEN * 2 * sizeof(int32_t));
 
     outbuffer_c = NULL;
     outbuffer_c = calloc(CQMBUFLEN * 2, sizeof(int32_t));
@@ -621,6 +663,19 @@ music_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
     music_handlers[music_handlers_num].get_buffer = get_buffer;
     music_handlers[music_handlers_num].priv       = priv;
     music_handlers_num++;
+}
+
+void
+ym2151_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    if (ym2151_handlers_num >= NUM_YM2151_HANDLERS) {
+        sound_log("ym2151_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    ym2151_handlers[ym2151_handlers_num].get_buffer = get_buffer;
+    ym2151_handlers[ym2151_handlers_num].priv       = priv;
+    ym2151_handlers_num++;
 }
 
 void
@@ -714,7 +769,8 @@ sound_poll(UNUSED(void *priv))
         if (cd_thread_enable) {
             cd_buf_update--;
             if (!cd_buf_update) {
-                cd_buf_update = 50 / (CD_FREQ / CD_BUFLEN);
+                const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+                cd_buf_update = divisor / (CD_FREQ / CD_BUFLEN);
                 thread_set_event(sound_cd_event);
             }
         }
@@ -768,6 +824,43 @@ music_poll(UNUSED(void *priv))
 }
 
 void
+ym2151_poll(UNUSED(void *priv))
+{
+    const uint8_t handler_count = (ym2151_handlers_num < NUM_YM2151_HANDLERS) ? ym2151_handlers_num : NUM_YM2151_HANDLERS;
+
+    timer_advance_u64(&ym2151_poll_timer, ym2151_poll_latch);
+
+    ym2151_pos_global++;
+    if (ym2151_pos_global == YM2151BUFLEN) {
+        memset(outbuffer_y, 0x00, YM2151BUFLEN * 2 * sizeof(int32_t));
+
+        for (uint8_t c = 0; c < handler_count; c++)
+            if (ym2151_handlers[c].get_buffer != NULL)
+                ym2151_handlers[c].get_buffer(outbuffer_y, YM2151BUFLEN, ym2151_handlers[c].priv);
+
+        for (uint32_t c = 0; c < YM2151BUFLEN * 2; c++) {
+            if (sound_is_float)
+                outbuffer_y_ex[c] = ((float) outbuffer_y[c]) / (float) 32768.0;
+            else {
+                if (outbuffer_y[c] > 32767)
+                    outbuffer_y[c] = 32767;
+                if (outbuffer_y[c] < -32768)
+                    outbuffer_y[c] = -32768;
+
+                outbuffer_y_ex_int16[c] = (int16_t) outbuffer_y[c];
+            }
+        }
+
+        if (sound_is_float)
+            givealbuffer_ym2151(outbuffer_y_ex);
+        else
+            givealbuffer_ym2151(outbuffer_y_ex_int16);
+
+        ym2151_pos_global = 0;
+    }
+}
+
+void
 cqm_poll(UNUSED(void *priv))
 {
     const uint8_t handler_count = (cqm_handlers_num < NUM_CQM_HANDLERS) ? cqm_handlers_num : NUM_CQM_HANDLERS;
@@ -776,11 +869,11 @@ cqm_poll(UNUSED(void *priv))
 
     cqm_pos_global++;
     if (cqm_pos_global == CQMBUFLEN) {
-        memset(outbuffer_c, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
+        memset(outbuffer_c, 0x00, CQMBUFLEN * 2 * sizeof(int32_t));
 
         for (uint8_t c = 0; c < handler_count; c++)
             if (cqm_handlers[c].get_buffer != NULL)
-                cqm_handlers[c].get_buffer(outbuffer_c, MUSICBUFLEN, cqm_handlers[c].priv);
+                cqm_handlers[c].get_buffer(outbuffer_c, CQMBUFLEN, cqm_handlers[c].priv);
 
         for (uint32_t c = 0; c < CQMBUFLEN * 2; c++) {
             if (sound_is_float)
@@ -844,11 +937,15 @@ wavetable_poll(UNUSED(void *priv))
 void
 sound_speed_changed(void)
 {
-    sound_buf_len = sound_sample_rate / 50;
+    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
+
+    sound_buf_len = sound_sample_rate / divisor;
 
     sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
 
     music_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) MUSIC_FREQ));
+
+    ym2151_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) YM2151_FREQ));
 
     cqm_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) CQM_FREQ));
 
@@ -862,6 +959,8 @@ sound_reset(void)
 
     music_realloc_buffers();
 
+    ym2151_realloc_buffers();
+
     cqm_realloc_buffers();
 
     wavetable_realloc_buffers();
@@ -871,18 +970,27 @@ sound_reset(void)
 
     inital();
 
+    memset(&sound_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
 
+    memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&music_poll_timer, music_poll, NULL, 1);
     music_handlers_num = 0;
     memset(music_handlers, 0x00, NUM_MUSIC_HANDLERS * sizeof(sound_handler_t));
 
+    memset(&ym2151_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&ym2151_poll_timer, ym2151_poll, NULL, 1);
+    ym2151_handlers_num = 0;
+    memset(ym2151_handlers, 0x00, NUM_YM2151_HANDLERS * sizeof(sound_handler_t));
+
+    memset(&cqm_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&cqm_poll_timer, cqm_poll, NULL, 1);
     cqm_handlers_num = 0;
     memset(cqm_handlers, 0x00, NUM_CQM_HANDLERS * sizeof(sound_handler_t));
 
+    memset(&wavetable_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&wavetable_poll_timer, wavetable_poll, NULL, 1);
     wavetable_handlers_num = 0;
     memset(wavetable_handlers, 0x00, NUM_WAVETABLE_HANDLERS * sizeof(sound_handler_t));
@@ -1078,8 +1186,44 @@ sound_hdd_thread_end(void)
 }
 
 void
+sound_recalc_timers(void)
+{
+    if (music_handlers_num == 0)
+        timer_disable(&music_poll_timer);
+
+    if (ym2151_handlers_num == 0)
+        timer_disable(&ym2151_poll_timer);
+
+    if (cqm_handlers_num == 0)
+        timer_disable(&cqm_poll_timer);
+
+    if (wavetable_handlers_num == 0)
+        timer_disable(&wavetable_poll_timer);
+}
+
+void
 sound_close(void)
 {
+    timer_disable(&sound_poll_timer);
+    sound_handlers_num = 0;
+    memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&music_poll_timer);
+    music_handlers_num = 0;
+    memset(music_handlers, 0x00, NUM_MUSIC_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&ym2151_poll_timer);
+    ym2151_handlers_num = 0;
+    memset(ym2151_handlers, 0x00, NUM_YM2151_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&cqm_poll_timer);
+    cqm_handlers_num = 0;
+    memset(cqm_handlers, 0x00, NUM_CQM_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&wavetable_poll_timer);
+    wavetable_handlers_num = 0;
+    memset(wavetable_handlers, 0x00, NUM_WAVETABLE_HANDLERS * sizeof(sound_handler_t));
+
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;
 

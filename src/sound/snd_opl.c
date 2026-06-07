@@ -76,6 +76,11 @@ fm_driver_get_ex(int chip_id, fm_drv_t *drv, int is_48k)
             }
             break;
 
+        case FM_CQM: /* CQM */
+            *drv      = is_48k ? nuked_cqm_drv_48k : nuked_cqm_drv;
+            drv->priv = device_add_inst_params(&nuked_cqm_device, fm_dev_inst[fm_driver][chip_id]++, flag_48k);
+            break;
+
         case FM_YMF289B: /* OPL3-L */
             *drv      = ymfm_drv;
             drv->priv = device_add_inst_params(&ymf289b_ymfm_device, fm_dev_inst[fm_driver][chip_id]++, flag_48k);

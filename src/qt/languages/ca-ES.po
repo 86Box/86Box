@@ -453,6 +453,9 @@ msgstr "Gràfics XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Adaptador de gràfics de pantalla IBM PS/55"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Teclat:"
 
@@ -690,6 +693,9 @@ msgstr "Verificar BPB"
 msgid "CD-ROM drives"
 msgstr "Unitats de CD-ROM"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "Unitats MO"
 
@@ -840,11 +846,35 @@ msgstr "Ports sèrie"
 msgid "Serial ports:"
 msgstr "Ports sèrie:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Puerts paralels"
 
 msgid "Parallel ports:"
 msgstr "Puerts paralels:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Controladors de emmagatzematge"
@@ -2979,6 +3009,9 @@ msgstr "Alterna pausa"
 msgid "Toggle mute"
 msgstr "Alterna silenci"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Fitxers de text"
 
@@ -3139,6 +3172,9 @@ msgstr "Exporta…"
 
 msgid "Export EDID"
 msgstr "Exporta l'EDID"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "El fitxer EDID \"%s\" és massa gran."

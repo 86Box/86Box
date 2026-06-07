@@ -1,6 +1,10 @@
 #ifndef _UNIX_SDL_H
 #define _UNIX_SDL_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void  sdl_close(void);
 extern int   sdl_inits(void);
 extern int   sdl_inith(void);
@@ -12,5 +16,9 @@ extern void  sdl_set_fs(int fs);
 extern void  sdl_reload(void);
 extern char *ui_window_title(char *s);
 extern void  ui_window_title_real(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /*_UNIX_SDL_H*/

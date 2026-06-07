@@ -48,6 +48,8 @@ extern MainWindow *main_window;
 
 #include "qt_openglrenderer.hpp"
 #include "qt_openglshadermanagerdialog.hpp"
+#include "qt_osd.hpp"
+#include "osd_core.hpp"
 
 #include "qt_defs.hpp"
 
@@ -821,8 +823,18 @@ OpenGLRenderer::read_shader_config()
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     : QWindow((QWindow*)nullptr)
     , renderTimer(new QTimer(this))
+    , osdRenderTimer(new QTimer(this))
 {
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
+    connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
+        if (video_framerate == -1 && dopause && qt_osd_is_visible())
+            this->render();
+
+        if (video_framerate == -1 && !qt_osd_is_visible() && was_osd_visible)
+            this->render();
+
+        was_osd_visible = qt_osd_is_visible();
+    });
     imagebufs[0] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
     imagebufs[1] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
 
@@ -914,6 +926,8 @@ OpenGLRenderer::initialize()
         if (video_framerate != -1) {
             renderTimer->start(ceilf(1000.f / (float) video_framerate));
         }
+
+        osdRenderTimer->start(16);
 
         scene_texture.data            = NULL;
         scene_texture.width           = 2048;
@@ -1153,6 +1167,8 @@ OpenGLRenderer::finalize()
         free(active_shader);
     }
     active_shader = NULL;
+
+    qt_osd_shutdown();
 
     context->doneCurrent();
 
@@ -1409,7 +1425,34 @@ OpenGLRenderer::render_pass(struct render_data *data)
 bool
 OpenGLRenderer::event(QEvent *event)
 {
-    Q_UNUSED(event);
+    if (qt_osd_is_visible()) {
+        switch (event->type()) {
+            case QEvent::MouseButtonPress:
+            case QEvent::MouseMove:
+            case QEvent::MouseButtonRelease: {
+                auto *me = static_cast<QMouseEvent *>(event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                const QPointF pos = me->position();
+#else
+                const QPointF pos(me->x(), me->y());
+#endif
+                qt_osd_mouse_pos((float) pos.x(), (float) pos.y());
+                if (event->type() == QEvent::MouseButtonPress)
+                    qt_osd_mouse_button(me->button(), true);
+                else if (event->type() == QEvent::MouseButtonRelease)
+                    qt_osd_mouse_button(me->button(), false);
+                return true;
+            }
+            case QEvent::Wheel: {
+                auto *we = static_cast<QWheelEvent *>(event);
+                qt_osd_mouse_wheel((float) we->angleDelta().x() / 120.0f,
+                                   (float) we->angleDelta().y() / 120.0f);
+                return true;
+            }
+            default:
+                break;
+        }
+    }
 
     bool res = false;
     if (!eventDelegate(event, res))
@@ -1424,6 +1467,20 @@ OpenGLRenderer::getOptions(QWidget *parent)
 }
 
 extern void standalone_scale(QRect &destination, int width, int height, QRect source, int scalemode);
+
+QRect
+OpenGLRenderer::sceneRenderRect() const
+{
+    QRect rect;
+
+    rect.setX(0);
+    rect.setY(0);
+    rect.setWidth(source.width() * video_gl_input_scale);
+    rect.setHeight(source.height() * video_gl_input_scale);
+    standalone_scale(rect, source.width(), source.height(), rect, video_gl_input_scale_mode);
+
+    return rect;
+}
 
 void
 OpenGLRenderer::render()
@@ -1466,14 +1523,7 @@ OpenGLRenderer::render()
     /* render scene to texture */
     {
         struct shader_pass *pass = &active_shader->scene;
-
-        QRect rect;
-        rect.setX(0);
-        rect.setY(0);
-        rect.setWidth(source.width() * video_gl_input_scale);
-        rect.setHeight(source.height() * video_gl_input_scale);
-
-        standalone_scale(rect, source.width(), source.height(), rect, video_gl_input_scale_mode);
+        QRect               rect = sceneRenderRect();
 
         pass->state.input_size[0] = pass->state.output_size[0] = rect.width();
         pass->state.input_size[1] = pass->state.output_size[1] = rect.height();
@@ -1773,6 +1823,15 @@ OpenGLRenderer::render()
     }
 
     glw.glDisable(GL_FRAMEBUFFER_SRGB);
+
+    /* Draw the OSD crisp on top of the shaded image, in the default
+       framebuffer at full window resolution. */
+    if (qt_osd_is_visible()) {
+        glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
+        qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
+        qt_osd_render(width(), height(), devicePixelRatio());
+    }
 
     frameCounter++;
     context->swapBuffers(this);

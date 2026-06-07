@@ -453,6 +453,9 @@ msgstr "XGA-graphics"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Toetsenbord:"
 
@@ -690,6 +693,9 @@ msgstr "Controleer BPB"
 msgid "CD-ROM drives"
 msgstr "CD-ROM-stations"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "MO-schijven"
 
@@ -840,11 +846,35 @@ msgstr "Seriële poorten"
 msgid "Serial ports:"
 msgstr "Seriële poorten:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Parallelle poorten"
 
 msgid "Parallel ports:"
 msgstr "Parallelle poorten:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Opslagcontrollers"
@@ -2974,6 +3004,9 @@ msgstr "Pauzeren omschakelen"
 msgid "Toggle mute"
 msgstr "Geluiddemping omschakelen"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Tekstbestanden"
 
@@ -3134,6 +3167,9 @@ msgstr "Exporteren…"
 
 msgid "Export EDID"
 msgstr "EDID exporteren"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Het EDID-bestand \"%s\" is te groot."

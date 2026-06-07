@@ -74,13 +74,13 @@ plat_delay_ms(uint32_t count)
 void
 ui_emu_status(int speed_percent)
 {
-    QString str;
+    QString str = QString::number(speed_percent);
     if ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1))
-        str = QString::number(speed_percent) % QStringLiteral("%");
+        str += QStringLiteral("%");
     else if (mouse_capture == 1)
-        str = QString::number(speed_percent) % QStringLiteral("% - ") % main_window->mouseStringCaptured;
+        str += QStringLiteral("% - ") % main_window->mouseStringCaptured;
     else
-        str = QString::number(speed_percent) % QStringLiteral("% - ") % main_window->mouseStringUncaptured;
+        str += QStringLiteral("% - ") % main_window->mouseStringUncaptured;
 
     emit main_window->setTitle(str);
 }

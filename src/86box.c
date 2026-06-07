@@ -308,6 +308,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="force_interpretation",
         .desc="Force interpretation",
         .seq="Ctrl+Alt+I"
+    },
+    {
+        .name="toggle_osd",
+        .desc="Toggle on-screen display",
+        .seq="Ctrl+Alt+O"
     }
 };
 
@@ -1854,6 +1859,9 @@ pc_reset_hard_init(void)
        the IDE controllers present are not some form of PCI. */
     ide_drives_set_shadow();
 
+    /* Make sure to disable any sound timers with no handlers. */
+    sound_recalc_timers();
+
     /* Reset the CPU module. */
     resetx86();
     dma_reset();
@@ -1999,6 +2007,9 @@ pc_run(void)
     }
 
     if (title_update) {
+#ifdef __APPLE__
+        static
+#endif
         int      speed_percent;
         int      target_fps;
         uint32_t elapsed_ms;

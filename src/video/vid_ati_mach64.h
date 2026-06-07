@@ -407,7 +407,8 @@ enum {
 
 #define WIDTH_1BIT 3
 
-static int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
+extern int mach64_width[8];
+
 
 enum {
     DST_X_DIR      = 0x01,
@@ -453,24 +454,16 @@ uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);
 
 #ifdef ENABLE_MACH64_LOG
-int mach64_do_log = ENABLE_MACH64_LOG;
+extern int mach64_do_log;
 
-static void
-mach64_log(const char *fmt, ...)
-{
-    va_list ap;
-
-    if (mach64_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
-}
+void
+mach64_log(const char *fmt, ...);
 #else
 #    define mach64_log(fmt, ...)
 #endif
 
-static mach64_t *reset_state[2] = { NULL, NULL };
+extern mach64_t* reset_state[2];
+
 
 
 

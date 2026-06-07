@@ -455,6 +455,9 @@ msgstr "Scheda grafica XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Scheda grafica IBM PS/55 Display Adapter"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Tastiera:"
 
@@ -692,6 +695,9 @@ msgstr "Verifica BPB"
 msgid "CD-ROM drives"
 msgstr "Unità CD-ROM"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "Unità magneto-ottiche"
 
@@ -848,11 +854,35 @@ msgstr "Porte seriali"
 msgid "Serial ports:"
 msgstr "Porte seriali:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Porte parallele"
 
 msgid "Parallel ports:"
 msgstr "Porte parallele:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Controller di archiviazione"
@@ -3045,6 +3075,9 @@ msgstr "Attiva/disattiva pausa"
 msgid "Toggle mute"
 msgstr "Attiva/disattiva audio"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "File di testo"
 
@@ -3221,6 +3254,9 @@ msgstr "Esporta…"
 
 msgid "Export EDID"
 msgstr "Esporta EDID"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Il file EDID \"%s\" è troppo grande."

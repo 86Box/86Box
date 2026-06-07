@@ -477,22 +477,6 @@ dword_remap(const svga_t *svga, const uint32_t in_addr)
 
     return ((in_addr << 2) & 0x3fff0) | ((in_addr >> 14) & 0xc) | (in_addr & ~0x3fffc);
 }
-static __inline uint32_t
-dword_remap_w(const svga_t *svga, const uint32_t in_addr)
-{
-    if (svga->packed_chain4 || svga->force_old_addr)
-        return in_addr;
-
-    return ((in_addr << 2) & 0x1fff8) | ((in_addr >> 14) & 0x6) | (in_addr & ~0x1fffe);
-}
-static __inline uint32_t
-dword_remap_l(const svga_t *svga, const uint32_t in_addr)
-{
-    if (svga->packed_chain4 || svga->force_old_addr)
-        return in_addr;
-
-    return ((in_addr << 2) & 0xfffc) | ((in_addr >> 14) & 0x3) | (in_addr & ~0xffff);
-}
 
 static __inline void
 wake_fifo_thread(const s3_t *s3)

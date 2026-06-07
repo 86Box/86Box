@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-01 07:01+0000\n"
+"PO-Revision-Date: 2026-06-02 17:02+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -453,6 +453,9 @@ msgstr "XGA 그래픽"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 디스플레이 어댑터 그래픽스"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "키보드:"
 
@@ -690,6 +693,9 @@ msgstr "BPB 확인"
 msgid "CD-ROM drives"
 msgstr "CD-ROM 드라이브"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "광자기 드라이브"
 
@@ -847,11 +853,35 @@ msgstr "시리얼 포트"
 msgid "Serial ports:"
 msgstr "시리얼 포트:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "병렬 포트"
 
 msgid "Parallel ports:"
 msgstr "병렬 포트:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "장치 컨트롤러"
@@ -2341,7 +2371,7 @@ msgid "Control PC speaker"
 msgstr "PC 스피커 제어"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "MIDI 음량 조절"
 
 msgid "Memory size"
 msgstr "메모리 크기"
@@ -3044,6 +3074,9 @@ msgstr "일시정지 토글"
 msgid "Toggle mute"
 msgstr "음소거 켜기/끄기"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "텍스트 파일"
 
@@ -3208,6 +3241,9 @@ msgstr "내보내기…"
 
 msgid "Export EDID"
 msgstr "EDID 내보내기"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID 파일 \"%s\"가 너무 큽니다."
@@ -3420,4 +3456,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (중국어 번체)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "샘플링 주파수:"

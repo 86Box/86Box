@@ -72,6 +72,7 @@ extern void win_keyboard_handle(uint32_t scancode, int up, int e0, int e1);
 #include "qt_rendererstack.hpp"
 #include "qt_util.hpp"
 #include "ui_qt_mainwindow.h"
+#include "qt_osd.hpp"
 
 bool NewDarkMode = FALSE;
 
@@ -316,9 +317,11 @@ selectDarkMode()
         if (!f.exists())
             printf("Unable to set stylesheet, file not found\n");
         else {
-            f.open(QFile::ReadOnly | QFile::Text);
-            QTextStream ts(&f);
-            qApp->setStyleSheet(ts.readAll());
+            if (f.open(QFile::ReadOnly | QFile::Text)) {
+                QTextStream ts(&f);
+                qApp->setStyleSheet(ts.readAll());
+            } else
+                printf("Unable to set stylesheet, unable to open file\n");
         }
         QPalette palette(qApp->palette());
         palette.setColor(QPalette::Link, Qt::white);
@@ -392,9 +395,11 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                             if (!f.exists())
                                 printf("Unable to set stylesheet, file not found\n");
                             else {
-                                f.open(QFile::ReadOnly | QFile::Text);
-                                QTextStream ts(&f);
-                                qApp->setStyleSheet(ts.readAll());
+                                if (f.open(QFile::ReadOnly | QFile::Text)) {
+                                    QTextStream ts(&f);
+                                    qApp->setStyleSheet(ts.readAll());
+                                } else
+                                    printf("Unable to set stylesheet, unable to open file\n");
                             }
                             QPalette palette(qApp->palette());
                             palette.setColor(QPalette::Link, Qt::white);
@@ -483,8 +488,9 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
     RAWKEYBOARD rawKB = raw->data.keyboard;
 
-    win_keyboard_handle(rawKB.MakeCode, (rawKB.Flags & RI_KEY_BREAK),
-                        (rawKB.Flags & RI_KEY_E0), (rawKB.Flags & RI_KEY_E1));
+    if (!qt_osd_is_visible())
+        win_keyboard_handle(rawKB.MakeCode, (rawKB.Flags & RI_KEY_BREAK),
+                            (rawKB.Flags & RI_KEY_E0), (rawKB.Flags & RI_KEY_E1));
 }
 
 void

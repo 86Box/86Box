@@ -29,15 +29,16 @@
 #define I_MUSIC 1
 #define I_WT 2
 #define I_CD 3
-#define I_MIDI 4
-#define I_FDD 5
-#define I_CQM 6
-#define I_HDD 7
+#define I_FDD 4
+#define I_HDD 5
+#define I_YM2151 6
+#define I_CQM 7
+#define I_MIDI 8
 
 extern bool fast_forward;
-static struct sio_hdl* audio[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-static struct sio_par  info[8];
-static int             freqs[8] = { 0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, CQM_FREQ, 0 };
+static struct sio_hdl* audio[9] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static struct sio_par  info[9];
+static int             freqs[9] = { 0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, CQM_FREQ, 0 };
 const char *
 sound_get_output_devices(void)
 {
@@ -251,6 +252,12 @@ givealbuffer_hdd(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, I_HDD, (int) size);
 }	
+
+void
+givealbuffer_ym2151(const void *buf)
+{
+    givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1);
+}
 
 void
 givealbuffer_cqm(const void *buf)

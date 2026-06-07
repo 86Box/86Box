@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:36+0000\n"
+"PO-Revision-Date: 2026-06-04 01:22+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -454,6 +454,9 @@ msgstr "XGA 图形"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 显示适配器图形"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "键盘:"
 
@@ -593,7 +596,7 @@ msgid "Controller 4:"
 msgstr "控制器 4:"
 
 msgid "Cassette"
-msgstr "磁带"
+msgstr "盒式磁带"
 
 msgid "Hard disks:"
 msgstr "硬盘:"
@@ -690,6 +693,9 @@ msgstr "检查 BIOS 参数块 (BPB)"
 
 msgid "CD-ROM drives"
 msgstr "光盘驱动器"
+
+msgid "CD-ROM:"
+msgstr "光盘:"
 
 msgid "MO drives"
 msgstr "磁光盘驱动器"
@@ -841,11 +847,35 @@ msgstr "串口"
 msgid "Serial ports:"
 msgstr "串口:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "并口"
 
 msgid "Parallel ports:"
 msgstr "并口:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "存储控制器"
@@ -1104,22 +1134,22 @@ msgid "Continue"
 msgstr "继续"
 
 msgid "Cassette: %1"
-msgstr "磁带: %1"
+msgstr "盒式磁带: %1"
 
 msgid "C&assette: %1"
-msgstr "磁带: %1(&A)"
+msgstr "盒式磁带: %1(&A)"
 
 msgid "Cassette images"
-msgstr "磁带映像"
+msgstr "盒式磁带镜像"
 
 msgid "Cartridge %1: %2"
-msgstr "卡带 %1: %2"
+msgstr "卡式磁带 %1: %2"
 
 msgid "Car&tridge %1: %2"
-msgstr "卡带 %1: %2(&A)"
+msgstr "卡式磁带 %1: %2(&A)"
 
 msgid "Cartridge images"
-msgstr "卡带映像"
+msgstr "卡式磁带镜像"
 
 msgid "Resume execution"
 msgstr "恢复执行"
@@ -2281,7 +2311,7 @@ msgid "Control PC speaker"
 msgstr "控制电脑扬声器"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "控制MIDI音量"
 
 msgid "Memory size"
 msgstr "内存大小"
@@ -2979,6 +3009,9 @@ msgstr "切换暂停"
 msgid "Toggle mute"
 msgstr "切换静音"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "文本文件"
 
@@ -3138,6 +3171,9 @@ msgstr "导出…"
 
 msgid "Export EDID"
 msgstr "导出EDID"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID文件 \"%s\" 过大。"
@@ -3348,4 +3384,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体中文)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "采样率："

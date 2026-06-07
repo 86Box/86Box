@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-06-06 01:43+0000\n"
+"Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
 "Language: zh-TW\n"
@@ -454,6 +454,9 @@ msgstr "XGA 圖形"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 顯示介面卡圖形"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "鍵盤:"
 
@@ -691,6 +694,9 @@ msgstr "檢查 BPB"
 msgid "CD-ROM drives"
 msgstr "光碟機"
 
+msgid "CD-ROM:"
+msgstr "光碟:"
+
 msgid "MO drives"
 msgstr "磁光碟機"
 
@@ -779,7 +785,10 @@ msgid "Image %1"
 msgstr "映像 %1"
 
 msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "%1 找不到任何可用的 ROM 映像。\n\n請<a href=\"%2\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
+msgstr ""
+"%1 找不到任何可用的 ROM 映像。\n"
+"\n"
+"請<a href=\"%2\">下載</a> ROM 套件並將其解壓到 \"roms\" 目錄。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -806,10 +815,12 @@ msgid "Surface images"
 msgstr "表面映像"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "由於 roms/machines 資料夾中缺少合適的 ROM，機型 \"%s\" 不可用。將切換到其他可用機型。"
+msgstr "由於 roms/machines 目錄中缺少合適的 ROM，機型 \"%s\" "
+"不可用。將切換到其他可用機型。"
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "由於 roms/video 資料夾中缺少合適的 ROM，顯示卡 \"%s\" 不可用。將切換到其他可用顯示卡。"
+msgstr "由於 roms/video 目錄中缺少合適的 ROM，顯示卡 \"%s\" "
+"不可用。將切換到其他可用顯示卡。"
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
 msgstr "由於缺少合適的 ROM，裝置 \"%s\" 不可用。忽略裝置。"
@@ -841,11 +852,35 @@ msgstr "序列埠"
 msgid "Serial ports:"
 msgstr "序列埠:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "並列埠"
 
 msgid "Parallel ports:"
 msgstr "並列埠:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "儲存控制器"
@@ -1318,7 +1353,7 @@ msgid "Clone"
 msgstr "複製"
 
 msgid "Failed to create directory for cloned VM"
-msgstr "為複製的虛擬機器建立目錄失敗"
+msgstr "建立複製虛擬機器的目錄失敗"
 
 msgid "Failed to clone VM."
 msgstr "複製虛擬機器失敗。"
@@ -2283,7 +2318,7 @@ msgid "Control PC speaker"
 msgstr "控制電腦喇叭"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "控制MIDI音量"
 
 msgid "Memory size"
 msgstr "記憶體大小"
@@ -2868,7 +2903,9 @@ msgid "OPL2Board (External Device)"
 msgstr "OPL2卡 (外部裝置)"
 
 msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "無法找到點矩陣字型。通用 ESC/P 2 點矩陣印表機的模擬需要 \"roms/printer/fonts\" 目錄中的 TrueType 字體。"
+msgstr ""
+"無法找到點矩陣字型。模擬通用 ESC/P 2 點矩陣印表機需要 \"roms/printer/fonts\" "
+"目錄中的 TrueType 字體。"
 
 msgid "Inhibit multimedia keys"
 msgstr "禁止多媒體按鍵"
@@ -2981,6 +3018,9 @@ msgstr "切換暫停"
 msgid "Toggle mute"
 msgstr "切換靜音"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "文字檔案"
 
@@ -3015,7 +3055,12 @@ msgid "&Wipe NVRAM"
 msgstr "清除 NVRAM(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "這將刪除位於 (\"nvr\" 子目錄中的) 虛擬機器的所有 NVRAM (和相關) 檔案。如果套用的話，您必須重新設定 BIOS (可能還有虛擬機器內的其他裝置) 設定。\n\n您確定要清除虛擬機 \"%1\" 的所有 NVRAM 內容嗎？"
+msgstr ""
+"這將刪除位於 \"nvr\" 子目錄中的虛擬機器的所有 NVRAM (和相關) "
+"檔案。如果套用的話，您必須重新設定 BIOS (可能還有虛擬機器內的其他裝置設定) 。"
+"\n"
+"\n"
+"您確定要清除虛擬機 \"%1\" 的所有 NVRAM 內容嗎？"
 
 msgid "Success"
 msgstr "成功"
@@ -3140,6 +3185,9 @@ msgstr "匯出…"
 
 msgid "Export EDID"
 msgstr "匯出 EDID"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID 檔案 \"%s\" 太大。"
@@ -3350,4 +3398,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (正體中文)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "取樣率:"

@@ -454,6 +454,9 @@ msgstr "XGAグラフィック"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55ディスプレイアダプターグラフィックス"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "キーボード:"
 
@@ -691,6 +694,9 @@ msgstr "BPBチェック"
 msgid "CD-ROM drives"
 msgstr "CD-ROMドライブ"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "光磁気ドライブ"
 
@@ -841,11 +847,35 @@ msgstr "シリアルポート"
 msgid "Serial ports:"
 msgstr "シリアルポート:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "パラレルポート"
 
 msgid "Parallel ports:"
 msgstr "パラレルポート:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "ストレージコントローラ"
@@ -2975,6 +3005,9 @@ msgstr "一時停止を切り替える"
 msgid "Toggle mute"
 msgstr "ミュートを切り替える"
 
+msgid "Toggle on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "テキストファイル"
 
@@ -3134,6 +3167,9 @@ msgstr "エクスポート…"
 
 msgid "Export EDID"
 msgstr "EDIDのエクスポート"
+
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDIDファイル「%s」が大きすぎます。"
