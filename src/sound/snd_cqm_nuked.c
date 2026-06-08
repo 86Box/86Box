@@ -192,7 +192,7 @@ static inline int doshifter(int x, int shift)
 #   define doshifter(x, shift) (shift > 12 ? (x << (shift - 12)) : (x >> (12 - shift)))
 #endif
 
-void CQM_Generate(cqm_t* chip, int16_t* sample)
+void CQM_Generate(cqm_t* chip, int32_t* sample)
 {
     int idx;
     int multi_l = 0;
@@ -1068,6 +1068,17 @@ void CQM_GenerateStream(cqm_t* chip, int32_t* sndptr, uint32_t numsamples)
 
     for (i = 0; i < numsamples; i++)
     {
+        CQM_Generate(chip, sndptr);
+        sndptr += 2;
+    }
+}
+
+void CQM_GenerateStreamResampled(cqm_t* chip, int32_t* sndptr, uint32_t numsamples)
+{
+    uint_fast32_t i;
+
+    for (i = 0; i < numsamples; i++)
+    {
         CQM_GenerateResampled(chip, sndptr);
         sndptr += 2;
     }
@@ -1163,9 +1174,9 @@ nuked_cqm_drv_update_48k(void *priv)
     if (dev->pos >= sound_pos_global)
         return dev->buffer;
 
-    CQM_GenerateStream(&dev->cqm,
-                       &dev->buffer[dev->pos * 2],
-             sound_pos_global - dev->pos);
+    CQM_GenerateStreamResampled(&dev->cqm,
+                                &dev->buffer[dev->pos * 2],
+                      sound_pos_global - dev->pos);
 
     for (; dev->pos < sound_pos_global; dev->pos++) {
         dev->buffer[dev->pos * 2] /= 2;
@@ -1264,13 +1275,16 @@ nuked_cqm_drv_init(const device_t *info)
     nuked_cqm_drv_t *dev = (nuked_cqm_drv_t *) calloc(1, sizeof(nuked_cqm_drv_t));
     dev->flags       = FLAG_CYCLES;
 
-    // Initialize the NukedCQM object.
-    dev->update      = nuked_cqm_drv_update;
+    dev->is_48k      = !!(info->local & FM_FORCE_48K);
 
-    if (info->local & FM_FORCE_48K)
+    // Initialize the NukedCQM object.
+    if (dev->is_48k) {
+        dev->update      = nuked_cqm_drv_update_48k;
         CQM_Reset(&dev->cqm, FREQ_48000, FREQ_48558);
-    else
+    } else {
+        dev->update      = nuked_cqm_drv_update;
         CQM_Reset(&dev->cqm, FREQ_48558, FREQ_48558);
+    }
 
     timer_add(&dev->timers[0], nuked_cqm_timer_1, dev, 0);
     timer_add(&dev->timers[1], nuked_cqm_timer_2, dev, 0);
