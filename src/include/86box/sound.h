@@ -217,6 +217,7 @@ extern const device_t sb_goldfinch_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
+extern const device_t sb_awe32_ide_pnp_device;
 extern const device_t sb_awe64_value_device;
 extern const device_t sb_awe64_device;
 extern const device_t sb_awe64_ide_device;
