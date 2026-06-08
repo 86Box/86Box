@@ -1136,7 +1136,7 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
 
         case 0xB1:                                              /* Legacy Audio Interrupt Control */
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            if (!dsp->es188x_irq_mode || dsp->sb_subtype <= SB_SUBTYPE_ESS_ES1788) {
+            if ((!dsp->es188x_irq_mode || dsp->sb_subtype <= SB_SUBTYPE_ESS_ES1788) && !dsp->is_chipchat) {
                 switch (data & 0x0C) {
                     default:
                         break;
@@ -1160,21 +1160,23 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
         case 0xB2: /* DRQ Control */
             chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            switch (data & 0x0C) {
-                default:
-                    break;
-                case 0x00:
-                    dsp->sb_8_dmanum = -1;
-                    break;
-                case 0x04:
-                    dsp->sb_8_dmanum = 0;
-                    break;
-                case 0x08:
-                    dsp->sb_8_dmanum = 1;
-                    break;
-                case 0x0C:
-                    dsp->sb_8_dmanum = 3;
-                    break;
+            if (!dsp->is_chipchat) {
+                switch (data & 0x0C) {
+                    default:
+                        break;
+                    case 0x00:
+                        dsp->sb_8_dmanum = -1;
+                        break;
+                    case 0x04:
+                        dsp->sb_8_dmanum = 0;
+                        break;
+                    case 0x08:
+                        dsp->sb_8_dmanum = 1;
+                        break;
+                    case 0x0C:
+                        dsp->sb_8_dmanum = 3;
+                        break;
+                }
             }
             sb_dsp_log("Legacy Audio DRQ control=%d, chg=%02x.\n", dsp->sb_8_dmanum, chg);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
