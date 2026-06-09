@@ -452,9 +452,7 @@ givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const siz
 void
 givealbuffer(const void *buf)
 {
-    const int divisor = (sound_sample_rate == 6896) ? 10 : 50;
-
-    givealbuffer_common(buf, srcvoice, (sound_sample_rate / divisor) << 1);
+    givealbuffer_common(buf, srcvoice, (sound_sample_rate / 50) << 1);
 }
 
 void
@@ -552,7 +550,7 @@ sound_get_device_supported_rates(const char *device_name, int *rates_out, int ma
 {
     /* Candidate rates: only those where rate/50 <= SOUNDBUFLEN to avoid overflowing
        static device buffers. */
-    static const int candidates[] = { 6896, FREQ_44100, FREQ_48000 };
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
     const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
     int            count    = 0;
 

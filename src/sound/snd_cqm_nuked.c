@@ -907,19 +907,10 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
     }
 
     accum[0] >>= 1;
-    if (accum[0] < -32768)
-        accum[0] = -32768;
-    else if (accum[0] > 32767)
-        accum[0] = 32767;
-
     accum[1] >>= 1;
-    if (accum[1] < -32768)
-        accum[1] = -32768;
-    else if (accum[1] > 32767)
-        accum[1] = 32767;
 
-    sample[0] = (int16_t)accum[0];
-    sample[1] = (int16_t)accum[1];
+    sample[0] = accum[0];
+    sample[1] = accum[1];
     
     {
         cqm_writebuf* writebuf;
@@ -1240,10 +1231,6 @@ nuked_cqm_drv_write(uint16_t port, uint8_t val, void *priv)
                     nuked_cqm_timer_control(dev, 1, val & CTRL_TMR2_START);
                     nuked_cqm_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
                 }
-                break;
-
-            case 0x105:
-                dev->cqm.newm = val & 0x01;
                 break;
 
             default:
