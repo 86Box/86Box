@@ -5052,6 +5052,10 @@ sb_awe32_pnp_init(const device_t *info)
             pnp_rom_file = PNP_ROM_SB_AWE32_PNP;
             break;
 
+        case SB_AWE32_IDE_PNP:
+            pnp_rom_file = PNP_ROM_SB_AWE32_IDE_PNP;
+            break;
+
         case SB_AWE64_VALUE:
             pnp_rom_file = PNP_ROM_SB_AWE64_VALUE;
             break;
@@ -5090,6 +5094,7 @@ sb_awe32_pnp_init(const device_t *info)
             break;
 
         case SB_AWE32_PNP:
+        case SB_AWE32_IDE_PNP:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
