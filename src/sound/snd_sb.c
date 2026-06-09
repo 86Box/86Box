@@ -8031,7 +8031,7 @@ const device_t sb_awe32_pnp_device = {
 
 const device_t sb_awe32_ide_pnp_device = {
     .name          = "Sound Blaster AWE32 IDE PnP",
-    .internal_name = "sbawe32_pnp",
+    .internal_name = "sbawe32_ide_pnp",
     .flags         = DEVICE_ISA16,
     .local         = SB_AWE32_IDE_PNP,
     .init          = sb_awe32_pnp_init,
