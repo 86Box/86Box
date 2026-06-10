@@ -20,6 +20,7 @@
 
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_impl_vulkan.h"
 
 #include "osd_core.hpp"
 #include "qt_osd.hpp"
@@ -41,11 +42,15 @@ using Clock = std::chrono::steady_clock;
 bool                 g_visible      = false;
 bool                 g_ctx_ready    = false;
 bool                 g_gl_ready     = false;
+bool                 g_vk_ready     = false;
+bool                 g_vk_enabled   = false;
 bool                 g_fonts_ready  = false;
 bool                 g_mouse_was_captured = false;
 int                  g_font_pixel_size = 0;
 Clock::time_point    g_last_frame;
 QImage               g_software_surface;
+
+ImGui_ImplVulkan_InitInfo vk_init_info;
 
 /* ------------------------------------------------------------------ */
 /*  Frontend actions exposed to the OSD core                           */
@@ -112,9 +117,40 @@ ensure_context(void)
     g_ctx_ready = true;
 }
 
+extern "C" {
+void
+qt_osd_start_vulkan(void (*(*callback)(const char *function_name, void *user_data))(), void* userdata_func, void* initdata)
+{
+    vk_init_info = *(ImGui_ImplVulkan_InitInfo*)initdata;
+    ImGui_ImplVulkan_LoadFunctions(VK_VERSION_1_0, callback, userdata_func);
+
+    g_vk_enabled = true;
+}
+
+void
+qt_osd_vulkan_set_min_image(int min_image)
+{
+    if (g_vk_ready && g_vk_enabled) {
+        ImGui_ImplVulkan_SetMinImageCount(min_image);
+    } else {
+        vk_init_info.MinImageCount = min_image;
+    }
+}
+}
+
 void
 ensure_gl(void)
 {
+    if (g_vk_enabled) {
+        if (g_vk_ready)
+            return;
+        
+        if (ImGui_ImplVulkan_Init(&vk_init_info))
+            g_vk_ready = true;
+        
+        g_gl_ready = g_vk_ready;
+        return;
+    }
     if (g_gl_ready)
         return;
 
@@ -245,7 +281,10 @@ qt_osd_set_layout_scale_hint(float scale)
 void
 qt_osd_shutdown(void)
 {
-    if (g_gl_ready) {
+    if (g_vk_enabled && g_vk_ready) {
+        ImGui_ImplVulkan_Shutdown();
+        g_vk_ready = false;
+    } else if (g_gl_ready) {
         ImGui_ImplOpenGL3_Shutdown();
         g_gl_ready = false;
     }
@@ -258,10 +297,12 @@ qt_osd_shutdown(void)
     g_font_pixel_size = 0;
     g_software_surface = QImage();
     g_visible = false;
+
+    g_vk_enabled = false;
 }
 
 void
-qt_osd_render(int output_w, int output_h, float dpr)
+qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf)
 {
     /* OpenGL path for the GL renderer. */
     if (!g_visible)
@@ -278,14 +319,20 @@ qt_osd_render(int output_w, int output_h, float dpr)
 
     advance_frame_time(io);
 
-    ImGui_ImplOpenGL3_NewFrame();
+    if (g_vk_enabled)
+        ImGui_ImplVulkan_NewFrame();
+    else
+        ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 
     if (!osd_core_build_ui())
         osd_close();
 
     ImGui::Render();
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    if (g_vk_enabled)
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), (VkCommandBuffer)cmd_buf);
+    else
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
 const QImage *

@@ -13,6 +13,12 @@
 
 class QImage;
 
+// Linker problem workarounds...
+extern "C" {
+void qt_osd_start_vulkan(void (*(*callback)(const char *function_name, void *user_data))(), void* userdata_func, void* initdata);
+void qt_osd_vulkan_set_min_image(int min_image);
+}
+
 void qt_osd_shutdown(void);
 
 bool qt_osd_is_visible(void);
@@ -21,7 +27,7 @@ void qt_osd_toggle(void);
 
 void qt_osd_set_layout_scale_hint(float scale);
 
-void qt_osd_render(int output_w, int output_h, float dpr);
+void qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf = nullptr);
 
 const QImage *qt_osd_render_software(int logical_w, int logical_h, float dpr);
 
