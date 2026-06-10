@@ -427,11 +427,34 @@ VulkanRenderer2::updateSamplers()
     }
 }
 
+PFN_vkVoidFunction vk_function_ret_callback(const char *function_name, void *user_data)
+{
+    QVulkanInstance* inst = (QVulkanInstance*)user_data;
+
+    return inst->getInstanceProcAddr(function_name);
+}
+
 void
 VulkanRenderer2::initResources()
 {
     VkDevice dev = m_window->device();
     m_devFuncs   = m_window->vulkanInstance()->deviceFunctions(dev);
+
+    init_info = {};
+    init_info.ApiVersion = VK_VERSION_1_0;
+    init_info.Instance = m_window->vulkanInstance()->vkInstance();
+    init_info.PhysicalDevice = m_window->physicalDevice();
+    init_info.Device = m_window->device();
+    init_info.QueueFamily = m_window->graphicsQueueFamilyIndex();
+    init_info.Queue = m_window->graphicsQueue();
+
+    init_info.DescriptorPoolSize = 16;
+    init_info.MinImageCount = 2;
+    init_info.ImageCount = 2;
+
+    init_info.PipelineInfoMain.RenderPass = m_window->defaultRenderPass();
+    init_info.PipelineInfoMain.Subpass = 0;
+    qt_osd_start_vulkan(vk_function_ret_callback, m_window->vulkanInstance(), &init_info);
 
     // The setup is similar to hellovulkantriangle. The difference is the
     // presence of a second vertex attribute (texcoord), a sampler, and that we
@@ -806,10 +829,6 @@ VulkanRenderer2::initResources()
     pclog("Vulkan device: %s\n", m_window->physicalDeviceProperties()->deviceName);
     pclog("Vulkan API version: %d.%d.%d\n", VK_VERSION_MAJOR(m_window->physicalDeviceProperties()->apiVersion), VK_VERSION_MINOR(m_window->physicalDeviceProperties()->apiVersion), VK_VERSION_PATCH(m_window->physicalDeviceProperties()->apiVersion));
     pclog("Vulkan driver version: %d.%d.%d\n", VK_VERSION_MAJOR(m_window->physicalDeviceProperties()->driverVersion), VK_VERSION_MINOR(m_window->physicalDeviceProperties()->driverVersion), VK_VERSION_PATCH(m_window->physicalDeviceProperties()->driverVersion));
-
-    // On-screen display overlay (failure is non-fatal, the scene still renders).
-    if (!createOsdResources())
-        qWarning("Vulkan OSD overlay disabled: resource creation failed");
 }
 
 void
@@ -829,7 +848,7 @@ VulkanRenderer2::releaseResources()
 {
     VkDevice dev = m_window->device();
 
-    releaseOsdResources();
+    qt_osd_shutdown();
 
     if (m_sampler) {
         m_devFuncs->vkDestroySampler(dev, m_sampler, nullptr);
@@ -902,293 +921,14 @@ VulkanRenderer2::releaseResources()
     }
 }
 
-bool
-VulkanRenderer2::createOsdResources()
-{
-    VkDevice dev = m_window->device();
-
-    // The OSD texture is host-visible and sampled directly via linear tiling.
-    VkFormatProperties props;
-    m_window->vulkanInstance()->functions()->vkGetPhysicalDeviceFormatProperties(m_window->physicalDevice(), m_texFormat, &props);
-    if (!(props.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
-        qWarning("OSD: linear sampling unavailable for the swapchain format");
-        return false;
-    }
-
-    const int concurrentFrameCount = m_window->concurrentFrameCount();
-
-    // Dedicated full-window quad with texcoords covering the whole OSD image.
-    VkBufferCreateInfo bufInfo;
-    memset(&bufInfo, 0, sizeof(bufInfo));
-    bufInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-    bufInfo.size  = sizeof(vertexData);
-    bufInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-    if (m_devFuncs->vkCreateBuffer(dev, &bufInfo, nullptr, &m_osdVtxBuf) != VK_SUCCESS)
-        return false;
-
-    VkMemoryRequirements memReq;
-    m_devFuncs->vkGetBufferMemoryRequirements(dev, m_osdVtxBuf, &memReq);
-    VkMemoryAllocateInfo memAllocInfo = {
-        VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, nullptr, memReq.size, m_window->hostVisibleMemoryIndex()
-    };
-    if (m_devFuncs->vkAllocateMemory(dev, &memAllocInfo, nullptr, &m_osdVtxMem) != VK_SUCCESS)
-        return false;
-    if (m_devFuncs->vkBindBufferMemory(dev, m_osdVtxBuf, m_osdVtxMem, 0) != VK_SUCCESS)
-        return false;
-
-    quint8 *vp = nullptr;
-    if (m_devFuncs->vkMapMemory(dev, m_osdVtxMem, 0, memReq.size, 0, reinterpret_cast<void **>(&vp)) != VK_SUCCESS)
-        return false;
-    memcpy(vp, vertexData, sizeof(vertexData));
-    m_devFuncs->vkUnmapMemory(dev, m_osdVtxMem);
-
-    // The OSD is rendered at native device resolution, nearest sampling keeps the bitmap font crisp.
-    VkSamplerCreateInfo samplerInfo;
-    memset(&samplerInfo, 0, sizeof(samplerInfo));
-    samplerInfo.sType         = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    samplerInfo.magFilter     = VK_FILTER_NEAREST;
-    samplerInfo.minFilter     = VK_FILTER_NEAREST;
-    samplerInfo.addressModeU  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeV  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.addressModeW  = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    samplerInfo.maxAnisotropy = 1.0f;
-    samplerInfo.maxLod        = 0.25f;
-    if (m_devFuncs->vkCreateSampler(dev, &samplerInfo, nullptr, &m_osdSampler) != VK_SUCCESS)
-        return false;
-
-    // Reuse the scene descriptor set layout (uniform proj + sampler).
-    VkDescriptorPoolSize descPoolSizes[2] = {
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,         uint32_t(concurrentFrameCount) },
-        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, uint32_t(concurrentFrameCount) }
-    };
-    VkDescriptorPoolCreateInfo descPoolInfo;
-    memset(&descPoolInfo, 0, sizeof(descPoolInfo));
-    descPoolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    descPoolInfo.maxSets       = concurrentFrameCount;
-    descPoolInfo.poolSizeCount = 2;
-    descPoolInfo.pPoolSizes    = descPoolSizes;
-    if (m_devFuncs->vkCreateDescriptorPool(dev, &descPoolInfo, nullptr, &m_osdDescPool) != VK_SUCCESS)
-        return false;
-
-    for (int i = 0; i < concurrentFrameCount; ++i) {
-        VkDescriptorSetAllocateInfo descSetAllocInfo = {
-            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO, nullptr, m_osdDescPool, 1, &m_descSetLayout
-        };
-        if (m_devFuncs->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_osdDescSet[i]) != VK_SUCCESS)
-            return false;
-
-        VkWriteDescriptorSet descWrite;
-        memset(&descWrite, 0, sizeof(descWrite));
-        descWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descWrite.dstSet          = m_osdDescSet[i];
-        descWrite.dstBinding      = 0;
-        descWrite.descriptorCount = 1;
-        descWrite.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        descWrite.pBufferInfo     = &m_uniformBufInfo[i];
-        m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
-    }
-
-    m_osdResourcesReady = true;
-    return true;
-}
-
-void
-VulkanRenderer2::ensureOsdImage(const QSize &size)
-{
-    if (size.isEmpty())
-        return;
-    if (m_osdImage != VK_NULL_HANDLE && m_osdSize == size)
-        return;
-
-    VkDevice dev = m_window->device();
-    m_devFuncs->vkDeviceWaitIdle(dev);
-
-    if (m_osdMapped) {
-        m_devFuncs->vkUnmapMemory(dev, m_osdMem);
-        m_osdMapped = nullptr;
-    }
-    if (m_osdView) {
-        m_devFuncs->vkDestroyImageView(dev, m_osdView, nullptr);
-        m_osdView = VK_NULL_HANDLE;
-    }
-    if (m_osdImage) {
-        m_devFuncs->vkDestroyImage(dev, m_osdImage, nullptr);
-        m_osdImage = VK_NULL_HANDLE;
-    }
-    if (m_osdMem) {
-        m_devFuncs->vkFreeMemory(dev, m_osdMem, nullptr);
-        m_osdMem = VK_NULL_HANDLE;
-    }
-
-    if (!createTextureImage(size, &m_osdImage, &m_osdMem,
-                            VK_IMAGE_TILING_LINEAR, VK_IMAGE_USAGE_SAMPLED_BIT,
-                            m_window->hostVisibleMemoryIndex())) {
-        qWarning("OSD: failed to create overlay image");
-        return;
-    }
-
-    VkImageViewCreateInfo viewInfo;
-    memset(&viewInfo, 0, sizeof(viewInfo));
-    viewInfo.sType                       = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewInfo.image                       = m_osdImage;
-    viewInfo.viewType                    = VK_IMAGE_VIEW_TYPE_2D;
-    viewInfo.format                      = m_texFormat;
-    viewInfo.components.r                = VK_COMPONENT_SWIZZLE_R;
-    viewInfo.components.g                = VK_COMPONENT_SWIZZLE_G;
-    viewInfo.components.b                = VK_COMPONENT_SWIZZLE_B;
-    viewInfo.components.a                = VK_COMPONENT_SWIZZLE_A;
-    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    viewInfo.subresourceRange.levelCount = viewInfo.subresourceRange.layerCount = 1;
-    if (m_devFuncs->vkCreateImageView(dev, &viewInfo, nullptr, &m_osdView) != VK_SUCCESS) {
-        qWarning("OSD: failed to create overlay image view");
-        return;
-    }
-
-    VkImageSubresource  subres = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0 };
-    VkSubresourceLayout layout;
-    m_devFuncs->vkGetImageSubresourceLayout(dev, m_osdImage, &subres, &layout);
-    if (m_devFuncs->vkMapMemory(dev, m_osdMem, layout.offset, layout.size, 0, &m_osdMapped) != VK_SUCCESS) {
-        qWarning("OSD: failed to map overlay image");
-        m_osdMapped = nullptr;
-        return;
-    }
-    m_osdPitch         = layout.rowPitch;
-    m_osdSize          = size;
-    m_osdLayoutPending = true;
-
-    // Point the OSD descriptor sets at the new image. The overlay stays in
-    // GENERAL layout so host writes and shader reads share it each frame.
-    VkDescriptorImageInfo descImageInfo = { m_osdSampler, m_osdView, VK_IMAGE_LAYOUT_GENERAL };
-    for (int i = 0; i < m_window->concurrentFrameCount(); ++i) {
-        VkWriteDescriptorSet descWrite;
-        memset(&descWrite, 0, sizeof(descWrite));
-        descWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descWrite.dstSet          = m_osdDescSet[i];
-        descWrite.dstBinding      = 1;
-        descWrite.descriptorCount = 1;
-        descWrite.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descWrite.pImageInfo      = &descImageInfo;
-        m_devFuncs->vkUpdateDescriptorSets(dev, 1, &descWrite, 0, nullptr);
-    }
-}
-
-void
-VulkanRenderer2::prepareOsd(VkCommandBuffer cb)
-{
-    m_osdDrawThisFrame = false;
-    if (!m_osdResourcesReady || !qt_osd_is_visible())
-        return;
-
-    auto *win = qobject_cast<VulkanWindowRenderer *>(m_window);
-
-    qt_osd_set_layout_scale_hint(win->osdLayoutScaleHint());
-    const QImage *frame = qt_osd_render_software(win->width(), win->height(), win->devicePixelRatio());
-    if (!frame || frame->isNull())
-        return;
-
-    QImage img = frame->format() == QImage::Format_ARGB32_Premultiplied
-        ? *frame
-        : frame->convertToFormat(QImage::Format_ARGB32_Premultiplied);
-
-    ensureOsdImage(img.size());
-    if (!m_osdMapped)
-        return;
-
-    auto     *dst      = static_cast<uint8_t *>(m_osdMapped);
-    const int rowBytes = img.width() * 4;
-    for (int y = 0; y < img.height(); ++y)
-        memcpy(dst + (VkDeviceSize) y * m_osdPitch, img.constScanLine(y), rowBytes);
-
-    VkImageMemoryBarrier barrier;
-    memset(&barrier, 0, sizeof(barrier));
-    barrier.sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.levelCount = barrier.subresourceRange.layerCount = 1;
-    barrier.image                       = m_osdImage;
-    barrier.oldLayout                   = m_osdLayoutPending ? VK_IMAGE_LAYOUT_PREINITIALIZED : VK_IMAGE_LAYOUT_GENERAL;
-    barrier.newLayout                   = VK_IMAGE_LAYOUT_GENERAL;
-    barrier.srcAccessMask               = VK_ACCESS_HOST_WRITE_BIT;
-    barrier.dstAccessMask               = VK_ACCESS_SHADER_READ_BIT;
-    m_devFuncs->vkCmdPipelineBarrier(cb,
-                                     VK_PIPELINE_STAGE_HOST_BIT,
-                                     VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                     0, 0, nullptr, 0, nullptr,
-                                     1, &barrier);
-    m_osdLayoutPending = false;
-    m_osdDrawThisFrame = true;
-}
-
 void
 VulkanRenderer2::drawOsd(VkCommandBuffer cb, const QSize &swapSize)
 {
-    if (!m_osdDrawThisFrame || swapSize.isEmpty())
+    if (!qt_osd_is_visible())
         return;
 
-    // Same pipeline as the scene, but its own descriptor set and full-window quad.
-    m_devFuncs->vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipeline);
-    m_devFuncs->vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1,
-                                        &m_osdDescSet[m_window->currentFrame()], 0, nullptr);
-    VkDeviceSize off = 0;
-    m_devFuncs->vkCmdBindVertexBuffers(cb, 0, 1, &m_osdVtxBuf, &off);
-
-    VkViewport viewport;
-    viewport.x        = 0;
-    viewport.y        = 0;
-    viewport.width    = swapSize.width();
-    viewport.height   = swapSize.height();
-    viewport.minDepth = 0;
-    viewport.maxDepth = 1;
-    m_devFuncs->vkCmdSetViewport(cb, 0, 1, &viewport);
-
-    VkRect2D scissor;
-    scissor.offset.x      = 0;
-    scissor.offset.y      = 0;
-    scissor.extent.width  = swapSize.width();
-    scissor.extent.height = swapSize.height();
-    m_devFuncs->vkCmdSetScissor(cb, 0, 1, &scissor);
-
-    m_devFuncs->vkCmdDraw(cb, 4, 1, 0, 0);
-}
-
-void
-VulkanRenderer2::releaseOsdResources()
-{
-    VkDevice dev = m_window->device();
-
-    if (m_osdMapped) {
-        m_devFuncs->vkUnmapMemory(dev, m_osdMem);
-        m_osdMapped = nullptr;
-    }
-    if (m_osdView) {
-        m_devFuncs->vkDestroyImageView(dev, m_osdView, nullptr);
-        m_osdView = VK_NULL_HANDLE;
-    }
-    if (m_osdImage) {
-        m_devFuncs->vkDestroyImage(dev, m_osdImage, nullptr);
-        m_osdImage = VK_NULL_HANDLE;
-    }
-    if (m_osdMem) {
-        m_devFuncs->vkFreeMemory(dev, m_osdMem, nullptr);
-        m_osdMem = VK_NULL_HANDLE;
-    }
-    if (m_osdSampler) {
-        m_devFuncs->vkDestroySampler(dev, m_osdSampler, nullptr);
-        m_osdSampler = VK_NULL_HANDLE;
-    }
-    if (m_osdDescPool) {
-        m_devFuncs->vkDestroyDescriptorPool(dev, m_osdDescPool, nullptr);
-        m_osdDescPool = VK_NULL_HANDLE;
-    }
-    if (m_osdVtxBuf) {
-        m_devFuncs->vkDestroyBuffer(dev, m_osdVtxBuf, nullptr);
-        m_osdVtxBuf = VK_NULL_HANDLE;
-    }
-    if (m_osdVtxMem) {
-        m_devFuncs->vkFreeMemory(dev, m_osdVtxMem, nullptr);
-        m_osdVtxMem = VK_NULL_HANDLE;
-    }
-    m_osdSize           = QSize();
-    m_osdResourcesReady = false;
+    qt_osd_set_layout_scale_hint(qobject_cast<VulkanWindowRenderer *>(m_window)->osdLayoutScaleHint());
+    qt_osd_render(m_window->width(), m_window->height(), m_window->devicePixelRatio(), (void*)cb);
 }
 
 void
@@ -1201,8 +941,6 @@ VulkanRenderer2::startNextFrame()
     updateSamplers();
     // Add the necessary barriers and do the host-linear -> device-optimal copy, if not yet done.
     ensureTexture();
-    // Upload the OSD overlay and record its layout barrier before the render pass.
-    prepareOsd(cb);
 
     VkClearColorValue clearColor = {
         { 0, 0, 0, 1 }

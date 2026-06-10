@@ -39,6 +39,7 @@
 
 #    if QT_CONFIG(vulkan)
 #        include "qt_vulkanwindowrenderer.hpp"
+#        include "imgui_impl_vulkan.h"
 
 class VulkanRenderer2 : public QVulkanWindowRenderer {
 public:
@@ -62,11 +63,7 @@ private:
     void           ensureTexture();
     void           updateSamplers();
 
-    bool           createOsdResources();
-    void           ensureOsdImage(const QSize &size);
-    void           prepareOsd(VkCommandBuffer cb);
     void           drawOsd(VkCommandBuffer cb, const QSize &swapSize);
-    void           releaseOsdResources();
 
     QVulkanWindow          *m_window;
     QVulkanDeviceFunctions *m_devFuncs;
@@ -96,23 +93,8 @@ private:
     QSize          m_texSize;
     VkFormat       m_texFormat;
 
-    // OSD overlay (ImGui rendered via the shared software rasterizer,
-    // uploaded as a full-window premultiplied-alpha texture and composited
-    // over the scene inside the render pass).
-    VkBuffer         m_osdVtxBuf   = VK_NULL_HANDLE;
-    VkDeviceMemory   m_osdVtxMem   = VK_NULL_HANDLE;
-    VkSampler        m_osdSampler  = VK_NULL_HANDLE;
-    VkDescriptorPool m_osdDescPool = VK_NULL_HANDLE;
-    VkDescriptorSet  m_osdDescSet[QVulkanWindow::MAX_CONCURRENT_FRAME_COUNT] = {};
-    VkImage          m_osdImage    = VK_NULL_HANDLE;
-    VkDeviceMemory   m_osdMem      = VK_NULL_HANDLE;
-    VkImageView      m_osdView     = VK_NULL_HANDLE;
-    void            *m_osdMapped   = nullptr;
-    VkDeviceSize     m_osdPitch    = 0;
-    QSize            m_osdSize;
-    bool             m_osdLayoutPending  = false;
-    bool             m_osdResourcesReady = false;
-    bool             m_osdDrawThisFrame  = false;
+    // OSD overlay
+    ImGui_ImplVulkan_InitInfo init_info{};
 
     QMatrix4x4 m_proj;
 };
