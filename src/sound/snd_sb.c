@@ -1986,7 +1986,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x40:
                     if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688) {
-                        if ((ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1788) && (val & 0x04)) {
+                        if (((ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1788) || ess->es1688_rsk_enable) && (val & 0x04)) {
                             mixer->regs[0x40] = val & 0xfb;
                             ess_rsk_reset(ess);
                             break;
@@ -3739,7 +3739,7 @@ ess_chipchat_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     sb_t *ess = (sb_t *) priv;
 
-    if (port < 0x102)
+    if ((port < 0x102) || (port == 0x103))
         return;
 
     sb_log("ess_chipchat_mca_write: port=%04x val=%02x\n", port, val);
@@ -5052,6 +5052,10 @@ sb_awe32_pnp_init(const device_t *info)
             pnp_rom_file = PNP_ROM_SB_AWE32_PNP;
             break;
 
+        case SB_AWE32_IDE_PNP:
+            pnp_rom_file = PNP_ROM_SB_AWE32_IDE_PNP;
+            break;
+
         case SB_AWE64_VALUE:
             pnp_rom_file = PNP_ROM_SB_AWE64_VALUE;
             break;
@@ -5090,6 +5094,7 @@ sb_awe32_pnp_init(const device_t *info)
             break;
 
         case SB_AWE32_PNP:
+        case SB_AWE32_IDE_PNP:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
@@ -5138,6 +5143,7 @@ ess_x688_init(UNUSED(const device_t *info))
     const uint16_t ide_base = ide_ctrl & 0x0fff;
     const uint16_t ide_side = ide_base + 0x0206;
     const uint16_t ide_irq  = ide_ctrl >> 12;
+    const uint8_t  is_compaq = (info->local >> 4);
 
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
@@ -5151,46 +5157,49 @@ ess_x688_init(UNUSED(const device_t *info))
     ess_mixer_reset(ess);
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
-    io_sethandler(addr, 0x0004,
-                  ess->opl.read, NULL, NULL,
-                  ess->opl.write, NULL, NULL,
-                  ess->opl.priv);
-    io_sethandler(addr + 8, 0x0002,
-                  ess->opl.read, NULL, NULL,
-                  ess->opl.write, NULL, NULL,
-                  ess->opl.priv);
-    io_sethandler(addr + 8, 0x0002,
-                  ess_fm_midi_read, NULL, NULL,
-                  ess_fm_midi_write, NULL, NULL,
-                  ess);
-    io_sethandler(0x0388, 0x0004,
-                  ess->opl.read, NULL, NULL,
-                  ess->opl.write, NULL, NULL,
-                  ess->opl.priv);
-    io_sethandler(0x0388, 0x0004,
-                  ess_fm_midi_read, NULL, NULL,
-                  ess_fm_midi_write, NULL, NULL,
-                  ess);
+    if (!is_compaq) {
+        io_sethandler(addr, 0x0004,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(addr + 8, 0x0002,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(addr + 8, 0x0002,
+                      ess_fm_midi_read, NULL, NULL,
+                      ess_fm_midi_write, NULL, NULL,
+                      ess);
+        io_sethandler(0x0388, 0x0004,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(0x0388, 0x0004,
+                      ess_fm_midi_read, NULL, NULL,
+                      ess_fm_midi_write, NULL, NULL,
+                      ess);
 
-    io_sethandler(addr + 2, 0x0004,
-                  ess_base_read, NULL, NULL,
-                  ess_base_write, NULL, NULL,
-                  ess);
-    io_sethandler(addr + 6, 0x0001,
-                  ess_base_read, NULL, NULL,
-                  ess_base_write, NULL, NULL,
-                  ess);
-    io_sethandler(addr + 0x0a, 0x0006,
-                  ess_base_read, NULL, NULL,
-                  ess_base_write, NULL, NULL,
-                  ess);
+        io_sethandler(addr + 2, 0x0004,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+        io_sethandler(addr + 6, 0x0001,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+        io_sethandler(addr + 0x0a, 0x0006,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+    }
 
     ess->mixer_enabled = 1;
     ess->mixer_ess.regs[0x40] = 0x0a;
-    io_sethandler(addr + 4, 0x0002,
-                  ess_mixer_read, NULL, NULL,
-                  ess_mixer_write, NULL, NULL,
-                  ess);
+    if (!is_compaq)
+        io_sethandler(addr + 4, 0x0002,
+                      ess_mixer_read, NULL, NULL,
+                      ess_mixer_write, NULL, NULL,
+                      ess);
     sound_add_handler(sb_get_buffer_ess, ess);
     music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -5223,6 +5232,22 @@ ess_x688_init(UNUSED(const device_t *info))
         other_ide_present++;
 
         ess->has_ide = 1;
+    }
+
+    if (is_compaq) { /* Enable Read-Sequence-Key mode */
+        ess->opl_pnp_addr = 0x388;
+        ess->es188x_readseq_state = 0;
+        ess->es188x_dsp_addr      = 0;
+        ess->es1688_rsk_enable    = 1;
+        sb_dsp_setaddr(&ess->dsp, 0);
+        io_sethandler(0x220, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
+        io_sethandler(0x229, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
+        io_sethandler(0x22b, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
+        io_sethandler(0x22d, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
+        io_sethandler(0x22f, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
+        io_sethandler(0x230, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
+        io_sethandler(0x240, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
+        io_sethandler(0x250, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
     }
 
     return ess;
@@ -5382,6 +5407,8 @@ ess_x688_mca_init(UNUSED(const device_t *info))
         mca_add(ess_x688_mca_read, ess_chipchat_mca_write, sb_mcv_feedb, NULL, ess);
         ess->pos_regs[0] = 0x50;
         ess->pos_regs[1] = 0x51;
+        ess->pos_regs[3] = 0x50;
+        ess->dsp.is_chipchat = 1;
     } else {
         mca_add(ess_x688_mca_read, ess_soundpiper_mca_write, sb_mcv_feedb, NULL, ess);
         ess->pos_regs[0] = 0x30;
@@ -8004,7 +8031,7 @@ const device_t sb_awe32_pnp_device = {
 
 const device_t sb_awe32_ide_pnp_device = {
     .name          = "Sound Blaster AWE32 IDE PnP",
-    .internal_name = "sbawe32_pnp",
+    .internal_name = "sbawe32_ide_pnp",
     .flags         = DEVICE_ISA16,
     .local         = SB_AWE32_IDE_PNP,
     .init          = sb_awe32_pnp_init,
@@ -8106,6 +8133,20 @@ const device_t ess_1688_device = {
     .internal_name = "ess_es1688",
     .flags         = DEVICE_ISA16,
     .local         = 1,
+    .init          = ess_x688_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = ess_1688_config
+};
+
+const device_t ess_1688_compaq_device = {
+    .name          = "ESS AudioDrive ES1688 (Compaq)",
+    .internal_name = "ess_es1688_compaq",
+    .flags         = DEVICE_ISA16,
+    .local         = 0x11,
     .init          = ess_x688_init,
     .close         = sb_close,
     .reset         = NULL,

@@ -96,8 +96,8 @@ typedef struct
 
 	int32_t rateratio;
 	int32_t samplecnt;
-	int16_t oldsamples[2];
-	int16_t samples[2];
+	int32_t oldsamples[2];
+	int32_t samples[2];
 
 	uint64_t writebuf_samplecnt;
 	uint32_t writebuf_cur;
@@ -109,6 +109,7 @@ typedef struct
 typedef struct {
     cqm_t    cqm;
     int8_t   flags;
+    int8_t   is_48k;
 
     uint16_t port;
     uint8_t  status;
@@ -148,9 +149,10 @@ enum {
 void CQM_Reset(cqm_t* chip, uint32_t samplerate, uint32_t genrate);
 void CQM_WriteReg(cqm_t* chip, uint16_t reg, uint8_t data);
 void CQM_WriteRegBuffered(cqm_t* chip, uint16_t reg, uint8_t data);
-void CQM_Generate(cqm_t* chip, int16_t* sample);
+void CQM_Generate(cqm_t* chip, int32_t* sample);
 void CQM_GenerateResampled(cqm_t* chip, int32_t* sample);
 void CQM_GenerateStream(cqm_t* chip, int32_t* sndptr, uint32_t numsamples);
+void CQM_GenerateStreamResampled(cqm_t* chip, int32_t* sndptr, uint32_t numsamples);
 
 #ifdef __cplusplus
 }

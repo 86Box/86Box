@@ -196,6 +196,9 @@ typedef struct sb_dsp_t {
     /* ESS ES188x IRQ mode */
     uint8_t  es188x_irq_mode;
 
+    /* ChipChat */
+    uint8_t  is_chipchat;
+
     mpu_t *mpu;
 } sb_dsp_t;
 

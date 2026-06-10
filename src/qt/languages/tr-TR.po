@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-02 17:02+0000\n"
+"PO-Revision-Date: 2026-06-09 01:33+0000\n"
 "Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -3041,7 +3041,7 @@ msgid "Toggle mute"
 msgstr "Sessize almayı ayarla"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Ekran üstü göstergeyi ayarla"
 
 msgid "Text files"
 msgstr "Metin dosyaları"
@@ -3210,7 +3210,7 @@ msgid "Export EDID"
 msgstr "EDID'i dışa aktar"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "EDID dosyası \"%s\" geçersiz."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID dosyası \"%s\" çok büyük."

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-02 17:02+0000\n"
+"PO-Revision-Date: 2026-06-09 01:33+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -3075,7 +3075,7 @@ msgid "Toggle mute"
 msgstr "음소거 켜기/끄기"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "화면 정보 표시 켜기/끄기"
 
 msgid "Text files"
 msgstr "텍스트 파일"
@@ -3243,7 +3243,7 @@ msgid "Export EDID"
 msgstr "EDID 내보내기"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "EDID 파일 \"%s\"이(가) 유효하지 않습니다."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID 파일 \"%s\"가 너무 큽니다."

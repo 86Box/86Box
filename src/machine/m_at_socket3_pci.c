@@ -1234,7 +1234,7 @@ machine_at_pl4600c_init(const machine_t *model)
         device_add(&gd5430_onboard_pci_device);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&ess_1688_device);
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     if (fdc_current[0] == FDC_INTERNAL) {
         fdd_set_turbo(0, 1);

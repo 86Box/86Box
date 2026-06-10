@@ -205,6 +205,7 @@ typedef struct sb_t {
     uint16_t gameport_addr;
 
     uint8_t  ess_scr_locked;
+    uint8_t  es1688_rsk_enable;
     uint8_t  es188x_readseq_state;
     uint8_t  es188x_readseq_mode;
     uint16_t es188x_dsp_addr;

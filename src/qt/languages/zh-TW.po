@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-06 01:43+0000\n"
+"PO-Revision-Date: 2026-06-09 01:33+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -3019,7 +3019,7 @@ msgid "Toggle mute"
 msgstr "切換靜音"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "開啟/關閉 OSD"
 
 msgid "Text files"
 msgstr "文字檔案"
@@ -3187,7 +3187,7 @@ msgid "Export EDID"
 msgstr "匯出 EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "EDID 檔案 \"%s\" 無效。"
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID 檔案 \"%s\" 太大。"
