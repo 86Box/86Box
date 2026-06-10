@@ -201,6 +201,8 @@ typedef struct virge_t {
 
     uint8_t bank;
     uint8_t ma_ext;
+    uint8_t override;
+    uint8_t mon_det;
 
     uint8_t virge_id;
     uint8_t virge_id_high;
@@ -736,6 +738,18 @@ s3_virge_in(uint16_t addr, void *priv)
                 ret = svga_in(addr, svga);
             else
                 ret = 0xff;
+            break;
+
+        case 0x3c2:
+            if (virge->override) {
+                ret = virge->mon_det;
+                virge->mon_det ^= 0x10;
+            } else {
+                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            }
             break;
 
         case 0x3d4:
@@ -5372,6 +5386,7 @@ s3_virge_init(const device_t *info)
                 bios_fn = ROM_DIAMOND_STEALTH3D_3000;
                 break;
             case S3_STB_VELOCITY_3D:
+                virge->override = 1;
                 bios_fn = ROM_STB_VELOCITY_3D;
                 break;
             case S3_VIRGE_DX:

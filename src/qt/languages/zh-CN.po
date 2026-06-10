@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-07 22:01+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-06-09 01:33+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -3173,7 +3173,7 @@ msgid "Export EDID"
 msgstr "导出EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr "EDID 文件 \"%s\" 是无效的。"
+msgstr "EDID 文件“%s”无效。"
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID文件 \"%s\" 过大。"

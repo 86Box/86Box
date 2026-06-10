@@ -276,6 +276,15 @@ hdd_image_load(int id)
     int      is_vhd[2] = { 0, 0 };
     int      vhd_error = 0;
 
+    if (id > 0) {
+        for (int i = 0; i < id; i++) {
+            if (strcmp(hdd[id].fn, hdd[i].fn) == 0) {
+                fatal("Image already loaded: %s\n", hdd[i].fn);
+                return 0;
+            }
+        }
+    }
+
     memset(empty_sector, 0, sizeof(empty_sector));
     if (fn) {
         path_normalize(fn);

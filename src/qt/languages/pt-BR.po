@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 18:36+0000\n"
-"Last-Translator: RichardG867 <richardg867@gmail.com>\n"
+"PO-Revision-Date: 2026-06-09 01:33+0000\n"
+"Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
 "Language: pt-BR\n"
@@ -2313,7 +2313,7 @@ msgid "Control PC speaker"
 msgstr "Controlar alto-falante do PC"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Controle de volume MIDI"
 
 msgid "Memory size"
 msgstr "Tamanho da memória"
@@ -3012,7 +3012,7 @@ msgid "Toggle mute"
 msgstr "Alternar mudo"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Alternar exibição do OSD"
 
 msgid "Text files"
 msgstr "Arquivos de texto"
@@ -3176,7 +3176,7 @@ msgid "Export EDID"
 msgstr "Exportar EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "Arquivo EDID \"%s\" é inválido."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "O arquivo EDID \"%s\" é muito grande."
@@ -3390,4 +3390,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Chinês tradicional)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Taxa de amostragem:"
