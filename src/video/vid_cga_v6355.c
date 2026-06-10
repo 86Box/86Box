@@ -446,7 +446,7 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
     uint16_t dat;
     uint32_t width = v6355_width(v6355) / 16;
 
-    cols[0] = v6355->cgacol & 15;
+    cols[0] = (v6355->cgacol & 15) | 16;
 
     intensity = (v6355->cgacol & 16) ? 8 : 0;
 
@@ -463,6 +463,9 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
         cols[2] = intensity | 4;
         cols[3] = intensity | 6;
     }
+
+    for (int i = 1; i < 4; i++)
+        cols[i] |= 16;
 
     for (x = 0; x < width; x++) {
         if (v6355->cgamode & 8)
@@ -490,8 +493,8 @@ v6355_line_graphics640(v6355_t *v6355, uint8_t *pixel)
     uint16_t dat;
     uint32_t width = v6355_width(v6355) / 16;
 
-    cols[0] = 0;
-    cols[1] = v6355->cgacol & 15;
+    cols[0] = 16;
+    cols[1] = (v6355->cgacol & 15) | 16;
 
     for (x = 0; x < width; x++) {
         if (v6355->cgamode & 8) 
