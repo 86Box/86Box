@@ -450,7 +450,7 @@ VulkanRenderer2::initResources()
 
     init_info.DescriptorPoolSize = 16;
     init_info.MinImageCount = 2;
-    init_info.ImageCount = 2;
+    init_info.ImageCount = 64;
 
     init_info.PipelineInfoMain.RenderPass = m_window->defaultRenderPass();
     init_info.PipelineInfoMain.Subpass = 0;
@@ -836,6 +836,8 @@ VulkanRenderer2::initSwapChainResources()
 {
     // Projection matrix
     m_proj = m_window->clipCorrectionMatrix(); // adjust for Vulkan-OpenGL clip space differences
+    qt_osd_vulkan_set_min_image(m_window->swapChainImageCount());
+    init_info.MinImageCount = m_window->swapChainImageCount();
 }
 
 void

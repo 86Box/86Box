@@ -126,6 +126,16 @@ qt_osd_start_vulkan(void (*(*callback)(const char *function_name, void *user_dat
 
     g_vk_enabled = true;
 }
+
+void
+qt_osd_vulkan_set_min_image(int min_image)
+{
+    if (g_vk_ready && g_vk_enabled) {
+        ImGui_ImplVulkan_SetMinImageCount(min_image);
+    } else {
+        vk_init_info.MinImageCount = min_image;
+    }
+}
 }
 
 void

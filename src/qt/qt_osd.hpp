@@ -13,8 +13,10 @@
 
 class QImage;
 
+// Linker problem workarounds...
 extern "C" {
 void qt_osd_start_vulkan(void (*(*callback)(const char *function_name, void *user_data))(), void* userdata_func, void* initdata);
+void qt_osd_vulkan_set_min_image(int min_image);
 }
 
 void qt_osd_shutdown(void);
