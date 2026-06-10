@@ -518,6 +518,7 @@ extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ics1494m_540_device;
 extern const device_t ics1494m_540_radius_ht209_device;
+extern const device_t ics2494an_304_device;
 extern const device_t ics2494an_305_device;
 extern const device_t ics2494an_324_device;
 extern const device_t ati18810_28800_device;
