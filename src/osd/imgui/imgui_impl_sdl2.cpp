@@ -21,6 +21,7 @@
 
 // CHANGELOG
 // (minor and older changes stripped away, please see git history for details)
+//  2026-04-16: Made ImGui_ImplSDL2_GetContentScaleForWindow(), ImGui_ImplSDL2_GetContentScaleForDisplay() helpers return a minimum of 1.0f, as some Linux setup seems to report <1.0f value and this breaks scaling border size. (#9369)
 //  2026-02-13: Inputs: systems other than X11 are back to starting mouse capture on mouse down (reverts 2025-02-26 change). Only X11 requires waiting for a drag by default (not ideal, but a better default for X11 users). Added ImGui_ImplSDL2_SetMouseCaptureMode() for X11 debugger users. (#3650, #6410, #9235)
 //  2026-01-15: Changed GetClipboardText() handler to return nullptr on error aka clipboard contents is not text. Consistent with other backends. (#9168)
 //  2025-09-24: Skip using the SDL_GetGlobalMouseState() state when one of our window is hovered, as the SDL_MOUSEMOTION data is reliable. Fix macOS notch mouse coordinates issue in fullscreen mode + better perf on X11. (#7919, #7786)
@@ -116,6 +117,7 @@
 
 // SDL
 #include <SDL.h>
+#include <SDL_syswm.h>
 #include <stdio.h>              // for snprintf()
 #ifdef __APPLE__
 #include <TargetConditionals.h>
@@ -123,10 +125,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/em_js.h>
 #endif
-#if defined(SDL_VIDEO_DRIVER_WINDOWS) || (defined(__APPLE__) && defined(SDL_VIDEO_DRIVER_COCOA))
-#include <SDL_syswm.h>
 #undef Status // X11 headers are leaking this.
-#endif
 
 #if SDL_VERSION_ATLEAST(2,0,4) && !defined(__EMSCRIPTEN__) && !defined(__ANDROID__) && !(defined(__APPLE__) && TARGET_OS_IOS) && !defined(__amigaos4__)
 #define SDL_HAS_CAPTURE_AND_GLOBAL_MOUSE    1
@@ -562,7 +561,6 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window, SDL_Renderer* renderer, void
     ImGuiViewport* main_viewport = ImGui::GetMainViewport();
     main_viewport->PlatformHandle = (void*)(intptr_t)bd->WindowID;
     main_viewport->PlatformHandleRaw = nullptr;
-#if defined(SDL_VIDEO_DRIVER_WINDOWS) || (defined(__APPLE__) && defined(SDL_VIDEO_DRIVER_COCOA))
     SDL_SysWMinfo info;
     SDL_VERSION(&info.version);
     if (SDL_GetWindowWMInfo(window, &info))
@@ -573,7 +571,6 @@ static bool ImGui_ImplSDL2_Init(SDL_Window* window, SDL_Renderer* renderer, void
         main_viewport->PlatformHandleRaw = (void*)info.info.cocoa.window;
 #endif
     }
-#endif
 
     // From 2.0.5: Set SDL hint to receive mouse click events on window focus, otherwise SDL doesn't emit the event.
     // Without this, when clicking to gain focus, our widgets wouldn't activate even though they showed as hovered.
@@ -752,6 +749,7 @@ float ImGui_ImplSDL2_GetContentScaleForWindow(SDL_Window* window)
     return ImGui_ImplSDL2_GetContentScaleForDisplay(SDL_GetWindowDisplayIndex(window));
 }
 
+// SDL_GetDisplayDPI() seems rather unreliable on Linux.
 float ImGui_ImplSDL2_GetContentScaleForDisplay(int display_index)
 {
     const char* sdl_driver = SDL_GetCurrentVideoDriver();
@@ -761,7 +759,11 @@ float ImGui_ImplSDL2_GetContentScaleForDisplay(int display_index)
 #if !defined(__APPLE__) && !defined(__EMSCRIPTEN__) && !defined(__ANDROID__)
     float dpi = 0.0f;
     if (SDL_GetDisplayDPI(display_index, &dpi, nullptr, nullptr) == 0)
+    {
+        if (dpi < 96.0f)
+            dpi = 96.0f;
         return dpi / 96.0f;
+    }
 #endif
 #endif
     IM_UNUSED(display_index);
@@ -888,7 +890,7 @@ static void ImGui_ImplSDL2_GetWindowSizeAndFramebufferScale(SDL_Window* window, 
     if (out_size != nullptr)
         *out_size = ImVec2((float)w, (float)h);
     if (out_framebuffer_scale != nullptr)
-        *out_framebuffer_scale = (w > 0 && h > 0) ? ImVec2((float)display_w / w, (float)display_h / h) : ImVec2(1.0f, 1.0f);
+        *out_framebuffer_scale = (w > 0 && h > 0) ? ImVec2((float)display_w / (float)w, (float)display_h / (float)h) : ImVec2(1.0f, 1.0f);
 }
 
 void ImGui_ImplSDL2_NewFrame()
@@ -906,7 +908,7 @@ void ImGui_ImplSDL2_NewFrame()
     Uint64 current_time = SDL_GetPerformanceCounter();
     if (current_time <= bd->Time)
         current_time = bd->Time + 1;
-    io.DeltaTime = bd->Time > 0 ? (float)((double)(current_time - bd->Time) / frequency) : (float)(1.0f / 60.0f);
+    io.DeltaTime = bd->Time > 0 ? (float)((double)(current_time - bd->Time) / (double)frequency) : (float)(1.0f / 60.0f);
     bd->Time = current_time;
 
     if (bd->MouseLastLeaveFrame && bd->MouseLastLeaveFrame >= ImGui::GetFrameCount() && bd->MouseButtonsDown == 0)

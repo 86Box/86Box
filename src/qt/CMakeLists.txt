@@ -279,7 +279,7 @@ add_library(ui STATIC
 
 # Build the Qt ImGui backend separately so AUTOMOC skips it.
 set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
-add_library(osd_backend OBJECT ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp)
+add_library(osd_backend OBJECT ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp ${OSD_DIR}/imgui/imgui_impl_vulkan.cpp)
 set_target_properties(osd_backend PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
 target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
 target_link_libraries(86Box osd_backend)

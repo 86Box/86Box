@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-09 01:33+0000\n"
+"PO-Revision-Date: 2026-06-10 23:25+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -2998,10 +2998,10 @@ msgid "This key combo is already in use."
 msgstr "此組合鍵已在使用中。"
 
 msgid "Send Control+Alt+Del"
-msgstr "傳送 Control+Alt+Del"
+msgstr "傳送 Ctrl+Alt+Del"
 
 msgid "Send Control+Alt+Escape"
-msgstr "傳送 Control+Alt+Escape"
+msgstr "傳送 Ctrl+Alt+Esc"
 
 msgid "Toggle fullscreen"
 msgstr "切換全螢幕"
@@ -3019,7 +3019,7 @@ msgid "Toggle mute"
 msgstr "切換靜音"
 
 msgid "Toggle on-screen display"
-msgstr "開啟/關閉 OSD"
+msgstr "切換 OSD"
 
 msgid "Text files"
 msgstr "文字檔案"
