@@ -1988,6 +1988,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688) {
                         if (((ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1788) || ess->es1688_rsk_enable) && (val & 0x04)) {
                             mixer->regs[0x40] = val & 0xfb;
+                            sb_log("ESS Read-Sequence-Key reset!\n");
                             ess_rsk_reset(ess);
                             break;
                         }
@@ -2511,7 +2512,6 @@ ess_rsk_reset(void *priv)
     }
 
     ess->es188x_readseq_state = 0;
-    sb_log("ESS Read-Sequence-Key reset!\n");
 }
 
 static uint8_t
