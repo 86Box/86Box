@@ -1988,6 +1988,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1688) {
                         if (((ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1788) || ess->es1688_rsk_enable) && (val & 0x04)) {
                             mixer->regs[0x40] = val & 0xfb;
+                            sb_log("ESS Read-Sequence-Key reset!\n");
                             ess_rsk_reset(ess);
                             break;
                         }
@@ -2511,7 +2512,6 @@ ess_rsk_reset(void *priv)
     }
 
     ess->es188x_readseq_state = 0;
-    sb_log("ESS Read-Sequence-Key reset!\n");
 }
 
 static uint8_t
@@ -5143,7 +5143,6 @@ ess_x688_init(UNUSED(const device_t *info))
     const uint16_t ide_base = ide_ctrl & 0x0fff;
     const uint16_t ide_side = ide_base + 0x0206;
     const uint16_t ide_irq  = ide_ctrl >> 12;
-    const uint8_t  is_compaq = (info->local >> 4);
 
     fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
@@ -5157,49 +5156,46 @@ ess_x688_init(UNUSED(const device_t *info))
     ess_mixer_reset(ess);
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
-    if (!is_compaq) {
-        io_sethandler(addr, 0x0004,
-                      ess->opl.read, NULL, NULL,
-                      ess->opl.write, NULL, NULL,
-                      ess->opl.priv);
-        io_sethandler(addr + 8, 0x0002,
-                      ess->opl.read, NULL, NULL,
-                      ess->opl.write, NULL, NULL,
-                      ess->opl.priv);
-        io_sethandler(addr + 8, 0x0002,
-                      ess_fm_midi_read, NULL, NULL,
-                      ess_fm_midi_write, NULL, NULL,
-                      ess);
-        io_sethandler(0x0388, 0x0004,
-                      ess->opl.read, NULL, NULL,
-                      ess->opl.write, NULL, NULL,
-                      ess->opl.priv);
-        io_sethandler(0x0388, 0x0004,
-                      ess_fm_midi_read, NULL, NULL,
-                      ess_fm_midi_write, NULL, NULL,
-                      ess);
+    io_sethandler(addr, 0x0004,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(addr + 8, 0x0002,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(addr + 8, 0x0002,
+                  ess_fm_midi_read, NULL, NULL,
+                  ess_fm_midi_write, NULL, NULL,
+                  ess);
+    io_sethandler(0x0388, 0x0004,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(0x0388, 0x0004,
+                  ess_fm_midi_read, NULL, NULL,
+                  ess_fm_midi_write, NULL, NULL,
+                  ess);
 
-        io_sethandler(addr + 2, 0x0004,
-                      ess_base_read, NULL, NULL,
-                      ess_base_write, NULL, NULL,
-                      ess);
-        io_sethandler(addr + 6, 0x0001,
-                      ess_base_read, NULL, NULL,
-                      ess_base_write, NULL, NULL,
-                      ess);
-        io_sethandler(addr + 0x0a, 0x0006,
-                      ess_base_read, NULL, NULL,
-                      ess_base_write, NULL, NULL,
-                      ess);
-    }
+    io_sethandler(addr + 2, 0x0004,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
+    io_sethandler(addr + 6, 0x0001,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
+    io_sethandler(addr + 0x0a, 0x0006,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
 
     ess->mixer_enabled = 1;
     ess->mixer_ess.regs[0x40] = 0x0a;
-    if (!is_compaq)
-        io_sethandler(addr + 4, 0x0002,
-                      ess_mixer_read, NULL, NULL,
-                      ess_mixer_write, NULL, NULL,
-                      ess);
+    io_sethandler(addr + 4, 0x0002,
+                  ess_mixer_read, NULL, NULL,
+                  ess_mixer_write, NULL, NULL,
+                  ess);
     sound_add_handler(sb_get_buffer_ess, ess);
     music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -5232,22 +5228,6 @@ ess_x688_init(UNUSED(const device_t *info))
         other_ide_present++;
 
         ess->has_ide = 1;
-    }
-
-    if (is_compaq) { /* Enable Read-Sequence-Key mode */
-        ess->opl_pnp_addr = 0x388;
-        ess->es188x_readseq_state = 0;
-        ess->es188x_dsp_addr      = 0;
-        ess->es1688_rsk_enable    = 1;
-        sb_dsp_setaddr(&ess->dsp, 0);
-        io_sethandler(0x220, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
-        io_sethandler(0x229, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
-        io_sethandler(0x22b, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
-        io_sethandler(0x22d, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
-        io_sethandler(0x22f, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
-        io_sethandler(0x230, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
-        io_sethandler(0x240, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
-        io_sethandler(0x250, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
     }
 
     return ess;
@@ -5419,10 +5399,9 @@ ess_x688_mca_init(UNUSED(const device_t *info))
 }
 
 static void *
-ess_1788_init(const device_t *info)
+ess_1x88_onboard_init(const device_t *info)
 {
     sb_t          *ess      = calloc(sizeof(sb_t), 1);
-    const uint16_t addr     = device_get_config_hex16("base");
 
     uint8_t type = (info->local & 0x0f);
     uint8_t is_compaq = (info->local >> 4);
@@ -5432,20 +5411,24 @@ ess_1788_init(const device_t *info)
     sb_dsp_set_real_opl(&ess->dsp, 1);
     ess->opl_pnp_addr = 0x388;
     switch (type) {
-        case 0: /* ES1788 */
+        case 0: /* ES1688 */
+            sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1688, ess);
+            ess->es1688_rsk_enable = 1;
+            break;
+        case 1: /* ES1788 */
             sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1788, ess);
             break;
-        case 1: /* ES1888 */
+        case 2: /* ES1888 */
             sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1888, ess);
             break;
-        case 2: /* ES1887 */
+        case 3: /* ES1887 */
             sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1887, ess);
             break;
     }
-    sb_dsp_setaddr(&ess->dsp, addr);
-    sb_dsp_setirq(&ess->dsp, device_get_config_int("irq"));
-    sb_dsp_setdma8(&ess->dsp, device_get_config_int("dma"));
-    sb_dsp_setdma16_8(&ess->dsp, device_get_config_int("dma"));
+    sb_dsp_setaddr(&ess->dsp, 0);
+    sb_dsp_setirq(&ess->dsp, 0);
+    sb_dsp_setdma8(&ess->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16_8(&ess->dsp, ISAPNP_DMA_DISABLED);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
@@ -5472,15 +5455,13 @@ ess_1788_init(const device_t *info)
     if (device_get_config_int("control_midi"))
         sound_set_midi_filter(ess_filter_midi, ess);
 
-    if (device_get_config_int("gameport")) {
-        if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1887) {
-            ess->gameport      = gameport_add(&gameport_pnp_device);
-            ess->gameport_addr = 0x200;
-            gameport_remap(ess->gameport, ess->gameport_addr);
-        } else {
-            ess->gameport      = gameport_add(&gameport_200_device);
-            ess->gameport_addr = 0x200;
-        }
+    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1887) {
+        ess->gameport      = gameport_add(&gameport_pnp_device);
+        ess->gameport_addr = 0x200;
+        gameport_remap(ess->gameport, ess->gameport_addr);
+    } else {
+        ess->gameport      = gameport_add(&gameport_200_device);
+        ess->gameport_addr = 0x200;
     }
 
     /* ES1788/188x System Configuration Register ports */
@@ -5492,7 +5473,6 @@ ess_1788_init(const device_t *info)
     /* ES1788/188x Read-Sequence-Key mode */
     ess->es188x_readseq_state = 0;
     ess->es188x_dsp_addr      = 0;
-    sb_dsp_setaddr(&ess->dsp, 0);
     io_sethandler(0x220, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
     io_sethandler(0x229, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
     io_sethandler(0x22b, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
@@ -7452,115 +7432,6 @@ static const device_config_t ess_1688_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
-static const device_config_t ess_1788_config[] = {
-    {
-        .name           = "base",
-        .description    = "Address",
-        .type           = CONFIG_HEX16,
-        .default_string = NULL,
-        .default_int    = 0x220,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "0x220", .value = 0x220 },
-            { .description = "0x230", .value = 0x230 },
-            { .description = "0x240", .value = 0x240 },
-            { .description = "0x250", .value = 0x250 },
-            { .description = ""                      }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "irq",
-        .description    = "IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 5,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 2",  .value =  2 },
-            { .description = "IRQ 5",  .value =  5 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = ""                    }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "dma",
-        .description    = "DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "gameport",
-        .description    = "Enable Game port",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "control_pc_speaker",
-        .description    = "Control PC speaker",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "control_midi",
-        .description    = "Control MIDI volume",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "receive_input",
-        .description    = "Receive MIDI input",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "receive_input401",
-        .description    = "Receive MIDI input (MPU-401)",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
 static const device_config_t ess_688_pnp_config[] = {
     {
         .name           = "receive_input",
@@ -8146,14 +8017,14 @@ const device_t ess_1688_compaq_device = {
     .name          = "ESS AudioDrive ES1688 (Compaq)",
     .internal_name = "ess_es1688_compaq",
     .flags         = DEVICE_ISA16,
-    .local         = 0x11,
-    .init          = ess_x688_init,
+    .local         = 0,
+    .init          = ess_1x88_onboard_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1688_config
+    .config        = ess_1688_pnp_config
 };
 
 const device_t ess_ess0102_pnp_device = {
@@ -8244,54 +8115,54 @@ const device_t ess_1788_device = {
     .name          = "ESS AudioDrive ES1788",
     .internal_name = "ess_es1788",
     .flags         = DEVICE_ISA16,
-    .local         = 0,
-    .init          = ess_1788_init,
+    .local         = 1,
+    .init          = ess_1x88_onboard_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1788_config
+    .config        = ess_1688_pnp_config
 };
 
 const device_t ess_1888_device = {
     .name          = "ESS AudioDrive ES1888",
     .internal_name = "ess_es1888",
     .flags         = DEVICE_ISA16,
-    .local         = 1,
-    .init          = ess_1788_init,
+    .local         = 2,
+    .init          = ess_1x88_onboard_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1788_config
+    .config        = ess_1688_pnp_config
 };
 
 const device_t ess_1888_compaq_device = {
     .name          = "ESS AudioDrive ES1888 (Compaq)",
     .internal_name = "ess_es1888_compaq",
     .flags         = DEVICE_ISA16,
-    .local         = 0x11,
-    .init          = ess_1788_init,
+    .local         = 0x12,
+    .init          = ess_1x88_onboard_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1788_config
+    .config        = ess_1688_pnp_config
 };
 
 const device_t ess_1887_device = {
     .name          = "ESS AudioDrive ES1887",
     .internal_name = "ess_es1887",
     .flags         = DEVICE_ISA16,
-    .local         = 2,
-    .init          = ess_1788_init,
+    .local         = 3,
+    .init          = ess_1x88_onboard_init,
     .close         = sb_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
-    .config        = ess_1788_config
+    .config        = ess_1688_pnp_config
 };
