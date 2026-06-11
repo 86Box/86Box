@@ -955,6 +955,10 @@ load_sound(void)
     p = ini_section_get_string(cat, "sound_output_device", "");
     strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
     sound_output_device[sizeof(sound_output_device) - 1] = '\0';
+
+    sound_sample_rate = ini_section_get_int(cat, "sound_sample_rate", FREQ_48000);
+    if (sound_sample_rate != FREQ_44100 && sound_sample_rate != FREQ_48000)
+        sound_sample_rate = FREQ_48000;
 }
 
 /* Load "Network" section. */
@@ -1003,9 +1007,9 @@ load_network(void)
             if (nc->net_type == NET_TYPE_PCAP) {
                 if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                     if (network_ndev == 1)
-                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES), plat_get_string(STRING_PCAP_ERROR_DESC));
+                        ui_msgbox(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES));
                     else if (network_dev_to_id(p) == -1)
-                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE), plat_get_string(STRING_PCAP_ERROR_DESC));
+                        ui_msgbox(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE));
                     strcpy(nc->host_dev_name, "none");
                 } else
                     strncpy(nc->host_dev_name, p, sizeof(nc->host_dev_name) - 1);
@@ -1055,9 +1059,9 @@ load_network(void)
             if (nc->net_type == NET_TYPE_PCAP) {
                 if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
                     if (network_ndev == 1)
-                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES), plat_get_string(STRING_PCAP_ERROR_DESC));
+                        ui_msgbox(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_NO_DEVICES));
                     else if (network_dev_to_id(p) == -1)
-                        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE), plat_get_string(STRING_PCAP_ERROR_DESC));
+                        ui_msgbox(MBX_ERROR, plat_get_string(STRING_PCAP_ERROR_INVALID_DEVICE));
                     strcpy(nc->host_dev_name, "none");
                 } else
                     strncpy(nc->host_dev_name, p, sizeof(nc->host_dev_name) - 1);
@@ -3359,6 +3363,11 @@ save_sound(void)
         ini_section_delete_var(cat, "sound_output_device");
     else
         ini_section_set_string(cat, "sound_output_device", sound_output_device);
+
+    if (sound_sample_rate == FREQ_48000)
+        ini_section_delete_var(cat, "sound_sample_rate");
+    else
+        ini_section_set_int(cat, "sound_sample_rate", sound_sample_rate);
 
     ini_delete_section_if_empty(config, cat);
 }

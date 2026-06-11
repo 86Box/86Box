@@ -2153,8 +2153,7 @@ escp_init(const device_t *info)
 
     /* Create a full pathname for the font files. */
     if (strlen(dev->fontpath) == 0) {
-        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_ESCP_ERROR_TITLE),
-                         plat_get_string(STRING_ESCP_ERROR_DESC));
+        ui_msgbox(MBX_ERROR, plat_get_string(STRING_ESCP_ERROR));
         free(dev);
         return(NULL);
     }

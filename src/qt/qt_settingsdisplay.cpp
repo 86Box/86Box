@@ -62,9 +62,10 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     connect(ui->lineEditCustomEDID, &FileField::fileSelected, [this](const QString &fileName) {
-        QFileInfo edidFile(fileName);
-        if (edidFile.isFile() && edidFile.size() > 256) {
-            QMessageBox::critical(this, "EDID", tr("EDID file \"%s\" is too large.").replace("%s", "%1").arg(fileName));
+        uint8_t dummyBuffer[384] = { 0 };
+        size_t size = ddc_load_edid(fileName.toUtf8().data(), dummyBuffer, sizeof(dummyBuffer));
+        if ((size == 0) || (size > 256)) {
+            QMessageBox::critical(this, "EDID", tr((size == 0) ? "EDID file \"%s\" is invalid." : "EDID file \"%s\" is too large.").replace("%s", "%1").arg(fileName));
             this->ui->lineEditCustomEDID->setFileName(this->previousEDIDPath);
         } else
             this->previousEDIDPath = fileName;
@@ -241,7 +242,7 @@ SettingsDisplay::on_pushButtonConfigureVideo_clicked()
     auto *device    = video_card_getdevice(videoCard);
     if (videoCard == VID_INTERNAL)
         device = machine_get_vid_device(machineId);
-    gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
+    gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -417,7 +418,7 @@ void
 SettingsDisplay::on_pushButtonConfigureVideoSecondary_clicked()
 {
     auto *device = video_card_getdevice(ui->comboBoxVideoSecondary->currentData().toInt());
-    gfxcard_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device);
+    gfxcard_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void

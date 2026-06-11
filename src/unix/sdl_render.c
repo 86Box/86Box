@@ -14,6 +14,7 @@
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 #include <86box/ui.h>
 #include <86box/version.h>
 #include <86box/ini.h>
@@ -22,6 +23,7 @@
 #include "sdl_render.h"
 #include "sdl_osd.h"
 #include "sdl_shader.h"
+#include "cpu.h"
 
 #define RENDERER_FULL_SCREEN 1
 #define RENDERER_HARDWARE    2
@@ -40,7 +42,6 @@ SDL_Window         *sdl_win     = NULL;
 SDL_Renderer       *sdl_render  = NULL;
 #ifndef USE_SDL_SHADER_PIPELINE
 static SDL_Texture *sdl_tex     = NULL;
-static SDL_Texture *sdl_osd_tex = NULL;
 #endif
 int                 sdl_w       = SCREEN_RES_X;
 int                 sdl_h       = SCREEN_RES_Y;
@@ -60,6 +61,8 @@ int                 resize_pending    = 0;
 int                 resize_w          = 0;
 int                 resize_h          = 0;
 static void        *pixeldata         = NULL;
+static char         mouse_msg[3][300];
+
 
 void sdl_reinit_texture(void);
 
@@ -227,7 +230,7 @@ sdl_real_blit(SDL_Rect *r_src)
 #else
     SDL_Rect src_rect = { 0, 0, r_src->w, r_src->h };
 
-    if (sdl_render == NULL || sdl_tex == NULL || sdl_osd_tex == NULL)
+    if (sdl_render == NULL || sdl_tex == NULL)
         return;
 
     if (SDL_UpdateTexture(sdl_tex, &src_rect, pixeldata, 2048 * (int) sizeof(uint32_t)) < 0)
@@ -237,16 +240,7 @@ sdl_real_blit(SDL_Rect *r_src)
     SDL_RenderClear(sdl_render);
     SDL_RenderCopy(sdl_render, sdl_tex, &src_rect, &r_dst);
 
-    osd_present(r_src->w, r_src->h);
-
-    if (osd_is_visible()) {
-        SDL_Surface *osd_surface = osd_get_surface();
-
-        if (osd_surface && osd_surface->w == r_src->w && osd_surface->h == r_src->h) {
-            if (SDL_UpdateTexture(sdl_osd_tex, &src_rect, osd_surface->pixels, osd_surface->pitch) == 0)
-                SDL_RenderCopy(sdl_render, sdl_osd_tex, &src_rect, &r_dst);
-        }
-    }
+    osd_present(r_dst.w, r_dst.h);
 
     SDL_RenderPresent(sdl_render);
 #endif
@@ -306,10 +300,6 @@ sdl_destroy_texture(void)
 #ifdef USE_SDL_SHADER_PIPELINE
     sdl_shader_close();
 #else
-    if (sdl_osd_tex != NULL) {
-        SDL_DestroyTexture(sdl_osd_tex);
-        sdl_osd_tex = NULL;
-    }
     if (sdl_tex != NULL) {
         SDL_DestroyTexture(sdl_tex);
         sdl_tex = NULL;
@@ -391,9 +381,7 @@ sdl_reinit_texture(void)
     if (pixeldata == NULL)
         return;
 
-#ifdef USE_IMGUI
     osd_deinit();
-#endif
 
     sdl_destroy_texture();
 
@@ -407,18 +395,12 @@ sdl_reinit_texture(void)
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
                                 SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
-    sdl_osd_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ABGR8888,
-                                    SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
-    if (sdl_tex == NULL || sdl_osd_tex == NULL) {
+    if (sdl_tex == NULL) {
         sdl_destroy_texture();
         return;
     }
 
-    SDL_SetTextureBlendMode(sdl_osd_tex, SDL_BLENDMODE_BLEND);
-
-#ifdef USE_IMGUI
     osd_init();
-#endif
 #endif
 }
 
@@ -617,6 +599,30 @@ plat_resize(int w, int h, UNUSED(int monitor_index))
     SDL_UnlockMutex(sdl_mutex);
 }
 
+void
+update_mouse_msg(void)
+{
+    char  cpufamily[128];
+    char *cp;
+
+    if (!cpu_override)
+        strncpy(cpufamily, cpu_f->name, sizeof(cpufamily) - 1);
+    else
+        snprintf(cpufamily, sizeof(cpufamily), "[U] %s", cpu_f->name);
+
+    cp = strchr(cpufamily, '(');
+    if (cp) /* remove parentheses */
+        *(cp - 1) = '\0';
+    snprintf(mouse_msg[0], sizeof(mouse_msg[0]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
+             "Click to capture mouse");
+    snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
+             (mouse_get_buttons() > 2) ? "Press CTRL-END to release mouse" : "Press CTRL-END or middle button to release mouse");
+    snprintf(mouse_msg[2], sizeof(mouse_msg[2]), "%s v%s - %%i%%%% - %s - %s/%s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name);
+}
+
 char    sdl_win_title[512] = EMU_NAME;
 SDL_mutex *titlemtx           = NULL;
 
@@ -650,6 +656,15 @@ ui_window_title(char *str)
     title_set = 1;
 #endif
     return str;
+}
+
+void
+ui_emu_status(int speed_percent)
+{
+    int mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
+    char temp[200];
+    snprintf(temp, sizeof(temp), mouse_msg[mouse_msg_idx], speed_percent);
+    ui_window_title(temp);
 }
 
 void

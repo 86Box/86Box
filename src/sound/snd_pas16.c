@@ -662,7 +662,8 @@ recalc_pas16_filter(const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
     double       gain = 0.0;
 
     for (n = 0; n < SB16_NCoef; n++) {
@@ -3105,7 +3106,7 @@ pas16_init(const device_t *info)
 
     pas16->type = info->local & 0xff;
     pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
-    fm_driver_get(FM_YMF262, &pas16->opl);
+    fm_driver_get_cs(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB_DSP_200, SB_SUBTYPE_MVD201, pas16);
     pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));

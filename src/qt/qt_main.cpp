@@ -86,6 +86,8 @@ extern "C" {
 #include "qt_vmmanager_clientsocket.hpp"
 #include "qt_vmmanager_mainwindow.hpp"
 
+#include "qt_osd.hpp"
+
 // Void Cast
 #define VC(x) const_cast<wchar_t *>(x)
 
@@ -226,7 +228,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             is_over_window                = is_over_window || ((secondaryRenderer != nullptr) && (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
         }
 
-    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture));
+    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture)) || qt_osd_is_visible();
 
     if (skip)
         return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -572,13 +574,15 @@ main(int argc, char *argv[])
     if (!util::isWindowsLightTheme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
-        if (!f.exists()) {
+        if (!f.exists())
             printf("Unable to set stylesheet, file not found\n");
-        } else {
-            f.open(QFile::ReadOnly | QFile::Text);
-            QTextStream ts(&f);
-            qApp->setStyleSheet(ts.readAll());
-            wasDarkTheme = true;
+        else {
+            if (f.open(QFile::ReadOnly | QFile::Text)) {
+                QTextStream ts(&f);
+                qApp->setStyleSheet(ts.readAll());
+                wasDarkTheme = true;
+            } else
+                printf("Unable to set stylesheet, unable to open file\n");
         }
         QPalette palette(qApp->palette());
         palette.setColor(QPalette::Link, Qt::white);
@@ -643,7 +647,7 @@ main(int argc, char *argv[])
 
     if (!pc_init_roms()) {
         QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
-                             QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."),
+                             QObject::tr("%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory.").arg(EMU_NAME, EMU_ROMS_URL),
                              QMessageBox::Ok);
         fatalbox.setTextFormat(Qt::TextFormat::RichText);
         fatalbox.exec();
@@ -906,6 +910,7 @@ main(int argc, char *argv[])
         NewDarkMode = util::isWindowsLightTheme();
 #endif
         pc_reset_hard_init();
+        main_window->updateMouseStrings();
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
@@ -927,4 +932,15 @@ main(int argc, char *argv[])
 
     socket.close();
     return ret;
+}
+
+void
+plat_clean_up(void)
+{
+#ifdef Q_OS_WINDOWS
+    if (llhook) {
+        UnhookWindowsHookEx(llhook);
+        llhook = nullptr;
+    }
+#endif
 }

@@ -103,7 +103,6 @@ PreferencesEmulator::save()
 
     Preferences::loadTranslators(QCoreApplication::instance());
     Preferences::reloadStrings();
-    update_mouse_msg();
     main_window->ui->retranslateUi(main_window);
     QString vmname(vm_name);
     if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')

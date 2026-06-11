@@ -1,4 +1,5 @@
 /* some code borrowed from scummvm */
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -60,7 +61,7 @@ fluidsynth_poll(void)
 {
     fluidsynth_t *data = &fsdev;
     data->midi_pos++;
-    if (data->midi_pos == SOUND_FREQ / RENDER_RATE) {
+    if (data->midi_pos == sound_sample_rate / RENDER_RATE) {
         data->midi_pos = 0;
         thread_set_event(data->event);
     }
@@ -82,9 +83,24 @@ fluidsynth_thread(void *param)
         if (sound_is_float) {
             float *buf = (float *) ((uint8_t *) data->buffer + buf_pos);
             memset(buf, 0, buf_size);
-            if (data->synth)
+            if (data->synth) {
                 fluid_synth_write_float(data->synth, buf_size / (2 * sizeof(float)), buf, 0, 2, buf, 1, 2);
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    for (int i = 0; i < (buf_size / sizeof(float)); i += 2) {
+                        double dl = (double) buf[i];
+                        double dr = (double) buf[i + 1];
+                        filter_midi(0, &dl, filter_midi_p);
+                        filter_midi(1, &dr, filter_midi_p);
+                        buf[i] = (float) dl;
+                        buf[i + 1] = (float) dr;
+                    }
+                }
+            }
+
             buf_pos += buf_size;
+
             if (buf_pos >= data->buf_size) {
                 givealbuffer_midi(data->buffer, data->buf_size / sizeof(float));
                 buf_pos = 0;
@@ -92,8 +108,21 @@ fluidsynth_thread(void *param)
         } else {
             int16_t *buf = (int16_t *) ((uint8_t *) data->buffer_int16 + buf_pos);
             memset(buf, 0, buf_size);
-            if (data->synth)
+            if (data->synth) {
                 fluid_synth_write_s16(data->synth, buf_size / (2 * sizeof(int16_t)), buf, 0, 2, buf, 1, 2);
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    for (int i = 0; i < (buf_size / sizeof(int16_t)); i += 2) {
+                        double dl = (double) buf[i];
+                        double dr = (double) buf[i + 1];
+                        filter_midi(0, &dl, filter_midi_p);
+                        filter_midi(1, &dr, filter_midi_p);
+                        buf[i] = (int16_t) round(dl);
+                        buf[i + 1] = (int16_t) round(dr);
+                    }
+                }
+            }
             buf_pos += buf_size;
             if (buf_pos >= data->buf_size) {
                 givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));

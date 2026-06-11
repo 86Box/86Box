@@ -107,6 +107,7 @@ void qt_set_sequence_auto_mnemonic(bool b);
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
+#include "qt_osd.hpp"
 
 #if defined __unix__ && !defined __HAIKU__
 #    ifndef Q_OS_MACOS
@@ -339,6 +340,7 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
         ui_update_force_interpreter();
+        updateMouseStrings();
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
@@ -996,6 +998,7 @@ MainWindow::updateShortcuts()
     ui->actionPause->setShortcut(QKeySequence());
     ui->actionMute_Unmute->setShortcut(QKeySequence());
     ui->actionForce_interpretation->setShortcut(QKeySequence());
+    ui->actionToggle_OSD->setShortcut(QKeySequence());
 
     int          accID;
     QKeySequence seq;
@@ -1047,6 +1050,17 @@ MainWindow::updateShortcuts()
     accID = FindAccelerator("force_interpretation");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionForce_interpretation->setShortcut(seq);
+
+    accID = FindAccelerator("toggle_osd");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionToggle_OSD->setShortcut(seq);
+}
+
+void
+MainWindow::updateMouseStrings()
+{
+    mouseStringCaptured = tr(mouse_get_buttons() > 2 ? "Press %1 to release mouse" : "Press %1 or middle button to release mouse").arg(QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText));
+    mouseStringUncaptured = tr("Click to capture mouse");
 }
 
 void
@@ -1233,6 +1247,12 @@ void
 MainWindow::on_actionPause_triggered()
 {
     plat_pause(dopause ^ 1);
+}
+
+void
+MainWindow::on_actionToggle_OSD_triggered()
+{
+    qt_osd_toggle();
 }
 
 void
@@ -1532,6 +1552,29 @@ MainWindow::FindAcceleratorSeq(const char *name)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+    if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
+        auto      *ke   = static_cast<QKeyEvent *>(event);
+        const bool down = event->type() == QEvent::KeyPress;
+
+        /* While the OSD is open, route all key input to it, except for the
+         * toggle accelerator itself so it can still close the overlay. */
+        if (qt_osd_is_visible()) {
+            const QKeySequence osdSeq = ui->actionToggle_OSD->shortcut();
+            if (down && !ke->isAutoRepeat() && !osdSeq.isEmpty()
+                && (((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == osdSeq)
+                    || ((QKeySequence) (ke->key() | ke->modifiers()) == osdSeq))) {
+                ui->actionToggle_OSD->trigger();
+                event->accept();
+                return true;
+            }
+
+            if (qt_osd_key(ke->key(), ke->modifiers(), down, ke->isAutoRepeat())) {
+                event->accept();
+                return true;
+            }
+        }
+    }
+
     // Detect shortcuts when menubar is hidden
     // TODO: Could this be simplified by proxying the event and manually
     // shoving it into the menubar?
@@ -1570,6 +1613,10 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("fullscreen")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("fullscreen")) {
                 ui->actionFullscreen->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("toggle_osd")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("toggle_osd")) {
+                ui->actionToggle_OSD->trigger();
             }
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("hard_reset")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("hard_reset")) {
@@ -1702,11 +1749,22 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
         *done = false;
     }
     isShowMessage = true;
-    QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
-    if (flags & (MBX_FATAL)) {
+
+    auto defaultheader = QString();
+    if (header.isEmpty()) {
+        if (flags & (MBX_ERROR | MBX_FATAL))
+            defaultheader = (flags & MBX_FATAL) ? tr("Fatal error") : tr("Error");
+        else
+            defaultheader = EMU_NAME;
+    }
+    QMessageBox box(QMessageBox::Information, (defaultheader.isEmpty() ? header : defaultheader), message, QMessageBox::Ok, this);
+
+    if (flags & (MBX_ERROR | MBX_FATAL)) {
         box.setIcon(QMessageBox::Critical);
-    } else if (!(flags & (MBX_ERROR | MBX_WARNING))) {
+    } else if (flags & MBX_WARNING) {
         box.setIcon(QMessageBox::Warning);
+//    } else if (flags & MBX_QUESTION) {
+//        box.setIcon(QMessageBox::Question);
     }
     if (richText)
         box.setTextFormat(Qt::TextFormat::RichText);

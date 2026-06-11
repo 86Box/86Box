@@ -857,7 +857,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
-    plat_dir_t     context;
+    plat_dir_t     context         = { 0 };
     viso_entry_t **dir_entries     = NULL;
     size_t         dir_entries_len = 0;
     while (LIKELY(dir)) {
@@ -866,10 +866,12 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         size_t children_count = 2; /* include . and .. (terminator is the +1 when allocating) */
         if (UNLIKELY(dir == viso->root_dir)) {
             /* Handle root directory. */
-            if (have_dir && plat_dir_is_dir(&context))
+            if (have_dir && plat_dir_is_dir(&context)) {
                 viso_fill_stats(dir, &context, viso->format); /* populate stats */
-            else
+            } else {
+                plat_dir_close(&context);
                 goto end; /* not a directory */
+            }
         }
         if (LIKELY(have_dir)) {
             /* Determine the entry array size. */
@@ -911,7 +913,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         }
 
         /* Iterate through this directory's children again, making the entries. */
-        if (have_dir) {
+        if (LIKELY(have_dir)) {
             while (plat_dir_read(&context)) {
                 /* Grow array if the original size is inaccurate. */
                 if (UNLIKELY(children_count >= dir_entries_len)) {
@@ -1018,10 +1020,9 @@ have_eltorito_entry:
 
 next_dir:
         /* Move on to the next directory. */
-        if (have_dir)
-            plat_dir_close(&context);
         dir = dir->next_dir;
     }
+    plat_dir_close(&context);
     if (dir_entries)
         free(dir_entries);
 

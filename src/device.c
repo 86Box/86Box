@@ -322,7 +322,7 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
         snprintf(temp, sizeof(temp),
                  plat_get_string(STRING_HW_NOT_AVAILABLE_DEVICE),
                  dev->name);
-        ui_msgbox_header(MBX_INFO,
+        ui_msgbox_header(MBX_WARNING,
                          plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
                          temp);
         return ((void *) dev->name);

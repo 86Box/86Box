@@ -62,7 +62,6 @@ else()
 endif()
 
 option(USE_SDL_SHADER "Build SDL GLES2 shader pipeline" OFF)
-option(USE_IMGUI      "Use ImGui-based OSD"             OFF)
 
 add_library(ui OBJECT
     sdl_render.c
@@ -87,30 +86,25 @@ if(USE_SDL_SHADER)
     target_include_directories(ui PRIVATE ${GLESV2_INCLUDE_DIR})
 endif()
 
-if(USE_IMGUI)
-    target_compile_definitions(ui PRIVATE USE_IMGUI)
-    target_sources(ui PRIVATE sdl_osd.cpp)
+target_sources(ui PRIVATE sdl_osd.cpp)
 
-    add_library(imgui OBJECT
-        imgui/imgui.cpp
-        imgui/imgui_draw.cpp
-        imgui/imgui_tables.cpp
-        imgui/imgui_widgets.cpp
-        imgui/imgui_impl_sdl2.cpp
-    )
+# Build the SDL ImGui backend separately so AUTOMOC skips it.
+set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
+add_library(osd_backend OBJECT
+    ${OSD_DIR}/imgui/imgui_impl_sdl2.cpp
+)
 
-    if(USE_SDL_SHADER)
-        target_sources(imgui PRIVATE imgui/imgui_impl_opengl3.cpp)
-        target_compile_definitions(imgui PRIVATE IMGUI_IMPL_OPENGL_ES2)
-    else()
-        target_sources(imgui PRIVATE imgui/imgui_impl_sdlrenderer2.cpp)
-    endif()
-
-    target_include_directories(ui PRIVATE imgui)
-    target_link_libraries(86Box imgui)
+if(USE_SDL_SHADER)
+    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp)
+    target_compile_definitions(osd_backend PRIVATE IMGUI_IMPL_OPENGL_ES2)
 else()
-    target_sources(ui PRIVATE sdl_osd_old.c)
+    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_sdlrenderer2.cpp)
 endif()
+
+target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
+target_link_libraries(86Box osd_backend)
+
+target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(plat PRIVATE linux_cdrom_ioctl.c)
