@@ -378,6 +378,7 @@ load_general(void)
     }
 
     do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
+    do_auto_diag_pause = ini_section_get_int(cat, "do_auto_diag_pause", 0);
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
     fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
@@ -2626,6 +2627,7 @@ config_load(void)
         machine              = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale            = 1;
         do_auto_pause        = 0;
+        do_auto_diag_pause   = 0;
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
@@ -2991,6 +2993,11 @@ save_general(void)
         ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
     else
         ini_section_delete_var(cat, "do_auto_pause");
+
+    if (do_auto_diag_pause)
+        ini_section_set_int(cat, "do_auto_diag_pause", do_auto_diag_pause);
+    else
+        ini_section_delete_var(cat, "do_auto_diag_pause");
 
     if (video_gl_input_scale != 1.0) {
         ini_section_set_double(cat, "video_gl_input_scale", video_gl_input_scale);
