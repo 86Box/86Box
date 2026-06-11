@@ -2856,6 +2856,18 @@ et4000w32p_init(const device_t *info)
             break;
 
         case STB_LIGHTSPEED:
+            /* ET4000/W32p rev B */
+            et4000->rev = ET4000W32P_REVB;
+            et4000->ramdac_type = STG170X;
+
+            rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32P_REVB_STB, 0xc0000, 0x8000, 0x7fff, 0,
+                     MEM_MAPPING_EXTERNAL);
+
+            et4000->svga.ramdac    = device_add(&stg1702_ramdac_device);
+            et4000->svga.clock_gen = et4000->svga.ramdac;
+            et4000->svga.getclock  = stg_getclock;
+            break;
+
         case VIDEOMAGIC_ETW32PVS:
             /* ET4000/W32p rev B */
             et4000->rev = ET4000W32P_REVB;

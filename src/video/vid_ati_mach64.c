@@ -2408,7 +2408,7 @@ const device_t mach64gx_pci_device = {
 };
 
 const device_t mach64ct_device = {
-    .name          = "ATI WinCharger (ATI Mach64CT)",
+    .name          = "ATI Mach64CT",
     .internal_name = "mach64ct",
     .flags         = DEVICE_PCI,
     .local         = MACH64_CT,
