@@ -825,7 +825,7 @@ ad1816_init(UNUSED(const device_t *info))
     sb_dsp_setirq(&ad1816->sb->dsp, ad1816->cur_dma);
     sb_ct1345_mixer_reset(ad1816->sb);
 
-    fm_driver_get(FM_YMF262, &ad1816->sb->opl);
+    fm_driver_get_cs(FM_YMF262, &ad1816->sb->opl);
     io_sethandler(ad1816->cur_sb_addr + 0, 0x0004, ad1816->sb->opl.read, NULL, NULL, ad1816->sb->opl.write, NULL, NULL, ad1816->sb->opl.priv);
     io_sethandler(ad1816->cur_sb_addr + 8, 0x0002, ad1816->sb->opl.read, NULL, NULL, ad1816->sb->opl.write, NULL, NULL, ad1816->sb->opl.priv);
     io_sethandler(ad1816->cur_opl_addr, 0x0004, ad1816->sb->opl.read, NULL, NULL, ad1816->sb->opl.write, NULL, NULL, ad1816->sb->opl.priv);

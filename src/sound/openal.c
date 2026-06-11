@@ -41,8 +41,7 @@
 #define I_FDD    4
 #define I_HDD    5
 #define I_YM2151 6
-#define I_CQM    7
-#define I_MIDI   8
+#define I_MIDI   7
 
 ALuint        buffers[4];        /* front and back buffers */
 ALuint        buffers_music[4];  /* front and back buffers */
@@ -51,9 +50,8 @@ ALuint        buffers_cd[4];     /* front and back buffers */
 ALuint        buffers_fdd[4];    /* front and back buffers */
 ALuint        buffers_hdd[4];    /* front and back buffers */
 ALuint        buffers_ym2151[4]; /* front and back buffers */
-ALuint        buffers_cqm[4];    /* front and back buffers */
 ALuint        buffers_midi[4];   /* front and back buffers */
-static ALuint source[9];         /* audio sources */
+static ALuint source[8];         /* audio sources */
 
 static int         initialized   = 0;
 static int         sources       = 2;
@@ -187,7 +185,6 @@ closeal(void)
     if (sources >= 8)
         alDeleteBuffers(4, buffers_midi);
     alDeleteBuffers(4, buffers_ym2151);
-    alDeleteBuffers(4, buffers_cqm);
     alDeleteBuffers(4, buffers_fdd);
     alDeleteBuffers(4, buffers_hdd);
     alDeleteBuffers(4, buffers_cd);
@@ -208,7 +205,6 @@ inital(void)
     float   *cd_buf           = NULL;
     float   *midi_buf         = NULL;
     float   *ym2151_buf       = NULL;
-    float   *cqm_buf          = NULL;
     float   *fdd_buf          = NULL;
     float   *hdd_buf          = NULL;
     int16_t *buf_int16        = NULL;
@@ -217,7 +213,6 @@ inital(void)
     int16_t *cd_buf_int16     = NULL;
     int16_t *midi_buf_int16   = NULL;
     int16_t *ym2151_buf_int16 = NULL;
-    int16_t *cqm_buf_int16    = NULL;
     int16_t *fdd_buf_int16    = NULL;
     int16_t *hdd_buf_int16    = NULL;
 
@@ -236,7 +231,7 @@ inital(void)
 
     const int pcm_buf_len = sound_sample_rate / 50;
 
-    sources = 8 + !!init_midi;
+    sources = 7 + !!init_midi;
     if (sound_is_float) {
         buf        = (float *) calloc((pcm_buf_len << 1), sizeof(float));
         music_buf  = (float *) calloc((MUSICBUFLEN << 1), sizeof(float));
@@ -245,7 +240,6 @@ inital(void)
         fdd_buf    = (float *) calloc((pcm_buf_len << 1), sizeof(float));
         hdd_buf    = (float *) calloc((pcm_buf_len << 1), sizeof(float));
         ym2151_buf = (float *) calloc((YM2151BUFLEN << 1), sizeof(float));
-        cqm_buf    = (float *) calloc((CQMBUFLEN << 1), sizeof(float));
         if (init_midi)
             midi_buf = (float *) calloc(midi_buf_size, sizeof(float));
     } else {
@@ -256,7 +250,6 @@ inital(void)
         fdd_buf_int16    = (int16_t *) calloc((pcm_buf_len << 1), sizeof(int16_t));
         hdd_buf_int16    = (int16_t *) calloc((pcm_buf_len << 1), sizeof(int16_t));
         ym2151_buf_int16 = (int16_t *) calloc((YM2151BUFLEN << 1), sizeof(int16_t));
-        cqm_buf_int16    = (int16_t *) calloc((CQMBUFLEN << 1), sizeof(int16_t));
         if (init_midi)
             midi_buf_int16 = (int16_t *) calloc(midi_buf_size, sizeof(int16_t));
     }
@@ -268,15 +261,14 @@ inital(void)
     alGenBuffers(4, buffers_music);
     alGenBuffers(4, buffers_wt);
     alGenBuffers(4, buffers_ym2151);
-    alGenBuffers(4, buffers_cqm);
     if (init_midi)
         alGenBuffers(4, buffers_midi);
 
     // Create sources: 0=main, 1=music, 2=wt, 3=cd, 4=fdd, 5=hdd, 6=midi(optional)
     if (init_midi)
-        alGenSources(9, source);
-    else
         alGenSources(8, source);
+    else
+        alGenSources(7, source);
 
     alSource3f(source[I_NORMAL], AL_POSITION, 0.0f, 0.0f, 0.0f);
     alSource3f(source[I_NORMAL], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
@@ -320,12 +312,6 @@ inital(void)
     alSourcef(source[I_YM2151], AL_ROLLOFF_FACTOR, 0.0f);
     alSourcei(source[I_YM2151], AL_SOURCE_RELATIVE, AL_TRUE);
 
-    alSource3f(source[I_CQM], AL_POSITION, 0.0f, 0.0f, 0.0f);
-    alSource3f(source[I_CQM], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
-    alSource3f(source[I_CQM], AL_DIRECTION, 0.0f, 0.0f, 0.0f);
-    alSourcef(source[I_CQM], AL_ROLLOFF_FACTOR, 0.0f);
-    alSourcei(source[I_CQM], AL_SOURCE_RELATIVE, AL_TRUE);
-
     if (init_midi) {
         alSource3f(source[I_MIDI], AL_POSITION, 0.0f, 0.0f, 0.0f);
         alSource3f(source[I_MIDI], AL_VELOCITY, 0.0f, 0.0f, 0.0f);
@@ -342,7 +328,6 @@ inital(void)
         memset(fdd_buf, 0, pcm_buf_len * 2 * sizeof(float));
         memset(hdd_buf, 0, pcm_buf_len * 2 * sizeof(float));
         memset(ym2151_buf, 0, YM2151BUFLEN * 2 * sizeof(float));
-        memset(cqm_buf, 0, CQMBUFLEN * 2 * sizeof(float));
         if (init_midi)
             memset(midi_buf, 0, midi_buf_size * sizeof(float));
     } else {
@@ -353,7 +338,6 @@ inital(void)
         memset(fdd_buf_int16, 0, pcm_buf_len * 2 * sizeof(int16_t));
         memset(hdd_buf_int16, 0, pcm_buf_len * 2 * sizeof(int16_t));
         memset(ym2151_buf_int16, 0, YM2151BUFLEN * 2 * sizeof(int16_t));
-        memset(cqm_buf_int16, 0, CQMBUFLEN * 2 * sizeof(int16_t));
         if (init_midi)
             memset(midi_buf_int16, 0, midi_buf_size * sizeof(int16_t));
     }
@@ -367,7 +351,6 @@ inital(void)
             alBufferData(buffers_fdd[c], AL_FORMAT_STEREO_FLOAT32, fdd_buf, pcm_buf_len * 2 * (int) sizeof(float), sound_sample_rate);
             alBufferData(buffers_hdd[c], AL_FORMAT_STEREO_FLOAT32, hdd_buf, pcm_buf_len * 2 * (int) sizeof(float), sound_sample_rate);
             alBufferData(buffers_ym2151[c], AL_FORMAT_STEREO_FLOAT32, ym2151_buf, YM2151BUFLEN * 2 * (int) sizeof(float), YM2151_FREQ);
-            alBufferData(buffers_cqm[c], AL_FORMAT_STEREO_FLOAT32, cqm_buf, CQMBUFLEN * 2 * (int) sizeof(float), CQM_FREQ);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO_FLOAT32, midi_buf, midi_buf_size * (int) sizeof(float), midi_freq);
         } else {
@@ -378,7 +361,6 @@ inital(void)
             alBufferData(buffers_fdd[c], AL_FORMAT_STEREO16, fdd_buf_int16, pcm_buf_len * 2 * (int) sizeof(int16_t), sound_sample_rate);
             alBufferData(buffers_hdd[c], AL_FORMAT_STEREO16, hdd_buf_int16, pcm_buf_len * 2 * (int) sizeof(int16_t), sound_sample_rate);
             alBufferData(buffers_ym2151[c], AL_FORMAT_STEREO16, ym2151_buf_int16, YM2151BUFLEN * 2 * (int) sizeof(int16_t), YM2151_FREQ);
-            alBufferData(buffers_cqm[c], AL_FORMAT_STEREO16, cqm_buf_int16, CQMBUFLEN * 2 * (int) sizeof(int16_t), CQM_FREQ);
             if (init_midi)
                 alBufferData(buffers_midi[c], AL_FORMAT_STEREO16, midi_buf_int16, midi_buf_size * (int) sizeof(int16_t), midi_freq);
         }
@@ -391,7 +373,6 @@ inital(void)
     alSourceQueueBuffers(source[I_FDD], 4, buffers_fdd);
     alSourceQueueBuffers(source[I_HDD], 4, buffers_hdd);
     alSourceQueueBuffers(source[I_YM2151], 4, buffers_ym2151);
-    alSourceQueueBuffers(source[I_CQM], 4, buffers_cqm);
     if (init_midi)
         alSourceQueueBuffers(source[I_MIDI], 4, buffers_midi);
     alSourcePlay(source[I_NORMAL]);
@@ -401,7 +382,6 @@ inital(void)
     alSourcePlay(source[I_FDD]);
     alSourcePlay(source[I_HDD]);
     alSourcePlay(source[I_YM2151]);
-    alSourcePlay(source[I_CQM]);
     if (init_midi)
         alSourcePlay(source[I_MIDI]);
 
@@ -415,7 +395,6 @@ inital(void)
         free(fdd_buf);
         free(hdd_buf);
         free(ym2151_buf);
-        free(cqm_buf);
     } else {
         if (init_midi)
             free(midi_buf_int16);
@@ -426,7 +405,6 @@ inital(void)
         free(fdd_buf_int16);
         free(hdd_buf_int16);
         free(ym2151_buf_int16);
-        free(cqm_buf_int16);
     }
 
     initialized = 1;
@@ -511,10 +489,4 @@ void
 givealbuffer_ym2151(const void *buf)
 {
     givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1, YM2151_FREQ);
-}
-
-void
-givealbuffer_cqm(const void *buf)
-{
-    givealbuffer_common(buf, I_CQM, CQMBUFLEN << 1, CQM_FREQ);
 }

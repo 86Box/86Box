@@ -154,6 +154,7 @@ typedef struct {
     opl3_chip opl;
     int8_t    flags;
     int8_t    is_48k;
+    int8_t    is_cs;
 
     uint16_t port;
     uint8_t  status;
@@ -170,8 +171,9 @@ typedef struct {
 } nuked_opl3_drv_t;
 
 enum {
-    FLAG_CYCLES = 0x02,
-    FLAG_OPL3   = 0x01
+    FLAG_CRYSTAL = 0x04,
+    FLAG_CYCLES  = 0x02,
+    FLAG_OPL3    = 0x01
 };
 
 enum {

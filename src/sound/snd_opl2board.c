@@ -125,7 +125,7 @@ opl2board_device_init(UNUSED(const device_t *info))
     opl2board_device_t *serial = calloc(1, sizeof(opl2board_device_t));
 
     opl2board_device_log("opl2board_device_init\n");
-    fm_driver_get(FM_OPL2BOARD, &serial->opl);
+    fm_driver_get_cs(FM_OPL2BOARD, &serial->opl);
     io_sethandler(0x0388, 0x0002,
                   serial->opl.read, NULL, NULL,
                   serial->opl.write, NULL, NULL,
