@@ -323,7 +323,7 @@ v6355_pointer(v6355_t *v6355, uint8_t *pixel)
     y -= (pointer_y - 16);
 
     /* Get mouse AND and XOR masks */
-    mand = v6355->v6355data[0x68] & 0x0F;
+    mand = (v6355->v6355data[0x68] & 0x0F) | 0x10;
     mxor = (v6355->v6355data[0x68] >> 4) & 0x0F;
 
     /* Draw up to 16 double-width pixels */
@@ -362,14 +362,14 @@ v6355_map_attrs(v6355_t *v6355, uint8_t chr, uint8_t attr, uint8_t *cols)
     } else {
         /* CGA attributes (blinking enabled) */
         if (v6355->cgamode & 0x20) {
-            cols[1] = attr & 15;
-            cols[0] = (attr >> 4) & 7;
+            cols[1] = (attr & 15) + 16;
+            cols[0] = ((attr >> 4) & 7) + 16;
             if ((v6355->cgablink & 8) && (attr & 0x80) && !v6355->drawcursor)
                 cols[1] = cols[0];
         } else {
             /* CGA attributes (blinking disabled) */
-            cols[1] = attr & 15;
-            cols[0] = attr >> 4;
+            cols[1] = (attr & 15) + 16;
+            cols[0] = (attr >> 4) + 16;
         }
     }
 }
@@ -446,7 +446,7 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
     uint16_t dat;
     uint32_t width = v6355_width(v6355) / 16;
 
-    cols[0] = v6355->cgacol & 15;
+    cols[0] = (v6355->cgacol & 15) | 16;
 
     intensity = (v6355->cgacol & 16) ? 8 : 0;
 
@@ -463,6 +463,9 @@ v6355_line_graphics320(v6355_t *v6355, uint8_t *pixel)
         cols[2] = intensity | 4;
         cols[3] = intensity | 6;
     }
+
+    for (int i = 1; i < 4; i++)
+        cols[i] |= 16;
 
     for (x = 0; x < width; x++) {
         if (v6355->cgamode & 8)
@@ -490,8 +493,8 @@ v6355_line_graphics640(v6355_t *v6355, uint8_t *pixel)
     uint16_t dat;
     uint32_t width = v6355_width(v6355) / 16;
 
-    cols[0] = 0;
-    cols[1] = v6355->cgacol & 15;
+    cols[0] = 16;
+    cols[1] = (v6355->cgacol & 15) | 16;
 
     for (x = 0; x < width; x++) {
         if (v6355->cgamode & 8) 

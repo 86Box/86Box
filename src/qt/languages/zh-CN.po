@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-04 01:22+0000\n"
+"PO-Revision-Date: 2026-06-09 01:33+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -3010,7 +3010,7 @@ msgid "Toggle mute"
 msgstr "切换静音"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "切换屏幕显示 (OSD)"
 
 msgid "Text files"
 msgstr "文本文件"
@@ -3173,7 +3173,7 @@ msgid "Export EDID"
 msgstr "导出EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "EDID 文件“%s”无效。"
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID文件 \"%s\" 过大。"

@@ -457,7 +457,7 @@ video_reset(int card)
             (gfxcard[i] > VID_INTERNAL) && device_is_valid(video_card_getdevice(gfxcard[i]), machine)) {
             video_monitor_init(i);
             monitor_index_global = 1;
-            device_add(video_cards[gfxcard[i]].device);
+            device_add_inst(video_cards[gfxcard[i]].device, i + 1);
             monitor_index_global = 0;
         }
     }
@@ -469,7 +469,7 @@ video_reset(int card)
         video_prepare();
 
         /* Initialize the video card. */
-        device_add(video_cards[card].device);
+        device_add_inst(video_cards[card].device, 1);
     }
 
     timer_add(&framerate_timer, video_update_framerates, NULL, 1);

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:09+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-06-09 01:33+0000\n"
+"Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
 "Language: vi-VN\n"
@@ -2307,7 +2307,7 @@ msgid "Control PC speaker"
 msgstr "Kiểm soát loa PC"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Điều khiển âm lượng MIDI"
 
 msgid "Memory size"
 msgstr "Kích thước bộ nhớ"
@@ -3006,7 +3006,7 @@ msgid "Toggle mute"
 msgstr "Bật/tắt tiếng"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Bật/tắt thông tin trên màn hình"
 
 msgid "Text files"
 msgstr "Tập tin văn bản"
@@ -3169,7 +3169,7 @@ msgid "Export EDID"
 msgstr "Xuất ra file EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "Tập tin EDID \"%s\" không hợp lệ."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Tệp EDID \"%s\" quá lớn."
@@ -3383,4 +3383,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Trung phồn thể)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Tần số lấy mẫu:"
