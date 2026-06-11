@@ -85,6 +85,9 @@
 #define ROM_NUMBER9_9FX_771            "roms/video/s3/no9motionfx771.BIN"
 #define ROM_PHOENIX_VISION968          "roms/video/s3/1-DSV3968P.BIN"
 #define ROM_DIAMOND_STEALTH64_968      "roms/video/s3/vv_303.rom"
+#define ROM_ORCHID_86C801              "roms/video/s3/Orchid Technology Fahrenheit 1280+ (S3 86c801 ISA, SC15025).bin"
+#define ROM_DIGITAL_86C805             "roms/video/s3/DEC PC76H-EA (S3 86c805 VLB, ATT20C491).bin"
+#define ROM_ORCHID_86C805              "roms/video/s3/Orchid Technology Fahrenheit 1280+ (S3 86c805 VLB, ATT20C491).bin"
 #define ROM_DIAMOND_STEALTH64_864      "roms/video/s3/Diamond Stealth64 Graphics 2000 PCI (S3 Vision864).BIN"
 #define ROM_LEADTEK_VISION864          "roms/video/s3/Leadtek WinFast S430 PCI (S3 Vision864).bin"
 #define ROM_GENOA_VISION868            "roms/video/s3/Genoa Phantom 64 PCI (S3 Vision868).bin"
@@ -136,6 +139,9 @@ enum {
     S3_86C805_ONBOARD,
     S3_DIAMOND_STEALTH64_968,
     S3_WINNER1000_805,
+    S3_ORCHID_86C801,
+    S3_DIGITAL_86C805,
+    S3_ORCHID_86C805,
     S3_DIAMOND_STEALTH64_864,
     S3_LEADTEK_VISION864,
     S3_GENOA_VISION868,
@@ -10498,6 +10504,11 @@ s3_init(const device_t *info)
             chip    = S3_86C924;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c911);
             break;
+        case S3_ORCHID_86C801:
+            bios_fn = ROM_ORCHID_86C801;
+            chip    = S3_86C801;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c801);
+            break;
         case S3_SPEA_MIRAGE_86C801:
             bios_fn = ROM_SPEA_MIRAGE_86C801;
             chip    = S3_86C801;
@@ -10510,6 +10521,16 @@ s3_init(const device_t *info)
             break;
         case S3_86C805_ONBOARD:
             bios_fn = NULL;
+            chip    = S3_86C805;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            break;
+        case S3_DIGITAL_86C805:
+            bios_fn = ROM_DIGITAL_86C805;
+            chip    = S3_86C805;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
+            break;
+        case S3_ORCHID_86C805:
+            bios_fn = ROM_ORCHID_86C805;
             chip    = S3_86C805;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_86c805);
             break;
@@ -11022,6 +11043,8 @@ s3_init(const device_t *info)
             svga_recalctimings(svga);
             break;
 
+        case S3_DIGITAL_86C805:
+        case S3_ORCHID_86C805:
         case S3_SPEA_MIRAGE_86C801:
         case S3_SPEA_MIRAGE_86C805:
             svga->decode_mask = (2 << 20) - 1;
@@ -11085,6 +11108,20 @@ s3_init(const device_t *info)
             s3->ramdac_type = ATT49X;
             svga->clock_gen = device_add(&av9194_device);
             svga->getclock  = av9194_getclock;
+            break;
+
+        case S3_ORCHID_86C801:
+            svga->decode_mask = (2 << 20) - 1;
+            stepping          = 0xa0; /*86C801/86C805*/
+            s3->id            = stepping;
+            s3->id_ext        = stepping;
+            s3->id_ext_pci    = 0;
+            s3->packed_mmio   = 0;
+            svga->crtc[0x5a]  = 0x0a;
+            svga->ramdac      = device_add(&sc1502x_ramdac_device);
+            s3->ramdac_type   = SC1502X;
+            svga->clock_gen   = device_add(&av9194_device);
+            svga->getclock    = av9194_getclock;
             break;
 
         case S3_ELSAWIN1K_86C928:
@@ -11875,6 +11912,16 @@ static const device_config_t s3_86c801_isa_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
+                .name          = "Orchid Fahrenheit 1280+",
+                .internal_name = "orchid_s3_801",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ORCHID_86C801,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_ORCHID_86C801, "" }
+            },
+            {
                 .name          = "Phoenix",
                 .internal_name = "px_86c801_isa",
                 .bios_type     = BIOS_NORMAL,
@@ -11967,6 +12014,16 @@ static const device_config_t s3_86c805_vlb_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
+                .name          = "Digital (DEC) PC76H-EA",
+                .internal_name = "digital_s3_805",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DIGITAL_86C805,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DIGITAL_86C805, "" }
+            },
+            {
                 .name          = "miroCRYSTAL 8S",
                 .internal_name = "mirocrystal8s_vlb",
                 .bios_type     = BIOS_NORMAL,
@@ -11985,6 +12042,16 @@ static const device_config_t s3_86c805_vlb_config[] = {
                 .size          = 32768,
                 .flags         = 0,
                 .files         = { ROM_MIROCRYSTAL10SD_805, "" }
+            },
+            {
+                .name          = "Orchid Fahrenheit 1280+",
+                .internal_name = "orchid_s3_805",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_ORCHID_86C805,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_ORCHID_86C805, "" }
             },
             {
                 .name          = "Phoenix",
@@ -12100,7 +12167,7 @@ static const device_config_t s3_vision864_pci_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
-                .name          = "DECpc Celebris PCXAG-AL",
+                .name          = "Digital (DEC) PCXAG-AL",
                 .internal_name = "dec_vision864_pci",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
