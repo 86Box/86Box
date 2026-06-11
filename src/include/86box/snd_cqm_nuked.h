@@ -109,7 +109,9 @@ typedef struct
 typedef struct {
     cqm_t    cqm;
     int8_t   flags;
+
     int8_t   is_48k;
+    int8_t   is_cs;
 
     uint16_t port;
     uint8_t  status;
@@ -120,14 +122,15 @@ typedef struct {
     pc_timer_t timers[2];
 
     int     pos;
-    int32_t buffer[CQMBUFLEN * 2];
+    int32_t buffer[MUSICBUFLEN * 2];
 
     int32_t *(*update)(void *priv);
 } nuked_cqm_drv_t;
 
 enum {
-    FLAG_CYCLES = 0x02,
-    FLAG_OPL3   = 0x01
+    FLAG_CRYSTAL = 0x04,
+    FLAG_CYCLES  = 0x02,
+    FLAG_OPL3    = 0x01
 };
 
 enum {

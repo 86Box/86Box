@@ -267,7 +267,7 @@ azt2320_init(UNUSED(const device_t *info))
     azt2320->sb->opl_enabled = device_get_config_int("opl");
 
     if (azt2320->sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &azt2320->sb->opl);
+        fm_driver_get_cs(FM_YMF262, &azt2320->sb->opl);
 
     sb_dsp_set_real_opl(&azt2320->sb->dsp, 1);
     sb_dsp_init(&azt2320->sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_CLONE_AZT2320_0X13, azt2320);

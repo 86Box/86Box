@@ -1480,7 +1480,7 @@ void fm_engine_base<RegisterType>::update_timer(uint32_t tnum, uint32_t enable, 
 	if (enable && !m_timer_running[tnum])
 	{
 		// period comes from the registers, and is different for each
-		uint32_t period = (tnum == 0) ? (1024 - subtract - m_regs.timer_a_value()) : 16 * (256 - subtract - m_regs.timer_b_value());
+		uint32_t period = (tnum == 0) ? (1024 - (subtract * 4) - m_regs.timer_a_value()) : 16 * (256 - subtract - m_regs.timer_b_value());
 
 		// caller can also specify a delta to account for other effects
 		period += delta_clocks;

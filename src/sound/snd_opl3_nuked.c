@@ -49,6 +49,7 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/video.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_opl3_nuked.h>
 
@@ -1463,6 +1464,45 @@ OPL3_GenerateResampledStream(opl3_chip *chip, int32_t *sndptr, uint32_t numsampl
     }
 }
 
+#define OPL3_CLOCK     14318181.0
+#define OPL3_UCLOCK    14318181ULL
+#define OPL3_OPERATORS       36.0
+#define OPL3_PRESCALE         8.0
+
+static void    nuked_opl3_timer_tick(nuked_opl3_drv_t *dev, int tmr);
+
+static void
+nuked_opl3_timer_advance(nuked_opl3_drv_t *dev, int tmr, int start)
+{
+    if (dev->is_cs && start)
+        nuked_opl3_timer_tick(dev, tmr);
+    else {
+        const double clock_us = (1000000.0 / OPL3_CLOCK) * OPL3_OPERATORS * OPL3_PRESCALE;
+        double       period;
+
+        if (tmr == 1) {
+            if (start) {
+                /*
+                   This emulates the behavior found on everything but the Crystal OPL
+                   clone - the information in the YM262 (OPL3) datasheet is a typo,
+                   and YMFM explains what actually goes on.
+
+                   TSC = Currently elapsed CPU cycles, (cpu speed in Hz) cycles per second,
+                   What we need is elapsed OPL clocks, (opl speed in Hz) cycles per second,
+                   so we divide the TSC by (cpu speed in Hz) to get the time, then multiply
+                   it by (opl speed in Hz).
+                   */
+                uint64_t total_clocks = ((tsc * OPL3_UCLOCK) / (uint64_t) cpuclock);
+                period = clock_us * (16.0 - (double) (total_clocks & 15));
+            } else
+                period = clock_us * 16.0;
+        } else
+            period = clock_us * 4.0;
+
+        timer_on_auto(&dev->timers[tmr], period);
+    }
+}
+
 static void
 nuked_opl3_timer_tick(nuked_opl3_drv_t *dev, int tmr)
 {
@@ -1477,7 +1517,7 @@ nuked_opl3_timer_tick(nuked_opl3_drv_t *dev, int tmr)
         nuked_opl3_log("Count wrapped around to zero, reloading timer %i (%02X), status = %02X...\n", tmr, (STAT_TMR1_OVER >> tmr), dev->status);
     }
 
-    timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+    nuked_opl3_timer_advance(dev, tmr, 0);
 }
 
 static void
@@ -1488,10 +1528,8 @@ nuked_opl3_timer_control(nuked_opl3_drv_t *dev, int tmr, int start)
     if (start) {
         nuked_opl3_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
         dev->timer_cur_count[tmr] = dev->timer_count[tmr];
-        if (dev->flags & FLAG_OPL3)
-            nuked_opl3_timer_tick(dev, tmr); // Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2.
-        else
-            timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+
+        nuked_opl3_timer_advance(dev, tmr, 1);
     } else {
         nuked_opl3_log("Timer %i stopped\n", tmr);
         if (tmr == 1) {
@@ -1666,6 +1704,7 @@ nuked_opl3_drv_init(const device_t *info)
         dev->status = 0x06;
 
     dev->is_48k      = !!(info->local & FM_FORCE_48K);
+    dev->is_cs       = !!(info->local & FM_CRYSTAL);
 
     // Initialize the NukedOPL3 object.
     if (dev->is_48k) {

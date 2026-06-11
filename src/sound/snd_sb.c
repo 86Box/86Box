@@ -551,106 +551,6 @@ sb_get_music_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *priv)
 }
 
 static void
-sb_get_cqm_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *priv)
-{
-    sb_t                    *sb          = (sb_t *) priv;
-    const sb_ct1745_mixer_t *mixer       = &sb->mixer_sb16;
-    const int                dsp_rec_pos = sb->dsp.record_pos_write;
-    double                   bass_treble;
-    const int32_t           *opl_buf     = NULL;
-
-    if (sb->opl_enabled)
-        opl_buf = sb->opl.update(sb->opl.priv);
-
-    for (int c = 0; c < len * 2; c += 2) {
-        double out_l = 0.0;
-        double out_r = 0.0;
-
-        if (sb->opl_enabled) {
-            out_l = ((double) opl_buf[c]) * mixer->fm_l * 0.7171630859375;
-            out_r = ((double) opl_buf[c + 1]) * mixer->fm_r * 0.7171630859375;
-        }
-
-        /* TODO: Multi-recording mic with agc/+20db, CD, and line in with channel inversion */
-        int32_t in_l = (mixer->input_selector_left & INPUT_MIDI_L) ?
-                       ((int32_t) out_l) : 0 + (mixer->input_selector_left & INPUT_MIDI_R) ? ((int32_t) out_r) : 0;
-        int32_t in_r = (mixer->input_selector_right & INPUT_MIDI_L) ?
-                       ((int32_t) out_l) : 0 + (mixer->input_selector_right & INPUT_MIDI_R) ? ((int32_t) out_r) : 0;
-
-        out_l *= mixer->master_l;
-        out_r *= mixer->master_r;
-
-        /* This is not exactly how one does bass/treble controls, but the end result is like it.
-           A better implementation would reduce the CPU usage. */
-        if (mixer->bass_l != 8) {
-            bass_treble = sb_bass_treble_4bits[mixer->bass_l];
-
-            if (mixer->bass_l > 8)
-                out_l += (low_iir(1, 0, out_l) * bass_treble);
-            else
-                out_l = (out_l *bass_treble + low_cut_iir(1, 0, out_l) * (1.0 - bass_treble));
-        }
-
-        if (mixer->bass_r != 8) {
-            bass_treble = sb_bass_treble_4bits[mixer->bass_r];
-
-            if (mixer->bass_r > 8)
-                out_r += (low_iir(1, 1, out_r) * bass_treble);
-            else
-                out_r = (out_r *bass_treble + low_cut_iir(1, 1, out_r) * (1.0 - bass_treble));
-        }
-
-        if (mixer->treble_l != 8) {
-            bass_treble = sb_bass_treble_4bits[mixer->treble_l];
-
-            if (mixer->treble_l > 8)
-                out_l += (high_iir(1, 0, out_l) * bass_treble);
-            else
-                out_l = (out_l *bass_treble + high_cut_iir(1, 0, out_l) * (1.0 - bass_treble));
-        }
-
-        if (mixer->treble_r != 8) {
-            bass_treble = sb_bass_treble_4bits[mixer->treble_r];
-
-            if (mixer->treble_r > 8)
-                out_r += (high_iir(1, 1, out_r) * bass_treble);
-            else
-                out_r = (out_l *bass_treble + high_cut_iir(1, 1, out_r) * (1.0 - bass_treble));
-        }
-
-        if (sb->dsp.sb_enable_i) {
-            const int c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / CQM_FREQ);
-
-            in_l <<= mixer->input_gain_L;
-            in_r <<= mixer->input_gain_R;
-
-            /* Clip signal */
-            if (in_l < -32768)
-                in_l = -32768;
-            else if (in_l > 32767)
-                in_l = 32767;
-
-            if (in_r < -32768)
-                in_r = -32768;
-            else if (in_r > 32767)
-                in_r = 32767;
-
-            sb->dsp.record_buffer[c_record & 0xffff]       = (int16_t) in_l;
-            sb->dsp.record_buffer[(c_record + 1) & 0xffff] = (int16_t) in_r;
-        }
-
-        buffer[c] += (int32_t) (out_l * mixer->output_gain_L);
-        buffer[c + 1] += (int32_t) (out_r * mixer->output_gain_R);
-    }
-
-    sb->dsp.record_pos_write += ((len * sb->dsp.sb_freq) / 24000);
-    sb->dsp.record_pos_write &= 0xffff;
-
-    if (sb->opl_enabled)
-        sb->opl.reset_buffer(sb->opl.priv);
-}
-
-static void
 sb_get_wavetable_buffer_goldfinch(int32_t *buffer, const uint16_t len, void *priv)
 {
     goldfinch_t *goldfinch = (goldfinch_t *) priv;
@@ -4348,7 +4248,7 @@ sb_pro_v2_init(UNUSED(const device_t *info))
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &sb->opl);
+        fm_driver_get_cs(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, dspver, SB_SUBTYPE_DEFAULT, sb);
@@ -4404,7 +4304,7 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
     sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->opl_enabled = 1;
-    fm_driver_get(FM_YMF262, &sb->opl);
+    fm_driver_get_cs(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, sb);
@@ -4436,7 +4336,11 @@ sb_pro_compat_init(UNUSED(const device_t *info))
 {
     sb_t *sb = calloc(1, sizeof(sb_t));
 
-    fm_driver_get(FM_YMF262, &sb->opl);
+    /*
+       Force Crystal counter behavior - following the typo
+       (255 instead of 256) in the English YM262 datasheet.
+     */
+    fm_driver_get_cs(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_DEFAULT, sb);
@@ -4463,7 +4367,7 @@ sb_16_init(UNUSED(const device_t *info))
     const uint8_t  dspver = device_get_config_int("dspver");
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        fm_driver_get((int) (intptr_t) info->local, &sb->opl);
+        fm_driver_get_cs((int) (intptr_t) info->local, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
 
@@ -4535,7 +4439,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     sb_t *sb = calloc(1, sizeof(sb_t));
 
     sb->opl_enabled = 1;
-    fm_driver_get(FM_YMF262, &sb->opl);
+    fm_driver_get_cs(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
@@ -4594,9 +4498,9 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
-    fm_driver_get((int) (intptr_t) FM_CQM, &sb->opl);
+    fm_driver_get_cs((int) (intptr_t) FM_CQM, &sb->opl);
 
-    sb_dsp_set_cqm(&sb->dsp, 1);
+    sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, dspver, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
@@ -4604,7 +4508,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
-    cqm_add_handler(sb_get_cqm_buffer_sb16_awe32, sb);
+    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -4699,9 +4603,9 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
-    fm_driver_get(FM_CQM, &sb->opl);
+    fm_driver_get_cs(FM_CQM, &sb->opl);
 
-    sb_dsp_set_cqm(&sb->dsp, 1);
+    sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, (info->local == SB_VIBRA16XV) ? SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
     /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
     sb_dsp_setdma16_supported(&sb->dsp, info->local != SB_VIBRA16XV);
@@ -4710,7 +4614,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
-    cqm_add_handler(sb_get_cqm_buffer_sb16_awe32, sb);
+    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
         sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
@@ -4797,7 +4701,7 @@ sb_16_compat_init(const device_t *info)
 {
     sb_t *sb = calloc(1, sizeof(sb_t));
 
-    fm_driver_get(FM_YMF262, &sb->opl);
+    fm_driver_get_cs(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, SB16_DSP_405, SB_SUBTYPE_DEFAULT, sb);
@@ -4880,7 +4784,7 @@ sb_awe32_init(UNUSED(const device_t *info))
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &sb->opl);
+        fm_driver_get_cs(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
     sb_dsp_init(&sb->dsp, SBAWE32_DSP_412, SB_SUBTYPE_DEFAULT, sb);
@@ -4998,24 +4902,18 @@ sb_awe32_pnp_init(const device_t *info)
     sb->pnp = 1;
 
     sb->opl_enabled = 1;
-    fm_driver_get(cqm ? FM_CQM : FM_YMF262, &sb->opl);
+    fm_driver_get_cs(cqm ? FM_CQM : FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, (info->local >= SB_AWE64_VALUE) ?
                 SBAWE64_DSP_416 : SBAWE32_DSP_413, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
-    if (cqm)
-        sb_dsp_set_cqm(&sb->dsp, 1);
-    else
-        sb_dsp_set_real_opl(&sb->dsp, 1);
+    sb_dsp_set_real_opl(&sb->dsp, 1);
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
-    if (cqm)
-        cqm_add_handler(sb_get_cqm_buffer_sb16_awe32, sb);
-    else
-        music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
+    music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     wavetable_add_handler(sb_get_wavetable_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
@@ -5144,7 +5042,7 @@ ess_x688_init(UNUSED(const device_t *info))
     const uint16_t ide_side = ide_base + 0x0206;
     const uint16_t ide_irq  = ide_ctrl >> 12;
 
-    fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
+    fm_driver_get_cs(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
     sb_dsp_init(&ess->dsp, SBPRO_DSP_301, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
@@ -5261,7 +5159,7 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     else
         ess->pnp = 1 + (int) info->local;
 
-    fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
+    fm_driver_get_cs(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
     sb_dsp_init(&ess->dsp, SBPRO_DSP_301, (info->local & 1) ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
@@ -5350,7 +5248,7 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     sb_t *ess = calloc(1, sizeof(sb_t));
 
     ess->opl_enabled = 1;
-    fm_driver_get(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
+    fm_driver_get_cs(info->local ? FM_ESFM : FM_YMF262, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
     sb_dsp_init(&ess->dsp, SBPRO_DSP_301, info->local ? SB_SUBTYPE_ESS_ES1688 : SB_SUBTYPE_ESS_ES688, ess);
@@ -5406,7 +5304,7 @@ ess_1x88_onboard_init(const device_t *info)
     uint8_t type = (info->local & 0x0f);
     uint8_t is_compaq = (info->local >> 4);
 
-    fm_driver_get(FM_ESFM, &ess->opl);
+    fm_driver_get_cs(FM_ESFM, &ess->opl);
 
     sb_dsp_set_real_opl(&ess->dsp, 1);
     ess->opl_pnp_addr = 0x388;
