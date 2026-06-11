@@ -414,7 +414,7 @@ clap_host_load_plugin(const char *library_path, const char *plugin_id)
 
 #if defined(__APPLE__)
     char path[2048] = { 0 };
-    strncpy(path, library_path, strlen(library_path) - 1);
+    strncpy(path, library_path, strlen(library_path));
     strcat(path, "/Contents/MacOS/Nuked-SC55");
 
     lib = dynlib_open(path);
