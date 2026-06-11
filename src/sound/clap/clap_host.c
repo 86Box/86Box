@@ -409,27 +409,11 @@ clap_host_load_plugin(const char *library_path, const char *plugin_id)
     const clap_plugin_factory_t *factory;
     const clap_plugin_t *plugin;
 
-#if defined(__APPLE__)
-    char path[2048] = { 0 };
-    strncpy(path, library_path, strlen(library_path) - 1);
-    strcat(path, "/Contents/MacOS/Nuked-SC55");
-
-    lib = dynlib_open(path);
-    if (!lib) {
-        pclog("CLAP: Failed to load '%s', falling back to 's'\n", path, library_path);
-        lib = dynlib_open(library_path);
-        if (!lib) {
-            pclog("CLAP: Failed to load '%s'\n", library_path);
-            return NULL;
-        }
-    }
-#else
     lib = dynlib_open(library_path);
     if (!lib) {
         pclog("CLAP: Failed to load '%s'\n", library_path);
         return NULL;
     }
-#endif
 
     entry = (const clap_plugin_entry_t *)dynlib_symbol(lib, "clap_entry");
     if (!entry) {
