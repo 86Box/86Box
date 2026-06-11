@@ -96,7 +96,7 @@ machine_at_s2dge_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x14, PCI_CARD_SCSI,        4, 1, 2, 3);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 0, 0);
@@ -105,6 +105,8 @@ machine_at_s2dge_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);
+    if ((scsi_card_current[0] == SCSI_CARD_INTERNAL) && machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
     device_add(&w83781d_device);    /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2? */
     hwm_values.fans[1]         = 0; /* no CPU2 fan */
