@@ -13,6 +13,15 @@
 #    include "qt_renderercommon.hpp"
 #    include <vulkan/vulkan.h>
 #    include "imgui_impl_vulkan.h"
+#    include "librashader_ld.h"
+
+class VulkanShaderChain
+{
+public:
+    libra_vk_filter_chain_t chain;
+    VkImage next_image_chain;
+    VmaAllocation next_image_alloc;
+};
 
 class VulkanWindowRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
@@ -46,10 +55,14 @@ private:
     void cleanupSwapchain();
     void recreateSwapchain();
 
+    void cleanupShaderSrcImages();
+    void recreateShaderSrcImages();
+
     int present_queue = -1, gfx_queue = -1;
 
     uint32_t swapchain_image_index = 0;
     uint32_t current_frame = 0;
+    uint32_t current_frame_shader = 0;
     
     // Renderer stuff.
     VkSurfaceKHR window_surface = nullptr;
@@ -60,7 +73,6 @@ private:
     VkQueue gfx_queue_o = nullptr;
 
     std::vector<VkImage> swapchainImageScreenshots;
-    std::vector<VkImageView> swapchainImageScreenshotViews;
     std::vector<std::pair<void*, uint32_t>> swapchainImageScreenshotMappedPtrs;
     std::vector<VmaAllocation> swapchainImageScreenshotAllocations;
 
@@ -71,6 +83,10 @@ private:
     std::vector<VkSemaphore> presentSemaphores;
     std::vector<VkFence> presentFences;
     std::vector<VkCommandBuffer> cmdBuffers;
+
+    std::vector<VkImage> shaderSrcImages;
+    std::vector<VmaAllocation> shaderSrcImageAllocations;
+    std::vector<std::vector<VulkanShaderChain>> shaderFilterChains;
 
     // Stuff to use.
     VkImage src_image = nullptr;
@@ -103,9 +119,11 @@ private:
 
     ImGui_ImplVulkan_InitInfo init_info{};
     
-    VkFormat colorAttachmentFormat = VK_FORMAT_R8G8B8A8_UNORM;
+    VkFormat colorAttachmentFormat = VK_FORMAT_B8G8R8A8_UNORM;
 
     bool imageLayoutTransitioned = false;
+
+    libra_instance_t librashader_instance_vk{};
 
 private slots:
     void render();
