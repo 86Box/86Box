@@ -94,6 +94,11 @@
 #define ROM_GENOA_VISION868            "roms/video/s3/Genoa Phantom 64 PCI (S3 Vision868).bin"
 #define ROM_MIROVIDEO_VISION868        "roms/video/s3/miroVIDEO 20SD PCI (S3 Vision868).bin"
 #define ROM_SPEA_TRIO32                "roms/video/s3/SPEA V7-Mercury P-32 (S3 Trio32 PCI).bin"
+#define ROM_DIAMOND_TRIO64V            "roms/video/s3/Diamond Stealth64 Video 2001 (S3 Trio64V+ PCI).bin"
+#define ROM_HERCULES_TRIO64V           "roms/video/s3/Hercules Terminator 64 Video (S3 Trio64V+ PCI).BIN"
+#define ROM_LEADTEK_TRIO64V            "roms/video/s3/Leaktek WinFast S280 (S3 Trio64V+ PCI).BIN"
+#define ROM_MIROMEDIA_TV               "roms/video/s3/miroMEDIA TV (S3 Trio64V+ PCI).rom"
+#define ROM_MIRO_TRIO64V               "roms/video/s3/miroVIDEO 22SD (S3 Trio64V+ PCI).BIN"
 
 enum {
     S3_NUMBER9_9FX,
@@ -150,6 +155,11 @@ enum {
     S3_GENOA_VISION868,
     S3_MIROVIDEO_VISION868,
     S3_SPEA_TRIO32,
+    S3_DIAMOND_TRIO64V,
+    S3_HERCULES_TRIO64V,
+    S3_LEADTEK_TRIO64V,
+    S3_MIROMEDIA_TV,
+    S3_MIRO_TRIO64V,
     S3_USE_CONFIG_BIOS
 };
 
@@ -3478,7 +3488,12 @@ s3_in(uint16_t addr, void *priv)
                  */
                 if (((s3->card_type == S3_STB_POWERGRAPH_64_VIDEO) ||
                     (s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD) ||
-                    (s3->card_type == S3_CARDEX_TRIO64VPLUS)) && (svga->seqaddr == 0x17))
+                    (s3->card_type == S3_CARDEX_TRIO64VPLUS) ||
+                    (s3->card_type == S3_DIAMOND_TRIO64V) ||
+                    (s3->card_type == S3_HERCULES_TRIO64V) ||
+                    (s3->card_type == S3_LEADTEK_TRIO64V) ||
+                    (s3->card_type == S3_MIROMEDIA_TV) ||
+                    (s3->card_type == S3_MIRO_TRIO64V)) && (svga->seqaddr == 0x17))
                     svga->seqregs[svga->seqaddr] ^= 0x01;
                 return temp;
             }
@@ -10787,6 +10802,31 @@ s3_init(const device_t *info)
             chip    = S3_TRIO64V;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64vp_cardex_pci);
             break;
+        case S3_S3_DIAMOND_TRIO64V:
+            bios_fn = ROM_DIAMOND_TRIO64V;
+            chip    = S3_TRIO64V;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            break;
+        case S3_HERCULES_TRIO64V:
+            bios_fn = ROM_HERCULES_TRIO64V;
+            chip    = S3_TRIO64V;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            break;
+        case S3_LEADTEK_TRIO64V:
+            bios_fn = ROM_LEADTEK_TRIO64V;
+            chip    = S3_TRIO64V;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            break;
+        case S3_MIROMEDIA_TV:
+            bios_fn = ROM_MIROMEDIA_TV;
+            chip    = S3_TRIO64V;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            break;
+        case S3_MIRO_TRIO64V:
+            bios_fn = ROM_MIRO_TRIO64V;
+            chip    = S3_TRIO64V;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            break;
         case S3_DIAMOND_STEALTH64_764:
             bios_fn = ROM_DIAMOND_STEALTH64_764;
             chip    = S3_TRIO64;
@@ -11379,6 +11419,11 @@ s3_init(const device_t *info)
         case S3_PHOENIX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
         case S3_CARDEX_TRIO64VPLUS:
+        case S3_DIAMOND_TRIO64V:
+        case S3_HERCULES_TRIO64V:
+        case S3_LEADTEK_TRIO64V:
+        case S3_MIROMEDIA_TV:
+        case S3_MIRO_TRIO64V:
         case S3_DIAMOND_STEALTH64_764:
         case S3_SPEA_MIRAGE_P64:
         case S3_NUMBER9_9FX:
@@ -12194,23 +12239,23 @@ static const device_config_t s3_vision864_pci_config[] = {
             },
             {
                 .name          = "Diamond Stealth64 Graphics 2000",
-                .internal_name = "diamond_vision864_pci",
+                .internal_name = "stealth64_2000_pci",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH64_864,
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
-                .files         = { ROM_DEC_VISION864, "" }
+                .files         = { ROM_DIAMOND_STEALTH64_864, "" }
             },
             {
                 .name          = "Leadtek (ASUS) WinFast S430",
-                .internal_name = "leadtek_vision864_pci",
+                .internal_name = "leadtek_s430_pci",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = S3_LEADTEK_VISION864,
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
-                .files         = { ROM_DEC_VISION864, "" }
+                .files         = { ROM_LEADTEK_VISION864, "" }
             },
             {
                 .name          = "Paradise Bahamas 64",
@@ -12645,7 +12690,7 @@ static const device_config_t s3_vision868_pci_config[] = {
                 .local         = S3_GENOA_VISION868,
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
-                .files         = { ROM_ELSAWIN2KPROX, "" }
+                .files         = { ROM_GENOA_VISION868, "" }
             },
             {
                 .name          = "miroVIDEO 20SD",
@@ -12655,7 +12700,7 @@ static const device_config_t s3_vision868_pci_config[] = {
                 .local         = S3_MIROVIDEO_VISION868,
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
-                .files         = { ROM_ELSAWIN2KPROX, "" }
+                .files         = { ROM_MIROVIDEO_VISION868, "" }
             },
             {
                 .name          = "Number Nine 9FX Motion 531",
@@ -12904,6 +12949,56 @@ static const device_config_t s3_trio64vplus_pci_config[] = {
                 .size          = 32768,
                 .flags         = 0,
                 .files         = { ROM_CARDEX_TRIO64VPLUS, "" }
+            },
+            {
+                .name          = "Diamond Stealth64 Video 2001",
+                .internal_name = "stealth64v_2001_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_CARDEX_TRIO64VPLUS,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_DIAMOND_TRIO64V, "" }
+            },
+            {
+                .name          = "Hercules Terminator 64 Video",
+                .internal_name = "terminator_64v_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_CARDEX_TRIO64VPLUS,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_HERCULES_TRIO64V, "" }
+            },
+            {
+                .name          = "Leadtek WinFast S280",
+                .internal_name = "leadtek_s280_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_CARDEX_TRIO64VPLUS,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_LEADTEK_TRIO64V, "" }
+            },
+            {
+                .name          = "miroMEDIA TV",
+                .internal_name = "miromediatv_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_CARDEX_TRIO64VPLUS,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_MIROMEDIA_TV, "" }
+            },
+            {
+                .name          = "miroVIDEO 22SD",
+                .internal_name = "mirovideo22sd_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_CARDEX_TRIO64VPLUS,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_MIRO_TRIO64V, "" }
             },
             {
                 .name          = "Phoenix",
