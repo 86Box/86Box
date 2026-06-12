@@ -40,7 +40,7 @@
 
 #define ROM_MILLENNIUM        "roms/video/matrox/matrox2064wr2.BIN"
 #define ROM_MILLENNIUM_II     "roms/video/matrox/matrox2164wpc.BIN"
-#define ROM_MILLENNIUM_II_AGP "roms/video/matrox/877-3.bin"
+#define ROM_MILLENNIUM_II_AGP "roms/video/matrox/865-4.bin"
 #define ROM_MYSTIQUE          "roms/video/matrox/MYSTIQUE.VBI"
 #define ROM_MYSTIQUE_220      "roms/video/matrox/Myst220_66-99mhz.vbi"
 #define ROM_G100              "roms/video/matrox/productiva8mbsdr.BIN"
