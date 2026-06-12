@@ -5,6 +5,7 @@
 #include <QVulkanWindow>
 
 #include <vector>
+#include <tuple>
 
 #if QT_CONFIG(vulkan)
 #    pragma clang diagnostic ignored "-Wnullability-completeness"
@@ -57,6 +58,11 @@ private:
     VkSwapchainKHR dev_swapchain = nullptr;
     VkCommandPool commandPool = nullptr;
     VkQueue gfx_queue_o = nullptr;
+
+    std::vector<VkImage> swapchainImageScreenshots;
+    std::vector<VkImageView> swapchainImageScreenshotViews;
+    std::vector<std::pair<void*, uint32_t>> swapchainImageScreenshotMappedPtrs;
+    std::vector<VmaAllocation> swapchainImageScreenshotAllocations;
 
     std::vector<VkImage> swapchainImages;
     std::vector<VkImageView> swapchainImageViews;

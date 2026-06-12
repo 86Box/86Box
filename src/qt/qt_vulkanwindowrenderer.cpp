@@ -90,10 +90,18 @@ VulkanWindowRenderer::cleanupSwapchain()
         m_devFuncs->vkDestroySemaphore(logi_device, renderFinishedSemaphores[i], nullptr);
         m_devFuncs->vkDestroySemaphore(logi_device, presentSemaphores[i], nullptr);
         m_devFuncs->vkDestroyFence(logi_device, presentFences[i], nullptr);
+
+        m_devFuncs->vkDestroyImageView(logi_device, swapchainImageScreenshotViews[i], nullptr);
+        vmaDestroyImage(allocator, swapchainImageScreenshots[i], swapchainImageScreenshotAllocations[i]);
     }
     if (cmdBuffers.size()) {
         m_devFuncs->vkDestroyCommandPool(logi_device, this->commandPool, nullptr);
     }
+    swapchainImageScreenshots.clear();
+    swapchainImageScreenshotViews.clear();
+    swapchainImageScreenshotAllocations.clear();
+    swapchainImageScreenshotMappedPtrs.clear();
+
     swapchainImageViews.clear();
     swapchainImageTransitioned.clear();
     renderFinishedSemaphores.clear();
@@ -115,7 +123,7 @@ VulkanWindowRenderer::recreateSwapchain()
     if (fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) {
         fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, instance.surfaceForWindow(this), &surfaceCaps);
     } else {
-        // throw vulkan_init_error("Failed to get surface capabilities");
+        throw vulkan_init_error("Failed to get surface capabilities");
     }
 
     curExtent = surfaceCaps.currentExtent;
@@ -125,7 +133,7 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.surface                  = instance.surfaceForWindow(this);
     swapchain_creation.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchain_creation.presentMode              = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    swapchain_creation.imageFormat              = VK_FORMAT_R8G8B8A8_UNORM;
+    swapchain_creation.imageFormat              = VK_FORMAT_B8G8R8A8_UNORM;
     swapchain_creation.imageColorSpace          = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     swapchain_creation.imageArrayLayers         = 1;
     swapchain_creation.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
@@ -137,11 +145,16 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.oldSwapchain             = NULL;
     auto res                                    = fn_vkCreateSwapchainKHR(logi_device, &swapchain_creation, nullptr, &dev_swapchain);
     if (res != VK_SUCCESS) {
-        // throw vulkan_init_error("Failed to create swapchain");
+        throw vulkan_init_error("Failed to create swapchain");
     }
 
     uint32_t swapchainImagesCount = 0;
     fn_vkGetSwapchainImagesKHR(logi_device, dev_swapchain, &swapchainImagesCount, nullptr);
+
+    swapchainImageScreenshots.resize(swapchainImagesCount);
+    swapchainImageScreenshotViews.resize(swapchainImagesCount);
+    swapchainImageScreenshotAllocations.resize(swapchainImagesCount);
+    swapchainImageScreenshotMappedPtrs.resize(swapchainImagesCount);
 
     this->swapchainImages.resize(swapchainImagesCount);
     this->swapchainImageViews.resize(swapchainImagesCount);
@@ -190,7 +203,7 @@ VulkanWindowRenderer::recreateSwapchain()
 
         VkImageViewCreateInfo image_view_info           = { };
         image_view_info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        image_view_info.format                          = VK_FORMAT_R8G8B8A8_UNORM;
+        image_view_info.format                          = VK_FORMAT_B8G8R8A8_UNORM;
         image_view_info.image                           = swapchainImages[i];
         image_view_info.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
         image_view_info.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -203,6 +216,45 @@ VulkanWindowRenderer::recreateSwapchain()
         image_view_info.components.b                    = VK_COMPONENT_SWIZZLE_B;
         image_view_info.components.a                    = VK_COMPONENT_SWIZZLE_A;
         m_devFuncs->vkCreateImageView(logi_device, &image_view_info, nullptr, &swapchainImageViews[i]);
+
+        // Create screenshot images.
+        {
+            VkImageCreateInfo img_info = { };
+            img_info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+            img_info.imageType         = VK_IMAGE_TYPE_2D;
+            img_info.extent.width      = curExtent.width;
+            img_info.extent.height     = curExtent.height;
+            img_info.extent.depth      = 1;
+            img_info.mipLevels         = 1;
+            img_info.arrayLayers       = 1;
+            img_info.format            = VK_FORMAT_B8G8R8A8_UNORM;
+            img_info.tiling            = VK_IMAGE_TILING_LINEAR;
+            img_info.usage             = VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            img_info.samples           = VK_SAMPLE_COUNT_1_BIT;
+            img_info.initialLayout     = VK_IMAGE_LAYOUT_PREINITIALIZED;
+            img_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
+            img_info.flags             = 0;
+
+            VmaAllocationCreateInfo allocInfo { };
+            VmaAllocationInfo       allocInfo2 { };
+            allocInfo.pUserData = allocInfo.pool = nullptr;
+            allocInfo.requiredFlags = allocInfo.preferredFlags = 0;
+            allocInfo.usage                                    = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO;
+            allocInfo.flags                                    = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+
+            if (vmaCreateImage(allocator, &img_info, &allocInfo, &swapchainImageScreenshots[i], &swapchainImageScreenshotAllocations[i], &allocInfo2) != VK_SUCCESS) {
+                throw vulkan_init_error("Failed to create screenshot images");
+            }
+
+            VkImageSubresource resource { };
+            resource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+            resource.arrayLayer = 0;
+            resource.mipLevel   = 0;
+            VkSubresourceLayout layout { };
+            m_devFuncs->vkGetImageSubresourceLayout(logi_device, swapchainImageScreenshots[i], &resource, &layout);
+
+            swapchainImageScreenshotMappedPtrs[i] = std::pair<void *, uint32_t>((void *) ((uint8_t *) allocInfo2.pMappedData + layout.offset), layout.rowPitch);
+        }
     }
 }
 
@@ -417,27 +469,27 @@ VulkanWindowRenderer::render()
     clr_val.float32[2] = 0;
     clr_val.float32[3] = 1;
 
-    VkImageBlit cregion;
-    cregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    cregion.srcSubresource.mipLevel = 0;
-    cregion.srcSubresource.baseArrayLayer = 0;
-    cregion.srcSubresource.layerCount = 1;
-    cregion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    cregion.dstSubresource.mipLevel = 0;
-    cregion.dstSubresource.baseArrayLayer = 0;
-    cregion.dstSubresource.layerCount = 1;
-    cregion.srcOffsets[0].x = source.x();
-    cregion.srcOffsets[0].y = source.y();
-    cregion.srcOffsets[0].z = 0;
-    cregion.srcOffsets[1].x = source.x() + source.width();
-    cregion.srcOffsets[1].y = source.y() + source.height();
-    cregion.srcOffsets[1].z = 1;
-    cregion.dstOffsets[0].x = destination.x();
-    cregion.dstOffsets[0].y = destination.y();
-    cregion.dstOffsets[0].z = 0;
-    cregion.dstOffsets[1].x = destination.x() + destination.width();
-    cregion.dstOffsets[1].y = destination.y() + destination.height();
-    cregion.dstOffsets[1].z = 1;
+    VkImageBlit bregion;
+    bregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    bregion.srcSubresource.mipLevel = 0;
+    bregion.srcSubresource.baseArrayLayer = 0;
+    bregion.srcSubresource.layerCount = 1;
+    bregion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    bregion.dstSubresource.mipLevel = 0;
+    bregion.dstSubresource.baseArrayLayer = 0;
+    bregion.dstSubresource.layerCount = 1;
+    bregion.srcOffsets[0].x = source.x();
+    bregion.srcOffsets[0].y = source.y();
+    bregion.srcOffsets[0].z = 0;
+    bregion.srcOffsets[1].x = source.x() + source.width();
+    bregion.srcOffsets[1].y = source.y() + source.height();
+    bregion.srcOffsets[1].z = 1;
+    bregion.dstOffsets[0].x = destination.x();
+    bregion.dstOffsets[0].y = destination.y();
+    bregion.dstOffsets[0].z = 0;
+    bregion.dstOffsets[1].x = destination.x() + destination.width();
+    bregion.dstOffsets[1].y = destination.y() + destination.height();
+    bregion.dstOffsets[1].z = 1;
 
     VkImageSubresourceRange clr_range;
     clr_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -466,11 +518,11 @@ VulkanWindowRenderer::render()
 
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
 
-    m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+    m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
 
     const VkImageMemoryBarrier image2_memory_barrier {
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
         .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
         .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -484,7 +536,7 @@ VulkanWindowRenderer::render()
                              }
     };
 
-    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
 
     VkRenderingAttachmentInfo render_info = {};
     render_info.clearValue = {};
@@ -511,27 +563,121 @@ VulkanWindowRenderer::render()
 
     fn_vkCmdEndRendering(cmdBufs);
 
-    const VkImageMemoryBarrier image3_memory_barrier {
-        .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        .dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
-        .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-        .image            = swapchainImages[swapchain_image_index],
-        .subresourceRange = {
-                             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                             .baseMipLevel   = 0,
-                             .levelCount     = 1,
-                             .baseArrayLayer = 0,
-                             .layerCount     = 1,
-                             }
-    };
+    if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard) {
+        const VkImageMemoryBarrier image3_memory_barrier {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .image            = swapchainImages[swapchain_image_index],
+            .subresourceRange = {
+                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel   = 0,
+                                .levelCount     = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount     = 1,
+                                }
+        };
 
-    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
+        const VkImageMemoryBarrier image3_scrshot_memory_barrier {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
+            .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .image            = swapchainImageScreenshots[swapchain_image_index],
+            .subresourceRange = {
+                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel   = 0,
+                                .levelCount     = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount     = 1,
+                                }
+        };
+
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &image3_scrshot_memory_barrier);
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
+
+        VkImageCopy cregion = {};
+        cregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        cregion.srcSubresource.mipLevel = 0;
+        cregion.srcSubresource.baseArrayLayer = 0;
+        cregion.srcSubresource.layerCount = 1;
+        cregion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        cregion.dstSubresource.mipLevel = 0;
+        cregion.dstSubresource.baseArrayLayer = 0;
+        cregion.dstSubresource.layerCount = 1;
+        cregion.srcOffset.x = 0;
+        cregion.srcOffset.y = 0;
+        cregion.srcOffset.z = 0;
+        cregion.dstOffset.x = 0;
+        cregion.dstOffset.y = 0;
+        cregion.dstOffset.z = 0;
+        cregion.extent.width = curExtent.width;
+        cregion.extent.height = curExtent.height;
+        cregion.extent.depth = 1;
+
+        m_devFuncs->vkCmdCopyImage(cmdBufs, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImageScreenshots[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion);
+        const VkImageMemoryBarrier image4_memory_barrier {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            .image            = swapchainImages[swapchain_image_index],
+            .subresourceRange = {
+                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel   = 0,
+                                .levelCount     = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount     = 1,
+                                }
+        };
+
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image4_memory_barrier);
+
+        const VkImageMemoryBarrier image4_scrshot_memory_barrier {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+            .dstAccessMask    = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_GENERAL,
+            .image            = swapchainImageScreenshots[swapchain_image_index],
+            .subresourceRange = {
+                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel   = 0,
+                                .levelCount     = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount     = 1,
+                                }
+        };
+
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &image3_scrshot_memory_barrier);
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &image4_scrshot_memory_barrier);
+    } else {
+        const VkImageMemoryBarrier image3_memory_barrier {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            .image            = swapchainImages[swapchain_image_index],
+            .subresourceRange = {
+                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel   = 0,
+                                .levelCount     = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount     = 1,
+                                }
+        };
+
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
+    }
 
     m_devFuncs->vkEndCommandBuffer(cmdBufs);
     // The submit info structure specifies a command buffer queue submission batch
-    VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
     VkSubmitInfo         submitInfo { };
     submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.pWaitDstStageMask  = &waitStageMask; // Pointer to the list of pipeline stages that the semaphore waits will occur at
@@ -547,6 +693,51 @@ VulkanWindowRenderer::render()
 
     // Submit to the graphics queue passing a wait fence
     m_devFuncs->vkQueueSubmit(gfx_queue_o, 1, &submitInfo, presentFences[current_frame]);
+
+    if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard) {
+        // Wait for fence to be signalled.
+        m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_FALSE, (uint64_t)-1);
+
+        auto scrShotImagePitch = swapchainImageScreenshotMappedPtrs[swapchain_image_index].second;
+        uint8_t* scrShotImageMapPtr = (uint8_t*)swapchainImageScreenshotMappedPtrs[swapchain_image_index].first;
+
+        if (monitors[r_monitor_index].mon_screenshots) {
+            int  width = curExtent.width, height = curExtent.height;
+            char path[1024];
+            char fn[256];
+
+            memset(fn, 0, sizeof(fn));
+            memset(path, 0, sizeof(path));
+
+            path_append_filename(path, usr_path, SCREENSHOT_PATH);
+
+            if (!plat_dir_check(path))
+                plat_dir_create(path);
+
+            path_slash(path);
+            strcat(path, "Monitor_");
+            snprintf(&path[strlen(path)], 42, "%d_", r_monitor_index + 1);
+
+            plat_tempfile(fn, NULL, (char *) ".png");
+            strcat(path, fn);
+
+            unsigned char *rgb = scrShotImageMapPtr;
+
+            QImage image((uchar*)rgb, width, height, scrShotImagePitch, QImage::Format_RGBA8888);
+            image.rgbSwapped().save(path, "png");
+            monitors[r_monitor_index].mon_screenshots--;
+        }
+        if (monitors[r_monitor_index].mon_screenshots_clipboard) {
+            int  width = curExtent.width, height = curExtent.height;
+
+            unsigned char *rgb = scrShotImageMapPtr;
+
+            QImage image((uchar*)rgb, width, height, scrShotImagePitch, QImage::Format_RGBA8888);
+            QClipboard *clipboard = QApplication::clipboard();
+            clipboard->setImage(image.rgbSwapped(), QClipboard::Clipboard);
+            monitors[r_monitor_index].mon_screenshots_clipboard--;
+        }
+    }
 
     // Present the current frame buffer to the swap chain
     // Pass the semaphore signaled by the command buffer submission from the submit info as the wait semaphore for swap chain presentation
@@ -734,7 +925,7 @@ VulkanWindowRenderer::initialize()
                 img_info.extent.depth  = 1;
                 img_info.mipLevels     = 1;
                 img_info.arrayLayers   = 1;
-                img_info.format        = VK_FORMAT_R8G8B8A8_UNORM;
+                img_info.format        = VK_FORMAT_B8G8R8A8_UNORM;
                 img_info.tiling        = VK_IMAGE_TILING_LINEAR;
                 img_info.usage         = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
                 img_info.samples       = VK_SAMPLE_COUNT_1_BIT;
@@ -756,7 +947,7 @@ VulkanWindowRenderer::initialize()
                 VkImageViewCreateInfo imageViewInfo { };
                 imageViewInfo.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
                 imageViewInfo.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-                imageViewInfo.format                          = VK_FORMAT_R8G8B8A8_UNORM;
+                imageViewInfo.format                          = VK_FORMAT_B8G8R8A8_UNORM;
                 imageViewInfo.image                           = src_image;
                 imageViewInfo.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
                 imageViewInfo.subresourceRange.baseMipLevel   = 0;
@@ -879,44 +1070,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         // requestUpdate();
         render();
     }
-#    if 0
-    if (monitors[r_monitor_index].mon_screenshots) {
-        char path[1024];
-        char fn[256];
 
-        memset(fn, 0, sizeof(fn));
-        memset(path, 0, sizeof(path));
-
-        path_append_filename(path, usr_path, SCREENSHOT_PATH);
-
-        if (!plat_dir_check(path))
-            plat_dir_create(path);
-
-        path_slash(path);
-        strcat(path, "Monitor_");
-        snprintf(&path[strlen(path)], 42, "%d_", r_monitor_index + 1);
-
-        plat_tempfile(fn, NULL, (char *) ".png");
-        strcat(path, fn);
-
-        QImage image = this->grab();
-#        if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0) && !defined(Q_OS_WINDOWS)
-        image.save(path, "png");
-#        else
-        image.rgbSwapped().save(path, "png");
-#        endif
-        monitors[r_monitor_index].mon_screenshots--;
-    }
-    if (monitors[r_monitor_index].mon_screenshots_clipboard) {
-        QImage image = this->grab();
-#        if QT_VERSION < QT_VERSION_CHECK(6, 0, 0) || defined(Q_OS_WINDOWS)
-        image = image.rgbSwapped();
-#        endif
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setImage(image, QClipboard::Clipboard);
-        monitors[r_monitor_index].mon_screenshots_clipboard--;
-    }
-#    endif
     if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {
         take_screenshot_clipboard_monitor(x, y, w, h, r_monitor_index);
     }
