@@ -102,8 +102,8 @@ protected:
 template <typename ChipType>
 class YMFMChip : public YMFMChipBase, public ymfm::ymfm_interface {
 public:
-    YMFMChip(uint32_t clock, fm_type type, uint32_t samplerate, int m_48k, int m_cs)
-        : YMFMChipBase(clock, type, samplerate, m_48k, m_cs)
+    YMFMChip(uint32_t clock, fm_type type, uint32_t samplerate, int m_48k, int cs)
+        : YMFMChipBase(clock, type, samplerate, m_48k, cs)
         , m_chip(*this)
         , m_clock(clock)
         , m_samplerate(samplerate)
@@ -118,6 +118,7 @@ public:
         m_subtract[0]    = 80.0;
         m_subtract[1]    = 320.0;
         m_type           = type;
+        m_cs             = cs;
         if (m_48k)
             m_buf_pos_global = &sound_pos_global;
         else if (samplerate == FREQ_55930)
@@ -142,12 +143,15 @@ public:
 
     virtual void ymfm_set_timer(uint32_t tnum, int32_t duration_in_clocks) override
     {
+        int special = !!(tnum >> 15);
+        tnum &= 0x7fff;
+
         if (tnum > 1)
             return;
 
         m_duration_in_clocks[tnum] = duration_in_clocks;
         pc_timer_t *timer          = &m_timers[tnum];
-        if (duration_in_clocks < 0)
+        if (!special && (duration_in_clocks < 0))
             timer_stop(timer);
         else {
             double period = m_clock_us * duration_in_clocks;

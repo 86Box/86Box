@@ -210,7 +210,10 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
                     log_fatal(dev->log, "mo_load(): Error seeking to the beginning of "
                               "the file\n");
 
-                strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
+                if (dev->drv->image_path != (fn - offs)) {
+                    const int len = MIN(strlen(fn - offs), (sizeof(dev->drv->image_path) - 1));
+                    strncpy(dev->drv->image_path, fn - offs, len);
+                }
 
                 ret = 1;
             } else
