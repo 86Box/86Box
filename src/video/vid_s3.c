@@ -90,8 +90,10 @@
 #define ROM_ORCHID_86C805              "roms/video/s3/Orchid Technology Fahrenheit 1280+ (S3 86c805 VLB, ATT20C491).bin"
 #define ROM_DIAMOND_STEALTH64_864      "roms/video/s3/Diamond Stealth64 Graphics 2000 PCI (S3 Vision864).BIN"
 #define ROM_LEADTEK_VISION864          "roms/video/s3/Leadtek WinFast S430 PCI (S3 Vision864).bin"
+#define ROM_SPEA_86C964                "roms/video/s3/SPEA V7-Mercury P-64 (S3 Vision964 PCI, BT485).bin"
 #define ROM_GENOA_VISION868            "roms/video/s3/Genoa Phantom 64 PCI (S3 Vision868).bin"
 #define ROM_MIROVIDEO_VISION868        "roms/video/s3/miroVIDEO 20SD PCI (S3 Vision868).bin"
+#define ROM_SPEA_TRIO32                "roms/video/s3/SPEA V7-Mercury P-32 (S3 Trio32 PCI).bin"
 
 enum {
     S3_NUMBER9_9FX,
@@ -144,8 +146,10 @@ enum {
     S3_ORCHID_86C805,
     S3_DIAMOND_STEALTH64_864,
     S3_LEADTEK_VISION864,
+    S3_SPEA_86C964,
     S3_GENOA_VISION868,
     S3_MIROVIDEO_VISION868,
+    S3_SPEA_TRIO32,
     S3_USE_CONFIG_BIOS
 };
 
@@ -10661,6 +10665,11 @@ s3_init(const device_t *info)
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_vlb);
             }
             break;
+        case S3_SPEA_86C964:
+            bios_fn = ROM_SPEA_86C964;
+            chip    = S3_VISION964;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision964_pci);
+            break;
         case S3_DIAMOND_STEALTH64_968:
             bios_fn = ROM_DIAMOND_STEALTH64_968;
             chip    = S3_VISION968;
@@ -10722,6 +10731,11 @@ s3_init(const device_t *info)
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
             else
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
+            break;
+        case S3_SPEA_TRIO32:
+            bios_fn = ROM_SPEA_TRIO32;
+            chip    = S3_TRIO32;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
             break;
         case S3_PHOENIX_TRIO64:
             bios_fn = ROM_PHOENIX_TRIO64;
@@ -11230,6 +11244,7 @@ s3_init(const device_t *info)
         case S3_DIAMOND_STEALTH64_964:
         case S3_ELSAWIN2KPROX_964:
         case S3_MIROCRYSTAL20SV_964:
+        case S3_SPEA_86C964:
             svga->decode_mask = (8 << 20) - 1;
             stepping          = 0xd0; /*Vision964*/
             s3->id            = stepping;
@@ -11347,6 +11362,7 @@ s3_init(const device_t *info)
         case S3_PHOENIX_TRIO32:
         case S3_PHOENIX_TRIO32_ONBOARD:
         case S3_DIAMOND_STEALTH_SE:
+        case S3_SPEA_TRIO32:
             svga->decode_mask = (4 << 20) - 1;
             s3->id            = 0xe1; /*Trio32*/
             s3->id_ext        = 0x10;
@@ -12320,6 +12336,16 @@ static const device_config_t s3_trio32_pci_config[] = {
                 .flags         = 0,
                 .files         = { ROM_PHOENIX_TRIO32, "" }
             },
+            {
+                .name          = "SPEA V7-Mercury P-32",
+                .internal_name = "spea_mercury32p_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_SPEA_TRIO32,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_SPEA_TRIO32, "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -12434,6 +12460,16 @@ static const device_config_t s3_vision964_pci_config[] = {
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
                 .files         = { ROM_MIROCRYSTAL20SV_964_PCI, "" }
             },
+            {
+                .name          = "SPEA V7-Mercury P-64",
+                .internal_name = "spea_mercury64p_964_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_SPEA_86C964,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .files         = { ROM_SPEA_86C964, "" }
+            },
             { .files_no = 0 }
         },
     },
@@ -12498,7 +12534,7 @@ static const device_config_t s3_trio64_vlb_config[] = {
                 .files         = { ROM_PHOENIX_TRIO64, "" }
             },
             {
-                .name          = "SPEA V7-Mirage P64",
+                .name          = "SPEA V7-Mirage P-64",
                 .internal_name = "spea_miragep64_vlb",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -12765,7 +12801,7 @@ static const device_config_t s3_vision968_pci_config[] = {
                 .files         = { ROM_PHOENIX_VISION968, "" }
             },
             {
-                .name          = "SPEA V7-Mercury P64V",
+                .name          = "SPEA V7-Mercury P-64V",
                 .internal_name = "spea_mercury64p_pci",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
