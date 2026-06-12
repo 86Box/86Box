@@ -96,7 +96,6 @@
 #define ROM_SPEA_TRIO32                "roms/video/s3/SPEA V7-Mercury P-32 (S3 Trio32 PCI).bin"
 #define ROM_DIAMOND_TRIO64V            "roms/video/s3/Diamond Stealth64 Video 2001 (S3 Trio64V+ PCI).bin"
 #define ROM_HERCULES_TRIO64V           "roms/video/s3/Hercules Terminator 64 Video (S3 Trio64V+ PCI).BIN"
-#define ROM_LEADTEK_TRIO64V            "roms/video/s3/Leaktek WinFast S280 (S3 Trio64V+ PCI).BIN"
 #define ROM_MIROMEDIA_TV               "roms/video/s3/miroMEDIA TV (S3 Trio64V+ PCI).rom"
 #define ROM_MIRO_TRIO64V               "roms/video/s3/miroVIDEO 22SD (S3 Trio64V+ PCI).BIN"
 
@@ -157,7 +156,6 @@ enum {
     S3_SPEA_TRIO32,
     S3_DIAMOND_TRIO64V,
     S3_HERCULES_TRIO64V,
-    S3_LEADTEK_TRIO64V,
     S3_MIROMEDIA_TV,
     S3_MIRO_TRIO64V,
     S3_USE_CONFIG_BIOS
@@ -3491,7 +3489,6 @@ s3_in(uint16_t addr, void *priv)
                     (s3->card_type == S3_CARDEX_TRIO64VPLUS) ||
                     (s3->card_type == S3_DIAMOND_TRIO64V) ||
                     (s3->card_type == S3_HERCULES_TRIO64V) ||
-                    (s3->card_type == S3_LEADTEK_TRIO64V) ||
                     (s3->card_type == S3_MIROMEDIA_TV) ||
                     (s3->card_type == S3_MIRO_TRIO64V)) && (svga->seqaddr == 0x17))
                     svga->seqregs[svga->seqaddr] ^= 0x01;
@@ -10812,11 +10809,6 @@ s3_init(const device_t *info)
             chip    = S3_TRIO64V;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
             break;
-        case S3_LEADTEK_TRIO64V:
-            bios_fn = ROM_LEADTEK_TRIO64V;
-            chip    = S3_TRIO64V;
-            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
-            break;
         case S3_MIROMEDIA_TV:
             bios_fn = ROM_MIROMEDIA_TV;
             chip    = S3_TRIO64V;
@@ -11421,7 +11413,6 @@ s3_init(const device_t *info)
         case S3_CARDEX_TRIO64VPLUS:
         case S3_DIAMOND_TRIO64V:
         case S3_HERCULES_TRIO64V:
-        case S3_LEADTEK_TRIO64V:
         case S3_MIROMEDIA_TV:
         case S3_MIRO_TRIO64V:
         case S3_DIAMOND_STEALTH64_764:
@@ -12969,16 +12960,6 @@ static const device_config_t s3_trio64vplus_pci_config[] = {
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
                 .files         = { ROM_HERCULES_TRIO64V, "" }
-            },
-            {
-                .name          = "Leadtek WinFast S280",
-                .internal_name = "leadtek_s280_pci",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = S3_LEADTEK_TRIO64V,
-                .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
-                .files         = { ROM_LEADTEK_TRIO64V, "" }
             },
             {
                 .name          = "miroMEDIA TV",
