@@ -11,6 +11,7 @@
 #    include "vk_mem_alloc.h"
 #    include "qt_renderercommon.hpp"
 #    include <vulkan/vulkan.h>
+#    include "imgui_impl_vulkan.h"
 
 class VulkanWindowRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
@@ -93,6 +94,10 @@ private:
     PFN_vkCmdEndRenderingKHR fn_vkCmdEndRendering = nullptr;
 
     VkExtent2D curExtent;
+
+    ImGui_ImplVulkan_InitInfo init_info{};
+    
+    VkFormat colorAttachmentFormat = VK_FORMAT_R8G8B8A8_UNORM;
 
     bool imageLayoutTransitioned = false;
 

@@ -170,6 +170,9 @@ VulkanWindowRenderer::recreateSwapchain()
 
     m_devFuncs->vkAllocateCommandBuffers(logi_device, &cmdbufferallocate, cmdBuffers.data());
 
+    qt_osd_vulkan_set_min_image(cmdBuffers.size());
+    init_info.MinImageCount = cmdBuffers.size();
+
     for (int i = 0; i < swapchainImagesCount; i++) {
         VkSemaphoreCreateInfo semaphore_create = { };
         semaphore_create.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -226,8 +229,6 @@ VulkanWindowRenderer::finalize()
     m_devFuncs = nullptr;
     isFinalized = true;
     isInitialized = false;
-    instance.destroy();
-    this->setVulkanInstance(nullptr);
 }
 
 QString
@@ -446,13 +447,75 @@ VulkanWindowRenderer::render()
     clr_range.layerCount = 1;
 
     m_devFuncs->vkCmdClearColorImage(cmdBufs, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clr_val, 1, &clr_range);
+
+    const VkImageMemoryBarrier clear_memory_barrier {
+        .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .image            = swapchainImages[swapchain_image_index],
+        .subresourceRange = {
+                             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                             .baseMipLevel   = 0,
+                             .levelCount     = 1,
+                             .baseArrayLayer = 0,
+                             .layerCount     = 1,
+                             }
+    };
+
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
+
     m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
 
     const VkImageMemoryBarrier image2_memory_barrier {
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
-        .dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
+        .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
         .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .image            = swapchainImages[swapchain_image_index],
+        .subresourceRange = {
+                             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                             .baseMipLevel   = 0,
+                             .levelCount     = 1,
+                             .baseArrayLayer = 0,
+                             .layerCount     = 1,
+                             }
+    };
+
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
+
+    VkRenderingAttachmentInfo render_info = {};
+    render_info.clearValue = {};
+    render_info.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+    render_info.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    render_info.imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    render_info.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+    render_info.resolveMode = VK_RESOLVE_MODE_NONE;
+    render_info.imageView = swapchainImageViews[swapchain_image_index];
+    VkRenderingInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
+    info.flags = 0;
+    info.colorAttachmentCount = 1;
+    info.pColorAttachments = &render_info;
+    info.renderArea = { { 0, 0 }, curExtent };
+    info.viewMask = 0;
+    info.layerCount = 1;
+    fn_vkCmdBeginRendering(cmdBufs, &info);
+    
+    if (qt_osd_is_visible()) {
+        qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
+        qt_osd_render(width(), height(), devicePixelRatio(), (void*)cmdBufs);
+    }
+
+    fn_vkCmdEndRendering(cmdBufs);
+
+    const VkImageMemoryBarrier image3_memory_barrier {
+        .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
+        .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         .image            = swapchainImages[swapchain_image_index],
         .subresourceRange = {
@@ -464,7 +527,7 @@ VulkanWindowRenderer::render()
                              }
     };
 
-    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
 
     m_devFuncs->vkEndCommandBuffer(cmdBufs);
     // The submit info structure specifies a command buffer queue submission batch
@@ -504,6 +567,13 @@ VulkanWindowRenderer::render()
     }
 
     current_frame = (current_frame + 1) % swapchainImageViews.size();
+}
+
+PFN_vkVoidFunction vk_function_ret_callback(const char *function_name, void *user_data)
+{
+    QVulkanInstance* inst = (QVulkanInstance*)user_data;
+
+    return inst->getInstanceProcAddr(function_name);
 }
 
 void
@@ -716,6 +786,31 @@ VulkanWindowRenderer::initialize()
                 isInitialized = true;
                 isFinalized = false;
                 recreateSwapchain();
+
+                init_info = {};
+                init_info.ApiVersion = VK_VERSION_1_0;
+                init_info.Instance = instance.vkInstance();
+                init_info.PhysicalDevice = phys_device;
+                init_info.Device = logi_device;
+                init_info.QueueFamily = gfx_queue;
+                init_info.Queue = gfx_queue_o;
+
+                init_info.DescriptorPoolSize = 16;
+                init_info.MinImageCount = 2;
+                init_info.ImageCount = 64;
+
+                init_info.PipelineInfoMain.RenderPass = 0;
+                init_info.PipelineInfoMain.Subpass = 0;
+                init_info.UseDynamicRendering = 1;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo = {};
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pNext = nullptr;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorAttachmentFormat;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.viewMask = 0;
+
+                qt_osd_start_vulkan(vk_function_ret_callback, &instance, &init_info);
+
                 render();
                 emit rendererInitialized();
             }
@@ -755,6 +850,8 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
     onResize(width(), height());
 
     QWindow::resizeEvent(event);
+    if (isInitialized)
+        recreateSwapchain();
 }
 
 bool
