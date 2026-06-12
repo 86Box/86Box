@@ -273,7 +273,7 @@ v6355_recalctimings(v6355_t *v6355)
     double   disptime;
     double   _dispontime, _dispofftime;
 #ifndef USE_CGA_TIMINGS
-    double   crtcconst = (cpuclock / 21477270.0 * (double) (1ULL << 32)) * 8.0;
+    double   crtcconst = (cpuclock / 21477270.0 * (double) (1ULL << 32)) * 2.0;
 #endif
 
     uint32_t w = v6355_width(v6355);

@@ -688,7 +688,7 @@ opl4_init(UNUSED(const device_t *info))
 
     opl4_midi_cur = calloc(1, sizeof(opl4_midi_t));
 
-    fm_driver_get(FM_YMF278B, &opl4_midi_cur->opl4);
+    fm_driver_get_cs(FM_YMF278B, &opl4_midi_cur->opl4);
 
     opl4_midi_cur->opl4.write(0x38A, 0x05, opl4_midi_cur->opl4.priv);
     opl4_midi_cur->opl4.write(0x389, 0x3, opl4_midi_cur->opl4.priv);

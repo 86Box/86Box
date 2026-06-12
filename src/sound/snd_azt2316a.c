@@ -1862,7 +1862,7 @@ azt_init(const device_t *info)
         azt2316a->sb->dsp.azt_eeprom[i] = read_eeprom[i];
 
     if (azt2316a->sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &azt2316a->sb->opl);
+        fm_driver_get_cs(FM_YMF262, &azt2316a->sb->opl);
 
     sb_dsp_set_real_opl(&azt2316a->sb->dsp, 1);
     sb_dsp_init(&azt2316a->sb->dsp, SBPRO_DSP_302, azt2316a->type, azt2316a);

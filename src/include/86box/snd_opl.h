@@ -52,6 +52,7 @@ enum fm_type {
 
 #define FM_TYPE_MASK 255
 #define FM_FORCE_48K 256
+#define FM_CRYSTAL   512
 
 enum fm_driver {
     FM_DRV_NUKED = 0,
@@ -70,7 +71,9 @@ typedef struct fm_drv_t {
 } fm_drv_t;
 
 extern uint8_t fm_driver_get_ex(int chip_id, fm_drv_t *drv, int is_48k);
+
 extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);
+extern uint8_t fm_driver_get_cs(int chip_id, fm_drv_t *drv);
 
 extern const fm_drv_t nuked_opl2_drv;
 extern const fm_drv_t nuked_opl2_drv_48k;

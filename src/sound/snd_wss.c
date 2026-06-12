@@ -111,7 +111,7 @@ wss_init(UNUSED(const device_t *info))
     wss->opl_enabled = device_get_config_int("opl");
 
     if (wss->opl_enabled)
-        fm_driver_get(FM_YMF262, &wss->opl);
+        fm_driver_get_cs(FM_YMF262, &wss->opl);
 
     ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
 
@@ -208,7 +208,7 @@ ncr_audio_init(UNUSED(const device_t *info))
 {
     wss_t *wss = calloc(1, sizeof(wss_t));
 
-    fm_driver_get(FM_YMF262, &wss->opl);
+    fm_driver_get_cs(FM_YMF262, &wss->opl);
     ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
 
     ad1848_setirq(&wss->ad1848, 7);
