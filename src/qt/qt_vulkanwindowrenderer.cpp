@@ -60,236 +60,6 @@ extern "C" {
 }
 
 extern MainWindow *main_window;
-/*
-#version 450
-
-layout(location = 0) out vec2 v_texcoord;
-
-mat4 mvp = mat4(
-vec4(1.0, 0, 0, 0),
-vec4(0, 1.0, 0, 0),
-vec4(0, 0, 1.0, 0),
-vec4(0, 0, 0, 1.0)
-);
-
-// Y coordinate in Vulkan viewport space is flipped as compared to OpenGL.
-vec4 vertCoords[4] = vec4[](
-vec4(-1.0, -1.0, 0, 1),
-vec4(1.0, -1.0, 0, 1),
-vec4(-1.0, 1.0, 0, 1),
-vec4(1.0, 1.0, 0, 1)
-);
-
-layout(push_constant) uniform texCoordBuf {
-    vec2 texCoords[4];
-} texCoordUniform;
-
-out gl_PerVertex { vec4 gl_Position; };
-
-void main()
-{
-    v_texcoord = texCoordUniform.texCoords[gl_VertexIndex];
-    gl_Position = mvp * vertCoords[gl_VertexIndex];
-}
-*/
-// Compiled with glslangValidator -V
-static const uint8_t vertShaderCode[] = {
-    0x03, 0x02, 0x23, 0x07, 0x00, 0x00, 0x01, 0x00, 0x0a, 0x00, 0x08, 0x00,
-    0x37, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00,
-    0x47, 0x4c, 0x53, 0x4c, 0x2e, 0x73, 0x74, 0x64, 0x2e, 0x34, 0x35, 0x30,
-    0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x04, 0x00, 0x00, 0x00, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00, 0x00, 0x00,
-    0x1f, 0x00, 0x00, 0x00, 0x27, 0x00, 0x00, 0x00, 0x2e, 0x00, 0x00, 0x00,
-    0x03, 0x00, 0x03, 0x00, 0x02, 0x00, 0x00, 0x00, 0xc2, 0x01, 0x00, 0x00,
-    0x05, 0x00, 0x04, 0x00, 0x04, 0x00, 0x00, 0x00, 0x6d, 0x61, 0x69, 0x6e,
-    0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x03, 0x00, 0x0a, 0x00, 0x00, 0x00,
-    0x6d, 0x76, 0x70, 0x00, 0x05, 0x00, 0x05, 0x00, 0x16, 0x00, 0x00, 0x00,
-    0x76, 0x65, 0x72, 0x74, 0x43, 0x6f, 0x6f, 0x72, 0x64, 0x73, 0x00, 0x00,
-    0x05, 0x00, 0x05, 0x00, 0x1f, 0x00, 0x00, 0x00, 0x76, 0x5f, 0x74, 0x65,
-    0x78, 0x63, 0x6f, 0x6f, 0x72, 0x64, 0x00, 0x00, 0x05, 0x00, 0x05, 0x00,
-    0x21, 0x00, 0x00, 0x00, 0x74, 0x65, 0x78, 0x43, 0x6f, 0x6f, 0x72, 0x64,
-    0x42, 0x75, 0x66, 0x00, 0x06, 0x00, 0x06, 0x00, 0x21, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x74, 0x65, 0x78, 0x43, 0x6f, 0x6f, 0x72, 0x64,
-    0x73, 0x00, 0x00, 0x00, 0x05, 0x00, 0x06, 0x00, 0x23, 0x00, 0x00, 0x00,
-    0x74, 0x65, 0x78, 0x43, 0x6f, 0x6f, 0x72, 0x64, 0x55, 0x6e, 0x69, 0x66,
-    0x6f, 0x72, 0x6d, 0x00, 0x05, 0x00, 0x06, 0x00, 0x27, 0x00, 0x00, 0x00,
-    0x67, 0x6c, 0x5f, 0x56, 0x65, 0x72, 0x74, 0x65, 0x78, 0x49, 0x6e, 0x64,
-    0x65, 0x78, 0x00, 0x00, 0x05, 0x00, 0x06, 0x00, 0x2c, 0x00, 0x00, 0x00,
-    0x67, 0x6c, 0x5f, 0x50, 0x65, 0x72, 0x56, 0x65, 0x72, 0x74, 0x65, 0x78,
-    0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x06, 0x00, 0x2c, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x67, 0x6c, 0x5f, 0x50, 0x6f, 0x73, 0x69, 0x74,
-    0x69, 0x6f, 0x6e, 0x00, 0x05, 0x00, 0x03, 0x00, 0x2e, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x47, 0x00, 0x04, 0x00, 0x1f, 0x00, 0x00, 0x00,
-    0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x47, 0x00, 0x04, 0x00,
-    0x20, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00,
-    0x48, 0x00, 0x05, 0x00, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x23, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x47, 0x00, 0x03, 0x00,
-    0x21, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x47, 0x00, 0x04, 0x00,
-    0x27, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x2a, 0x00, 0x00, 0x00,
-    0x48, 0x00, 0x05, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x47, 0x00, 0x03, 0x00,
-    0x2c, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x13, 0x00, 0x02, 0x00,
-    0x02, 0x00, 0x00, 0x00, 0x21, 0x00, 0x03, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0x02, 0x00, 0x00, 0x00, 0x16, 0x00, 0x03, 0x00, 0x06, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x00, 0x00, 0x17, 0x00, 0x04, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x06, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x18, 0x00, 0x04, 0x00,
-    0x08, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x04, 0x00, 0x09, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
-    0x08, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00, 0x09, 0x00, 0x00, 0x00,
-    0x0a, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x2b, 0x00, 0x04, 0x00,
-    0x06, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0x3f,
-    0x2b, 0x00, 0x04, 0x00, 0x06, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x0d, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x0c, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x07, 0x00,
-    0x07, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x0b, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x2c, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
-    0x0c, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00,
-    0x0c, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x10, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x0c, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x07, 0x00,
-    0x08, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00,
-    0x0e, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00,
-    0x15, 0x00, 0x04, 0x00, 0x12, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x2b, 0x00, 0x04, 0x00, 0x12, 0x00, 0x00, 0x00,
-    0x13, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x1c, 0x00, 0x04, 0x00,
-    0x14, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x04, 0x00, 0x15, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
-    0x14, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00, 0x15, 0x00, 0x00, 0x00,
-    0x16, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x2b, 0x00, 0x04, 0x00,
-    0x06, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x80, 0xbf,
-    0x2c, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,
-    0x17, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x0b, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x19, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00,
-    0x0c, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x07, 0x00,
-    0x07, 0x00, 0x00, 0x00, 0x1a, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00,
-    0x0b, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00,
-    0x2c, 0x00, 0x07, 0x00, 0x07, 0x00, 0x00, 0x00, 0x1b, 0x00, 0x00, 0x00,
-    0x0b, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x0b, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x07, 0x00, 0x14, 0x00, 0x00, 0x00,
-    0x1c, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00, 0x19, 0x00, 0x00, 0x00,
-    0x1a, 0x00, 0x00, 0x00, 0x1b, 0x00, 0x00, 0x00, 0x17, 0x00, 0x04, 0x00,
-    0x1d, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x04, 0x00, 0x1e, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0x1d, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00, 0x1e, 0x00, 0x00, 0x00,
-    0x1f, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x1c, 0x00, 0x04, 0x00,
-    0x20, 0x00, 0x00, 0x00, 0x1d, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-    0x1e, 0x00, 0x03, 0x00, 0x21, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x04, 0x00, 0x22, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00,
-    0x21, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00, 0x22, 0x00, 0x00, 0x00,
-    0x23, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00, 0x15, 0x00, 0x04, 0x00,
-    0x24, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-    0x2b, 0x00, 0x04, 0x00, 0x24, 0x00, 0x00, 0x00, 0x25, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00, 0x26, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x24, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00,
-    0x26, 0x00, 0x00, 0x00, 0x27, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x04, 0x00, 0x29, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00,
-    0x1d, 0x00, 0x00, 0x00, 0x1e, 0x00, 0x03, 0x00, 0x2c, 0x00, 0x00, 0x00,
-    0x07, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00, 0x2d, 0x00, 0x00, 0x00,
-    0x03, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00,
-    0x2d, 0x00, 0x00, 0x00, 0x2e, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x04, 0x00, 0x31, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
-    0x07, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00, 0x35, 0x00, 0x00, 0x00,
-    0x03, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x36, 0x00, 0x05, 0x00,
-    0x02, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x03, 0x00, 0x00, 0x00, 0xf8, 0x00, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00,
-    0x3e, 0x00, 0x03, 0x00, 0x0a, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00,
-    0x3e, 0x00, 0x03, 0x00, 0x16, 0x00, 0x00, 0x00, 0x1c, 0x00, 0x00, 0x00,
-    0x3d, 0x00, 0x04, 0x00, 0x24, 0x00, 0x00, 0x00, 0x28, 0x00, 0x00, 0x00,
-    0x27, 0x00, 0x00, 0x00, 0x41, 0x00, 0x06, 0x00, 0x29, 0x00, 0x00, 0x00,
-    0x2a, 0x00, 0x00, 0x00, 0x23, 0x00, 0x00, 0x00, 0x25, 0x00, 0x00, 0x00,
-    0x28, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00, 0x1d, 0x00, 0x00, 0x00,
-    0x2b, 0x00, 0x00, 0x00, 0x2a, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00,
-    0x1f, 0x00, 0x00, 0x00, 0x2b, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00,
-    0x08, 0x00, 0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x0a, 0x00, 0x00, 0x00,
-    0x3d, 0x00, 0x04, 0x00, 0x24, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00,
-    0x27, 0x00, 0x00, 0x00, 0x41, 0x00, 0x05, 0x00, 0x31, 0x00, 0x00, 0x00,
-    0x32, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x30, 0x00, 0x00, 0x00,
-    0x3d, 0x00, 0x04, 0x00, 0x07, 0x00, 0x00, 0x00, 0x33, 0x00, 0x00, 0x00,
-    0x32, 0x00, 0x00, 0x00, 0x91, 0x00, 0x05, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x34, 0x00, 0x00, 0x00, 0x2f, 0x00, 0x00, 0x00, 0x33, 0x00, 0x00, 0x00,
-    0x41, 0x00, 0x05, 0x00, 0x35, 0x00, 0x00, 0x00, 0x36, 0x00, 0x00, 0x00,
-    0x2e, 0x00, 0x00, 0x00, 0x25, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00,
-    0x36, 0x00, 0x00, 0x00, 0x34, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x01, 0x00,
-    0x38, 0x00, 0x01, 0x00
-};
-
-/*
-#version 440
-
-layout(location = 0) in vec2 v_texcoord;
-
-layout(location = 0) out vec4 fragColor;
-
-layout(binding = 1) uniform sampler2D tex;
-
-void main()
-{
-    fragColor = texture(tex, v_texcoord);
-}
-*/
-
-static const uint8_t fragShaderCode[] {
-    0x03, 0x02, 0x23, 0x07, 0x00, 0x00, 0x01, 0x00, 0x0a, 0x00, 0x08, 0x00,
-    0x19, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x02, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00,
-    0x47, 0x4c, 0x53, 0x4c, 0x2e, 0x73, 0x74, 0x64, 0x2e, 0x34, 0x35, 0x30,
-    0x00, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x07, 0x00, 0x04, 0x00, 0x00, 0x00,
-    0x04, 0x00, 0x00, 0x00, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00, 0x00, 0x00,
-    0x09, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x10, 0x00, 0x03, 0x00,
-    0x04, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00, 0x03, 0x00, 0x03, 0x00,
-    0x02, 0x00, 0x00, 0x00, 0xb8, 0x01, 0x00, 0x00, 0x05, 0x00, 0x04, 0x00,
-    0x04, 0x00, 0x00, 0x00, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00, 0x00, 0x00,
-    0x05, 0x00, 0x05, 0x00, 0x09, 0x00, 0x00, 0x00, 0x66, 0x72, 0x61, 0x67,
-    0x43, 0x6f, 0x6c, 0x6f, 0x72, 0x00, 0x00, 0x00, 0x05, 0x00, 0x03, 0x00,
-    0x0d, 0x00, 0x00, 0x00, 0x74, 0x65, 0x78, 0x00, 0x05, 0x00, 0x05, 0x00,
-    0x11, 0x00, 0x00, 0x00, 0x76, 0x5f, 0x74, 0x65, 0x78, 0x63, 0x6f, 0x6f,
-    0x72, 0x64, 0x00, 0x00, 0x47, 0x00, 0x04, 0x00, 0x09, 0x00, 0x00, 0x00,
-    0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x47, 0x00, 0x04, 0x00,
-    0x0d, 0x00, 0x00, 0x00, 0x22, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x47, 0x00, 0x04, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x21, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x47, 0x00, 0x04, 0x00, 0x11, 0x00, 0x00, 0x00,
-    0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x13, 0x00, 0x02, 0x00,
-    0x02, 0x00, 0x00, 0x00, 0x21, 0x00, 0x03, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0x02, 0x00, 0x00, 0x00, 0x16, 0x00, 0x03, 0x00, 0x06, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x00, 0x00, 0x17, 0x00, 0x04, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x06, 0x00, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00,
-    0x08, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x3b, 0x00, 0x04, 0x00, 0x08, 0x00, 0x00, 0x00, 0x09, 0x00, 0x00, 0x00,
-    0x03, 0x00, 0x00, 0x00, 0x19, 0x00, 0x09, 0x00, 0x0a, 0x00, 0x00, 0x00,
-    0x06, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x1b, 0x00, 0x03, 0x00, 0x0b, 0x00, 0x00, 0x00,
-    0x0a, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00, 0x0c, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x0b, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00,
-    0x0c, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x17, 0x00, 0x04, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
-    0x02, 0x00, 0x00, 0x00, 0x20, 0x00, 0x04, 0x00, 0x10, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x3b, 0x00, 0x04, 0x00,
-    0x10, 0x00, 0x00, 0x00, 0x11, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-    0x2b, 0x00, 0x04, 0x00, 0x06, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x80, 0x3f, 0x15, 0x00, 0x04, 0x00, 0x15, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2b, 0x00, 0x04, 0x00,
-    0x15, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0x20, 0x00, 0x04, 0x00, 0x17, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0x06, 0x00, 0x00, 0x00, 0x36, 0x00, 0x05, 0x00, 0x02, 0x00, 0x00, 0x00,
-    0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
-    0xf8, 0x00, 0x02, 0x00, 0x05, 0x00, 0x00, 0x00, 0x3d, 0x00, 0x04, 0x00,
-    0x0b, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x00, 0x00,
-    0x3d, 0x00, 0x04, 0x00, 0x0f, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00,
-    0x11, 0x00, 0x00, 0x00, 0x57, 0x00, 0x05, 0x00, 0x07, 0x00, 0x00, 0x00,
-    0x13, 0x00, 0x00, 0x00, 0x0e, 0x00, 0x00, 0x00, 0x12, 0x00, 0x00, 0x00,
-    0x3e, 0x00, 0x03, 0x00, 0x09, 0x00, 0x00, 0x00, 0x13, 0x00, 0x00, 0x00,
-    0x41, 0x00, 0x05, 0x00, 0x17, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,
-    0x09, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x3e, 0x00, 0x03, 0x00,
-    0x18, 0x00, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x01, 0x00,
-    0x38, 0x00, 0x01, 0x00
-};
 
 VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     : QWindow((QWindow *) NULL)
@@ -311,10 +81,12 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
 void
 VulkanWindowRenderer::cleanupSwapchain()
 {
-    instance.deviceFunctions(logi_device)->vkDeviceWaitIdle(logi_device);
+    if (isFinalized || !isInitialized)
+        return;
+    m_devFuncs->vkDeviceWaitIdle(logi_device);
 
     for (int i = 0; i < swapchainImageViews.size(); i++) {
-        instance.deviceFunctions(logi_device)->vkDestroyImageView(logi_device, swapchainImageViews[i], nullptr);
+        m_devFuncs->vkDestroyImageView(logi_device, swapchainImageViews[i], nullptr);
         m_devFuncs->vkDestroySemaphore(logi_device, renderFinishedSemaphores[i], nullptr);
         m_devFuncs->vkDestroySemaphore(logi_device, presentSemaphores[i], nullptr);
         m_devFuncs->vkDestroyFence(logi_device, presentFences[i], nullptr);
@@ -337,6 +109,8 @@ void
 VulkanWindowRenderer::recreateSwapchain()
 {
     cleanupSwapchain();
+    if (isFinalized || !isInitialized)
+        return;
     VkSurfaceCapabilitiesKHR surfaceCaps;
     if (fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) {
         fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, instance.surfaceForWindow(this), &surfaceCaps);
@@ -354,7 +128,7 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.imageFormat              = VK_FORMAT_R8G8B8A8_UNORM;
     swapchain_creation.imageColorSpace          = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     swapchain_creation.imageArrayLayers         = 1;
-    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchain_creation.minImageCount            = std::clamp(surfaceCaps.minImageCount + 1u, surfaceCaps.minImageCount, surfaceCaps.maxImageCount ? surfaceCaps.maxImageCount : std::numeric_limits<uint32_t>::max());
     swapchain_creation.imageExtent              = surfaceCaps.currentExtent;
     swapchain_creation.preTransform             = surfaceCaps.currentTransform;
@@ -425,14 +199,35 @@ VulkanWindowRenderer::recreateSwapchain()
         image_view_info.components.g                    = VK_COMPONENT_SWIZZLE_G;
         image_view_info.components.b                    = VK_COMPONENT_SWIZZLE_B;
         image_view_info.components.a                    = VK_COMPONENT_SWIZZLE_A;
-        instance.deviceFunctions(logi_device)->vkCreateImageView(logi_device, &image_view_info, nullptr, &swapchainImageViews[i]);
+        m_devFuncs->vkCreateImageView(logi_device, &image_view_info, nullptr, &swapchainImageViews[i]);
     }
+}
+
+VulkanWindowRenderer::~VulkanWindowRenderer()
+{
+    finalize();
 }
 
 void
 VulkanWindowRenderer::finalize()
 {
+    if (isFinalized)
+        return;
+
+    /* Mark all buffers as in use */
+    for (auto &flag : buf_usage)
+        flag.test_and_set();
     qt_osd_shutdown();
+    cleanupSwapchain();
+    m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
+    vmaDestroyImage(allocator, src_image, img_allocation);
+    vmaDestroyAllocator(allocator);
+    m_devFuncs->vkDestroyDevice(logi_device, nullptr);
+    m_devFuncs = nullptr;
+    isFinalized = true;
+    isInitialized = false;
+    instance.destroy();
+    this->setVulkanInstance(nullptr);
 }
 
 QString
@@ -531,82 +326,17 @@ Vulkan_GetResultString(VkResult result)
 void
 VulkanWindowRenderer::updateOptions()
 {
-    VkResult res;
-    if (cur_video_filter_method == video_filter_method)
-        return;
-    if (!descPool) {
-        VkDescriptorPoolSize descSize { };
-        descSize.type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-        descSize.descriptorCount = 2;
-
-        VkDescriptorPoolCreateInfo poolInfo { };
-        poolInfo.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        poolInfo.poolSizeCount = 1;
-        poolInfo.pPoolSizes    = &descSize;
-        poolInfo.maxSets       = 2;
-
-        if ((res = m_devFuncs->vkCreateDescriptorPool(logi_device, &poolInfo, nullptr, &descPool)) != VK_SUCCESS) {
-            QMessageBox::critical(main_window, "86Box", "Could not create descriptor pool. Switch to another renderer. " + Vulkan_GetResultString(res));
-            return;
-        }
-
-        VkDescriptorSetAllocateInfo allocInfo { };
-        allocInfo.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        allocInfo.descriptorPool     = descPool;
-        allocInfo.descriptorSetCount = 1;
-        allocInfo.pSetLayouts        = &descLayout;
-
-        if ((res = m_devFuncs->vkAllocateDescriptorSets(logi_device, &allocInfo, &descSet)) != VK_SUCCESS) {
-            QMessageBox::critical(main_window, "86Box", "Could not create descriptor set. Switch to another renderer. " + Vulkan_GetResultString(res));
-            return;
-        }
-    }
-    VkDescriptorImageInfo imageDescInfo { };
-    imageDescInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    imageDescInfo.imageView   = src_image_view;
-    imageDescInfo.sampler     = video_filter_method == 0 ? nearestSampler : sampler;
-
-    VkWriteDescriptorSet descWrite { };
-    descWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    descWrite.dstSet          = descSet;
-    descWrite.dstBinding      = 1;
-    descWrite.dstArrayElement = 0;
-    descWrite.descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    descWrite.descriptorCount = 1;
-    descWrite.pImageInfo      = &imageDescInfo;
-
-    m_devFuncs->vkUpdateDescriptorSets(logi_device, 1, &descWrite, 0, nullptr);
     cur_video_filter_method = video_filter_method;
 }
 
 void
 VulkanWindowRenderer::render()
 {
+    if (!isInitialized || isFinalized)
+        return;
     m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_TRUE, UINT64_MAX);
     m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
-    VkClearValue values[2];
     auto         cmdBufs = this->cmdBuffers[current_frame];
-    memset(values, 0, sizeof(values));
-    values[0].depthStencil = { 1, 0 };
-    values[1].depthStencil = { 1, 0 };
-    VkRenderingInfoKHR  info { };
-    VkSubpassDependency deps { };
-    info.sType      = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR;
-    info.renderArea = VkRect2D {
-        { 0, 0 },
-        curExtent
-    };
-    const VkRenderingAttachmentInfoKHR color_attachment_info {
-        .sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO_KHR,
-        .imageView   = swapchainImageViews[swapchain_image_index],
-        .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
-        .clearValue  = { },
-    };
-    info.layerCount           = 1;
-    info.colorAttachmentCount = 1;
-    info.pColorAttachments    = &color_attachment_info;
 
     VkCommandBufferBeginInfo beginInfo { };
     beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -625,9 +355,9 @@ VulkanWindowRenderer::render()
 
     const VkImageMemoryBarrier image_memory_barrier {
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-        .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
         .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
-        .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         .image            = swapchainImages[swapchain_image_index],
         .subresourceRange = {
                              .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -637,15 +367,15 @@ VulkanWindowRenderer::render()
                              .layerCount     = 1,
                              }
     };
-    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_memory_barrier);
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_memory_barrier);
     if (!imageLayoutTransitioned) {
-        VkPipelineStageFlags srcflags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_HOST_BIT, dstflags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        VkPipelineStageFlags srcflags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_HOST_BIT, dstflags = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
         VkImageMemoryBarrier barrier { };
         barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.image                           = src_image;
         barrier.oldLayout                       = VK_IMAGE_LAYOUT_PREINITIALIZED;
-        barrier.newLayout                       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.newLayout                       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
         barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -654,18 +384,18 @@ VulkanWindowRenderer::render()
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount     = 1;
         barrier.srcAccessMask                   = VK_ACCESS_HOST_WRITE_BIT;
-        barrier.dstAccessMask                   = VK_ACCESS_SHADER_READ_BIT;
+        barrier.dstAccessMask                   = VK_ACCESS_TRANSFER_READ_BIT;
 
         m_devFuncs->vkCmdPipelineBarrier(cmdBufs, srcflags, dstflags, 0, 0, nullptr, 0, nullptr, 1, &barrier);
         imageLayoutTransitioned = true;
     } else {
-        VkPipelineStageFlags srcflags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_HOST_BIT, dstflags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+        VkPipelineStageFlags srcflags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_HOST_BIT, dstflags = VK_PIPELINE_STAGE_TRANSFER_BIT;
 
         VkImageMemoryBarrier barrier { };
         barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         barrier.image                           = src_image;
-        barrier.oldLayout                       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        barrier.newLayout                       = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        barrier.oldLayout                       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        barrier.newLayout                       = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
         barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
         barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -674,51 +404,71 @@ VulkanWindowRenderer::render()
         barrier.subresourceRange.baseArrayLayer = 0;
         barrier.subresourceRange.layerCount     = 1;
         barrier.srcAccessMask                   = VK_ACCESS_HOST_WRITE_BIT;
-        barrier.dstAccessMask                   = VK_ACCESS_SHADER_READ_BIT;
+        barrier.dstAccessMask                   = VK_ACCESS_TRANSFER_READ_BIT;
 
         m_devFuncs->vkCmdPipelineBarrier(cmdBufs, srcflags, dstflags, 0, 0, nullptr, 0, nullptr, 1, &barrier);
     }
     vmaFlushAllocation(allocator, img_allocation, 0, VK_WHOLE_SIZE);
-    VkViewport viewport { };
-    viewport.x        = destination.x();
-    viewport.y        = destination.y();
-    viewport.width    = (float) destination.width();
-    viewport.height   = (float) destination.height();
-    viewport.minDepth = 0.0f;
-    viewport.maxDepth = 1.0f;
-    m_devFuncs->vkCmdSetViewport(cmdBufs, 0, 1, &viewport);
-    // m_devFuncs->vkCmdBeginRenderPass(commandBuffer, &info, VK_SUBPASS_CONTENTS_INLINE);
-    fn_vkCmdBeginRendering(cmdBufs, &info);
-    m_devFuncs->vkCmdBindPipeline(cmdBufs, VkPipelineBindPoint::VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-    m_devFuncs->vkCmdBindDescriptorSets(cmdBufs, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descSet, 0, nullptr);
-    std::array<QVector2D, 4> texcoords;
-    texcoords[0] = (QVector2D((float) source.x() / 2048.f, (float) (source.y()) / 2048.f));
-    texcoords[2] = (QVector2D((float) source.x() / 2048.f, (float) (source.y() + source.height()) / 2048.f));
-    texcoords[1] = (QVector2D((float) (source.x() + source.width()) / 2048.f, (float) (source.y()) / 2048.f));
-    texcoords[3] = (QVector2D((float) (source.x() + source.width()) / 2048.f, (float) (source.y() + source.height()) / 2048.f));
-    m_devFuncs->vkCmdPushConstants(cmdBufs, pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(QVector2D) * 4, texcoords.data());
-    m_devFuncs->vkCmdDraw(cmdBufs, 4, 1, 0, 0);
-    fn_vkCmdEndRendering(cmdBufs);
 
-    VkImageMemoryBarrier barrier { };
-    barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.image                           = swapchainImages[swapchain_image_index];
-    barrier.oldLayout                       = swapchainImageTransitioned[swapchain_image_index] ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.newLayout                       = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel   = 0;
-    barrier.subresourceRange.levelCount     = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount     = 1;
-    barrier.srcAccessMask                   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    barrier.dstAccessMask                   = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+    VkClearColorValue clr_val = {};
+    clr_val.float32[0] = 0;
+    clr_val.float32[1] = 0;
+    clr_val.float32[2] = 0;
+    clr_val.float32[3] = 1;
+
+    VkImageBlit cregion;
+    cregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.srcSubresource.mipLevel = 0;
+    cregion.srcSubresource.baseArrayLayer = 0;
+    cregion.srcSubresource.layerCount = 1;
+    cregion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.dstSubresource.mipLevel = 0;
+    cregion.dstSubresource.baseArrayLayer = 0;
+    cregion.dstSubresource.layerCount = 1;
+    cregion.srcOffsets[0].x = source.x();
+    cregion.srcOffsets[0].y = source.y();
+    cregion.srcOffsets[0].z = 0;
+    cregion.srcOffsets[1].x = source.x() + source.width();
+    cregion.srcOffsets[1].y = source.y() + source.height();
+    cregion.srcOffsets[1].z = 1;
+    cregion.dstOffsets[0].x = destination.x();
+    cregion.dstOffsets[0].y = destination.y();
+    cregion.dstOffsets[0].z = 0;
+    cregion.dstOffsets[1].x = destination.x() + destination.width();
+    cregion.dstOffsets[1].y = destination.y() + destination.height();
+    cregion.dstOffsets[1].z = 1;
+
+    VkImageSubresourceRange clr_range;
+    clr_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    clr_range.baseMipLevel = 0;
+    clr_range.baseArrayLayer = 0;
+    clr_range.levelCount = 1;
+    clr_range.layerCount = 1;
+
+    m_devFuncs->vkCmdClearColorImage(cmdBufs, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clr_val, 1, &clr_range);
+    m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+
+    const VkImageMemoryBarrier image2_memory_barrier {
+        .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+        .dstAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
+        .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        .image            = swapchainImages[swapchain_image_index],
+        .subresourceRange = {
+                             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                             .baseMipLevel   = 0,
+                             .levelCount     = 1,
+                             .baseArrayLayer = 0,
+                             .layerCount     = 1,
+                             }
+    };
+
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
 
     m_devFuncs->vkEndCommandBuffer(cmdBufs);
     // The submit info structure specifies a command buffer queue submission batch
-    VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
     VkSubmitInfo         submitInfo { };
     submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.pWaitDstStageMask  = &waitStageMask; // Pointer to the list of pipeline stages that the semaphore waits will occur at
@@ -759,6 +509,8 @@ VulkanWindowRenderer::render()
 void
 VulkanWindowRenderer::initialize()
 {
+    if (isFinalized)
+        return;
     try {
         window_surface = instance.surfaceForWindow(this);
         if (!window_surface) {
@@ -878,12 +630,6 @@ VulkanWindowRenderer::initialize()
                     throw vulkan_init_error("Failed to create logical device");
                 }
                 fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
-                VkSurfaceCapabilitiesKHR surfaceCaps;
-                if (fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) {
-                    fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, instance.surfaceForWindow(this), &surfaceCaps);
-                } else {
-                    throw vulkan_init_error("Failed to get surface capabilities");
-                }
                 // instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, )
                 // instance.deviceFunctions(logi_device)->vkGetPhysicalDeviceSurfaceCapabilitiesKHR()
                 instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, gfx_queue, 0, &gfx_queue_o);
@@ -905,8 +651,6 @@ VulkanWindowRenderer::initialize()
                 vma_info.device         = logi_device;
                 vma_info.physicalDevice = phys_device;
                 vma_info.instance       = instance.vkInstance();
-
-                recreateSwapchain();
 
                 VkImageCreateInfo img_info = { };
                 vma_info.pVulkanFunctions  = &vma_funcs;
@@ -954,230 +698,8 @@ VulkanWindowRenderer::initialize()
                 imageViewInfo.components.b                    = VK_COMPONENT_SWIZZLE_B;
                 imageViewInfo.components.a                    = VK_COMPONENT_SWIZZLE_A;
 
-                if (instance.deviceFunctions(logi_device)->vkCreateImageView(logi_device, &imageViewInfo, nullptr, &src_image_view) != VK_SUCCESS) {
+                if (m_devFuncs->vkCreateImageView(logi_device, &imageViewInfo, nullptr, &src_image_view) != VK_SUCCESS) {
                     throw vulkan_init_error("Failed to create source image view");
-                }
-
-                // Begin Pipeline creation.
-                {
-                    VkPipelineVertexInputStateCreateInfo vertexInputInfo { };
-                    vertexInputInfo.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-                    vertexInputInfo.vertexBindingDescriptionCount   = 0;
-                    vertexInputInfo.pVertexBindingDescriptions      = nullptr;
-                    vertexInputInfo.vertexAttributeDescriptionCount = 0;
-                    vertexInputInfo.pVertexAttributeDescriptions    = nullptr;
-
-                    VkPipelineInputAssemblyStateCreateInfo inputAssembly { };
-                    inputAssembly.sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-                    inputAssembly.topology               = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-                    inputAssembly.primitiveRestartEnable = VK_FALSE;
-
-                    VkRect2D scissor { };
-                    scissor.offset = { 0, 0 };
-                    scissor.extent = { 2048, 2048 };
-
-                    VkViewport viewport { };
-                    viewport.x        = destination.x();
-                    viewport.y        = destination.y();
-                    viewport.width    = (float) destination.width();
-                    viewport.height   = (float) destination.height();
-                    viewport.minDepth = 0.0f;
-                    viewport.maxDepth = 1.0f;
-
-                    VkPipelineViewportStateCreateInfo viewportState { };
-                    viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-                    viewportState.viewportCount = 1;
-                    viewportState.pViewports    = &viewport;
-                    viewportState.scissorCount  = 1;
-                    viewportState.pScissors     = &scissor;
-
-                    VkPipelineRasterizationStateCreateInfo rasterizer { };
-                    rasterizer.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-                    rasterizer.depthClampEnable        = VK_FALSE;
-                    rasterizer.rasterizerDiscardEnable = VK_FALSE;
-                    rasterizer.polygonMode             = VK_POLYGON_MODE_FILL;
-                    rasterizer.lineWidth               = 1.0f;
-                    rasterizer.cullMode                = VK_CULL_MODE_BACK_BIT;
-                    rasterizer.frontFace               = VK_FRONT_FACE_CLOCKWISE;
-                    rasterizer.depthBiasEnable         = VK_FALSE;
-                    rasterizer.depthBiasConstantFactor = 0.0f;
-                    rasterizer.depthBiasClamp          = 0.0f;
-                    rasterizer.depthBiasSlopeFactor    = 0.0f;
-
-                    VkPipelineMultisampleStateCreateInfo multisampling { };
-                    multisampling.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-                    multisampling.sampleShadingEnable   = VK_FALSE;
-                    multisampling.rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT;
-                    multisampling.minSampleShading      = 1.0f;
-                    multisampling.pSampleMask           = nullptr;
-                    multisampling.alphaToCoverageEnable = VK_FALSE;
-                    multisampling.alphaToOneEnable      = VK_FALSE;
-
-                    VkPipelineColorBlendAttachmentState colorBlendAttachment { };
-                    colorBlendAttachment.colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-                    colorBlendAttachment.blendEnable         = VK_TRUE;
-                    colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-                    colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-                    colorBlendAttachment.colorBlendOp        = VK_BLEND_OP_ADD;
-                    colorBlendAttachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-                    colorBlendAttachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
-                    colorBlendAttachment.alphaBlendOp        = VK_BLEND_OP_ADD;
-
-                    VkPipelineColorBlendStateCreateInfo colorBlending { };
-                    colorBlending.sType             = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-                    colorBlending.logicOpEnable     = VK_FALSE;
-                    colorBlending.logicOp           = VK_LOGIC_OP_COPY;
-                    colorBlending.attachmentCount   = 1;
-                    colorBlending.pAttachments      = &colorBlendAttachment;
-                    colorBlending.blendConstants[0] = 0.0f;
-                    colorBlending.blendConstants[1] = 0.0f;
-                    colorBlending.blendConstants[2] = 0.0f;
-                    colorBlending.blendConstants[3] = 0.0f;
-
-                    VkDynamicState                   dynState = VK_DYNAMIC_STATE_VIEWPORT;
-                    VkPipelineDynamicStateCreateInfo dynamicState { };
-                    dynamicState.sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-                    dynamicState.dynamicStateCount = 1;
-                    dynamicState.pDynamicStates    = &dynState;
-
-                    VkPushConstantRange range { };
-                    range.offset     = 0;
-                    range.size       = sizeof(float) * 8;
-                    range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-                    // Sampler binding start.
-                    VkDescriptorSetLayoutBinding samplerLayoutBinding { };
-                    samplerLayoutBinding.binding            = 1;
-                    samplerLayoutBinding.descriptorCount    = 1;
-                    samplerLayoutBinding.descriptorType     = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                    samplerLayoutBinding.pImmutableSamplers = nullptr;
-                    samplerLayoutBinding.stageFlags         = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-                    VkDescriptorSetLayoutCreateInfo layoutInfo { };
-                    layoutInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-                    layoutInfo.bindingCount = 1;
-                    layoutInfo.pBindings    = &samplerLayoutBinding;
-
-                    if ((res = m_devFuncs->vkCreateDescriptorSetLayout(logi_device, &layoutInfo, nullptr, &descLayout))) {
-                        throw vulkan_init_error("Could not create descriptor set layout. Switch to another renderer. " + Vulkan_GetResultString(res));
-                        return;
-                    }
-                    // Sampler binding end.
-
-                    VkPipelineLayoutCreateInfo pipelineLayoutInfo { };
-                    pipelineLayoutInfo.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-                    pipelineLayoutInfo.setLayoutCount         = 1;
-                    pipelineLayoutInfo.pSetLayouts            = &descLayout;
-                    pipelineLayoutInfo.pushConstantRangeCount = 1;
-                    pipelineLayoutInfo.pPushConstantRanges    = &range;
-
-                    if ((res = m_devFuncs->vkCreatePipelineLayout(logi_device, &pipelineLayoutInfo, nullptr, &pipelineLayout)) != VK_SUCCESS) {
-                        throw vulkan_init_error("Could not create pipeline layout. Switch to another renderer. " + Vulkan_GetResultString(res));
-                        return;
-                    }
-
-                    // Shader loading start.
-                    VkShaderModuleCreateInfo createInfo { };
-                    createInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-                    createInfo.codeSize = sizeof(vertShaderCode);
-                    createInfo.pCode    = (uint32_t *) vertShaderCode;
-                    VkShaderModule vertModule { nullptr }, fragModule { nullptr };
-                    if ((res = m_devFuncs->vkCreateShaderModule(logi_device, &createInfo, nullptr, &vertModule)) != VK_SUCCESS) {
-                        throw vulkan_init_error("Could not create vertex shader. Switch to another renderer. " + Vulkan_GetResultString(res));
-                        return;
-                    }
-
-                    createInfo.codeSize = sizeof(fragShaderCode);
-                    createInfo.pCode    = (uint32_t *) fragShaderCode;
-                    if ((res = m_devFuncs->vkCreateShaderModule(logi_device, &createInfo, nullptr, &fragModule)) != VK_SUCCESS) {
-                        throw vulkan_init_error("Could not create fragment shader. Switch to another renderer. " + Vulkan_GetResultString(res));
-                        return;
-                    }
-
-                    VkPipelineShaderStageCreateInfo vertShaderStageInfo { };
-                    vertShaderStageInfo.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-                    vertShaderStageInfo.stage  = VK_SHADER_STAGE_VERTEX_BIT;
-                    vertShaderStageInfo.module = vertModule;
-                    vertShaderStageInfo.pName  = "main";
-
-                    VkPipelineShaderStageCreateInfo fragShaderStageInfo { vertShaderStageInfo };
-                    fragShaderStageInfo.stage  = VK_SHADER_STAGE_FRAGMENT_BIT;
-                    fragShaderStageInfo.module = fragModule;
-
-                    VkPipelineShaderStageCreateInfo shaderStages[] = { vertShaderStageInfo, fragShaderStageInfo };
-                    // Shader loading end.
-
-                    VkPipelineDepthStencilStateCreateInfo depthInfo { };
-                    depthInfo.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-                    depthInfo.pNext                 = nullptr;
-                    depthInfo.depthTestEnable       = VK_TRUE;
-                    depthInfo.depthWriteEnable      = VK_TRUE;
-                    depthInfo.depthBoundsTestEnable = VK_FALSE;
-                    depthInfo.depthCompareOp        = VK_COMPARE_OP_LESS_OR_EQUAL;
-                    depthInfo.stencilTestEnable     = VK_FALSE;
-                    depthInfo.maxDepthBounds        = 1.0f;
-
-                    VkGraphicsPipelineCreateInfo pipelineInfo { };
-                    pipelineInfo.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-                    pipelineInfo.stageCount          = 2;
-                    pipelineInfo.pStages             = shaderStages;
-                    pipelineInfo.pVertexInputState   = &vertexInputInfo;
-                    pipelineInfo.pInputAssemblyState = &inputAssembly;
-                    pipelineInfo.pViewportState      = &viewportState;
-                    pipelineInfo.pRasterizationState = &rasterizer;
-                    pipelineInfo.pMultisampleState   = &multisampling;
-                    pipelineInfo.pDepthStencilState  = &depthInfo;
-                    pipelineInfo.pColorBlendState    = &colorBlending;
-                    pipelineInfo.pDynamicState       = &dynamicState;
-                    pipelineInfo.layout              = pipelineLayout;
-                    pipelineInfo.renderPass          = nullptr; // we use dynamic rendering.
-                    pipelineInfo.subpass             = 0;
-
-                    VkFormat                      color_format  = VK_FORMAT_R8G8B8A8_UNORM;
-                    VkPipelineRenderingCreateInfo renderer_info = { };
-                    renderer_info.pNext                         = nullptr;
-                    renderer_info.sType                         = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO;
-                    renderer_info.viewMask                      = 0;
-                    renderer_info.colorAttachmentCount          = 1;
-                    renderer_info.pColorAttachmentFormats       = &color_format;
-
-                    pipelineInfo.pNext = (void *) &renderer_info;
-
-                    if ((res = m_devFuncs->vkCreateGraphicsPipelines(logi_device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &pipeline)) != VK_SUCCESS) {
-                        m_devFuncs->vkDestroyShaderModule(logi_device, vertModule, nullptr);
-                        m_devFuncs->vkDestroyShaderModule(logi_device, fragModule, nullptr);
-                        throw vulkan_init_error("Could not create graphics pipeline. Switch to another renderer. " + Vulkan_GetResultString(res));
-                        return;
-                    }
-                    m_devFuncs->vkDestroyShaderModule(logi_device, vertModule, nullptr);
-                    m_devFuncs->vkDestroyShaderModule(logi_device, fragModule, nullptr);
-                }
-
-                VkSamplerCreateInfo samplerInfo { };
-                samplerInfo.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-                samplerInfo.magFilter               = VK_FILTER_LINEAR;
-                samplerInfo.minFilter               = VK_FILTER_LINEAR;
-                samplerInfo.addressModeU            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-                samplerInfo.addressModeV            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-                samplerInfo.addressModeW            = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-                samplerInfo.anisotropyEnable        = VK_FALSE;
-                samplerInfo.unnormalizedCoordinates = VK_FALSE;
-                samplerInfo.compareEnable           = VK_FALSE;
-                samplerInfo.compareOp               = VK_COMPARE_OP_ALWAYS;
-                samplerInfo.mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-                samplerInfo.mipLodBias              = 0.0f;
-                samplerInfo.minLod                  = 0.0f;
-                samplerInfo.maxLod                  = 0.0;
-
-                if ((res = m_devFuncs->vkCreateSampler(logi_device, &samplerInfo, nullptr, &sampler)) != VK_SUCCESS) {
-                    throw vulkan_init_error("Could not create linear image sampler. Switch to another renderer. " + Vulkan_GetResultString(res));
-                }
-
-                samplerInfo.magFilter = samplerInfo.minFilter = VK_FILTER_NEAREST;
-                samplerInfo.mipmapMode                        = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-
-                if ((res = m_devFuncs->vkCreateSampler(logi_device, &samplerInfo, nullptr, &nearestSampler)) != VK_SUCCESS) {
-                    throw vulkan_init_error("Could not create nearest image sampler. Switch to another renderer. " + Vulkan_GetResultString(res));
                 }
 
                 updateOptions();
@@ -1191,7 +713,9 @@ VulkanWindowRenderer::initialize()
 
                 imagePitch = layout.rowPitch;
                 mappedPtr  = (uint8_t *) allocatedInfo.pMappedData + layout.offset;
-                printf("Vulkan initialized\n");
+                isInitialized = true;
+                isFinalized = false;
+                recreateSwapchain();
                 render();
                 emit rendererInitialized();
             }
@@ -1231,8 +755,6 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
     onResize(width(), height());
 
     QWindow::resizeEvent(event);
-    if (isInitialized)
-        recreateSwapchain();
 }
 
 bool

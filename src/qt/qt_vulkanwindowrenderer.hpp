@@ -7,6 +7,7 @@
 #include <vector>
 
 #if QT_CONFIG(vulkan)
+#    pragma clang diagnostic ignored "-Wnullability-completeness"
 #    include "vk_mem_alloc.h"
 #    include "qt_renderercommon.hpp"
 #    include <vulkan/vulkan.h>
@@ -15,6 +16,7 @@ class VulkanWindowRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
 public:
     VulkanWindowRenderer(QWidget *parent);
+    ~VulkanWindowRenderer();
     void finalize() override final;
 public slots:
     void onBlit(int buf_idx, int x, int y, int w, int h);
@@ -67,13 +69,6 @@ private:
     VkImage src_image = nullptr;
     VkImageView src_image_view = nullptr;
 
-    VkPipeline pipeline{nullptr};
-    VkPipelineLayout pipelineLayout{nullptr};
-    VkDescriptorSetLayout descLayout{nullptr};
-    VkDescriptorPool descPool{nullptr};
-    VkDescriptorSet descSet{nullptr};
-    VkSampler sampler{nullptr}, nearestSampler{nullptr};
-    bool imageLayoutTransitioned{false};
     int cur_video_filter_method = -1;
 
     QVulkanDeviceFunctions* m_devFuncs;
@@ -98,6 +93,8 @@ private:
     PFN_vkCmdEndRenderingKHR fn_vkCmdEndRendering = nullptr;
 
     VkExtent2D curExtent;
+
+    bool imageLayoutTransitioned = false;
 
 private slots:
     void render();
