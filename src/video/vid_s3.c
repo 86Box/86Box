@@ -10802,7 +10802,7 @@ s3_init(const device_t *info)
             chip    = S3_TRIO64V;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64vp_cardex_pci);
             break;
-        case S3_S3_DIAMOND_TRIO64V:
+        case S3_DIAMOND_TRIO64V:
             bios_fn = ROM_DIAMOND_TRIO64V;
             chip    = S3_TRIO64V;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
