@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 08:39+0000\n"
+"PO-Revision-Date: 2026-06-13 15:11+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -2723,10 +2723,10 @@ msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU)"
 
 msgid "8-bit"
-msgstr "8-бит"
+msgstr "8 бит"
 
 msgid "16-bit"
-msgstr "16-бит"
+msgstr "16 бит"
 
 msgid "Standard (150ns)"
 msgstr "Стандартный (150 нс)"
@@ -3014,19 +3014,19 @@ msgid "Toggle fullscreen"
 msgstr "Переключить полноэкранный режим"
 
 msgid "Toggle UI in fullscreen"
-msgstr "Переключить UI в полноэкранном режиме"
+msgstr "Показать/скрыть интерфейс в полноэкранном режиме"
 
 msgid "Release mouse pointer"
-msgstr "Отпустить указатель мыши"
+msgstr "Освободить курсор мыши"
 
 msgid "Toggle pause"
 msgstr "Переключить паузу"
 
 msgid "Toggle mute"
-msgstr "Переключить беззвучный режим"
+msgstr "Выключить/включить звук"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Показать/скрыть экранное меню"
 
 msgid "Text files"
 msgstr "Текстовые файлы"
