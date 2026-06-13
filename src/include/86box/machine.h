@@ -1354,6 +1354,9 @@ extern int             machine_at_p6bat_init(const machine_t *);
 /* m_at_slot2.c */
 /* i440GX */
 extern int             machine_at_6gxu_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  s2dge_device;
+#endif
 extern int             machine_at_s2dge_init(const machine_t *);
 
 /* m_at_socket370.c */
