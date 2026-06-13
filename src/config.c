@@ -142,6 +142,9 @@ load_global_emulator(void)
 
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
 
+    do_auto_pause        = ini_section_get_int(cat, "do_auto_pause", 0);
+    do_auto_dialog_pause = ini_section_get_int(cat, "do_auto_dialog_pause", 0);
+
     confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
@@ -377,8 +380,6 @@ load_general(void)
         ini_section_delete_var(cat, "window_coordinates");
     }
 
-    do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
-    do_auto_diag_pause = ini_section_get_int(cat, "do_auto_diag_pause", 0);
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
     fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
@@ -2627,7 +2628,7 @@ config_load(void)
         machine              = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale            = 1;
         do_auto_pause        = 0;
-        do_auto_diag_pause   = 0;
+        do_auto_dialog_pause = 0;
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
@@ -2755,6 +2756,16 @@ save_global_emulator(void)
         ini_section_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
     else
         ini_section_delete_var(cat, "open_dir_usr_path");
+
+    if (do_auto_pause)
+        ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
+    else
+        ini_section_delete_var(cat, "do_auto_pause");
+
+    if (do_auto_dialog_pause)
+        ini_section_set_int(cat, "do_auto_dialog_pause", do_auto_dialog_pause);
+    else
+        ini_section_delete_var(cat, "do_auto_dialog_pause");
 
     if (confirm_reset != 1)
         ini_section_set_int(cat, "confirm_reset", confirm_reset);
@@ -2988,16 +2999,6 @@ save_general(void)
         ini_section_set_int(cat, "video_gl_vsync", video_vsync);
     else
         ini_section_delete_var(cat, "video_gl_vsync");
-
-    if (do_auto_pause)
-        ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
-    else
-        ini_section_delete_var(cat, "do_auto_pause");
-
-    if (do_auto_diag_pause)
-        ini_section_set_int(cat, "do_auto_diag_pause", do_auto_diag_pause);
-    else
-        ini_section_delete_var(cat, "do_auto_diag_pause");
 
     if (video_gl_input_scale != 1.0) {
         ini_section_set_double(cat, "video_gl_input_scale", video_gl_input_scale);

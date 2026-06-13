@@ -64,6 +64,8 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
     ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
     ui->openDirUsrPath->setChecked(open_dir_usr_path > 0);
+    ui->checkBoxAutoPause->setChecked(do_auto_pause);
+    ui->checkBoxAutoDialogPause->setChecked(do_auto_dialog_pause);
     ui->checkBoxConfirmExit->setChecked(confirm_exit);
     ui->checkBoxConfirmSave->setChecked(confirm_save);
     ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
@@ -90,6 +92,8 @@ PreferencesEmulator::save()
     auto size               = main_window->centralWidget()->size();
     lang_id                 = ui->comboBoxLanguage->currentData().toInt();
     open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
+    do_auto_pause           = ui->checkBoxAutoPause->isChecked() ? 1 : 0;
+    do_auto_dialog_pause    = ui->checkBoxAutoDialogPause->isChecked() ? 1 : 0;
     confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
     confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
     confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;

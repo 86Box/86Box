@@ -194,22 +194,9 @@ sb_get_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
 
     sb_dsp_update(&sb->dsp);
 
-    if (sb->cms_enabled)
-        cms_update(&sb->cms);
-
     for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
-
-        if (sb->cms_enabled) {
-            out_l += sb->cms.buffer[c];
-            out_r += sb->cms.buffer[c + 1];
-        }
-
-        if (sb->cms_enabled && sb->mixer_enabled) {
-            out_l *= mixer->fm;
-            out_r *= mixer->fm;
-        }
 
         /* TODO: Recording: I assume it has direct mic and line in like SB2.
                  It is unclear from the docs if it has a filter, but it probably does. */
@@ -231,6 +218,39 @@ sb_get_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
     }
 
     sb->dsp.pos = 0;
+}
+
+static void
+sb_get_cms_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
+{
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+
+    if (sb->cms_enabled)
+        cms_update(&sb->cms);
+
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
+
+        if (sb->cms_enabled) {
+            out_l += sb->cms.buffer[c];
+            out_r += sb->cms.buffer[c + 1];
+        }
+
+        if (sb->cms_enabled && sb->mixer_enabled) {
+            out_l *= mixer->fm;
+            out_r *= mixer->fm;
+        }
+
+        if (sb->mixer_enabled) {
+            out_l *= mixer->master;
+            out_r *= mixer->master;
+        }
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
 
     if (sb->cms_enabled)
         sb->cms.pos = 0;
@@ -4042,6 +4062,7 @@ sb_init(UNUSED(const device_t *info))
         sb->mixer_enabled = 0;
 
     sound_add_handler(sb_get_buffer_sb2, sb);
+    sound_add_handler(sb_get_cms_buffer_sb2, sb);
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sb2, sb);
     sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);

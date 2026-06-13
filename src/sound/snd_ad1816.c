@@ -377,6 +377,12 @@ ad1816_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     }
 
     ad1816->pos = 0;
+}
+
+static void
+ad1816_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    ad1816_t *ad1816 = (ad1816_t *) priv;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, ad1816->sb);
@@ -833,6 +839,7 @@ ad1816_init(UNUSED(const device_t *info))
     io_sethandler(ad1816->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ad1816->sb);
 
     sound_add_handler(ad1816_get_buffer, ad1816);
+    sound_add_handler(ad1816_get_sbpro_buffer, ad1816);
     music_add_handler(sb_get_music_buffer_sbpro, ad1816->sb);
 
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */

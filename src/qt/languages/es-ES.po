@@ -1717,8 +1717,11 @@ msgstr "Lenta"
 msgid "Fast"
 msgstr "Rápida"
 
-msgid "&Auto-pause on focus loss"
-msgstr "Pa&usa automática al perder el foco"
+msgid "Auto-pause on focus loss"
+msgstr "Pausa automática al perder el foco"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox ya no recibe soporte"

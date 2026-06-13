@@ -230,8 +230,8 @@ extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
 extern int    sound_muted;                  /* (C) Is sound muted? */
-extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
-extern int    do_auto_diag_pause;           /* (C) Auto-pause the emulator on dialog boxes */
+extern int    do_auto_pause;                /* (G) Auto-pause the emulator on focus loss */
+extern int    do_auto_dialog_pause;         /* (G) Auto-pause the emulator on dialog boxes */
 extern int    auto_paused;
 extern int    force_constant_mouse;         /* (C) Force constant updating of the mouse */
 extern double mouse_sensitivity;            /* (G) Mouse sensitivity scale */

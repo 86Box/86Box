@@ -1716,8 +1716,11 @@ msgstr "Långsam"
 msgid "Fast"
 msgstr "Snabb"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Pausa automatiskt när fokus tappas"
+msgid "Auto-pause on focus loss"
+msgstr "Pausa automatiskt när fokus tappas"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox stöds inte längre"

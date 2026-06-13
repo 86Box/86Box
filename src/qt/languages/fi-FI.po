@@ -1720,8 +1720,11 @@ msgstr "Hidas"
 msgid "Fast"
 msgstr "Nopea"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Automaattinen tauko tarkennuksen hävitessä"
+msgid "Auto-pause on focus loss"
+msgstr "Automaattinen tauko tarkennuksen hävitessä"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBoxia ei enää tueta"
