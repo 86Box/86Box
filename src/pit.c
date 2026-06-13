@@ -79,6 +79,7 @@ int64_t firsttime = 1;
 #define PIT_CUSTOM_CLOCK 64  /* The PIT uses custom clock inputs provided by another provider. */
 #define PIT_SECONDARY    128 /* The PIT is secondary (ports 0048-004B). */
 
+#define ENABLE_PIT_LOG 1
 #ifdef ENABLE_PIT_LOG
 int pit_do_log = ENABLE_PIT_LOG;
 
@@ -1224,7 +1225,10 @@ pit_set_clock(uint32_t clock)
             PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
         }
 
-        ISACONST = (1ULL << 32ULL);
+        if (cpuclock == 24000000.0)
+            ISACONST     = (uint64_t) ((cpuclock / 14318184.0) * (double) (1ULL << 32));
+        else
+            ISACONST = (1ULL << 32ULL);
     }
     xt_cpu_multi <<= 32ULL;
 
