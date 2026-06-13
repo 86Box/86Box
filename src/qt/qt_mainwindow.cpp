@@ -1668,19 +1668,22 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 
-    if (receiver == this && do_auto_dialog_pause > 0) {
+    if (receiver == this) {
         static auto curdopause = dopause;
         if (event->type() == QEvent::WindowBlocked) {
             window_blocked = true;
-            curdopause     = dopause;
             mouse_was_captured = (mouse_capture != 0);
-            plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
+            if (do_auto_dialog_pause > 0) {
+                curdopause = dopause;
+                plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
+            }
             if (mouse_was_captured)
                 emit setMouseCapture(false);
             releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
             window_blocked = false;
-            plat_pause(curdopause);
+            if (do_auto_dialog_pause > 0)
+                plat_pause(curdopause);
             if (mouse_was_captured) {
                 emit setMouseCapture(true);
             }
