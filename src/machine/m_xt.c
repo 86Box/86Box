@@ -1974,7 +1974,7 @@ machine_xt_z159_init(const machine_t *model)
     machine_zenith_common_init(model);
 
     if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_device);
+        device_add(&fdc_xt_tandy_device);
 
     /* parallel port is on the memory board */
     lpt = device_add_inst(&lpt_port_device, 1);
