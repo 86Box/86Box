@@ -34,6 +34,7 @@
 #    include <stdexcept>
 #    include <algorithm>
 #    include <limits>
+#    include <cmath>
 
 #    include "qt_mainwindow.hpp"
 #    include "qt_osd.hpp"
