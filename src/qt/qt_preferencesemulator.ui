@@ -88,27 +88,41 @@
       </widget>
      </item>
      <item row="2" column="0" colspan="2">
+      <widget class="QCheckBox" name="checkBoxAutoPause">
+       <property name="text">
+        <string>Auto-pause on focus loss</string>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="0" colspan="2">
+      <widget class="QCheckBox" name="checkBoxAutoDialogPause">
+       <property name="text">
+        <string>Auto-pause on dialog boxes</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0" colspan="2">
       <widget class="QCheckBox" name="checkBoxConfirmSave">
        <property name="text">
         <string>Ask for confirmation before saving settings</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="0" colspan="2">
+     <item row="5" column="0" colspan="2">
       <widget class="QCheckBox" name="checkBoxConfirmExit">
        <property name="text">
         <string>Ask for confirmation before quitting</string>
        </property>
       </widget>
      </item>
-     <item row="4" column="0" colspan="2">
+     <item row="6" column="0" colspan="2">
       <widget class="QCheckBox" name="checkBoxConfirmHardReset">
        <property name="text">
         <string>Ask for confirmation before hard resetting</string>
        </property>
       </widget>
      </item>
-     <item row="5" column="0" colspan="2">
+     <item row="7" column="0" colspan="2">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
           <widget class="QGroupBox" name="groupBox">

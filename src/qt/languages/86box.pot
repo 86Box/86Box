@@ -1700,7 +1700,10 @@ msgstr ""
 msgid "Fast"
 msgstr ""
 
-msgid "&Auto-pause on focus loss"
+msgid "Auto-pause on focus loss"
+msgstr ""
+
+msgid "Auto-pause on dialog boxes"
 msgstr ""
 
 msgid "WinBox is no longer supported"
