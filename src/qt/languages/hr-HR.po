@@ -1723,8 +1723,11 @@ msgstr "Spori"
 msgid "Fast"
 msgstr "Brzi"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Automatska pauza pri gubitku fokusa"
+msgid "Auto-pause on focus loss"
+msgstr "Automatska pauza pri gubitku fokusa"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox seviše ne podržava"

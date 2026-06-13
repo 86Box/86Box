@@ -1486,7 +1486,10 @@ void fm_engine_base<RegisterType>::update_timer(uint32_t tnum, uint32_t enable, 
 		period += delta_clocks;
 
 		// reset it
-		m_intf.ymfm_set_timer(tnum, period * OPERATORS * m_clock_prescale);
+	        if (static_cast<int32_t>(period) >= 0)
+		    m_intf.ymfm_set_timer(tnum, period * OPERATORS * m_clock_prescale);
+	        else
+		    m_intf.ymfm_set_timer(tnum | 0x8000, period * OPERATORS * m_clock_prescale);
 		m_timer_running[tnum] = 1;
 	}
 

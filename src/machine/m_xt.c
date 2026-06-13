@@ -37,6 +37,7 @@
 #include <86box/serial.h>
 #include <86box/sio.h>
 #include <86box/ibm_5161.h>
+#include <86box/io.h>
 #include <86box/isartc.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
@@ -1045,11 +1046,11 @@ machine_xt_top88_init(const machine_t *model)
 }
 
 static void
-machine_xt_hyundai_common_init(const machine_t *model, int fixed_floppy)
+machine_xt_hyundai_common_init(const machine_t *model)
 {
     device_add(&kbc_xt_hyundai_device);
 
-    machine_xt_common_init(model, fixed_floppy);
+    machine_xt_common_init(model, 1);
 }
 
 int
@@ -1064,7 +1065,7 @@ machine_xt_super16t_init(const machine_t *model)
         return ret;
 
     /* On-board FDC cannot be disabled */
-    machine_xt_hyundai_common_init(model, 1);
+    machine_xt_hyundai_common_init(model);
 
     return ret;
 }
@@ -1081,7 +1082,7 @@ machine_xt_super16te_init(const machine_t *model)
         return ret;
 
     /* On-board FDC cannot be disabled */
-    machine_xt_hyundai_common_init(model, 1);
+    machine_xt_hyundai_common_init(model);
 
     return ret;
 }
@@ -1951,7 +1952,7 @@ machine_xt_z151_init(const machine_t *model)
     machine_zenith_common_init(model);
 
     if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_tandy_device);
+        device_add(&fdc_xt_device);
 
     return ret;
 }
@@ -1963,11 +1964,9 @@ machine_xt_z151_init(const machine_t *model)
 int
 machine_xt_z159_init(const machine_t *model)
 {
-    lpt_t *lpt = NULL;
-    int    ret;
-
-    ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
-                           0x000f8000, 32768, 0);
+    lpt_t *   lpt = NULL;
+    const int ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
+                                     0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
         return ret;
@@ -2017,6 +2016,8 @@ machine_xt_z184_init(const machine_t *model)
     serial_set_next_inst(SERIAL_MAX - 1);
 
     device_add(&v6355d_device);
+
+    device_add(&rp5c01a_zenith_device);
 
     return ret;
 }

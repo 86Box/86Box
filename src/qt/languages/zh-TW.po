@@ -1720,8 +1720,11 @@ msgstr "慢"
 msgid "Fast"
 msgstr "快"
 
-msgid "&Auto-pause on focus loss"
-msgstr "失去焦點時自動暫停(&A)"
+msgid "Auto-pause on focus loss"
+msgstr "失去焦點時自動暫停"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "不再支援 WinBox"

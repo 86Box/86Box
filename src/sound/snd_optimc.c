@@ -249,6 +249,15 @@ opti930_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     }
 
     optimc->ad1848.pos = 0;
+}
+
+static void
+opti930_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    if (((optimc->max_reg == 11) && (optimc->regs[3] & 0x4)) || ((optimc->max_reg == 25) && !(optimc->regs[3] & 0x4)))
+        return;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, optimc->sb);
@@ -268,6 +277,15 @@ optimc_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         buffer[c] += (optimc->ad1848.buffer[c] / 2);
 
     optimc->ad1848.pos = 0;
+}
+
+static void
+optimc_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    if (optimc->regs[3] & 0x4)
+        return;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, optimc->sb);
@@ -1118,10 +1136,13 @@ optimc_init(const device_t *info)
 
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
-    if (optimc->type == OPTI_930)
+    if (optimc->type == OPTI_930) {
         sound_add_handler(opti930_get_buffer, optimc);
-    else
+        sound_add_handler(opti930_get_sbpro_buffer, optimc);
+    } else {
         sound_add_handler(optimc_get_buffer, optimc);
+        sound_add_handler(optimc_get_sbpro_buffer, optimc);
+    }
     if (optimc->fm_type == FM_YMF278B)
         wavetable_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
     else

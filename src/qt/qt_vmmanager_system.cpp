@@ -1217,8 +1217,9 @@ VMManagerSystem::processStatusToString(VMManagerSystem::ProcessStatus status)
         case VMManagerSystem::ProcessStatus::Paused:
             return tr("Paused");
         case VMManagerSystem::ProcessStatus::PausedWaiting:
-        case VMManagerSystem::ProcessStatus::RunningWaiting:
             return QString("%1 (%2)").arg(tr("Paused"), tr("Waiting"));
+        case VMManagerSystem::ProcessStatus::RunningWaiting:
+            return QString("%1 (%2)").arg(tr("Running"), tr("Waiting"));
         default:
             return tr("Unknown Status");
     }

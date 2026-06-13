@@ -75,7 +75,6 @@
     <addaction name="separator"/>
     <addaction name="actionUpdate_mouse_every_CPU_frame"/>
     <addaction name="separator"/>
-    <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionFullscreen"/>
@@ -301,14 +300,6 @@
    </property>
    <property name="text">
     <string>&amp;Update mouse every CPU frame</string>
-   </property>
-  </action>
-  <action name="actionAuto_pause">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Auto-pause on focus loss</string>
    </property>
   </action>
   <action name="actionKeyboard_requires_capture">
