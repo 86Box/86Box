@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-07 22:01+0000\n"
+"PO-Revision-Date: 2026-06-13 14:23+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1734,7 +1734,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Αυτόματο-πάγωμα σε απώλεια εστίασης"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Αυτόματη παύση στα παράθυρα διαλόγου"
 
 msgid "WinBox is no longer supported"
 msgstr "Το WinBox δεν υποστηρίζεται πλέον"
