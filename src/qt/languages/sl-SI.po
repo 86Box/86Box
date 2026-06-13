@@ -1728,8 +1728,11 @@ msgstr "Počasni"
 msgid "Fast"
 msgstr "Hitri"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Samodejni premor ob izgubi fokusa"
+msgid "Auto-pause on focus loss"
+msgstr "Samodejni premor ob izgubi fokusa"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox ni več podprt"

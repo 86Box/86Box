@@ -1712,8 +1712,11 @@ msgstr "Chậm"
 msgid "Fast"
 msgstr "Nhanh"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Tự tạm dừng giả lập khi không tập trung ở cửa sổ"
+msgid "Auto-pause on focus loss"
+msgstr "Tự tạm dừng giả lập khi không tập trung ở cửa sổ"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox không còn được hỗ trợ"

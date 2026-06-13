@@ -1730,8 +1730,11 @@ msgstr "Αργό"
 msgid "Fast"
 msgstr "Γρήγορο"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Αυτόματο-πάγωμα σε απώλεια εστίασης"
+msgid "Auto-pause on focus loss"
+msgstr "Αυτόματο-πάγωμα σε απώλεια εστίασης"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "Το WinBox δεν υποστηρίζεται πλέον"
