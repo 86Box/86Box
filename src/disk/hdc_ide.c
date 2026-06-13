@@ -99,6 +99,7 @@
 #define WIN_IDENTIFY                   0xec /* Ask drive to identify itself */
 #define WIN_SET_FEATURES               0xef
 #define WIN_READ_NATIVE_MAX            0xf8
+#define WIN_INVALID                    0xff
 
 #define FEATURE_SET_TRANSFER_MODE      0x03
 #define FEATURE_ENABLE_IRQ_OVERLAPPED  0x5d
@@ -1394,7 +1395,8 @@ ide_write_data(ide_t *ide, const uint16_t val)
 {
     uint16_t *idebufferw = ide->buffer;
 
-    if ((ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) && ide->buffer) {
+    if ((ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) &&
+        ide->buffer && (ide->command != WIN_INVALID)) {
         if (ide->command == WIN_PACKETCMD) {
             if (ide->type == IDE_ATAPI)
                 ide_atapi_packet_write(ide, val);
@@ -1823,6 +1825,14 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide->tf->atastat  = DRDY_STAT;
 
                     ide_set_callback(ide, 100.0 * IDE_TIME);
+
+                    if (ide_other->type == IDE_ATAPI) {
+                        ide_other->tf->atastat  = BSY_STAT;
+                        ide_other->sc->callback = 100.0 * IDE_TIME;
+                    } else
+                        ide_other->tf->atastat  = DRDY_STAT;
+
+                    ide_set_callback(ide_other, 100.0 * IDE_TIME);
                     break;
 
                 case WIN_READ_MULTIPLE:
@@ -2033,6 +2043,8 @@ ide_read_data(ide_t *ide)
 
     if ((ide->type == IDE_NONE) || (ide->type & IDE_SHADOW) || (ide->buffer == NULL))
         ret = 0xff7f;
+    else if (ide->command == WIN_INVALID)
+        ret = 0x0000;
     else if (ide->command == WIN_PACKETCMD) {
         if (ide->type == IDE_ATAPI)
             ret = ide_atapi_packet_read(ide);
@@ -2079,9 +2091,12 @@ ide_read_data(ide_t *ide)
                         const double xfer_us = ide_get_xfer_time(ide, 512);
                         ide_set_callback(ide, seek_us + xfer_us);
                     }
-                } else
+                } else {
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
-            }
+                    ide->command = WIN_INVALID;
+                }
+            } else
+                ide->command = WIN_INVALID;
         }
     }
 
@@ -2572,6 +2587,8 @@ ide_callback(void *priv)
                     ide_next_sector(ide);
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                    ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
+                    ide->command = WIN_INVALID;
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2656,6 +2673,7 @@ ide_callback(void *priv)
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
                     ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
+                    ide->command = WIN_INVALID;
                 }
                 if (ret < 0)
                     err = UNC_ERR;

@@ -1724,8 +1724,11 @@ msgstr "Повільний"
 msgid "Fast"
 msgstr "Швидкий"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Автопауза при втраті фокусу"
+msgid "Auto-pause on focus loss"
+msgstr "Автопауза при втраті фокусу"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox більше не підтримується"

@@ -48,11 +48,8 @@ enum {
 pic_t pic;
 pic_t pic2;
 
-static pc_timer_t pic_timer;
-
 static int shadow = 0;
 static int elcr_enabled = 0;
-static int tmr_inited = 0;
 static int pic_pci = 0;
 static int kbd_latch = 0;
 static int mouse_latch = 0;
@@ -242,12 +239,6 @@ pic_update_pending_at(void)
     }
 }
 
-static void
-pic_callback(UNUSED(void *priv))
-{
-    update_pending();
-}
-
 void
 pic_reset(void)
 {
@@ -262,12 +253,6 @@ pic_reset(void)
 
     if (is_at)
         pic.slaves[2] = &pic2;
-
-    if (tmr_inited)
-        timer_on_auto(&pic_timer, 0.0);
-    memset(&pic_timer, 0x00, sizeof(pc_timer_t));
-    timer_add(&pic_timer, pic_callback, &pic, 0);
-    tmr_inited = 1;
 
     update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
     pic.at = pic2.at = is_at;
@@ -528,10 +513,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 break;
             case STATE_NONE:
                 dev->imr = val;
-                if (is286)
-                    update_pending();
-                else
-                    timer_on_auto(&pic_timer, .0 * ((10000000.0 * (double) xt_cpu_multi) / (double) cpu_s->rspeed));
+                update_pending();
                 break;
 
             default:

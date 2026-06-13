@@ -285,7 +285,7 @@ tape_load(const tape_t *dev, const char *fn, const int skip_insert)
             ((tape_t *) dev)->num_blocks = 0;
 
             if (dev->drv->image_path != (fn - offs)) {
-                const int len = MIN(strlen(fn - offs), (sizeof(dev->drv->image_path) - 1));
+                const int len = MIN(strlen(fn - offs), (strlen(dev->drv->image_path) - 1));
                 strncpy(dev->drv->image_path, fn - offs, len);
             }
         }

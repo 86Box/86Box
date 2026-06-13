@@ -40,7 +40,7 @@
 
 #define ROM_MILLENNIUM        "roms/video/matrox/matrox2064wr2.BIN"
 #define ROM_MILLENNIUM_II     "roms/video/matrox/matrox2164wpc.BIN"
-#define ROM_MILLENNIUM_II_AGP "roms/video/matrox/877-3.bin"
+#define ROM_MILLENNIUM_II_AGP "roms/video/matrox/865-4.bin"
 #define ROM_MYSTIQUE          "roms/video/matrox/MYSTIQUE.VBI"
 #define ROM_MYSTIQUE_220      "roms/video/matrox/Myst220_66-99mhz.vbi"
 #define ROM_G100              "roms/video/matrox/productiva8mbsdr.BIN"
@@ -7046,6 +7046,29 @@ static const device_config_t millennium_ii_config[] = {
   // clang-format on
 };
 
+static const device_config_t g100_config[] = {
+  // clang-format off
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "2 MB", .value =  2 },
+            { .description =  "4 MB", .value =  4 },
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t millennium_device = {
     .name          = "Matrox Millennium",
     .internal_name = "millennium",
@@ -7128,6 +7151,6 @@ const device_t productiva_g100_device = {
     .available     = matrox_g100_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
-    .config        = millennium_ii_config
+    .config        = g100_config
 };
 #endif
