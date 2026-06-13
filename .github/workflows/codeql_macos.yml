@@ -102,6 +102,7 @@ jobs:
           vde
           libserialport
           vulkan-headers
+          rust
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

@@ -117,6 +117,7 @@ jobs:
             libserialport:p
             ${{ matrix.ui.packages }}
             llvm-openmp:p
+            rust:p
 
       - name: Checkout repository
         uses: actions/checkout@v4
