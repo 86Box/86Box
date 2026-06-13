@@ -9281,7 +9281,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_PS2_KBC | MACHINE_APM,
         .ram       = {
             .min  = 1024,
             .max  = 131072,
@@ -9296,7 +9296,7 @@ const machine_t machines[] = {
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
+        .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
@@ -23529,7 +23529,7 @@ machine_has_flags_ex(int flags)
     if (flags & MACHINE_PS2_KBC) {
         if (machine_is_ps2 && (machines[machine].init != machine_at_pc5286_init))
             ret |= MACHINE_PS2_KBC;
-        else
+        else if (machines[machine].init == machine_at_pc5286_init)
             ret &= ~MACHINE_PS2_KBC;
     }
 
