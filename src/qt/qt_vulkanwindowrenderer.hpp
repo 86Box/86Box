@@ -3,6 +3,7 @@
 
 #include <QWindow>
 #include <QVulkanWindow>
+#include <QTimer>
 
 #include <vector>
 #include <tuple>
@@ -103,8 +104,9 @@ private:
 
     void updateOptions();
 
-    // If BGRA is used instead.
-    bool swapchain_is_bgra = false;
+    QTimer *renderTimer = nullptr;
+    QTimer *osdRenderTimer = nullptr;
+    bool was_osd_visible = false;
 
     VmaAllocator allocator;
     VmaAllocation img_allocation;

@@ -6,11 +6,13 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Vulkan renderer
+ *          Vulkan renderer, adapted from various examples, with librashader support.
  *
  * Authors: Teemu Korhonen
+ *          Sascha Willems
  *          Cacodemon345
  *
+ *          Copyright 2016-2025 Sascha Willems
  *          Copyright 2021 Teemu Korhonen
  *          Copyright 2026 Cacodemon345.
  */
@@ -51,7 +53,19 @@ extern MainWindow *main_window;
 
 VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     : QWindow((QWindow *) NULL)
+    , renderTimer(new QTimer(this))
+    , osdRenderTimer(new QTimer(this))
 {
+    connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
+    connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
+        if (video_framerate == -1 && dopause && qt_osd_is_visible())
+            this->render();
+
+        if (video_framerate == -1 && !qt_osd_is_visible() && was_osd_visible)
+            this->render();
+
+        was_osd_visible = qt_osd_is_visible();
+    });
     parentWidget = parent;
     instance.setApiVersion(QVersionNumber(1, 0));
     if (instance.supportedExtensions().contains("VK_KHR_get_physical_device_properties2")) {
@@ -1168,6 +1182,13 @@ VulkanWindowRenderer::initialize()
 
                 qt_osd_start_vulkan(vk_function_ret_callback, &instance, &init_info);
 
+                if (video_framerate != -1) {
+                    renderTimer->setTimerType(Qt::PreciseTimer);
+                    renderTimer->start(ceilf(1000.f / (float) video_framerate));
+                }
+
+                osdRenderTimer->start(16);
+
                 render();
                 emit rendererInitialized();
             }
@@ -1210,6 +1231,8 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
     if (isInitialized) {
         try {
             recreateSwapchain();
+            if (video_framerate == -1)
+                render();
         } catch (const vulkan_init_error &e) {
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
             main_window->reloadAllRenderers();
@@ -1238,7 +1261,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
     }
-    if (isExposed()) {
+    if (isExposed() && video_framerate == -1) {
         // requestUpdate();
         render();
     }
