@@ -772,12 +772,6 @@ MainWindow::MainWindow(QWidget *parent)
     if (force_43 > 0) {
         ui->actionForce_4_3_display_ratio->setChecked(true);
     }
-    if (do_auto_pause > 0) {
-        ui->actionAuto_pause->setChecked(true);
-    }
-    if (do_auto_diag_pause > 0) {
-        ui->actionAutoDiag_pause->setChecked(true);
-    }
     if (force_constant_mouse > 0) {
         ui->actionUpdate_mouse_every_CPU_frame->setChecked(true);
     }
@@ -1674,19 +1668,22 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 
-    if (receiver == this && do_auto_diag_pause > 0) {
+    if (receiver == this) {
         static auto curdopause = dopause;
         if (event->type() == QEvent::WindowBlocked) {
             window_blocked = true;
-            curdopause     = dopause;
             mouse_was_captured = (mouse_capture != 0);
-            plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
+            if (do_auto_dialog_pause > 0) {
+                curdopause = dopause;
+                plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
+            }
             if (mouse_was_captured)
                 emit setMouseCapture(false);
             releaseKeyboard();
         } else if (event->type() == QEvent::WindowUnblocked) {
             window_blocked = false;
-            plat_pause(curdopause);
+            if (do_auto_dialog_pause > 0)
+                plat_pause(curdopause);
             if (mouse_was_captured) {
                 emit setMouseCapture(true);
             }
@@ -2102,22 +2099,6 @@ MainWindow::on_actionForce_4_3_display_ratio_triggered()
                 renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
         }
     }
-    config_save();
-}
-
-void
-MainWindow::on_actionAuto_pause_triggered()
-{
-    do_auto_pause ^= 1;
-    ui->actionAuto_pause->setChecked(do_auto_pause > 0 ? true : false);
-    config_save();
-}
-
-void
-MainWindow::on_actionAutoDiag_pause_triggered()
-{
-    do_auto_diag_pause ^= 1;
-    ui->actionAutoDiag_pause->setChecked(do_auto_diag_pause > 0 ? true : false);
     config_save();
 }
 

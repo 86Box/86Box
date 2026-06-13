@@ -73,13 +73,13 @@ VMManagerListViewDelegate::paint(QPainter *painter, const QStyleOptionViewItem &
     QIcon status_icon;
     switch (process_status) {
         case VMManagerSystem::ProcessStatus::Running:
+        case VMManagerSystem::ProcessStatus::RunningWaiting:
             status_icon = running_icon;
             break;
         case VMManagerSystem::ProcessStatus::Stopped:
             status_icon = stopped_icon;
             break;
         case VMManagerSystem::ProcessStatus::PausedWaiting:
-        case VMManagerSystem::ProcessStatus::RunningWaiting:
         case VMManagerSystem::ProcessStatus::Paused:
             status_icon = paused_icon;
             break;

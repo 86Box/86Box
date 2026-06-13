@@ -1728,8 +1728,11 @@ msgstr "Yavaş"
 msgid "Fast"
 msgstr "Hızlı"
 
-msgid "&Auto-pause on focus loss"
-msgstr "Pencereye &odaklanmıyorken duraklat"
+msgid "Auto-pause on focus loss"
+msgstr "Pencereye odaklanmıyorken duraklat"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox artık desteklenmemektedir"

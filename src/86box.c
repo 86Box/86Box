@@ -149,7 +149,7 @@ uint64_t instru_run_ms                          = 0;
 #endif
 int      clear_flash                            = 0;
 int      auto_paused                            = 0;
-int      auto_diag_paused                       = 0;
+int      auto_dialog_paused                     = 0;
 
 /* Configuration values. */
 int      window_remember;
@@ -204,9 +204,9 @@ int      open_dir_usr_path                      = 0;              /* (G) default
                                                                          of usr_path */
 int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings
                                                                          also apply when maximized. */
-int      do_auto_pause                          = 0;              /* (C) Auto-pause the emulator on focus
+int      do_auto_pause                          = 0;              /* (G) Auto-pause the emulator on focus
                                                                          loss */
-int      do_auto_diag_pause                     = 0;              /* (C) Auto-pause the emulator on dialog boxes */
+int      do_auto_dialog_pause                   = 0;              /* (G) Auto-pause the emulator on dialog boxes */
 int      force_constant_mouse                   = 0;              /* (C) Force constant updating of the mouse */
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
 int      test_mode                              = 0;              /* (C) Test mode */
