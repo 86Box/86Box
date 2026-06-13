@@ -1825,6 +1825,14 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide->tf->atastat  = DRDY_STAT;
 
                     ide_set_callback(ide, 100.0 * IDE_TIME);
+
+                    if (ide_other->type == IDE_ATAPI) {
+                        ide_other->tf->atastat  = BSY_STAT;
+                        ide_other->sc->callback = 100.0 * IDE_TIME;
+                    } else
+                        ide_other->tf->atastat  = DRDY_STAT;
+
+                    ide_set_callback(ide_other, 100.0 * IDE_TIME);
                     break;
 
                 case WIN_READ_MULTIPLE:
