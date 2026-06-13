@@ -267,6 +267,16 @@ add_library(ui STATIC
     qt_openglshaderconfig.cpp
     qt_openglshaderconfig.ui
 
+    qt_vulkanshadermanagerdialog.hpp
+    qt_vulkanshadermanagerdialog.cpp
+    qt_vulkanshadermanagerdialog.ui
+
+    qt_vulkanshaderconfig.hpp
+    qt_vulkanshaderconfig.cpp
+    qt_vulkanshaderconfig.ui
+
+    qt-slangp.hpp
+
     qt_iconindicators.hpp
     qt_iconindicators.cpp
     qt_cgasettingsdialog.hpp
@@ -421,7 +431,11 @@ target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::OpenGL
     Qt${QT_MAJOR}::Network
     Threads::Threads
+    librashader_capi
 )
+
+target_compile_definitions(plat PRIVATE LIBRA_RUNTIME_VULKAN)
+target_compile_definitions(ui PRIVATE LIBRA_RUNTIME_VULKAN)
 
 if(WIN32)
     if(STATIC_BUILD)

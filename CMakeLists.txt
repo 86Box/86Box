@@ -200,6 +200,9 @@ if(QT)
     if(APPLE)
         option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
     endif()
+
+    add_subdirectory(corrosion)
+    corrosion_import_crate(MANIFEST_PATH librashader/librashader-capi/Cargo.toml NO_DEFAULT_FEATURES FEATURES runtime-vulkan CRATE_TYPES staticlib)
 endif()
 
 # Determine the build type

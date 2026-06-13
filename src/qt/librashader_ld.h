@@ -29,8 +29,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // Uncomment the following defines to activate runtimes.
 
-#define LIBRA_RUNTIME_OPENGL
-#define LIBRA_RUNTIME_VULKAN
+// #define LIBRA_RUNTIME_OPENGL
+// #define LIBRA_RUNTIME_VULKAN
 
 // #if defined(_WIN32)
 // #define LIBRA_RUNTIME_D3D11

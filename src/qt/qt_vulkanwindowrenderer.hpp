@@ -13,7 +13,8 @@
 #    include "qt_renderercommon.hpp"
 #    include <vulkan/vulkan.h>
 #    include "imgui_impl_vulkan.h"
-#    include "librashader_ld.h"
+#    define LIBRA_RUNTIME_VULKAN 1
+#    include "librashader.h"
 
 class VulkanShaderChain
 {
@@ -29,6 +30,10 @@ public:
     VulkanWindowRenderer(QWidget *parent);
     ~VulkanWindowRenderer();
     void finalize() override final;
+
+    bool     hasOptions() const override { return true; }
+    QDialog *getOptions(QWidget *parent) override;
+    bool     reloadRendererOption() override { return true; }
 public slots:
     void onBlit(int buf_idx, int x, int y, int w, int h);
 signals:
@@ -122,8 +127,6 @@ private:
     VkFormat colorAttachmentFormat = VK_FORMAT_B8G8R8A8_UNORM;
 
     bool imageLayoutTransitioned = false;
-
-    libra_instance_t librashader_instance_vk{};
 
 private slots:
     void render();

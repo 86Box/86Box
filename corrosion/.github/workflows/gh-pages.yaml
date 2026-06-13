@@ -1,0 +1,78 @@
+name: Deploy GH pages
+on:
+  push:
+    branches:
+      - master
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  # Build and deploy the documentation of master and the stable/v0.5 branch
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Install mdbook
+        env:
+          MDBOOK_VERSION: 'v0.4.27'
+        run: |
+          mkdir mdbook
+          curl -sSL https://github.com/rust-lang/mdBook/releases/download/${MDBOOK_VERSION}/mdbook-${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=./mdbook
+          echo `pwd`/mdbook >> $GITHUB_PATH
+      - name: Checkout master
+        uses: actions/checkout@v4
+        with:
+          path: main
+      - name: Checkout stable/v0.5
+        uses: actions/checkout@v4
+        with:
+          path: stable-v0.5
+          ref: 'stable/v0.5'
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Build mdbook for main branch
+        working-directory: 'main/doc'
+        run: mdbook build
+      - name: Build mdbook for stable/v0.5 branch
+        working-directory: 'stable-v0.5/doc'
+        run: mdbook build
+      # Override mdbooks default highlight.js with a custom version containing CMake support.
+      - uses: actions/checkout@v4
+        with:
+          repository: 'highlightjs/highlight.js'
+          # mdbook currently (as of v0.4.27) does not support v11 yet.
+          ref: '10.7.3'
+          path: highlightjs
+      - name: Build custom highlight.js
+        run: |
+          npm install
+          node tools/build.js :common cmake yaml
+        working-directory: highlightjs
+      - name: Override highlightjs
+        run: |
+          cp highlightjs/build/highlight.min.js main/doc/book/highlight.js
+          cp highlightjs/build/highlight.min.js stable-v0.5/doc/book/highlight.js
+      - name: Copy stable doc into main
+        run: mkdir main/doc/book/v0.5 && cp -a stable-v0.5/doc/book/. main/doc/book/v0.5/
+      - name: Debug print
+        run: ls -la main/doc/book/v0.5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'main/doc/book'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

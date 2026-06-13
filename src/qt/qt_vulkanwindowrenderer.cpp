@@ -18,6 +18,7 @@
 #define VMA_STATIC_VULKAN_FUNCTIONS  0
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include "qt_vulkanwindowrenderer.hpp"
+#include "qt_vulkanshadermanagerdialog.hpp"
 
 #include <QApplication>
 #include <QClipboard>
@@ -34,6 +35,7 @@
 
 #    include "qt_mainwindow.hpp"
 #    include "qt_osd.hpp"
+#    include "qt-slangp.hpp"
 
 extern "C" {
 #    include <86box/86box.h>
@@ -74,7 +76,7 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
             if (j != (shaderFilterChains[i].size() - 1)) {
                 vmaDestroyImage(allocator, shaderFilterChains[i][j].next_image_chain, shaderFilterChains[i][j].next_image_alloc);
             }
-            librashader_instance_vk.vk_filter_chain_free(&shaderFilterChains[i][j].chain);
+            libra_vk_filter_chain_free(&shaderFilterChains[i][j].chain);
             shaderFilterChains[i][j].chain = nullptr;
         }
         vmaDestroyImage(allocator, shaderSrcImages[i], shaderSrcImageAllocations[i]);
@@ -82,6 +84,12 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
     shaderFilterChains.clear();
     shaderSrcImages.clear();
     shaderSrcImageAllocations.clear();
+}
+
+QDialog *
+VulkanWindowRenderer::getOptions(QWidget *parent)
+{
+    return new VulkanShaderManagerDialog(parent);
 }
 
 void
@@ -134,9 +142,12 @@ VulkanWindowRenderer::recreateShaderSrcImages()
 
         for (int j = 0; j < num_shaders; j++) {
             if (vk_shader_file[j][0] != 0) {
-                libra_shader_preset_t shader_preset = nullptr;
-                librashader_instance_vk.preset_create(vk_shader_file[j], &shader_preset);
-                if (shader_preset) {
+                std::vector<std::pair<std::string, double>> parameter_values;
+                auto shader = slangp_parse(vk_shader_file[j]);
+                if (shader) {
+                    for (int l = 0; l < shader->param_list.length; l++) {
+                        parameter_values.push_back(std::pair<std::string, double>(shader->param_list.parameters[l].name, shader->param_values[l]));
+                    }
                     VulkanShaderChain vk_shader_chain{};
                     libra_device_vk_t vk_dev;
                     vk_dev.entry = (PFN_vkGetInstanceProcAddr)instance.getInstanceProcAddr("vkGetInstanceProcAddr");
@@ -144,10 +155,16 @@ VulkanWindowRenderer::recreateShaderSrcImages()
                     vk_dev.device = logi_device;
                     vk_dev.physical_device = phys_device;
                     vk_dev.queue = gfx_queue_o;
-                    librashader_instance_vk.vk_filter_chain_create(&shader_preset, vk_dev, nullptr, &vk_shader_chain.chain);
+                    libra_preset_free_runtime_params(shader->param_list);
+                    shader->param_list.parameters = 0;
+                    libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, nullptr, &vk_shader_chain.chain);
+                    delete shader;
                     if (vk_shader_chain.chain) {
                         vk_shader_chain.next_image_alloc = nullptr;
                         vk_shader_chain.next_image_chain = swapchainImages[i];
+                        for (auto& curPair : parameter_values) {
+                            libra_vk_filter_chain_set_param(&vk_shader_chain.chain, curPair.first.c_str(), curPair.second);
+                        }
                     } else {
                         continue;
                     }
@@ -225,7 +242,7 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchain_creation.surface                  = instance.surfaceForWindow(this);
     swapchain_creation.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchain_creation.presentMode              = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    swapchain_creation.presentMode              = video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
     swapchain_creation.imageFormat              = VK_FORMAT_B8G8R8A8_UNORM;
     swapchain_creation.imageColorSpace          = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
     swapchain_creation.imageArrayLayers         = 1;
@@ -493,7 +510,12 @@ VulkanWindowRenderer::render()
 
     auto res = fn_vkAcquireNextImageKHR(logi_device, dev_swapchain, (uint64_t) -1, presentSemaphores[current_frame], VK_NULL_HANDLE, &swapchain_image_index);
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
-        recreateSwapchain();
+        try {
+            recreateSwapchain();
+        } catch (const vulkan_init_error &e) {
+            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            main_window->reloadAllRenderers();
+        }
         return;
     }
     
@@ -673,9 +695,9 @@ VulkanWindowRenderer::render()
         if (i == shaderFilterChains[swapchain_image_index].size() - 1) {
             vport.x = destination.x();
             vport.y = destination.y();
-            librashader_instance_vk.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+            libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
         } else
-            librashader_instance_vk.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+            libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
     }
 
     VkRenderingAttachmentInfo render_info = {};
@@ -892,9 +914,12 @@ VulkanWindowRenderer::render()
     presentInfo.pImageIndices      = &swapchain_image_index;
     auto result                    = fn_vkQueuePresentKHR(gfx_queue_o, &presentInfo);
     if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
-        recreateSwapchain();
-    } else {
-        // QMessageBox::critical()
+        try {
+            recreateSwapchain();
+        } catch (const vulkan_init_error &e) {
+            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            main_window->reloadAllRenderers();
+        }
     }
 
     current_frame = (current_frame + 1) % swapchainImageViews.size();
@@ -919,8 +944,6 @@ VulkanWindowRenderer::initialize()
             throw vulkan_init_error("Failed to get VkSurfaceKHR from window.");
         }
         uint32_t physicalDevices = 0;
-
-        librashader_instance_vk = librashader_load_instance();
 
         instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, nullptr);
         if (physicalDevices != 0) {
@@ -1184,8 +1207,14 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
     onResize(width(), height());
 
     QWindow::resizeEvent(event);
-    if (isInitialized)
-        recreateSwapchain();
+    if (isInitialized) {
+        try {
+            recreateSwapchain();
+        } catch (const vulkan_init_error &e) {
+            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            main_window->reloadAllRenderers();
+        }
+    }
 }
 
 bool

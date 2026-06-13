@@ -1,0 +1,498 @@
+name: Tests
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - 'master'
+      - 'stable/**'
+jobs:
+
+  visual_studio_base:
+    name: Test Visual Studio (base)
+    uses: ./.github/workflows/visual_studio.yaml
+    with:
+      vs_version: "2022"
+      rust: 1.46.0
+
+  visual_studio_stage2:
+    name: Test Visual Studio
+    uses: ./.github/workflows/visual_studio.yaml
+    needs:
+      - visual_studio_base
+    strategy:
+      matrix:
+        vs_version:
+          - "2022"
+        arch:
+          - x86_64
+          - i686
+          - aarch64
+        rust:
+          - "1.54.0"
+        include:
+          - arch: x86_64
+            vs_version: 2022
+            rust: stable
+          - arch: x86_64
+            vs_version: 2022
+            rust: nightly
+    with:
+      vs_version: "${{ matrix.vs_version}}"
+      rust: 1.54.0
+      target_arch: "${{ matrix.arch}}"
+
+  windows_ninja_cl:
+    name: Test Windows Ninja MSVC
+    runs-on: ${{ matrix.os }}
+    needs:
+      - visual_studio_base
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+        arch:
+          - x86_64
+          - i686
+          - aarch64
+        compiler:
+          - cl
+          - clang-cl
+          - clang
+        include:
+          - os: windows-2022
+            vs_version: vs-2022
+            cmake: 3.22.6
+          - rust: 1.54.0
+          # Add variable mapping for ilammy/msvc-dev-cmd action
+          - arch: x86_64
+            msvc_dev_arch: amd64
+          - arch: i686
+            msvc_dev_arch: amd64_x86
+          - arch: aarch64
+            msvc_dev_arch: amd64_arm64
+        exclude:
+          # Not sure what parameters CMake needs when cross-compiling with clang-cl, so exclude for now
+          - compiler: clang-cl
+            arch: i686
+          - compiler: clang-cl
+            arch: aarch64
+          - compiler: clang
+            arch: i686
+          - compiler: clang
+            arch: aarch64
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "${{ matrix.cmake }}"
+          ninjaVersion: "~1.10.0"
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+          targets: ${{matrix.arch}}-pc-windows-msvc
+          components: rust-src
+      - name: Setup MSVC Development Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_dev_arch }}
+      - name: Configure
+        run: cmake -S. -Bbuild "-DRust_TOOLCHAIN=${{steps.install_rust.outputs.name}}" --preset "ninja-${{ matrix.arch }}-pc-windows-msvc-${{ matrix.compiler }}"
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3
+
+  windows_gnu:
+    name: Test Windows GNU
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+        arch:
+          - x86_64
+          # - i686
+          # - aarch64
+        compiler:
+          - gcc # Clang only has experimental support for Cygwin / MinGW, so we don't test it
+        generator:
+          - ninja
+          - make
+        include:
+          - cmake: 3.22.6
+          - rust: 1.54.0
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "${{ matrix.cmake }}"
+          ninjaVersion: "~1.10.0"
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+          targets: ${{matrix.arch}}-pc-windows-gnu
+          components: rust-src
+      - name: Configure
+        run: cmake -S. -Bbuild "-DRust_TOOLCHAIN=${{steps.install_rust.outputs.name}}" --preset "${{ matrix.generator }}-${{ matrix.arch }}-pc-windows-gnu-${{ matrix.compiler }}"
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3
+
+  windows_gnullvm_msys2:
+    name: Test Windows gnullvm on msys2
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+        arch:
+          - x86_64
+          # - i686
+          # - aarch64
+        generator:
+          - Ninja
+          - MSYS Makefiles
+        include:
+          - arch: x86_64
+            msystem: CLANG64
+#          - arch: i686
+#            msystem: CLANG32
+#          - arch: aarch64
+#            msystem: CLANGARM64
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: ${{matrix.arch}}-pc-windows-gnullvm
+          components: rust-src
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{matrix.msystem}}
+          path-type: inherit
+          install: >-
+            git
+            make
+          pacboy: >-
+            toolchain:p
+            cmake:p
+            ninja:p
+      - name: Configure
+        run: cmake -S. -Bbuild -G "${{matrix.generator}}" --toolchain=.github/scripts/toolchains/${{matrix.arch}}-pc-windows-gnullvm.cmake
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3
+
+# For now just test if hostbuild works when cross-compiling on windows.
+# For testing everything we would also need to install a cross-compiler first.
+  windows_cross_hostbuild:
+    name: Test Windows Cross
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "~3.22.0"
+          ninjaVersion: "~1.10.0"
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable
+          targets: aarch64-unknown-linux-gnu
+          components: rust-src
+      - name: Configure
+        run: cmake -S. -Bbuild "-DRust_TOOLCHAIN=${{steps.install_rust.outputs.name}}" -DRust_CARGO_TARGET=aarch64-unknown-linux-gnu
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -R hostbuild
+
+  linux_base:
+    name: Test Linux (base)
+    uses: ./.github/workflows/linux.yaml
+    with:
+      c_compiler: "gcc"
+      generator: "Ninja"
+
+  linux_stage2:
+    name: Test Linux
+    needs:
+      - linux_base
+    uses: ./.github/workflows/linux.yaml
+    with:
+      target_arch: "${{ matrix.arch }}"
+      c_compiler: "${{ matrix.compiler }}"
+      generator: "${{ matrix.generator }}"
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x86_64
+          - i686
+          - aarch64
+        compiler:
+          - gcc
+        generator:
+          - "Ninja"
+          - "Unix Makefiles"
+        include:
+          # rustc doesn't support cross-compiling with clang out of the box, since
+          # clang requires a --target parameter. Corrosion currently can only pass
+          # this for the top-level crate, so linking of cdylibs that are built as
+          # dependencies of this crate will fail if they exist.
+          # Solutions would be to make cross-compiling with clang work out-of-the-box
+          # in rustc, or working around it in corrosion by adding a linker-wrapper.
+          # For this reason we only test clang with the host target for now.
+          - arch: x86_64
+            compiler: clang
+            generator: "Ninja"
+          - arch: x86_64
+            generator: "Ninja Multi-Config"
+            compiler: gcc
+
+  darwin:
+    name: Test MacOS
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - x86_64
+          - aarch64
+        compiler:
+          - clang
+        generator:
+          - "Ninja"
+          - "Xcode"
+        include:
+          - os: macos-latest
+          - cmake: 3.22.6
+          - rust: 1.54.0
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "${{ matrix.cmake }}"
+          ninjaVersion: "~1.10.0"
+      # Install cbindgen before Rust to use recent default Rust version.
+      - name: Install cbindgen
+        run: cargo install cbindgen
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+          targets: ${{matrix.arch}}-apple-darwin
+          components: rust-src
+      - name: Configure
+        run: cmake -S. -Bbuild --log-level=DEBUG -G "${{ matrix.generator }}" "-DRust_TOOLCHAIN=${{steps.install_rust.outputs.name}}" --preset "${{ matrix.arch }}-apple-darwin-${{ matrix.compiler }}"
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3
+
+  iOS:
+    name: Test iOS (simulator)
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        generator:
+          - "Ninja"
+          - "Xcode"
+        include:
+          - os: macos-latest
+          - cmake: 3.24.0
+          - rust: stable
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "${{ matrix.cmake }}"
+          ninjaVersion: "~1.11.0"
+      # Install cbindgen before Rust to use recent default Rust version.
+      - name: Install cbindgen
+        run: cargo install cbindgen
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+          targets: aarch64-apple-ios-sim
+          components: rust-src
+      - name: Configure
+        run: cmake -S. -Bbuild --log-level=DEBUG -G "${{ matrix.generator }}" -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_OSX_SYSROOT=iphonesimulator -DCMAKE_OSX_ARCHITECTURES=arm64 -DRust_TOOLCHAIN=${{steps.install_rust.outputs.name}} -DRust_CARGO_TARGET=aarch64-apple-ios-sim
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3
+
+
+  test_cxxbridge:
+    name: Test cxxbridge integration
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+          - ubuntu-latest
+          - macos-15
+        include:
+          # Should be in sync with the `cxx` version the Carg.lock of the cxxbridge tests,
+          # otherwise the caching will not work and the cmd will be built from source.
+          - cxxbridge_version: "1.0.86"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        id: cache_cxxbridge
+        with:
+          path: "~/.cargo/bin/cxxbridge*"
+          key: ${{ runner.os }}-cxxbridge_${{ matrix.cxxbridge_version }}
+      - name: Install cxxbridge
+        if: steps.cache_cxxbridge.outputs.cache-hit != 'true'
+        run: cargo install cxxbridge-cmd@${{ matrix.cxxbridge_version }}
+      - name: Install lld
+        run: sudo apt update && sudo apt install -y lld
+        if: ${{ 'Linux' == runner.os }}
+      - name: Setup MSVC Development Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "~3.24.0"
+          ninjaVersion: "~1.10.0"
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: stable minus 2 releases
+          components: rust-src
+      - name: Configure
+        run: >
+          cmake
+          -S.
+          -Bbuild
+          -GNinja
+          -DCORROSION_VERBOSE_OUTPUT=ON
+          -DCORROSION_TESTS_CXXBRIDGE=ON
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3 -R "^cxxbridge"
+
+  autoinstall_cargo_target:
+    name: Test Auto-installing Cargo target via rustup
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Install Cross Compiler
+        shell: bash
+        run: |
+          echo "::group::apt-install"
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "::endgroup::"
+      - name: Assert rustup target is not installed
+        run: rustup show | ( ! grep aarch64)
+      - name: Configure Corrosion
+        run: cmake -S. -Bbuild -GNinja -DRust_RUSTUP_INSTALL_MISSING_TARGET=ON --preset "aarch64-unknown-linux-gnu-gcc"
+      - name: Check rustup target is installed after configuring
+        run: rustup show | grep aarch64
+
+  install:
+    name: Test Corrosion as a Library
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - windows-2022
+          - ubuntu-latest
+          - macos-15
+        include:
+          - rust: 1.54.0
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup MSVC Development Environment
+        uses: ilammy/msvc-dev-cmd@v1
+        if: runner.os == 'Windows'
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "~3.22.0"
+          ninjaVersion: "~1.10.0"
+      # Install cbindgen before Rust to use recent default Rust version.
+      - name: Install cbindgen
+        run: cargo install cbindgen
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{matrix.rust}}
+          components: rust-src
+      - name: Test Corrosion as installed module
+        run: >
+          cmake
+          -S.
+          -Bbuild
+          -GNinja
+          -DCORROSION_VERBOSE_OUTPUT=ON
+          -DCMAKE_BUILD_TYPE=Release
+          -DCORROSION_TESTS_INSTALL_CORROSION=ON
+          &&
+          cd build
+          &&
+          ctest --output-on-failure -C Release -j 3
+
+  # We want an "accumulation" job here because it is easier to specify required
+  # jobs here via needs, then in the github UI, since we use matrix jobs.
+  ci-success:
+    name: bors-ci-status
+    if: ${{ always() }}
+    needs:
+      - visual_studio_stage2
+      - windows_ninja_cl
+      - windows_gnu
+      - windows_gnullvm_msys2
+      - linux_stage2
+      - darwin
+      - iOS
+      - test_cxxbridge
+      - autoinstall_cargo_target
+      - install
+    runs-on: ubuntu-latest
+    # Step copied from: https://github.com/cross-rs/cross/blob/80c9f9109a719ffb0f694060ddc6e371d5b3a540/.github/workflows/ci.yml#L361
+    steps:
+      - name: Result
+        run: |
+          jq -C <<< "${needs}"
+          # Check if all needs were successful or skipped.
+          "$(jq -r 'all(.result as $result | (["success", "skipped"] | contains([$result])))' <<< "${needs}")"
+        env:
+          needs: ${{ toJson(needs) }}
+
