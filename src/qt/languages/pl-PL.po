@@ -89,7 +89,7 @@ msgid "&1x"
 msgstr "&1x"
 
 msgid "1.&5x"
-msgstr "1.&5x"
+msgstr "1,&5x"
 
 msgid "&2x"
 msgstr "&2x"
