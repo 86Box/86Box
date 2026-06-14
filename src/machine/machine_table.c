@@ -33,7 +33,6 @@
 #include <86box/nvr.h>
 #include <86box/sio.h>
 #include <86box/sound.h>
-#include <86box/sio.h>
 #include <86box/snd_ac97.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
@@ -714,7 +713,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Compaq Portable Plus", "" }
     },
     {
         .name              = "[8088] DTK PIM-TB10-Z",
@@ -1789,7 +1788,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0xff,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &europc_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -2233,8 +2232,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_8088,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 4772728,
+            .max_bus     = 4772728,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -2327,8 +2326,8 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_8088,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
+            .min_bus     = 4772728,
+            .max_bus     = 8000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi   = 0,
@@ -2500,7 +2499,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Tulip TC8", "" }
     },
 
     /* 8086 Machines */
@@ -3547,7 +3546,7 @@ const machine_t machines[] = {
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to the
        IBM AT KBC firmware unless evidence emerges of any proprietary commands. */
     {
-        .name              = "[ISA] Commodore PC 30 III",
+        .name              = "[ISA] Commodore PC-30 III",
         .internal_name     = "cmdpc30",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY, /* Machine has chipset: Faraday FE3400B */
@@ -3591,7 +3590,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Commodore Colt286", "" }
     },
     /* Uses Compaq KBC firmware. */
     {
@@ -3782,7 +3781,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Commodore PC 40", "NBI 4200", "" }
+        .aliases                  = { "Commodore PC 40", "Commodore PC-900-II", "NBI 4200", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -3975,7 +3974,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Packard Bell IS/VT286", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -4605,7 +4604,7 @@ const machine_t machines[] = {
     },
     /* Has AMI 'B' KBC firmware. */
     {
-        .name              = "[GC103] TriGem 286M",
+        .name              = "[GC103] TriGem VULCAN-II",
         .internal_name     = "tg286m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_GC103,
@@ -4649,7 +4648,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "TriGem TG-286M", "" }
     },
     /* Has Phoenix MultiKey/42 KBC firmware. */
     {
@@ -4939,7 +4938,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5401_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Amstrad VSC286E", "" }
     },
     /* Has unknown KBC firmware. */
     {
@@ -5041,7 +5040,7 @@ const machine_t machines[] = {
        do not currently have a picture of the motherboard.
        In the code, we actually give it the AMI PS/2 controller. */
     {
-        .name              = "[SCAT] Goldstar GDC-212M",
+        .name              = "[SCAT] GoldStar GDC-212M",
         .internal_name     = "gdc212m",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_SCAT,
@@ -5325,7 +5324,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Samsung SD620", "Samsung Aladdin 286", "" }
     },
     /* Most likely has a Samsung (SEC) V1.4 KBC firmware like the SPC-4200P above. */
     {
@@ -5421,7 +5420,7 @@ const machine_t machines[] = {
         .vid_device               = &ati28800k_spc4620p_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Samsung Aladdin 286 Magic+", "" }
     },
     /* Has AMI '8' KBC firmware. */
     {
@@ -6246,7 +6245,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "DTK PPM-1660C", "DTK PPM-2060C", "" }
     },
     /* Has IBM AT KBC firmware. */
     {
@@ -6536,7 +6535,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5402_onboard_commodore_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "DTK PPM-2563V", "" }
     },
     /* The closest BIOS string I find to this one's, differs only in one part,
        and ends in -8, so I'm going to assume that this, too, has an AMI '8'
@@ -6636,7 +6635,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5420_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Jostens System 333s/L", "" }
     },
     /* The only photo we have is too blurry to read the marking on the
        the keyboard controller, but it's possibly a Phoenix. */
@@ -6685,7 +6684,7 @@ const machine_t machines[] = {
         .vid_device               = &ati28800k_spc6033p_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Samsung Aladdin 386sx", "Samsung TOPMATE 386S/33", "" }
     },
     /* Has an unknown AMI KBC firmware, I'm going to assume 'F' until a
        photo or real hardware BIOS string is found. */
@@ -6928,6 +6927,102 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "" }
+    },
+    /* Has built-in KBC firmware which is genuine AMI 'H' (AMIKEY-2). */
+    {
+        .name              = "[ALi M6117] ICOP-6021",
+        .internal_name     = "icop6021",
+        .type              = MACHINE_TYPE_M6117,
+        .chipset           = MACHINE_CHIPSET_ALI_M6117,
+        .init              = machine_at_icop6021_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_M6117,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 4096,
+            .max  = 20480,
+            .step = 4096
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = MACHINE_DMA_0 | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Hand386", "Pocket 386", "" }
+    },
+    /* Has built-in KBC firmware which is genuine AMI 'H' (AMIKEY-2). */
+    {
+        .name              = "[ALi M6117] JUMPtec MOPS/386A",
+        .internal_name     = "mops386a",
+        .type              = MACHINE_TYPE_M6117,
+        .chipset           = MACHINE_CHIPSET_ALI_M6117,
+        .init              = machine_at_mops386a_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_M6117,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE,
+        .ram       = {
+            .min  = 2048,
+            .max  = 8192,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Kontron MOPS/386A", "" }
     },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
@@ -7315,7 +7410,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "ECS AL486V-D", "Daewoo AL486V-D", "" }
     },
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
     {
@@ -7363,7 +7458,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Addonics 386/32", "" }
     },
     /* Unknown - we give it an AT Award keyboard controller. */
     {
@@ -7411,7 +7506,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Samsung S800", "" }
     },
     /* I found one board picture of it and I can't really read the
        keyboard controller markings from it, but it may be Phoenix. */
@@ -8096,12 +8191,12 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has AMI KF KBC firmware. */
+    /* Uses the AMIKey 'F' keyboard controller firmware. */
     {
-        .name              = "[OPTi 381] Gigabyte GA-486L",
+        .name              = "[OPTi 481] Gigabyte GA-486L",
         .internal_name     = "ga486l",
         .type              = MACHINE_TYPE_486,
-        .chipset           = MACHINE_CHIPSET_OPTI_381,
+        .chipset           = MACHINE_CHIPSET_OPTI_481,
         .init              = machine_at_ga486l_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
@@ -8122,6 +8217,54 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 1024,
             .max  = 16384,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Uses the AMIKey 'F' keyboard controller firmware. */
+    {
+        .name              = "[OPTi 481] Pioneer Vantage 4865C-25/33",
+        .internal_name     = "vantage4865c",
+        .type              = MACHINE_TYPE_486,
+        .chipset           = MACHINE_CHIPSET_OPTI_481,
+        .init              = machine_at_vantage4865c_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 32768,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -8363,7 +8506,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
-            .max  = 65536,
+            .max  = 32768,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -8825,7 +8968,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5426_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Tulip TC38", "" }
     },
     /* Has Award KBC firmware. */
     {
@@ -9141,10 +9284,10 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_PS2_KBC | MACHINE_APM,
         .ram       = {
             .min  = 1024,
-            .max  = 32768,
+            .max  = 131072,
             .step = 1024
         },
         .nvrmask                  = 127,
@@ -9156,7 +9299,7 @@ const machine_t machines[] = {
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
+        .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
@@ -9301,6 +9444,55 @@ const machine_t machines[] = {
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Uses an Intel KBC with Phoenix MultiKey 2.03 KBC firmware. */
+    {
+        .name              = "[SiS 460] Samsung SPC-7500P",
+        .internal_name     = "spc7500p",
+        /* Board seen with Socket 1 but with the pins for Socket 2. */
+        .type              = MACHINE_TYPE_486_S2,
+        .chipset           = MACHINE_CHIPSET_SIS_460,
+        .init              = machine_at_spc7500p_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 3300,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_APM,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00020300, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
@@ -10009,7 +10201,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK(CPU_Cx5x86),
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 40000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
@@ -10057,7 +10249,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 40000000,
             .min_voltage = 3300,
             .max_voltage = 5000,
@@ -10093,7 +10285,7 @@ const machine_t machines[] = {
     },
     /* Has AMIKey-2 'H' keyboard BIOS. */
     {
-        .name              = "[SiS 471] AOpen Vi15G",
+        .name              = "[SiS 471] Acer Vi15G",
         .internal_name     = "vi15g",
         .type              = MACHINE_TYPE_486_S3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
@@ -10105,7 +10297,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SOCKET3,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
+            .min_bus     = 20000000,
             .max_bus     = 50000000,
             .min_voltage = 3300,
             .max_voltage = 5000,
@@ -10137,7 +10329,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AOpen Vi15G", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
@@ -10203,7 +10395,7 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 25000000,
             .max_bus     = 40000000,
-            .min_voltage = 5000,
+            .min_voltage = 3300,
             .max_voltage = 5000,
             .min_multi   = 0,
             .max_multi   = 0
@@ -11110,7 +11302,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AMI S76", "" }
     },
     /*
        This has an AMIKey (and an on-board NCR 53C810 PCI SCSI controller), thanks, eBay!
@@ -11577,7 +11769,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 1024,
+            .min  = 2048,
             .max  = 131072,
             .step = 1024
         },
@@ -11986,9 +12178,9 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &gd5430_onboard_pci_device,
-        .snd_device               = &ess_1688_device, /* Onboard variant not yet emulated */
+        .snd_device               = &ess_1688_compaq_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "MiTAC/Trigon PL4600C", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
@@ -12084,12 +12276,12 @@ const machine_t machines[] = {
         .vid_device               = &tgui9440_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Epson ActionPC 5500", "Epson Endeavor II", "TriGem SanJose" "TriGem TG486AP", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
-        .name              = "[UMC 8881] Epson ActionTower 8400",
+        .name              = "[UMC 8881] Epson ActionTower 7x00",
         .internal_name     = "actiontower8400",
         .type              = MACHINE_TYPE_486_S3_PCI,
         .chipset           = MACHINE_CHIPSET_UMC_UM8881,
@@ -12133,7 +12325,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5430_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Epson ActionTower 7300", "Epson ActionTower 7500", "Epson ActionTower 8400", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
@@ -12501,11 +12693,12 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_PCI_INTERNAL | MACHINE_USB, /* Machine has internal video: ST STPC Atlas, NIC: Realtek RTL8100B */
         .ram       = {
-            .min  = 8192,
-            .max  = 131072,
-            .step = 8192
+            /* 32 MB soldered SDRAM, neither upgradable nor other known configurations exist. */
+            .min  = 32768,
+            .max  = 32768,
+            .step = 32768
         },
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
@@ -12519,7 +12712,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &arb1479_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -12775,7 +12968,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AMI S701", "" }
     },
     /* Has AMIKey F KBC firmware (AMIKey). */
     {
@@ -12840,14 +13033,14 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
             .max_multi   = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE | MACHINE_APM,
+        .flags     = MACHINE_IDE | MACHINE_APM, /* Machine has internal video: Cirrus Logic GD5430 */
         .ram       = {
             .min  = 2048,
             .max  = 131072,
@@ -12936,7 +13129,7 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SOCKET4,
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 60000000,
-            .max_bus     = 66666667,
+            .max_bus     = 60000000,
             .min_voltage = 5000,
             .max_voltage = 5000,
             .min_multi   = MACHINE_MULTIPLIER_FIXED,
@@ -13019,7 +13212,7 @@ const machine_t machines[] = {
     },
     /* This has the Phoenix MultiKey KBC firmware. */
     {
-        .name              = "[i430LX] Intel Premiere/PCI",
+        .name              = "[i430LX] Intel Premiere/PCI ED",
         .internal_name     = "revenge",
         .type              = MACHINE_TYPE_SOCKET4,
         .chipset           = MACHINE_CHIPSET_INTEL_430LX,
@@ -13211,7 +13404,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AMI S75", "" }
     },
 
     /* OPTi 596/597/822 */
@@ -13359,7 +13552,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AMI S722", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
@@ -13531,7 +13724,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
             .min  = 4096,
             .max  = 262144,
@@ -13897,7 +14090,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AMI S728", "" }
     },
     /* Has Dell KBC firmware. */
     {
@@ -14440,7 +14633,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "President Technology P54SP4", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
@@ -14681,9 +14874,9 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64_onboard_pci_device,
-        .snd_device               = &ess_1688_device, /* Onboard variant not yet emulated */
+        .snd_device               = &ess_1688_compaq_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "MiTAC/Trigon PL5600D-I", "" }
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
@@ -15847,7 +16040,7 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 50000000,
             .max_bus     = 66666667,
-            .min_voltage = 2800,
+            .min_voltage = 3380,
             .max_voltage = 3520,
             .min_multi   = 1.5,
             .max_multi   = 3.0
@@ -15877,7 +16070,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5436_onboard_pci_device,
         .snd_device               = &sb_vibra16c_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Siemens Scenic 5H/___", "" }
     },
     /* Has the SM(S)C FDC37C932QF Super I/O chip with the AMI '5' MEGAKEY KBC firmware. */
     {
@@ -15895,17 +16088,13 @@ const machine_t machines[] = {
             .block       = CPU_BLOCK_NONE,
             .min_bus     = 50000000,
             .max_bus     = 66666667,
-            .min_voltage = 2800,
+            .min_voltage = 3380,
             .max_voltage = 3520,
             .min_multi   = 1.5,
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        /*
-           It has on-board video but the only high-resolution screenshot available
-           has a sticker over the video chip.
-         */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: C&T F65548 (not yet implemented) */
         .ram       = {
             .min  = 8192,
             .max  = 65536,
@@ -16083,7 +16272,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AMI S727", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -16829,7 +17018,7 @@ const machine_t machines[] = {
     },
     /* Unknown PS/2 KBC. */
     {
-        .name              = "[i430HX] Radisys EPC-2102",
+        .name              = "[i430HX] RadiSys EPC-2102",
         .internal_name     = "epc2102",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
@@ -16925,7 +17114,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &ymf701_device,
         .net_device               = NULL,
-        .aliases                  = { "Sony Vaio PCV-70", "Sony Vaio PCV-100", "Sony Vaio PCV-120", "" }
+        .aliases                  = { "Sony Vaio PCV-70", "Sony Vaio PCV-100", "Sony Vaio PCV-120", "Intel Agate", "Intel AG430HX", "" }
     },
     /* [TEST] The board doesn't seem to have a KBC at all, which probably means it's an on-chip one on the PC87306 SIO.
        A list on a Danish site shows the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
@@ -17194,7 +17383,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1888F */
         .ram       = {
             .min  = 16384,
             .max  = 49152,
@@ -17216,9 +17405,9 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
-        .snd_device               = NULL,
+        .snd_device               = &ess_1888_compaq_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "MiTAC/Trigon TITAN-M", "" }
     },
     /* Has a SM(S)C FDC37C931APM Super I/O chip with on-chip KBC with Compaq
        KBC firmware. */
@@ -17243,7 +17432,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_APM, /* Machine has internal audio: ESS ES1887F */
         .ram       = {
             .min  = 16384,
             .max  = 49152,
@@ -17265,9 +17454,9 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
-        .snd_device               = NULL,
+        .snd_device               = &ess_1887_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "MiTAC/Trigon SNIPER", "" }
     },
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
@@ -17317,7 +17506,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Hannibal+", "" }
     },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
@@ -17464,7 +17653,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &sb_vibra16c_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Tiger Eye", "Intel TE430VX", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -17612,7 +17801,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64vplus_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Packard Bell Orlando", "Packard Bell 2D", "Packard Bell 3D", "Packard Bell MMX", "" }
+        .aliases                  = { "Packard Bell Orlando", "Packard Bell 2D", "Packard Bell 3D", "Packard Bell MMX", "Packard Bell R501", "Intel NV430VX", "Intel Orlando", "Intel Tampa", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -17809,9 +17998,9 @@ const machine_t machines[] = {
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "ADLink NuPRO-590", "" }
     },
-    /* This has the AMIKey KBC firmware, which is type 'F' (YM430TX is based on the TX97). */
+    /* This has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
     {
         .name              = "[i430TX] ASUS TX97",
         .internal_name     = "tx97",
@@ -17856,6 +18045,54 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* The has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
+    {
+        .name              = "[i430TX] ASUS TXP4-X",
+        .internal_name     = "txp4x",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430TX,
+        .init              = machine_at_txp4x_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_USB,
+        .ram       = {
+            .min  = 4096,
+            .max  = 262144,
+            .step = 4096
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &txp4x_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = &sb_vibra16cl_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -17916,7 +18153,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = &sb_vibra16xv_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Dell System Thredbo", "" }
     },
     /* [TEST] Has AMI Megakey '5' KBC firmware on the SM(S)C FDC37C67x Super I/O chip. */
     {
@@ -17964,7 +18201,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = &cs4236b_onboard_device,
         .net_device               = &pcnet_am79c973_onboard_device,
-        .aliases                  = { "Gateway Tomahawk", "" }
+        .aliases                  = { "Gateway Tomahawk", "Anigma SCI Pentium LPX", "" }
     },
     /* Has a National Semiconductor PC87307 Super I/O with on-chip KBC, which has one of these
        firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
@@ -18013,7 +18250,7 @@ const machine_t machines[] = {
         .vid_device               = &mach64vt3_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "ASUS TX97-VX", "" }
+        .aliases                  = { "ASUS TX97-XV", "HP Arnold3", "" }
     },
     /* This has the Phoenix MultiKey KBC firmware on the NSC Super I/O chip. */
     {
@@ -18111,11 +18348,10 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Intel Yamamoto", "" }
+        .aliases                  = { "Intel Yamamoto", "Intel TXP4", "" }
     },
     /*
-       PhoenixBIOS 4.0 Rel 6.0 for 430TX, has onboard Yamaha YMF701 which
-       is not emulated yet.
+       PhoenixBIOS 4.0 Rel 6.0 for 430TX.
 
        Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware.
@@ -18141,8 +18377,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        /* Machine has internal sound: Yamaha YMF701-S */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -18164,7 +18399,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &ymf701_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -18231,7 +18466,8 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
+            /* The BIOS does not support Cyrix CPU's. */
+            .block       = CPU_BLOCK(CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX),
             .min_bus     = 60000000,
             .max_bus     = 66666667,
             .min_voltage = 2700,
@@ -18240,7 +18476,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_USB, /* Machine has internal video: Cirrus Logic CL-GD5465 and internal sound: Yamaha YMF715 */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -18262,7 +18498,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -18313,7 +18549,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Aristo AM-430TX", "" }
     },
     /* Award BIOS, PS2, EDO, SDRAM, 4 PCI, 4 ISA, VIA VT82C42N KBC */
     {
@@ -18361,7 +18597,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Soltek SL-56A2", "" }
     },
     /* [TEST] Has AMIKey 'H' KBC firmware on the Winbond W83967 Super I/O chip. */
     {
@@ -18507,7 +18743,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Daewoo CB52X-SI", "Daewoo CD525", "Daewoo CT501", "Daewoo CT520", "" }
     },
     /* Has the SiS 5571 chipset with on-chip KBC. */
     {
@@ -18858,6 +19094,55 @@ const machine_t machines[] = {
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
+        .name              = "[VIA VP3] Lucky Star 5AVP3",
+        .internal_name     = "5avp3",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_VIA_APOLLO_VP3,
+        .init              = machine_at_5avp3_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 75000000,
+            .min_voltage = 2100,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 5.5
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
+       VT82C42N. */
+    {
         .name              = "[VIA VP3] PC Partner VIA809DS",
         .internal_name     = "via809ds",
         .type              = MACHINE_TYPE_SOCKET7,
@@ -19001,7 +19286,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &es1373_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "MSI MS-5185", "" }
+        .aliases                  = { "MSI MS-5185", "Gateway ATX Select 366", "Gateway ATX Select 400", "" }
     },
     /* Has the ALi M1543C southbridge with on-chip KBC. */
     {
@@ -19146,7 +19431,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Matsonic MS-6260S", "" }
     },
 
     /* SiS 5591 */
@@ -19392,7 +19677,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &wm9701a_device, /* on daughtercard */
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -20479,7 +20764,7 @@ const machine_t machines[] = {
         .vid_device               = NULL, /* not yet emulated */
         .snd_device               = &cs4236b_device,
         .net_device               = NULL, /* not yet emulated */
-        .aliases                  = { "" }
+        .aliases                  = { "Dell System Tabasco", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -20680,7 +20965,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "MiTAC/Trigon PX6400LX", "HP Taroko Lite", "" }
     },
 
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -20730,7 +21015,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "QDI P6I440EX/MATX", "" }
     },
 
     /* Has a SMC FDC37M60x Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -20780,7 +21065,7 @@ const machine_t machines[] = {
         .vid_device               = NULL, /* Onboard video not yet emulated: ATi Rage IIc AGP */
         .snd_device               = &cs4235_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Olivetti M24KD", "Olivetti M3000 MT/DT", "" }
     },
 
     /* 440BX */
@@ -21270,7 +21555,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &es1371_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "Tulip Vision Line TP90", "" }
+        .aliases                  = { "Tulip Vision Line TP90", "Tyan S1846", "" }
     },
 
     /* 440ZX */
@@ -21321,7 +21606,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "HP Sherwood-B", "" }
+        .aliases                  = { "HP Sherwood-B", "HP Vectra VEi8", "HP Brio BA600", "HP Brio BAX", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -21664,13 +21949,13 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &p3v133_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "HP NetServer E200", "HP Eagle 2", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -21871,7 +22156,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "A-Trend ATC-6400", "" }
     },
 
     /* Slot 1/Socket 370 machines */
@@ -21971,7 +22256,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &es1373_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Tyan S1857", "" }
     },
     /* VIA Apollo Pro */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -22021,7 +22306,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Matsonic MS-7112C", "" }
     },
 
     /* Slot 2 machines */
@@ -22116,7 +22401,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &s2dge_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -22226,7 +22511,7 @@ const machine_t machines[] = {
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "AEWIN AW-O671I", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -22375,7 +22660,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Soltek SL-63A", "Magic-Pro MP-6ZX", "" }
     },
 
     /* SiS (5)600 */
@@ -22526,18 +22811,18 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "PC Chips M773MR", "" }
     },
 
     /* VIA Apollo Pro */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     {
-        .name              = "[VIA Apollo Pro] PC Partner APAS3",
-        .internal_name     = "apas3",
+        .name              = "[VIA Apollo Pro] PC Partner VIM863S",
+        .internal_name     = "vim863s",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_VIA_APOLLO_PRO,
-        .init              = machine_at_apas3_init,
+        .init              = machine_at_vim863s_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -22553,7 +22838,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal video: Creative Vibra 16XV */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_SOUND,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -22575,7 +22860,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &sb_vibra16xv_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -22626,7 +22911,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &cmi8738_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Matsonic MS-7117C", "" }
     },
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
@@ -22673,7 +22958,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &alc100_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -23516,7 +23801,7 @@ machine_has_flags_ex(int flags)
     if (flags & MACHINE_PS2_KBC) {
         if (machine_is_ps2 && (machines[machine].init != machine_at_pc5286_init))
             ret |= MACHINE_PS2_KBC;
-        else
+        else if (machines[machine].init == machine_at_pc5286_init)
             ret &= ~MACHINE_PS2_KBC;
     }
 

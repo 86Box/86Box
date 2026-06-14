@@ -54,7 +54,7 @@ pssj_write(uint16_t port, uint8_t val, void *priv)
             pssj->enable = (val & 4) && (pssj->ctrl & 3);
             if (!pssj->enable)
                 timer_disable(&pssj->timer_count);
-            sn74689_set_extra_divide(&pssj->sn76489, val & 0x40);
+            sn76489_set_extra_divide(&pssj->sn76489, val & 0x40);
             if (!(val & 8)) {
                 pssj->irq = 0;
                 picintc(1 << 7);
@@ -180,13 +180,13 @@ pssj_callback(void *priv)
 }
 
 static void
-pssj_get_buffer(int32_t *buffer, int len, void *priv)
+pssj_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pssj_t *pssj = (pssj_t *) priv;
 
     pssj_update(pssj);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += pssj->buffer[c >> 1];
 
     pssj->pos = 0;

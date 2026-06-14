@@ -17,6 +17,7 @@
 
 add_library(mem OBJECT
     815ep_spd_hack.c 
+    amd_flash.c
     catalyst_flash.c
     i2c_eeprom.c
     intel_flash.c

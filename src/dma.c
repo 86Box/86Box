@@ -1174,7 +1174,7 @@ dma_remove_sg(void)
                          dma_sg_read, dma_sg_readw, dma_sg_readl,
                          dma_sg_write, dma_sg_writew, dma_sg_writel,
                          &dma[i]);
-        io_removehandler(dma_sg_base + 0x20 + i, 0x04,
+        io_removehandler(dma_sg_base + 0x20 + i * 4, 0x04,
                          dma_sg_read, dma_sg_readw, dma_sg_readl,
                          dma_sg_write, dma_sg_writew, dma_sg_writel,
                          &dma[i]);
@@ -1200,7 +1200,7 @@ dma_set_sg_base(uint8_t sg_base)
                       dma_sg_read, dma_sg_readw, dma_sg_readl,
                       dma_sg_write, dma_sg_writew, dma_sg_writel,
                       &dma[i]);
-        io_sethandler(dma_sg_base + 0x20 + i, 0x04,
+        io_sethandler(dma_sg_base + 0x20 + i * 4, 0x04,
                       dma_sg_read, dma_sg_readw, dma_sg_readl,
                       dma_sg_write, dma_sg_writew, dma_sg_writel,
                       &dma[i]);

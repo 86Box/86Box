@@ -272,7 +272,7 @@ uint16_t espcm3_dpcm_tables[1024] =
 };
 // clang-format on
 
-double low_fir_sb16_coef[5][SB16_NCoef];
+double low_fir_sb16_coef[6][SB16_NCoef];
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -305,7 +305,8 @@ recalc_sb16_filter(const int c, const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
 
     for (n = 0; n < SB16_NCoef; n++) {
         /* Blackman window */
@@ -417,9 +418,10 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
             break;
     }
 
-    /* NOTE: not on ES1688, apparently; investigate on ES1868 */
-    if (IS_ESS(dsp) && (dsp->sb_subtype > SB_SUBTYPE_ESS_ES1688)) {
+    /* NOTE: not on ES1688/ES1788, apparently; investigate on ES1868 */
+    if (IS_ESS(dsp) && (dsp->sb_subtype > SB_SUBTYPE_ESS_ES1887)) {
         /* TODO: Investigate real hardware for this (the ES1887 datasheet documents this bit somewhat oddly.) */
+        /* ES1887 note: Windows NT 3.5x driver fails to initialize after a soft reset if this check is done */
         if (dsp->ess_playback_mode && bit <= 1 && set && !masked) {
             if (!(ESSreg(0xB1) & 0x40)) // if ESS playback, and IRQ disabled, do not fire
             {
@@ -519,7 +521,10 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->sb_command = 0;
 
     dsp->sb_8_length  = 0xffff;
-    dsp->sb_8_autolen = 0x7fff;
+    if (dsp->sb_subtype == SB_SUBTYPE_YMF7XX)
+        dsp->sb_8_autolen = 0x3fff;
+    else
+        dsp->sb_8_autolen = 0x7fff;
 
     dsp->sb_irq8     = 0;
     dsp->sb_irq16    = 0;
@@ -1102,21 +1107,23 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
 
         case 0xB1:                                              /* Legacy Audio Interrupt Control */
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            switch (data & 0x0C) {
-                default:
-                    break;
-                case 0x00:
-                    dsp->sb_irqnum = 2;
-                    break;
-                case 0x04:
-                    dsp->sb_irqnum = 5;
-                    break;
-                case 0x08:
-                    dsp->sb_irqnum = 7;
-                    break;
-                case 0x0C:
-                    dsp->sb_irqnum = 10;
-                    break;
+            if ((!dsp->es188x_irq_mode || dsp->sb_subtype <= SB_SUBTYPE_ESS_ES1788) && !dsp->is_chipchat) {
+                switch (data & 0x0C) {
+                    default:
+                        break;
+                    case 0x00:
+                        dsp->sb_irqnum = 2;
+                        break;
+                    case 0x04:
+                        dsp->sb_irqnum = 5;
+                        break;
+                    case 0x08:
+                        dsp->sb_irqnum = 7;
+                        break;
+                    case 0x0C:
+                        dsp->sb_irqnum = 10;
+                        break;
+                }
             }
             sb_dsp_log("Legacy Audio IRQ control=%d.\n", dsp->sb_irqnum);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
@@ -1124,21 +1131,23 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
         case 0xB2: /* DRQ Control */
             chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            switch (data & 0x0C) {
-                default:
-                    break;
-                case 0x00:
-                    dsp->sb_8_dmanum = -1;
-                    break;
-                case 0x04:
-                    dsp->sb_8_dmanum = 0;
-                    break;
-                case 0x08:
-                    dsp->sb_8_dmanum = 1;
-                    break;
-                case 0x0C:
-                    dsp->sb_8_dmanum = 3;
-                    break;
+            if (!dsp->is_chipchat) {
+                switch (data & 0x0C) {
+                    default:
+                        break;
+                    case 0x00:
+                        dsp->sb_8_dmanum = -1;
+                        break;
+                    case 0x04:
+                        dsp->sb_8_dmanum = 0;
+                        break;
+                    case 0x08:
+                        dsp->sb_8_dmanum = 1;
+                        break;
+                    case 0x0C:
+                        dsp->sb_8_dmanum = 3;
+                        break;
+                }
             }
             sb_dsp_log("Legacy Audio DRQ control=%d, chg=%02x.\n", dsp->sb_8_dmanum, chg);
             sb_ess_update_irq_drq_readback_regs(dsp, false);
@@ -1852,6 +1861,9 @@ sb_exec_command(sb_dsp_t *dsp)
                         sb_add_data(dsp, 0x80 | ((dsp->mpu != NULL) ? 0x04 : 0x06));
                         break;
                     case SB_SUBTYPE_ESS_ES1688:
+                    case SB_SUBTYPE_ESS_ES1788:
+                    case SB_SUBTYPE_ESS_ES1888:
+                    case SB_SUBTYPE_ESS_ES1887:
                         sb_add_data(dsp, 0x68);
                         /*
                            89h:     ES1688, returned by DOSBox-X, determined via Windows driver

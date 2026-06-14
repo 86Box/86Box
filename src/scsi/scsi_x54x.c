@@ -1239,10 +1239,16 @@ x54x_cmd_callback(void *priv)
     switch (dev->callback_sub_phase) {
         case 0:
             /* Sub-phase 0 - Look for mailbox. */
-            if ((dev->callback_phase == 0) && mailboxes_present)
+            if ((dev->callback_phase == 0) && mailboxes_present) {
+                x54x_log("%s: Callback: Look for mailbox\n", dev->name);
                 x54x_do_mail(dev);
-            else if ((dev->callback_phase == 1) && bios_mailboxes_present)
+            } else if ((dev->callback_phase == 1) && bios_mailboxes_present) {
+                x54x_log("%s: Callback: Look for BIOS mailbox\n", dev->name);
                 dev->ven_callback(dev);
+            } else {
+                x54x_log("%s: Callback: Do nothing (%i, %i, %i)\n",
+                         dev->name, !(dev->Status & STAT_INIT), dev->MailboxInit, dev->MailboxReq);
+            }
 
             if (dev->ven_callback && (dev->callback_sub_phase == 0))
                 dev->callback_phase ^= 1;
@@ -1352,9 +1358,9 @@ x54x_in(uint16_t port, void *priv)
                             ret = 'P';
                             break;
                     }
-                    ret ^= 1;
                     dev->Geometry++;
                     dev->Geometry &= 0x03;
+                    dev->Status = STAT_IDLE | STAT_INIT;
                 } else
                     ret = 0xff;
                 break;
@@ -1503,6 +1509,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
             /* Fast path for the mailbox execution command. */
             if ((val == CMD_START_SCSI) && (dev->Command == 0xff)) {
                 dev->MailboxReq++;
+                dev->Status &= ~STAT_INIT;
                 x54x_log("Start SCSI command\n");
                 return;
             }

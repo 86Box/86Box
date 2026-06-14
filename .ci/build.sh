@@ -24,8 +24,6 @@
 # - For Windows (MSYS MinGW) builds:
 #   - Packaging requires 7-Zip on Program Files
 #   - Packaging the Ghostscript DLL requires 32-bit and/or 64-bit Ghostscript on Program Files
-#   - Packaging the XAudio2 DLL for FAudio requires it to be at /home/86Box/dll32/xaudio2*.dll
-#     and/or /home/86Box/dll64/xaudio2*.dll (for 32-bit and 64-bit builds respectively)
 # - For Linux builds:
 #   - Only Debian and derivatives are supported
 #   - dpkg and apt-get are called through sudo to manage dependencies; make sure those
@@ -161,6 +159,7 @@ mac_signidentity() {
 	echo "-s -"
 }
 mac_notarize() {
+	is_mac || return 0
 	if keychain_name=$(mac_keychain)
 	then
 		if [ -n "$keychain_name" ]
@@ -172,8 +171,13 @@ mac_notarize() {
 				if [ -n "$keychain_path" ]
 				then
 					echo [-] Notarizing with profile [$keychain_profile] in keychain [$keychain_name]
-					xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
-					return $?
+					if xcrun notarytool submit "$1" --keychain-profile "$keychain_profile" --keychain "$keychain_path" --no-wait
+					then
+						echo [-] Notarization submission successful
+						return 0
+					else
+						err="Notarization submission failed"
+					fi
 				else
 					err="File path for keychain [$keychain_name] not found"
 				fi
@@ -575,11 +579,12 @@ then
 		fi
 
 		# Notarize the compressed app bundle.
-		mac_notarize "$zip_name"
+		status=0
+		mac_notarize "$zip_name" || status=50
 
 		# All good.
 		echo [-] Universal build of [$package_name] for [$arch] with flags [$cmake_flags] successful
-		exit 0
+		exit $status
 	fi
 
 	# Switch into the correct architecture if required.
@@ -631,12 +636,9 @@ then
 		sudo sed -i -e 's/--enable-libproxy/--disable-libproxy/g' "$wget_portfile"
 		sudo sed -i -e 's/port:libproxy//g' "$wget_portfile"
 
-		# Work around assimp failing to build with newer zlib. Upstream issue as of writing.
-		sudo "$macports/bin/port" install zlib
-		for header in "$macports/include/minizip/"*.h
-		do
-			sudo ln -s "$header" "$macports/include/" 2>/dev/null
-		done
+		# Work around openal-soft failing to build due to C++20. (MacPorts issue 73874)
+		alsoft_portfile="$macports/var/macports/sources/rsync.macports.org/macports/release/tarballs/ports/audio/openal-soft/Portfile"
+		wc -c "$alsoft_portfile" | grep -q ' 6722 ' && sudo sed -i -e 's/configure.args-append/configure.compiler macports-clang-19\nconfigure.args-append/' "$alsoft_portfile"
 
 		while :
 		do
@@ -706,7 +708,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -924,7 +926,7 @@ then
 	then
 		git -C "$prefix" clean -dfx
 		git -C "$prefix" reset --hard HEAD
-		for retry in 0 1 2 3 4
+		for retry in 0 5 10 20 40
 		do
 			sleep $retry
 			git -C "$prefix" pull && break
@@ -933,7 +935,7 @@ then
 	fi
 else
 	rm -rf "$prefix"
-	for retry in 0 1 2 3 4
+	for retry in 0 5 10 20 40
 	do
 		sleep $retry
 		git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" "$prefix" && break
@@ -966,9 +968,6 @@ then
 	# Archive Discord Game SDK DLL.
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
-
-	# Archive XAudio2 DLL if required.
-	grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
 
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
@@ -1014,46 +1013,24 @@ then
 else
 	cwd_root="$(pwd)"
 
-	if grep -qiE "^OPENAL:BOOL=ON" build/CMakeCache.txt
+	# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
+	# workaround until a newer version of openal-soft trickles down to Debian repos.
+	# Newer versions require C++20 which our current environment doesn't support.
+	prefix="$cache_dir/openal-soft-1.23.1"
+	if [ ! -d "$prefix" ]
 	then
-		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
-		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		# Newer versions require C++20 which our current environment doesn't support.
-		prefix="$cache_dir/openal-soft-1.23.1"
-		if [ ! -d "$prefix" ]
-		then
-			rm -rf "$cache_dir/openal-soft-"* # remove old versions
-			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.23.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
-		fi
-
-		# Patches to build with the old PipeWire version in Debian.
-		sed -i -e 's/>=0.3.23//' "$prefix/CMakeLists.txt"
-		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
-
-		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
-		cmake --build "$prefix_build" -j$(nproc) || exit 99
-		cmake --install "$prefix_build" || exit 99
-
-		# Build SDL2 without sound systems.
-		sdl_ss=OFF
-	else
-		# Build FAudio 26.03 manually to remove the dependency on GStreamer. This is a temporary
-		# workaround until a newer version of FAudio trickles down to Debian repos.
-		prefix="$cache_dir/FAudio-26.03"
-		if [ ! -d "$prefix" ]
-		then
-			rm -rf "$cache_dir/FAudio-"* # remove old versions
-			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/26.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
-		fi
-		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
-		cmake --build "$prefix_build" -j$(nproc) || exit 99
-		cmake --install "$prefix_build" || exit 99
-
-		# Build SDL2 with sound systems.
-		sdl_ss=ON
+		rm -rf "$cache_dir/openal-soft-"* # remove old versions
+		wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.23.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
+
+	# Patches to build with the old PipeWire version in Debian.
+	sed -i -e 's/>=0.3.23//' "$prefix/CMakeLists.txt"
+	sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
+
+	prefix_build="$prefix/build-$arch_deb"
+	cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --install "$prefix_build" || exit 99
 
 	# Build SDL2 with video systems (and dependencies) only if the SDL interface is used.
 	sdl_ui=OFF
@@ -1090,7 +1067,7 @@ else
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
-	# Build SDL2 for joystick and FAudio support, with most components
+	# Build SDL2 for joystick support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
 	prefix="$cache_dir/SDL2-2.32.10"
 	if [ ! -d "$prefix" ]
@@ -1101,11 +1078,11 @@ else
 	prefix_build="$cache_dir/SDL2-2.32.10-build-$arch_deb"
 	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
 		\
-		-D SDL_AUDIO=$sdl_ss -D SDL_DUMMYAUDIO=$sdl_ss -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=$sdl_ss -D SDL_ALSA_SHARED=$sdl_ss \
-		-D SDL_JACK=$sdl_ss -D SDL_JACK_SHARED=$sdl_ss -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=$sdl_ss \
-		-D SDL_PIPEWIRE_SHARED=$sdl_ss -D SDL_PULSEAUDIO=$sdl_ss -D SDL_PULSEAUDIO_SHARED=$sdl_ss -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF \
-		-D SDL_NAS=$sdl_ss -D SDL_NAS_SHARED=$sdl_ss -D SDL_SNDIO=$sdl_ss -D SDL_SNDIO_SHARED=$sdl_ss -D SDL_FUSIONSOUND=OFF \
-		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=$sdl_ss -D SDL_LIBSAMPLERATE_SHARED=$sdl_ss \
+		-D SDL_AUDIO=OFF -D SDL_DUMMYAUDIO=OFF -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=OFF -D SDL_ALSA_SHARED=OFF \
+		-D SDL_JACK=OFF -D SDL_JACK_SHARED=OFF -D SDL_ESD=OFF -D SDL_ESD_SHARED=OFF -D SDL_PIPEWIRE=OFF \
+		-D SDL_PIPEWIRE_SHARED=OFF -D SDL_PULSEAUDIO=OFF -D SDL_PULSEAUDIO_SHARED=OFF -D SDL_ARTS=OFF -D SDL_ARTS_SHARED=OFF \
+		-D SDL_NAS=OFF -D SDL_NAS_SHARED=OFF -D SDL_SNDIO=OFF -D SDL_SNDIO_SHARED=OFF -D SDL_FUSIONSOUND=OFF \
+		-D SDL_FUSIONSOUND_SHARED=OFF -D SDL_LIBSAMPLERATE=OFF -D SDL_LIBSAMPLERATE_SHARED=OFF \
 		\
 		-D SDL_VIDEO=$sdl_ui -D SDL_X11=$sdl_ui -D SDL_X11_SHARED=$sdl_ui -D SDL_WAYLAND=$sdl_ui -D SDL_WAYLAND_SHARED=$sdl_ui \
 		-D SDL_WAYLAND_LIBDECOR=$sdl_ui -D SDL_WAYLAND_LIBDECOR_SHARED=$sdl_ui -D SDL_WAYLAND_QT_TOUCH=OFF -D SDL_RPI=OFF -D SDL_VIVANTE=OFF \
@@ -1295,10 +1272,7 @@ fi
 
 # Notarize the compressed app bundle if we're on macOS.
 status=0
-if is_mac
-then
-	mac_notarize "$zip_name" || status=50
-fi
+mac_notarize "$zip_name" || status=50
 
 # All good.
 echo [-] Build of [$package_name] for [$arch] with flags [$cmake_flags] successful

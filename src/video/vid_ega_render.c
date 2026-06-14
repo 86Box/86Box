@@ -45,7 +45,9 @@ ega_display_line(ega_t *ega)
 void
 ega_render_blank(ega_t *ega)
 {
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     for (int x = 0; x < (ega->hdisp + ega->scrollcache); x++) {
@@ -76,7 +78,9 @@ ega_render_blank(ega_t *ega)
 void
 ega_render_overscan_left(ega_t *ega)
 {
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->scrblank || (ega->hdisp == 0))
@@ -91,7 +95,9 @@ ega_render_overscan_right(ega_t *ega)
 {
     int right;
 
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->scrblank || (ega->hdisp == 0))
@@ -110,7 +116,9 @@ ega_render_text(ega_t *ega)
         return;
     }
 
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->firstline_draw == 2000)
@@ -203,7 +211,9 @@ ega_render_text(ega_t *ega)
 void
 ega_render_graphics(ega_t *ega)
 {
-    if ((ega->displine + ega->y_add) < 0)
+    if (((ega->displine + ega->y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[ega->displine + ega->y_add] == NULL))
         return;
 
     if (ega->firstline_draw == 2000)

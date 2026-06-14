@@ -137,8 +137,8 @@ static const device_config_t plato_config[] = {
 };
 
 const device_t plato_device = {
-    .name          = "Intel Premiere/PCI II (Plato)",
-    .internal_name = "plato_device",
+    .name          = "Intel Premiere/PCI II",
+    .internal_name = "plato",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -249,7 +249,7 @@ static const device_config_t d842_config[] = {
 
 const device_t d842_device = {
     .name          = "Siemens-Nixdorf D842",
-    .internal_name = "d842_device",
+    .internal_name = "d842",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -465,7 +465,7 @@ static const device_config_t pt2000_config[] = {
 
 const device_t pt2000_device = {
     .name          = "FIC PT-2000",
-    .internal_name = "pt2000_device",
+    .internal_name = "pt2000",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -746,8 +746,8 @@ static const device_config_t zappa_config[] = {
 };
 
 const device_t zappa_device = {
-    .name          = "Intel Advanced/ZP (Zappa)",
-    .internal_name = "zappa_device",
+    .name          = "Intel Advanced/ZP",
+    .internal_name = "zappa",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -833,7 +833,7 @@ static const device_config_t powermatev_config[] = {
 
 const device_t powermatev_device = {
     .name          = "NEC PowerMate Vxxx",
-    .internal_name = "powermatev_device",
+    .internal_name = "powermatev",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1246,8 +1246,8 @@ static const device_config_t bravoms586_config[] = {
 };
 
 const device_t bravoms586_device = {
-    .name          = "AST Bravo MS/MS-T/MS-L (Rattler)",
-    .internal_name = "bravoms586_device",
+    .name          = "AST Bravo MS",
+    .internal_name = "bravoms586",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

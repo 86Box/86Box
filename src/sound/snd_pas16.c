@@ -662,7 +662,8 @@ recalc_pas16_filter(const int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int          n;
-    const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
     double       gain = 0.0;
 
     for (n = 0; n < SB16_NCoef; n++) {
@@ -2545,14 +2546,14 @@ pas16_update(pas16_t *pas16)
 }
 
 void
-pas_get_buffer(int32_t *buffer, int len, void *priv)
+pas_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t *          pas16   = (pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     double             bass_treble;
 
     pas16_update(pas16);
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l;
         double out_r;
 
@@ -2602,17 +2603,16 @@ pas_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
-pasplus_get_buffer(int32_t *buffer, int len, void *priv)
+pasplus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t *          pas16   = (pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     double             bass_treble;
 
-    sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
-    for (int c = 0; c < len * 2; c += 2) {
-        double out_l = pas16->dsp.buffer[c];
-        double out_r = pas16->dsp.buffer[c + 1];
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
 
         if (pas16->filter) {
             /* We divide by 3 to get the volume down to normal. */
@@ -2657,18 +2657,65 @@ pasplus_get_buffer(int32_t *buffer, int len, void *priv)
     }
 
     pas16->pos = 0;
+}
+
+void
+pasplus_get_sb_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    pas16_t *          pas16   = (pas16_t *) priv;
+    const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
+    double             bass_treble;
+
+    sb_dsp_update(&pas16->dsp);
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        double out_l = pas16->dsp.buffer[c];
+        double out_r = pas16->dsp.buffer[c + 1];
+
+        out_l *= mixer->master_l;
+        out_r *= mixer->master_r;
+
+        /* This is not exactly how one does bass/treble controls, but the end result is like it.
+           A better implementation would reduce the CPU usage. */
+        if (mixer->bass != 6) {
+            bass_treble = lmc1982_bass_treble_4bits[mixer->bass];
+
+            if (mixer->bass > 6) {
+                out_l += (low_iir(2, 0, out_l) * bass_treble);
+                out_r += (low_iir(2, 1, out_r) * bass_treble);
+            } else if (mixer->bass < 6) {
+                out_l = (out_l *bass_treble + low_cut_iir(2, 0, out_l) * (1.0 - bass_treble));
+                out_r = (out_r *bass_treble + low_cut_iir(2, 1, out_r) * (1.0 - bass_treble));
+            }
+        }
+
+        if (mixer->treble != 6) {
+            bass_treble = lmc1982_bass_treble_4bits[mixer->treble];
+
+            if (mixer->treble > 6) {
+                out_l += (high_iir(2, 0, out_l) * bass_treble);
+                out_r += (high_iir(2, 1, out_r) * bass_treble);
+            } else if (mixer->treble < 6) {
+                out_l = (out_l *bass_treble + high_cut_iir(2, 0, out_l) * (1.0 - bass_treble));
+                out_r = (out_r *bass_treble + high_cut_iir(2, 1, out_r) * (1.0 - bass_treble));
+            }
+        }
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
     pas16->dsp.pos = 0;
 }
 
 void
-pasplus_get_music_buffer(int32_t *buffer, int len, void *priv)
+pasplus_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     const pas16_t *    pas16   = (const pas16_t *) priv;
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     const int32_t *    opl_buf = pas16->opl.update(pas16->opl.priv);
     double             bass_treble;
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 7.7171630859375;
         double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 7.7171630859375;
 
@@ -2780,17 +2827,16 @@ pasplus_filter_pc_speaker(int channel, double *buffer, void *priv)
 }
 
 void
-pas16_get_buffer(int32_t *buffer, int len, void *priv)
+pas16_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t *            pas16 =  (pas16_t *) priv;
     const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
     double               bass_treble;
 
-    sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
-    for (int c = 0; c < len * 2; c += 2) {
-        double out_l = (pas16->dsp.buffer[c] * mixer->sb_l) / 3.0;
-        double out_r = (pas16->dsp.buffer[c + 1] * mixer->sb_r) / 3.0;
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
 
         if (pas16->filter) {
             /* We divide by 3 to get the volume down to normal. */
@@ -2834,12 +2880,59 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
         buffer[c + 1] += (int32_t) out_r;
     }
 
-    pas16->pos = 0;
     pas16->dsp.pos = 0;
 }
 
 void
-pas_get_music_buffer(int32_t *buffer, int len, void *priv)
+pas16_get_sb_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    pas16_t *            pas16 =  (pas16_t *) priv;
+    const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
+    double               bass_treble;
+
+    sb_dsp_update(&pas16->dsp);
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        double out_l = (pas16->dsp.buffer[c] * mixer->sb_l) / 3.0;
+        double out_r = (pas16->dsp.buffer[c + 1] * mixer->sb_r) / 3.0;
+
+        out_l *= mixer->master_l;
+        out_r *= mixer->master_r;
+
+        /* This is not exactly how one does bass/treble controls, but the end result is like it.
+           A better implementation would reduce the CPU usage. */
+        if (mixer->bass != 6) {
+            bass_treble = lmc1982_bass_treble_4bits[mixer->bass];
+
+            if (mixer->bass > 6) {
+                out_l += (low_iir(2, 0, out_l) * bass_treble);
+                out_r += (low_iir(2, 1, out_r) * bass_treble);
+            } else if (mixer->bass < 6) {
+                out_l = (out_l *bass_treble + low_cut_iir(2, 0, out_l) * (1.0 - bass_treble));
+                out_r = (out_r *bass_treble + low_cut_iir(2, 1, out_r) * (1.0 - bass_treble));
+            }
+        }
+
+        if (mixer->treble != 6) {
+            bass_treble = lmc1982_bass_treble_4bits[mixer->treble];
+
+            if (mixer->treble > 6) {
+                out_l += (high_iir(2, 0, out_l) * bass_treble);
+                out_r += (high_iir(2, 1, out_r) * bass_treble);
+            } else if (mixer->treble < 6) {
+                out_l = (out_l *bass_treble + high_cut_iir(2, 0, out_l) * (1.0 - bass_treble));
+                out_r = (out_r *bass_treble + high_cut_iir(2, 1, out_r) * (1.0 - bass_treble));
+            }
+        }
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
+    pas16->dsp.pos = 0;
+}
+
+void
+pas_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pas16_t             *pas16    = (pas16_t *) priv;
     const int32_t       *opl_buf  = pas16->opl.update(pas16->opl.priv);
@@ -2847,7 +2940,7 @@ pas_get_music_buffer(int32_t *buffer, int len, void *priv)
     const nsc_mixer_t *mixer   = &pas16->nsc_mixer;
     double               bass_treble;
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         /* Two chips for LEFT and RIGHT channels.
            Each chip stores data into the LEFT channel only (no sample alternating.) */
         double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 7.7171630859375;
@@ -2892,14 +2985,14 @@ pas_get_music_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void
-pas16_get_music_buffer(int32_t *buffer, int len, void *priv)
+pas16_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     const pas16_t *      pas16   = (const pas16_t *) priv;
     const mv508_mixer_t *mixer   = &pas16->mv508_mixer;
     const int32_t *      opl_buf = pas16->opl.update(pas16->opl.priv);
     double               bass_treble;
 
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
         double out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
 
@@ -3017,7 +3110,7 @@ pas16_speed_changed(void *priv)
 }
 
 static void *
-pas_init(const device_t *info)
+pas_init(UNUSED(const device_t *info))
 {
     pas16_t *pas16 = calloc(1, sizeof(pas16_t));
 
@@ -3105,7 +3198,7 @@ pas16_init(const device_t *info)
 
     pas16->type = info->local & 0xff;
     pas16->has_scsi = (!pas16->type) || (pas16->type == 0x0f);
-    fm_driver_get(FM_YMF262, &pas16->opl);
+    fm_driver_get_cs(FM_YMF262, &pas16->opl);
     sb_dsp_set_real_opl(&pas16->dsp, 1);
     sb_dsp_init(&pas16->dsp, SB_DSP_200, SB_SUBTYPE_MVD201, pas16);
     pas16->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -3146,12 +3239,14 @@ pas16_init(const device_t *info)
 
     if (pas16->type) {
         sound_add_handler(pas16_get_buffer, pas16);
+        sound_add_handler(pas16_get_sb_buffer, pas16);
         music_add_handler(pas16_get_music_buffer, pas16);
         sound_set_cd_audio_filter(pas16_filter_cd_audio, pas16);
         if (device_get_config_int("control_pc_speaker"))
             sound_set_pc_speaker_filter(pas16_filter_pc_speaker, pas16);
     } else {
         sound_add_handler(pasplus_get_buffer, pas16);
+        sound_add_handler(pasplus_get_sb_buffer, pas16);
         music_add_handler(pasplus_get_music_buffer, pas16);
         sound_set_cd_audio_filter(pasplus_filter_cd_audio, pas16);
         if (device_get_config_int("control_pc_speaker"))

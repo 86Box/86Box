@@ -162,6 +162,7 @@
 
 #define IS_ARCH(m, a) ((machines[m].bus_flags & (a)) ? 1 : 0)
 #define IS_AT(m)      (((machines[m].bus_flags & (MACHINE_BUS_ISA16 | MACHINE_BUS_EISA | MACHINE_BUS_VLB | MACHINE_BUS_MCA | MACHINE_BUS_PCI | MACHINE_BUS_PCMCIA | MACHINE_BUS_AGP | MACHINE_BUS_AC97)) && !(machines[m].bus_flags & MACHINE_PC98)) ? 1 : 0)
+#define IS_MCA(m)     ((machines[m].bus_flags & (MACHINE_BUS_MCA | MACHINE_BUS_MCA32)) ? 1 : 0)
 
 #define CPU_BLOCK(...) \
     (const uint8_t[])  \
@@ -625,6 +626,8 @@ extern int             machine_at_wd76c10_init(const machine_t *);
 /* m_at_m6117.c */
 /* ALi M6117D */
 extern int             machine_at_pja511m_init(const machine_t *);
+extern int             machine_at_icop6021_init(const machine_t *);
+extern int             machine_at_mops386a_init(const machine_t *);
 extern int             machine_at_prox1332_init(const machine_t *);
 
 /* m_at_486slc.c */
@@ -688,8 +691,9 @@ extern void            machine_at_ps2_ide_init(const machine_t *);
 /* CS4031 */
 extern int             machine_at_cs4031_init(const machine_t *);
 
-/* OPTi 381 */
+/* OPTi 481 */
 extern int             machine_at_ga486l_init(const machine_t *);
+extern int             machine_at_vantage4865c_init(const machine_t *);
 
 /* OPTi 493 */
 extern int             machine_at_svc486wb_init(const machine_t *);
@@ -748,6 +752,9 @@ extern int             machine_at_g486ip_init(const machine_t *);
 
 /* OPTi 499 */
 extern int             machine_at_cougar_init(const machine_t *);
+
+/* SiS 460 */
+extern int             machine_at_spc7500p_init(const machine_t *);
 
 /* SiS 461 */
 extern int             machine_at_decpclpv_init(const machine_t *);
@@ -880,6 +887,9 @@ extern int             machine_at_itoxstar_init(const machine_t *);
 
 /* STPC Consumer-II */
 extern int             machine_at_arb1423c_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  arb1479_device;
+#endif
 extern int             machine_at_arb1479_init(const machine_t *);
 extern int             machine_at_iach488_init(const machine_t *);
 
@@ -1121,6 +1131,10 @@ extern int             machine_at_i430vx_init(const machine_t *);
 extern int             machine_at_nupro592_init(const machine_t *);
 extern int             machine_at_tx97_init(const machine_t *);
 extern int             machine_at_tx97xv_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  txp4x_device;
+#endif
+extern int             machine_at_txp4x_init(const machine_t *);
 extern void            machine_at_optiplex_21152_init(void);
 extern int             machine_at_optiplexgn_init(const machine_t *);
 extern int             machine_at_tomahawk_init(const machine_t *);
@@ -1145,6 +1159,7 @@ extern int             machine_at_ficva502_init(const machine_t *);
 
 /* VIA VP3 */
 extern int             machine_at_ficpa2012_init(const machine_t *);
+extern int             machine_at_5avp3_init(const machine_t *);
 extern int             machine_at_via809ds_init(const machine_t *);
 
 /* SiS 5571 */
@@ -1307,6 +1322,9 @@ extern int             machine_at_atc6310bxii_init(const machine_t *);
 extern int             machine_at_ficka6130_init(const machine_t *);
 
 /* VIA Apollo Pro 133 */
+#ifdef EMU_DEVICE_H
+extern const device_t  p3v133_device;
+#endif
 extern int             machine_at_p3v133_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ms6199va_device;
@@ -1339,6 +1357,9 @@ extern int             machine_at_p6bat_init(const machine_t *);
 /* m_at_slot2.c */
 /* i440GX */
 extern int             machine_at_6gxu_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  s2dge_device;
+#endif
 extern int             machine_at_s2dge_init(const machine_t *);
 
 /* m_at_socket370.c */
@@ -1361,7 +1382,7 @@ extern int             machine_at_atc7020bxii_init(const machine_t *);
 extern int             machine_at_m773_init(const machine_t *);
 
 /* VIA Apollo Pro */
-extern int             machine_at_apas3_init(const machine_t *);
+extern int             machine_at_vim863s_init(const machine_t *);
 
 /* VIA Apollo Pro 133 */
 extern int             machine_at_p6bap_init(const machine_t *);

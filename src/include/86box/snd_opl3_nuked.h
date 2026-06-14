@@ -39,40 +39,48 @@ typedef struct _opl3_chip    opl3_chip;
 struct _opl3_slot {
     opl3_channel *channel;
     opl3_chip    *chip;
+    int16_t      *mod;
+    uint8_t      *trem;
+    uint32_t      pg_reset;
+    uint32_t      pg_phase;
+    uint32_t      pg_inc;
     int16_t       out;
     int16_t       fbmod;
-    int16_t      *mod;
     int16_t       prout;
     uint16_t      eg_rout;
     uint16_t      eg_out;
-    uint8_t       eg_inc;
-    uint8_t       eg_gen;
-    uint8_t       eg_rate;
-    uint8_t       eg_ksl;
-    uint8_t      *trem;
-    uint8_t       reg_vib;
-    uint8_t       reg_type;
-    uint8_t       reg_ksr;
-    uint8_t       reg_mult;
-    uint8_t       reg_ksl;
-    uint8_t       reg_tl;
-    uint8_t       reg_ar;
-    uint8_t       reg_dr;
-    uint8_t       reg_sl;
-    uint8_t       reg_rr;
-    uint8_t       reg_wf;
-    uint8_t       key;
-    uint32_t      pg_reset;
-    uint32_t      pg_phase;
-    uint16_t      pg_phase_out;
-    uint8_t       slot_num;
+    /* Cached (reg_tl << 2) + (eg_ksl >> kslshift[reg_ksl]); maintained by
+     * OPL3_EnvelopeUpdateKSL whenever any of those inputs change. Hoists
+     * a load + lookup + shift out of the per-sample envelope hot path. */
+    uint16_t eg_tl_ksl;
+    uint16_t pg_phase_out;
+    uint8_t  key;
+    uint8_t  eg_gen;
+    uint8_t  reg_vib;
+    uint8_t  reg_mult;
+    uint8_t  reg_wf;
+    uint8_t  slot_num;
+    uint8_t  eg_ksl;
+    uint8_t  eg_ks;
+    uint8_t  reg_type;
+    uint8_t  reg_ksr;
+    uint8_t  reg_ksl;
+    uint8_t  reg_tl;
+    uint8_t  reg_ar;
+    uint8_t  reg_dr;
+    uint8_t  reg_sl;
+    uint8_t  reg_rr;
+    uint8_t  eg_rates[4];
+    uint8_t  eg_rate_hi[4];
+    uint8_t  eg_rate_lo[4];
 };
 
 struct _opl3_channel {
-    opl3_slot    *slotz[2]; // Don't use "slots" keyword to avoid conflict with Qt applications
+    opl3_slot    *slotz[2]; /*Don't use "slots" keyword to avoid conflict with Qt applications*/
     opl3_channel *pair;
     opl3_chip    *chip;
     int16_t      *out[4];
+    uint8_t       out_cnt;
 
 #if OPL_ENABLE_STEREOEXT
     int32_t leftpan;
@@ -86,10 +94,8 @@ struct _opl3_channel {
     uint8_t  con;
     uint8_t  alg;
     uint8_t  ksv;
-    uint16_t cha;
-    uint16_t chb;
-    uint16_t chc;
-    uint16_t chd;
+    uint16_t cha, chb;
+    uint16_t chc, chd;
     uint8_t  ch_num;
 };
 
@@ -116,6 +122,7 @@ struct _opl3_chip {
     uint8_t      tremolo;
     uint8_t      tremolopos;
     uint8_t      tremoloshift;
+    uint8_t      tremolo_dirty;
     uint32_t     noise;
     int16_t      zeromod;
     int32_t      mixbuff[4];
@@ -130,7 +137,7 @@ struct _opl3_chip {
     uint8_t stereoext;
 #endif
 
-    // OPL3L
+    /* OPL3L */
     int32_t rateratio;
     int32_t samplecnt;
     int32_t oldsamples[4];
@@ -147,6 +154,7 @@ typedef struct {
     opl3_chip opl;
     int8_t    flags;
     int8_t    is_48k;
+    int8_t    is_cs;
 
     uint16_t port;
     uint8_t  status;
@@ -163,8 +171,9 @@ typedef struct {
 } nuked_opl3_drv_t;
 
 enum {
-    FLAG_CYCLES = 0x02,
-    FLAG_OPL3   = 0x01
+    FLAG_CRYSTAL = 0x04,
+    FLAG_CYCLES  = 0x02,
+    FLAG_OPL3    = 0x01
 };
 
 enum {

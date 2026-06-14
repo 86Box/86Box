@@ -1330,7 +1330,7 @@ gus_ics2101_filter(void *priv, int channel, double *out_l, double *out_r)
 }
 
 static void
-gus_get_buffer(int32_t *buffer, int len, void *priv)
+gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     gus_t *gus = (gus_t *) priv;
 
@@ -1338,7 +1338,7 @@ gus_get_buffer(int32_t *buffer, int len, void *priv)
         ad1848_update(&gus->ad1848);
 
     gus_update(gus);
-    for (int c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         double temp_l = 0.0;
         double temp_r = 0.0;
         if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX)) {
