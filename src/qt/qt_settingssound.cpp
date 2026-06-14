@@ -332,9 +332,11 @@ SettingsSound::on_pushButtonConfigureSoundCard1_clicked()
     int   sndCard = ui->comboBoxSoundCard1->currentData().toInt();
     auto *device  = sound_card_getdevice(sndCard);
 
-    if (sndCard == SOUND_INTERNAL)
+    if (sndCard == SOUND_INTERNAL) {
         device = machine_get_snd_device(machineId);
-    sound_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
+        sound_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
+    } else
+        sound_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
