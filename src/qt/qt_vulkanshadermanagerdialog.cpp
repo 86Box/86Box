@@ -24,12 +24,18 @@ extern "C" {
 extern char vk_shader_file[20][512];
 }
 
+extern MainWindow *main_window;
 slang_shader* slangp_parse(const char* path)
 {
     auto shader = new slang_shader{};
     shader->path = path;
-    libra_preset_create(path, &shader->shader_preset);
+    auto err = libra_preset_create(path, &shader->shader_preset);
     if (!shader->shader_preset) {
+        char *errmsg = nullptr;
+        libra_error_write(err, &errmsg);
+        QMessageBox::critical(main_window, QObject::tr("Error"), QString::fromUtf8(path) + "\n\n" + errmsg);
+        libra_error_free_string(&errmsg);
+        libra_error_free(&err);
         delete shader;
         return nullptr;
     }

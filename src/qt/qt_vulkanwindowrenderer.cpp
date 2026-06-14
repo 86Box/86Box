@@ -1223,13 +1223,19 @@ VulkanWindowRenderer::initialize()
 
                             libra_preset_free_runtime_params(shader->param_list);
                             shader->param_list.parameters = 0;
-                            libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, nullptr, &filter_chain);
+                            auto err = libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, nullptr, &filter_chain);
                             delete shader;
                             if (filter_chain) {
                                 for (auto &curPair : parameter_values) {
                                     libra_vk_filter_chain_set_param(&filter_chain, curPair.first.c_str(), curPair.second);
                                 }
                                 shaderLibraFilterChains.push_back(filter_chain);
+                            } else {
+                                char* errmsg = nullptr;
+                                libra_error_write(err, &errmsg);
+                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + "\n\n" + errmsg);
+                                libra_error_free_string(&errmsg);
+                                libra_error_free(&err);
                             }
                         }
                     }
