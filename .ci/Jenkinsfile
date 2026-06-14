@@ -83,9 +83,9 @@ def presetSlugs = [
 ]
 
 def presetFlags = [
-	'Regular': '-t --preset=regular -D CMAKE_BUILD_TYPE=Release',
-	'Debug': '--preset=debug -D CMAKE_BUILD_TYPE=Debug -D STATIC_BUILD=OFF',
-	'Dev': '--preset=experimental -D CMAKE_BUILD_TYPE=Debug -D VNC=OFF -D STATIC_BUILD=OFF'
+	'Regular': '-t -D CMAKE_BUILD_TYPE=Release',
+	'Debug': '-D CMAKE_BUILD_TYPE=Debug -D STATIC_BUILD=OFF',
+	'Dev': '-D CMAKE_BUILD_TYPE=Debug -D VNC=OFF -D STATIC_BUILD=OFF'
 ]
 
 def gitClone(repository, branch) {
@@ -131,7 +131,7 @@ def gitClone(repository, branch) {
 				throw e;
 		}
 	}
-	
+
 	/* Unstash data. */
 	unstash(name: 'git')
 }
