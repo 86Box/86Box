@@ -1204,7 +1204,8 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, const uint8_t *cdb)
 {
     int       ready;
 
-    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) &&
+    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[0] != GPCMD_INQUIRY) &&
+        (dev->cur_lun == SCSI_LUN_USE_CDB) &&
         (cdb[1] & 0xe0)) {
         scsi_cdrom_log(dev->log, "Attempting to execute a unknown command targeted "
                        "at SCSI LUN %i\n", ((dev->tf->request_length >> 5) & 7));

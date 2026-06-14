@@ -305,7 +305,7 @@ nmc93cxx_eeprom_init(const device_t *info)
     snprintf(dev->filename, sizeof(dev->filename), "%s", params_details->filename);
     FILE *fp = nvr_fopen(dev->filename, "rb");
     if (fp) {
-        fill_default = !fread(dev->array_data, (size_t) dev->data_bits / 8, dev->cells, fp);
+        fill_default = fread(dev->array_data, (size_t) dev->data_bits / 8, dev->cells, fp) != dev->cells;
         fclose(fp);
     }
     if (fill_default && params_details->default_content) {
