@@ -291,7 +291,7 @@ SettingsFloppyCDROM::changed()
     for (int i = 0; i < CDROM_NUM; i++) {
         has_changed  |= (cdrom[i].bus_type        != model->index(i, 0).data(Qt::UserRole).toUInt());
         has_changed  |= (cdrom[i].res             != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
-        has_changed  |= (cdrom[i].speed           != model->index(i, 1).data(Qt::UserRole).toUInt());
+        has_changed  |= cdrom[i].speed && (cdrom[i].speed != model->index(i, 1).data(Qt::UserRole).toUInt());
         has_changed  |= (cdrom_get_type(i)        != model->index(i, 2).data(Qt::UserRole).toInt());
         soft_changed |= (cdrom[i].no_check        != inc[i]);
     }
@@ -306,8 +306,14 @@ SettingsFloppyCDROM::restore()
 }
 
 void
-SettingsFloppyCDROM::save()
+SettingsFloppyCDROM::save(int soft)
 {
+    if (soft) {
+        for (int i = 0; i < CDROM_NUM; i++)
+            cdrom[i].no_check = inc[i];
+        return;
+    }
+
     auto *model = ui->tableViewFloppy->model();
     for (int i = 0; i < FDD_NUM; i++) {
         fdd_set_type(i, model->index(i, 0).data(Qt::UserRole).toInt());
@@ -652,4 +658,9 @@ SettingsFloppyCDROM::on_comboBoxCDROMType_activated(int)
 
     auto idx = ui->tableViewCDROM->selectionModel()->currentIndex();
     setCDROMSpeed(ui->tableViewCDROM->model(), idx.siblingAtColumn(1), speed);
+
+    setCDROMBus(ui->tableViewCDROM->model(),
+                ui->tableViewCDROM->selectionModel()->currentIndex(),
+                ui->comboBoxBus->currentData().toUInt(), type,
+                ui->comboBoxChannel->currentData().toUInt());
 }

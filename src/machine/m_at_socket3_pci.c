@@ -323,7 +323,7 @@ static const device_config_t pc330_6573_config[] = {
 
 const device_t pc330_6573_device = {
     .name          = "IBM PC 330 (type 6573)",
-    .internal_name = "pc330_6573_device",
+    .internal_name = "pc330_6573",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -428,7 +428,7 @@ static const device_config_t pb450_config[] = {
 
 const device_t pb450_device = {
     .name          = "Packard Bell PB450",
-    .internal_name = "pb450_device",
+    .internal_name = "pb450",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -812,7 +812,7 @@ static const device_config_t sb486pv_config[] = {
 
 const device_t sb486pv_device = {
     .name          = "ICS SB486PV",
-    .internal_name = "sb486pv_device",
+    .internal_name = "sb486pv",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1234,7 +1234,7 @@ machine_at_pl4600c_init(const machine_t *model)
         device_add(&gd5430_onboard_pci_device);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&ess_1688_device);
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     if (fdc_current[0] == FDC_INTERNAL) {
         fdd_set_turbo(0, 1);
@@ -1440,7 +1440,7 @@ static const device_config_t hot433a_config[] = {
 
 const device_t hot433a_device = {
     .name          = "Shuttle HOT-433A",
-    .internal_name = "hot433a_device",
+    .internal_name = "hot433a",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

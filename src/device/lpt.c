@@ -18,54 +18,21 @@
 #include <86box/lpt.h>
 #include <86box/pic.h>
 #include <86box/sound.h>
-#include <86box/prt_devs.h>
 #include <86box/thread.h>
 #include <86box/device.h>
 #include <86box/machine.h>
-#include <86box/network.h>
 #include <86box/plat_fallthrough.h>
+
+#define LPT_SPINLOOP_THRESHOLD 125
 
 static int    next_inst               = 0;
 static int    lpt_3bc_used            = 0;
 
 static lpt_t *lpt1;
 
-lpt_port_t    lpt_ports[PARALLEL_MAX];
+lpt_port_t    lpt_ports[PARALLEL_MAX] = { 0 };
 
 lpt_device_t  lpt_devs[PARALLEL_MAX];
-
-const device_t lpt_none_device = {
-    .name          = "None",
-    .internal_name = "none",
-    .flags         = DEVICE_LPT,
-    .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-static const struct {
-    const device_t *device;
-} lpt_devices[] = {
-  // clang-format off
-    { &lpt_none_device          },
-    { &dss_device               },
-    { &lpt_dac_device           },
-    { &lpt_dac_stereo_device    },
-    { &lpt_prt_text_device      },
-    { &lpt_prt_escp_device      },
-    { &lpt_prt_ps_device        },
-    { &lpt_prt_pcl_device       },
-    { &lpt_plip_device          },
-    { &lpt_hasp_savquest_device },
-    { &lpt_loopback_device      },
-    { NULL                      }
-  // clang-format on
-};
 
 #ifdef ENABLE_LPT_LOG
 int lpt_do_log = ENABLE_LPT_LOG;
@@ -85,80 +52,333 @@ lpt_log(const char *fmt, ...)
 #    define lpt_log(fmt, ...)
 #endif
 
-int
-lpt_device_available(int id)
+static inline void
+lpt_char_update_control(lpt_t *dev, uint32_t flags)
 {
-    if (lpt_devices[id].device)
-        return device_available(lpt_devices[id].device);
-
-    return 1;
+    if (dev->char_port.chardev.control && (dev->char_control != flags)) {
+        dev->char_control = flags;
+        dev->char_port.chardev.control(CHAR_RAW_CONTROL(flags), dev->char_port.chardev.priv);
+    }
 }
 
-const device_t *
-lpt_device_getdevice(const int id)
+static void
+lpt_char_pti_mode(lpt_t *dev, uint8_t mode)
 {
-    return lpt_devices[id].device;
+    dev->char_pti_mode    = mode;
+    dev->char_pti_readout = 0xf; /* values are unknown but required for cable detection */
+    switch (mode) {
+        case 0xe0:
+            dev->char_pti_readout = 0xc;
+            break;
+
+        case 0xe1:
+            lpt_log("[W] PTI bidirectional receive mode\n");
+            dev->char_pti_readout = 0xa;
+            goto rx_setup_wait;
+
+        case 0xe2:
+            dev->char_pti_readout = 0x0;
+            break;
+
+        case 0xe3:
+            lpt_log("[W] PTI ECP receive mode\n");
+            dev->char_pti_readout = 0x1;
+rx_setup_wait:
+            /* Tell the transmitter to set up (!nFault|!nBusy) but not send data just yet (!Select). */
+            if (dev->char_port.chardev.write) {
+                lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
+                uint8_t buf = 0xf0;
+                dev->char_port.chardev.write(&buf, sizeof(buf), dev->char_port.chardev.priv);
+            }
+            break;
+
+        case 0xe5:
+            lpt_log("[W] PTI 4-bit mode\n");
+            break;
+
+        case 0xf1:
+            lpt_log("[W] PTI bidirectional transmit mode\n");
+            goto tx_setup_wait;
+
+        case 0xf3:
+            lpt_log("[W] PTI ECP transmit mode\n");
+tx_setup_wait:
+            /* Assert nFault to wait for the receiver to set up. */
+            dev->char_read |= 0x01;
+            break;
+
+        default:
+            break;
+    }
+    lpt_log("[R] PTI %02X = %02X (status %02X)\n", mode, dev->char_pti_readout, dev->char_pti_readout << 3);
 }
 
-int
-lpt_device_has_config(const int id)
+static void
+lpt_char_write_data(uint8_t val, void *priv)
 {
-    if (lpt_devices[id].device == NULL)
-        return 0;
-    return device_has_config(lpt_devices[id].device);
+    lpt_t *dev = (lpt_t *) priv;
+
+    /* Reset status read spin loop counter. */
+    dev->char_spin_count = 0;
+
+    if ((dev->char_port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) {
+        /* PTI command mode. (SelectIn|nInit|autofd) */
+        lpt_char_pti_mode(dev, val);
+    } else if (((dev->char_pti_mode & 0xed) == 0xe1) && (dev->ctrl & 0x08)) {
+        /* PTI bidirectional/ECP modes: stop sending status updates until the receiver
+           is set up (SelectIn goes low). This ensures the status we've sent upon
+           entering a mode isn't overwritten by the E5 written after exiting command mode. */
+        lpt_log("Not writing byte %02X due to status hold (ctrl=%02X ecr=%02X)\n", val, dev->ctrl, dev->ecr);
+    } else if ((dev->char_port.chardev.flags & CHAR_LPT_USESTROBE) || (dev->char_pti_mode == 0xf1)) { /* PTI bidirectional transmit */
+        /* Store data for strobe. */
+        dev->char_write = val;
+    } else {
+        /* Write data immediately. */
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
+        dev->char_port.chardev.write(&val, sizeof(val), dev->char_port.chardev.priv);
+    }
 }
 
-const char *
-lpt_device_get_name(const int id)
+static void
+lpt_char_strobe(uint8_t old, uint8_t val, void *priv)
 {
-    if (lpt_devices[id].device == NULL)
-        return 0;
-    return lpt_devices[id].device->name;
+    lpt_t *dev = (lpt_t *) priv;
+
+    /* Write data on trailing edge. */
+    if ((dev->char_port.chardev.flags & CHAR_LPT_USESTROBE) && !(val & 0x01) && (old & 0x01)) {
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
+        dev->char_port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->char_port.chardev.priv);
+    }
 }
 
-const char *
-lpt_device_get_internal_name(const int id)
+static void
+lpt_char_callback(void *priv)
 {
-    return device_get_internal_name(lpt_devices[id].device);
-}
+    lpt_t *dev = (lpt_t *) priv;
 
-int
-lpt_device_get_from_internal_name(const char *str)
-{
-    int c = 0;
-
-    while (lpt_devices[c].device != NULL) {
-        if (!strcmp(lpt_devices[c].device->internal_name, str))
-            return c;
-        c++;
+    /* It's less likely that we get more than one byte at a time,
+       but modern 64-bit CPUs give us a free transition check for 8. */
+    uint8_t buf[8] = { 0 };
+    int     input  = (dev->ext || dev->epp || (dev->ecp && (dev->ecr & 0xe0))) && (dev->ctrl & 0x20) && /* bidirectional/ECP input */
+                     !((dev->char_pti_mode == 0xe1) && ((dev->ctrl & 0x0c) != 0x04)); /* PTI bidirectional receive not in progress (SelectIn || !nInit) */
+    size_t  read;
+    if (input) {
+        if (dev->char_pti_mode == 0xe1) { /* PTI bidirectional receive in progress (!SelectIn && nInit) */
+            /* Only read if a receive has been strobed and is pending. (autofd ^ !nBusy) */
+            read = !(dev->ctrl & 0x02) ^ !(dev->char_read & 0x10);
+        } else if (dev->ecp && (dev->ecr & 0xc0)) { /* ECP receive */
+            read = fifo_get_remaining(dev->fifo);
+            if (read > sizeof(buf))
+                read = sizeof(buf);
+        } else { /* regular bidirectional receive */
+            read = 1;
+        }
+    } else { /* 4-bit receive */
+        read = sizeof(buf);
+    }
+    uint64_t latch = TIMER_USEC * 100;
+    if (LIKELY(read > 0)) {
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
+        read = dev->char_port.chardev.read(buf, read, dev->char_port.chardev.priv);
+        if (read > 0) {
+            lpt_log("Read %cb: %02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X%c%02X",
+                input ? '8': '4',
+                buf[0], (read > 1) ? ' ' : '\0',
+                buf[1], (read > 2) ? ' ' : '\0',
+                buf[2], (read > 3) ? ' ' : '\0',
+                buf[3], (read > 4) ? ' ' : '\0',
+                buf[4], (read > 5) ? ' ' : '\0',
+                buf[5], (read > 6) ? ' ' : '\0',
+                buf[6], (read > 7) ? ' ' : '\0',
+                buf[7]
+            );
+            lpt_log("\n");
+            if (input) {
+                for (size_t i = 0; i < read; i++)
+                    lpt_write_to_fifo(dev, buf[i]);
+                if (dev->char_pti_mode == 0xe1) {
+                    /* PTI bidirectional receive: signal that the read operation has completed. */
+                    if (dev->ctrl & 0x02)
+                        buf[read - 1] |= 0x10; /* D4 == !nBusy */
+                    else
+                        buf[read - 1] &= ~0x10; /* !D4 == nBusy */
+                }
+                if (dev->ecp && (dev->ecr & 0xc0))
+                    latch = (uint64_t) ((1000000.0 / 2500000.0) * (double) (TIMER_USEC * read));
+                else
+                    latch = TIMER_USEC * 2 * read;
+            } else {
+                uint64_t masked = AS_U64(buf[0]) & 0x0808080808080808ULL;
+                uint64_t prev   = (masked << 8) | (dev->char_read & 0x08);
+                if (~prev & masked)
+                    lpt_irq(dev, 1);
+#ifdef DROP_EMULATION_SPEED_INSTEAD
+                if (dev->enable_irq)
+#endif
+                    latch = TIMER_USEC * 2;
+            }
+            dev->char_read = buf[read - 1];
+        }
+    } else if (input) {
+        latch = TIMER_USEC;
     }
 
-    return 0;
+    /* PTI bidirectional mode: flush a write that has been strobed and is pending. */
+    if ((dev->char_pti_mode == 0xf1) && ((dev->ctrl & 0x0c) == 0x04) && (!!(dev->ctrl & 0x02) ^ !(dev->char_read & 0x10))) {
+        lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
+        if (dev->char_port.chardev.write(&dev->char_write, sizeof(dev->char_write), dev->char_port.chardev.priv)) {
+            /* Signal that the write operation has completed. */
+            if (dev->ctrl & 0x02)
+                dev->char_read &= ~0x10; /* !D4 == nBusy */
+            else
+                dev->char_read |= 0x10; /* D4 == !nBusy */
+        }
+    }
+
+    timer_advance_u64(&dev->char_timer, latch);
+}
+
+static void
+lpt_char_write_ctrl(uint8_t val, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    /* Reset status read spin loop counter. */
+    dev->char_spin_count = 0;
+
+    if ((dev->char_port.chardev.flags & CHAR_LPT_PTI) && ((val & 0x0f) == 0x0e)) { /* PTI command mode (SelectIn|nInit|autofd) */
+        lpt_char_pti_mode(dev, dev->dat);
+    } else if ((dev->char_pti_mode & 0xef) == 0xe1) { /* PTI bidirectional modes */
+        /* Tell the other end to begin bidirectional transfer (Select|!nBusy) once SelectIn goes low. */
+        if ((dev->ctrl & 0x08) && !(val & 0x08)) {
+            lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
+            uint8_t buf = 0xf2;
+            dev->char_port.chardev.write(&buf, sizeof(buf), dev->char_port.chardev.priv);
+        }
+
+        /* Strobe data on autofd edge if !SelectIn && nInit. */
+        if (((dev->ctrl & 0x0c) == 0x04) && ((dev->ctrl ^ val) & 0x02)) {
+            /* Signal that the read/write operation is pending. */
+            if (!!(val & 0x02) ^ !(dev->char_pti_mode & 0x10))
+                dev->char_read |= 0x10; /* D4 == !nBusy */
+            else
+                dev->char_read &= ~0x10; /* !D4 == nBusy */
+        }
+    } else {
+        lpt_char_update_control(dev, (dev->char_control & ~0xff00) | ((uint16_t) val << 8));
+        if (dev->char_port.chardev.write)
+            lpt_char_strobe(dev->ctrl, val, dev);
+    }
+}
+
+static uint8_t
+lpt_char_read_status(void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    if ((dev->char_port.chardev.flags & CHAR_LPT_PTI) && ((dev->ctrl & 0x0f) == 0x0e)) { /* PTI command mode */
+        return dev->char_pti_readout << 3;
+    } else if (dev->char_port.chardev.flags & (CHAR_LPT_NIBBLE | CHAR_LPT_PTI)) {
+        /* Trigger a read outside the timer if the guest appears to be waiting for a
+           response by spin-looping status reads. Strictest loop limits for reference:
+           - Windows DCC (ptilink.sys 1.1.0.0): 4096 spins with 1us wait
+           - Linux PLIP >=1.1.20: 500 spins with 1us wait
+                         <1.1.20: 4 jiffies (40ms?)
+           - Crynwr DOS PLIP: 137ms */
+        if (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD) {
+            dev->char_spin_count = 0;
+            lpt_char_callback(dev);
+        }
+        return (dev->char_read << 3) ^ (CHAR_RAW_STATUS(0) >> 8);
+    } else if (dev->char_port.chardev.status) {
+        return CHAR_RAW_STATUS(dev->char_port.chardev.status(dev->char_port.chardev.priv)) >> 8;
+    } else {
+        return 0xff;
+    }
+}
+
+static void
+lpt_char_epp_write_data(uint8_t is_addr, uint8_t val, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    lpt_char_update_control(dev, (dev->char_control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
+    dev->char_port.chardev.write(&val, sizeof(val), dev->char_port.chardev.priv);
+}
+
+static void
+lpt_char_epp_request_read(uint8_t is_addr, void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    lpt_char_update_control(dev, (dev->char_control & ~CHAR_LPT_EPP) | (is_addr ? CHAR_LPT_EPP_ADDR : CHAR_LPT_EPP_DATA));
+    dev->char_port.chardev.read(&dev->in_dat, sizeof(dev->in_dat), dev->char_port.chardev.priv);
 }
 
 void
 lpt_devices_init(void)
 {
     for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone. */
+        if (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
+            continue;
+
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
 
-        if ((lpt_devices[lpt_ports[i].device].device != NULL) && 
-            (lpt_devices[lpt_ports[i].device].device != &lpt_none_device))
-            device_add_inst((device_t *) lpt_devices[lpt_ports[i].device].device, i + 1);
+        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
+
+        lpt_t *lpt = lpt_ports[i].lpt;
+        if (!lpt)
+            continue;
+
+        memset(&lpt->char_port, 0x00, sizeof(lpt->char_port));
+        if (lpt_ports[i].device) {
+            lpt->char_port.type = CHAR_PORT_LPT;
+            snprintf(lpt->char_port.name, sizeof(lpt->char_port.name), "LPT%i", i + 1);
+            const device_t *device = char_get_device(lpt_ports[i].device);
+            char_init(&lpt->char_port, device, i + 1);
+            if (lpt->char_port.attached) {
+                /* Attach character device shim. */
+                lpt->char_control = -1; /* force update on first control write */
+                lpt_attach_ex(i,
+                    lpt->char_port.chardev.write ? lpt_char_write_data : NULL,
+                    (lpt->char_port.chardev.control || (lpt->char_port.chardev.flags & (CHAR_LPT_USESTROBE | CHAR_LPT_PTI))) ? lpt_char_write_ctrl : NULL,
+                    (lpt->char_port.chardev.write && (lpt->char_port.chardev.flags & CHAR_LPT_USESTROBE)) ? lpt_char_strobe : NULL,
+                    (lpt->char_port.chardev.status || (lpt->char_port.chardev.flags & (CHAR_LPT_NIBBLE | CHAR_LPT_PTI))) ? lpt_char_read_status : NULL,
+                    NULL, /* read_ctrl */
+                    lpt->char_port.chardev.write ? lpt_char_epp_write_data : NULL,
+                    lpt->char_port.chardev.read ? lpt_char_epp_request_read : NULL,
+                    lpt
+                );
+                if (lpt->char_port.chardev.read)
+                    timer_set_delay_u64(&lpt->char_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
+                lpt_char_update_control(lpt, (lpt->char_control & ~0xff00) | ((uint16_t) lpt->ctrl << 8));
+            }
+
+            /* This port is hotunpluggable if the device allows it, unless further lpt_attach attempts are made. */
+            if ((device->flags & DEVICE_HOTPLUG_OUT) && (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
+                lpt_ports[i].hotunplug = CHAR_PORT_HOTUNPLUG;
+        }
     }
 }
 
 void *
-lpt_attach(void    (*write_data)(uint8_t val, void *priv),
-           void    (*write_ctrl)(uint8_t val, void *priv),
-           void    (*strobe)(uint8_t old, uint8_t val,void *priv),
-           uint8_t (*read_status)(void *priv),
-           uint8_t (*read_ctrl)(void *priv),
-           void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
-           void    (*epp_request_read)(uint8_t is_addr, void *priv),
-           void    *priv)
+lpt_attach_ex(int     port,
+              void    (*write_data)(uint8_t val, void *priv),
+              void    (*write_ctrl)(uint8_t val, void *priv),
+              void    (*strobe)(uint8_t old, uint8_t val, void *priv),
+              uint8_t (*read_status)(void *priv),
+              uint8_t (*read_ctrl)(void *priv),
+              void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
+              void    (*epp_request_read)(uint8_t is_addr, void *priv),
+              void    *priv)
 {
-    int port                        = device_get_instance() - 1;
+    /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
+       device and a non-hotunpluggable external device are both trying to claim it. */
+    uint8_t hotunplug         = lpt_ports[port].hotunplug;
+    lpt_ports[port].hotunplug = CHAR_PORT_NOHOTUNPLUG;
+    if (hotunplug != CHAR_PORT_DETACHED)
+        return NULL;
 
     lpt_devs[port].write_data       = write_data;
     lpt_devs[port].write_ctrl       = write_ctrl;
@@ -173,18 +393,30 @@ lpt_attach(void    (*write_data)(uint8_t val, void *priv),
 }
 
 void
-lpt_devices_close(void)
+lpt_devices_close(int hotplug)
 {
-    for (uint8_t i = 0; i < PARALLEL_MAX; i++)
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        /* Leave non-hotunpluggable ports and their devices alone in a hotplug operation. */
+        if (hotplug && (lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
+            continue;
+        lpt_ports[i].hotunplug = CHAR_PORT_DETACHED;
+
         memset(&(lpt_devs[i]), 0x00, sizeof(lpt_device_t));
+
+        if (lpt_ports[i].lpt) {
+            memset(&lpt_ports[i].lpt->char_port, 0x00, sizeof(lpt_ports[i].lpt->char_port));
+
+            timer_disable(&lpt_ports[i].lpt->char_timer);
+        }
+    }
 }
 
 void
 lpt_devices_reset(void)
 {
-    device_close_by_flags(DEVICE_LPT);
+    device_close_by_flags(DEVICE_LPT | DEVICE_HOTPLUG_OUT);
 
-    lpt_devices_close();
+    lpt_devices_close(1);
 
     lpt_devices_init();
 }
@@ -199,7 +431,7 @@ lpt_get_ctrl_raw(const lpt_t *dev)
     else
         ret = 0xc0 | dev->ctrl | dev->enable_irq;
 
-    return ret & 0xdf;
+    return ret;
 }
 
 static uint8_t
@@ -233,7 +465,9 @@ lpt_write_fifo(lpt_t *dev, const uint8_t val, const uint8_t tag)
 static void
 lpt_ecp_update_irq(lpt_t *dev)
 {
-    if (!(dev->ecr & 0x04) && ((dev->fifo_stat | dev->dma_stat) & 0x04))
+    if (dev->irq == 0xff)
+        return;
+    else if (!(dev->ecr & 0x04) && ((dev->fifo_stat | dev->dma_stat) & 0x04))
         picintlevel(1 << dev->irq, &dev->irq_state);
     else
         picintclevel(1 << dev->irq, &dev->irq_state);
@@ -272,7 +506,9 @@ lpt_fifo_out_callback(void *priv)
                 if (ret & DMA_OVER)
                     /* Internal flag to indicate we have finished the DMA reads. */
                     dev->dma_stat = 0x08;
-            }
+            } else
+                /* Clear bit 2 in order to make it clear we're waiting for DMA. */
+                dev->fifo_stat &= 0xfb;
 
             timer_advance_u64(&dev->fifo_out_timer,
                               (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
@@ -321,6 +557,22 @@ lpt_fifo_out_callback(void *priv)
     }
 }
 
+static void
+lpt_fifo_d_ready_evt(void *priv)
+{
+    lpt_t *dev = (lpt_t *) priv;
+
+    if (!(dev->ecr & 0x08)) {
+        if (((dev->ecr & 0xe0) == 0xc0) || ((dev->ecr & 0xe0) == 0x40) ||
+            (lpt_get_ctrl_raw(dev) & 0x20))
+            dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x04 : 0x00;
+        else
+            dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x00 : 0x04;
+    }
+
+    lpt_ecp_update_irq(dev);
+}
+
 void
 lpt_write(const uint16_t port, const uint8_t val, void *priv)
 {
@@ -347,7 +599,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                 dev->dat = val;
             } else {
                 /* DTR */
-                if ((!dev->ext || !(lpt_get_ctrl_raw(dev) & 0x20)) && dev->dt &&
+                if ((!(dev->ext || dev->epp) || !(lpt_get_ctrl_raw(dev) & 0x20)) && dev->dt &&
                     dev->dt->write_data && dev->dt->priv)
                     dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
@@ -413,6 +665,9 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             } else
                 fallthrough;
         case 0x0400:
+            /* Reset status read spin loop counter. */
+            dev->char_spin_count = 0;
+
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -427,38 +682,40 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             break;
 
         case 0x0402: case 0x0406:
-            if ((dev->ecr & 0x04) && !(val & 0x04)) {
-                dev->dma_stat  = 0x00;
-                fifo_reset(dev->fifo);
-                if (val & 0x08) {
+            if ((val & 0xc0) == 0x40) { /* FIFO modes */
+                if (((dev->ecr & 0x0c) != 0x08) && ((val & 0x0c) == 0x08)) { /* transition to dmaEn && !serviceIntr */
+                    dev->dma_stat = 0x00;
                     dev->state = LPT_STATE_READ_DMA;
-                    dev->fifo_stat = 0x00;
-                    if (!timer_is_enabled(&dev->fifo_out_timer))
-                        timer_set_delay_u64(&dev->fifo_out_timer, (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
-                } else {
+                } else if ((val & 0x0c) != 0x08) /* !dmaEn || serviceIntr */
                     dev->state = LPT_STATE_WRITE_FIFO;
-                    if (((dev->ecr & 0xe0) == 0x40) || ((dev->ecr & 0xe0) == 0xc0) ||
-                        (lpt_get_ctrl_raw(dev) & 0x20))
-                        dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x04 : 0x00;
-                    else
-                        dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x00 : 0x04;
+                if (((dev->char_pti_mode & 0xef) == 0xe3) && dev->char_port.chardev.write) {
+                    /* PTI ECP modes: tell the other end to begin ECP transfer (Select).
+                       There's a control write (nInit|ackIntEn) right before this ECR
+                       write, but we're not taking any chances with code block boundaries. */
+                    lpt_char_update_control(dev, dev->char_control & ~CHAR_LPT_EPP);
+                    uint8_t buf = 0xe2;
+                    dev->char_port.chardev.write(&buf, sizeof(buf), dev->char_port.chardev.priv);
+                    dev->char_pti_mode = 0x00;
                 }
-            } else if ((val & 0x04) && !(dev->ecr & 0x04)) {
+                if (!timer_is_enabled(&dev->fifo_out_timer))
+                    timer_set_delay_u64(&dev->fifo_out_timer, (uint64_t) ((1000000.0 / 2500000.0) * (double) TIMER_USEC));
+            } else { /* non-FIFO modes */
+                if ((dev->ecr & 0xc0) && !(val & 0xc0)) /* reset FIFO on transition to standard or PS/2 */
+                    fifo_reset(dev->fifo);
+                dev->state = LPT_STATE_IDLE;
                 if (timer_is_enabled(&dev->fifo_out_timer))
                     timer_disable(&dev->fifo_out_timer);
-
-                dev->state = LPT_STATE_IDLE;
             }
             if (dev->ext_regs[0x02] & 0x80)
-                dev->ecr        = val;
+                dev->ecr = val;
             else  switch (val & 0xe0) {
                 case 0x00: case 0x20:
                 case 0x80:
                     dev->ecr = (val & 0x1f) | 0x60;
                     break;
             }
-            dev->ret_ecr    = val;
-            lpt_ecp_update_irq(dev);
+            dev->ret_ecr = val;
+            lpt_fifo_d_ready_evt(dev); /* update fifo_stat and IRQ */
             break;
 
         case 0x0403: case 0x0407:
@@ -471,22 +728,6 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
     }
 }
 
-static void
-lpt_fifo_d_ready_evt(void *priv)
-{
-    lpt_t *dev = (lpt_t *) priv;
-
-    if (!(dev->ecr & 0x08)) {
-        if (((dev->ecr & 0xe0) == 0xc0) || ((dev->ecr & 0xe0) == 0x40) ||
-            (lpt_get_ctrl_raw(dev) & 0x20))
-            dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x04 : 0x00;
-        else
-            dev->fifo_stat = fifo_get_ready(dev->fifo) ? 0x00 : 0x04;
-    }
-
-    lpt_ecp_update_irq(dev);
-}
-
 void
 lpt_write_to_fifo(void *priv, const uint8_t val)
 {
@@ -494,7 +735,7 @@ lpt_write_to_fifo(void *priv, const uint8_t val)
 
     if (dev->ecp) {
         if (((dev->ecr & 0xe0) == 0x20) && (lpt_get_ctrl_raw(dev) & 0x20))
-            dev->dat = val;
+            dev->in_dat = val;
         else if (((dev->ecr & 0xe0) == 0x40) && !fifo_get_full(dev->fifo))
             fifo_write_evt_tagged(0x01, val, dev->fifo);
         else if (((dev->ecr & 0xe0) == 0xc0) && !fifo_get_full(dev->fifo))
@@ -510,8 +751,8 @@ lpt_write_to_fifo(void *priv, const uint8_t val)
                 dev->dma_stat |= 0x04;
         }
     } else {
-        if (dev->ext && (lpt_get_ctrl_raw(dev) & 0x20))
-            dev->dat = val;
+        if ((dev->ext || dev->epp) && (lpt_get_ctrl_raw(dev) & 0x20))
+            dev->in_dat = val;
     }
 }
 
@@ -520,7 +761,7 @@ lpt_write_to_dat(void *priv, const uint8_t val)
 {
     lpt_t *dev = (lpt_t *) priv;
 
-    dev->dat = val;
+    dev->in_dat = val;
 }
 
 static uint8_t
@@ -590,12 +831,18 @@ lpt_read(const uint16_t port, void *priv)
                                !fifo_get_empty(dev->fifo)) {
                         uint8_t tag = 0x00;
                         ret = fifo_read_evt_tagged(&tag, dev->fifo);
+                    } else if ((dev->ecr & 0xe0) == 0xe0) {
+                        /* The Windows Direct Cable Connection driver (at least ptilink.sys 1.1.0.0)
+                           has a bug where it reads data instead of cnfgA in configuration mode while
+                           probing the ECP FIFO. This is undefined, and the code doesn't like it if
+                           impID is not 1 (8-bit FIFO), so hardware must be aliasing cnfgA to data. */
+                        ret = dev->cnfga_readout;
                     }
                 } else
-                    ret = dev->dat;
+                    ret = (lpt_get_ctrl_raw(dev) & 0x20) ? dev->in_dat : dev->dat;
             } else {
                 /* DTR */
-                ret = dev->dat;
+                ret = (lpt_get_ctrl_raw(dev) & 0x20) ? dev->in_dat : dev->dat;
             }
             break;
 
@@ -613,7 +860,7 @@ lpt_read(const uint16_t port, void *priv)
             if (lpt_is_epp(dev)) {
                 if (dev->dt && dev->dt->epp_request_read && dev->dt->priv)
                     dev->dt->epp_request_read(1, dev->dt->priv);
-                ret = dev->dat;
+                ret = dev->in_dat;
             }
             break;
 
@@ -621,7 +868,7 @@ lpt_read(const uint16_t port, void *priv)
             if (lpt_is_epp(dev)) {
                 if (dev->dt && dev->dt->epp_request_read && dev->dt->priv)
                     dev->dt->epp_request_read(0, dev->dt->priv);
-                ret = dev->dat;
+                ret = dev->in_dat;
             }
             break;
 
@@ -640,6 +887,9 @@ lpt_read(const uint16_t port, void *priv)
             } else
                 fallthrough;
         case 0x0400:
+            /* Reset status read spin loop counter. */
+            dev->char_spin_count = 0;
+
             switch (dev->ecr >> 5) {
                 default:
                     break;
@@ -673,9 +923,26 @@ lpt_read(const uint16_t port, void *priv)
             break;
 
         case 0x0402: case 0x0406:
-            ret = dev->ret_ecr | dev->fifo_stat | (dev->dma_stat & 0x04);
-            ret |= (fifo_get_full(dev->fifo) ? 0x02 : 0x00);
-            ret |= (fifo_get_empty(dev->fifo) ? 0x01 : 0x00);
+            /* Also perform the status spin loop check on ECR reads. */
+            if (timer_is_enabled(&dev->char_timer) && (++dev->char_spin_count >= LPT_SPINLOOP_THRESHOLD)) {
+                dev->char_spin_count = 0;
+                lpt_char_callback(dev);
+            }
+
+            ret = (dev->ret_ecr & 0xfc);
+
+            if ((dev->ecr & 0xe0) > 0x20) {
+                ret |= dev->fifo_stat | (dev->dma_stat & 0x04);
+                if (fifo_get_full(dev->fifo))
+                    ret |= 0x02;
+                else
+                    ret &= ~0x02;
+                if (fifo_get_empty(dev->fifo))
+                    ret |= 0x01;
+                else
+                    ret &= ~0x01;
+            } else
+                ret |= 0x01;
             break;
 
         case 0x0403: case 0x0407:
@@ -705,7 +972,7 @@ lpt_irq(void *priv, const int raise)
 
     if (dev->enable_irq) {
         if (dev->irq != 0xff) {
-            if (dev->ext) {
+            if (dev->ext || dev->epp) {
                 if (raise)
                     picintlevel(1 << dev->irq, &dev->irq_state);
                 else
@@ -718,11 +985,11 @@ lpt_irq(void *priv, const int raise)
             }
         }
 
-        if (!dev->ext || (dev->irq == 0xff))
+        if (!(dev->ext || dev->epp) || (dev->irq == 0xff))
             dev->irq_state = raise;
     } else {
         if (dev->irq != 0xff) {
-            if (dev->ext)
+            if (dev->ext || dev->epp)
                 picintclevel(1 << dev->irq, &dev->irq_state);
             else
                 picintc(1 << dev->irq);
@@ -880,6 +1147,7 @@ lpt_port_zero(lpt_t *dev)
     temp.dt             = dev->dt;
     temp.fifo           = dev->fifo;
     temp.fifo_out_timer = dev->fifo_out_timer;
+    temp.char_timer     = dev->char_timer;
 
     if (lpt_ports[dev->id].enabled)
         lpt_port_remove(dev);
@@ -892,6 +1160,7 @@ lpt_port_zero(lpt_t *dev)
     dev->dt             = temp.dt;
     dev->fifo           = temp.fifo;
     dev->fifo_out_timer = temp.fifo_out_timer;
+    dev->char_timer     = temp.char_timer;
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))
         dev->ext = 1;
@@ -907,7 +1176,7 @@ lpt_close(void *priv)
         dev->fifo       = NULL;
 
         timer_disable(&dev->fifo_out_timer);
-
+        timer_disable(&dev->char_timer);
     }
 
     if (lpt1 == dev)
@@ -979,6 +1248,7 @@ lpt_init(const device_t *info)
 
         dev->fifo                = NULL;
         memset(&dev->fifo_out_timer, 0x00, sizeof(pc_timer_t));
+        memset(&dev->char_timer, 0x00, sizeof(pc_timer_t));
 
         lpt_port_zero(dev);
 
@@ -1026,6 +1296,7 @@ lpt_init(const device_t *info)
             fifo_set_priv(dev->fifo, dev);
 
             timer_add(&dev->fifo_out_timer, lpt_fifo_out_callback, dev, 0);
+            timer_add(&dev->char_timer, lpt_char_callback, dev, 0);
         }
     }
 

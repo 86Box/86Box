@@ -156,6 +156,10 @@ typedef struct ess_mixer_t {
     #define INPUT_MIXER_L 128
     #define INPUT_MIXER_R 256
 
+    /* ESS ES188x+ DAC2 volume */
+    double dac2_l;
+    double dac2_r;
+
     int input_filter;
     int in_filter_freq;
     int output_filter;
@@ -200,6 +204,35 @@ typedef struct sb_t {
     uint16_t midi_addr;
     uint16_t gameport_addr;
 
+    uint8_t  ess_scr_locked;
+    uint8_t  es1688_rsk_enable;
+    uint8_t  es188x_readseq_state;
+    uint8_t  es188x_readseq_mode;
+    uint16_t es188x_dsp_addr;
+
+    /* ESS ES188x secondary DAC */
+    int        ess_dac2_freq;
+    double     ess_dac2_latcho;
+    int        ess_dac2_timeo;
+    int        ess_dac2_autolen;
+    int        ess_dac2_counter;
+    uint8_t    ess_dac2_autoinit;
+    uint8_t    ess_dac2_stereo;
+    uint8_t    ess_dac2_signed;
+    uint8_t    ess_dac2_16bit;
+    uint8_t    ess_dac2_irq;
+    uint8_t    ess_dac2_dma;
+    pc_timer_t ess_dac2_timer;
+    uint16_t   ess_dac2_datl;
+    uint16_t   ess_dac2_datr;
+    int        ess_dac2_pos;
+    uint8_t    ess_dac2_enable;
+    uint8_t    ess_dac2_suspend;
+    int16_t    ess_dac2_buffer[SOUNDBUFLEN * 2];
+    int        ess_dac2_dmadat;
+    uint8_t    ess_dac2_dmaff;
+    uint8_t    ess_dac2_dmacount;
+
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);
 } sb_t;
@@ -222,8 +255,8 @@ extern void    sb_ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ess_mixer_reset(sb_t *sb);
 
-extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv);
-extern void sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv);
+extern void sb_get_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb_close(void *priv);

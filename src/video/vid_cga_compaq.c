@@ -72,8 +72,8 @@ compaq_cga_recalctimings(cga_t *dev)
     _dispofftime = disptime - _dispontime;
     _dispontime *= MDACONST;
     _dispofftime *= MDACONST;
-    dev->dispontime  = (uint64_t) (_dispontime);
-    dev->dispofftime = (uint64_t) (_dispofftime);
+    dev->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    dev->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static void

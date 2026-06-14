@@ -20,15 +20,19 @@ add_library(snd OBJECT
     snd_opl.c
     snd_opl2_nuked.c
     snd_opl3_nuked.c
+    snd_cqm_nuked.c
     snd_opl_ymfm.cpp
     snd_resid.cpp
     midi.c
     snd_speaker.c
-    snd_pssj.c
+    snd_lpt_adlipt.c
+    snd_lpt_cms.c
     snd_lpt_dac.c
+    snd_lpt_dss.c
+    snd_lpt_tndlpt.c
+    snd_pssj.c
     snd_ac97_codec.c
     snd_ac97_via.c
-    snd_lpt_dss.c
     snd_ps1.c
     snd_adlib.c
     snd_adlibgold.c
@@ -38,9 +42,11 @@ add_library(snd OBJECT
     snd_azt2316a.c
     snd_azt2320.c
     snd_cms.c
+    snd_csm.c
     snd_cmi8x38.c
     snd_covox.c
     snd_cs423x.c
+    snd_imfc.cpp
     snd_gus.c
     snd_sb.c
     snd_sb_dsp.c
@@ -48,6 +54,7 @@ add_library(snd OBJECT
     snd_mmb.c
     snd_mpu401.c
     snd_pas16.c
+    snd_saaym.c
     snd_sn76489.c
     snd_ssi2001.c
     snd_wss.c
@@ -199,19 +206,40 @@ if(OPL4ML)
     target_sources(snd PRIVATE midi_opl4.c midi_opl4_yrw801.c)
 endif()
 
+if(SOUNDCANVAS)
+    target_compile_definitions(snd PRIVATE USE_SOUNDCANVAS)
+    target_sources(snd PRIVATE
+        midi_soundcanvas.c
+        clap/clap_event_list.c
+        clap/clap_host.c
+    )
+    if(NOT WIN32)
+        target_link_libraries(86Box dl)
+    endif()
+endif()
+
 if(SOFTMODEM)
     target_compile_definitions(snd PRIVATE USE_SOFTMODEM)
 endif()
- 
+
 find_package(PkgConfig)
-pkg_check_modules(SERIALPORT libserialport)
+if(APPLE)
+    pkg_check_modules(SERIALPORT IMPORTED_TARGET libserialport)
+else()
+    pkg_check_modules(SERIALPORT libserialport)
+endif()
 
 if(SERIALPORT_FOUND OR DEFINED LIBSERIALPORT_ROOT)
     add_compile_definitions(USE_LIBSERIALPORT=1)
 
     if(APPLE)
-        include_directories(${LIBSERIALPORT_ROOT}/include)
-        target_link_libraries(86Box ${LIBSERIALPORT_ROOT}/lib/libserialport.dylib)
+        if(DEFINED LIBSERIALPORT_ROOT)
+            include_directories(${LIBSERIALPORT_ROOT}/include)
+            target_link_libraries(86Box "${LIBSERIALPORT_ROOT}/lib/libserialport.dylib")
+        else()
+            target_link_libraries(snd PRIVATE PkgConfig::SERIALPORT)
+            target_link_libraries(86Box PkgConfig::SERIALPORT)
+        endif()
     elseif(WIN32)
         include_directories(${SERIALPORT_INCLUDE_DIRS})
         target_link_libraries(86Box ${SERIALPORT_LIBRARIES} SetupAPI)

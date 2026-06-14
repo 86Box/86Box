@@ -1278,7 +1278,7 @@ n4spk3d:
 }
 
 static void
-cmi8x38_get_buffer(int32_t *buffer, int len, void *priv)
+cmi8x38_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
 
@@ -1289,7 +1289,7 @@ cmi8x38_get_buffer(int32_t *buffer, int len, void *priv)
     /* Apply wave mute. */
     if (!(dev->io_regs[0x24] & 0x40)) {
         /* Fill buffer. */
-        for (int c = 0; c < len * 2; c++) {
+        for (uint16_t c = 0; c < len * 2; c++) {
             buffer[c] += dev->dma[0].buffer[c];
             buffer[c] += dev->dma[1].buffer[c];
         }

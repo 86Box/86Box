@@ -88,7 +88,7 @@ static const device_config_t pb410a_config[] = {
 };
 
 const device_t pb410a_device = {
-    .name          = "Packard Bell PB410/PB410A/PB420/PB420T",
+    .name          = "Packard Bell PB410A",
     .internal_name = "pb410a",
     .flags         = 0,
     .local         = 0,
@@ -296,6 +296,30 @@ machine_at_cougar_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    return ret;
+}
+
+/* SiS 460 */
+int
+machine_at_spc7500p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/spc7500p/7500NOSC.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sis_85c460_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&ide_vlb_device);
+    device_add_params(&pc87310_device, (void *) PCX73XX_IDE);
 
     return ret;
 }

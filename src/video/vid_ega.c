@@ -726,15 +726,15 @@ ega_recalctimings(ega_t *ega)
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 
-    ega->dispontime  = (uint64_t) (_dispontime);
-    ega->dispofftime = (uint64_t) (_dispofftime);
+    ega->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    ega->dispofftime = (uint64_t) (int64_t) (_dispofftime);
     if (ega->dispontime < TIMER_USEC)
         ega->dispontime = TIMER_USEC;
     if (ega->dispofftime < TIMER_USEC)
         ega->dispofftime = TIMER_USEC;
 
     if (ega_type == EGA_TYPE_COMPAQ) {
-        ega->dot_time  = (uint64_t) (ega->dot_clock);
+        ega->dot_time  = (uint64_t) (int64_t) (ega->dot_clock);
         if (ega->dot_time < TIMER_USEC)
             ega->dot_time = TIMER_USEC;
         timer_disable(&ega->dot_timer);

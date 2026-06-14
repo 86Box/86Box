@@ -153,11 +153,21 @@ ymf71x_config_write(uint16_t addr, uint8_t val, void *priv)
     if (addr == 0xA79) {
         if ((ymf71x->configidx == 0x21) && (val & 0x01)) {
             ymf71x_log(ymf71x->log, "Enable internal RAM write\n");
+            if (ymf71x->ramwrite_enable == 0)
+                ymf71x->ram_addr = 0;
             ymf71x->ramwrite_enable = 1;
         }
-        if ((ymf71x->configidx == 0x21) && (val == 0x00)) {
+        if ((ymf71x->configidx == 0x21) && ((val & 0x01) == 0x00) && ymf71x->ramwrite_enable) {
             ymf71x_log(ymf71x->log, "Disable internal RAM write\n");
+            ymf71x->ramwrite_enable = 0;
             isapnp_update_card_rom(ymf71x->pnp_card, &ymf71x->ram_data[0], 512);
+        }
+        if ((ymf71x->configidx == 0x21) && (val & 0x02)) {
+            ymf71x_log(ymf71x->log, "Disable PnP key\n");
+            isapnp_enable_card(ymf71x->pnp_card, ISAPNP_CARD_NO_KEY);
+        } else if ((ymf71x->configidx == 0x21) && ((val & 0x02) == 0x00)) {
+            ymf71x_log(ymf71x->log, "Enable PnP key\n");
+            isapnp_enable_card(ymf71x->pnp_card, ISAPNP_CARD_ENABLE);
         }
         if ((ymf71x->configidx == 0x20) && (ymf71x->ramwrite_enable == 0x01)) {
             ymf71x_log(ymf71x->log, "Write to internal RAM addr %04X, val %02X\n", ymf71x->ram_addr, val);
@@ -218,7 +228,7 @@ ymf71x_wss_read(uint16_t addr, void *priv)
 }
 
 static void
-ymf71x_wss_write(uint16_t addr, uint8_t val, void *priv)
+ymf71x_wss_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
     uint8_t   port   = addr - ymf71x->cur_wss_addr;
@@ -611,7 +621,7 @@ ymf71x_filter_opl(void *priv, double *out_l, double *out_r)
 }
 
 static void
-ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
+ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
@@ -620,7 +630,7 @@ ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
     /* Don't play audio if the WSS Playback analog or digital sections are powered down */
     if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x04)) && (!(ymf71x->regs[0x13] & 0x04)) ) {
         ad1848_update(&ymf71x->ad1848);
-        for (int c = 0; c < len * 2; c += 2) {
+        for (uint16_t c = 0; c < len * 2; c += 2) {
             double out_l = 0.0;
             double out_r = 0.0;
             double bass_treble;
@@ -661,6 +671,12 @@ ymf71x_get_buffer(int32_t *buffer, int len, void *priv)
 
         ymf71x->ad1848.pos = 0;
     }
+}
+
+static void
+ymf71x_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
     /* sbprov2 part */
     /* Don't play audio if the SB Compatibility analog or digital sections are powered down */
@@ -689,7 +705,8 @@ ymf71x_init(const device_t *info)
     ymf71x->regs[0x00] = 0xFF;
     ymf71x->regs[0x01] = 0x00;
     ymf71x->regs[0x02] = 0x00;
-    ymf71x->regs[0x03] = 0x69; /* IRQ-A = WSS + OPL3, IRQ-B = SB+MPU401 */
+    ymf71x->regs[0x03] = 0x0f; /* Datasheet specifies 0x69 as default power-on value but this is what the Win9x drivers expect */
+                               /* and the AN430TX BIOS sets this value after writing the PnP resource data */
     ymf71x->regs[0x04] = 0x00;
     ymf71x->regs[0x05] = 0x00;
     ymf71x->regs[0x06] = 0x61; /* DMA-A = WSS Playback, DMA-B = WSS Capture + SBPro */
@@ -733,9 +750,10 @@ ymf71x_init(const device_t *info)
     ymf71x->sb->opl_mixer = ymf71x;
     ymf71x->sb->opl_mix   = ymf71x_filter_opl;
 
-    fm_driver_get(FM_YMF289B, &ymf71x->sb->opl);
+    fm_driver_get_cs(FM_YMF289B, &ymf71x->sb->opl);
 
     sound_add_handler(ymf71x_get_buffer, ymf71x);
+    sound_add_handler(ymf71x_get_sbpro_buffer, ymf71x);
     music_add_handler(sb_get_music_buffer_sbpro, ymf71x->sb);
     ad1848_set_cd_audio_channel(&ymf71x->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */

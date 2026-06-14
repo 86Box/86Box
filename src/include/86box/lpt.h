@@ -30,6 +30,7 @@ typedef struct lpt_device_s {
 } lpt_device_t;
 
 #ifdef _TIMER_H_
+#include <86box/char.h>
 typedef struct lpt_t {
     uint8_t       enabled;
     uint8_t       irq;
@@ -54,26 +55,33 @@ typedef struct lpt_t {
     uint8_t       cfg_regs_enabled;
     uint8_t       inst;
     uint8_t       eir;
-    uint8_t       pad;
+    uint8_t       enable_irq;
     uint8_t       ext_regs[8];
     uint16_t      addr;
     uint16_t      id;
-    uint16_t      pad0[2];
-    int           enable_irq;
+    uint8_t       char_read;
+    uint8_t       char_write;
+    uint8_t       char_pti_mode;
+    uint8_t       char_pti_readout;
+    uint32_t      char_control;
+    unsigned int  char_spin_count;
     lpt_device_t *dt;
 #ifdef FIFO_H
     fifo16_t *    fifo;
 #else
     void *        fifo;
 #endif
+    char_port_t   char_port;
 
     pc_timer_t    fifo_out_timer;
+    pc_timer_t    char_timer;
 } lpt_t;
 #endif /* _TIMER_H_ */
 
 typedef struct lpt_port_s {
     uint8_t       enabled;
 
+    uint8_t       hotunplug;
     int           device;
 
     lpt_t        *lpt;
@@ -89,21 +97,19 @@ typedef enum {
 
 extern const device_t      lpt_dac_device;
 extern const device_t      lpt_dac_stereo_device;
+extern const device_t      lpt_dac_ftl_device;
+extern const device_t      lpt_dac_soundjr_device;
 
 extern const device_t      dss_device;
+
+extern const device_t      lpt_adlipt_device;
+extern const device_t      lpt_opl3_device;
+extern const device_t      lpt_cms_device;
+extern const device_t      lpt_tnd_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
 extern const device_t      lpt_loopback_device;
-
-extern int                 lpt_device_available(int id);
-#ifdef EMU_DEVICE_H
-extern const device_t     *lpt_device_getdevice(const int id);
-#endif
-extern int                 lpt_device_has_config(const int id);
-extern const char         *lpt_device_get_name(int id);
-extern const char         *lpt_device_get_internal_name(int id);
-extern int                 lpt_device_get_from_internal_name(const char *str);
 
 extern void                lpt_write(uint16_t port, uint8_t val, void *priv);
 
@@ -134,15 +140,17 @@ extern void                lpt_port_remove(lpt_t *dev);
 extern void                lpt1_remove_ams(lpt_t *dev);
 
 extern void                lpt_devices_init(void);
-extern void *              lpt_attach(void    (*write_data)(uint8_t val, void *priv),
-                                      void    (*write_ctrl)(uint8_t val, void *priv),
-                                      void    (*strobe)(uint8_t old, uint8_t val,void *priv),
-                                      uint8_t (*read_status)(void *priv),
-                                      uint8_t (*read_ctrl)(void *priv),
-                                      void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
-                                      void    (*epp_request_read)(uint8_t is_addr, void *priv),
-                                      void    *priv);
-extern void                lpt_devices_close(void);
+extern void *              lpt_attach_ex(int     port,
+                                         void    (*write_data)(uint8_t val, void *priv),
+                                         void    (*write_ctrl)(uint8_t val, void *priv),
+                                         void    (*strobe)(uint8_t old, uint8_t val,void *priv),
+                                         uint8_t (*read_status)(void *priv),
+                                         uint8_t (*read_ctrl)(void *priv),
+                                         void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
+                                         void    (*epp_request_read)(uint8_t is_addr, void *priv),
+                                         void    *priv);
+#define lpt_attach(...) lpt_attach_ex(device_get_instance() - 1, __VA_ARGS__)
+extern void                lpt_devices_close(int soft);
 extern void                lpt_devices_reset(void);
 
 extern void                lpt_set_next_inst(int ni);

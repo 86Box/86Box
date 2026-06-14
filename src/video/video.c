@@ -812,6 +812,7 @@ video_monitor_init(int index)
     monitors[index].mon_cga_palette                      = calloc(1, sizeof(int));
     monitors[index].mon_force_resize                     = 1;
     monitors[index].mon_vid_type                         = VIDEO_FLAG_TYPE_NONE;
+    monitors[index].mon_dpms                             = 0;
     atomic_init(&doresize_monitors[index], 0);
     atomic_init(&monitors[index].mon_screenshots, 0);
     atomic_init(&monitors[index].mon_screenshots_clipboard, 0);
@@ -1111,4 +1112,15 @@ video_color_transform(uint32_t color)
     if (invert_display)
         color ^= 0x00ffffff;
     return color;
+}
+
+void
+video_clamp_vram(const uint64_t bios_flags, int *vram)
+{
+    const int min_ram = (uint16_t) (bios_flags & 0xffff);
+    const int max_ram = (uint16_t) ((bios_flags >> 16) & 0xffff);
+    if ((bios_flags & BIOS_LIMIT_MIN_MEMORY) && (*vram < min_ram))
+        *vram = min_ram;
+    if ((bios_flags & BIOS_LIMIT_MAX_MEMORY) && (*vram > max_ram))
+        *vram = max_ram;
 }

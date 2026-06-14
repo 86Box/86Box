@@ -91,8 +91,8 @@
 #define AS_DOUBLE(x) (*((double *) &(x)))
 
 #if defined(__GNUC__) || defined(__clang__)
-#    define UNLIKELY(x) __builtin_expect((x), 0)
-#    define LIKELY(x)   __builtin_expect((x), 1)
+#    define UNLIKELY(x) __builtin_expect(!!(x), 0)
+#    define LIKELY(x)   __builtin_expect(!!(x), 1)
 #else
 #    define UNLIKELY(x) (x)
 #    define LIKELY(x)   (x)
@@ -150,9 +150,6 @@ extern int start_in_fullscreen; /* (O) start in fullscreen */
 #ifdef _WIN32
 extern int force_debug; /* (O) force debug output */
 #endif
-#ifdef USE_WX
-extern int video_fps; /* (O) render speed in fps */
-#endif
 extern int settings_only;     /* (O) show only the settings dialog */
 extern int confirm_exit_cmdl; /* (O) do not ask for confirmation on quit if set to 0 */
 #ifdef _WIN32
@@ -206,6 +203,7 @@ extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isarom_type[];              /* (C) enable ISA ROM cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
+extern int      sound_sample_rate;          /* (C) sound output sample rate */
 extern int      voodoo_enabled;             /* (C) video option */
 extern int      ibm8514_standalone_enabled; /* (C) video option */
 extern int      xga_standalone_enabled;     /* (C) video option */
@@ -232,7 +230,8 @@ extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
 extern int    sound_muted;                  /* (C) Is sound muted? */
-extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
+extern int    do_auto_pause;                /* (G) Auto-pause the emulator on focus loss */
+extern int    do_auto_dialog_pause;         /* (G) Auto-pause the emulator on dialog boxes */
 extern int    auto_paused;
 extern int    force_constant_mouse;         /* (C) Force constant updating of the mouse */
 extern double mouse_sensitivity;            /* (G) Mouse sensitivity scale */
@@ -279,6 +278,8 @@ extern void warning_ex(const char *fmt, va_list ap);
 #endif
 extern void pclog_toggle_suppr(void);
 extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+/* Optional per-line log callback for UI consumers (e.g. OSD log viewer). */
+extern void (*pclog_hook)(const char *line);
 extern void always_log(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
@@ -287,7 +288,6 @@ extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);
 extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
-extern void update_mouse_msg(void);
 extern int  pc_init_roms(void);
 extern int  pc_init_modules(void);
 extern int  pc_init(int argc, char *argv[]);
@@ -303,6 +303,9 @@ extern void pc_send_cab(void);
 extern void pc_run(void);
 extern void pc_start(void);
 extern void pc_onesec(void);
+#ifdef _WIN32
+extern void pc_debug_console(void);
+#endif
 
 extern uint16_t get_last_addr(void);
 
@@ -332,7 +335,7 @@ struct accelKey {
 	char desc[64];
 	char seq[64];
 };
-#define NUM_ACCELS 14
+#define NUM_ACCELS 15
 extern struct accelKey acc_keys[NUM_ACCELS];
 extern struct accelKey def_acc_keys[NUM_ACCELS];
 extern int FindAccelerator(const char *name);

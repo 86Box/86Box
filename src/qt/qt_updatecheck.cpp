@@ -104,6 +104,7 @@ UpdateCheck::githubDownloadComplete(const QString &filename, const QVariant &var
     QString    latestVersion           = "0.0";
     if (!githubReleaseListResult.has_value() || githubReleaseListResult.value().isEmpty()) {
         generalDownloadError(generalError);
+        return;
     }
     auto githubReleaseList = githubReleaseListResult.value();
     // Warning: this check (using the tag name) relies on a consistent naming scheme: "v<number>"

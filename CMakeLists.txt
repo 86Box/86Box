@@ -36,7 +36,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 6.0
+    VERSION 6.1
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -118,7 +118,7 @@ if(NOT (WIN32 OR APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
 endif()
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Optional features
@@ -131,6 +131,7 @@ option(OPENAL       "OpenAL"                                                    
 option(RTMIDI       "RtMidi"                                                     ON)
 option(FLUIDSYNTH   "FluidSynth"                                                 ON)
 option(MUNT         "MUNT"                                                       ON)
+option(SOUNDCANVAS  "Sound Canvas (CLAP)"                                        ON)
 option(VNC          "VNC renderer"                                               OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library" OFF)
 option(GDBSTUB      "Enable GDB stub server for debugging"                       OFF)
@@ -138,6 +139,7 @@ option(DEV_BRANCH   "Development branch"                                        
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
+option(QT           "Use the Qt-based user interface"                            ON)
 
 if((ARCH STREQUAL "arm64"))
     set(NEW_DYNAREC ON)
@@ -158,11 +160,17 @@ else()
 endif()
 
 if(WIN32)
-    set(QT ON)
     option(CPPTHREADS "C++11 threads" OFF)
 else()
-    option(QT "Qt GUI" ON)
     option(CPPTHREADS "C++11 threads" ON)
+endif()
+
+if(WIN32 AND NOT QT)
+    # Force console subsystem when building the SDL frontend
+    set(CMAKE_WIN32_EXECUTABLE OFF CACHE BOOL "Build a Windows GUI executable" FORCE)
+
+    # FluidSynth pulls in SDL3 - disable for now
+    set(FLUIDSYNTH OFF CACHE BOOL "FluidSynth" FORCE)
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
