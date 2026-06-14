@@ -5008,12 +5008,12 @@ sb_awe32_pnp_init(const device_t *info)
 
     switch (info->local) {
         case SB_32_PNP:
+        case SB_AWE32_IDE_PNP:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
 
         case SB_AWE32_PNP:
-        case SB_AWE32_IDE_PNP:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed,
                             NULL, NULL, NULL, sb);
             break;
