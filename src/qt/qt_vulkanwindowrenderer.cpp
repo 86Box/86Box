@@ -92,7 +92,6 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
             if (j != (shaderFilterChains[i].size() - 1)) {
                 vmaDestroyImage(allocator, shaderFilterChains[i][j].next_image_chain, shaderFilterChains[i][j].next_image_alloc);
             }
-            libra_vk_filter_chain_free(&shaderFilterChains[i][j].chain);
             shaderFilterChains[i][j].chain = nullptr;
         }
         vmaDestroyImage(allocator, shaderSrcImages[i], shaderSrcImageAllocations[i]);
@@ -116,13 +115,6 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         return;
     m_devFuncs->vkDeviceWaitIdle(logi_device);
     cleanupShaderSrcImages();
-    int num_shaders = 0;
-    for (int i = 0; i < 20; ++i) {
-        if (strlen(vk_shader_file[i]))
-            ++num_shaders;
-        else
-            break;
-    }
 
     shaderSrcImageTransitioned.resize(swapchainImageViews.size());
     shaderSrcImages.resize(swapchainImageViews.size());
@@ -159,51 +151,30 @@ VulkanWindowRenderer::recreateShaderSrcImages()
 
         img_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
 
-        for (int j = 0; j < num_shaders; j++) {
-            if (vk_shader_file[j][0] != 0) {
-                std::vector<std::pair<std::string, double>> parameter_values;
-                auto shader = slangp_parse(vk_shader_file[j]);
-                if (shader) {
-                    for (int l = 0; l < shader->param_list.length; l++) {
-                        parameter_values.push_back(std::pair<std::string, double>(shader->param_list.parameters[l].name, shader->param_values[l]));
-                    }
-                    VulkanShaderChain vk_shader_chain{};
-                    libra_device_vk_t vk_dev;
-                    vk_dev.entry = (PFN_vkGetInstanceProcAddr)instance.getInstanceProcAddr("vkGetInstanceProcAddr");
-                    vk_dev.instance = instance.vkInstance();
-                    vk_dev.device = logi_device;
-                    vk_dev.physical_device = phys_device;
-                    vk_dev.queue = gfx_queue_o;
-                    libra_preset_free_runtime_params(shader->param_list);
-                    shader->param_list.parameters = 0;
-                    libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, nullptr, &vk_shader_chain.chain);
-                    delete shader;
-                    if (vk_shader_chain.chain) {
-                        vk_shader_chain.next_image_alloc = nullptr;
-                        vk_shader_chain.next_image_chain = swapchainImages[i];
-                        for (auto& curPair : parameter_values) {
-                            libra_vk_filter_chain_set_param(&vk_shader_chain.chain, curPair.first.c_str(), curPair.second);
-                        }
-                    } else {
-                        continue;
-                    }
-                    if (shaderFilterChains[i].size()) {
-                        auto& last_chain = shaderFilterChains[i][shaderFilterChains[i].size() - 1];
-                        last_chain.next_image_chain = nullptr; 
+        for (int j = 0; j < shaderLibraFilterChains.size(); j++) {
+            VulkanShaderChain vk_shader_chain { };
+            vk_shader_chain.chain = shaderLibraFilterChains[j];
+            if (vk_shader_chain.chain) {
+                vk_shader_chain.next_image_alloc = nullptr;
+                vk_shader_chain.next_image_chain = swapchainImages[i];
+            } else {
+                continue;
+            }
+            if (shaderFilterChains[i].size()) {
+                auto &last_chain            = shaderFilterChains[i][shaderFilterChains[i].size() - 1];
+                last_chain.next_image_chain = nullptr;
 
-                        allocInfo = { };
-                        allocInfo2 = { };
-                        allocInfo.pUserData = allocInfo.pool = nullptr;
-                        allocInfo.requiredFlags = allocInfo.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-                        allocInfo.usage                                    = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-                        allocInfo.flags                                    = 0;
-                        if (vmaCreateImage(allocator, &img_info, &allocInfo, &last_chain.next_image_chain, &last_chain.next_image_alloc, &allocInfo2) != VK_SUCCESS) {
-                            return;
-                        }
-                    }
-                    shaderFilterChains[i].push_back(vk_shader_chain);
+                allocInfo           = { };
+                allocInfo2          = { };
+                allocInfo.pUserData = allocInfo.pool = nullptr;
+                allocInfo.requiredFlags = allocInfo.preferredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+                allocInfo.usage                                    = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+                allocInfo.flags                                    = 0;
+                if (vmaCreateImage(allocator, &img_info, &allocInfo, &last_chain.next_image_chain, &last_chain.next_image_alloc, &allocInfo2) != VK_SUCCESS) {
+                    return;
                 }
             }
+            shaderFilterChains[i].push_back(vk_shader_chain);
         }
     }
 }
@@ -243,7 +214,7 @@ VulkanWindowRenderer::cleanupSwapchain()
 }
 
 void
-VulkanWindowRenderer::recreateSwapchain(bool force)
+VulkanWindowRenderer::recreateSwapchain()
 {
     if (isFinalized || !isInitialized)
         return;
@@ -252,10 +223,6 @@ VulkanWindowRenderer::recreateSwapchain(bool force)
         fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, instance.surfaceForWindow(this), &surfaceCaps);
     } else {
         throw vulkan_init_error("Failed to get surface capabilities");
-    }
-    if (!force) {
-        if (curExtent.width == surfaceCaps.currentExtent.width && curExtent.height == surfaceCaps.currentExtent.height)
-            return;
     }
 
     cleanupSwapchain();
@@ -408,6 +375,11 @@ VulkanWindowRenderer::finalize()
         flag.test_and_set();
     qt_osd_shutdown();
     cleanupSwapchain();
+    for (int i = 0; i < shaderFilterChains.size(); i++)
+        libra_vk_filter_chain_free(&shaderLibraFilterChains[i]);
+
+    shaderLibraFilterChains.clear();
+
     m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
     vmaDestroyImage(allocator, src_image, img_allocation);
     vmaDestroyAllocator(allocator);
@@ -535,7 +507,7 @@ VulkanWindowRenderer::render()
     auto res = fn_vkAcquireNextImageKHR(logi_device, dev_swapchain, (uint64_t) -1, presentSemaphores[current_frame], VK_NULL_HANDLE, &swapchain_image_index);
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
         try {
-            recreateSwapchain(true);
+            recreateSwapchain();
         } catch (const vulkan_init_error &e) {
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
             main_window->reloadAllRenderers();
@@ -1187,6 +1159,45 @@ VulkanWindowRenderer::initialize()
                 isFinalized = false;
                 recreateSwapchain();
 
+                int num_shaders = 0;
+                for (int i = 0; i < 20; ++i) {
+                    if (strlen(vk_shader_file[i]))
+                        ++num_shaders;
+                    else
+                        break;
+                }
+
+                libra_device_vk_t vk_dev;
+                vk_dev.entry           = (PFN_vkGetInstanceProcAddr) instance.getInstanceProcAddr("vkGetInstanceProcAddr");
+                vk_dev.instance        = instance.vkInstance();
+                vk_dev.device          = logi_device;
+                vk_dev.physical_device = phys_device;
+                vk_dev.queue           = gfx_queue_o;
+
+                for (int j = 0; j < num_shaders; j++) {
+                    if (vk_shader_file[j][0] != 0) {
+                        std::vector<std::pair<std::string, double>> parameter_values;
+                        auto shader = slangp_parse(vk_shader_file[j]);
+                        if (shader) {
+                            for (int l = 0; l < shader->param_list.length; l++) {
+                                parameter_values.push_back(std::pair<std::string, double>(shader->param_list.parameters[l].name, shader->param_values[l]));
+                            }
+                            libra_vk_filter_chain_t filter_chain = nullptr;
+
+                            libra_preset_free_runtime_params(shader->param_list);
+                            shader->param_list.parameters = 0;
+                            libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, nullptr, &filter_chain);
+                            delete shader;
+                            if (filter_chain) {
+                                for (auto &curPair : parameter_values) {
+                                    libra_vk_filter_chain_set_param(&filter_chain, curPair.first.c_str(), curPair.second);
+                                }
+                                shaderLibraFilterChains.push_back(filter_chain);
+                            }
+                        }
+                    }
+                }
+
                 init_info = {};
                 init_info.ApiVersion = VK_VERSION_1_0;
                 init_info.Instance = instance.vkInstance();
@@ -1242,12 +1253,17 @@ void
 VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
 {
     Q_UNUSED(event);
+    this->pixelRatio = devicePixelRatio();
+    onResize(size().width(), size().height());
     QWindow::exposeEvent(event);
 
     if (!isInitialized && isExposed()) {
-        this->pixelRatio = devicePixelRatio();
-        onResize(size().width(), size().height());
         initialize();
+        return;
+    }
+
+    if (isInitialized && isExposed()) {
+        recreateSwapchain();
     }
 }
 
@@ -1291,7 +1307,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
         if (isInitialized && isExposed())
-            recreateShaderSrcImages();
+            recreateSwapchain();
     }
     if (isExposed() && video_framerate == -1) {
         // requestUpdate();
