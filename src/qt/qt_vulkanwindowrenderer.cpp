@@ -1214,12 +1214,12 @@ void
 VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
 {
     Q_UNUSED(event);
+    this->pixelRatio = devicePixelRatio();
+    onResize(size().width(), size().height());
+    QWindow::exposeEvent(event);
 
     if (!isInitialized && isExposed())
         initialize();
-
-    this->pixelRatio = devicePixelRatio();
-    onResize(size().width(), size().height());
 }
 
 void
