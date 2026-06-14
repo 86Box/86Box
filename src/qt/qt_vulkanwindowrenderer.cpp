@@ -1261,6 +1261,8 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     if (origSource != source) {
         this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
+        if (isInitialized && isExposed())
+            recreateSwapchain();
     }
     if (isExposed() && video_framerate == -1) {
         // requestUpdate();
