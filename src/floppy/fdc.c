@@ -2448,7 +2448,11 @@ fdc_set_base(fdc_t *fdc, int base)
     }
 
     if (fdc->flags & FDC_FLAG_NSC) {
-        io_sethandler(base + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        if (fdc->flags & FDC_FLAG_NO_TDR) {
+            io_sethandler(base + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+            io_sethandler(base + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        } else
+            io_sethandler(base + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else if (fdc->flags & FDC_FLAG_5550) {
         io_sethandler(base, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2486,7 +2490,11 @@ fdc_remove(fdc_t *fdc)
 
     fdc_log("FDC Removed (%04X)\n", fdc->base_address);
     if (fdc->flags & FDC_FLAG_NSC) {
-        io_removehandler(fdc->base_address + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        if (fdc->flags & FDC_FLAG_NO_TDR) {
+            io_removehandler(fdc->base_address + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+            io_removehandler(fdc->base_address + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        } else
+            io_removehandler(fdc->base_address + 2, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else if (fdc->flags & FDC_FLAG_5550) {
         io_removehandler(fdc->base_address, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2956,6 +2964,20 @@ const device_t fdc_at_nsc_device = {
     .internal_name = "fdc_at_nsc",
     .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_NSC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_nsc_pc87310_device = {
+    .name          = "PC/AT FDC (NSC PC87310)",
+    .internal_name = "fdc_at_nsc",
+    .flags         = DEVICE_ISA,
+    .local         = FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_NSC | FDC_FLAG_NO_TDR,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

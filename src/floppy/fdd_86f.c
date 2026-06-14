@@ -3196,7 +3196,7 @@ d86f_writeback(int drive)
         /* The image is compressed. */
 
         /* Open the original, compressed file. */
-        cf = plat_fopen(dev->original_file_name, L"wb");
+        cf = plat_fopen(dev->original_file_name, "wb");
 
         /* Write the header to the original file. */
         fwrite(header, 1, header_size, cf);

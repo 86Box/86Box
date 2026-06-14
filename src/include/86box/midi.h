@@ -117,6 +117,9 @@ extern const device_t mt32_new_device;
 extern const device_t cm32l_device;
 extern const device_t cm32ln_device;
 #    endif /* USE_MUNT */
+#    ifdef USE_SOUNDCANVAS
+extern const device_t soundcanvas_device;
+#    endif /* USE_SOUNDCANVAS */
 #endif
 
 #endif /*EMU_SOUND_MIDI_H*/

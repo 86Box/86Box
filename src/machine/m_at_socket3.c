@@ -263,7 +263,7 @@ static const device_config_t j403tg_config[] = {
 
 const device_t j403tg_device = {
     .name          = "Jetway J-403TG",
-    .internal_name = "403tg_device",
+    .internal_name = "403tg",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

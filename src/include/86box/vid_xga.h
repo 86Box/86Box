@@ -64,6 +64,7 @@ typedef struct xga_t {
     uint8_t  disp_cntl_2;
     uint8_t  clk_sel_1;
     uint8_t  clk_sel_2;
+    uint8_t  pll_program;
     uint8_t  hwc_control;
     uint8_t  bus_arb;
     uint8_t  isa_pos_enable;

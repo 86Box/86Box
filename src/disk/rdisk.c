@@ -265,7 +265,10 @@ rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert)
                  log_fatal(dev->log, "rdisk_load(): Error seeking to the beginning of "
                            "the file\n");
 
-             strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
+             if (dev->drv->image_path != (fn - offs)) {
+                 const int len = MIN(strlen(fn - offs), (strlen(dev->drv->image_path) - 1));
+                 strncpy(dev->drv->image_path, fn - offs, len);
+             }
              /*
                 After using strncpy, dev->drv->image_path needs to be explicitly null
                 terminated to make gcc happy.

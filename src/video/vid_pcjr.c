@@ -85,8 +85,8 @@ pcjr_recalc_timings(pcjr_t *pcjr)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
     _dispofftime *= CGACONST;
-    pcjr->dispontime  = (uint64_t) (_dispontime);
-    pcjr->dispofftime = (uint64_t) (_dispofftime);
+    pcjr->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    pcjr->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static int

@@ -39,6 +39,7 @@
 
 #    if QT_CONFIG(vulkan)
 #        include "qt_vulkanwindowrenderer.hpp"
+#        include "imgui_impl_vulkan.h"
 
 class VulkanRenderer2 : public QVulkanWindowRenderer {
 public:
@@ -61,6 +62,8 @@ private:
     bool           writeLinearImage(const QImage &img, VkImage image, VkDeviceMemory memory);
     void           ensureTexture();
     void           updateSamplers();
+
+    void           drawOsd(VkCommandBuffer cb, const QSize &swapSize);
 
     QVulkanWindow          *m_window;
     QVulkanDeviceFunctions *m_devFuncs;
@@ -89,6 +92,9 @@ private:
     bool           m_texStagingTransferLayout = false;
     QSize          m_texSize;
     VkFormat       m_texFormat;
+
+    // OSD overlay
+    ImGui_ImplVulkan_InitInfo init_info{};
 
     QMatrix4x4 m_proj;
 };

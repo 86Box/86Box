@@ -53,12 +53,15 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
-#define ET4000_TYPE_TC6058AF 0 /* ISA ET4000AX (TC6058AF) */
-#define ET4000_TYPE_ISA      1 /* ISA ET4000AX */
-#define ET4000_TYPE_MCA      2 /* MCA ET4000AX */
-#define ET4000_TYPE_KOREAN   3 /* Korean ET4000 */
-#define ET4000_TYPE_TRIGEM   4 /* TriGem 286M ET4000 */
-#define ET4000_TYPE_KASAN    5 /* Kasan ET4000 */
+enum {
+    ET4000_TYPE_TC6058AF = 0,      /* ISA ET4000AX (TC6058AF) */
+    ET4000_TYPE_ISA,               /* ISA ET4000AX */
+    ET4000_TYPE_MCA,               /* MCA ET4000AX */
+    ET4000_TYPE_KOREAN,            /* Korean ET4000 */
+    ET4000_TYPE_TRIGEM,            /* TriGem 286M ET4000 */
+    ET4000_TYPE_KASAN,             /* Kasan ET4000 */
+    ET4000_TYPE_USE_CONFIG_BIOS    /* Use BIOS from device_config */
+};
 
 #define BIOS_ROM_PATH          "roms/video/et4000/ET4000.BIN"
 #define V8_06_BIOS_ROM_PATH    "roms/video/et4000/ET4000_V8_06.BIN"
@@ -298,6 +301,10 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
                 svga->chain2_write = !(val & 4);
                 svga->chain4       = (svga->chain4 & ~8) | (val & 8);
                 svga->fast         = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) && svga->chain4 && !(svga->adv_flags & FLAG_ADDR_BY8);
+                return;
+            } else if (svga->seqaddr == 7) {
+                svga_out(addr, val, svga);
+                svga_recalctimings(svga);
                 return;
             } else if (svga->seqaddr == 0x0e) {
                 svga->seqregs[0x0e] = val;
@@ -667,12 +674,10 @@ et4000_recalctimings(svga_t *svga)
     }
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
-    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
+    if (svga->seqregs[7] & 0x01)
+        svga->clock *= 4.0;
+    else if (svga->seqregs[7] & 0x40)
         svga->clock *= 2.0;
-    } else {
-        if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20))
-            svga->clock *= 2.0;
-    }
 
     switch (svga->bpp) {
         case 15:
@@ -791,22 +796,28 @@ static void *
 et4000_init(const device_t *info)
 {
     const char *bios_ver = NULL;
+    et4000_t   *dev      = (et4000_t *) calloc(1, sizeof(et4000_t));
     const char *fn;
-    et4000_t   *dev;
     int         i;
+    int         vram;
 
-    dev = (et4000_t *) calloc(1, sizeof(et4000_t));
-    dev->name = info->name;
-    dev->type = info->local;
-    fn        = BIOS_ROM_PATH;
+    dev->name            = info->name;
+    fn                   = BIOS_ROM_PATH;
 
-    if (dev->type == 0x00000000)
-        dev->type = device_get_bios_local(info, device_get_config_bios("bios"));
+    dev->type            = (info->local == ET4000_TYPE_USE_CONFIG_BIOS) ?
+                           (int) device_get_bios_local(info, device_get_config_bios("bios")) :
+                           (int) info->local;
+
+    const uint64_t bios_flags  = (info->local == ET4000_TYPE_USE_CONFIG_BIOS) ?
+                                 device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                 0x0000000000000000ULL;
 
     switch (dev->type) {
         case ET4000_TYPE_TC6058AF: /* ISA ET4000AX (TC6058AF) */
         case ET4000_TYPE_ISA: /* ISA ET4000AX */
-            dev->vram_size = device_get_config_int("memory") << 10;
+            vram                                = device_get_config_int("memory");
+            video_clamp_vram(bios_flags, &vram);
+            dev->vram_size                      = vram << 10;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000_in, et4000_out,
@@ -818,26 +829,28 @@ et4000_init(const device_t *info)
             break;
 
         case ET4000_TYPE_MCA: /* MCA ET4000AX */
-            dev->vram_size = 1024 << 10;
+            dev->vram_size                      = 1024 << 10;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_mca);
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
             io_sethandler(0x03c0, 32,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
-            dev->pos_regs[0] = 0xf2; /* ET4000 MCA board ID */
-            dev->pos_regs[1] = 0x80;
+            dev->pos_regs[0]                    = 0xf2; /* ET4000 MCA board ID */
+            dev->pos_regs[1]                    = 0x80;
             mca_add(et4000_mca_read, et4000_mca_write, et4000_mca_feedb, NULL, dev);
             break;
 
         case ET4000_TYPE_KOREAN: /* Korean ET4000 */
         case ET4000_TYPE_TRIGEM: /* TriGem 286M ET4000 */
-            dev->vram_size                      = device_get_config_int("memory") << 10;
+            vram                                = device_get_config_int("memory");
+            video_clamp_vram(bios_flags, &vram);
+            dev->vram_size                      = vram << 10;
             dev->port_22cb_val                  = 0x60;
             dev->port_32cb_val                  = 0;
             dev->svga.ksc5601_sbyte_mask        = 0x80;
-            dev->svga.ksc5601_udc_area_msb[0]   = 0xC9;
-            dev->svga.ksc5601_udc_area_msb[1]   = 0xFE;
+            dev->svga.ksc5601_udc_area_msb[0]   = 0xc9;
+            dev->svga.ksc5601_udc_area_msb[1]   = 0xfe;
             dev->svga.ksc5601_swap_mode         = 0;
             dev->svga.ksc5601_english_font_type = 0;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000_isa);
@@ -857,7 +870,9 @@ et4000_init(const device_t *info)
             break;
 
         case ET4000_TYPE_KASAN: /* Kasan ET4000 */
-            dev->vram_size                      = device_get_config_int("memory") << 10;
+            vram                                = device_get_config_int("memory");
+            video_clamp_vram(bios_flags, &vram);
+            dev->vram_size                      = vram << 10;
             dev->svga.ksc5601_sbyte_mask        = 0;
             dev->svga.ksc5601_udc_area_msb[0]   = 0xC9;
             dev->svga.ksc5601_udc_area_msb[1]   = 0xFE;
@@ -897,7 +912,7 @@ et4000_init(const device_t *info)
     if (dev->type >= ET4000_TYPE_ISA)
         dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
 
-    dev->svga.clock_gen = device_add(&ics2494an_324_device);
+    dev->svga.clock_gen = device_add(&ics2494an_304_device);
     dev->svga.getclock  = ics2494_getclock;
 
     if (dev->type == ET4000_TYPE_TC6058AF)
@@ -1076,7 +1091,7 @@ const device_t et4000_isa_device = {
     .name          = "Tseng Labs ET4000AX (ISA)",
     .internal_name = "et4000ax",
     .flags         = DEVICE_ISA,
-    .local         = 0,
+    .local         = ET4000_TYPE_USE_CONFIG_BIOS,
     .init          = et4000_init,
     .close         = et4000_close,
     .reset         = NULL,

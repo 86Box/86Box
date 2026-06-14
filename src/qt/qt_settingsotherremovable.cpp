@@ -324,8 +324,11 @@ SettingsOtherRemovable::restore()
 }
 
 void
-SettingsOtherRemovable::save()
+SettingsOtherRemovable::save(int soft)
 {
+    if (soft)
+        return;
+
     const auto *model = ui->tableViewMO->model();
     for (uint8_t i = 0; i < MO_NUM; i++) {
         mo_drives[i].fp       = NULL;

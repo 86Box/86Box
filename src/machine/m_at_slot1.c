@@ -149,8 +149,8 @@ static const device_config_t p6kdi_config[] = {
 };
 
 const device_t p6kdi_device = {
-    .name          = "Advanced Integration Research (AIR) P6KDI",
-    .internal_name = "p6kdi_device",
+    .name          = "AIR P6KDI",
+    .internal_name = "p6kdi",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -321,7 +321,7 @@ static const device_config_t lx6_config[] = {
 
 const device_t lx6_device = {
     .name          = "ABIT AB-LX6",
-    .internal_name = "lx6_device",
+    .internal_name = "lx6",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -705,7 +705,7 @@ static const device_config_t como_config[] = {
 
 const device_t como_device = {
     .name          = "TriGem Como",
-    .internal_name = "como_device",
+    .internal_name = "como",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -744,12 +744,12 @@ machine_at_como_init(const machine_t *model)
 
     device_add(&i440ex_device);
     device_add(&piix4e_device);
-    device_add_params(&fdc37m60x_device, (void*)(FDC37XXX2 | FDC37C93X_NO_NVR | FDC37XXXX_370));
+    device_add_params(&fdc37m60x_device, (void *) (FDC37XXX2 | FDC37C93X_NO_NVR | FDC37XXXX_370));
     device_add(&intel_flash_bxt_device);
     device_add(&lm78_device);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cs4235_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -887,7 +887,7 @@ static const device_config_t bx6_config[] = {
 
 const device_t bx6_device = {
     .name          = "ABIT AB-BX6",
-    .internal_name = "bx6_device",
+    .internal_name = "bx6",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1057,7 +1057,7 @@ static const device_config_t ax6bc_config[] = {
 
 const device_t ax6bc_device = {
     .name          = "AOpen AX6BC",
-    .internal_name = "ax6bc_device",
+    .internal_name = "ax6bc",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1154,7 +1154,7 @@ static const device_config_t ga686_config[] = {
 
 const device_t ga686_device = {
     .name          = "Gigabyte GA-686BX",
-    .internal_name = "ga686_device",
+    .internal_name = "686bx",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1273,7 +1273,7 @@ static const device_config_t ms6119_config[] = {
 
 const device_t ms6119_device = {
     .name          = "MSI MS-6119",
-    .internal_name = "ms6119_device",
+    .internal_name = "ms6119",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1458,7 +1458,7 @@ static const device_config_t p6sba_config[] = {
 
 const device_t p6sba_device = {
     .name          = "Supermicro P6SBA",
-    .internal_name = "p6sba_device",
+    .internal_name = "p6sba",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1548,7 +1548,7 @@ static const device_config_t s1846_config[] = {
 
 const device_t s1846_device = {
     .name          = "Tyan Tsunami ATX",
-    .internal_name = "s1846_device",
+    .internal_name = "s1846",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1650,7 +1650,7 @@ static const device_config_t vei8_config[] = {
 
 const device_t vei8_device = {
     .name          = "MiTAC/Trigon 6110Zu",
-    .internal_name = "vei8_device",
+    .internal_name = "vei8",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1826,16 +1826,89 @@ machine_at_ficka6130_init(const machine_t *model)
 }
 
 /* VIA Apollo Pro 133 */
+static const device_config_t p3v133_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "p3v133",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Award Medallion BIOS v6.0 - Revision 1001a",
+                .internal_name = "p3v133_1001a",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p3v133/p3v133a1.awd", "" }
+            },
+            {
+                .name          = "Award Medallion BIOS v6.0 - Revision 1002",
+                .internal_name = "p3v133",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p3v133/p3v13302.awd", "" }
+            },
+            {
+                .name          = "Award Medallion BIOS v6.0 - Revision 1003 Beta 002",
+                .internal_name = "p3v133_1003b002",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p3v133/1003.002", "" }
+            },
+            {
+                .name          = "Award Medallion BIOS v6.0 - Revision 0.18 (HP NetServer E200)",
+                .internal_name = "p3v133_hp018",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p3v133/SST39SF020A-01.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t p3v133_device = {
+    .name          = "ASUS P3V133",
+    .internal_name = "p3v133",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = p3v133_config
+};
+
 int
 machine_at_p3v133_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/p3v133/1003.002",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 
@@ -1920,7 +1993,7 @@ static const device_config_t ms6199va_config[] = {
 
 const device_t ms6199va_device = {
     .name          = "MSI MS-6199VA",
-    .internal_name = "ms6199va_device",
+    .internal_name = "ms6199va",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
