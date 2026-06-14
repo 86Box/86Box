@@ -115,6 +115,7 @@ private:
     VmaAllocation img_allocation;
 
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = nullptr;
+    PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fn_vkGetPhysicalDeviceSurfaceFormatsKHR = nullptr;
 
     PFN_vkCreateSwapchainKHR fn_vkCreateSwapchainKHR = nullptr;
     PFN_vkDestroySwapchainKHR fn_vkDestroySwapchainKHR = nullptr;

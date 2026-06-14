@@ -318,11 +318,25 @@ VulkanWindowRenderer::recreateSwapchain()
         throw vulkan_init_error("Failed to get surface capabilities");
     }
 
+    uint32_t format_count = 0;
+
+    //instance.functions()->vkGet
+    fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, nullptr);
+    std::vector<VkSurfaceFormatKHR> surface_formats(format_count);
+    fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, surface_formats.data());
+    bool passthrough_found = false;
+
+    for (auto& surface_format : surface_formats) {
+        if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM && surface_format.colorSpace == VK_COLOR_SPACE_PASS_THROUGH_EXT) {
+            passthrough_found = true;
+        }
+    }
+
     cleanupSwapchain();
 
     curExtent = surfaceCaps.currentExtent;
-    if (curExtent.width == 0) curExtent.width = width() * devicePixelRatio();
-    if (curExtent.height == 0) curExtent.width = height() * devicePixelRatio();
+    if (curExtent.width == 0 || curExtent.width == ~0u) curExtent.width = width() * devicePixelRatio();
+    if (curExtent.height == 0 || curExtent.height == ~0u) curExtent.height = height() * devicePixelRatio();
 
     if (width() == 0) {
         curExtent.width = 640;
@@ -331,6 +345,7 @@ VulkanWindowRenderer::recreateSwapchain()
     if (height() == 0) {
         curExtent.height = 480;
     }
+    printf("curExtent = %u x %u\n", curExtent.width, curExtent.height);
 
     VkSwapchainCreateInfoKHR swapchain_creation = { };
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -338,11 +353,16 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchain_creation.presentMode              = video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
     swapchain_creation.imageFormat              = VK_FORMAT_B8G8R8A8_UNORM;
+#if defined __unix__ && !defined __HAIKU__
+    // We don't want trouble on Wayland at all.
+    swapchain_creation.imageColorSpace          = passthrough_found ? VK_COLOR_SPACE_PASS_THROUGH_EXT : VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+#else
     swapchain_creation.imageColorSpace          = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+#endif
     swapchain_creation.imageArrayLayers         = 1;
     swapchain_creation.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchain_creation.minImageCount            = std::clamp(surfaceCaps.minImageCount + 1u, surfaceCaps.minImageCount, surfaceCaps.maxImageCount ? surfaceCaps.maxImageCount : std::numeric_limits<uint32_t>::max());
-    swapchain_creation.imageExtent              = surfaceCaps.currentExtent;
+    swapchain_creation.imageExtent              = curExtent;
     swapchain_creation.preTransform             = surfaceCaps.currentTransform;
     swapchain_creation.clipped                  = VK_TRUE;
     swapchain_creation.imageSharingMode         = VK_SHARING_MODE_EXCLUSIVE;
@@ -1088,6 +1108,7 @@ VulkanWindowRenderer::initialize()
                     throw vulkan_init_error("Failed to create logical device");
                 }
                 fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+                fn_vkGetPhysicalDeviceSurfaceFormatsKHR = (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceFormatsKHR");
                 // instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, )
                 // instance.deviceFunctions(logi_device)->vkGetPhysicalDeviceSurfaceCapabilitiesKHR()
                 instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, gfx_queue, 0, &gfx_queue_o);
