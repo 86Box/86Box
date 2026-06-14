@@ -1220,6 +1220,10 @@ VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
 
     if (!isInitialized && isExposed())
         initialize();
+    
+    if (isInitialized && isExposed()) {
+        recreateSwapchain();
+    }
 }
 
 void
