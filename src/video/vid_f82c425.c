@@ -345,8 +345,8 @@ f82c425_recalctimings(f82c425_t *f82c425)
     disptime             = 651;
     _dispontime          = 640;
     _dispofftime         = disptime - _dispontime;
-    f82c425->dispontime  = (uint64_t) (_dispontime * xt_cpu_multi);
-    f82c425->dispofftime = (uint64_t) (_dispofftime * xt_cpu_multi);
+    f82c425->dispontime  = (uint64_t) (int64_t) (_dispontime * xt_cpu_multi);
+    f82c425->dispofftime = (uint64_t) (int64_t) (_dispofftime * xt_cpu_multi);
 }
 
 /* Draw a row of text. */

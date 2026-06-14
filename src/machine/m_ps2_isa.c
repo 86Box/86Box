@@ -185,7 +185,7 @@ static const device_config_t ps2_m30_286_config[] = {
 
 const device_t ps2_m30_286_device = {
     .name          = "IBM PS/2 model 30-286",
-    .internal_name = "ps2_m30_286_device",
+    .internal_name = "ibmps2_m30_286",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

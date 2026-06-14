@@ -203,8 +203,11 @@ SettingsHarddisks::restore()
 }
 
 void
-SettingsHarddisks::save()
+SettingsHarddisks::save(int soft)
 {
+    if (soft)
+        return;
+
     memset(hdd, 0, sizeof(hdd));
 
     auto *model = ui->tableView->model();
@@ -386,7 +389,7 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
     uint32_t bus        = current.siblingAtColumn(ColumnBus).data(DataBus).toUInt();
     uint32_t busChannel = current.siblingAtColumn(ColumnBus).data(DataBusChannel).toUInt();
     uint32_t speed      = current.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
-    uint32_t audio      = ia[current.row()];
+    uint32_t audio      = hidden ? -1 : ia[current.row()];
 
     auto *model = ui->comboBoxBus->model();
     auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);

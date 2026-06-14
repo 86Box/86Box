@@ -38,6 +38,12 @@ extern "C" {
 
 #include "qt_defs.hpp"
 
+static bool
+hasIsaOrSidecarBus(int machineId)
+{
+    return machine_has_bus(machineId, MACHINE_BUS_ISA | MACHINE_BUS_SIDECAR) > 0;
+}
+
 SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsOtherPeripherals)
@@ -81,10 +87,11 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
 
-    bool machineHasIsa = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
+    bool machineHasIsa          = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
+    bool machineHasIsaOrSidecar = hasIsaOrSidecarBus(machineId);
 
-    ui->pushButtonConfigureRTC->setEnabled(machineHasIsa);
-    ui->comboBoxRTC->setEnabled(machineHasIsa);
+    ui->pushButtonConfigureRTC->setEnabled(machineHasIsaOrSidecar);
+    ui->comboBoxRTC->setEnabled(machineHasIsaOrSidecar);
     ui->checkBoxISABugger->setEnabled(machineHasIsa);
     ui->pushButtonConfigureUT->setEnabled(unittester_enabled > 0);
     ui->checkBoxKeyCard->setEnabled(machineHasIsa);
@@ -120,8 +127,10 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         if (name.isEmpty())
             break;
 
-        if (!device_is_valid(isartc_get_device(c), machineId))
-            break;
+        if (!device_is_valid(isartc_get_device(c), machineId)) {
+            ++c;
+            continue;
+        }
 
         int row = Models::AddEntry(model, name, c);
         scRTC->addDevice(nullptr, name);
@@ -131,7 +140,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         ++c;
     }
     ui->comboBoxRTC->setCurrentIndex(selectedRow);
-    ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsa);
+    ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsaOrSidecar);
 
     // ISA Memory Expansion Cards
     QComboBox          *isamem_cbox[ISAMEM_MAX]         = { 0 };
@@ -171,7 +180,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         isamem_cbox[i]->setEnabled(isamem_models[i]->rowCount() > 1);
         isamem_cbox[i]->setCurrentIndex(-1);
         isamem_cbox[i]->setCurrentIndex(isamem_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureIsaMemCard%1").arg(i + 1))->setEnabled((isamem_type[i] != 0) && isamem_has_config(isamem_type[i]) && machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureIsaMemCard%1").arg(i + 1))->setEnabled((isamem_type[i] != 0) && isamem_has_config(isamem_type[i]) && machineHasIsaOrSidecar);
     }
 
     // ISA ROM Expansion Cards
@@ -212,7 +221,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         isarom_cbox[i]->setEnabled(isarom_models[i]->rowCount() > 1);
         isarom_cbox[i]->setCurrentIndex(-1);
         isarom_cbox[i]->setCurrentIndex(isarom_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureIsaRomCard%1").arg(i + 1))->setEnabled((isarom_type[i] != 0) && isarom_has_config(isarom_type[i]) && machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureIsaRomCard%1").arg(i + 1))->setEnabled((isarom_type[i] != 0) && isarom_has_config(isarom_type[i]) && machineHasIsaOrSidecar);
     }
 }
 
@@ -253,8 +262,11 @@ SettingsOtherPeripherals::restore()
 }
 
 void
-SettingsOtherPeripherals::save()
+SettingsOtherPeripherals::save(int soft)
 {
+    if (soft)
+        return;
+
     /* Other peripherals category */
     isartc_type            = ui->comboBoxRTC->currentData().toInt();
     bugger_enabled         = ui->checkBoxISABugger->isChecked() ? 1 : 0;
@@ -281,7 +293,7 @@ SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureRTC->setEnabled((index != 0) && isartc_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureRTC->setEnabled((index != 0) && isartc_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -296,7 +308,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard1_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard1->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaMemCard1->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -311,7 +323,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard2_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard2->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaMemCard2->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -326,7 +338,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard3_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard3->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaMemCard3->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -341,7 +353,7 @@ SettingsOtherPeripherals::on_comboBoxIsaMemCard4_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard4->setEnabled((index != 0) && isamem_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaMemCard4->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -356,7 +368,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard1_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard1->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard1->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -371,7 +383,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard2_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard2->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard2->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -386,7 +398,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard3_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard3->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard3->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void
@@ -401,7 +413,7 @@ SettingsOtherPeripherals::on_comboBoxIsaRomCard4_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaRomCard4->setEnabled((index != 0) && isarom_has_config(index) && machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureIsaRomCard4->setEnabled((index != 0) && isarom_has_config(index) && hasIsaOrSidecarBus(machineId));
 }
 
 void

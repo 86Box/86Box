@@ -96,7 +96,7 @@ static const device_config_t deskpro386_config[] = {
 
 const device_t deskpro386_device = {
     .name          = "Compaq Deskpro 386",
-    .internal_name = "deskpro386_device",
+    .internal_name = "deskpro386",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -371,7 +371,7 @@ static const device_config_t dataexpert386wb_config[] = {
 
 const device_t dataexpert386wb_device = {
     .name          = "DataExpert 386C",
-    .internal_name = "dataexpert386wb_device",
+    .internal_name = "dataexpert386wb",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

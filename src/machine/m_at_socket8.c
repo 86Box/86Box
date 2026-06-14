@@ -146,7 +146,7 @@ static const device_config_t ficpo6000_config[] = {
 
 const device_t ficpo6000_device = {
     .name          = "FIC PO-6000",
-    .internal_name = "ficpo6000_device",
+    .internal_name = "ficpo6000",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -404,8 +404,8 @@ static const device_config_t vs440fx_config[] = {
 };
 
 const device_t vs440fx_device = {
-    .name          = "Intel VS440FX (Venus)",
-    .internal_name = "vs440fx_device",
+    .name          = "Intel VS440FX",
+    .internal_name = "vs440fx",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

@@ -274,8 +274,8 @@ quadcolor_recalctimings(quadcolor_t *quadcolor)
     _dispofftime     = disptime - _dispontime;
     _dispontime      = _dispontime * CGACONST;
     _dispofftime     = _dispofftime * CGACONST;
-    quadcolor->dispontime  = (uint64_t) (_dispontime);
-    quadcolor->dispofftime = (uint64_t) (_dispofftime);
+    quadcolor->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    quadcolor->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static inline uint8_t

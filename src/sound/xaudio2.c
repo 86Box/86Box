@@ -45,18 +45,17 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-static int                     midi_freq     = FREQ_44100;
-static int                     midi_buf_size = 4410;
-static int                     initialized   = 0;
-static IXAudio2               *xaudio2       = NULL;
-static IXAudio2MasteringVoice *mastervoice   = NULL;
-static IXAudio2SourceVoice    *srcvoice      = NULL;
-static IXAudio2SourceVoice    *srcvoicemusic = NULL;
-static IXAudio2SourceVoice    *srcvoicewt    = NULL;
-static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
-static IXAudio2SourceVoice    *srcvoicecd    = NULL;
-static IXAudio2SourceVoice    *srcvoicefdd   = NULL;
-static IXAudio2SourceVoice    *srcvoicehdd   = NULL;
+static int                     initialized    = 0;
+static IXAudio2               *xaudio2        = NULL;
+static IXAudio2MasteringVoice *mastervoice    = NULL;
+static IXAudio2SourceVoice    *srcvoice       = NULL;
+static IXAudio2SourceVoice    *srcvoicemusic  = NULL;
+static IXAudio2SourceVoice    *srcvoicewt     = NULL;
+static IXAudio2SourceVoice    *srcvoicemidi   = NULL;
+static IXAudio2SourceVoice    *srcvoicecd     = NULL;
+static IXAudio2SourceVoice    *srcvoicefdd    = NULL;
+static IXAudio2SourceVoice    *srcvoicehdd    = NULL;
+static IXAudio2SourceVoice    *srcvoiceym2151 = NULL;
 
 extern bool fast_forward;
 
@@ -255,7 +254,7 @@ sound_get_output_devices(void)
 void
 inital(void)
 {
-#if defined(_WIN32) && !defined(USE_FAUDIO)
+    #if defined(_WIN32) && !defined(USE_FAUDIO)
     if (xaudio2_handle == NULL)
         xaudio2_handle = dynld_module("xaudio2_9.dll", xaudio2_imports);
 
@@ -291,7 +290,7 @@ inital(void)
         fmt.wBitsPerSample = 16;
     }
 
-    fmt.nSamplesPerSec  = FREQ;
+    fmt.nSamplesPerSec  = sound_sample_rate;
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
     fmt.cbSize          = 0;
@@ -322,12 +321,18 @@ inital(void)
 
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicecd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
 
-    fmt.nSamplesPerSec  = FREQ;
+    fmt.nSamplesPerSec  = sound_sample_rate;
     fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
     fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
 
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicefdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
     (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicehdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+
+    fmt.nSamplesPerSec  = YM2151_FREQ;
+    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
+    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
+
+    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoiceym2151, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
 
     (void) IXAudio2SourceVoice_SetVolume(srcvoice, 1, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoice, 0, XAUDIO2_COMMIT_NOW);
@@ -336,6 +341,7 @@ inital(void)
     (void) IXAudio2SourceVoice_Start(srcvoicewt, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoicefdd, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_Start(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_Start(srcvoiceym2151, 0, XAUDIO2_COMMIT_NOW);
 
     const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
 
@@ -370,6 +376,8 @@ closeal(void)
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicefdd);
     (void) IXAudio2SourceVoice_Stop(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
     (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicehdd);
+    (void) IXAudio2SourceVoice_Stop(srcvoiceym2151, 0, XAUDIO2_COMMIT_NOW);
+    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoiceym2151);
     if (srcvoicemidi) {
         (void) IXAudio2SourceVoice_Stop(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
         (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemidi);
@@ -380,16 +388,21 @@ closeal(void)
     IXAudio2SourceVoice_DestroyVoice(srcvoicefdd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicehdd);
     IXAudio2SourceVoice_DestroyVoice(srcvoicemusic);
+    IXAudio2SourceVoice_DestroyVoice(srcvoiceym2151);
     IXAudio2SourceVoice_DestroyVoice(srcvoice);
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
     IXAudio2_Release(xaudio2);
-    srcvoice     = NULL;
-    srcvoicecd   = NULL;
-    srcvoicemidi = NULL;
-    srcvoicefdd  = NULL;
-    srcvoicehdd  = NULL;
-    mastervoice  = NULL;
-    xaudio2      = NULL;
+    srcvoice       = NULL;
+    srcvoicemusic  = NULL;
+    srcvoicewt     = NULL;
+    srcvoice       = NULL;
+    srcvoicecd     = NULL;
+    srcvoicemidi   = NULL;
+    srcvoicefdd    = NULL;
+    srcvoicehdd    = NULL;
+    srcvoiceym2151 = NULL;
+    mastervoice    = NULL;
+    xaudio2        = NULL;
 
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     dynld_close(xaudio2_handle);
@@ -427,13 +440,19 @@ givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const siz
 void
 givealbuffer(const void *buf)
 {
-    givealbuffer_common(buf, srcvoice, BUFLEN << 1);
+    givealbuffer_common(buf, srcvoice, (sound_sample_rate / 50) << 1);
 }
 
 void
 givealbuffer_music(const void *buf)
 {
     givealbuffer_common(buf, srcvoicemusic, MUSICBUFLEN << 1);
+}
+
+void
+givealbuffer_ym2151(const void *buf)
+{
+    givealbuffer_common(buf, srcvoiceym2151, YM2151BUFLEN << 1);
 }
 
 void
@@ -506,4 +525,21 @@ void
 givealbuffer_midi(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, srcvoicemidi, size);
+}
+
+int
+sound_get_device_supported_rates(const char *device_name, int *rates_out, int max_rates)
+{
+    /* Candidate rates: only those where rate/50 <= SOUNDBUFLEN to avoid overflowing
+       static device buffers. */
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+    const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
+    int            count    = 0;
+
+    /* Fallback: if detection failed entirely, return all candidates. */
+    for (int i = 0; i < num_cands && i < max_rates; i++)
+        rates_out[i] = candidates[i];
+    count = num_cands;
+
+    return count;
 }

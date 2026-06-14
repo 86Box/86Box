@@ -67,7 +67,8 @@ typedef struct azt2320_t {
     uint16_t cur_mpu401_addr;
     uint16_t cur_opl_addr;
 
-    int cur_irq, cur_dma;
+    int cur_irq;
+    int cur_dma;
     int cur_wss_enabled;
     int cur_wss_irq;
     int cur_wss_dma;
@@ -120,16 +121,22 @@ azt2320_enable_wss(uint8_t enable, void *priv)
 }
 
 static void
-azt2320_get_buffer(int32_t *buffer, int len, void *priv)
+azt2320_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     azt2320_t *azt2320 = (azt2320_t *) priv;
 
     /* wss part */
     ad1848_update(&azt2320->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (azt2320->ad1848.buffer[c] / 2);
 
     azt2320->ad1848.pos = 0;
+}
+
+static void
+azt2320_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    azt2320_t *azt2320 = (azt2320_t *) priv;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, azt2320->sb);
@@ -232,7 +239,7 @@ azt2320_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 }
 
 static void *
-azt2320_init(const device_t *info)
+azt2320_init(UNUSED(const device_t *info))
 {
     azt2320_t *azt2320 = calloc(1, sizeof(azt2320_t));
 
@@ -266,7 +273,7 @@ azt2320_init(const device_t *info)
     azt2320->sb->opl_enabled = device_get_config_int("opl");
 
     if (azt2320->sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &azt2320->sb->opl);
+        fm_driver_get_cs(FM_YMF262, &azt2320->sb->opl);
 
     sb_dsp_set_real_opl(&azt2320->sb->dsp, 1);
     sb_dsp_init(&azt2320->sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_CLONE_AZT2320_0X13, azt2320);
@@ -284,6 +291,7 @@ azt2320_init(const device_t *info)
     io_sethandler(azt2320->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, azt2320->sb);
 
     sound_add_handler(azt2320_get_buffer, azt2320);
+    sound_add_handler(azt2320_get_sbpro_buffer, azt2320);
 
     if (azt2320->sb->opl_enabled) {
         music_add_handler(sb_get_music_buffer_sbpro, azt2320->sb);

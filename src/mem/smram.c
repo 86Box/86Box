@@ -155,7 +155,7 @@ smram_recalc_all(int ret)
     if (ret) {
         while (temp_smram != NULL) {
             if (temp_smram->old_size != 0x00000000)
-                mem_mapping_recalc(temp_smram->old_host_base, temp_smram->old_size);
+                mem_mapping_recalc(temp_smram->old_host_base, temp_smram->old_size, 0x00000000);
             temp_smram->old_host_base = temp_smram->old_size = 0x00000000;
 
             next       = temp_smram->next;
@@ -167,7 +167,7 @@ smram_recalc_all(int ret)
 
     while (temp_smram != NULL) {
         if (temp_smram->size != 0x00000000)
-            mem_mapping_recalc(temp_smram->host_base, temp_smram->size);
+            mem_mapping_recalc(temp_smram->host_base, temp_smram->size, 0x00000000);
 
         next       = temp_smram->next;
         temp_smram = next;
@@ -341,10 +341,7 @@ smram_enable_ex(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t si
 
         mem_mapping_set_addr(&(smr->mapping), smr->host_base, smr->size);
         if (!use_separate_smram || (smr->ram_base >= 0x000a0000)) {
-            if (smr->ram_base < (1 << 30))
-                mem_mapping_set_exec(&(smr->mapping), ram + smr->ram_base);
-            else
-                mem_mapping_set_exec(&(smr->mapping), ram2 + smr->ram_base - (1 << 30));
+            mem_mapping_set_exec(&(smr->mapping), ram + smr->ram_base);
         } else {
             if (smr->ram_base == 0x00030000)
                 mem_mapping_set_exec(&(smr->mapping), smram);

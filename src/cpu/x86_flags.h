@@ -515,6 +515,30 @@ flags_rebuild(void)
     }
 }
 
+/*
+ * Partial flags rebuild for use before ROL/ROR in the dynarec.
+ * ROL/ROR lazy flag types (FLAGS_ROLxx/RORxx) compute CF and VF from
+ * flags_res, but read ZF/NF/PF/AF from cpu_state.flags. So we only
+ * need to materialize those four, saving the CF_SET() and VF_SET() work.
+ */
+static __inline void
+flags_rebuild_zpna(void)
+{
+    if (cpu_state.flags_op != FLAGS_UNKNOWN) {
+        uint16_t tempf = 0;
+        if (PF_SET())
+            tempf |= P_FLAG;
+        if (AF_SET())
+            tempf |= A_FLAG;
+        if (ZF_SET())
+            tempf |= Z_FLAG;
+        if (NF_SET())
+            tempf |= N_FLAG;
+        cpu_state.flags    = (cpu_state.flags & ~0xd4) | tempf;
+        cpu_state.flags_op = FLAGS_UNKNOWN;
+    }
+}
+
 static __inline void
 flags_extract(void)
 {
