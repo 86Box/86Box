@@ -497,6 +497,11 @@ VulkanWindowRenderer::render()
     m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto         cmdBufs = this->cmdBuffers[current_frame];
 
+    if (prev_destination != destination) {
+        recreateShaderSrcImages();
+        prev_destination = destination;
+    }
+
     VkCommandBufferBeginInfo beginInfo { };
     beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags            = 0;       // Optional

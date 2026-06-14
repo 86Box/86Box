@@ -133,6 +133,8 @@ private:
 
     bool imageLayoutTransitioned = false;
 
+    QRect prev_destination;
+
 private slots:
     void render();
 };
