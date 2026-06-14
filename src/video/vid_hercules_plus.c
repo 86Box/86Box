@@ -113,8 +113,8 @@ recalc_timings(herculesplus_t *dev)
     _dispontime *= HERCCONST;
     _dispofftime *= HERCCONST;
 
-    dev->dispontime  = (uint64_t) (_dispontime);
-    dev->dispofftime = (uint64_t) (_dispofftime);
+    dev->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    dev->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static void

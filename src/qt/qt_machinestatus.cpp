@@ -443,9 +443,10 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
     for (size_t i = 0; i < CDROM_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -466,9 +467,10 @@ MachineStatus::iterateRDisk(const std::function<void(int)> &cb)
     for (size_t i = 0; i < RDISK_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((rdisk_drives[i].bus_type == RDISK_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -487,9 +489,10 @@ MachineStatus::iterateMO(const std::function<void(int)> &cb)
     for (size_t i = 0; i < MO_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -508,9 +511,10 @@ MachineStatus::iterateTape(const std::function<void(int)> &cb)
     for (size_t i = 0; i < TAPE_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((tape_drives[i].bus_type == TAPE_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -958,9 +962,10 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_XTA].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
-    if (hasIDE() || (hdc_name.left(5) == QStringLiteral("xtide")) ||
-        (hdc_name.left(5) == QStringLiteral("mcide")) ||
-        (hdc_name.left(3) == QStringLiteral("ide"))) {
+    if (hasIDE() || hdc_name.startsWith(QStringLiteral("xtide")) ||
+        hdc_name.startsWith(QStringLiteral("jride")) ||
+        hdc_name.startsWith(QStringLiteral("mcide")) ||
+        hdc_name.startsWith(QStringLiteral("ide"))) {
         if (c_ide > 0) {
             d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
             d->hdds[HDD_BUS_IDE].setActive(false);

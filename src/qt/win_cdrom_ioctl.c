@@ -14,7 +14,9 @@
  *          Copyright 2023 TheCollector1995.
  *          Copyright 2023 Miran Grca.
  */
+#ifndef UNICODE
 #define UNICODE
+#endif
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP

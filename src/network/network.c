@@ -482,14 +482,14 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     card->byte_period     = NET_PERIOD_10M;
 
     char net_drv_error[NET_DRV_ERRBUF_SIZE];
-    wchar_t tempmsg[NET_DRV_ERRBUF_SIZE * 2];
+    char tempmsg[NET_DRV_ERRBUF_SIZE * 2];
 
     for (int i = 0; i < NET_QUEUE_COUNT; i++) {
         network_queue_init(&card->queues[i]);
     }
 
-    if ((!strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "modem") ||
-         !strcmp(network_card_get_internal_name(net_cards_conf[net_card_current].device_num), "plip")) && (net_type >= NET_TYPE_PCAP)) {
+    const char *nic_name = network_card_get_internal_name(net_cards_conf[net_card_current].device_num);
+    if ((!strcmp(nic_name, "modem") || !strcmp(nic_name, "plip")) && (net_type >= NET_TYPE_PCAP)) {
         /* Force SLiRP here. Modem and PLIP only operate on non-Ethernet frames. */
         net_type = NET_TYPE_SLIRP;
     }
@@ -533,7 +533,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
             // We're here because of a failure
-            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:\n\n%s\n\n%ls", plat_get_string(STRING_NET_ERROR), net_drv_error, plat_get_string(STRING_NET_ERROR_DESC));
+            snprintf(tempmsg, sizeof(tempmsg), plat_get_string(STRING_NET_ERROR), net_drv_error);
             ui_msgbox(MBX_ERROR, tempmsg);
             net_cards_conf[net_card_current].net_type = NET_TYPE_NONE;
         }

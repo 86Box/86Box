@@ -405,8 +405,8 @@ sigma_recalctimings(sigma_t *sigma)
     _dispofftime = disptime - _dispontime;
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
-    sigma->dispontime  = (uint64_t) (_dispontime);
-    sigma->dispofftime = (uint64_t) (_dispofftime);
+    sigma->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    sigma->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 /* Render a line in 80-column text mode */

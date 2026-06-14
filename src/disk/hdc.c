@@ -61,6 +61,7 @@ static const struct {
     { &st506_xt_dtc5150x_device             },
     { &st506_xt_xebec_device                },
     { &xtide_device                         },
+    { &jride_device                         },
     { &st506_xt_st11_m_device               },
     { &st506_xt_st11_r_device               },
     { &xta_st50x_device                     },

@@ -624,6 +624,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa0:
+            if (!nmi_mask && (val & 0x80) && pcjr->latched)
+                nmi = 1;
             nmi_mask = val & 0x80;
             pit_devs[0].set_using_timer(pit_devs[0].data, 1, !(val & 0x20));
             break;

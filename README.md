@@ -23,11 +23,11 @@ Features
 Minimum system requirements and recommendations
 -----------------------------------------------
 
-* Intel Core 2 or AMD Athlon 64 processor or newer
-* Windows version: Windows 7 Service Pack 1 or later
-* Linux version: Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
-* macOS version: macOS 10.14 Mojave or newer
+* 64-bit Intel Core 2, AMD Athlon 64 or ARMv8 processor or newer
 * 4 GB of RAM or higher
+* **Windows version:** Windows 7 Service Pack 1 or newer on Intel/AMD systems; Windows 11 or newer on ARM systems
+* **Linux version:** Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
+* **macOS version:** macOS 10.14 Mojave or newer
 
 Performance may vary depending on host and guest configuration. Most emulation logic is executed in a single thread. Therefore, systems with greater IPC (instructions per clock) capacity should be able to emulate higher clock speeds.
 

@@ -45,7 +45,6 @@ add_library(dev OBJECT
     keyboard_at.c
     keyboard_xt.c
     lpt.c
-    lpt_loopback.c
     mouse.c
     mouse_bus.c
     mouse_microtouch_touchscreen.c
@@ -59,7 +58,6 @@ add_library(dev OBJECT
     postcard.c
     radisys_config.c
     serial.c
-    serial_passthrough.c
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c

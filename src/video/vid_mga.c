@@ -38,15 +38,16 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define ROM_MILLENNIUM    "roms/video/matrox/matrox2064wr2.BIN"
-#define ROM_MILLENNIUM_II "roms/video/matrox/matrox2164wpc.BIN"
-#define ROM_MYSTIQUE      "roms/video/matrox/MYSTIQUE.VBI"
-#define ROM_MYSTIQUE_220  "roms/video/matrox/Myst220_66-99mhz.vbi"
-#define ROM_G100          "roms/video/matrox/productiva8mbsdr.BIN"
+#define ROM_MILLENNIUM        "roms/video/matrox/matrox2064wr2.BIN"
+#define ROM_MILLENNIUM_II     "roms/video/matrox/matrox2164wpc.BIN"
+#define ROM_MILLENNIUM_II_AGP "roms/video/matrox/865-4.bin"
+#define ROM_MYSTIQUE          "roms/video/matrox/MYSTIQUE.VBI"
+#define ROM_MYSTIQUE_220      "roms/video/matrox/Myst220_66-99mhz.vbi"
+#define ROM_G100              "roms/video/matrox/productiva8mbsdr.BIN"
 
 #define FIFO_SIZE        65536
 #define FIFO_MASK        (FIFO_SIZE - 1)
-#define FIFO_ENTRY_SIZE  (1 << 31)
+#define FIFO_ENTRY_SIZE  (UINT32_C(1) << 31)
 #define FIFO_THRESHOLD   0xe000
 
 #define WAKE_DELAY       (100 * TIMER_USEC) /* 100us */
@@ -336,7 +337,7 @@
 #define MACCESS_FOGEN                 (1 << 26)
 #define MACCESS_TLUTLOAD              (1 << 29)
 #define MACCESS_NODITHER              (1 << 30)
-#define MACCESS_DIT555                (1 << 31)
+#define MACCESS_DIT555                (UINT32_C(1) << 31)
 
 #define PITCH_MASK                    0xfe0
 #define PITCH_YLIN                    (1 << 15)
@@ -385,7 +386,7 @@
 #define TEXCTL_CLAMPU                 (1 << 28)
 #define TEXCTL_TMODULATE              (1 << 29)
 #define TEXCTL_STRANS                 (1 << 30)
-#define TEXCTL_ITRANS                 (1 << 31)
+#define TEXCTL_ITRANS                 (UINT32_C(1) << 31)
 
 #define TEXHEIGHT_TH_MASK             (0x3f << 0)
 #define TEXHEIGHT_THMASK_SHIFT        (18)
@@ -438,7 +439,7 @@ typedef struct mystique_t {
 
     rom_t bios_rom;
 
-    int type;
+    int type, is_agp;
 
     mem_mapping_t lfb_mapping, ctrl_mapping,
         iload_mapping;
@@ -663,8 +664,9 @@ static double bayer_mat[4][4] =
     { 15. / 16., 7. / 16., 13. / 16., 5. / 16.},
 };
 
-static video_timings_t timing_matrox_millennium = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
-static video_timings_t timing_matrox_mystique   = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
+static video_timings_t timing_matrox_millennium     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
+static video_timings_t timing_matrox_mystique       = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
+static video_timings_t timing_matrox_mystique_agp   = { .type = VIDEO_AGP, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
 
 static void mystique_start_blit(mystique_t *mystique);
 static void mystique_update_irqs(mystique_t *mystique);
@@ -918,16 +920,16 @@ mystique_getclock(int clock, void *priv)
     const mystique_t *mystique = (mystique_t *) priv;
 
     if (clock == 0)
-        return 25175000.0;
+        return 25175000.0f;
     if (clock == 1)
-        return 28322000.0;
+        return 28322000.0f;
 
     int m  = mystique->xpixpll[2].m;
     int n  = mystique->xpixpll[2].n;
     int pl = mystique->xpixpll[2].p;
 
-    float fvco = 14318181.0 * (n + 1) / (m + 1);
-    float fo   = fvco / (pl + 1);
+    float fvco = 14318181.0f * ((float) n + 1.0f) / ((float) m + 1.0f);
+    float fo   = fvco / ((float) pl + 1.0);
 
     return fo;
 }
@@ -938,29 +940,32 @@ mystique_recalctimings(svga_t *svga)
     mystique_t *mystique = (mystique_t *) svga->priv;
     int         clk_sel  = (svga->miscout >> 2) & 3;
 
-    svga->clock = (cpuclock * (float) (1ULL << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
 
+    svga->htotal = (int) (uint32_t) svga->crtc[0];
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
-        svga->htotal |= 0x100;
+        svga->htotal += 0x100;
+    svga->htotal += 5;
 
-    svga->hblankstart    = (((mystique->crtcext_regs[1] & 0x02) >> 2) << 8) + svga->crtc[2];
+    uint32_t hblankstart = (((mystique->crtcext_regs[1] & 0x02) >> 2) << 8) + svga->crtc[2];
+    svga->hblankstart    = (int) hblankstart;
 
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL10)
-        svga->vtotal |= 0x400;
+        svga->vtotal += 0x400;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL11)
-        svga->vtotal |= 0x800;
+        svga->vtotal += 0x800;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VDISPEND10)
-        svga->dispend |= 0x400;
+        svga->dispend += 0x400;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VBLKSTR10)
-        svga->vblankstart |= 0x400;
+        svga->vblankstart += 0x400;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VBLKSTR11)
-        svga->vblankstart |= 0x800;
+        svga->vblankstart += 0x800;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VSYNCSTR10)
-        svga->vsyncstart |= 0x400;
+        svga->vsyncstart += 0x400;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VSYNCSTR11)
-        svga->vsyncstart |= 0x800;
+        svga->vsyncstart += 0x800;
     if (mystique->crtcext_regs[2] & CRTCX_R2_LINECOMP10)
-        svga->split |= 0x400;
+        svga->split += 0x400;
 
     if (mystique->type == MGA_2064W || mystique->type == MGA_2164W) {
         tvp3026_recalctimings(svga->ramdac, svga);
@@ -971,13 +976,13 @@ mystique_recalctimings(svga_t *svga)
     if (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE) {
         svga->lowres        = 0;
         svga->char_width    = 8;
-        svga->hdisp         = (svga->crtc[1] + 1) << 3;
+        svga->hdisp         = (int) (((uint32_t) (svga->crtc[1] + 1)) << 3);
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
 
         svga->dots_per_clock  = 8;
-        svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                                (((mystique->crtcext_regs[1] & 0x40) >> 6) << 6);
+        svga->hblank_end_val  = (int) (((uint32_t) svga->crtc[3] & 0x1f) | ((((uint32_t) svga->crtc[5] & 0x80) >> 7) << 5) |
+                                      ((((uint32_t) mystique->crtcext_regs[1] & 0x40) >> 6) << 6));
         svga->hblank_end_mask = 0x0000007f;
 
         if (mystique->type != MGA_2164W && mystique->type != MGA_2064W)
@@ -3135,7 +3140,7 @@ run_dma(mystique_t *mystique)
 }
 
 static void
-fifo_thread(void *priv)
+mach64_fifo_thread(void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 
@@ -3801,7 +3806,7 @@ blit_iload_iload(mystique_t *mystique, uint32_t data, int size)
 
                 case DWGCTRL_BLTMOD_BMONOWF:
                     data      = (data >> 24) | ((data & 0x00ff0000) >> 8) | ((data & 0x0000ff00) << 8) | (data << 24);
-                    data_mask = (1 << 31);
+                    data_mask = (UINT32_C(1) << 31);
                 case DWGCTRL_BLTMOD_BMONOLEF:
                     while (size) {
                         if (mystique->dwgreg.xdst >= mystique->dwgreg.cxleft && mystique->dwgreg.xdst <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && ((data & data_mask) || !(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC)) && trans[mystique->dwgreg.xdst & 3]) {
@@ -6357,7 +6362,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 if (mystique->type == MGA_G100)
                     ret = 0x01;
                 else
-                    ret = (mystique->type == MGA_2164W) ? 0x1b : ((mystique->type == MGA_2064W) ? 0x19 : 0x1a);
+                    ret = (mystique->type == MGA_2164W) ? (mystique->is_agp ? 0x1f : 0x1b) : ((mystique->type == MGA_2064W) ? 0x19 : 0x1a);
                 break; /*MGA*/
             case 0x03:
                 if (mystique->type == MGA_G100)
@@ -6475,7 +6480,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 break;
 
             case 0x34:
-                ret = (mystique->type == MGA_G100) ? 0xdc : 0x00;
+                ret = (mystique->type == MGA_G100 || mystique->is_agp) ? 0xdc : 0x00;
                 break;
 
             case 0x3c:
@@ -6780,12 +6785,13 @@ mystique_init(const device_t *info)
     mystique_t *mystique = calloc(1, sizeof(mystique_t));
     const char *romfn = NULL;
 
-    mystique->type = info->local;
+    mystique->type   = info->local;
+    mystique->is_agp = !!(info->flags & DEVICE_AGP);
 
     if (mystique->type == MGA_2064W)
         romfn = ROM_MILLENNIUM;
     else if (mystique->type == MGA_2164W)
-        romfn = ROM_MILLENNIUM_II;
+        romfn = mystique->is_agp ? ROM_MILLENNIUM_II_AGP : ROM_MILLENNIUM_II;
     else if (mystique->type == MGA_1064SG)
         romfn = ROM_MYSTIQUE;
     else if (mystique->type == MGA_G100)
@@ -6807,7 +6813,7 @@ mystique_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
 
     if (mystique->type == MGA_2064W || mystique->type == MGA_2164W) {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, (mystique->type == MGA_2164W) ? &timing_matrox_mystique : &timing_matrox_millennium);
+        video_inform(VIDEO_FLAG_TYPE_SPECIAL, (mystique->type == MGA_2164W) ? (mystique->is_agp ? &timing_matrox_mystique_agp : &timing_matrox_mystique) : &timing_matrox_millennium);
         svga_init(info, &mystique->svga, mystique, mystique->vram_size << 20,
                   mystique_recalctimings,
                   mystique_in, mystique_out,
@@ -6865,9 +6871,10 @@ mystique_init(const device_t *info)
     mystique->pci_regs[0x2e] = mystique->bios_rom.rom[0x7ffa];
     mystique->pci_regs[0x2f] = mystique->bios_rom.rom[0x7ffb];
 
-    mystique->svga.miscout   = 1;
-    mystique->pci_regs[0x41] = 0x01; /* vgaboot = 1 */
-    mystique->pci_regs[0x43] = 0x40; /* biosen = 1 */
+    mystique->svga.miscout    = 1;
+    mystique->svga.adv_flags |= FLAG_PANNING_ATI;
+    mystique->pci_regs[0x41]  = 0x01; /* vgaboot = 1 */
+    mystique->pci_regs[0x43]  = 0x40; /* biosen = 1 */
 
     for (uint16_t c = 0; c < 256; c++) {
         dither5[c][0][0] = c >> 3;
@@ -6898,7 +6905,7 @@ mystique_init(const device_t *info)
     mystique->wake_fifo_thread    = thread_create_event();
     mystique->fifo_not_full_event = thread_create_event();
     mystique->thread_run          = 1;
-    mystique->fifo_thread         = thread_create(fifo_thread, mystique);
+    mystique->fifo_thread         = thread_create(mach64_fifo_thread, mystique);
     mystique->dma.lock            = thread_create_mutex();
 
     timer_add(&mystique->wake_timer, mystique_wake_timer, (void *) mystique, 0);
@@ -6963,6 +6970,12 @@ static int
 millennium_ii_available(void)
 {
     return rom_present(ROM_MILLENNIUM_II);
+}
+
+static int
+millennium_ii_agp_available(void)
+{
+    return rom_present(ROM_MILLENNIUM_II_AGP);
 }
 
 #ifdef USE_G100
@@ -7033,6 +7046,29 @@ static const device_config_t millennium_ii_config[] = {
   // clang-format on
 };
 
+static const device_config_t g100_config[] = {
+  // clang-format off
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "2 MB", .value =  2 },
+            { .description =  "4 MB", .value =  4 },
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t millennium_device = {
     .name          = "Matrox Millennium",
     .internal_name = "millennium",
@@ -7089,6 +7125,20 @@ const device_t millennium_ii_device = {
     .config        = millennium_ii_config
 };
 
+const device_t millennium_ii_agp_device = {
+    .name          = "Matrox Millennium II AGP",
+    .internal_name = "millennium_ii_agp",
+    .flags         = DEVICE_AGP,
+    .local         = MGA_2164W,
+    .init          = mystique_init,
+    .close         = mystique_close,
+    .reset         = NULL,
+    .available     = millennium_ii_agp_available,
+    .speed_changed = mystique_speed_changed,
+    .force_redraw  = mystique_force_redraw,
+    .config        = millennium_ii_config
+};
+
 #ifdef USE_G100
 const device_t productiva_g100_device = {
     .name          = "Matrox Productiva G100",
@@ -7101,6 +7151,6 @@ const device_t productiva_g100_device = {
     .available     = matrox_g100_available,
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
-    .config        = millennium_ii_config
+    .config        = g100_config
 };
 #endif

@@ -227,7 +227,7 @@ optimc_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 }
 
 static void
-opti930_get_buffer(int32_t *buffer, int len, void *priv)
+opti930_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
@@ -237,7 +237,7 @@ opti930_get_buffer(int32_t *buffer, int len, void *priv)
     /* wss part */
     opti930_update_mastervol(optimc);
     ad1848_update(&optimc->ad1848);
-    for (int c = 0; c < len * 2; c++) {
+    for (uint16_t c = 0; c < len * 2; c++) {
         double out_l = 0.0;
         double out_r = 0.0;
 
@@ -249,13 +249,22 @@ opti930_get_buffer(int32_t *buffer, int len, void *priv)
     }
 
     optimc->ad1848.pos = 0;
+}
+
+static void
+opti930_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    if (((optimc->max_reg == 11) && (optimc->regs[3] & 0x4)) || ((optimc->max_reg == 25) && !(optimc->regs[3] & 0x4)))
+        return;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, optimc->sb);
 }
 
 static void
-optimc_get_buffer(int32_t *buffer, int len, void *priv)
+optimc_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
@@ -264,10 +273,19 @@ optimc_get_buffer(int32_t *buffer, int len, void *priv)
 
     /* wss part */
     ad1848_update(&optimc->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (optimc->ad1848.buffer[c] / 2);
 
     optimc->ad1848.pos = 0;
+}
+
+static void
+optimc_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    optimc_t *optimc = (optimc_t *) priv;
+
+    if (optimc->regs[3] & 0x4)
+        return;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, optimc->sb);
@@ -848,7 +866,7 @@ opti930_passwd_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-opti931_passwd_write(uint16_t addr, uint8_t val, void *priv)
+opti931_passwd_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     optimc_t      *optimc           = (optimc_t *) priv;
 
@@ -992,7 +1010,6 @@ static void *
 optimc_init(const device_t *info)
 {
     optimc_t *optimc = calloc(1, sizeof(optimc_t));
-    uint8_t c;
     double  attenuation;
 
     optimc->type = info->local & 0xFF;
@@ -1110,7 +1127,7 @@ optimc_init(const device_t *info)
         optimc->sb->opl_mix   = optimc_filter_opl;
     }
 
-    fm_driver_get(optimc->fm_type, &optimc->sb->opl);
+    fm_driver_get_cs(optimc->fm_type, &optimc->sb->opl);
     io_sethandler(optimc->cur_addr + 0, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(optimc->cur_addr + 8, 0x0002, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, optimc->sb->opl.read, NULL, NULL, optimc->sb->opl.write, NULL, NULL, optimc->sb->opl.priv);
@@ -1119,10 +1136,13 @@ optimc_init(const device_t *info)
 
     io_sethandler(optimc->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, optimc->sb);
 
-    if (optimc->type == OPTI_930)
+    if (optimc->type == OPTI_930) {
         sound_add_handler(opti930_get_buffer, optimc);
-    else
+        sound_add_handler(opti930_get_sbpro_buffer, optimc);
+    } else {
         sound_add_handler(optimc_get_buffer, optimc);
+        sound_add_handler(optimc_get_sbpro_buffer, optimc);
+    }
     if (optimc->fm_type == FM_YMF278B)
         wavetable_add_handler(sb_get_music_buffer_sbpro, optimc->sb);
     else
@@ -1171,7 +1191,7 @@ optimc_init(const device_t *info)
     if (optimc->type == OPTI_930)
         optimc->sb->dsp.sb_timeo = 211;
 
-    for (c = 0; c < 32; c++) {
+    for (uint8_t c = 0; c < 32; c++) {
         attenuation = 0.0;
         if (c & 0x01)
             attenuation -= 1.5;

@@ -11,7 +11,7 @@
  *          also named ATA - AT Attachment.)  The basic ideas was to
  *          put the actual drive controller electronics onto the drive
  *          itself, and have the host machine just talk to that using
- *          a simpe, standardized I/O path- hence the name IDE, for
+ *          a simple, standardized I/O path- hence the name IDE, for
  *          Integrated Drive Electronics.
  *
  *          In the ATA version of IDE, the programming interface of
@@ -28,7 +28,7 @@
  *          mark them as being for this XTBUS variant.
  *
  *          So, XTA and ATA try to do the same thing, but they use
- *          different ways to achive their goal.
+ *          different ways to achieve their goal.
  *
  *          Also, XTA is **not** the same as XTIDE.  XTIDE is a modern
  *          variant of ATA-IDE, but retro-fitted for use on 8bit XT
@@ -147,8 +147,8 @@ enum {
 #define ISR_TERMINATION 0x80 /* termination error */
 
 /* Attention register (4W) values (IBM PS/1 2011.) */
-#define ATT_ABRT 0x01 /* abort command */
-#define ATT_DATA 0x10 /* data request */
+#define ATT_ABRT 0x01 /* abort last command */
+#define ATT_DATA 0x10 /* data request enable */
 #define ATT_SSB  0x20 /* sense summary block */
 #define ATT_CSB  0x40 /* command specify block */
 #define ATT_CCB  0x80 /* command control block */
@@ -511,6 +511,14 @@ set_intr(hdc_t *dev, int raise)
     }
 }
 
+static void
+clear_unused_format(hdc_t *dev, int count)
+{
+    if (count == 0x11) /* OS/2 format */
+        if (CS != 0xe000) /* ROM POST */
+            dev->status &= ~ASR_BUSY;
+}
+
 /* Get the logical (block) address of a CHS triplet. */
 static int
 get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
@@ -755,7 +763,6 @@ hdc_callback(void *priv)
     /* If we are returning from a RESET, handle this first. */
     if (dev->reset) {
         ps1_hdc_log("XTA reset.\n");
-        dev->status &= ~ASR_BUSY;
         dev->ssb.valid = 0;
         dev->reset = 0;
         do_finish(dev);
@@ -822,7 +829,6 @@ do_send:
 
                     /* Ready to transfer the data out. */
                     dev->state   = STATE_SDATA;
-                    dev->status |= ASR_TX_EN;
                     dev->buf_idx = 0;
                     if (ccb->no_data) {
                         /* Delay a bit, no actual transfer. */
@@ -1009,7 +1015,6 @@ do_send:
 do_recv:
                     /* Ready to transfer the data in. */
                     dev->state   = STATE_RDATA;
-                    dev->status |= ASR_TX_EN;
                     dev->buf_idx = 0;
                     if (ccb->no_data) {
                         /* Delay a bit, no actual transfer. */
@@ -1062,7 +1067,6 @@ do_recv:
                     if (get_sector(dev, drive, &addr)) {
                         /* De-activate the status icon. */
                         ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
-
                         do_finish(dev);
                         return;
                     }
@@ -1262,6 +1266,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                             dev->status |= ASR_BUSY;
 
                         /* Schedule command execution. */
+                        clear_unused_format(dev, dev->ccb.count);
                         timer_set_delay_u64(&dev->timer, HDC_SECTOR_TIME);
                     }
                 }
@@ -1315,7 +1320,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
             }
 
             if (val & ATT_CCB) {
-                if (dev->attn & ATT_CCB)
+                if (val & ATT_DATA)
                     /* Hey now, we're still busy for you! */
                     break;
 

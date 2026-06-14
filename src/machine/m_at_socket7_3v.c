@@ -81,7 +81,7 @@ static const device_config_t p54tp4xe_config[] = {
 
 const device_t p54tp4xe_device = {
     .name          = "ASUS P/I-P55TP4XE",
-    .internal_name = "p54tp4xe_device",
+    .internal_name = "p54tp4xe",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -526,8 +526,8 @@ static const device_config_t thor_config[] = {
 };
 
 const device_t thor_device = {
-    .name          = "Intel Advanced/ATX (Thor)",
-    .internal_name = "thor_device",
+    .name          = "Intel Advanced/ATX",
+    .internal_name = "thor",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -802,8 +802,8 @@ static const device_config_t monaco_config[] = {
 };
 
 const device_t monaco_device = {
-    .name          = "Intel Advanced/MA (Monaco)",
-    .internal_name = "monaco_device",
+    .name          = "Intel Advanced/MA",
+    .internal_name = "monaco",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -911,7 +911,7 @@ static const device_config_t ms5119_config[] = {
 
 const device_t ms5119_device = {
     .name          = "MSI MS-5119",
-    .internal_name = "ms5119_device",
+    .internal_name = "ms5119",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1092,7 +1092,7 @@ static const device_config_t fmb_config[] = {
 
 const device_t fmb_device = {
     .name          = "QDI FMB",
-    .internal_name = "fmb_device",
+    .internal_name = "fmb",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1287,7 +1287,7 @@ static const device_config_t d943_config[] = {
 
 const device_t d943_device = {
     .name          = "Siemens-Nixdorf D943",
-    .internal_name = "d943_device",
+    .internal_name = "d943",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1459,8 +1459,8 @@ static const device_config_t c5sbm2_config[] = {
 };
 
 const device_t c5sbm2_device = {
-    .name          = "Chaintech 5SBM/5SBM2 (M103)",
-    .internal_name = "5sbm2_device",
+    .name          = "Chaintech 5SBM2",
+    .internal_name = "5sbm2",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1585,7 +1585,7 @@ static const device_config_t ap5s_config[] = {
 
 const device_t ap5s_device = {
     .name          = "AOpen AP5S",
-    .internal_name = "ap5s_device",
+    .internal_name = "ap5s",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1731,7 +1731,7 @@ static const device_config_t ms5124_config[] = {
 
 const device_t ms5124_device = {
     .name          = "MSI MS-5124",
-    .internal_name = "ms5124_device",
+    .internal_name = "ms5124",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

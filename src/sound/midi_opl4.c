@@ -1,5 +1,6 @@
 // Based off ROBOPLAY's OPL4 MID player code, with some fixes and modifications to make it work well.
 
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -508,13 +509,12 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
 void
 control_change(uint8_t midi_channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
 {
-    int i = 0;
     switch (id) {
         case 10:
             /* Change stereo panning */
             if (midi_channel != DRUM_CHANNEL) {
                 opl4_midi->midi_channel_data[midi_channel].panpot = (value - 0x40) >> 3;
-                for (i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+                for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
                     if (opl4_midi->voice_data[i].is_active && opl4_midi->voice_data[i].midi_channel == &opl4_midi->midi_channel_data[midi_channel]) {
                         update_pan(&opl4_midi->voice_data[i], opl4_midi);
                     }
@@ -527,9 +527,7 @@ control_change(uint8_t midi_channel, uint8_t id, uint8_t value, opl4_midi_t *opl
 void
 pitch_wheel(uint8_t midi_channel, uint16_t value, opl4_midi_t *opl4_midi)
 {
-    int i = 0;
-
-    for (i = 0; i < 24; i++) {
+    for (uint8_t i = 0; i < 24; i++) {
         if (opl4_midi->voice_data[i].is_active && opl4_midi->voice_data[i].midi_channel == &opl4_midi->midi_channel_data[midi_channel]) {
             update_pitch(&opl4_midi->voice_data[i], value, opl4_midi);
         }
@@ -581,6 +579,16 @@ opl4_midi_thread(UNUSED(void *arg))
             for (i = 0; i < (buf_size / 2); i++) {
                 opl4_midi->buffer_float[(i + buf_pos) * 2]       = buffer[i * 2] / 32768.0;
                 opl4_midi->buffer_float[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] / 32768.0;
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    double dl = (double) opl4_midi->buffer_float[(i + buf_pos) * 2];
+                    double dr = (double) opl4_midi->buffer_float[((i + buf_pos) * 2) + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    opl4_midi->buffer_float[(i + buf_pos) * 2] = (float) dl;
+                    opl4_midi->buffer_float[((i + buf_pos) * 2) + 1] = (float) dr;
+                }
             }
             buf_pos += buf_size / 2;
             if (buf_pos >= (buf_size_segments / 2)) {
@@ -591,6 +599,16 @@ opl4_midi_thread(UNUSED(void *arg))
             for (i = 0; i < (buf_size / 2); i++) {
                 opl4_midi->buffer[(i + buf_pos) * 2]       = buffer[i * 2] & 0xFFFF;       /* Outputs are clamped beforehand. */
                 opl4_midi->buffer[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] & 0xFFFF; /* Outputs are clamped beforehand. */
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    double dl = (double) opl4_midi->buffer[(i + buf_pos) * 2];
+                    double dr = (double) opl4_midi->buffer[((i + buf_pos) * 2) + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    opl4_midi->buffer[(i + buf_pos) * 2] = (int16_t) round(dl);
+                    opl4_midi->buffer[((i + buf_pos) * 2) + 1] = (int16_t) round(dr);
+                }
             }
             buf_pos += buf_size / 2;
             if (buf_pos >= (buf_size_segments / 2)) {
@@ -670,7 +688,7 @@ opl4_init(UNUSED(const device_t *info))
 
     opl4_midi_cur = calloc(1, sizeof(opl4_midi_t));
 
-    fm_driver_get(FM_YMF278B, &opl4_midi_cur->opl4);
+    fm_driver_get_cs(FM_YMF278B, &opl4_midi_cur->opl4);
 
     opl4_midi_cur->opl4.write(0x38A, 0x05, opl4_midi_cur->opl4.priv);
     opl4_midi_cur->opl4.write(0x389, 0x3, opl4_midi_cur->opl4.priv);
