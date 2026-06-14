@@ -59,7 +59,7 @@ private:
     void initialize();
 
     void cleanupSwapchain();
-    void recreateSwapchain();
+    void recreateSwapchain(bool force = false);
 
     void cleanupShaderSrcImages();
     void recreateShaderSrcImages();
@@ -91,6 +91,7 @@ private:
     std::vector<VkCommandBuffer> cmdBuffers;
 
     std::vector<VkImage> shaderSrcImages;
+    std::vector<bool> shaderSrcImageTransitioned;
     std::vector<VmaAllocation> shaderSrcImageAllocations;
     std::vector<std::vector<VulkanShaderChain>> shaderFilterChains;
 

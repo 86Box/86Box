@@ -86,6 +86,7 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
 {
     if (isFinalized || !isInitialized)
         return;
+    m_devFuncs->vkDeviceWaitIdle(logi_device);
     for (int i = 0; i < shaderFilterChains.size(); i++) {
         for (int j = 0; j < shaderFilterChains[i].size(); j++) {
             if (j != (shaderFilterChains[i].size() - 1)) {
@@ -96,6 +97,7 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
         }
         vmaDestroyImage(allocator, shaderSrcImages[i], shaderSrcImageAllocations[i]);
     }
+    shaderSrcImageTransitioned.clear();
     shaderFilterChains.clear();
     shaderSrcImages.clear();
     shaderSrcImageAllocations.clear();
@@ -112,6 +114,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
 {
     if (isFinalized || !isInitialized)
         return;
+    m_devFuncs->vkDeviceWaitIdle(logi_device);
     cleanupShaderSrcImages();
     int num_shaders = 0;
     for (int i = 0; i < 20; ++i) {
@@ -121,6 +124,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
             break;
     }
 
+    shaderSrcImageTransitioned.resize(swapchainImageViews.size());
     shaderSrcImages.resize(swapchainImageViews.size());
     shaderSrcImageAllocations.resize(swapchainImageViews.size());
     shaderFilterChains.resize(swapchainImageViews.size());
@@ -209,8 +213,8 @@ VulkanWindowRenderer::cleanupSwapchain()
 {
     if (isFinalized || !isInitialized)
         return;
-    cleanupShaderSrcImages();
     m_devFuncs->vkDeviceWaitIdle(logi_device);
+    cleanupShaderSrcImages();
 
     for (int i = 0; i < swapchainImageViews.size(); i++) {
         m_devFuncs->vkDestroyImageView(logi_device, swapchainImageViews[i], nullptr);
@@ -239,9 +243,8 @@ VulkanWindowRenderer::cleanupSwapchain()
 }
 
 void
-VulkanWindowRenderer::recreateSwapchain()
+VulkanWindowRenderer::recreateSwapchain(bool force)
 {
-    cleanupSwapchain();
     if (isFinalized || !isInitialized)
         return;
     VkSurfaceCapabilitiesKHR surfaceCaps;
@@ -250,6 +253,12 @@ VulkanWindowRenderer::recreateSwapchain()
     } else {
         throw vulkan_init_error("Failed to get surface capabilities");
     }
+    if (!force) {
+        if (curExtent.width == surfaceCaps.currentExtent.width && curExtent.height == surfaceCaps.currentExtent.height)
+            return;
+    }
+
+    cleanupSwapchain();
 
     curExtent = surfaceCaps.currentExtent;
 
@@ -526,7 +535,7 @@ VulkanWindowRenderer::render()
     auto res = fn_vkAcquireNextImageKHR(logi_device, dev_swapchain, (uint64_t) -1, presentSemaphores[current_frame], VK_NULL_HANDLE, &swapchain_image_index);
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
         try {
-            recreateSwapchain();
+            recreateSwapchain(true);
         } catch (const vulkan_init_error &e) {
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
             main_window->reloadAllRenderers();
@@ -542,7 +551,7 @@ VulkanWindowRenderer::render()
         .dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
         .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
         .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        .image            = swapchainImages[swapchain_image_index],
+        .image            = !noshadersloaded ? shaderSrcImages[swapchain_image_index] : swapchainImages[swapchain_image_index],
         .subresourceRange = {
                              .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
                              .baseMipLevel   = 0,
@@ -654,8 +663,8 @@ VulkanWindowRenderer::render()
     const VkImageMemoryBarrier image2_memory_barrier {
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
-        .dstAccessMask    = noshadersloaded ? (VkAccessFlags)(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) : VK_ACCESS_SHADER_READ_BIT,
-        .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .dstAccessMask    = noshadersloaded ? (VkAccessFlags)(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) : (VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT),
+        .oldLayout        = noshadersloaded ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : (shaderSrcImageTransitioned[swapchain_image_index] ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED),
         .newLayout        = noshadersloaded ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         .image            = noshadersloaded ? swapchainImages[swapchain_image_index] : shaderSrcImages[swapchain_image_index],
         .subresourceRange = {
@@ -666,7 +675,7 @@ VulkanWindowRenderer::render()
                              .layerCount     = 1,
                              }
     };
-    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (noshadersloaded ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT), 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (noshadersloaded ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
 
     for (int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
         const VkImageMemoryBarrier image_shader_memory_barrier {
@@ -688,7 +697,7 @@ VulkanWindowRenderer::render()
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
             .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
-            .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
             .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .image            = (i == 0) ? shaderSrcImages[i] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain,
             .subresourceRange = {
@@ -699,8 +708,8 @@ VulkanWindowRenderer::render()
                                 .layerCount     = 1,
                                 }
         };
-        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier);
-        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier_src);
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier);
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier_src);
         auto shader_img_src = (i == 0) ? shaderSrcImages[i] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain;
         auto shader_img_dst = shaderFilterChains[swapchain_image_index][i].next_image_chain;
 
@@ -713,6 +722,25 @@ VulkanWindowRenderer::render()
             libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
         } else
             libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+    }
+
+    if (!noshadersloaded) {
+        const VkImageMemoryBarrier clear_memory_barrier {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            .image            = shaderSrcImages[swapchain_image_index],
+            .subresourceRange = {
+                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel   = 0,
+                                .levelCount     = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount     = 1,
+                                }
+        };
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
     }
 
     VkRenderingAttachmentInfo render_info = {};
@@ -1214,15 +1242,12 @@ void
 VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
 {
     Q_UNUSED(event);
-    this->pixelRatio = devicePixelRatio();
-    onResize(size().width(), size().height());
     QWindow::exposeEvent(event);
 
-    if (!isInitialized && isExposed())
+    if (!isInitialized && isExposed()) {
+        this->pixelRatio = devicePixelRatio();
+        onResize(size().width(), size().height());
         initialize();
-    
-    if (isInitialized && isExposed()) {
-        recreateSwapchain();
     }
 }
 
@@ -1266,7 +1291,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
         if (isInitialized && isExposed())
-            recreateSwapchain();
+            recreateShaderSrcImages();
     }
     if (isExposed() && video_framerate == -1) {
         // requestUpdate();
