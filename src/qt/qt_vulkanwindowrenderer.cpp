@@ -149,7 +149,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
             return;
         }
 
-        img_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+        img_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
         for (int j = 0; j < shaderLibraFilterChains.size(); j++) {
             VulkanShaderChain vk_shader_chain { };
