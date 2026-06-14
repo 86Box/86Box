@@ -321,6 +321,16 @@ VulkanWindowRenderer::recreateSwapchain()
     cleanupSwapchain();
 
     curExtent = surfaceCaps.currentExtent;
+    if (curExtent.width == 0) curExtent.width = width() * devicePixelRatio();
+    if (curExtent.height == 0) curExtent.width = height() * devicePixelRatio();
+
+    if (width() == 0) {
+        curExtent.width = 640;
+    }
+
+    if (height() == 0) {
+        curExtent.height = 480;
+    }
 
     VkSwapchainCreateInfoKHR swapchain_creation = { };
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -1269,7 +1279,12 @@ VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
     }
 
     if (isInitialized && isExposed()) {
-        recreateSwapchain();
+        try {
+            recreateSwapchain();
+        } catch (const vulkan_init_error &e) {
+            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            main_window->reloadAllRenderers();
+        }
     }
 }
 
@@ -1312,8 +1327,13 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     if (origSource != source) {
         this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
-        if (isInitialized && isExposed())
-            recreateSwapchain();
+        try {
+            if (isInitialized && isExposed())
+                recreateSwapchain();
+        } catch (const vulkan_init_error &e) {
+            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            main_window->reloadAllRenderers();
+        }
     }
     if (isExposed() && video_framerate == -1) {
         // requestUpdate();
