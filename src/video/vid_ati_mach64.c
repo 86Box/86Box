@@ -400,9 +400,9 @@ mach64_ext_readb(uint32_t addr, void *priv)
 
     svga_t   *svga   = &mach64->svga;
 
-    if (addr < 0x000bf800)
+    if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_b(addr, svga->mapping.priv);
-    else if (((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+    else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readb: addr=%04x\n", addr);
             switch (addr & 0x3ff) {
@@ -838,9 +838,9 @@ mach64_ext_readw(uint32_t addr, void *priv)
 
     const svga_t   *svga   = &mach64->svga;
 
-    if (addr < 0x000bf800)
+    if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_w(addr, svga->mapping.priv);
-    else if (((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+    else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readw: addr=%04x\n", addr);
             ret = mach64_ext_readb(addr, priv);
@@ -871,9 +871,9 @@ mach64_ext_readl(uint32_t addr, void *priv)
 
     const svga_t   *svga   = &mach64->svga;
 
-    if (addr < 0x000bf800)
+    if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_l(addr, svga->mapping.priv);
-    else if (((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+    else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readl: addr=%04x\n", addr);
             ret = mach64_ext_readw(addr, priv);
@@ -908,9 +908,9 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
 
-    if (addr < 0x000bf800)
+    if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         svga->mapping.write_b(addr, val, svga->mapping.priv);
-    else if (((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+    else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
         if (!(addr & 0x400)) {
@@ -1177,9 +1177,9 @@ mach64_ext_writew(uint32_t addr, uint16_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
 
-    if (addr < 0x000bf800)
+    if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         svga->mapping.write_w(addr, val, svga->mapping.priv);
-    else if (((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+    else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         mach64_log("mach64_ext_writew : addr %08X val %04X\n", addr, val);
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_writew: addr=%04x val=%04x\n", addr, val);
@@ -1199,9 +1199,9 @@ mach64_ext_writel(uint32_t addr, uint32_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
 
-    if (addr < 0x000bf800)
+    if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         svga->mapping.write_l(addr, val, svga->mapping.priv);
-    else if (((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
+    else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         if ((addr & 0x3c0) != 0x200)
             mach64_log("mach64_ext_writel : addr %08X val %08X\n", addr, val);
         if (!(addr & 0x400)) {
