@@ -14,6 +14,7 @@
  */
 #include <QDebug>
 #include <QFileDialog>
+#include <QMessageBox>
 #include <QStringBuilder>
 #include <QLineEdit>
 
@@ -60,6 +61,15 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
         videoCard[i] = gfxcard[i];
 
     ui->lineEditCustomEDID->setFilter(tr("EDID") % util::DlgFilter({ "bin", "dat", "edid", "txt" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+    connect(ui->lineEditCustomEDID, &FileField::fileSelected, [this](const QString &fileName) {
+        uint8_t dummyBuffer[384] = { 0 };
+        size_t size = ddc_load_edid(fileName.toUtf8().data(), dummyBuffer, sizeof(dummyBuffer));
+        if ((size == 0) || (size > 256)) {
+            QMessageBox::critical(this, "EDID", tr((size == 0) ? "EDID file \"%s\" is invalid." : "EDID file \"%s\" is too large.").replace("%s", "%1").arg(fileName));
+            this->ui->lineEditCustomEDID->setFileName(this->previousEDIDPath);
+        } else
+            this->previousEDIDPath = fileName;
+    });
 
     ui->comboBoxScreenType->addItem(tr("RGB Color"), 0);
     ui->comboBoxScreenType->addItem(tr("RGB Grayscale"), 1);
@@ -120,8 +130,21 @@ SettingsDisplay::changed()
 }
 
 void
-SettingsDisplay::save()
+SettingsDisplay::save(int soft)
 {
+    video_grayscale = ui->comboBoxScreenType->currentData().toInt();
+    video_graytype  = ui->comboBoxConversionType->currentData().toInt();
+
+    update_overscan = 1;
+
+    enable_overscan  = ui->checkBoxOverscan->isChecked() ? 1 : 0;
+    vid_cga_contrast = ui->checkBoxContrast->isChecked() ? 1 : 0;
+
+    invert_display = ui->checkBoxInverted->isChecked() ? 1 : 0;
+
+    if (soft)
+        goto end;
+
     // TODO
 #if 0
     for (uint8_t i = 0; i < GFXCARD_MAX; ++i) {
@@ -142,16 +165,7 @@ SettingsDisplay::save()
 
     strncpy(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data(), sizeof(monitor_edid_path) - 1);
 
-    video_grayscale         = ui->comboBoxScreenType->currentData().toInt();
-    video_graytype          = ui->comboBoxConversionType->currentData().toInt();
-
-    update_overscan         = 1;
-
-    enable_overscan         = ui->checkBoxOverscan->isChecked() ? 1 : 0;
-    vid_cga_contrast        = ui->checkBoxContrast->isChecked() ? 1 : 0;
-
-    invert_display          = ui->checkBoxInverted->isChecked() ? 1 : 0;
-
+end:
     for (int i = 0; i < MONITORS_NUM; i++)
         cgapal_rebuild_monitor(i);
 }
@@ -218,6 +232,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
     ui->radioButtonCustom->setChecked(monitor_edid == 1);
     ui->lineEditCustomEDID->setFileName(monitor_edid_path);
     ui->lineEditCustomEDID->setEnabled(monitor_edid == 1);
+    previousEDIDPath = ui->lineEditCustomEDID->fileName();
 }
 
 void
@@ -225,9 +240,11 @@ SettingsDisplay::on_pushButtonConfigureVideo_clicked()
 {
     int   videoCard = ui->comboBoxVideo->currentData().toInt();
     auto *device    = video_card_getdevice(videoCard);
-    if (videoCard == VID_INTERNAL)
+    if (videoCard == VID_INTERNAL) {
         device = machine_get_vid_device(machineId);
-    gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
+        gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
+    } else
+        gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -403,7 +420,7 @@ void
 SettingsDisplay::on_pushButtonConfigureVideoSecondary_clicked()
 {
     auto *device = video_card_getdevice(ui->comboBoxVideoSecondary->currentData().toInt());
-    gfxcard_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device);
+    gfxcard_cfg_changed[1] |= DeviceConfig::ConfigureDevice(device, 2);
 }
 
 void

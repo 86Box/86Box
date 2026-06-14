@@ -2770,10 +2770,16 @@ et4000w32p_init(const device_t *info)
     if (local == USE_CONFIG_BIOS)
         local = device_get_bios_local(info, device_get_config_bios("bios"));
 
+    const uint64_t bios_flags = (info->local == USE_CONFIG_BIOS) ?
+                                device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                0x0000000000000000ULL;
+
     et4000->card_type = local & 0xff;
     et4000->onboard_vid = (local >> 8) & 0xff;
 
     et4000->vram_size = device_get_config_int("memory");
+
+    video_clamp_vram(bios_flags, &et4000->vram_size);
 
     if (info->flags & DEVICE_PCI)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_pci);
@@ -3025,7 +3031,7 @@ static const device_config_t et4000w32p_vlb_config[] = {
   // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "et4000w32p_nc_vlb",
         .default_int    = 0,
@@ -3108,7 +3114,7 @@ static const device_config_t et4000w32p_pci_config[] = {
   // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "et4000w32p_nc_pci",
         .default_int    = 0,

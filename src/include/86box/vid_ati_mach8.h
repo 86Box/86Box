@@ -31,6 +31,8 @@ typedef struct mach_t {
     mem_mapping_t mmio_linear_mapping;
     mem_mapping_t banked_mapping;
 
+    void *log;
+
     int mca_bus;
     int pci_bus;
     int vlb_bus;
@@ -80,10 +82,7 @@ typedef struct mach_t {
     uint8_t overscan_b_col_24;
     uint8_t overscan_g_col_24;
     uint8_t overscan_r_col_24;
-    uint16_t fifo_test_data[17];
-    uint8_t old_on1;
-    uint8_t old_on2;
-    int     crt_resolution;
+    uint16_t fifo_test_data[16];
 
     struct {
         uint8_t  line_idx;
@@ -164,6 +163,7 @@ typedef struct mach_t {
         int      stepx;
         int      stepy;
         int      src_stepx;
+        int      odd_width;
         uint8_t  mono_pattern_normal[16];
         uint8_t  color_pattern[32];
         uint16_t color_pattern_hicol[8];

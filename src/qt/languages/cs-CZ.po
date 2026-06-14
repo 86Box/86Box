@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-04-05 18:51+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-05-30 07:04+0000\n"
+"Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
 "MIME-Version: 1.0\n"
@@ -82,13 +82,13 @@ msgid "&Window scale factor"
 msgstr "&Násobek zvětšení okna"
 
 msgid "&0.5x"
-msgstr "&0.5x"
+msgstr "&0,5x"
 
 msgid "&1x"
 msgstr "&1x"
 
 msgid "1.&5x"
-msgstr "1.&5x"
+msgstr "1,&5x"
 
 msgid "&2x"
 msgstr "&2x"
@@ -142,13 +142,13 @@ msgid "&Integer scale"
 msgstr "&Celočíselné škálování"
 
 msgid "4:&3 Integer scale"
-msgstr "4:&3 Celočíselné škálování"
+msgstr "Celočíselné škálování 4:&3"
 
 msgid "Inverted VGA monitor"
-msgstr "Převrátit barvy"
+msgstr "Monitor VGA s převrácenými barvami"
 
 msgid "VGA screen type:"
-msgstr "Typ VGA monitoru:"
+msgstr "Typ monitoru VGA:"
 
 msgid "RGB Color"
 msgstr "RGB barevný"
@@ -157,7 +157,7 @@ msgid "RGB (no brown)"
 msgstr "RGB (bez hnědé)"
 
 msgid "RGB Grayscale"
-msgstr "Odstíny šedi"
+msgstr "RGB odstíny šedi"
 
 msgid "Generic RGBI color monitor"
 msgstr "Obecný RGBI barevný monitor"
@@ -177,7 +177,6 @@ msgstr "Převod na odstíny šedi:"
 msgid "Average"
 msgstr "Průměr"
 
-#, fuzzy
 msgid "Overscan"
 msgstr "Přesah obrazu"
 
@@ -287,7 +286,7 @@ msgid "E&mpty"
 msgstr "&Vyjmout"
 
 msgid "Reload previous image"
-msgstr "Načíst znova předchozí obraz"
+msgstr "Načíst znovu předchozí obraz"
 
 msgid "&Folder…"
 msgstr "&Složka…"
@@ -329,7 +328,7 @@ msgid "Disk size:"
 msgstr "Velikost disku:"
 
 msgid "RPM mode:"
-msgstr "Režím ot./m:"
+msgstr "Režim ot./m:"
 
 msgid "Progress:"
 msgstr "Průběh:"
@@ -356,19 +355,19 @@ msgid "Machine type:"
 msgstr "Typ počítače:"
 
 msgid "[1989] i486 (Socket 168 and 1)"
-msgstr ""
+msgstr "[1989] i486 (sokety 168 a 1)"
 
 msgid "[1994] i486 (Miscellaneous)"
-msgstr ""
+msgstr "[1994] i486 (ostatní)"
 
 msgid "[1995] Socket 7 (Single Voltage)"
-msgstr ""
+msgstr "[1995] Soket 7 (jednonapěťový)"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr ""
+msgstr "[1996] Soket 7 (dvojnapěťový)"
 
 msgid "Miscellaneous"
-msgstr ""
+msgstr "Ostatní"
 
 msgid "Machine:"
 msgstr "Počítač:"
@@ -419,7 +418,7 @@ msgid "Enabled (UTC)"
 msgstr "Zapnuta (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "Použij interpret 486 pro procesory 286 a 386"
+msgstr "Použít interpreter 486 pro procesory 286 a 386"
 
 msgid "Dynamic Recompiler"
 msgstr "Dynamický překladač"
@@ -443,16 +442,19 @@ msgid "Monitor"
 msgstr "Monitor"
 
 msgid "Voodoo 1 or 2 Graphics"
-msgstr "Použít grafický akcelerátor Voodoo 1 nebo 2"
+msgstr "Povolit grafický akcelerátor Voodoo 1 nebo 2"
 
 msgid "IBM 8514/A Graphics"
-msgstr "Grafika IBM 8514/A"
+msgstr "Povolit grafický adaptér IBM 8514/A"
 
 msgid "XGA Graphics"
-msgstr "Grafika XGA"
+msgstr "Povolit grafický adaptér XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
-msgstr "Grafika zobrazovacího adaptéru IBM PS/55"
+msgstr "Povolit grafický adaptér IBM PS/55"
+
+msgid "Voodoo:"
+msgstr "Voodoo:"
 
 msgid "Keyboard:"
 msgstr "Klávesnice:"
@@ -484,16 +486,16 @@ msgstr "Joystick 3…"
 msgid "Joystick 4…"
 msgstr "Joystick 4…"
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr "Zvuková karta 1:"
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr "Zvuková karta 2:"
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr "Zvuková karta 3:"
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr "Zvuková karta 4:"
 
 msgid "MIDI Out Device:"
@@ -530,49 +532,49 @@ msgid "CD-ROM controller:"
 msgstr "Řadič CD-ROM:"
 
 msgid "Mitsumi interface"
-msgstr ""
+msgstr "Rozhraní Mitsumi"
 
 msgid "MKE/Panasonic interface"
-msgstr ""
+msgstr "Rozhraní MKE/Panasonic"
 
 msgid "MKE/Panasonic interface (Creative)"
-msgstr ""
+msgstr "Rozhraní MKE/Panasonic (Creative)"
 
 msgid "IDE Controller"
 msgstr "Řadič IDE"
 
 msgid "IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Řadič IDE (dvoukanálový)"
 
 msgid "PC/AT IDE Controller"
-msgstr ""
+msgstr "Řadič IDE pro PC/AT"
 
 msgid "PC/AT IDE Controller (Dual-Channel)"
-msgstr ""
+msgstr "Řadič IDE pro PC/AT (dvoukanálový)"
 
 msgid "PC/AT XTIDE (Primary Only)"
-msgstr ""
+msgstr "XTIDE pro PC/AT (pouze primární kanál)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr ""
+msgstr "AT XTIDE pro PS/2 (1.1.5) (pouze primární kanál)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0646 (terciární a kvartérní kanál)"
 
 msgid "CMD PCI-0648 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0648 (terciární a kvartérní kanál)"
 
 msgid "CMD PCI-0649 (Tertiary and Quaternary)"
-msgstr ""
+msgstr "CMD PCI-0649 (terciární a kvartérní kanál)"
 
 msgid "McIDE Controller"
-msgstr ""
+msgstr "Řadič McIDE"
 
 msgid "Tertiary IDE Controller"
-msgstr "Třetí řadič IDE"
+msgstr "Terciární řadič IDE"
 
 msgid "Quaternary IDE Controller"
-msgstr "Čtvrtý řadič IDE"
+msgstr "Kvartérní řadič IDE"
 
 msgid "Hard disk controllers"
 msgstr "Řadiče pevných disků"
@@ -646,6 +648,42 @@ msgstr "Velikost bloků:"
 msgid "Floppy drives"
 msgstr "Disketové mechaniky"
 
+msgid "5.25\" 180k"
+msgstr "5,25\" 180k"
+
+msgid "5.25\" 360k"
+msgstr "5,25\" 360k"
+
+msgid "5.25\" 720k"
+msgstr "5,25\" 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5,25\" 1,2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5,25\" 1,2M 300/360 ot./m"
+
+msgid "3.5\" 360k"
+msgstr "3,5\" 360k"
+
+msgid "3.5\" 720k"
+msgstr "3,5\" 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3,5\" 1,44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3,5\" 1,25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3,5\" 1,44M 300/360 ot./m"
+
+msgid "3.5\" 2.88M"
+msgstr "3,5\" 2,88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3,5\" 2,88M 300/360 ot./m"
+
 msgid "Turbo timings"
 msgstr "Turbo časování"
 
@@ -654,6 +692,9 @@ msgstr "Kontrola BPB"
 
 msgid "CD-ROM drives"
 msgstr "Mechaniky CD-ROM"
+
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
 
 msgid "MO drives"
 msgstr "Magnetooptické mechaniky"
@@ -680,7 +721,7 @@ msgid "LS-240"
 msgstr "LS-240"
 
 msgid "ISA RTC:"
-msgstr "ISA hodiny:"
+msgstr "ISA hodiny reálného času (RTC):"
 
 msgid "ISA Memory Expansion"
 msgstr "ISA rozšíření paměti"
@@ -748,8 +789,8 @@ msgstr "Páskové obrazy"
 msgid "Image %1"
 msgstr "Obraz %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box nenalezl žádné použitelné obrazy pamětí ROM.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 nenalezl žádné použitelné obrazy pamětí ROM.\n\n<a href=\"%2\">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky \"roms\"."
 
 msgid "(empty)"
 msgstr "(prázdné)"
@@ -775,17 +816,14 @@ msgstr "Základní sektorové obrazy"
 msgid "Surface images"
 msgstr "Obrazy povrchu"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Počítač \"%hs\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/machines\". Konfigurace se přepne na jiný dostupný počítač."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Počítač \"%s\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/machines\". Konfigurace se přepne na jiný dostupný počítač."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Video adaptér \"%hs\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/video\". Konfigurace se přepne na jiný dostupný adaptér."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Video adaptér \"%s\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/video\". Konfigurace se přepne na jiný dostupný adaptér."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Video adaptér 2 \"%hs\" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce \"roms/video\". Druhá grafická karta se zakáže."
-
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Zařízení \"%hs\" není dostupné, jelikož chybí obraz jeho paměti ROM. Zařízení je ignorováno."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Zařízení \"%s\" není dostupné, jelikož chybí obraz jeho paměti ROM. Zařízení je ignorováno."
 
 msgid "Machine"
 msgstr "Počítač"
@@ -814,11 +852,35 @@ msgstr "Sériové porty"
 msgid "Serial ports:"
 msgstr "Sériové porty:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Paralelní porty"
 
 msgid "Parallel ports:"
 msgstr "Paralelní porty:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Řadiče úložiště"
@@ -871,17 +933,24 @@ msgstr "KB"
 msgid "Default"
 msgstr "Výchozí"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 čekací stav(y)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n čekací stav"
+msgstr[1] "%n čekací stavy"
+msgstr[2] "%n čekacích stavů"
 
 msgid "Type"
 msgstr "Typ"
 
-msgid "No PCap devices found"
-msgstr "Nebyla nalezena žádná PCap zařízení"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr ""
+"Nebyla nalezena žádná PCap zařízení. Ujistěte se, že je nainstalován %1 a "
+"používáte kompatibilní síťové připojení."
 
-msgid "Invalid PCap device"
-msgstr "Neplatné PCap zařízení"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr ""
+"Neplatné PCap zařízení. Ujistěte se, že je nainstalován %1 a používáte "
+"kompatibilní síťové připojení."
 
 msgid "Generic paddle controller(s)"
 msgstr "Obecný otočný ovladač"
@@ -991,11 +1060,21 @@ msgstr "Opravdu chcete resetovat emulovaný počítač?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Opravdu chcete ukončit 86Box?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Nastala chyba při inicializaci knihovny Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr ""
+"Nastala chyba při inicializaci knihovny Ghostscript. Pro automatický převod "
+"PostScript dokumentů do PDF je potřeba %1.\n"
+"\n"
+"Jakékoliv dokumenty vytisknuté přes obecnou PostScript tiskárnu budou "
+"uloženy jako PostScript (.ps) soubory."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Nastala chyba při inicializaci knihovny GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr ""
+"Nastala chyba při inicializaci knihovny GhostPCL. Pro automatický převod PCL "
+"dokumentů do PDF je potřeba %1.\n"
+"\n"
+"Jakékoliv dokumenty vytisknuté přes obecnou PCL tiskárnu budou uloženy jako "
+"Printer Command Language (.pcl) soubory."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -1051,18 +1130,6 @@ msgstr "Emulátor starých počítačů\n\nAutoři: Miran Grča (OBattler), Rich
 msgid "Hardware not available"
 msgstr "Hardware není dostupný"
 
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Ujistěte se, že je nainstalován %1 a používáte síťové připojení s ním kompatibilní."
-
-msgid "Invalid configuration"
-msgstr "Neplatná konfigurace"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 je potřeba pro automatický převod PostScript dokumentů do PDF.\n\nJakékoliv dokumenty vytisknuté přes obecnou PostScriptovou tiskárnu budou uloženy jako PostScript (.ps) soubory."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 je potřeba pro automatický převod PCL dokumentů do PDF.\n\nJakékoliv dokumenty vytisknuté přes obecnou PCL-ovou tiskárnu budou uloženy jako Printer Command Language (.pcl) soubory."
-
 msgid "Don't show this message again"
 msgstr "Nezobrazovat dále tuto zprávu"
 
@@ -1082,7 +1149,15 @@ msgid "You are loading an unsupported configuration"
 msgstr "Pokoušíte se spustit nepodporovanou konfiguraci"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Pro tuto konfiguraci bylo vypnuto filtrování procesorů podle zvoleného počítače.\n\nToto umožňuje zvolit procesor, který by jinak se zvoleným počítačem nebyl kompatibilní. Můžou však nastat potíže s BIOSem nebo jiným softwarem.\n\nPovolení tohoto nastavení není oficiálně podporováno a jakákoliv hlášení o chybách mohou být uzavřeny jako neplatné."
+msgstr ""
+"Pro tuto konfiguraci bylo vypnuto filtrování procesorů podle zvoleného "
+"počítače.\n"
+"\n"
+"Tento režim umožňuje zvolit procesor, který by jinak se zvoleným počítačem "
+"nebyl kompatibilní. Mohou však nastat potíže s BIOSem nebo jiným softwarem.\n"
+"\n"
+"Povolení tohoto nastavení není oficiálně podporováno a jakákoliv hlášení o "
+"chybách mohou být uzavřeny jako neplatné."
 
 msgid "Continue"
 msgstr "Pokračovat"
@@ -1151,13 +1226,22 @@ msgid "Powered Off"
 msgstr "Vypnuto"
 
 msgid "%n running"
-msgstr "%n běžících"
+msgid_plural "%n running"
+msgstr[0] "%n běžící"
+msgstr[1] "%n běžící"
+msgstr[2] "%n běžících"
 
 msgid "%n paused"
-msgstr "%n pozastavených"
+msgid_plural "%n paused"
+msgstr[0] "%n pozastavený"
+msgstr[1] "%n pozastavené"
+msgstr[2] "%n pozastavených"
 
 msgid "%n waiting"
-msgstr "%n čekajících"
+msgid_plural "%n waiting"
+msgstr[0] "%n čekající"
+msgstr[1] "%n čekající"
+msgstr[2] "%n čekajících"
 
 msgid "%1 total"
 msgstr "%1 celkem"
@@ -1187,7 +1271,10 @@ msgid "Use regular expressions in search box"
 msgstr "Použít ve vyhledávacím poli regulární výrazy"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%n počítač(ů) je stále aktivních. Opravdu chcete ukončit správce virtuálních počítačů?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n počítač je stále aktivní. Opravdu chcete ukončit správce virtuálních počítačů?"
+msgstr[1] "%n počítače jsou stále aktivní. Opravdu chcete ukončit správce virtuálních počítačů?"
+msgstr[2] "%n počítačů je stále aktivních. Opravdu chcete ukončit správce virtuálních počítačů?"
 
 msgid "Add new system wizard"
 msgstr "Průvodce přidáním nového systému"
@@ -1328,10 +1415,11 @@ msgid "Remove directory failed"
 msgstr "Odstranění adresáře se nezdařilo"
 
 msgid "Some files in the machine's directory were unable to be deleted. Please delete them manually."
-msgstr "Některé soubory v adresáři zařízení nebylo možné odstranit. Odstraňte je prosím ručně."
+msgstr ""
+"Některé soubory v adresáři nebylo možné odstranit. Odstraňte je prosím ručně."
 
 msgid "Build"
-msgstr "Build"
+msgstr "Sestavení"
 
 msgid "Version"
 msgstr "Verze"
@@ -1402,9 +1490,6 @@ msgstr "Vypnout skrze rozhraní ACP&I"
 msgid "Hard disk (%1)"
 msgstr "Pevný disk (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "CD-ROM mechaniky pro rozhraní MFM/RLL nebo ESDI nikdy neexistovaly"
-
 msgid "Custom…"
 msgstr "Vlastní…"
 
@@ -1462,11 +1547,37 @@ msgstr "Zvolený soubor bude přepsán. Opravdu jej chcete použít?"
 msgid "Unsupported disk image"
 msgstr "Nepodporovaný obraz disku"
 
-msgid "Overwrite"
-msgstr "Přepsat"
+msgid "Unable to read device"
+msgstr "Nebylo možné číst ze zařízení"
 
-msgid "Don't overwrite"
-msgstr "Nepřepisovat"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr ""
+"Nebylo možné zjistit velikost blokového zařízení. Zkontrolujte, zda máte "
+"oprávnění přistupovat k tomuto zařízení."
+
+msgid "Device too large"
+msgstr "Zařízení je moc velké"
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr "Blokové zařízení je moc velké, aby mohlo být použito jako pevný disk."
+
+msgid "Block device detected"
+msgstr "Detekováno blokové zařízení"
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+"Detekované blokové zařízení: %1\n"
+"Velikost: %2 MB\n"
+"Geometrie: %3 cylindrů, %4 hlav, %5 sektorů"
+
+msgid "Failed to write the disk image."
+msgstr "Selhal zápis obrazu disku."
+
+msgid "Failed to read the disk image."
+msgstr "Selhalo čtení obrazu disku."
+
+msgid "The disk image has been successfully created."
+msgstr "Obraz disku byl úspěšně vytvořen."
 
 msgid "Raw image"
 msgstr "Surový obraz"
@@ -1519,8 +1630,16 @@ msgstr "Soubory VHD"
 msgid "Select the parent VHD"
 msgstr "Vyberte nadřazený VHD disk"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Toto může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl obraz disku kopírován nebo přesunut, nebo kvůli chybě v programu, který jej vytvořil.\n\nChcete časová razítka opravit?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr ""
+"Časová razítka nadřazeného a podřazeného disku nesouhlasí. Toto může "
+"znamenat, že se obsah nadřazeného disku po vytvoření rozdílového disku "
+"změnil.\n"
+"\n"
+"Tato situace také může nastat, pokud byly obrazy zkopírovány nebo přesunuty, "
+"nebo kvůli chybě v programu, který jej vytvořil.\n"
+"\n"
+"Chcete časová razítka opravit?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí"
@@ -1553,13 +1672,13 @@ msgid "720 KB"
 msgstr "720 KB"
 
 msgid "1.2 MB"
-msgstr "1.2 MB"
+msgstr "1,2 MB"
 
 msgid "1.25 MB"
-msgstr "1.25 MB"
+msgstr "1,25 MB"
 
 msgid "1.44 MB"
-msgstr "1.44 MB"
+msgstr "1,44 MB"
 
 msgid "DMF (cluster 1024)"
 msgstr "DMF (cluster 1024)"
@@ -1568,49 +1687,49 @@ msgid "DMF (cluster 2048)"
 msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
-msgstr "2.88 MB"
+msgstr "2,88 MB"
 
 msgid "3.5\" 128 MB (ISO 10090)"
-msgstr "3.5\" 128 MB (ISO 10090)"
+msgstr "3,5\" 128 MB (ISO 10090)"
 
 msgid "3.5\" 230 MB (ISO 13963)"
-msgstr "3.5\" 230 MB (ISO 13963)"
+msgstr "3,5\" 230 MB (ISO 13963)"
 
 msgid "3.5\" 540 MB (ISO 15498)"
-msgstr "3.5\" 540 MB (ISO 15498)"
+msgstr "3,5\" 540 MB (ISO 15498)"
 
 msgid "3.5\" 640 MB (ISO 15498)"
-msgstr "3.5\" 640 MB (ISO 15498)"
+msgstr "3,5\" 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5\" 1.3 GB (GigaMO)"
+msgstr "3,5\" 1,3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3,5\" 2,3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
-msgstr "5.25\" 600 MB"
+msgstr "5,25\" 600 MB"
 
 msgid "5.25\" 650 MB"
-msgstr "5.25\" 650 MB"
+msgstr "5,25\" 650 MB"
 
 msgid "5.25\" 1 GB"
-msgstr "5.25\" 1 GB"
+msgstr "5,25\" 1 GB"
 
 msgid "5.25\" 1.3 GB"
-msgstr "5.25\" 1.3 GB"
+msgstr "5,25\" 1,3 GB"
 
 msgid "Perfect RPM"
-msgstr "Dokonalé otáčky za minutu"
+msgstr "Ideální otáčky za minutu"
 
 msgid "1% below perfect RPM"
-msgstr "1% pod dokonalými ot./m"
+msgstr "1% pod ideálními otáčkami"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% pod dokonalými ot./m"
+msgstr "1,5% pod ideálními otáčkami"
 
 msgid "2% below perfect RPM"
-msgstr "2% pod dokonalými ot./m"
+msgstr "2% pod ideálními otáčkami"
 
 msgid "Creating image…"
 msgstr "Vytváření obrazu probíhá…"
@@ -1618,20 +1737,17 @@ msgstr "Vytváření obrazu probíhá…"
 msgid "(System Default)"
 msgstr "(Výchozí nastavení systému)"
 
-msgid "Failed to initialize network driver"
-msgstr "Nepodařilo se inicializovat síťový ovladač"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "Konfigurace sítě bude přepnuta na nulový ovladač"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Nepodařilo se inicializovat síťový ovladač:\n\n%s\n\nKonfigurace sítě bude přepnuta na nulový ovladač."
 
 msgid "Mouse sensitivity:"
 msgstr "Citlivost myší:"
 
 msgid "Select media images from program working directory"
-msgstr "Výběr mediálních obrazů z pracovního adresáře programu"
+msgstr "Vybírat obrazy médií z pracovního adresáře programu"
 
 msgid "PIT mode:"
-msgstr "Režim PIT:"
+msgstr "Režim časovače:"
 
 msgid "Auto"
 msgstr "Automatický"
@@ -1642,8 +1758,11 @@ msgstr "Pomalý"
 msgid "Fast"
 msgstr "Rychlý"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Automatická pauza při ztrátě zaměření okna"
+msgid "Auto-pause on focus loss"
+msgstr "Automatická pauza při ztrátě zaměření okna"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox již není podporován"
@@ -1661,10 +1780,10 @@ msgid "Device"
 msgstr "Zařízení"
 
 msgid "%1 (X axis)"
-msgstr "%1 (os X)"
+msgstr "%1 (osa X)"
 
 msgid "%1 (Y axis)"
-msgstr "%1 (os Y)"
+msgstr "%1 (osa Y)"
 
 msgid "MCA devices"
 msgstr "Zařízení MCA"
@@ -1691,7 +1810,7 @@ msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Použít režim roztá&hnutí při celé obrazovce pro maximalizované okno"
 
 msgid "&Cursor/Puck"
-msgstr "&Kurzor/Puk"
+msgstr "&Kurzor/puk"
 
 msgid "&Pen"
 msgstr "&Pero"
@@ -1703,7 +1822,7 @@ msgid "&Connected"
 msgstr "&Připojeno"
 
 msgid "Clear image &history"
-msgstr "Vymaž &historie snímků"
+msgstr "Vymaž &historii snímků"
 
 msgid "Create…"
 msgstr "Vytvořit…"
@@ -1759,16 +1878,18 @@ msgstr "Nepodařilo se přepnout na kontext OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "Je vyžadována verze OpenGL 3.0 nebo vyšší. Aktuální verze je %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Chyba při inicializaci OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Chyba při inicializaci OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr ""
-"\n"
-"Obnoví se softwarové vykreslování."
+msgid "Falling back to software rendering."
+msgstr "Obnoví se softwarové vykreslování."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
-msgstr "<html><head/><body><p>Při výběru obrazů médií (CD-ROM, disketa atd.) se otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému MacOS.</p></body></html>"
+msgstr ""
+"<html><head/><body><p>Při výběru obrazů médií (CD-ROM, disketa atd.) se "
+"otevřené dialogové okno spustí ve stejném adresáři jako konfigurační soubor "
+"programu 86Box. Toto nastavení bude mít pravděpodobně význam pouze v systému "
+"macOS.</p></body></html>"
 
 msgid "This machine might have been moved or copied."
 msgstr "Tento počítač mohl být přemístěn nebo zkopírován."
@@ -1783,7 +1904,7 @@ msgid "I Copied It"
 msgstr "Zkopíroval jsem jej"
 
 msgid "86Box Monitor #%1"
-msgstr "86Box Monitor %1"
+msgstr "86Box obrazovka %1"
 
 msgid "No MCA devices."
 msgstr "Žádné zařízení MCA."
@@ -1794,17 +1915,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Síťový adaptér 1"
+msgid "Adapter 1"
+msgstr "Adaptér 1"
 
-msgid "Network Card #2"
-msgstr "Síťový adaptér 2"
+msgid "Adapter 2"
+msgstr "Adaptér 2"
 
-msgid "Network Card #3"
-msgstr "Síťový adaptér 3"
+msgid "Adapter 3"
+msgstr "Adaptér 3"
 
-msgid "Network Card #4"
-msgstr "Síťový adaptér 4"
+msgid "Adapter 4"
+msgstr "Adaptér 4"
 
 msgid "Mode:"
 msgstr "Režim:"
@@ -1951,7 +2072,7 @@ msgid "Enable BIOS extension ROM Writes (ROM #4)"
 msgstr "Povolit zápis do paměti ROM s rozšířením BIOS (ROM 4)"
 
 msgid "Linear framebuffer base"
-msgstr "Začátek lineárního framebufferu"
+msgstr "Základní adresa lineárního framebufferu"
 
 msgid "Address"
 msgstr "Adresa"
@@ -1978,7 +2099,7 @@ msgid "BIOS Language"
 msgstr "Jazyk BIOS"
 
 msgid "Variant"
-msgstr ""
+msgstr "Varianta"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Rozšiřující jednotka IBM 5161"
@@ -2047,31 +2168,31 @@ msgid "MIDI Clockout"
 msgstr "Výstup MIDI hodin"
 
 msgid "Output Gain"
-msgstr "Zesílení výstupu"
+msgstr "Výstupní zesílení"
 
 msgid "Chorus"
-msgstr "Sbor"
+msgstr "Chorus"
 
 msgid "Chorus Voices"
-msgstr "Hlasy sboru"
+msgstr "Hlasy chorusu"
 
 msgid "Chorus Level"
-msgstr "Úroveň sboru"
+msgstr "Úroveň chorusu"
 
 msgid "Chorus Speed"
-msgstr "Rychlost sboru"
+msgstr "Rychlost chorusu"
 
 msgid "Chorus Depth"
-msgstr "Hloubka sboru"
+msgstr "Hloubka chorusu"
 
 msgid "Chorus Waveform"
-msgstr "Průběh sboru"
+msgstr "Tvar vlny chorusu"
 
 msgid "Reverb"
 msgstr "Dozvuk"
 
 msgid "Reverb Room Size"
-msgstr "Velikost místnosti pro dozvuk"
+msgstr "Velikost místnosti"
 
 msgid "Reverb Damping"
 msgstr "Tlumení dozvuku"
@@ -2089,13 +2210,13 @@ msgid "Dynamic Sample Loading"
 msgstr "Dynamické načítání vzorků"
 
 msgid "Reverb Output Gain"
-msgstr "Zesílení výstupu dozvuku"
+msgstr "Výstupní zesílení dozvuku"
 
 msgid "Reversed stereo"
-msgstr "Obrácené stereo"
+msgstr "Prohozené stereo"
 
 msgid "Nice ramp"
-msgstr "Pěkná rampa"
+msgstr "Hladký náběh"
 
 msgid "Hz"
 msgstr "Hz"
@@ -2238,6 +2359,9 @@ msgstr "Vysoký DMA kanál"
 msgid "Control PC speaker"
 msgstr "Ovládat PC Speaker"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Velikost pamĕti"
 
@@ -2263,7 +2387,7 @@ msgid "RGB type"
 msgstr "Typ obrazu RGB"
 
 msgid "Line doubling type"
-msgstr "Typ zdvojení řádku"
+msgstr "Režim zdvojování řádků"
 
 msgid "Snow emulation"
 msgstr "Emulace sněhu"
@@ -2361,36 +2485,64 @@ msgstr "Velikost paměti EMS 2"
 msgid "Enable EMS"
 msgstr "Povolit EMS"
 
-msgid "Enable EMS 1"
-msgstr "Povolit EMS 1"
-
-msgid "Enable EMS 2"
-msgstr "Povolit EMS 2"
-
 msgid "Address for > 2 MB"
 msgstr "Adresa pro > 2 MB"
 
 msgid "Frame Address"
 msgstr "Adresa rámce"
 
-msgid "USA"
-msgstr "Spojené státy"
+msgid "English"
+msgstr "Angličtina"
+
+msgid "English (US)"
+msgstr "Angličtina (USA)"
+
+msgid "English (UK)"
+msgstr "Angličtina (Spojené království)"
+
+msgid "English (Canada)"
+msgstr "Angličtina (Kanada)"
+
+msgid "German"
+msgstr "Němčina"
+
+msgid "French"
+msgstr "Francouzština"
+
+msgid "Spanish"
+msgstr "Španělština"
+
+msgid "Swedish"
+msgstr "Švédština"
+
+msgid "Italian"
+msgstr "Italština"
+
+msgid "Portuguese"
+msgstr "Portugalština"
+
+msgid "Norwegian"
+msgstr "Norština"
+
+msgid "Greek"
+msgstr "Řečtina"
 
 msgid "Danish"
 msgstr "Dánština"
 
 msgid "Always at selected speed"
-msgstr "Vždy při zvolené rychlosti"
+msgstr "Použít vždy zvolenou rychlost"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
 msgstr "Nastavení BIOS + klávesové zkratky (vypnuto během POST)"
 
 msgid "64 KB starting from F0000"
-msgstr "64 KB od F0000"
+msgstr "64 KB počínaje adresou F0000"
 
 msgid "128 KB starting from E0000 (address MSB inverted, last 64 KB first)"
 msgstr ""
-"128 KB od E0000 (invertovaný nejvyšší bit adresy, nejprve posledních 64 KB)"
+"128 KB počínaje adresou E0000 (invertovaný nejvyšší bit adresy, nejprve "
+"posledních 64 KB)"
 
 msgid "Sine"
 msgstr "Sinusový"
@@ -2408,7 +2560,7 @@ msgid "7th Order"
 msgstr "7. řádu"
 
 msgid "Non-timed (original)"
-msgstr "Bez časování (originální)"
+msgstr "Bez časování (původní)"
 
 msgid "45 Hz (JMP2 not populated)"
 msgstr "45 Hz (JMP2 není osazen)"
@@ -2572,9 +2724,6 @@ msgstr "Odstíny šedi"
 msgid "Color"
 msgstr "Barevný"
 
-msgid "U.S. English"
-msgstr "Americká angličtina"
-
 msgid "Scandinavian"
 msgstr "Skandinávské"
 
@@ -2600,7 +2749,7 @@ msgid "Color Non-Interlaced"
 msgstr "Barevný bez prokládání"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Grafický akcelerátor 3dfx Voodoo"
+msgstr "Grafický akcelerátor 3Dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
 msgstr "Grafický akcelerátor 3Dfx Voodoo 2"
@@ -2654,38 +2803,82 @@ msgid "Protection Dongle for Savage Quest"
 msgstr "Ochranný klíč pro Savage Quest"
 
 msgid "Loopback Plug"
-msgstr ""
+msgstr "Loopback adaptér"
 
-#, fuzzy
 msgid "Serial Passthrough"
-msgstr "Zařízení průchodu sériového portu"
+msgstr "Průchod sériového portu"
 
-msgid "Passthrough Mode"
-msgstr "Režim průchodu"
-
-msgid "Host Serial Device"
+msgid "Host serial device"
 msgstr "Hostitelské sériové zařízení"
 
-msgid "Name of pipe"
-msgstr "Název pojmenované roury"
+msgid "Named Pipe"
+msgstr "Pojmenovaná roura"
 
-msgid "Data bits"
-msgstr "Datové bity"
+msgid "Output file"
+msgstr "Výstupní soubor"
 
-msgid "Stop bits"
-msgstr "Stop bity"
+msgid "Append to file if it exists"
+msgstr "Přidat do souboru, pokud již existuje"
 
-msgid "Baud Rate of Passthrough"
-msgstr "Přenosová rychlost průchodu"
+msgid "Input file"
+msgstr "Vstupní soubor"
 
-msgid "Named Pipe (Server)"
-msgstr "Pojmenovaná roura (server)"
+msgid "Loop input file"
+msgstr "Vstupní soubor smyčky"
 
-msgid "Named Pipe (Client)"
-msgstr "Pojmenovaná roura (klient)"
+msgid "Require STROBE signal"
+msgstr "Vyžadovat signál STROBE"
 
-msgid "Host Serial Passthrough"
-msgstr "Průchod sériového portu hostitele"
+msgid "Loopback Type"
+msgstr "Typ loopbacku"
+
+msgid "Parallel cable"
+msgstr "Paralelní kabel"
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr "Jednosměrný (8bitový) / LapLink (4bitový)"
+
+msgid "Bidirectional (8-bit)"
+msgstr "Obousměrný (8bitový)"
+
+msgid "Pipe path"
+msgstr "Cesta k rouře"
+
+msgid "FIFO / terminal"
+msgstr "FIFO / terminál"
+
+msgid "Mode"
+msgstr "Režim"
+
+msgid "Server"
+msgstr "Server"
+
+msgid "Client"
+msgstr "Klient"
+
+msgid "Reconnect automatically"
+msgstr "Automaticky se připojit znova"
+
+msgid "Use standard input/output"
+msgstr "Použít standardní vstup/výstup"
+
+msgid "Create pseudoterminal"
+msgstr "Vytvořit pseudoterminál"
+
+msgid "Start terminal emulator"
+msgstr "Spustit emulátor terminálu"
+
+msgid "Run custom command"
+msgstr "Spustit vlastní příkaz"
+
+msgid "Custom command"
+msgstr "Vlastní příkaz"
+
+msgid "Run custom command in terminal"
+msgstr "Spustit vlastní příkaz v terminálu"
+
+msgid "Virtual Console"
+msgstr "Virtuální konzole"
 
 msgid "E&ject %1"
 msgstr "&Vyjmout %1"
@@ -2694,13 +2887,13 @@ msgid "&Unmute"
 msgstr "&Zrušit ztišení"
 
 msgid "Softfloat FPU"
-msgstr "Softfloat FPU"
+msgstr "Použít Softfloat pro emulaci koprocesoru"
 
 msgid "High performance impact"
 msgstr "Vysoký dopad na výkon"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Obecný] Disk RAM (max. rychlost)"
+msgstr "[Obecný] RAM disk (max. rychlost)"
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
 msgstr "[Obecný] 1983 MFM (3600 ot./m)"
@@ -2729,8 +2922,8 @@ msgstr "[Obecný] 1998 (5400 ot./m)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Obecný] 2000 (7200 ot./m)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "Klon IBM 8514/A (ISA)"
+msgid "IBM 8514/A clone"
+msgstr "Klon IBM 8514/A"
 
 msgid "Vendor"
 msgstr "Výrobce"
@@ -2748,16 +2941,13 @@ msgid "Generic PC/AT Memory Expansion"
 msgstr "Obecné rozšíření paměti PC/AT"
 
 msgid "Generic MM58167 RTC"
-msgstr ""
+msgstr "Obecné hodiny reálného času MM58167"
 
 msgid "OPL2Board (External Device)"
-msgstr ""
+msgstr "OPL2Board (externí zařízení)"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Nebylo možné nalézt písma pro jehličkovou tiskárnu"
-
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "Pro emulaci obecné jehličkové tiskárny ESC/P 2 jsou vyžadována písma TrueType ve složce \"roms/printer/fonts\"."
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Nebylo možné nalézt písma pro jehličkovou tiskárnu. Pro emulaci obecné jehličkové tiskárny ESC/P 2 jsou vyžadována písma TrueType ve složce \"roms/printer/fonts\"."
 
 msgid "Inhibit multimedia keys"
 msgstr "Potlačit stisk multimediálních kláves"
@@ -2817,10 +3007,10 @@ msgid "Could not load file %1"
 msgstr "Nebylo možné načíst soubor %1"
 
 msgid "Emulator"
-msgstr ""
+msgstr "Emulátor"
 
 msgid "Input"
-msgstr ""
+msgstr "Vstup"
 
 msgid "Key bindings"
 msgstr "Nastavení kláves"
@@ -2869,6 +3059,9 @@ msgstr "Pozastavit nebo obnovit"
 
 msgid "Toggle mute"
 msgstr "Přepnout ztišení"
+
+msgid "Toggle on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "Textové soubory"
@@ -2919,7 +3112,10 @@ msgid "%1 VM Manager"
 msgstr "Správce virtuálních počítačů %1"
 
 msgid "%n disk(s)"
-msgstr "%n disk(ů)"
+msgid_plural "%n disks"
+msgstr[0] "%n disk"
+msgstr[1] "%n disky"
+msgstr[2] "%n disků"
 
 msgid "Unknown Status"
 msgstr "Neznámý stav"
@@ -3029,8 +3225,11 @@ msgstr "Exportovat…"
 msgid "Export EDID"
 msgstr "Exportovat EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Soubor EDID \"%ls\" je příliš velký."
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
+msgid "EDID file \"%s\" is too large."
+msgstr "Soubor EDID \"%s\" je příliš velký."
 
 msgid "OpenGL input scale"
 msgstr "Měřítko vstupu OpenGL"
@@ -3072,10 +3271,173 @@ msgid "Raw"
 msgstr "Surový"
 
 msgid "Use EDC/ECC emulation"
-msgstr ""
+msgstr "Povolit emulaci EDC/ECC"
 
 msgid "Audio output device:"
 msgstr "Výstupní zvukové zařízení:"
 
 msgid "System Default"
 msgstr "Výchozí nastavení systému"
+
+msgid "Unable to open image or folder \"%s\"."
+msgstr "Nebylo možné otevřít obraz nebo složku \"%s\"."
+
+msgid "Unable to open cue sheet \"%s\"."
+msgstr "Nebylo možné otevřít cue seznam \"%s\"."
+
+msgid "Unable to open MDS file \"%s\"."
+msgstr "Nebylo možné otevřít MDS soubor \"%s\"."
+
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr "Nebylo možné načíst obraz CD-ROM disku \"%s\"."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+"Nebylo možné načíst obraz \"%s\": nebyla nalezena knihovna %1, která je "
+"potřeba pro podporu obrazů v Daemon Tools formátech MDS v2 a MDX."
+
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr ""
+"Obraz DVD disku \"%s\" byl vložen do jednotky, která nepodporuje média DVD a "
+"bude ignorován."
+
+msgid "%s: Could not connect to %s: %s"
+msgstr "%s: Nebylo možné se připojit k %s: %s"
+
+msgid "%s: Could not create %s: %s"
+msgstr "%s: Nebylo možné vytvořit %s: %s"
+
+msgid "%s: Attached to %s"
+msgstr "%s: Připojeno k %s"
+
+msgid "%s: Virtual console already in use by %s"
+msgstr "%s: Virtuální konzoli již používá %s"
+
+msgid "%s: Could not create terminal: %s"
+msgstr "%s: Nebylo možné vytvořit terminál: %s"
+
+msgid "Auto-detect"
+msgstr "Automaticky detekovat"
+
+msgid "Channel"
+msgstr "Kanál"
+
+msgid "Both Channels"
+msgstr "Oba kanály"
+
+msgid "Left Channel"
+msgstr "Levý kanál"
+
+msgid "Right Channel"
+msgstr "Pravý kanál"
+
+msgid "Allow Flash BIOS Updates"
+msgstr "Povolit aktualizace Flash BIOS"
+
+msgid "Slot #"
+msgstr "Číslo slotu"
+
+msgid "Parallel Port"
+msgstr "Paralelní port"
+
+msgid "Paper Size"
+msgstr "Velikost papíru"
+
+msgid "Letter"
+msgstr "Letter"
+
+msgid "Legal (sideways)"
+msgstr "Legal (na šířku)"
+
+msgid "B4 (sideways)"
+msgstr "B4 (na šířku)"
+
+msgid "Quality"
+msgstr "Kvalita"
+
+msgid "Draft"
+msgstr "Koncept"
+
+msgid "(Near) Letter"
+msgstr "(Téměř) dopisová"
+
+msgid "Auto LF"
+msgstr "Automatický posun řádku"
+
+msgid "Tandy PSSJ Clone"
+msgstr "Klon Tandy PSSJ"
+
+msgid "PC-CM (Color)"
+msgstr "PC-CM (barevný)"
+
+msgid "PC-MM (Monochrome)"
+msgstr "PC-MM (monochromatický)"
+
+msgid "White Monochrome"
+msgstr "Bílý monochromatický"
+
+msgid "Hardware font"
+msgstr "Hardwarové písmo"
+
+msgid "Diagnostic mode"
+msgstr "Diagnostický režím"
+
+msgid "CGA monitor"
+msgstr "Monitor CGA"
+
+msgid "MDA monitor"
+msgstr "Monitor MDA"
+
+msgid "Television"
+msgstr "Televizor"
+
+msgid "Invert LCD colors"
+msgstr "Převrátit barvy LCD"
+
+msgid "LCD (CGA mode)"
+msgstr "LCD (režim CGA)"
+
+msgid "LCD (MDA mode)"
+msgstr "LCD (režim MDA)"
+
+msgid "Disabled (250h)"
+msgstr "Vypnuto (250h)"
+
+msgid "Enabled (350h)"
+msgstr "Zapnuto (350h)"
+
+msgid "Test mode"
+msgstr "Testovací režím"
+
+msgid "32 MB"
+msgstr "32 MB"
+
+msgid "64 MB"
+msgstr "64 MB"
+
+msgid "2048 MB"
+msgstr "2048 MB"
+
+msgid "Refresh rate"
+msgstr "Obnovovací frekvence"
+
+msgid "US (CP 437)"
+msgstr "USA (CP 437)"
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr "IBM severské (CP 437-Nordic)"
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr "České - kód Kamenických (CP 895) #1"
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr "České - kód Kamenických (CP 895) #2"
+
+msgid "932 (Japanese)"
+msgstr "932 (japonština)"
+
+msgid "938 (Traditional Chinese)"
+msgstr "938 (klasická čínština)"
+
+msgid "Sample rate:"
+msgstr ""

@@ -3230,9 +3230,7 @@ next: /* Clean up. */
     }
 
     /* Map RAM to container for DMA. */
-    vfio_map_dma(ram, 0, 1024UL * MIN(mem_size, 1048576));
-    if (ram2)
-        vfio_map_dma(ram2, 1024UL * 1048576, 1024UL * (mem_size - 1048576));
+    vfio_map_dma(ram, 0, 1024UL * mem_size);
 
     /* Initialize epoll. */
     epoll_fd = epoll_create1(0);

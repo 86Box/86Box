@@ -13,6 +13,7 @@ class VulkanWindowRenderer : public QVulkanWindow, public RendererCommon {
     Q_OBJECT
 public:
     VulkanWindowRenderer(QWidget *parent);
+    void finalize() override final;
 public slots:
     void onBlit(int buf_idx, int x, int y, int w, int h);
 signals:

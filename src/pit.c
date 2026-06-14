@@ -955,12 +955,13 @@ pit_init(const device_t *info)
 
     pit_set_pit_const(dev, PITCONST);
 
+    dev->flags = info->local;
+
     if (!(dev->flags & PIT_PS2) && !(dev->flags & PIT_CUSTOM_CLOCK)) {
         timer_add(&dev->callback_timer, pit_timer_over, (void *) dev, 0);
         timer_set_delay_u64(&dev->callback_timer, dev->pit_const >> 1ULL);
     }
 
-    dev->flags = info->local;
     dev->dev_priv = NULL;
 
     if (!(dev->flags & PIT_EXT_IO)) {
@@ -1223,7 +1224,10 @@ pit_set_clock(uint32_t clock)
             PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
         }
 
-        ISACONST = (1ULL << 32ULL);
+        if (cpuclock == 24000000.0)
+            ISACONST     = (uint64_t) ((cpuclock / 14318184.0) * (double) (1ULL << 32));
+        else
+            ISACONST = (1ULL << 32ULL);
     }
     xt_cpu_multi <<= 32ULL;
 

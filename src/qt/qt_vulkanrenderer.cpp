@@ -38,6 +38,8 @@
 #if QT_CONFIG(vulkan)
 #    include <QVulkanFunctions>
 
+#    include "qt_osd.hpp"
+
 extern "C" {
 #    include <86box/86box.h>
 }
@@ -425,11 +427,34 @@ VulkanRenderer2::updateSamplers()
     }
 }
 
+PFN_vkVoidFunction vk_function_ret_callback(const char *function_name, void *user_data)
+{
+    QVulkanInstance* inst = (QVulkanInstance*)user_data;
+
+    return inst->getInstanceProcAddr(function_name);
+}
+
 void
 VulkanRenderer2::initResources()
 {
     VkDevice dev = m_window->device();
     m_devFuncs   = m_window->vulkanInstance()->deviceFunctions(dev);
+
+    init_info = {};
+    init_info.ApiVersion = VK_VERSION_1_0;
+    init_info.Instance = m_window->vulkanInstance()->vkInstance();
+    init_info.PhysicalDevice = m_window->physicalDevice();
+    init_info.Device = m_window->device();
+    init_info.QueueFamily = m_window->graphicsQueueFamilyIndex();
+    init_info.Queue = m_window->graphicsQueue();
+
+    init_info.DescriptorPoolSize = 16;
+    init_info.MinImageCount = 2;
+    init_info.ImageCount = 64;
+
+    init_info.PipelineInfoMain.RenderPass = m_window->defaultRenderPass();
+    init_info.PipelineInfoMain.Subpass = 0;
+    qt_osd_start_vulkan(vk_function_ret_callback, m_window->vulkanInstance(), &init_info);
 
     // The setup is similar to hellovulkantriangle. The difference is the
     // presence of a second vertex attribute (texcoord), a sampler, and that we
@@ -811,6 +836,8 @@ VulkanRenderer2::initSwapChainResources()
 {
     // Projection matrix
     m_proj = m_window->clipCorrectionMatrix(); // adjust for Vulkan-OpenGL clip space differences
+    qt_osd_vulkan_set_min_image(m_window->swapChainImageCount());
+    init_info.MinImageCount = m_window->swapChainImageCount();
 }
 
 void
@@ -822,6 +849,8 @@ void
 VulkanRenderer2::releaseResources()
 {
     VkDevice dev = m_window->device();
+
+    qt_osd_shutdown();
 
     if (m_sampler) {
         m_devFuncs->vkDestroySampler(dev, m_sampler, nullptr);
@@ -892,6 +921,16 @@ VulkanRenderer2::releaseResources()
         m_devFuncs->vkFreeMemory(dev, m_bufMem, nullptr);
         m_bufMem = VK_NULL_HANDLE;
     }
+}
+
+void
+VulkanRenderer2::drawOsd(VkCommandBuffer cb, const QSize &swapSize)
+{
+    if (!qt_osd_is_visible())
+        return;
+
+    qt_osd_set_layout_scale_hint(qobject_cast<VulkanWindowRenderer *>(m_window)->osdLayoutScaleHint());
+    qt_osd_render(m_window->width(), m_window->height(), m_window->devicePixelRatio(), (void*)cb);
 }
 
 void
@@ -980,6 +1019,9 @@ VulkanRenderer2::startNextFrame()
     m_devFuncs->vkCmdSetScissor(cb, 0, 1, &scissor);
 
     m_devFuncs->vkCmdDraw(cb, 4, 1, 0, 0);
+
+    // Composite the OSD overlay on top of the scene, covering the full window.
+    drawOsd(cb, sz);
 
     m_devFuncs->vkCmdEndRenderPass(cmdBuf);
 

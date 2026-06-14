@@ -101,7 +101,8 @@ enum {
     S3_VIRGE_GX,
     S3_VIRGE_GX2,
     S3_DIAMOND_STEALTH3D_4000,
-    S3_TRIO_3D2X
+    S3_TRIO_3D2X,
+    S3_VIRGE_USE_CONFIG_BIOS
 };
 
 enum {
@@ -200,6 +201,8 @@ typedef struct virge_t {
 
     uint8_t bank;
     uint8_t ma_ext;
+    uint8_t override;
+    uint8_t mon_det;
 
     uint8_t virge_id;
     uint8_t virge_id_high;
@@ -406,6 +409,9 @@ static void s3_virge_updatemapping(virge_t *virge);
 
 static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat);
 
+static void s3_virge_out(uint16_t addr, uint8_t val, void *priv);
+static uint8_t s3_virge_in(uint16_t addr, void *priv);
+
 static uint8_t  s3_virge_mmio_read(uint32_t addr, void *priv);
 static uint16_t s3_virge_mmio_read_w(uint32_t addr, void *priv);
 static uint32_t s3_virge_mmio_read_l(uint32_t addr, void *priv);
@@ -491,6 +497,30 @@ s3_virge_update_irq_timer(void *priv)
     }
 
     timer_on_auto(&virge->irq_timer, 100.);
+}
+
+
+static void
+s3_virge_serialport_ddc_write(virge_t *virge, uint8_t *reg, uint8_t val)
+{
+    *reg = val & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
+    if (*reg & 0x10)
+        i2c_gpio_set(virge->i2c, !!(*reg & SERIAL_PORT_SCW), !!(*reg & SERIAL_PORT_SDW));
+}
+
+static uint8_t
+s3_virge_serialport_ddc_read(virge_t *virge, uint8_t reg)
+{
+    uint8_t temp;
+
+    temp = reg;
+    if (reg & 0x10) {
+        if (i2c_gpio_get_scl(virge->i2c) && (reg & SERIAL_PORT_SCW))
+            temp |= SERIAL_PORT_SCR;
+        if (i2c_gpio_get_sda(virge->i2c) && (reg & SERIAL_PORT_SDW))
+            temp |= SERIAL_PORT_SDR;
+    }
+    return temp;
 }
 
 static void
@@ -661,19 +691,17 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x67:
                     switch (val >> 4) {
-                        case 2:
-                        case 3:
+                        case 0x02:
+                        case 0x03:
                             svga->bpp = 15;
                             break;
-                        case 4:
-                        case 5:
+                        case 0x04:
+                        case 0x05:
                             svga->bpp = 16;
                             break;
-                        case 7:
+                        case 0x07:
+                        case 0x0d:
                             svga->bpp = 24;
-                            break;
-                        case 13:
-                            svga->bpp = (virge->chip == S3_VIRGEVX) ? 24 : 32;
                             break;
                         default:
                             svga->bpp = 8;
@@ -682,7 +710,8 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0xaa:
-                    i2c_gpio_set(virge->i2c, !!(val & SERIAL_PORT_SCW), !!(val & SERIAL_PORT_SDW));
+                    if (virge->chip >= S3_VIRGEGX2)
+                        s3_virge_serialport_ddc_write(virge, &svga->crtc[0xaa], val);
                     break;
 
                 default:
@@ -702,6 +731,11 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                     }
                 }
             }
+            break;
+
+        case 0xe2:
+        case 0xe8:
+            s3_virge_serialport_ddc_write(virge, &virge->serialport, val);
             break;
 
         default:
@@ -726,6 +760,18 @@ s3_virge_in(uint16_t addr, void *priv)
                 ret = 0xff;
             else
                 ret = svga_in(addr, svga);
+            break;
+
+        case 0x3c2:
+            if (virge->override) {
+                ret = virge->mon_det;
+                virge->mon_det ^= 0x10;
+            } else {
+                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+                    ret = 0;
+                else
+                    ret = 0x10;
+            }
             break;
 
         case 0x3c5:
@@ -792,11 +838,7 @@ s3_virge_in(uint16_t addr, void *priv)
 
                 case 0xaa: /* DDC */
                     if (virge->chip >= S3_VIRGEGX2) {
-                        ret = svga->crtc[0xaa] & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
-                        if ((svga->crtc[0xaa] & SERIAL_PORT_SCW) && i2c_gpio_get_scl(virge->i2c))
-                            ret |= SERIAL_PORT_SCR;
-                        if ((svga->crtc[0xaa] & SERIAL_PORT_SDW) && i2c_gpio_get_sda(virge->i2c))
-                            ret |= SERIAL_PORT_SDR;
+                        ret = s3_virge_serialport_ddc_read(virge, svga->crtc[0xaa]);
                         break;
                     } else
                         ret = svga->crtc[0xaa];
@@ -806,6 +848,13 @@ s3_virge_in(uint16_t addr, void *priv)
                     ret = svga->crtc[svga->crtcreg];
                     break;
             }
+            break;
+
+        case 0xe2:
+        case 0xe3:
+        case 0xe8:
+        case 0xe9:
+            ret = s3_virge_serialport_ddc_read(virge, virge->serialport);
             break;
 
         default:
@@ -842,20 +891,50 @@ s3_virge_recalctimings(svga_t *svga)
             svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
     }
 
-    if (svga->crtc[0x5d] & 0x01)
-        svga->htotal |= 0x100;
-    if (svga->crtc[0x5d] & 0x02) {
-        svga->hdisp_time |= 0x100;
-        svga->hdisp |= (0x100 * svga->dots_per_clock);
-    }
+    svga->htotal = svga->crtc[0] + ((svga->crtc[0x5d] & 0x01) ? 0x100 : 0);
+    /* +5 has been verified by Sergi to be correct - +6 must have been an off by one error. */
+    svga->htotal += 5; /*+5 is required for Tyrian*/
+
+    svga->hdisp = svga->crtc[1] + ((svga->crtc[0x5d] & 0x02) ? 0x100 : 0);
+    if (svga->crtc[1] & 1)
+        svga->hdisp++;
+
+    svga->hdisp_time = svga->hdisp;
+
+    svga->hdisp *= svga->dots_per_clock;
+
+    if (svga->crtc[7] & 1)
+        svga->vtotal |= 0x100;
+    if (svga->crtc[7] & 32)
+        svga->vtotal |= 0x200;
     if (svga->crtc[0x5e] & 0x01)
         svga->vtotal |= 0x400;
+    svga->vtotal += 2;
+
+    if (svga->crtc[7] & 2)
+        svga->dispend |= 0x100;
+    if (svga->crtc[7] & 64)
+        svga->dispend |= 0x200;
     if (svga->crtc[0x5e] & 0x02)
         svga->dispend |= 0x400;
+    svga->dispend++;
+
+    if (svga->crtc[7] & 0x08)
+        svga->vblankstart |= 0x100;
+    if (svga->crtc[9] & 0x20)
+        svga->vblankstart |= 0x200;
     if (svga->crtc[0x5e] & 0x04)
         svga->vblankstart |= 0x400;
+    svga->vblankstart++;
+
+    if (svga->crtc[7] & 4)
+        svga->vsyncstart |= 0x100;
+    if (svga->crtc[7] & 128)
+        svga->vsyncstart |= 0x200;
     if (svga->crtc[0x5e] & 0x10)
-    svga->vsyncstart |= 0x400;
+        svga->vsyncstart |= 0x400;
+    svga->vsyncstart++;
+
     svga->split       = svga->crtc[0x18];
     if (svga->crtc[7] & 0x10)
         svga->split |= 0x100;
@@ -864,6 +943,7 @@ s3_virge_recalctimings(svga_t *svga)
     if (svga->crtc[0x5e] & 0x40)
         svga->split |= 0x400;
     svga->split++;
+
     svga->interlace = svga->crtc[0x42] & 0x20;
 
     if (((svga->miscout >> 2) & 3) == 3) {
@@ -917,6 +997,13 @@ s3_virge_recalctimings(svga_t *svga)
             switch (svga->bpp) {
                 case 8:
                     svga->render = svga_render_8bpp_highres;
+                    if (virge->chip == S3_VIRGEGX2) {
+                        if (svga->seqregs[0x18] & 0x80) {
+                            svga->hdisp <<= 1;
+                            svga->dots_per_clock <<= 1;
+                            svga->clock *= 2.0;
+                        }
+                    }
                     break;
                 case 15:
                     svga->render = svga_render_15bpp_highres;
@@ -924,6 +1011,12 @@ s3_virge_recalctimings(svga_t *svga)
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         svga->clock /= 2.0;
+                    } else if ((virge->chip == S3_VIRGEGX2)) {
+                        if (svga->seqregs[0x18] & 0x80) {
+                            svga->hdisp >>= 1;
+                            svga->dots_per_clock >>= 1;
+                            svga->clock *= 2.0;
+                        }
                     }
                     break;
                 case 16:
@@ -932,15 +1025,22 @@ s3_virge_recalctimings(svga_t *svga)
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         svga->clock /= 2.0;
+                    } else if (virge->chip == S3_VIRGEGX2) {
+                        if (svga->seqregs[0x18] & 0x80) {
+                            svga->hdisp >>= 1;
+                            svga->dots_per_clock >>= 1;
+                            svga->clock *= 2.0;
+                        }
                     }
                     break;
                 case 24:
                     svga->render = svga_render_24bpp_highres;
                     if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2))
                         svga->rowoffset = (svga->rowoffset * 3) >> 2; /*Hack*/
-                    break;
-                case 32:
-                    svga->render = svga_render_32bpp_highres;
+                    else if (virge->chip == S3_VIRGEGX2) {
+                        if (svga->seqregs[0x18] & 0x80)
+                            svga->clock *= 2.0;
+                    }
                     break;
 
                 default:
@@ -988,7 +1088,7 @@ s3_virge_recalctimings(svga_t *svga)
         if (virge->chip < S3_VIRGEGX2)
             svga->rowoffset = virge->streams.pri_stride >> 3;
 
-        if (virge->chip <= S3_VIRGEDX && svga->overlay.ena) {
+        if ((virge->chip <= S3_VIRGEDX) && svga->overlay.ena) {
             svga->overlay.ena = (((virge->streams.blend_ctrl >> 24) & 7) == 0b000) || (((virge->streams.blend_ctrl >> 24) & 7) == 0b101);
         } else if (virge->chip >= S3_VIRGEGX2 && svga->overlay.ena) {
             /* 0x20 = Secondary Stream enabled */
@@ -1009,9 +1109,6 @@ s3_virge_recalctimings(svga_t *svga)
                     break;
                 case 24:
                     svga->render = svga_render_24bpp_highres;
-                    break;
-                case 32:
-                    svga->render = svga_render_32bpp_highres;
                     break;
 
                 default:
@@ -1230,11 +1327,7 @@ s3_virge_mmio_read(uint32_t addr, void *priv)
 
         case 0xff20:
         case 0xff21:
-            ret = virge->serialport & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
-            if ((virge->serialport & SERIAL_PORT_SCW) && i2c_gpio_get_scl(virge->i2c))
-                ret |= SERIAL_PORT_SCR;
-            if ((virge->serialport & SERIAL_PORT_SDW) && i2c_gpio_get_sda(virge->i2c))
-                ret |= SERIAL_PORT_SDR;
+            ret = s3_virge_serialport_ddc_read(virge, virge->serialport);
             return ret;
     }
     return 0xff;
@@ -1819,7 +1912,7 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
 }
 
 static void
-fifo_thread(void *param)
+mach64_fifo_thread(void *param)
 {
     virge_t *virge = (virge_t *) param;
 
@@ -1935,8 +2028,7 @@ s3_virge_mmio_write(uint32_t addr, uint8_t val, void *priv)
                 break;
 
             case 0xff20:
-                virge->serialport = val;
-                i2c_gpio_set(virge->i2c, !!(val & SERIAL_PORT_SCW), !!(val & SERIAL_PORT_SDW));
+                s3_virge_serialport_ddc_write(virge, &virge->serialport, val);
                 break;
         }
     }
@@ -5208,11 +5300,15 @@ s3_virge_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             return;
 
         case PCI_REG_COMMAND:
+            io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
             if (val & PCI_COMMAND_IO) {
-                io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
                 io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
-            } else
-                io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+                if (!(svga->crtc[0x6f] & 0x04))
+                    io_sethandler((svga->crtc[0x6f] & 0x02) ? 0x00e2 : 0x00e8, 0x0002, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+            } else {
+                io_removehandler(0x00e2, 0x0002, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+                io_removehandler(0x00e8, 0x0002, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+            }
             virge->pci_regs[PCI_REG_COMMAND] = val & 0x27;
             s3_virge_updatemapping(virge);
             return;
@@ -5331,10 +5427,14 @@ s3_virge_init(const device_t *info)
     reset_state         = calloc(1, sizeof(virge_t));
     uint32_t    local   = info->local;
 
-    if (local == 0x00000000)
+    if (local == S3_VIRGE_USE_CONFIG_BIOS)
         local = device_get_bios_local(info, device_get_config_bios("bios"));
 
     virge->type = (local & 0xff);
+
+    const uint64_t bios_flags = (info->local == S3_VIRGE_USE_CONFIG_BIOS) ?
+                                device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                0x0000000000000000ULL;
 
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
@@ -5346,6 +5446,8 @@ s3_virge_init(const device_t *info)
         virge->memory_size = 2;
     else
         virge->memory_size = device_get_config_int("memory");
+
+    video_clamp_vram(bios_flags, &virge->memory_size);
 
     virge->color_key_enabled = !!device_get_config_int("colorkey");
     virge->onboard = !!(local & 0x100);
@@ -5365,6 +5467,7 @@ s3_virge_init(const device_t *info)
                 bios_fn = ROM_DIAMOND_STEALTH3D_3000;
                 break;
             case S3_STB_VELOCITY_3D:
+                virge->override = 1;
                 bios_fn = ROM_STB_VELOCITY_3D;
                 break;
             case S3_VIRGE_DX:
@@ -5584,7 +5687,7 @@ s3_virge_init(const device_t *info)
     virge->fifo_thread_run     = 1;
     virge->wake_fifo_thread    = thread_create_event();
     virge->fifo_not_full_event = thread_create_event();
-    virge->fifo_thread         = thread_create(fifo_thread, virge);
+    virge->fifo_thread         = thread_create(mach64_fifo_thread, virge);
 
     timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 1);
 
@@ -5713,7 +5816,7 @@ static const device_config_t s3_virge_pci_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "virge325_pci",
         .default_int    = 0,
@@ -5843,7 +5946,7 @@ static const device_config_t s3_virge_vx_pci_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "stealth3d_3000_pci",
         .default_int    = 0,
@@ -5857,11 +5960,11 @@ static const device_config_t s3_virge_vx_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH3D_3000 | (988 << 16),
                 .size          = 32768,
-                .flags         = 0,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
                 .files         = { ROM_DIAMOND_STEALTH3D_3000, "" }
             },
             {
-                .name          = "(STB Velocity 3D",
+                .name          = "STB Velocity 3D",
                 .internal_name = "stb_velocity3d_pci",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -5927,7 +6030,7 @@ static const device_config_t s3_virge_dx_pci_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "virge375_pci",
         .default_int    = 0,
@@ -6062,7 +6165,7 @@ static const device_config_t s3_virge_gx2_agp_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "virge357_agp",
         .default_int    = 0,
@@ -6200,7 +6303,7 @@ const device_t s3_virge_pci_device = {
     .name          = "S3 ViRGE PCI",
     .internal_name = "virge_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = S3_VIRGE_USE_CONFIG_BIOS,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
@@ -6228,7 +6331,7 @@ const device_t s3_virge_vx_pci_device = {
     .name          = "S3 ViRGE/VX PCI",
     .internal_name = "virge_vx_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = S3_VIRGE_USE_CONFIG_BIOS,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
@@ -6242,7 +6345,7 @@ const device_t s3_virge_dx_pci_device = {
     .name          = "S3 ViRGE/DX PCI",
     .internal_name = "virge_dx_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = S3_VIRGE_USE_CONFIG_BIOS,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,
@@ -6298,7 +6401,7 @@ const device_t s3_virge_gx2_agp_device = {
     .name          = "S3 ViRGE/GX2 AGP",
     .internal_name = "virge_gx2_agp",
     .flags         = DEVICE_AGP,
-    .local         = 0,
+    .local         = S3_VIRGE_USE_CONFIG_BIOS,
     .init          = s3_virge_init,
     .close         = s3_virge_close,
     .reset         = s3_virge_reset,

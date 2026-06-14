@@ -244,7 +244,6 @@ extern const device_t pcnet_am79c973_onboard_device;
 extern const device_t modem_device;
 
 /* PLIP */
-extern const device_t lpt_plip_device;
 extern const device_t plip_device;
 
 /* Realtek RTL8139C+ */

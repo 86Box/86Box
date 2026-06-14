@@ -21,7 +21,7 @@ public:
     int  changed();
 
     void restore();
-    void save();
+    void save(int soft);
 
 signals:
     void moChannelChanged();

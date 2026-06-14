@@ -149,6 +149,9 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
 void
 ddma_update_io_mapping(ddma_t *dev, uint8_t ch, uint8_t base_l, uint8_t base_h, uint8_t enable)
 {
+    if (ch >= 8)
+        return;
+
     if (dev->channels[ch].enable && (dev->channels[ch].io_base != 0x0000))
         io_removehandler(dev->channels[ch].io_base, 0x10, ddma_reg_read, NULL, NULL, ddma_reg_write, NULL, NULL, &dev->channels[ch]);
 

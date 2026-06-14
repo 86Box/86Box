@@ -13,6 +13,7 @@
 #include "codegen_ir.h"
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
+#include "codegen_ops_jit_wrappers.h"
 #include "codegen_ops_misc.h"
 
 uint32_t
@@ -276,7 +277,7 @@ rebuild_c(ir_data_t *ir)
     }
 
     if (needs_rebuild) {
-        uop_CALL_FUNC(ir, flags_rebuild_c);
+        uop_CALL_FUNC(ir, jit_flags_rebuild_c);
     }
 }
 
@@ -578,21 +579,21 @@ ropLxS(LSS, &cpu_state.seg_ss)
 uint32_t
 ropCLC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_AND_IMM(ir, IREG_flags, IREG_flags, ~C_FLAG);
     return op_pc;
 }
 uint32_t
 ropCMC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_XOR_IMM(ir, IREG_flags, IREG_flags, C_FLAG);
     return op_pc;
 }
 uint32_t
 ropSTC(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uop_CALL_FUNC(ir, flags_rebuild);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     uop_OR_IMM(ir, IREG_flags, IREG_flags, C_FLAG);
     return op_pc;
 }
@@ -607,6 +608,29 @@ uint32_t
 ropSTD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_OR_IMM(ir, IREG_flags, IREG_flags, D_FLAG);
+    return op_pc;
+}
+
+uint32_t
+ropPREFETCH(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    if ((fetchdat & 0xc0) == 0xc0)
+        return 0;
+
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    return op_pc + 1;
+}
+
+uint32_t
+ropFEMMS(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_femms);
+    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+
+    codegen_mmx_entered = 0;
+    codegen_fpu_entered = 0;
     return op_pc;
 }
 

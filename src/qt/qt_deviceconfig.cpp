@@ -32,6 +32,7 @@
 #include <QDir>
 #include <QSettings>
 #include <QStringBuilder>
+#include <QCollator>
 
 extern "C" {
 #include <86box/86box.h>
@@ -47,12 +48,12 @@ extern "C" {
 #include "qt_filefield.hpp"
 #include "qt_models_common.hpp"
 #include "qt_util.hpp"
-#ifdef Q_OS_LINUX
-#    include <sys/stat.h>
-#    include <sys/sysmacros.h>
-#endif
+#include "qt_preferences.hpp"
 #ifdef Q_OS_WINDOWS
+#    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
+#    include <setupapi.h>
+#    include <devguid.h>
 #endif
 
 device_t *cfg_dev = NULL;
@@ -69,49 +70,55 @@ DeviceConfig::~DeviceConfig()
     delete ui;
 }
 
-static QStringList
-EnumerateSerialDevices()
+static QMap<QString, QString>
+enumerateSerialDevices()
 {
-    QStringList serialDevices;
-    QStringList ttyEntries;
-    QByteArray  devstr(1024, 0);
-#ifdef Q_OS_LINUX
+    QMap<QString, QString> serialDevices;
+#ifdef Q_OS_WINDOWS
+    auto classDevs = SetupDiGetClassDevsA(&GUID_DEVCLASS_PORTS, nullptr, nullptr, DIGCF_PRESENT);
+    if (classDevs) {
+        SP_DEVINFO_DATA devInfo = { .cbSize = sizeof(SP_DEVINFO_DATA) };
+        char            buf[1024];
+        DWORD           bufSize;
+        for (int i = 0; SetupDiEnumDeviceInfo(classDevs, i, &devInfo); i++) {
+            bufSize   = sizeof(buf);
+            auto hKey = SetupDiOpenDevRegKey(classDevs, &devInfo, DICS_FLAG_GLOBAL, 0, DIREG_DEV, KEY_QUERY_VALUE);
+            if (!hKey || (RegQueryValueExA(hKey, "PortName", NULL, NULL, (unsigned char *) buf, &bufSize) != ERROR_SUCCESS))
+                continue;
+            QString path(buf);
+            buf[0] = '\0';
+            SetupDiGetDeviceRegistryPropertyA(classDevs, &devInfo, SPDRP_FRIENDLYNAME, &bufSize, (unsigned char *) buf, sizeof(buf), nullptr);
+            QString name(buf);
+            if (name.isEmpty())
+                serialDevices[path] = path;
+            else if (name.contains(path, Qt::CaseInsensitive))
+                serialDevices[path] = name;
+            else
+                serialDevices[path] = QStringLiteral("%1 (%2)").arg(name, path);
+        }
+    }
+#elif defined(Q_OS_LINUX)
     QDir class_dir("/sys/class/tty/");
     QDir dev_dir("/dev/");
-    ttyEntries = class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System, QDir::SortFlag::Name);
-    for (int i = 0; i < ttyEntries.size(); i++) {
-        if (class_dir.exists(ttyEntries[i] + "/device/driver/") && dev_dir.exists(ttyEntries[i])
-            && QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]).isReadable()
-            && QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]).isWritable()) {
-            serialDevices.push_back("/dev/" + ttyEntries[i]);
+    QRegularExpression regex(QStringLiteral("[^/]*/"));
+    for (const auto &device : class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        auto driver = QFile::symLinkTarget(class_dir.absoluteFilePath(device) + "/device/driver");
+        if (!driver.isEmpty() && dev_dir.exists(device)) {
+            QFileInfo fi(dev_dir.canonicalPath() + '/' + device);
+            if (fi.isReadable() && fi.isWritable())
+                serialDevices[fi.canonicalFilePath()] = QStringLiteral("%1 (%2)").arg(device, driver.replace(regex, QStringLiteral("")));
         }
     }
-#endif
-#ifdef Q_OS_WINDOWS
-    for (int i = 1; i < 256; i++) {
-        devstr[0] = 0;
-        snprintf(devstr.data(), 1024, R"(\\.\COM%d)", i);
-        const auto handle  = CreateFileA(devstr.data(),
-                                         GENERIC_READ | GENERIC_WRITE, 0,
-                                         nullptr, OPEN_EXISTING,
-                                         0, nullptr);
-        const auto dwError = GetLastError();
-        if ((handle != INVALID_HANDLE_VALUE) || (dwError == ERROR_ACCESS_DENIED) ||
-            (dwError == ERROR_GEN_FAILURE) || (dwError == ERROR_SHARING_VIOLATION) ||
-            (dwError == ERROR_SEM_TIMEOUT)) {
-            if (handle != INVALID_HANDLE_VALUE)
-                CloseHandle(handle);
-            serialDevices.push_back(QString(devstr));
-        }
-    }
-#endif
-#ifdef Q_OS_MACOS
+#else
     QDir dev_dir("/dev/");
+#    ifdef Q_OS_DARWIN
     dev_dir.setNameFilters({ "tty.*", "cu.*" });
+#    else
+    dev_dir.setNameFilters({ "tty[a-z]", "tty[0-9a-zA-Z][0-9]*", "cua[0-9a-zA-Z][0-9]*", "dty[0-9a-zA-Z][0-9]*" });
+#    endif
     QDir::Filters serial_dev_flags = QDir::Files | QDir::NoSymLinks | QDir::Readable | QDir::Writable | QDir::NoDotAndDotDot | QDir::System;
-    for (const auto &device : dev_dir.entryInfoList(serial_dev_flags, QDir::SortFlag::Name)) {
-        serialDevices.push_back(device.canonicalFilePath());
-    }
+    for (const auto &device : dev_dir.entryInfoList(serial_dev_flags))
+        serialDevices[device.canonicalFilePath()] = device.fileName();
 #endif
     return serialDevices;
 }
@@ -130,6 +137,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
     auto         *device_context = static_cast<device_context_t *>(dc);
     const auto   *config         = static_cast<const _device_config_ *>(c);
     const QString blank          = "";
+    const QString colon          = (Preferences::languageIdToCode(lang_id).startsWith("fr-") ? " :" : ":");
     int           bios           = -1;
     int           p;
     int           q;
@@ -182,7 +190,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     auto *cbox = new QCheckBox();
                     cbox->setObjectName(config->name);
                     cbox->setChecked(value > 0);
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     break;
                 }
 #ifdef USE_RTMIDI
@@ -201,7 +209,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         if (i == value)
                             currentIndex = i;
                     }
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
@@ -220,7 +228,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         if (i == value)
                             currentIndex = i;
                     }
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
@@ -243,7 +251,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         if (sel->value == value)
                             currentIndex = row;
                     }
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     if (!strcmp(config->name, "memory")) {
                         cbox_memory = cbox;
@@ -284,7 +292,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 
                     bios_rows = rows;
                     if (rows > 1)
-                        this->ui->formLayout->addRow(tr(config->description), cbox);
+                        this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
 
                     bios = currentIndex;
                     cbox->setCurrentIndex(currentIndex);
@@ -302,7 +310,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     if (config->spinner.step > 0)
                         spinBox->setSingleStep(config->spinner.step);
                     spinBox->setValue(value);
-                    this->ui->formLayout->addRow(tr(config->description), spinBox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), spinBox);
                     break;
                 }
             case CONFIG_FNAME:
@@ -310,6 +318,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     auto *fileField = new FileField(this);
                     fileField->setObjectName(config->name);
                     fileField->setFileName(selected);
+                    fileField->setCreateFile(!!config->default_int);
                     /* Get the actually used part of the filter */
 #if QT_VERSION < QT_VERSION_CHECK(5, 14, 0)
                     QString filter = QString(config->file_filter).left(static_cast<int>(strcspn(config->file_filter, "|")));
@@ -336,7 +345,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         extensionList[i] = re.match(extensionList[i]).captured(1);
 #endif
                     fileField->setFilter(tr(description.toUtf8().constData()) % util::DlgFilter(extensionList) % tr("All files") % util::DlgFilter({ "*" }, true));
-                    this->ui->formLayout->addRow(tr(config->description), fileField);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), fileField);
                     break;
                 }
             case CONFIG_STRING:
@@ -345,7 +354,9 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     lineEdit->setObjectName(config->name);
                     lineEdit->setCursor(Qt::IBeamCursor);
                     lineEdit->setText(selected);
-                    this->ui->formLayout->addRow(tr(config->description), lineEdit);
+                    lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
+                    lineEdit->setMinimumWidth(150);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), lineEdit);
                     break;
                 }
             case CONFIG_SERPORT:
@@ -355,16 +366,23 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     cbox->setMaxVisibleItems(30);
                     auto *model         = cbox->model();
                     int   currentIndex  = 0;
-                    auto  serialDevices = EnumerateSerialDevices();
-
-                    Models::AddEntry(model, tr("None"), -1);
-                    for (int i = 0; i < serialDevices.size(); i++) {
-                        const int row = Models::AddEntry(model, serialDevices[i], i);
-                        if (selected == serialDevices[i])
+                    auto  serialDevices = enumerateSerialDevices();
+                    auto  serialPaths   = serialDevices.keys();
+                    QCollator collator(QLocale::English); /* https://github.com/keepassxreboot/keepassxc/issues/11813 - also happens on Windows */
+                    collator.setNumericMode(true);
+                    std::sort(serialPaths.begin(), serialPaths.end(), collator);
+#ifdef Q_OS_WINDOWS
+                    if (selected.startsWith("\\\\.\\"))
+                        selected.remove(0, 4);
+#endif
+                    Models::AddEntry(model, tr("None"), "");
+                    for (const auto &path : serialPaths) {
+                        const int row = Models::AddEntry(model, serialDevices[path], path);
+                        if (selected == path)
                             currentIndex = row;
                     }
 
-                    this->ui->formLayout->addRow(tr(config->description), cbox);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
                     break;
                 }
@@ -397,7 +415,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     });
                     hboxLayout->addWidget(lineEdit);
                     hboxLayout->addWidget(generateButton);
-                    this->ui->formLayout->addRow(tr(config->description), hboxLayout);
+                    this->ui->formLayout->addRow(tr(config->description).append(colon), hboxLayout);
                     break;
                 }
         }
@@ -428,12 +446,12 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     bios_rows    = 0;
 
     DeviceConfig dc(settings);
-    dc.setWindowTitle(tr("%1 Device Configuration").arg(tr(device->name)));
+    dc.setWindowTitle(tr("%1 Device Configuration").arg(DeviceName(device, device->internal_name, -1)));
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
 
-    const auto device_label = new QLabel(tr(device->name));
+    const auto device_label = new QLabel(DeviceName(device, device->internal_name, -1));
     device_label->setAlignment(Qt::AlignCenter);
     dc.ui->formLayout->addRow(device_label);
     const auto line = new QFrame;
@@ -520,9 +538,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 case CONFIG_SERPORT:
                     {
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
-                        auto  path = cbox->currentText().toUtf8();
-                        if (cbox->currentData().toInt() == -1)
-                            path = "";
+                        auto  path = cbox->currentData().toString().toUtf8();
                         if (strcmp(selected.toUtf8(), path)) {
                             config_set_string(device_context.name, const_cast<char *>(config->name), path);
                             has_changed |= 1;
@@ -612,6 +628,9 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
     else if (device == nullptr)
         return "";
     else {
+        if (internalName == nullptr)
+            internalName = device->internal_name;
+
         char        temp[512];
         const char *tempbus;
         if (bus == 1) {

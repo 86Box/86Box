@@ -79,7 +79,7 @@ static const device_config_t v12p_config[] = {
 
 const device_t v12p_device = {
     .name          = "Acer V12P",
-    .internal_name = "v12p_device",
+    .internal_name = "v12p",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -197,7 +197,7 @@ static const device_config_t p5mp3_config[] = {
 
 const device_t p5mp3_device = {
     .name          = "ASUS P/I-P5MP3",
-    .internal_name = "p5mp3_device",
+    .internal_name = "p5mp3",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -398,8 +398,8 @@ static const device_config_t batman_config[] = {
 };
 
 const device_t batman_device = {
-    .name          = "Intel Premiere/PCI (Batman)",
-    .internal_name = "batman_device",
+    .name          = "Intel Premiere/PCI",
+    .internal_name = "batman",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

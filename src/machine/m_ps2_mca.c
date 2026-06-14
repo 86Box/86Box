@@ -1691,7 +1691,7 @@ static const device_config_t ps2_model_50_config[] = {
 
 const device_t ps2_model_50_device = {
     .name          = "IBM PS/2 model 50",
-    .internal_name = "ps2_model_50_device",
+    .internal_name = "ibmps2_m50",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

@@ -14,11 +14,12 @@
 #include "codegen_ops.h"
 #include "codegen_ops_arith.h"
 #include "codegen_ops_helpers.h"
+#include "codegen_ops_jit_wrappers.h"
 
 static inline void
 get_cf(ir_data_t *ir, int dest_reg)
 {
-    uop_CALL_FUNC_RESULT(ir, dest_reg, CF_SET);
+    uop_CALL_FUNC_RESULT(ir, dest_reg, jit_CF_SET);
 }
 
 uint32_t
@@ -2288,7 +2289,7 @@ rebuild_c(ir_data_t *ir)
     }
 
     if (needs_rebuild) {
-        uop_CALL_FUNC(ir, flags_rebuild_c);
+        uop_CALL_FUNC(ir, jit_flags_rebuild_c);
     }
 }
 
