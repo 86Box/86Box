@@ -245,31 +245,22 @@ mach64_updatemapping(mach64_t *mach64)
         return;
     }
 
-    mem_mapping_disable(&mach64->mmio_mapping);
     switch (svga->gdcreg[6] & 0xc) {
         case 0x0: /*128k at A0000*/
-            mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
-            mem_mapping_set_p(&svga->mapping, mach64);
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
             svga->banked_mask = 0xffff;
             break;
         case 0x4: /*64k at A0000*/
-            mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
-            mem_mapping_set_p(&svga->mapping, mach64);
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             svga->banked_mask = 0xffff;
             if (xga_active && (svga->xga != NULL))
                 xga->on = 0;
             break;
         case 0x8: /*32k at B0000*/
-            mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
-            mem_mapping_set_p(&svga->mapping, svga);
             mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
             svga->banked_mask = 0x7fff;
             break;
         case 0xC: /*32k at B8000*/
-            mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
-            mem_mapping_set_p(&svga->mapping, svga);
             mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
             svga->banked_mask = 0x7fff;
             break;
@@ -278,8 +269,19 @@ mach64_updatemapping(mach64_t *mach64)
             break;
     }
 
-    if (mach64->config_cntl & 4)
+    /*
+       The small aperture is only available in accelerated modes and only if
+       bit 2 of the Config_Cntl (6AECh) register is set.
+     */
+    if (mach64->config_cntl & 4) {
+        mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+        mem_mapping_set_p(&svga->mapping, mach64);
         mem_mapping_enable(&mach64->mmio_mapping);
+    } else {
+        mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+        mem_mapping_set_p(&svga->mapping, svga);
+        mem_mapping_disable(&mach64->mmio_mapping);
+    }
 
     if (mach64->linear_base) {
         if (mach64->type == MACH64_GX) {
@@ -1485,38 +1487,68 @@ mach64_block_outl(uint16_t port, uint32_t val, void *priv)
     mach64_ext_writel(0x400 | (port & 0x3ff), val, mach64);
 }
 
+static uint32_t
+mach64_decode_addr(mach64_t *mach64, uint32_t addr, int write)
+{
+    const svga_t * svga            = &mach64->svga;
+    const int      memory_map_mode = (svga->gdcreg[6] >> 2) & 3;
+
+    addr &= 0x1ffff;
+
+    switch (memory_map_mode) {
+        case 0:
+            break;
+        case 1:
+            if (addr >= 0x10000)
+                return 0xffffffff;
+            break;
+        case 2:
+            addr -= 0x10000;
+            if (addr >= 0x8000)
+                return 0xffffffff;
+            break;
+        default:
+        case 3:
+            addr -= 0x18000;
+            if (addr >= 0x8000)
+                return 0xffffffff;
+            break;
+    }
+
+    if (write)
+        addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
+    else
+        addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
+
+    return addr;
+}
+
 void
 mach64_write(uint32_t addr, uint8_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
-    if ((svga->gdcreg[6] >> 2) & 3)
-        addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
-    else
-        addr = (addr & 0x17fff) + mach64->bank_w[(addr >> 15) & 1];
-    svga_write_linear(addr, val, svga);
+    addr = mach64_decode_addr(mach64, addr, 1);
+    if (addr != 0xffffffff)
+        svga_write_linear(addr, val, svga);
 }
 void
 mach64_writew(uint32_t addr, uint16_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
-    if ((svga->gdcreg[6] >> 2) & 3)
-        addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
-    else
-        addr = (addr & 0x17fff) + mach64->bank_w[(addr >> 15) & 1];
-    svga_writew_linear(addr, val, svga);
+    addr = mach64_decode_addr(mach64, addr, 1);
+    if (addr != 0xffffffff)
+        svga_writew_linear(addr, val, svga);
 }
 void
 mach64_writel(uint32_t addr, uint32_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
-    if ((svga->gdcreg[6] >> 2) & 3)
-        addr = (addr & 0x7fff) + mach64->bank_w[(addr >> 15) & 1];
-    else
-        addr = (addr & 0x17fff) + mach64->bank_w[(addr >> 15) & 1];
-    svga_writel_linear(addr, val, svga);
+    addr = mach64_decode_addr(mach64, addr, 1);
+    if (addr != 0xffffffff)
+        svga_writel_linear(addr, val, svga);
 }
 
 uint8_t
@@ -1524,12 +1556,10 @@ mach64_read(uint32_t addr, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
-    uint8_t   ret;
-    if ((svga->gdcreg[6] >> 2) & 3)
-        addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
-    else
-        addr = (addr & 0x17fff) + mach64->bank_r[(addr >> 15) & 1];
-    ret  = svga_read_linear(addr, svga);
+    uint8_t   ret    = 0xff;
+    addr = mach64_decode_addr(mach64, addr, 0);
+    if (addr != 0xffffffff)
+        ret  = svga_read_linear(addr, svga);
     return ret;
 }
 uint16_t
@@ -1537,12 +1567,10 @@ mach64_readw(uint32_t addr, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
-    uint16_t  ret;
-    if ((svga->gdcreg[6] >> 2) & 3)
-        addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
-    else
-        addr = (addr & 0x17fff) + mach64->bank_r[(addr >> 15) & 1];
-    ret  = svga_readw_linear(addr, svga);
+    uint16_t  ret    = 0xffff;
+    addr = mach64_decode_addr(mach64, addr, 0);
+    if (addr != 0xffffffff)
+        ret  = svga_readw_linear(addr, svga);
     return ret;
 }
 uint32_t
@@ -1550,12 +1578,10 @@ mach64_readl(uint32_t addr, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
-    uint32_t  ret;
-    if ((svga->gdcreg[6] >> 2) & 3)
-        addr = (addr & 0x7fff) + mach64->bank_r[(addr >> 15) & 1];
-    else
-        addr = (addr & 0x17fff) + mach64->bank_r[(addr >> 15) & 1];
-    ret  = svga_readl_linear(addr, svga);
+    uint32_t  ret    = 0xffffffff;
+    addr = mach64_decode_addr(mach64, addr, 0);
+    if (addr != 0xffffffff)
+        ret  = svga_readl_linear(addr, svga);
     return ret;
 }
 
