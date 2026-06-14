@@ -74,8 +74,8 @@ ogc_recalctimings(ogc_t *ogc)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST / 2;
     _dispofftime *= CGACONST / 2;
-    ogc->cga.dispontime  = (uint64_t) (_dispontime);
-    ogc->cga.dispofftime = (uint64_t) (_dispofftime);
+    ogc->cga.dispontime  = (uint64_t) (int64_t) (_dispontime);
+    ogc->cga.dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 void

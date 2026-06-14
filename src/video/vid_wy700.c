@@ -513,8 +513,8 @@ wy700_recalctimings(wy700_t *wy700)
     _dispofftime = disptime - _dispontime;
     _dispontime *= MDACONST;
     _dispofftime *= MDACONST;
-    wy700->dispontime  = (uint64_t) (_dispontime);
-    wy700->dispofftime = (uint64_t) (_dispofftime);
+    wy700->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    wy700->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 /* Draw a single line of the screen in either text mode */

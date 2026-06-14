@@ -63,6 +63,11 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     if (TOP != cpu_state.TOP)
         return 0;
 
+    for (int c = start; c < ir->wr_pos; c++) {
+        if ((ir->uops[c].type & UOP_MASK) == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK))
+            return 0;
+    }
+
     max_unroll = UNROLL_MAX_UOPS / ((ir->wr_pos - start) + 6);
     if ((max_version_refcount != 0) && (max_unroll > (UNROLL_MAX_REG_REFERENCES / max_version_refcount)))
         max_unroll = (UNROLL_MAX_REG_REFERENCES / max_version_refcount);

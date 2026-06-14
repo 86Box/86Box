@@ -110,8 +110,11 @@ SettingsStorageControllers::restore()
 }
 
 void
-SettingsStorageControllers::save()
+SettingsStorageControllers::save(int soft)
 {
+    if (soft)
+        return;
+
     /* Storage devices category */
     for (uint8_t i = 0; i < HDC_MAX; ++i) {
         QComboBox *cbox = findChild<QComboBox *>(QString("comboBoxHD%1").arg(i + 1));

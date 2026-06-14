@@ -259,8 +259,8 @@ cga_recalctimings(cga_t *cga)
     _dispofftime     = disptime - _dispontime;
     _dispontime      = _dispontime * CGACONST;
     _dispofftime     = _dispofftime * CGACONST;
-    cga->dispontime  = (uint64_t) (_dispontime);
-    cga->dispofftime = (uint64_t) (_dispofftime);
+    cga->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    cga->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static void

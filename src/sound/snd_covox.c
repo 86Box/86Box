@@ -74,7 +74,7 @@ covox_update(covox_t *covox)
 }
 
 uint8_t
-covox_read(uint16_t addr, void *priv)
+covox_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
 #if 0
     const covox_t *covox = (covox_t *) priv;
@@ -121,13 +121,13 @@ covox_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-covox_get_buffer(int32_t *buffer, int len, void *priv)
+covox_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     covox_t *covox = (covox_t *) priv;
 
     covox_update(covox);
 
-    for (int c = 0; c < len; c++) {
+    for (uint16_t c = 0; c < len; c++) {
         buffer[c * 2]     += dac_iir(0, covox->buffer[0][c]);
         buffer[c * 2 + 1] += dac_iir(1, covox->buffer[1][c]);
     }
@@ -135,13 +135,13 @@ covox_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 static void
-covox_get_music_buffer(int32_t *buffer, int len, void *priv)
+covox_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     covox_t *covox = (covox_t *) priv;
 
     const int32_t *opl_buf = covox->opl.update(covox->opl.priv);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += opl_buf[c];
 
     if (covox->opl.reset_buffer)

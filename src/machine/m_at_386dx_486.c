@@ -138,8 +138,8 @@ static const device_config_t opti495_ami_config[] = {
 };
 
 const device_t opti495_ami_device = {
-    .name          = "DataExpert SX495",
-    .internal_name = "opti495_ami_device",
+    .name          = "DataExpert OPTI-495SX",
+    .internal_name = "ami495",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

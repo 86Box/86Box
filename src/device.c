@@ -176,11 +176,31 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "ST-50X Fixed Disk Controller", .new = "ST-50X (XTA)" },
         { .old = "ST-50X Fixed Disk Controller (PC5086)", .new = "ST-50X (XTA) (PC5086)" },
         { .old = "Acculogic XT IDE", .new = "Acculogic sIDE-1/16 (IDE)" },
-        { .old = "Multitech PC-500", .new = "Multitech PC-500 / Franklin PC 8000" },
+        { .old = "Multitech PC-500 / Franklin PC 8000", .new = "Multitech PC-500" }, /* 6.0 pre-release */
         { .old = "Multitech PC-500 plus", .new = "Multitech PC-500+" },
-        { .old = "Multitech PC-700", .new = "Multitech PC-700 / Siemens SICOMP PC 16 05" },
-        { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300/PB320" },
-        { .old = "AST Bravo MS P/90", .new = "AST Bravo MS/MS-T/MS-L (Rattler)" },
+        { .old = "Multitech PC-700 / Siemens SICOMP PC 16 05", .new = "Multitech PC-700" }, /* 6.0 pre-release */
+        { .old = "Vendex 888T", .new = "Vendex HeadStart Turbo 888-XT" },
+        { .old = "VTech Laser Turbo XT", .new = "VTech Laser XT3" },
+        { .old = "PS/1 2011", .new = "IBM PS/1 model 2011" },
+        { .old = "IBM XT Model 286", .new = "IBM XT model 286" },
+        { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300" },
+        { .old = "Packard Bell PB300/PB320", .new = "Packard Bell PB300" }, /* 6.0 pre-release */
+        { .old = "DataExpert SX495", .new = "DataExpert OPTI-495SX" },
+        { .old = "Packard Bell PB410/PB410A/PB420/PB420T", .new = "Packard Bell PB410A" }, /* 6.0 pre-release */
+        { .old = "Intel Premiere/PCI (Batman)", .new = "Intel Premiere/PCI" },
+        { .old = "Intel Premiere/PCI II (Plato)", .new = "Intel Premiere/PCI II" },
+        { .old = "Intel Advanced/ZP (Zappa)", .new = "Intel Advanced/ZP" },
+        { .old = "AST Bravo MS P/90", .new = "AST Bravo MS" },
+        { .old = "AST Bravo MS/MS-T/MS-L (Rattler)", .new = "AST Bravo MS" }, /* 6.0 pre-release */
+        { .old = "Intel Advanced/ATX (Thor)", .new = "Intel Advanced/ATX" },
+        { .old = "Intel Advanced/MA (Monaco)", .new = "Intel Advanced/MA" },
+        { .old = "Chaintech 5SBM/5SBM2 (M103)", .new = "Chaintech 5SBM2" },
+        { .old = "Intel CU430HX (Cumberland)", .new = "Intel CU430HX" },
+        { .old = "Intel TC430HX (Tucson)", .new = "Intel TC430HX" },
+        { .old = "LG IBM Multinet x52 (MSI MS-5136)", .new = "LG IBM Multinet x52" },
+        { .old = "Intel AN430TX (Anchorage)", .new = "Intel AN430TX" },
+        { .old = "Intel VS440FX (Venus)", .new = "Intel VS440FX" },
+        { .old = "Advanced Integration Research (AIR) P6KDI", .new = "AIR P6KDI" }, /* 6.0 pre-release */
         { .old = "DTK PII-151B (MiniMicro) Floppy Drive Controller", .new = "DTK PII-151B (MiniMicro) FDC" },
         { .old = "DTK PII-158B (MiniMicro4) Floppy Drive Controller", .new = "DTK PII-158B (MiniMicro4) FDC" },
         { .old = "Monster FDC Floppy Drive Controller", .new = "Monster FDC" },
@@ -229,7 +249,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
     if (!config_find_section(ctx->name)) {
         /* Find and migrate old config sections. */
         void *old_sec;
-        char  old_name[2048] = { 0 };
+        char  old_name[2048];
         for (int i = 0; section_migrations[i].new; i++) {
             if (!strcmp(dev->name, section_migrations[i].new)) {
                 if (inst) {
@@ -298,11 +318,11 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
         return NULL;
 
     if (!device_available(dev)) {
-        wchar_t temp[512] = { 0 };
-        swprintf(temp, sizeof_w(temp),
+        char temp[512] = { 0 };
+        snprintf(temp, sizeof(temp),
                  plat_get_string(STRING_HW_NOT_AVAILABLE_DEVICE),
                  dev->name);
-        ui_msgbox_header(MBX_INFO,
+        ui_msgbox_header(MBX_WARNING,
                          plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
                          temp);
         return ((void *) dev->name);
@@ -474,6 +494,36 @@ device_get_common_priv(void)
 }
 
 void
+device_close(const device_t *device)
+{
+    int16_t c;
+
+    for (c = (DEVICE_MAX - 1); c >= 0; c--) {
+        if (devices[c] == device) {
+#ifdef ENABLE_DEVICE_LOG
+            if (devices[c]->name)
+                device_log("Closing device: \"%s\"...\n", devices[c]->name);
+#endif
+            if (devices[c]->close != NULL)
+                devices[c]->close(device_priv[c]);
+            devices[c]     = NULL;
+            device_priv[c] = NULL;
+            break;
+        }
+    }
+
+    if (c >= 0)  for (int16_t d = c; d <= (DEVICE_MAX - 1); d++) {
+        if (d == (DEVICE_MAX - 1)) {
+            devices[d]     = NULL;
+            device_priv[d] = NULL;
+        } else {
+            devices[d]     = devices[d + 1];
+            device_priv[d] = device_priv[d + 1];
+        }
+    }
+}
+
+void
 device_close_all(void)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
@@ -494,7 +544,7 @@ void
 device_close_by_flags(uint32_t match_flags)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if ((devices[c] != NULL) && (devices[c]->flags & match_flags)) {
+        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags)) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -748,11 +798,6 @@ device_get_name(const device_t *dev, int bus, char *name)
             /* Then change string from ISA16 to ISA if applicable. */
             if (!strcmp(sbus, "ISA16"))
                 sbus = "ISA";
-            else if (!strcmp(sbus, "COM")) {
-                sbus = NULL;
-                strcat(name, dev->name);
-                return;
-            }
 
             /* Generate the bus string with parentheses. */
             strcat(pbus, "(");
@@ -785,7 +830,7 @@ device_get_name(const device_t *dev, int bus, char *name)
                 strcat(name, tname + strlen(sbus) + 1);
             /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI",
                the "-ISA" from "AMD PCnet-ISA" or the " PCI" from "CMD PCI-064x". */
-            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
+            else if ((fbus < &tname[2]) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
                 strcat(name, tname);
             else {
                 strncat(name, tname, fbus - tname - 1);
@@ -939,6 +984,23 @@ device_get_config_mac(const char *str, int def)
     }
 
     return def;
+}
+
+void
+device_set_config_string(const char *str, const char *val)
+{
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
+
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                config_set_string((char *) device_current.name, (char *) str, val);
+                break;
+            }
+
+            cfg++;
+        }
+    }
 }
 
 void

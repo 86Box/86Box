@@ -133,8 +133,8 @@ mda_recalctimings(mda_t *mda)
     _dispofftime = disptime - _dispontime;
     _dispontime *= MDACONST;
     _dispofftime *= MDACONST;
-    mda->dispontime  = (uint64_t) (_dispontime);
-    mda->dispofftime = (uint64_t) (_dispofftime);
+    mda->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    mda->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 void

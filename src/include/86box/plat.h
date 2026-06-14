@@ -28,29 +28,29 @@
 
 /* String ID numbers. */
 enum {
-    STRING_MOUSE_CAPTURE,             /* "Click to capture mouse" */
-    STRING_MOUSE_RELEASE,             /* "Press %1 to release mouse" */
-    STRING_MOUSE_RELEASE_MMB,         /* "Press %1 or middle button to release mouse" */
-    STRING_INVALID_CONFIG,            /* "Invalid configuration" */
-    STRING_NO_ST506_ESDI_CDROM,       /* "MFM/RLL or ESDI CD-ROM drives never existed" */
-    STRING_NET_ERROR,                 /* "Failed to initialize network driver" */
-    STRING_NET_ERROR_DESC,            /* "The network configuration will be switched..." */
-    STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found" */
-    STRING_PCAP_ERROR_INVALID_DEVICE, /* "Invalid PCap device" */
-    STRING_PCAP_ERROR_DESC,           /* "Make sure libpcap is installed..." */
-    STRING_GHOSTSCRIPT_ERROR_TITLE,   /* "Unable to initialize Ghostscript" */
-    STRING_GHOSTSCRIPT_ERROR_DESC,    /* "gsdll32.dll/gsdll64.dll/libgs is required..." */
+    STRING_NET_ERROR,                 /* "Failed to initialize network driver..." */
+    STRING_PCAP_ERROR_NO_DEVICES,     /* "No PCap devices found..." */
+    STRING_PCAP_ERROR_INVALID_DEVICE, /* "Invalid PCap device..." */
+    STRING_GHOSTSCRIPT_ERROR,         /* "Unable to initialize Ghostscript..." */
     STRING_HW_NOT_AVAILABLE_TITLE,    /* "Hardware not available" */
-    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_VIDEO2,   /* "Video card #2 \"%hs\" is not available..." */
-    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%hs\" is not available..." */
-    STRING_MONITOR_SLEEP,             /* "Monitor in sleep mode" */
-    STRING_GHOSTPCL_ERROR_TITLE,      /* "Unable to initialize GhostPCL" */
-    STRING_GHOSTPCL_ERROR_DESC,       /* "gpcl6dll32.dll/gpcl6dll64.dll/libgpcl6 is required..." */
-    STRING_ESCP_ERROR_TITLE,          /* "Unable to find Dot-Matrix fonts" */
-    STRING_ESCP_ERROR_DESC,           /* "TrueType fonts in the \"roms/printer/fonts\" directory..." */
-    STRING_EDID_TOO_LARGE,            /* "EDID file \"%ls\" is too large (%lld bytes)." */
+    STRING_HW_NOT_AVAILABLE_MACHINE,  /* "Machine \"%s\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_VIDEO,    /* "Video card \"%s\" is not available..." */
+    STRING_HW_NOT_AVAILABLE_DEVICE,   /* "Device \"%s\" is not available..." */
+    STRING_GHOSTPCL_ERROR,            /* "Unable to initialize GhostPCL..." */
+    STRING_ESCP_ERROR,                /* "Unable to find Dot-Matrix fonts..." */
+    STRING_EDID_READ_ERROR,           /* "EDID file \"%s\" is invalid." */
+    STRING_EDID_TOO_LARGE,            /* "EDID file \"%s\" is too large." */
+    STRING_CDROM_OPEN_ISO_ERROR,      /* "Unable to open image or folder \"%s\"" */
+    STRING_CDROM_OPEN_CUE_ERROR,      /* "Unable to open Cue sheet \"%s\"" */
+    STRING_CDROM_OPEN_MDS_ERROR,      /* "Unable to open MDS file \"%s\"" */
+    STRING_CDROM_LOAD_IMAGE_ERROR,    /* "Unable to load CD-ROM image: %s" */
+    STRING_CDROM_LOAD_MDSX_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
+    STRING_CDROM_DVD_IN_CD_DRIVE,     /* "DVD image \"%s\" in a CD-only drive..." */
+    STRING_CHARDEV_CONNECT_ERROR,     /* "%s: Could not connect to %s: %s" */
+    STRING_CHARDEV_CREATE_ERROR,      /* "%s: Could not create %s: %s" */
+    STRING_CHARDEV_ATTACHED,          /* "%s: Attached to %s" */
+    STRING_CHARDEV_VCON_IN_USE,       /* "%s: Virtual console already in use by %s" */
+    STRING_CHARDEV_TERMINAL_ERROR,    /* "%s: Could not create terminal: %s" */
 };
 
 /* The Win32 API uses _wcsicmp. */
@@ -157,9 +157,11 @@ extern void     plat_get_system_directory(char *outbuf);
 extern void     plat_set_thread_name(void *thread, const char *name);
 extern void     plat_break(void);
 extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height);
+extern int      plat_run_command(const char *cmd, const char **env, const char *title);
+extern void     plat_clean_up(void);
 
 /* Resource management. */
-extern wchar_t *plat_get_string(int id);
+extern char *plat_get_string(int id);
 
 /* Emulator start/stop support functions. */
 extern void do_start(void);
