@@ -18,6 +18,8 @@
 #define SB_SUBTYPE_ESS_ES1788        0xa /* ESS Technology ES1788 */
 #define SB_SUBTYPE_ESS_ES1888        0xb /* ESS Technology ES1888 */
 #define SB_SUBTYPE_ESS_ES1887        0xc /* ESS Technology ES1887 */
+#define SB_SUBTYPE_ESS_ES1868        0xd /* ESS Technology ES1868 */
+#define SB_SUBTYPE_ESS_ES1869        0xe /* ESS Technology ES1869 */
 
 /* ESS-related */
 #define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
@@ -197,6 +199,9 @@ typedef struct sb_dsp_t {
 
     /* ChipChat */
     uint8_t  is_chipchat;
+
+    /* ESS ES1869 DAC1 divider mode */
+    uint8_t  es1869_divider_mode;
 
     mpu_t *mpu;
 } sb_dsp_t;
