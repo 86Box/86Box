@@ -398,7 +398,7 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
         return;
 
     /* NOTE: not on ES1688 or ES1868 */
-    if (IS_ESS(dsp) && (dsp->sb_subtype != SB_SUBTYPE_ESS_ES1688) && !(ESSreg(0xB1) & 0x10))
+    if (IS_ESS(dsp) && (dsp->sb_subtype != SB_SUBTYPE_ESS_ES1688) && (dsp->sb_subtype != SB_SUBTYPE_ESS_ES1868) && !(ESSreg(0xB1) & 0x10))
         /* If ESS playback, and IRQ disabled, do not fire. */
         return;
 
@@ -419,7 +419,7 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
     }
 
     /* NOTE: not on ES1688/ES1788, apparently; investigate on ES1868 */
-    if (IS_ESS(dsp) && (dsp->sb_subtype > SB_SUBTYPE_ESS_ES1887)) {
+    if (IS_ESS(dsp) && (dsp->sb_subtype > SB_SUBTYPE_ESS_ES1868)) {
         /* TODO: Investigate real hardware for this (the ES1887 datasheet documents this bit somewhat oddly.) */
         /* ES1887 note: Windows NT 3.5x driver fails to initialize after a soft reset if this check is done */
         if (dsp->ess_playback_mode && bit <= 1 && set && !masked) {
@@ -1056,10 +1056,17 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
         case 0xA1: /* Extended Mode Sample Rate Generator */
             {
                 ESSreg(reg) = data;
-                if (data & 0x80)
-                    dsp->sb_freq = (int) (795500UL / (256ul - data));
-                else
-                    dsp->sb_freq = (int) (397700UL / (128ul - data));
+                if ((dsp->sb_subtype == SB_SUBTYPE_ESS_ES1869) && dsp->es1869_divider_mode) {
+                    if (data & 0x80)
+                        dsp->sb_freq = (int) (768000UL / (256ul - data));
+                    else
+                        dsp->sb_freq = (int) (793800UL / (128ul - data));
+                } else {
+                    if (data & 0x80)
+                        dsp->sb_freq = (int) (795500UL / (256ul - data));
+                    else
+                        dsp->sb_freq = (int) (397700UL / (128ul - data));
+                }
                 const double temp          = 1000000.0 / dsp->sb_freq;
                 dsp->sblatchi = dsp->sblatcho = ((double) TIMER_USEC * temp);
 
@@ -1131,7 +1138,7 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
         case 0xB2: /* DRQ Control */
             chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            if (!dsp->is_chipchat) {
+            if (!dsp->is_chipchat && (dsp->sb_subtype < SB_SUBTYPE_ESS_ES1868)) {
                 switch (data & 0x0C) {
                     default:
                         break;
@@ -1864,6 +1871,8 @@ sb_exec_command(sb_dsp_t *dsp)
                     case SB_SUBTYPE_ESS_ES1788:
                     case SB_SUBTYPE_ESS_ES1888:
                     case SB_SUBTYPE_ESS_ES1887:
+                    case SB_SUBTYPE_ESS_ES1868:
+                    case SB_SUBTYPE_ESS_ES1869:
                         sb_add_data(dsp, 0x68);
                         /*
                            89h:     ES1688, returned by DOSBox-X, determined via Windows driver

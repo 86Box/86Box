@@ -700,8 +700,10 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                             svga->bpp = 16;
                             break;
                         case 0x07:
-                        case 0x0d:
                             svga->bpp = 24;
+                            break;
+                        case 0x0d:
+                            svga->bpp = (virge->chip == S3_VIRGEVX) ? 24 : 32;
                             break;
                         default:
                             svga->bpp = 8;
@@ -891,20 +893,50 @@ s3_virge_recalctimings(svga_t *svga)
             svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
     }
 
-    if (svga->crtc[0x5d] & 0x01)
-        svga->htotal |= 0x100;
-    if (svga->crtc[0x5d] & 0x02) {
-        svga->hdisp_time |= 0x100;
-        svga->hdisp |= (0x100 * svga->dots_per_clock);
-    }
+    svga->htotal = svga->crtc[0] + ((svga->crtc[0x5d] & 0x01) ? 0x100 : 0);
+    /* +5 has been verified by Sergi to be correct - +6 must have been an off by one error. */
+    svga->htotal += 5; /*+5 is required for Tyrian*/
+
+    svga->hdisp = svga->crtc[1] + ((svga->crtc[0x5d] & 0x02) ? 0x100 : 0);
+    if (svga->crtc[1] & 1)
+        svga->hdisp++;
+
+    svga->hdisp_time = svga->hdisp;
+
+    svga->hdisp *= svga->dots_per_clock;
+
+    if (svga->crtc[7] & 1)
+        svga->vtotal |= 0x100;
+    if (svga->crtc[7] & 32)
+        svga->vtotal |= 0x200;
     if (svga->crtc[0x5e] & 0x01)
         svga->vtotal |= 0x400;
+    svga->vtotal += 2;
+
+    if (svga->crtc[7] & 2)
+        svga->dispend |= 0x100;
+    if (svga->crtc[7] & 64)
+        svga->dispend |= 0x200;
     if (svga->crtc[0x5e] & 0x02)
         svga->dispend |= 0x400;
+    svga->dispend++;
+
+    if (svga->crtc[7] & 0x08)
+        svga->vblankstart |= 0x100;
+    if (svga->crtc[9] & 0x20)
+        svga->vblankstart |= 0x200;
     if (svga->crtc[0x5e] & 0x04)
         svga->vblankstart |= 0x400;
+    svga->vblankstart++;
+
+    if (svga->crtc[7] & 4)
+        svga->vsyncstart |= 0x100;
+    if (svga->crtc[7] & 128)
+        svga->vsyncstart |= 0x200;
     if (svga->crtc[0x5e] & 0x10)
-    svga->vsyncstart |= 0x400;
+        svga->vsyncstart |= 0x400;
+    svga->vsyncstart++;
+
     svga->split       = svga->crtc[0x18];
     if (svga->crtc[7] & 0x10)
         svga->split |= 0x100;
@@ -913,6 +945,7 @@ s3_virge_recalctimings(svga_t *svga)
     if (svga->crtc[0x5e] & 0x40)
         svga->split |= 0x400;
     svga->split++;
+
     svga->interlace = svga->crtc[0x42] & 0x20;
 
     if (((svga->miscout >> 2) & 3) == 3) {
@@ -1078,6 +1111,9 @@ s3_virge_recalctimings(svga_t *svga)
                     break;
                 case 24:
                     svga->render = svga_render_24bpp_highres;
+                    break;
+                case 32:
+                    svga->render = svga_render_32bpp_highres;
                     break;
 
                 default:
