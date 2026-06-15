@@ -180,6 +180,8 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_1688_device              },
     { &ess_ess0102_pnp_device       },
     { &ess_ess0968_pnp_device       },
+    { &ess_1868_device              },
+    { &ess_1869_device              },
     { &gus_device                   },
     { &gus_v37_device               },
     { &gus_max_device               },
