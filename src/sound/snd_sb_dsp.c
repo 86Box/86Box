@@ -1058,7 +1058,7 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
                 ESSreg(reg) = data;
                 if ((dsp->sb_subtype == SB_SUBTYPE_ESS_ES1869) && dsp->es1869_divider_mode) {
                     if (data & 0x80)
-                        dsp->sb_freq = (int) (768000UL / (128ul - data));
+                        dsp->sb_freq = (int) (768000UL / (256ul - data));
                     else
                         dsp->sb_freq = (int) (793800UL / (128ul - data));
                 } else {
