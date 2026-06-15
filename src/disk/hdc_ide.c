@@ -1825,14 +1825,6 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide->tf->atastat  = DRDY_STAT;
 
                     ide_set_callback(ide, 100.0 * IDE_TIME);
-
-                    if (ide_other->type == IDE_ATAPI) {
-                        ide_other->tf->atastat  = BSY_STAT;
-                        ide_other->sc->callback = 100.0 * IDE_TIME;
-                    } else
-                        ide_other->tf->atastat  = DRDY_STAT;
-
-                    ide_set_callback(ide_other, 100.0 * IDE_TIME);
                     break;
 
                 case WIN_READ_MULTIPLE:
@@ -2402,25 +2394,27 @@ ide_callback(void *priv)
            Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
            Cylinder Low = 14h, Cylinder High = EBh and Drive/Head = 00h. */
         case WIN_SRST: /*ATAPI Device Reset */
-            ide->tf->error     = 1; /*Device passed*/
-
-            ide->tf->secount   = 1;
-            ide->tf->sector    = 1;
-
-            ide_set_signature(ide);
-
-            ide->tf->atastat = DRDY_STAT | DSC_STAT;
             if (ide->type == IDE_ATAPI) {
+                ide->tf->error     = 1; /*Device passed*/
+
+                ide->tf->secount   = 1;
+                ide->tf->sector    = 1;
+
+                ide_set_signature(ide);
+
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
+
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
                 if (!IDE_ATAPI_IS_EARLY)
                     ide->tf->atastat = 0;
-            }
 
-            ide_irq_raise(ide);
+                ide_irq_raise(ide);
 
-            if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
-                ide->service = 0;
+                if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
+                    ide->service = 0;
+            } else
+                err = ABRT_ERR;
             break;
 
         case WIN_NOP:

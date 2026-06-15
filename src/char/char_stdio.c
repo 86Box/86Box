@@ -223,14 +223,14 @@ char_stdio_close(void *priv)
 #else
         if (dev->fd_out != STDOUT_FILENO) {
             fflush(stdout);
-            dup2(dev->fd_out, STDOUT_FILENO);
-            close(dev->fd_out);
+            if (CHAR_FD_VALID(dup2(dev->fd_out, STDOUT_FILENO)))
+                close(dev->fd_out);
             dev->fd_out = STDOUT_FILENO; /* for claim release later on */
         }
         if (CHAR_FD_VALID(dev->fd_err)) {
             fflush(stderr);
-            dup2(dev->fd_err, STDERR_FILENO);
-            close(dev->fd_err);
+            if (CHAR_FD_VALID(dup2(dev->fd_err, STDERR_FILENO)))
+                close(dev->fd_err);
         }
 #endif
     }
