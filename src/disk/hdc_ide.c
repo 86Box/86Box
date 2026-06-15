@@ -99,6 +99,7 @@
 #define WIN_IDENTIFY                   0xec /* Ask drive to identify itself */
 #define WIN_SET_FEATURES               0xef
 #define WIN_READ_NATIVE_MAX            0xf8
+#define WIN_INVALID                    0xff
 
 #define FEATURE_SET_TRANSFER_MODE      0x03
 #define FEATURE_ENABLE_IRQ_OVERLAPPED  0x5d
@@ -1394,7 +1395,8 @@ ide_write_data(ide_t *ide, const uint16_t val)
 {
     uint16_t *idebufferw = ide->buffer;
 
-    if ((ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) && ide->buffer) {
+    if ((ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) &&
+        ide->buffer && (ide->command != WIN_INVALID)) {
         if (ide->command == WIN_PACKETCMD) {
             if (ide->type == IDE_ATAPI)
                 ide_atapi_packet_write(ide, val);
@@ -2033,6 +2035,8 @@ ide_read_data(ide_t *ide)
 
     if ((ide->type == IDE_NONE) || (ide->type & IDE_SHADOW) || (ide->buffer == NULL))
         ret = 0xff7f;
+    else if (ide->command == WIN_INVALID)
+        ret = 0x0000;
     else if (ide->command == WIN_PACKETCMD) {
         if (ide->type == IDE_ATAPI)
             ret = ide_atapi_packet_read(ide);
@@ -2079,9 +2083,12 @@ ide_read_data(ide_t *ide)
                         const double xfer_us = ide_get_xfer_time(ide, 512);
                         ide_set_callback(ide, seek_us + xfer_us);
                     }
-                } else
+                } else {
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
-            }
+                    ide->command = WIN_INVALID;
+                }
+            } else
+                ide->command = WIN_INVALID;
         }
     }
 
@@ -2387,25 +2394,27 @@ ide_callback(void *priv)
            Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
            Cylinder Low = 14h, Cylinder High = EBh and Drive/Head = 00h. */
         case WIN_SRST: /*ATAPI Device Reset */
-            ide->tf->error     = 1; /*Device passed*/
-
-            ide->tf->secount   = 1;
-            ide->tf->sector    = 1;
-
-            ide_set_signature(ide);
-
-            ide->tf->atastat = DRDY_STAT | DSC_STAT;
             if (ide->type == IDE_ATAPI) {
+                ide->tf->error     = 1; /*Device passed*/
+
+                ide->tf->secount   = 1;
+                ide->tf->sector    = 1;
+
+                ide_set_signature(ide);
+
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
+
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
                 if (!IDE_ATAPI_IS_EARLY)
                     ide->tf->atastat = 0;
-            }
 
-            ide_irq_raise(ide);
+                ide_irq_raise(ide);
 
-            if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
-                ide->service = 0;
+                if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
+                    ide->service = 0;
+            } else
+                err = ABRT_ERR;
             break;
 
         case WIN_NOP:
@@ -2572,6 +2581,8 @@ ide_callback(void *priv)
                     ide_next_sector(ide);
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                    ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
+                    ide->command = WIN_INVALID;
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2656,6 +2667,7 @@ ide_callback(void *priv)
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
                     ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
+                    ide->command = WIN_INVALID;
                 }
                 if (ret < 0)
                     err = UNC_ERR;

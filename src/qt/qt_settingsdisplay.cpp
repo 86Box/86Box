@@ -240,9 +240,11 @@ SettingsDisplay::on_pushButtonConfigureVideo_clicked()
 {
     int   videoCard = ui->comboBoxVideo->currentData().toInt();
     auto *device    = video_card_getdevice(videoCard);
-    if (videoCard == VID_INTERNAL)
+    if (videoCard == VID_INTERNAL) {
         device = machine_get_vid_device(machineId);
-    gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
+        gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device);
+    } else
+        gfxcard_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void

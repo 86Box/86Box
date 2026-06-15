@@ -1717,8 +1717,11 @@ msgstr "Sakte"
 msgid "Fast"
 msgstr "Rask"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Automatisk pause ved tap av fokus"
+msgid "Auto-pause on focus loss"
+msgstr "Automatisk pause ved tap av fokus"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox støttes ikke lenger"

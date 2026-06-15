@@ -131,6 +131,12 @@ azt2320_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         buffer[c] += (azt2320->ad1848.buffer[c] / 2);
 
     azt2320->ad1848.pos = 0;
+}
+
+static void
+azt2320_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    azt2320_t *azt2320 = (azt2320_t *) priv;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, azt2320->sb);
@@ -285,6 +291,7 @@ azt2320_init(UNUSED(const device_t *info))
     io_sethandler(azt2320->cur_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, azt2320->sb);
 
     sound_add_handler(azt2320_get_buffer, azt2320);
+    sound_add_handler(azt2320_get_sbpro_buffer, azt2320);
 
     if (azt2320->sb->opl_enabled) {
         music_add_handler(sb_get_music_buffer_sbpro, azt2320->sb);

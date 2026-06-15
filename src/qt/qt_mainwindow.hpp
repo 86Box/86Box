@@ -88,8 +88,6 @@ private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
-    void on_actionAuto_pause_triggered();
-    void on_actionAutoDiag_pause_triggered();
     void on_actionUpdate_mouse_every_CPU_frame_triggered();
     void on_actionPause_triggered();
     void on_actionToggle_OSD_triggered();

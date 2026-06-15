@@ -2350,7 +2350,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                 b[1] = bin2bcd(trti[t].ps);
                 b[2] = bin2bcd(trti[t].pf);
                 b[3] = trti[t].adr_ctl;
- 
+
                 cdrom_log(dev->log, "Returned Toshiba/NEC disc information (type 2) at "
                           "%02i:%02i.%02i, track=%d, attr=%02x.\n", b[0], b[1],
                           b[2], bcd2bin(track), b[3]);
@@ -3088,7 +3088,8 @@ cdrom_hard_reset(void)
             const char *vendor = cdrom_drive_types[dev->type].vendor;
 
             dev->is_early   = cdrom_is_early(dev->type);
-            dev->is_bcd     = !strcmp(vendor, "NEC");
+            dev->is_bcd     = (dev->bus_type == CDROM_BUS_ATAPI) &&
+                              !strcmp(vendor, "NEC");
             dev->is_nec     = (dev->bus_type == CDROM_BUS_SCSI) &&
                               !strcmp(vendor, "NEC");
             dev->is_chinon  = !strcmp(vendor, "CHINON");

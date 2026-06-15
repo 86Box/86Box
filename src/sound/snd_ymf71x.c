@@ -671,6 +671,12 @@ ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 
         ymf71x->ad1848.pos = 0;
     }
+}
+
+static void
+ymf71x_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    ymf71x_t *ymf71x = (ymf71x_t *) priv;
 
     /* sbprov2 part */
     /* Don't play audio if the SB Compatibility analog or digital sections are powered down */
@@ -747,6 +753,7 @@ ymf71x_init(const device_t *info)
     fm_driver_get_cs(FM_YMF289B, &ymf71x->sb->opl);
 
     sound_add_handler(ymf71x_get_buffer, ymf71x);
+    sound_add_handler(ymf71x_get_sbpro_buffer, ymf71x);
     music_add_handler(sb_get_music_buffer_sbpro, ymf71x->sb);
     ad1848_set_cd_audio_channel(&ymf71x->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */

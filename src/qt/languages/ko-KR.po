@@ -1760,8 +1760,11 @@ msgstr "느림"
 msgid "Fast"
 msgstr "빠름"
 
-msgid "&Auto-pause on focus loss"
-msgstr "창 포커스를 잃으면 자동 일시 중지(&A)"
+msgid "Auto-pause on focus loss"
+msgstr "창 포커스를 잃으면 자동 일시 중지"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox는 더 이상 지원되지 않습니다"

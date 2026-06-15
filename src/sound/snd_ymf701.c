@@ -157,6 +157,12 @@ ymf701_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         buffer[c] += (ymf701->ad1848.buffer[c] / 2);
 
     ymf701->ad1848.pos = 0;
+}
+
+static void
+ymf701_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    ymf701_t *ymf701 = (ymf701_t *) priv;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, ymf701->sb);
@@ -439,6 +445,7 @@ ymf701_init(const device_t *info)
     io_sethandler(ymf701->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
 
     sound_add_handler(ymf701_get_buffer, ymf701);
+    sound_add_handler(ymf701_get_sbpro_buffer, ymf701);
     music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
     ad1848_set_cd_audio_channel(&ymf701->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf701->ad1848);
