@@ -700,8 +700,10 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
                             svga->bpp = 16;
                             break;
                         case 0x07:
-                        case 0x0d:
                             svga->bpp = 24;
+                            break;
+                        case 0x0d:
+                            svga->bpp = (virge->chip == S3_VIRGEVX) ? 24 : 32;
                             break;
                         default:
                             svga->bpp = 8;
@@ -1109,6 +1111,9 @@ s3_virge_recalctimings(svga_t *svga)
                     break;
                 case 24:
                     svga->render = svga_render_24bpp_highres;
+                    break;
+                case 32:
+                    svga->render = svga_render_32bpp_highres;
                     break;
 
                 default:

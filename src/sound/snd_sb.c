@@ -2022,7 +2022,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                 ess->ess_dac2_freq = (int) (397700UL / (128ul - val));
                         } else {
                             if (val & 0x80)
-                                ess->ess_dac2_freq = (int) (768000UL / (128ul - val));
+                                ess->ess_dac2_freq = (int) (768000UL / (256ul - val));
                             else
                                 ess->ess_dac2_freq = (int) (793800UL / (128ul - val));
                         }
