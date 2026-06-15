@@ -1,4 +1,5 @@
 #include "qt_vulkanshadermanagerdialog.hpp"
+#if QT_CONFIG(vulkan)
 #include "ui_qt_vulkanshadermanagerdialog.h"
 
 #include "qt_mainwindow.hpp"
@@ -292,3 +293,4 @@ VulkanShaderManagerDialog::on_targetFrameRate_valueChanged(int arg1)
     if (ui->horizontalSliderFramerate->value() != ui->targetFrameRate->value())
         ui->horizontalSliderFramerate->setValue(ui->targetFrameRate->value());
 }
+#endif

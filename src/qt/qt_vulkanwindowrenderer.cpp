@@ -27,6 +27,11 @@
 #include <QMessageBox>
 #include <QWindow>
 
+extern "C"
+{
+    char vk_shader_file[20][512] = {};
+}
+
 #if QT_CONFIG(vulkan)
 #    include <QVulkanWindowRenderer>
 #    include <QVulkanDeviceFunctions>
@@ -46,8 +51,6 @@ extern "C" {
 #    include <86box/plat.h>
 #    include <86box/ui.h>
 #    include <86box/video.h>
-
-char vk_shader_file[20][512] = {};
 }
 
 extern MainWindow *main_window;

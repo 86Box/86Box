@@ -5,6 +5,7 @@
 #include <QAbstractButton>
 #include <QListWidgetItem>
 
+#if QT_CONFIG(vulkan)
 namespace Ui {
 class VulkanShaderManagerDialog;
 }
@@ -46,5 +47,7 @@ private slots:
 private:
     Ui::VulkanShaderManagerDialog *ui;
 };
+
+#endif
 
 #endif // QT_VULKANSHADERMANAGERDIALOG_H
