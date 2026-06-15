@@ -524,7 +524,12 @@ VulkanWindowRenderer::render()
 {
     if (!isInitialized || isFinalized)
         return;
-    m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_TRUE, UINT64_MAX);
+    auto fence_res = m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_TRUE, UINT64_MAX);
+    if (fence_res == VK_ERROR_DEVICE_LOST) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+        finalize();
+        return;
+    }
     m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto         cmdBufs = this->cmdBuffers[current_frame];
 
@@ -540,7 +545,21 @@ VulkanWindowRenderer::render()
 
     updateOptions();
 
-    auto res = fn_vkAcquireNextImageKHR(logi_device, dev_swapchain, (uint64_t) -1, presentSemaphores[current_frame], VK_NULL_HANDLE, &swapchain_image_index);
+    auto res = fn_vkAcquireNextImageKHR(logi_device, dev_swapchain, (uint64_t) 3 * 1000 * 1000 * 1000, presentSemaphores[current_frame], VK_NULL_HANDLE, &swapchain_image_index);
+    if (res == VK_TIMEOUT) {
+        pclog("Vulkan: Present image timeout\n");
+        return;
+    }
+    if (res == VK_ERROR_DEVICE_LOST) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+        finalize();
+        return;
+    }
+    if (res == VK_ERROR_SURFACE_LOST_KHR) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Surface lost"));
+        finalize();
+        return;
+    }
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
         try {
             recreateSwapchain();
@@ -905,7 +924,12 @@ VulkanWindowRenderer::render()
     submitInfo.signalSemaphoreCount = 1;
 
     // Submit to the graphics queue passing a wait fence
-    m_devFuncs->vkQueueSubmit(gfx_queue_o, 1, &submitInfo, presentFences[current_frame]);
+    auto submit_res = m_devFuncs->vkQueueSubmit(gfx_queue_o, 1, &submitInfo, presentFences[current_frame]);
+    if (submit_res == VK_ERROR_DEVICE_LOST) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+        finalize();
+        return;
+    }
 
     if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard) {
         // Wait for fence to be signalled.
@@ -964,6 +988,16 @@ VulkanWindowRenderer::render()
     presentInfo.pSwapchains        = &dev_swapchain;
     presentInfo.pImageIndices      = &swapchain_image_index;
     auto result                    = fn_vkQueuePresentKHR(gfx_queue_o, &presentInfo);
+    if (result == VK_ERROR_SURFACE_LOST_KHR) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Surface lost"));
+        finalize();
+        return;
+    }
+    if (result == VK_ERROR_DEVICE_LOST) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+        finalize();
+        return;
+    }
     if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
         try {
             recreateSwapchain();
