@@ -1,0 +1,59 @@
+# Workflow file for Linux hosts
+name: Corrosion on Linux
+on:
+  workflow_call:
+    inputs:
+      ubuntu_version:
+        required: false
+        type: string
+        default: "latest"
+      cmake:
+        required: false
+        type: string
+        default: "3.22.6"
+      generator:
+        required: true
+        type: string
+      c_compiler:
+        required: true
+        type: string
+      rust:
+        required: false
+        type: string
+        default: 1.46.0
+      target_arch:
+        required: false
+        type: string
+        default: x86_64
+
+jobs:
+  linux:
+    name: Test Linux
+    runs-on: ubuntu-${{ inputs.ubuntu_version }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "${{ inputs.cmake }}"
+          ninjaVersion: "~1.10.0"
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{inputs.rust}}
+          targets: ${{inputs.target_arch}}-unknown-linux-gnu
+          components: rust-src
+      - name: Install Cross Compiler
+        shell: bash
+        run: |
+          echo "::group::apt-install"
+          sudo apt-get update
+          sudo apt-get install -y "g++-${{inputs.target_arch}}-linux-gnu"
+          echo "::endgroup::"
+        if: ${{ 'Linux' == runner.os && inputs.target_arch != 'x86_64' }}
+      - name: Configure Corrosion
+        run: cmake -S. -Bbuild -G "${{ inputs.generator }}" "-DRust_TOOLCHAIN=${{steps.install_rust.outputs.name}}" --preset "${{ inputs.target_arch }}-unknown-linux-gnu-${{ inputs.c_compiler }}"
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3

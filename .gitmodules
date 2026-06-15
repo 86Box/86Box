@@ -1,0 +1,3 @@
+[submodule "librashader"]
+	path = librashader
+	url = https://github.com/SnowflakePowered/librashader

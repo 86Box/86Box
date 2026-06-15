@@ -117,11 +117,13 @@ jobs:
             libserialport:p
             ${{ matrix.ui.packages }}
             llvm-openmp:p
+            rust:p
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          submodules: true
 
       - name: Configure CMake
         run: >-

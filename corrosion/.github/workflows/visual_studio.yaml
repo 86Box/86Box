@@ -1,0 +1,54 @@
+name: Corrosion with Visual Studio
+
+on:
+  workflow_call:
+    inputs:
+      vs_version:
+        required: true
+        type: string
+        default: 2022
+      cmake:
+        required: false
+        type: string
+        default: "3.22.6"
+      rust:
+        required: false
+        type: string
+        default: 1.46.0
+      target_arch:
+        required: false
+        type: string
+        default: x86_64
+
+jobs:
+  visual_studio:
+    name: Test Visual Studio ${{ inputs.vs_version }}
+    runs-on: "windows-${{ inputs.vs_version }}"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install CMake
+        uses: lukka/get-cmake@519de0c7b4812477d74976b2523a9417f552d126
+        with:
+          cmakeVersion: "${{ inputs.cmake }}"
+          ninjaVersion: "~1.10.0"
+      - name: Install Rust
+        id: install_rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{inputs.rust}}
+          targets: ${{inputs.target_arch}}-pc-windows-msvc
+          components: rust-src
+      # The initial configure for MSVC is quite slow, so we cache the build directory
+      # (including the build directories of the tests) since reconfiguring is
+      # significantly faster.
+      # - name: Cache MSVC build directory
+      #   id: cache-msvc-builddir
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: build
+      #     key: ${{ inputs.os }}-${{ inputs.target_arch }}-${{ inputs.rust }}-msvc-${{ inputs.vs_version}}-build
+      - name: Configure
+        run: cmake -S. -Bbuild -DCORROSION_TESTS_KEEP_BUILDDIRS=ON "-DRust_TOOLCHAIN=${{steps.install_rust.outputs.name}}" --preset "vs-${{ inputs.vs_version }}-${{ inputs.target_arch }}"
+      - name: Run Tests
+        working-directory: build
+        run: ctest --output-on-failure --build-config Debug -j 3

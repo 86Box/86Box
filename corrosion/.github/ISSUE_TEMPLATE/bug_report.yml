@@ -1,0 +1,81 @@
+name: Bug Report
+description: File a bug report
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees:
+  - jschwe
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    attributes:
+      label: Current Behavior
+      description: A concise description of what you're experiencing.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: A concise description of what you expected to happen.
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Steps To Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. In this environment...
+        2. With this config...
+        3. Run '...'
+        4. See error...
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        examples:
+          - **OS**: Ubuntu 22.04
+          - **CMake**: 3.22.0
+          - **CMake Generator**: Ninja 1.11
+      value: |
+        - OS:
+        - CMake:
+        - CMake Generator:
+      render: markdown
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: CMake configure log with Debug log-level
+      description: |
+        Output when configuring with `cmake -S<source_dir> -B<build_dir> --log-level=DEBUG <your_other_options>`:
+        <details><summary>CMake configure log</summary>
+        <p>
+        
+        ```
+        <log>
+        ```
+        
+        </p>
+        </details>
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: CMake Build step log
+      description: |
+        Output when building with `cmake --build <build_dir> --verbose`:
+        <details><summary>CMake build log</summary>
+        <p>
+
+        ```
+        <log>
+        ```
+
+        </p>
+        </details>
+    validations:
+      required: false
