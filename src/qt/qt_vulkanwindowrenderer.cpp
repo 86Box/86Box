@@ -743,12 +743,17 @@ VulkanWindowRenderer::render()
         libra_viewport_t vport{};
         vport.width = destination.width();
         vport.height = destination.height();
+        libra_error_t error = nullptr;
         if (i == shaderFilterChains[swapchain_image_index].size() - 1) {
             vport.x = destination.x();
             vport.y = destination.y();
-            libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
         } else
-            libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+
+        if (error) {
+            libra_error_print(error);
+        }
     }
 
     if (!noshadersloaded) {
@@ -987,6 +992,7 @@ VulkanWindowRenderer::render()
     presentInfo.swapchainCount     = 1;
     presentInfo.pSwapchains        = &dev_swapchain;
     presentInfo.pImageIndices      = &swapchain_image_index;
+    instance.presentAboutToBeQueued(this);
     auto result                    = fn_vkQueuePresentKHR(gfx_queue_o, &presentInfo);
     if (result == VK_ERROR_SURFACE_LOST_KHR) {
         QMessageBox::critical(main_window, tr("Error"), tr("Surface lost"));
@@ -1006,6 +1012,7 @@ VulkanWindowRenderer::render()
             main_window->reloadAllRenderers();
         }
     }
+    instance.presentQueued(this);
 
     current_frame = (current_frame + 1) % swapchainImageViews.size();
     current_frame_shader++;
@@ -1158,8 +1165,6 @@ VulkanWindowRenderer::initialize()
                 fn_vkQueuePresentKHR            = (PFN_vkQueuePresentKHR) (instance.functions()->vkGetDeviceProcAddr(logi_device, "vkQueuePresentKHR"));
                 vma_funcs.vkGetInstanceProcAddr = (PFN_vkGetInstanceProcAddr) instance.getInstanceProcAddr("vkGetInstanceProcAddr");
                 vma_funcs.vkGetDeviceProcAddr   = (PFN_vkGetDeviceProcAddr) instance.getInstanceProcAddr("vkGetDeviceProcAddr");
-                fn_vkCmdBeginRendering          = (PFN_vkCmdBeginRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdBeginRenderingKHR");
-                fn_vkCmdEndRendering            = (PFN_vkCmdEndRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdEndRenderingKHR");
 
                 vma_info.device         = logi_device;
                 vma_info.physicalDevice = phys_device;
@@ -1257,7 +1262,9 @@ VulkanWindowRenderer::initialize()
 
                             libra_preset_free_runtime_params(shader->param_list);
                             shader->param_list.parameters = 0;
-                            auto err = libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, nullptr, &filter_chain);
+                            filter_chain_vk_opt_t vk{};
+                            vk.use_dynamic_rendering = 0;
+                            auto err = libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
                             delete shader;
                             if (filter_chain) {
                                 for (auto &curPair : parameter_values) {
@@ -1306,6 +1313,8 @@ VulkanWindowRenderer::initialize()
 
                 osdRenderTimer->start(16);
 
+                fn_vkCmdBeginRendering          = (PFN_vkCmdBeginRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdBeginRenderingKHR");
+                fn_vkCmdEndRendering            = (PFN_vkCmdEndRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdEndRenderingKHR");
                 render();
                 emit rendererInitialized();
             }
