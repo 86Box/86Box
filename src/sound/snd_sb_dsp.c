@@ -1058,7 +1058,7 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
                 ESSreg(reg) = data;
                 if ((dsp->sb_subtype == SB_SUBTYPE_ESS_ES1869) && dsp->es1869_divider_mode) {
                     if (data & 0x80)
-                        dsp->sb_freq = (int) (768000UL / (128ul - data));
+                        dsp->sb_freq = (int) (768000UL / (256ul - data));
                     else
                         dsp->sb_freq = (int) (793800UL / (128ul - data));
                 } else {
@@ -1138,7 +1138,7 @@ sb_ess_write_reg(sb_dsp_t *dsp, const uint8_t reg, uint8_t data)
         case 0xB2: /* DRQ Control */
             chg         = ESSreg(reg) ^ data;
             ESSreg(reg) = (ESSreg(reg) & 0x0F) + (data & 0xF0); // lower 4 bits not writeable
-            if (!dsp->is_chipchat) {
+            if (!dsp->is_chipchat && (dsp->sb_subtype < SB_SUBTYPE_ESS_ES1868)) {
                 switch (data & 0x0C) {
                     default:
                         break;
