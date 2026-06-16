@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-15 21:21+0000\n"
+"PO-Revision-Date: 2026-06-16 17:51+0000\n"
 "Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -55,10 +55,10 @@ msgid "&Resizeable window"
 msgstr "&Boyutlandırılabilir pencere"
 
 msgid "R&emember size && position"
-msgstr "&Pencere boyut ve pozisyonunu kaydet"
+msgstr "&Pencere boyut ve pozisyonunu hatırla"
 
 msgid "Remember size && position"
-msgstr "Pencere boyut ve pozisyonunu kaydet"
+msgstr "Pencere boyut ve pozisyonunu hatırla"
 
 msgid "Re&nderer"
 msgstr "Derley&ici"
@@ -184,7 +184,7 @@ msgid "Change contrast for monochrome display"
 msgstr "Gri tonlu görüntü için kontrastı değiştir"
 
 msgid "&Media"
-msgstr "&Ortam"
+msgstr "&Medya"
 
 msgid "&Tools"
 msgstr "&Araçlar"
@@ -442,7 +442,7 @@ msgid "Monitor"
 msgstr "Monitör"
 
 msgid "Voodoo 1 or 2 Graphics"
-msgstr "Voodoo 1 veya 2 Grafikleri"
+msgstr "Voodoo 1 ya da 2 Grafikleri"
 
 msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A Grafikleri"
@@ -913,7 +913,7 @@ msgid "Press %1 to release mouse"
 msgstr "Farenin bırakılması için %1 tuşlarına basın"
 
 msgid "Press %1 or middle button to release mouse"
-msgstr "Farenin bırakılması için %1 veya tekerlek tuşuna basın"
+msgstr "Farenin bırakılması için %1 ya da tekerlek tuşuna basın"
 
 msgid "Bus"
 msgstr "Veri yolu"
@@ -1106,7 +1106,19 @@ msgid "About %1"
 msgstr "%1 hakkında"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Bir eski bilgisayar emülatörü\n\nYapımcılar: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ve diğerleri.\n\nSarah Walker, leilei, JohnElliott, greatpsycho, ve diğerlerinin önceki katkılarıyla birlikte.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE kısmını gözden geçirin."
+msgstr ""
+"Bir eski bilgisayar emülatörü\n"
+"\n"
+"Yapımcılar: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, "
+"coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin "
+"(elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen "
+"(waltje), Tiseno100, reenigne ve diğerleri.\n"
+"\n"
+"Sarah Walker, leilei, JohnElliott, greatpsycho, ve diğerlerinin de önceki "
+"katkılarıyla birlikte.\n"
+"\n"
+"GNU Genel Kamu Lisansı versiyon 2 ya da sonrası altında yayınlanmıştır. Daha "
+"fazla bilgi için LICENSE kısmını gözden geçirin."
 
 msgid "Hardware not available"
 msgstr "Cihaz mevcut değil"
@@ -1181,13 +1193,13 @@ msgid "Hard reset"
 msgstr "Yeniden başlamaya zorla"
 
 msgid "Force shutdown"
-msgstr "Kapatmaya zorla"
+msgstr "Kapanmaya zorla"
 
 msgid "Start"
 msgstr "Başlat"
 
 msgid "&Force shutdown"
-msgstr "&Kapatmaya zorla"
+msgstr "&Kapanmaya zorla"
 
 msgid "&Start"
 msgstr "&Başlat"
@@ -1254,10 +1266,10 @@ msgid "Add new system wizard"
 msgstr "Yeni sistem ekleme sihirbazı"
 
 msgid "Introduction"
-msgstr "Giriş"
+msgstr "Tanıtım"
 
 msgid "This will help you add a new system to 86Box."
-msgstr "Bu sihirbaz 86Box'a yeni bir sistem eklemenizde yardımcı olacaktır."
+msgstr "Bu sihirbaz 86Box'a yeni bir sistem eklemenize yardımcı olacaktır."
 
 msgid "New configuration"
 msgstr "Yeni yapılandırma"
@@ -1309,7 +1321,7 @@ msgid "System name and location"
 msgstr "Sistem adı ve yeri"
 
 msgid "Enter the name of the system and choose the location"
-msgstr "Sistemin adını girin ve yerini seçin"
+msgstr "Sistemin adını girin ve konumunu seçin"
 
 msgid "Enter the name of the system"
 msgstr "Sistemin adını girin"
@@ -1465,7 +1477,7 @@ msgid "ACPI shutdown"
 msgstr "ACPI ile kapat"
 
 msgid "ACP&I shutdown"
-msgstr "Makineyi ACP&I kullanarak kapat"
+msgstr "ACP&I ile kapat"
 
 msgid "Hard disk (%1)"
 msgstr "Sabit disk (%1)"
@@ -1612,7 +1624,16 @@ msgid "Select the parent VHD"
 msgstr "Ana VHD dosyasını seçin"
 
 msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Ana ve ek disklerin zaman damgaları uyuşmuyor. Bu, farklandırmış görüntü dosyası oluşturulduktan sonra ana görüntü dosyasında değişiklik yapıldığı anlamına gelebilir.\n\nBu durum ayrıca görüntü dosyalarının kopyalanmasından, yerlerinin değiştirilmesinden veya bu diski oluşturan programdaki bir hatadan dolayı da meydana gelmiş olabilir.\n\nZaman damgalarını düzeltmek ister misiniz?"
+msgstr ""
+"Ana ve ek disklerin zaman damgaları uyuşmamakta. Bu, farklandırmış görüntü "
+"dosyası oluşturulduktan sonra ana görüntü dosyasında değişiklik yapıldığı "
+"anlamına geliyor olabilir.\n"
+"\n"
+"Bu durum ayrıca görüntü dosyalarının kopyalanmasından, yerlerinin "
+"değiştirilmesinden veya bu diski oluşturan programdaki bir hatadan dolayı da "
+"meydana gelmiş olabilir.\n"
+"\n"
+"Zaman damgalarını düzeltmek ister misiniz?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Ana ve ek disklerin zaman damgaları uyuşmuyor"
@@ -1717,7 +1738,7 @@ msgid "Mouse sensitivity:"
 msgstr "Fare hassasiyeti:"
 
 msgid "Select media images from program working directory"
-msgstr "Medya görüntülerini programın çalışma dizininden seç"
+msgstr "Medya görüntülerini emülatörün çalışma dizininden seç"
 
 msgid "PIT mode:"
 msgstr "PIT modu:"
@@ -1735,7 +1756,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Pencereye odaklanmıyorken duraklat"
 
 msgid "Auto-pause on dialog boxes"
-msgstr "Diyalog pencerelerinde emülatörü duraklat"
+msgstr "Diyalog pencereleri açıkken emülasyonu duraklat"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox artık desteklenmemektedir"
@@ -1859,7 +1880,7 @@ msgid "Couldn't switch to OpenGL context."
 msgstr "OpenGL bağlamına geçilemedi."
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
-msgstr "OpenGL sürüm 3.0 veya üstü gereklidir. Geçerli sürüm %1.%2"
+msgstr "OpenGL sürüm 3.0 ya da üstü gereklidir. Geçerli sürüm %1.%2"
 
 msgid "Error initializing OpenGL."
 msgstr "OpenGL başlatılırken hata oluştu."
@@ -2264,7 +2285,7 @@ msgid "Serial Number"
 msgstr "Seri Numarası"
 
 msgid "Host ID"
-msgstr "Ana sistemin kimliği"
+msgstr "Ana sistem kimliği"
 
 msgid "FDC Address"
 msgstr "FDC Adresi"
@@ -2972,7 +2993,10 @@ msgid "Could not compile shader:\n\n%1"
 msgstr "Gölgelendirici derlenemedi:\n\n%1"
 
 msgid "Program not linked:\n\n%1"
-msgstr "Program bağlanamadı:\n\n%1"
+msgstr ""
+"Program bağlanmadı:\n"
+"\n"
+"%1"
 
 msgid "Shader Manager"
 msgstr "Gölgelendirici Yöneticisi"
@@ -3243,13 +3267,13 @@ msgid "Force interpretation"
 msgstr "Yorumlamaya zorla"
 
 msgid "Allow recompilation"
-msgstr "Derlenmeye izin ver"
+msgstr "Derlemeye izin ver"
 
 msgid "&Force interpretation"
 msgstr "&Yorumlamaya zorla"
 
 msgid "&Allow recompilation"
-msgstr "&Derlenmeye izin ver"
+msgstr "&Derlemeye izin ver"
 
 msgid "&Fast forward"
 msgstr "&İleri sar"
