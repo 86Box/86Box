@@ -1701,7 +1701,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if (mouse_was_captured) {
                 emit setMouseCapture(true);
             }
-        } else if (event->type() == QEvent::Resize) {
+        } else if (event->type() == QEvent::WindowStateChange) {
             if ((this->isFullScreen() && (video_fullscreen == 0)) ||
                 (!this->isFullScreen() && (video_fullscreen == 1)))
                 this->on_actionFullscreen_triggered();
