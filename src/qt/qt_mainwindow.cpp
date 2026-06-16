@@ -314,6 +314,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->toolBar->addWidget(toolbar_label_widget);
 
+    this->setWindowFlag(Qt::CustomizeWindowHint, true);
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
     this->setWindowFlag(Qt::WindowFullscreenButtonHint, vid_resize == 1);
@@ -446,6 +447,14 @@ MainWindow::MainWindow(QWidget *parent)
             if (resizableonce == false)
                 ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
             resizableonce = true;
+        }
+        if (!hide_status_bar) {
+            statusBar()->hide();
+            statusBar()->show();
+        }
+        if (!hide_tool_bar) {
+            ui->toolBar->hide();
+            ui->toolBar->show();
         }
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = static_cast<int>(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
