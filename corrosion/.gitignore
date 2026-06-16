@@ -1,8 +1,0 @@
-
-**/target/
-**/*.rs.bk
-build*/
-.vscode
-.idea
-cmake-build-*
-test/test_header.cmake
