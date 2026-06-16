@@ -25,7 +25,7 @@ slangp_write_shader_config(slang_shader& shader)
 
     startblit();
     snprintf(s, sizeof(s) - 1, "VK Shaders - %s", name);
-    for (int i = 0; i < shader.param_list.length; i++) {
+    for (unsigned int i = 0; i < shader.param_list.length; i++) {
         config_set_double(s, shader.param_list.parameters[i].name, shader.param_values[i]);
     }
     endblit();
@@ -39,7 +39,7 @@ slangp_read_shader_config(slang_shader& shader)
     startblit();
     snprintf(s, sizeof(s) - 1, "VK Shaders - %s", name);
     shader.param_values.resize(shader.param_list.length);
-    for (int i = 0; i < shader.param_list.length; i++) {
+    for (unsigned int i = 0; i < shader.param_list.length; i++) {
         std::string shader_name = shader.param_list.parameters[i].name;
         double shader_initial_value = shader.param_list.parameters[i].initial;
         shader.param_values[i] = config_get_double(s, shader_name.c_str(), shader_initial_value);
@@ -60,7 +60,7 @@ VulkanShaderConfig::VulkanShaderConfig(QWidget *parent, slang_shader *shader)
 
     slangp_read_shader_config(*currentShader);
 
-    for (int i = 0; i < currentShader->param_list.length; i++) {
+    for (unsigned int i = 0; i < currentShader->param_list.length; i++) {
         // XXX: librashader returns duplicated parameters for some reason.
         if (this->findChild<QDoubleSpinBox *>(QString(currentShader->param_list.parameters[i].name))) {
             QFormLayout *layout = (QFormLayout *) ui->scrollAreaWidgetContents->layout();
@@ -86,7 +86,7 @@ void
 VulkanShaderConfig::on_buttonBox_clicked(QAbstractButton *button)
 {
     if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::ResetRole) {
-        for (int i = 0; i < currentShader->param_list.length; i++) {
+        for (unsigned int i = 0; i < currentShader->param_list.length; i++) {
             QDoubleSpinBox *box = this->findChild<QDoubleSpinBox *>(QString(currentShader->param_list.parameters[i].name));
             if (box) {
                 box->setValue(currentShader->param_list.parameters[i].initial);
@@ -94,7 +94,7 @@ VulkanShaderConfig::on_buttonBox_clicked(QAbstractButton *button)
         }
     } else if (ui->buttonBox->buttonRole(button) == QDialogButtonBox::ApplyRole) {
         startblit();
-        for (int i = 0; i < currentShader->param_list.length; i++) {
+        for (unsigned int i = 0; i < currentShader->param_list.length; i++) {
             QDoubleSpinBox *box = this->findChild<QDoubleSpinBox *>(QString(currentShader->param_list.parameters[i].name));
             if (box) {
                 float val                          = (float) box->value();
@@ -112,7 +112,7 @@ void
 VulkanShaderConfig::on_VulkanShaderConfig_accepted()
 {
     startblit();
-    for (int i = 0; i < currentShader->param_list.length; i++) {
+    for (unsigned int i = 0; i < currentShader->param_list.length; i++) {
         QDoubleSpinBox *box = (QDoubleSpinBox *) this->findChild<QDoubleSpinBox *>(QString(currentShader->param_list.parameters[i].name));
         if (box) {
             float val                          = (float) box->value();

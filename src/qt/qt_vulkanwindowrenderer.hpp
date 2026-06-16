@@ -9,8 +9,17 @@
 #include <tuple>
 
 #if QT_CONFIG(vulkan)
+#    if defined(__clang__)
 #    pragma clang diagnostic ignored "-Wnullability-completeness"
+#    endif
+#    if defined(__GNUC__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wunused-variable"
+#    endif
 #    include "vk_mem_alloc.h"
+#    if defined(__GNUC__)
+#    pragma GCC diagnostic pop
+#    endif
 #    include "qt_renderercommon.hpp"
 #    include <vulkan/vulkan.h>
 #    include "imgui_impl_vulkan.h"

@@ -184,8 +184,8 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
     if (isFinalized || !isInitialized)
         return;
     m_devFuncs->vkDeviceWaitIdle(logi_device);
-    for (int i = 0; i < shaderFilterChains.size(); i++) {
-        for (int j = 0; j < shaderFilterChains[i].size(); j++) {
+    for (unsigned int i = 0; i < shaderFilterChains.size(); i++) {
+        for (unsigned int j = 0; j < shaderFilterChains[i].size(); j++) {
             if (j != (shaderFilterChains[i].size() - 1)) {
                 vmaDestroyImage(allocator, shaderFilterChains[i][j].next_image_chain, shaderFilterChains[i][j].next_image_alloc);
             }
@@ -220,7 +220,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
     shaderSrcImageAllocations.resize(swapchainImageViews.size());
     shaderFilterChains.resize(swapchainImageViews.size());
 
-    for (int i = 0; i < swapchainImageViews.size(); i++) {
+    for (unsigned int i = 0; i < swapchainImageViews.size(); i++) {
         VkImageCreateInfo img_info = { };
         img_info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         img_info.imageType         = VK_IMAGE_TYPE_2D;
@@ -289,7 +289,7 @@ VulkanWindowRenderer::cleanupSwapchain()
     cleanupShaderSrcImages();
 #endif
 
-    for (int i = 0; i < swapchainImageViews.size(); i++) {
+    for (unsigned int i = 0; i < swapchainImageViews.size(); i++) {
         m_devFuncs->vkDestroyImageView(logi_device, swapchainImageViews[i], nullptr);
         m_devFuncs->vkDestroySemaphore(logi_device, renderFinishedSemaphores[i], nullptr);
         m_devFuncs->vkDestroySemaphore(logi_device, presentSemaphores[i], nullptr);
@@ -511,7 +511,7 @@ VulkanWindowRenderer::finalize()
     qt_osd_shutdown();
     cleanupSwapchain();
 #ifdef LIBRA_RUNTIME_VULKAN
-    for (int i = 0; i < shaderFilterChains.size(); i++)
+    for (unsigned int i = 0; i < shaderFilterChains.size(); i++)
         libra_vk_filter_chain_free(&shaderLibraFilterChains[i]);
 
     shaderLibraFilterChains.clear();
@@ -758,7 +758,7 @@ VulkanWindowRenderer::render()
 #endif
 
 #   ifdef LIBRA_RUNTIME_VULKAN
-    for (int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
+    for (unsigned int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
         const VkImageMemoryBarrier image_shader_memory_barrier {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
             .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
@@ -1133,7 +1133,7 @@ VulkanWindowRenderer::initialize()
                 instance.functions()->vkGetPhysicalDeviceQueueFamilyProperties(phys_device, &queue_count, nullptr);
                 std::vector<VkQueueFamilyProperties> queue_info(queue_count);
                 instance.functions()->vkGetPhysicalDeviceQueueFamilyProperties(phys_device, &queue_count, queue_info.data());
-                for (int i = 0; i < queue_count; i++) {
+                for (unsigned int i = 0; i < queue_count; i++) {
                     if (instance.supportsPresent(phys_device, i, this) && (queue_info[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
                         present_queue = gfx_queue = i;
                         break;
@@ -1328,7 +1328,7 @@ VulkanWindowRenderer::initialize()
                         std::vector<std::pair<std::string, double>> parameter_values;
                         auto shader = slangp_parse(vk_shader_file[j]);
                         if (shader) {
-                            for (int l = 0; l < shader->param_list.length; l++) {
+                            for (unsigned int l = 0; l < shader->param_list.length; l++) {
                                 parameter_values.push_back(std::pair<std::string, double>(shader->param_list.parameters[l].name, shader->param_values[l]));
                             }
                             libra_vk_filter_chain_t filter_chain = nullptr;
