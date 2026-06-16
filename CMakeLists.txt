@@ -201,11 +201,7 @@ if(QT)
         option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
     endif()
 
-    if(APPLE)
-        option(LIBRASHADER "Build with librashader support" OFF)
-    else()
-        option(LIBRASHADER "Build with librashader support" ON)
-    endif()
+    option(LIBRASHADER "Build with librashader support" ON)
 
     if(LIBRASHADER)
         add_subdirectory(corrosion)
