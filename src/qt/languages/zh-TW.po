@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-10 23:25+0000\n"
+"PO-Revision-Date: 2026-06-15 21:21+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -419,7 +419,7 @@ msgid "Enabled (UTC)"
 msgstr "啟用 (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "啓用 486 直譯器於 286 及 386 處理器"
+msgstr "啟用 486 直譯器於 286 及 386 處理器"
 
 msgid "Dynamic Recompiler"
 msgstr "動態重編譯器"
@@ -1730,7 +1730,7 @@ msgid "Auto-pause on focus loss"
 msgstr "失去焦點時自動暫停"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "開啟對話框時自動暫停"
 
 msgid "WinBox is no longer supported"
 msgstr "不再支援 WinBox"
