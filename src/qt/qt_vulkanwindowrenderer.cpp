@@ -177,6 +177,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     buf_usage[0].clear();
 }
 
+#ifdef LIBRA_RUNTIME_VULKAN
 void
 VulkanWindowRenderer::cleanupShaderSrcImages()
 {
@@ -197,6 +198,7 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
     shaderSrcImages.clear();
     shaderSrcImageAllocations.clear();
 }
+#endif
 
 QDialog *
 VulkanWindowRenderer::getOptions(QWidget *parent)
@@ -204,6 +206,7 @@ VulkanWindowRenderer::getOptions(QWidget *parent)
     return new VulkanShaderManagerDialog(parent);
 }
 
+#ifdef LIBRA_RUNTIME_VULKAN
 void
 VulkanWindowRenderer::recreateShaderSrcImages()
 {
@@ -274,6 +277,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         }
     }
 }
+#endif
 
 void
 VulkanWindowRenderer::cleanupSwapchain()
@@ -281,7 +285,9 @@ VulkanWindowRenderer::cleanupSwapchain()
     if (isFinalized || !isInitialized)
         return;
     m_devFuncs->vkDeviceWaitIdle(logi_device);
+#ifdef LIBRA_RUNTIME_VULKAN
     cleanupShaderSrcImages();
+#endif
 
     for (int i = 0; i < swapchainImageViews.size(); i++) {
         m_devFuncs->vkDestroyImageView(logi_device, swapchainImageViews[i], nullptr);
@@ -483,7 +489,9 @@ VulkanWindowRenderer::recreateSwapchain()
             swapchainImageScreenshotMappedPtrs[i] = std::pair<void *, uint32_t>((void *) ((uint8_t *) allocInfo2.pMappedData + layout.offset), layout.rowPitch);
         }
     }
+#ifdef LIBRA_RUNTIME_VULKAN
     recreateShaderSrcImages();
+#endif
 }
 
 VulkanWindowRenderer::~VulkanWindowRenderer()
@@ -502,10 +510,12 @@ VulkanWindowRenderer::finalize()
         flag.test_and_set();
     qt_osd_shutdown();
     cleanupSwapchain();
+#ifdef LIBRA_RUNTIME_VULKAN
     for (int i = 0; i < shaderFilterChains.size(); i++)
         libra_vk_filter_chain_free(&shaderLibraFilterChains[i]);
 
     shaderLibraFilterChains.clear();
+#endif
 
     m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
     vmaDestroyImage(allocator, src_image, img_allocation);
@@ -537,7 +547,9 @@ VulkanWindowRenderer::render()
     auto         cmdBufs = this->cmdBuffers[current_frame];
 
     if (prev_destination != destination) {
+#ifdef LIBRA_RUNTIME_VULKAN
         recreateShaderSrcImages();
+#endif
         prev_destination = destination;
     }
 
@@ -572,8 +584,11 @@ VulkanWindowRenderer::render()
         }
         return;
     }
-    
+#ifndef LIBRA_RUNTIME_VULKAN
+    constexpr bool noshadersloaded = true;
+#else
     bool noshadersloaded = shaderFilterChains[swapchain_image_index].size() == 0;
+#endif
     m_devFuncs->vkBeginCommandBuffer(cmdBufs, &beginInfo);
 
     const VkImageMemoryBarrier image_memory_barrier {
@@ -581,7 +596,11 @@ VulkanWindowRenderer::render()
         .dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
         .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
         .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+#ifndef LIBRA_RUNTIME_VULKAN
+        .image            = swapchainImages[swapchain_image_index],
+#else
         .image            = !noshadersloaded ? shaderSrcImages[swapchain_image_index] : swapchainImages[swapchain_image_index],
+#endif
         .subresourceRange = {
                              .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
                              .baseMipLevel   = 0,
@@ -668,7 +687,11 @@ VulkanWindowRenderer::render()
     clr_range.levelCount = 1;
     clr_range.layerCount = 1;
 
+#ifndef LIBRA_RUNTIME_VULKAN
+    m_devFuncs->vkCmdClearColorImage(cmdBufs, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clr_val, 1, &clr_range);
+#else
     m_devFuncs->vkCmdClearColorImage(cmdBufs, noshadersloaded ? swapchainImages[swapchain_image_index] : shaderSrcImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &clr_val, 1, &clr_range);
+#endif
 
     const VkImageMemoryBarrier clear_memory_barrier {
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -676,7 +699,11 @@ VulkanWindowRenderer::render()
         .dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
         .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+#ifdef LIBRA_RUNTIME_VULKAN
         .image            = noshadersloaded ? swapchainImages[swapchain_image_index] : shaderSrcImages[swapchain_image_index],
+#else
+        .image            = swapchainImages[swapchain_image_index],
+#endif
         .subresourceRange = {
                              .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
                              .baseMipLevel   = 0,
@@ -688,8 +715,30 @@ VulkanWindowRenderer::render()
 
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
 
+#ifndef LIBRA_RUNTIME_VULKAN
+    m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+#else
     m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, noshadersloaded ? swapchainImages[swapchain_image_index] : shaderSrcImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+#endif
 
+#   ifndef LIBRA_RUNTIME_VULKAN
+    const VkImageMemoryBarrier image2_memory_barrier {
+        .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+        .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+        .dstAccessMask    = (VkAccessFlags)(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT),
+        .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .image            = swapchainImages[swapchain_image_index],
+        .subresourceRange = {
+                             .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                             .baseMipLevel   = 0,
+                             .levelCount     = 1,
+                             .baseArrayLayer = 0,
+                             .layerCount     = 1,
+                             }
+    };
+    m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
+#else
     const VkImageMemoryBarrier image2_memory_barrier {
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
@@ -706,7 +755,9 @@ VulkanWindowRenderer::render()
                              }
     };
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (noshadersloaded ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
+#endif
 
+#   ifdef LIBRA_RUNTIME_VULKAN
     for (int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
         const VkImageMemoryBarrier image_shader_memory_barrier {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -777,6 +828,7 @@ VulkanWindowRenderer::render()
         };
         m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
     }
+#endif
 
     VkRenderingAttachmentInfo render_info = {};
     render_info.clearValue = {};
@@ -1255,6 +1307,7 @@ VulkanWindowRenderer::initialize()
                 isFinalized = false;
                 recreateSwapchain();
 
+#ifdef LIBRA_RUNTIME_VULKAN
                 int num_shaders = 0;
                 for (int i = 0; i < 20; ++i) {
                     if (strlen(vk_shader_file[i]))
@@ -1301,6 +1354,7 @@ VulkanWindowRenderer::initialize()
                         }
                     }
                 }
+#endif
 
                 init_info = {};
                 init_info.ApiVersion = VK_VERSION_1_0;
@@ -1346,10 +1400,10 @@ VulkanWindowRenderer::initialize()
         for (auto &flag : buf_usage)
             flag.test_and_set();
 
-        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing Vulkan.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
-
         isFinalized   = true;
         isInitialized = true;
+
+        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing Vulkan.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
 
         emit errorInitializing();
     }

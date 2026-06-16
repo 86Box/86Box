@@ -9,6 +9,8 @@
 #include <map>
 #include <string>
 
+#if QT_CONFIG(vulkan) && defined LIBRA_RUNTIME_VULKAN
+
 #include "librashader.h"
 #include "qt-slangp.hpp"
 
@@ -34,5 +36,5 @@ private:
 
     std::map<std::string, double> defaultValues;
 };
-
+#endif
 #endif // QT_VULKANSHADERCONFIG_HPP

@@ -1,4 +1,5 @@
 #include "qt_vulkanshaderconfig.hpp"
+#if QT_CONFIG(vulkan) && defined LIBRA_RUNTIME_VULKAN
 #include "ui_qt_vulkanshaderconfig.h"
 
 #include "qt_mainwindow.hpp"
@@ -123,3 +124,4 @@ VulkanShaderConfig::on_VulkanShaderConfig_accepted()
     endblit();
     main_window->reloadAllRenderers();
 }
+#endif

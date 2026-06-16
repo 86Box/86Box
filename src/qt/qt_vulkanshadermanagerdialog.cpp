@@ -26,6 +26,7 @@ extern char vk_shader_file[20][512];
 }
 
 extern MainWindow *main_window;
+#ifdef LIBRA_RUNTIME_VULKAN
 slang_shader* slangp_parse(const char* path)
 {
     auto shader = new slang_shader{};
@@ -50,6 +51,7 @@ void slangp_free(slang_shader* shader) {
     libra_preset_free(&shader->shader_preset);
     delete shader;
 }
+#endif
 
 VulkanShaderManagerDialog::VulkanShaderManagerDialog(QWidget *parent)
     : QDialog(parent)
@@ -66,6 +68,7 @@ VulkanShaderManagerDialog::VulkanShaderManagerDialog(QWidget *parent)
         ui->targetFrameRate->setDisabled(true);
     }
 
+#ifdef LIBRA_RUNTIME_VULKAN
     for (int i = 0; i < 20; i++) {
         if (vk_shader_file[i][0] != 0) {
             char *filename = path_get_filename(vk_shader_file[i]);
@@ -99,16 +102,21 @@ VulkanShaderManagerDialog::VulkanShaderManagerDialog(QWidget *parent)
         ui->buttonMoveDown->setDisabled(true);
         ui->buttonConfigure->setDisabled(true);
     }
+#else
+    ui->groupBoxShaders->hide();
+#endif
 }
 
 VulkanShaderManagerDialog::~VulkanShaderManagerDialog()
 {
+#ifdef LIBRA_RUNTIME_VULKAN
     for (int i = 0; i < ui->shaderListWidget->count(); i++) {
         if (ui->shaderListWidget->item(i) && ui->shaderListWidget->item(i)->data(Qt::UserRole + 2).toULongLong()) {
             slang_shader* shader = (slang_shader*)ui->shaderListWidget->item(i)->data(Qt::UserRole + 2).toULongLong();
             slangp_free(shader);
         }
     }
+#endif
     delete ui;
 }
 
@@ -197,6 +205,7 @@ VulkanShaderManagerDialog::on_buttonMoveDown_clicked()
 void
 VulkanShaderManagerDialog::on_buttonAdd_clicked()
 {
+#ifdef LIBRA_RUNTIME_VULKAN
     auto res = QFileDialog::getOpenFileName(this, QString(), QString(),
                                             tr("Slang shaders") % util::DlgFilter({ "slangp" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     if (!res.isEmpty()) {
@@ -216,11 +225,13 @@ VulkanShaderManagerDialog::on_buttonAdd_clicked()
             QMessageBox::critical(this, tr("Slang error"), tr("Could not load file %1").arg(res));
         }
     }
+#endif
 }
 
 void
 VulkanShaderManagerDialog::on_buttonRemove_clicked()
 {
+#ifdef LIBRA_RUNTIME_VULKAN
     if (ui->shaderListWidget->currentItem()) {
         auto item = ui->shaderListWidget->takeItem(ui->shaderListWidget->currentRow());
 
@@ -232,15 +243,18 @@ VulkanShaderManagerDialog::on_buttonRemove_clicked()
         on_shaderListWidget_currentRowChanged(ui->shaderListWidget->currentRow());
     }
     ui->buttonAdd->setDisabled(ui->shaderListWidget->count() >= 20);
+#endif
 }
 
 void
 VulkanShaderManagerDialog::on_VulkanShaderManagerDialog_accepted()
 {
+#ifdef LIBRA_RUNTIME_VULKAN
     memset(vk_shader_file, 0, sizeof(vk_shader_file));
     for (int i = 0; i < ui->shaderListWidget->count(); i++) {
         strncpy(vk_shader_file[i], ui->shaderListWidget->item(i)->data(Qt::UserRole + 1).toString().toUtf8(), 512);
     }
+#endif
     startblit();
     video_vsync = ui->checkBoxVSync->isChecked();
     if (ui->radioButtonTargetFramerate->isChecked()) {
@@ -255,6 +269,7 @@ VulkanShaderManagerDialog::on_VulkanShaderManagerDialog_accepted()
 void
 VulkanShaderManagerDialog::on_buttonConfigure_clicked()
 {
+#ifdef LIBRA_RUNTIME_VULKAN
     auto item = ui->shaderListWidget->currentItem();
     if (item) {
         slang_shader *shader = (slang_shader *) item->data(Qt::UserRole + 2).toULongLong();
@@ -262,6 +277,7 @@ VulkanShaderManagerDialog::on_buttonConfigure_clicked()
         auto configDialog = new VulkanShaderConfig(this, shader);
         configDialog->exec();
     }
+#endif
 }
 
 void

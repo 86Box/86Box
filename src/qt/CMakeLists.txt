@@ -431,11 +431,13 @@ target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::OpenGL
     Qt${QT_MAJOR}::Network
     Threads::Threads
-    librashader_capi
 )
 
-target_compile_definitions(plat PRIVATE LIBRA_RUNTIME_VULKAN)
-target_compile_definitions(ui PRIVATE LIBRA_RUNTIME_VULKAN)
+if (LIBRASHADER)
+    target_compile_definitions(plat PRIVATE LIBRA_RUNTIME_VULKAN)
+    target_compile_definitions(ui PRIVATE LIBRA_RUNTIME_VULKAN)
+    target_link_libraries(ui PRIVATE librashader_capi)
+endif()
 
 if(WIN32)
     if(STATIC_BUILD)

@@ -14,9 +14,11 @@
 #    include "qt_renderercommon.hpp"
 #    include <vulkan/vulkan.h>
 #    include "imgui_impl_vulkan.h"
-#    define LIBRA_RUNTIME_VULKAN 1
-#    include "librashader.h"
+#    ifdef LIBRA_RUNTIME_VULKAN
+#       include "librashader.h"
+#    endif
 
+#    ifdef LIBRA_RUNTIME_VULKAN
 class VulkanShaderChain
 {
 public:
@@ -24,6 +26,8 @@ public:
     VkImage next_image_chain;
     VmaAllocation next_image_alloc;
 };
+
+#   endif
 
 class VulkanWindowRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
@@ -61,8 +65,10 @@ private:
     void cleanupSwapchain();
     void recreateSwapchain();
 
+#   ifdef LIBRA_RUNTIME_VULKAN
     void cleanupShaderSrcImages();
     void recreateShaderSrcImages();
+#   endif
 
     int present_queue = -1, gfx_queue = -1;
 
@@ -89,13 +95,14 @@ private:
     std::vector<VkSemaphore> presentSemaphores;
     std::vector<VkFence> presentFences;
     std::vector<VkCommandBuffer> cmdBuffers;
-
+#    ifdef LIBRA_RUNTIME_VULKAN
     std::vector<VkImage> shaderSrcImages;
     std::vector<bool> shaderSrcImageTransitioned;
     std::vector<VmaAllocation> shaderSrcImageAllocations;
     std::vector<std::vector<VulkanShaderChain>> shaderFilterChains;
 
     std::vector<libra_vk_filter_chain_t> shaderLibraFilterChains;
+#   endif
 
     // Stuff to use.
     VkImage src_image = nullptr;
