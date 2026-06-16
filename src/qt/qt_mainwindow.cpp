@@ -1098,6 +1098,10 @@ MainWindow::resizeEvent(QResizeEvent *event)
 #endif /*MOVE_WINDOW*/
 
     toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
+
+    if ((this->isFullScreen() && (video_fullscreen == 0)) ||
+        (!this->isFullScreen() && (video_fullscreen == 1)))
+        this->on_actionFullscreen_triggered();
 }
 
 void
