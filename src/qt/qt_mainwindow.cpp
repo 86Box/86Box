@@ -509,6 +509,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
 
+#ifdef Q_OS_MACOS
+    ui->actionApply_fullscreen_stretch_mode_when_maximized->setVisible(false);
+#endif
+
 #ifndef DISCORD
     ui->actionEnable_Discord_integration->setVisible(false);
 #else
