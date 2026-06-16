@@ -1046,6 +1046,23 @@ VulkanWindowRenderer::initialize()
             phys_devices.resize(physicalDevices);
             if (VK_SUCCESS == instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, phys_devices.data())) {
                 phys_device       = phys_devices[0];
+                VkFormatProperties format_prop {};
+
+                instance.functions()->vkGetPhysicalDeviceFormatProperties(phys_device, VK_FORMAT_B8G8R8A8_UNORM, &format_prop);
+                if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
+                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support BLIT_DST on optimal layouts.");
+                }
+                if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
+                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support BLIT_SRC on linear layouts.");
+                }
+
+                if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
+                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support TRANSFER_DST on optimal layouts.");
+                }
+                if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
+                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support TRANSFER_DST on linear layouts.");
+                }
+
                 uint32_t extCount = 0;
                 instance.functions()->vkEnumerateDeviceExtensionProperties(phys_device, nullptr, &extCount, nullptr);
                 std::vector<VkExtensionProperties> device_extensions(extCount);
