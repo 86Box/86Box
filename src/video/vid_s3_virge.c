@@ -61,7 +61,7 @@ static int dither[4][4] = {
 };
 
 #define ROM_VIRGE_325                 "roms/video/s3virge/86c325.bin"
-#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.bin"
+#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge_v204.BIN"
 #define ROM_MIROCRYSTAL_3D            "roms/video/s3virge/miro Crystal 3D 1.02.bin"
 #define ROM_DIAMOND_STEALTH3D_3000    "roms/video/s3virge/diamondstealth3000.vbi"
 #define ROM_STB_VELOCITY_3D           "roms/video/s3virge/stb_velocity3d_110.BIN"
@@ -905,6 +905,7 @@ s3_virge_recalctimings(svga_t *svga)
 
     svga->hdisp *= svga->dots_per_clock;
 
+    svga->vtotal      = svga->crtc[6];
     if (svga->crtc[7] & 1)
         svga->vtotal |= 0x100;
     if (svga->crtc[7] & 32)
@@ -913,6 +914,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vtotal |= 0x400;
     svga->vtotal += 2;
 
+    svga->dispend     = svga->crtc[0x12];
     if (svga->crtc[7] & 2)
         svga->dispend |= 0x100;
     if (svga->crtc[7] & 64)
@@ -921,6 +923,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->dispend |= 0x400;
     svga->dispend++;
 
+    svga->vblankstart = svga->crtc[0x15];
     if (svga->crtc[7] & 0x08)
         svga->vblankstart |= 0x100;
     if (svga->crtc[9] & 0x20)
@@ -929,6 +932,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x400;
     svga->vblankstart++;
 
+    svga->vsyncstart  = svga->crtc[0x10];
     if (svga->crtc[7] & 4)
         svga->vsyncstart |= 0x100;
     if (svga->crtc[7] & 128)
