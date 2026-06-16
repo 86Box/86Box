@@ -3017,6 +3017,9 @@ msgstr "Alternar mudo"
 msgid "Toggle on-screen display"
 msgstr "Alternar exibição do OSD"
 
+msgid "Toggle &on-screen display"
+msgstr "Alternar exibição do &OSD"
+
 msgid "Text files"
 msgstr "Arquivos de texto"
 
