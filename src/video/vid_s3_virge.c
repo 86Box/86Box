@@ -1017,7 +1017,7 @@ s3_virge_recalctimings(svga_t *svga)
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         svga->clock /= 2.0;
-                    } else if ((virge->chip == S3_VIRGEGX2)) {
+                    } else if (virge->chip == S3_VIRGEGX2) {
                         if (svga->seqregs[0x18] & 0x80) {
                             svga->hdisp >>= 1;
                             svga->dots_per_clock >>= 1;
