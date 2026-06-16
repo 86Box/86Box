@@ -13,7 +13,7 @@
 
 #include "librashader.h"
 #include "librashader_ld.h"
-#include "qt-slangp.hpp"
+#include "qt_slangp.hpp"
 
 namespace Ui {
 class VulkanShaderConfig;

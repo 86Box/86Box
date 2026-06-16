@@ -43,7 +43,7 @@ extern "C"
 
 #    include "qt_mainwindow.hpp"
 #    include "qt_osd.hpp"
-#    include "qt-slangp.hpp"
+#    include "qt_slangp.hpp"
 
 extern "C" {
 #    include <86box/86box.h>

@@ -275,7 +275,7 @@ add_library(ui STATIC
     qt_vulkanshaderconfig.cpp
     qt_vulkanshaderconfig.ui
 
-    qt-slangp.hpp
+    qt_slangp.hpp
 
     qt_iconindicators.hpp
     qt_iconindicators.cpp

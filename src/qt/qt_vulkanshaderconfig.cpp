@@ -4,7 +4,7 @@
 
 #include "qt_mainwindow.hpp"
 
-#include "qt-slangp.hpp"
+#include "qt_slangp.hpp"
 
 extern MainWindow *main_window;
 

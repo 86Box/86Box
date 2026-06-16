@@ -7,7 +7,7 @@
 extern MainWindow *main_window;
 
 #include "qt_vulkanshaderconfig.hpp"
-#include "qt-slangp.hpp"
+#include "qt_slangp.hpp"
 
 #include <QListWidgetItem>
 #include <QFileDialog>

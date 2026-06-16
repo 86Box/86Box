@@ -93,7 +93,7 @@
 
 #ifndef USE_SDL_UI
 /* Deliberate to not make the 86box.h header kitchen-sink. */
-#include <86box/qt-glsl.h>
+#include <86box/qt_glsl.h>
 extern char gl3_shader_file[MAX_USER_SHADERS][512];
 extern char vk_shader_file[20][512];
 #endif
