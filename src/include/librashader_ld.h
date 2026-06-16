@@ -79,91 +79,91 @@ typedef void *_LIBRASHADER_IMPL_HANDLE;
 
 #include "librashader.h"
 
-size_t __librashader__noop_instance_abi_version(void) { return 0; }
+static size_t __librashader__noop_instance_abi_version(void) { return 0; }
 
-size_t __librashader__noop_instance_api_version(void) { return 0; }
+static size_t __librashader__noop_instance_api_version(void) { return 0; }
 
-LIBRA_ERRNO __librashader__noop_error_errno(libra_error_t error) {
+static LIBRA_ERRNO __librashader__noop_error_errno(libra_error_t error) {
     return LIBRA_ERRNO_UNKNOWN_ERROR;
 }
 
-int32_t __librashader__noop_error_print(libra_error_t error) { return 1; }
+static int32_t __librashader__noop_error_print(libra_error_t error) { return 1; }
 
-int32_t __librashader__noop_error_free(libra_error_t *error) { return 1; }
+static int32_t __librashader__noop_error_free(libra_error_t *error) { return 1; }
 
-int32_t __librashader__noop_error_write(libra_error_t error, char **out) {
+static int32_t __librashader__noop_error_write(libra_error_t error, char **out) {
     return 1;
 }
 
-int32_t __librashader__noop_error_free_string(char **out) { return 1; }
+static int32_t __librashader__noop_error_free_string(char **out) { return 1; }
 
-libra_error_t __librashader__noop_preset_ctx_create(libra_preset_ctx_t *out) {
+static libra_error_t __librashader__noop_preset_ctx_create(libra_preset_ctx_t *out) {
     *out = NULL;
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_free(libra_preset_ctx_t *context) {
+static libra_error_t __librashader__noop_preset_ctx_free(libra_preset_ctx_t *context) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_core_name(
+static libra_error_t __librashader__noop_preset_ctx_set_core_name(
     libra_preset_ctx_t *context, const char *name) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_content_dir(
+static libra_error_t __librashader__noop_preset_ctx_set_content_dir(
     libra_preset_ctx_t *context, const char *name) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_param(
+static libra_error_t __librashader__noop_preset_ctx_set_param(
     libra_preset_ctx_t *context, const char *name, const char *value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_runtime(
+static libra_error_t __librashader__noop_preset_ctx_set_runtime(
     libra_preset_ctx_t *context, LIBRA_PRESET_CTX_RUNTIME value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_core_rotation(
+static libra_error_t __librashader__noop_preset_ctx_set_core_rotation(
     libra_preset_ctx_t *context, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_user_rotation(
+static libra_error_t __librashader__noop_preset_ctx_set_user_rotation(
     libra_preset_ctx_t *context, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_screen_orientation(
+static libra_error_t __librashader__noop_preset_ctx_set_screen_orientation(
     libra_preset_ctx_t *context, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_allow_rotation(
+static libra_error_t __librashader__noop_preset_ctx_set_allow_rotation(
     libra_preset_ctx_t *context, bool value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_view_aspect_orientation(
+static libra_error_t __librashader__noop_preset_ctx_set_view_aspect_orientation(
     libra_preset_ctx_t *context, LIBRA_PRESET_CTX_ORIENTATION value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_ctx_set_core_aspect_orientation(
+static libra_error_t __librashader__noop_preset_ctx_set_core_aspect_orientation(
     libra_preset_ctx_t *context, LIBRA_PRESET_CTX_ORIENTATION value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_create_with_context(
+static libra_error_t __librashader__noop_preset_create_with_context(
     const char *filename, libra_preset_ctx_t *context,
     libra_shader_preset_t *out) {
     *out = NULL;
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_create_with_options(
+static libra_error_t __librashader__noop_preset_create_with_options(
     const char *filename, libra_preset_ctx_t *context,
     struct libra_preset_opt_t *options,
     libra_shader_preset_t *out) {
@@ -171,44 +171,44 @@ libra_error_t __librashader__noop_preset_create_with_options(
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_create(const char *filename,
+static libra_error_t __librashader__noop_preset_create(const char *filename,
                                                 libra_shader_preset_t *out) {
     *out = NULL;
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_color_space(libra_shader_preset_t *preset,
+static libra_error_t __librashader__noop_preset_color_space(libra_shader_preset_t *preset,
                                                       LIBRA_COLOR_SPACE *out) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_free(libra_shader_preset_t *preset) {
+static libra_error_t __librashader__noop_preset_free(libra_shader_preset_t *preset) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_set_param(
+static libra_error_t __librashader__noop_preset_set_param(
     libra_shader_preset_t *preset, const char *name, float value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_get_param(
+static libra_error_t __librashader__noop_preset_get_param(
     const libra_shader_preset_t *preset, const char *name, float *value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_preset_print(libra_shader_preset_t *preset) {
+static libra_error_t __librashader__noop_preset_print(libra_shader_preset_t *preset) {
     return NULL;
 }
-libra_error_t __librashader__noop_preset_get_runtime_params(
+static libra_error_t __librashader__noop_preset_get_runtime_params(
     const libra_shader_preset_t *preset, struct libra_preset_param_list_t *out) {
     return NULL;
 }
-libra_error_t __librashader__noop_preset_free_runtime_params(
+static libra_error_t __librashader__noop_preset_free_runtime_params(
     struct libra_preset_param_list_t out) {
     return NULL;
 }
 #if defined(LIBRA_RUNTIME_OPENGL)
-libra_error_t __librashader__noop_gl_filter_chain_create(
+static libra_error_t __librashader__noop_gl_filter_chain_create(
     libra_shader_preset_t *preset, libra_gl_loader_t loader,
     const struct filter_chain_gl_opt_t *options,
     libra_gl_filter_chain_t *out) {
@@ -216,7 +216,7 @@ libra_error_t __librashader__noop_gl_filter_chain_create(
     return NULL;
 }
 
-libra_error_t __librashader__noop_gl_filter_chain_frame(
+static libra_error_t __librashader__noop_gl_filter_chain_frame(
     libra_gl_filter_chain_t *chain, size_t frame_count,
     struct libra_image_gl_t image, struct libra_image_gl_t out,
     const struct libra_viewport_t *viewport, const float *mvp,
@@ -224,41 +224,41 @@ libra_error_t __librashader__noop_gl_filter_chain_frame(
     return NULL;
 }
 
-libra_error_t __librashader__noop_gl_filter_chain_free(
+static libra_error_t __librashader__noop_gl_filter_chain_free(
     libra_gl_filter_chain_t *chain) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_gl_filter_chain_set_param(
+static libra_error_t __librashader__noop_gl_filter_chain_set_param(
     libra_gl_filter_chain_t *chain, const char *param_name, float value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_gl_filter_chain_get_param(
+static libra_error_t __librashader__noop_gl_filter_chain_get_param(
     const libra_gl_filter_chain_t *chain, const char *param_name, float *out) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_gl_filter_chain_set_active_pass_count(
+static libra_error_t __librashader__noop_gl_filter_chain_set_active_pass_count(
     libra_gl_filter_chain_t *chain, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_gl_filter_chain_get_active_pass_count(
+static libra_error_t __librashader__noop_gl_filter_chain_get_active_pass_count(
     const libra_gl_filter_chain_t *chain, uint32_t *out) {
     return NULL;
 }
 #endif
 
 #if defined(LIBRA_RUNTIME_VULKAN)
-libra_error_t __librashader__noop_vk_filter_chain_create(
+static libra_error_t __librashader__noop_vk_filter_chain_create(
     libra_shader_preset_t *preset, struct libra_device_vk_t vulkan,
     const struct filter_chain_vk_opt_t *options, libra_vk_filter_chain_t *out) {
     *out = NULL;
     return NULL;
 }
 
-libra_error_t __librashader__noop_vk_filter_chain_create_deferred(
+static libra_error_t __librashader__noop_vk_filter_chain_create_deferred(
     libra_shader_preset_t *preset, struct libra_device_vk_t vulkan,
     VkCommandBuffer command_buffer, const struct filter_chain_vk_opt_t *options,
     libra_vk_filter_chain_t *out) {
@@ -266,7 +266,7 @@ libra_error_t __librashader__noop_vk_filter_chain_create_deferred(
     return NULL;
 }
 
-libra_error_t __librashader__noop_vk_filter_chain_frame(
+static libra_error_t __librashader__noop_vk_filter_chain_frame(
     libra_vk_filter_chain_t *chain, VkCommandBuffer command_buffer,
     size_t frame_count, struct libra_image_vk_t image, struct libra_image_vk_t out,
     const struct libra_viewport_t *viewport, const float *mvp,
@@ -274,34 +274,34 @@ libra_error_t __librashader__noop_vk_filter_chain_frame(
     return NULL;
 }
 
-libra_error_t __librashader__noop_vk_filter_chain_free(
+static libra_error_t __librashader__noop_vk_filter_chain_free(
     libra_vk_filter_chain_t *chain) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_vk_filter_chain_set_param(
+static libra_error_t __librashader__noop_vk_filter_chain_set_param(
     libra_vk_filter_chain_t *chain, const char *param_name, float value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_vk_filter_chain_get_param(
+static libra_error_t __librashader__noop_vk_filter_chain_get_param(
     const libra_vk_filter_chain_t *chain, const char *param_name, float *out) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_vk_filter_chain_set_active_pass_count(
+static libra_error_t __librashader__noop_vk_filter_chain_set_active_pass_count(
     libra_vk_filter_chain_t *chain, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_vk_filter_chain_get_active_pass_count(
+static libra_error_t __librashader__noop_vk_filter_chain_get_active_pass_count(
     const libra_vk_filter_chain_t *chain, uint32_t *out) {
     return NULL;
 }
 #endif
 
 #if defined(LIBRA_RUNTIME_D3D11)
-libra_error_t __librashader__noop_d3d11_filter_chain_create(
+static libra_error_t __librashader__noop_d3d11_filter_chain_create(
     libra_shader_preset_t *preset, ID3D11Device *device,
     const struct filter_chain_d3d11_opt_t *options,
     libra_d3d11_filter_chain_t *out) {
@@ -309,7 +309,7 @@ libra_error_t __librashader__noop_d3d11_filter_chain_create(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d11_filter_chain_create_deferred(
+static libra_error_t __librashader__noop_d3d11_filter_chain_create_deferred(
     libra_shader_preset_t *preset, ID3D11Device *device,
     ID3D11DeviceContext *device_context,
     const struct filter_chain_d3d11_opt_t *options,
@@ -318,7 +318,7 @@ libra_error_t __librashader__noop_d3d11_filter_chain_create_deferred(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d11_filter_chain_frame(
+static libra_error_t __librashader__noop_d3d11_filter_chain_frame(
     libra_d3d11_filter_chain_t *chain, ID3D11DeviceContext *device_context,
     size_t frame_count, ID3D11ShaderResourceView *image, ID3D11RenderTargetView *out,
     const struct libra_viewport_t *viewport, const float *mvp,
@@ -326,34 +326,34 @@ libra_error_t __librashader__noop_d3d11_filter_chain_frame(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d11_filter_chain_free(
+static libra_error_t __librashader__noop_d3d11_filter_chain_free(
     libra_d3d11_filter_chain_t *chain) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d11_filter_chain_set_param(
+static libra_error_t __librashader__noop_d3d11_filter_chain_set_param(
     libra_d3d11_filter_chain_t *chain, const char *param_name, float value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d11_filter_chain_get_param(
+static libra_error_t __librashader__noop_d3d11_filter_chain_get_param(
     const libra_d3d11_filter_chain_t *chain, const char *param_name, float *out) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d11_filter_chain_set_active_pass_count(
+static libra_error_t __librashader__noop_d3d11_filter_chain_set_active_pass_count(
     libra_d3d11_filter_chain_t *chain, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d11_filter_chain_get_active_pass_count(
+static libra_error_t __librashader__noop_d3d11_filter_chain_get_active_pass_count(
     const libra_d3d11_filter_chain_t *chain, uint32_t *out) {
     return NULL;
 }
 #endif
 
 #if defined(LIBRA_RUNTIME_D3D12)
-libra_error_t __librashader__noop_d3d12_filter_chain_create(
+static libra_error_t __librashader__noop_d3d12_filter_chain_create(
     libra_shader_preset_t *preset, ID3D12Device *device,
     const struct filter_chain_d3d12_opt_t *options,
     libra_d3d12_filter_chain_t *out) {
@@ -361,7 +361,7 @@ libra_error_t __librashader__noop_d3d12_filter_chain_create(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d12_filter_chain_create_deferred(
+static libra_error_t __librashader__noop_d3d12_filter_chain_create_deferred(
     libra_shader_preset_t *preset, ID3D12Device *device,
     ID3D12GraphicsCommandList *command_list,
     const struct filter_chain_d3d12_opt_t *options,
@@ -370,7 +370,7 @@ libra_error_t __librashader__noop_d3d12_filter_chain_create_deferred(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d12_filter_chain_frame(
+static libra_error_t __librashader__noop_d3d12_filter_chain_frame(
     libra_d3d12_filter_chain_t *chain, ID3D12GraphicsCommandList *command_list,
     size_t frame_count, struct libra_image_d3d12_t image, struct libra_image_d3d12_t out,
     const struct libra_viewport_t *viewport, const float *mvp,
@@ -378,34 +378,34 @@ libra_error_t __librashader__noop_d3d12_filter_chain_frame(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d12_filter_chain_free(
+static libra_error_t __librashader__noop_d3d12_filter_chain_free(
     libra_d3d12_filter_chain_t *chain) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d12_filter_chain_set_param(
+static libra_error_t __librashader__noop_d3d12_filter_chain_set_param(
     libra_d3d12_filter_chain_t *chain, const char *param_name, float value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d12_filter_chain_get_param(
+static libra_error_t __librashader__noop_d3d12_filter_chain_get_param(
     const libra_d3d12_filter_chain_t *chain, const char *param_name, float *out) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d12_filter_chain_set_active_pass_count(
+static libra_error_t __librashader__noop_d3d12_filter_chain_set_active_pass_count(
     libra_d3d12_filter_chain_t *chain, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d12_filter_chain_get_active_pass_count(
+static libra_error_t __librashader__noop_d3d12_filter_chain_get_active_pass_count(
     const libra_d3d12_filter_chain_t *chain, uint32_t *out) {
     return NULL;
 }
 #endif
 
 #if defined(LIBRA_RUNTIME_D3D9)
-libra_error_t __librashader__noop_d3d9_filter_chain_create(
+static libra_error_t __librashader__noop_d3d9_filter_chain_create(
     libra_shader_preset_t *preset, IDirect3DDevice9 *device,
     const struct filter_chain_d3d9_opt_t *options,
     libra_d3d9_filter_chain_t *out) {
@@ -413,7 +413,7 @@ libra_error_t __librashader__noop_d3d9_filter_chain_create(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d9_filter_chain_frame(
+static libra_error_t __librashader__noop_d3d9_filter_chain_frame(
     libra_d3d9_filter_chain_t *chain, size_t frame_count,
     IDirect3DTexture9 *image, IDirect3DSurface9 * out,
     const struct libra_viewport_t *viewport, const float *mvp,
@@ -421,34 +421,34 @@ libra_error_t __librashader__noop_d3d9_filter_chain_frame(
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d9_filter_chain_free(
+static libra_error_t __librashader__noop_d3d9_filter_chain_free(
     libra_d3d9_filter_chain_t *chain) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d9_filter_chain_set_param(
+static libra_error_t __librashader__noop_d3d9_filter_chain_set_param(
     libra_d3d9_filter_chain_t *chain, const char *param_name, float value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d9_filter_chain_get_param(
+static libra_error_t __librashader__noop_d3d9_filter_chain_get_param(
     const libra_d3d9_filter_chain_t *chain, const char *param_name, float *out) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d9_filter_chain_set_active_pass_count(
+static libra_error_t __librashader__noop_d3d9_filter_chain_set_active_pass_count(
     libra_d3d9_filter_chain_t *chain, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_d3d9_filter_chain_get_active_pass_count(
+static libra_error_t __librashader__noop_d3d9_filter_chain_get_active_pass_count(
     const libra_d3d9_filter_chain_t *chain, uint32_t *out) {
     return NULL;
 }
 #endif
 
 #if defined(LIBRA_RUNTIME_METAL)
-libra_error_t __librashader__noop_mtl_filter_chain_create(
+static libra_error_t __librashader__noop_mtl_filter_chain_create(
     libra_shader_preset_t *preset, id<MTLCommandQueue> queue,
     const struct filter_chain_mtl_opt_t *options,
     libra_mtl_filter_chain_t *out) {
@@ -456,7 +456,7 @@ libra_error_t __librashader__noop_mtl_filter_chain_create(
     return NULL;
 }
 
-libra_error_t __librashader__noop_mtl_filter_chain_create_deferred(
+static libra_error_t __librashader__noop_mtl_filter_chain_create_deferred(
     libra_shader_preset_t *preset, id<MTLCommandQueue> queue,
     id<MTLCommandBuffer> command_buffer,
     const struct filter_chain_mtl_opt_t *options,
@@ -465,7 +465,7 @@ libra_error_t __librashader__noop_mtl_filter_chain_create_deferred(
     return NULL;
 }
 
-libra_error_t __librashader__noop_mtl_filter_chain_frame(
+static libra_error_t __librashader__noop_mtl_filter_chain_frame(
     libra_mtl_filter_chain_t *chain, id<MTLCommandBuffer> command_buffer,
     size_t frame_count, id<MTLTexture> image, id<MTLTexture> output,
     const struct libra_viewport_t *viewport, const float *mvp,
@@ -473,27 +473,27 @@ libra_error_t __librashader__noop_mtl_filter_chain_frame(
     return NULL;
 }
 
-libra_error_t __librashader__noop_mtl_filter_chain_free(
+static libra_error_t __librashader__noop_mtl_filter_chain_free(
     libra_mtl_filter_chain_t *chain) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_mtl_filter_chain_set_param(
+static libra_error_t __librashader__noop_mtl_filter_chain_set_param(
     libra_mtl_filter_chain_t *chain, const char *param_name, float value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_mtl_filter_chain_get_param(
+static libra_error_t __librashader__noop_mtl_filter_chain_get_param(
     const libra_mtl_filter_chain_t *chain, const char *param_name, float *out) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_mtl_filter_chain_set_active_pass_count(
+static libra_error_t __librashader__noop_mtl_filter_chain_set_active_pass_count(
     libra_mtl_filter_chain_t *chain, uint32_t value) {
     return NULL;
 }
 
-libra_error_t __librashader__noop_mtl_filter_chain_get_active_pass_count(
+static libra_error_t __librashader__noop_mtl_filter_chain_get_active_pass_count(
     const libra_mtl_filter_chain_t *chain, uint32_t *out) {
     return NULL;
 }
@@ -1441,7 +1441,7 @@ typedef struct libra_instance_t {
     bool instance_loaded;
 } libra_instance_t;
 
-libra_instance_t __librashader_make_null_instance(void) {
+static libra_instance_t __librashader_make_null_instance(void) {
     libra_instance_t instance;
 
     instance.instance_abi_version = __librashader__noop_instance_abi_version;
@@ -1614,11 +1614,11 @@ libra_instance_t __librashader_make_null_instance(void) {
 /// If any symbol fails to load, the function will be set to a no-op function.
 ///
 /// \return An `libra_instance_t` struct with loaded function pointers.
-libra_instance_t librashader_load_instance(void);
+static libra_instance_t librashader_load_instance(void);
 
 #if defined(_WIN32) || defined(__linux__) || defined(__unix__) || \
     defined(__APPLE__)
-libra_instance_t librashader_load_instance(void) {
+static libra_instance_t librashader_load_instance(void) {
     _LIBRASHADER_IMPL_HANDLE librashader = _LIBRASHADER_LOAD;
     libra_instance_t instance = __librashader_make_null_instance();
     if (librashader == 0) {
@@ -1750,7 +1750,7 @@ libra_instance_t librashader_load_instance(void) {
     return instance;
 }
 #else
-libra_instance_t librashader_load_instance() {
+static libra_instance_t librashader_load_instance() {
     return __librashader_make_null_instance();
 }
 #endif
