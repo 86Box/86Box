@@ -164,7 +164,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
         was_osd_visible = qt_osd_is_visible();
     });
     parentWidget = parent;
-    instance.setApiVersion(QVersionNumber(1, 0));
+    instance.setApiVersion(QVersionNumber(1, 3));
     if (instance.supportedExtensions().contains("VK_KHR_get_physical_device_properties2")) {
         auto list = instance.extensions();
         list.push_back("VK_KHR_get_physical_device_properties2");
@@ -1114,17 +1114,21 @@ VulkanWindowRenderer::initialize()
                 if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
                     throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support TRANSFER_DST on linear layouts.");
                 }
-
-                uint32_t extCount = 0;
-                instance.functions()->vkEnumerateDeviceExtensionProperties(phys_device, nullptr, &extCount, nullptr);
-                std::vector<VkExtensionProperties> device_extensions(extCount);
-                instance.functions()->vkEnumerateDeviceExtensionProperties(phys_device, nullptr, &extCount, device_extensions.data());
+                fn_vkGetPhysicalDeviceFeatures2KHR = (PFN_vkGetPhysicalDeviceFeatures2KHR)instance.getInstanceProcAddr("vkGetPhysicalDeviceFeatures2");
                 bool dynamicRenderingSupported = false;
-                for (uint32_t i = 0; i < extCount; i++) {
-                    if (strcmp(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, device_extensions[i].extensionName) == 0) {
-                        dynamicRenderingSupported = true;
-                        break;
-                    }
+                VkPhysicalDeviceProperties phys_dev_prop{};
+
+                instance.functions()->vkGetPhysicalDeviceProperties(phys_device, &phys_dev_prop);
+                int minor = VK_API_VERSION_MINOR(phys_dev_prop.apiVersion);
+                int major = VK_API_VERSION_MAJOR(phys_dev_prop.apiVersion);
+                if (major > 1 || (major == 1 && minor >= 3)) {
+                    VkPhysicalDeviceVulkan13Features vk13_features{};
+                    vk13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+                    VkPhysicalDeviceFeatures2KHR vk_features_2 {};
+                    vk_features_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+                    vk_features_2.pNext = &vk13_features;
+                    fn_vkGetPhysicalDeviceFeatures2KHR(phys_device, &vk_features_2);
+                    dynamicRenderingSupported = vk13_features.dynamicRendering;
                 }
                 if (!dynamicRenderingSupported) {
                     throw vulkan_init_error("VK_KHR_dynamic_rendering not supported.");
@@ -1168,13 +1172,7 @@ VulkanWindowRenderer::initialize()
                 std::vector<std::string>  extList;
                 std::vector<const char *> extListC;
 
-                // We need VK_KHR_swapchain and VK_KHR_dynamic_rendering.
                 extList.push_back("VK_KHR_swapchain");
-                extList.push_back("VK_KHR_create_renderpass2");
-                extList.push_back("VK_KHR_multiview");
-                extList.push_back("VK_KHR_maintenance2");
-                extList.push_back("VK_KHR_depth_stencil_resolve");
-                extList.push_back("VK_KHR_dynamic_rendering");
 
                 for (auto &ext : extList) {
                     extListC.push_back(ext.c_str());
@@ -1200,11 +1198,6 @@ VulkanWindowRenderer::initialize()
                     addQueueInfo[addQueueInfo.size() - 1].pNext            = nullptr;
                 }
 
-                constexpr VkPhysicalDeviceDynamicRenderingFeaturesKHR dynamic_rendering_feature {
-                    .sType            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR,
-                    .dynamicRendering = VK_TRUE,
-                };
-
                 VkDeviceCreateInfo dev_create_info      = { };
                 dev_create_info.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
                 dev_create_info.queueCreateInfoCount    = addQueueInfo.size();
@@ -1212,18 +1205,23 @@ VulkanWindowRenderer::initialize()
                 dev_create_info.enabledExtensionCount   = extListC.size();
                 dev_create_info.ppEnabledExtensionNames = extListC.data();
 
-                VkPhysicalDeviceFeatures features = { };
-                instance.functions()->vkGetPhysicalDeviceFeatures(phys_device, &features);
-                dev_create_info.pEnabledFeatures = &features;
-                dev_create_info.pNext            = &dynamic_rendering_feature;
+                
+                VkPhysicalDeviceVulkan13Features vk13_features{};
+                vk13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+
+                VkPhysicalDeviceFeatures2 features = { };
+                features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2_KHR;
+                features.pNext = &vk13_features;
+                fn_vkGetPhysicalDeviceFeatures2KHR(phys_device, &features);
+                dev_create_info.pEnabledFeatures = nullptr;
+                dev_create_info.pNext            = &features;
                 auto res                         = instance.functions()->vkCreateDevice(phys_device, &dev_create_info, nullptr, &logi_device);
                 if (res != VK_SUCCESS) {
                     throw vulkan_init_error("Failed to create logical device");
                 }
                 fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
                 fn_vkGetPhysicalDeviceSurfaceFormatsKHR = (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceFormatsKHR");
-                // instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, )
-                // instance.deviceFunctions(logi_device)->vkGetPhysicalDeviceSurfaceCapabilitiesKHR()
+
                 instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, gfx_queue, 0, &gfx_queue_o);
                 m_devFuncs = instance.deviceFunctions(logi_device);
 
@@ -1336,7 +1334,7 @@ VulkanWindowRenderer::initialize()
                             libra_preset_free_runtime_params(shader->param_list);
                             shader->param_list.parameters = 0;
                             filter_chain_vk_opt_t vk{};
-                            vk.use_dynamic_rendering = 0;
+                            vk.use_dynamic_rendering = 1;
                             auto err = libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
                             delete shader;
                             if (filter_chain) {
@@ -1387,8 +1385,8 @@ VulkanWindowRenderer::initialize()
 
                 osdRenderTimer->start(16);
 
-                fn_vkCmdBeginRendering          = (PFN_vkCmdBeginRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdBeginRenderingKHR");
-                fn_vkCmdEndRendering            = (PFN_vkCmdEndRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdEndRenderingKHR");
+                fn_vkCmdBeginRendering          = (PFN_vkCmdBeginRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdBeginRendering");
+                fn_vkCmdEndRendering            = (PFN_vkCmdEndRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdEndRendering");
                 render();
                 emit rendererInitialized();
             }

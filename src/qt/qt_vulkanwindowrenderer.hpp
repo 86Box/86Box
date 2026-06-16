@@ -130,6 +130,8 @@ private:
     VmaAllocator allocator;
     VmaAllocation img_allocation;
 
+    PFN_vkGetPhysicalDeviceFeatures2KHR fn_vkGetPhysicalDeviceFeatures2KHR = nullptr;
+
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = nullptr;
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fn_vkGetPhysicalDeviceSurfaceFormatsKHR = nullptr;
 
