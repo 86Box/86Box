@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-14 14:10+0000\n"
+"PO-Revision-Date: 2026-06-15 21:21+0000\n"
 "Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -1279,7 +1279,7 @@ msgstr ""
 "Var olan yapılandırma dosyasının içeriklerini aşağıdaki kutuya yapıştırın."
 
 msgid "Load configuration from file"
-msgstr "Dosyadan yapılandırma yükle"
+msgstr "Yapılandırmayı dosyadan yükle"
 
 msgid "System name"
 msgstr "Sistem adı"
@@ -3240,13 +3240,13 @@ msgid "Force interpretation"
 msgstr "Yorumlamaya zorla"
 
 msgid "Allow recompilation"
-msgstr "Derlenmesine izin ver"
+msgstr "Derlenmeye izin ver"
 
 msgid "&Force interpretation"
 msgstr "&Yorumlamaya zorla"
 
 msgid "&Allow recompilation"
-msgstr "&Derlenmesine izin ver"
+msgstr "&Derlenmeye izin ver"
 
 msgid "&Fast forward"
 msgstr "&İleri sar"
@@ -3255,7 +3255,7 @@ msgid "Fast forward"
 msgstr "İleri sar"
 
 msgid "To change the system directory, stop all running machines."
-msgstr "Sistem dizinini değiştirmek için tüm çalışan makineleri durdurun."
+msgstr "Sistem dizinini değiştirmek için çalışan tüm makineleri durdurun."
 
 msgid "Raw"
 msgstr "Ham"
@@ -3270,44 +3270,44 @@ msgid "System Default"
 msgstr "Sistem Varsayılanı"
 
 msgid "Unable to open image or folder \"%s\"."
-msgstr "Görüntü veya dosya \"%s\" açılamıyor."
+msgstr "\"%s\" görüntü ya da klasörü açılamıyor."
 
 msgid "Unable to open cue sheet \"%s\"."
-msgstr "Cue sheet \"%s\" açılamıyor."
+msgstr "\"%s\" cue dosyası açılamıyor."
 
 msgid "Unable to open MDS file \"%s\"."
-msgstr "MDS dosyası \"%s\" açılamıyor."
+msgstr "\"%s\" MDS dosyası açılamıyor."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "CD-ROM görüntüsü \"%s\" yüklenemiyor."
+msgstr "\"%s\" CD-ROM görüntüsü yüklenemedi."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr ""
-"Görüntü \"%s\" yüklenemiyor: Daemon Tools MDS v2 ve MDX görüntü desteği için "
-"zorunlu olan %1 eksik."
+"\"%s\" görüntüsü yüklenemiyor: Daemon Tools MDS v2 ve MDX görüntü desteği "
+"için gerekli olan %1 mevcut değil."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
-"DVD görüntüsü \"%s\" DVD ortamını desteklemeyen bir sürücüye takıldı ve göz "
-"ardı edilecektir."
+"\"%s\" DVD görüntüsü DVD ortamını desteklemeyen bir sürücüde açıldığı için "
+"göz ardı edilecektir."
 
 msgid "%s: Could not connect to %s: %s"
-msgstr "%s: %s'ye bağlanamadı: %s"
+msgstr "%s: %s bağlanamadı: %s"
 
 msgid "%s: Could not create %s: %s"
 msgstr "%s: %s oluşturulamadı: %s"
 
 msgid "%s: Attached to %s"
-msgstr "%s: %s'ye bağlandı"
+msgstr "%s: %s bağlandı"
 
 msgid "%s: Virtual console already in use by %s"
-msgstr "%s: Sanal konsol halen %s tarafından kullanılıyor"
+msgstr "%s: Sanal konsol %s tarafından kullanılmakta"
 
 msgid "%s: Could not create terminal: %s"
 msgstr "%s: Terminal oluşturulamadı: %s"
 
 msgid "Auto-detect"
-msgstr "Otomatik tespit"
+msgstr "Otomatik algılama"
 
 msgid "Channel"
 msgstr "Kanal"
@@ -3349,7 +3349,7 @@ msgid "Draft"
 msgstr "Taslak"
 
 msgid "(Near) Letter"
-msgstr "Mektup ('a yakın)"
+msgstr "(Yakın) Letter"
 
 msgid "Auto LF"
 msgstr "Auto LF"
@@ -3370,13 +3370,13 @@ msgid "Hardware font"
 msgstr "Donanım yazı tipi"
 
 msgid "Diagnostic mode"
-msgstr "Diagnostik modu"
+msgstr "Teşhis modu"
 
 msgid "CGA monitor"
-msgstr "CGA monitörü"
+msgstr "CGA monitör"
 
 msgid "MDA monitor"
-msgstr "MDA monitörü"
+msgstr "MDA monitör"
 
 msgid "Television"
 msgstr "Televizyon"

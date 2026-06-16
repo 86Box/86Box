@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-09 01:33+0000\n"
+"PO-Revision-Date: 2026-06-15 21:21+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -1722,7 +1722,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Pausa automática ao perder o foco"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Pausa automática em caixas de diálogo"
 
 msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
