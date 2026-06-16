@@ -1099,9 +1099,6 @@ MainWindow::resizeEvent(QResizeEvent *event)
 
     toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
 
-    if ((this->isFullScreen() && (video_fullscreen == 0)) ||
-        (!this->isFullScreen() && (video_fullscreen == 1)))
-        this->on_actionFullscreen_triggered();
 }
 
 void
@@ -1175,6 +1172,10 @@ MainWindow::~MainWindow()
 void
 MainWindow::showEvent(QShowEvent *event)
 {
+    if ((this->isFullScreen() && (video_fullscreen == 0)) ||
+        (!this->isFullScreen() && (video_fullscreen == 1)))
+        this->on_actionFullscreen_triggered();
+
     if (shownonce)
         return;
     shownonce = true;
@@ -1515,13 +1516,13 @@ void
 MainWindow::on_actionFullscreen_triggered()
 {
     if (video_fullscreen > 0) {
+        video_fullscreen = 0;
         showNormal();
         ui->menubar->show();
         if (!hide_status_bar)
             ui->statusbar->show();
         if (!hide_tool_bar)
             ui->toolBar->show();
-        video_fullscreen = 0;
         fullscreen_ui_visible = 0;
         if (vid_resize != 1) {
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
