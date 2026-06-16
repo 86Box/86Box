@@ -511,12 +511,21 @@ VulkanWindowRenderer::finalize()
     qt_osd_shutdown();
     cleanupSwapchain();
 #ifdef LIBRA_RUNTIME_VULKAN
+#ifndef LIBRASHADER_STATIC
+    if (!ensure_librashader_instance())
+        goto clean_up_rest;
+#endif
     for (unsigned int i = 0; i < shaderFilterChains.size(); i++)
+#ifndef LIBRASHADER_STATIC
+        librashader_inst.vk_filter_chain_free(&shaderLibraFilterChains[i]);
+#else
         libra_vk_filter_chain_free(&shaderLibraFilterChains[i]);
+#endif
 
     shaderLibraFilterChains.clear();
 #endif
 
+clean_up_rest:
     m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
     vmaDestroyImage(allocator, src_image, img_allocation);
     vmaDestroyAllocator(allocator);
@@ -801,12 +810,24 @@ VulkanWindowRenderer::render()
         if (i == shaderFilterChains[swapchain_image_index].size() - 1) {
             vport.x = destination.x();
             vport.y = destination.y();
+#ifndef LIBRASHADER_STATIC
+            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+#else
             error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+#endif
         } else
+#ifndef LIBRASHADER_STATIC
+            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+#else
             error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+#endif
 
         if (error) {
+#ifndef LIBRASHADER_STATIC
+            librashader_inst.error_print(error);
+#else
             libra_error_print(error);
+#endif
         }
     }
 
@@ -1086,6 +1107,11 @@ VulkanWindowRenderer::initialize()
     if (isFinalized)
         return;
     try {
+#ifndef LIBRASHADER_STATIC
+        if (!ensure_librashader_instance()) {
+            QMessageBox::critical(main_window, tr("Error"), tr("librashader not found. Shaders will not be available"));
+        }
+#endif
         window_surface = instance.surfaceForWindow(this);
         if (!window_surface) {
             throw vulkan_init_error("Failed to get VkSurfaceKHR from window.");
@@ -1307,6 +1333,10 @@ VulkanWindowRenderer::initialize()
 
 #ifdef LIBRA_RUNTIME_VULKAN
                 int num_shaders = 0;
+#ifndef LIBRASHADER_STATIC
+                if (!ensure_librashader_instance())
+                    goto skip_shaders;
+#endif
                 for (int i = 0; i < 20; ++i) {
                     if (strlen(vk_shader_file[i]))
                         ++num_shaders;
@@ -1330,30 +1360,49 @@ VulkanWindowRenderer::initialize()
                                 parameter_values.push_back(std::pair<std::string, double>(shader->param_list.parameters[l].name, shader->param_values[l]));
                             }
                             libra_vk_filter_chain_t filter_chain = nullptr;
-
+#ifndef LIBRASHADER_STATIC
+                            librashader_inst.preset_free_runtime_params(shader->param_list);
+#else
                             libra_preset_free_runtime_params(shader->param_list);
+#endif
                             shader->param_list.parameters = 0;
                             filter_chain_vk_opt_t vk{};
                             vk.use_dynamic_rendering = 1;
+#ifndef LIBRASHADER_STATIC
+                            auto err = librashader_inst.vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
+#else
                             auto err = libra_vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
+#endif
                             delete shader;
                             if (filter_chain) {
                                 for (auto &curPair : parameter_values) {
+#ifndef LIBRASHADER_STATIC
+                                    librashader_inst.vk_filter_chain_set_param(&filter_chain, curPair.first.c_str(), curPair.second);
+#else
                                     libra_vk_filter_chain_set_param(&filter_chain, curPair.first.c_str(), curPair.second);
+#endif
                                 }
                                 shaderLibraFilterChains.push_back(filter_chain);
                             } else {
+#ifndef LIBRASHADER_STATIC
+                                char* errmsg = nullptr;
+                                librashader_inst.error_write(err, &errmsg);
+                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + "\n\n" + errmsg);
+                                librashader_inst.error_free_string(&errmsg);
+                                librashader_inst.error_free(&err);
+#else
                                 char* errmsg = nullptr;
                                 libra_error_write(err, &errmsg);
                                 QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + "\n\n" + errmsg);
                                 libra_error_free_string(&errmsg);
                                 libra_error_free(&err);
+#endif
                             }
                         }
                     }
                 }
 #endif
-
+skip_shaders:
                 init_info = {};
                 init_info.ApiVersion = VK_VERSION_1_0;
                 init_info.Instance = instance.vkInstance();

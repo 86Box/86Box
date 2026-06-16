@@ -2,6 +2,7 @@
 #define QT_SLANGP_HPP
 
 #include "librashader.h"
+#include "librashader_ld.h"
 
 #include <vector>
 
@@ -20,4 +21,10 @@ void slangp_read_shader_config(slang_shader& shader);
 void slangp_write_shader_config(slang_shader& shader);
 slang_shader* slangp_parse(const char* path);
 void slangp_free(slang_shader* shader);
+
+#ifndef LIBRASHADER_STATIC
+extern libra_instance_t librashader_inst;
+bool ensure_librashader_instance();
+#endif
+
 #endif

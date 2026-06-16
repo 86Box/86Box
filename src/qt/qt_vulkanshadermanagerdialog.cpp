@@ -29,26 +29,52 @@ extern MainWindow *main_window;
 #ifdef LIBRA_RUNTIME_VULKAN
 slang_shader* slangp_parse(const char* path)
 {
+#ifndef LIBRASHADER_STATIC
+    auto inst_res = ensure_librashader_instance();
+    if (!inst_res) {
+        return nullptr;
+    }
+#endif
     auto shader = new slang_shader{};
     shader->path = path;
+#ifndef LIBRASHADER_STATIC
+    auto err = librashader_inst.preset_create(path, &shader->shader_preset);
+#else
     auto err = libra_preset_create(path, &shader->shader_preset);
+#endif
     if (!shader->shader_preset) {
         char *errmsg = nullptr;
+#ifndef LIBRASHADER_STATIC
+        librashader_inst.error_write(err, &errmsg);
+        QMessageBox::critical(main_window, QObject::tr("Error"), QString::fromUtf8(path) + "\n\n" + errmsg);
+        librashader_inst.error_free_string(&errmsg);
+        librashader_inst.error_free(&err);
+#else
         libra_error_write(err, &errmsg);
         QMessageBox::critical(main_window, QObject::tr("Error"), QString::fromUtf8(path) + "\n\n" + errmsg);
         libra_error_free_string(&errmsg);
         libra_error_free(&err);
+#endif
         delete shader;
         return nullptr;
     }
+#ifndef LIBRASHADER_STATIC
+    librashader_inst.preset_get_runtime_params(&shader->shader_preset, &shader->param_list);
+#else
     libra_preset_get_runtime_params(&shader->shader_preset, &shader->param_list);
+#endif
     slangp_read_shader_config(*shader);
     return shader;
 }
 
 void slangp_free(slang_shader* shader) {
+#ifndef LIBRASHADER_STATIC
+    librashader_inst.preset_free_runtime_params(shader->param_list);
+    librashader_inst.preset_free(&shader->shader_preset);
+#else
     libra_preset_free_runtime_params(shader->param_list);
     libra_preset_free(&shader->shader_preset);
+#endif
     delete shader;
 }
 #endif
@@ -69,6 +95,13 @@ VulkanShaderManagerDialog::VulkanShaderManagerDialog(QWidget *parent)
     }
 
 #ifdef LIBRA_RUNTIME_VULKAN
+#ifndef LIBRASHADER_STATIC
+    if (!ensure_librashader_instance()) {
+        ui->groupBoxShaders->hide();
+        return;
+    }
+#endif
+
     for (int i = 0; i < 20; i++) {
         if (vk_shader_file[i][0] != 0) {
             char *filename = path_get_filename(vk_shader_file[i]);
@@ -250,9 +283,11 @@ void
 VulkanShaderManagerDialog::on_VulkanShaderManagerDialog_accepted()
 {
 #ifdef LIBRA_RUNTIME_VULKAN
-    memset(vk_shader_file, 0, sizeof(vk_shader_file));
-    for (int i = 0; i < ui->shaderListWidget->count(); i++) {
-        strncpy(vk_shader_file[i], ui->shaderListWidget->item(i)->data(Qt::UserRole + 1).toString().toUtf8(), 512);
+    if (!ui->groupBoxShaders->isHidden()) {
+        memset(vk_shader_file, 0, sizeof(vk_shader_file));
+        for (int i = 0; i < ui->shaderListWidget->count(); i++) {
+            strncpy(vk_shader_file[i], ui->shaderListWidget->item(i)->data(Qt::UserRole + 1).toString().toUtf8(), 512);
+        }
     }
 #endif
     startblit();

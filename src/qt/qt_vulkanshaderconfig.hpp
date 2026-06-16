@@ -12,6 +12,7 @@
 #if QT_CONFIG(vulkan) && defined LIBRA_RUNTIME_VULKAN
 
 #include "librashader.h"
+#include "librashader_ld.h"
 #include "qt-slangp.hpp"
 
 namespace Ui {

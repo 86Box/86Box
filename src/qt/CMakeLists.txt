@@ -436,7 +436,11 @@ target_link_libraries(ui PRIVATE
 if (LIBRASHADER)
     target_compile_definitions(plat PRIVATE LIBRA_RUNTIME_VULKAN)
     target_compile_definitions(ui PRIVATE LIBRA_RUNTIME_VULKAN)
-    target_link_libraries(ui PRIVATE librashader_capi)
+    if (LIBRASHADER_STATIC)
+        target_link_libraries(ui PRIVATE librashader_capi)
+        target_compile_definitions(plat PRIVATE LIBRASHADER_STATIC)
+        target_compile_definitions(ui PRIVATE LIBRASHADER_STATIC)
+    endif()
 endif()
 
 if(WIN32)

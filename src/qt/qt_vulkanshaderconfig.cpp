@@ -18,9 +18,32 @@ extern void get_glslp_name(const char *f, char *s, int size);
 static char s[512];
 static char name[512];
 
+#ifndef LIBRASHADER_STATIC
+libra_instance_t librashader_inst{};
+static bool load_failed = false;
+bool ensure_librashader_instance()
+{
+    if (load_failed)
+        return false;
+    if (!librashader_inst.instance_loaded) {
+        librashader_inst = librashader_load_instance();
+        if (!librashader_inst.instance_loaded) {
+            load_failed = true;
+            return false;
+        }
+    } else {
+        return true;
+    }
+    return true;
+}
+#endif
+
 void
 slangp_write_shader_config(slang_shader& shader)
 {
+#ifndef LIBRASHADER_STATIC
+    ensure_librashader_instance();
+#endif
     get_glslp_name(shader.path.c_str(), name, sizeof(name));
 
     startblit();
@@ -34,6 +57,9 @@ slangp_write_shader_config(slang_shader& shader)
 void
 slangp_read_shader_config(slang_shader& shader)
 {
+#ifndef LIBRASHADER_STATIC
+    ensure_librashader_instance();
+#endif
     get_glslp_name(shader.path.c_str(), name, sizeof(name));
 
     startblit();

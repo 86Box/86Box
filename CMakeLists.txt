@@ -204,8 +204,11 @@ if(QT)
     option(LIBRASHADER "Build with librashader support" ON)
 
     if(LIBRASHADER)
-        add_subdirectory(corrosion)
-        corrosion_import_crate(MANIFEST_PATH librashader/librashader-capi/Cargo.toml NO_DEFAULT_FEATURES FEATURES runtime-vulkan CRATE_TYPES staticlib)
+        option(LIBRASHADER_STATIC "Statically link with librashader" ON)
+        if(LIBRASHADER_STATIC)
+            add_subdirectory(corrosion)
+            corrosion_import_crate(MANIFEST_PATH librashader/librashader-capi/Cargo.toml NO_DEFAULT_FEATURES FEATURES runtime-vulkan CRATE_TYPES staticlib)
+        endif()
     endif()
 endif()
 
