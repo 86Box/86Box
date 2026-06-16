@@ -1172,10 +1172,6 @@ MainWindow::~MainWindow()
 void
 MainWindow::showEvent(QShowEvent *event)
 {
-    if ((this->isFullScreen() && (video_fullscreen == 0)) ||
-        (!this->isFullScreen() && (video_fullscreen == 1)))
-        this->on_actionFullscreen_triggered();
-
     if (shownonce)
         return;
     shownonce = true;
@@ -1531,6 +1527,7 @@ MainWindow::on_actionFullscreen_triggered()
         if ((mouse_type != MOUSE_TYPE_NONE) || machine_has_mouse())
             emit setMouseCapture(true);
         video_fullscreen = 1;
+        pclog("Full screen: %ix%i\n", QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
@@ -1560,6 +1557,8 @@ MainWindow::FindAcceleratorSeq(const char *name)
 
     return (QKeySequence::fromString(acc_keys[accID].seq));
 }
+
+#include <iostream>
 
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
@@ -1702,6 +1701,11 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if (mouse_was_captured) {
                 emit setMouseCapture(true);
             }
+        } else if (event->type() == QEvent::Resize) {
+            int type = event->type();
+            if ((this->isFullScreen() && (video_fullscreen == 0)) ||
+                (!this->isFullScreen() && (video_fullscreen == 1)))
+                this->on_actionFullscreen_triggered();
         }
     }
 
