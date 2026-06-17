@@ -1038,8 +1038,8 @@ VulkanWindowRenderer::render()
 
     // Submit to the graphics queue passing a wait fence
     auto submit_res = m_devFuncs->vkQueueSubmit(gfx_queue_o, 1, &submitInfo, presentFences[current_frame]);
-    if (submit_res == VK_ERROR_DEVICE_LOST) {
-        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+    if (submit_res != VK_SUCCESS) {
+        QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(submit_res));
         finalize();
         return;
     }
@@ -1119,6 +1119,10 @@ VulkanWindowRenderer::render()
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
             main_window->reloadAllRenderers();
         }
+    } else if (result != VK_SUCCESS) {
+        QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(res));
+        finalize();
+        return;
     }
     instance.presentQueued(this);
 
