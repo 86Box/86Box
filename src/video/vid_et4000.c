@@ -646,7 +646,7 @@ static void
 et4000_recalctimings(svga_t *svga)
 {
     const et4000_t *dev = (et4000_t *) svga->priv;
-    int clk_sel = ((svga->miscout >> 2) & 0x03) | ((svga->crtc[0x34] << 1) & 0x04)| ((svga->crtc[0x31] >> 3) & 0x08);
+    int clk_sel = ((svga->miscout >> 2) & 0x03) | ((svga->crtc[0x34] << 1) & 0x04) | ((svga->crtc[0x31] >> 3) & 0x08);
 
     svga->memaddr_latch |= (svga->crtc[0x33] & 3) << 16;
 
@@ -673,7 +673,25 @@ et4000_recalctimings(svga_t *svga)
         svga->dots_per_clock <<= 1;
     }
 
-    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
+    if (svga->getclock == NULL) {
+        /* Assume it has the same timings as the ET3000AX. */
+        switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x24] << 1) & 4)) {
+            case 0:
+            case 1:
+                break;
+            case 3:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
+                break;
+            case 5:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
+                break;
+            default:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
+                break;
+        }
+    } else
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
+
     if (svga->seqregs[7] & 0x01)
         svga->clock *= 4.0;
     else if (svga->seqregs[7] & 0x40)
@@ -813,8 +831,11 @@ et4000_init(const device_t *info)
                                  0x0000000000000000ULL;
 
     switch (dev->type) {
-        case ET4000_TYPE_TC6058AF: /* ISA ET4000AX (TC6058AF) */
         case ET4000_TYPE_ISA: /* ISA ET4000AX */
+            dev->svga.clock_gen = device_add(&ics2494an_304_device);
+            dev->svga.getclock  = ics2494_getclock;
+            fallthrough;
+        case ET4000_TYPE_TC6058AF: /* ISA ET4000AX (TC6058AF) */
             vram                                = device_get_config_int("memory");
             video_clamp_vram(bios_flags, &vram);
             dev->vram_size                      = vram << 10;
@@ -911,9 +932,6 @@ et4000_init(const device_t *info)
 
     if (dev->type >= ET4000_TYPE_ISA)
         dev->svga.ramdac = device_add(&sc1502x_ramdac_device);
-
-    dev->svga.clock_gen = device_add(&ics2494an_304_device);
-    dev->svga.getclock  = ics2494_getclock;
 
     if (dev->type == ET4000_TYPE_TC6058AF)
         dev->svga.adv_flags |= FLAG_PRECISETIME;

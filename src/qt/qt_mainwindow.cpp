@@ -314,8 +314,10 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->toolBar->addWidget(toolbar_label_widget);
 
+    this->setWindowFlag(Qt::CustomizeWindowHint, true);
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
+    this->setWindowFlag(Qt::WindowFullscreenButtonHint, vid_resize == 1);
 
     QString vmname(vm_name);
     if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
@@ -446,6 +448,14 @@ MainWindow::MainWindow(QWidget *parent)
                 ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
             resizableonce = true;
         }
+        if (!hide_status_bar) {
+            statusBar()->hide();
+            statusBar()->show();
+        }
+        if (!hide_tool_bar) {
+            ui->toolBar->hide();
+            ui->toolBar->show();
+        }
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
             w = static_cast<int>(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
 
@@ -498,6 +508,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
+
+#ifdef Q_OS_MACOS
+    ui->actionApply_fullscreen_stretch_mode_when_maximized->setVisible(false);
+#endif
 
 #ifndef DISCORD
     ui->actionEnable_Discord_integration->setVisible(false);
@@ -1088,6 +1102,7 @@ MainWindow::resizeEvent(QResizeEvent *event)
 #endif /*MOVE_WINDOW*/
 
     toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
+
 }
 
 void
@@ -1501,13 +1516,13 @@ void
 MainWindow::on_actionFullscreen_triggered()
 {
     if (video_fullscreen > 0) {
+        video_fullscreen = 0;
         showNormal();
         ui->menubar->show();
         if (!hide_status_bar)
             ui->statusbar->show();
         if (!hide_tool_bar)
             ui->toolBar->show();
-        video_fullscreen = 0;
         fullscreen_ui_visible = 0;
         if (vid_resize != 1) {
             emit resizeContents(vid_resize == 2 ? fixed_size_x : monitors[0].mon_scrnsz_x, vid_resize == 2 ? fixed_size_y : monitors[0].mon_scrnsz_y);
@@ -1516,6 +1531,7 @@ MainWindow::on_actionFullscreen_triggered()
         if ((mouse_type != MOUSE_TYPE_NONE) || machine_has_mouse())
             emit setMouseCapture(true);
         video_fullscreen = 1;
+        pclog("Full screen: %ix%i\n", QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
@@ -1545,6 +1561,8 @@ MainWindow::FindAcceleratorSeq(const char *name)
 
     return (QKeySequence::fromString(acc_keys[accID].seq));
 }
+
+#include <iostream>
 
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
@@ -1687,6 +1705,10 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if (mouse_was_captured) {
                 emit setMouseCapture(true);
             }
+        } else if (event->type() == QEvent::WindowStateChange) {
+            if ((this->isFullScreen() && (video_fullscreen == 0)) ||
+                (!this->isFullScreen() && (video_fullscreen == 1)))
+                this->on_actionFullscreen_triggered();
         }
     }
 
@@ -1848,6 +1870,7 @@ MainWindow::on_actionResizable_window_triggered(bool checked)
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         setWindowFlag(Qt::WindowMaximizeButtonHint, true);
+        setWindowFlag(Qt::WindowFullscreenButtonHint, true);
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (monitors[i].target_buffer) {
                 renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, true);
@@ -1856,11 +1879,13 @@ MainWindow::on_actionResizable_window_triggered(bool checked)
         }
     } else {
         vid_resize = 0;
+        setWindowFlag(Qt::WindowFullscreenButtonHint, false);
         setWindowFlag(Qt::WindowMaximizeButtonHint, false);
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
         for (int i = 1; i < MONITORS_NUM; i++) {
             if (monitors[i].target_buffer) {
                 renderers[i]->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+                renderers[i]->setWindowFlag(Qt::WindowFullscreenButtonHint, false);
                 emit resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
             }
         }
