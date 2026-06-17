@@ -4,6 +4,7 @@
 #include <QDialog>
 #include <QAbstractButton>
 #include <QListWidgetItem>
+#include <vector>
 
 #if QT_CONFIG(vulkan)
 namespace Ui {
@@ -14,7 +15,7 @@ class VulkanShaderManagerDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit VulkanShaderManagerDialog(QWidget *parent = nullptr);
+    explicit VulkanShaderManagerDialog(QWidget *parent = nullptr, std::vector<std::string> device_names = {});
     ~VulkanShaderManagerDialog();
 
 private slots:

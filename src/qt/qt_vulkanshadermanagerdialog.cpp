@@ -79,7 +79,7 @@ void slangp_free(slang_shader* shader) {
 }
 #endif
 
-VulkanShaderManagerDialog::VulkanShaderManagerDialog(QWidget *parent)
+VulkanShaderManagerDialog::VulkanShaderManagerDialog(QWidget *parent, std::vector<std::string> device_names)
     : QDialog(parent)
     , ui(new Ui::VulkanShaderManagerDialog)
 {
@@ -93,6 +93,12 @@ VulkanShaderManagerDialog::VulkanShaderManagerDialog(QWidget *parent)
     } else {
         ui->targetFrameRate->setDisabled(true);
     }
+
+    for (auto& deviceName : device_names) {
+        ui->comboBoxGPU->addItem(deviceName.c_str());
+    }
+    ui->comboBoxGPU->setCurrentIndex(std::clamp((uint32_t)video_vk_device, 0u, (uint32_t)device_names.size() - 1u));
+    ui->comboBoxGPU->setEnabled(device_names.size() != 0);
 
 #ifdef LIBRA_RUNTIME_VULKAN
 #ifndef LIBRASHADER_STATIC
@@ -291,6 +297,9 @@ VulkanShaderManagerDialog::on_VulkanShaderManagerDialog_accepted()
     }
 #endif
     startblit();
+    video_vk_device = ui->comboBoxGPU->currentIndex();
+    if (video_vk_device == -1)
+        video_vk_device = 0;
     video_vsync = ui->checkBoxVSync->isChecked();
     if (ui->radioButtonTargetFramerate->isChecked()) {
         video_framerate = ui->horizontalSliderFramerate->value();

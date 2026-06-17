@@ -74,6 +74,8 @@ private:
     void cleanupSwapchain();
     void recreateSwapchain();
 
+    bool isPhysicalDeviceUsable(VkPhysicalDevice& phys_dev);
+
 #   ifdef LIBRA_RUNTIME_VULKAN
     void cleanupShaderSrcImages();
     void recreateShaderSrcImages();

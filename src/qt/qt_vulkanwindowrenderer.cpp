@@ -203,7 +203,20 @@ VulkanWindowRenderer::cleanupShaderSrcImages()
 QDialog *
 VulkanWindowRenderer::getOptions(QWidget *parent)
 {
-    return new VulkanShaderManagerDialog(parent);
+    std::vector<std::string> device_names;
+    uint32_t physicalDevices;
+    instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, nullptr);
+    std::vector<VkPhysicalDevice> phys_devices;
+    phys_devices.resize(physicalDevices);
+    if (VK_SUCCESS == instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, phys_devices.data())) {
+        for (auto& phys_dev: phys_devices) {
+            VkPhysicalDeviceProperties phys_dev_prop{};
+            instance.functions()->vkGetPhysicalDeviceProperties(phys_dev, &phys_dev_prop);
+            device_names.push_back(phys_dev_prop.deviceName);
+        }
+    }
+
+    return new VulkanShaderManagerDialog(parent, device_names);
 }
 
 #ifdef LIBRA_RUNTIME_VULKAN
@@ -1134,6 +1147,83 @@ PFN_vkVoidFunction vk_function_ret_callback(const char *function_name, void *use
     return inst->getInstanceProcAddr(function_name);
 }
 
+bool
+VulkanWindowRenderer::isPhysicalDeviceUsable(VkPhysicalDevice &phys_dev)
+{
+    VkFormatProperties format_prop { };
+
+    instance.functions()->vkGetPhysicalDeviceFormatProperties(phys_dev, VK_FORMAT_B8G8R8A8_UNORM, &format_prop);
+    if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
+        return false;
+    }
+    if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
+        return false;
+    }
+
+    if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
+        return false;
+    }
+    if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
+        return false;
+    }
+    bool                       dynamicRenderingSupported = false;
+    VkPhysicalDeviceProperties phys_dev_prop { };
+
+    instance.functions()->vkGetPhysicalDeviceProperties(phys_dev, &phys_dev_prop);
+    int minor = VK_API_VERSION_MINOR(phys_dev_prop.apiVersion);
+    int major = VK_API_VERSION_MAJOR(phys_dev_prop.apiVersion);
+    if (major > 1 || (major == 1 && minor >= 3)) {
+        VkPhysicalDeviceVulkan13Features vk13_features { };
+        vk13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+        VkPhysicalDeviceFeatures2KHR vk_features_2 { };
+        vk_features_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+        vk_features_2.pNext = &vk13_features;
+        fn_vkGetPhysicalDeviceFeatures2KHR(phys_dev, &vk_features_2);
+        dynamicRenderingSupported = vk13_features.dynamicRendering;
+    } else {
+        return false;
+    }
+    if (!dynamicRenderingSupported) {
+        return false;
+    }
+    uint32_t queue_count;
+    instance.functions()->vkGetPhysicalDeviceQueueFamilyProperties(phys_dev, &queue_count, nullptr);
+    std::vector<VkQueueFamilyProperties> queue_info(queue_count);
+    instance.functions()->vkGetPhysicalDeviceQueueFamilyProperties(phys_dev, &queue_count, queue_info.data());
+    for (unsigned int i = 0; i < queue_count; i++) {
+        if (instance.supportsPresent(phys_dev, i, this) && (queue_info[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
+            present_queue = gfx_queue = i;
+            break;
+        }
+    }
+    if (present_queue == -1) {
+        for (int i = 0; i < queue_count; i++) {
+            if (instance.supportsPresent(phys_dev, i, this)) {
+                present_queue = i;
+                break;
+            }
+        }
+    }
+    if (gfx_queue == -1) {
+        for (int i = 0; i < queue_count; i++) {
+            if (queue_info[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+                present_queue = i;
+                break;
+            }
+        }
+    }
+
+    if (present_queue != gfx_queue) {
+        return false;
+    }
+
+    if (gfx_queue == -1 || present_queue == -1) {
+        return false;
+    }
+
+    return true;
+}
+
 void
 VulkanWindowRenderer::initialize()
 {
@@ -1149,6 +1239,7 @@ VulkanWindowRenderer::initialize()
         if (!window_surface) {
             throw vulkan_init_error("Failed to get VkSurfaceKHR from window.");
         }
+        fn_vkGetPhysicalDeviceFeatures2KHR = (PFN_vkGetPhysicalDeviceFeatures2KHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceFeatures2");
         uint32_t physicalDevices = 0;
 
         instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, nullptr);
@@ -1157,77 +1248,15 @@ VulkanWindowRenderer::initialize()
             phys_devices.resize(physicalDevices);
             if (VK_SUCCESS == instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, phys_devices.data())) {
                 phys_device       = phys_devices[std::clamp((uint32_t)video_vk_device, 0u, physicalDevices - 1u)];
-                VkFormatProperties format_prop {};
 
-                instance.functions()->vkGetPhysicalDeviceFormatProperties(phys_device, VK_FORMAT_B8G8R8A8_UNORM, &format_prop);
-                if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
-                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support BLIT_DST on optimal layouts.");
-                }
-                if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
-                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support BLIT_SRC on linear layouts.");
-                }
-
-                if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
-                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support TRANSFER_DST on optimal layouts.");
-                }
-                if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_DST_BIT)) {
-                    throw vulkan_init_error("VK_FORMAT_B8G8R8A8_UNORM does not support TRANSFER_DST on linear layouts.");
-                }
-                fn_vkGetPhysicalDeviceFeatures2KHR = (PFN_vkGetPhysicalDeviceFeatures2KHR)instance.getInstanceProcAddr("vkGetPhysicalDeviceFeatures2");
-                bool dynamicRenderingSupported = false;
-                VkPhysicalDeviceProperties phys_dev_prop{};
-
-                instance.functions()->vkGetPhysicalDeviceProperties(phys_device, &phys_dev_prop);
-                int minor = VK_API_VERSION_MINOR(phys_dev_prop.apiVersion);
-                int major = VK_API_VERSION_MAJOR(phys_dev_prop.apiVersion);
-                if (major > 1 || (major == 1 && minor >= 3)) {
-                    VkPhysicalDeviceVulkan13Features vk13_features{};
-                    vk13_features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-                    VkPhysicalDeviceFeatures2KHR vk_features_2 {};
-                    vk_features_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-                    vk_features_2.pNext = &vk13_features;
-                    fn_vkGetPhysicalDeviceFeatures2KHR(phys_device, &vk_features_2);
-                    dynamicRenderingSupported = vk13_features.dynamicRendering;
-                } else {
-                    throw vulkan_init_error("Device does not support Vulkan 1.3.");
-                }
-                if (!dynamicRenderingSupported) {
-                    throw vulkan_init_error("VK_KHR_dynamic_rendering not supported.");
-                }
-                uint32_t queue_count;
-                instance.functions()->vkGetPhysicalDeviceQueueFamilyProperties(phys_device, &queue_count, nullptr);
-                std::vector<VkQueueFamilyProperties> queue_info(queue_count);
-                instance.functions()->vkGetPhysicalDeviceQueueFamilyProperties(phys_device, &queue_count, queue_info.data());
-                for (unsigned int i = 0; i < queue_count; i++) {
-                    if (instance.supportsPresent(phys_device, i, this) && (queue_info[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-                        present_queue = gfx_queue = i;
-                        break;
-                    }
-                }
-                if (present_queue == -1) {
-                    for (int i = 0; i < queue_count; i++) {
-                        if (instance.supportsPresent(phys_device, i, this)) {
-                            present_queue = i;
+                if (!isPhysicalDeviceUsable(phys_device)) {
+                    for (uint32_t i = 0; i < phys_devices.size(); i++) {
+                        if (isPhysicalDeviceUsable(phys_devices[i])) {
+                            phys_device = phys_devices[i];
                             break;
                         }
                     }
-                }
-                if (gfx_queue == -1) {
-                    for (int i = 0; i < queue_count; i++) {
-                        if (queue_info[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-                            present_queue = i;
-                            break;
-                        }
-                    }
-                }
-
-                if (gfx_queue == -1 || present_queue == -1) {
-                    throw vulkan_init_error("Failed to find suitable queue families for present and graphics.");
-                }
-
-                // TODO: support seperate graphics and present queues.
-                if (gfx_queue != present_queue) {
-                    throw vulkan_init_error("Graphics queue can't present");
+                    throw vulkan_init_error(tr("No usable Vulkan physical devices found."));
                 }
 
                 std::vector<std::string>  extList;
