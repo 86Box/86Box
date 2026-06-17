@@ -836,7 +836,7 @@ VulkanWindowRenderer::render()
             .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
             .oldLayout        = (i == 0) ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .image            = (i == 0) ? shaderSrcImages[i] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain,
+            .image            = (i == 0) ? shaderSrcImages[swapchain_image_index] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain,
             .subresourceRange = {
                                 .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
                                 .baseMipLevel   = 0,
@@ -847,7 +847,7 @@ VulkanWindowRenderer::render()
         };
         m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier);
         m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier_src);
-        auto shader_img_src = (i == 0) ? shaderSrcImages[i] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain;
+        auto shader_img_src = (i == 0) ? shaderSrcImages[swapchain_image_index] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain;
         auto shader_img_dst = shaderFilterChains[swapchain_image_index][i].next_image_chain;
 
         libra_viewport_t vport{};
