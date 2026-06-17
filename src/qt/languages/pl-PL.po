@@ -3021,6 +3021,9 @@ msgstr "Przełącz wyciszenie"
 msgid "Toggle on-screen display"
 msgstr "Przełącz menu ekranowe"
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Pliki tekstowe"
 

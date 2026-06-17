@@ -3024,6 +3024,9 @@ msgstr "切換靜音"
 msgid "Toggle on-screen display"
 msgstr "切換 OSD"
 
+msgid "Toggle &on-screen display"
+msgstr "切換 OSD(&O)"
+
 msgid "Text files"
 msgstr "文字檔案"
 
