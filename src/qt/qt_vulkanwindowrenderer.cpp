@@ -170,7 +170,9 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
         list.push_back("VK_KHR_get_physical_device_properties2");
         instance.setExtensions(list);
     }
-    instance.create();
+    if (!instance.create()) {
+        throw vulkan_init_error(tr("Failed to create Vulkan 1.3 instance"));
+    }
     setSurfaceType(QSurface::VulkanSurface);
     setVulkanInstance(&instance);
     buf_usage = std::vector<std::atomic_flag>(1);
