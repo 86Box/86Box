@@ -27,6 +27,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #define __LIBRASHADER_LD_H__
 #pragma once
 
+// Disable dumb unused function warnings here.
+#if defined(__clang__)
+#    pragma clang diagnostic push
+#    pragma clang diagnostic ignored "-Wunused-function"
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic push
+#    pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 // Uncomment the following defines to activate runtimes.
 
 // #define LIBRA_RUNTIME_OPENGL
@@ -1754,4 +1763,11 @@ static libra_instance_t librashader_load_instance() {
     return __librashader_make_null_instance();
 }
 #endif
+
+#if defined(__clang__)
+#    pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#    pragma GCC diagnostic pop
+#endif
+
 #endif
