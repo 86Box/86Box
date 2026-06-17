@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-13 15:11+0000\n"
+"PO-Revision-Date: 2026-06-17 07:28+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -3029,7 +3029,7 @@ msgid "Toggle on-screen display"
 msgstr "Показать/скрыть экранное меню"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Показать/скрыть &экранное меню"
 
 msgid "Text files"
 msgstr "Текстовые файлы"
