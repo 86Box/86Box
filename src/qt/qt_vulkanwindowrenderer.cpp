@@ -245,6 +245,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         allocInfo.flags                                    = 0;
 
         if (vmaCreateImage(allocator, &img_info, &allocInfo, &shaderSrcImages[i], &shaderSrcImageAllocations[i], &allocInfo2) != VK_SUCCESS) {
+            throw vulkan_init_error("Failed to create shader source images");
             return;
         }
 
@@ -270,6 +271,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
                 allocInfo.usage                                    = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
                 allocInfo.flags                                    = 0;
                 if (vmaCreateImage(allocator, &img_info, &allocInfo, &last_chain.next_image_chain, &last_chain.next_image_alloc, &allocInfo2) != VK_SUCCESS) {
+                    throw vulkan_init_error("Failed to create shader image chain images");
                     return;
                 }
             }
@@ -354,7 +356,6 @@ VulkanWindowRenderer::recreateSwapchain()
     if (height() == 0) {
         curExtent.height = 480;
     }
-    printf("curExtent = %u x %u\n", curExtent.width, curExtent.height);
 
     VkSwapchainCreateInfoKHR swapchain_creation = { };
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -396,7 +397,10 @@ VulkanWindowRenderer::recreateSwapchain()
     this->presentSemaphores.resize(swapchainImagesCount);
     this->presentFences.resize(swapchainImagesCount);
     this->cmdBuffers.resize(swapchainImagesCount);
-    fn_vkGetSwapchainImagesKHR(logi_device, dev_swapchain, &swapchainImagesCount, swapchainImages.data());
+    res = fn_vkGetSwapchainImagesKHR(logi_device, dev_swapchain, &swapchainImagesCount, swapchainImages.data());
+    if (res != VK_SUCCESS) {
+        throw vulkan_init_error("Failed to get swapchain images");
+    }
 
     VkCommandPoolCreateInfo cmdpollcreate { };
     cmdpollcreate.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -430,9 +434,23 @@ VulkanWindowRenderer::recreateSwapchain()
         fence_create.pNext             = nullptr;
         fence_create.flags             = VK_FENCE_CREATE_SIGNALED_BIT;
 
-        m_devFuncs->vkCreateSemaphore(logi_device, &semaphore_create, nullptr, &renderFinishedSemaphores[i]);
-        m_devFuncs->vkCreateSemaphore(logi_device, &semaphore_create, nullptr, &presentSemaphores[i]);
-        m_devFuncs->vkCreateFence(logi_device, &fence_create, nullptr, &presentFences[i]);
+        res = m_devFuncs->vkCreateSemaphore(logi_device, &semaphore_create, nullptr, &renderFinishedSemaphores[i]);
+
+        if (res != VK_SUCCESS) {
+            throw vulkan_init_error("Failed to create semaphores");
+        }
+
+        res = m_devFuncs->vkCreateSemaphore(logi_device, &semaphore_create, nullptr, &presentSemaphores[i]);
+
+        if (res != VK_SUCCESS) {
+            throw vulkan_init_error("Failed to create semaphores");
+        }
+
+        res = m_devFuncs->vkCreateFence(logi_device, &fence_create, nullptr, &presentFences[i]);
+
+        if (res != VK_SUCCESS) {
+            throw vulkan_init_error("Failed to create fences");
+        }
 
         VkImageViewCreateInfo image_view_info           = { };
         image_view_info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -448,7 +466,10 @@ VulkanWindowRenderer::recreateSwapchain()
         image_view_info.components.g                    = VK_COMPONENT_SWIZZLE_G;
         image_view_info.components.b                    = VK_COMPONENT_SWIZZLE_B;
         image_view_info.components.a                    = VK_COMPONENT_SWIZZLE_A;
-        m_devFuncs->vkCreateImageView(logi_device, &image_view_info, nullptr, &swapchainImageViews[i]);
+        res = m_devFuncs->vkCreateImageView(logi_device, &image_view_info, nullptr, &swapchainImageViews[i]);
+        if (res != VK_SUCCESS) {
+            throw vulkan_init_error("Failed to create image views of swapchains");
+        }
 
         // Create screenshot images.
         {
@@ -557,7 +578,13 @@ VulkanWindowRenderer::render()
 
     if (prev_destination != destination) {
 #ifdef LIBRA_RUNTIME_VULKAN
-        recreateShaderSrcImages();
+        try {
+            recreateShaderSrcImages();
+        } catch (const vulkan_init_error &e) {
+            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            finalize();
+            return;
+        }
 #endif
         prev_destination = destination;
     }
@@ -591,6 +618,11 @@ VulkanWindowRenderer::render()
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
             main_window->reloadAllRenderers();
         }
+        return;
+    }
+    if (res < 0) {
+        QMessageBox::critical(main_window, tr("Error"), QString("vkAcquireNextImageKHR: ") + Vulkan_GetResultString(res));
+        finalize();
         return;
     }
 #ifndef LIBRA_RUNTIME_VULKAN
