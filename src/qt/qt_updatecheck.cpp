@@ -54,7 +54,7 @@ UpdateCheck::checkForUpdates()
 }
 
 void
-UpdateCheck::jenkinsDownloadComplete(const QString &filename, const QVariant &varData)
+UpdateCheck::jenkinsDownloadComplete(const QString &filename)
 {
     auto generalError             = tr("Unable to determine release information");
     auto jenkinsReleaseListResult = parseJenkinsJson(filename);
@@ -97,7 +97,7 @@ UpdateCheck::generalDownloadError(const QString &error)
 }
 
 void
-UpdateCheck::githubDownloadComplete(const QString &filename, const QVariant &varData)
+UpdateCheck::githubDownloadComplete(const QString &filename)
 {
     const auto generalError            = tr("Unable to determine release information");
     const auto githubReleaseListResult = parseGithubJson(filename);
