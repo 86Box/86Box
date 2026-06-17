@@ -7046,6 +7046,7 @@ static const device_config_t millennium_ii_config[] = {
   // clang-format on
 };
 
+#ifdef USE_G100
 static const device_config_t g100_config[] = {
   // clang-format off
     {
@@ -7068,6 +7069,7 @@ static const device_config_t g100_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
+#endif
 
 const device_t millennium_device = {
     .name          = "Matrox Millennium",

@@ -70,9 +70,6 @@ static int       menu_sel       = -1;
 static OsdExplorer       explorer;
 static OsdExplorerConfig explorer_config;
 
-static char      files[OSD_FILE_CAPACITY][OSD_PATH_CAPACITY];
-static int       file_count     = 0;
-
 static char      osd_title[512] = "";
 static osd_host_t osd_host       = { nullptr, nullptr };
 static float      osd_layout_scale = 1.0f;
@@ -243,17 +240,6 @@ static bool glob_match_ci(const char *pat, const char *str)
     return !*pat && !*str;
 }
 
-/* Match file's extension (including leading '.') against dotted glob patterns. */
-static bool has_ext(const char *name, const char *const *pats)
-{
-    const char *dot = strrchr(name, '.');
-    if (!dot) return false;
-    for (int i = 0; pats[i]; i++)
-        if (glob_match_ci(pats[i], dot))
-            return true;
-    return false;
-}
-
 static const char *const *exts_for_view(OsdView v)
 {
     switch (v) {
@@ -264,44 +250,6 @@ static const char *const *exts_for_view(OsdView v)
         case VIEW_FILE_MO:     return mo_exts;
         default:               return nullptr;
     }
-}
-
-using DirSet = std::set<std::pair<dev_t, ino_t>>;
-
-static void scan_dir_recursive(char path[], size_t path_len, const char *const *exts, DirSet &visited)
-{
-    struct stat dst;
-    if (stat(path, &dst) != 0 || !S_ISDIR(dst.st_mode))
-        return;
-    auto key = std::make_pair(dst.st_dev, dst.st_ino);
-    if (!visited.insert(key).second)
-        return; /* already visited (symlink / bind-mount) */
-
-    DIR *dir = opendir(path);
-    if (!dir)
-        return;
-
-    struct dirent *entry;
-    while ((entry = readdir(dir)) != nullptr) {
-        const char *name = entry->d_name;
-        if (file_count < OSD_FILE_CAPACITY && name[0] != '.') {
-            int added = snprintf(path + path_len, OSD_PATH_CAPACITY - path_len,
-                                 "/%s", name);
-            if (added > 0 && added < (int)(OSD_PATH_CAPACITY - path_len)) {
-                struct stat st;
-                if (stat(path, &st) == 0) {
-                    if (S_ISDIR(st.st_mode))
-                        scan_dir_recursive(path, path_len + (size_t)added, exts, visited);
-                    else if (S_ISREG(st.st_mode) && has_ext(name, exts))
-                        if (snprintf(files[file_count], OSD_PATH_CAPACITY, "%s", path) < OSD_PATH_CAPACITY)
-                            file_count++;
-                }
-            }
-            path[path_len] = '\0';
-        }
-    }
-
-    closedir(dir);
 }
 
 /* ------------------------------------------------------------------ */

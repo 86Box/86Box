@@ -18,8 +18,6 @@ namespace fs = emu::filesystem;
 
 namespace {
 
-constexpr size_t kPathCapacity = 1024;
-
 bool glob_match_ci(const char *pattern, const char *text)
 {
     while (*pattern && *text) {
