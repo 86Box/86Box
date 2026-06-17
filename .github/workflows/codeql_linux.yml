@@ -116,7 +116,6 @@ jobs:
           libfluidsynth-dev
           libvdeplug-dev
           libserialport-dev
-          cargo
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
