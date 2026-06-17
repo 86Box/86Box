@@ -1514,7 +1514,7 @@ skip_shaders:
         isFinalized   = true;
         isInitialized = true;
 
-        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing Vulkan.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
+        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing Vulkan.") + QStringLiteral("\n") + tr(e.what()) + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
 
         emit errorInitializing();
     }
