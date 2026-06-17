@@ -103,6 +103,7 @@
 #include <86box/ui.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/plat_dir.h>
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/machine_status.h>
@@ -665,6 +666,28 @@ pc_log(const char *fmt, ...)
 #else
 #    define pc_log(fmt, ...)
 #endif
+
+const char *
+plat_dir_get_path(plat_dir_t *context)
+{
+    if (context->path[context->path_dir_len])
+        return context->path;
+    if (plat_dir_is_special_entry(plat_dir_get_name(context)))
+        return context->path;
+    size_t len = context->path_dir_len + strlen(plat_dir_get_name(context)) + 2;
+    if (len > context->path_len) {
+        context->path     = (char *) realloc(context->path, len);
+        context->path_len = len;
+    }
+    snprintf(&context->path[context->path_dir_len], context->path_len - context->path_dir_len,
+#ifdef _WIN32
+        "\\"
+#else
+        "/"
+#endif
+        "%s", plat_dir_get_name(context));
+    return context->path;
+}
 
 static void
 delete_nvr_file(uint8_t flash)

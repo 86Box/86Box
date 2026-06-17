@@ -61,7 +61,6 @@ mem_mapping_t ram_mid_mapping2;      /* 640..1024K mapping, second part, for SiS
 mem_mapping_t ram_remapped_mapping;  /* 640..1024K mapping */
 mem_mapping_t ram_remapped_mapping2; /* 640..1024K second mapping, for SiS 471 mode */
 mem_mapping_t ram_high_mapping;      /* 1024K+ mapping */
-mem_mapping_t ram_2gb_mapping;       /* 1024M+ mapping */
 mem_mapping_t ram_split_mapping;
 mem_mapping_t bios_mapping;
 mem_mapping_t bios_high_mapping;
