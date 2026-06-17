@@ -246,7 +246,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         img_info.arrayLayers       = 1;
         img_info.format            = VK_FORMAT_B8G8R8A8_UNORM;
         img_info.tiling            = VK_IMAGE_TILING_OPTIMAL;
-        img_info.usage             = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+        img_info.usage             = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         img_info.samples           = VK_SAMPLE_COUNT_1_BIT;
         img_info.initialLayout     = VK_IMAGE_LAYOUT_PREINITIALIZED;
         img_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
@@ -810,6 +810,7 @@ VulkanWindowRenderer::render()
                              }
     };
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (noshadersloaded ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
+    shaderSrcImageTransitioned[swapchain_image_index] = 1;
 #endif
 
 #   ifdef LIBRA_RUNTIME_VULKAN
