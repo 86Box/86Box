@@ -19,6 +19,8 @@ typedef struct osd_host_t {
 
 void osd_core_set_host(const osd_host_t *host);
 
+float osd_core_scaled(float value);
+
 float osd_core_layout_scale_for_output(int output_w, int output_h);
 
 /* Shared OSD layout scale. Frontends may supply a backend-specific hint. */
