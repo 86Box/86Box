@@ -695,6 +695,16 @@ plat_dir_read(plat_dir_t *context)
 #    define plat_dir_is_hidden(context) (plat_dir_get_name((context))[0] == '.')
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const char *plat_dir_get_path(plat_dir_t *context);
+
+#ifdef __cplusplus
+}
+#endif
+
 #ifdef plat_dir_is_file_stat
 static inline struct stat *
 plat_dir_stat(plat_dir_t *context)
