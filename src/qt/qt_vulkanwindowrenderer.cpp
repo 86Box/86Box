@@ -1565,6 +1565,35 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
 bool
 VulkanWindowRenderer::event(QEvent *event)
 {
+    if (qt_osd_is_visible()) {
+        switch (event->type()) {
+            case QEvent::MouseButtonPress:
+            case QEvent::MouseMove:
+            case QEvent::MouseButtonRelease: {
+                auto *me = static_cast<QMouseEvent *>(event);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                const QPointF pos = me->position();
+#else
+                const QPointF pos(me->x(), me->y());
+#endif
+                qt_osd_mouse_pos((float) pos.x(), (float) pos.y());
+                if (event->type() == QEvent::MouseButtonPress)
+                    qt_osd_mouse_button(me->button(), true);
+                else if (event->type() == QEvent::MouseButtonRelease)
+                    qt_osd_mouse_button(me->button(), false);
+                return true;
+            }
+            case QEvent::Wheel: {
+                auto *we = static_cast<QWheelEvent *>(event);
+                qt_osd_mouse_wheel((float) we->angleDelta().x() / 120.0f,
+                                   (float) we->angleDelta().y() / 120.0f);
+                return true;
+            }
+            default:
+                break;
+        }
+    }
+
     bool res = false;
     if (!eventDelegate(event, res))
         return QWindow::event(event);
