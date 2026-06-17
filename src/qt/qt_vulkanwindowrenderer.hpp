@@ -11,6 +11,7 @@
 #if QT_CONFIG(vulkan)
 #    if defined(__clang__)
 #    pragma clang diagnostic ignored "-Wnullability-completeness"
+#    pragma clang diagnostic ignored "-Wunused-private-field"
 #    endif
 #    if defined(__GNUC__)
 #    pragma GCC diagnostic push
