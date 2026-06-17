@@ -3057,6 +3057,9 @@ msgstr "Εναλλαγή σίγασης"
 msgid "Toggle on-screen display"
 msgstr "Ενεργοποίηση απεικόνισης στην οθόνη"
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Αρχεία κειμένου"
 

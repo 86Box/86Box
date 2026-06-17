@@ -3028,6 +3028,9 @@ msgstr "Выключить/включить звук"
 msgid "Toggle on-screen display"
 msgstr "Показать/скрыть экранное меню"
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Текстовые файлы"
 
