@@ -905,6 +905,7 @@ s3_virge_recalctimings(svga_t *svga)
 
     svga->hdisp *= svga->dots_per_clock;
 
+    svga->vtotal      = svga->crtc[6];
     if (svga->crtc[7] & 1)
         svga->vtotal |= 0x100;
     if (svga->crtc[7] & 32)
@@ -913,6 +914,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vtotal |= 0x400;
     svga->vtotal += 2;
 
+    svga->dispend     = svga->crtc[0x12];
     if (svga->crtc[7] & 2)
         svga->dispend |= 0x100;
     if (svga->crtc[7] & 64)
@@ -921,6 +923,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->dispend |= 0x400;
     svga->dispend++;
 
+    svga->vblankstart = svga->crtc[0x15];
     if (svga->crtc[7] & 0x08)
         svga->vblankstart |= 0x100;
     if (svga->crtc[9] & 0x20)
@@ -929,6 +932,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x400;
     svga->vblankstart++;
 
+    svga->vsyncstart  = svga->crtc[0x10];
     if (svga->crtc[7] & 4)
         svga->vsyncstart |= 0x100;
     if (svga->crtc[7] & 128)
@@ -1013,7 +1017,7 @@ s3_virge_recalctimings(svga_t *svga)
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         svga->clock /= 2.0;
-                    } else if ((virge->chip == S3_VIRGEGX2)) {
+                    } else if (virge->chip == S3_VIRGEGX2) {
                         if (svga->seqregs[0x18] & 0x80) {
                             svga->hdisp >>= 1;
                             svga->dots_per_clock >>= 1;
