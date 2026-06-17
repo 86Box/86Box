@@ -120,14 +120,9 @@ float osd_core_layout_scale_for_output(int output_w, int output_h)
     return clamp_output_scale(std::min(x_scale, y_scale));
 }
 
-static float osd_scaled(float value)
+float osd_core_scaled(float value)
 {
     return (value > 0.0f) ? (value * osd_layout_scale) : value;
-}
-
-static ImVec2 osd_scaled_size(float width, float height)
-{
-    return ImVec2(osd_scaled(width), osd_scaled(height));
 }
 
 static void apply_layout_scale(void)
@@ -565,7 +560,7 @@ static bool draw_menu(void)
         activate_menu_item(menu_sel, &close_osd);
 
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(osd_scaled_size(320.0f, 0.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(osd_core_scaled(320.0f), osd_core_scaled(0.0f)), ImGuiCond_Always);
 
     ImGui::Begin("86Box OSD", nullptr,
                  ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
@@ -642,7 +637,7 @@ static bool draw_log(void)
         show_main_menu();
 
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
-    ImGui::SetNextWindowSize(osd_scaled_size(560.0f, 340.0f), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(osd_core_scaled(560.0f), osd_core_scaled(340.0f)), ImGuiCond_Always);
     ImGui::Begin("Log", nullptr,
                  ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_NoMove     | ImGuiWindowFlags_NoNav);

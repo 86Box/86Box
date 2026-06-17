@@ -8,6 +8,8 @@
 
 #include "imgui.h"
 
+#include "osd_core.hpp"
+
 #ifdef USE_STD_FILESYSTEM
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -226,7 +228,7 @@ OsdExplorer::Draw()
 
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
-    ImGui::SetNextWindowSize(ImVec2(560, 380), ImGuiCond_Always);
+    ImGui::SetNextWindowSize(ImVec2(osd_core_scaled(560.0f), osd_core_scaled(380.0f)), ImGuiCond_Always);
 
     const bool enter = ImGui::IsKeyPressed(ImGuiKey_Enter, false)
                     || ImGui::IsKeyPressed(ImGuiKey_KeypadEnter, false);
@@ -235,12 +237,15 @@ OsdExplorer::Draw()
                  ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize |
                  ImGuiWindowFlags_NoMove);
 
-    const float label_column_width = 96.0f;
+    ImGui::BeginTable("##inputs", 2, ImGuiTableFlags_SizingStretchSame);
+    ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("Input", ImGuiTableColumnFlags_WidthStretch);
 
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Filename");
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (label_column_width - ImGui::CalcTextSize("Filename").x));
+    ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (focus_filename_input_ && focused_slot_ == FocusSlot::Filename) {
         ImGui::SetKeyboardFocusHere();
@@ -248,6 +253,7 @@ OsdExplorer::Draw()
     }
     if (ImGui::InputText("##filename", filename_input_.data(), filename_input_.size(), ImGuiInputTextFlags_EnterReturnsTrue)) {
         if (TryHandleFilenameInput(&result)) {
+            ImGui::EndTable();
             ImGui::End();
             return result;
         }
@@ -271,10 +277,11 @@ OsdExplorer::Draw()
     else
         snprintf(current_path_text.data(), current_path_text.size(), "%s", current_path_.string().c_str());
 
+    ImGui::TableNextRow();
+    ImGui::TableNextColumn();
     ImGui::AlignTextToFramePadding();
     ImGui::TextUnformatted("Current path");
-    ImGui::SameLine();
-    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (label_column_width - ImGui::CalcTextSize("Current path").x));
+    ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(-FLT_MIN);
     if (focus_current_path_input_ && focused_slot_ == FocusSlot::CurrentPath) {
         ImGui::SetKeyboardFocusHere();
@@ -283,6 +290,8 @@ OsdExplorer::Draw()
     ImGui::InputText("##current_path", current_path_text.data(), current_path_text.size(), ImGuiInputTextFlags_ReadOnly);
     if (!tab && ImGui::IsItemFocused())
         focused_slot_ = FocusSlot::CurrentPath;
+
+    ImGui::EndTable();
 
     if (has_show_all_files_checkbox) {
         if (focus_show_all_files_ && focused_slot_ == FocusSlot::ShowAllFiles) {
