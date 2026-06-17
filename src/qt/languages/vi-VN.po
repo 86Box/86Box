@@ -3011,6 +3011,9 @@ msgstr "Bật/tắt tiếng"
 msgid "Toggle on-screen display"
 msgstr "Bật/tắt thông tin trên màn hình"
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Tập tin văn bản"
 
