@@ -1227,7 +1227,7 @@ VulkanWindowRenderer::isPhysicalDeviceUsable(VkPhysicalDevice &phys_dev)
 void
 VulkanWindowRenderer::initialize()
 {
-    if (isFinalized)
+    if (isFinalized || isInitialized)
         return;
     try {
 #ifndef LIBRASHADER_STATIC
