@@ -102,14 +102,12 @@ jobs:
           vde
           libserialport
           vulkan-headers
-          rust
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-          submodules: true
 
       - name: Install Build Wrapper
         uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
