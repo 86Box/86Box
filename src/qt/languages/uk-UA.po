@@ -3029,6 +3029,9 @@ msgstr "Переключити беззвучний режим"
 msgid "Toggle on-screen display"
 msgstr ""
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Текстові файли"
 

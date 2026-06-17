@@ -3022,6 +3022,9 @@ msgstr "Alternar silencio"
 msgid "Toggle on-screen display"
 msgstr ""
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Archivos de texto"
 

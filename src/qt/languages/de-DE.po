@@ -3021,6 +3021,9 @@ msgstr "Stummschaltung umschalten"
 msgid "Toggle on-screen display"
 msgstr ""
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Textdateien"
 

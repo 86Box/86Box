@@ -3039,6 +3039,9 @@ msgstr "Activer/désactiver le mode silencieux"
 msgid "Toggle on-screen display"
 msgstr ""
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Fichiers texte"
 

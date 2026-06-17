@@ -3028,6 +3028,9 @@ msgstr "Uključi/isključi zvuk"
 msgid "Toggle on-screen display"
 msgstr ""
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Tekstualne datoteke"
 

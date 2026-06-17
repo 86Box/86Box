@@ -3086,6 +3086,9 @@ msgstr "음소거 켜기/끄기"
 msgid "Toggle on-screen display"
 msgstr "화면 정보 표시 켜기/끄기"
 
+msgid "Toggle &on-screen display"
+msgstr "화면 정보 표시 켜기/끄기(&O)"
+
 msgid "Text files"
 msgstr "텍스트 파일"
 

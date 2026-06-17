@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 07:04+0000\n"
+"PO-Revision-Date: 2026-06-16 17:51+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -1759,10 +1759,10 @@ msgid "Fast"
 msgstr "Rychlý"
 
 msgid "Auto-pause on focus loss"
-msgstr "Automatická pauza při ztrátě zaměření okna"
+msgstr "Automaticky pozastavit, když není hlavní okno aktivní"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Automaticky pozastavit při zobrazení dialogových oken"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox již není podporován"
@@ -2360,7 +2360,7 @@ msgid "Control PC speaker"
 msgstr "Ovládat PC Speaker"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Ovládat hlasitost MIDI"
 
 msgid "Memory size"
 msgstr "Velikost pamĕti"
@@ -3061,6 +3061,9 @@ msgid "Toggle mute"
 msgstr "Přepnout ztišení"
 
 msgid "Toggle on-screen display"
+msgstr "Zobrazit nabídku OSD"
+
+msgid "Toggle &on-screen display"
 msgstr ""
 
 msgid "Text files"
@@ -3226,7 +3229,7 @@ msgid "Export EDID"
 msgstr "Exportovat EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "Soubor EDID \"%s\" není ve správném formátu."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Soubor EDID \"%s\" je příliš velký."
@@ -3440,4 +3443,4 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (klasická čínština)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Vzorkovací frekvence:"
