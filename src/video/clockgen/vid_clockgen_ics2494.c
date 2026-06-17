@@ -169,9 +169,6 @@ ics2494_getclock(int clock, void *priv)
     if (clock > 15)
         clock = 15;
 
-    if (ics2494->type == 304)
-        clock |= 8;
-
     return ics2494->freq[clock];
 }
 
