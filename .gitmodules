@@ -1,6 +1,0 @@
-[submodule "librashader"]
-	path = librashader
-	url = https://github.com/SnowflakePowered/librashader
-[submodule "corrosion"]
-	path = corrosion
-	url = https://github.com/corrosion-rs/corrosion/
