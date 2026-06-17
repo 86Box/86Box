@@ -224,8 +224,8 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         VkImageCreateInfo img_info = { };
         img_info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         img_info.imageType         = VK_IMAGE_TYPE_2D;
-        img_info.extent.width      = destination.width();
-        img_info.extent.height     = destination.height();
+        img_info.extent.width      = curExtent.width;
+        img_info.extent.height     = curExtent.height;
         img_info.extent.depth      = 1;
         img_info.mipLevels         = 1;
         img_info.arrayLayers       = 1;
@@ -331,7 +331,6 @@ VulkanWindowRenderer::recreateSwapchain()
 
     uint32_t format_count = 0;
 
-    //instance.functions()->vkGet
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, nullptr);
     std::vector<VkSurfaceFormatKHR> surface_formats(format_count);
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, surface_formats.data());
@@ -714,11 +713,11 @@ VulkanWindowRenderer::render()
     bregion.srcOffsets[1].x = source.x() + source.width();
     bregion.srcOffsets[1].y = source.y() + source.height();
     bregion.srcOffsets[1].z = 1;
-    bregion.dstOffsets[0].x = noshadersloaded ? destination.x() : 0;
-    bregion.dstOffsets[0].y = noshadersloaded ? destination.y() : 0;
+    bregion.dstOffsets[0].x = destination.x();
+    bregion.dstOffsets[0].y = destination.y();
     bregion.dstOffsets[0].z = 0;
-    bregion.dstOffsets[1].x = noshadersloaded ? destination.x() + destination.width() : destination.width();
-    bregion.dstOffsets[1].y = noshadersloaded ? destination.y() + destination.height() : destination.height();
+    bregion.dstOffsets[1].x = destination.x() + destination.width();
+    bregion.dstOffsets[1].y = destination.y() + destination.height();
     bregion.dstOffsets[1].z = 1;
 
     VkImageSubresourceRange clr_range;
@@ -836,22 +835,20 @@ VulkanWindowRenderer::render()
         auto shader_img_dst = shaderFilterChains[swapchain_image_index][i].next_image_chain;
 
         libra_viewport_t vport{};
-        vport.width = destination.width();
-        vport.height = destination.height();
+        vport.width = curExtent.width;
+        vport.height = curExtent.height;
         libra_error_t error = nullptr;
         if (i == shaderFilterChains[swapchain_image_index].size() - 1) {
-            vport.x = destination.x();
-            vport.y = destination.y();
 #ifndef LIBRASHADER_STATIC
-            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
 #else
-            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
 #endif
         } else
 #ifndef LIBRASHADER_STATIC
-            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
 #else
-            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)destination.width(), (unsigned int)destination.height() }, &vport, nullptr, nullptr);
+            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
 #endif
 
         if (error) {
