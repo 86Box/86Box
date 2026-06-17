@@ -31,11 +31,11 @@ public:
     explicit Downloader(DownloadLocation downloadLocation = DownloadLocation::Data, QObject *parent = nullptr);
     ~Downloader() final;
 
-    void download(const QUrl &url, const QString &filepath, const QVariant &varData = QVariant::Invalid);
+    void download(const QUrl &url, const QString &filepath);
 
 signals:
     // Signal emitted when the download is successful
-    void downloadCompleted(QString filename, QVariant varData);
+    void downloadCompleted(QString filename);
     // Signal emitted when an error occurs
     void errorOccurred(const QString &);
 
@@ -46,7 +46,6 @@ private:
     QFile                *file;
     QNetworkAccessManager nam;
     QNetworkReply        *reply;
-    QVariant              variantData;
     QDir                  downloadDirectory;
 };
 
