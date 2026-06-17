@@ -364,6 +364,7 @@ load_general(void)
 
     enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
 
+    video_vk_device = ini_section_get_int(cat, "video_vk_device", 0);
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
 
@@ -3034,6 +3035,11 @@ save_general(void)
         ini_section_set_int(cat, "enable_discord", enable_discord);
     else
         ini_section_delete_var(cat, "enable_discord");
+
+    if (video_vk_device != 0)
+        ini_section_set_int(cat, "video_vk_device", video_vk_device);
+    else
+        ini_section_delete_var(cat, "video_vk_device");
 
     if (video_framerate != -1)
         ini_section_set_int(cat, "video_gl_framerate", video_framerate);

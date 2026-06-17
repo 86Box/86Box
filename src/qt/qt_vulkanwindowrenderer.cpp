@@ -1156,7 +1156,7 @@ VulkanWindowRenderer::initialize()
             std::vector<VkPhysicalDevice> phys_devices;
             phys_devices.resize(physicalDevices);
             if (VK_SUCCESS == instance.functions()->vkEnumeratePhysicalDevices(instance.vkInstance(), &physicalDevices, phys_devices.data())) {
-                phys_device       = phys_devices[0];
+                phys_device       = phys_devices[std::clamp((uint32_t)video_vk_device, 0u, physicalDevices - 1u)];
                 VkFormatProperties format_prop {};
 
                 instance.functions()->vkGetPhysicalDeviceFormatProperties(phys_device, VK_FORMAT_B8G8R8A8_UNORM, &format_prop);
@@ -1188,6 +1188,8 @@ VulkanWindowRenderer::initialize()
                     vk_features_2.pNext = &vk13_features;
                     fn_vkGetPhysicalDeviceFeatures2KHR(phys_device, &vk_features_2);
                     dynamicRenderingSupported = vk13_features.dynamicRendering;
+                } else {
+                    throw vulkan_init_error("Device does not support Vulkan 1.3.");
                 }
                 if (!dynamicRenderingSupported) {
                     throw vulkan_init_error("VK_KHR_dynamic_rendering not supported.");
