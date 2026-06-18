@@ -1363,8 +1363,6 @@ usage:
     if (lang_init)
         lang_id = lang_init;
 
-    gdbstub_init();
-
     /* All good! */
     return 1;
 }
