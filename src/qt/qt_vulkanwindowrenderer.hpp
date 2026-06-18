@@ -73,7 +73,7 @@ private:
     void initialize();
 
     void cleanupSwapchain();
-    void recreateSwapchain();
+    void recreateSwapchain(bool force = false);
 
     bool isPhysicalDeviceUsable(VkPhysicalDevice& phys_dev);
 
@@ -147,7 +147,7 @@ private:
     PFN_vkCmdBeginRenderingKHR fn_vkCmdBeginRendering = nullptr;
     PFN_vkCmdEndRenderingKHR fn_vkCmdEndRendering = nullptr;
 
-    VkExtent2D curExtent;
+    VkExtent2D curExtent { 0x7FFFFFFF, 0x7FFFFFFF };
 
     ImGui_ImplVulkan_InitInfo init_info{};
     
