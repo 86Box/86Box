@@ -986,7 +986,6 @@ then
   cd ../../../../
 
 	# Archive librashader library.
-	mv "archive_tmp/librashader.dll" "archive_tmp/usr/lib/"
 	rm -rf archive_tmp/librashader/
 
 		# Archive executable, while also stripping it if requested.
