@@ -969,7 +969,27 @@ then
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-	# Archive executable, while also stripping it if requested.
+	# Librashader
+	librashader_profile=release
+  grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
+  cd archive_tmp
+  mkdir librashader
+  cd librashader
+  git init
+  git remote add origin https://github.com/SnowflakePowered/librashader/
+  git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+  git checkout FETCH_HEAD
+  cargo install cargo-update
+  cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+  cd target/$librashader_profile/
+  cp librashader_capi.dll ../../../librashader.dll
+  cd ../../../../
+
+	# Archive librashader library.
+	mv "archive_tmp/librashader.dll" "archive_tmp/usr/lib/"
+	rm -rf archive_tmp/librashader/
+
+		# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
 	then
 		"$strip_binary" -o "archive_tmp/$project.exe" "build/src/$project.exe"
@@ -994,6 +1014,26 @@ then
 
 		# Archive mdsx library.
 		mv "archive_tmp/mdsx.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
+
+	  # Librashader
+  	librashader_profile=release
+    grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
+    cd archive_tmp
+    mkdir librashader
+    cd librashader
+    git init
+    git remote add origin https://github.com/SnowflakePowered/librashader/
+    git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+    git checkout FETCH_HEAD
+    cargo install cargo-update
+    cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+    cd target/$librashader_profile/
+    cp librashader_capi.dylib ../../../librashader.dylib
+    cd ../../../../
+
+	  # Archive librashader library.
+		mv "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
+	  rm -rf archive_tmp/librashader/
 
 		# Archive assets.
 		if [ -d archive_tmp/assets ]
@@ -1156,6 +1196,26 @@ else
 		mkdir -p "$data_dir"
 		mv archive_tmp/assets "$data_dir/assets"
 	fi
+
+	# Librashader
+	librashader_profile=release
+  grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
+  cd archive_tmp
+  mkdir librashader
+  cd librashader
+  git init
+  git remote add origin https://github.com/SnowflakePowered/librashader/
+  git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+  git checkout FETCH_HEAD
+  cargo install cargo-update
+  cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+  cd target/$librashader_profile/
+  cp librashader_capi.so ../../../librashader.so
+  cd ../../../../
+
+	# Archive librashader library.
+	mv "archive_tmp/librashader.so" "archive_tmp/usr/lib/"
+	rm -rf archive_tmp/librashader/
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
