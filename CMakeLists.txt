@@ -43,6 +43,7 @@ project(86Box
 
 include(CPack)
 include(CMakeDependentOption)
+include(FetchContent)
 
 # Basic build options
 if(VCPKG_TOOLCHAIN)
@@ -199,6 +200,25 @@ if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
     if(APPLE)
         option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
+    endif()
+
+    option(LIBRASHADER "Build with librashader support" ON)
+
+    if(LIBRASHADER)
+        option(LIBRASHADER_STATIC "Statically link with librashader" OFF)
+        if(LIBRASHADER_STATIC)
+            FetchContent_Declare(librashader
+                                 GIT_REPOSITORY https://github.com/SnowflakePowered/librashader.git
+                                 GIT_TAG 43bc09c0b449a8a82d056bb0483233de72bab552)
+                                 
+            FetchContent_Declare(corrosion
+                                 GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+                                 GIT_TAG c4786e7ae2d5ade784aca29448df362c874ed04e)
+
+            FetchContent_MakeAvailable(librashader corrosion)            
+            FetchContent_GetProperties(librashader SOURCE_DIR LIBRASHADER_SOURCE_DIR)
+            corrosion_import_crate(MANIFEST_PATH ${LIBRASHADER_SOURCE_DIR}/librashader-capi/Cargo.toml NO_DEFAULT_FEATURES FEATURES runtime-vulkan CRATE_TYPES staticlib)
+        endif()
     endif()
 endif()
 

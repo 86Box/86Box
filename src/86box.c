@@ -171,6 +171,7 @@ int      force_43                               = 0;              /* (C) video *
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
+int      video_vk_device                        = 0;              /* (C) video */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
