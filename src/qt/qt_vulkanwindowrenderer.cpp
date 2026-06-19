@@ -266,7 +266,8 @@ VulkanWindowRenderer::recreateShaderSrcImages()
 
         img_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
-        for (int j = 0; j < shaderLibraFilterChains.size(); j++) {
+        for (std::vector<_filter_chain_vk*>::size_type j = 0;
+             j < shaderLibraFilterChains.size(); j++) {
             VulkanShaderChain vk_shader_chain { };
             vk_shader_chain.chain = shaderLibraFilterChains[j];
             if (vk_shader_chain.chain) {
@@ -349,6 +350,7 @@ VulkanWindowRenderer::recreateSwapchain(bool force)
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, nullptr);
     std::vector<VkSurfaceFormatKHR> surface_formats(format_count);
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, surface_formats.data());
+#if defined __unix__ && !defined __HAIKU__
     bool passthrough_found = false;
 
     for (auto& surface_format : surface_formats) {
@@ -356,6 +358,7 @@ VulkanWindowRenderer::recreateSwapchain(bool force)
             passthrough_found = true;
         }
     }
+#endif
 
     auto prevCurExtent = curExtent;
     curExtent = surfaceCaps.currentExtent;
@@ -441,7 +444,7 @@ VulkanWindowRenderer::recreateSwapchain(bool force)
     qt_osd_vulkan_set_min_image(cmdBuffers.size());
     init_info.MinImageCount = cmdBuffers.size();
 
-    for (int i = 0; i < swapchainImagesCount; i++) {
+    for (uint32_t i = 0; i < swapchainImagesCount; i++) {
         VkSemaphoreCreateInfo semaphore_create = { };
         semaphore_create.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         semaphore_create.pNext                 = nullptr;
@@ -1204,7 +1207,7 @@ VulkanWindowRenderer::isPhysicalDeviceUsable(VkPhysicalDevice &phys_dev)
         }
     }
     if (present_queue == -1) {
-        for (int i = 0; i < queue_count; i++) {
+        for (unsigned int i = 0; i < queue_count; i++) {
             if (instance.supportsPresent(phys_dev, i, this)) {
                 present_queue = i;
                 break;
@@ -1212,7 +1215,7 @@ VulkanWindowRenderer::isPhysicalDeviceUsable(VkPhysicalDevice &phys_dev)
         }
     }
     if (gfx_queue == -1) {
-        for (int i = 0; i < queue_count; i++) {
+        for (unsigned int i = 0; i < queue_count; i++) {
             if (queue_info[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) {
                 present_queue = i;
                 break;
