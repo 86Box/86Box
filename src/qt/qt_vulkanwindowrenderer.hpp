@@ -39,6 +39,9 @@ public:
 
 #   endif
 
+// FIXME: Hacks to get it to build on Debian Bullseye.
+typedef void (VKAPI_PTR *PFN_vkCmdBeginRenderingKHR_alt)(VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo);
+typedef void (VKAPI_PTR *PFN_vkCmdEndRenderingKHR_alt)(VkCommandBuffer commandBuffer);
 class VulkanWindowRenderer : public QWindow, public RendererCommon {
     Q_OBJECT
 public:
@@ -144,8 +147,8 @@ private:
     PFN_vkAcquireNextImageKHR fn_vkAcquireNextImageKHR = nullptr;
     PFN_vkQueuePresentKHR fn_vkQueuePresentKHR = nullptr;
 
-    PFN_vkCmdBeginRenderingKHR fn_vkCmdBeginRendering = nullptr;
-    PFN_vkCmdEndRenderingKHR fn_vkCmdEndRendering = nullptr;
+    PFN_vkCmdBeginRenderingKHR_alt fn_vkCmdBeginRendering = nullptr;
+    PFN_vkCmdEndRenderingKHR_alt fn_vkCmdEndRendering = nullptr;
 
     VkExtent2D curExtent;
 
