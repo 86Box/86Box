@@ -1617,7 +1617,6 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     auto origSource = source;
     source.setRect(x, y, w, h);
-    buf_usage[0].clear();
     if (origSource != source) {
         this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
@@ -1633,7 +1632,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         // requestUpdate();
         render();
     }
-
+    buf_usage[0].clear();
     if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {
         take_screenshot_clipboard_monitor(x, y, w, h, r_monitor_index);
     }
