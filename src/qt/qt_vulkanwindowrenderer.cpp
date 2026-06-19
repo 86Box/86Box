@@ -1504,8 +1504,8 @@ skip_shaders:
 
                 osdRenderTimer->start(16);
 
-                fn_vkCmdBeginRendering          = (PFN_vkCmdBeginRenderingKHR_alt) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdBeginRendering");
-                fn_vkCmdEndRendering            = (PFN_vkCmdEndRenderingKHR_alt) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdEndRendering");
+                fn_vkCmdBeginRendering          = (PFN_vkCmdBeginRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdBeginRendering");
+                fn_vkCmdEndRendering            = (PFN_vkCmdEndRenderingKHR) instance.functions()->vkGetDeviceProcAddr(logi_device, "vkCmdEndRendering");
                 render();
                 emit rendererInitialized();
             }
