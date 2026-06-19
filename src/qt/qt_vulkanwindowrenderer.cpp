@@ -1256,6 +1256,7 @@ VulkanWindowRenderer::initialize()
     initialization_in_progress = true;
     raii_set_value value_cleanup(initialization_in_progress);
     try {
+#ifdef LIBRA_RUNTIME_VULKAN
 #ifndef LIBRASHADER_STATIC
         static bool not_found_msg_disp = false;
         if (!ensure_librashader_instance()) {
@@ -1266,6 +1267,7 @@ VulkanWindowRenderer::initialize()
             }
             not_found_msg_disp = true;
         }
+#endif
 #endif
         window_surface = instance.surfaceForWindow(this);
         if (!window_surface) {
