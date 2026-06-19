@@ -971,30 +971,31 @@ then
 
 	# Librashader
 	librashader_profile=release
-  grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
-  cd archive_tmp
-  if [ ! -e "archive_tmp/librashader" ]
-  then
-    mkdir librashader
-    cd librashader
-    git init
-    git remote add origin https://github.com/SnowflakePowered/librashader/
-    git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
-    git checkout FETCH_HEAD
-  else
-    cd librashader
-    git pull
-  fi
-  cargo install cargo-update
-  cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
-  cd target/$librashader_profile/
-  cp librashader_capi.dll ../../../librashader.dll
-  cd ../../../../
+	librashader_profile_dir=release
+	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
+	cd archive_tmp
+	if [ ! -e "archive_tmp/librashader" ]
+	then
+		mkdir librashader
+		cd librashader
+		git init
+		git remote add origin https://github.com/SnowflakePowered/librashader/
+		git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+		git checkout FETCH_HEAD
+	else
+		cd librashader
+		git pull
+	fi
+	cargo install cargo-update
+	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+	cd target/$librashader_profile_dir/
+	cp librashader_capi.dll ../../../librashader.dll
+	cd ../../../../
 
-  [ ! -e "archive_tmp/librashader.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
-  [ -e "archive_tmp/librashader.dll" ] && strip archive_tmp/librashader/librashader.dll
+	[ ! -e "archive_tmp/librashader.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+	[ -e "archive_tmp/librashader.dll" ] && strip archive_tmp/librashader/librashader.dll
 
-		# Archive executable, while also stripping it if requested.
+	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
 	then
 		"$strip_binary" -o "archive_tmp/$project.exe" "build/src/$project.exe"
@@ -1020,37 +1021,38 @@ then
 		# Archive mdsx library.
 		mv "archive_tmp/mdsx.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
 
-	  # Librashader
-  	librashader_profile=release
-    grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
-    cd archive_tmp
-    if [ ! -e "archive_tmp/librashader" ]
-    then
-      mkdir librashader
-      cd librashader
-      git init
-      git remote add origin https://github.com/SnowflakePowered/librashader/
-      git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
-      git checkout FETCH_HEAD
-    else
-      cd librashader
-      git pull
-    fi
-    cargo install cargo-update
-    case $arch in
-    	64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
-	    ARM64 | arm64)	cargo build -p librashader-capi --target=aarch64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
-    	*)		cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
-    esac
-	case $arch in
-		64 | x86_64) cd target/x86_64-apple-darwin/$librashader_profile/;;
-		ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile/;;
-		*) cd target/$librashader_profile/;;
-	esac
-    cp liblibrashader_capi.dylib ../../../../librashader.dylib
-    cd ../../../../../
+		# Librashader
+		librashader_profile=release
+		librashader_profile_dir=release
+		grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
+		cd archive_tmp
+		if [ ! -e "archive_tmp/librashader" ]
+		then
+			mkdir librashader
+			cd librashader
+			git init
+			git remote add origin https://github.com/SnowflakePowered/librashader/
+			git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+			git checkout FETCH_HEAD
+		else
+			cd librashader
+			git pull
+		fi
+		cargo install cargo-update
+		case $arch in
+			64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
+			ARM64 | arm64)	cargo build -p librashader-capi --target=aarch64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
+			*)		cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
+		esac
+		case $arch in
+			64 | x86_64) cd target/x86_64-apple-darwin/$librashader_profile_dir/;;
+			ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile_dir/;;
+			*) cd target/$librashader_profile/;;
+		esac
+		cp liblibrashader_capi.dylib ../../../../librashader.dylib
+		cd ../../../../../
 
-	  # Archive librashader library.
+	  	# Archive librashader library.
 		mv "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
 
 		# Archive assets.
@@ -1217,25 +1219,26 @@ else
 
 	# Librashader
 	librashader_profile=release
-  grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
-  cd archive_tmp
-  if [ ! -e "archive_tmp/librashader" ]
-  then
-    mkdir librashader
-    cd librashader
-    git init
-    git remote add origin https://github.com/SnowflakePowered/librashader/
-    git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
-    git checkout FETCH_HEAD
-  else
-    cd librashader
-    git pull
-  fi
-  cargo install cargo-update
-  cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
-  cd target/$librashader_profile/
-  cp liblibrashader_capi.so ../../../librashader.so
-  cd ../../../../
+	librashader_profile_dir=release
+	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
+	cd archive_tmp
+	if [ ! -e "archive_tmp/librashader" ]
+	then
+		mkdir librashader
+		cd librashader
+		git init
+		git remote add origin https://github.com/SnowflakePowered/librashader/
+		git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+		git checkout FETCH_HEAD
+	else
+		cd librashader
+		git pull
+	fi
+	cargo install cargo-update
+	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+	cd target/$librashader_profile_dir/
+	cp liblibrashader_capi.so ../../../librashader.so
+	cd ../../../../
 
 	# Archive librashader library.
 	mv "archive_tmp/librashader.so" "archive_tmp/usr/lib/"
