@@ -409,6 +409,8 @@ then
 	else
 		echo [-] Not installing dependencies again
 	fi
+
+	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON"
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
@@ -975,31 +977,6 @@ then
 	# Archive Discord Game SDK DLL.
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
-
-	# Librashader
-	librashader_profile=release
-	librashader_profile_dir=release
-	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
-	if [ ! -e "librashader" ]
-	then
-		mkdir librashader
-		cd librashader
-		git init
-		git remote add origin https://github.com/SnowflakePowered/librashader/
-		git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
-		git checkout FETCH_HEAD
-	else
-		cd librashader
-		git pull
-	fi
-	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
-	cd target/$librashader_profile_dir/
-	cp librashader_capi.dll ../../../archive_tmp/librashader.dll
-	cd ../../../
-
-	[ ! -e "archive_tmp/librashader.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
-	[ -e "archive_tmp/librashader.dll" ] && strip archive_tmp/librashader/librashader.dll
 
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
