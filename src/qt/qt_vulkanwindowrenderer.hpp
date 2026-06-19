@@ -155,6 +155,8 @@ private:
 
     bool imageLayoutTransitioned = false;
 
+    bool initialization_in_progress = false;
+
     QRect prev_destination;
 
 private slots:

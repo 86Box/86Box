@@ -1230,17 +1230,40 @@ VulkanWindowRenderer::isPhysicalDeviceUsable(VkPhysicalDevice &phys_dev)
     return true;
 }
 
+class raii_set_value
+{
+private:
+    bool& dest_val;
+public:   
+    raii_set_value(bool& val)
+    : dest_val(val)
+    {
+
+    }
+
+    ~raii_set_value() {
+        dest_val = false;
+    }
+};
+
 void
 VulkanWindowRenderer::initialize()
 {
     if (isFinalized || isInitialized)
         return;
+    if (initialization_in_progress)
+        return;
+    initialization_in_progress = true;
+    raii_set_value value_cleanup(initialization_in_progress);
     try {
 #ifndef LIBRASHADER_STATIC
         static bool not_found_msg_disp = false;
         if (!ensure_librashader_instance()) {
-            if (!not_found_msg_disp)
-                QMessageBox::critical(main_window, tr("Error"), tr("librashader not found. Shaders will not be available"));
+            if (!not_found_msg_disp) {
+                auto msgBox = new QMessageBox(QMessageBox::Critical, tr("Error"), tr("librashader not found. Shaders will not be available"), QMessageBox::Ok);
+                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                msgBox->show();
+            }
             not_found_msg_disp = true;
         }
 #endif
