@@ -1009,7 +1009,7 @@ then
 		librashader_profile_dir=release
 		grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
   	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
-		if [ ! -e "archive_tmp/librashader" ]
+		if [ ! -e "librashader" ]
 		then
 			mkdir librashader
 			cd librashader
@@ -1031,7 +1031,7 @@ then
 			ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile_dir/;;
 			*) cd target/$librashader_profile/;;
 		esac
-		cp liblibrashader_capi.dylib ../../../archive_tmp/librashader.dylib
+		cp liblibrashader_capi.dylib ../../../../archive_tmp/librashader.dylib
 		cd ../../../../
 
 	  	# Archive librashader library.
@@ -1204,7 +1204,7 @@ else
 	librashader_profile_dir=release
 	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
 	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
-	if [ ! -e "archive_tmp/librashader" ]
+	if [ ! -e "librashader" ]
 	then
 		mkdir librashader
 		cd librashader
