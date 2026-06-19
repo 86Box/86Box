@@ -334,7 +334,7 @@ VulkanWindowRenderer::cleanupSwapchain()
 }
 
 void
-VulkanWindowRenderer::recreateSwapchain(bool force)
+VulkanWindowRenderer::recreateSwapchain()
 {
     if (isFinalized || !isInitialized)
         return;
@@ -360,7 +360,8 @@ VulkanWindowRenderer::recreateSwapchain(bool force)
     }
 #endif
 
-    auto prevCurExtent = curExtent;
+    cleanupSwapchain();
+
     curExtent = surfaceCaps.currentExtent;
     if (curExtent.width == 0 || curExtent.width == ~0u) curExtent.width = width() * devicePixelRatio();
     if (curExtent.height == 0 || curExtent.height == ~0u) curExtent.height = height() * devicePixelRatio();
@@ -372,11 +373,6 @@ VulkanWindowRenderer::recreateSwapchain(bool force)
     if (height() == 0) {
         curExtent.height = 480;
     }
-
-    if (curExtent.width == prevCurExtent.width && curExtent.height == prevCurExtent.height && !force)
-        return;
-
-    cleanupSwapchain();
 
     VkSwapchainCreateInfoKHR swapchain_creation = { };
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -634,7 +630,7 @@ VulkanWindowRenderer::render()
     }
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
         try {
-            recreateSwapchain(true);
+            recreateSwapchain();
         } catch (const vulkan_init_error &e) {
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
             main_window->reloadAllRenderers();
@@ -1403,7 +1399,7 @@ VulkanWindowRenderer::initialize()
                 mappedPtr  = (uint8_t *) allocatedInfo.pMappedData + layout.offset;
                 isInitialized = true;
                 isFinalized = false;
-                recreateSwapchain(true);
+                recreateSwapchain();
 
 #ifdef LIBRA_RUNTIME_VULKAN
                 int num_shaders = 0;
@@ -1622,7 +1618,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         onResize(this->width(), this->height());
         try {
             if (isInitialized && isExposed())
-                recreateShaderSrcImages();
+                recreateSwapchain();
         } catch (const vulkan_init_error &e) {
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
             main_window->reloadAllRenderers();
