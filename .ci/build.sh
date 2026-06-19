@@ -1035,7 +1035,11 @@ then
       cd librashader
       git pull
     cargo install cargo-update
-    cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+    case $arch in
+    	64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+	    ARM64 | arm64)	cargo build -p librashader-capi --target=aarch64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+    	*)		cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+    esac
     cd target/$librashader_profile/
     cp librashader_capi.dylib ../../../librashader.dylib
     cd ../../../../
