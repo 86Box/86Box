@@ -685,7 +685,7 @@ else
         grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools rustc-web cargo-web"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -1234,7 +1234,7 @@ else
   cargo install cargo-update
   cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
   cd target/$librashader_profile/
-  cp librashader_capi.so ../../../librashader.so
+  cp liblibrashader_capi.so ../../../librashader.so
   cd ../../../../
 
 	# Archive librashader library.
