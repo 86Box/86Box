@@ -1237,8 +1237,11 @@ VulkanWindowRenderer::initialize()
         return;
     try {
 #ifndef LIBRASHADER_STATIC
+        static bool not_found_msg_disp = false;
         if (!ensure_librashader_instance()) {
-            QMessageBox::critical(main_window, tr("Error"), tr("librashader not found. Shaders will not be available"));
+            if (!not_found_msg_disp)
+                QMessageBox::critical(main_window, tr("Error"), tr("librashader not found. Shaders will not be available"));
+            not_found_msg_disp = true;
         }
 #endif
         window_surface = instance.surfaceForWindow(this);
