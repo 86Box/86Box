@@ -980,8 +980,8 @@ then
 	librashader_profile=release
 	librashader_profile_dir=release
 	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-	cd archive_tmp
-	if [ ! -e "archive_tmp/librashader" ]
+	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
+	if [ ! -e "librashader" ]
 	then
 		mkdir librashader
 		cd librashader
@@ -996,8 +996,8 @@ then
 	cargo install cargo-update@20.0.0
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd target/$librashader_profile_dir/
-	cp librashader_capi.dll ../../../librashader.dll
-	cd ../../../../
+	cp librashader_capi.dll ../../../archive_tmp/librashader.dll
+	cd ../../../
 
 	[ ! -e "archive_tmp/librashader.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 	[ -e "archive_tmp/librashader.dll" ] && strip archive_tmp/librashader/librashader.dll
@@ -1032,7 +1032,7 @@ then
 		librashader_profile=release
 		librashader_profile_dir=release
 		grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-		cd archive_tmp
+  	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
 		if [ ! -e "archive_tmp/librashader" ]
 		then
 			mkdir librashader
@@ -1056,8 +1056,8 @@ then
 			ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile_dir/;;
 			*) cd target/$librashader_profile/;;
 		esac
-		cp liblibrashader_capi.dylib ../../../../librashader.dylib
-		cd ../../../../../
+		cp liblibrashader_capi.dylib ../../../archive_tmp/librashader.dylib
+		cd ../../../../
 
 	  	# Archive librashader library.
 		mv "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
@@ -1228,7 +1228,7 @@ else
 	librashader_profile=release
 	librashader_profile_dir=release
 	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-	cd archive_tmp
+	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
 	if [ ! -e "archive_tmp/librashader" ]
 	then
 		mkdir librashader
@@ -1244,8 +1244,8 @@ else
 	cargo install cargo-update@20.0.0
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd target/$librashader_profile_dir/
-	cp liblibrashader_capi.so ../../../librashader.so
-	cd ../../../../
+	cp liblibrashader_capi.so ../../../archive_tmp/librashader.so
+	cd ../../../
 
 	# Archive librashader library.
 	mv "archive_tmp/librashader.so" "archive_tmp/usr/lib/"
