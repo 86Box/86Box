@@ -993,7 +993,6 @@ then
 		cd librashader
 		git pull
 	fi
-	cargo install cargo-update@20.0.0
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd target/$librashader_profile_dir/
 	cp librashader_capi.dll ../../../archive_tmp/librashader.dll
@@ -1045,7 +1044,6 @@ then
 			cd librashader
 			git pull
 		fi
-		cargo install cargo-update@20.0.0
 		case $arch in
 			64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
 			ARM64 | arm64)	cargo build -p librashader-capi --target=aarch64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
@@ -1241,7 +1239,6 @@ else
 		cd librashader
 		git pull
 	fi
-	cargo install cargo-update@20.0.0
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd target/$librashader_profile_dir/
 	cp liblibrashader_capi.so ../../../archive_tmp/librashader.so
