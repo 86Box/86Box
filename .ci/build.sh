@@ -1042,9 +1042,13 @@ then
 	    ARM64 | arm64)	cargo build -p librashader-capi --target=aarch64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
     	*)		cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
     esac
-    cd target/$librashader_profile/
-    cp librashader_capi.dylib ../../../librashader.dylib
-    cd ../../../../
+	case $arch in
+		64 | x86_64) cd target/x86_64-apple-darwin/$librashader_profile/
+		ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile/
+		*) cd target/$librashader_profile/
+	esac
+    cp liblibrashader_capi.dylib ../../../../librashader.dylib
+    cd ../../../../../
 
 	  # Archive librashader library.
 		mv "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
