@@ -988,6 +988,9 @@ then
 	# Archive librashader library.
 	rm -rf archive_tmp/librashader/
 
+  [ ! -e "archive_tmp/librashader.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
+  [ -e "archive_tmp/librashader.dll" ] && strip archive_tmp/librashader/librashader.dll
+
 		# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
 	then
