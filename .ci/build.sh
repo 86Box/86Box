@@ -974,16 +974,17 @@ then
   grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
   cd archive_tmp
   if [ ! -e "archive_tmp/librashader" ]
-    then
-      mkdir librashader
-      cd librashader
-      git init
-      git remote add origin https://github.com/SnowflakePowered/librashader/
-      git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
-      git checkout FETCH_HEAD
-    else
-      cd librashader
-      git pull
+  then
+    mkdir librashader
+    cd librashader
+    git init
+    git remote add origin https://github.com/SnowflakePowered/librashader/
+    git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+    git checkout FETCH_HEAD
+  else
+    cd librashader
+    git pull
+  fi
   cargo install cargo-update
   cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
   cd target/$librashader_profile/
@@ -1034,6 +1035,7 @@ then
     else
       cd librashader
       git pull
+    fi
     cargo install cargo-update
     case $arch in
     	64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
@@ -1214,16 +1216,17 @@ else
   grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev
   cd archive_tmp
   if [ ! -e "archive_tmp/librashader" ]
-    then
-      mkdir librashader
-      cd librashader
-      git init
-      git remote add origin https://github.com/SnowflakePowered/librashader/
-      git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
-      git checkout FETCH_HEAD
-    else
-      cd librashader
-      git pull
+  then
+    mkdir librashader
+    cd librashader
+    git init
+    git remote add origin https://github.com/SnowflakePowered/librashader/
+    git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+    git checkout FETCH_HEAD
+  else
+    cd librashader
+    git pull
+  fi
   cargo install cargo-update
   cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
   cd target/$librashader_profile/
