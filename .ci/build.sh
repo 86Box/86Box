@@ -684,6 +684,13 @@ else
 	esac
         grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
 
+	# Giant hack because Debian Bullseye ships with ancient headers.
+	cd src/include
+	git clone --depth 1 https://github.com/KhronosGroup/vulkan-headers.git || exit 99
+	ln -sf vulkan-headers/include/vulkan vulkan
+	ln -sf vulkan-headers/include/vk_video vk_video
+	cd ../../
+
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools rustc-web cargo-web"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
