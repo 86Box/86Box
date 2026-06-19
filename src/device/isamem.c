@@ -135,8 +135,14 @@
 typedef struct emsreg_t {
     int8_t        enabled; /* 1=ENABLED */
     uint8_t       page;    /* page# in EMS RAM */
-    uint8_t       frame;   /* (varies with board) */
-    char          pad;
+    uint8_t       frame;   /* RAMpage: odd-byte frame-base latch; others: frame cfg */
+    /* RAMpage: last mapping state actually pushed to dev->mapping, so repeated
+       register writes that do not change the mapping skip mem_mapping_recalc
+       (REMM sweeps the odd-byte frame base across all of UMA while probing). */
+    int8_t        map_active;
+    uint32_t      map_addr;
+    uint8_t      *map_exec;
+    uint8_t       board;   /* board type (so the I/O handlers can vary behavior) */
     uint8_t      *addr;    /* start addr in EMS RAM */
     mem_mapping_t mapping; /* mapping entry for page */
     uint8_t      *ram;
@@ -318,10 +324,8 @@ ems_in(uint16_t port, void *priv)
 {
     const emsreg_t *dev   = (emsreg_t *) priv;
     uint8_t         ret   = 0xff;
-    /* Get the viewport page number. */
-#ifdef ENABLE_ISAMEM_LOG
+    /* Get the viewport (window) number; identifies which odd-byte register. */
     int             vpage = (port / EMS_PGSIZE);
-#endif
 
     port &= (EMS_PGSIZE - 1);
 
@@ -332,7 +336,35 @@ ems_in(uint16_t port, void *priv)
                 ret |= 0x80;
             break;
 
-        case 0x0001: /* W/O */
+        case 0x0001: /* odd-byte register */
+            /*
+             * RAMpage: the odd byte of windows 1 and 2 is a board-config
+             * register REMM reads while sizing the card. Both encode D, the top
+             * of conventional RAM in 16KB pages (min(mem_size,640) >> 4) and the
+             * board page where EMS begins:
+             *   window 2: high nibble = D/128KB - 1 (REMM recovers D = (hi+1)*8);
+             *             low nibble = identity latch (dev->frame) for its
+             *             write/read probe.
+             *   window 1: D/128KB << 1, read back as the conventional-RAM top.
+             * D is a whole number of 128KB banks, so <=512KB conventional is
+             * assumed. Windows 0/3 odd are plain identity latches.
+             */
+            if (dev->board == ISAMEM_RAMPAGEXT_CARD) {
+                uint16_t conv_pages = (uint16_t) (((mem_size < 640) ? mem_size : 640) >> 4);
+                uint8_t  ded_banks  = (uint8_t) (conv_pages >> 3); /* D in 128KB banks */
+
+                switch (vpage) {
+                    case 2: /* high nibble = D-in-banks minus one, low nibble = identity latch */
+                        ret = ((ded_banks ? (uint8_t) (ded_banks - 1) : 0) << 4) | (dev->frame & 0x0f);
+                        break;
+                    case 1: /* top of conventional RAM in REMM's bank encoding (>4 banks is out of spec) */
+                        ret = (uint8_t) (((ded_banks <= 4) ? ded_banks : (uint8_t) (ded_banks - 3)) << 1);
+                        break;
+                    default: /* windows 0/3 odd: identity latch */
+                        ret = dev->frame;
+                        break;
+                }
+            }
             break;
 
         default:
@@ -373,60 +405,114 @@ ems_out(uint16_t port, uint8_t val, void *priv)
     port &= (EMS_PGSIZE - 1);
 
     switch (port & 0x0001) {
+        case 0x0001: /* odd-byte register */
+            /*
+             * RAMpage: the odd byte (window base + 1) is the page-FRAME BASE
+             * register - a 16KB-granular frame page number, so frame_addr =
+             * (val & 0x7f) << 14. Only window 0 moves the frame; the four windows
+             * decode at frame_addr + n*16KB. REMM relocates it while sizing:
+             * parks it over the card's own RAM (0x20 -> 0x80000) to RAM-test
+             * linearly, then programs the real segment (0x34 -> 0xD0000) once its
+             * scan finds an empty 64KB UMA block - honoring it keeps that segment
+             * open bus during the scan. The byte is read back from the even byte
+             * as an identity check, so latch val into dev->frame, set the frame
+             * base, then fall through to the page register.
+             */
+            if (dev->board == ISAMEM_RAMPAGEXT_CARD) {
+                dev->frame = val;
+                if (vpage == 0)
+                    *dev->frame_addr = ((uint32_t) (val & 0x7f)) << 14;
+            } else {
+                /*
+                 * The EV-159 EMM driver configures the frame address
+                 * by setting bits in these registers. The information
+                 * in their manual is unclear, but here is what was
+                 * found out by repeatedly changing EMM's config:
+                 *
+                 * 08 04 00  Address
+                 * -----------------
+                 * 00 00 00  C4000
+                 * 00 00 80  C8000
+                 * 00 80 00  CC000
+                 * 00 80 80  D0000
+                 * 80 00 00  D4000
+                 * 80 00 80  D8000
+                 * 80 80 00  DC000
+                 * 80 80 80  E0000
+                 */
+                dev->frame = val;
+                *dev->frame_val = (*dev->frame_val & ~(1 << vpage)) | ((val >> 7) << vpage);
+                *dev->frame_addr = 0x000c4000 + (*dev->frame_val << 14);
+                isamem_log("ISAMEM: map port %04X page %i: frame_addr = %08X\n", port, vpage, *dev->frame_addr);
+                /* Destroy the page registers. */
+                for (uint8_t i = 0; i < 4; i ++) {
+                    isamem_log("    ");
+                    outb((port & 0x3ffe) + (i << 14), 0x00);
+                }
+                break;
+            }
+            fallthrough;
+
         case 0x0000: /* page mapping registers */
             /* Set the page number. */
             dev->enabled = (val & 0x80);
             dev->page    = (val & 0x7f);
 
-            if (dev->enabled && (dev->page < *dev->ems_pages)) {
-                /* Pre-calculate the page address in EMS RAM. */
-                dev->addr = dev->ram + ((val & 0x7f) * EMS_PGSIZE);
+            {
+                /*
+                 * The even byte is a board page number. On RAMpage the EMS
+                 * region starts at board page D (min(mem_size,640) >> 4), so the
+                 * EMS RAM index is page - D; other boards use page directly.
+                 * dev->page keeps the raw value for REMM's page write/read-back
+                 * identity probe. The window decodes RAM at the frame when bit 7
+                 * is set and the page lands in the EMS region; during REMM's scan
+                 * the frame is parked elsewhere, so 0xD0000 still reads open bus.
+                 * (Block-scoped because the odd-byte case falls through.)
+                 */
+                int ems_page = (int) dev->page;
+                if (dev->board == ISAMEM_RAMPAGEXT_CARD)
+                    ems_page -= (int) (((mem_size < 640) ? mem_size : 640) >> 4);
+                int active = dev->enabled && (ems_page >= 0) && (ems_page < (int) *dev->ems_pages);
 
-                isamem_log("ISAMEM: map port %04X, page %i, starting at %08X: %08X -> %08X\n", port,
-                           vpage, *dev->frame_addr,
-                           *dev->frame_addr + (EMS_PGSIZE * (vpage & 3)), dev->addr - dev->ram);
-                mem_mapping_set_addr(&dev->mapping, *dev->frame_addr + (EMS_PGSIZE * vpage), EMS_PGSIZE);
+                if (active) {
+                    /* Pre-calculate the page address in EMS RAM. */
+                    dev->addr = dev->ram + (ems_page * EMS_PGSIZE);
 
-                /* Update the EMS RAM address for this page. */
-                mem_mapping_set_exec(&dev->mapping, dev->addr);
+                    uint32_t map_addr = *dev->frame_addr + (EMS_PGSIZE * vpage);
 
-                /* Enable this page. */
-                mem_mapping_enable(&dev->mapping);
-            } else {
-                isamem_log("ISAMEM: map port %04X, page %i, starting at %08X: %08X -> N/A\n",
-                           port, vpage, *dev->frame_addr, *dev->frame_addr + (EMS_PGSIZE * vpage));
+                    /*
+                     * Skip the remap when nothing changed: REMM sweeps the
+                     * odd-byte frame base across all of UMA while probing, and
+                     * each mem_mapping_set_addr forces a mem_mapping_recalc.
+                     */
+                    if ((dev->board != ISAMEM_RAMPAGEXT_CARD) || !dev->map_active ||
+                        (dev->map_addr != map_addr) || (dev->map_exec != dev->addr)) {
+                        isamem_log("ISAMEM: map port %04X, page %i, starting at %08X: %08X -> %08X\n", port,
+                                   vpage, *dev->frame_addr,
+                                   *dev->frame_addr + (EMS_PGSIZE * (vpage & 3)), dev->addr - dev->ram);
+                        mem_mapping_set_addr(&dev->mapping, map_addr, EMS_PGSIZE);
 
-                /* Disable this page. */
-                mem_mapping_disable(&dev->mapping);
-            }
-            break;
+                        /* Update the EMS RAM address for this page. */
+                        mem_mapping_set_exec(&dev->mapping, dev->addr);
 
-        case 0x0001: /* page frame registers */
-            /*
-             * The EV-159 EMM driver configures the frame address
-             * by setting bits in these registers. The information
-             * in their manual is unclear, but here is what was
-             * found out by repeatedly changing EMM's config:
-             *
-             * 08 04 00  Address
-             * -----------------
-             * 00 00 00  C4000
-             * 00 00 80  C8000
-             * 00 80 00  CC000
-             * 00 80 80  D0000
-             * 80 00 00  D4000
-             * 80 00 80  D8000
-             * 80 80 00  DC000
-             * 80 80 80  E0000
-             */
-            dev->frame = val;
-            *dev->frame_val = (*dev->frame_val & ~(1 << vpage)) | ((val >> 7) << vpage);
-            *dev->frame_addr = 0x000c4000 + (*dev->frame_val << 14);
-            isamem_log("ISAMEM: map port %04X page %i: frame_addr = %08X\n", port, vpage, *dev->frame_addr);
-            /* Destroy the page registers. */
-            for (uint8_t i = 0; i < 4; i ++) {
-                isamem_log("    ");
-                outb((port & 0x3ffe) + (i << 14), 0x00);
+                        /* Enable this page. */
+                        mem_mapping_enable(&dev->mapping);
+
+                        dev->map_active = 1;
+                        dev->map_addr   = map_addr;
+                        dev->map_exec   = dev->addr;
+                    }
+                } else {
+                    if ((dev->board != ISAMEM_RAMPAGEXT_CARD) || dev->map_active) {
+                        isamem_log("ISAMEM: map port %04X, page %i, starting at %08X: %08X -> N/A\n",
+                                   port, vpage, *dev->frame_addr, *dev->frame_addr + (EMS_PGSIZE * vpage));
+
+                        /* Disable this page. */
+                        mem_mapping_disable(&dev->mapping);
+
+                        dev->map_active = 0;
+                    }
+                }
             }
             break;
 
@@ -584,7 +670,13 @@ isamem_init(const device_t *info)
             dev->start_addr    = device_get_config_int("start");
             tot                = dev->total_size;
             dev->flags        |= FLAG_EMS;
-            dev->frame_addr[0] = 0xe0000;
+            /*
+             * 0xD0000 is the conventional EMS frame segment and a free UMA slot.
+             * REMM relocates the frame at runtime via the odd-byte register
+             * (rampage_reset restores this), so it only sets the initial/post-
+             * reset position.
+             */
+            dev->frame_addr[0] = 0xd0000;
             break;
 
         case ISAMEM_ABOVEBOARD_CARD: /* Intel AboveBoard */
@@ -822,8 +914,18 @@ isamem_init(const device_t *info)
             dev->ems[i].ems_size   = &dev->ems_size[0];
             dev->ems[i].ems_pages  = &dev->ems_pages[0];
             dev->ems[i].frame_addr = &dev->frame_addr[0];
+            dev->ems[i].board      = dev->board;
 
-            /* Create and initialize a page mapping. */
+            /*
+             * Create the page mapping. RAMpage uses flag 0 (not
+             * MEM_MAPPING_EXTERNAL) so the window routes under any mem state.
+             * REMM parks the frame at the lowest free 64K UMA block (e.g.
+             * 0xC8000, not 0xD0000), which DOS marks internal - an EXTERNAL
+             * mapping is blocked there and REMM's frame test reads open bus
+             * (no EMS). Flag 0 is honored under both states and only decodes
+             * while enabled, so disabled windows still read open bus during
+             * REMM's scan.
+             */
             mem_mapping_add(&dev->ems[i].mapping,
                             dev->frame_addr[0] + (EMS_PGSIZE * i), EMS_PGSIZE,
                             ems_readb,
@@ -832,7 +934,8 @@ isamem_init(const device_t *info)
                             ems_writeb,
                             (dev->flags & FLAG_WIDE) ? ems_writew : NULL,
                             NULL,
-                            ptr, MEM_MAPPING_EXTERNAL,
+                            ptr,
+                            (dev->board == ISAMEM_RAMPAGEXT_CARD) ? 0 : MEM_MAPPING_EXTERNAL,
                             &(dev->ems[i]));
 
             /* For now, disable it. */
@@ -849,6 +952,7 @@ isamem_init(const device_t *info)
                 dev->ems[i | 4].ems_size   = &dev->ems_size[1];
                 dev->ems[i | 4].ems_pages  = &dev->ems_pages[1];
                 dev->ems[i | 4].frame_addr = &dev->frame_addr[1];
+                dev->ems[i | 4].board      = dev->board;
 
                 /* Create and initialize a page mapping. */
                 mem_mapping_add(&dev->ems[i | 4].mapping,
@@ -873,6 +977,14 @@ isamem_init(const device_t *info)
         if (dev->board == ISAMEM_LOTECH_EMS_CARD)
             io_sethandler(dev->base_addr[0], 4,
                           consecutive_ems_in, NULL, NULL, consecutive_ems_out, NULL, NULL, dev);
+
+        /*
+         * RAMpage does not externalize a fixed frame region here: REMM relocates
+         * the frame to whichever 64K UMA block it finds free, so a hardcoded
+         * external region would route the frame at the wrong address. Instead the
+         * windows are added with flag 0 (see mem_mapping_add above) so they route
+         * wherever they are enabled, no matter where REMM commits the frame.
+         */
     }
 
     /* Let them know our device instance. */
@@ -889,6 +1001,32 @@ isamem_close(void *priv)
         free(dev->ram);
 
     free(dev);
+}
+
+/*
+ * RAMpage: disable the frame windows on (warm) reset. REMM needs the frame to
+ * read open bus while it scans UMA for an empty 64KB block; without this a live
+ * mapping and relocated frame base would survive a warm reboot.
+ */
+static void
+rampage_reset(void *priv)
+{
+    memdev_t *dev = (memdev_t *) priv;
+
+    if (dev->board != ISAMEM_RAMPAGEXT_CARD)
+        return;
+
+    /* Restore the configured page-frame base; REMM relocates it via the odd
+     * byte before use. */
+    dev->frame_addr[0] = 0xd0000;
+
+    for (uint8_t i = 0; i < (EMS_MAXPAGE * 2); i++) {
+        dev->ems[i].enabled    = 0;
+        dev->ems[i].page       = 0;
+        dev->ems[i].frame      = 0;
+        dev->ems[i].map_active = 0;
+        mem_mapping_disable(&dev->ems[i].mapping);
+    }
 }
 
 static const device_config_t ibmxt_32k_config[] = {
@@ -2103,7 +2241,13 @@ static const device_config_t rampage_config[] = {
         .description    = "Start Address",
         .type           = CONFIG_SPINNER,
         .default_string = NULL,
-        .default_int    = 640,
+        /*
+         * Default 0 (no backfill) so the board is pure EMS. A nonzero start
+         * spends the RAM as conventional/extended first (k -= tot); on an
+         * AT/286 that drains it all, leaving no EMS. BocaRAM/XT and /AT
+         * default to 0 too.
+         */
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = {
             .min  =   0,
@@ -2124,7 +2268,7 @@ static const device_t rampage_device = {
     .local         = ISAMEM_RAMPAGEXT_CARD,
     .init          = isamem_init,
     .close         = isamem_close,
-    .reset         = NULL,
+    .reset         = rampage_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
