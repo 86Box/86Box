@@ -18,6 +18,5 @@ libserialport
 make
 rust
 rust-src
-cargo
 cargo-c
 corrosion
