@@ -805,10 +805,10 @@ EOF
 
 	if dpkg -s rustc-web
 	then
-		sudo apt-get purge rustc-web cargo-web
+		sudo apt-get purge -y rustc-web cargo-web
 		rm -rf "$HOME/.cargo/bin"
 	fi
-	if [ ! -e "$HOME/.cargo/bin"]
+	if [ ! -e "$HOME/.cargo/bin" ]
 	then
 		curl -sSf https://sh.rustup.rs | sh -- -y
 	fi
