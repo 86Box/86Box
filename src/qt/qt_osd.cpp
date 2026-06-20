@@ -284,6 +284,7 @@ qt_osd_shutdown(void)
     if (g_vk_enabled && g_vk_ready) {
         ImGui_ImplVulkan_Shutdown();
         g_vk_ready = false;
+        g_gl_ready = false;
     } else if (g_gl_ready) {
         ImGui_ImplOpenGL3_Shutdown();
         g_gl_ready = false;
