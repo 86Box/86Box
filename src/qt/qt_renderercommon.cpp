@@ -205,6 +205,9 @@ RendererCommon::onResize(int width, int height)
         }
     }
 
+    if (destination.width() == 0) destination.setWidth(256);
+    if (destination.height() == 0) destination.setHeight(256);
+
     monitors[r_monitor_index].mon_res_x = (double) destination.width();
     monitors[r_monitor_index].mon_res_y = (double) destination.height();
 

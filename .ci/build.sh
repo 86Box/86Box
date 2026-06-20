@@ -409,6 +409,16 @@ then
 	else
 		echo [-] Not installing dependencies again
 	fi
+
+	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON"
+	if [ -d "$cache_dir/rust-cache/cargo/" ]
+	then
+		cp -rpf "$cache_dir/rust-cache/cargo" ./build/
+	fi
+	if [ -d "$cache_dir/rust-cache/corrosion/" ]
+	then
+		cp -rpf "$cache_dir/rust-cache/corrosion" ./build/
+	fi
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
@@ -684,8 +694,15 @@ else
 	esac
         grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
 
+	# Giant hack because Debian Bullseye ships with ancient headers.
+	cd src/include
+	git clone --depth 1 https://github.com/KhronosGroup/vulkan-headers.git || exit 99
+	ln -sf vulkan-headers/include/vulkan vulkan
+	ln -sf vulkan-headers/include/vk_video vk_video
+	cd ../../
+
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools curl"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -785,6 +802,18 @@ EOF
 	else
 		echo [-] Not installing dependencies again
 	fi
+
+	if dpkg -s rustc-web
+	then
+		sudo apt-get purge -y rustc-web cargo-web
+		rm -rf "$HOME/.cargo/bin"
+	fi
+	if [ ! -e "$HOME/.cargo/bin" ]
+	then
+		curl -sSf https://sh.rustup.rs | sh -s -- -y
+	fi
+	cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
+	PATH="$HOME/.cargo/bin/:$PATH"
 fi
 
 # Point CMake to the toolchain file.
@@ -950,6 +979,11 @@ mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 status=0
 if is_windows
 then
+	# Cache cargo directory
+	mkdir -p "$cache_dir/rust-cache/"
+	cp -rpf ./build/cargo  "$cache_dir/rust-cache/"
+	cp -rpf ./build/corrosion  "$cache_dir/rust-cache/"
+
 	# Determine Program Files directory for Ghostscript and 7-Zip.
 	# Manual checks because MSYS is bad at passing the ProgramFiles variables.
 	pf="/c/Program Files"
@@ -994,6 +1028,39 @@ then
 
 		# Archive mdsx library.
 		mv "archive_tmp/mdsx.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
+
+		# Librashader
+		librashader_profile=release
+		librashader_profile_dir=release
+		grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
+  	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
+		if [ ! -e "librashader" ]
+		then
+			mkdir librashader
+			cd librashader
+			git init
+			git remote add origin https://github.com/SnowflakePowered/librashader/
+			git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+			git checkout FETCH_HEAD
+		else
+			cd librashader
+			git pull
+		fi
+		case $arch in
+			64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
+			ARM64 | arm64)	cargo build -p librashader-capi --target=aarch64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
+			*)		cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
+		esac
+		case $arch in
+			64 | x86_64) cd target/x86_64-apple-darwin/$librashader_profile_dir/;;
+			ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile_dir/;;
+			*) cd target/$librashader_profile/;;
+		esac
+		cp liblibrashader_capi.dylib ../../../../archive_tmp/librashader.dylib
+		cd ../../../../
+
+	  	# Archive librashader library.
+		mv "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
 
 		# Archive assets.
 		if [ -d archive_tmp/assets ]
@@ -1156,6 +1223,31 @@ else
 		mkdir -p "$data_dir"
 		mv archive_tmp/assets "$data_dir/assets"
 	fi
+
+	# Librashader
+	librashader_profile=release
+	librashader_profile_dir=release
+	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
+	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
+	if [ ! -e "librashader" ]
+	then
+		mkdir librashader
+		cd librashader
+		git init
+		git remote add origin https://github.com/SnowflakePowered/librashader/
+		git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+		git checkout FETCH_HEAD
+	else
+		cd librashader
+		git pull
+	fi
+	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+	cd target/$librashader_profile_dir/
+	cp liblibrashader_capi.so ../../../archive_tmp/librashader.so
+	cd ../../../
+
+	# Archive librashader library.
+	mv "archive_tmp/librashader.so" "archive_tmp/usr/lib/"
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin

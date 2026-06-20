@@ -335,6 +335,13 @@ typedef struct virge_t {
         int sec_h;
     } streams;
 
+    struct {
+        int n;
+        int r;
+        int m;
+        double freq;
+    } clock;
+
     fifo_entry_t fifo[FIFO_SIZE];
     ATOMIC_INT   fifo_read_idx, fifo_write_idx;
     ATOMIC_INT   fifo_thread_run, render_thread_run;
@@ -870,10 +877,6 @@ s3_virge_in(uint16_t addr, void *priv)
 static void
 s3_virge_recalctimings(svga_t *svga)
 {
-    int      n;
-    int      r;
-    int      m;
-    double   freq;
     virge_t *virge = (virge_t *) svga->priv;
 
     svga->hdisp = svga->hdisp_old;
@@ -887,7 +890,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
     }
 
-    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
+    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0x0c) == 0x0c)) {
         /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
         if (!svga->scrblank && svga->attr_palette_enable)
             svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
@@ -898,29 +901,31 @@ s3_virge_recalctimings(svga_t *svga)
     svga->htotal += 5; /*+5 is required for Tyrian*/
 
     svga->hdisp = svga->crtc[1] + ((svga->crtc[0x5d] & 0x02) ? 0x100 : 0);
-    if (svga->crtc[1] & 1)
+    if (svga->crtc[1] & 0x01)
         svga->hdisp++;
 
     svga->hdisp_time = svga->hdisp;
 
     svga->hdisp *= svga->dots_per_clock;
 
-    svga->vtotal      = svga->crtc[6];
-    if (svga->crtc[7] & 1)
+    svga->vtotal = svga->crtc[6];
+    if (svga->crtc[7] & 0x01)
         svga->vtotal |= 0x100;
-    if (svga->crtc[7] & 32)
+    if (svga->crtc[7] & 0x20)
         svga->vtotal |= 0x200;
     if (svga->crtc[0x5e] & 0x01)
         svga->vtotal |= 0x400;
+
     svga->vtotal += 2;
 
-    svga->dispend     = svga->crtc[0x12];
-    if (svga->crtc[7] & 2)
+    svga->dispend = svga->crtc[0x12];
+    if (svga->crtc[7] & 0x02)
         svga->dispend |= 0x100;
-    if (svga->crtc[7] & 64)
+    if (svga->crtc[7] & 0x40)
         svga->dispend |= 0x200;
     if (svga->crtc[0x5e] & 0x02)
         svga->dispend |= 0x400;
+
     svga->dispend++;
 
     svga->vblankstart = svga->crtc[0x15];
@@ -930,42 +935,44 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x200;
     if (svga->crtc[0x5e] & 0x04)
         svga->vblankstart |= 0x400;
+
     svga->vblankstart++;
 
-    svga->vsyncstart  = svga->crtc[0x10];
-    if (svga->crtc[7] & 4)
+    svga->vsyncstart = svga->crtc[0x10];
+    if (svga->crtc[7] & 0x04)
         svga->vsyncstart |= 0x100;
-    if (svga->crtc[7] & 128)
+    if (svga->crtc[7] & 0x80)
         svga->vsyncstart |= 0x200;
     if (svga->crtc[0x5e] & 0x10)
         svga->vsyncstart |= 0x400;
+
     svga->vsyncstart++;
 
-    svga->split       = svga->crtc[0x18];
+    svga->split = svga->crtc[0x18];
     if (svga->crtc[7] & 0x10)
         svga->split |= 0x100;
     if (svga->crtc[9] & 0x40)
         svga->split |= 0x200;
     if (svga->crtc[0x5e] & 0x40)
         svga->split |= 0x400;
+
     svga->split++;
+    svga->interlace = !!(svga->crtc[0x42] & 0x20);
 
-    svga->interlace = svga->crtc[0x42] & 0x20;
-
-    if (((svga->miscout >> 2) & 3) == 3) {
-        n = svga->seqregs[0x12] & 0x1f;
+    if (((svga->miscout >> 2) & 0x03) == 0x03) {
+        virge->clock.n = svga->seqregs[0x12] & 0x1f;
         if (virge->chip >= S3_VIRGEGX2) {
-            r = (svga->seqregs[0x12] >> 6) & 0x03;
-            r |= ((svga->seqregs[0x29] & 0x01) << 2);
+            virge->clock.r = (svga->seqregs[0x12] >> 6) & 0x03;
+            virge->clock.r |= ((svga->seqregs[0x29] & 0x01) << 2);
         } else if ((virge->chip == S3_VIRGEVX) || (virge->chip == S3_VIRGEDX))
-            r = (svga->seqregs[0x12] >> 5) & 0x07;
+            virge->clock.r = (svga->seqregs[0x12] >> 5) & 0x07;
         else
-            r = (svga->seqregs[0x12] >> 5) & 0x03;
+            virge->clock.r = (svga->seqregs[0x12] >> 5) & 0x03;
 
-        m    = svga->seqregs[0x13] & 0x7f;
-        freq = (((double) m + 2) / (((double) n + 2) * (double) (1 << r))) * 14318184.0;
+        virge->clock.m    = svga->seqregs[0x13] & 0x7f;
+        virge->clock.freq = (((double) virge->clock.m + 2) / (((double) virge->clock.n + 2) * (double) (1 << virge->clock.r))) * 14318184.0;
 
-        svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
+        svga->clock = (cpuclock * (float) (1ULL << 32)) / virge->clock.freq;
     }
 
     if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0xc) == 0xc)) {
@@ -989,17 +996,18 @@ s3_virge_recalctimings(svga_t *svga)
         video_force_resize_set_monitor(1, svga->monitor_index);
     }
 
-    if ((svga->crtc[0x67] & 0xc) != 0xc) { /*VGA mode*/
+    if ((svga->crtc[0x67] & 0x0c) != 0x0c) { /*VGA mode*/
         svga->memaddr_latch |= (virge->ma_ext << 16);
         if (svga->crtc[0x51] & 0x30)
             svga->rowoffset |= (svga->crtc[0x51] & 0x30) << 4;
         else if (svga->crtc[0x43] & 0x04)
             svga->rowoffset |= 0x100;
         if (!svga->rowoffset)
-            svga->rowoffset = 256;
+            svga->rowoffset = 0x100;
 
         svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
-        if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10))
+        if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
+            //pclog("BPP=%d, hdisp=%d, cr67=%02x, cr5d=%02x, cr1=%02x, cr43 bit 7=%02x, sr15=%02x, sr18=%02x, cr17 bit 2=%02x, sr1=%02x, srb=%02x, cr33=%02x, freq=%lf.\n", svga->bpp, svga->hdisp, svga->crtc[0x67], svga->crtc[0x5d], svga->crtc[1], svga->crtc[0x43] & 0x80, svga->seqregs[0x15], svga->seqregs[0x18], svga->crtc[0x17] & 0x04, svga->seqregs[1], svga->seqregs[0x0b], svga->crtc[0x33], virge->clock.freq);
             switch (svga->bpp) {
                 case 8:
                     svga->render = svga_render_8bpp_highres;
@@ -1013,46 +1021,36 @@ s3_virge_recalctimings(svga_t *svga)
                     break;
                 case 15:
                     svga->render = svga_render_15bpp_highres;
-                    if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
+                    if ((virge->chip == S3_VIRGE) ||
+                        (virge->chip == S3_VIRGEDX)) {
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         svga->clock /= 2.0;
-                    } else if (virge->chip == S3_VIRGEGX2) {
-                        if (svga->seqregs[0x18] & 0x80) {
-                            svga->hdisp >>= 1;
-                            svga->dots_per_clock >>= 1;
-                            svga->clock *= 2.0;
-                        }
                     }
                     break;
                 case 16:
                     svga->render = svga_render_16bpp_highres;
-                    if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2)) {
+                    if ((virge->chip == S3_VIRGE) ||
+                        (virge->chip == S3_VIRGEDX)) {
                         svga->hdisp >>= 1;
                         svga->dots_per_clock >>= 1;
                         svga->clock /= 2.0;
-                    } else if (virge->chip == S3_VIRGEGX2) {
-                        if (svga->seqregs[0x18] & 0x80) {
-                            svga->hdisp >>= 1;
-                            svga->dots_per_clock >>= 1;
-                            svga->clock *= 2.0;
-                        }
                     }
                     break;
                 case 24:
                     svga->render = svga_render_24bpp_highres;
-                    if ((virge->chip != S3_VIRGEVX) && (virge->chip < S3_VIRGEGX2))
+                    if ((virge->chip == S3_VIRGE) ||
+                        (virge->chip == S3_VIRGEDX))
                         svga->rowoffset = (svga->rowoffset * 3) >> 2; /*Hack*/
-                    else if (virge->chip == S3_VIRGEGX2) {
-                        if (svga->seqregs[0x18] & 0x80)
-                            svga->clock *= 2.0;
-                    }
+                    break;
+                case 32:
+                    svga->render = svga_render_32bpp_highres;
                     break;
 
                 default:
                     break;
             }
-
+        }
         svga->vram_display_mask = (!(svga->crtc[0x31] & 0x08) && (svga->crtc[0x32] & 0x40)) ? 0x3ffff : virge->vram_mask;
     } else { /*Streams mode*/
         if (virge->chip < S3_VIRGEGX2) {

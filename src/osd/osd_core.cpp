@@ -215,26 +215,6 @@ static const char *const mo_exts[] = {
 /* ------------------------------------------------------------------ */
 /*  File browser helpers                                               */
 /* ------------------------------------------------------------------ */
-
-/* Case-insensitive glob: '?' = one char, '*' = any chars. */
-static bool glob_match_ci(const char *pat, const char *str)
-{
-    while (*pat && *str) {
-        if (*pat == '*') {
-            while (*pat == '*') pat++;
-            if (!*pat) return true;
-            while (*str)
-                if (glob_match_ci(pat, str++)) return true;
-            return false;
-        }
-        if (*pat != '?' && tolower((unsigned char)*pat) != tolower((unsigned char)*str))
-            return false;
-        pat++; str++;
-    }
-    while (*pat == '*') pat++;
-    return !*pat && !*str;
-}
-
 static const char *const *exts_for_view(OsdView v)
 {
     switch (v) {

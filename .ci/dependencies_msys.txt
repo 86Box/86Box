@@ -16,3 +16,7 @@ vulkan-headers
 libsndfile
 libserialport
 make
+rust
+rust-src
+cargo-c
+corrosion

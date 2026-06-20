@@ -1689,6 +1689,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
     if (receiver == this) {
         static auto curdopause = dopause;
         if (event->type() == QEvent::WindowBlocked) {
+            if (qt_osd_is_visible())
+                qt_osd_toggle();
             window_blocked = true;
             mouse_was_captured = (mouse_capture != 0);
             if (do_auto_dialog_pause > 0) {

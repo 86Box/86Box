@@ -40,7 +40,7 @@
 #include "qt_renderercommon.hpp"
 
 extern "C" {
-#include <86box/qt-glslp-parser.h>
+#include <86box/qt_glslp_parser.h>
 }
 
 struct render_data {
