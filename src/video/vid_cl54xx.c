@@ -345,7 +345,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx);
 static void
 gd54xx_reset_blit(gd54xx_t *gd54xx);
 static void
-gd54xx_command_list_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga);
+gd54xx_command_list_blit(gd54xx_t *gd54xx, svga_t *svga);
 static void
 gd54xx_start_blit(uint32_t cpu_dat, uint32_t count, gd54xx_t *gd54xx, svga_t *svga);
 static void
@@ -3137,7 +3137,7 @@ gd54xx_readl(uint32_t addr, void *priv)
 }
 
 static void
-gd54xx_command_list_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
+gd54xx_command_list_blit(gd54xx_t *gd54xx, svga_t *svga)
 {
     gd54xx->blt.width = gd54xx->blt.cmd_list_dword[0] & 0x1fff;
     gd54xx->blt.height = (gd54xx->blt.cmd_list_dword[0] >> 16) & 0x07ff;
@@ -3145,7 +3145,8 @@ gd54xx_command_list_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
     gd54xx->blt.dst_start_x = gd54xx->blt.cmd_list_dword[1] & 0xffff;
     gd54xx->blt.dst_start_y = (gd54xx->blt.cmd_list_dword[1] >> 16) & 0xffff;
 
-    gd54xx->blt.src_addr = gd54xx->blt.cmd_list_dword[2] & 0x3fffff;
+    if (!(gd54xx->blt.cmd_list_dword[0] & (1 << 30)))
+        gd54xx->blt.src_addr = gd54xx->blt.cmd_list_dword[2] & 0x3fffff;
 
     switch ((gd54xx->blt.cmd_list_dword[0] >> 28) & 0x03) {
         case 0x00:
@@ -3163,13 +3164,12 @@ gd54xx_command_list_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
         default:
             break;
     }
-
-    gd54xx_normal_blit(-1, gd54xx, svga);
 }
 
 static void
 gd54xx_last_command_params(gd54xx_t *gd54xx, svga_t *svga)
 {
+    //pclog("WidthLast=%d, HeightLast=%d, CurrentWidth=%d, CurrentHeight=%d, ModeExtLast=%02x, CurrentModeExt=%02x.\n", gd54xx->blt.width_backup, gd54xx->blt.height_backup, gd54xx->blt.width, gd54xx->blt.height, gd54xx->blt.modeext_backup, gd54xx->blt.modeext);
     gd54xx->blt.width = gd54xx->blt.width_backup;
     gd54xx->blt.height = gd54xx->blt.height_backup;
 
@@ -3179,6 +3179,8 @@ gd54xx_last_command_params(gd54xx_t *gd54xx, svga_t *svga)
     gd54xx->blt.src_pitch = gd54xx->blt.src_pitch_backup;
 
     gd54xx->blt.mode = gd54xx->blt.mode_backup;
+    gd543x_recalc_mapping(gd54xx);
+
     gd54xx->blt.rop = gd54xx->blt.rop_backup;
     gd54xx->blt.modeext = gd54xx->blt.modeext_backup;
 }
@@ -3330,7 +3332,10 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *priv)
                         gd54xx->blt.cmd_list_dword[3] = *(uint32_t *)&vram[(gd54xx->blt.cmd_list_backup + 12) & gd54xx->vram_mask];
                         gd54xx->blt.blit_list_continue = !(gd54xx->blt.cmd_list_dword[0] & (1 << 31));
 
-                        gd54xx_command_list_blit(-1, gd54xx, svga);
+                        //pclog("Initial PatternX=%d.\n", gd54xx->blt.pattern_x);
+                        gd54xx_command_list_blit(gd54xx, svga);
+                        gd54xx_start_blit(0, -1, gd54xx, svga);
+                        //pclog("Current PatternX=%d.\n", gd54xx->blt.pattern_x);
 
                         //pclog("CMDList=%08x, val=%02x, autostart=%02x, dword0=%08x.\n", gd54xx->blt.cmd_list_backup, val, gd54xx->blt.status & CIRRUS_BLT_AUTOSTART, gd54xx->blt.cmd_list_dword[0]);
                         //pclog(".\n");
@@ -3400,10 +3405,8 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *priv)
                     gd54xx->blt.dst_start_x = (gd54xx->blt.dst_start_x & 0xff00) | val;
                 break;
             case 0x29:
-                if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) {
+                if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480)
                     gd54xx->blt.dst_start_x = (gd54xx->blt.dst_start_x & 0x00ff) | (val << 8);
-                    //pclog("MMIO Write DSTX=%d, modeext=%02x.\n", gd54xx->blt.dst_start_x, gd54xx->blt.modeext);
-                }
                 break;
 
             case 0x2a:
@@ -3413,7 +3416,6 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *priv)
             case 0x2b:
                 if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) {
                     gd54xx->blt.dst_start_y = (gd54xx->blt.dst_start_y & 0x00ff) | (val << 8);
-                    //pclog("MMIO Write DSTY=%d.\n", gd54xx->blt.dst_start_y);
 
                     if ((gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_XY_POSITION_SPEC) &&
                         (gd54xx->blt.status & CIRRUS_BLT_AUTOSTART) &&
@@ -4060,10 +4062,10 @@ gd54xx_pattern_copy(gd54xx_t *gd54xx)
     srca = (gd54xx->blt.src_addr & ~0x07) & gd54xx->vram_mask;
 
     if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_XY_POSITION_SPEC) {
-        uint32_t clip_l = gd54xx->blt.clip_start_x;
-        uint32_t clip_r = gd54xx->blt.clip_end_x * gd54xx->blt.pixel_width;
-        uint32_t clip_t = gd54xx->blt.clip_start_y;
-        uint32_t clip_b = gd54xx->blt.clip_end_y;
+        uint16_t clip_l = gd54xx->blt.clip_start_x * gd54xx->blt.pixel_width;
+        uint16_t clip_r = (gd54xx->blt.clip_end_x * gd54xx->blt.pixel_width) + gd54xx->blt.pixel_width - 1;
+        uint16_t clip_t = gd54xx->blt.clip_start_y;
+        uint16_t clip_b = gd54xx->blt.clip_end_y;
         int xx = 0;
         uint16_t x = 0;
         uint16_t y = 0;
@@ -4169,7 +4171,7 @@ gd54xx_pattern_copy(gd54xx_t *gd54xx)
                     else
                         gd54xx_blit(gd54xx, bitmask, dst, target, (x < gd54xx->blt.pattern_x));
                 }
-                pixel                                                   = (pixel + 1) & 7;
+                pixel = (pixel + 1) & 7;
                 svga->changedvram[((dsta + x) & gd54xx->vram_mask) >> 12] = changeframecount;
             }
             pattern_y = (pattern_y + 1) & 7;
@@ -4193,16 +4195,14 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
     uint8_t *dst = NULL;
     uint8_t  exp;
     uint8_t  target;
+    uint16_t clip_l = gd54xx->blt.clip_start_x * gd54xx->blt.pixel_width;
+    uint16_t clip_r = (gd54xx->blt.clip_end_x * gd54xx->blt.pixel_width) + gd54xx->blt.pixel_width - 1;
+    uint16_t clip_t = gd54xx->blt.clip_start_y;
+    uint16_t clip_b = gd54xx->blt.clip_end_y;
     int      mask_shift;
-    int      xx = 0;
-    int      xxx = (gd54xx->blt.pixel_width == 3) ? 1 : gd54xx->blt.pixel_width;
-    int      x_width = (gd54xx->blt.pixel_width == 3) ? gd54xx->blt.pixel_width : 1;
+    int      x_width = gd54xx->blt.pixel_width;
     uint32_t byte_pos = 0;
     uint32_t bitmask = 0;
-    uint32_t clip_l = gd54xx->blt.clip_start_x;
-    uint32_t clip_r = gd54xx->blt.clip_end_x * gd54xx->blt.pixel_width;
-    uint32_t clip_t = gd54xx->blt.clip_start_y;
-    uint32_t clip_b = gd54xx->blt.clip_end_y;
     svga_t  *svga = &gd54xx->svga;
 
     gd54xx->blt.ms_is_dest = 0;
@@ -4225,6 +4225,9 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
             gd54xx->blt.dst_addr_xy = gd54xx->blt.dst_addr + (gd54xx->blt.dst_y_pos * gd54xx->blt.dst_pitch);
             gd54xx->blt.width_xy = 0;
             gd54xx->blt.x_max_xy = 0;
+
+            if (gd54xx->blt.dir == -1)
+                gd54xx->blt.dst_x_pos += (gd54xx->blt.pixel_width - 1);
         }
     } else if (gd54xx->countminusone) {
         if (!(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) ||
@@ -4243,39 +4246,17 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
         if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5480) &&
             (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_XY_POSITION_SPEC)) {
             while (mask_shift > -1) {
-                while (xx < xxx) {
-                    if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_CLIP_RECTANGLE) {
-                        if (((gd54xx->blt.dst_x_pos + xx) >= clip_l) && ((gd54xx->blt.dst_x_pos + xx) <= clip_r) &&
-                            (gd54xx->blt.dst_y_pos >= clip_t) && (gd54xx->blt.dst_y_pos <= clip_b)) {
-                            if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
-                                bitmask = (cpu_dat >> mask_shift) & 0x01;
-                                exp = gd54xx_color_expand(gd54xx, bitmask, gd54xx->blt.xx_count);
-                            } else {
-                                exp = (cpu_dat >> (xx << 3)) & 0xff;
-                                bitmask = gd54xx_transparent_comp(gd54xx, gd54xx->blt.xx_count, exp);
-                            }
-
-                            dst = &(svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask]);
-                            target = *dst;
-                            gd54xx_rop(gd54xx, &target, &target, &exp);
-                            if ((gd54xx->blt.pixel_width == 3) && (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
-                                gd54xx_blit(gd54xx, bitmask, dst, target,
-                                            ((gd54xx->blt.x_count + gd54xx->blt.xx_count) < gd54xx->blt.pattern_x));
-                            else
-                                gd54xx_blit(gd54xx, bitmask, dst, target, (gd54xx->blt.x_count < gd54xx->blt.pattern_x));
-
-                            svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask) >> 12] = changeframecount;
-                        }
-                    } else {
+                if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_CLIP_RECTANGLE) {
+                    if ((gd54xx->blt.dst_x_pos >= clip_l) && (gd54xx->blt.dst_x_pos <= clip_r) &&
+                        (gd54xx->blt.dst_y_pos >= clip_t) && (gd54xx->blt.dst_y_pos <= clip_b)) {
                         if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
                             bitmask = (cpu_dat >> mask_shift) & 0x01;
                             exp = gd54xx_color_expand(gd54xx, bitmask, gd54xx->blt.xx_count);
                         } else {
-                            exp = (cpu_dat >> (xx << 3)) & 0xff;
+                            exp = cpu_dat & 0xff;
                             bitmask = gd54xx_transparent_comp(gd54xx, gd54xx->blt.xx_count, exp);
                         }
-
-                        dst = &(svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask]);
+                        dst = &(svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask]);
                         target = *dst;
                         gd54xx_rop(gd54xx, &target, &target, &exp);
                         if ((gd54xx->blt.pixel_width == 3) && (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
@@ -4284,26 +4265,30 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
                         else {
                             gd54xx_blit(gd54xx, bitmask, dst, target, (gd54xx->blt.x_count < gd54xx->blt.pattern_x));
                         }
-                        svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask) >> 12] = changeframecount;
+                        svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
                     }
-                    xx++;
-                    if (xx == xxx) {
-                        xx = 0;
-                        break;
+                } else {
+                    if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
+                        bitmask = (cpu_dat >> mask_shift) & 0x01;
+                        exp = gd54xx_color_expand(gd54xx, bitmask, gd54xx->blt.xx_count);
+                    } else {
+                        exp = cpu_dat & 0xff;
+                        bitmask = gd54xx_transparent_comp(gd54xx, gd54xx->blt.xx_count, exp);
                     }
+
+                    dst = &(svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask]);
+                    target = *dst;
+                    gd54xx_rop(gd54xx, &target, &target, &exp);
+                    if ((gd54xx->blt.pixel_width == 3) && (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
+                        gd54xx_blit(gd54xx, bitmask, dst, target,
+                                    ((gd54xx->blt.x_count + gd54xx->blt.xx_count) < gd54xx->blt.pattern_x));
+                    else
+                        gd54xx_blit(gd54xx, bitmask, dst, target, (gd54xx->blt.x_count < gd54xx->blt.pattern_x));
+
+                    svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
                 }
 
-                if ((gd54xx->blt.pixel_width == 3) && !(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)) {
-                    if (gd54xx->blt.dir == -1)
-                        gd54xx->blt.dst_x_pos -= gd54xx->blt.dir;
-                    else
-                        gd54xx->blt.dst_x_pos += gd54xx->blt.dir;
-                } else {
-                    if (gd54xx->blt.dir == -1)
-                        gd54xx->blt.dst_x_pos -= xxx;
-                    else
-                        gd54xx->blt.dst_x_pos += xxx;
-                }
+                gd54xx->blt.dst_x_pos += gd54xx->blt.dir;
 
                 if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)
                     gd54xx->blt.xx_count = (gd54xx->blt.xx_count + 1) % gd54xx->blt.pixel_width;
@@ -4313,33 +4298,32 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
                     if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)
                         mask_shift--;
                     else {
-                        if (gd54xx->blt.pixel_width != 4)
-                            cpu_dat >>= (xxx << 3);
-
-                        mask_shift -= (xxx << 3);
+                        cpu_dat >>= 8;
+                        mask_shift -= 8;
                     }
 
-                    if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)
+                    if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
                         gd54xx->blt.x_count = (gd54xx->blt.x_count + gd54xx->blt.pixel_width) % (gd54xx->blt.width + 1);
-                    else
+                        gd54xx->blt.width_xy++;
+                    } else {
                         gd54xx->blt.x_count = (gd54xx->blt.x_count + 1) % ((gd54xx->blt.width + 1) * x_width);
-
-                    if ((gd54xx->blt.pixel_width == 3) && !(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)) {
                         gd54xx->blt.x_max_xy++;
                         if (gd54xx->blt.x_max_xy == gd54xx->blt.pixel_width) {
                             gd54xx->blt.width_xy++;
                             gd54xx->blt.x_max_xy = 0;
                         }
-                    } else
-                        gd54xx->blt.width_xy++;
+                    }
 
                     if (gd54xx->blt.width_xy > gd54xx->blt.width) {
+                        gd54xx->blt.y_count = (gd54xx->blt.y_count + 1) % (gd54xx->blt.height + 1);
                         gd54xx->blt.width_xy = 0;
                         gd54xx->blt.x_max_xy = 0;
-                        gd54xx->blt.y_count = (gd54xx->blt.y_count + 1) % (gd54xx->blt.height + 1);
                         if (gd54xx->blt.y_count) {
                             gd54xx->blt.dst_x_pos = gd54xx->blt.dst_start_x * gd54xx->blt.pixel_width;
 
+                            if (gd54xx->blt.dir == -1) {
+                                gd54xx->blt.dst_x_pos += (gd54xx->blt.pixel_width - 1);
+                            }
                             gd54xx->blt.dst_y_pos += gd54xx->blt.dir;
 
                             gd54xx->blt.dst_addr_xy = gd54xx->blt.dst_addr + (gd54xx->blt.dst_y_pos * gd54xx->blt.dst_pitch);
@@ -4411,7 +4395,6 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
 static void
 gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
 {
-    uint8_t *vram = svga->vram;
     uint8_t  src   = 0;
     uint8_t  dst;
     uint16_t width = gd54xx->blt.width;
@@ -4420,10 +4403,10 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
     uint16_t clip_t = gd54xx->blt.clip_start_y;
     uint16_t clip_b = gd54xx->blt.clip_end_y;
     uint16_t x_width = 0;
+    int      x_max_xy_count = 0;
     int      x_max = 0;
     int      shift = 0;
     uint32_t mask = 0;
-    int      xx = 0;
     uint32_t src_addr = gd54xx->blt.src_addr;
     uint32_t dst_addr = gd54xx->blt.dst_addr;
 
@@ -4443,56 +4426,34 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
         gd54xx->blt.dst_y_pos = gd54xx->blt.dst_start_y;
         gd54xx->blt.src_addr_xy = gd54xx->blt.src_addr + (gd54xx->blt.src_y_pos * gd54xx->blt.src_pitch);
         gd54xx->blt.dst_addr_xy = gd54xx->blt.dst_addr + (gd54xx->blt.dst_y_pos * gd54xx->blt.dst_pitch);
-        //pclog("Normal blit: SRCPitch=%d, DSTPitch=%d, width=%d, height=%d, dx=%d, dy=%d, cx=%d, cy=%d, cl=%d, cr=%d, dir=%d.\n", gd54xx->blt.src_pitch, gd54xx->blt.dst_pitch, gd54xx->blt.width, gd54xx->blt.height, gd54xx->blt.dst_x_pos, gd54xx->blt.dst_y_pos, gd54xx->blt.src_x_pos, gd54xx->blt.src_y_pos, clip_l, clip_r, gd54xx->blt.dir);
+        //pclog("Normal blit: SRCPitch=%d, DSTPitch=%d, width=%d, height=%d, dx=%d, dxpos=%d, dy=%d, cx=%d, cy=%d, cl=%d, cr=%d, csx=%d, cex=%d, dir=%d.\n", gd54xx->blt.src_pitch, gd54xx->blt.dst_pitch, gd54xx->blt.width, gd54xx->blt.height, gd54xx->blt.dst_x_pos, gd54xx->blt.dst_start_x, gd54xx->blt.dst_y_pos, gd54xx->blt.src_x_pos, gd54xx->blt.src_y_pos, clip_l, clip_r, gd54xx->blt.clip_start_x, gd54xx->blt.clip_end_x, gd54xx->blt.dir);
 
-        while (count) {
+        if (gd54xx->blt.dir == -1) {
+            gd54xx->blt.src_x_pos += (gd54xx->blt.pixel_width - 1);
+            gd54xx->blt.dst_x_pos += (gd54xx->blt.pixel_width - 1);
+        }
+
+        if (gd54xx->blt.dir == -1)
+            gd54xx->blt.x_count = (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) ? x_max : 8;
+
+        while (count--) {
             src  = 0;
             mask = 0;
 
-            count--;
-            while (xx < gd54xx->blt.pixel_width) {
-                if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_CLIP_RECTANGLE) {
-                    //pclog("XY Clipping Blit: pix=%d, DSTX=%d, DSTY=%d, SRCX=%d, SRCY=%d, cl=%d, cr=%d, xcount=%d, xx=%d, width=%d, height=%d, modeext=%02x.\n", gd54xx->blt.pixel_width, gd54xx->blt.dst_x_pos, gd54xx->blt.dst_y_pos, gd54xx->blt.src_x_pos, gd54xx->blt.src_y_pos, clip_l, clip_r, gd54xx->blt.x_count, xx, width, gd54xx->blt.height_internal, gd54xx->blt.modeext);
-                    if (((gd54xx->blt.dst_x_pos + xx) >= clip_l) && ((gd54xx->blt.dst_x_pos + xx) <= clip_r) &&
-                        (gd54xx->blt.dst_y_pos >= clip_t) && (gd54xx->blt.dst_y_pos <= clip_b)) {
-                        if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
-                            mask  = svga->vram[src_addr & gd54xx->vram_mask] & (0x80 >> ((gd54xx->blt.x_count + xx) / gd54xx->blt.pixel_width));
-                            shift = ((gd54xx->blt.x_count + xx) % gd54xx->blt.pixel_width);
-                            src = gd54xx_color_expand(gd54xx, mask, shift);
-                        } else {
-                            src = svga->vram[(gd54xx->blt.src_addr_xy + gd54xx->blt.src_x_pos + xx) & gd54xx->vram_mask];
-                            mask = 1;
-                        }
-
-                        dst = svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask];
-                        svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
-                        gd54xx_rop(gd54xx, &dst, &dst, (const uint8_t *) &src);
-
-                        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_COLOREXPINV))
-                            mask = !mask;
-
-                        /* This handles 8bpp and 16bpp non-color-expanding transparent comparisons. */
-                        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_TRANSPARENTCOMP) &&
-                            !(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
-                            ((gd54xx->blt.mode & CIRRUS_BLTMODE_PIXELWIDTHMASK) <= CIRRUS_BLTMODE_PIXELWIDTH16) &&
-                            (src != ((gd54xx->blt.trans_mask >> (shift << 3)) & 0xff)))
-                            mask = 0;
-
-                        if (((gd54xx->blt.width - width) >= gd54xx->blt.pattern_x) &&
-                            !((gd54xx->blt.mode & CIRRUS_BLTMODE_TRANSPARENTCOMP) && !mask))
-                            svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask] = dst;
-                    }
-                } else {
+            if (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_CLIP_RECTANGLE) {
+                //pclog("XY Clipping Blit: pix=%d, DSTX=%d, DSTY=%d, SRCX=%d, SRCY=%d, cl=%d, cr=%d, xcount=%d, xx=%d, width=%d, height=%d, modeext=%02x.\n", gd54xx->blt.pixel_width, gd54xx->blt.dst_x_pos, gd54xx->blt.dst_y_pos, gd54xx->blt.src_x_pos, gd54xx->blt.src_y_pos, clip_l, clip_r, gd54xx->blt.x_count, xx, width, gd54xx->blt.height_internal, gd54xx->blt.modeext);
+                if ((gd54xx->blt.dst_x_pos >= clip_l) && (gd54xx->blt.dst_x_pos <= clip_r) &&
+                    (gd54xx->blt.dst_y_pos >= clip_t) && (gd54xx->blt.dst_y_pos <= clip_b)) {
                     if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
-                        mask  = svga->vram[src_addr & gd54xx->vram_mask] & (0x80 >> ((gd54xx->blt.x_count + xx) / gd54xx->blt.pixel_width));
-                        shift = ((gd54xx->blt.x_count + xx) % gd54xx->blt.pixel_width);
+                        mask  = svga->vram[src_addr & gd54xx->vram_mask] & (0x80 >> ((gd54xx->blt.x_count) / gd54xx->blt.pixel_width));
+                        shift = ((gd54xx->blt.x_count) % gd54xx->blt.pixel_width);
                         src = gd54xx_color_expand(gd54xx, mask, shift);
                     } else {
-                        src = svga->vram[(gd54xx->blt.src_addr_xy + gd54xx->blt.src_x_pos + xx) & gd54xx->vram_mask];
+                        src = svga->vram[(gd54xx->blt.src_addr_xy + gd54xx->blt.src_x_pos) & gd54xx->vram_mask];
                         mask = 1;
                     }
 
-                    dst = svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask];
+                    dst = svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask];
                     svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
                     gd54xx_rop(gd54xx, &dst, &dst, (const uint8_t *) &src);
 
@@ -4506,42 +4467,96 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
                         (src != ((gd54xx->blt.trans_mask >> (shift << 3)) & 0xff)))
                         mask = 0;
 
-                    if (((gd54xx->blt.width - width) >= gd54xx->blt.pattern_x) &&
+                    if ((((gd54xx->blt.width) - width) >= gd54xx->blt.pattern_x) &&
                         !((gd54xx->blt.mode & CIRRUS_BLTMODE_TRANSPARENTCOMP) && !mask))
-                        svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos + xx) & gd54xx->vram_mask] = dst;
+                        svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask] = dst;
                 }
-                xx++;
-                if (xx == gd54xx->blt.pixel_width) {
-                    xx = 0;
-                    break;
-                }
-            }
-
-            if (gd54xx->blt.dir == -1) {
-                gd54xx->blt.src_x_pos -= gd54xx->blt.pixel_width;
-                gd54xx->blt.dst_x_pos -= gd54xx->blt.pixel_width;
             } else {
-                gd54xx->blt.src_x_pos += gd54xx->blt.pixel_width;
-                gd54xx->blt.dst_x_pos += gd54xx->blt.pixel_width;
+                if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
+                    mask  = svga->vram[src_addr & gd54xx->vram_mask] & (0x80 >> ((gd54xx->blt.x_count) / gd54xx->blt.pixel_width));
+                    shift = (gd54xx->blt.x_count % gd54xx->blt.pixel_width);
+                    src = gd54xx_color_expand(gd54xx, mask, shift);
+                } else {
+                    src = svga->vram[(gd54xx->blt.src_addr_xy + gd54xx->blt.src_x_pos) & gd54xx->vram_mask];
+                    mask = 1;
+                }
+
+                dst = svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask];
+                svga->changedvram[((gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask) >> 12] = changeframecount;
+                gd54xx_rop(gd54xx, &dst, &dst, (const uint8_t *) &src);
+
+                if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_COLOREXPINV))
+                    mask = !mask;
+
+                /* This handles 8bpp and 16bpp non-color-expanding transparent comparisons. */
+                if ((gd54xx->blt.mode & CIRRUS_BLTMODE_TRANSPARENTCOMP) &&
+                    !(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
+                    ((gd54xx->blt.mode & CIRRUS_BLTMODE_PIXELWIDTHMASK) <= CIRRUS_BLTMODE_PIXELWIDTH16) &&
+                    (src != ((gd54xx->blt.trans_mask >> (shift << 3)) & 0xff)))
+                    mask = 0;
+
+                if ((((gd54xx->blt.width) - width) >= gd54xx->blt.pattern_x) &&
+                    !((gd54xx->blt.mode & CIRRUS_BLTMODE_TRANSPARENTCOMP) && !mask)) {
+                    svga->vram[(gd54xx->blt.dst_addr_xy + gd54xx->blt.dst_x_pos) & gd54xx->vram_mask] = dst;
+                    //pclog("NoClipNormal: PATX=%d, ROP=%02x, DSTData=%02x, DX=%d, DY=%d, CX=%d, CY=%d, dir=%d, mode=%02x, modeext=%02x, fgcol=%08x, shift=%d.\n", gd54xx->blt.pattern_x, gd54xx->blt.rop, dst, gd54xx->blt.dst_x_pos, gd54xx->blt.dst_y_pos, gd54xx->blt.src_x_pos, gd54xx->blt.src_y_pos, gd54xx->blt.dir, gd54xx->blt.mode, gd54xx->blt.modeext, gd54xx->blt.fg_col, shift);
+                } else
+                    ;//pclog("NoClipNormalNoWrite: PATX=%d, ROP=%02x, DSTData=%02x, DX=%d, DY=%d, CX=%d, CY=%d, dir=%d, mode=%02x, modeext=%02x, fg=%08x, shift=%d.\n", gd54xx->blt.pattern_x, gd54xx->blt.rop, dst, gd54xx->blt.dst_x_pos, gd54xx->blt.dst_y_pos, gd54xx->blt.src_x_pos, gd54xx->blt.src_y_pos, gd54xx->blt.dir, gd54xx->blt.mode, gd54xx->blt.modeext, gd54xx->blt.fg_col, shift);
             }
 
-            gd54xx->blt.x_count += gd54xx->blt.pixel_width;
+            gd54xx->blt.src_x_pos += gd54xx->blt.dir;
+            gd54xx->blt.dst_x_pos += gd54xx->blt.dir;
 
-            if (gd54xx->blt.x_count == x_max) {
-                gd54xx->blt.x_count = 0;
-                if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND)
-                    src_addr++;
+            x_max_xy_count++;
+            if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
+                if (x_max_xy_count == gd54xx->blt.pixel_width) {
+                    x_max_xy_count = 0;
+                    x_width++;
+                    width--;
+                }
+                gd54xx->blt.x_count += gd54xx->blt.dir;
+                if (gd54xx->blt.dir == -1) {
+                    if (gd54xx->blt.x_count == 0) {
+                        gd54xx->blt.x_count = x_max;
+                        src_addr++;
+                    }
+                } else {
+                    if (gd54xx->blt.x_count == x_max) {
+                        gd54xx->blt.x_count = 0;
+                        src_addr++;
+                    }
+                }
+            } else {
+                if (x_max_xy_count == gd54xx->blt.pixel_width) {
+                    x_max_xy_count = 0;
+                    x_width++;
+                    width--;
+
+                    gd54xx->blt.x_count += gd54xx->blt.dir;
+                    if (gd54xx->blt.dir == -1) {
+                        if (gd54xx->blt.x_count == 0) {
+                            gd54xx->blt.x_count = 8;
+                        }
+                    } else {
+                        if (gd54xx->blt.x_count == 8) {
+                            gd54xx->blt.x_count = 0;
+                        }
+                    }
+                }
             }
 
-            width--;
-            x_width++;
             if (x_width > gd54xx->blt.width) {
-                width = gd54xx->blt.width;
                 x_width = 0;
+                width = gd54xx->blt.width;
+                x_max_xy_count = 0;
                 gd54xx->blt.y_count = (gd54xx->blt.y_count + gd54xx->blt.dir) & 7;
 
                 gd54xx->blt.dst_x_pos = gd54xx->blt.dst_start_x * gd54xx->blt.pixel_width;
                 gd54xx->blt.src_x_pos = gd54xx->blt.src_start_x * gd54xx->blt.pixel_width;
+
+                if (gd54xx->blt.dir == -1) {
+                    gd54xx->blt.src_x_pos += (gd54xx->blt.pixel_width - 1);
+                    gd54xx->blt.dst_x_pos += (gd54xx->blt.pixel_width - 1);
+                }
 
                 gd54xx->blt.dst_y_pos += gd54xx->blt.dir;
                 gd54xx->blt.src_y_pos += gd54xx->blt.dir;
@@ -4550,8 +4565,13 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
                 gd54xx->blt.src_addr_xy = gd54xx->blt.src_addr + (gd54xx->blt.src_y_pos * gd54xx->blt.src_pitch);
 
                 if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
-                    if (gd54xx->blt.x_count != 0)
-                        src_addr++;
+                    if (gd54xx->blt.dir == -1) {
+                        if (gd54xx->blt.x_count != x_max)
+                            src_addr++;
+                    } else {
+                        if (gd54xx->blt.x_count != 0)
+                            src_addr++;
+                    }
                 } else
                     src_addr = gd54xx->blt.src_addr_backup = gd54xx->blt.src_addr_backup +
                                                              (gd54xx->blt.src_pitch * gd54xx->blt.dir);
@@ -4560,6 +4580,8 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
                 gd54xx->blt.src_addr_backup &= gd54xx->vram_mask;
 
                 gd54xx->blt.x_count = 0;
+                if (gd54xx->blt.dir == -1)
+                    gd54xx->blt.x_count = (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) ? x_max : 8;
 
                 gd54xx->blt.height_internal--;
                 if (gd54xx->blt.height_internal == 0xffff)
@@ -4582,7 +4604,7 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
             }
             count--;
 
-            dst                                                   = svga->vram[dst_addr & gd54xx->vram_mask];
+            dst = svga->vram[dst_addr & gd54xx->vram_mask];
             svga->changedvram[(dst_addr & gd54xx->vram_mask) >> 12] = changeframecount;
 
             gd54xx_rop(gd54xx, &dst, &dst, (const uint8_t *) &src);
@@ -4644,6 +4666,8 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
     if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5480) &&
         ((gd54xx->blt.modeext & (CIRRUS_BLTMODEEXT_XY_POSITION_SPEC | CIRRUS_BLTMODEEXT_COMMAND_LIST)) == (CIRRUS_BLTMODEEXT_XY_POSITION_SPEC | CIRRUS_BLTMODEEXT_COMMAND_LIST))) {
         if (gd54xx->blt.blit_list_continue) {
+            uint8_t *vram = svga->vram;
+
             gd54xx->blt.cmd_list_backup += 0x10;
             gd54xx->blt.cmd_list_dword[0] = *(uint32_t *)&vram[gd54xx->blt.cmd_list_backup & gd54xx->vram_mask];
             gd54xx->blt.cmd_list_dword[1] = *(uint32_t *)&vram[(gd54xx->blt.cmd_list_backup + 4) & gd54xx->vram_mask];
@@ -4651,7 +4675,8 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
             gd54xx->blt.cmd_list_dword[3] = *(uint32_t *)&vram[(gd54xx->blt.cmd_list_backup + 12) & gd54xx->vram_mask];
             gd54xx->blt.blit_list_continue = !(gd54xx->blt.cmd_list_dword[0] & (1 << 31));
 
-            gd54xx_command_list_blit(-1, gd54xx, svga);
+            gd54xx_command_list_blit(gd54xx, svga);
+            gd54xx_start_blit(0, -1, gd54xx, svga);
         }
     }
 }
@@ -4737,15 +4762,19 @@ gd54xx_start_blit(uint32_t cpu_dat, uint32_t count, gd54xx_t *gd54xx, svga_t *sv
     } else
         gd54xx->blt.pattern_x = 0; /* No skip in normal blit mode. */
 
-    if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSSRC)
-        gd54xx_mem_sys_src(gd54xx, cpu_dat, count);
-    else if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSDEST)
-        gd54xx_mem_sys_dest(count, gd54xx, svga);
-    else if (gd54xx->blt.mode & CIRRUS_BLTMODE_PATTERNCOPY) {
-        gd54xx_pattern_copy(gd54xx);
-        gd54xx_reset_blit(gd54xx);
-    } else
+    if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5480) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_COMMAND_LIST))
         gd54xx_normal_blit(count, gd54xx, svga);
+    else {
+        if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSSRC)
+            gd54xx_mem_sys_src(gd54xx, cpu_dat, count);
+        else if (gd54xx->blt.mode & CIRRUS_BLTMODE_MEMSYSDEST)
+            gd54xx_mem_sys_dest(count, gd54xx, svga);
+        else if (gd54xx->blt.mode & CIRRUS_BLTMODE_PATTERNCOPY) {
+            gd54xx_pattern_copy(gd54xx);
+            gd54xx_reset_blit(gd54xx);
+        } else
+            gd54xx_normal_blit(count, gd54xx, svga);
+    }
 }
 
 static uint8_t
@@ -4921,8 +4950,8 @@ cl_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pri
         case 0x33:
             gd54xx->pci_regs[addr] = val;
             if ((gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM) && (gd54xx->pci_regs[0x30] & 0x01)) {
-                uint32_t addr = (gd54xx->pci_regs[0x32] << 16) | (gd54xx->pci_regs[0x33] << 24);
-                mem_mapping_set_addr(&gd54xx->bios_rom.mapping, addr, 0x8000);
+                uint32_t vbiosaddr = (gd54xx->pci_regs[0x32] << 16) | (gd54xx->pci_regs[0x33] << 24);
+                mem_mapping_set_addr(&gd54xx->bios_rom.mapping, vbiosaddr, 0x8000);
             } else
                 mem_mapping_disable(&gd54xx->bios_rom.mapping);
             return;
