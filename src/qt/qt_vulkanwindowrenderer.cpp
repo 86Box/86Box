@@ -887,13 +887,21 @@ VulkanWindowRenderer::render()
             vport.y = destination.y();
             vport.width = destination.width();
             vport.height= destination.height();
+#ifndef LIBRASHADER_STATIC
+            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)source.width(), (unsigned int)source.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+#else
             error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)source.width(), (unsigned int)source.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+#endif
         } else {
             vport.x = 0;
             vport.y = 0;
             vport.width = curExtent.width;
             vport.height = curExtent.height;
+#ifndef LIBRASHADER_STATIC
+            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+#else
             error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+#endif
         }
 
         if (error) {
