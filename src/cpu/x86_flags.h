@@ -780,6 +780,21 @@ setsbc32(uint32_t a, uint32_t b)
     cpu_state.flags_res = a - (b + tempc);
     cpu_state.flags_op  = FLAGS_SBC32;
 }
+
+static __inline void
+setimul16(int16_t a, int16_t b)
+{
+    cpu_state.flags_op1 = a;
+    cpu_state.flags_op2 = b;
+    cpu_state.flags_op  = FLAGS_IMUL16;
+}
+static __inline void
+setimul32(int32_t a, int32_t b)
+{
+    cpu_state.flags_op1 = a;
+    cpu_state.flags_op2 = b;
+    cpu_state.flags_op  = FLAGS_IMUL32;
+}
 #else
 static __inline void
 setadc8(uint8_t a, uint8_t b)
@@ -869,6 +884,27 @@ setsbc32(uint32_t a, uint32_t b)
         cpu_state.flags |= V_FLAG;
     if (((a & 0xF) - ((b & 0xF) + tempc)) & 0x10)
         cpu_state.flags |= A_FLAG;
+}
+
+static __inline void
+setimul16(int16_t a, int16_t b)
+{
+    int32_t res = (int32_t)a * (int32_t)b;
+    cpu_state.flags_op = FLAGS_UNKNOWN;
+    if ((res >> 15) != 0 && (res >> 15) != -1)
+        cpu_state.flags |= C_FLAG | V_FLAG;
+    else
+        cpu_state.flags &= ~(C_FLAG | V_FLAG);
+}
+static __inline void
+setimul32(int32_t a, int32_t b)
+{
+    int64_t res = (int64_t)a * (int64_t)b;
+    cpu_state.flags_op = FLAGS_UNKNOWN;
+    if ((res >> 31) != 0 && (res >> 31) != -1)
+        cpu_state.flags |= C_FLAG | V_FLAG;
+    else
+        cpu_state.flags &= ~(C_FLAG | V_FLAG);
 }
 #endif
 
