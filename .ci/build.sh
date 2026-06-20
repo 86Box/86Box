@@ -702,7 +702,7 @@ else
 	cd ../../
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools rustc-web cargo-web curl"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools curl"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -803,7 +803,12 @@ EOF
 		echo [-] Not installing dependencies again
 	fi
 
-	if [! -e "$HOME/.cargo/bin" ]
+	if dpkg -s rustc-web
+	then
+		sudo apt-get purge rustc-web cargo-web
+		rm -rf "$HOME/.cargo/bin"
+	fi
+	if [ ! -e "$HOME/.cargo/bin"]
 	then
 		curl -sSf https://sh.rustup.rs | sh -- -y
 	fi
