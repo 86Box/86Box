@@ -596,10 +596,10 @@ VulkanWindowRenderer::render()
     if (prev_destination != destination) {
 #ifdef LIBRA_RUNTIME_VULKAN
         try {
-            recreateSwapchain();
+            recreateShaderSrcImages();
         } catch (const vulkan_init_error &e) {
-            finalize();
             QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            finalize();
             return;
         }
 #endif
@@ -619,13 +619,13 @@ VulkanWindowRenderer::render()
         return;
     }
     if (res == VK_ERROR_DEVICE_LOST) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
         finalize();
-        QMessageBox::critical(main_window, tr("Error"), "vkAcquireNextImageKHR: " + tr("Device lost"));
         return;
     }
     if (res == VK_ERROR_SURFACE_LOST_KHR) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Surface lost"));
         finalize();
-        QMessageBox::critical(main_window, tr("Error"), "vkAcquireNextImageKHR: " + tr("Surface lost"));
         return;
     }
     if (res == VK_ERROR_OUT_OF_DATE_KHR || res == VK_SUBOPTIMAL_KHR) {
@@ -731,11 +731,11 @@ VulkanWindowRenderer::render()
     bregion.srcOffsets[1].x = source.x() + source.width();
     bregion.srcOffsets[1].y = source.y() + source.height();
     bregion.srcOffsets[1].z = 1;
-    bregion.dstOffsets[0].x = std::clamp((uint32_t)destination.x(), 0u, (uint32_t)curExtent.width);
-    bregion.dstOffsets[0].y = std::clamp((uint32_t)destination.y(), 0u, (uint32_t)curExtent.height);
+    bregion.dstOffsets[0].x = destination.x();
+    bregion.dstOffsets[0].y = destination.y();
     bregion.dstOffsets[0].z = 0;
-    bregion.dstOffsets[1].x = std::clamp((uint32_t)destination.x() + destination.width(), 0u, (uint32_t)curExtent.width);
-    bregion.dstOffsets[1].y = std::clamp((uint32_t)destination.y() + destination.height(), 0u, (uint32_t)curExtent.height);
+    bregion.dstOffsets[1].x = destination.x() + destination.width();
+    bregion.dstOffsets[1].y = destination.y() + destination.height();
     bregion.dstOffsets[1].z = 1;
 
     VkImageSubresourceRange clr_range;
@@ -1055,8 +1055,8 @@ VulkanWindowRenderer::render()
     // Submit to the graphics queue passing a wait fence
     auto submit_res = m_devFuncs->vkQueueSubmit(gfx_queue_o, 1, &submitInfo, presentFences[current_frame]);
     if (submit_res != VK_SUCCESS) {
+        QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(submit_res));
         finalize();
-        QMessageBox::critical(main_window, tr("Error"), "vkQueueSubmit: " + Vulkan_GetResultString(submit_res));
         return;
     }
 
@@ -1119,13 +1119,13 @@ VulkanWindowRenderer::render()
     instance.presentAboutToBeQueued(this);
     auto result                    = fn_vkQueuePresentKHR(gfx_queue_o, &presentInfo);
     if (result == VK_ERROR_SURFACE_LOST_KHR) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Surface lost"));
         finalize();
-        QMessageBox::critical(main_window, tr("Error"), tr("vkQueuePresentKHR: Surface lost"));
         return;
     }
     if (result == VK_ERROR_DEVICE_LOST) {
+        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
         finalize();
-        QMessageBox::critical(main_window, tr("Error"), tr("vkQueuePresentKHR: Device lost"));
         return;
     }
     if ((result == VK_ERROR_OUT_OF_DATE_KHR) || (result == VK_SUBOPTIMAL_KHR)) {
@@ -1136,8 +1136,8 @@ VulkanWindowRenderer::render()
             main_window->reloadAllRenderers();
         }
     } else if (result != VK_SUCCESS) {
+        QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(res));
         finalize();
-        QMessageBox::critical(main_window, tr("Error"), "vkQueuePresentKHR:" + Vulkan_GetResultString(res));
         return;
     }
     instance.presentQueued(this);
@@ -1581,9 +1581,9 @@ void
 VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
 {
     this->pixelRatio = devicePixelRatio();
-    QWindow::resizeEvent(event);
     onResize(width(), height());
 
+    QWindow::resizeEvent(event);
     if (isInitialized) {
         try {
             recreateSwapchain();
