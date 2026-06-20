@@ -566,7 +566,9 @@ VulkanWindowRenderer::finalize()
     shaderLibraFilterChains.clear();
 #endif
 
+#ifndef LIBRASHADER_STATIC
 clean_up_rest:
+#endif
     m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
     vmaDestroyImage(allocator, src_image, img_allocation);
     vmaDestroyAllocator(allocator);
@@ -1534,7 +1536,9 @@ VulkanWindowRenderer::initialize()
                     }
                 }
 #endif
+#ifndef LIBRASHADER_STATIC
 skip_shaders:
+#endif
                 init_info = {};
                 init_info.ApiVersion = VK_VERSION_1_0;
                 init_info.Instance = instance.vkInstance();
