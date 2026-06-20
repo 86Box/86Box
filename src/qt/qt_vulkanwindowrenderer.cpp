@@ -734,11 +734,11 @@ VulkanWindowRenderer::render()
     bregion.srcOffsets[1].x = source.x() + source.width();
     bregion.srcOffsets[1].y = source.y() + source.height();
     bregion.srcOffsets[1].z = 1;
-    bregion.dstOffsets[0].x = destination.x();
-    bregion.dstOffsets[0].y = destination.y();
+    bregion.dstOffsets[0].x = std::clamp((uint32_t)destination.x(), 0u, (uint32_t)curExtent.width);
+    bregion.dstOffsets[0].y = std::clamp((uint32_t)destination.y(), 0u, (uint32_t)curExtent.height);
     bregion.dstOffsets[0].z = 0;
-    bregion.dstOffsets[1].x = destination.x() + destination.width();
-    bregion.dstOffsets[1].y = destination.y() + destination.height();
+    bregion.dstOffsets[1].x = std::clamp((uint32_t)destination.x() + destination.width(), 0u, (uint32_t)curExtent.width);
+    bregion.dstOffsets[1].y = std::clamp((uint32_t)destination.y() + destination.height(), 0u, (uint32_t)curExtent.height);
     bregion.dstOffsets[1].z = 1;
 
     VkImageCopy cregion{};
@@ -1615,9 +1615,9 @@ void
 VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
 {
     this->pixelRatio = devicePixelRatio();
+    QWindow::resizeEvent(event);
     onResize(width(), height());
 
-    QWindow::resizeEvent(event);
     if (isInitialized) {
         try {
             recreateSwapchain();
