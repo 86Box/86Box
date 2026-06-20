@@ -702,7 +702,7 @@ else
 	cd ../../
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools rustc-web cargo-web"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools rustc-web cargo-web curl"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -802,6 +802,13 @@ EOF
 	else
 		echo [-] Not installing dependencies again
 	fi
+
+	if [! -e "$HOME/.cargo/bin" ]
+	then
+		curl -sSf https://sh.rustup.rs | sh -- -y
+	fi
+	cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
+	PATH="$HOME/.cargo/bin/:$PATH"
 fi
 
 # Point CMake to the toolchain file.
