@@ -176,6 +176,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     setSurfaceType(QSurface::VulkanSurface);
     setVulkanInstance(&instance);
     buf_usage = std::vector<std::atomic_flag>(1);
+    source.setRect(0, 0, 640, 480);
     buf_usage[0].clear();
 }
 
@@ -239,8 +240,8 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         VkImageCreateInfo img_info = { };
         img_info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         img_info.imageType         = VK_IMAGE_TYPE_2D;
-        img_info.extent.width      = curExtent.width;
-        img_info.extent.height     = curExtent.height;
+        img_info.extent.width      = source.width();
+        img_info.extent.height     = source.height();
         img_info.extent.depth      = 1;
         img_info.mipLevels         = 1;
         img_info.arrayLayers       = 1;
@@ -265,6 +266,8 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         }
 
         img_info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+        img_info.extent.width      = curExtent.width;
+        img_info.extent.height     = curExtent.height;
 
         for (std::vector<_filter_chain_vk*>::size_type j = 0;
              j < shaderLibraFilterChains.size(); j++) {
@@ -593,7 +596,7 @@ VulkanWindowRenderer::render()
     m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto         cmdBufs = this->cmdBuffers[current_frame];
 
-    if (prev_destination != destination) {
+    if (prev_source != source) {
 #ifdef LIBRA_RUNTIME_VULKAN
         try {
             recreateShaderSrcImages();
@@ -603,7 +606,7 @@ VulkanWindowRenderer::render()
             return;
         }
 #endif
-        prev_destination = destination;
+        prev_source = source;
     }
 
     VkCommandBufferBeginInfo beginInfo { };
@@ -716,7 +719,7 @@ VulkanWindowRenderer::render()
     clr_val.float32[2] = 0;
     clr_val.float32[3] = 1;
 
-    VkImageBlit bregion;
+    VkImageBlit bregion{};
     bregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
     bregion.srcSubresource.mipLevel = 0;
     bregion.srcSubresource.baseArrayLayer = 0;
@@ -737,6 +740,25 @@ VulkanWindowRenderer::render()
     bregion.dstOffsets[1].x = destination.x() + destination.width();
     bregion.dstOffsets[1].y = destination.y() + destination.height();
     bregion.dstOffsets[1].z = 1;
+
+    VkImageCopy cregion{};
+    cregion.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.srcSubresource.mipLevel = 0;
+    cregion.srcSubresource.baseArrayLayer = 0;
+    cregion.srcSubresource.layerCount = 1;
+    cregion.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    cregion.dstSubresource.mipLevel = 0;
+    cregion.dstSubresource.baseArrayLayer = 0;
+    cregion.dstSubresource.layerCount = 1;
+    cregion.srcOffset.x = source.x();
+    cregion.srcOffset.y = source.y();
+    cregion.srcOffset.z = 0;
+    cregion.dstOffset.x = 0;
+    cregion.dstOffset.y = 0;
+    cregion.dstOffset.z = 0;
+    cregion.extent.width = source.width();
+    cregion.extent.height = source.height();
+    cregion.extent.depth = 1;
 
     VkImageSubresourceRange clr_range;
     clr_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -773,11 +795,13 @@ VulkanWindowRenderer::render()
 
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
 
-#ifndef LIBRA_RUNTIME_VULKAN
-    m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
-#else
-    m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, noshadersloaded ? swapchainImages[swapchain_image_index] : shaderSrcImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+    if (noshadersloaded) {
+        m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+    } else {
+#ifdef LIBRA_RUNTIME_VULKAN
+        m_devFuncs->vkCmdCopyImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, shaderSrcImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &cregion);
 #endif
+    }
 
 #   ifndef LIBRA_RUNTIME_VULKAN
     const VkImageMemoryBarrier image2_memory_barrier {
@@ -857,18 +881,20 @@ VulkanWindowRenderer::render()
         vport.width = curExtent.width;
         vport.height = curExtent.height;
         libra_error_t error = nullptr;
-        if (i == shaderFilterChains[swapchain_image_index].size() - 1) {
-#ifndef LIBRASHADER_STATIC
-            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
-#else
+
+        if (i == 0) {
+            vport.x = destination.x();
+            vport.y = destination.y();
+            vport.width = destination.width();
+            vport.height= destination.height();
+            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)source.width(), (unsigned int)source.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+        } else {
+            vport.x = 0;
+            vport.y = 0;
+            vport.width = curExtent.width;
+            vport.height = curExtent.height;
             error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
-#endif
-        } else
-#ifndef LIBRASHADER_STATIC
-            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
-#else
-            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
-#endif
+        }
 
         if (error) {
 #ifndef LIBRASHADER_STATIC

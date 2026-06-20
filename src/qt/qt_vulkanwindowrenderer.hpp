@@ -157,7 +157,7 @@ private:
 
     bool initialization_in_progress = false;
 
-    QRect prev_destination;
+    QRect prev_source;
 
 private slots:
     void render();
