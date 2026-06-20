@@ -39,6 +39,7 @@
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/pci.h>
+#include <86box/gdbstub.h>
 #include <86box/plat_unused.h>
 
 int bios_only = 0;
@@ -143,6 +144,15 @@ machine_init(void)
 
     machine_set_p1_default(machines[machine].kbc_p1);
     machine_set_ps2();
+
+    /* Create the GDB Stub socket before gdbstub_cpu_init looks for it.
+       This is done outside of machine_init_ex so we only occupy the socket
+       if we're actually starting a machine. */
+    static int gdbstub_started = 0;
+    if (!gdbstub_started) {
+        gdbstub_started = 1;
+        gdbstub_init();
+    }
 
     (void) machine_init_ex(machine);
 }
