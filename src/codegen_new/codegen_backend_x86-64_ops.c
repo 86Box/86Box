@@ -2010,7 +2010,7 @@ host_x86_IMUL16_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
 #endif
 
     codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0x66, 0x0f, 0xaf, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7));
+    codegen_addbyte4(block, 0x66, 0x0f, 0xaf, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg*/
 }
 
 void
@@ -2022,7 +2022,7 @@ host_x86_IMUL32_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
 #endif
 
     codegen_alloc_bytes(block, 3);
-    codegen_addbyte3(block, 0x0f, 0xaf, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7));
+    codegen_addbyte3(block, 0x0f, 0xaf, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg*/
 }
 
 void
@@ -2035,10 +2035,10 @@ host_x86_IMUL16_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, int16_t im
 
     if (imm >= -128 && imm <= 127) {
         codegen_alloc_bytes(block, 4);
-        codegen_addbyte4(block, 0x66, 0x6b, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7), (uint8_t)imm);
+        codegen_addbyte4(block, 0x66, 0x6b, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7), (uint8_t)imm); /*imul dst_reg, src_reg, imm*/
     } else {
         codegen_alloc_bytes(block, 5);
-        codegen_addbyte3(block, 0x66, 0x69, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7));
+        codegen_addbyte3(block, 0x66, 0x69, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg, imm*/
         codegen_addbyte2(block, (uint8_t)imm, (uint8_t)(imm >> 8));
     }
 }
@@ -2053,10 +2053,10 @@ host_x86_IMUL32_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, int32_t im
 
     if (imm >= -128 && imm <= 127) {
         codegen_alloc_bytes(block, 3);
-        codegen_addbyte3(block, 0x6b, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7), (uint8_t)imm);
+        codegen_addbyte3(block, 0x6b, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7), (uint8_t)imm); /*imul dst_reg, src_reg, imm*/
     } else {
         codegen_alloc_bytes(block, 6);
-        codegen_addbyte2(block, 0x69, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7));
+        codegen_addbyte2(block, 0x69, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg, imm*/
         codegen_addlong(block, imm);
     }
 }
