@@ -176,13 +176,15 @@ extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 extern MainWindow *main_window;
 
+int                main_window_blocked = 0;
+
 #ifdef Q_OS_WINDOWS
 static bool
 canProcessUiEventsInCurrentState()
 {
     const bool has_modal_widget  = QApplication::activeModalWidget() != nullptr;
     const bool has_settings_open = main_window && (main_window->findChild<Settings *>() != nullptr);
-    return !cpu_thread_run || dopause || has_modal_widget || has_settings_open;
+    return !cpu_thread_run || dopause || has_modal_widget || has_settings_open || main_window_blocked;
 }
 
 static void
@@ -1666,7 +1668,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 
-    if (!dopause && (!kbd_req_capture || mouse_capture)) {
+    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture)) {
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
             if (shortcutEvent->key() == ui->actionExit->shortcut()) {
@@ -1700,6 +1702,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if (mouse_was_captured)
                 emit setMouseCapture(false);
             releaseKeyboard();
+            main_window_blocked = 1;
         } else if (event->type() == QEvent::WindowUnblocked) {
             window_blocked = false;
             if (do_auto_dialog_pause > 0)
@@ -1707,6 +1710,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if (mouse_was_captured) {
                 emit setMouseCapture(true);
             }
+            main_window_blocked = 0;
         } else if (event->type() == QEvent::WindowStateChange) {
             if ((this->isFullScreen() && (video_fullscreen == 0)) ||
                 (!this->isFullScreen() && (video_fullscreen == 1)))
