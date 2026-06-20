@@ -810,7 +810,7 @@ EOF
 	fi
 	if [ ! -e "$HOME/.cargo/bin" ]
 	then
-		curl -sSf https://sh.rustup.rs | sh -- -y
+		curl -sSf https://sh.rustup.rs | sh -s -- -y
 	fi
 	cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
 	PATH="$HOME/.cargo/bin/:$PATH"
