@@ -349,19 +349,6 @@ FPU_exception(UNUSED(uint32_t fetchdat), uint16_t exceptions, int store)
 
     if (exceptions & FPU_EX_Zero_Div) {
         fpu_state.swd |= FPU_EX_Zero_Div;
-        if (!(fpu_state.cwd & FPU_EX_Zero_Div)) {
-#ifdef FPU_8087
-            if (!(fpu_state.cwd & FPU_SW_Summary)) {
-                fpu_state.cwd |= FPU_SW_Summary;
-                nmi = 1;
-            }
-#else
-           if (cr0 & 0x20)
-               new_ne = 1;
-           else
-               picint(1 << 13);
-#endif // FPU_8087
-        }
         return unmasked;
     }
 

@@ -295,7 +295,9 @@ xga_render_blank(svga_t *svga)
 {
     xga_t *xga = (xga_t *) svga->xga;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->firstline_draw == 2000)
@@ -308,6 +310,38 @@ xga_render_blank(svga_t *svga)
 
     if (xga->h_disp > 0)
         memset(line_ptr, 0, line_width);
+}
+
+static float
+xga2_getclock(svga_t *svga)
+{
+    xga_t *xga = (xga_t *) svga->xga;
+
+    int freq_range = (xga->pll_program >> 6) & 0x03;
+    int freq_idx = xga->pll_program & 0x3f;
+    float pel_freq;
+    float factor;
+    float freq;
+
+    xga_log("FREQIDX=%02x, FREQRange=%d.\n", freq_idx, freq_range);
+    switch (freq_range) {
+        case 0x00:
+        default:
+            pel_freq = 16250000.0f;
+            factor = 250000.0f;
+            break;
+        case 0x01:
+            pel_freq = 32500000.0f;
+            factor = 500000.0f;
+            break;
+        case 0x02:
+            pel_freq = 65000000.0f;
+            factor = 1000000.0f;
+            break;
+    }
+
+    freq = (pel_freq + ((float) (freq_idx * factor)));
+    return freq;
 }
 
 void
@@ -343,24 +377,28 @@ xga_recalctimings(svga_t *svga)
         xga->memaddr_latch = xga->disp_start_addr;
 
         xga_log("XGA ClkSel1 = %d, ClkSel2 = %02x, dispcntl2=%02x.\n", (xga->clk_sel_1 >> 2) & 3, xga->clk_sel_2 & 0x80, xga->disp_cntl_2 & 0xc0);
-        switch ((xga->clk_sel_1 >> 2) & 3) {
-            case 0:
-                xga_log("HDISP VGA0 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
-                if (xga->clk_sel_2 & 0x80)
-                    svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 41539000.0;
-                else
-                    svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
-                break;
-            case 1:
-                xga_log("HDISP VGA1 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
-                svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 28322000.0;
-                break;
-            case 3:
-                svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
-                break;
+        if ((xga->clk_sel_1 & 0x80) && xga->type) {
+            svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / xga2_getclock(svga);
+        } else {
+            switch ((xga->clk_sel_1 >> 2) & 3) {
+                case 0:
+                    xga_log("HDISP VGA0 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
+                    if (xga->clk_sel_2 & 0x80)
+                        svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 41539000.0;
+                    else
+                        svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+                    break;
+                case 1:
+                    xga_log("HDISP VGA1 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
+                    svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 28322000.0;
+                    break;
+                case 3:
+                    svga->clock_xga = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+                    break;
 
-            default:
-                break;
+                default:
+                    break;
+            }
         }
 
         svga->render_xga = xga_render_blank;
@@ -541,6 +579,11 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
 
         case 0x55:
             xga->border_color = val;
+            break;
+
+        case 0x58:
+            xga->pll_program = val;
+            svga_recalctimings(svga);
             break;
 
         case 0x59:
@@ -867,6 +910,10 @@ xga_ext_inb(uint16_t addr, void *priv)
                     break;
                 case 0x55:
                     ret = xga->border_color;
+                    break;
+
+                case 0x58:
+                    ret = xga->pll_program;
                     break;
 
                 case 0x59:
@@ -2746,7 +2793,9 @@ xga_hwcursor_draw(svga_t *svga, int displine)
 static void
 xga_render_overscan_left(xga_t *xga, svga_t *svga)
 {
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->scrblank || (xga->h_disp == 0))
@@ -2762,7 +2811,9 @@ xga_render_overscan_right(xga_t *xga, svga_t *svga)
 {
     int right;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->scrblank || (xga->h_disp == 0))
@@ -2781,7 +2832,9 @@ xga_render_4bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -2826,7 +2879,9 @@ xga_render_8bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -2864,7 +2919,9 @@ xga_render_16bpp(svga_t *svga)
     uint32_t *p;
     uint32_t  dat;
 
-    if ((xga->displine + svga->y_add) < 0)
+    if (((xga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[xga->displine + svga->y_add] == NULL))
         return;
 
     if (xga->changedvram[xga->memaddr >> 12] || xga->changedvram[(xga->memaddr >> 12) + 1] || svga->fullchange) {
@@ -3458,7 +3515,7 @@ xga_poll(void *priv)
 }
 
 static uint8_t
-xga_mca_read(int port, void *priv)
+xga_mca_read(const uint16_t port, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = (xga_t *) svga->xga;
@@ -3471,7 +3528,7 @@ xga_mca_read(int port, void *priv)
 }
 
 static void
-xga_mca_write(int port, uint8_t val, void *priv)
+xga_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = (xga_t *) svga->xga;

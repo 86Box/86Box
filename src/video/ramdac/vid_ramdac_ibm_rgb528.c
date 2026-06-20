@@ -106,7 +106,9 @@ ibm_rgb528_render_4bpp(svga_t *svga)
     uint8_t                    swap_nib  = ramdac->indexed_data[0x72] & 0x21;
     uint8_t                    vram_size = ramdac->indexed_data[0x70] & 0x03;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
@@ -184,7 +186,9 @@ ibm_rgb528_render_8bpp(svga_t *svga)
     uint8_t                    swap_word = ramdac->indexed_data[0x72] & 0x10;
     uint8_t                    vram_size = ramdac->indexed_data[0x70] & 0x03;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
@@ -261,7 +265,9 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
     uint8_t                    vram_size = ramdac->indexed_data[0x70] & 0x01;
     uint8_t                    temp;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (b555_565 && (b16_dcol != 0x01))
@@ -380,7 +386,9 @@ ibm_rgb528_render_24bpp(svga_t *svga)
     uint8_t                    b6bit_lin = ramdac->indexed_data[0x07] & 0x80;
     uint8_t                    temp;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
@@ -470,7 +478,9 @@ ibm_rgb528_render_32bpp(svga_t *svga)
     uint8_t                    b6bit_lin = ramdac->indexed_data[0x07] & 0x80;
     uint8_t                    temp;
 
-    if ((svga->displine + svga->y_add) < 0)
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
         return;
 
     if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->changedvram[(svga->memaddr >> 12) + 2] || svga->fullchange) {
@@ -874,8 +884,8 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
     const ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) priv;
 
     svga->interlace = !!(ramdac->indexed_data[0x071] & 0x20);
-    //pclog("MiscClockControl idx002=%02x, SystemClockControl idx008=%02x, Misc2 idx071=%02x, Misc1 idx070=%02x, Misc4 idx073=%02x.\n",
-    //      ramdac->indexed_data[0x002], ramdac->indexed_data[0x008], ramdac->indexed_data[0x071], ramdac->indexed_data[0x070], ramdac->indexed_data[0x073]);
+    //pclog("MiscClockControl idx002=%02x, SystemClockControl idx008=%02x, Misc2 idx071=%02x, Misc1 idx070=%02x, Misc4 idx073=%02x, bpp=%d.\n",
+    //      ramdac->indexed_data[0x002], ramdac->indexed_data[0x008], ramdac->indexed_data[0x071], ramdac->indexed_data[0x070], ramdac->indexed_data[0x073], svga->bpp);
 
     if (ramdac->indexed_data[0x071] & 0x01) {
         if ((ramdac->indexed_data[0x070] & 0x03) == 0x03) {
@@ -888,13 +898,13 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
                     svga->clock_multiplier = 1;
                     break;
                 case 0x02:
-                    svga->clock_multiplier = 2;
-                    break;
-                case 0x03:
                     svga->clock_multiplier = 3;
                     break;
+                case 0x03:
+                    svga->clock_multiplier = 7;
+                    break;
                 case 0x04:
-                    svga->clock_multiplier = 4;
+                    svga->clock_multiplier = 15;
                     break;
             }
         } else if ((ramdac->indexed_data[0x070] & 0x03) == 0x01) {
@@ -908,13 +918,13 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
                     svga->clock_multiplier = 1;
                     break;
                 case 0x02:
-                    svga->clock_multiplier = 2;
-                    break;
-                case 0x03:
                     svga->clock_multiplier = 3;
                     break;
+                case 0x03:
+                    svga->clock_multiplier = 7;
+                    break;
                 case 0x04:
-                    svga->clock_multiplier = 4;
+                    svga->clock_multiplier = 15;
                     break;
             }
         }
@@ -1116,8 +1126,7 @@ ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock)
 void *
 ibm_rgb528_ramdac_init(UNUSED(const device_t *info))
 {
-    ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) malloc(sizeof(ibm_rgb528_ramdac_t));
-    memset(ramdac, 0, sizeof(ibm_rgb528_ramdac_t));
+    ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) calloc(1, sizeof(ibm_rgb528_ramdac_t));
 
     ramdac->smlc_part            = 0x0100;
     ramdac->ref_clock            = 14318184.0f;

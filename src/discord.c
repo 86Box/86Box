@@ -91,9 +91,9 @@ discord_update_activity(int paused)
 #endif
     if (strlen(vm_name) < 100) {
         snprintf(activity.details, sizeof(activity.details), "Running \"%s\"", vm_name);
-        snprintf(activity.state, sizeof(activity.state), "%s (%s/%s)", strchr(machine_getname(), ']') + 2, cpufamily, cpu_s->name);
+        snprintf(activity.state, sizeof(activity.state), "%s (%s/%s)", strchr(machine_getname(machine), ']') + 2, cpufamily, cpu_s->name);
     } else {
-        strncpy(activity.details, strchr(machine_getname(), ']') + 2, sizeof(activity.details) - 1);
+        strncpy(activity.details, strchr(machine_getname(machine), ']') + 2, sizeof(activity.details) - 1);
         snprintf(activity.state, sizeof(activity.state), "%s/%s", cpufamily, cpu_s->name);
     }
 #pragma GCC diagnostic pop

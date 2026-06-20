@@ -11,21 +11,20 @@
 #include "qt_renderercommon.hpp"
 
 class SoftwareRenderer :
-#ifdef __HAIKU__
     public QWidget,
-#else
-    public QWindow,
-#endif
     public RendererCommon {
     Q_OBJECT
 public:
     explicit SoftwareRenderer(QWidget *parent = nullptr);
+    void finalize() override final;
+
+    void paintEvent(QPaintEvent *event) override;
 
 #ifdef __HAIKU__
-    void paintEvent(QPaintEvent *event) override;
-#endif
-
     void exposeEvent(QExposeEvent *event) override;
+#else
+    void exposeEvent(QExposeEvent *event);
+#endif
 
     std::vector<std::tuple<uint8_t *, std::atomic_flag *>> getBuffers() override;
 
@@ -35,10 +34,13 @@ public slots:
 protected:
     std::array<std::unique_ptr<QImage>, 2> images;
     int                                    cur_image = -1;
+    bool                                   osd_drawn_last = false;
 
     void onPaint(QPaintDevice *device);
     void resizeEvent(QResizeEvent *event) override;
     bool event(QEvent *event) override;
+
+    bool was_osd_visible = false;
 
     void render();
 

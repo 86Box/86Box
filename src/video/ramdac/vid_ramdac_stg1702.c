@@ -243,8 +243,7 @@ stg_getclock(int clock, void *priv)
 static void *
 stg_ramdac_init(UNUSED(const device_t *info))
 {
-    stg_ramdac_t *ramdac = (stg_ramdac_t *) malloc(sizeof(stg_ramdac_t));
-    memset(ramdac, 0, sizeof(stg_ramdac_t));
+    stg_ramdac_t *ramdac = (stg_ramdac_t *) calloc(1, sizeof(stg_ramdac_t));
 
     ramdac->type = info->local & 0xff;
 

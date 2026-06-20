@@ -1117,7 +1117,7 @@ BuslogicBIOSUpdate(buslogic_data_t *bl)
 }
 
 static uint8_t
-BuslogicPCIRead(UNUSED(int func), int addr, void *priv)
+BuslogicPCIRead(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const x54x_t *dev = (x54x_t *) priv;
 #ifdef ENABLE_BUSLOGIC_LOG
@@ -1203,7 +1203,7 @@ BuslogicPCIRead(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-BuslogicPCIWrite(UNUSED(int func), int addr, uint8_t val, void *priv)
+BuslogicPCIWrite(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
@@ -1329,7 +1329,7 @@ BuslogicInitializeLocalRAM(buslogic_data_t *bl)
 }
 
 static uint8_t
-buslogic_mca_read(int port, void *priv)
+buslogic_mca_read(const uint16_t port, void *priv)
 {
     const x54x_t *dev = (x54x_t *) priv;
 
@@ -1337,7 +1337,7 @@ buslogic_mca_read(int port, void *priv)
 }
 
 static void
-buslogic_mca_write(int port, uint8_t val, void *priv)
+buslogic_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;

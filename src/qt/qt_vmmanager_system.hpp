@@ -46,6 +46,7 @@ namespace Display {
         CD,
         RDisk,
         MO,
+        Tape,
         SCSIController,
         StorageController,
         MidiOut,
@@ -120,7 +121,7 @@ public:
     [[nodiscard]] bool   isProcessRunning() const;
     [[nodiscard]] qint64 processId() const;
 public slots:
-    void launchMainProcess();
+    void launch86Box(bool settings = false);
     void launchSettings();
     void startButtonPressed();
     void restartButtonPressed();
@@ -138,7 +139,6 @@ public:
     QProcess *process = new QProcess();
 
     bool window_obscured;
-    bool config_signal_connected = false;
 
     QString       getDisplayValue(VMManager::Display::Name key);
     QFileInfoList getScreenshots();
@@ -158,7 +158,7 @@ signals:
     void windowStatusChanged();
     void itemDataChanged();
     void clientProcessStatusChanged();
-    void configurationChanged(const QString &uuid);
+    void configurationChanged(VMManagerSystem *sysconfig);
     void globalConfigurationChanged();
 
 private:

@@ -129,8 +129,7 @@ bt481_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 static void *
 bt481_ramdac_init(UNUSED(const device_t *info))
 {
-    bt481_ramdac_t *ramdac = (bt481_ramdac_t *) malloc(sizeof(bt481_ramdac_t));
-    memset(ramdac, 0, sizeof(bt481_ramdac_t));
+    bt481_ramdac_t *ramdac = (bt481_ramdac_t *) calloc(1, sizeof(bt481_ramdac_t));
 
     return ramdac;
 }

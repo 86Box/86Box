@@ -300,11 +300,18 @@ pc873xx_read(uint16_t port, void *priv)
 
     index = (port & 1) ? 0 : 1;
 
-    dev->tries = 0;
-
-    if (index)
-        ret = dev->cur_reg & 0x1f;
-    else {
+    if (index) {
+        if (dev->tries == 0xff) {
+            ret = 0x88;
+            dev->tries = 0xfe;
+        } else if (dev->tries == 0xfe) {
+            ret = 0x00;
+            dev->tries = 0;
+        } else {
+            ret = dev->cur_reg & 0x1f;
+            dev->tries = 0;
+        }
+    } else {
         if (dev->cur_reg == 8)
             ret = 0x10;
         else if (dev->cur_reg < 14)
@@ -314,10 +321,11 @@ pc873xx_read(uint16_t port, void *priv)
     return ret;
 }
 
-void
+static void
 pc873xx_reset(pc873xx_t *dev)
 {
     memset(dev->regs, 0, 15);
+    dev->tries = 0xff;
 
     dev->regs[0x00] = dev->fdc_on ? 0x4f : 0x07;
     if (dev->has_ide == 2)

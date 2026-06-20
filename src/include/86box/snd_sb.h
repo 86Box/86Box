@@ -15,7 +15,7 @@
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2024-2025 Jasmine Iwanek.
+ *          Copyright 2024-2026 Jasmine Iwanek.
  */
 #ifndef SOUND_SND_SB_H
 #define SOUND_SND_SB_H
@@ -25,15 +25,18 @@
 #include <86box/snd_mpu401.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_sb_dsp.h>
+#include <86box/isapnp.h>
 
 enum {
     SADLIB  = 1,     /* No DSP */
-    SB_DSP_105,      /* DSP v1.05, Original CT1320 (Also known as CT1310) */
+    SB_DSP_103,      /* DSP v1.03, "killer card" prototype (Also known as CT1310) */
+    SB_DSP_105,      /* DSP v1.05, Original CT1320 */
     SB_DSP_200,      /* DSP v2.00 */
     SB_DSP_201,      /* DSP v2.01 - needed for high-speed DMA, Seen on CT1350B with CT1336 */
     SB_DSP_202,      /* DSP v2.02 - Seen on CT1350B with CT1336A */
     SBPRO_DSP_300,   /* DSP v3.00 */
-    SBPRO2_DSP_302,  /* DSP v3.02 + OPL3 */
+    SBPRO_DSP_301,   /* DSP v3.01 */
+    SBPRO_DSP_302,   /* DSP v3.02 */
     SB16_DSP_404,    /* DSP v4.05 + OPL3 */
     SB16_DSP_405,    /* DSP v4.05 + OPL3 */
     SB16_DSP_406,    /* DSP v4.06 + OPL3 */
@@ -154,6 +157,10 @@ typedef struct ess_mixer_t {
     #define INPUT_MIXER_L 128
     #define INPUT_MIXER_R 256
 
+    /* ESS ES188x+ DAC2 volume */
+    double dac2_l;
+    double dac2_r;
+
     int input_filter;
     int in_filter_freq;
     int output_filter;
@@ -188,6 +195,7 @@ typedef struct sb_t {
 
     int pnp;
     int has_ide;
+    int has_dualopl2;
 
     uint8_t pos_regs[8];
     uint8_t pnp_rom[512];
@@ -196,6 +204,46 @@ typedef struct sb_t {
 
     uint16_t midi_addr;
     uint16_t gameport_addr;
+
+    uint8_t  ess_scr_locked;
+    uint8_t  es1688_rsk_enable;
+    uint8_t  es188x_readseq_state;
+    uint8_t  es188x_readseq_mode;
+    uint16_t es188x_dsp_addr;
+    uint16_t es186x_ctrl_addr;
+    uint8_t  es186x_id_state;
+    uint8_t  es186x_ctrl_regs[8];
+    uint8_t  es186x_ctrl_iregs[256];
+    void     *pnp_card;
+    uint8_t  es186x_key_pos : 5;
+    uint8_t  es186x_bypass;
+    uint8_t  es186x_bypass_state;
+    uint16_t es186x_confaddr;
+    uint16_t es186x_rom_pos;
+    isapnp_device_config_t *es186x_bypass_conf;
+
+    /* ESS ES188x secondary DAC */
+    int        ess_dac2_freq;
+    double     ess_dac2_latcho;
+    int        ess_dac2_timeo;
+    int        ess_dac2_autolen;
+    int        ess_dac2_counter;
+    uint8_t    ess_dac2_autoinit;
+    uint8_t    ess_dac2_stereo;
+    uint8_t    ess_dac2_signed;
+    uint8_t    ess_dac2_16bit;
+    uint8_t    ess_dac2_irq;
+    uint8_t    ess_dac2_dma;
+    pc_timer_t ess_dac2_timer;
+    uint16_t   ess_dac2_datl;
+    uint16_t   ess_dac2_datr;
+    int        ess_dac2_pos;
+    uint8_t    ess_dac2_enable;
+    uint8_t    ess_dac2_suspend;
+    int16_t    ess_dac2_buffer[SOUNDBUFLEN * 2];
+    int        ess_dac2_dmadat;
+    uint8_t    ess_dac2_dmaff;
+    uint8_t    ess_dac2_dmacount;
 
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);
@@ -219,8 +267,8 @@ extern void    sb_ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ess_mixer_reset(sb_t *sb);
 
-extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv);
-extern void sb_get_music_buffer_sbpro(int32_t *buffer, int len, void *priv);
+extern void sb_get_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb_close(void *priv);

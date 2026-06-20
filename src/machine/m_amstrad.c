@@ -220,8 +220,8 @@ recalc_timings_1512(amsvid_t *vid)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
     _dispofftime *= CGACONST;
-    vid->dispontime  = (uint64_t) _dispontime;
-    vid->dispofftime = (uint64_t) _dispofftime;
+    vid->dispontime  = (uint64_t) (int64_t) _dispontime;
+    vid->dispofftime = (uint64_t) (int64_t) _dispofftime;
 }
 
 static void
@@ -666,7 +666,7 @@ vid_init_1512(amstrad_t *ams)
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pc1512);
 
-    vid->vram    = malloc(0x10000);
+    vid->vram    = calloc(1, 0x10000);
     vid->cgacol  = 7;
     vid->cgamode = 0x12;
 
@@ -719,7 +719,7 @@ const device_config_t vid_1512_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "PC-CM (Colour)",     .value = 0 },
+            { .description = "PC-CM (Color)",      .value = 0 },
             { .description = "PC-MM (Monochrome)", .value = 3 },
             { .description = ""                               }
         },
@@ -751,16 +751,16 @@ const device_config_t vid_1512_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "US English", .value = 3 },
-            { .description = "Danish",     .value = 1 },
-            { .description = "Greek",      .value = 0 },
-            { .description = ""                       }
+            { .description = "English (US)", .value = 3 },
+            { .description = "Danish",       .value = 1 },
+            { .description = "Greek",        .value = 0 },
+            { .description = ""                         }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -784,7 +784,7 @@ const device_config_t vid_1512_config[] = {
 };
 
 const device_t vid_1512_device = {
-    .name          = "Amstrad PC1512 (video)",
+    .name          = "Amstrad PC1512 (Video)",
     .internal_name = "vid_1512",
     .flags         = 0,
     .local         = 0,
@@ -961,7 +961,7 @@ const device_config_t vid_1640_config[] = {
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -985,7 +985,7 @@ const device_config_t vid_1640_config[] = {
 };
 
 const device_t vid_1640_device = {
-    .name          = "Amstrad PC1640 (video)",
+    .name          = "Amstrad PC1640 (Video)",
     .internal_name = "vid_1640",
     .flags         = 0,
     .local         = 0,
@@ -1758,7 +1758,7 @@ vid_init_200(amstrad_t *ams)
 
     cga       = &vid->cga;
     mda       = &vid->mda;
-    cga->vram = mda->vram = malloc(0x4000);
+    cga->vram = mda->vram = calloc(1, 0x4000);
     cga_init(cga);
     mda_init(mda);
 
@@ -1877,17 +1877,17 @@ const device_config_t vid_200_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "US English", .value = 3 },
-            { .description = "Portugese",  .value = 2 },
-            { .description = "Norwegian",  .value = 1 },
-            { .description = "Greek",      .value = 0 },
-            { .description = ""                       }
+            { .description = "English (US)", .value = 3 },
+            { .description = "Portuguese",   .value = 2 },
+            { .description = "Norwegian",    .value = 1 },
+            { .description = "Greek",        .value = 0 },
+            { .description = ""                         }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -1911,7 +1911,7 @@ const device_config_t vid_200_config[] = {
 };
 
 const device_t vid_200_device = {
-    .name          = "Amstrad PC200 (video)",
+    .name          = "Amstrad PC200 (Video)",
     .internal_name = "vid_200",
     .flags         = 0,
     .local         = 0,
@@ -1974,17 +1974,17 @@ const device_config_t vid_ppc512_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "US English", .value = 3 },
-            { .description = "Portugese",  .value = 2 },
-            { .description = "Norwegian",  .value = 1 },
-            { .description = "Greek",      .value = 0 },
-            { .description = ""                       }
+            { .description = "English (US)", .value = 3 },
+            { .description = "Portuguese",   .value = 2 },
+            { .description = "Norwegian",    .value = 1 },
+            { .description = "Greek",        .value = 0 },
+            { .description = ""                         }
         },
         .bios           = { { 0 } }
     },
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -2019,7 +2019,7 @@ const device_config_t vid_ppc512_config[] = {
 };
 
 const device_t vid_ppc512_device = {
-    .name          = "Amstrad PPC512 (video)",
+    .name          = "Amstrad PPC512 (Video)",
     .internal_name = "vid_ppc512",
     .flags         = 0,
     .local         = 0,
@@ -2036,7 +2036,7 @@ const device_config_t vid_pc2086_config[] = {
     // clang-format off
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -2054,7 +2054,7 @@ const device_config_t vid_pc2086_config[] = {
 };
 
 const device_t vid_pc2086_device = {
-    .name          = "Amstrad PC2086",
+    .name          = "Amstrad PC2086 (Video)",
     .internal_name = "vid_pc2086",
     .flags         = 0,
     .local         = 0,
@@ -2071,7 +2071,7 @@ const device_config_t vid_pc3086_config[] = {
     // clang-format off
     {
         .name           = "language",
-        .description    = "BIOS language",
+        .description    = "BIOS Language",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 7,
@@ -2089,7 +2089,7 @@ const device_config_t vid_pc3086_config[] = {
 };
 
 const device_t vid_pc3086_device = {
-    .name          = "Amstrad PC3086",
+    .name          = "Amstrad PC3086 (Video)",
     .internal_name = "vid_pc3086",
     .flags         = 0,
     .local         = 0,
@@ -2971,17 +2971,6 @@ machine_amstrad_init(const machine_t *model, int type)
     ams->type     = type;
     amstrad_latch = 0x80000000;
 
-    switch (type) {
-        case AMS_PC200:
-        case AMS_PPC512:
-            device_add(&amstrad_no_nmi_nvr_device);
-            break;
-
-        default:
-            device_add(&amstrad_nvr_device);
-            break;
-    }
-
     machine_common_init(model);
 
     nmi_init();
@@ -3020,7 +3009,7 @@ machine_amstrad_init(const machine_t *model, int type)
     if (gfxcard[0] == VID_INTERNAL)
         switch (type) {
             case AMS_PC1512:
-                loadfont("roms/machines/pc1512/40078", 8);
+                video_load_font("roms/machines/pc1512/40078", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_1512_device);
                 ams->language = device_get_config_int("language");
                 vid_init_1512(ams);
@@ -3029,7 +3018,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 break;
 
             case AMS_PPC512:
-                loadfont("roms/machines/ppc512/40109", 1);
+                video_load_font("roms/machines/ppc512/40109", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_ppc512_device);
                 ams->language = device_get_config_int("language");
                 vid_init_200(ams);
@@ -3038,7 +3027,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 break;
 
             case AMS_PC1640:
-                loadfont(FONT_IBM_MDA_437_PATH, 0);
+                video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_1640_device);
                 ams->language = device_get_config_int("language");
                 vid_init_1640(ams);
@@ -3047,7 +3036,7 @@ machine_amstrad_init(const machine_t *model, int type)
                 break;
 
             case AMS_PC200:
-                loadfont("roms/machines/pc200/40109", 1);
+                video_load_font("roms/machines/pc200/40109", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
                 device_context(&vid_200_device);
                 ams->language = device_get_config_int("language");
                 vid_init_200(ams);

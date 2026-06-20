@@ -151,13 +151,13 @@ ps1snd_callback(void *priv)
 }
 
 static void
-ps1snd_get_buffer(int32_t *buffer, int len, void *priv)
+ps1snd_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ps1snd_t *ps1snd = (ps1snd_t *) priv;
 
     ps1snd_update(ps1snd);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += ps1snd->buffer[c >> 1];
 
     ps1snd->pos = 0;

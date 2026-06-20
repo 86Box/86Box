@@ -96,7 +96,7 @@ static const device_config_t deskpro386_config[] = {
 
 const device_t deskpro386_device = {
     .name          = "Compaq Deskpro 386",
-    .internal_name = "deskpro386_device",
+    .internal_name = "deskpro386",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -272,7 +272,7 @@ machine_at_spc6000a_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 1);
+    machine_at_common_init(model);
 
     device_add(&cs8230_device);
 
@@ -371,7 +371,7 @@ static const device_config_t dataexpert386wb_config[] = {
 
 const device_t dataexpert386wb_device = {
     .name          = "DataExpert 386C",
-    .internal_name = "dataexpert386wb_device",
+    .internal_name = "dataexpert386wb",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

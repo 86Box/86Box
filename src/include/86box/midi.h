@@ -27,6 +27,7 @@ extern int         midi_out_device_get_from_internal_name(char *s);
 extern int         midi_in_device_get_from_internal_name(char *s);
 extern void        midi_out_device_init(void);
 extern void        midi_in_device_init(void);
+extern void        midi_config_changed(void);
 
 typedef struct midi_device_t {
     void (*play_sysex)(uint8_t *sysex, unsigned int len);
@@ -116,6 +117,9 @@ extern const device_t mt32_new_device;
 extern const device_t cm32l_device;
 extern const device_t cm32ln_device;
 #    endif /* USE_MUNT */
+#    ifdef USE_SOUNDCANVAS
+extern const device_t soundcanvas_device;
+#    endif /* USE_SOUNDCANVAS */
 #endif
 
 #endif /*EMU_SOUND_MIDI_H*/

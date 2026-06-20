@@ -3100,7 +3100,7 @@ rtl8139_timer(void *priv)
 }
 
 static uint8_t
-rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
+rtl8139_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const RTL8139State *s = (RTL8139State *) priv;
 
@@ -3157,7 +3157,7 @@ rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-rtl8139_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+rtl8139_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     RTL8139State *s = (RTL8139State *) priv;
 
@@ -3286,15 +3286,11 @@ nic_init(const device_t *info)
     for (uint32_t i = 0; i < 6; i++)
         s->phys[MAC0 + i] = mac_bytes[i];
 
-    params.nwords          = 64;
-    params.default_content = (uint16_t *) s->eeprom_data;
+    params.type            = NMC_93C46_x16_64;
+    params.default_content = s->eeprom_data;
     params.filename        = filename;
     snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, s->inst);
     s->eeprom = device_add_inst_params(&nmc93cxx_device, s->inst, &params);
-    if (s->eeprom == NULL) {
-        free(s);
-        return NULL;
-    }
 
     s->nic = network_attach(s, (uint8_t *) &s->phys[MAC0], rtl8139_do_receive, rtl8139_set_link_status);
     timer_add(&s->timer, rtl8139_timer, s, 0);

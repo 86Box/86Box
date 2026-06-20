@@ -290,7 +290,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                         ad1848_init(&dev->ad1848, dev->ad1848_type);
                         ad1848_set_cd_audio_channel(&dev->ad1848, AD1848_AUX2);
                     }
-                    val = 0x00;
+                    val &= 0x07;
                     break;
 
                 case 1:         /* Version / Chip ID */
@@ -626,16 +626,16 @@ cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 }
 
 static void
-cs423x_get_buffer(int32_t *buffer, int len, void *priv)
+cs423x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     cs423x_t       *dev = (cs423x_t *) priv;
 
-    /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
+    /* Output audio from the WSS codec. */
     ad1848_update(&dev->ad1848);
 
     /* Don't output anything if the analog section or DAC is powered down. */
     if (!(dev->regs[2] & 0xb4) && !(dev->indirect_regs[9] & 0x04)) {
-        for (int c = 0; c < len * 2; c += 2) {
+        for (uint16_t c = 0; c < len * 2; c += 2) {
             buffer[c] += dev->ad1848.buffer[c] / 2;
             buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
         }
@@ -645,18 +645,18 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 static void
-cs423x_get_music_buffer(int32_t *buffer, int len, void *priv)
+cs423x_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
 
-    /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
+    /* Output audio from the OPL if we're in charge of it. */
     if (dev->opl_wss) {
         const int32_t *opl_buf = dev->sb->opl.update(dev->sb->opl.priv);
 
         /* Don't output anything if the analog section, DAC (DAC2 instead on CS4235+) or FM synth is powered down. */
         uint8_t bpd_mask = (dev->type >= CRYSTAL_CS4235) ? 0xb1 : 0xb5;
         if (!(dev->regs[2] & bpd_mask) && !(dev->indirect_regs[9] & 0x06)) {
-            for (int c = 0; c < len * 2; c += 2) {
+            for (uint16_t c = 0; c < len * 2; c += 2) {
                 buffer[c] += (opl_buf[c] * dev->ad1848.fm_vol_l) >> 16;
                 buffer[c + 1] += (opl_buf[c + 1] * dev->ad1848.fm_vol_r) >> 16;
             }
@@ -1203,7 +1203,7 @@ const device_t cs4236b_device = {
 };
 
 const device_t cs4236b_onboard_device = {
-    .name          = "Crystal CS4236B",
+    .name          = "Crystal CS4236B (On-Board)",
     .internal_name = "cs4236b",
     .flags         = DEVICE_ISA16,
     .local         = CRYSTAL_CS4236B | CRYSTAL_NOEEPROM,

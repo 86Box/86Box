@@ -79,7 +79,7 @@ static const scancode scancode_tandy[512] = {
     { .mk = {      0x0f, 0 }, .brk = {             0x8f, 0 } }, /* 00f */
     { .mk = {      0x10, 0 }, .brk = {             0x90, 0 } }, /* 010 */
     { .mk = {      0x11, 0 }, .brk = {             0x91, 0 } }, /* 011 */
-    { .mk = {      0x12, 0 }, .brk = {             0x92, 0 } }, /* 013 */
+    { .mk = {      0x12, 0 }, .brk = {             0x92, 0 } }, /* 012 */
     { .mk = {      0x13, 0 }, .brk = {             0x93, 0 } }, /* 013 */
     { .mk = {      0x14, 0 }, .brk = {             0x94, 0 } }, /* 014 */
     { .mk = {      0x15, 0 }, .brk = {             0x95, 0 } }, /* 015 */
@@ -890,7 +890,7 @@ read_roml(uint32_t addr, void *priv)
 static void
 init_rom(tandy_t *dev)
 {
-    dev->rom = (uint8_t *) malloc(0x80000);
+    dev->rom = (uint8_t *) calloc(1, 0x80000);
 
 #if 1
     if (!rom_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",

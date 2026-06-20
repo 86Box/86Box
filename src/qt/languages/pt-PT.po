@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-05-29 18:36+0000\n"
+"Last-Translator: RichardG867 <richardg867@gmail.com>\n"
 "Language-Team: Portuguese (Portugal) <https://weblate.86box.net/projects/"
 "86box/86box/pt_PT/>\n"
 "Language: pt-PT\n"
@@ -73,8 +73,8 @@ msgstr "Open&GL (Núcleo 3.0)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "&Especificar dimensões..."
+msgid "Specify &dimensions…"
+msgstr "&Especificar dimensões…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Forçar rácio de visualização &4:3"
@@ -145,53 +145,44 @@ msgstr "Escala &inteira"
 msgid "4:&3 Integer scale"
 msgstr "Escala inteira 4:&3"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "Definições EGA/(S)&VGA"
+msgid "Inverted VGA monitor"
+msgstr "Monitor VGA invertido"
 
-msgid "&Inverted VGA monitor"
-msgstr "Monitor VGA &invertido"
+msgid "VGA screen type:"
+msgstr "Tipo de ecrã VGA:"
 
-msgid "VGA screen &type"
-msgstr "&Tipo de ecrã VGA"
-
-msgid "RGB &Color"
-msgstr "&Cores RGB"
+msgid "RGB Color"
+msgstr "Cores RGB"
 
 msgid "RGB (no brown)"
 msgstr "RGB (sem castanho)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB em escala de cinzentos"
+msgid "RGB Grayscale"
+msgstr "RGB em escala de cinzentos"
 
 msgid "Generic RGBI color monitor"
 msgstr "Monitor RGBI genérico em cores"
 
-msgid "&Amber monitor"
-msgstr "Monitor âmb&ar"
+msgid "Amber monitor"
+msgstr "Monitor âmbar"
 
-msgid "&Green monitor"
-msgstr "Monitor &verde"
+msgid "Green monitor"
+msgstr "Monitor verde"
 
-msgid "&White monitor"
-msgstr "Monitor &branco"
+msgid "White monitor"
+msgstr "Monitor branco"
 
-msgid "Grayscale &conversion type"
-msgstr "Tipo de &conversão para escala de cinzentos"
+msgid "Grayscale conversion type:"
+msgstr "Tipo de conversão para escala de cinzentos:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Média"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Média"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Overscan de CGA/PCjr/Tandy/E&GA/(S)VGA"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Mudar contraste para ecrã &monocromático"
+msgid "Change contrast for monochrome display"
+msgstr "Mudar contraste para ecrã monocromático"
 
 msgid "&Media"
 msgstr "&Media"
@@ -199,11 +190,11 @@ msgstr "&Media"
 msgid "&Tools"
 msgstr "&Ferramentas"
 
-msgid "&Settings..."
-msgstr "&Definições..."
+msgid "&Settings…"
+msgstr "&Definições…"
 
-msgid "Settings..."
-msgstr "Definições..."
+msgid "Settings…"
+msgstr "Definições…"
 
 msgid "&Update status bar icons"
 msgstr "&Atualizar ícones da barra de estado"
@@ -211,17 +202,38 @@ msgstr "&Atualizar ícones da barra de estado"
 msgid "Take s&creenshot"
 msgstr "Gravar imagem de &ecrã"
 
+msgid "Take screenshot"
+msgstr "Gravar imagem de ecrã"
+
+msgid "Take &raw screenshot"
+msgstr "Gravar imagem &bruta de ecrã"
+
+msgid "Take raw screenshot"
+msgstr "Gravar imagem bruta de ecrã"
+
+msgid "C&opy screenshot"
+msgstr "&Copiar imagem de ecrã"
+
+msgid "Copy screenshot"
+msgstr "Copiar imagem de ecrã"
+
+msgid "Copy r&aw screenshot"
+msgstr "Copiar imagem b&ruta de ecrã"
+
+msgid "Copy raw screenshot"
+msgstr "Copiar imagem bruta de ecrã"
+
 msgid "S&ound"
 msgstr "&Som"
 
-msgid "&Preferences..."
-msgstr "&Preferências..."
+msgid "&Preferences…"
+msgstr "&Preferências…"
 
 msgid "Enable &Discord integration"
 msgstr "Ativar integração com D&iscord"
 
-msgid "Sound &gain..."
-msgstr "&Ganho de som..."
+msgid "Sound &gain…"
+msgstr "&Ganho de som…"
 
 msgid "Begin trace"
 msgstr "Iniciar o rastreio"
@@ -232,20 +244,20 @@ msgstr "Terminar o rastreio"
 msgid "&Help"
 msgstr "Aj&uda"
 
-msgid "&Documentation..."
-msgstr "&Documentação..."
+msgid "&Documentation…"
+msgstr "&Documentação…"
 
-msgid "&About 86Box..."
-msgstr "&Acerca do 86Box..."
+msgid "&About 86Box…"
+msgstr "&Acerca do 86Box…"
 
-msgid "&New image..."
-msgstr "&Nova imagem..."
+msgid "&New image…"
+msgstr "&Nova imagem…"
 
-msgid "&Existing image..."
-msgstr "Imagem &existente..."
+msgid "&Existing image…"
+msgstr "Imagem &existente…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Imagem existente (&Proteção contra escrita)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Imagem existente (&Proteção contra escrita)…"
 
 msgid "&Record"
 msgstr "&Gravar"
@@ -262,11 +274,11 @@ msgstr "&Avanço rápido para o fim"
 msgid "E&ject"
 msgstr "E&jetar"
 
-msgid "&Image..."
-msgstr "&Imagem..."
+msgid "&Image…"
+msgstr "&Imagem…"
 
-msgid "E&xport to 86F..."
-msgstr "E&xportar para 86F..."
+msgid "E&xport to 86F…"
+msgstr "E&xportar para 86F…"
 
 msgid "&Mute"
 msgstr "&Desativar som"
@@ -277,8 +289,8 @@ msgstr "&CDROM vazio"
 msgid "Reload previous image"
 msgstr "Recarregar imagem anterior"
 
-msgid "&Folder..."
-msgstr "&Pasta..."
+msgid "&Folder…"
+msgstr "&Pasta…"
 
 msgid "Preferences"
 msgstr "Preferências"
@@ -331,8 +343,32 @@ msgstr "Altura:"
 msgid "Lock to this size"
 msgstr "Fixar neste tamanho"
 
+msgid "General"
+msgstr "Geral"
+
+msgid "Processor"
+msgstr "Processador"
+
+msgid "Performance"
+msgstr "Desempenho"
+
 msgid "Machine type:"
 msgstr "Tipo de máquina:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486 (Socket 168 e 1)"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486 (vários)"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7 (tensão única)"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1995] Socket 7 (dois tensões)"
+
+msgid "Miscellaneous"
+msgstr "Vários"
 
 msgid "Machine:"
 msgstr "Máquina:"
@@ -352,8 +388,14 @@ msgstr "Velocidade:"
 msgid "Frequency:"
 msgstr "Frequência:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "Integrado"
 
 msgid "Wait states:"
 msgstr "Estados de espera:"
@@ -376,6 +418,9 @@ msgstr "Ativada (hora local)"
 msgid "Enabled (UTC)"
 msgstr "Ativada (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Utilizar o interpetador 486 para os processadores 286 e 386"
+
 msgid "Dynamic Recompiler"
 msgstr "Recompilador dinâmico"
 
@@ -394,6 +439,9 @@ msgstr "Vídeo:"
 msgid "Video #2:"
 msgstr "Vídeo 2:"
 
+msgid "Monitor"
+msgstr "Monitor"
+
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Gráficos Voodoo 1 ou 2"
 
@@ -405,6 +453,9 @@ msgstr "Gráficos XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Adaptador de apresentação gráfica IBM PS/55"
+
+msgid "Voodoo:"
+msgstr "Voodoo:"
 
 msgid "Keyboard:"
 msgstr "Teclado:"
@@ -424,28 +475,28 @@ msgstr "Joystick:"
 msgid "Joystick"
 msgstr "Joystick"
 
-msgid "Joystick 1..."
-msgstr "Joystick 1..."
+msgid "Joystick 1…"
+msgstr "Joystick 1…"
 
-msgid "Joystick 2..."
-msgstr "Joystick 2..."
+msgid "Joystick 2…"
+msgstr "Joystick 2…"
 
-msgid "Joystick 3..."
-msgstr "Joystick 3..."
+msgid "Joystick 3…"
+msgstr "Joystick 3…"
 
-msgid "Joystick 4..."
-msgstr "Joystick 4..."
+msgid "Joystick 4…"
+msgstr "Joystick 4…"
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr "Placa de som 1:"
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr "Placa de som 2:"
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr "Placa de som 3:"
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr "Placa de som 4:"
 
 msgid "MIDI Out Device:"
@@ -463,8 +514,8 @@ msgstr "MPU-401 autónomo"
 msgid "Use FLOAT32 sound"
 msgstr "Utilizar som FLOAT32"
 
-msgid "FM synth driver"
-msgstr "Controlador de sint. FM"
+msgid "FM synth driver:"
+msgstr "Controlador de sint. FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (mais exacto)"
@@ -472,62 +523,53 @@ msgstr "Nuked (mais exacto)"
 msgid "YMFM (faster)"
 msgstr "YMFM (mais rápido)"
 
-msgid "COM1 Device:"
-msgstr "Dispositivo COM1:"
-
-msgid "COM2 Device:"
-msgstr "Dispositivo COM2:"
-
-msgid "COM3 Device:"
-msgstr "Dispositivo COM3:"
-
-msgid "COM4 Device:"
-msgstr "Dispositivo COM4:"
-
-msgid "LPT1 Device:"
-msgstr "Dispositivo LPT1:"
-
-msgid "LPT2 Device:"
-msgstr "Dispositivo LPT2:"
-
-msgid "LPT3 Device:"
-msgstr "Dispositivo LPT3:"
-
-msgid "LPT4 Device:"
-msgstr "Dispositivo LPT4:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "DMA do ECP do LPT interno:"
 
-msgid "Serial port 1"
-msgstr "Porta de série 1"
+msgid "Floppy disk controller:"
+msgstr "Controlador de disquetes:"
 
-msgid "Serial port 2"
-msgstr "Porta de série 2"
-
-msgid "Serial port 3"
-msgstr "Porta de série 3"
-
-msgid "Serial port 4"
-msgstr "Porta de série 4"
-
-msgid "Parallel port 1"
-msgstr "Porta paralela 1"
-
-msgid "Parallel port 2"
-msgstr "Porta paralela 2"
-
-msgid "Parallel port 3"
-msgstr "Porta paralela 3"
-
-msgid "Parallel port 4"
-msgstr "Porta paralela 4"
-
-msgid "FD Controller:"
-msgstr "Controlador FD:"
-
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "Controlador CD-ROM:"
+
+msgid "Mitsumi interface"
+msgstr "Interfaz Mitsumi"
+
+msgid "MKE/Panasonic interface"
+msgstr "Interfaz MKE/Panasonic"
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr "Interfaz MKE/Panasonic (Creative)"
+
+msgid "IDE Controller"
+msgstr "Controlador IDE"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "Controlador IDE (dois canais)"
+
+msgid "PC/AT IDE Controller"
+msgstr "Controlador IDE PC/AT"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "Controlador IDE PC/AT (dois canais)"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "Contolador XTIDE PC/AT (só primário)"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "XTIDE AT PS/2 (1.1.5) (só primário)"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646 (terciário e quaternário)"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648 (terciário e quaternário)"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649 (terciário e quaternário)"
+
+msgid "McIDE Controller"
+msgstr "Controlador McIDE"
 
 msgid "Tertiary IDE Controller"
 msgstr "Controlador IDE terciário"
@@ -535,11 +577,11 @@ msgstr "Controlador IDE terciário"
 msgid "Quaternary IDE Controller"
 msgstr "Controlador IDE quaternário"
 
-msgid "Hard disk"
-msgstr "Disco rígido"
+msgid "Hard disk controllers"
+msgstr "Controladores de disco rígido"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "Controladores SCSI"
 
 msgid "Controller 1:"
 msgstr "Controlador 1:"
@@ -562,11 +604,14 @@ msgstr "Discos rígidos:"
 msgid "Firmware Version"
 msgstr "Versão de firmware"
 
-msgid "&New..."
-msgstr "&Novo..."
+msgid "DSP Version"
+msgstr "Versão de DSP"
 
-msgid "&Existing..."
-msgstr "&Existente..."
+msgid "&New…"
+msgstr "&Novo…"
+
+msgid "&Existing…"
+msgstr "&Existente…"
 
 msgid "&Remove"
 msgstr "&Remover"
@@ -601,8 +646,44 @@ msgstr "Formato de imagem:"
 msgid "Block Size:"
 msgstr "Tamanho de bloco:"
 
-msgid "Floppy drives:"
-msgstr "Unidades de disquete:"
+msgid "Floppy drives"
+msgstr "Unidades de disquete"
+
+msgid "5.25\" 180k"
+msgstr "5.25\" 180k"
+
+msgid "5.25\" 360k"
+msgstr "5.25\" 360k"
+
+msgid "5.25\" 720k"
+msgstr "5.25\" 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5.25\" 1.2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5.25\" 1.2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3.5\" 360k"
+
+msgid "3.5\" 720k"
+msgstr "3.5\" 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3.5\" 1.44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3.5\" 1.25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3.5\" 1.44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3.5\" 2.88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3.5\" 2.88M 300/360 RPM"
 
 msgid "Turbo timings"
 msgstr "Velocidade turbo"
@@ -610,23 +691,29 @@ msgstr "Velocidade turbo"
 msgid "Check BPB"
 msgstr "Verificar BPB"
 
-msgid "CD-ROM drives:"
-msgstr "Unidades CD-ROM:"
+msgid "CD-ROM drives"
+msgstr "Unidades CD-ROM"
 
-msgid "MO drives:"
-msgstr "Unidades magneto-ópticas:"
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
+msgid "MO drives"
+msgstr "Unidades magneto-ópticas"
 
 msgid "MO:"
 msgstr "Magneto-ópticos:"
 
+msgid "Removable disk drives"
+msgstr "Unidades de disco amovível"
+
 msgid "Removable disks:"
 msgstr "Discos amovíveis:"
 
-msgid "Removable disk drives:"
-msgstr "Unidades de disco amovível:"
+msgid "Tape drives"
+msgstr "Dispositivos de fita"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Dispositivos de fita:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -685,11 +772,20 @@ msgstr "&Disco amovível %1 (%2): %3"
 msgid "Removable disk images"
 msgstr "Imagens de disco amovível"
 
+msgid "Tape %1 (%2): %3"
+msgstr "Fita %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Fita %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Imagens de fita"
+
 msgid "Image %1"
 msgstr "Imagem %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "O 86Box não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a <a href=\"https://github.com/86Box/roms/releases/latest\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "O %1 não conseguiu encontrar nenhuma imagem ROM utilizável.\n\nPor favor, vá a <a href=\"%2\">descarregue</a> um pacote ROM e instale-o na pasta \"roms\"."
 
 msgid "(empty)"
 msgstr "(vazio)"
@@ -715,17 +811,14 @@ msgstr "Imagens básicas de sector"
 msgid "Surface images"
 msgstr "Imagens de superfície"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "A máquina \"%hs\" não está disponível devido à falta de ROMs na pasta roms/machines. A mudar para uma máquina disponível."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "A máquina \"%s\" não está disponível devido à falta de ROMs na pasta roms/machines. A mudar para uma máquina disponível."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "A placa vídeo \"%hs\" não está disponível devido à falta de ROMs na pasta roms/video. A mudar para uma placa vídeo disponível."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "A placa vídeo \"%s\" não está disponível devido à falta de ROMs na pasta roms/video. A mudar para uma placa vídeo disponível."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "A placa vídeo 2 \"%hs\" não está disponível devido à falta de ROMs na pasta roms/video. A desativar a segunda placa vídeo."
-
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "O dispositivo \"%hs\" não está disponível devido à falta de ROMs A ignorar o dispositivo."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "O dispositivo \"%s\" não está disponível devido à falta de ROMs A ignorar o dispositivo."
 
 msgid "Machine"
 msgstr "Máquina"
@@ -748,11 +841,41 @@ msgstr "Portas (COM e LPT)"
 msgid "Ports"
 msgstr "Portas"
 
+msgid "Serial ports"
+msgstr "Portas série"
+
 msgid "Serial ports:"
 msgstr "Portas série:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
+msgid "Parallel ports"
+msgstr "Portas paralelas"
+
 msgid "Parallel ports:"
 msgstr "Portas paralelas:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Dispositivos de armazenamento"
@@ -796,14 +919,8 @@ msgstr "Barramento"
 msgid "File"
 msgstr "Ficheiro"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "C"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Geometria"
 
 msgid "KB"
 msgstr "KB"
@@ -811,17 +928,19 @@ msgstr "KB"
 msgid "Default"
 msgstr "Padrão"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 estado(s) de espera"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n estado de espera"
+msgstr[1] "%n estados de espera"
 
 msgid "Type"
 msgstr "Tipo"
 
-msgid "No PCap devices found"
-msgstr "Não foi encontrado um dispositivo PCap"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Não foi encontrado um dispositivo PCap. Certifique-se de que a biblioteca %1 está instalada e de que está a utilizar uma ligação de rede compatível com a biblioteca %1."
 
-msgid "Invalid PCap device"
-msgstr "Dispositivo PCap inválido"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Dispositivo PCap inválido. Certifique-se de que a biblioteca %1 está instalada e de que está a utilizar uma ligação de rede compatível com a biblioteca %1."
 
 msgid "Generic paddle controller(s)"
 msgstr "COntrolador(es) genérico(s) tipo pá"
@@ -874,9 +993,6 @@ msgstr "Manípulo(s) de jogos de 4 botões"
 msgid "6-button gamepad"
 msgstr "Manípulo(s) de jogos de 6 botões"
 
-msgid "Gravis PC GamePad"
-msgstr "GamePad Gravis PC"
-
 msgid "2-button flight yoke"
 msgstr "Manípulo de voo de 2 botões"
 
@@ -903,51 +1019,6 @@ msgstr "Volante (de 3 eixos, 3 botões)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Volante (de 3 eixos, 4 botões)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + Pedais CH"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + Pedais CH Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + Pedais CH"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + Pedais CH Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + Pedais CH"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + Pedais CH Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Sistema de controlo de voo Thrustmaster"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "SCV Thrustmaster + Sistema de controlo do leme"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 com adaptador"
@@ -979,11 +1050,11 @@ msgstr "Tem a certeza de que quer um reinício completo da máquina emulada?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Tem a certeza de que quer sair do 86Box?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Não foi possível inicializar o Ghostscript"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Não foi possível inicializar o Ghostscript. %1 é requerido para a conversão automática de ficheiros PostScript para ficheiros PDF.\n\nQualquer documento enviado para a impressora PostScript genérica será gravado como um ficheiro PostScript (.ps)."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Não foi possível inicializar o GhostPCL"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Não foi possível inicializar o GhostPCL. %1 é requerido para a conversão automática de ficheiros PCL para ficheiros PDF.\n\nQualquer documento enviado para a impressora PCL genérica será gravado como um ficheiro Printer Command Language (.pcl)."
 
 msgid "MO %1 (%2): %3"
 msgstr "Magneto-óptico %1 (%2): %3"
@@ -1003,11 +1074,17 @@ msgstr "Dispositivo integrado"
 msgid "&File"
 msgstr "F&icheiro"
 
-msgid "&New machine..."
-msgstr "&Nova máquina..."
+msgid "&New machine…"
+msgstr "&Nova máquina…"
 
-msgid "&Check for updates..."
-msgstr "&Verificar para atualizações..."
+msgid "New machine…"
+msgstr "Nova máquina…"
+
+msgid "New machine"
+msgstr "Nova máquina"
+
+msgid "&Check for updates…"
+msgstr "&Verificar para atualizações…"
 
 msgid "Exit"
 msgstr "Sair"
@@ -1033,29 +1110,8 @@ msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), 
 msgid "Hardware not available"
 msgstr "Hardware não disponível"
 
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Certifique-se de que a biblioteca %1 está instalada e de que está a utilizar uma ligação de rede compatível com a biblioteca %1."
-
-msgid "Invalid configuration"
-msgstr "Configuração inválida"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 é requerido para a conversão automática de ficheiros PostScript para ficheiros PDF.\n\nQualquer documento enviado para a impressora PostScript genérica será gravado como um ficheiro PostScript (.ps)."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 é requerido para a conversão automática de ficheiros PCL para ficheiros PDF.\n\nQualquer documento enviado para a impressora PCL genérica será gravado como um ficheiro Printer Command Language (.pcl)."
-
 msgid "Don't show this message again"
 msgstr "Não mostrar mais esta mensagem"
-
-msgid "Don't exit"
-msgstr "Não sair"
-
-msgid "Reset"
-msgstr "Reiniciar"
-
-msgid "Don't reset"
-msgstr "Não reiniciar"
 
 msgid "CD-ROM images"
 msgstr "Imagens CD-ROM"
@@ -1142,13 +1198,19 @@ msgid "Powered Off"
 msgstr "Desligado"
 
 msgid "%n running"
-msgstr "%n em execução"
+msgid_plural "%n running"
+msgstr[0] "%n em execução"
+msgstr[1] "%n em execução"
 
 msgid "%n paused"
-msgstr "%n em pausa"
+msgid_plural "%n paused"
+msgstr[0] "%n em pausa"
+msgstr[1] "%n em pausa"
 
 msgid "%n waiting"
-msgstr "%n em espera"
+msgid_plural "%n waiting"
+msgstr[0] "%n em espera"
+msgstr[1] "%n em espera"
 
 msgid "%1 total"
 msgstr "%1 total"
@@ -1177,8 +1239,10 @@ msgstr "Não foi possível abrir o ficheir de configurção seleccionado para le
 msgid "Use regular expressions in search box"
 msgstr "Usa expressões regulares na caixa de procura"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 máquina(s) estão actualmente activas. Quer mesmo sair do gerenciador de MVs?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n máquina está actualmente activas. Quer mesmo sair do gerenciador de MVs?"
+msgstr[1] "%n máquinas estão actualmente activas. Quer mesmo sair do gerenciador de MVs?"
 
 msgid "Add new system wizard"
 msgstr "Assistende de adicionamento do novo sistema"
@@ -1258,26 +1322,23 @@ msgstr "Definir o nome apresentado"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Escreve o nome apresentado (vazio para repor)"
 
-msgid "Change &display name..."
-msgstr "Alterar o nome &apresentado..."
+msgid "Change &display name…"
+msgstr "Alterar o nome &apresentado…"
 
-msgid "Context Menu"
-msgstr "Menu de contexto"
+msgid "&Open folder…"
+msgstr "&Abrir pasta…"
 
-msgid "&Open folder..."
-msgstr "&Abrir pasta..."
+msgid "Open p&rinter tray…"
+msgstr "Abrir &bandeja de impressora…"
 
-msgid "Open p&rinter tray..."
-msgstr "Abrir &bandeja de impressora..."
-
-msgid "Set &icon..."
-msgstr "Definir &ícone..."
+msgid "Set &icon…"
+msgstr "Definir &ícone…"
 
 msgid "Select an icon"
 msgstr "Seleccionar um ícone"
 
-msgid "C&lone..."
-msgstr "C&lonar..."
+msgid "C&lone…"
+msgstr "C&lonar…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "A máquina virtual \"%1\" (%2) será clonada para:"
@@ -1363,8 +1424,8 @@ msgstr "Sem capturas de ecrã"
 msgid "Search"
 msgstr "Procurar"
 
-msgid "Searching for VMs..."
-msgstr "A procurar para MVs..."
+msgid "Searching for VMs…"
+msgstr "A procurar para MVs…"
 
 msgid "Found %1"
 msgstr "%1 encontrado"
@@ -1396,14 +1457,11 @@ msgstr "Encerramento ACP&I"
 msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Unidades CD-ROM com barramento MFM/RLL ou ESDI nunca existiram"
+msgid "Custom…"
+msgstr "Personalizado…"
 
-msgid "Custom..."
-msgstr "Personalizado..."
-
-msgid "Custom (large)..."
-msgstr "Personalizado (grande)..."
+msgid "Custom (large)…"
+msgstr "Personalizado (grande)…"
 
 msgid "Add New Hard Disk"
 msgstr "Adicionar novo disco rígido"
@@ -1456,11 +1514,39 @@ msgstr "O ficheiro selecionado será sobrescrito. Tem a certeza de que quer util
 msgid "Unsupported disk image"
 msgstr "Imagem de disco sem suporte"
 
-msgid "Overwrite"
-msgstr "Sobrescrever"
+msgid "Unable to read device"
+msgstr "Não foi possível ler o dispositivo"
 
-msgid "Don't overwrite"
-msgstr "Não sobrescrever"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr ""
+"Não foi possível determinar o tamanho do dispositivo de bloco. Certifique-se "
+"que tenha permissão para acessar este dispositivo."
+
+msgid "Device too large"
+msgstr "O dispositivo é demasiado grande"
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr ""
+"O dispositivo de bloco é demasiado grande para ser utilizado como disco "
+"rígido."
+
+msgid "Block device detected"
+msgstr "Dispositivo de bloco detectado"
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+"Dispositivo de bloco detectado: %1\n"
+"Tamanho: %2 MB\n"
+"Geometria: %3 cilindros, %4 cabeças, %5 setores"
+
+msgid "Failed to write the disk image."
+msgstr "Não foi possível gravar a imagem de disco."
+
+msgid "Failed to read the disk image."
+msgstr "Não foi possível ler a imagem de disco."
+
+msgid "The disk image has been successfully created."
+msgstr "A imagem de disco foi criada com sucesso."
 
 msgid "Raw image"
 msgstr "Imagem bruta"
@@ -1513,29 +1599,14 @@ msgstr "Ficheiros VHD"
 msgid "Select the parent VHD"
 msgstr "Seleccione o VHD pai"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Isto pode significar que a imagem pai foi modificada depois da criação da imagem diferenciadora.\n\nTambém pode acontecer se os ficheiros da imagem foram movidos ou copiados ou por causa de um erro no programa que criou este disco.\n\nQuer corrigir os carimbos de data/hora?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Os carimbos de data/hora dos discos pai e filho não correspondem. Isto pode significar que a imagem pai foi modificada depois da criação da imagem diferenciadora.\n\nTambém pode acontecer se os ficheiros da imagem foram movidos ou copiados ou por causa de um erro no programa que criou este disco.\n\nQuer corrigir os carimbos de data/hora?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Os carimbos de data/hora dos discos pai e filho não correspondem"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Não foi possível corrigir o carimbo de data/hora do VHD."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1579,9 +1650,6 @@ msgstr "DMF (cluster 2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1624,14 +1692,14 @@ msgstr "RPM 1.5% abaixo do RPM perfeito"
 msgid "2% below perfect RPM"
 msgstr "RPM 2% abaixo do RPM perfeito"
 
+msgid "Creating image…"
+msgstr "A criar imagem…"
+
 msgid "(System Default)"
 msgstr "(Padrão do sistema)"
 
-msgid "Failed to initialize network driver"
-msgstr "Falha ao inicializar o driver de rede"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "A configuração da rede será alterada para o controlador nulo"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Falha ao inicializar o driver de rede:\n\n%s\n\nA configuração da rede será alterada para o controlador nulo."
 
 msgid "Mouse sensitivity:"
 msgstr "Sensibilidade do rato:"
@@ -1651,8 +1719,11 @@ msgstr "Lento"
 msgid "Fast"
 msgstr "Rápido"
 
-msgid "&Auto-pause on focus loss"
-msgstr "Pa&usa automática na perda de focagem"
+msgid "Auto-pause on focus loss"
+msgstr "Pausa automática na perda de focagem"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "O WinBox não é mais suportado"
@@ -1687,14 +1758,14 @@ msgstr "Ferramenta para tablet"
 msgid "About &Qt"
 msgstr "Acerca do &Qt"
 
-msgid "&MCA devices..."
-msgstr "Dispositivos MCA..."
+msgid "&MCA devices…"
+msgstr "Dispositivos MCA…"
 
 msgid "Show non-&primary monitors"
 msgstr "Mostrar monitores não &primários"
 
-msgid "Open screenshots &folder..."
-msgstr "Abrir a pas&ta de capturas de ecrã..."
+msgid "Open screenshots &folder…"
+msgstr "Abrir a pas&ta de capturas de ecrã…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Apl&icar o modo de estiramento na tela cheia quando maximizado"
@@ -1705,8 +1776,8 @@ msgstr "&Cursor/Disco"
 msgid "&Pen"
 msgstr "C&aneta"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Unidade de CD/DVD do anfitrião (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Unidade de CD/DVD do anfitrião (%1)"
 
 msgid "&Connected"
 msgstr "&Conectado"
@@ -1714,8 +1785,8 @@ msgstr "&Conectado"
 msgid "Clear image &history"
 msgstr "Limpar o histórico de imagens(&H)"
 
-msgid "Create..."
-msgstr "Criar..."
+msgid "Create…"
+msgstr "Criar…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Unidade de CD/DVD do anfitrião (%1)"
@@ -1756,8 +1827,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Remover"
 
-msgid "Browse..."
-msgstr "Navegar..."
+msgid "Browse…"
+msgstr "Navegar…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Não foi possível criar o contexto OpenGL."
@@ -1768,11 +1839,11 @@ msgstr "Não foi possível mudar para o contexto OpenGL."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "É necessária a versão 3.0 ou superior do OpenGL. A versão atual é %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Erro ao inicializar o OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Erro ao inicializar o OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nRecuando para a renderização de software."
+msgid "Falling back to software rendering."
+msgstr "Recuando para a renderização de software."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Ao selecionar imagens multimédia (CD-ROM, disquete, etc.) a caixa de diálogo de abertura irá começar no mesmo diretório que o ficheiro de configuração da 86Box. Esta configuração provavelmente só fará diferença no macOS.</p></body></html>"
@@ -1801,17 +1872,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Placa de rede 1"
+msgid "Adapter 1"
+msgstr "Adaptador 1"
 
-msgid "Network Card #2"
-msgstr "Placa de rede 2"
+msgid "Adapter 2"
+msgstr "Adaptador 2"
 
-msgid "Network Card #3"
-msgstr "Placa de rede 3"
+msgid "Adapter 3"
+msgstr "Adaptador 3"
 
-msgid "Network Card #4"
-msgstr "Placa de rede 4"
+msgid "Adapter 4"
+msgstr "Adaptador 4"
 
 msgid "Mode:"
 msgstr "Modo:"
@@ -1834,20 +1905,8 @@ msgstr "Testador de unidades 86Box"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Cartão-chave do Novell NetWare 2.x"
 
-msgid "Serial port passthrough 1"
-msgstr "Passagem da porta de série 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Passagem da porta de série 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Passagem da porta de série 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Passagem da porta de série 4"
-
-msgid "Renderer &options..."
-msgstr "Opções do re&nderizador..."
+msgid "Renderer &options…"
+msgstr "Opções do re&nderizador…"
 
 msgid "PC/XT Keyboard"
 msgstr "Teclado PC/XT"
@@ -1900,8 +1959,8 @@ msgstr "3M MicroTouch (série)"
 msgid "Default Baud rate"
 msgstr "Velocidade de transmissão padrão"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Modem padrão compatível com Hayes"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Modem padrão compatível com Hayes"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Emulação do Roland MT-32"
@@ -1984,6 +2043,9 @@ msgstr "IRQ da porta série"
 msgid "Parallel port IRQ"
 msgstr "IRQ da porta paralela"
 
+msgid "Hard disk"
+msgstr "Disco rígido"
+
 msgid "BIOS Revision"
 msgstr "Revisão da BIOS"
 
@@ -1992,6 +2054,9 @@ msgstr "Versão da BIOS"
 
 msgid "BIOS Language"
 msgstr "Idioma da BIOS"
+
+msgid "Variant"
+msgstr "Variante"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "Unidade de expansão IBM 5161"
@@ -2058,9 +2123,6 @@ msgstr "Passagem da entrada MIDI"
 
 msgid "MIDI Clockout"
 msgstr "Saída do relógio MIDI"
-
-msgid "SoundFont"
-msgstr "Fonte de som"
 
 msgid "Output Gain"
 msgstr "Ganho de saída"
@@ -2254,14 +2316,14 @@ msgstr "DMA elevado"
 msgid "Control PC speaker"
 msgstr "Controlo do altifalante do PC"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Tamanho da memória"
 
 msgid "EMU8000 Address"
 msgstr "Endereço da EMU8000"
-
-msgid "IDE Controller"
-msgstr "Controlador IDE"
 
 msgid "Codec"
 msgstr "Codec"
@@ -2380,20 +2442,47 @@ msgstr "Tamanho da memória EMS 2"
 msgid "Enable EMS"
 msgstr "Activar a EMS"
 
-msgid "Enable EMS 1"
-msgstr "Activar a EMS 1"
-
-msgid "Enable EMS 2"
-msgstr "Activar a EMS 2"
-
 msgid "Address for > 2 MB"
 msgstr "Endereço para > 2 MB"
 
 msgid "Frame Address"
 msgstr "Endereço do quadro"
 
-msgid "USA"
-msgstr "EUA"
+msgid "English"
+msgstr "Inglês"
+
+msgid "English (US)"
+msgstr "Inglês (Estados Unidos)"
+
+msgid "English (UK)"
+msgstr "Inglês (Reino Unido)"
+
+msgid "English (Canada)"
+msgstr "Inglês (Canadá)"
+
+msgid "German"
+msgstr "Alemão"
+
+msgid "French"
+msgstr "Francês"
+
+msgid "Spanish"
+msgstr "Espanhol"
+
+msgid "Swedish"
+msgstr "Sueco"
+
+msgid "Italian"
+msgstr "Italiano"
+
+msgid "Portuguese"
+msgstr "Português"
+
+msgid "Norwegian"
+msgstr "Norueguês"
+
+msgid "Greek"
+msgstr "Grego"
 
 msgid "Danish"
 msgstr "Dinamarquesa"
@@ -2590,9 +2679,6 @@ msgstr "Escala de cinzentos"
 msgid "Color"
 msgstr "Cor"
 
-msgid "U.S. English"
-msgstr "Inglês dos E.U.A."
-
 msgid "Scandinavian"
 msgstr "Escandinavo"
 
@@ -2647,6 +2733,9 @@ msgstr "Padrão"
 msgid "High-Speed"
 msgstr "Alta velocidade"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "DAC LPT / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "DAC LPT estéreo"
 
@@ -2659,8 +2748,8 @@ msgstr "Impressora matricial de pontos ESC/P 2 genérica"
 msgid "Generic PostScript Printer"
 msgstr "Impressora PostScript genérica"
 
-msgid "Generic PCL5e Printer"
-msgstr "Impressora genérica PCL5e"
+msgid "Generic PCL Printer"
+msgstr "Impressora genérica PCL"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Protocolo Internet de linha paralela"
@@ -2668,35 +2757,83 @@ msgstr "Protocolo Internet de linha paralela"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Dongle de proteção para Savage Quest"
 
-msgid "Serial Passthrough Device"
-msgstr "Dispositivo de passagem de porta de série"
+msgid "Loopback Plug"
+msgstr "Conector de Loopback"
 
-msgid "Passthrough Mode"
-msgstr "Modo de passagem"
+msgid "Serial Passthrough"
+msgstr "Passagem de porta de série"
 
-msgid "Host Serial Device"
+msgid "Host serial device"
 msgstr "Dispositivo de série anfitrião"
 
-msgid "Name of pipe"
-msgstr "Nome do tubo"
+msgid "Named Pipe"
+msgstr "Tubo nomeado"
 
-msgid "Data bits"
-msgstr "Bits de dados"
+msgid "Output file"
+msgstr "Ficheiro de saída"
 
-msgid "Stop bits"
-msgstr "Bits de paragem"
+msgid "Append to file if it exists"
+msgstr "Adicionar ao ficheiro caso exista"
 
-msgid "Baud Rate of Passthrough"
-msgstr "Taxa de transmissão de passagem"
+msgid "Input file"
+msgstr "Ficheiro de entrada"
 
-msgid "Named Pipe (Server)"
-msgstr "Tubo nomeado (servidor)"
+msgid "Loop input file"
+msgstr "Repetir o ficheiro de entrada"
 
-msgid "Named Pipe (Client)"
-msgstr "Tubo nomeado (cliente)"
+msgid "Require STROBE signal"
+msgstr "Requerir sinal STROBE"
 
-msgid "Host Serial Passthrough"
-msgstr "Passagem da porta de série do anfitrião"
+msgid "Loopback Type"
+msgstr "Tipo de loopback"
+
+msgid "Parallel cable"
+msgstr "Cabo paralelo"
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr "Unidirecional (8 bits) / LapLink (4 bits)"
+
+msgid "Bidirectional (8-bit)"
+msgstr "Bidirecional (8 bits)"
+
+msgid "Pipe path"
+msgstr "Caminho do tubo"
+
+msgid "FIFO / terminal"
+msgstr "FIFO ou terminal"
+
+msgid "Mode"
+msgstr "Modo"
+
+msgid "Server"
+msgstr "Servidor"
+
+msgid "Client"
+msgstr "Cliente"
+
+msgid "Reconnect automatically"
+msgstr "Reestabelecer a ligação automaticamente"
+
+msgid "Use standard input/output"
+msgstr "Utilizar a entrada/saída padrão"
+
+msgid "Create pseudoterminal"
+msgstr "Criar pseudoterminal"
+
+msgid "Start terminal emulator"
+msgstr "Iniciar emulador de terminal"
+
+msgid "Run custom command"
+msgstr "Executar comando personalizado"
+
+msgid "Custom command"
+msgstr "Comando personalizado"
+
+msgid "Run custom command in terminal"
+msgstr "Executar comando personalizado em um terminal"
+
+msgid "Virtual Console"
+msgstr "Console Virtual"
 
 msgid "E&ject %1"
 msgstr "E&jetar %1"
@@ -2712,6 +2849,12 @@ msgstr "Elevado impacto no desempenho"
 
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Genérico] Disco RAM (velocidade máxima)"
+
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Genérico] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Genérico] 1983 RLL (3600 RPM)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Genérico] 1989 (3500 RPM)"
@@ -2734,8 +2877,8 @@ msgstr "[Genérico] 1998 (5400 RPM)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Genérico] 2000 (7200 RPM)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "Clone IBM 8514/A (ISA)"
+msgid "IBM 8514/A clone"
+msgstr "Clone IBM 8514/A"
 
 msgid "Vendor"
 msgstr "Fabricante"
@@ -2752,11 +2895,14 @@ msgstr "Expansão de memória genérica PC/XT"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Expansão de memória genérica PC/AT"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Não foi possível encontrar os fontes matriciais de pontos"
+msgid "Generic MM58167 RTC"
+msgstr "RTC MM58167 genérico"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P 2 genérica."
+msgid "OPL2Board (External Device)"
+msgstr "OPL2Board (dispositivo externo)"
+
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Não foi possível encontrar os fontes matriciais de pontos. As fontes TrueType no diretório \"roms/printer/fonts\" são necessárias para a emulação da impressora matricial de pontos ESC/P 2 genérica."
 
 msgid "Inhibit multimedia keys"
 msgstr "Deshabilitar teclas de multimídia"
@@ -2815,8 +2961,14 @@ msgstr "Mover para baixo"
 msgid "Could not load file %1"
 msgstr "Não foi possível carregar o ficheiro %1"
 
-msgid "Key Bindings:"
-msgstr "Teclas de atalho:"
+msgid "Emulator"
+msgstr "Emulador"
+
+msgid "Input"
+msgstr "Entrada"
+
+msgid "Key bindings"
+msgstr "Teclas de atalho"
 
 msgid "Action"
 msgstr "Ação"
@@ -2854,9 +3006,6 @@ msgstr "Alternar o modo em ecrã cheio"
 msgid "Toggle UI in fullscreen"
 msgstr "Alternar interface do utilizador em ecrã inteiro"
 
-msgid "Screenshot"
-msgstr "Captura de ecrã"
-
 msgid "Release mouse pointer"
 msgstr "Soltar o ponteiro do rato"
 
@@ -2865,6 +3014,12 @@ msgstr "Alternar a pausa"
 
 msgid "Toggle mute"
 msgstr "Alternar o estado silenciado"
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "Ficheiros de texto"
@@ -2881,8 +3036,8 @@ msgstr "Comutador local"
 msgid "Remote Switch"
 msgstr "Comutador remoto"
 
-msgid "Switch:"
-msgstr "Comutador:"
+msgid "Shared secret:"
+msgstr "Segredo partilhado:"
 
 msgid "Hub Mode"
 msgstr "Modo de concentrador"
@@ -2915,7 +3070,9 @@ msgid "%1 VM Manager"
 msgstr "Gerenciador de MVs de %1"
 
 msgid "%n disk(s)"
-msgstr "%n disco(s)"
+msgid_plural "%n disks"
+msgstr[0] "%n disco"
+msgstr[1] "%n discos"
 
 msgid "Unknown Status"
 msgstr "Estado desconhecido"
@@ -2971,8 +3128,8 @@ msgstr "Visitar a pagina de transferências"
 msgid "Update check"
 msgstr "Verificar atualizações"
 
-msgid "Checking for updates..."
-msgstr "A verificar para atualizações..."
+msgid "Checking for updates…"
+msgstr "A verificar para atualizações…"
 
 msgid "86Box Update"
 msgstr "Atualização do 86Box"
@@ -3010,8 +3167,8 @@ msgstr "Brilho"
 msgid "Sharpness"
 msgstr "Nitidez"
 
-msgid "&CGA composite settings..."
-msgstr "Definições do modo compósito &CGA..."
+msgid "&CGA composite settings…"
+msgstr "Definições do modo compósito &CGA…"
 
 msgid "CGA composite settings"
 msgstr "Definições do modo compósito CGA"
@@ -3019,14 +3176,17 @@ msgstr "Definições do modo compósito CGA"
 msgid "Monitor EDID"
 msgstr "EDID do monitor"
 
-msgid "Export..."
-msgstr "Exportar..."
+msgid "Export…"
+msgstr "Exportar…"
 
 msgid "Export EDID"
 msgstr "Exportar EDID"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "O ficheiro EDID \"%ls\" é demasiado grande."
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
+msgid "EDID file \"%s\" is too large."
+msgstr "O ficheiro EDID \"%s\" é demasiado grande."
 
 msgid "OpenGL input scale"
 msgstr "Escala de entrada do OpenGL"
@@ -3043,9 +3203,6 @@ msgstr "Claro"
 msgid "Dark"
 msgstr "Escuro"
 
-msgid "Search:"
-msgstr "Procurar:"
-
 msgid "Force interpretation"
 msgstr "Forçar interpretação"
 
@@ -3057,3 +3214,187 @@ msgstr "&Forçar interpretação"
 
 msgid "&Allow recompilation"
 msgstr "&Permitir recompilação"
+
+msgid "&Fast forward"
+msgstr "&Avançar rapidamente"
+
+msgid "Fast forward"
+msgstr "Avançar rapidamente"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "Para alterar o diretório do sistema, pare todas as máquinas em funcionamento."
+
+msgid "Raw"
+msgstr "Bruto"
+
+msgid "Use EDC/ECC emulation"
+msgstr "Utilizar emulação EDC/ECC"
+
+msgid "Audio output device:"
+msgstr "Dispositivo de saída de áudio:"
+
+msgid "System Default"
+msgstr "Padrão do sistema"
+
+msgid "Unable to open image or folder \"%s\"."
+msgstr "Não foi possível abrir a imagem ou pasta \"%s\"."
+
+msgid "Unable to open cue sheet \"%s\"."
+msgstr "Não foi possível abrir o ficheiro cue \"%s\"."
+
+msgid "Unable to open MDS file \"%s\"."
+msgstr "Não foi possível abrir o ficheiro MDS \"%s\"."
+
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr "Não foi possível carregar a imagem de CD-ROM \"%s\"."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+"Não foi possível carregar a imagem \"%s\": Falta o %1, necessário para "
+"o suporte a imagens Daemon Tools MDS v2 e MDX."
+
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr ""
+"A imagem de DVD \"%s\" foi inserida em uma unidade que não suporta mídia DVD "
+"e será ignorada."
+
+msgid "%s: Could not connect to %s: %s"
+msgstr "%s: Não foi possível ligar a %s: %s"
+
+msgid "%s: Could not create %s: %s"
+msgstr "%s: Não foi possível criar %s: %s"
+
+msgid "%s: Attached to %s"
+msgstr "%s: Ligado a %s"
+
+msgid "%s: Virtual console already in use by %s"
+msgstr "%s: A console virtual já está a ser utilizada por %s"
+
+msgid "%s: Could not create terminal: %s"
+msgstr "%s: Não foi possível criar o terminal: %s"
+
+msgid "Auto-detect"
+msgstr "Detecção automática"
+
+msgid "Channel"
+msgstr "Canal"
+
+msgid "Both Channels"
+msgstr "Ambos os canais"
+
+msgid "Left Channel"
+msgstr "Canal esquerdo"
+
+msgid "Right Channel"
+msgstr "Canal direito"
+
+msgid "Allow Flash BIOS Updates"
+msgstr "Permitir atualizações de BIOS via Flash"
+
+msgid "Slot #"
+msgstr "Slot no."
+
+msgid "Parallel Port"
+msgstr "Porta paralela"
+
+msgid "Paper Size"
+msgstr "Tamanho do papel"
+
+msgid "Letter"
+msgstr "Carta"
+
+msgid "Legal (sideways)"
+msgstr "Legal (horizontal)"
+
+msgid "B4 (sideways)"
+msgstr "B4 (horizontal)"
+
+msgid "Quality"
+msgstr "Qualidade"
+
+msgid "Draft"
+msgstr "Rascunho"
+
+msgid "(Near) Letter"
+msgstr "(Próxima a) Carta"
+
+msgid "Auto LF"
+msgstr "Quebra automática de linha"
+
+msgid "Tandy PSSJ Clone"
+msgstr "Clone do Tandy PSSJ"
+
+msgid "PC-CM (Color)"
+msgstr "PC-CM (Cores)"
+
+msgid "PC-MM (Monochrome)"
+msgstr "PC-MM (Monocromático)"
+
+msgid "White Monochrome"
+msgstr "Monocromático branco"
+
+msgid "Hardware font"
+msgstr "Fonte de hardware"
+
+msgid "Diagnostic mode"
+msgstr "Modo de diagnóstico"
+
+msgid "CGA monitor"
+msgstr "Monitor CGA"
+
+msgid "MDA monitor"
+msgstr "Monitor MDA"
+
+msgid "Television"
+msgstr "Televisão"
+
+msgid "Invert LCD colors"
+msgstr "Inverter cores do LCD"
+
+msgid "LCD (CGA mode)"
+msgstr "LCD (modo CGA)"
+
+msgid "LCD (MDA mode)"
+msgstr "LCD (modo MDA)"
+
+msgid "Disabled (250h)"
+msgstr "Desativado (250h)"
+
+msgid "Enabled (350h)"
+msgstr "Ativado (350h)"
+
+msgid "Test mode"
+msgstr "Modo de teste"
+
+msgid "32 MB"
+msgstr "32 MB"
+
+msgid "64 MB"
+msgstr "64 MB"
+
+msgid "2048 MB"
+msgstr "2048 MB"
+
+msgid "Refresh rate"
+msgstr "Taxa de atualização"
+
+msgid "US (CP 437)"
+msgstr "Estados Unidos (CP 437)"
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr "Nórdica IBM (CP 437-Nordic)"
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr "Checa Kamenicky (CP 895) no. 1"
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr "Checa Kamenicky (CP 895) no. 2"
+
+msgid "932 (Japanese)"
+msgstr "932 (Japonês)"
+
+msgid "938 (Traditional Chinese)"
+msgstr "938 (Chinês tradicional)"
+
+msgid "Sample rate:"
+msgstr ""

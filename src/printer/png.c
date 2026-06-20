@@ -153,7 +153,7 @@ error:
     (png, info);
 
     /* Create a buffer for one scanline of pixels. */
-    row = (png_bytep) malloc(PNGFUNC(get_rowbytes)(png, info));
+    row = (png_bytep) calloc(1, PNGFUNC(get_rowbytes)(png, info));
 
     /* Process all scanlines in the image. */
     for (int16_t y = 0; y < h; y++) {
@@ -255,7 +255,7 @@ error:
     (png, info, palette, 256);
 
     /* Create a buffer for scanlines of pixels. */
-    rows = (png_bytep *) malloc(sizeof(png_bytep) * h);
+    rows = (png_bytep *) calloc(h, sizeof(png_bytep));
     for (int16_t i = 0; i < h; i++) {
         /* Create a buffer for this scanline. */
         rows[i] = (pix + (i * pitch));

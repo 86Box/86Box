@@ -59,6 +59,8 @@
 #define FDC_FLAG_TER            0x40000  /* Is Tertiary */
 #define FDC_FLAG_QUA            0x80000  /* Is Quaternary */
 #define FDC_FLAG_SMC661         0x100000 /* SM(s)C FDC37C661 - different TDR enhanced mode */
+#define FDC_FLAG_5550           0x200000 /* IBM Multistation 5550 */
+#define FDC_FLAG_NO_TDR         0x400000 /* Has no tape drive register */
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -252,6 +254,7 @@ extern void    fdc_reset(void *priv);
 
 extern uint8_t fdc_get_current_drive(void);
 extern void    fdc_seek_complete_interrupt(fdc_t *fdc, int drive);
+extern void    fdc_diskchange_interrupt(fdc_t *fdc, int drive);
 
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;
@@ -262,6 +265,7 @@ extern const device_t fdc_xt_t1x00_device;
 extern const device_t fdc_xt_tandy_device;
 extern const device_t fdc_xt_amstrad_device;
 extern const device_t fdc_xt_umc_um8398_device;
+extern const device_t fdc_xt_5550_device;
 extern const device_t fdc_pcjr_device;
 extern const device_t fdc_at_device;
 extern const device_t fdc_at_sec_device;
@@ -273,6 +277,7 @@ extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;
 extern const device_t fdc_at_nsc_device;
+extern const device_t fdc_at_nsc_pc87310_device;
 extern const device_t fdc_at_nsc_dp8473_device;
 extern const device_t fdc_ps2_device;
 extern const device_t fdc_ps2_mca_device;

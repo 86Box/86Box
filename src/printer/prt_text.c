@@ -88,7 +88,7 @@ typedef struct psurface_t {
     uint8_t w; /* size //INFO */
     uint8_t h;
 
-    char *chars; /* character data */
+    uint8_t *chars; /* character data */
 } psurface_t;
 
 typedef struct prnt_t {
@@ -138,7 +138,6 @@ static void
 dump_page(prnt_t *dev)
 {
     char     path[1024];
-    uint8_t  ch;
     FILE    *fp;
 
     /* Create the full path for this file. */
@@ -163,7 +162,7 @@ dump_page(prnt_t *dev)
 
     for (uint16_t y = 0; y < dev->curr_y; y++) {
         for (uint16_t x = 0; x < dev->page->w; x++) {
-            ch = dev->page->chars[(y * dev->page->w) + x];
+            const uint8_t ch = dev->page->chars[(y * dev->page->w) + x];
             if (ch == 0x00) {
                 /* End of line marker. */
                 fputc('\n', fp);
@@ -334,7 +333,7 @@ process_char(prnt_t *dev, uint8_t ch)
 static void
 handle_char(prnt_t *dev)
 {
-    uint8_t ch = dev->data;
+    const uint8_t ch = dev->data;
 
     if (dev->page == NULL)
         return;
@@ -455,23 +454,22 @@ read_status(void *priv)
 }
 
 static void *
-prnt_init(void *lpt)
+prnt_init(const device_t *info)
 {
     /* Initialize a device instance. */
     prnt_t *dev = (prnt_t *) calloc(1, sizeof(prnt_t));
 
     dev->ctrl = 0x04;
-    dev->lpt  = lpt;
+    dev->lpt  = lpt_attach(write_data, write_ctrl, strobe, read_status, NULL, NULL, NULL, dev);
 
     /* Initialize parameters. */
     reset_printer(dev);
 
     /* Create a page buffer. */
-    dev->page        = (psurface_t *) malloc(sizeof(psurface_t));
+    dev->page        = (psurface_t *) calloc(1, sizeof(psurface_t));
     dev->page->w     = dev->max_chars;
     dev->page->h     = dev->max_lines;
-    dev->page->chars = (char *) malloc(dev->page->w * dev->page->h);
-    memset(dev->page->chars, 0x00, dev->page->w * dev->page->h);
+    dev->page->chars = (uint8_t *) calloc(dev->page->w, dev->page->h);
 
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
@@ -496,6 +494,9 @@ prnt_close(void *priv)
             free(dev->page->chars);
         free(dev->page);
     }
+
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
 
     free(dev);
 }
@@ -523,13 +524,13 @@ static const device_config_t lpt_prt_text_config[] = {
 #endif
 // clang-format on
 
-const device_t prt_text_device = {
+const device_t lpt_prt_text_device = {
     .name          = "Generic Text Printer",
     .internal_name = "text_prt",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
-    .init          = NULL,
-    .close         = NULL,
+    .init          = prnt_init,
+    .close         = prnt_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,
@@ -539,21 +540,4 @@ const device_t prt_text_device = {
 #else
     .config        = NULL
 #endif
-};
-
-const lpt_device_t lpt_prt_text_device = {
-    .name             = "Generic Text Printer",
-    .internal_name    = "text_prt",
-    .init             = prnt_init,
-    .close            = prnt_close,
-    .write_data       = write_data,
-    .write_ctrl       = write_ctrl,
-    .strobe           = strobe,
-    .read_status      = read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL,
-    .cfgdevice        = (device_t *) &prt_text_device
 };

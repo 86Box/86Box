@@ -230,8 +230,7 @@ ati68860_set_ramdac_type(void *priv, int type)
 static void *
 ati68860_ramdac_init(UNUSED(const device_t *info))
 {
-    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) malloc(sizeof(ati68860_ramdac_t));
-    memset(ramdac, 0, sizeof(ati68860_ramdac_t));
+    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) calloc(1, sizeof(ati68860_ramdac_t));
 
     /*FIXME*/
     ramdac->render = svga_render_8bpp_clone_highres;

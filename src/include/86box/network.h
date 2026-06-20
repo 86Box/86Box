@@ -50,8 +50,8 @@
 #define NET_TYPE_PCAP     2 /* use the (Win)Pcap API */
 #define NET_TYPE_VDE      3 /* use the VDE plug API */
 #define NET_TYPE_TAP      4 /* use a linux TAP device */
-#define NET_TYPE_NMSWITCH 5 /* use the network multicast switch provider */
-#define NET_TYPE_NRSWITCH 6 /* use the network remote switch provider */
+#define NET_TYPE_NLSWITCH 5 /* use the local switch provider */
+#define NET_TYPE_NRSWITCH 6 /* use the remote switch provider */
 
 #define NET_MAX_FRAME  1518
 /* Queue size must be a power of 2 */
@@ -95,8 +95,9 @@ typedef struct netcard_conf_t {
     int      net_type;
     char     host_dev_name[128];
     uint32_t link_state;
-    uint8_t  switch_group;
+    char     secret[256];
     uint8_t  promisc_mode;
+    char     slirp_net[16];
     char     nrs_hostname[128];
 } netcard_conf_t;
 
@@ -132,7 +133,7 @@ extern const netdrv_t net_slirp_drv;
 extern const netdrv_t net_vde_drv;
 extern const netdrv_t net_tap_drv;
 extern const netdrv_t net_null_drv;
-extern const netdrv_t net_netswitch_drv;
+extern const netdrv_t net_switch_drv;
 
 struct _netcard_t {
     const device_t *device;
@@ -202,6 +203,7 @@ extern int             network_type_has_config(int);
 extern const char     *network_card_get_internal_name(int);
 extern int             network_card_get_from_internal_name(char *);
 #ifdef EMU_DEVICE_H
+extern const device_t *network_card_get_from_old_internal_name(char *s);
 extern const device_t *network_card_getdevice(int);
 #endif
 
@@ -242,10 +244,7 @@ extern const device_t pcnet_am79c973_onboard_device;
 extern const device_t modem_device;
 
 /* PLIP */
-#ifdef EMU_LPT_H
-extern const lpt_device_t lpt_plip_device;
-#endif
-extern const device_t     plip_device;
+extern const device_t plip_device;
 
 /* Realtek RTL8139C+ */
 extern const device_t rtl8139c_plus_device;
@@ -253,7 +252,6 @@ extern const device_t rtl8139c_plus_device;
 /* DEC Tulip */
 extern const device_t dec_tulip_device;
 extern const device_t dec_tulip_21140_device;
-extern const device_t dec_tulip_21140_vpc_device;
 extern const device_t dec_tulip_21040_device;
 
 /* WD 80x3 */

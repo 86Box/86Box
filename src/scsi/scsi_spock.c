@@ -1117,7 +1117,7 @@ spock_callback(void *priv)
 }
 
 static void
-spock_mca_write(int port, uint8_t val, void *priv)
+spock_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     spock_t *scsi = (spock_t *) priv;
 
@@ -1151,7 +1151,7 @@ spock_mca_write(int port, uint8_t val, void *priv)
 }
 
 static uint8_t
-spock_mca_read(int port, void *priv)
+spock_mca_read(const uint16_t port, void *priv)
 {
     const spock_t *scsi = (spock_t *) priv;
 

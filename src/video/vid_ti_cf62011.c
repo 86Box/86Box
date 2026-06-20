@@ -231,8 +231,7 @@ vid_init(const device_t *info)
     tivga_t *ti;
 
     /* Allocate control block and initialize. */
-    ti = (tivga_t *) malloc(sizeof(tivga_t));
-    memset(ti, 0x00, sizeof(tivga_t));
+    ti = (tivga_t *) calloc(1, sizeof(tivga_t));
 
     /* Set amount of VRAM in KB. */
     if (info->local == 0)

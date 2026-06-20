@@ -8,16 +8,29 @@
 #define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /* Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone */
 #define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /* Aztech Sound Galaxy Nova 16 Extra /
                                             Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone */
-#define SB_SUBTYPE_ESS_ES688           3 /* ESS Technology ES688 */
-#define SB_SUBTYPE_ESS_ES1688          4 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_CLONE_AZTPR16_0X09  3 /* Aztech Sound Galaxy Pro 16 Extra */
+#define SB_SUBTYPE_CLONE_AZT2316R_0X12 4 /* Aztech Sound Galaxy Pro 16 II */
+#define SB_SUBTYPE_CLONE_AZT2320_0X13  5 /* Aztech AZT2320 */
+#define SB_SUBTYPE_MVD201              6 /* Mediavision MVD201, found on the thunderboard and PAS16 */
+#define SB_SUBTYPE_YMF7XX              7 /* Yamaha YMF-701/71x */
+#define SB_SUBTYPE_ESS_ES688           8 /* ESS Technology ES688 */
+#define SB_SUBTYPE_ESS_ES1688          9 /* ESS Technology ES1688 */
+#define SB_SUBTYPE_ESS_ES1788        0xa /* ESS Technology ES1788 */
+#define SB_SUBTYPE_ESS_ES1888        0xb /* ESS Technology ES1888 */
+#define SB_SUBTYPE_ESS_ES1887        0xc /* ESS Technology ES1887 */
+#define SB_SUBTYPE_ESS_ES1868        0xd /* ESS Technology ES1868 */
+#define SB_SUBTYPE_ESS_ES1869        0xe /* ESS Technology ES1869 */
 
 /* ESS-related */
 #define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
 #define IS_NOT_ESS(dsp) ((dsp)->sb_subtype < SB_SUBTYPE_ESS_ES688) /* Check for future ESS cards here */
 
 /* aztech-related */
-#define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C) /* check for future AZT cards here */
-#define AZTECH_EEPROM_SIZE 16
+#define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2320_0X13 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) /* check for future AZT cards here */
+#define AZTECH_EEPROM_SIZE 36
+
+/* MediaVision related */
+#define IS_MV201(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_MVD201)
 
 typedef struct sb_dsp_t {
     int   sb_type;
@@ -101,6 +114,7 @@ typedef struct sb_dsp_t {
     int     sbreset;
     uint8_t sbreaddat;
     uint8_t sb_command;
+    uint8_t sb_last_command;
     uint8_t sb_test;
     int     sb_timei;
     int     sb_timeo;
@@ -176,6 +190,18 @@ typedef struct sb_dsp_t {
     int8_t    espcm_sample_buffer[19]; /* used for ESPCM_4 recording */
     uint8_t   espcm_table_index;       /* used for ESPCM_3 */
     uint8_t   espcm_last_value;        /* used for ESPCM_3 */
+
+    /* OPL3-SA switchable DSP version */
+    uint8_t   opl3sa_dsp_ver;
+
+    /* ESS ES188x IRQ mode */
+    uint8_t  es188x_irq_mode;
+
+    /* ChipChat */
+    uint8_t  is_chipchat;
+
+    /* ESS ES1869 DAC1 divider mode */
+    uint8_t  es1869_divider_mode;
 
     mpu_t *mpu;
 } sb_dsp_t;

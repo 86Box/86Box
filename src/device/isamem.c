@@ -108,6 +108,9 @@
 #define ISAMEM_EV165A_CARD     15
 #define ISAMEM_LOTECH_EMS_CARD 16
 #define ISAMEM_MPLUS2_CARD     17
+#define ISAMEM_IBMPCJR_CARD    18
+#define ISAMEM_GENPCJR_CARD    19
+#define ISAMEM_JRIDE_CARD      20
 
 #define ISAMEM_DEBUG           0
 
@@ -506,6 +509,24 @@ isamem_init(const device_t *info)
             tot             = dev->total_size;
             break;
 
+        case ISAMEM_IBMPCJR_CARD: /* IBM PCjr 128KB Memory Expansion */
+            dev->total_size = 128;
+            dev->start_addr = device_get_config_int("start");
+            tot             = dev->total_size;
+            break;
+
+        case ISAMEM_GENPCJR_CARD: /* Generic PCjr Memory Expansion */
+            dev->total_size = (uint16_t) device_get_config_int("size");
+            dev->start_addr = device_get_config_int("start");
+            tot             = dev->total_size;
+            break;
+
+        case ISAMEM_JRIDE_CARD: /* jr-IDE Memory Expansion */
+            dev->total_size = 512;
+            dev->start_addr = 128;
+            tot             = dev->total_size;
+            break;
+
         case ISAMEM_IBMAT_128K_CARD: /* IBM PC/AT 128K Memory Expansion Option */
             dev->total_size = 128;
             dev->start_addr = 512;
@@ -618,8 +639,7 @@ isamem_init(const device_t *info)
 
     /* Allocate and initialize our RAM. */
     k        = dev->total_size << 10;
-    dev->ram = (uint8_t *) malloc(k);
-    memset(dev->ram, 0x00, k);
+    dev->ram = (uint8_t *) calloc(1, k);
     ptr = dev->ram;
 
     /*
@@ -1057,6 +1077,63 @@ static const device_config_t genericxt_config[] = {
   // clang-format on
 };
 
+static const device_config_t genericpcjr_config[] = {
+    // clang-format off
+        {
+                .name           = "size",
+                .description    = "Memory size",
+                .type           = CONFIG_SPINNER,
+                .default_string = NULL,
+                .default_int    = 128,
+                .file_filter    = NULL,
+                .spinner        = {
+                        .min  =  64,
+                        .max  = 512,
+                        .step =  64
+                },
+                .selection      = { { 0 } },
+                .bios           = { { 0 } }
+        },
+            {
+                .name           = "start",
+                .description    = "Start Address",
+                .type           = CONFIG_SPINNER,
+                .default_string = NULL,
+                .default_int    = 128,
+                .file_filter    = NULL,
+                .spinner        = {
+                    .min  =  64,
+                    .max  = 576,
+                    .step =  64
+                },
+                .selection      = { { 0 } },
+                .bios           = { { 0 } }
+            },
+        { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static const device_config_t ibmpcjr_config[] = {
+    // clang-format off
+        {
+                .name           = "start",
+                .description    = "Start Address",
+                .type           = CONFIG_SPINNER,
+                .default_string = NULL,
+                .default_int    = 128,
+                .file_filter    = NULL,
+                .spinner        = {
+                        .min  = 128,
+                        .max  = 512,
+                        .step = 128
+                },
+                .selection      = { { 0 } },
+                .bios           = { { 0 } }
+        },
+        { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
 // This also nicely accounts for the Everex EV-138
 static const device_t genericxt_device = {
     .name          = "Generic PC/XT Memory Expansion",
@@ -1070,6 +1147,48 @@ static const device_t genericxt_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = genericxt_config
+};
+
+static const device_t ibmpcjr_device = {
+    .name          = "IBM PCjr 128KB Memory Expansion",
+    .internal_name = "ibmpcjr_mem",
+    .flags         = DEVICE_SIDECAR,
+    .local         = ISAMEM_IBMPCJR_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmpcjr_config
+};
+
+static const device_t genericpcjr_device = {
+    .name          = "Generic PCjr Memory Expansion",
+    .internal_name = "genericpcjr_mem",
+    .flags         = DEVICE_SIDECAR,
+    .local         = ISAMEM_GENPCJR_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = genericpcjr_config
+};
+
+static const device_t jride_mem_device = {
+    .name          = "jr-IDE",
+    .internal_name = "jride_mem",
+    .flags         = DEVICE_SIDECAR,
+    .local         = ISAMEM_JRIDE_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static const device_config_t msramcard_config[] = {
@@ -2170,6 +2289,10 @@ static const struct {
 } boards[] = {
     // clang-format off
     { &device_none         },
+    // PCjr Sidecar Memory Expansion Cards
+    { &ibmpcjr_device      },
+    { &genericpcjr_device  },
+    { &jride_mem_device    },
     // XT Ram Expansion Cards
     { &ibmxt_32k_device    },
     { &ibmxt_64k_device    },

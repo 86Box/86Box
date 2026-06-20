@@ -12,11 +12,13 @@
  *
  *          Copyright 2021 Joakim L. Gilje
  */
-#include "qt_harddrive_common.hpp"
-
 #include <cstdint>
 
+#include "qt_settings_completer.hpp"
+#include "qt_harddrive_common.hpp"
+
 extern "C" {
+#include <86box/86box.h>
 #include <86box/hdd.h>
 #include <86box/scsi.h>
 #include <86box/cdrom.h>
@@ -31,7 +33,7 @@ Harddrives::populateBuses(QAbstractItemModel *model)
     model->removeRows(0, model->rowCount());
     model->insertRows(0, 6);
 
-    model->setData(model->index(0, 0), "MFM/RLL");
+    model->setData(model->index(0, 0), "ST-506/ST-412 (MFM/RLL)");
     model->setData(model->index(1, 0), "XTA");
     model->setData(model->index(2, 0), "ESDI");
     model->setData(model->index(3, 0), "IDE");
@@ -57,13 +59,13 @@ Harddrives::populateCDROMBuses(QAbstractItemModel *model)
 #endif
 
     model->setData(model->index(0, 0), QObject::tr("Disabled"));
-    model->setData(model->index(1, 0), QObject::tr("ATAPI"));
-    model->setData(model->index(2, 0), QObject::tr("SCSI"));
+    model->setData(model->index(1, 0), "ATAPI");
+    model->setData(model->index(2, 0), "SCSI");
 #ifdef USE_CDROM_MITSUMI
-    model->setData(model->index(3, 0), QObject::tr("Mitsumi"));
-    model->setData(model->index(4, 0), QObject::tr("Panasonic/MKE"));
+    model->setData(model->index(3, 0), "Mitsumi");
+    model->setData(model->index(4, 0), "Panasonic/MKE");
 #else
-    model->setData(model->index(3, 0), QObject::tr("Panasonic/MKE"));
+    model->setData(model->index(3, 0), "Panasonic/MKE");
 #endif
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
@@ -84,8 +86,8 @@ Harddrives::populateRemovableBuses(QAbstractItemModel *model)
     model->insertRows(0, 3);
 
     model->setData(model->index(0, 0), QObject::tr("Disabled"));
-    model->setData(model->index(1, 0), QObject::tr("ATAPI"));
-    model->setData(model->index(2, 0), QObject::tr("SCSI"));
+    model->setData(model->index(1, 0), "ATAPI");
+    model->setData(model->index(2, 0), "SCSI");
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_ATAPI, Qt::UserRole);
@@ -93,11 +95,15 @@ Harddrives::populateRemovableBuses(QAbstractItemModel *model)
 }
 
 void
-Harddrives::populateSpeeds(QAbstractItemModel *model, int bus)
+Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int bus)
 {
     int num_preset;
 
+    sc->removeRows();
+
     switch (bus) {
+        case HDD_BUS_MFM:
+        case HDD_BUS_XTA:
         case HDD_BUS_ESDI:
         case HDD_BUS_IDE:
         case HDD_BUS_ATAPI:
@@ -115,6 +121,8 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, int bus)
     for (int i = 0; i < num_preset; i++) {
         model->setData(model->index(i, 0), QObject::tr(hdd_preset_getname(i)));
         model->setData(model->index(i, 0), i, Qt::UserRole);
+
+        sc->addDevice(nullptr, QObject::tr(hdd_preset_getname(i)));
     }
 }
 

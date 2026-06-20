@@ -114,13 +114,7 @@ opWAIT(UNUSED(uint32_t fetchdat))
     }
 
     if (fpu_softfloat) {
-        if (fpu_state.swd & FPU_SW_Summary) {
-            if (cr0 & 0x20)
-                new_ne = 1;
-            else
-                picint(1 << 13);
-            return 1;
-        }
+        FPU_check_pending_exceptions();
     }
     CLOCK_CYCLES(4);
     return 0;

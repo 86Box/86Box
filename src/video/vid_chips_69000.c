@@ -2141,7 +2141,7 @@ chips_69000_in(uint16_t addr, void *priv)
 }
 
 static uint8_t
-chips_69000_pci_read(UNUSED(int func), int addr, void *priv)
+chips_69000_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     chips_69000_t *chips = (chips_69000_t *) priv;
     uint8_t        ret   = 0x00;
@@ -2215,7 +2215,7 @@ chips_69000_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-chips_69000_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+chips_69000_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     chips_69000_t *chips = (chips_69000_t *) priv;
 

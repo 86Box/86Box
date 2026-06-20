@@ -60,8 +60,7 @@ ics1494_getclock(int clock, void *priv)
 static void *
 ics1494_init(const device_t *info)
 {
-    ics1494_t *ics1494 = (ics1494_t *) malloc(sizeof(ics1494_t));
-    memset(ics1494, 0, sizeof(ics1494_t));
+    ics1494_t *ics1494 = (ics1494_t *) calloc(1, sizeof(ics1494_t));
 
     switch (info->local) {
         case 540:

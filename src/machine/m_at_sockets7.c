@@ -50,7 +50,7 @@ machine_at_p5a_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
@@ -59,12 +59,12 @@ machine_at_p5a_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
     pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL,          1, 2, 3, 4);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL,          3, 4, 1, 2);
     pci_register_slot(0x09, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,          4, 1, 2, 3);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x06, PCI_CARD_SOUND,           3, 4, 1, 2);
 
     device_add(&ali1541_device);
     device_add(&ali1543c_device); /* +0 */
@@ -86,7 +86,7 @@ machine_at_m579_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
@@ -118,7 +118,7 @@ machine_at_gwlucas_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
@@ -156,7 +156,7 @@ machine_at_5aa_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
@@ -216,7 +216,7 @@ static const device_config_t g5x_config[] = {
 
 const device_t g5x_device = {
     .name          = "Gigabyte GA-5AX",
-    .internal_name = "g5x_device",
+    .internal_name = "5ax",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -243,7 +243,7 @@ machine_at_g5x_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
@@ -278,7 +278,7 @@ machine_at_ax59pro_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -337,7 +337,7 @@ static const device_config_t delhi3_config[] = {
 
 const device_t delhi3_device = {
     .name          = "TriGem Delhi-III",
-    .internal_name = "delhi3_device",
+    .internal_name = "delhi3",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -364,7 +364,7 @@ machine_at_delhi3_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -395,7 +395,7 @@ machine_at_mvp3_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -425,7 +425,7 @@ machine_at_ficva503a_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -445,7 +445,7 @@ machine_at_ficva503a_init(const machine_t *model)
     hwm_values.temperatures[2] = 0;  /* unused */
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&wm9701a_device); /* on daughtercard */
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -461,7 +461,7 @@ machine_at_5emapro_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -496,7 +496,7 @@ machine_at_k6bv3p_a_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 5);
@@ -528,7 +528,7 @@ machine_at_5sg100_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

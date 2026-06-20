@@ -255,7 +255,7 @@ ali1621_mask_bar(ali1621_t *dev)
 }
 
 static void
-ali1621_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+ali1621_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ali1621_t *dev = (ali1621_t *) priv;
 
@@ -581,7 +581,7 @@ ali1621_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-ali1621_read(UNUSED(int func), int addr, void *priv)
+ali1621_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const ali1621_t *dev = (ali1621_t *) priv;
     uint8_t          ret = 0xff;
@@ -647,10 +647,10 @@ ali1621_reset(void *priv)
     dev->pci_conf[0xf2] = dev->pci_conf[0xf6] = dev->pci_conf[0xfa] = dev->pci_conf[0xfe] = 0x21;
     dev->pci_conf[0xf3] = dev->pci_conf[0xf7] = dev->pci_conf[0xfb] = dev->pci_conf[0xff] = 0x43;
 
-    ali1621_write(0, 0x83, 0x08, dev);
+    ali1621_write(0, 0x83, 1, 0x08, dev);
 
     for (uint8_t i = 0; i < 4; i++)
-        ali1621_write(0, 0x84 + i, 0x00, dev);
+        ali1621_write(0, 0x84 + i, 1, 0x00, dev);
 }
 
 static void

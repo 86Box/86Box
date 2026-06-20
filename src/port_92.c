@@ -28,6 +28,7 @@
 #include <86box/pit.h>
 #include <86box/port_92.h>
 #include <86box/plat_unused.h>
+#include <86box/machine.h>
 
 #define PORT_92_INV   1
 #define PORT_92_WORD  2
@@ -81,6 +82,9 @@ port_92_pulse(UNUSED(void *priv))
 {
     softresetx86(); /* Pulse reset! */
     cpu_set_edx();
+    if (machines[machine].init == machine_at_pl5600d_init)
+        smbase = 0x00030000;
+
     flushmmucache();
 
     cpu_alt_reset = 1;
@@ -201,8 +205,7 @@ port_92_close(void *priv)
 void *
 port_92_init(const device_t *info)
 {
-    port_92_t *dev = (port_92_t *) malloc(sizeof(port_92_t));
-    memset(dev, 0, sizeof(port_92_t));
+    port_92_t *dev = (port_92_t *) calloc(1, sizeof(port_92_t));
 
     dev->flags = info->local & 0xff;
 

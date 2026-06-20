@@ -298,7 +298,7 @@ f82c606_init(const device_t *info)
 {
     upc_t *dev    = (upc_t *) calloc(1, sizeof(upc_t));
 
-    dev->nvr      = device_add(&at_nvr_old_device);
+    dev->nvr      = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_OLD);
     dev->gameport = gameport_add(&gameport_sio_device);
 
     dev->uart[0]   = device_add_inst(&ns16450_device, 1);

@@ -22,6 +22,7 @@ add_library(hdd OBJECT
     hdc.c
     hdc_st506_xt.c
     hdc_st506_at.c
+    hdc_st506_mca.c
     hdc_xta.c
     hdc_xta_ps1.c
     hdc_esdi_at.c
@@ -36,6 +37,7 @@ add_library(hdd OBJECT
     hdc_ide_sff8038i.c
     hdc_ide_um8673f.c
     hdc_ide_w83769f.c
+    hdd_audio.c
 )
 
 add_library(rdisk OBJECT rdisk.c)

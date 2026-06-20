@@ -55,11 +55,13 @@ jobs:
           - name: SDL GUI
             qt: off
             qt6: off
+            sdl_shader: on
             slug: -SDL
             static: on
           - name: Qt 5 GUI
             qt: on
             qt6: off
+            sdl_shader: off
             slug: -Qt5
             packages: >-
               qtbase5-dev
@@ -71,6 +73,7 @@ jobs:
           - name: Qt 6 GUI
             qt: on
             qt6: on
+            sdl_shader: off
             slug: -Qt6
             packages: >-
               qt6-base-dev
@@ -104,6 +107,7 @@ jobs:
           build-essential
           ninja-build
           libfreetype-dev
+          libgles2-mesa-dev
           libsdl2-dev
           libpng-dev
           libc6-dev
@@ -127,6 +131,7 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
+          -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
 
       - name: Build
         run: |

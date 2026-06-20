@@ -42,6 +42,7 @@
 #include <86box/fdd_td0.h>
 #include <86box/fdc.h>
 #include <86box/fdd_audio.h>
+#include <86box/plat_floppy_ioctl.h>
 
 /* Flags:
    Bit  0:  300 rpm supported;
@@ -101,7 +102,10 @@ typedef struct fdd_pending_op_t {
 
 static fdd_pending_op_t fdd_pending[FDD_NUM];
 
-char  floppyfns[FDD_NUM][512];
+/* BIOS boot status tracking */
+static bios_boot_status_t bios_boot_status = BIOS_BOOT_POST;
+
+char  floppyfns[FDD_NUM][MAX_IMAGE_PATH_LEN];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];
@@ -212,9 +216,9 @@ int fdd_do_log = ENABLE_FDD_LOG;
 static void
 fdd_log(const char *fmt, ...)
 {
-    va_list ap, ap_copy;
+    va_list ap;
     char    timebuf[32];
-    char    fullbuf[1056]; // 32 + 1024 bytes for timestamp + message
+    char    fullbuf[1056]; /* 32 + 1024 bytes for timestamp + message */
 
     if (fdd_do_log) {
         uint32_t ticks        = plat_get_ticks();
@@ -224,26 +228,57 @@ fdd_log(const char *fmt, ...)
         snprintf(timebuf, sizeof(timebuf), "[%07u.%03u] ", seconds, milliseconds);
 
         va_start(ap, fmt);
-        va_copy(ap_copy, ap);
-
         strcpy(fullbuf, timebuf);
-        vsnprintf(fullbuf + strlen(timebuf), sizeof(fullbuf) - strlen(timebuf), fmt, ap_copy);
-
-        va_end(ap_copy);
+        vsnprintf(fullbuf + strlen(timebuf), sizeof(fullbuf) - strlen(timebuf), fmt, ap);
         va_end(ap);
 
-        va_start(ap, fmt);
-        va_end(ap);
-
-        char *msg = fullbuf;
-        va_start(ap, fmt);
-        pclog_ex("%s", (va_list) &msg);
-        va_end(ap);
+        pclog("%s", fullbuf);
     }
 }
 #else
 #    define fdd_log(fmt, ...)
 #endif
+
+/*
+ * BIOS boot status functions
+ *
+ * These functions track whether the system is in BIOS POST (Power-On Self Test)
+ * or has transitioned to normal operation. The POST state is set on:
+ *   - System hard reset (fdd_reset)
+ *   - FDC soft reset (fdd_boot_status_reset)
+ *
+ * POST is considered complete when the first floppy read operation occurs,
+ * indicating that BIOS has finished POST and is attempting to boot.
+ */
+bios_boot_status_t
+fdd_get_boot_status(void)
+{
+    return bios_boot_status;
+}
+
+void
+fdd_set_boot_status(bios_boot_status_t status)
+{
+    if (bios_boot_status != status) {
+        fdd_log("BIOS boot status changed: %s -> %s\n",
+                bios_boot_status == BIOS_BOOT_POST ? "POST" : "NORMAL",
+                status == BIOS_BOOT_POST ? "POST" : "NORMAL");
+        bios_boot_status = status;
+    }
+}
+
+void
+fdd_boot_status_reset(void)
+{
+    fdd_log("BIOS boot status reset to POST\n");
+    bios_boot_status = BIOS_BOOT_POST;
+}
+
+int
+fdd_is_post_complete(void)
+{
+    return (bios_boot_status == BIOS_BOOT_NORMAL);
+}
 
 void
 fdd_set_audio_profile(int drive, int profile)
@@ -365,7 +400,7 @@ void
 fdd_seek(int drive, int track_diff)
 {
     fdd_log("fdd_seek(drive=%d, track_diff=%d)\n", drive, track_diff);
-    if (!track_diff)
+    if (track_diff == 0)
         return;
 
     if (fdd_seek_in_progress[drive]) {
@@ -385,19 +420,14 @@ fdd_seek(int drive, int track_diff)
 
     fdd_changed[drive] = 0;
 
-    if (fdd[drive].turbo)
+    if (fdd[drive].turbo) {
         fdd_do_seek(drive, fdd[drive].track);
-    else {
+    } else {
         /* Trigger appropriate audio for track movements */
         int actual_track_diff = abs(old_track - fdd[drive].track);
         if (actual_track_diff > 0) {
             /* Multi-track seek */
             fdd_audio_play_multi_track_seek(drive, old_track, fdd[drive].track);
-        }
-
-        if (old_track + track_diff < 0) {
-            fdd_do_seek(drive, fdd[drive].track);
-            return;
         }
 
         fdd_seek_in_progress[drive] = 1;
@@ -411,7 +441,11 @@ fdd_seek(int drive, int track_diff)
 
         /* Get seek timings from audio profile configuration with direction awareness */
         double   seek_time_us = fdd_audio_get_seek_time(drive, actual_track_diff, is_seek_down);
-        fdd_log("Seek timing for drive %d: %.2f µs (%s)\n", 
+        if (seek_time_us < 1) {
+            seek_time_us = DEFAULT_SEEK_TIME_MS * 1000;
+        }
+
+        fdd_log("Seek timing for drive %d: %.2f µs (%s)\n",
                 drive, seek_time_us, is_seek_down ? "DOWN" : "UP");
         uint64_t seek_delay_us = seek_time_us * TIMER_USEC;
         timer_set_delay_u64(&fdd_seek_timer[drive], seek_delay_us);
@@ -451,7 +485,7 @@ fdd_type_invert_densel(int type)
     int ret;
 
     if (drive_types[type].flags & FLAG_PS2)
-        ret = (!!strstr(machine_getname(), "PS/1")) || (!!strstr(machine_getname(), "PS/2")) || (!!strstr(machine_getname(), "PS/55"));
+        ret = (!!strstr(machine_getname(machine), "PS/1")) || (!!strstr(machine_getname(machine), "PS/2")) || (!!strstr(machine_getname(machine), "PS/55"));
     else
         ret = drive_types[type].flags & FLAG_INVERT_DENSEL;
 
@@ -636,6 +670,35 @@ fdd_load(int drive, char *fn)
         ui_writeprot[drive] = 1;
     }
     fn += offs;
+
+    /* Check for physical floppy device (ioctl://) prefix */
+    if (strstr(fn, "ioctl://") == fn) {
+        const char *device_path = fn + 8;
+
+        if (floppyfns[drive] != (fn - offs)) {
+            strncpy(floppyfns[drive], fn - offs, sizeof(floppyfns[drive]) - 1);
+            floppyfns[drive][sizeof(floppyfns[drive]) - 1] = '\0';
+        }
+
+        d86f_setup(drive);
+
+        img_load_raw_device(drive, device_path);
+
+        if (floppyfns[drive][0] == '\0') {
+            drive_empty[drive] = 1;
+            fdd_set_head(drive, 0);
+            ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
+            return;
+        }
+
+        drive_empty[drive] = 0;
+
+        fdd_forced_seek(drive, 0);
+        fdd_changed[drive] = 1;
+        ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
+        return;
+    }
+
     p = path_get_extension(fn);
     if (!p)
         return;
@@ -648,8 +711,10 @@ fdd_load(int drive, char *fn)
         while (loaders[c].ext) {
             if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
                 driveloaders[drive] = c;
-                if (floppyfns[drive] != (fn - offs))
-                    strcpy(floppyfns[drive], fn - offs);
+                if (floppyfns[drive] != (fn - offs)) {
+                    strncpy(floppyfns[drive], fn - offs, sizeof(floppyfns[drive]) - 1);
+                    floppyfns[drive][sizeof(floppyfns[drive]) - 1] = '\0';
+                }
                 d86f_setup(drive);
                 loaders[c].load(drive, floppyfns[drive] + offs);
                 drive_empty[drive] = 0;
@@ -671,11 +736,7 @@ void
 fdd_close(int drive)
 {
     d86f_stop(drive); /* Call this first of all to make sure the 86F poll is back to idle state. */
-    if (loaders[driveloaders[drive]].close)
-        loaders[driveloaders[drive]].close(drive);
-    drive_empty[drive] = 1;
-    fdd_set_head(drive, 0);
-    floppyfns[drive][0]         = 0;
+
     drives[drive].hole          = NULL;
     drives[drive].poll          = NULL;
     drives[drive].seek          = NULL;
@@ -686,6 +747,17 @@ fdd_close(int drive)
     drives[drive].format        = NULL;
     drives[drive].byteperiod    = NULL;
     drives[drive].stop          = NULL;
+    fdd_seek_in_progress[drive] = 0;
+
+    if (strstr(floppyfns[drive], "ioctl://") != NULL) {
+        floppy_ioctl_close(drive);
+        img_close(drive);
+    } else if (loaders[driveloaders[drive]].close)
+        loaders[driveloaders[drive]].close(drive);
+
+    drive_empty[drive] = 1;
+    fdd_set_head(drive, 0);
+    floppyfns[drive][0] = 0;
     d86f_destroy(drive);
     ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
 }
@@ -743,6 +815,10 @@ fdd_poll(void *priv)
         if (!fdd_notfound)
             fdc_noidam(fdd_fdc);
     }
+
+    if (fdd_changed[drive]) {
+        fdc_diskchange_interrupt(fdd_fdc, drive);
+    }
 }
 
 int
@@ -774,9 +850,15 @@ fdd_get_bitcell_period(int rate)
 void
 fdd_reset(void)
 {
+    /* Reset boot status to POST on system reset */
+    fdd_boot_status_reset();
+
     for (uint8_t i = 0; i < FDD_NUM; i++) {
         drives[i].id = i;
         timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
+
+        /* Clear any pending seek state */
+        fdd_seek_in_progress[i] = 0;
     }
 }
 
@@ -784,6 +866,11 @@ void
 fdd_readsector(int drive, int sector, int track, int side, int density, int sector_size)
 {
     fdd_log("fdd_readsector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
+
+    /* First floppy read operation marks POST as complete */
+    if (bios_boot_status == BIOS_BOOT_POST) {
+        fdd_set_boot_status(BIOS_BOOT_NORMAL);
+    }
 
     if (fdd_seek_in_progress[drive]) {
         fdd_log("Seek in progress on drive %d, deferring READ (trk=%d->%d, side=%d, sec=%d)\n",

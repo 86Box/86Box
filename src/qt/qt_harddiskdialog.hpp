@@ -1,3 +1,5 @@
+#include "qt_settings_completer.hpp"
+
 #ifndef QT_HARDDISKDIALOG_HPP
 #define QT_HARDDISKDIALOG_HPP
 
@@ -62,6 +64,8 @@ private:
     bool checkAndAdjustSectors();
     void recalcSize();
     void recalcSelection();
+
+    SettingsCompleter *scSpeed;
 };
 
 typedef struct _86BoxGeom {

@@ -291,8 +291,6 @@
 
 #define ETH_ALEN                     6
 
-static bar_t   tulip_pci_bar[3];
-
 struct tulip_descriptor {
     uint32_t status;
     uint32_t control;
@@ -338,6 +336,9 @@ struct TULIPState {
     uint32_t bios_addr;
     uint8_t  filter[16][6];
     int      has_bios;
+    uint32_t local;
+
+    bar_t    tulip_pci_bar[3];
 };
 
 typedef struct TULIPState TULIPState;
@@ -346,10 +347,10 @@ static void
 tulip_desc_read(TULIPState *s, uint32_t p,
                 struct tulip_descriptor *desc)
 {
-    dma_bm_read(p     , (uint8_t *) &(desc->status)   , 4, 4);
-    dma_bm_read(p +  4, (uint8_t *) &(desc->control)  , 4, 4);
-    dma_bm_read(p +  8, (uint8_t *) &(desc->buf_addr1), 4, 4);
-    dma_bm_read(p + 12, (uint8_t *) &(desc->buf_addr2), 4, 4);
+    desc->status    = mem_readl_phys(p);
+    desc->control   = mem_readl_phys(p + 4);
+    desc->buf_addr1 = mem_readl_phys(p + 8);
+    desc->buf_addr2 = mem_readl_phys(p + 12);
 
     if (s->csr[0] & CSR0_DBO) {
         bswap32s(&desc->status);
@@ -364,20 +365,15 @@ tulip_desc_write(TULIPState *s, uint32_t p,
                  struct tulip_descriptor *desc)
 {
     if (s->csr[0] & CSR0_DBO) {
-        uint32_t status    = bswap32(desc->status);
-        uint32_t control   = bswap32(desc->control);
-        uint32_t buf_addr1 = bswap32(desc->buf_addr1);
-        uint32_t buf_addr2 = bswap32(desc->buf_addr2);
-
-        dma_bm_write(p     , (uint8_t *) &status   , 4, 4);
-        dma_bm_write(p +  4, (uint8_t *) &control  , 4, 4);
-        dma_bm_write(p +  8, (uint8_t *) &buf_addr1, 4, 4);
-        dma_bm_write(p + 12, (uint8_t *) &buf_addr2, 4, 4);
+        mem_writel_phys(p, bswap32(desc->status));
+        mem_writel_phys(p + 4, bswap32(desc->control));
+        mem_writel_phys(p + 8, bswap32(desc->buf_addr1));
+        mem_writel_phys(p + 12, bswap32(desc->buf_addr2));
     } else {
-        dma_bm_write(p     , (uint8_t *) &(desc->status)   , 4, 4);
-        dma_bm_write(p +  4, (uint8_t *) &(desc->control)  , 4, 4);
-        dma_bm_write(p +  8, (uint8_t *) &(desc->buf_addr1), 4, 4);
-        dma_bm_write(p + 12, (uint8_t *) &(desc->buf_addr2), 4, 4);
+        mem_writel_phys(p, desc->status);
+        mem_writel_phys(p + 4, desc->control);
+        mem_writel_phys(p + 8, desc->buf_addr1);
+        mem_writel_phys(p + 12, desc->buf_addr2);
     }
 }
 
@@ -438,10 +434,6 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
             len = s->rx_frame_len;
         }
 
-        if (s->rx_frame_len + len > sizeof(s->rx_frame)) {
-            return;
-        }
-
         dma_bm_write(desc->buf_addr1, s->rx_frame + (s->rx_frame_size - s->rx_frame_len), len, 4);
         s->rx_frame_len -= len;
     }
@@ -451,10 +443,6 @@ tulip_copy_rx_bytes(TULIPState *s, struct tulip_descriptor *desc)
             len = len2;
         } else {
             len = s->rx_frame_len;
-        }
-
-        if (s->rx_frame_len + len > sizeof(s->rx_frame)) {
-            return;
         }
 
         dma_bm_write(desc->buf_addr2, s->rx_frame + (s->rx_frame_size - s->rx_frame_len), len, 4);
@@ -581,7 +569,7 @@ static const uint16_t tulip_mdi_default[] = {
     0x0600,
     0x0001,
     0x0000,
-    0x3b40,
+    0x0000,
     0x0000,
     0x0000,
     0x0000,
@@ -686,7 +674,7 @@ tulip_mii(TULIPState *s)
 static uint32_t
 tulip_csr9_read(TULIPState *s)
 {
-    if (s->device_info->local == 3) {
+    if (s->local == 3) {
         return s->eeprom_data[s->rom_read_addr++];
     }
     if (s->csr[9] & CSR9_SR) {
@@ -721,7 +709,7 @@ tulip_read(uint32_t addr, void *opaque)
             break;
 
         case CSR(12):
-            if (s->device_info->local == 3) {
+            if (s->local == 3) {
                 data = 0;
                 break;
             }
@@ -746,7 +734,9 @@ tulip_tx(TULIPState *s, struct tulip_descriptor *desc)
         if ((s->csr[6] >> CSR6_OM_SHIFT) & CSR6_OM_MASK) {
             /* Internal or external Loopback */
             tulip_receive(s, s->tx_frame, s->tx_frame_len);
-        } else if (s->tx_frame_len <= sizeof(s->tx_frame)) {
+        } else if (net_cards_conf[s->nic->card_num].link_state & NET_LINK_DOWN)
+            desc->status |= (TDES0_ES | TDES0_NC);
+        else if (s->tx_frame_len <= sizeof(s->tx_frame)) {
             //pclog("Transmit!.\n");
             network_tx(s->nic, s->tx_frame, s->tx_frame_len);
         }
@@ -897,7 +887,6 @@ static void
 tulip_reset(void *priv)
 {
     TULIPState     *s           = (TULIPState *) priv;
-    const uint16_t *eeprom_data = nmc93cxx_eeprom_data(s->eeprom);
     s->csr[0]                   = 0xfe000000;
     s->csr[1]                   = 0xffffffff;
     s->csr[2]                   = 0xffffffff;
@@ -911,7 +900,9 @@ tulip_reset(void *priv)
     s->csr[13]                  = 0xffff0000;
     s->csr[14]                  = 0xffffffff;
     s->csr[15]                  = 0x8ff00000;
-    if (s->device_info->local != 3) {
+    if (s->local != 3) {
+        const uint16_t *eeprom_data = nmc93cxx_eeprom_data(s->eeprom);
+
         s->subsys_id                = eeprom_data[1];
         s->subsys_ven_id            = eeprom_data[0];
     }
@@ -974,7 +965,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
                 s->csr[5] |= CSR5_TPS;
             }
 
-            if (s->device_info->local < 3) {
+            if (s->local < 3) {
                 if ((s->csr[6] & 0x00440000) && ((s->csr[6] & 0x00440000) != 0x00440000))
                     s->nic->byte_period = NET_PERIOD_100M;
                 else
@@ -984,7 +975,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
 
         case CSR(7):
             s->csr[7] = data;
-            if (s->device_info->local)
+            if (s->local)
                 tulip_update_int(s);
             break;
 
@@ -993,7 +984,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
             break;
 
         case CSR(9):
-            if (s->device_info->local != 3) {
+            if (s->local != 3) {
                 tulip_csr9_write(s, s->csr[9], data);
                 /* don't clear MII read data */
                 s->csr[9] &= CSR9_MDI;
@@ -1020,7 +1011,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
 
         case CSR(13):
             s->csr[13] = data;
-            if ((s->device_info->local == 3) && (data & 0x4)) {
+            if ((s->local == 3) && (data & 0x4)) {
                 s->csr[13] = 0x8f01;
                 s->csr[14] = 0xfffd;
                 s->csr[15] = 0;
@@ -1193,7 +1184,7 @@ tulip_srom_crc(uint8_t *eeprom)
 }
 
 static uint8_t
-tulip_pci_read(UNUSED(int func), int addr, void *priv)
+tulip_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     const TULIPState *s = (TULIPState *) priv;
     uint8_t ret = 0;
@@ -1206,9 +1197,9 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
             ret = 0x10;
             break;
         case 0x02:
-            if (s->device_info->local == 3)
+            if (s->local == 3)
                 ret = 0x02;
-            else if (s->device_info->local)
+            else if (s->local)
                 ret = 0x09;
             else
                 ret = 0x19;
@@ -1241,34 +1232,34 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
             ret = 0x02;
             break;
         case 0x10:
-            ret = (tulip_pci_bar[0].addr_regs[0] & 0x80) | 0x01;
+            ret = (s->tulip_pci_bar[0].addr_regs[0] & 0x80) | 0x01;
             break;
         case 0x11:
-            ret = tulip_pci_bar[0].addr_regs[1];
+            ret = s->tulip_pci_bar[0].addr_regs[1];
             break;
         case 0x12:
-            ret = tulip_pci_bar[0].addr_regs[2];
+            ret = s->tulip_pci_bar[0].addr_regs[2];
             break;
         case 0x13:
-            ret = tulip_pci_bar[0].addr_regs[3];
+            ret = s->tulip_pci_bar[0].addr_regs[3];
             break;
 #ifdef USE_128_BYTE_BAR
         case 0x14:
-            ret = (tulip_pci_bar[1].addr_regs[0] & 0x80);
+            ret = (s->tulip_pci_bar[1].addr_regs[0] & 0x80);
             break;
 #endif
         case 0x15:
 #ifdef USE_128_BYTE_BAR
-            ret = tulip_pci_bar[1].addr_regs[1];
+            ret = s->tulip_pci_bar[1].addr_regs[1];
 #else
-            ret = tulip_pci_bar[1].addr_regs[1] & 0xf0;
+            ret = s->tulip_pci_bar[1].addr_regs[1] & 0xf0;
 #endif
             break;
         case 0x16:
-            ret = tulip_pci_bar[1].addr_regs[2];
+            ret = s->tulip_pci_bar[1].addr_regs[2];
             break;
         case 0x17:
-            ret = tulip_pci_bar[1].addr_regs[3];
+            ret = s->tulip_pci_bar[1].addr_regs[3];
             break;
         case 0x2C:
             ret = s->subsys_ven_id & 0xFF;
@@ -1283,16 +1274,16 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
             ret = s->subsys_id >> 8;
             break;
         case 0x30:
-            ret = (tulip_pci_bar[2].addr_regs[0] & 0x01);
+            ret = (s->tulip_pci_bar[2].addr_regs[0] & 0x01);
             break;
         case 0x31:
-            ret = tulip_pci_bar[2].addr_regs[1];
+            ret = s->tulip_pci_bar[2].addr_regs[1];
             break;
         case 0x32:
-            ret = tulip_pci_bar[2].addr_regs[2];
+            ret = s->tulip_pci_bar[2].addr_regs[2];
             break;
         case 0x33:
-            ret = tulip_pci_bar[2].addr_regs[3];
+            ret = s->tulip_pci_bar[2].addr_regs[3];
             break;
         case 0x3C:
             ret = s->pci_conf[0x3C];
@@ -1312,7 +1303,7 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+tulip_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     TULIPState *s = (TULIPState *) priv;
 
@@ -1346,9 +1337,9 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                              tulip_readb_io, tulip_readw_io, tulip_readl_io,
                              tulip_writeb_io, tulip_writew_io, tulip_writel_io,
                              priv);
-            tulip_pci_bar[0].addr_regs[addr & 3] = val;
-            tulip_pci_bar[0].addr &= 0xffffff80;
-            s->PCIBase = tulip_pci_bar[0].addr;
+            s->tulip_pci_bar[0].addr_regs[addr & 3] = val;
+            s->tulip_pci_bar[0].addr &= 0xffffff80;
+            s->PCIBase = s->tulip_pci_bar[0].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_IO) {
                 //pclog("PCI write=%02x, base=%04x, io?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_IO);
                 if (s->PCIBase != 0)
@@ -1365,13 +1356,13 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x16:
         case 0x17:
             mem_mapping_disable(&s->memory);
-            tulip_pci_bar[1].addr_regs[addr & 3] = val;
+            s->tulip_pci_bar[1].addr_regs[addr & 3] = val;
 #ifdef USE_128_BYTE_BAR
-            tulip_pci_bar[1].addr &= 0xffffff80;
+            s->tulip_pci_bar[1].addr &= 0xffffff80;
 #else
-            tulip_pci_bar[1].addr &= 0xfffff000;
+            s->tulip_pci_bar[1].addr &= 0xfffff000;
 #endif
-            s->MMIOBase = tulip_pci_bar[1].addr;
+            s->MMIOBase = s->tulip_pci_bar[1].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
                 //pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
                 if (s->MMIOBase != 0)
@@ -1390,10 +1381,10 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 return;
 
             mem_mapping_disable(&s->bios_rom.mapping);
-            tulip_pci_bar[2].addr_regs[addr & 3] = val;
-            tulip_pci_bar[2].addr &= 0xffff0001;
-            s->bios_addr = tulip_pci_bar[2].addr & 0xffff0000;
-            if (tulip_pci_bar[2].addr_regs[0] & 0x01) {
+            s->tulip_pci_bar[2].addr_regs[addr & 3] = val;
+            s->tulip_pci_bar[2].addr &= 0xffff0001;
+            s->bios_addr = s->tulip_pci_bar[2].addr & 0xffff0000;
+            if (s->tulip_pci_bar[2].addr_regs[0] & 0x01) {
                 if (s->bios_addr != 0)
                     mem_mapping_set_addr(&s->bios_rom.mapping, s->bios_addr, 0x10000);
             }
@@ -1418,10 +1409,14 @@ nic_init(const device_t *info)
     uint32_t                 mac;
     uint8_t                 *eeprom_data;
 
+    s->local = info->local;
+    if (s->local == 0xff)
+        s->local = device_get_bios_local(info, device_get_config_bios("bios"));
+
     if (!s)
         return NULL;
 
-    if (info->local && (info->local != 3)) {
+    if (s->local && (s->local != 3)) {
         s->bios_addr = 0xD0000;
         s->has_bios  = device_get_config_int("bios");
     } else {
@@ -1438,8 +1433,8 @@ nic_init(const device_t *info)
 
     s->device_info = info;
 
-    if (info->local != 3) {
-        if (info->local == 2) {
+    if (s->local != 3) {
+        if (s->local == 2) {
            /*Subsystem Vendor ID*/
             s->eeprom_data[0] = 0x00;
             s->eeprom_data[1] = 0x0a;
@@ -1449,12 +1444,12 @@ nic_init(const device_t *info)
             s->eeprom_data[3] = 0x21;
         } else {
             /*Subsystem Vendor ID*/
-            s->eeprom_data[0] = info->local ? 0x25 : 0x11;
+            s->eeprom_data[0] = s->local ? 0x25 : 0x11;
             s->eeprom_data[1] = 0x10;
 
             /*Subsystem ID*/
-            s->eeprom_data[2] = info->local ? 0x10 : 0x0a;
-            s->eeprom_data[3] = info->local ? 0x03 : 0x50;
+            s->eeprom_data[2] = s->local ? 0x10 : 0x0a;
+            s->eeprom_data[3] = s->local ? 0x03 : 0x50;
         }
 
         /*Cardbus CIS Pointer low*/
@@ -1489,7 +1484,7 @@ nic_init(const device_t *info)
         s->eeprom_data[21] = 0x00;
         s->eeprom_data[22] = 0xf8;
 
-        if (info->local == 2) {
+        if (s->local == 2) {
             /* Microsoft VPC DEC Tulip. */
             s->eeprom_data[20] = 0x00;
             s->eeprom_data[21] = 0x03;
@@ -1526,7 +1521,7 @@ nic_init(const device_t *info)
         s->eeprom_data[30] = 0x00;
         s->eeprom_data[31] = 0x08;
 
-        if (info->local) {
+        if (s->local) {
             /*General Purpose Control*/
             s->eeprom_data[32] = 0xff;
 
@@ -1652,36 +1647,32 @@ nic_init(const device_t *info)
         s->eeprom_data[7] = checksum & 0xFF;
     }
 
-    if (info->local != 3) {
-        params.nwords          = 64;
-        params.default_content = (uint16_t *) s->eeprom_data;
+    if (s->local != 3) {
+        params.type            = NMC_93C46_x16_64;
+        params.default_content = s->eeprom_data;
         params.filename        = filename;
         int inst               = device_get_instance();
         snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, inst);
         s->eeprom = device_add_inst_params(&nmc93cxx_device, inst, &params);
-        if (s->eeprom == NULL) {
-            free(s);
-            return NULL;
-        }
     }
 
-    tulip_pci_bar[0].addr_regs[0] = 1;
-    tulip_pci_bar[1].addr_regs[0] = 0;
-    s->pci_conf[0x04]             = 7;
+    s->tulip_pci_bar[0].addr_regs[0] = 1;
+    s->tulip_pci_bar[1].addr_regs[0] = 0;
+    s->pci_conf[0x04]                = 7;
 
     /* Enable our BIOS space in PCI, if needed. */
     if (s->has_bios) {
         rom_init(&s->bios_rom, ROM_PATH_DEC21140, s->bios_addr, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-        tulip_pci_bar[2].addr         = 0xffff0000;
+        s->tulip_pci_bar[2].addr         = 0xffff0000;
     } else
-        tulip_pci_bar[2].addr         = 0;
+        s->tulip_pci_bar[2].addr         = 0;
 
     mem_mapping_disable(&s->bios_rom.mapping);
-    eeprom_data = (info->local == 3) ? s->eeprom_data : (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[0];
+    eeprom_data = (s->local == 3) ? s->eeprom_data : (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[0];
 
     //pclog("EEPROM Data Format=%02x, Count=%02x, MAC=%02x:%02x:%02x:%02x:%02x:%02x.\n", eeprom_data[0x12], eeprom_data[0x13], eeprom_data[0x14], eeprom_data[0x15], eeprom_data[0x16], eeprom_data[0x17], eeprom_data[0x18], eeprom_data[0x19]);
     memcpy(s->mii_regs, tulip_mdi_default, sizeof(tulip_mdi_default));
-    s->nic = network_attach(s, &eeprom_data[(info->local == 3) ? 0 : 20], tulip_receive, NULL);
+    s->nic = network_attach(s, &eeprom_data[(s->local == 3) ? 0 : 20], tulip_receive, NULL);
     pci_add_card(PCI_ADD_NORMAL, tulip_pci_read, tulip_pci_write, s, &s->pci_slot);
     tulip_reset(s);
     return s;
@@ -1711,6 +1702,37 @@ static const device_config_t dec_tulip_21143_config[] = {
 
 static const device_config_t dec_tulip_21140_config[] = {
     {
+        .name           = "variant",
+        .description    = "Variant",
+        .type           = CONFIG_BIOS,
+        .default_string = "dec_21140_tulip",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "DEC 21140 Fast Ethernet",
+                .internal_name = "dec_21140_tulip",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = -1,
+                .local         = 1,
+                .size          = 32768,
+                .files         = { "" }
+            },
+            {
+                .name          = "Microsoft Virtual PC Network",
+                .internal_name = "dec_21140_tulip_vpc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = -1,
+                .local         = 2,
+                .size          = 32768,
+                .files         = { "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
         .name           = "bios",
         .description    = "Enable BIOS",
         .type           = CONFIG_BINARY,
@@ -1737,7 +1759,7 @@ static const device_config_t dec_tulip_21140_config[] = {
 // clang-format on
 
 const device_t dec_tulip_device = {
-    .name          = "DEC DE-500A Fast Ethernet (DECchip 21143 \"Tulip\")",
+    .name          = "DECchip 21143 \"Tulip\"",
     .internal_name = "dec_21143_tulip",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -1747,14 +1769,15 @@ const device_t dec_tulip_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .alias         = "DEC DE-500A Fast Ethernet",
     .config        = dec_tulip_21143_config
 };
 
 const device_t dec_tulip_21140_device = {
-    .name          = "DEC 21140 Fast Ethernet (DECchip 21140 \"Tulip FasterNet\")",
-    .internal_name = "dec_21140_tulip",
+    .name          = "DECchip 21140 \"Tulip FasterNet\"",
+    .internal_name = "dec_21140_tulip_migrate",
     .flags         = DEVICE_PCI,
-    .local         = 1,
+    .local         = 0xff,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = tulip_reset,
@@ -1764,22 +1787,9 @@ const device_t dec_tulip_21140_device = {
     .config        = dec_tulip_21140_config
 };
 
-const device_t dec_tulip_21140_vpc_device = {
-    .name          = "Microsoft Virtual PC Network (DECchip 21140 \"Tulip FasterNet\")",
-    .internal_name = "dec_21140_tulip_vpc",
-    .flags         = DEVICE_PCI,
-    .local         = 2,
-    .init          = nic_init,
-    .close         = nic_close,
-    .reset         = tulip_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = dec_tulip_21140_config
-};
 
 const device_t dec_tulip_21040_device = {
-    .name          = "DEC DE-435 EtherWorks Turbo (DECchip 21040 \"Tulip\")",
+    .name          = "DECchip 21040 \"Tulip\"",
     .internal_name = "dec_21040_tulip",
     .flags         = DEVICE_PCI,
     .local         = 3,
@@ -1789,5 +1799,6 @@ const device_t dec_tulip_21040_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .alias         = "DEC DE-435 EtherWorks Turbo",
     .config        = dec_tulip_21143_config
 };

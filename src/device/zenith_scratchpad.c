@@ -74,7 +74,7 @@ zenith_scratchpad_init(UNUSED(const device_t *info))
 
     dev = (zenith_t *) calloc(1, sizeof(zenith_t));
 
-    dev->scratchpad_ram = malloc(0x4000);
+    dev->scratchpad_ram = calloc(1, 0x4000);
 
     mem_mapping_add(&dev->scratchpad_mapping, 0xf0000, 0x4000,
                     zenith_scratchpad_read, NULL, NULL,

@@ -20,7 +20,6 @@
 #include "codegen_ops_helpers.h"
 
 #define MAX_INSTRUCTION_COUNT 50
-
 static struct {
     uint32_t pc;
     int      op_ssegs;
@@ -54,6 +53,7 @@ codegen_set_loop_start(ir_data_t *ir, int first_instruction)
 }
 
 int has_ea;
+extern uint32_t codegen_endpc;
 
 codeblock_t *codeblock;
 uint16_t    *codeblock_hash;
@@ -676,7 +676,6 @@ generate_call:
     if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
         goto codegen_skip;
 #endif
-
     if (in_lock && ((opcode == 0x90) || (opcode == 0xec)))
         goto codegen_skip;
 

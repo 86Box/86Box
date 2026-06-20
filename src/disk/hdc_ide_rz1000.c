@@ -30,6 +30,7 @@
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/timer.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -108,7 +109,7 @@ rz1000_ide_handlers(rz1000_t *dev)
 }
 
 static void
-rz1000_pci_write(int func, int addr, uint8_t val, void *priv)
+rz1000_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     rz1000_t *dev = (rz1000_t *) priv;
 
@@ -138,7 +139,7 @@ rz1000_pci_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-rz1000_pci_read(int func, int addr, void *priv)
+rz1000_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     rz1000_t *dev = (rz1000_t *) priv;
     uint8_t   ret = 0xff;

@@ -25,11 +25,12 @@ class Settings : public QDialog {
 public:
     explicit Settings(QWidget *parent = nullptr);
     ~Settings();
-    void save();
+    void save(int soft);
 
     static Settings *settings;
 protected slots:
     void accept() override;
+    void reject() override;
 
 private:
     Ui::Settings               *ui;

@@ -75,8 +75,9 @@ extern "C" {
 #include <iostream>
 #include <memory>
 
+#include "qt_defs.hpp"
 #include "qt_mainwindow.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_settings.hpp"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
@@ -84,6 +85,8 @@ extern "C" {
 #include "qt_util.hpp"
 #include "qt_vmmanager_clientsocket.hpp"
 #include "qt_vmmanager_mainwindow.hpp"
+
+#include "qt_osd.hpp"
 
 // Void Cast
 #define VC(x) const_cast<wchar_t *>(x)
@@ -100,6 +103,7 @@ extern int  qt_nvr_save(void);
 extern void exit_pause(void);
 
 bool cpu_thread_running = false;
+bool fast_forward = false;
 }
 
 #include <locale.h>
@@ -224,7 +228,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             is_over_window                = is_over_window || ((secondaryRenderer != nullptr) && (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
         }
 
-    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture));
+    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture)) || qt_osd_is_visible();
 
     if (skip)
         return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -399,7 +403,8 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
         ret = CallNextHookEx(NULL, nCode, wParam, lParam);
 
     if (lpKdhs->scanCode == 0x00000045) {
-        if ((lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000090)) {
+        if ((lpKdhs->flags & LLKHF_EXTENDED) && ((lpKdhs->vkCode == 0x00000090) ||
+                                                 (lpKdhs->vkCode == 0x00000013))) {
             /* NumLock. */
             lpKdhs->flags &= ~LLKHF_EXTENDED;
         } else if (!(lpKdhs->flags & LLKHF_EXTENDED) && (lpKdhs->vkCode == 0x00000013)) {
@@ -439,48 +444,55 @@ main_thread_fn()
     plat_set_thread_name(nullptr, "main_thread");
     framecountx = 0;
     // title_update = 1;
-    uint64_t old_time = elapsed_timer.elapsed();
-    int      drawits = frames = 0;
+    qint64 old_ns = elapsed_timer.nsecsElapsed();
+    qint64 debt_ns;
+    const qint64 quantum_ns  = force_10ms ? 10000000LL : 1000000LL;
+    const qint64 max_debt_ns = 50000000LL;
+    frames                   = 0;
+    debt_ns                  = 0;
     is_cpu_thread             = 1;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
-        const uint64_t new_time = elapsed_timer.elapsed();
+        const qint64 new_ns = elapsed_timer.nsecsElapsed();
+        debt_ns += (new_ns - old_ns);
+        old_ns = new_ns;
+        if (debt_ns > max_debt_ns)
+            debt_ns = max_debt_ns;
 #ifdef USE_GDBSTUB
-        if (gdbstub_next_asap && (drawits <= 0))
-            drawits = force_10ms ? 10 : 1;
-        else
+        if (gdbstub_next_asap && (debt_ns < quantum_ns))
+            debt_ns = quantum_ns;
 #endif
-            drawits += static_cast<int>(new_time - old_time);
-        old_time = new_time;
-        if (drawits > 0 && !dopause) {
-            /* Yes, so run frames now. */
-            do {
+        if (((debt_ns >= quantum_ns) || fast_forward) && !dopause) {
+            /*
+             * Pace with one pc_run() per scheduler pass.
+             * We intentionally avoid burst catch-up (multi-frame loop) because it can
+             * overshoot after dips and amplify <100/>100 speed oscillation.
+             */
 #ifdef USE_INSTRUMENT
-                uint64_t start_time = elapsed_timer.nsecsElapsed();
+            uint64_t start_time = elapsed_timer.nsecsElapsed();
 #endif
-                /* Run a block of code. */
-                pc_run();
+            pc_run();
 
 #ifdef USE_INSTRUMENT
-                if (instru_enabled) {
-                    uint64_t elapsed_us       = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
-                    uint64_t total_elapsed_ms = (uint64_t) ((double) tsc / cpu_s->rspeed * 1000);
-                    printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
-                    if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
-                        break;
-                }
+            if (instru_enabled) {
+                uint64_t elapsed_us       = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
+                uint64_t total_elapsed_ms = (uint64_t) ((double) tsc / cpu_s->rspeed * 1000);
+                printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
+                if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
+                    debt_ns = 0;
+            }
 #endif
-                /* Every 2 emulated seconds we save the machine status. */
-                if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
-                    qt_nvr_save();
-                    nvr_dosave = 0;
-                    frames     = 0;
-                }
-                
-                drawits -= force_10ms ? 10 : 1;
-                if (drawits > 50)
-                    drawits = 0;
-            } while (drawits > 0);
+            /* Every 2 emulated seconds we save the machine status. */
+            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
+                qt_nvr_save();
+                nvr_dosave = 0;
+                frames     = 0;
+            }
+
+            if (!fast_forward && debt_ns >= quantum_ns)
+                debt_ns -= quantum_ns;
+            else
+                debt_ns = 0;
         } else {
             /* Just so we dont overload the host OS. */
 
@@ -562,13 +574,15 @@ main(int argc, char *argv[])
     if (!util::isWindowsLightTheme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
-        if (!f.exists()) {
+        if (!f.exists())
             printf("Unable to set stylesheet, file not found\n");
-        } else {
-            f.open(QFile::ReadOnly | QFile::Text);
-            QTextStream ts(&f);
-            qApp->setStyleSheet(ts.readAll());
-            wasDarkTheme = true;
+        else {
+            if (f.open(QFile::ReadOnly | QFile::Text)) {
+                QTextStream ts(&f);
+                qApp->setStyleSheet(ts.readAll());
+                wasDarkTheme = true;
+            } else
+                printf("Unable to set stylesheet, unable to open file\n");
         }
         QPalette palette(qApp->palette());
         palette.setColor(QPalette::Link, Qt::white);
@@ -577,6 +591,7 @@ main(int argc, char *argv[])
     }
 #endif
 
+    app.setApplicationName(EMU_NAME);
     Q_INIT_RESOURCE(qt_resources);
     Q_INIT_RESOURCE(qt_translations);
 
@@ -617,23 +632,14 @@ main(int argc, char *argv[])
 
     bool startMaximized = window_remember && monitor_settings[0].mon_window_maximized;
     fprintf(stderr, "Qt: version %s, platform \"%s\"\n", qVersion(), QApplication::platformName().toUtf8().data());
-    ProgSettings::loadTranslators(&app);
+    Preferences::loadTranslators(&app);
 #ifdef Q_OS_WINDOWS
-    QApplication::setFont(QFont(ProgSettings::getFontName(lang_id), 9));
+    QApplication::setFont(Preferences::getUIFont());
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
 
 #ifndef Q_OS_MACOS
-#    ifdef RELEASE_BUILD
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-green.ico"));
-#    elif defined ALPHA_BUILD
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-red.ico"));
-#    elif defined BETA_BUILD
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-yellow.ico"));
-#    else
-    app.setWindowIcon(QIcon(":/settings/qt/icons/86Box-gray.ico"));
-#    endif
-
+    app.setWindowIcon(QIcon(EMU_ICON_PATH));
 #    ifdef Q_OS_UNIX
     app.setDesktopFileName("net.86box.86Box");
 #    endif
@@ -641,7 +647,7 @@ main(int argc, char *argv[])
 
     if (!pc_init_roms()) {
         QMessageBox fatalbox(QMessageBox::Icon::Critical, QObject::tr("No ROMs found"),
-                             QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."),
+                             QObject::tr("%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory.").arg(EMU_NAME, EMU_ROMS_URL),
                              QMessageBox::Ok);
         fatalbox.setTextFormat(Qt::TextFormat::RichText);
         fatalbox.exec();
@@ -727,7 +733,7 @@ main(int argc, char *argv[])
         }
         Settings settings;
         if (settings.exec() == QDialog::Accepted) {
-            settings.save();
+            settings.save(0);
             config_save();
         }
         return 0;
@@ -889,6 +895,7 @@ main(int argc, char *argv[])
         QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
             discord_run_callbacks();
         });
+        discordupdate.setInterval(1000);
         if (enable_discord)
             discordupdate.start(1000);
     }
@@ -903,6 +910,7 @@ main(int argc, char *argv[])
         NewDarkMode = util::isWindowsLightTheme();
 #endif
         pc_reset_hard_init();
+        main_window->updateMouseStrings();
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
@@ -924,4 +932,15 @@ main(int argc, char *argv[])
 
     socket.close();
     return ret;
+}
+
+void
+plat_clean_up(void)
+{
+#ifdef Q_OS_WINDOWS
+    if (llhook) {
+        UnhookWindowsHookEx(llhook);
+        llhook = nullptr;
+    }
+#endif
 }

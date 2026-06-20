@@ -60,8 +60,7 @@ ics90c64a_vclk_getclock(int clock, void *priv)
 static void *
 ics90c64a_init(const device_t *info)
 {
-    ics90c64a_t *ics90c64a = (ics90c64a_t *) malloc(sizeof(ics90c64a_t));
-    memset(ics90c64a, 0, sizeof(ics90c64a_t));
+    ics90c64a_t *ics90c64a = (ics90c64a_t *) calloc(1, sizeof(ics90c64a_t));
 
     switch (info->local) {
         case 903:

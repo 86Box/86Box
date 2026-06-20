@@ -129,8 +129,7 @@ sc1148x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 static void *
 sc1148x_ramdac_init(const device_t *info)
 {
-    sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) malloc(sizeof(sc1148x_ramdac_t));
-    memset(ramdac, 0, sizeof(sc1148x_ramdac_t));
+    sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) calloc(1, sizeof(sc1148x_ramdac_t));
 
     ramdac->type = info->local;
 

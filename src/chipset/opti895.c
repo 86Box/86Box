@@ -159,6 +159,8 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
                 ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
                 if (dev->idx > 0x2f)
                     dev->regs[dev->idx] = val;
+                else if (dev->idx == 0x28)
+                    dev->regs[dev->idx] = (val & masks[dev->idx - 0x20]) | 0x18;
                 else
                     dev->regs[dev->idx] = val & masks[dev->idx - 0x20];
                 opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
@@ -247,7 +249,9 @@ opti895_read(uint16_t addr, void *priv)
             if (((dev->idx >= 0x20) && (dev->idx <= 0x2f) && (dev->idx != 0x2c)) ||
                 ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
                 ret = dev->regs[dev->idx];
-                if (dev->idx == 0xe0)
+                if (dev->idx == 0x28)
+                    ret |= 0x18;
+                else if (dev->idx == 0xe0)
                     ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
             }
             break;
@@ -291,7 +295,7 @@ opti895_init(const device_t *info)
 
     dev->regs[0x01] = 0xc0;
 
-    dev->regs[0x22] = 0xc4;
+    dev->regs[0x22] = 0xe4;
     dev->regs[0x25] = 0x7c;
     dev->regs[0x26] = 0x10;
     dev->regs[0x27] = 0xde;
@@ -304,7 +308,7 @@ opti895_init(const device_t *info)
     dev->regs[0xe8] = 0x08;
     dev->regs[0xe9] = 0x08;
     dev->regs[0xeb] = 0xff;
-    dev->regs[0xef] = 0x40;
+    dev->regs[0xef] = 0x41;
 
     opti895_recalc(dev);
 

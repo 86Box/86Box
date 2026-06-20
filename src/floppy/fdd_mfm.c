@@ -413,12 +413,12 @@ mfm_load(int drive, char *fn)
     /* Calculate tracks * sides, allocate the tracks array, and read it. */
     dev->total_tracks = dev->hdr.tracks_no * dev->hdr.sides_no;
     if (dev->hdr.if_type & 0x80) {
-        dev->adv_tracks = (mfm_adv_track_t *) malloc(dev->total_tracks * sizeof(mfm_adv_track_t));
+        dev->adv_tracks = (mfm_adv_track_t *) calloc(dev->total_tracks, sizeof(mfm_adv_track_t));
         size            = dev->total_tracks * sizeof(mfm_adv_track_t);
         if (fread(dev->adv_tracks, 1, size, dev->fp) != size)
             fatal("mfm_load(): Error reading advanced tracks\n");
     } else {
-        dev->tracks = (mfm_track_t *) malloc(dev->total_tracks * sizeof(mfm_track_t));
+        dev->tracks = (mfm_track_t *) calloc(dev->total_tracks, sizeof(mfm_track_t));
         size        = dev->total_tracks * sizeof(mfm_track_t);
         if (fread(dev->tracks, 1, size, dev->fp) != size)
             fatal("mfm_load(): Error reading tracks\n");

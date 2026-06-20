@@ -1905,7 +1905,7 @@ update_legacy(es137x_t *dev, uint32_t old_legacy_ctrl)
 }
 
 static uint8_t
-es1370_pci_read(int func, int addr, void *priv)
+es1370_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const es137x_t *dev = (es137x_t *) priv;
 
@@ -1945,10 +1945,12 @@ es1370_pci_read(int func, int addr, void *priv)
         case 0x0b:
             return 0x04;
 
-//        case 0x0c: /* Cache Line Size TODO */
-//        case 0x0d: /* Latency Timer TODO */
-//        case 0x0e: /* Header Type TODO */
-//        case 0x0f: /* BIST TODO */
+#if 0
+        case 0x0c: /* Cache Line Size TODO */
+        case 0x0d: /* Latency Timer TODO */
+        case 0x0e: /* Header Type TODO */
+        case 0x0f: /* BIST TODO */
+#endif
 
         case 0x10:                                 /* Base Address TODO */
             return 0x01 | (dev->base_addr & 0xc0); /* memBaseAddr */
@@ -2001,7 +2003,7 @@ es1370_pci_read(int func, int addr, void *priv)
 }
 
 static uint8_t
-es1371_pci_read(int func, int addr, void *priv)
+es1371_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const es137x_t *dev = (es137x_t *) priv;
 
@@ -2103,7 +2105,7 @@ es137x_io_set(es137x_t *dev, int set)
 }
 
 static void
-es1370_pci_write(int func, int addr, uint8_t val, void *priv)
+es1370_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
 
@@ -2154,7 +2156,7 @@ es1370_pci_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static void
-es1371_pci_write(int func, int addr, uint8_t val, void *priv)
+es1371_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
 
@@ -2538,13 +2540,13 @@ dac1_count:
 }
 
 static void
-es137x_get_buffer(int32_t *buffer, int len, void *priv)
+es137x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
 
     es137x_update(dev);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (dev->buffer[c] / 2);
 
     dev->pos = 0;

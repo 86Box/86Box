@@ -37,6 +37,7 @@
 #include <86box/serial.h>
 #include <86box/sio.h>
 #include <86box/ibm_5161.h>
+#include <86box/io.h>
 #include <86box/isartc.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
@@ -171,7 +172,7 @@ static const device_config_t ibmpc_config[] = {
 
 const device_t ibmpc_device = {
     .name          = "IBM PC (1981)",
-    .internal_name = "ibmpc_device",
+    .internal_name = "ibmpc",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -341,7 +342,7 @@ static const device_config_t ibmpc82_config[] = {
 
 const device_t ibmpc82_device = {
     .name          = "IBM PC (1982)",
-    .internal_name = "ibmpc82_device",
+    .internal_name = "ibmpc82",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -528,7 +529,7 @@ static const device_config_t ibmxt_config[] = {
 
 const device_t ibmxt_device = {
     .name          = "IBM XT (1982)",
-    .internal_name = "ibmxt_device",
+    .internal_name = "ibmxt",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -706,7 +707,7 @@ static const device_config_t ibmxt86_config[] = {
 
 const device_t ibmxt86_device = {
     .name          = "IBM XT (1986)",
-    .internal_name = "ibmxt86_device",
+    .internal_name = "ibmxt86",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -933,7 +934,7 @@ static const device_config_t dtk_config[] = {
 
 const device_t dtk_device = {
     .name          = "DTK PIM-TB10-Z",
-    .internal_name = "dtk_device",
+    .internal_name = "dtk",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1045,11 +1046,11 @@ machine_xt_top88_init(const machine_t *model)
 }
 
 static void
-machine_xt_hyundai_common_init(const machine_t *model, int fixed_floppy)
+machine_xt_hyundai_common_init(const machine_t *model)
 {
     device_add(&kbc_xt_hyundai_device);
 
-    machine_xt_common_init(model, fixed_floppy);
+    machine_xt_common_init(model, 1);
 }
 
 int
@@ -1064,7 +1065,7 @@ machine_xt_super16t_init(const machine_t *model)
         return ret;
 
     /* On-board FDC cannot be disabled */
-    machine_xt_hyundai_common_init(model, 1);
+    machine_xt_hyundai_common_init(model);
 
     return ret;
 }
@@ -1081,7 +1082,7 @@ machine_xt_super16te_init(const machine_t *model)
         return ret;
 
     /* On-board FDC cannot be disabled */
-    machine_xt_hyundai_common_init(model, 1);
+    machine_xt_hyundai_common_init(model);
 
     return ret;
 }
@@ -1137,7 +1138,7 @@ static const device_config_t jukopc_config[] = {
 
 const device_t jukopc_device = {
     .name          = "Juko ST",
-    .internal_name = "jukopc_device",
+    .internal_name = "jukopc",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1184,24 +1185,6 @@ machine_xt_kaypropc_init(const machine_t *model)
         return ret;
 
     machine_xt_clone_init(model, 0);
-
-    return ret;
-}
-
-int
-machine_xt_micoms_xl7turbo_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
-                           0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    device_add(&kbc_xt_device);
-
-    machine_xt_common_init(model, 0);
 
     return ret;
 }
@@ -1276,7 +1259,7 @@ static const device_config_t pc500_config[] = {
 
 const device_t pc500_device = {
     .name          = "Multitech PC-500",
-    .internal_name = "pc500_device",
+    .internal_name = "pc500",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1394,8 +1377,8 @@ static const device_config_t pc500plus_config[] = {
 };
 
 const device_t pc500plus_device = {
-    .name          = "Multitech PC-500 plus",
-    .internal_name = "pc500plus_device",
+    .name          = "Multitech PC-500+",
+    .internal_name = "pc500plus",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1473,7 +1456,7 @@ static const device_config_t pc700_config[] = {
 
 const device_t pc700_device = {
     .name           = "Multitech PC-700",
-    .internal_name  = "pc700_device",
+    .internal_name  = "pc700",
     .flags          = 0,
     .local          = 0,
     .init           = NULL,
@@ -1632,6 +1615,24 @@ machine_xt_pravetz16_imko4_init(const machine_t *model)
 }
 
 int
+machine_xt_mxl7t_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/mxl7t/XL7_TURBO.BIN",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
+
+    machine_xt_common_init(model, 0);
+
+    return ret;
+}
+
+int
 machine_xt_pravetz16s_cpu12p_init(const machine_t *model)
 {
     int ret;
@@ -1705,27 +1706,6 @@ machine_xt_pcxt_init(const machine_t *model)
 static const device_config_t to16_config[] = {
     // clang-format off
     {
-        .name           = "bios",
-        .description    = "BIOS Version",
-        .type           = CONFIG_BIOS,
-        .default_string = "to16",
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .bios           = {
-            {
-                .name   = "1.03",
-                .internal_name = "to16",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { "roms/machines/to16/TO16_103.bin", "" }
-            },
-            { .files_no = 0 }
-        },
-    },
-    {
         .name           = "rtc_port",
         .description    = "Onboard RTC",
         .type           = CONFIG_SELECTION,
@@ -1762,7 +1742,7 @@ static const device_config_t to16_config[] = {
 
 const device_t to16_device = {
     .name          = "Thomson TO16",
-    .internal_name = "to16_device",
+    .internal_name = "to16",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1777,22 +1757,16 @@ const device_t to16_device = {
 int
 machine_xt_to16_init(const machine_t *model)
 {
-    int         ret      = 0;
-    int         rtc_port = 0;
-    const char *fn;
+    int ret;
 
-    /* No ROMs available. */
-    if (!device_available(model->device))
-        return ret;
-
-    device_context(model->device);
-    rtc_port = machine_get_config_int("rtc_port");
-    fn       = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
-    ret      = bios_load_linear(fn, 0x000f8000, 32768, 0);
-    device_context_restore();
+    ret = bios_load_linear("roms/machines/to16/TO16_103.bin", 0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
         return ret;
+
+    device_context(model->device);
+    int rtc_port = machine_get_config_int("rtc_port");
+    device_context_restore();
 
     machine_xt_clone_init(model, 0);
 
@@ -1852,8 +1826,8 @@ static const device_config_t vendex_config[] = {
 };
 
 const device_t vendex_device = {
-    .name          = "Vendex 888T",
-    .internal_name = "vendex_device",
+    .name          = "Vendex HeadStart Turbo 888-XT",
+    .internal_name = "vendex",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -1911,10 +1885,17 @@ machine_xt_laserxt_common_init(const machine_t *model, int is_lxt3)
 int
 machine_xt_laserxt_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/ltxt/27c64.bin",
-                           0x000fe000, 8192, 0);
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(model->device, device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000fe000, 8192, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
@@ -1971,7 +1952,7 @@ machine_xt_z151_init(const machine_t *model)
     machine_zenith_common_init(model);
 
     if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_xt_tandy_device);
+        device_add(&fdc_xt_device);
 
     return ret;
 }
@@ -1983,11 +1964,9 @@ machine_xt_z151_init(const machine_t *model)
 int
 machine_xt_z159_init(const machine_t *model)
 {
-    lpt_t *lpt = NULL;
-    int    ret;
-
-    ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
-                           0x000f8000, 32768, 0);
+    lpt_t *   lpt = NULL;
+    const int ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
+                                     0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
         return ret;
@@ -2036,7 +2015,9 @@ machine_xt_z184_init(const machine_t *model)
     /* So that serial_standalone_init() won't do anything. */
     serial_set_next_inst(SERIAL_MAX - 1);
 
-    device_add(&cga_device);
+    device_add(&v6355d_device);
+
+    device_add(&rp5c01a_zenith_device);
 
     return ret;
 }
@@ -2102,8 +2083,6 @@ machine_xt_tuliptc8_init(const machine_t *model)
     nmi_init();
     standalone_gameport_type = &gameport_200_device;
 
-    device_add(&amstrad_megapc_nvr_device);
-
     return ret;
 }
 
@@ -2154,8 +2133,6 @@ machine_xt_pc5086_init(const machine_t *model)
 
     device_add(&kbc_xt_device);
 
-    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
-
     return ret;
 }
 
@@ -2181,7 +2158,7 @@ machine_xt_maz1016_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    loadfont("roms/machines/maz1016/crt-8.bin", 0);
+    video_load_font("roms/machines/maz1016/crt-8.bin", FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
 
     machine_xt_clone_init(model, 0);
 

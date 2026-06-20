@@ -14,7 +14,10 @@ public:
     explicit SettingsOtherPeripherals(QWidget *parent = nullptr);
     ~SettingsOtherPeripherals();
 
-    void save();
+    int  changed();
+
+    void restore();
+    void save(int soft);
 
 public slots:
     void onCurrentMachineChanged(int machineId);
@@ -50,6 +53,17 @@ private slots:
 private:
     Ui::SettingsOtherPeripherals *ui;
     int                           machineId { 0 };
+
+    int                           isamem_cfg_changed[4]      = { 0, 0, 0, 0 };
+    int                           isarom_cfg_changed[4]      = { 0, 0, 0, 0 };
+    int                           isartc_cfg_changed         = 0;
+    int                           unittester_cfg_changed     = 0;
+    int                           novell_keycard_cfg_changed = 0;
+
+    SettingsCompleter            *scRTC;
+
+    SettingsCompleter            *scIsaMemCard[4];
+    SettingsCompleter            *scIsaRomCard[4];
 };
 
 #endif // QT_SETTINGSOTHERPERIPHERALS_HPP

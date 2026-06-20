@@ -85,8 +85,8 @@ pcjr_recalc_timings(pcjr_t *pcjr)
     _dispofftime = disptime - _dispontime;
     _dispontime *= CGACONST;
     _dispofftime *= CGACONST;
-    pcjr->dispontime  = (uint64_t) (_dispontime);
-    pcjr->dispofftime = (uint64_t) (_dispofftime);
+    pcjr->dispontime  = (uint64_t) (int64_t) (_dispontime);
+    pcjr->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
 static int
@@ -139,8 +139,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
                 if (pcjr->array_index & 0x10)
                     val &= 0x0f;
                 pcjr->array[pcjr->array_index & 0x1f] = val;
-                if (!(pcjr->array_index & 0x1f))
-                    update_cga16_color(val);
+                if ((pcjr->array_index & 0x1f) == 0x02)
+                    update_cga16_color(pcjr->array[0], val & 0xf);
+                else if (!(pcjr->array_index & 0x1f))
+                    update_cga16_color(val, pcjr->array[2] & 0xf);
             }
             pcjr->array_ff = !pcjr->array_ff;
             break;

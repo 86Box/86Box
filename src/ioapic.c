@@ -32,7 +32,7 @@ typedef struct ioapic_t {
 } ioapic_t;
 
 #ifdef ENABLE_IOAPIC_LOG
-int ioapic_do_log = ENABLE_IOAPIC_LOG;
+uint8_t ioapic_do_log = ENABLE_IOAPIC_LOG;
 
 static void
 ioapic_log(const char *fmt, ...)
@@ -101,8 +101,7 @@ ioapic_close(void *priv)
 static void *
 ioapic_init(UNUSED(const device_t *info))
 {
-    ioapic_t *dev = (ioapic_t *) malloc(sizeof(ioapic_t));
-    memset(dev, 0, sizeof(ioapic_t));
+    ioapic_t *dev = (ioapic_t *) calloc(1, sizeof(ioapic_t));
 
     ioapic_reset(dev);
 

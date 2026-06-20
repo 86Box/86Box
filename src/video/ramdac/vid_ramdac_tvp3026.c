@@ -520,40 +520,32 @@ tvp3026_recalctimings(void *priv, svga_t *svga)
 
     svga->interlace = !!(ramdac->ccr & 0x40);
     /* TODO: Figure out gamma correction for 15/16 bpp color. */
-    svga->lut_map = !!((svga->bpp >= 15 && (svga->bpp != 24)) && (ramdac->true_color & 0xf0) != 0x00);
+    svga->lut_map = !!(((svga->bpp >= 15) && (svga->bpp != 24)) && (ramdac->true_color & 0xf0) != 0x00);
     svga->clock_multiplier = 0;
+    svga->multiplexing_rate = 0;
 
-    //pclog("RAMDAC CLOCKSEL=%02x, MCR=%02x, LoopMCLK=%02x, Latch=%02x.\n", ramdac->clock_sel, ramdac->mcr, ramdac->mclk, ramdac->latch_cntl);
-
-    if (!(ramdac->clock_sel & 0x70)) {
-        if (ramdac->mcr != 0x98) {
-            switch ((ramdac->clock_sel >> 4) & 7) {
-                case 0:
+    if (ramdac->mcr != 0x98) {
+        switch (svga->bpp) {
+            case 8:
+                if (ramdac->mcr & 0x08) {
+                    if (ramdac->mclk & 0x01)
+                        svga->clock_multiplier = 1;
+                    if (ramdac->clock_sel & 0x70)
+                        svga->multiplexing_rate = 1;
+                }
+                break;
+            case 15:
+            case 16:
+            case 32:
+                if (!(ramdac->clock_sel & 0x70) && (ramdac->loop.n & 0x40))
                     svga->clock_multiplier = 1;
-                    break;
-                case 1:
-                    svga->clock_multiplier = 2;
-                    break;
-                case 2:
-                    svga->clock_multiplier = 4;
-                    break;
-                case 3:
-                    svga->clock_multiplier = 8;
-                    break;
-                case 4:
-                    svga->clock_multiplier = 16;
-                    break;
-                case 5:
-                    svga->clock_multiplier = 32;
-                    break;
-                case 6:
-                    svga->clock_multiplier = 64;
-                    break;
-                case 7:
-                default:
-                    svga->clock_multiplier = 0;
-                    break;
-            }
+                else if ((ramdac->clock_sel & 0x70) && !(ramdac->loop.n & 0x40))
+                    svga->clock_multiplier = 1;
+                else if ((svga->bpp == 32) && (ramdac->latch_cntl & 0x01) && (ramdac->loop.n & 0x40))
+                    svga->clock_multiplier = 1;
+                break;
+            default:
+                break;
         }
     }
 }
@@ -704,16 +696,16 @@ tvp3026_getclock(int clock, void *priv)
     float                   f_pll;
 
     if (clock == 0)
-        return 25175000.0;
+        return 25175000.0f;
     if (clock == 1)
-        return 28322000.0;
+        return 28322000.0f;
 
     /*Fvco = 8 x Fref x (65 - M) / (65 - N)*/
     /*Fpll = Fvco / 2^P*/
     n     = ramdac->pix.n & 0x3f;
     m     = ramdac->pix.m & 0x3f;
     pl    = ramdac->pix.p & 0x03;
-    f_vco = 8.0f * 14318184 * (float) (65 - m) / (float) (65 - n);
+    f_vco = 8.0f * 14318184.0f * (float) (65 - m) / (float) (65 - n);
     f_pll = f_vco / (float) (1 << pl);
 
     return f_pll;
@@ -734,8 +726,7 @@ tvp3026_gpio(uint8_t (*read)(uint8_t cntl, void *priv),
 void *
 tvp3026_ramdac_init(const device_t *info)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) malloc(sizeof(tvp3026_ramdac_t));
-    memset(ramdac, 0, sizeof(tvp3026_ramdac_t));
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) calloc(1, sizeof(tvp3026_ramdac_t));
 
     ramdac->type = info->local;
 

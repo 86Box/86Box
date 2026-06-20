@@ -235,7 +235,8 @@ net_pcap_rx_handler(uint8_t *user, const struct pcap_pkthdr *h, const uint8_t *b
     net_pcap_t *pcap = (net_pcap_t *) user;
     memcpy(pcap->pkt.data, bytes, h->caplen);
     pcap->pkt.len = h->caplen;
-    network_rx_put_pkt(pcap->card, &pcap->pkt);
+    if (!(net_cards_conf[pcap->card->card_num].link_state & NET_LINK_DOWN))
+        network_rx_put_pkt(pcap->card, &pcap->pkt);
 }
 
 /* Send a packet to the Pcap interface. */
@@ -282,12 +283,14 @@ net_pcap_thread(void *priv)
 
             case NET_EVENT_TX:
                 net_event_clear(&pcap->tx_event);
-                int packets = network_tx_popv(pcap->card, pcap->pktv, PCAP_PKT_BATCH);
-                for (int i = 0; i < packets; i++) {
-                    h.caplen = pcap->pktv[i].len;
-                    f_pcap_sendqueue_queue(pcap->pcap_queue, &h, pcap->pktv[i].data);
+                if (!(net_cards_conf[pcap->card->card_num].link_state & NET_LINK_DOWN)) {
+                    int packets = network_tx_popv(pcap->card, pcap->pktv, PCAP_PKT_BATCH);
+                    for (int i = 0; i < packets; i++) {
+                        h.caplen = pcap->pktv[i].len;
+                        f_pcap_sendqueue_queue(pcap->pcap_queue, &h, pcap->pktv[i].data);
+                    }
+                    f_pcap_sendqueue_transmit(pcap->pcap, pcap->pcap_queue, 0);
                 }
-                f_pcap_sendqueue_transmit(pcap->pcap, pcap->pcap_queue, 0);
                 pcap->pcap_queue->len = 0;
                 break;
 
@@ -333,8 +336,10 @@ net_pcap_thread(void *priv)
             net_event_clear(&pcap->tx_event);
 
             int packets = network_tx_popv(pcap->card, pcap->pktv, PCAP_PKT_BATCH);
-            for (int i = 0; i < packets; i++) {
-                net_pcap_in(pcap->pcap, pcap->pktv[i].data, pcap->pktv[i].len);
+            if (!(net_cards_conf[pcap->card->card_num].link_state & NET_LINK_DOWN)) {
+                for (int i = 0; i < packets; i++) {
+                    net_pcap_in(pcap->pcap, pcap->pktv[i].data, pcap->pktv[i].len);
+                }
             }
         }
 
@@ -359,7 +364,7 @@ net_pcap_prepare(netdev_t *list)
 {
     char       errbuf[PCAP_ERRBUF_SIZE];
     pcap_if_t *devlist;
-    int        i = 0;
+    int        i;
 
     /* Try loading the DLL. */
 #ifdef _WIN32
@@ -370,10 +375,14 @@ net_pcap_prepare(netdev_t *list)
     SetDllDirectoryA(npcap_dir);
     libpcap_handle = dynld_module("wpcap.dll", pcap_imports);
     SetDllDirectoryA(NULL); /* reset the DLL search path */
-#elif defined __APPLE__
+#elif defined(__APPLE__)
     libpcap_handle = dynld_module("libpcap.dylib", pcap_imports);
 #else
-    libpcap_handle = dynld_module("libpcap.so", pcap_imports);
+    static const char *libpcap_libs[] = {"libpcap.so.1", "libpcap.so.0", "libpcap.so.0.8", "libpcap.so"};
+    for (i = 0; i < (sizeof(libpcap_libs) / sizeof(libpcap_libs[0])); i++) {
+        if ((libpcap_handle = dynld_module(libpcap_libs[i], pcap_imports)))
+            break;
+    }
 #endif
     if (libpcap_handle == NULL) {
         pcap_log("PCAP: error loading pcap module\n");
@@ -386,6 +395,7 @@ net_pcap_prepare(netdev_t *list)
         return (-1);
     }
 
+    i = 0;
     for (pcap_if_t *dev = devlist; dev != NULL; dev = dev->next) {
         if (i >= (NET_HOST_INTF_MAX - 1))
             break;

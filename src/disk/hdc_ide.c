@@ -99,6 +99,7 @@
 #define WIN_IDENTIFY                   0xec /* Ask drive to identify itself */
 #define WIN_SET_FEATURES               0xef
 #define WIN_READ_NATIVE_MAX            0xf8
+#define WIN_INVALID                    0xff
 
 #define FEATURE_SET_TRANSFER_MODE      0x03
 #define FEATURE_ENABLE_IRQ_OVERLAPPED  0x5d
@@ -478,7 +479,7 @@ static int
 ide_get_max(const ide_t *ide, const int type)
 {
     const int       ata_4     = ide_is_ata4(ide_boards[ide->board]);
-    const int       max[2][4] = { { 3, -1, -1, -1 }, { 4, 2, 2, 5 } };
+    const int       max[2][4] = { { 3, -1, -1, -1 }, { 4, -1, 2, 5 } };
     int             ret;
 
     if (ide->type == IDE_ATAPI)
@@ -552,8 +553,8 @@ ide_hd_identify(const ide_t *ide)
     /* Serial Number */
     ide_padstr((char *) (ide->buffer + 10), "", 20);
     /* Firmware */
-    if (hdd[ide->hdd_num].version_ex)
-        ide_padstr((char *) (ide->buffer + 23), hdd[ide->hdd_num].version_ex, 8);
+    if (hdd[ide->hdd_num].version)
+        ide_padstr((char *) (ide->buffer + 23), hdd[ide->hdd_num].version, 8);
     else
         ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
     /* Model */
@@ -571,7 +572,8 @@ ide_hd_identify(const ide_t *ide)
     ide->buffer[50] = 0x4000;
     ide->buffer[59] = ide->blocksize ? (ide->blocksize | 0x100) : 0;
 
-    if ((ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63)) {
+    if (ide->is_jride || (ide->tracks >= 1024) || (ide->hpc > 16) || (ide->spt > 63)) {
+        /* JR-IDE requires IDENTIFY word 49 bit 9 even for small CHS-only geometries. */
         ide->buffer[49] = (1 << 9);
         ide_log("LBA supported\n");
 
@@ -587,19 +589,16 @@ ide_hd_identify(const ide_t *ide)
         ide->buffer[53] = 1;
 
         if (ide->params_specified) {
-            ide->buffer[54] = (full_size / ide->cfg_hpc) / ide->cfg_spt;
+            if (full_size <= 16514064)
+                ide->buffer[54] = (full_size / ide->cfg_hpc) / ide->cfg_spt;
+            else
+                ide->buffer[54] = (16514064 / ide->cfg_hpc) / ide->cfg_spt;
             ide->buffer[55] = ide->cfg_hpc;
             ide->buffer[56] = ide->cfg_spt;
         } else {
-            if (full_size <= 16514064) {
-                ide->buffer[54] = d_tracks;
-                ide->buffer[55] = d_hpc;
-                ide->buffer[56] = d_spt;
-            } else {
-                ide->buffer[54] = 16383;
-                ide->buffer[55] = 16;
-                ide->buffer[56] = 63;
-            }
+            ide->buffer[54] = ide->buffer[1];
+            ide->buffer[55] = ide->buffer[3];
+            ide->buffer[56] = ide->buffer[6];
         }
 
         full_size = ((uint64_t) ide->buffer[54]) * ((uint64_t) ide->buffer[55]) *
@@ -651,7 +650,11 @@ ide_identify(ide_t *ide)
     }
 
     max_pio  = ide_get_max(ide, TYPE_PIO);
+#ifdef REPORT_SDMA
     max_sdma = ide_get_max(ide, TYPE_SDMA);
+#else
+    max_sdma = -1;
+#endif
     max_mdma = ide_get_max(ide, TYPE_MDMA);
     max_udma = ide_get_max(ide, TYPE_UDMA);
     ide_log("IDE %i: max_pio = %i, max_sdma = %i, max_mdma = %i, max_udma = %i\n",
@@ -659,7 +662,7 @@ ide_identify(ide_t *ide)
 
     if (ide_boards[ide->board]->bit32)
         ide->buffer[48] |= 1; /*Dword transfers supported*/
-    ide->buffer[51] = ide_get_timings(ide, TIMINGS_PIO);
+    ide->buffer[51] = ((max_pio > 2) ? 2 : max_pio) << 8;
     ide->buffer[53] &= 0xfff9;
     ide->buffer[52] = ide->buffer[62] = ide->buffer[63] = ide->buffer[64] = 0x0000;
     ide->buffer[65] = ide->buffer[66] = ide_get_timings(ide, TIMINGS_DMA);
@@ -742,6 +745,29 @@ ide_get_sector(ide_t *ide)
 
         return ((((off64_t) ide->tf->cylinder * heads) + (off64_t) ide->tf->head) * sectors) +
                (off64_t) sector;
+    }
+}
+
+/*
+ * Return the last sector offset for the current register values
+ */
+static off64_t
+ide_get_last_sector(ide_t *ide)
+{
+    uint32_t heads;
+    uint32_t sectors;
+    uint32_t add     = (ide->tf->secount ? ide->tf->secount : 256) - 1;
+
+    if (ide->tf->lba)
+        return (off64_t) ide->lba_addr + (off64_t) add;
+    else {
+        heads   = ide->cfg_hpc;
+        sectors = ide->cfg_spt;
+
+        uint8_t sector = ide->tf->sector ? (ide->tf->sector - 1) : 0;
+
+        return (((((off64_t) ide->tf->cylinder * heads) + (off64_t) ide->tf->head) * sectors) +
+                (off64_t) sector) + (off64_t) add;
     }
 }
 
@@ -945,6 +971,7 @@ ide_zero(int d)
     dev->channel                       = d;
     dev->type                          = IDE_NONE;
     dev->hdd_num                       = -1;
+    dev->is_jride                      = 0;
     dev->tf->atastat                   = DRDY_STAT | DSC_STAT;
     dev->service                       = 0;
     dev->board                         = d >> 1;
@@ -1368,7 +1395,8 @@ ide_write_data(ide_t *ide, const uint16_t val)
 {
     uint16_t *idebufferw = ide->buffer;
 
-    if ((ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) && ide->buffer) {
+    if ((ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) &&
+        ide->buffer && (ide->command != WIN_INVALID)) {
         if (ide->command == WIN_PACKETCMD) {
             if (ide->type == IDE_ATAPI)
                 ide_atapi_packet_write(ide, val);
@@ -1400,6 +1428,44 @@ ide_write_data(ide_t *ide, const uint16_t val)
             }
         }
     }
+}
+
+static ide_t *
+ide_get_current_device(void *priv)
+{
+    const ide_board_t *dev = (const ide_board_t *) priv;
+
+    if (dev == NULL)
+        return NULL;
+
+    return ide_drives[dev->cur_dev];
+}
+
+uint8_t *
+ide_get_pio_buffer(void *priv)
+{
+    ide_t *ide = ide_get_current_device(priv);
+
+    if ((ide == NULL) || (ide->type == IDE_NONE) || (ide->type & IDE_SHADOW) || (ide->buffer == NULL))
+        return NULL;
+
+    return (uint8_t *) ide->buffer;
+}
+
+void
+ide_complete_pio_buffer_write(void *priv)
+{
+    ide_t    *ide    = ide_get_current_device(priv);
+    uint8_t  *buffer = NULL;
+    uint16_t  value;
+
+    if ((ide == NULL) || !(ide->tf->atastat & DRQ_STAT) ||
+        ((buffer = ide_get_pio_buffer(priv)) == NULL))
+        return;
+
+    ide->tf->pos = 510;
+    value        = (uint16_t) buffer[510] | ((uint16_t) buffer[511] << 8);
+    ide_write_data(ide, value);
 }
 
 void
@@ -1512,60 +1578,51 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
         ide_set_callback(ide, 0.0);
         ide_set_callback(ide_other, 0.0);
 
-        /* We must set set the status to busy in reset mode or
-           some 286 and 386 machines error out. */
-        if (!(ch & 1)) {
-            if (ide->type != IDE_NONE) {
-                ide->tf->atastat = BSY_STAT;
-                ide->tf->error   = 1;
-            }
+        /*
+           Both devices set BSY within 400 ns and post diagnostic results
+           in the Error Register.
+         */
+        if (ide->type != IDE_NONE) {
+            ide->tf->atastat = BSY_STAT;
+            ide->tf->error   = 1;
+        }
 
-            if (ide_other->type != IDE_NONE) {
-                ide_other->tf->atastat = BSY_STAT;
-                ide_other->tf->error   = 1;
-            }
+        if (ide_other->type != IDE_NONE) {
+            ide_other->tf->atastat = BSY_STAT;
+            ide_other->tf->error   = 1;
         }
     } else if (!(val & 4) && (dev->devctl & 4)) {
         /* Reset toggled from 1 to 0. */
-        if (!(ch & 1)) {
-            /* Currently active device is 0, use the device 0 reset protocol. */
-            /* Device 0. */
-            dev_reset(ide);
-            ide->tf->atastat = BSY_STAT;
-            ide->tf->error   = 1;
 
-            /* Device 1. */
-            dev_reset(ide_other);
-            ide_other->tf->atastat = BSY_STAT;
-            ide_other->tf->error   = 1;
+        /* Actually reset the devices. */
+        dev_reset(ide);
 
-            /* Fire the timer. */
-            dev->diag  = 0;
-            ide->reset = 1;
-            ide_set_callback(ide, 0.0);
-            ide_set_callback(ide_other, 0.0);
-            ide_set_board_callback(ide->board, 1000.4); /* 1 ms + 400 ns, per the specification */
-        } else {
-            /* Currently active device is 1, simply reset the status and the active device. */
-            dev_reset(ide);
-            if (ide->type == IDE_ATAPI) {
-                /* Non-early ATAPI devices have DRDY clear after SRST. */
-                ide->tf->atastat = 0;
-                if (IDE_ATAPI_IS_EARLY)
-                    ide->tf->atastat |= DRDY_STAT;
-            } else
-                ide->tf->atastat = DRDY_STAT | DSC_STAT;
-            ide->tf->error   = 1;
-            ide_other->tf->error   = 1;    /* Assert PDIAG-. */
-            dev->cur_dev &= ~1;
-            ch = dev->cur_dev;
+        /* Device 0. */
+        dev_reset(ide);
+        ide->tf->atastat = BSY_STAT;
+        ide->tf->error   = 1;
 
-            ide           = ide_drives[ch];
-            ide->selected = 1;
+        /* Device 1. */
+        dev_reset(ide_other);
+        ide_other->tf->atastat = BSY_STAT;
+        ide_other->tf->error   = 1;
 
-            ide_other           = ide_drives[ch ^ 1];
-            ide_other->selected = 0;
-        }
+        /* Fire the timer. */
+        dev->diag  = 0;
+        ide->reset = 1;
+        ide_set_callback(ide, 0.0);
+        ide_set_callback(ide_other, 0.0);
+
+        ide_set_board_callback(ide->board, 1000.4); /* 1 ms + 400 ns, per the specification */
+
+        dev->cur_dev &= ~1;
+        ch = dev->cur_dev;
+
+        ide           = ide_drives[ch];
+        ide->selected = 1;
+
+        ide_other           = ide_drives[ch ^ 1];
+        ide_other->selected = 0;
     }
 
     old         = dev->devctl;
@@ -1603,10 +1660,12 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
     int    ch;
     int    bad = 0;
     int    reset = 0;
+    int    prev;
 
     ch        = dev->cur_dev;
     ide       = ide_drives[ch];
     ide_other = ide_drives[ch ^ 1];
+    prev      = ide->command;
 
     ide_log("[%04X:%08X] ide_writeb(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
@@ -1649,37 +1708,31 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x4: /* Cylinder low */
-            if (ide->type & IDE_SHADOW)
-                break;
-
-            if (!(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide->type & IDE_SHADOW) && !(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide->tf->cylinder = (ide->tf->cylinder & 0xff00) | val;
                 ide->lba_addr     = (ide->lba_addr & 0xfff00ff) | (val << 8);
             }
 
-            if (!(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide_other->type & IDE_SHADOW) && !(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide_other->tf->cylinder = (ide_other->tf->cylinder & 0xff00) | val;
                 ide_other->lba_addr     = (ide_other->lba_addr & 0xfff00ff) | (val << 8);
             }
             break;
 
         case 0x5: /* Cylinder high */
-            if (ide->type & IDE_SHADOW)
-                break;
-
-            if (!(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide->type & IDE_SHADOW) && !(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide->tf->cylinder = (ide->tf->cylinder & 0xff) | (val << 8);
                 ide->lba_addr     = (ide->lba_addr & 0xf00ffff) | (val << 16);
             }
 
-            if (!(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
+            if (!(ide_other->type & IDE_SHADOW) && !(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
                 ide_other->tf->cylinder = (ide_other->tf->cylinder & 0xff) | (val << 8);
                 ide_other->lba_addr     = (ide_other->lba_addr & 0xf00ffff) | (val << 16);
             }
             break;
 
         case 0x6: /* Drive/Head */
-            if (ch != ((val >> 4) & 1) + (ide->board << 1)) {
+            if (ch != (((val >> 4) & 1) + (ide->board << 1))) {
                 if (!ide->reset && !ide_other->reset && ide->irqstat) {
                     ide_irq_lower(ide);
                     ide->irqstat = 1;
@@ -1721,7 +1774,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
         case 0x7: /* Command register */
             if ((ide->tf->atastat & (BSY_STAT | DRQ_STAT)) &&
-                ((val != WIN_SRST) || (ide->type != IDE_ATAPI)))
+                ((val != WIN_SRST) || (ide->type != IDE_ATAPI)) &&
+                ((val != WIN_VERIFY) || (prev != WIN_IDENTIFY)))
                 break;
 
             if ((ide->type == IDE_NONE) || ((ide->type & IDE_SHADOW) && (val != WIN_DRIVE_DIAGNOSTICS)))
@@ -1786,7 +1840,13 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
                         uint32_t sec_count;
                         double   wait_time;
-                        if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
+                        if ((val == WIN_READ) && (prev == WIN_SETIDLE1)) {
+                            /* Do the callback instantly - this happens on the Intel Monsoon. */
+                            (void) hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
+                            ide->do_initial_read = 1;
+                            ide_callback(ide);
+                            break;
+                        } else if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
                             /* TODO: Make DMA timing more accurate. */
                             sec_count        = ide->tf->secount ? ide->tf->secount : 256;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num],
@@ -1966,6 +2026,8 @@ ide_read_data(ide_t *ide)
 
     if ((ide->type == IDE_NONE) || (ide->type & IDE_SHADOW) || (ide->buffer == NULL))
         ret = 0xff7f;
+    else if (ide->command == WIN_INVALID)
+        ret = 0x0000;
     else if (ide->command == WIN_PACKETCMD) {
         if (ide->type == IDE_ATAPI)
             ret = ide_atapi_packet_read(ide);
@@ -2012,13 +2074,28 @@ ide_read_data(ide_t *ide)
                         const double xfer_us = ide_get_xfer_time(ide, 512);
                         ide_set_callback(ide, seek_us + xfer_us);
                     }
-                } else
+                } else {
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
-            }
+                    ide->command = WIN_INVALID;
+                }
+            } else
+                ide->command = WIN_INVALID;
         }
     }
 
     return ret;
+}
+
+void
+ide_complete_pio_buffer_read(void *priv)
+{
+    ide_t *ide = ide_get_current_device(priv);
+
+    if ((ide == NULL) || !(ide->tf->atastat & DRQ_STAT) || (ide_get_pio_buffer(priv) == NULL))
+        return;
+
+    ide->tf->pos = 510;
+    (void) ide_read_data(ide);
 }
 
 static uint8_t
@@ -2308,25 +2385,27 @@ ide_callback(void *priv)
            Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
            Cylinder Low = 14h, Cylinder High = EBh and Drive/Head = 00h. */
         case WIN_SRST: /*ATAPI Device Reset */
-            ide->tf->error     = 1; /*Device passed*/
-
-            ide->tf->secount   = 1;
-            ide->tf->sector    = 1;
-
-            ide_set_signature(ide);
-
-            ide->tf->atastat = DRDY_STAT | DSC_STAT;
             if (ide->type == IDE_ATAPI) {
+                ide->tf->error     = 1; /*Device passed*/
+
+                ide->tf->secount   = 1;
+                ide->tf->sector    = 1;
+
+                ide_set_signature(ide);
+
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
+
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
                 if (!IDE_ATAPI_IS_EARLY)
                     ide->tf->atastat = 0;
-            }
 
-            ide_irq_raise(ide);
+                ide_irq_raise(ide);
 
-            if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
-                ide->service = 0;
+                if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
+                    ide->service = 0;
+            } else
+                err = ABRT_ERR;
             break;
 
         case WIN_NOP:
@@ -2346,10 +2425,13 @@ ide_callback(void *priv)
 
         case WIN_READ:
         case WIN_READ_NORETRY:
+            ide_log("IDE(%d) read(%d,%d,%d)\n", ide->channel, ide->tf->cylinder, ide->tf->head, ide->tf->sector);
             if (ide->type == IDE_ATAPI) {
                 ide_set_signature(ide);
                 err = ABRT_ERR;
-            } else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            } else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                       (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                       (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 if (ide->do_initial_read) {
@@ -2382,7 +2464,9 @@ ide_callback(void *priv)
             if ((ide->type == IDE_ATAPI) || ide_boards[ide->board]->force_ata3 || (bm == NULL)) {
                 ide_log("IDE %i: DMA read aborted (bad device or board)\n", ide->channel);
                 err = ABRT_ERR;
-            } else if (!ide->tf->lba && (ide->cfg_spt == 0)) {
+            } else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                       (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                       (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num))) {
                 ide_log("IDE %i: DMA read aborted (SPECIFY failed)\n", ide->channel);
                 err = IDNF_ERR;
             } else {
@@ -2434,7 +2518,9 @@ ide_callback(void *priv)
                mand error. */
             if ((ide->type == IDE_ATAPI) || !ide->blocksize)
                 err = ABRT_ERR;
-            else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                     (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                     (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 if (ide->do_initial_read) {
@@ -2471,7 +2557,9 @@ ide_callback(void *priv)
 #endif
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
-            else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                     (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                     (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 1);
@@ -2484,6 +2572,8 @@ ide_callback(void *priv)
                     ide_next_sector(ide);
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                    ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
+                    ide->command = WIN_INVALID;
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2496,7 +2586,9 @@ ide_callback(void *priv)
             if ((ide->type == IDE_ATAPI) || ide_boards[ide->board]->force_ata3 || (bm == NULL)) {
                 ide_log("IDE %i: DMA write aborted (bad device type or board)\n", ide->channel);
                 err = ABRT_ERR;
-            } else if (!ide->tf->lba && (ide->cfg_spt == 0)) {
+            } else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                       (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                       (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num))) {
                 ide_log("IDE %i: DMA write aborted (SPECIFY failed)\n", ide->channel);
                 err = IDNF_ERR;
             } else {
@@ -2547,7 +2639,9 @@ ide_callback(void *priv)
                mand error. */
             if ((ide->type == IDE_ATAPI) || !ide->blocksize)
                 err = ABRT_ERR;
-            else if (!ide->tf->lba && (ide->cfg_spt == 0))
+            else if ((!ide->tf->lba && (ide->cfg_spt == 0)) ||
+                     (ide_get_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)) ||
+                     (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
                 err = IDNF_ERR;
             else {
                 ret = hdd_image_write(ide->hdd_num, ide_get_sector(ide), 1, (uint8_t *) ide->buffer);
@@ -2564,6 +2658,7 @@ ide_callback(void *priv)
                 } else {
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
                     ui_sb_update_icon_write(SB_HDD | hdd[ide->hdd_num].bus_type, 0);
+                    ide->command = WIN_INVALID;
                 }
                 if (ret < 0)
                     err = UNC_ERR;
@@ -2605,13 +2700,11 @@ ide_callback(void *priv)
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
             else {
-                /* Only accept after RESET or DIAG. */
-                if (ide->params_specified) {
-                    ide->cfg_spt = ide->tf->secount;
-                    ide->cfg_hpc = ide->tf->head + 1;
+                ide->cfg_spt = (ide->tf->secount == 0) ? 256 : ide->tf->secount;
+                ide->cfg_hpc = ide->tf->head + 1;
 
-                    ide->params_specified = 1;
-                }
+                ide->params_specified = 1;
+
                 ide->command = 0x00;
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
                 ide->tf->error   = 1;
@@ -3154,6 +3247,7 @@ void *
 ide_xtide_init(void)
 {
     ide_board_init(0, -1, 0, 0, 0, 0);
+    ide_xtide_set_is_jride(0);
 
     return ide_boards[0];
 }
@@ -3162,6 +3256,17 @@ void
 ide_xtide_close(void)
 {
     ide_board_close(0);
+}
+
+void
+ide_xtide_set_is_jride(int is_jride)
+{
+    for (int channel = 0; channel < 2; channel++) {
+        ide_t *ide = ide_drives[channel];
+
+        if (ide != NULL)
+            ide->is_jride = is_jride;
+    }
 }
 
 void
@@ -3311,7 +3416,7 @@ ide_hard_reset(void)
 }
 
 static uint8_t
-mcide_mca_read(const int port, void *priv)
+mcide_mca_read(const uint16_t port, void *priv)
 {
     const mcide_t *dev = (mcide_t *) priv;
 
@@ -3321,7 +3426,7 @@ mcide_mca_read(const int port, void *priv)
 }
 
 static void
-mcide_mca_write(const int port, const uint8_t val, void *priv)
+mcide_mca_write(const uint16_t port, const uint8_t val, void *priv)
 {
     mcide_t *dev      = (mcide_t *) priv;
     uint16_t bases[4] = { HDC_PRIMARY_BASE, HDC_SECONDARY_BASE, HDC_TERTIARY_BASE, HDC_QUATERNARY_BASE };

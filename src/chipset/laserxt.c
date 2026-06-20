@@ -278,11 +278,10 @@ lxt_init(const device_t *info)
     dev->is_lxt3 = info->local;
 
     for (int i = 0; i < ems_boards; i++) {
-        sprintf(conf_str, "ems_%i_enable", i + 1);
-        ems_en[i]  = device_get_config_int(conf_str);
-
         sprintf(conf_str, "ems_%i_base", i + 1);
         ems_io[i]  = device_get_config_hex16(conf_str);
+
+        ems_en[i]  = (ems_io[i] != 0x0000);
 
         sprintf(conf_str, "ems_%i_mem_size", i + 1);
         ems_mem[i] = device_get_config_int(conf_str) << 10;
@@ -297,29 +296,39 @@ lxt_init(const device_t *info)
 
 static const device_config_t laserxt_config[] = {
     {
-        .name           = "ems_1_base",
-        .description    = "EMS 1 Address",
-        .type           = CONFIG_HEX16,
-        .default_string = NULL,
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "laserxt",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = {
-            { .description = "Disabled", .value =     0 },
-            { .description = "0x208",    .value = 0x208 },
-            { .description = "0x218",    .value = 0x218 },
-            { .description = "0x258",    .value = 0x258 },
-            { .description = "0x268",    .value = 0x268 },
-            { .description = "0x2A8",    .value = 0x2a8 },
-            { .description = "0x2B8",    .value = 0x2b8 },
-            { .description = "0x2E8",    .value = 0x2e8 },
-            { .description = ""                         }
-        },
-        .bios           = { { 0 } }
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "1.08",
+                .internal_name = "laserxt_108",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/ltxt/ltxt-v1.08.bin", "" }
+            },
+            {
+                .name          = "1.26",
+                .internal_name = "laserxt",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/ltxt/27c64.bin", "" }
+            },
+            { .files_no = 0 }
+        }
     },
     {
-        .name           = "ems_2_base",
-        .description    = "EMS 2 Address",
+        .name           = "ems_1_base",
+        .description    = "EMS 1 Address",
         .type           = CONFIG_HEX16,
         .default_string = NULL,
         .default_int    = 0,
@@ -354,6 +363,27 @@ static const device_config_t laserxt_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "ems_2_base",
+        .description    = "EMS 2 Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value =     0 },
+            { .description = "0x208",    .value = 0x208 },
+            { .description = "0x218",    .value = 0x218 },
+            { .description = "0x258",    .value = 0x258 },
+            { .description = "0x268",    .value = 0x268 },
+            { .description = "0x2A8",    .value = 0x2a8 },
+            { .description = "0x2B8",    .value = 0x2b8 },
+            { .description = "0x2E8",    .value = 0x2e8 },
+            { .description = ""                         }
+        },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "ems_2_mem_size",
         .description    = "EMS 2 Memory Size",
         .type           = CONFIG_SPINNER,
@@ -368,34 +398,12 @@ static const device_config_t laserxt_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    {
-        .name           = "ems_1_enable",
-        .description    = "Enable EMS 1",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "ems_2_enable",
-        .description    = "Enable EMS 2",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t laserxt_device = {
     .name          = "VTech Laser Turbo XT",
-    .internal_name = "laserxt",
+    .internal_name = "ltxt",
     .flags         = 0,
     .local         = 0,
     .init          = lxt_init,
@@ -444,23 +452,12 @@ static const device_config_t lxt3_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    {
-        .name           = "ems_1_enable",
-        .description    = "Enable EMS",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
 const device_t lxt3_device = {
-    .name          = "VTech Laser Turbo XT",
-    .internal_name = "laserxt",
+    .name          = "VTech Laser XT3",
+    .internal_name = "lxt3",
     .flags         = 0,
     .local         = 1,
     .init          = lxt_init,

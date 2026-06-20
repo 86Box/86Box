@@ -1,8 +1,14 @@
 msgid ""
 msgstr ""
+"PO-Revision-Date: 2026-05-29 22:34+0000\n"
+"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
+"Language: nl-NL\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=n != 1;\n"
+"X-Generator: Weblate 5.12.2\n"
 "X-Language: nl_NL\n"
 "X-Source-Language: en_US\n"
 
@@ -49,10 +55,10 @@ msgid "&Resizeable window"
 msgstr "&Venster met aanpasbare grootte"
 
 msgid "R&emember size && position"
-msgstr "&Onthoud grootte && positie"
+msgstr "&Onthoud grootte en positie"
 
 msgid "Remember size && position"
-msgstr "Onthoud grootte && positie"
+msgstr "Onthoud grootte en positie"
 
 msgid "Re&nderer"
 msgstr "Re&nderer"
@@ -66,8 +72,8 @@ msgstr "Open&GL (3.0 Core)"
 msgid "&VNC"
 msgstr "&VNC"
 
-msgid "Specify &dimensions..."
-msgstr "Afmetingen opgeven..."
+msgid "Specify &dimensions…"
+msgstr "&Afmetingen opgeven…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Forceer &4:3 beeldverhouding"
@@ -138,53 +144,44 @@ msgstr "&Integerschaal"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 integerschaal"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGA-instellingen"
+msgid "Inverted VGA monitor"
+msgstr "Geïnverteerde VGA-monitor"
 
-msgid "&Inverted VGA monitor"
-msgstr "Ge&ïnverteerde VGA-monitor"
+msgid "VGA screen type:"
+msgstr "VGA-scherm type:"
 
-msgid "VGA screen &type"
-msgstr "VGA-scherm &type"
-
-msgid "RGB &Color"
-msgstr "RGB &Kleur"
+msgid "RGB Color"
+msgstr "RGB kleur"
 
 msgid "RGB (no brown)"
 msgstr "RGN (geen bruin)"
 
-msgid "&RGB Grayscale"
-msgstr "&RGB grijstinten"
+msgid "RGB Grayscale"
+msgstr "RGB grijstinten"
 
 msgid "Generic RGBI color monitor"
 msgstr "Generieke RGBI kleuren monitor"
 
-msgid "&Amber monitor"
-msgstr "&Amber monitor"
+msgid "Amber monitor"
+msgstr "Amber monitor"
 
-msgid "&Green monitor"
-msgstr "&Groene monitor"
+msgid "Green monitor"
+msgstr "Groene monitor"
 
-msgid "&White monitor"
-msgstr "&Witte monitor"
+msgid "White monitor"
+msgstr "Witte monitor"
 
-msgid "Grayscale &conversion type"
-msgstr "Grijstinten &conversietype"
+msgid "Grayscale conversion type:"
+msgstr "Grijstinten conversietype:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT&601 (NTSC/PAL)"
+msgid "Average"
+msgstr "Gemiddelde"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT&709 (HDTV)"
+msgid "Overscan"
+msgstr "Overscan"
 
-msgid "&Average"
-msgstr "&Gemiddelde"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Contrast wijzigen voor &monochroom beeldscherm"
+msgid "Change contrast for monochrome display"
+msgstr "Contrast wijzigen voor monochroom beeldscherm"
 
 msgid "&Media"
 msgstr "&Media"
@@ -192,29 +189,50 @@ msgstr "&Media"
 msgid "&Tools"
 msgstr "&Tools"
 
-msgid "&Settings..."
-msgstr "&Instellingen..."
+msgid "&Settings…"
+msgstr "&Instellingen…"
 
-msgid "Settings..."
-msgstr "Instellingen..."
+msgid "Settings…"
+msgstr "Instellingen…"
 
 msgid "&Update status bar icons"
 msgstr "&Statusbalkpictogrammen bijwerken"
 
 msgid "Take s&creenshot"
+msgstr "Maak een s&chermafbeelding"
+
+msgid "Take screenshot"
 msgstr "Maak een schermafbeelding"
+
+msgid "Take &raw screenshot"
+msgstr "Maak een &ruw schermafbeelding"
+
+msgid "Take raw screenshot"
+msgstr "Maak een ruw schermafbeelding"
+
+msgid "C&opy screenshot"
+msgstr "K&opieer een schermafbeelding"
+
+msgid "Copy screenshot"
+msgstr "Kopieer een schermafbeelding"
+
+msgid "Copy r&aw screenshot"
+msgstr "Kopieer een r&uw schermafbeelding"
+
+msgid "Copy raw screenshot"
+msgstr "Kopieer een ruw schermafbeelding"
 
 msgid "S&ound"
 msgstr "&Geluid"
 
-msgid "&Preferences..."
-msgstr "&Voorkeuren..."
+msgid "&Preferences…"
+msgstr "&Voorkeuren…"
 
 msgid "Enable &Discord integration"
 msgstr "&Discord integratie inschakelen"
 
-msgid "Sound &gain..."
-msgstr "&Geluidsversterking..."
+msgid "Sound &gain…"
+msgstr "&Geluidsversterking…"
 
 msgid "Begin trace"
 msgstr "Begin traceren"
@@ -225,20 +243,20 @@ msgstr "Beëindig traceren"
 msgid "&Help"
 msgstr "&Help"
 
-msgid "&Documentation..."
-msgstr "&Documentatie..."
+msgid "&Documentation…"
+msgstr "&Documentatie…"
 
-msgid "&About 86Box..."
-msgstr "&Over 86Box..."
+msgid "&About 86Box…"
+msgstr "&Over 86Box…"
 
-msgid "&New image..."
-msgstr "&Nieuw imagebestand..."
+msgid "&New image…"
+msgstr "&Nieuw imagebestand…"
 
-msgid "&Existing image..."
-msgstr "&Bestaand imagebestand..."
+msgid "&Existing image…"
+msgstr "&Bestaand imagebestand…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "Bestaand imagebestand (&Schrijfbeveiligd)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "Bestaand imagebestand (&Schrijfbeveiligd)…"
 
 msgid "&Record"
 msgstr "&Opnemen"
@@ -255,11 +273,11 @@ msgstr "&Snel vooruit naar het einde"
 msgid "E&ject"
 msgstr "&Uitwerpen"
 
-msgid "&Image..."
-msgstr "&Imagebestand..."
+msgid "&Image…"
+msgstr "&Imagebestand…"
 
-msgid "E&xport to 86F..."
-msgstr "E&xporteer naar 86F..."
+msgid "E&xport to 86F…"
+msgstr "E&xporteer naar 86F…"
 
 msgid "&Mute"
 msgstr "&Dempen"
@@ -270,8 +288,8 @@ msgstr "&Leeg"
 msgid "Reload previous image"
 msgstr "Herlaad vorig imagebestand"
 
-msgid "&Folder..."
-msgstr "&Map..."
+msgid "&Folder…"
+msgstr "&Map…"
 
 msgid "Preferences"
 msgstr "Voorkeuren"
@@ -324,8 +342,32 @@ msgstr "Hoogte:"
 msgid "Lock to this size"
 msgstr "Vergrendel deze grootte"
 
+msgid "General"
+msgstr "Algemeen"
+
+msgid "Processor"
+msgstr "Processor"
+
+msgid "Performance"
+msgstr "Prestaties"
+
 msgid "Machine type:"
 msgstr "Machinetype:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486 (Socket 168 en 1)"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486 (Diversen)"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7 (Enkel Voltage)"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1996] Socket 7 (Tweevoudig Voltage)"
+
+msgid "Miscellaneous"
+msgstr "Diversen"
 
 msgid "Machine:"
 msgstr "Machine:"
@@ -345,8 +387,14 @@ msgstr "Snelheid:"
 msgid "Frequency:"
 msgstr "Frequentie:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "Geïntegreerd"
 
 msgid "Wait states:"
 msgstr "Wachttoestanden:"
@@ -369,6 +417,9 @@ msgstr "Ingeschakeld (lokale tijd)"
 msgid "Enabled (UTC)"
 msgstr "Ingeschakeld (UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "Gebruik de 486-interpreter voor 286- en 386-processors"
+
 msgid "Dynamic Recompiler"
 msgstr "Dynamische Recompiler"
 
@@ -387,6 +438,9 @@ msgstr "Video:"
 msgid "Video #2:"
 msgstr "Video #2:"
 
+msgid "Monitor"
+msgstr "Monitor"
+
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo 1 of 2 graphics"
 
@@ -394,10 +448,13 @@ msgid "IBM 8514/A Graphics"
 msgstr "IBM 8514/A-graphics"
 
 msgid "XGA Graphics"
-msgstr "XGA Graphics"
+msgstr "XGA-graphics"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
+
+msgid "Voodoo:"
+msgstr "Voodoo:"
 
 msgid "Keyboard:"
 msgstr "Toetsenbord:"
@@ -417,38 +474,38 @@ msgstr "Joystick:"
 msgid "Joystick"
 msgstr "Joystick"
 
-msgid "Joystick 1..."
-msgstr "Joystick 1..."
+msgid "Joystick 1…"
+msgstr "Joystick 1…"
 
-msgid "Joystick 2..."
-msgstr "Joystick 2..."
+msgid "Joystick 2…"
+msgstr "Joystick 2…"
 
-msgid "Joystick 3..."
-msgstr "Joystick 3..."
+msgid "Joystick 3…"
+msgstr "Joystick 3…"
 
-msgid "Joystick 4..."
-msgstr "Joystick 4..."
+msgid "Joystick 4…"
+msgstr "Joystick 4…"
 
-msgid "Sound card #1:"
-msgstr "Geluidskaart #1:"
+msgid "Sound card 1:"
+msgstr "Geluidskaart 1:"
 
-msgid "Sound card #2:"
-msgstr "Geluidskaart #2:"
+msgid "Sound card 2:"
+msgstr "Geluidskaart 2:"
 
-msgid "Sound card #3:"
-msgstr "Geluidskaart #3:"
+msgid "Sound card 3:"
+msgstr "Geluidskaart 3:"
 
-msgid "Sound card #4:"
-msgstr "Geluidskaart #4:"
+msgid "Sound card 4:"
+msgstr "Geluidskaart 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Uitvoerapparaat:"
+msgstr "MIDI uitvoerapparaat:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI Invoerapparaat:"
+msgstr "MIDI invoerapparaat:"
 
 msgid "MIDI Out:"
-msgstr "Midi Uit:"
+msgstr "Midi uit:"
 
 msgid "Standalone MPU-401"
 msgstr "Standalone MPU-401"
@@ -456,8 +513,8 @@ msgstr "Standalone MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "Gebruik FLOAT32-geluid"
 
-msgid "FM synth driver"
-msgstr "FM-synthesizer"
+msgid "FM synth driver:"
+msgstr "FM-synthesizer:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (nauwkeuriger)"
@@ -465,62 +522,53 @@ msgstr "Nuked (nauwkeuriger)"
 msgid "YMFM (faster)"
 msgstr "YMFM (sneller)"
 
-msgid "COM1 Device:"
-msgstr "COM1-apparaat:"
-
-msgid "COM2 Device:"
-msgstr "COM2-apparaat:"
-
-msgid "COM3 Device:"
-msgstr "COM3-apparaat:"
-
-msgid "COM4 Device:"
-msgstr "COM4-apparaat:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1-apparaat:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2-apparaat:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3-apparaat:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4-apparaat:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "Interne LPT ECP DMA:"
 
-msgid "Serial port 1"
-msgstr "Seriële poort 1"
+msgid "Floppy disk controller:"
+msgstr "Floppy disk controller:"
 
-msgid "Serial port 2"
-msgstr "Seriële poort 2"
-
-msgid "Serial port 3"
-msgstr "Seriële poort 3"
-
-msgid "Serial port 4"
-msgstr "Seriële poort 4"
-
-msgid "Parallel port 1"
-msgstr "Parallelle poort 1"
-
-msgid "Parallel port 2"
-msgstr "Parallelle poort 2"
-
-msgid "Parallel port 3"
-msgstr "Parallelle poort 3"
-
-msgid "Parallel port 4"
-msgstr "Parallelle poort 4"
-
-msgid "FD Controller:"
-msgstr "FD-Controller:"
-
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROM controller:"
+
+msgid "Mitsumi interface"
+msgstr "Mitsumi-interface"
+
+msgid "MKE/Panasonic interface"
+msgstr "MKE/Panasonic-interface"
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr "MKE/Panasonic-interface (Creative)"
+
+msgid "IDE Controller"
+msgstr "IDE-controller"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "IDE-controller (Twee-kanaals)"
+
+msgid "PC/AT IDE Controller"
+msgstr "PC/AT IDE-controller"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "PC/AT IDE-controller (Twee-kanaals)"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "PC/AT XTIDE (Alleen Primaire)"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "PS/2 AT XTIDE (1.1.5) (Alleen Primaire)"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646 (Tertiare and Quaternaire)"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648 (Tertiare and Quaternaire)"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649 (Tertiare and Quaternaire)"
+
+msgid "McIDE Controller"
+msgstr "McIDE-controller"
 
 msgid "Tertiary IDE Controller"
 msgstr "Tertiaire IDE-controller"
@@ -528,11 +576,11 @@ msgstr "Tertiaire IDE-controller"
 msgid "Quaternary IDE Controller"
 msgstr "Quaternaire IDE-controller"
 
-msgid "Hard disk"
-msgstr "Harde schijf"
+msgid "Hard disk controllers"
+msgstr "Harde schijfcontrollers"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSI-controllers"
 
 msgid "Controller 1:"
 msgstr "Controller 1:"
@@ -553,13 +601,16 @@ msgid "Hard disks:"
 msgstr "Harde schijven:"
 
 msgid "Firmware Version"
-msgstr "Firmware Versie"
+msgstr "Firmware versie"
 
-msgid "&New..."
-msgstr "&Nieuw..."
+msgid "DSP Version"
+msgstr "DSP versie"
 
-msgid "&Existing..."
-msgstr "&Bestaande..."
+msgid "&New…"
+msgstr "&Nieuw…"
+
+msgid "&Existing…"
+msgstr "&Bestaande…"
 
 msgid "&Remove"
 msgstr "&Verwijderen"
@@ -594,8 +645,44 @@ msgstr "Imageformaat:"
 msgid "Block Size:"
 msgstr "Blokgrootte:"
 
-msgid "Floppy drives:"
-msgstr "Floppy-schijfstations:"
+msgid "Floppy drives"
+msgstr "Floppy-schijfstations"
+
+msgid "5.25\" 180k"
+msgstr "5,25\" 180k"
+
+msgid "5.25\" 360k"
+msgstr "5,25\" 360k"
+
+msgid "5.25\" 720k"
+msgstr "5,25\" 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5,25\" 1,2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5,25\" 1,2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3,5\" 360k"
+
+msgid "3.5\" 720k"
+msgstr "3,5\" 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3,5\" 1,44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3,5\" 1,25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3,5\" 1,44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3,5\" 2,88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3,5\" 2,88M 300/360 RPM"
 
 msgid "Turbo timings"
 msgstr "Turbo timings"
@@ -603,23 +690,29 @@ msgstr "Turbo timings"
 msgid "Check BPB"
 msgstr "Controleer BPB"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROM-stations:"
+msgid "CD-ROM drives"
+msgstr "CD-ROM-stations"
 
-msgid "MO drives:"
-msgstr "MO-schijven:"
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
+msgid "MO drives"
+msgstr "MO-schijven"
 
 msgid "MO:"
 msgstr "MO:"
 
+msgid "Removable disk drives"
+msgstr "Verwisselbare schijfstations"
+
 msgid "Removable disks:"
 msgstr "Verwisselbare schijven:"
 
-msgid "Removable disk drives:"
-msgstr "Verwisselbare schijfstations:"
+msgid "Tape drives"
+msgstr "Band-schijfstations"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "Band-schijfstations:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -646,10 +739,10 @@ msgid "Generic ISA ROM Board"
 msgstr "Generieke ISA ROM-kaart"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Generieke Dubbele ISA ROM-kaart"
+msgstr "Generieke dubbele ISA ROM-kaart"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Generieke Viervoudige ISA ROM-kaart"
+msgstr "Generieke viervoudige ISA ROM-kaart"
 
 msgid "ISABugger device"
 msgstr "ISABugger-apparaat"
@@ -678,11 +771,20 @@ msgstr "&Verwijderbare schijf %1 (%2): %3"
 msgid "Removable disk images"
 msgstr "Verwijderbaar schijfimagebestand"
 
+msgid "Tape %1 (%2): %3"
+msgstr "Band %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "&Band %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "Bandimagebestand"
+
 msgid "Image %1"
 msgstr "Image %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box kon geen bruikbare ROM imagebestanden vinden.\n\n<a href=\"https://github.com/86Box/roms/releases/latest\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1 kon geen bruikbare ROM imagebestanden vinden.\n\n<a href=\"%2\">Download</a> een ROM set en pak deze uit in de map \"roms\"."
 
 msgid "(empty)"
 msgstr "(leeg)"
@@ -708,17 +810,14 @@ msgstr "Basissectorimages"
 msgid "Surface images"
 msgstr "Oppervlakte-images"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Machine \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Er wordt overgeschakeld naar een beschikbare machine."
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Machine \"%s\" is niet beschikbaar door ontbrekende ROMs in de map roms/machines. Er wordt overgeschakeld naar een beschikbare machine."
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Videokaart \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. Er wordt overgeschakeld naar een beschikbare videokaart."
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Videokaart \"%s\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. Er wordt overgeschakeld naar een beschikbare videokaart."
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "Videokaart #2 \"%hs\" is niet beschikbaar door ontbrekende ROMs in de map roms/video. De tweede videokaart wordt uitgeschakeld."
-
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Het apparaat \"%hs\" is niet beschikbaar door ontbrekende ROMs. Het apparaat wordt genegeerd."
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "Het apparaat \"%s\" is niet beschikbaar door ontbrekende ROMs. Het apparaat wordt genegeerd."
 
 msgid "Machine"
 msgstr "Machine"
@@ -741,11 +840,41 @@ msgstr "Poorten (COM & LPT)"
 msgid "Ports"
 msgstr "Poorten"
 
+msgid "Serial ports"
+msgstr "Seriële poorten"
+
 msgid "Serial ports:"
 msgstr "Seriële poorten:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
+msgid "Parallel ports"
+msgstr "Parallelle poorten"
+
 msgid "Parallel ports:"
 msgstr "Parallelle poorten:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Opslagcontrollers"
@@ -789,14 +918,8 @@ msgstr "Bus"
 msgid "File"
 msgstr "Bestand"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "Meetkunde"
 
 msgid "KB"
 msgstr "KB"
@@ -804,17 +927,19 @@ msgstr "KB"
 msgid "Default"
 msgstr "Standaard"
 
-msgid "%1 Wait state(s)"
-msgstr "%1 Wachttoestand(en)"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n Wachttoestand"
+msgstr[1] "%n Wachttoestanden"
 
 msgid "Type"
 msgstr "Type"
 
-msgid "No PCap devices found"
-msgstr "Geen PCap-apparaten gevonden"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Geen PCap-apparaten gevonden. Zorg ervoor dat %1 is geïnstalleerd en dat je een %1-compatibele netwerkverbinding hebt."
 
-msgid "Invalid PCap device"
-msgstr "Ongeldig PCap-apparaat"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "Ongeldig PCap-apparaat. Zorg ervoor dat %1 is geïnstalleerd en dat je een %1-compatibele netwerkverbinding hebt."
 
 msgid "Generic paddle controller(s)"
 msgstr "Generieke peddelcontroller(s)"
@@ -867,9 +992,6 @@ msgstr "4-knops gamepad"
 msgid "6-button gamepad"
 msgstr "6-knops gamepad"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2-knops stuurknuppel"
 
@@ -896,51 +1018,6 @@ msgstr "Stuurwiel (3 assen, 3 knoppen)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "Stuurwiel (3 assen, 4 knoppen)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedalen"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedalen Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedalen"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedalen Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedalen"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedalen Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedalen"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedalen Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinder Pad"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control systeem"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Roer Control Systeem"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "Thrustmaster Formula T1/T2 met adapter"
@@ -972,11 +1049,11 @@ msgstr "Weet je zeker dat je de geëmuleerde machine wilt resetten?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Weet je zeker dat je 86Box wilt verlaten?"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Kan Ghostscript niet initialiseren"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Kan Ghostscript niet initialiseren. %1 is vereist voor automatische conversie van PostScript-bestanden naar PDF.\n\nAlle documenten die naar de generieke PostScript-printer worden gestuurd, worden opgeslagen als PostScript-bestanden (.ps)."
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Kan GhostPCL niet initialiseren"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Kan GhostPCL niet initialiseren. %1 is vereist voor automatische conversie van PCL-bestanden naar PDF.\n\nAlle documenten die naar de generieke PCL-printer worden gestuurd, worden opgeslagen als Printer Command Language (.pcl) bestanden."
 
 msgid "MO %1 (%2): %3"
 msgstr "MO %1 (%2): %3"
@@ -996,11 +1073,17 @@ msgstr "Intern apparaat"
 msgid "&File"
 msgstr "&Bestand"
 
-msgid "&New machine..."
-msgstr "&Nieuwe machine..."
+msgid "&New machine…"
+msgstr "&Nieuwe machine…"
 
-msgid "&Check for updates..."
-msgstr "&Controleren op updates..."
+msgid "New machine…"
+msgstr "Nieuwe machine…"
+
+msgid "New machine"
+msgstr "Nieuwe machine"
+
+msgid "&Check for updates…"
+msgstr "&Controleren op updates…"
 
 msgid "Exit"
 msgstr "&Afsluiten"
@@ -1021,34 +1104,13 @@ msgid "About %1"
 msgstr "Over %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Een emulator van oude computers\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nMet eerdere bijdragen van Sarah Walker, leilei, JohnElliott, greatpsycho en anderen.\n\nUitgebracht onder de GNU General Public License versie 2 of later. Zie LICENSE voor meer informatie."
+msgstr "Een emulator van oude computers\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, en anderen.\n\nMet eerdere bijdragen van Sarah Walker, leilei, JohnElliott, greatpsycho en anderen.\n\nUitgebracht onder de GNU General Public License versie 2 of later. Zie LICENSE voor meer informatie."
 
 msgid "Hardware not available"
 msgstr "Hardware niet beschikbaar"
 
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "Zorg ervoor dat %1 is geïnstalleerd en dat je een %1-compatibele netwerkverbinding hebt."
-
-msgid "Invalid configuration"
-msgstr "Ongeldige configuratie"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "%1 is vereist voor automatische conversie van PostScript-bestanden naar PDF.\n\nAlle documenten die naar de generieke PostScript-printer worden gestuurd, worden opgeslagen als PostScript-bestanden (.ps)."
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "%1 is vereist voor automatische conversie van PCL-bestanden naar PDF.\n\nAlle documenten die naar de generieke PCL-printer worden gestuurd, worden opgeslagen als Printer Command Language (.pcl) bestanden."
-
 msgid "Don't show this message again"
 msgstr "Dit bericht niet meer tonen"
-
-msgid "Don't exit"
-msgstr "Niet afsluiten"
-
-msgid "Reset"
-msgstr "Reset"
-
-msgid "Don't reset"
-msgstr "Niet resetten"
 
 msgid "CD-ROM images"
 msgstr "CD-ROM-images"
@@ -1135,13 +1197,19 @@ msgid "Powered Off"
 msgstr "Uitgeschakeld"
 
 msgid "%n running"
-msgstr "%n actief"
+msgid_plural "%n running"
+msgstr[0] "%n actieve"
+msgstr[1] "%n actieve"
 
 msgid "%n paused"
-msgstr "%n gepauzeerd"
+msgid_plural "%n paused"
+msgstr[0] "%n gepauzeerd"
+msgstr[1] "%n gepauzeerd"
 
 msgid "%n waiting"
-msgstr "%n aan het wachten"
+msgid_plural "%n waiting"
+msgstr[0] "%n aan het wachten"
+msgstr[1] "%n aan het wachten"
 
 msgid "%1 total"
 msgstr "%1 totaal"
@@ -1170,8 +1238,10 @@ msgstr "Openen van geselecteerd configuratiebestand voor lezen niet mogelijk: %1
 msgid "Use regular expressions in search box"
 msgstr "Gebruik reguliere expressies in zoekveld"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "%1 machine(s) zijn nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n machine is nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
+msgstr[1] "%n machines zijn nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
 
 msgid "Add new system wizard"
 msgstr "Wizard toevoegen van nieuw systeem"
@@ -1251,26 +1321,23 @@ msgstr "Weergavenaam instellen"
 msgid "Enter the new display name (blank to reset)"
 msgstr "Voer een nieuwe weergavenaam in (laat leeg om te herstellen)"
 
-msgid "Change &display name..."
-msgstr "Pas &weergavenaam aan..."
+msgid "Change &display name…"
+msgstr "Pas &weergavenaam aan…"
 
-msgid "Context Menu"
-msgstr "Contextmenu"
+msgid "&Open folder…"
+msgstr "&Open map…"
 
-msgid "&Open folder..."
-msgstr "&Open map..."
+msgid "Open p&rinter tray…"
+msgstr "Open &papierlade…"
 
-msgid "Open p&rinter tray..."
-msgstr "Open &papierlade..."
-
-msgid "Set &icon..."
-msgstr "Stel &icoon in..."
+msgid "Set &icon…"
+msgstr "Stel &icoon in…"
 
 msgid "Select an icon"
 msgstr "Selecteer een icoon"
 
-msgid "C&lone..."
-msgstr "K&lonen..."
+msgid "C&lone…"
+msgstr "K&lonen…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Virtuele machine \"%1\" (%2) zal gekloond worden naar:"
@@ -1330,7 +1397,7 @@ msgid "An error has occurred while checking for updates: %1"
 msgstr "Er is een fout opgetreden tijdens het controleren op updates: %1"
 
 msgid "<b>An update to 86Box is available!</b>"
-msgstr "<b> Een update van 86Box is beschikbaar!</b>"
+msgstr "<b>Een update van 86Box is beschikbaar!</b>"
 
 msgid "Warning"
 msgstr "Waarschuwing"
@@ -1356,8 +1423,8 @@ msgstr "Geen schermafbeelding"
 msgid "Search"
 msgstr "Zoeken"
 
-msgid "Searching for VMs..."
-msgstr "Zoeken naar VMs..."
+msgid "Searching for VMs…"
+msgstr "Zoeken naar VMs…"
 
 msgid "Found %1"
 msgstr "Gevonden %1"
@@ -1389,14 +1456,11 @@ msgstr "ACP&I-uitschakeling"
 msgid "Hard disk (%1)"
 msgstr "Harde schijf (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL of ESDI CD-ROM-stations hebben nooit bestaan"
+msgid "Custom…"
+msgstr "Aangepast…"
 
-msgid "Custom..."
-msgstr "Aangepast..."
-
-msgid "Custom (large)..."
-msgstr "Aangepast (groot)..."
+msgid "Custom (large)…"
+msgstr "Aangepast (groot)…"
 
 msgid "Add New Hard Disk"
 msgstr "Nieuwe harde schijf toevoegen"
@@ -1449,11 +1513,32 @@ msgstr "Het geselecteerde bestand wordt overschreven. Weet u zeker dat u het wil
 msgid "Unsupported disk image"
 msgstr "Niet-ondersteunde schijfimage"
 
-msgid "Overwrite"
-msgstr "Overschrijven"
+msgid "Unable to read device"
+msgstr "Kan apparaat niet lezen"
 
-msgid "Don't overwrite"
-msgstr "Niet overschrijven"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr "Bepaling blokapparaat grootte niet gelukt. Zorg dat je toegangspermissie hebt voor dit apparaat."
+
+msgid "Device too large"
+msgstr "Apparaat te groot"
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr "Blokapparaat is te groot voor gebruik als harde schijf."
+
+msgid "Block device detected"
+msgstr "Blokapparaat gedetecteerd"
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr "Gedetecteerd blokapparaat: %1\nGrootte: %2 MB\nGeometrie: %3 cilinders, %4 koppen, %5 sectoren"
+
+msgid "Failed to write the disk image."
+msgstr "Schrijven van de schijfimage mislukt."
+
+msgid "Failed to read the disk image."
+msgstr "Lezen van de schijfimage mislukt."
+
+msgid "The disk image has been successfully created."
+msgstr "De schijfimage is succesvol aangemaakt."
 
 msgid "Raw image"
 msgstr "Ruw image"
@@ -1506,29 +1591,14 @@ msgstr "VHD-bestanden"
 msgid "Select the parent VHD"
 msgstr "Selecteer de bovenliggende VHD"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Dit kan betekenen dat de bovenliggende image is gewijzigd nadat de verschil-image is gemaakt.\n\nDit kan ook gebeuren als de imagebestanden zijn verplaatst of gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt.\n\nWil je de tijdstempels herstellen?"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen. Dit kan betekenen dat de bovenliggende image is gewijzigd nadat de verschil-image is gemaakt.\n\nDit kan ook gebeuren als de imagebestanden zijn verplaatst of gekopieerd, of door een fout in het programma waarmee deze schijf is gemaakt.\n\nWil je de tijdstempels herstellen?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Bovenliggende en onderliggende schijftijdstempels komen niet overeen"
 
 msgid "Could not fix VHD timestamp."
 msgstr "Kan VHD tijdstempel niet herstellen."
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1572,9 +1642,6 @@ msgstr "DMF (cluster 2048)"
 msgid "2.88 MB"
 msgstr "2,88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3,5\" 128 MB (ISO 10090)"
 
@@ -1617,14 +1684,14 @@ msgstr "1,5% onder perfecte RPM"
 msgid "2% below perfect RPM"
 msgstr "2% onder perfecte RPM"
 
+msgid "Creating image…"
+msgstr "Image wordt gemaakt…"
+
 msgid "(System Default)"
 msgstr "(Systeemstandaard)"
 
-msgid "Failed to initialize network driver"
-msgstr "Netwerkstuurprogramma niet geïnitialiseerd"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "De netwerkconfiguratie wordt overgeschakeld naar de nul-driver"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Netwerkstuurprogramma niet geïnitialiseerd:\n\n%s\n\nDe netwerkconfiguratie wordt overgeschakeld naar de nul-driver."
 
 msgid "Mouse sensitivity:"
 msgstr "Muisgevoeligheid:"
@@ -1644,8 +1711,11 @@ msgstr "Langzaam"
 msgid "Fast"
 msgstr "Snel"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Autopauze bij focusverlies"
+msgid "Auto-pause on focus loss"
+msgstr "Autopauze bij focusverlies"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox wordt niet langer ondersteund"
@@ -1680,14 +1750,14 @@ msgstr "&Tablet-hulpmiddel"
 msgid "About &Qt"
 msgstr "Over &Qt"
 
-msgid "&MCA devices..."
-msgstr "MCA-apparaten..."
+msgid "&MCA devices…"
+msgstr "MCA-apparaten…"
 
 msgid "Show non-&primary monitors"
 msgstr "Toon niet-primaire beeldschermen"
 
-msgid "Open screenshots &folder..."
-msgstr "&Map met schermafbeeldingen openen..."
+msgid "Open screenshots &folder…"
+msgstr "&Map met schermafbeeldingen openen…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "Schakel de volledig scherm-uitrekmodus in bij maximaliseren"
@@ -1698,8 +1768,8 @@ msgstr "&Cursor/Puck"
 msgid "&Pen"
 msgstr "&Pen"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "&Host CD/DVD-station (%1:)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "&Host CD/DVD-station (%1)"
 
 msgid "&Connected"
 msgstr "&Verbonden"
@@ -1707,8 +1777,8 @@ msgstr "&Verbonden"
 msgid "Clear image &history"
 msgstr "Imagegeschiedenis verwijderen(&H)"
 
-msgid "Create..."
-msgstr "Aanmaken..."
+msgid "Create…"
+msgstr "Aanmaken…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "Host CD/DVD-station (%1)"
@@ -1749,8 +1819,8 @@ msgstr "Shaders"
 msgid "Remove"
 msgstr "Verwijderen"
 
-msgid "Browse..."
-msgstr "Bladeren..."
+msgid "Browse…"
+msgstr "Bladeren…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "Kan OpenGL-context niet aanmaken."
@@ -1761,11 +1831,11 @@ msgstr "Kan niet overschakelen naar OpenGL-context."
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGL versie 3.0 of hoger is vereist. De huidige versie is %1.%2"
 
-msgid "Error initializing OpenGL"
-msgstr "Fout bij het initialiseren van OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Fout bij het initialiseren van OpenGL."
 
-msgid "\nFalling back to software rendering."
-msgstr "\nTerugvallen op software rendering."
+msgid "Falling back to software rendering."
+msgstr "Terugvallen op software rendering."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>Bij het selecteren van media-images (CD-ROM, floppy, etc.) zal de \"open dialoog\" starten in dezelfde map als het 86Box configuratiebestand. Deze instelling is doet er waarschijnlijk alleen toe op macOS.</p></body></html>"
@@ -1794,17 +1864,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "Netwerkkaart #1"
+msgid "Adapter 1"
+msgstr "Adapter 1"
 
-msgid "Network Card #2"
-msgstr "Netwerkkaart #2"
+msgid "Adapter 2"
+msgstr "Adapter 2"
 
-msgid "Network Card #3"
-msgstr "Netwerkkaart #3"
+msgid "Adapter 3"
+msgstr "Adapter 3"
 
-msgid "Network Card #4"
-msgstr "Netwerkkaart #4"
+msgid "Adapter 4"
+msgstr "Adapter 4"
 
 msgid "Mode:"
 msgstr "Modus:"
@@ -1819,7 +1889,7 @@ msgid "VDE Socket:"
 msgstr "VDE-socket:"
 
 msgid "TAP Bridge Device:"
-msgstr ""
+msgstr "TAP-brugapparaat:"
 
 msgid "86Box Unit Tester"
 msgstr "86Box Apparaattester"
@@ -1827,20 +1897,8 @@ msgstr "86Box Apparaattester"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.x Key Card"
 
-msgid "Serial port passthrough 1"
-msgstr "Seriële poort doorvoer 1"
-
-msgid "Serial port passthrough 2"
-msgstr "Seriële poort doorvoer 2"
-
-msgid "Serial port passthrough 3"
-msgstr "Seriële poort doorvoer 3"
-
-msgid "Serial port passthrough 4"
-msgstr "Seriële poort doorvoer 4"
-
-msgid "Renderer &options..."
-msgstr "Renderer-opties..."
+msgid "Renderer &options…"
+msgstr "Renderer-opties…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT Toetsenbord"
@@ -1893,8 +1951,8 @@ msgstr "3M MicroTouch (serieel)"
 msgid "Default Baud rate"
 msgstr "Standaard baudrate"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] Standaard Hayes-compatibele modem"
+msgid "Standard Hayes-compliant Modem"
+msgstr "Standaard Hayes-compatibele modem"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32-emulatie"
@@ -1977,6 +2035,9 @@ msgstr "Seriële poort IRQ"
 msgid "Parallel port IRQ"
 msgstr "Parallelle poort IRQ"
 
+msgid "Hard disk"
+msgstr "Harde schijf"
+
 msgid "BIOS Revision"
 msgstr "BIOS-Revisie"
 
@@ -1985,6 +2046,9 @@ msgstr "BIOS-versie"
 
 msgid "BIOS Language"
 msgstr "BIOS-taal"
+
+msgid "Variant"
+msgstr "Variant"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161 Uitbreidingseenheid"
@@ -2052,9 +2116,6 @@ msgstr "MIDI doorvoer"
 msgid "MIDI Clockout"
 msgstr "MIDI Clockout"
 
-msgid "SoundFont"
-msgstr "SoundFont"
-
 msgid "Output Gain"
 msgstr "Output Gain"
 
@@ -2098,7 +2159,7 @@ msgid "Dynamic Sample Loading"
 msgstr "Dynamische sample-lading"
 
 msgid "Reverb Output Gain"
-msgstr "Reverbuitgang Versterking"
+msgstr "Reverbuitgang versterking"
 
 msgid "Reversed stereo"
 msgstr "Omgekeerde stereo"
@@ -2212,16 +2273,16 @@ msgid "WSS DMA"
 msgstr "WSS DMA"
 
 msgid "RTC IRQ"
-msgstr ""
+msgstr "IRQ van de RTC"
 
 msgid "RTC Port Address"
-msgstr ""
+msgstr "Poortadres van de RTC"
 
 msgid "Onboard RTC"
-msgstr ""
+msgstr "Ingebouwde RTC"
 
 msgid "Not installed"
-msgstr ""
+msgstr "Niet geïnstalleerd"
 
 msgid "Enable OPL"
 msgstr "OPL inschakelen"
@@ -2247,14 +2308,14 @@ msgstr "Hoge DMA"
 msgid "Control PC speaker"
 msgstr "Bestuur pc-luidspreker"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "Geheugengrootte"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 Adres"
-
-msgid "IDE Controller"
-msgstr "IDE-controller"
 
 msgid "Codec"
 msgstr "Codec"
@@ -2373,20 +2434,47 @@ msgstr "EMS 3 geheugengrootte"
 msgid "Enable EMS"
 msgstr "Schakel EMS in"
 
-msgid "Enable EMS 1"
-msgstr "Schakel EMS 1 in"
-
-msgid "Enable EMS 2"
-msgstr "Schakel EMS 2 in"
-
 msgid "Address for > 2 MB"
 msgstr "Adres voor > 2 MB"
 
 msgid "Frame Address"
 msgstr "Frameadres"
 
-msgid "USA"
-msgstr "USA"
+msgid "English"
+msgstr "Engels"
+
+msgid "English (US)"
+msgstr "Engels (VS)"
+
+msgid "English (UK)"
+msgstr "Engels (VK)"
+
+msgid "English (Canada)"
+msgstr "Engels (Canada)"
+
+msgid "German"
+msgstr "Duits"
+
+msgid "French"
+msgstr "Frans"
+
+msgid "Spanish"
+msgstr "Spaans"
+
+msgid "Swedish"
+msgstr "Zweeds"
+
+msgid "Italian"
+msgstr "Italiaans"
+
+msgid "Portuguese"
+msgstr "Portugees"
+
+msgid "Norwegian"
+msgstr "Noors"
+
+msgid "Greek"
+msgstr "Grieks"
 
 msgid "Danish"
 msgstr "Deens"
@@ -2395,7 +2483,7 @@ msgid "Always at selected speed"
 msgstr "Altijd op geselecteerde snelheid"
 
 msgid "BIOS setting + Hotkeys (off during POST)"
-msgstr "BIOS-instelling + Sneltoetsen (niet actief tijdens POST)"
+msgstr "BIOS-instelling + sneltoetsen (niet actief tijdens POST)"
 
 msgid "64 KB starting from F0000"
 msgstr "64 KB vanaf F0000"
@@ -2434,16 +2522,16 @@ msgid "Wheel"
 msgstr "Wiel"
 
 msgid "Five + Wheel"
-msgstr "Vijf + Wiel"
+msgstr "Vijf + wiel"
 
 msgid "Five + 2 Wheels"
-msgstr "Vijf + 2 Wielen"
+msgstr "Vijf + 2 wielen"
 
 msgid "A3 - SMT2 Serial / SMT3(R)V"
-msgstr "A3 - SMT2 Serieel / SMT3(R)V"
+msgstr "A3 - SMT2 serieel / SMT3(R)V"
 
 msgid "Q1 - SMT3(R) Serial"
-msgstr "Q1 - SMT3(R) Serieel"
+msgstr "Q1 - SMT3(R) serieel"
 
 msgid "8 KB"
 msgstr "8 KB"
@@ -2515,7 +2603,7 @@ msgid "Green Monochrome"
 msgstr "Groen monochroom"
 
 msgid "Amber Monochrome"
-msgstr "Amber Monochroom"
+msgstr "Amber monochroom"
 
 msgid "Gray Monochrome"
 msgstr "Grijs monochroom"
@@ -2583,9 +2671,6 @@ msgstr "Grijstinten"
 msgid "Color"
 msgstr "Kleur"
 
-msgid "U.S. English"
-msgstr "Amerikaans Engels"
-
 msgid "Scandinavian"
 msgstr "Scandinavisch"
 
@@ -2599,16 +2684,16 @@ msgid "Apply overscan deltas"
 msgstr "Overscan-delta’s toepassen"
 
 msgid "Mono Interlaced"
-msgstr "Mono Interlaced"
+msgstr "Mono interlaced"
 
 msgid "Mono Non-Interlaced"
-msgstr "Mono Niet-Interlaced"
+msgstr "Mono niet-interlaced"
 
 msgid "Color Interlaced"
-msgstr "Kleur Interlaced"
+msgstr "Kleur interlaced"
 
 msgid "Color Non-Interlaced"
-msgstr "Kleur Niet-Interlaced"
+msgstr "Kleur niet-interlaced"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3Dfx Voodoo Graphics"
@@ -2640,6 +2725,9 @@ msgstr "Standaard"
 msgid "High-Speed"
 msgstr "Hoge snelheid"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "Stereo LPT DAC"
 
@@ -2652,8 +2740,8 @@ msgstr "Generieke ESC/P 2 dot-matrix-printer"
 msgid "Generic PostScript Printer"
 msgstr "Generieke PostScript-printer"
 
-msgid "Generic PCL5e Printer"
-msgstr "Generieke PCL5e-printer"
+msgid "Generic PCL Printer"
+msgstr "Generieke PCL-printer"
 
 msgid "Parallel Line Internet Protocol"
 msgstr "Internetprotocol voor parallelle lijnen"
@@ -2661,35 +2749,83 @@ msgstr "Internetprotocol voor parallelle lijnen"
 msgid "Protection Dongle for Savage Quest"
 msgstr "Beschermingsdongle voor Savage Quest"
 
-msgid "Serial Passthrough Device"
+msgid "Loopback Plug"
+msgstr "Loopback-stekker"
+
+msgid "Serial Passthrough"
 msgstr "Serieel doorvoerapparaat"
 
-msgid "Passthrough Mode"
-msgstr "Doorgeefmodus"
+msgid "Host serial device"
+msgstr "Host serieel apparaat"
 
-msgid "Host Serial Device"
-msgstr "Host Serieel Apparaat"
+msgid "Named Pipe"
+msgstr "Benoemde pipe"
 
-msgid "Name of pipe"
-msgstr "Naam van de pipe"
+msgid "Output file"
+msgstr "Uitvoerbestand"
 
-msgid "Data bits"
-msgstr "Databits"
+msgid "Append to file if it exists"
+msgstr "Aan bestand toevoegen als het bestaat"
 
-msgid "Stop bits"
-msgstr "Stopbits"
+msgid "Input file"
+msgstr "Invoerbestand"
 
-msgid "Baud Rate of Passthrough"
-msgstr "Baud-snelheid van doorvoer"
+msgid "Loop input file"
+msgstr "Invoerbestand herhalen"
 
-msgid "Named Pipe (Server)"
-msgstr "Named Pipe (Server)"
+msgid "Require STROBE signal"
+msgstr "Vereis STROBE signaal"
 
-msgid "Named Pipe (Client)"
-msgstr "Named Pipe (Client)"
+msgid "Loopback Type"
+msgstr "Loopbacktype"
 
-msgid "Host Serial Passthrough"
-msgstr "Host seriële doorgave"
+msgid "Parallel cable"
+msgstr "Parallelkabel"
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr "Unidirectioneel (8-bit) / LapLink (4-bit)"
+
+msgid "Bidirectional (8-bit)"
+msgstr "Bidirectioneel (8-bit)"
+
+msgid "Pipe path"
+msgstr "Pipepad"
+
+msgid "FIFO / terminal"
+msgstr "FIFO / terminal"
+
+msgid "Mode"
+msgstr "Modus"
+
+msgid "Server"
+msgstr "Server"
+
+msgid "Client"
+msgstr "Client"
+
+msgid "Reconnect automatically"
+msgstr "Automatisch opnieuw verbinden"
+
+msgid "Use standard input/output"
+msgstr "Gebruik staandaardinvoer/uitvoer"
+
+msgid "Create pseudoterminal"
+msgstr "Pseudoterminal aanmaken"
+
+msgid "Start terminal emulator"
+msgstr "Start terminalemulator"
+
+msgid "Run custom command"
+msgstr "Aangepaste opdracht uitvoeren"
+
+msgid "Custom command"
+msgstr "Aangepaste opdracht"
+
+msgid "Run custom command in terminal"
+msgstr "Aangepaste opdracht uitvoeren in terminal"
+
+msgid "Virtual Console"
+msgstr "Virtuele console"
 
 msgid "E&ject %1"
 msgstr "&Uitwerpen %1"
@@ -2705,6 +2841,12 @@ msgstr "Hoge prestatie-impact"
 
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[Generiek] RAM-schijf (max. snelheid)"
+
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[Generiek] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[Generiek] 1983 RLL (3600 RPM)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[Generiek] 1989 (3500 RPM)"
@@ -2727,8 +2869,8 @@ msgstr "[Generiek] 1998 (5400 RPM)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Generiek] 2000 (7200 RPM)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "IBM 8514/A-kloon (ISA)"
+msgid "IBM 8514/A clone"
+msgstr "IBM 8514/A-kloon"
 
 msgid "Vendor"
 msgstr "Leverancier"
@@ -2745,11 +2887,14 @@ msgstr "Generieke PC/XT geheugenuitbreiding"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "Generieke PC/AT geheugenuitbreiding"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "Dot-matrix-lettertypen niet gevonden"
+msgid "Generic MM58167 RTC"
+msgstr "Generieke MM58167 RTC"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "TrueType lettertypen in de map \"roms/printer/fonts\" zijn nodig voor de emulatie van de generieke ESC/P 2 dot-matrix-printer."
+msgid "OPL2Board (External Device)"
+msgstr "OPL2Board (extern apparaat)"
+
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "Dot-matrix-lettertypen niet gevonden. TrueType lettertypen in de map \"roms/printer/fonts\" zijn nodig voor de emulatie van de generieke ESC/P 2 dot-matrix-printer."
 
 msgid "Inhibit multimedia keys"
 msgstr "Multimedia-toetsen blokkeren"
@@ -2808,8 +2953,14 @@ msgstr "Omlaag verplaatsen"
 msgid "Could not load file %1"
 msgstr "Kon bestand %1 niet laden"
 
-msgid "Key Bindings:"
-msgstr "Toetskoppelingen:"
+msgid "Emulator"
+msgstr "Emulator"
+
+msgid "Input"
+msgstr "Invoer"
+
+msgid "Key bindings"
+msgstr "Toetskoppelingen"
 
 msgid "Action"
 msgstr "Actie"
@@ -2845,10 +2996,7 @@ msgid "Toggle fullscreen"
 msgstr "Volledig scherm omschakelen"
 
 msgid "Toggle UI in fullscreen"
-msgstr ""
-
-msgid "Screenshot"
-msgstr "Schermafbeelding"
+msgstr "Schakel de UI in volledig scherm"
 
 msgid "Release mouse pointer"
 msgstr "Geef muis vrij"
@@ -2858,6 +3006,12 @@ msgstr "Pauzeren omschakelen"
 
 msgid "Toggle mute"
 msgstr "Geluiddemping omschakelen"
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "Tekstbestanden"
@@ -2869,13 +3023,13 @@ msgid "SoundFont files"
 msgstr "SoundFont-bestanden"
 
 msgid "Local Switch"
-msgstr "Lokale Switch"
+msgstr "Lokale-switch"
 
 msgid "Remote Switch"
-msgstr "Externe Switch"
+msgstr "Externe-switch"
 
-msgid "Switch:"
-msgstr "Switch:"
+msgid "Shared secret:"
+msgstr "Gedeeld geheim:"
 
 msgid "Hub Mode"
 msgstr "Hub-modus"
@@ -2905,16 +3059,18 @@ msgid "An error occurred trying to wipe the NVRAM contents of the virtual machin
 msgstr "Fout bij Wissen van NVRAM-inhoud van de virtuele machine \"%1\""
 
 msgid "%1 VM Manager"
-msgstr "%1 VM Beheerder"
+msgstr "%1 VM-beheerder"
 
 msgid "%n disk(s)"
-msgstr "%n schijf/schijven"
+msgid_plural "%n disks"
+msgstr[0] "%n schijf"
+msgstr[1] "%n schijven"
 
 msgid "Unknown Status"
-msgstr "Onbekende Status"
+msgstr "Onbekende status"
 
 msgid "No Machines Found!"
-msgstr "Geen Machines Gevonden!"
+msgstr "Geen machines gevonden!"
 
 msgid "Check for updates on startup"
 msgstr "Controleer op updates bij starten"
@@ -2964,11 +3120,11 @@ msgstr "Bezoek downloadpagina"
 msgid "Update check"
 msgstr "Updatecontrole"
 
-msgid "Checking for updates..."
-msgstr "Controleren op updates..."
+msgid "Checking for updates…"
+msgstr "Controleren op updates…"
 
 msgid "86Box Update"
-msgstr "86Box Update"
+msgstr "86Box-update"
 
 msgid "Release notes:"
 msgstr "Release-opmerkingen:"
@@ -3003,8 +3159,8 @@ msgstr "Helderheid"
 msgid "Sharpness"
 msgstr "Scherpte"
 
-msgid "&CGA composite settings..."
-msgstr "Instellingen van de &CGA-compositemodus..."
+msgid "&CGA composite settings…"
+msgstr "Instellingen van de &CGA-compositemodus…"
 
 msgid "CGA composite settings"
 msgstr "Instellingen van de CGA-compositemodus"
@@ -3012,14 +3168,17 @@ msgstr "Instellingen van de CGA-compositemodus"
 msgid "Monitor EDID"
 msgstr "EDID-monitor"
 
-msgid "Export..."
-msgstr "Exporteren..."
+msgid "Export…"
+msgstr "Exporteren…"
 
 msgid "Export EDID"
 msgstr "EDID exporteren"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "Het EDID-bestand \"%ls\" is te groot."
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
+msgid "EDID file \"%s\" is too large."
+msgstr "Het EDID-bestand \"%s\" is te groot."
 
 msgid "OpenGL input scale"
 msgstr "Invoerschaal van OpenGL"
@@ -3036,9 +3195,6 @@ msgstr "Licht"
 msgid "Dark"
 msgstr "Donker"
 
-msgid "Search:"
-msgstr "Zoeken:"
-
 msgid "Force interpretation"
 msgstr "Interpretatie afdwingen"
 
@@ -3050,3 +3206,187 @@ msgstr "Interpretatie &afdwingen"
 
 msgid "&Allow recompilation"
 msgstr "Recompilatie &toestaan"
+
+msgid "&Fast forward"
+msgstr "&Snel vooruitspoelen"
+
+msgid "Fast forward"
+msgstr "Snel vooruitspoelen"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "Om de systeemmap te wijzigen, moet u alle actieve machines stoppen."
+
+msgid "Raw"
+msgstr "Ruw"
+
+msgid "Use EDC/ECC emulation"
+msgstr "Gebruik EDC/ECC-emulatie"
+
+msgid "Audio output device:"
+msgstr "Audio-uitvoerapparaat:"
+
+msgid "System Default"
+msgstr "Systeemstandaard"
+
+msgid "Unable to open image or folder \"%s\"."
+msgstr "Het bestand of de map „%s“ kan niet worden geopend."
+
+msgid "Unable to open cue sheet \"%s\"."
+msgstr "De cue-lijst „%s“ kan niet worden geopend."
+
+msgid "Unable to open MDS file \"%s\"."
+msgstr "Het MDS-bestand „%s“ kan niet worden geopend."
+
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr "De cd-rom-image „%s“ kan niet worden geladen."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+"De image „%s“ kan niet worden geladen: het bestand „%1“ ontbreekt, dat nodig "
+"is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
+
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr ""
+"De DVD-image „%s“ is in een station geplaatst dat geen DVD-media ondersteunt "
+"en wordt daarom genegeerd."
+
+msgid "%s: Could not connect to %s: %s"
+msgstr "%s: Er kon geen verbinding worden gemaakt met %s: %s"
+
+msgid "%s: Could not create %s: %s"
+msgstr "%s: %s kon niet worden aangemaakt: %s"
+
+msgid "%s: Attached to %s"
+msgstr "%s: Toegevoegd aan %s"
+
+msgid "%s: Virtual console already in use by %s"
+msgstr "%s: De Virtual Console wordt al gebruikt door %s"
+
+msgid "%s: Could not create terminal: %s"
+msgstr "%s: De terminal kon niet worden aangemaakt: %s"
+
+msgid "Auto-detect"
+msgstr "Automatische herkenning"
+
+msgid "Channel"
+msgstr "Kanaal"
+
+msgid "Both Channels"
+msgstr "Beide kanalen"
+
+msgid "Left Channel"
+msgstr "Linkerkanaal"
+
+msgid "Right Channel"
+msgstr "Rechterkanaal"
+
+msgid "Allow Flash BIOS Updates"
+msgstr "Flash-BIOS-updates toestaan"
+
+msgid "Slot #"
+msgstr "Slot nr."
+
+msgid "Parallel Port"
+msgstr "Parallelaansluiting"
+
+msgid "Paper Size"
+msgstr "Papierformaat"
+
+msgid "Letter"
+msgstr "Letter"
+
+msgid "Legal (sideways)"
+msgstr "Legal (zijdelings)"
+
+msgid "B4 (sideways)"
+msgstr "B4 (zijdelings)"
+
+msgid "Quality"
+msgstr "Kwaliteit"
+
+msgid "Draft"
+msgstr "Concept"
+
+msgid "(Near) Letter"
+msgstr "(Bijna) Brief"
+
+msgid "Auto LF"
+msgstr "Automatische regelafbreking"
+
+msgid "Tandy PSSJ Clone"
+msgstr "Tandy PSSJ-kloon"
+
+msgid "PC-CM (Color)"
+msgstr "PC-CM (kleur)"
+
+msgid "PC-MM (Monochrome)"
+msgstr "PC-MM (monochroom)"
+
+msgid "White Monochrome"
+msgstr "Wit monochroom"
+
+msgid "Hardware font"
+msgstr "Hardware-lettertype"
+
+msgid "Diagnostic mode"
+msgstr "Diagnosemodus"
+
+msgid "CGA monitor"
+msgstr "CGA-monitor"
+
+msgid "MDA monitor"
+msgstr "MDA-monitor"
+
+msgid "Television"
+msgstr "Televisie"
+
+msgid "Invert LCD colors"
+msgstr "LCD-kleuren omkeren"
+
+msgid "LCD (CGA mode)"
+msgstr "LCD (CGA-modus)"
+
+msgid "LCD (MDA mode)"
+msgstr "LCD (MDA-modus)"
+
+msgid "Disabled (250h)"
+msgstr "Uitgeschakeld (250h)"
+
+msgid "Enabled (350h)"
+msgstr "Ingeschakeld (350h)"
+
+msgid "Test mode"
+msgstr "Testmodus"
+
+msgid "32 MB"
+msgstr "32 MB"
+
+msgid "64 MB"
+msgstr "64 MB"
+
+msgid "2048 MB"
+msgstr "2048 MB"
+
+msgid "Refresh rate"
+msgstr "Vernieuwingsfrequentie"
+
+msgid "US (CP 437)"
+msgstr "VS (CP 437)"
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr "IBM Noords (CP 437-Nordic)"
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr "Tsjechisch Kamenický (CP 895) 1"
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr "Tsjechisch Kamenický (CP 895) 2"
+
+msgid "932 (Japanese)"
+msgstr "932 (Japans)"
+
+msgid "938 (Traditional Chinese)"
+msgstr "938 (Traditioneel Chinees)"
+
+msgid "Sample rate:"
+msgstr ""

@@ -15,6 +15,7 @@
 #include <stdint.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -28,12 +29,99 @@
 #define I_MUSIC 1
 #define I_WT 2
 #define I_CD 3
-#define I_MIDI 4
-#define I_FDD 5
+#define I_FDD 4
+#define I_HDD 5
+#define I_YM2151 6
+#define I_MIDI 7
 
-static struct sio_hdl* audio[6] = {NULL, NULL, NULL, NULL, NULL, NULL};
-static struct sio_par  info[6];
-static int             freqs[6] = { SOUND_FREQ, MUSIC_FREQ, WT_FREQ, CD_FREQ, SOUND_FREQ, 0 };
+extern bool fast_forward;
+static struct sio_hdl* audio[8] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static struct sio_par  info[8];
+static int             freqs[8] = { 0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0 };
+const char *
+sound_get_output_devices(void)
+{
+    static char dev_list[1024];
+    char       *p   = dev_list;
+    size_t      rem = sizeof(dev_list);
+
+    memset(dev_list, 0, sizeof(dev_list));
+
+    for (int i = 0; i < 16; i++) {
+        char           devname[32];
+        struct sio_hdl *hdl;
+        size_t          len;
+
+        snprintf(devname, sizeof(devname), "snd/%d", i);
+        hdl = sio_open(devname, SIO_PLAY, 0);
+        if (hdl == NULL)
+            break; /* devices are numbered consecutively */
+        sio_close(hdl);
+
+        len = strlen(devname) + 1;
+        if (len < rem) {
+            memcpy(p, devname, len);
+            p   += len;
+            rem -= len;
+        }
+    }
+
+    if (p > dev_list) {
+        if (rem > 0)
+            *p = '\0'; /* double-null terminator */
+        return dev_list;
+    }
+    return NULL; /* sndiod not running or no devices */
+}
+
+int
+sound_get_device_sample_rate(const char *device_name)
+{
+    const char     *devname = (device_name && device_name[0]) ? device_name : SIO_DEVANY;
+    struct sio_hdl *hdl     = sio_open(devname, SIO_PLAY, 0);
+    int             rate    = 0;
+
+    if (hdl != NULL) {
+        struct sio_par par;
+        sio_getpar(hdl, &par);
+        rate = (int) par.rate;
+        sio_close(hdl);
+    }
+    return rate;
+}
+
+int
+sound_get_device_supported_rates(const char *device_name, int *rates_out, int max_rates)
+{
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+    const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
+    const char      *devname      = (device_name && device_name[0]) ? device_name : SIO_DEVANY;
+    int              count        = 0;
+
+    for (int i = 0; i < num_cands && count < max_rates; i++) {
+        struct sio_hdl *hdl = sio_open(devname, SIO_PLAY, 0);
+        if (hdl == NULL)
+            continue;
+
+        struct sio_par par;
+        sio_initpar(&par);
+        par.rate = (unsigned int) candidates[i];
+        sio_setpar(hdl, &par);
+        sio_getpar(hdl, &par);
+        sio_close(hdl);
+
+        if ((int) par.rate == candidates[i])
+            rates_out[count++] = candidates[i];
+    }
+
+    if (count == 0) {
+        for (int i = 0; i < num_cands && i < max_rates; i++)
+            rates_out[i] = candidates[i];
+        count = num_cands;
+    }
+
+    return count;
+}
 
 void
 closeal(void)
@@ -49,8 +137,12 @@ closeal(void)
 void
 inital(void)
 {
+    freqs[I_NORMAL] = freqs[I_FDD] = freqs[I_HDD] = sound_sample_rate;
+
+    const char *devname = (sound_output_device[0] != '\0') ? sound_output_device : SIO_DEVANY;
+
     for (int i = 0; i < sizeof(audio) / sizeof(audio[0]); i++) {
-        audio[i] = sio_open(SIO_DEVANY, SIO_PLAY, 0);
+        audio[i] = sio_open(devname, SIO_PLAY, 0);
         if (audio[i] != NULL) {
             int rate;
             int max_frames;
@@ -83,7 +175,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     int conv_size;
     double gain;
     int target_rate;
-    if (audio[src] == NULL)
+    if (audio[src] == NULL || fast_forward)
         return;
 
     gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
@@ -91,12 +183,12 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     if (sound_is_float) {
         float* input = (float*) buf;
         conv_size = sizeof(int16_t) * size;
-        conv = malloc(conv_size);
+        conv = calloc(1, conv_size);
         for (int i = 0; i < conv_size / sizeof(int16_t); i++)
             conv[i] = 32767 * input[i];
     } else {
         conv_size = size * sizeof(int16_t);
-        conv = malloc(conv_size);
+        conv = calloc(1, conv_size);
         memcpy(conv, buf, conv_size);
     }
 
@@ -104,7 +196,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
 
     output_size = (double) conv_size * target_rate / freq;
     output_size -= output_size % 4;
-    output = malloc(output_size);
+    output = calloc(1, output_size);
     
     for (int i = 0; i < output_size / sizeof(int16_t) / 2; i++) {
         int ind = i * freq / target_rate * 2;
@@ -121,7 +213,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
 void
 givealbuffer(const void *buf)
 {
-    givealbuffer_common(buf, I_NORMAL, SOUNDBUFLEN << 1);
+    givealbuffer_common(buf, I_NORMAL, (sound_sample_rate / 50) << 1);
 }
 
 void
@@ -153,7 +245,19 @@ givealbuffer_fdd(const void *buf, const uint32_t size)
 {
     givealbuffer_common(buf, I_FDD, (int) size);
 }
-	
+
+void
+givealbuffer_hdd(const void *buf, const uint32_t size)
+{
+    givealbuffer_common(buf, I_HDD, (int) size);
+}	
+
+void
+givealbuffer_ym2151(const void *buf)
+{
+    givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1);
+}
+
 void
 al_set_midi(const int freq, UNUSED(const int buf_size))
 {

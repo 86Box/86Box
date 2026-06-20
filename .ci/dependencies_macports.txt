@@ -5,7 +5,6 @@ freetype
 libsdl2
 libpng
 openal-soft
-FAudio
 rtmidi
 vulkan-headers
 MoltenVK
@@ -17,3 +16,8 @@ libslirp
 vde2
 libsndfile
 libserialport
+rust
+rust-src
+cargo
+cargo-c
+corrosion

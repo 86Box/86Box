@@ -17,9 +17,9 @@
 #include "qt_machinestatus.hpp"
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/hdd.h>
 #include <86box/timer.h>
-#include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/cartridge.h>
 #include <86box/cassette.h>
@@ -31,6 +31,7 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
 #include <86box/thread.h>
@@ -53,7 +54,7 @@ extern volatile int fdcinited;
 #include "qt_mediamenu.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_soundgain.hpp"
-#include "qt_progsettings.hpp"
+#include "qt_preferences.hpp"
 #include "qt_iconindicators.hpp"
 
 #include <array>
@@ -83,9 +84,15 @@ struct PixmapSetEmpty {
 struct PixmapSetEmptyActive {
     QPixmap normal;
     QPixmap active;
+    QPixmap record;
+    QPixmap play;
+    QPixmap pause;
+    QPixmap play_active;
+    QPixmap pause_active;
     QPixmap empty;
     QPixmap empty_active;
     QPixmap write_active;
+    QPixmap record_write_active;
     QPixmap read_write_active;
     QPixmap empty_write_active;
     QPixmap empty_read_write_active;
@@ -100,8 +107,12 @@ struct Pixmaps {
     PixmapSetEmptyActive floppy_525;
     PixmapSetEmptyActive floppy_35;
     PixmapSetEmptyActive cdrom;
+    PixmapSetEmptyActive dvdrom;
+    PixmapSetEmptyActive rdisk_disabled;
     PixmapSetEmptyActive rdisk;
+    PixmapSetEmptyActive zip;
     PixmapSetEmptyActive mo;
+    PixmapSetEmptyActive tape;
     PixmapSetActive      hd;
     PixmapSetEmptyActive net;
     PixmapSetDisabled    sound;
@@ -169,6 +180,36 @@ struct StateEmptyActive {
     bool                    active       = false;
     bool                    write_active = false;
     bool                    wp           = false;
+    bool                    play         = false;
+    bool                    pause        = false;
+    bool                    record       = false;
+
+    void setRecord(bool b)
+    {
+        if (!label || b == record)
+            return;
+
+        record = b;
+        refresh();
+    }
+
+    void setPlay(bool b)
+    {
+        if (!label || b == play)
+            return;
+
+        play = b;
+        refresh();
+    }
+
+    void setPause(bool b)
+    {
+        if (!label || b == pause)
+            return;
+
+        pause = b;
+        refresh();
+    }
 
     void setActive(bool b)
     {
@@ -212,10 +253,14 @@ struct StateEmptyActive {
             else
                 label->setPixmap(write_active ? pixmaps->empty_write_active : (active ? pixmaps->empty_active : pixmaps->empty));
         } else {
-            if (wp)
+            if (wp && !(play || pause))
                 label->setPixmap(active ? pixmaps->wp_active : pixmaps->wp);
-            else if (active && write_active)
+            else if (active && write_active && !wp)
                 label->setPixmap(pixmaps->read_write_active);
+            else if (record && !active && !wp)
+                label->setPixmap(write_active ? pixmaps->record_write_active : pixmaps->record);
+            else if ((play || pause) && !write_active)
+                label->setPixmap(play ? (active ? pixmaps->play_active : pixmaps->play) : (active ? pixmaps->pause_active : pixmaps->pause));
             else
                 label->setPixmap(write_active ? pixmaps->write_active : (active ? pixmaps->active : pixmaps->normal));
         }
@@ -252,10 +297,16 @@ void
 PixmapSetEmptyActive::load(const QIcon &icon)
 {
     normal                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, None);
+    play                    = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Play);
+    pause                   = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Pause);
+    record                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Record);
+    play_active             = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, PlayActive);
+    pause_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, PauseActive);
     wp                      = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtected);
     wp_active               = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedActive);
     active                  = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Active);
     write_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteActive);
+    record_write_active     = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, RecordWriteActive);
     read_write_active       = getIconWithIndicator(icon, pixmap_size, QIcon::Normal, ReadWriteActive);
     empty                   = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, None);
     empty_active            = getIconWithIndicator(icon, pixmap_size, QIcon::Disabled, Active);
@@ -281,8 +332,18 @@ struct MachineStatus::States {
         pixmaps.floppy_525.load(QIcon(":/settings/qt/icons/floppy_525.ico"));
         pixmaps.floppy_35.load(QIcon(":/settings/qt/icons/floppy_35.ico"));
         pixmaps.cdrom.load(QIcon(":/settings/qt/icons/cdrom.ico"));
+        pixmaps.dvdrom.load(QIcon(":/settings/qt/icons/dvdrom.ico"));
+        pixmaps.rdisk_disabled.normal                  = QIcon(":/settings/qt/icons/rdisk_disabled.ico").pixmap(pixmap_size);
+        pixmaps.rdisk_disabled.active                  = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.read_write_active       = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty                   = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty_active            = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty_write_active      = pixmaps.rdisk_disabled.normal;
+        pixmaps.rdisk_disabled.empty_read_write_active = pixmaps.rdisk_disabled.normal;
         pixmaps.rdisk.load(QIcon(":/settings/qt/icons/rdisk.ico"));
+        pixmaps.zip.load(QIcon(":/settings/qt/icons/zip.ico"));
         pixmaps.mo.load(QIcon(":/settings/qt/icons/mo.ico"));
+        pixmaps.tape.load(QIcon(":/settings/qt/icons/tape.ico"));
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
         pixmaps.net.load(QIcon(":/settings/qt/icons/network.ico"));
         pixmaps.sound.load(QIcon(":/settings/qt/icons/sound.ico"));
@@ -302,6 +363,9 @@ struct MachineStatus::States {
         for (auto &m : mo) {
             m.pixmaps = &pixmaps.mo;
         }
+        for (auto &t : tape) {
+            t.pixmaps = &pixmaps.tape;
+        }
         for (auto &h : hdds) {
             h.pixmaps = &pixmaps.hd;
         }
@@ -316,6 +380,7 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, CDROM_NUM>    cdrom;
     std::array<StateEmptyActive, RDISK_NUM>    rdisk;
     std::array<StateEmptyActive, MO_NUM>       mo;
+    std::array<StateEmptyActive, TAPE_NUM>     tape;
     std::array<StateActive, HDD_BUS_USB>       hdds;
     std::array<StateEmptyActive, NET_CARD_MAX> net;
     std::unique_ptr<ClickableLabel>            sound;
@@ -378,9 +443,10 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
     for (size_t i = 0; i < CDROM_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -401,9 +467,10 @@ MachineStatus::iterateRDisk(const std::function<void(int)> &cb)
     for (size_t i = 0; i < RDISK_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((rdisk_drives[i].bus_type == RDISK_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -422,15 +489,38 @@ MachineStatus::iterateMO(const std::function<void(int)> &cb)
     for (size_t i = 0; i < MO_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
             (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
             continue;
         if (mo_drives[i].bus_type != 0) {
+            cb(i);
+        }
+    }
+}
+
+void
+MachineStatus::iterateTape(const std::function<void(int)> &cb)
+{
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        /* Could be Internal or External IDE.. */
+        if ((tape_drives[i].bus_type == TAPE_BUS_ATAPI) && !hasIDE() &&
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
+            continue;
+        if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasSCSI() &&
+            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        if (tape_drives[i].bus_type != 0) {
             cb(i);
         }
     }
@@ -481,6 +571,10 @@ MachineStatus::refreshEmptyIcons()
         d->mo[i].setEmpty(machine_status.mo[i].empty);
         d->mo[i].setWriteProtected(machine_status.mo[i].write_prot);
     }
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        d->tape[i].setEmpty(machine_status.tape[i].empty);
+        d->tape[i].setWriteProtected(machine_status.tape[i].write_prot);
+    }
 
     d->cassette.setEmpty(machine_status.cassette.empty);
     d->cassette.setWriteProtected(machine_status.cassette.write_prot);
@@ -495,9 +589,20 @@ MachineStatus::refreshEmptyIcons()
 void
 MachineStatus::refreshIcons()
 {
+    /* Always show record/play statuses of cassette even if icon updates are disabled, since it's important to indicate play/record modes. */
+    if (cassette_enable && cassette) {
+        d->cassette.setRecord(!!cassette->save);
+        d->cassette.setPlay(!cassette->save);
+    }
+
     /* Check if icons should show activity. */
     if (!update_icons)
         return;
+
+    if (cassette_enable) {
+        d->cassette.setWriteActive(machine_status.cassette.write_active);
+        d->cassette.setActive(machine_status.cassette.active);
+    }
 
     for (size_t i = 0; i < FDD_NUM; ++i) {
         d->fdd[i].setActive(machine_status.fdd[i].active);
@@ -506,6 +611,8 @@ MachineStatus::refreshIcons()
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         d->cdrom[i].setActive(machine_status.cdrom[i].active);
         d->cdrom[i].setWriteActive(machine_status.cdrom[i].write_active);
+        d->cdrom[i].setPlay(cdrom_is_playing(i));
+        d->cdrom[i].setPause(cdrom_is_paused(i));
         if (machine_status.cdrom[i].active) {
             ui_sb_update_icon(SB_CDROM | i, 0);
         }
@@ -528,6 +635,14 @@ MachineStatus::refreshIcons()
             ui_sb_update_icon(SB_MO | i, 0);
         if (machine_status.mo[i].write_active)
             ui_sb_update_icon_write(SB_MO | i, 0);
+    }
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        d->tape[i].setActive(machine_status.tape[i].active);
+        d->tape[i].setWriteActive(machine_status.tape[i].write_active);
+        if (machine_status.tape[i].active)
+            ui_sb_update_icon(SB_TAPE | i, 0);
+        if (machine_status.tape[i].write_active)
+            ui_sb_update_icon_write(SB_TAPE | i, 0);
     }
 
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
@@ -563,6 +678,10 @@ MachineStatus::clearActivity()
     for (auto &mo : d->mo) {
         mo.setActive(false);
         mo.setWriteActive(false);
+    }
+    for (auto &tape : d->tape) {
+        tape.setActive(false);
+        tape.setWriteActive(false);
     }
     for (auto &hdd : d->hdds) {
         hdd.setActive(false);
@@ -603,6 +722,9 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
     for (size_t i = 0; i < MO_NUM; i++) {
         sbar->removeWidget(d->mo[i].label.get());
+    }
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        sbar->removeWidget(d->tape[i].label.get());
     }
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         sbar->removeWidget(d->hdds[i].label.get());
@@ -652,13 +774,12 @@ MachineStatus::refresh(QStatusBar *sbar)
 
     iterateFDD([this, sbar](int i) {
         int t = fdd_get_type(i);
-        if (t == 0) {
+        if (t == 0)
             d->fdd[i].pixmaps = &d->pixmaps.floppy_disabled;
-        } else if (t >= 1 && t <= 6) {
+        else if ((t >= 1) && (t <= 6))
             d->fdd[i].pixmaps = &d->pixmaps.floppy_525;
-        } else {
+        else
             d->fdd[i].pixmaps = &d->pixmaps.floppy_35;
-        }
         d->fdd[i].label = std::make_unique<ClickableLabel>();
         d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
         if (QString(floppyfns[i]).isEmpty())
@@ -682,6 +803,11 @@ MachineStatus::refresh(QStatusBar *sbar)
     });
 
     iterateCDROM([this, sbar](int i) {
+        int t = cdrom[i].type;
+        if (cdrom_is_dvd(t))
+            d->cdrom[i].pixmaps = &d->pixmaps.dvdrom;
+        else
+            d->cdrom[i].pixmaps = &d->pixmaps.cdrom;
         d->cdrom[i].label = std::make_unique<ClickableLabel>();
         d->cdrom[i].setEmpty(QString(cdrom[i].image_path).isEmpty());
         d->cdrom[i].setActive(false);
@@ -699,6 +825,13 @@ MachineStatus::refresh(QStatusBar *sbar)
     });
 
     iterateRDisk([this, sbar](int i) {
+        int t = rdisk_drives[i].type;
+        if (rdisk_drives[i].bus_type == RDISK_BUS_DISABLED)
+            d->rdisk[i].pixmaps = &d->pixmaps.rdisk_disabled;
+        else if ((t == RDISK_TYPE_ZIP_100) || (t == RDISK_TYPE_ZIP_250))
+            d->rdisk[i].pixmaps = &d->pixmaps.zip;
+        else
+            d->rdisk[i].pixmaps = &d->pixmaps.rdisk;
         d->rdisk[i].label = std::make_unique<ClickableLabel>();
         d->rdisk[i].setEmpty(QString(rdisk_drives[i].image_path).isEmpty());
         if (QString(rdisk_drives[i].image_path).isEmpty())
@@ -724,12 +857,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     iterateMO([this, sbar](int i) {
         d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
-        if (QString(rdisk_drives[i].image_path).isEmpty())
+        if (QString(mo_drives[i].image_path).isEmpty())
             d->mo[i].setWriteProtected(false);
-        else if (QString(rdisk_drives[i].image_path).left(5) == "wp://")
+        else if (QString(mo_drives[i].image_path).left(5) == "wp://")
             d->mo[i].setWriteProtected(true);
         else
-            d->mo[i].setWriteProtected(rdisk_drives[i].read_only);
+            d->mo[i].setWriteProtected(mo_drives[i].read_only);
         d->mo[i].setActive(false);
         d->mo[i].setWriteActive(false);
         d->mo[i].refresh();
@@ -742,6 +875,29 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->mo[i].label->setToolTip(MediaMenu::ptr->moMenus[i]->toolTip());
         d->mo[i].label->setAcceptDrops(true);
         sbar->addWidget(d->mo[i].label.get());
+    });
+
+    iterateTape([this, sbar](int i) {
+        d->tape[i].label = std::make_unique<ClickableLabel>();
+        d->tape[i].setEmpty(QString(tape_drives[i].image_path).isEmpty());
+        if (QString(tape_drives[i].image_path).isEmpty())
+            d->tape[i].setWriteProtected(false);
+        else if (QString(tape_drives[i].image_path).left(5) == "wp://")
+            d->tape[i].setWriteProtected(true);
+        else
+            d->tape[i].setWriteProtected(tape_drives[i].read_only);
+        d->tape[i].setActive(false);
+        d->tape[i].setWriteActive(false);
+        d->tape[i].refresh();
+        connect((ClickableLabel *) d->tape[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
+            MediaMenu::ptr->tapeMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->tapeMenus[i]->sizeHint().height()));
+        });
+        connect((ClickableLabel *) d->tape[i].label.get(), &ClickableLabel::dropped, [i](QString str) {
+            MediaMenu::ptr->tapeMount(i, str, false);
+        });
+        d->tape[i].label->setToolTip(MediaMenu::ptr->tapeMenus[i]->toolTip());
+        d->tape[i].label->setAcceptDrops(true);
+        sbar->addWidget(d->tape[i].label.get());
     });
 
     iterateNIC([this, sbar](int i) {
@@ -806,9 +962,10 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_XTA].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
-    if (hasIDE() || (hdc_name.left(5) == QStringLiteral("xtide")) ||
-        (hdc_name.left(5) == QStringLiteral("mcide")) ||
-        (hdc_name.left(3) == QStringLiteral("ide"))) {
+    if (hasIDE() || hdc_name.startsWith(QStringLiteral("xtide")) ||
+        hdc_name.startsWith(QStringLiteral("jride")) ||
+        hdc_name.startsWith(QStringLiteral("mcide")) ||
+        hdc_name.startsWith(QStringLiteral("ide"))) {
         if (c_ide > 0) {
             d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
             d->hdds[HDD_BUS_IDE].setActive(false);
@@ -929,6 +1086,10 @@ MachineStatus::updateTip(int tag)
         case SB_MO:
             if (d->mo[item].label && MediaMenu::ptr->moMenus[item])
                 d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->toolTip());
+            break;
+        case SB_TAPE:
+            if (d->tape[item].label && MediaMenu::ptr->tapeMenus[item])
+                d->tape[item].label->setToolTip(MediaMenu::ptr->tapeMenus[item]->toolTip());
             break;
         case SB_HDD:
             break;

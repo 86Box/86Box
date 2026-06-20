@@ -51,6 +51,7 @@ extern "C" {
 #include <86box/scsi_device.h> // required for rdisk.h and mo.h
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 #include <86box/fdd.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
@@ -63,6 +64,7 @@ extern "C" {
 #include <86box/network.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/char.h>
 }
 
 using namespace VMManager;
@@ -101,6 +103,8 @@ VMManagerSystem::VMManagerSystem(const QString &sysconfig_file)
     find86BoxBinary();
     platform = QApplication::platformName();
     process  = new QProcess();
+    process->setInputChannelMode(QProcess::ForwardedInputChannel);
+    process->setProcessChannelMode(QProcess::ForwardedChannels);
     connect(process, &QProcess::stateChanged, this, &VMManagerSystem::processStatusChanged);
 
     // Server type for this instance (Standard should always be used instead of Legacy)
@@ -124,7 +128,7 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     QProgressDialog progDialog(parent);
     unsigned int    found = 0;
     progDialog.setCancelButton(nullptr);
-    progDialog.setWindowTitle(tr("Searching for VMs..."));
+    progDialog.setWindowTitle(tr("Searching for VMs…"));
     progDialog.setMinimumDuration(0);
     progDialog.setValue(0);
     progDialog.setMinimum(0);
@@ -160,7 +164,9 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
         progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
         QApplication::processEvents();
         QString filename = dir_iterator.next();
-        matches.append(filename);
+        QString root_cfg = QString("%1%2").arg(search_directory, config_file_name);
+        if (filename.compare(root_cfg, Qt::CaseInsensitive) != 0)
+            matches.append(filename);
     }
 
     const auto scanElapsed = timer.elapsed();
@@ -194,7 +200,8 @@ VMManagerSystem::generateTemporaryFilename()
     QTemporaryFile tempFile;
     // File will be closed once the QTemporaryFile object goes out of scope
     tempFile.setAutoRemove(true);
-    tempFile.open();
+    if (tempFile.open() == false)
+        qDebug() << "Error opening temporary file";
     return tempFile.fileName();
 }
 
@@ -305,15 +312,11 @@ void
 VMManagerSystem::generateSearchTerms()
 {
     searchTerms.clear();
-    for (const auto &config_key : config_hash.keys()) {
-        // searchTerms.append(config_hash[config_key].values());
-        // brute force temporarily don't add paths
-        for (const auto &value : config_hash[config_key].values()) {
-            if (!value.startsWith("/"))
-                searchTerms.append(value);
-        }
-    }
-    searchTerms.append(display_table.values());
+    for (const auto &value : display_table.values())
+        if (value.contains(";"))
+            searchTerms.append(value.split(';'));
+        else
+            searchTerms.append(value);
     searchTerms.append(displayName);
     searchTerms.append(config_name);
     QRegularExpression whitespaceRegex("\\s+");
@@ -394,9 +397,8 @@ VMManagerSystem::has86BoxBinary()
 }
 
 void
-VMManagerSystem::launchMainProcess()
+VMManagerSystem::launch86Box(bool settings)
 {
-
     if (!has86BoxBinary()) {
         qWarning("No binary found! returning");
         return;
@@ -410,22 +412,31 @@ VMManagerSystem::launchMainProcess()
             return;
         }
     }
-    // If the system is already running, bring it to front
+    // If the system is already running, bring it to front or instruct it to show settings
     if (process->processId() != 0) {
 #ifdef Q_OS_WINDOWS
         if (this->id) {
             SetForegroundWindow((HWND) this->id);
         }
 #endif
+        if (settings)
+            socket_server->serverSendMessage(VMManagerProtocol::ManagerMessage::ShowSettings);
         return;
     }
+
+    // Otherwise, launch the system
     setProcessEnvVars();
+    window_obscured     = settings;
     QString     program = main_binary.filePath();
     QStringList args;
     args << "--vmpath" << config_dir;
     args << "--vmname" << displayName;
+    if (settings)
+        args << "--settings";
     if (rom_path[0] != '\0')
         args << "--rompath" << QString(rom_path);
+    if (asset_path[0] != '\0')
+        args << "--assetpath" << QString(asset_path);
     if (global_cfg_overridden)
         args << "--global" << QString(global_cfg_path);
     if (!hook_enabled)
@@ -434,77 +445,21 @@ VMManagerSystem::launchMainProcess()
         args << "--fullscreen";
     if (!confirm_exit_cmdl)
         args << "--noconfirm";
+#ifdef Q_OS_WINDOWS
+    if (force_debug)
+        args << "--debug";
+#endif
     process->setProgram(program);
     process->setArguments(args);
     qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
     process->start();
     updateTimestamp();
 
+    disconnect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), nullptr, nullptr);
     connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
             [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
                 if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
-                    qInfo().nospace().noquote() << "Abnormal program termination while launching main process: exit code " << exitCode << ", exit status " << exitStatus;
-                    QMessageBox::critical(this, tr("Virtual machine crash"),
-                                          tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString::number(exitCode)));
-                    return;
-                }
-            });
-}
-
-void
-VMManagerSystem::startButtonPressed()
-{
-    launchMainProcess();
-}
-
-void
-VMManagerSystem::launchSettings()
-{
-    if (!has86BoxBinary()) {
-        qWarning("No binary found! returning");
-        return;
-    }
-
-    // start the server first to get the socket name
-    if (!serverIsRunning) {
-        if (!startServer()) {
-            // FIXME: Better error handling
-            qInfo("Failed to start VM Manager server");
-            return;
-        }
-    }
-
-    // If the system is already running, instruct it to show settings
-    if (process->processId() != 0) {
-#ifdef Q_OS_WINDOWS
-        if (this->id) {
-            SetForegroundWindow((HWND) this->id);
-        }
-#endif
-        socket_server->serverSendMessage(VMManagerProtocol::ManagerMessage::ShowSettings);
-        return;
-    }
-
-    // Otherwise, launch the system with the settings parameter
-    setProcessEnvVars();
-    window_obscured     = true;
-    QString     program = main_binary.filePath();
-    QStringList open_command_args;
-    QStringList args;
-    args << "--vmpath" << config_dir << "--settings";
-    if (rom_path[0] != '\0')
-        args << "--rompath" << QString(rom_path);
-    if (global_cfg_overridden)
-        args << "--global" << QString(global_cfg_path);
-    process->setProgram(program);
-    process->setArguments(args);
-    qDebug() << Q_FUNC_INFO << " Full Command:" << process->program() << " " << process->arguments();
-    process->start();
-
-    connect(process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
-            [=](const int exitCode, const QProcess::ExitStatus exitStatus) {
-                if (exitCode != 0 || exitStatus != QProcess::NormalExit) {
-                    qInfo().nospace().noquote() << "Abnormal program termination while launching settings: exit code " << exitCode << ", exit status " << exitStatus;
+                    qInfo().nospace().noquote() << "Abnormal program termination while launching system: exit code " << exitCode << ", exit status " << exitStatus;
                     QMessageBox::critical(this, tr("Virtual machine crash"),
                                           tr("The virtual machine \"%1\"'s process has unexpectedly terminated with exit code %2.").arg(displayName, QString("%1 (0x%2)").arg(QString::number(exitCode), QString::number(exitCode, 16))));
                     return;
@@ -512,6 +467,18 @@ VMManagerSystem::launchSettings()
 
                 configurationChangeReceived();
             });
+}
+
+void
+VMManagerSystem::startButtonPressed()
+{
+    launch86Box(false);
+}
+
+void
+VMManagerSystem::launchSettings()
+{
+    launch86Box(true);
 }
 
 void
@@ -550,7 +517,7 @@ VMManagerSystem::setupVars()
     auto network_config      = getCategory("Network");
     auto input_config        = getCategory("Input devices");
     auto floppy_cdrom_config = getCategory("Floppy and CD-ROM drives");
-    auto rdisk_mo_config     = getCategory("Other removable devices");
+    auto removable_config     = getCategory("Other removable devices");
     auto storage_config      = getCategory("Storage controllers");
     auto ports_config        = getCategory("Ports (COM & LPT)");
     auto other_config        = getCategory("Other peripherals");
@@ -565,14 +532,11 @@ VMManagerSystem::setupVars()
     auto machine_name    = QString();
     int  i               = 0;
     int  ram_granularity = 0;
+    int  ci              = machine_get_machine_from_internal_name(machine_config["machine"].toUtf8());
     // Machine
-    for (int ci = 0; ci < machine_count(); ++ci) {
-        if (machine_available(ci)) {
-            if (machines[ci].internal_name == machine_config["machine"]) {
-                machine_name    = machines[ci].name;
-                ram_granularity = machines[ci].ram.step;
-            }
-        }
+    if (ci != -1 && machine_available(ci)) {
+        machine_name    = machines[ci].name;
+        ram_granularity = machines[ci].ram.step;
     }
     display_table[VMManager::Display::Name::Machine] = machine_name;
 
@@ -585,14 +549,12 @@ VMManagerSystem::setupVars()
             while (cpu_families[i].cpus[j].cpu_type != 0) {
                 if (cpu_families[i].cpus[j].rspeed == machine_config["cpu_speed"].toUInt()) {
                     auto cpu_speed = QString(cpu_families[i].cpus[j].name).split("/").at(0).split(" (").at(0);
-                    cpu_name.append(cpu_speed.prepend(" / "));
-                    cpu_name.append(QCoreApplication::translate("", "MHz").prepend(' '));
+                    cpu_name.append(QCoreApplication::translate("", "%1 MHz").arg(cpu_speed).prepend(" / "));
                     if (machine_config.contains("fpu_type") && (machine_config["fpu_type"] != QString("none")) && (machine_config["fpu_type"] != QString("internal"))) {
                         int k = 0;
                         while (cpu_families[i].cpus[j].fpus[k].internal_name != nullptr) {
                             if (QString(cpu_families[i].cpus[j].fpus[k].internal_name) == machine_config["fpu_type"]) {
-                                cpu_name.append(QString(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
-                                cpu_name.append(QCoreApplication::translate("", "FPU").prepend(' '));
+                                cpu_name.append(QCoreApplication::translate("", "%1 FPU").arg(cpu_families[i].cpus[j].fpus[k].name).prepend(", "));
                                 break;
                             }
                             k++;
@@ -619,15 +581,37 @@ VMManagerSystem::setupVars()
     display_table[VMManager::Display::Name::Memory] = mem_display;
 
     // Video card
-    int             video_int                      = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data());
-    const device_t *video_dev                      = video_card_getdevice(video_int);
-    display_table[VMManager::Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_get_internal_name(video_int), 1);
+    const device_t *video_dev = video_get_video_from_old_internal_name(video_config["gfxcard"].toUtf8().data()); // Check for migrations first
+    const char *video_internal_name;
+    int         video_int;
+    if (video_dev == nullptr) {
+        video_int           = video_get_video_from_internal_name(video_config["gfxcard"].toUtf8().data()); 
+        video_dev           = video_card_getdevice(video_int);
+        video_internal_name = video_get_internal_name(video_int);
+    } else
+        video_internal_name = video_dev->internal_name;
+
+    display_table[VMManager::Display::Name::Video] = DeviceConfig::DeviceName(video_dev, video_internal_name, 1);
+
+    if ((ci != -1) && (QString(video_internal_name) == "internal")) {
+        auto internal_device = machine_get_vid_device(ci);
+        if (internal_device)
+            display_table[VMManager::Display::Name::Video].append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+    }
 
     // Secondary video
     if (video_config.contains("gfxcard_2")) {
-        int             video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
-        const device_t *video2_dev = video_card_getdevice(video2_int);
-        display_table[VMManager::Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video_get_internal_name(video2_int), 1).prepend(VMManagerDetailSection::sectionSeparator));
+        const device_t *video2_dev = video_get_video_from_old_internal_name(video_config["gfxcard_2"].toUtf8().data()); // Check for migrations first
+        const char *video2_internal_name;
+        int         video2_int;
+        if (video2_dev == nullptr) {
+            video2_int = video_get_video_from_internal_name(video_config["gfxcard_2"].toUtf8().data());
+            video2_dev = video_card_getdevice(video2_int);
+            video2_internal_name = video_get_internal_name(video2_int);
+        } else
+            video2_internal_name = video2_dev->internal_name;
+
+        display_table[VMManager::Display::Name::Video].append(DeviceConfig::DeviceName(video2_dev, video2_internal_name, 1).prepend(VMManagerDetailSection::sectionSeparator));
     }
 
     // Add-on video that's not Voodoo
@@ -771,16 +755,18 @@ VMManagerSystem::setupVars()
     display_table[VMManager::Display::Name::Floppy] = floppyDevices.join(VMManagerDetailSection::sectionSeparator);
     display_table[VMManager::Display::Name::CD]     = cdromDevices.join(VMManagerDetailSection::sectionSeparator);
 
-    // Removable disks & MO
+    // Other removable devices
     QStringList rdiskDevices;
     QStringList moDevices;
+    QStringList tapeDevices;
     static auto rdisk_match = QRegularExpression("rdisk_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
     static auto zip_match   = QRegularExpression("zip_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption); // Legacy ZIP drive entries
     static auto mo_match    = QRegularExpression("mo_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
-    for (const auto &key : rdisk_mo_config.keys()) {
+    static auto tape_match  = QRegularExpression("tape_\\d\\d_parameters", QRegularExpression::CaseInsensitiveOption);
+    for (const auto &key : removable_config.keys()) {
         if (key.contains(rdisk_match) || key.contains(zip_match)) {
             auto device_number    = key.split("_").at(1);
-            auto rdisk_parameters = QString(rdisk_mo_config[key]);
+            auto rdisk_parameters = QString(removable_config[key]);
             auto rdisk_type       = rdisk_parameters.split(",").at(0).toInt();
             if (key.contains(zip_match))
                 rdisk_type++;
@@ -794,7 +780,7 @@ VMManagerSystem::setupVars()
         }
         if (key.contains(mo_match)) {
             auto device_number = key.split("_").at(1);
-            auto mo_parameters = QString(rdisk_mo_config[key]);
+            auto mo_parameters = QString(removable_config[key]);
             auto mo_type       = mo_parameters.split(",").at(0).toInt();
             auto mo_bus        = mo_parameters.split(",").at(1).trimmed().toUpper();
 
@@ -804,10 +790,23 @@ VMManagerSystem::setupVars()
                 moDevices.append(QString("%1 %2%3").arg(mo_drive_types[mo_type].vendor, mo_drive_types[mo_type].model, mo_bus));
             }
         }
+        if (key.contains(tape_match)) {
+            auto device_number = key.split("_").at(1);
+            auto tape_parameters = QString(removable_config[key]);
+            auto tape_type       = tape_parameters.split(",").at(0).toInt();
+            auto tape_bus        = tape_parameters.split(",").at(1).trimmed().toUpper();
+
+            if ((tape_type >= 0) && (tape_type < KNOWN_TAPE_DRIVE_TYPES)) {
+                if (!tape_bus.isEmpty())
+                    tape_bus = QString(" (%1)").arg(tape_bus);
+                tapeDevices.append(QString("%1 %2%3").arg(tape_drive_types[tape_type].vendor, tape_drive_types[tape_type].model, tape_bus));
+            }
+        }
     }
 
     display_table[VMManager::Display::Name::RDisk] = rdiskDevices.join(VMManagerDetailSection::sectionSeparator);
     display_table[VMManager::Display::Name::MO]    = moDevices.join(VMManagerDetailSection::sectionSeparator);
+    display_table[VMManager::Display::Name::Tape]  = tapeDevices.join(VMManagerDetailSection::sectionSeparator);
 
     // SCSI controllers
     QStringList scsiControllers;
@@ -895,6 +894,11 @@ VMManagerSystem::setupVars()
             auto audio_id            = sound_card_get_from_internal_name(audio_internal_name.toUtf8().data());
             auto audio_device        = sound_card_getdevice(audio_id);
             auto audio_name          = DeviceConfig::DeviceName(audio_device, sound_card_get_internal_name(audio_id), 1);
+            if ((ci != -1) && (QString(audio_internal_name) == "internal")) {
+                auto internal_device = machine_get_snd_device(ci);
+                if (internal_device)
+                    audio_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+            }
             if (!audio_name.isEmpty())
                 sndCards.append(audio_name);
         }
@@ -932,6 +936,11 @@ VMManagerSystem::setupVars()
             auto nic_id            = network_card_get_from_internal_name(nic_internal_name.toUtf8().data());
             auto nic               = network_card_getdevice(nic_id);
             auto nic_name          = DeviceConfig::DeviceName(nic, network_card_get_internal_name(nic_id), 1);
+            if ((ci != -1) && (QString(nic_internal_name) == "internal")) {
+                auto internal_device = machine_get_net_device(ci);
+                if (internal_device)
+                    nic_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+            }
             auto net_type_key      = QString("net_%1_net_type").arg(device_number);
             auto net_type          = network_config[net_type_key];
             if (!net_type.isEmpty()) {
@@ -939,7 +948,7 @@ VMManagerSystem::setupVars()
                     net_type = "SLiRP";
                 else if (net_type == "pcap")
                     net_type = "PCap";
-                else if (net_type == "nmswitch")
+                else if ((net_type == "nlswitch") || (net_type == "nmswitch"))
                     net_type = tr("Local Switch");
                 else if (net_type == "nrswitch")
                     net_type = tr("Remote Switch");
@@ -993,7 +1002,7 @@ VMManagerSystem::setupVars()
             if (auto serial_dev = key.split("_").at(0); !serial_dev.isEmpty()) {
                 auto serial_num = serial_dev.at(serial_dev.size() - 1);
                 // qDebug() << "serial is set" << key << ":" << ports_config[key];
-                if (serial_num.isDigit() && serial_num.digitValue() >= 1 && serial_num.digitValue() <= 4) {
+                if (serial_num.isDigit() && serial_num.digitValue() >= 1 && serial_num.digitValue() <= SERIAL_MAX) {
                     // Already verified that it is a digit with isDigit()
                     serial_enabled[serial_num.digitValue() - 1] = ports_config[key].toInt() == 1;
                 }
@@ -1003,7 +1012,7 @@ VMManagerSystem::setupVars()
             if (auto lpt_dev = key.split("_").at(0); !lpt_dev.isEmpty()) {
                 auto lpt_num = lpt_dev.at(lpt_dev.size() - 1);
                 // qDebug() << "lpt is set" << key << ":" << ports_config[key];
-                if (lpt_num.isDigit() && lpt_num.digitValue() >= 1 && lpt_num.digitValue() <= 4)
+                if (lpt_num.isDigit() && lpt_num.digitValue() >= 1 && lpt_num.digitValue() <= PARALLEL_MAX)
                     lpt_enabled[lpt_num.digitValue() - 1] = ports_config[key].toInt() == 1;
             }
         }
@@ -1012,9 +1021,22 @@ VMManagerSystem::setupVars()
     QStringList serialFinal;
     QStringList lptFinal;
     int         portIndex = 0;
+    bool        hasSerialDevices = false;
     while (true) {
-        if (serial_enabled[portIndex])
-            serialFinal.append(QString("COM%1").arg(portIndex + 1));
+        if (serial_enabled[portIndex]) {
+            auto    serial_device_key  = QString("serial%1_device").arg(portIndex + 1);
+            QString serial_device_name = "";
+            if (ports_config.contains(serial_device_key)) {
+                auto serial_internal_name = QString(ports_config[serial_device_key]);
+                auto serial_id            = char_get_from_internal_name(serial_internal_name.toUtf8().data(), DEVICE_COM);
+                if (serial_id) {
+                    auto serial_device = char_get_device(serial_id);
+                    serial_device_name = " (" + DeviceConfig::DeviceName(serial_device, serial_device ? serial_device->internal_name : nullptr, -1) + ")";
+                    hasSerialDevices   = true;
+                }
+            }
+            serialFinal.append(QString("COM%1%2").arg(portIndex + 1).arg(serial_device_name));
+        }
         ++portIndex;
         if (portIndex == SERIAL_MAX)
             break;
@@ -1027,9 +1049,12 @@ VMManagerSystem::setupVars()
             QString lpt_device_name = "";
             if (ports_config.contains(lpt_device_key)) {
                 auto lpt_internal_name = QString(ports_config[lpt_device_key]);
-                auto lpt_id            = lpt_device_get_from_internal_name(lpt_internal_name.toUtf8().data());
-                lpt_device_name        = " (" + tr(lpt_device_get_name(lpt_id)) + ")";
-                hasLptDevices          = true;
+                auto lpt_id            = char_get_from_internal_name(lpt_internal_name.toUtf8().data(), DEVICE_LPT);
+                if (lpt_id) {
+                    auto lpt_device = char_get_device(lpt_id);
+                    lpt_device_name = " (" + DeviceConfig::DeviceName(lpt_device, lpt_device ? lpt_device->internal_name : nullptr, -1) + ")";
+                    hasLptDevices   = true;
+                }
             }
             lptFinal.append(QString("LPT%1%2").arg(portIndex + 1).arg(lpt_device_name));
         }
@@ -1037,7 +1062,7 @@ VMManagerSystem::setupVars()
         if (portIndex == PARALLEL_MAX)
             break;
     }
-    display_table[VMManager::Display::Name::Serial]   = (serialFinal.empty() ? tr("None") : serialFinal.join(", "));
+    display_table[VMManager::Display::Name::Serial]   = (serialFinal.empty() ? tr("None") : serialFinal.join((hasSerialDevices ? VMManagerDetailSection::sectionSeparator : ", ")));
     display_table[VMManager::Display::Name::Parallel] = (lptFinal.empty() ? tr("None") : lptFinal.join((hasLptDevices ? VMManagerDetailSection::sectionSeparator : ", ")));
 
     // ISA RTC
@@ -1192,8 +1217,9 @@ VMManagerSystem::processStatusToString(VMManagerSystem::ProcessStatus status)
         case VMManagerSystem::ProcessStatus::Paused:
             return tr("Paused");
         case VMManagerSystem::ProcessStatus::PausedWaiting:
-        case VMManagerSystem::ProcessStatus::RunningWaiting:
             return QString("%1 (%2)").arg(tr("Paused"), tr("Waiting"));
+        case VMManagerSystem::ProcessStatus::RunningWaiting:
+            return QString("%1 (%2)").arg(tr("Running"), tr("Waiting"));
         default:
             return tr("Unknown Status");
     }
@@ -1239,8 +1265,9 @@ void
 VMManagerSystem::configurationChangeReceived()
 {
     reloadConfig();
-    emit configurationChanged(this->uuid);
+    emit configurationChanged(this);
 }
+
 void
 VMManagerSystem::reloadConfig()
 {

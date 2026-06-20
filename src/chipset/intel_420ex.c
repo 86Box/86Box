@@ -183,7 +183,7 @@ i420ex_drb_recalc(i420ex_t *dev)
 
 
 static void
-i420ex_write(int func, int addr, uint8_t val, void *priv)
+i420ex_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     i420ex_t *dev = (i420ex_t *) priv;
 
@@ -397,7 +397,7 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-i420ex_read(int func, int addr, void *priv)
+i420ex_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const i420ex_t *dev = (i420ex_t *) priv;
     uint8_t         ret;
@@ -472,31 +472,31 @@ i420ex_reset(void *priv)
 {
     i420ex_t *dev = (i420ex_t *) priv;
 
-    i420ex_write(0, 0x48, 0x00, priv);
+    i420ex_write(0, 0x48, 1, 0x00, priv);
 
     /* Disable the PIC mouse latch. */
-    i420ex_write(0, 0x4e, 0x03, priv);
+    i420ex_write(0, 0x4e, 1, 0x03, priv);
 
     for (uint8_t i = 0; i < 7; i++)
-        i420ex_write(0, 0x59 + i, 0x00, priv);
+        i420ex_write(0, 0x59 + i, 1, 0x00, priv);
 
     for (uint8_t i = 0; i <= 4; i++)
         dev->regs[0x60 + i] = 0x01;
 
     dev->regs[0x70] &= 0xef; /* Forcibly unlock the SMRAM register. */
     dev->smram_locked = 0;
-    i420ex_write(0, 0x70, 0x00, priv);
+    i420ex_write(0, 0x70, 1, 0x00, priv);
 
     mem_set_mem_state(0x000a0000, 0x00060000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     mem_set_mem_state_smm(0x000a0000, 0x00060000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
-    i420ex_write(0, 0xa0, 0x08, priv);
-    i420ex_write(0, 0xa2, 0x00, priv);
-    i420ex_write(0, 0xa4, 0x00, priv);
-    i420ex_write(0, 0xa5, 0x00, priv);
-    i420ex_write(0, 0xa6, 0x00, priv);
-    i420ex_write(0, 0xa7, 0x00, priv);
-    i420ex_write(0, 0xa8, 0x0f, priv);
+    i420ex_write(0, 0xa0, 1, 0x08, priv);
+    i420ex_write(0, 0xa2, 1, 0x00, priv);
+    i420ex_write(0, 0xa4, 1, 0x00, priv);
+    i420ex_write(0, 0xa5, 1, 0x00, priv);
+    i420ex_write(0, 0xa6, 1, 0x00, priv);
+    i420ex_write(0, 0xa7, 1, 0x00, priv);
+    i420ex_write(0, 0xa8, 1, 0x0f, priv);
 }
 
 static void

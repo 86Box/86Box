@@ -411,19 +411,6 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                                 goto readonly_i;
                         }
 
-                        /* HACK: the Windows 9x driver's "Synth" control writes to this
-                           register with no remapping, even if internal FM is enabled. */
-                        if (ad1848->index == 18) {
-                            if (val & 0x80)
-                                ad1848->fm_vol_l = 0;
-                            else
-                                ad1848->fm_vol_l = (int) ad1848_vols_5bits_aux_gain[val & 0x1f];
-                        } else {
-                            if (val & 0x80)
-                                ad1848->fm_vol_r = 0;
-                            else
-                                ad1848->fm_vol_r = (int) ad1848_vols_5bits_aux_gain[val & 0x1f];
-                        }
                     }
                     if ((ad1848->type >= AD1848_TYPE_CS4232) && (ad1848->type <= AD1848_TYPE_CS4236)) {
                         if (ad1848->index == 18) {

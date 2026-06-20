@@ -475,3 +475,4 @@ const device_t w837x7_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+

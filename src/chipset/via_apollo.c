@@ -29,6 +29,7 @@
 #include <86box/device.h>
 #include <86box/pci.h>
 #include <86box/chipset.h>
+#include <86box/plat_unused.h>
 #include <86box/spd.h>
 #include <86box/agpgart.h>
 
@@ -225,7 +226,7 @@ via_apollo_setup(via_apollo_t *dev)
 }
 
 static void
-via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
+via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     via_apollo_t *dev = (via_apollo_t *) priv;
     if (func)
@@ -684,7 +685,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-via_apollo_read(int func, int addr, void *priv)
+via_apollo_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const via_apollo_t *dev = (via_apollo_t *) priv;
     uint8_t             ret = 0xff;
@@ -701,11 +702,11 @@ via_apollo_read(int func, int addr, void *priv)
 }
 
 static void
-via_apollo_write(int func, int addr, uint8_t val, void *priv)
+via_apollo_write(int func, int addr, int len, uint8_t val, void *priv)
 {
     switch (func) {
         case 0:
-            via_apollo_host_bridge_write(func, addr, val, priv);
+            via_apollo_host_bridge_write(func, addr, len, val, priv);
             break;
         default:
             break;
@@ -715,9 +716,9 @@ via_apollo_write(int func, int addr, uint8_t val, void *priv)
 static void
 via_apollo_reset(void *priv)
 {
-    via_apollo_write(0, 0x61, 0x00, priv);
-    via_apollo_write(0, 0x62, 0x00, priv);
-    via_apollo_write(0, 0x63, 0x00, priv);
+    via_apollo_write(0, 0x61, 1, 0x00, priv);
+    via_apollo_write(0, 0x62, 1, 0x00, priv);
+    via_apollo_write(0, 0x63, 1, 0x00, priv);
 }
 
 static void *

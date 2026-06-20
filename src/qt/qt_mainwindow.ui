@@ -70,21 +70,25 @@
     </widget>
     <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
-    <addaction name="actionForce_interpretation"/>
-    <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="separator"/>
     <addaction name="actionUpdate_mouse_every_CPU_frame"/>
     <addaction name="separator"/>
-    <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
+    <addaction name="separator"/>
+    <addaction name="actionFullscreen"/>
+    <addaction name="actionToggle_OSD"/>
+    <addaction name="separator"/>
+    <addaction name="actionFast_forward"/>
+    <addaction name="actionForce_interpretation"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
     <addaction name="actionCtrl_Alt_Del"/>
     <addaction name="separator"/>
     <addaction name="actionCtrl_Alt_Esc"/>
     <addaction name="separator"/>
+    <addaction name="actionACPI_Shutdown"/>
     <addaction name="actionExit"/>
    </widget>
    <widget class="QMenu" name="menuTools">
@@ -105,6 +109,10 @@
     <addaction name="actionEnable_Discord_integration"/>
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
+    <addaction name="actionTake_raw_screenshot"/>
+    <addaction name="actionCopy_screenshot"/>
+    <addaction name="actionCopy_raw_screenshot"/>
+    <addaction name="separator"/>
     <addaction name="menuSound"/>
     <addaction name="separator"/>
     <addaction name="actionPreferences"/>
@@ -162,32 +170,6 @@
      <addaction name="actionFullScreen_int"/>
      <addaction name="actionFullScreen_int43"/>
     </widget>
-    <widget class="QMenu" name="menuEGA_S_VGA_settings">
-     <property name="title">
-      <string>EGA/(S)&amp;VGA settings</string>
-     </property>
-     <widget class="QMenu" name="menuVGA_screen_type">
-      <property name="title">
-       <string>VGA screen &amp;type</string>
-      </property>
-      <addaction name="actionRGB_Color"/>
-      <addaction name="actionRGB_Grayscale"/>
-      <addaction name="actionAmber_monitor"/>
-      <addaction name="actionGreen_monitor"/>
-      <addaction name="actionWhite_monitor"/>
-     </widget>
-     <widget class="QMenu" name="menuGrayscale_conversion_type">
-      <property name="title">
-       <string>Grayscale &amp;conversion type</string>
-      </property>
-      <addaction name="actionBT601_NTSC_PAL"/>
-      <addaction name="actionBT709_HDTV"/>
-      <addaction name="actionAverage"/>
-     </widget>
-     <addaction name="actionInverted_VGA_monitor"/>
-     <addaction name="menuVGA_screen_type"/>
-     <addaction name="menuGrayscale_conversion_type"/>
-    </widget>
     <widget class="QMenu" name="menuOpenGL_input_stretch_mode">
      <property name="title">
       <string>OpenGL input stretch mode</string>
@@ -215,30 +197,26 @@
     </widget>
     <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
-    <addaction name="separator"/>
     <addaction name="actionShow_non_primary_monitors"/>
+    <addaction name="separator"/>
     <addaction name="actionResizable_window"/>
     <addaction name="actionRemember_size_and_position"/>
+    <addaction name="actionSpecify_dimensions"/>
+    <addaction name="actionForce_4_3_display_ratio"/>
+    <addaction name="separator"/>
+    <addaction name="menuFullscreen_stretch_mode"/>
+    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
+    <addaction name="actionCGA_composite_settings"/>
+    <addaction name="separator"/>
+    <addaction name="menuWindow_scale_factor"/>
+    <addaction name="actionHiDPI_scaling"/>
+    <addaction name="separator"/>
+    <addaction name="menuFilter_method"/>
     <addaction name="separator"/>
     <addaction name="menuRenderer"/>
     <addaction name="actionRenderer_options"/>
     <addaction name="menuOpenGL_input_stretch_mode"/>
     <addaction name="menuOpenGL_input_scale"/>
-    <addaction name="separator"/>
-    <addaction name="actionSpecify_dimensions"/>
-    <addaction name="actionForce_4_3_display_ratio"/>
-    <addaction name="menuWindow_scale_factor"/>
-    <addaction name="menuFilter_method"/>
-    <addaction name="actionHiDPI_scaling"/>
-    <addaction name="separator"/>
-    <addaction name="actionFullscreen"/>
-    <addaction name="menuFullscreen_stretch_mode"/>
-    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
-    <addaction name="actionCGA_composite_settings"/>
-    <addaction name="menuEGA_S_VGA_settings"/>
-    <addaction name="separator"/>
-    <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
-    <addaction name="actionChange_contrast_for_monochrome_display"/>
    </widget>
    <widget class="QMenu" name="menuMedia">
     <property name="title">
@@ -294,21 +272,23 @@
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
-   <addaction name="actionForce_interpretation"/>
-   <addaction name="separator"/>
    <addaction name="actionPause"/>
+   <addaction name="actionFast_forward"/>
    <addaction name="actionHard_Reset"/>
-   <addaction name="separator"/>
    <addaction name="actionACPI_Shutdown"/>
    <addaction name="separator"/>
    <addaction name="actionCtrl_Alt_Del"/>
    <addaction name="actionCtrl_Alt_Esc"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
+   <addaction name="separator"/>
+   <addaction name="actionTake_screenshot"/>
+   <addaction name="actionCopy_screenshot"/>
   </widget>
   <action name="actionForce_interpretation">
-   <property name="checkable">
-    <bool>true</bool>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/interpreter.ico</normaloff>:/menuicons/qt/icons/interpreter.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Force interpretation</string>
@@ -320,14 +300,6 @@
    </property>
    <property name="text">
     <string>&amp;Update mouse every CPU frame</string>
-   </property>
-  </action>
-  <action name="actionAuto_pause">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Auto-pause on focus loss</string>
    </property>
   </action>
   <action name="actionKeyboard_requires_capture">
@@ -354,8 +326,8 @@
    <property name="text">
     <string>&amp;Hard reset</string>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
+   <property name="toolTip">
+    <string>Hard reset</string>
    </property>
   </action>
   <action name="actionCtrl_Alt_Del">
@@ -367,16 +339,7 @@
     <string>&amp;Ctrl+Alt+Del</string>
    </property>
    <property name="toolTip">
-    <string>Ctrl+Alt+Del</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+F12</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
-   </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
+    <string>Press Ctrl+Alt+Del</string>
    </property>
   </action>
   <action name="actionCtrl_Alt_Esc">
@@ -387,8 +350,8 @@
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
    </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
+   <property name="toolTip">
+    <string>Press Ctrl+Alt+Esc</string>
    </property>
   </action>
   <action name="actionPause">
@@ -398,9 +361,6 @@
    </property>
    <property name="text">
     <string>&amp;Pause</string>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionExit">
@@ -417,21 +377,23 @@
      <normaloff>:/menuicons/qt/icons/settings.ico</normaloff>:/menuicons/qt/icons/settings.ico</iconset>
    </property>
    <property name="text">
-    <string>&amp;Settings...</string>
+    <string>&amp;Settings…</string>
+   </property>
+   <property name="toolTip">
+    <string>Settings…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionFullscreen">
    <property name="text">
     <string>&amp;Fullscreen</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+PgUp</string>
+  </action>
+  <action name="actionToggle_OSD">
+   <property name="text">
+    <string>Toggle &amp;on-screen display</string>
    </property>
   </action>
   <action name="actionSoftware_Renderer">
@@ -471,7 +433,7 @@
   </action>
   <action name="actionSpecify_dimensions">
    <property name="text">
-    <string>Specify &amp;dimensions...</string>
+    <string>Specify &amp;dimensions…</string>
    </property>
   </action>
   <action name="actionForce_4_3_display_ratio">
@@ -488,22 +450,6 @@
    </property>
    <property name="text">
     <string>Hi&amp;DPI scaling</string>
-   </property>
-  </action>
-  <action name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>CGA/PCjr/Tandy/E&amp;GA/(S)VGA overscan</string>
-   </property>
-  </action>
-  <action name="actionChange_contrast_for_monochrome_display">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Change contrast for &amp;monochrome display</string>
    </property>
   </action>
   <action name="action0_5x">
@@ -642,78 +588,6 @@
     <string>4:&amp;3 Integer scale</string>
    </property>
   </action>
-  <action name="actionInverted_VGA_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Inverted VGA monitor</string>
-   </property>
-  </action>
-  <action name="actionRGB_Color">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>RGB &amp;Color</string>
-   </property>
-  </action>
-  <action name="actionRGB_Grayscale">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;RGB Grayscale</string>
-   </property>
-  </action>
-  <action name="actionAmber_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Amber monitor</string>
-   </property>
-  </action>
-  <action name="actionGreen_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Green monitor</string>
-   </property>
-  </action>
-  <action name="actionWhite_monitor">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;White monitor</string>
-   </property>
-  </action>
-  <action name="actionBT601_NTSC_PAL">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>BT&amp;601 (NTSC/PAL)</string>
-   </property>
-  </action>
-  <action name="actionBT709_HDTV">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>BT&amp;709 (HDTV)</string>
-   </property>
-  </action>
-  <action name="actionAverage">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Average</string>
-   </property>
-  </action>
   <action name="actionAbout_Qt">
    <property name="text">
     <string>About &amp;Qt</string>
@@ -727,7 +601,7 @@
   </action>
   <action name="actionAbout_86Box">
    <property name="text">
-    <string>&amp;About 86Box...</string>
+    <string>&amp;About 86Box…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::AboutRole</enum>
@@ -735,7 +609,7 @@
   </action>
   <action name="actionDocumentation">
    <property name="text">
-    <string>&amp;Documentation...</string>
+    <string>&amp;Documentation…</string>
    </property>
   </action>
   <action name="actionUpdate_status_bar_icons">
@@ -750,11 +624,48 @@
    <property name="text">
     <string>Take s&amp;creenshot</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+F11</string>
+   <property name="toolTip">
+    <string>Take screenshot</string>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/take_screenshot.ico</normaloff>:/menuicons/qt/icons/take_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionTake_raw_screenshot">
+   <property name="text">
+    <string>Take &amp;raw screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Take raw screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/take_raw_screenshot.ico</normaloff>:/menuicons/qt/icons/take_raw_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionCopy_screenshot">
+   <property name="text">
+    <string>C&amp;opy screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/copy_screenshot.ico</normaloff>:/menuicons/qt/icons/copy_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionCopy_raw_screenshot">
+   <property name="text">
+    <string>Copy r&amp;aw screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy raw screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/copy_raw_screenshot.ico</normaloff>:/menuicons/qt/icons/copy_raw_screenshot.ico</iconset>
    </property>
   </action>
   <action name="actionMute_Unmute">
@@ -764,7 +675,7 @@
   </action>
   <action name="actionSound_gain">
    <property name="text">
-    <string>Sound &amp;gain...</string>
+    <string>Sound &amp;gain…</string>
    </property>
   </action>
   <action name="actionOpenGL_3_0_Core">
@@ -780,7 +691,7 @@
   </action>
   <action name="actionPreferences">
    <property name="text">
-    <string>&amp;Preferences...</string>
+    <string>&amp;Preferences…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>
@@ -800,9 +711,6 @@
    </property>
    <property name="text">
     <string>Hide &amp;toolbar</string>
-   </property>
-   <property name="toolTip">
-    <string>Hide tool bar</string>
    </property>
   </action>
   <action name="actionACPI_Shutdown">
@@ -833,9 +741,6 @@
    <property name="visible">
     <bool>false</bool>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionEnd_trace">
    <property name="text">
@@ -847,13 +752,10 @@
    <property name="visible">
     <bool>false</bool>
    </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionRenderer_options">
    <property name="text">
-    <string>Renderer &amp;options...</string>
+    <string>Renderer &amp;options…</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
@@ -872,7 +774,7 @@
   </action>
   <action name="actionMCA_devices">
    <property name="text">
-    <string>&amp;MCA devices...</string>
+    <string>&amp;MCA devices…</string>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">
@@ -896,12 +798,12 @@
   </action>
   <action name="actionOpen_printer_tray">
    <property name="text">
-    <string>Open p&amp;rinter tray...</string>
+    <string>Open p&amp;rinter tray…</string>
    </property>
   </action>
   <action name="actionOpen_screenshots_folder">
    <property name="text">
-    <string>Open screenshots &amp;folder...</string>
+    <string>Open screenshots &amp;folder…</string>
    </property>
   </action>
   <action name="actionApply_fullscreen_stretch_mode_when_maximized">
@@ -930,7 +832,7 @@
   </action>
   <action name="actionCGA_composite_settings">
    <property name="text">
-    <string>&amp;CGA composite settings...</string>
+    <string>&amp;CGA composite settings…</string>
    </property>
   </action>
   <action name="action_Full_screen_stretch_gl">
@@ -1059,6 +961,21 @@
    </property>
    <property name="text">
     <string>&amp;8x</string>
+   </property>
+  </action>
+  <action name="actionFast_forward">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/settings/qt/icons/fast_forward.ico</normaloff>:/settings/qt/icons/fast_forward.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Fast forward</string>
+   </property>
+   <property name="toolTip">
+    <string>Fast forward</string>
    </property>
   </action>
  </widget>

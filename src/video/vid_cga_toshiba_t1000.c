@@ -227,8 +227,8 @@ t1000_recalctimings(t1000_t *t1000)
     disptime           = 651;
     _dispontime        = 640;
     _dispofftime       = disptime - _dispontime;
-    t1000->dispontime  = (uint64_t) (_dispontime * xt_cpu_multi);
-    t1000->dispofftime = (uint64_t) (_dispofftime * xt_cpu_multi);
+    t1000->dispontime  = (uint64_t) (int64_t) (_dispontime * xt_cpu_multi);
+    t1000->dispofftime = (uint64_t) (int64_t) (_dispofftime * xt_cpu_multi);
 }
 
 /* Draw a row of text in 80-column mode */
@@ -650,7 +650,7 @@ static void *
 t1000_init(UNUSED(const device_t *info))
 {
     t1000_t *t1000 = calloc(1, sizeof(t1000_t));
-    loadfont("roms/machines/t1000/t1000font.bin", 8);
+    video_load_font("roms/machines/t1000/t1000font.bin", FONT_FORMAT_PC1512_T1000, LOAD_FONT_NO_OFFSET);
     cga_init(&t1000->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 
@@ -660,7 +660,7 @@ t1000_init(UNUSED(const device_t *info))
     t1000->invert    = device_get_config_int("invert");
 
     /* 16k video RAM */
-    t1000->vram = malloc(0x4000);
+    t1000->vram = calloc(1, 0x4000);
 
     timer_set_callback(&t1000->cga.timer, t1000_poll);
     timer_set_p(&t1000->cga.timer, t1000);
@@ -707,8 +707,8 @@ static const device_config_t t1000_config[] = {
         .description = "Language",
         .type = CONFIG_SELECTION,
         .selection = {
-            { .description = "USA", .value = 0 },
-            { .description = "Danish", .value = 1 }
+            { .description = "English (US)", .value = 0 },
+            { .description = "Danish",       .value = 1 }
         },
         .default_int = 0
     },

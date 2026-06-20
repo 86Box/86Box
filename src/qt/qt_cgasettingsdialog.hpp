@@ -22,7 +22,6 @@ private slots:
 private:
     Ui::CGASettingsDialog *ui;
 
-    void applySettings();
     void updateDisplay();
 
     int cga_hue, cga_saturation, cga_sharpness, cga_brightness, cga_contrast;

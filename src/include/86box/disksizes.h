@@ -6,11 +6,11 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Header of the emulation of the PC speaker.
+ *          Header containing disk sizes.
  *
  * Authors: Jasmine Iwanek <jriwanek@gmail.com/>
  *
- *          Copyright 2022-2025 Jasmine Iwanek
+ *          Copyright 2022-2026 Jasmine Iwanek
  */
 #ifndef DISK_SIZES_H
 #define DISK_SIZES_H
@@ -35,7 +35,8 @@ typedef struct disk_size_t {
     int root_dir_entries;
 } disk_size_t;
 
-static const disk_size_t disk_sizes[14] = {
+#define KNOWN_DISK_SIZES 14
+static const disk_size_t disk_sizes[KNOWN_DISK_SIZES] = {
 // clang-format off
 #if 0
     { 1,  1, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 250k 8" */
@@ -58,6 +59,7 @@ static const disk_size_t disk_sizes[14] = {
     { 0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 100 */
     { 0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 250 */
 #if 0
+    { 0, 64, 0, 0, 0, 717, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 750 - Guess */
     { 0,  8, 0, 0, 0, 963, 32, 2,    0, 0, 0, 0,   0 }, /* LS-120 */
     { 0, 32, 0, 0, 0, 262, 56, 2,    0, 0, 0, 0,   0 }  /* LS-240 */
 #endif

@@ -254,7 +254,6 @@ typedef struct _page_ {
 #endif
 
 extern uint8_t *ram;
-extern uint8_t *ram2;
 extern uint32_t rammask;
 
 extern uint8_t *rom;
@@ -275,7 +274,6 @@ extern mem_mapping_t ram_low_mapping;
 extern mem_mapping_t ram_mid_mapping;
 extern mem_mapping_t ram_remapped_mapping;
 extern mem_mapping_t ram_high_mapping;
-extern mem_mapping_t ram_2gb_mapping;
 extern mem_mapping_t bios_mapping;
 extern mem_mapping_t bios_high_mapping;
 
@@ -307,6 +305,7 @@ extern int      read_type;
 
 extern int mem_a20_state;
 extern int mem_a20_alt;
+extern int mem_a20_chipset;
 extern int mem_a20_key;
 
 extern uint8_t  read_mem_b(uint32_t addr);
@@ -403,7 +402,7 @@ extern void mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
 extern void mem_mapping_set_mask(mem_mapping_t *, uint32_t mask);
 extern void mem_mapping_disable(mem_mapping_t *);
 extern void mem_mapping_enable(mem_mapping_t *);
-extern void mem_mapping_recalc(uint64_t base, uint64_t size);
+extern void mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore);
 
 extern void mem_set_wp(uint64_t base, uint64_t size, uint8_t flags, uint8_t wp);
 extern void mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access);
@@ -423,13 +422,6 @@ extern uint32_t mem_read_raml(uint32_t addr, void *priv);
 extern void     mem_write_ram(uint32_t addr, uint8_t val, void *priv);
 extern void     mem_write_ramw(uint32_t addr, uint16_t val, void *priv);
 extern void     mem_write_raml(uint32_t addr, uint32_t val, void *priv);
-
-extern uint8_t  mem_read_ram_2gb(uint32_t addr, void *priv);
-extern uint16_t mem_read_ram_2gbw(uint32_t addr, void *priv);
-extern uint32_t mem_read_ram_2gbl(uint32_t addr, void *priv);
-extern void     mem_write_ram_2gb(uint32_t addr, uint8_t val, void *priv);
-extern void     mem_write_ram_2gbw(uint32_t addr, uint16_t val, void *priv);
-extern void     mem_write_ram_2gbl(uint32_t addr, uint32_t val, void *priv);
 
 extern int mem_addr_is_ram(uint32_t addr);
 
@@ -462,8 +454,6 @@ extern void mem_remap_top_ex(int kb, uint32_t start);
 extern void mem_remap_top_ex_nomid(int kb, uint32_t start);
 extern void mem_remap_top(int kb);
 extern void mem_remap_top_nomid(int kb);
-
-extern void umc_smram_recalc(uint32_t start, int set);
 
 extern void pcjr_waitstates(void *);
 

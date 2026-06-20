@@ -624,6 +624,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa0:
+            if (!nmi_mask && (val & 0x80) && pcjr->latched)
+                nmi = 1;
             nmi_mask = val & 0x80;
             pit_devs[0].set_using_timer(pit_devs[0].data, 1, !(val & 0x20));
             break;
@@ -848,7 +850,7 @@ static const device_config_t pcjr_config[] = {
 };
 
 const device_t pcjr_device = {
-    .name          = "IBM PCjr",
+    .name          = "IBM PCjr (Video)",
     .internal_name = "pcjr",
     .flags         = 0,
     .local         = 0,
@@ -897,7 +899,7 @@ machine_pcjr_init(UNUSED(const machine_t *model))
 
     /* Initialize the video controller. */
     video_reset(gfxcard[0]);
-    loadfont(FONT_IBM_MDA_437_PATH, 0);
+    video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
     device_context(&pcjr_device);
     pcjr_vid_init(pcjr);
     device_context_restore();

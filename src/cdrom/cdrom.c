@@ -692,13 +692,13 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
     int                     num        = 0;
     int                     len        = 4;
 
-    /* Bytes 2 and 3 = Number of first and last sessions */
-    read_toc_identify_sessions((raw_track_info_t *) rti, num, b);
-
     cdrom_log(dev->log, "read_toc_raw(%016" PRIXPTR ", %016" PRIXPTR ", %02X)\n",
               (uintptr_t) dev, (uintptr_t) b, start_track);
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
+
+    /* Bytes 2 and 3 = Number of first and last sessions */
+    read_toc_identify_sessions((raw_track_info_t *) rti, num, b);
 
     if (num != 0)  for (int i = 0; i < num; i++)
         if (t[i].session >= start_track) {
@@ -1358,15 +1358,8 @@ cdrom_get_from_name(const char *s)
     }
 
     if (!found) {
-        if (strcmp(s, "none")) {
-            wchar_t tempmsg[2048];
-            sprintf(n, "WARNING: CD-ROM \"%s\" not found - contact 86Box support\n", s);
-            swprintf(tempmsg, sizeof_w(tempmsg), L"%hs", n);
-            pclog("%s", n);
-            ui_msgbox_header(MBX_INFO,
-                             plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
-                             tempmsg);
-        }
+        if (strcmp(s, "none"))
+            warning("WARNING: CD-ROM \"%s\" not found - contact 86Box support\n", s);
         c = -1;
     }
 
@@ -1654,6 +1647,9 @@ cdrom_audio_play(cdrom_t *dev, const uint32_t pos, const uint32_t len, const int
             dev->cd_end        = len2;
             dev->cd_status     = CD_STATUS_PLAYING;
             dev->cd_buflen     = 0;
+
+            if (dev->cached_sector != dev->seek_pos)
+                dev->cached_sector = -1;
         } else {
             cdrom_log(dev->log, "LBA %08X not on an audio track\n", pos);
             cdrom_stop(dev);
@@ -2354,7 +2350,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                 b[1] = bin2bcd(trti[t].ps);
                 b[2] = bin2bcd(trti[t].pf);
                 b[3] = trti[t].adr_ctl;
- 
+
                 cdrom_log(dev->log, "Returned Toshiba/NEC disc information (type 2) at "
                           "%02i:%02i.%02i, track=%d, attr=%02x.\n", b[0], b[1],
                           b[2], bcd2bin(track), b[3]);
@@ -3022,6 +3018,10 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->ops           = NULL;
         dev->image_path[0] = 0;
 
+        plat_cdrom_ui_update(dev->id, 0);
+
+        config_save();
+
         ret = 1;
     } else {
         /* All good, reset state. */
@@ -3034,7 +3034,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
             if (cdrom_is_dvd(dev->type))
                 dev->cd_status      = CD_STATUS_DVD;
             else {
-                warning("DVD image \"%s\" in a CD-only drive, reporting as empty\n", fn);
+                warning(plat_get_string(STRING_CDROM_DVD_IN_CD_DRIVE), fn);
                 dev->cd_status      = CD_STATUS_DVD_REJECTED;
             }
         } else
@@ -3088,7 +3088,8 @@ cdrom_hard_reset(void)
             const char *vendor = cdrom_drive_types[dev->type].vendor;
 
             dev->is_early   = cdrom_is_early(dev->type);
-            dev->is_bcd     = !strcmp(vendor, "NEC");
+            dev->is_bcd     = (dev->bus_type == CDROM_BUS_ATAPI) &&
+                              !strcmp(vendor, "NEC");
             dev->is_nec     = (dev->bus_type == CDROM_BUS_SCSI) &&
                               !strcmp(vendor, "NEC");
             dev->is_chinon  = !strcmp(vendor, "CHINON");
@@ -3183,7 +3184,9 @@ cdrom_close(void)
 void
 cdrom_insert(const uint8_t id)
 {
-    const cdrom_t *dev = &cdrom[id];
+    cdrom_t *dev = &cdrom[id];
+
+    dev->cached_sector = -1;
 
     if (dev->bus_type && dev->insert)
         dev->insert(dev->priv);
@@ -3222,6 +3225,22 @@ cdrom_is_empty(const uint8_t id)
         ret = 1;
 
     return ret;
+}
+
+int
+cdrom_is_playing(const uint8_t id)
+{
+    const cdrom_t *dev = &cdrom[id];
+
+    return (dev->cd_status == CD_STATUS_PLAYING);
+}
+
+int
+cdrom_is_paused(const uint8_t id)
+{
+    const cdrom_t *dev = &cdrom[id];
+
+    return (dev->cd_status == CD_STATUS_PAUSED);
 }
 
 /* The mechanics of ejecting a CD-ROM from a drive. */

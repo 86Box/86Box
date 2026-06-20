@@ -55,64 +55,54 @@ rom_log(const char *fmt, ...)
 #    define rom_log(fmt, ...)
 #endif
 
+static void
+add_path(rom_path_t *list, const char *path)
+{
+    rom_path_t *rom_path = calloc(1, sizeof(rom_path_t));
+
+    /* Save the path, turning it into absolute if needed. */
+    if (!path_abs((char *) path)) {
+        plat_getcwd(rom_path->path, sizeof(rom_path->path));
+        path_append_filename(rom_path->path, rom_path->path, path);
+    } else {
+        strncpy(rom_path->path, path, sizeof(rom_path->path) - 1);
+    }
+
+    /* Ensure the path ends with a separator. */
+    path_slash(rom_path->path);
+
+    /* Iterate to the end of the list. */
+    if (list->path[0] != '\0') {
+        while (1) {
+            /* Check for duplicates. */
+            if (!strcmp(list->path, rom_path->path)) {
+                free(rom_path);
+                return;
+            }
+            if (list->next == NULL)
+                break;
+            list = list->next;
+        }
+
+        /* Add the new entry. */
+        list->next = rom_path;
+    } else {
+        /* Set path on the first entry. */
+        memcpy(list, rom_path, sizeof(rom_path_t));
+        free(rom_path);
+    }
+}
+
 void
 rom_add_path(const char *path)
 {
-    char cwd[1024] = { 0 };
-
-    rom_path_t *rom_path = &rom_paths;
-
-    if (rom_paths.path[0] != '\0') {
-        // Iterate to the end of the list.
-        while (rom_path->next != NULL) {
-            rom_path = rom_path->next;
-        }
-
-        // Allocate the new entry.
-        rom_path = rom_path->next = calloc(1, sizeof(rom_path_t));
-    }
-
-    // Save the path, turning it into absolute if needed.
-    if (!path_abs((char *) path)) {
-        plat_getcwd(cwd, sizeof(cwd));
-        path_slash(cwd);
-        snprintf(rom_path->path, sizeof(rom_path->path), "%s%s", cwd, path);
-    } else {
-        snprintf(rom_path->path, sizeof(rom_path->path), "%s", path);
-    }
-
-    // Ensure the path ends with a separator.
-    path_slash(rom_path->path);
+    add_path(&rom_paths, path);
 }
 
 void
 asset_add_path(const char *path)
 {
-    char cwd[1024] = { 0 };
-
-    rom_path_t *asset_path = &asset_paths;
-
-    if (asset_paths.path[0] != '\0') {
-        // Iterate to the end of the list.
-        while (asset_path->next != NULL) {
-            asset_path = asset_path->next;
-        }
-
-        // Allocate the new entry.
-        asset_path = asset_path->next = calloc(1, sizeof(rom_path_t));
-    }
-
-    // Save the path, turning it into absolute if needed.
-    if (!path_abs((char *) path)) {
-        plat_getcwd(cwd, sizeof(cwd));
-        path_slash(cwd);
-        snprintf(asset_path->path, sizeof(asset_path->path), "%s%s", cwd, path);
-    } else {
-        snprintf(asset_path->path, sizeof(asset_path->path), "%s", path);
-    }
-
-    // Ensure the path ends with a separator.
-    path_slash(asset_path->path);
+    add_path(&asset_paths, path);
 }
 
 static int
@@ -624,7 +614,7 @@ rom_reset(uint32_t addr, int sz)
         rom = NULL;
     }
     rom_log("Allocating ROM...\n");
-    rom = (uint8_t *) malloc(biosmask + 1);
+    rom = (uint8_t *) calloc(1, biosmask + 1);
     rom_log("Filling ROM with FF's...\n");
     memset(rom, 0xff, biosmask + 1);
 
@@ -676,13 +666,11 @@ bios_add(void)
     int temp_cpu_type;
     int temp_cpu_16bitbus = 1;
     int temp_is286 = 0;
-    int temp_is6117 = 0;
 
     if (/*AT && */ cpu_s) {
         temp_cpu_type     = cpu_s->cpu_type;
         temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC);
         temp_is286        = (temp_cpu_type >= CPU_286);
-        temp_is6117       = !strcmp(cpu_f->manufacturer, "ALi");
     }
 
     if (biosmask > 0x1ffff) {
@@ -704,15 +692,7 @@ bios_add(void)
                                MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 
-    if (temp_is6117) {
-        mem_mapping_add(&bios_high_mapping, biosaddr | 0x03f00000, biosmask + 1,
-                        bios_read, bios_readw, bios_readl,
-                        NULL, NULL, NULL,
-                        rom, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, 0);
-
-        mem_set_mem_state_both(biosaddr | 0x03f00000, biosmask + 1,
-                               MEM_READ_ROMCS | MEM_WRITE_ROMCS);
-    } else if (temp_is286) {
+    if (temp_is286) {
         mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
                         bios_read, bios_readw, bios_readl,
                         NULL, NULL, NULL,
@@ -805,7 +785,7 @@ rom_init(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, int off, u
     rom_log("rom_init(%08X, %s, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
     /* Allocate a buffer for the image. */
-    rom->rom = malloc(sz);
+    rom->rom = calloc(1, sz);
     memset(rom->rom, 0xff, sz);
 
     /* Load the image file into the buffer. */
@@ -834,7 +814,7 @@ rom_init_oddeven(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, in
     rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
 
     /* Allocate a buffer for the image. */
-    rom->rom = malloc(sz);
+    rom->rom = calloc(1, sz);
     memset(rom->rom, 0xff, sz);
 
     /* Load the image file into the buffer. */
@@ -861,7 +841,7 @@ int
 rom_init_interleaved(rom_t *rom, const char *fnl, const char *fnh, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     /* Allocate a buffer for the image. */
-    rom->rom = malloc(sz);
+    rom->rom = calloc(1, sz);
     memset(rom->rom, 0xff, sz);
 
     /* Load the image file into the buffer. */

@@ -446,15 +446,13 @@ typedef struct {
 #    define CPU_STATUS_MASK      0xffff0000
 #endif
 
-#ifdef _MSC_VER
-#    define COMPILE_TIME_ASSERT(expr) /*nada*/
+
+#ifdef EXTREME_DEBUG
+#   define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
 #else
-#    ifdef EXTREME_DEBUG
-#        define COMPILE_TIME_ASSERT(expr) typedef char COMP_TIME_ASSERT[(expr) ? 1 : 0];
-#    else
-#        define COMPILE_TIME_ASSERT(expr) /*nada*/
-#    endif
+#   define COMPILE_TIME_ASSERT(expr) /*nada*/
 #endif
+
 
 COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
@@ -529,6 +527,7 @@ extern int is_k5;
 extern int is_k6;
 extern int is_p6;
 extern int is_cxsmm;
+extern int is_cx6x86;
 extern int hascache;
 extern int isibm486;
 extern int is_mazovia;
@@ -607,6 +606,7 @@ extern uint8_t ccr4;
 extern uint8_t ccr5;
 extern uint8_t ccr6;
 extern uint8_t ccr7;
+extern uint8_t cxpmr;
 
 /*Segments -
   _cs,_ds,_es,_ss are the segment structures
@@ -720,6 +720,7 @@ extern void codegen_reset(void);
 extern void cpu_set_edx(void);
 extern int  divl(uint32_t val);
 extern void execx86(int32_t cycs);
+extern void execvx0(int32_t cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
@@ -730,6 +731,7 @@ extern int  idivl(int32_t val);
 extern void resetmcr(void);
 extern void resetx86(void);
 extern void refreshread(void);
+extern void refreshread_vx0(void);
 extern void resetreadlookup(void);
 extern void softresetx86(void);
 extern void hardresetx86(void);
@@ -810,6 +812,8 @@ extern void SF_FPU_reset(void);
 
 extern void reset_808x(int hard);
 extern void interrupt_808x(uint16_t addr);
+
+extern void reset_vx0(int hard);
 
 extern void cpu_register_fast_off_handler(void *timer);
 extern void cpu_fast_off_advance(void);

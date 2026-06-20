@@ -147,22 +147,6 @@
              </spacer>
             </item>
             <item>
-             <widget class="QPushButton" name="screenshotPrevious">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
-              <property name="flat">
-               <bool>false</bool>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QWidget" name="ssNavTBHolder" native="true">
               <layout class="QHBoxLayout" name="horizontalLayout_4">
                <property name="leftMargin">
@@ -178,16 +162,16 @@
                 <number>0</number>
                </property>
                <item>
-                <widget class="QToolButton" name="screenshotPreviousTB">
+                <widget class="QToolButton" name="screenshotPrevious">
                  <property name="text">
-                  <string>...</string>
+                  <string>…</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QToolButton" name="screenshotNextTB">
+                <widget class="QToolButton" name="screenshotNext">
                  <property name="text">
-                  <string>...</string>
+                  <string>…</string>
                  </property>
                  <property name="autoRaise">
                   <bool>true</bool>
@@ -195,19 +179,6 @@
                 </widget>
                </item>
               </layout>
-             </widget>
-            </item>
-            <item>
-             <widget class="QPushButton" name="screenshotNext">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="text">
-               <string/>
-              </property>
              </widget>
             </item>
             <item>

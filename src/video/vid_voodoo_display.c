@@ -645,6 +645,8 @@ skip_draw:
 
             if (voodoo->dirty_line_high > voodoo->dirty_line_low || force_blit)
                 svga_doblit(voodoo->h_disp, voodoo->v_disp - 1, voodoo->svga);
+            else if (voodoo->svga->override)
+                voodoo->svga->monitor->mon_renderedframes++;
             if (voodoo->clutData_dirty) {
                 voodoo->clutData_dirty = 0;
                 voodoo_calc_clutData(voodoo);

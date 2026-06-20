@@ -143,7 +143,7 @@ static const device_config_t pii_config[] = {
 };
 
 const device_t fdc_pii151b_device = {
-    .name          = "DTK PII-151B (MiniMicro) Floppy Drive Controller",
+    .name          = "DTK PII-151B (MiniMicro) FDC",
     .internal_name = "dtk_pii151b",
     .flags         = DEVICE_ISA,
     .local         = 151,
@@ -157,7 +157,7 @@ const device_t fdc_pii151b_device = {
 };
 
 const device_t fdc_pii158b_device = {
-    .name          = "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
+    .name          = "DTK PII-158B (MiniMicro4) FDC",
     .internal_name = "dtk_pii158b",
     .flags         = DEVICE_ISA,
     .local         = 158,

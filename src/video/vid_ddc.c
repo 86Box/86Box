@@ -130,8 +130,7 @@ typedef struct {
 size_t
 ddc_create_default_edid(uint8_t **out)
 {
-    edid_t *edid = malloc(sizeof(edid_t));
-    memset(edid, 0, sizeof(edid_t));
+    edid_t *edid = calloc(1, sizeof(edid_t));
 
     uint8_t *edid_bytes = (uint8_t *) edid;
     double horiz_mm     = PIXEL_MM(800);
@@ -236,20 +235,11 @@ ddc_init_with_custom_edid(char *edid_path, void *i2c)
     uint8_t buffer[384] = { 0 };
     size_t  size        = ddc_load_edid(edid_path, buffer, sizeof(buffer));
 
-    if (size > 256) {
-        wchar_t errmsg[2048] = { 0 };
-        wchar_t path[2048]   = { 0 };
+    if ((size == 0) || (size > 256)) {
+        char errmsg[2048] = { 0 };
+        snprintf(errmsg, sizeof(errmsg), plat_get_string((size == 0) ? STRING_EDID_READ_ERROR : STRING_EDID_TOO_LARGE), monitor_edid_path);
+        ui_msgbox_header(MBX_ERROR, "EDID", errmsg);
 
-#ifdef _WIN32
-        mbstoc16s(path, monitor_edid_path, sizeof_w(path));
-#else
-        mbstowcs(path, monitor_edid_path, sizeof_w(path));
-#endif
-        swprintf(errmsg, sizeof_w(errmsg), plat_get_string(STRING_EDID_TOO_LARGE), path);
-        ui_msgbox_header(MBX_ERROR, L"EDID", errmsg);
-
-        return NULL;
-    } else if (size == 0) {
         return NULL;
     } else if (size < 128) {
         size = 128;
@@ -273,7 +263,7 @@ ddc_init_with_custom_edid(char *edid_path, void *i2c)
         buffer[255] = 256 - checksum;
     }
 
-    uint8_t *edid_bytes = malloc(size);
+    uint8_t *edid_bytes = calloc(1, size);
     memcpy(edid_bytes, buffer, size);
 
     return i2c_eeprom_init(i2c, 0x50, edid_bytes, size, 0);

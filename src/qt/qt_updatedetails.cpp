@@ -14,6 +14,7 @@
  */
 #include "qt_updatedetails.hpp"
 #include "ui_qt_updatedetails.h"
+#include "qt_defs.hpp"
 
 #include <QDesktopServices>
 #include <QPushButton>
@@ -52,7 +53,7 @@ UpdateDetails::
     connect(ui->buttonBox, &QDialogButtonBox::accepted, [updateResult] {
         visitDownloadPage(updateResult.channel);
     });
-    const auto logo = QPixmap(":/assets/86box.png").scaled(QSize(64, 64), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    const auto logo = QIcon(EMU_ICON_PATH).pixmap(QSize(64, 64));
 
     ui->icon->setPixmap(logo);
 }

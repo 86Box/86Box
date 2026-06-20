@@ -210,7 +210,10 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
                     log_fatal(dev->log, "mo_load(): Error seeking to the beginning of "
                               "the file\n");
 
-                strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
+                if (dev->drv->image_path != (fn - offs)) {
+                    const int len = MIN(strlen(fn - offs), (strlen(dev->drv->image_path) - 1));
+                    strncpy(dev->drv->image_path, fn - offs, len);
+                }
 
                 ret = 1;
             } else
@@ -254,7 +257,7 @@ mo_disk_close(const mo_t *dev)
         mo_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path,
-               sizeof(dev->drv->prev_image_path));
+               sizeof(dev->drv->image_path));
         memset(dev->drv->image_path, 0, sizeof(dev->drv->image_path));
 
         dev->drv->medium_size = 0;
@@ -497,7 +500,7 @@ mo_bus_speed(mo_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv)
+    if (dev && dev->drv && (dev->drv->bus_type == MO_BUS_ATAPI))
         ret = ide_atapi_get_period(dev->drv->ide_channel);
 
     if (ret == -1.0) {
@@ -666,7 +669,7 @@ mo_buf_alloc(mo_t *dev, uint32_t len)
     mo_log(dev->log, "Allocated buffer length: %i\n", len);
 
     if (dev->buffer == NULL) {
-        dev->buffer = (uint8_t *) malloc(len);
+        dev->buffer = (uint8_t *) calloc(1, len);
         dev->buffer_sz = len;
     }
 

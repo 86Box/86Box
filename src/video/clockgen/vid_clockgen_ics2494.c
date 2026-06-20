@@ -25,6 +25,7 @@
 #include <86box/device.h>
 
 typedef struct ics2494_t {
+    int type;
     float freq[16];
 } ics2494_t;
 
@@ -174,8 +175,7 @@ ics2494_getclock(int clock, void *priv)
 static void *
 ics2494_init(const device_t *info)
 {
-    ics2494_t *ics2494 = (ics2494_t *) malloc(sizeof(ics2494_t));
-    memset(ics2494, 0, sizeof(ics2494_t));
+    ics2494_t *ics2494 = (ics2494_t *) calloc(1, sizeof(ics2494_t));
 
     switch (info->local) {
         case 0:
@@ -289,6 +289,25 @@ ics2494_init(const device_t *info)
             ics2494->freq[14] = 75000000.0;
             ics2494->freq[15] = 65000000.0;
             break;
+        case 304:
+            /* ICS2494A(N)-304 for Tseng ET4000AX series */
+            ics2494->freq[0x0] = 50350000.0;
+            ics2494->freq[0x1] = 56644000.0;
+            ics2494->freq[0x2] = 65000000.0;
+            ics2494->freq[0x3] = 72000000.0;
+            ics2494->freq[0x4] = 80000000.0;
+            ics2494->freq[0x5] = 89800000.0;
+            ics2494->freq[0x6] = 63000000.0;
+            ics2494->freq[0x7] = 75000000.0;
+            ics2494->freq[0x8] = 25175000.0;
+            ics2494->freq[0x9] = 28322000.0;
+            ics2494->freq[0xa] = 31500000.0;
+            ics2494->freq[0xb] = 36000000.0;
+            ics2494->freq[0xc] = 40000000.0;
+            ics2494->freq[0xd] = 44900000.0;
+            ics2494->freq[0xe] = 50000000.0;
+            ics2494->freq[0xf] = 65000000.0;
+            break;
         case 305:
             /* ICS2494A(N)-305 for S3 86C924 */
             ics2494->freq[0x0] = 25175000.0;
@@ -332,6 +351,8 @@ ics2494_init(const device_t *info)
             break;
     }
 
+    ics2494->type = info->local;
+
     return ics2494;
 }
 
@@ -343,6 +364,20 @@ ics2494_close(void *priv)
     if (ics2494)
         free(ics2494);
 }
+
+const device_t ics2494an_304_device = {
+    .name          = "ICS2494AN-304 Clock Generator",
+    .internal_name = "ics2494an_304",
+    .flags         = 0,
+    .local         = 304,
+    .init          = ics2494_init,
+    .close         = ics2494_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
 
 const device_t ics2494an_305_device = {
     .name          = "ICS2494AN-305 Clock Generator",

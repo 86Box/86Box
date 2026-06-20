@@ -123,8 +123,7 @@ philips_close(void *priv)
 static void *
 philips_init(UNUSED(const device_t *info))
 {
-    philips_t *dev = (philips_t *) malloc(sizeof(philips_t));
-    memset(dev, 0, sizeof(philips_t));
+    philips_t *dev = (philips_t *) calloc(1, sizeof(philips_t));
 
     dev->reg = 0x40;
 

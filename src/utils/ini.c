@@ -446,7 +446,7 @@ ini_read_ex(const char *fn, int is_rom)
                 continue;
 
             /* Create a new section and insert it. */
-            ns = malloc(sizeof(section_t));
+            ns = calloc(1, sizeof(section_t));
             memset(ns, 0x00, sizeof(section_t));
             memcpy(ns->name, sname, 128);
             list_add(&ns->list, head);
@@ -676,8 +676,7 @@ ini_strip_quotes(ini_t ini)
 ini_t
 ini_new(void)
 {
-    ini_t ini = malloc(sizeof(list_t));
-    memset(ini, 0, sizeof(list_t));
+    ini_t ini = calloc(1, sizeof(list_t));
     return ini;
 }
 

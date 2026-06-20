@@ -44,6 +44,7 @@ extern const device_t st506_xt_wd1004_27x_device;         /* st506_xt_wd1004_27x
 extern const device_t st506_xt_wd1004a_27x_device;        /* st506_xt_wd1004a_27x */
 extern const device_t st506_xt_victor_v86p_device;        /* st506_xt_victor_v86p */
 extern const device_t st506_xt_toshiba_t1200_device;      /* st506_xt_toshiba_t1200 */
+extern const device_t st506_ps2_device;                   /* st506_mca */
 
 extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
 extern const device_t esdi_ps2_device;           /* esdi_mca */
@@ -113,6 +114,7 @@ extern const device_t xta_st50x_device;           /* ST-50X */
 extern const device_t xta_st50x_pc5086_device;    /* ST-50X (PC5086) */
 
 extern const device_t xtide_device;            /* xtide_xt */
+extern const device_t jride_device;            /* jride_pcjr */
 extern const device_t xtide_at_device;         /* xtide_at */
 extern const device_t xtide_at_2ch_device;     /* xtide_at_2ch */
 extern const device_t xtide_acculogic_device;  /* xtide_ps2 */

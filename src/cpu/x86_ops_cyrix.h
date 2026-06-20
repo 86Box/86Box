@@ -35,11 +35,20 @@ opSVDC_common(uint32_t fetchdat)
 static int
 opSVDC_a16(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -53,11 +62,20 @@ opSVDC_a16(uint32_t fetchdat)
 static int
 opSVDC_a32(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -100,11 +118,20 @@ opRSDC_common(uint32_t fetchdat)
 static int
 opRSDC_a16(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -118,11 +145,20 @@ opRSDC_a16(uint32_t fetchdat)
 static int
 opRSDC_a32(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -137,11 +173,20 @@ opRSDC_a32(uint32_t fetchdat)
 static int
 opSVLDT_a16(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -156,11 +201,20 @@ opSVLDT_a16(uint32_t fetchdat)
 static int
 opSVLDT_a32(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -176,11 +230,20 @@ opSVLDT_a32(uint32_t fetchdat)
 static int
 opRSLDT_a16(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -194,11 +257,20 @@ opRSLDT_a16(uint32_t fetchdat)
 static int
 opRSLDT_a32(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -213,11 +285,20 @@ opRSLDT_a32(uint32_t fetchdat)
 static int
 opSVTS_a16(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -232,11 +313,20 @@ opSVTS_a16(uint32_t fetchdat)
 static int
 opSVTS_a32(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -252,11 +342,20 @@ opSVTS_a32(uint32_t fetchdat)
 static int
 opRSTS_a16(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_16(fetchdat);
@@ -271,11 +370,20 @@ opRSTS_a16(uint32_t fetchdat)
 static int
 opRSTS_a32(uint32_t fetchdat)
 {
-    uint8_t ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
-                         (CCR1_USE_SMI | CCR1_SM3)) &&
-                        ((ccr1 & CCR1_SMAC) || in_smm) &&
-                        (cyrix.arr[3].size > 0) &&
-                        (CPL == 0);
+    uint8_t ins_check;
+
+    if (is_cx6x86)
+        ins_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SM3)) ==
+                     (CCR1_USE_SMI | CCR1_SM3)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
+    else
+        ins_check = ((ccr1 & (CCR1_USE_SMI)) ==
+                     (CCR1_USE_SMI)) &&
+                    ((ccr1 & CCR1_SMAC) || in_smm) &&
+                    (cyrix.arr[3].size > 0) &&
+                    (CPL == 0);
 
     if (ins_check) {
         fetch_ea_32(fetchdat);
@@ -291,9 +399,16 @@ opRSTS_a32(uint32_t fetchdat)
 static int
 opSMINT(UNUSED(uint32_t fetchdat))
 {
-    uint8_t ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
-                          (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) &&
-                          (cyrix.arr[3].size > 0);
+    uint8_t ccr1_check;
+
+    if (is_cx6x86)
+        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) ==
+                      (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) &&
+                      (cyrix.arr[3].size > 0);
+    else
+        ccr1_check = ((ccr1 & (CCR1_USE_SMI | CCR1_SMAC)) ==
+                      (CCR1_USE_SMI | CCR1_SMAC)) &&
+                      (cyrix.arr[3].size > 0);
 
     if (in_smm)
         fatal("opSMINT\n");

@@ -7,7 +7,11 @@ opFI(uint32_t fetchdat)
     cpu_state.npxc &= ~0x80;
     if (rmdat == 0xe1)
         cpu_state.npxc |= 0x80;
+#ifdef FPU_NEC
+    do_cycles(3);
+#else
     wait_cycs(3, 0);
+#endif
     return 0;
 }
 #else
@@ -91,6 +95,11 @@ opFINIT(UNUSED(uint32_t fetchdat))
 #endif
     cpu_state.TOP   = 0;
     cpu_state.ismmx = 0;
+    new_ne          = 0;
+    if (is286)
+        picintc(1 << 13);
+    else
+        nmi = 0;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.finit) : (x87_timings.finit * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.finit) : (x87_concurrency.finit * cpu_multi));
     CPU_BLOCK_END();

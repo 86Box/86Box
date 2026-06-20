@@ -143,8 +143,24 @@ sermouse_transmit_byte(mouse_t *dev, int do_next)
     if (dev->buf_pos == 0)
         dev->acc_time = 0.0;
 
-    if (dev->serial)
+    if (dev->serial) {
+        if ((dev->state == STATE_TRANSMIT_REPORT) && (dev->format == FORMAT_PB_5BYTE) &&
+            (dev->buf_pos == 3)) {
+            /*
+               The last two bytes are the delta between now and when we originally
+               prepared the report for sending.
+             */
+            int delta_x = 0;
+            int delta_y = 0;
+
+            mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
+
+            dev->buf[3] = delta_x; /* same as byte 1 */
+            dev->buf[4] = delta_y; /* same as byte 2 */
+        }
+
         serial_write_fifo(dev->serial, dev->buf[dev->buf_pos]);
+    }
 
     if (do_next) {
         /* If we have a buffer length of 0, pretend the state is STATE_SKIP_PACKET. */

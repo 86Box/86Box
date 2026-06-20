@@ -58,20 +58,20 @@ typedef struct opl2board_device_t {
 } opl2board_device_t;
 
 static void
-opl2board_device_get_buffer(int32_t *buffer, int len, void *priv)
+opl2board_device_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     opl2board_device_t *serial = (opl2board_device_t *) priv;
 
     const int32_t *opl_buf = serial->opl.update(serial->opl.priv);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += opl_buf[c];
 
     serial->opl.reset_buffer(serial->opl.priv);
 }
 
 uint8_t
-opl2board_device_mca_read(int port, void *priv)
+opl2board_device_mca_read(const uint16_t port, void *priv)
 {
     const opl2board_device_t *serial = (opl2board_device_t *) priv;
 
@@ -81,7 +81,7 @@ opl2board_device_mca_read(int port, void *priv)
 }
 
 void
-opl2board_device_mca_write(int port, uint8_t val, void *priv)
+opl2board_device_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     opl2board_device_t *serial = (opl2board_device_t *) priv;
 
@@ -125,7 +125,7 @@ opl2board_device_init(UNUSED(const device_t *info))
     opl2board_device_t *serial = calloc(1, sizeof(opl2board_device_t));
 
     opl2board_device_log("opl2board_device_init\n");
-    fm_driver_get(FM_OPL2BOARD, &serial->opl);
+    fm_driver_get_cs(FM_OPL2BOARD, &serial->opl);
     io_sethandler(0x0388, 0x0002,
                   serial->opl.read, NULL, NULL,
                   serial->opl.write, NULL, NULL,
@@ -166,7 +166,7 @@ opl2board_device_close(void *priv)
 static const device_config_t opl2board_config[] = {
     {
         .name           = "host_serial_path",
-        .description    = "Host Serial Device",
+        .description    = "Host serial device",
         .type           = CONFIG_SERPORT,
         .default_string = "",
         .default_int    = 0,

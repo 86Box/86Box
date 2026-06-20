@@ -20,6 +20,8 @@ add_library(cpu OBJECT
     cpu_table.c
     fpu.c x86.c
     808x.c
+    vx0.c
+    vx0_biu.c
     386.c
     386_common.c
     386_dynarec.c

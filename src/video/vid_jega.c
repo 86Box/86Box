@@ -234,6 +234,11 @@ jega_render_text(void *priv)
                                               &jega->ega.memaddr;
     uint8_t   mask           = jega->is_vga ? jega->vga.svga.dac_mask : 0xff;
 
+    if (((*displine + *y_add) < 0) ||
+        (buffer32 == NULL) ||
+        (buffer32->line[*displine + *y_add] == NULL))
+        return;
+
     if (*firstline_draw == 2000)
         *firstline_draw = *displine;
     *lastline_draw = *displine;
@@ -686,7 +691,7 @@ readfontxtbl(fontx_tbl *table, int size, FILE *fp)
 }
 
 static int
-LoadFontxFile(const char *fn, void *priv)
+jega_load_font(const char *fn, void *priv)
 {
     fontx_h    fhead;
     fontx_tbl *ftbl;
@@ -746,7 +751,7 @@ LoadFontxFile(const char *fn, void *priv)
 }
 
 static void
-jega_commoninit(const device_t *info, void *priv, int vga)
+jega_common_init(const device_t *info, void *priv, int vga)
 {
     jega_t *jega = (jega_t *) priv;
     jega->is_vga = vga;
@@ -791,11 +796,11 @@ jega_standalone_init(const device_t *info)
 {
     jega_t *jega = calloc(1, sizeof(jega_t));
 
-    rom_init(&jega->bios_rom, JEGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    rom_init(&jega->bios_rom, JEGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
-    LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
+    jega_load_font(JEGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(info, jega, 0);
+    jega_common_init(info, jega, 0);
 
     return jega;
 }
@@ -805,11 +810,11 @@ jvga_standalone_init(const device_t *info)
 {
     jega_t *jega = calloc(1, sizeof(jega_t));
 
-    rom_init(&jega->bios_rom, JVGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    rom_init(&jega->bios_rom, JVGA_PATH_BIOS, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
-    LoadFontxFile(JVGA_PATH_FONTDBCS, jega);
+    jega_load_font(JVGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(info, jega, 1);
+    jega_common_init(info, jega, 1);
 
     return jega;
 }
@@ -1022,11 +1027,11 @@ if386jega_init(const device_t *info)
 {
     jega_t *jega = calloc(1, sizeof(jega_t));
 
-    rom_init(&jega->bios_rom, IF386_PATH_VBIOS, 0xc0000, 0x8000, 0x7fff, 0, 0);
+    rom_init(&jega->bios_rom, IF386_PATH_VBIOS, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     memset(&jega->jfont_dbcs_16, 0, DBCS16_FILESIZE);
-    LoadFontxFile(JEGA_PATH_FONTDBCS, jega);
+    jega_load_font(JEGA_PATH_FONTDBCS, jega);
 
-    jega_commoninit(info, jega, 0);
+    jega_common_init(info, jega, 0);
 
     io_sethandler(0x0063, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);
     io_sethandler(0x0065, 1, if386_p6x_read, NULL, NULL, if386_p6x_write, NULL, NULL, jega);
@@ -1042,7 +1047,7 @@ if386jega_available(void)
 }
 
 const device_t if386jega_device = {
-    .name          = "JEGA (if386AX)",
+    .name          = "JEGA On-Board (OKI if386AX30L)",
     .internal_name = "if386jega",
     .flags         = DEVICE_ISA,
     .local         = 0,
@@ -1052,5 +1057,6 @@ const device_t if386jega_device = {
     .available     = if386jega_available,
     .speed_changed = jega_speed_changed,
     .force_redraw  = NULL,
+    .machine       = "OKI if386AX30L",
     .config        = NULL
 };

@@ -18,6 +18,7 @@
 #include <86box/cdrom.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 #include <86box/hdd.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -29,32 +30,55 @@ void
 machine_status_init(void)
 {
     for (size_t i = 0; i < FDD_NUM; ++i) {
-        machine_status.fdd[i].empty  = (strlen(floppyfns[i]) == 0);
-        machine_status.fdd[i].active = false;
+        machine_status.fdd[i].empty        = (strlen(floppyfns[i]) == 0);
+        machine_status.fdd[i].active       = false;
+        machine_status.fdd[i].write_active = false;
+        machine_status.fdd[i].write_prot   = !!ui_writeprot[i];
     }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
-        machine_status.cdrom[i].empty  = (strlen(cdrom[i].image_path) == 0);
-        machine_status.cdrom[i].active = false;
+        machine_status.cdrom[i].empty        = (strlen(cdrom[i].image_path) == 0);
+        machine_status.cdrom[i].active       = false;
+        machine_status.cdrom[i].write_active = false;
+        machine_status.cdrom[i].write_prot   = false;
     }
     for (size_t i = 0; i < RDISK_NUM; i++) {
-        machine_status.rdisk[i].empty  = (strlen(rdisk_drives[i].image_path) == 0);
-        machine_status.rdisk[i].active = false;
+        machine_status.rdisk[i].empty        = (strlen(rdisk_drives[i].image_path) == 0);
+        machine_status.rdisk[i].active       = false;
+        machine_status.rdisk[i].write_active = false;
+        machine_status.rdisk[i].write_prot   = !!rdisk_drives[i].read_only;
     }
     for (size_t i = 0; i < MO_NUM; i++) {
-        machine_status.mo[i].empty  = (strlen(mo_drives[i].image_path) == 0);
-        machine_status.mo[i].active = false;
+        machine_status.mo[i].empty        = (strlen(mo_drives[i].image_path) == 0);
+        machine_status.mo[i].active       = false;
+        machine_status.mo[i].write_active = false;
+        machine_status.mo[i].write_prot   = !!mo_drives[i].read_only;
+    }
+
+    for (size_t i = 0; i < TAPE_NUM; i++) {
+        machine_status.tape[i].empty        = (strlen(tape_drives[i].image_path) == 0);
+        machine_status.tape[i].active       = false;
+        machine_status.tape[i].write_active = false;
+        machine_status.tape[i].write_prot   = !!tape_drives[i].read_only;
     }
 
     for (size_t i = 0; i < 2; i++)
         machine_status.cartridge[i].empty  = (strlen(cart_fns[i]) == 0);
 
-    machine_status.cassette.empty = (strlen(cassette_fname) == 0);
+    machine_status.cassette.empty        = (strlen(cassette_fname) == 0);
+    machine_status.cassette.active       = false;
+    machine_status.cassette.write_active = false;
+    machine_status.cassette.write_prot   = !!cassette_ui_writeprot;
 
-    for (size_t i = 0; i < HDD_BUS_USB; i++)
-        machine_status.hdd[i].active = false;
+    for (size_t i = 0; i < HDD_BUS_USB; i++) {
+        machine_status.hdd[i].active       = false;
+        machine_status.hdd[i].write_active = false;
+    }
+
 
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
-        machine_status.net[i].active = false;
-        machine_status.net[i].empty  = !network_is_connected(i);
+        machine_status.net[i].active       = false;
+        machine_status.net[i].write_active = false;
+        machine_status.net[i].write_prot   = false;
+        machine_status.net[i].empty        = !network_is_connected(i);
     }
 }

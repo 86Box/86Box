@@ -35,6 +35,8 @@ public:
 
     ~VMManagerDetails() override;
 
+    void reset();
+
     void updateData(VMManagerSystem *passed_sysconfig);
 
     void updateProcessStatus();
@@ -87,6 +89,7 @@ private slots:
     void saveNotes() const;
     void nextScreenshot();
     void previousScreenshot();
+    void onConfigUpdated(VMManagerSystem *passed_sysconfig);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;

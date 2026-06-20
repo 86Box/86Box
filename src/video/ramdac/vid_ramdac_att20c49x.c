@@ -151,8 +151,7 @@ att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 static void *
 att49x_ramdac_init(const device_t *info)
 {
-    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) malloc(sizeof(att49x_ramdac_t));
-    memset(ramdac, 0, sizeof(att49x_ramdac_t));
+    att49x_ramdac_t *ramdac = (att49x_ramdac_t *) calloc(1, sizeof(att49x_ramdac_t));
 
     ramdac->type = info->local;
 

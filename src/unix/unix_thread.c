@@ -34,8 +34,8 @@ thread_run_wrapper(thread_param *arg)
 thread_t *
 thread_create_named(void (*thread_rout)(void *param), void *param, const char *name)
 {
-    pthread_t    *thread   = malloc(sizeof(pthread_t));
-    thread_param *thrparam = malloc(sizeof(thread_param));
+    pthread_t    *thread   = calloc(1, sizeof(pthread_t));
+    thread_param *thrparam = calloc(1, sizeof(thread_param));
     thrparam->thread_rout  = thread_rout;
     thrparam->param        = param;
 
@@ -54,7 +54,7 @@ thread_wait(thread_t *arg)
 event_t *
 thread_create_event(void)
 {
-    event_pthread_t *event = malloc(sizeof(event_pthread_t));
+    event_pthread_t *event = calloc(1, sizeof(event_pthread_t));
 
     pthread_cond_init(&event->cond, NULL);
     pthread_mutex_init(&event->mutex, NULL);
@@ -123,7 +123,7 @@ thread_destroy_event(event_t *handle)
 mutex_t *
 thread_create_mutex(void)
 {
-    pt_mutex_t *mutex = malloc(sizeof(pt_mutex_t));
+    pt_mutex_t *mutex = calloc(1, sizeof(pt_mutex_t));
 
     pthread_mutex_init(&mutex->mutex, NULL);
 

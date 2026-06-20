@@ -46,11 +46,13 @@ enum fm_type {
     FM_YM2414    = 23, /* OPZ */
     FM_ESFM      = 24, /* ESFM */
     FM_OPL2BOARD = 25, /* OPL2Board (External Device) */
-    FM_MAX       = 26
+    FM_CQM       = 26,
+    FM_MAX       = 27
 };
 
 #define FM_TYPE_MASK 255
 #define FM_FORCE_48K 256
+#define FM_CRYSTAL   512
 
 enum fm_driver {
     FM_DRV_NUKED = 0,
@@ -69,17 +71,26 @@ typedef struct fm_drv_t {
 } fm_drv_t;
 
 extern uint8_t fm_driver_get_ex(int chip_id, fm_drv_t *drv, int is_48k);
-extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);
 
-extern const fm_drv_t nuked_opl_drv;
-extern const fm_drv_t nuked_opl_drv_48k;
+extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);
+extern uint8_t fm_driver_get_cs(int chip_id, fm_drv_t *drv);
+
+extern const fm_drv_t nuked_opl2_drv;
+extern const fm_drv_t nuked_opl2_drv_48k;
+extern const fm_drv_t nuked_opl3_drv;
+extern const fm_drv_t nuked_opl3_drv_48k;
+extern const fm_drv_t nuked_cqm_drv;
+extern const fm_drv_t nuked_cqm_drv_48k;
 extern const fm_drv_t ymfm_drv;
 extern const fm_drv_t esfmu_opl_drv;
 extern const fm_drv_t ymfm_opl2board_drv;
 
 #ifdef EMU_DEVICE_H
-extern const device_t ym3812_nuked_device;
-extern const device_t ymf262_nuked_device;
+extern const device_t ym3812_nuked_opl2_device;
+extern const device_t ym3812_nuked_opl3_device;
+extern const device_t ymf262_nuked_opl3_device;
+extern const device_t ymf289b_nuked_opl3_device;
+extern const device_t nuked_cqm_device;
 
 extern const device_t ym2149_ymfm_device;
 

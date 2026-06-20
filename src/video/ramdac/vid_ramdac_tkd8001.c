@@ -104,8 +104,7 @@ tkd8001_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 static void *
 tkd8001_ramdac_init(UNUSED(const device_t *info))
 {
-    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) malloc(sizeof(tkd8001_ramdac_t));
-    memset(ramdac, 0, sizeof(tkd8001_ramdac_t));
+    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) calloc(1, sizeof(tkd8001_ramdac_t));
 
     return ramdac;
 }

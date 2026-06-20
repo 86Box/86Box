@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/pci.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 #define PCI_BRIDGE_DEC_21150   0x10110022
 #define PCI_BRIDGE_DEC_21152   0x10110024
@@ -93,7 +94,7 @@ pci_bridge_get_bus_index(void *priv)
 }
 
 static void
-pci_bridge_write(int func, int addr, uint8_t val, void *priv)
+pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     pci_bridge_t *dev = (pci_bridge_t *) priv;
 
@@ -391,7 +392,7 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-pci_bridge_read(int func, int addr, void *priv)
+pci_bridge_read(int func, int addr, UNUSED(int len), void *priv)
 {
     const pci_bridge_t *dev = (pci_bridge_t *) priv;
     uint8_t             ret;

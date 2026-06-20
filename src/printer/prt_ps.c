@@ -12,8 +12,8 @@
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *          Cacodemon345
  *
- *          Copyright 2019 David Hrdlička.
- *          Copyright 2024 Cacodemon345.
+ *          Copyright 2019-2026 David Hrdlička.
+ *          Copyright 2024-2026 Cacodemon345.
  */
 #include <inttypes.h>
 #include <memory.h>
@@ -21,18 +21,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
-#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/pit.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
-#include <86box/prt_devs.h>
 #include "cpu.h"
 
 #ifdef _WIN32
@@ -42,55 +39,54 @@
 #endif
 
 #define GS_ARG_ENCODING_UTF8 1
-#define gs_error_Quit        -101
-
-#ifdef _WIN32
-#    define PATH_GHOSTSCRIPT_DLL "gsdll64.dll"
-#    define PATH_GHOSTPCL_DLL    "gpcl6dll64.dll"
-#elif defined __APPLE__
-#    define PATH_GHOSTSCRIPT_DLL "libgs.dylib"
-#    define PATH_GHOSTPCL_DLL    "libgpcl6.9.54.dylib"
-#else
-#    define PATH_GHOSTSCRIPT_DLL      "libgs.so.9"
-#    define PATH_GHOSTSCRIPT_DLL_ALT1 "libgs.so.10"
-#    define PATH_GHOSTSCRIPT_DLL_ALT2 "libgs.so"
-#    define PATH_GHOSTPCL_DLL         "libgpcl6.so.9"
-#    define PATH_GHOSTPCL_DLL_ALT1    "libgpcl6.so.10"
-#    define PATH_GHOSTPCL_DLL_ALT2    "libgpcl6.so"
-#endif
+#define gs_error_Quit        (-101)
 
 #define POSTSCRIPT_BUFFER_LENGTH 65536
 
+enum {
+    LANG_RAW    = 0,
+    LANG_PS,
+    LANG_PCL_5E,
+    LANG_PCL_5C,
+    LANG_HP_RTL,
+    LANG_PCL_6
+};
+
 typedef struct ps_t {
-    const char *name;
+    void *      lpt;
 
-    void *lpt;
+    pc_timer_t  pulse_timer;
+    pc_timer_t  timeout_timer;
 
-    pc_timer_t pulse_timer;
-    pc_timer_t timeout_timer;
+    bool        ack;
+    bool        select;
+    bool        autofeed;
+    bool        pcl;
+    bool        pending;
+    bool        pjl;
+    bool        pjl_command;
 
-    char    data;
-    bool    ack;
-    bool    select;
-    bool    busy;
-    bool    int_pending;
-    bool    error;
-    bool    autofeed;
-    bool    pcl;
-    bool    pcl_escape;
-    uint8_t ctrl;
+    uint8_t     data;
 
-    char printer_path[260];
+    char        printer_path[260];
+    char        filename[260];
 
-    char filename[260];
+    uint8_t     buffer[POSTSCRIPT_BUFFER_LENGTH];
 
-    char   buffer[POSTSCRIPT_BUFFER_LENGTH];
-    size_t buffer_pos;
+    uint8_t     ctrl;
+    uint8_t     pcl_escape;
+
+    uint16_t    pjl_command_start;
+
+    int         lang;
+
+    size_t      buffer_pos;
 } ps_t;
 
 typedef struct gsapi_revision_s {
     const char *product;
     const char *copyright;
+
     long        revision;
     long        revisiondate;
 } gsapi_revision_t;
@@ -115,21 +111,6 @@ static dllimp_t ghostscript_imports[] = {
 };
 
 static void *ghostscript_handle = NULL;
-
-static void
-reset_ps(ps_t *dev)
-{
-    if (dev == NULL)
-        return;
-
-    dev->ack = false;
-
-    dev->buffer[0]  = 0;
-    dev->buffer_pos = 0;
-
-    timer_disable(&dev->pulse_timer);
-    timer_stop(&dev->timeout_timer);
-}
 
 static void
 pulse_timer(void *priv)
@@ -166,8 +147,23 @@ convert_to_pdf(ps_t *dev)
     gsargv[arg++] = "-dSAFER";
     gsargv[arg++] = "-sDEVICE=pdfwrite";
     if (dev->pcl) {
-        gsargv[arg++] = "-LPCL";
-        gsargv[arg++] = "-lPCL5E";
+        if (dev->lang == LANG_PCL_6)
+            gsargv[arg++] = "-LPCLXL";
+        else {
+            gsargv[arg++] = "-LPCL";
+            switch (dev->lang) {
+                default:
+                case LANG_PCL_5E:
+                    gsargv[arg++] = "-lPCL5E";
+                    break;
+                case LANG_PCL_5C:
+                    gsargv[arg++] = "-lPCL5C";
+                    break;
+                case LANG_HP_RTL:
+                    gsargv[arg++] = "-lRTL";
+                    break;
+            }
+        }
     }
     gsargv[arg++] = "-q";
     gsargv[arg++] = "-o";
@@ -199,16 +195,43 @@ convert_to_pdf(ps_t *dev)
 }
 
 static void
+reset_ps(ps_t *dev)
+{
+    dev->ack = false;
+
+    if (dev->pending) {
+        if ((dev->lang != LANG_RAW) && (ghostscript_handle != NULL))
+            convert_to_pdf(dev);
+
+        dev->filename[0] = 0;
+
+        dev->pending     = false;
+    }
+
+    dev->buffer[0]  = 0;
+    dev->buffer_pos = 0;
+
+    timer_disable(&dev->pulse_timer);
+    timer_stop(&dev->timeout_timer);
+}
+
+static void
 write_buffer(ps_t *dev, bool finish)
 {
     char  path[1024];
     FILE *fp;
 
-    if (dev->buffer[0] == 0)
+    if (dev->buffer_pos == 0)
         return;
 
-    if (dev->filename[0] == 0)
-        plat_tempfile(dev->filename, NULL, dev->pcl ? ".pcl" : ".ps");
+    if (dev->filename[0] == 0) {
+        if (dev->lang == LANG_RAW)
+            plat_tempfile(dev->filename, NULL, ".raw");
+        else if (dev->pcl)
+            plat_tempfile(dev->filename, NULL, (dev->lang == LANG_PCL_6) ? ".pxl" : ".pcl");
+        else
+            plat_tempfile(dev->filename, NULL, ".ps");
+    }
 
     strcpy(path, dev->printer_path);
     path_slash(path);
@@ -223,7 +246,7 @@ write_buffer(ps_t *dev, bool finish)
     if (dev->pcl)
         fwrite(dev->buffer, 1, dev->buffer_pos, fp);
     else
-        fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer);
+        fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, (const char *) dev->buffer);
 
     fclose(fp);
 
@@ -231,11 +254,14 @@ write_buffer(ps_t *dev, bool finish)
     dev->buffer_pos = 0;
 
     if (finish) {
-        if (ghostscript_handle != NULL)
+        if ((dev->lang != LANG_RAW) && (ghostscript_handle != NULL))
             convert_to_pdf(dev);
 
         dev->filename[0] = 0;
-    }
+
+        dev->pending     = false;
+    } else
+        dev->pending     = true;
 }
 
 static void
@@ -243,7 +269,16 @@ timeout_timer(void *priv)
 {
     ps_t *dev = (ps_t *) priv;
 
-    write_buffer(dev, true);
+    if (dev->buffer_pos != 0)
+        write_buffer(dev, true);
+    else if (dev->pending) {
+        if ((dev->lang != LANG_RAW) && (ghostscript_handle != NULL))
+            convert_to_pdf(dev);
+
+        dev->filename[0] = 0;
+
+        dev->pending     = false;
+    }
 
     timer_stop(&dev->timeout_timer);
 }
@@ -256,53 +291,120 @@ ps_write_data(uint8_t val, void *priv)
     if (dev == NULL)
         return;
 
-    dev->data = (char) val;
+    dev->data = val;
+}
+
+static int
+process_escape(ps_t *dev, int do_pjl)
+{
+    int ret = 0;
+
+    if (dev->data == 0x1b)
+        dev->pcl_escape = 1;
+    else  switch (dev->pcl_escape) {
+        default:
+            break;
+        case 1:
+            dev->pcl_escape = (dev->data == 0x25) ? 2 : 0;
+            break;
+        case 2:
+            dev->pcl_escape = (dev->data == 0x2d) ? 3 : 0;
+            break;
+        case 3:
+            dev->pcl_escape = (dev->data == 0x31) ? 4 : 0;
+            break;
+        case 4:
+            dev->pcl_escape = (dev->data == 0x32) ? 5 : 0;
+            break;
+        case 5:
+            dev->pcl_escape = (dev->data == 0x33) ? 6 : 0;
+            break;
+        case 6:
+            dev->pcl_escape = (dev->data == 0x34) ? 7 : 0;
+            break;
+        case 7:
+            dev->pcl_escape = (dev->data == 0x35) ? 8 : 0;
+            break;
+        case 8:
+            dev->pcl_escape = 0;
+            if (dev->data == 0x58) {
+                if (do_pjl)
+                    dev->pjl = true;
+
+                dev->buffer[dev->buffer_pos++] = dev->data;
+                dev->buffer[dev->buffer_pos]   = 0;
+
+                /* Wipe the slate clean so that there won't be a bogus empty page output to PDF. */
+                dev->pending  = false;
+                ret = 1;
+            }
+            break;
+    }
+
+    return ret;
 }
 
 static void
 process_data(ps_t *dev)
 {
-    /* On PCL, check for escape sequences. */
-    if (dev->pcl) {
-        if (dev->data == 0x1B)
-            dev->pcl_escape = true;
-        else if (dev->pcl_escape) {
-            dev->pcl_escape = false;
-            if (dev->data == 0xE) {
-                dev->buffer[dev->buffer_pos++] = dev->data;
-                dev->buffer[dev->buffer_pos]   = 0;
-
-                if (dev->buffer_pos > 2)
-                    write_buffer(dev, true);
-
+    if (dev->lang == LANG_RAW) {
+        if ((dev->data == 0x1b) || (dev->pcl_escape > 0)) {
+            if (process_escape(dev, 0))
                 return;
-            }
         }
-    }
-    /* On PostScript, check for non-printable characters. */
-    else if ((dev->data < 0x20) || (dev->data == 0x7f)) {
-        switch (dev->data) {
-            /* The following characters are considered white-space
-               by the PostScript specification */
-            case '\t':
-            case '\n':
-            case '\f':
-            case '\r':
-                break;
+    } else {
+        /* On PCL, check for escape sequences. */
+        if (dev->pcl) {
+            if (dev->pjl) {
+                dev->buffer[dev->buffer_pos++] = dev->data;
 
-            /* Same with NUL, except we better change it to a space first */
-            case '\0':
-                dev->data = ' ';
-                break;
+                /* Filter out any PJL commands. */
+                if (dev->pjl_command && (dev->data == '\n')) {
+                    dev->pjl_command = false;
+                    if (!memcmp(&(dev->buffer[dev->pjl_command_start]), "@PJL ENTER LANGUAGE=PCL", 0x17))
+                        dev->pjl = false;
+                    else if (!memcmp(&(dev->buffer[dev->pjl_command_start]), "@PJL ENTER LANGUAGE=POSTSCRIPT", 0x1e))
+                        fatal("Printing PostScript using the PCL printer is not (yet) supported!\n");
+                    dev->buffer[dev->buffer_pos] = 0x00;
+                    dev->buffer_pos = dev->pjl_command_start;
+                } else if (!dev->pjl_command && (dev->buffer_pos >= 0x05) && !memcmp(&(dev->buffer[dev->buffer_pos - 0x5]), "@PJL ", 0x05)) {
+                    dev->pjl_command = true;
+                    dev->pjl_command_start = dev->buffer_pos - 0x05;
+                } else if (!dev->pjl_command && (dev->data == 0x1b))
+                    /* The universal exit code is also valid in PJL. */
+                    dev->pcl_escape = 1;
 
-            /* Ctrl+D (0x04) marks the end of the document */
-            case '\4':
-                write_buffer(dev, true);
+                dev->buffer[dev->buffer_pos]   = 0;
                 return;
+            } else if ((dev->data == 0x1b) || (dev->pcl_escape > 0)) {
+                if (process_escape(dev, 1))
+                    return;
+            }
+        } else if ((dev->data < 0x20) || (dev->data == 0x7f)) {
+            /* On PostScript, check for non-printable characters. */
+            switch (dev->data) {
+                /* The following characters are considered white-space
+                   by the PostScript specification */
+                case '\t':
+                case '\n':
+                case '\f':
+                case '\r':
+                    break;
 
-            /* Don't bother with the others */
-            default:
-                return;
+                /* Same with NUL, except we better change it to a space first */
+                case '\0':
+                    dev->data = ' ';
+                    break;
+
+                /* Ctrl+D (0x04) marks the end of the document */
+                case '\4':
+                    write_buffer(dev, true);
+                    return;
+
+                /* Don't bother with the others */
+                default:
+                    return;
+            }
         }
     }
 
@@ -393,34 +495,42 @@ ps_read_status(void *priv)
 }
 
 static void *
-ps_init(void *lpt)
+ps_init(const device_t *info)
 {
     ps_t            *dev = (ps_t *) calloc(1, sizeof(ps_t));
     gsapi_revision_t rev;
 
     dev->ctrl = 0x04;
-    dev->lpt  = lpt;
     dev->pcl  = false;
 
-    /* Try loading the DLL. */
-    ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
-#ifdef PATH_GHOSTSCRIPT_DLL_ALT1
-    if (ghostscript_handle == NULL) {
-        ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT1, ghostscript_imports);
-#    ifdef PATH_GHOSTSCRIPT_DLL_ALT2
-        if (ghostscript_handle == NULL)
-            ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT2, ghostscript_imports);
-#    endif
-    }
+    dev->lpt  = lpt_attach(ps_write_data, ps_write_ctrl, ps_strobe, ps_read_status, NULL, NULL, NULL, dev);
+    dev->lang = device_get_config_int("language");
+
+    if (dev->lang != LANG_RAW) {
+        /* Try loading the DLL. */
+        static const char *ghostscript_libs[] = {
+#ifdef _WIN32
+            "gsdll64.dll", "libgs-10.dll", "libgs-9.dll"
+#elif defined(__APPLE__)
+            "libgs.dylib"
+#else
+            "libgs.so.10", "libgs.so.9", "libgs.so"
 #endif
-    if (ghostscript_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
-    } else {
-        if (gsapi_revision(&rev, sizeof(rev)) == 0) {
-            pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+        };
+        for (int i = 0; i < (sizeof(ghostscript_libs) / sizeof(ghostscript_libs[0])); i++) {
+            if ((ghostscript_handle = dynld_module(ghostscript_libs[i], ghostscript_imports)))
+                break;
+        }
+
+        if (ghostscript_handle == NULL) {
+            ui_msgbox(MBX_WARNING, plat_get_string(STRING_GHOSTSCRIPT_ERROR));
         } else {
-            dynld_close(ghostscript_handle);
-            ghostscript_handle = NULL;
+            if (gsapi_revision(&rev, sizeof(rev)) == 0) {
+                pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+            } else {
+                dynld_close(ghostscript_handle);
+                ghostscript_handle = NULL;
+            }
         }
     }
 
@@ -439,36 +549,43 @@ ps_init(void *lpt)
     return dev;
 }
 
-#ifdef USE_PCL
 static void *
-pcl_init(void *lpt)
+pcl_init(const device_t *info)
 {
     ps_t            *dev = (ps_t *) calloc(1, sizeof(ps_t));
     gsapi_revision_t rev;
 
     dev->ctrl = 0x04;
-    dev->lpt  = lpt;
     dev->pcl  = true;
 
-    /* Try loading the DLL. */
-    ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL, ghostscript_imports);
-#ifdef PATH_GHOSTPCL_DLL_ALT1
-    if (ghostscript_handle == NULL) {
-        ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT1, ghostscript_imports);
-#    ifdef PATH_GHOSTPCL_DLL_ALT2
-        if (ghostscript_handle == NULL)
-            ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT2, ghostscript_imports);
-#    endif
-    }
+    dev->lpt  = lpt_attach(ps_write_data, ps_write_ctrl, ps_strobe, ps_read_status, NULL, NULL, NULL, dev);
+    dev->lang = device_get_config_int("language");
+
+    if (dev->lang != LANG_RAW) {
+        /* Try loading the DLL. */
+        static const char *ghostpcl_libs[] = {
+#ifdef _WIN32
+            "gpcl6dll64.dll", "libgpcl6-10.dll", "libgpcl6-9.dll"
+#elif defined(__APPLE__)
+            "libgpcl6.dylib", "libgpcl6.9.dylib", "libgpcl6.9.54.dylib"
+#else
+            "libgpcl6.so.10", "libgpcl6.so.9", "libgpcl6.so"
 #endif
-    if (ghostscript_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTPCL_ERROR_TITLE), plat_get_string(STRING_GHOSTPCL_ERROR_DESC));
-    } else {
-        if (gsapi_revision(&rev, sizeof(rev)) == 0) {
-            pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+        };
+        for (int i = 0; i < (sizeof(ghostpcl_libs) / sizeof(ghostpcl_libs[0])); i++) {
+            if ((ghostscript_handle = dynld_module(ghostpcl_libs[i], ghostscript_imports)))
+                break;
+        }
+
+        if (ghostscript_handle == NULL) {
+            ui_msgbox(MBX_WARNING, plat_get_string(STRING_GHOSTPCL_ERROR));
         } else {
-            dynld_close(ghostscript_handle);
-            ghostscript_handle = NULL;
+            if (gsapi_revision(&rev, sizeof(rev)) == 0) {
+                pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
+            } else {
+                dynld_close(ghostscript_handle);
+                ghostscript_handle = NULL;
+            }
         }
     }
 
@@ -486,7 +603,6 @@ pcl_init(void *lpt)
 
     return dev;
 }
-#endif
 
 static void
 ps_close(void *priv)
@@ -504,39 +620,81 @@ ps_close(void *priv)
         ghostscript_handle = NULL;
     }
 
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
+
     free(dev);
 }
 
-const lpt_device_t lpt_prt_ps_device = {
-    .name             = "Generic PostScript Printer",
-    .internal_name    = "postscript",
-    .init             = ps_init,
-    .close            = ps_close,
-    .write_data       = ps_write_data,
-    .write_ctrl       = ps_write_ctrl,
-    .strobe           = ps_strobe,
-    .read_status      = ps_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+// clang-format off
+static const device_config_t lpt_prt_ps_config[] = {
+    {
+        .name           = "language",
+        .description    = "Language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = LANG_PS,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Raw",              .value = LANG_RAW },
+            { .description = "PDF (PostScript)", .value = LANG_PS  },
+            { .description = ""                                    }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
+// clang-format off
+static const device_config_t lpt_prt_pcl_config[] = {
+    {
+        .name           = "language",
+        .description    = "Language",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = LANG_PCL_5E,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Raw",          .value = LANG_RAW    },
+            { .description = "PDF (PCL 5e)", .value = LANG_PCL_5E },
+            { .description = "PDF (PCL 5c)", .value = LANG_PCL_5C },
+            { .description = "PDF (HP-RTL)", .value = LANG_HP_RTL },
+            { .description = "PDF (PCL 6)",  .value = LANG_PCL_6  },
+            { .description = ""                                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
+const device_t lpt_prt_ps_device = {
+    .name          = "Generic PostScript Printer",
+    .internal_name = "postscript",
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
+    .local         = 0,
+    .init          = ps_init,
+    .close         = ps_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = lpt_prt_ps_config
 };
 
-#ifdef USE_PCL
-const lpt_device_t lpt_prt_pcl_device = {
-    .name             = "Generic PCL5e Printer",
-    .internal_name    = "pcl",
-    .init             = pcl_init,
-    .close            = ps_close,
-    .write_data       = ps_write_data,
-    .write_ctrl       = ps_write_ctrl,
-    .strobe           = ps_strobe,
-    .read_status      = ps_read_status,
-    .read_ctrl        = NULL,
-    .epp_write_data   = NULL,
-    .epp_request_read = NULL,
-    .priv             = NULL,
-    .lpt              = NULL
+const device_t lpt_prt_pcl_device = {
+    .name          = "Generic PCL Printer",
+    .internal_name = "pcl",
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
+    .local         = 0,
+    .init          = pcl_init,
+    .close         = ps_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = lpt_prt_pcl_config
 };
-#endif

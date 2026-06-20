@@ -561,11 +561,11 @@ w83977_gpio_handler(w83977_t *dev, const int gpio)
     if (dev->gpio[gpio].base != old_base) {
         if ((old_base >= 0x0100) && (old_base <= 0x0ff8))
             io_removehandler(old_base, 0x0002,
-                             w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, dev);
+                             w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, &(dev->gpio[gpio]));
 
         if ((dev->gpio[gpio].base >= 0x0100) && (dev->gpio[gpio].base <= 0x0ff8))
             io_sethandler(dev->gpio[gpio].base, 0x0002,
-                          w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, dev);
+                          w83977_gpio_read, NULL, NULL, w83977_gpio_write, NULL, NULL, &(dev->gpio[gpio]));
     }
 }
 
@@ -918,7 +918,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
 
                             if (valxor)
-                                w83977_gpio_handler(dev, 0);
+                                w83977_gpio_handler(dev, 1);
                             break;
                         case 0xe8 ... 0xed:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x1f;
@@ -951,7 +951,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
 
                             if (valxor)
-                                w83977_gpio_handler(dev, 0);
+                                w83977_gpio_handler(dev, 2);
                             break;
                         case 0xe0 ... 0xe7:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x1b;
@@ -1287,7 +1287,7 @@ w83977_init(const device_t *info)
     dev->has_nvr   = !(info->local & W83977_NO_NVR);
 
     if (dev->has_nvr && (dev->id != 1)) {
-        dev->nvr = device_add(&amstrad_megapc_nvr_device);
+        dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_ZERO_DEFAULT);
 
         nvr_bank_set(0, 0, dev->nvr);
     }

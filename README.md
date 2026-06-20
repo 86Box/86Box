@@ -2,7 +2,10 @@
 =====
 
 [![Build Status](https://ci.86box.net/job/86Box/badge/icon)](https://ci.86box.net/job/86Box/)
-[![License](https://img.shields.io/github/license/86Box/86Box)](COPYING) [![Latest release](https://img.shields.io/github/release/86Box/86Box.svg)](https://github.com/86Box/86Box/releases) [![Downloads](https://img.shields.io/github/downloads/86Box/86Box/total.svg)](https://github.com/86Box/86Box/releases)
+[![License](https://img.shields.io/github/license/86Box/86Box)](COPYING)
+[![Latest release](https://img.shields.io/github/release/86Box/86Box.svg)](https://github.com/86Box/86Box/releases)
+[![Downloads](https://img.shields.io/github/downloads/86Box/86Box/total.svg)](https://github.com/86Box/86Box/releases)
+[![Translation status](https://weblate.86box.net/widget/86box/86box/language-badge.svg)](https://weblate.86box.net/engage/86box/)
 
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 
@@ -20,11 +23,11 @@ Features
 Minimum system requirements and recommendations
 -----------------------------------------------
 
-* Intel Core 2 or AMD Athlon 64 processor or newer
-* Windows version: Windows 7 Service Pack 1 or later
-* Linux version: Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
-* macOS version: macOS High Sierra 10.13 or newer
+* 64-bit Intel Core 2, AMD Athlon 64 or ARMv8 processor or newer
 * 4 GB of RAM or higher
+* **Windows version:** Windows 7 Service Pack 1 or newer on Intel/AMD systems; Windows 11 or newer on ARM systems
+* **Linux version:** Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
+* **macOS version:** macOS 10.14 Mojave or newer
 
 Performance may vary depending on host and guest configuration. Most emulation logic is executed in a single thread. Therefore, systems with greater IPC (instructions per clock) capacity should be able to emulate higher clock speeds.
 
@@ -53,6 +56,14 @@ We operate an IRC channel and a Discord server for discussing 86Box, its develop
 
 [![Visit our Discord server](https://discordapp.com/api/guilds/262614059009048590/embed.png)](https://discord.gg/QXK9XTv)
 
+[Forum: SoftHistory](https://forum.softhistory.org/)
+
+[Wiki: SoftHistory](https://wiki.softhistory.org/)
+
+[Twitter: @86BoxEmulator](https://twitter.com/86BoxEmulator)
+
+[YouTube: 86Box](https://youtube.com/c/86Box)
+
 Contributions
 -------------
 
@@ -74,6 +85,11 @@ Donations
 
 We do not charge you for the emulator but donations are still welcome:
 <https://paypal.me/86Box>.
-
 You can also support the project on Patreon:
 <https://www.patreon.com/86box>.
+
+Acknowledgments
+---------------
+
+### Powered by
+[![JetBrains logo.](https://resources.jetbrains.com/storage/products/company/brand/logos/jetbrains.svg)](https://jb.gg/OpenSource)

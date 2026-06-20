@@ -846,7 +846,7 @@ machine_xt_t1000_init(const machine_t *model)
     t1000.ems_port_index = 7; /* EMS disabled */
 
     /* Load the T1000 CGA Font ROM. */
-    loadfont("roms/machines/t1000/t1000font.bin", 2);
+    video_load_font("roms/machines/t1000/t1000font.bin", FONT_FORMAT_CGA, LOAD_FONT_NO_OFFSET);
 
     /*
      * The ROM drive is optional.
@@ -856,7 +856,7 @@ machine_xt_t1000_init(const machine_t *model)
      */
     fp = rom_fopen("roms/machines/t1000/t1000dos.rom", "rb");
     if (fp != NULL) {
-        t1000.romdrive = malloc(T1000_ROMSIZE);
+        t1000.romdrive = calloc(1, T1000_ROMSIZE);
         if (t1000.romdrive) {
             memset(t1000.romdrive, 0xff, T1000_ROMSIZE);
             if (fread(t1000.romdrive, 1, T1000_ROMSIZE, fp) != T1000_ROMSIZE)
@@ -928,7 +928,7 @@ machine_xt_t1200_init(const machine_t *model)
     t1000.ems_port_index = 7; /* EMS disabled */
 
     /* Load the T1000 CGA Font ROM. */
-    loadfont("roms/machines/t1000/t1000font.bin", 2);
+    video_load_font("roms/machines/t1000/t1000font.bin", FONT_FORMAT_CGA, LOAD_FONT_NO_OFFSET);
 
     /* Map the EMS page frame */
     for (uint8_t pg = 0; pg < 4; pg++) {

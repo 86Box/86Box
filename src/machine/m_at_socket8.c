@@ -72,6 +72,7 @@ machine_at_ap61_init(const machine_t *model)
     return ret;
 }
 
+/* i450GX */
 int
 machine_at_p6rp4_init(const machine_t *model)
 {
@@ -83,8 +84,7 @@ machine_at_p6rp4_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    device_add(&p6rp4_nvr_device);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x19, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
@@ -146,7 +146,7 @@ static const device_config_t ficpo6000_config[] = {
 
 const device_t ficpo6000_device = {
     .name          = "FIC PO-6000",
-    .internal_name = "ficpo6000_device",
+    .internal_name = "ficpo6000",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -173,7 +173,7 @@ machine_at_ficpo6000_init(const machine_t *model)
     ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
     device_context_restore();
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x19, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
@@ -207,7 +207,7 @@ machine_at_acerv60n_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -404,8 +404,8 @@ static const device_config_t vs440fx_config[] = {
 };
 
 const device_t vs440fx_device = {
-    .name          = "Intel VS440FX (Venus)",
-    .internal_name = "vs440fx_device",
+    .name          = "Intel VS440FX",
+    .internal_name = "vs440fx",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -496,7 +496,7 @@ machine_at_m6mi_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

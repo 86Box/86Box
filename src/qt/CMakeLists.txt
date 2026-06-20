@@ -57,7 +57,7 @@ endif()
 
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
-if(APPLE AND USE_QT6)
+if(APPLE AND USE_QT6 AND VCPKG_TOOLCHAIN)
     find_package(Qt6Gui/Qt6QCocoaIntegrationPlugin REQUIRED)
     find_package(Qt6Widgets/Qt6QMacStylePlugin REQUIRED)
     find_package(Qt6Gui/Qt6QICOPlugin REQUIRED)
@@ -113,6 +113,20 @@ add_library(ui STATIC
     qt_about.cpp
     qt_about.hpp
 
+    qt_preferences.cpp
+    qt_preferences.hpp
+    qt_preferences.ui
+
+    qt_preferencesemulator.cpp
+    qt_preferencesemulator.hpp
+    qt_preferencesemulator.ui
+    qt_preferencesinput.cpp
+    qt_preferencesinput.hpp
+    qt_preferencesinput.ui
+    qt_preferenceskeybindings.cpp
+    qt_preferenceskeybindings.hpp
+    qt_preferenceskeybindings.ui
+
     qt_settings.cpp
     qt_settings.hpp
     qt_settings.ui
@@ -152,6 +166,8 @@ add_library(ui STATIC
     qt_settingsotherperipherals.ui
     qt_settings_bus_tracking.cpp
     qt_settings_bus_tracking.hpp
+    qt_settings_completer.cpp
+    qt_settings_completer.hpp
 
     qt_deviceconfig.cpp
     qt_deviceconfig.hpp
@@ -189,9 +205,6 @@ add_library(ui STATIC
 
     qt_styleoverride.cpp
     qt_styleoverride.hpp
-    qt_progsettings.hpp
-    qt_progsettings.cpp
-    qt_progsettings.ui
     qt_util.hpp
     qt_util.cpp
 
@@ -200,9 +213,6 @@ add_library(ui STATIC
 
     qt_vulkanwindowrenderer.hpp
     qt_vulkanwindowrenderer.cpp
-
-    qt_vulkanrenderer.hpp
-    qt_vulkanrenderer.cpp
 
     qt_mcadevicelist.hpp
     qt_mcadevicelist.cpp
@@ -257,10 +267,32 @@ add_library(ui STATIC
     qt_openglshaderconfig.cpp
     qt_openglshaderconfig.ui
 
+    qt_vulkanshadermanagerdialog.hpp
+    qt_vulkanshadermanagerdialog.cpp
+    qt_vulkanshadermanagerdialog.ui
+
+    qt_vulkanshaderconfig.hpp
+    qt_vulkanshaderconfig.cpp
+    qt_vulkanshaderconfig.ui
+
+    qt_slangp.hpp
+
     qt_iconindicators.hpp
     qt_iconindicators.cpp
-    qt_cgasettingsdialog.hpp qt_cgasettingsdialog.cpp qt_cgasettingsdialog.ui
+    qt_cgasettingsdialog.hpp
+    qt_cgasettingsdialog.cpp
+    qt_cgasettingsdialog.ui
 )
+
+# Build the Qt ImGui backend separately so AUTOMOC skips it.
+set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
+add_library(osd_backend OBJECT ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp ${OSD_DIR}/imgui/imgui_impl_vulkan.cpp)
+set_target_properties(osd_backend PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
+target_link_libraries(86Box osd_backend)
+
+target_sources(ui PRIVATE qt_osd.cpp qt_osd.hpp qt_osd_raster.cpp qt_osd_raster.hpp)
+target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(EMU_BUILD_NUM)
     target_sources(ui PRIVATE
@@ -273,10 +305,6 @@ if(EMU_BUILD_NUM)
         qt_updatedetails.hpp
         qt_updatedetails.ui
     )
-endif()
-
-if(NETSWITCH)
-    target_compile_definitions(ui PRIVATE USE_NETSWITCH)
 endif()
 
 if(RTMIDI)
@@ -340,21 +368,28 @@ endif()
 
 if(WIN32)
     target_sources(plat PRIVATE
-        win_serial_passthrough.c
         win_netsocket.c
     )
 else()
     target_sources(plat PRIVATE
-        ../unix/unix_serial_passthrough.c
         ../unix/unix_netsocket.c
     )
 endif()
 
 if(WIN32)
     target_sources(plat PRIVATE win_cdrom_ioctl.c)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_sources(plat PRIVATE ../unix/linux_cdrom_ioctl.c)
 else()
-# Replace with proper *nix and mac handler files once they are done.
     target_sources(plat PRIVATE dummy_cdrom_ioctl.c)
+endif()
+
+if(WIN32)
+    target_sources(plat PRIVATE ../unix/dummy_floppy_ioctl.c)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD" OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_sources(plat PRIVATE ../unix/unix_floppy_ioctl.c)
+else()
+    target_sources(plat PRIVATE ../unix/dummy_floppy_ioctl.c)
 endif()
 
 if (APPLE)
@@ -397,6 +432,16 @@ target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::Network
     Threads::Threads
 )
+
+if (LIBRASHADER)
+    target_compile_definitions(plat PRIVATE LIBRA_RUNTIME_VULKAN)
+    target_compile_definitions(ui PRIVATE LIBRA_RUNTIME_VULKAN)
+    if (LIBRASHADER_STATIC)
+        target_link_libraries(ui PRIVATE librashader_capi)
+        target_compile_definitions(plat PRIVATE LIBRASHADER_STATIC)
+        target_compile_definitions(ui PRIVATE LIBRASHADER_STATIC)
+    endif()
+endif()
 
 if(WIN32)
     if(STATIC_BUILD)

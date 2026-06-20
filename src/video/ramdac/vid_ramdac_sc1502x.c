@@ -322,8 +322,7 @@ sc1502x_rs2_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 static void *
 sc1502x_ramdac_init(const device_t *info)
 {
-    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) malloc(sizeof(sc1502x_ramdac_t));
-    memset(ramdac, 0, sizeof(sc1502x_ramdac_t));
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) calloc(1, sizeof(sc1502x_ramdac_t));
 
     ramdac->ctrl = 0;
     ramdac->pixel_mask = 0xffffff;

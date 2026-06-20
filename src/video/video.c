@@ -8,37 +8,8 @@
  *
  *          Main video-rendering module.
  *
- *          Video timing settings -
- *
- *            8-bit - 1mb/sec
- *              B = 8 ISA clocks
- *              W = 16 ISA clocks
- *              L = 32 ISA clocks
- *
- *            Slow 16-bit - 2mb/sec
- *              B = 6 ISA clocks
- *              W = 8 ISA clocks
- *              L = 16 ISA clocks
- *
- *            Fast 16-bit - 4mb/sec
- *              B = 3 ISA clocks
- *              W = 3 ISA clocks
- *              L = 6 ISA clocks
- *
- *            Slow VLB/PCI - 8mb/sec (ish)
- *              B = 4 bus clocks
- *              W = 8 bus clocks
- *              L = 16 bus clocks
- *
- *            Mid VLB/PCI -
- *              B = 4 bus clocks
- *              W = 5 bus clocks
- *              L = 10 bus clocks
- *
- *            Fast VLB/PCI -
- *              B = 3 bus clocks
- *              W = 3 bus clocks
- *              L = 4 bus clocks
+ *          Video timings are set individually by the graphics cards.
+ * 
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
@@ -79,8 +50,6 @@ uint8_t      edatlookup[4][4];
 uint8_t      egaremap2bpp[256];
 uint8_t      fontdat[2048][8];            /* IBM CGA font */
 uint8_t      fontdatm[2048][16];          /* IBM MDA font */
-uint8_t      fontdat2[2048][8];           /* IBM CGA 2nd instance font */
-uint8_t      fontdatm2[2048][16];         /* IBM MDA 2nd instance font */
 uint8_t      fontdatw[512][32];           /* Wyse700 font */
 uint8_t      fontdat8x12[256][16];        /* MDSI Genius font */
 uint8_t      fontdat12x18[256][36];       /* IM1024 font */
@@ -342,7 +311,7 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
                  8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
                  PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * blit_data_ptr->h);
+    b_rgb = (png_bytep *) calloc(blit_data_ptr->h, sizeof(png_bytep));
     if (b_rgb == NULL) {
         video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
         fclose(fp);
@@ -350,7 +319,7 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
     }
 
     for (int y = 0; y < blit_data_ptr->h; ++y) {
-        b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
+        b_rgb[y] = (png_byte *) calloc(1, png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
         for (int x = 0; x < blit_data_ptr->w; ++x) {
             if (buf == NULL)
                 memset(&(b_rgb[y][x * 3]), 0x00, 3);
@@ -407,7 +376,7 @@ video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, i
     video_take_screenshot_monitor((const char *) path, buf, start_x, start_y, row_len, monitor_index);
     png_destroy_write_struct(&png_ptr[monitor_index], &info_ptr[monitor_index]);
 
-    atomic_fetch_sub(&monitors[monitor_index].mon_screenshots, 1);
+    atomic_fetch_sub(&monitors[monitor_index].mon_screenshots_raw, 1);
 }
 
 void
@@ -794,30 +763,6 @@ hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 }
 
 void
-blit(UNUSED(bitmap_t *src), UNUSED(bitmap_t *dst), UNUSED(int x1), UNUSED(int y1), UNUSED(int x2), UNUSED(int y2), UNUSED(int xs), UNUSED(int ys))
-{
-    //
-}
-
-void
-stretch_blit(UNUSED(bitmap_t *src), UNUSED(bitmap_t *dst), UNUSED(int x1), UNUSED(int y1), UNUSED(int xs1), UNUSED(int ys1), UNUSED(int x2), UNUSED(int y2), UNUSED(int xs2), UNUSED(int ys2))
-{
-    //
-}
-
-void
-rectfill(UNUSED(bitmap_t *b), UNUSED(int x1), UNUSED(int y1), UNUSED(int x2), UNUSED(int y2), UNUSED(uint32_t col))
-{
-    //
-}
-
-void
-set_palette(UNUSED(PALETTE p))
-{
-    //
-}
-
-void
 destroy_bitmap(bitmap_t *b)
 {
     if ((b != NULL) && (b->dat != NULL))
@@ -867,8 +812,12 @@ video_monitor_init(int index)
     monitors[index].mon_cga_palette                      = calloc(1, sizeof(int));
     monitors[index].mon_force_resize                     = 1;
     monitors[index].mon_vid_type                         = VIDEO_FLAG_TYPE_NONE;
+    monitors[index].mon_dpms                             = 0;
     atomic_init(&doresize_monitors[index], 0);
     atomic_init(&monitors[index].mon_screenshots, 0);
+    atomic_init(&monitors[index].mon_screenshots_clipboard, 0);
+    atomic_init(&monitors[index].mon_screenshots_raw, 0);
+    atomic_init(&monitors[index].mon_screenshots_raw_clipboard, 0);
     if (index >= 1)
         ui_init_monitor(index);
     monitors[index].mon_blit_data_ptr->blit_thread = thread_create(blit_thread, monitors[index].mon_blit_data_ptr);
@@ -946,23 +895,23 @@ video_init(void)
             egaremap2bpp[c] |= 0x08;
     }
 
-    video_6to8 = malloc(4 * 256);
+    video_6to8 = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
         video_6to8[c] = calc_6to8(c);
 
-    video_8togs = malloc(4 * 256);
+    video_8togs = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
         video_8togs[c] = c | (c << 16) | (c << 24);
 
-    video_8to32 = malloc(4 * 256);
+    video_8to32 = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
         video_8to32[c] = calc_8to32(c);
 
-    video_15to32 = malloc(4 * 65536);
+    video_15to32 = calloc(4, 65536);
     for (uint32_t c = 0; c < 65536; c++)
         video_15to32[c] = calc_15to32(c & 0x7fff);
 
-    video_16to32 = malloc(4 * 65536);
+    video_16to32 = calloc(4, 65536);
     for (uint32_t c = 0; c < 65536; c++)
         video_16to32[c] = calc_16to32(c);
 
@@ -1005,10 +954,18 @@ video_force_resize_set_monitor(uint8_t res, int monitor_index)
 }
 
 void
-loadfont_common(FILE *fp, int format)
+video_load_font(char *fn, int format, int offset)
 {
+    FILE *fp;
+
+    fp = rom_fopen(fn, "rb");
+    if (fp == NULL)
+        return;
+
+    fseek(fp, offset, SEEK_SET);
+
     switch (format) {
-        case 0: /* MDA */
+        case FONT_FORMAT_MDA: /* MDA */
             for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x8 cell (lines 0-7) */
                 for (uint8_t d = 0; d < 8; d++)
                     fontdatm[c][d] = fgetc(fp) & 0xff;
@@ -1021,7 +978,7 @@ loadfont_common(FILE *fp, int format)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 1: /* PC200 */
+        case FONT_FORMAT_PC200: /* PC200 */
             for (uint8_t d = 0; d < 4; d++) {
                 /* There are 4 fonts in the ROM */
                 for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
@@ -1033,26 +990,25 @@ loadfont_common(FILE *fp, int format)
             }
             break;
 
-        default:
-        case 2: /* CGA */
+        case FONT_FORMAT_CGA: /* CGA */
             for (uint16_t c = 0; c < 256; c++)
                 for (uint8_t d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 3: /* Wyse 700 */
+        case FONT_FORMAT_WY700: /* Wyse 700 */
             for (uint16_t c = 0; c < 512; c++)
                 for (uint8_t d = 0; d < 32; d++)
                     fontdatw[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 4: /* MDSI Genius */
+        case FONT_FORMAT_MDSI_GENIUS: /* MDSI Genius */
             for (uint16_t c = 0; c < 256; c++)
                 for (uint8_t d = 0; d < 16; d++)
                     fontdat8x12[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 5: /* Toshiba 3100e */
+        case FONT_FORMAT_TOSHIBA_3100E: /* Toshiba 3100e */
             for (uint16_t d = 0; d < 2048; d += 512) { /* Four languages... */
                 for (uint16_t c = d; c < d + 256; c++) {
                     (void) !fread(&fontdatm[c][8], 1, 8, fp);
@@ -1076,12 +1032,12 @@ loadfont_common(FILE *fp, int format)
             }
             break;
 
-        case 6: /* Korean KSC-5601 */
+        case FONT_FORMAT_KSC6501: /* Korean KSC-5601 */
             if (!fontdatksc5601)
-                fontdatksc5601 = malloc(16384 * sizeof(dbcs_font_t));
+                fontdatksc5601 = calloc(16384, sizeof(dbcs_font_t));
 
             if (!fontdatksc5601_user)
-                fontdatksc5601_user = malloc(192 * sizeof(dbcs_font_t));
+                fontdatksc5601_user = calloc(192, sizeof(dbcs_font_t));
 
             for (uint32_t c = 0; c < 16384; c++) {
                 for (uint8_t d = 0; d < 32; d++)
@@ -1089,7 +1045,7 @@ loadfont_common(FILE *fp, int format)
             }
             break;
 
-        case 7: /* Sigma Color 400 */
+        case FONT_FORMAT_SIGMA: /* Sigma Color 400 */
             /* The first 4k of the character ROM holds an 8x8 font */
             for (uint16_t c = 0; c < 256; c++) {
                 (void) !fread(&fontdat[c][0], 1, 8, fp);
@@ -1098,60 +1054,30 @@ loadfont_common(FILE *fp, int format)
             /* The second 4k holds an 8x16 font */
             for (uint16_t c = 0; c < 256; c++) {
                 if (fread(&fontdatm[c][0], 1, 16, fp) != 16)
-                    fatal("loadfont(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
+                    fatal("video_load_font(): Error reading 8x16 font in Sigma Color 400 mode, c = %i\n", c);
             }
             break;
 
-        case 8: /* Amstrad PC1512, Toshiba T1000/T1200 */
+        case FONT_FORMAT_PC1512_T1000: /* Amstrad PC1512, Toshiba T1000/T1200 */
             for (uint16_t c = 0; c < 2048; c++) /* Allow up to 2048 chars */
                 for (uint8_t d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 9: /* Image Manager 1024 native font */
+        case FONT_FORMAT_IM1024: /* Image Manager 1024 native font */
             for (uint16_t c = 0; c < 256; c++)
                 (void) !fread(&fontdat12x18[c][0], 1, 36, fp);
             break;
 
-        case 10: /* Pravetz */
+        case FONT_FORMAT_PRAVETZ: /* Pravetz */
             for (uint16_t c = 0; c < 1024; c++) /* Allow up to 1024 chars */
                 for (uint8_t d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(fp) & 0xff;
             break;
 
-        case 11: /* PC200 */
-            for (uint8_t d = 0; d < 4; d++) {
-                /* There are 4 fonts in the ROM */
-                for (uint16_t c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
-                    (void) !fread(&fontdatm2[256 * d + c][0], 1, 16, fp);
-                for (uint16_t c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
-                    (void) !fread(&fontdat2[256 * d + c][0], 1, 8, fp);
-                    fseek(fp, 8, SEEK_CUR);
-                }
-            }
-            break;
     }
 
     (void) fclose(fp);
-}
-
-void
-loadfont_ex(char *fn, int format, int offset)
-{
-    FILE *fp;
-
-    fp = rom_fopen(fn, "rb");
-    if (fp == NULL)
-        return;
-
-    fseek(fp, offset, SEEK_SET);
-    loadfont_common(fp, format);
-}
-
-void
-loadfont(char *fn, int format)
-{
-    loadfont_ex(fn, format, 0);
 }
 
 uint32_t
@@ -1186,4 +1112,15 @@ video_color_transform(uint32_t color)
     if (invert_display)
         color ^= 0x00ffffff;
     return color;
+}
+
+void
+video_clamp_vram(const uint64_t bios_flags, int *vram)
+{
+    const int min_ram = (uint16_t) (bios_flags & 0xffff);
+    const int max_ram = (uint16_t) ((bios_flags >> 16) & 0xffff);
+    if ((bios_flags & BIOS_LIMIT_MIN_MEMORY) && (*vram < min_ram))
+        *vram = min_ram;
+    if ((bios_flags & BIOS_LIMIT_MAX_MEMORY) && (*vram > max_ram))
+        *vram = max_ram;
 }

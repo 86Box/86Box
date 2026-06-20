@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2025-11-29 00:34+0000\n"
+"PO-Revision-Date: 2026-05-29 19:36+0000\n"
 "Last-Translator: OBattler <oubattler@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
@@ -73,8 +73,8 @@ msgstr "OpenGL (3.0 Core)(&G)"
 msgid "&VNC"
 msgstr "VNC(&V)"
 
-msgid "Specify &dimensions..."
-msgstr "ディメンションを指定(&D)..."
+msgid "Specify &dimensions…"
+msgstr "ディメンションを指定(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "4:3の縦横比を強制表示(&4)"
@@ -145,53 +145,44 @@ msgstr "整数倍(&I)"
 msgid "4:&3 Integer scale"
 msgstr "4:3 整数倍(&3)"
 
-msgid "EGA/(S)&VGA settings"
-msgstr "EGA/(S)&VGAの設定"
+msgid "Inverted VGA monitor"
+msgstr "色反転"
 
-msgid "&Inverted VGA monitor"
-msgstr "色反転(&I)"
+msgid "VGA screen type:"
+msgstr "画面タイプ:"
 
-msgid "VGA screen &type"
-msgstr "画面タイプ(&T)"
-
-msgid "RGB &Color"
-msgstr "RGB(カラー)(&C)"
+msgid "RGB Color"
+msgstr "RGB(カラー)"
 
 msgid "RGB (no brown)"
 msgstr "RGB(茶色なし)"
 
-msgid "&RGB Grayscale"
-msgstr "RGB(グレースケール)(&R)"
+msgid "RGB Grayscale"
+msgstr "RGB(グレースケール)"
 
 msgid "Generic RGBI color monitor"
 msgstr "汎用RGBIカラーモニター"
 
-msgid "&Amber monitor"
-msgstr "モニター(黄色)(&A)"
+msgid "Amber monitor"
+msgstr "モニター(黄色)"
 
-msgid "&Green monitor"
-msgstr "モニター(緑色)(&G)"
+msgid "Green monitor"
+msgstr "モニター(緑色)"
 
-msgid "&White monitor"
-msgstr "モニター(白色)(&W)"
+msgid "White monitor"
+msgstr "モニター(白色)"
 
-msgid "Grayscale &conversion type"
-msgstr "グレースケール変換タイプ(&C)"
+msgid "Grayscale conversion type:"
+msgstr "グレースケール変換タイプ:"
 
-msgid "BT&601 (NTSC/PAL)"
-msgstr "BT601 (NTSC/PAL)(&6)"
+msgid "Average"
+msgstr "平均"
 
-msgid "BT&709 (HDTV)"
-msgstr "BT709 (HDTV)(&7)"
+msgid "Overscan"
+msgstr "オーバースキャン"
 
-msgid "&Average"
-msgstr "平均(&A)"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/EGA/(S)VGAオーバースキャン(&G)"
-
-msgid "Change contrast for &monochrome display"
-msgstr "単色モニター用コントラストを変更(&M)"
+msgid "Change contrast for monochrome display"
+msgstr "単色モニター用コントラストを変更"
 
 msgid "&Media"
 msgstr "メディア(&M)"
@@ -199,11 +190,11 @@ msgstr "メディア(&M)"
 msgid "&Tools"
 msgstr "ツール(&T)"
 
-msgid "&Settings..."
-msgstr "設定(&S)..."
+msgid "&Settings…"
+msgstr "設定(&S)…"
 
-msgid "Settings..."
-msgstr "設定..."
+msgid "Settings…"
+msgstr "設定…"
 
 msgid "&Update status bar icons"
 msgstr "ステータスバーのアイコンを更新(&U)"
@@ -211,17 +202,38 @@ msgstr "ステータスバーのアイコンを更新(&U)"
 msgid "Take s&creenshot"
 msgstr "スクリーンショットを撮る(&C)"
 
+msgid "Take screenshot"
+msgstr "スクリーンショットを撮る"
+
+msgid "Take &raw screenshot"
+msgstr "生のスクリーンショットを撮る(&R)"
+
+msgid "Take raw screenshot"
+msgstr "生のスクリーンショットを撮る"
+
+msgid "C&opy screenshot"
+msgstr "スクリーンショットをコピーする(&O)"
+
+msgid "Copy screenshot"
+msgstr "スクリーンショットをコピーする"
+
+msgid "Copy r&aw screenshot"
+msgstr "生のスクリーンショットをコピーする(&A)"
+
+msgid "Copy raw screenshot"
+msgstr "生のスクリーンショットをコピーする"
+
 msgid "S&ound"
 msgstr "サウンド(&O)"
 
-msgid "&Preferences..."
-msgstr "環境設定(&P)..."
+msgid "&Preferences…"
+msgstr "環境設定(&P)…"
 
 msgid "Enable &Discord integration"
 msgstr "Discord連携機能(&D)"
 
-msgid "Sound &gain..."
-msgstr "音量調整(&G)..."
+msgid "Sound &gain…"
+msgstr "音量調整(&G)…"
 
 msgid "Begin trace"
 msgstr "トレース開始"
@@ -232,20 +244,20 @@ msgstr "トレース終了"
 msgid "&Help"
 msgstr "ヘルプ(&H)"
 
-msgid "&Documentation..."
-msgstr "文書(&D)..."
+msgid "&Documentation…"
+msgstr "文書(&D)…"
 
-msgid "&About 86Box..."
-msgstr "86Boxのバージョン情報(&A)..."
+msgid "&About 86Box…"
+msgstr "86Boxのバージョン情報(&A)…"
 
-msgid "&New image..."
-msgstr "新規イメージ(&N)..."
+msgid "&New image…"
+msgstr "新規イメージ(&N)…"
 
-msgid "&Existing image..."
-msgstr "既存のイメージを開く(&E)..."
+msgid "&Existing image…"
+msgstr "既存のイメージを開く(&E)…"
 
-msgid "Existing image (&Write-protected)..."
-msgstr "既存のイメージを開く(書き込み禁止)(&W)..."
+msgid "Existing image (&Write-protected)…"
+msgstr "既存のイメージを開く(書き込み禁止)(&W)…"
 
 msgid "&Record"
 msgstr "録音(&R)"
@@ -262,11 +274,11 @@ msgstr "最後まで早送り(&F)"
 msgid "E&ject"
 msgstr "取り出す(&J)"
 
-msgid "&Image..."
-msgstr "イメージ(&I)..."
+msgid "&Image…"
+msgstr "イメージ(&I)…"
 
-msgid "E&xport to 86F..."
-msgstr "86Fイメージにエクスポート(&X)..."
+msgid "E&xport to 86F…"
+msgstr "86Fイメージにエクスポート(&X)…"
 
 msgid "&Mute"
 msgstr "ミュート(&M)"
@@ -277,8 +289,8 @@ msgstr "なし(&M)"
 msgid "Reload previous image"
 msgstr "前のイメージを再読み込み"
 
-msgid "&Folder..."
-msgstr "フォルダ(&F)..."
+msgid "&Folder…"
+msgstr "フォルダ(&F)…"
 
 msgid "Preferences"
 msgstr "環境設定"
@@ -331,8 +343,32 @@ msgstr "高さ:"
 msgid "Lock to this size"
 msgstr "サイズを固定"
 
+msgid "General"
+msgstr "一般"
+
+msgid "Processor"
+msgstr "プロセッサ"
+
+msgid "Performance"
+msgstr "パフォーマンス"
+
 msgid "Machine type:"
 msgstr "マシンタイプ:"
+
+msgid "[1989] i486 (Socket 168 and 1)"
+msgstr "[1989] i486 (Socket 168 and 1)"
+
+msgid "[1994] i486 (Miscellaneous)"
+msgstr "[1994] i486 (その他)"
+
+msgid "[1995] Socket 7 (Single Voltage)"
+msgstr "[1995] Socket 7 (単一電圧)"
+
+msgid "[1996] Socket 7 (Dual Voltage)"
+msgstr "[1996] Socket 7 (デュアル電圧)"
+
+msgid "Miscellaneous"
+msgstr "その他"
 
 msgid "Machine:"
 msgstr "マシン:"
@@ -352,8 +388,14 @@ msgstr "速度:"
 msgid "Frequency:"
 msgstr "頻度:"
 
+msgid "%1 MHz"
+msgstr "%1 MHz"
+
 msgid "FPU:"
 msgstr "FPU:"
+
+msgid "Internal"
+msgstr "内部"
 
 msgid "Wait states:"
 msgstr "ウェイトステート:"
@@ -376,6 +418,9 @@ msgstr "有効(現地時間)"
 msgid "Enabled (UTC)"
 msgstr "有効(UTC)"
 
+msgid "Use the 486 interpreter for 286 and 386 processors"
+msgstr "286および386プロセッサには486インタプリタを使用する"
+
 msgid "Dynamic Recompiler"
 msgstr "動的再コンパイル"
 
@@ -394,6 +439,9 @@ msgstr "ビデオカード:"
 msgid "Video #2:"
 msgstr "ビデオカード2:"
 
+msgid "Monitor"
+msgstr "モニター"
+
 msgid "Voodoo 1 or 2 Graphics"
 msgstr "Voodoo1または2グラフィック"
 
@@ -405,6 +453,9 @@ msgstr "XGAグラフィック"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55ディスプレイアダプターグラフィックス"
+
+msgid "Voodoo:"
+msgstr "Voodoo:"
 
 msgid "Keyboard:"
 msgstr "キーボード:"
@@ -424,28 +475,28 @@ msgstr "ジョイスティック:"
 msgid "Joystick"
 msgstr "ジョイスティック"
 
-msgid "Joystick 1..."
-msgstr "ジョイスティック1..."
+msgid "Joystick 1…"
+msgstr "ジョイスティック1…"
 
-msgid "Joystick 2..."
-msgstr "ジョイスティック2..."
+msgid "Joystick 2…"
+msgstr "ジョイスティック2…"
 
-msgid "Joystick 3..."
-msgstr "ジョイスティック3..."
+msgid "Joystick 3…"
+msgstr "ジョイスティック3…"
 
-msgid "Joystick 4..."
-msgstr "ジョイスティック4..."
+msgid "Joystick 4…"
+msgstr "ジョイスティック4…"
 
-msgid "Sound card #1:"
+msgid "Sound card 1:"
 msgstr "サウンドカード1:"
 
-msgid "Sound card #2:"
+msgid "Sound card 2:"
 msgstr "サウンドカード2:"
 
-msgid "Sound card #3:"
+msgid "Sound card 3:"
 msgstr "サウンドカード3:"
 
-msgid "Sound card #4:"
+msgid "Sound card 4:"
 msgstr "サウンドカード4:"
 
 msgid "MIDI Out Device:"
@@ -463,8 +514,8 @@ msgstr "独立型MPU-401"
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32サウンドを使用する"
 
-msgid "FM synth driver"
-msgstr "FMシンセドライバー"
+msgid "FM synth driver:"
+msgstr "FMシンセドライバー:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked(高精度化)"
@@ -472,62 +523,53 @@ msgstr "Nuked(高精度化)"
 msgid "YMFM (faster)"
 msgstr "YMFM(より速く)"
 
-msgid "COM1 Device:"
-msgstr "COM1デバイス:"
-
-msgid "COM2 Device:"
-msgstr "COM2デバイス:"
-
-msgid "COM3 Device:"
-msgstr "COM3デバイス:"
-
-msgid "COM4 Device:"
-msgstr "COM4デバイス:"
-
-msgid "LPT1 Device:"
-msgstr "LPT1デバイス:"
-
-msgid "LPT2 Device:"
-msgstr "LPT2デバイス:"
-
-msgid "LPT3 Device:"
-msgstr "LPT3デバイス:"
-
-msgid "LPT4 Device:"
-msgstr "LPT4デバイス:"
-
 msgid "Internal LPT ECP DMA:"
 msgstr "内部LPTのECPのDMA:"
 
-msgid "Serial port 1"
-msgstr "シリアルポート1"
-
-msgid "Serial port 2"
-msgstr "シリアルポート2"
-
-msgid "Serial port 3"
-msgstr "シリアルポート3"
-
-msgid "Serial port 4"
-msgstr "シリアルポート4"
-
-msgid "Parallel port 1"
-msgstr "パラレルポート1"
-
-msgid "Parallel port 2"
-msgstr "パラレルポート2"
-
-msgid "Parallel port 3"
-msgstr "パラレルポート3"
-
-msgid "Parallel port 4"
-msgstr "パラレルポート4"
-
-msgid "FD Controller:"
+msgid "Floppy disk controller:"
 msgstr "FDDコントローラー:"
 
-msgid "CD-ROM Controller:"
+msgid "CD-ROM controller:"
 msgstr "CD-ROMコントローラー:"
+
+msgid "Mitsumi interface"
+msgstr "Mitsumi インターフェース"
+
+msgid "MKE/Panasonic interface"
+msgstr "MKE/Panasonic インターフェース"
+
+msgid "MKE/Panasonic interface (Creative)"
+msgstr "MKE/Panasonic インターフェース (Creative)"
+
+msgid "IDE Controller"
+msgstr "IDEコントローラ"
+
+msgid "IDE Controller (Dual-Channel)"
+msgstr "IDE コントローラ (デュアルチャネル)"
+
+msgid "PC/AT IDE Controller"
+msgstr "PC/AT IDE コントローラ"
+
+msgid "PC/AT IDE Controller (Dual-Channel)"
+msgstr "PC/AT IDE コントローラ (デュアルチャネル)"
+
+msgid "PC/AT XTIDE (Primary Only)"
+msgstr "PC/AT XTIDE (プライマリのみ)"
+
+msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
+msgstr "PS/2 AT XTIDE (1.1.5) (プライマリのみ)"
+
+msgid "CMD PCI-0646 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0646 (第三級および第四級)"
+
+msgid "CMD PCI-0648 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0648 (第三級および第四級)"
+
+msgid "CMD PCI-0649 (Tertiary and Quaternary)"
+msgstr "CMD PCI-0649 (第三級および第四級)"
+
+msgid "McIDE Controller"
+msgstr "McIDE コントローラ"
 
 msgid "Tertiary IDE Controller"
 msgstr "第三IDEコントローラー"
@@ -535,11 +577,11 @@ msgstr "第三IDEコントローラー"
 msgid "Quaternary IDE Controller"
 msgstr "第四IDEコントローラー"
 
-msgid "Hard disk"
-msgstr "ハードディスク"
+msgid "Hard disk controllers"
+msgstr "ハードディスクコントローラー"
 
-msgid "SCSI"
-msgstr "SCSI"
+msgid "SCSI controllers"
+msgstr "SCSIコントローラー"
 
 msgid "Controller 1:"
 msgstr "コントローラー1:"
@@ -562,11 +604,14 @@ msgstr "ハード ディスク:"
 msgid "Firmware Version"
 msgstr "ファームウェアバージョン"
 
-msgid "&New..."
-msgstr "新規(&N)..."
+msgid "DSP Version"
+msgstr "DSP バージョン"
 
-msgid "&Existing..."
-msgstr "既定(&E)..."
+msgid "&New…"
+msgstr "新規(&N)…"
+
+msgid "&Existing…"
+msgstr "既定(&E)…"
 
 msgid "&Remove"
 msgstr "削除(&R)"
@@ -601,8 +646,44 @@ msgstr "イメージ形式:"
 msgid "Block Size:"
 msgstr "ブロックサイズ:"
 
-msgid "Floppy drives:"
-msgstr "フロッピードライブ:"
+msgid "Floppy drives"
+msgstr "フロッピードライブ"
+
+msgid "5.25\" 180k"
+msgstr "5.25\" 180k"
+
+msgid "5.25\" 360k"
+msgstr "5.25\" 360k"
+
+msgid "5.25\" 720k"
+msgstr "5.25\" 720k"
+
+msgid "5.25\" 1.2M"
+msgstr "5.25\" 1.2M"
+
+msgid "5.25\" 1.2M 300/360 RPM"
+msgstr "5.25\" 1.2M 300/360 RPM"
+
+msgid "3.5\" 360k"
+msgstr "3.5\" 360k"
+
+msgid "3.5\" 720k"
+msgstr "3.5\" 720k"
+
+msgid "3.5\" 1.44M"
+msgstr "3.5\" 1.44M"
+
+msgid "3.5\" 1.25M PC-98"
+msgstr "3.5\" 1.25M PC-98"
+
+msgid "3.5\" 1.44M 300/360 RPM"
+msgstr "3.5\" 1.44M 300/360 RPM"
+
+msgid "3.5\" 2.88M"
+msgstr "3.5\" 2.88M"
+
+msgid "3.5\" 2.88M 300/360 RPM"
+msgstr "3.5\" 2.88M 300/360 RPM"
 
 msgid "Turbo timings"
 msgstr "高速タイミング"
@@ -610,23 +691,29 @@ msgstr "高速タイミング"
 msgid "Check BPB"
 msgstr "BPBチェック"
 
-msgid "CD-ROM drives:"
-msgstr "CD-ROMドライブ:"
+msgid "CD-ROM drives"
+msgstr "CD-ROMドライブ"
 
-msgid "MO drives:"
-msgstr "光磁気ドライブ:"
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
+msgid "MO drives"
+msgstr "光磁気ドライブ"
 
 msgid "MO:"
 msgstr "光磁気:"
 
+msgid "Removable disk drives"
+msgstr "取り外し可能なディスクドライブ"
+
 msgid "Removable disks:"
 msgstr "取り外し可能なディスク:"
 
-msgid "Removable disk drives:"
-msgstr "取り外し可能なディスクドライブ:"
+msgid "Tape drives"
+msgstr "テープドライブ"
 
-msgid "ZIP 250"
-msgstr "ZIP 250"
+msgid "Tape drives:"
+msgstr "テープドライブ:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTCカード:"
@@ -685,11 +772,20 @@ msgstr "取り外し可能なディスク(&R) %1 (%2): %3"
 msgid "Removable disk images"
 msgstr "取り外し可能なディスクイメージ"
 
+msgid "Tape %1 (%2): %3"
+msgstr "テープ %1 (%2): %3"
+
+msgid "&Tape %1 (%2): %3"
+msgstr "テープ(&T) %1 (%2): %3"
+
+msgid "Tape images"
+msgstr "テープイメージ"
+
 msgid "Image %1"
 msgstr "イメージ %1"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Boxで使用可能なROMイメージが見つかりません。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、roms ディレクトリに解凍してください。"
+msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "%1で使用可能なROMイメージが見つかりません。\n\nROMセットを<a href=\"%2\">ダウンロード</a>して、roms ディレクトリに解凍してください。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -715,17 +811,14 @@ msgstr "ベーシック セクター イメージ"
 msgid "Surface images"
 msgstr "サーフェス イメージ"
 
-msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "roms/machines ディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
+msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "roms/machines ディレクトリにROMがないため、マシン「%s」は使用できません。使用可能なマシンに切り替えます。"
 
-msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
+msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%s」は使用できません。使用可能なビデオカードに切り替えます。"
 
-msgid "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-msgstr "roms/video ディレクトリにROMがないため、ビデオ カード2「%hs」は使用できません。2枚目のビデオカードを無効にします。"
-
-msgid "Device \"%hs\" is not available due to missing ROMs. Ignoring the device."
-msgstr "ROMがないため、デバイス「%hs」は使用できません。装置を無視する。"
+msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
+msgstr "ROMがないため、デバイス「%s」は使用できません。デバイスを無視します。"
 
 msgid "Machine"
 msgstr "マシン"
@@ -748,11 +841,41 @@ msgstr "ポート (COM/LPT)"
 msgid "Ports"
 msgstr "ポート"
 
+msgid "Serial ports"
+msgstr "シリアルポート"
+
 msgid "Serial ports:"
 msgstr "シリアルポート:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
+msgid "Parallel ports"
+msgstr "パラレルポート"
+
 msgid "Parallel ports:"
 msgstr "パラレルポート:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "ストレージコントローラ"
@@ -796,14 +919,8 @@ msgstr "バス"
 msgid "File"
 msgstr "ファイル"
 
-msgid "C"
-msgstr "C"
-
-msgid "H"
-msgstr "H"
-
-msgid "S"
-msgstr "S"
+msgid "Geometry"
+msgstr "ジオメトリ"
 
 msgid "KB"
 msgstr "KB"
@@ -811,17 +928,18 @@ msgstr "KB"
 msgid "Default"
 msgstr "既定値"
 
-msgid "%1 Wait state(s)"
-msgstr "%1つのウェイト ステート"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%1つのウェイト ステート"
 
 msgid "Type"
 msgstr "タイプ"
 
-msgid "No PCap devices found"
-msgstr "PCapデバイスがありません"
+msgid "No PCap devices found. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "PCapデバイスがありません。%1がインストールされていてかつ、%1に対応したネットワークに接続されてるか確認してください。"
 
-msgid "Invalid PCap device"
-msgstr "不正なPCapデバイス"
+msgid "Invalid PCap device. Make sure %1 is installed and that you are on a %1-compatible network connection."
+msgstr "不正なPCapデバイス。%1がインストールされていてかつ、%1に対応したネットワークに接続されてるか確認してください。"
 
 msgid "Generic paddle controller(s)"
 msgstr "汎用パドルコントローラー"
@@ -874,9 +992,6 @@ msgstr "4ボタン式ゲームパッド"
 msgid "6-button gamepad"
 msgstr "6ボタン式ゲームパッド"
 
-msgid "Gravis PC GamePad"
-msgstr "Gravis PC GamePad"
-
 msgid "2-button flight yoke"
 msgstr "2ボタン式操縦桿"
 
@@ -903,51 +1018,6 @@ msgstr "ステアリングホイール(3軸、3ボタン)"
 
 msgid "Steering wheel (3-axis, 4-button)"
 msgstr "ステアリングホイール(3軸、4ボタン)"
-
-msgid "CH Flightstick"
-msgstr "CH Flightstick"
-
-msgid "CH Flightstick + CH Pedals"
-msgstr "CH Flightstick + CH Pedals"
-
-msgid "CH Flightstick + CH Pedals Pro"
-msgstr "CH Flightstick + CH Pedals Pro"
-
-msgid "CH Flightstick Pro"
-msgstr "CH Flightstick Pro"
-
-msgid "CH Flightstick Pro + CH Pedals"
-msgstr "CH Flightstick Pro + CH Pedals"
-
-msgid "CH Flightstick Pro + CH Pedals Pro"
-msgstr "CH Flightstick Pro + CH Pedals Pro"
-
-msgid "CH Virtual Pilot"
-msgstr "CH Virtual Pilot"
-
-msgid "CH Virtual Pilot + CH Pedals"
-msgstr "CH Virtual Pilot + CH Pedals"
-
-msgid "CH Virtual Pilot + CH Pedals Pro"
-msgstr "CH Virtual Pilot + CH Pedals Pro"
-
-msgid "CH Virtual Pilot Pro"
-msgstr "CH Virtual Pilot Pro"
-
-msgid "CH Virtual Pilot Pro + CH Pedals"
-msgstr "CH Virtual Pilot Pro + CH Pedals"
-
-msgid "CH Virtual Pilot Pro + CH Pedals Pro"
-msgstr "CH Virtual Pilot Pro + CH Pedals Pro"
-
-msgid "Microsoft SideWinder Pad"
-msgstr "Microsoft SideWinderパッド"
-
-msgid "Thrustmaster Flight Control System"
-msgstr "Thrustmaster Flight Control System"
-
-msgid "Thrustmaster FCS + Rudder Control System"
-msgstr "Thrustmaster FCS + Rudder Control System"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
 msgstr "アダプター付き Thrustmaster Formula T1/T2"
@@ -979,11 +1049,11 @@ msgstr "使用中のマシンをハード リセットしますか？"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "86Boxを終了しますか？"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Ghostscriptが初期化できません"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Ghostscriptが初期化できません。PostScriptファイルをPDFに自動変換するには%1が必要です。\n\n汎用PostScriptプリンターに送信された文書は、PostScript (.ps) ファイルとして保存されます。"
 
-msgid "Unable to initialize GhostPCL"
-msgstr "GhostPCLが初期化できません"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "GhostPCLが初期化できません。PCLファイルをPDFに自動変換するには%1が必要です。\n\n汎用PCLプリンターに送信された文書は、Printer Command Language (.pcl) ファイルとして保存されます。"
 
 msgid "MO %1 (%2): %3"
 msgstr "光磁気 %1 (%2): %3"
@@ -1003,11 +1073,17 @@ msgstr "内蔵デバイス"
 msgid "&File"
 msgstr "ファイル(&F)"
 
-msgid "&New machine..."
-msgstr "新しいマシン(&N)..."
+msgid "&New machine…"
+msgstr "新しいマシン(&N)…"
 
-msgid "&Check for updates..."
-msgstr "アップデートを確認中(&C)..."
+msgid "New machine…"
+msgstr "新しいマシン…"
+
+msgid "New machine"
+msgstr "新しいマシン"
+
+msgid "&Check for updates…"
+msgstr "アップデートを確認(&C)…"
 
 msgid "Exit"
 msgstr "終了"
@@ -1033,29 +1109,8 @@ msgstr "古いパソコンのエミュレーター\n\n著者: Miran Grča (OBatt
 msgid "Hardware not available"
 msgstr "ハードウェアが利用できません"
 
-msgid "Make sure %1 is installed and that you are on a %1-compatible network connection."
-msgstr "%1がインストールされていてかつ、%1に対応したネットワークに接続されてるか確認してください。"
-
-msgid "Invalid configuration"
-msgstr "不正な設定です"
-
-msgid "%1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "PostScriptファイルをPDFに自動変換するには%1が必要です。\n\n汎用PostScriptプリンターに送信された文書は、PostScript (.ps) ファイルとして保存されます。"
-
-msgid "%1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "PCLファイルをPDFに自動変換するには%1が必要です。\n\n汎用PCLプリンターに送信された文書は、Printer Command Language (.pcl) ファイルとして保存されます。"
-
 msgid "Don't show this message again"
 msgstr "今後、このメッセージを表示しない"
-
-msgid "Don't exit"
-msgstr "終了しない"
-
-msgid "Reset"
-msgstr "リセット"
-
-msgid "Don't reset"
-msgstr "リセットしない"
 
 msgid "CD-ROM images"
 msgstr "CD-ROMイメージ"
@@ -1106,7 +1161,7 @@ msgid "Ctrl+Alt+Del"
 msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+DELを押す"
+msgstr "Ctrl+Alt+Delを押す"
 
 msgid "Press Ctrl+Alt+Esc"
 msgstr "Ctrl+Alt+Escを押す"
@@ -1142,13 +1197,16 @@ msgid "Powered Off"
 msgstr "電源オフ"
 
 msgid "%n running"
-msgstr "%n 実行中"
+msgid_plural "%n running"
+msgstr[0] "%n 実行中"
 
 msgid "%n paused"
-msgstr "%n 停止した"
+msgid_plural "%n paused"
+msgstr[0] "%n 停止した"
 
 msgid "%n waiting"
-msgstr "%n 待機中"
+msgid_plural "%n waiting"
+msgstr[0] "%n 待機中"
 
 msgid "%1 total"
 msgstr "%1 は総数です"
@@ -1177,8 +1235,9 @@ msgstr "選択した設定ファイルを読み込むことができませんで
 msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
-msgid "%1 machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr "現在、%1台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
 
 msgid "Add new system wizard"
 msgstr "新しいシステムを追加するためのウィザード"
@@ -1258,26 +1317,23 @@ msgstr "表示名を設定する"
 msgid "Enter the new display name (blank to reset)"
 msgstr "新しい表示名を入力してください(空白にするとリセットされます)"
 
-msgid "Change &display name..."
-msgstr "表示名を変更(&D)..."
+msgid "Change &display name…"
+msgstr "表示名を変更(&D)…"
 
-msgid "Context Menu"
-msgstr "コンテキストメニュー"
+msgid "&Open folder…"
+msgstr "フォルダーを開く(&O)…"
 
-msgid "&Open folder..."
-msgstr "フォルダーを開く(&O)..."
+msgid "Open p&rinter tray…"
+msgstr "プリンタートレイを開く(&R)…"
 
-msgid "Open p&rinter tray..."
-msgstr "プリンタートレイを開く(&R)..."
-
-msgid "Set &icon..."
-msgstr "アイコンを設定(&I)..."
+msgid "Set &icon…"
+msgstr "アイコンを設定(&I)…"
 
 msgid "Select an icon"
 msgstr "アイコンを選択してください"
 
-msgid "C&lone..."
-msgstr "クローン(&L)..."
+msgid "C&lone…"
+msgstr "クローン(&L)…"
 
 msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "仮想マシン「%1」 (%2)は、以下の場所にクローンされます:"
@@ -1363,8 +1419,8 @@ msgstr "スクリーンショットなし"
 msgid "Search"
 msgstr "検索"
 
-msgid "Searching for VMs..."
-msgstr "仮想マシンを検索中..."
+msgid "Searching for VMs…"
+msgstr "仮想マシンを検索中…"
 
 msgid "Found %1"
 msgstr "%1が見つかりました"
@@ -1391,19 +1447,16 @@ msgid "ACPI shutdown"
 msgstr "ACPIシャットダウン"
 
 msgid "ACP&I shutdown"
-msgstr "ACP&Iシャットダウン"
+msgstr "ACPIシャットダウン(&I)"
 
 msgid "Hard disk (%1)"
 msgstr "ハードディスク (%1)"
 
-msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLLやESDI CD-ROMドライブが存在しません"
+msgid "Custom…"
+msgstr "カスタム…"
 
-msgid "Custom..."
-msgstr "カスタム..."
-
-msgid "Custom (large)..."
-msgstr "カスタム (大容量)..."
+msgid "Custom (large)…"
+msgstr "カスタム (大容量)…"
 
 msgid "Add New Hard Disk"
 msgstr "新規のディスクを追加"
@@ -1456,14 +1509,40 @@ msgstr "選択したファイルは上書きされます。よろしいですか
 msgid "Unsupported disk image"
 msgstr "非対応のディスクイメージ"
 
-msgid "Overwrite"
-msgstr "上書き"
+msgid "Unable to read device"
+msgstr "デバイスを読み取れません"
 
-msgid "Don't overwrite"
-msgstr "上書きしない"
+msgid "Could not determine block device size. Make sure you have permission to access this device."
+msgstr "ブロックデバイスのサイズを特定できませんでした。このデバイスにアクセスする権"
+"限があることを確認してください。"
+
+msgid "Device too large"
+msgstr "デバイスが大きすぎます"
+
+msgid "Block device is too large to be used as a hard disk."
+msgstr "ブロックデバイスのサイズが大きすぎるため、ハードディスクとして使用できません"
+"。"
+
+msgid "Block device detected"
+msgstr "ブロックデバイスが検出されました"
+
+msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgstr ""
+"検出されたブロックデバイス: %1\n"
+"サイズ: %2 MB\n"
+"構成: %3 シリンダ、%4 ヘッド、%5 セクタ"
+
+msgid "Failed to write the disk image."
+msgstr "ディスクイメージの書き込みに失敗しました。"
+
+msgid "Failed to read the disk image."
+msgstr "ディスクイメージの読み込みに失敗しました。"
+
+msgid "The disk image has been successfully created."
+msgstr "ディスクイメージの作成に成功しました。"
 
 msgid "Raw image"
-msgstr "Rawイメージ"
+msgstr "生のイメージ"
 
 msgid "HDI image"
 msgstr "HDIイメージ"
@@ -1513,29 +1592,14 @@ msgstr "VHDファイル"
 msgid "Select the parent VHD"
 msgstr "親VHDの選択"
 
-msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "親イメージが差分イメージの作成の後に変更される可能性があります。\n\nイメージ ファイルが移動またはコピーされたか、イメージ ファイルを作成したプログラムにバグが発生した可能性があります。\n\nタイムスタンプを修正しますか？"
+msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "親ディスクと子ディスクのタイムス タンプが一致しません。親イメージが差分イメージの作成の後に変更される可能性があります。\n\nイメージ ファイルが移動またはコピーされたか、イメージ ファイルを作成したプログラムにバグが発生した可能性があります。\n\nタイムスタンプを修正しますか？"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "親ディスクと子ディスクのタイムス タンプが一致しません"
 
 msgid "Could not fix VHD timestamp."
 msgstr "VHD のタイムスタンプを修正できません。"
-
-msgid "MFM/RLL"
-msgstr "MFM/RLL"
-
-msgid "XTA"
-msgstr "XTA"
-
-msgid "ESDI"
-msgstr "ESDI"
-
-msgid "IDE"
-msgstr "IDE"
-
-msgid "ATAPI"
-msgstr "ATAPI"
 
 msgid "CD-ROM %1 (%2): %3"
 msgstr "CD-ROM %1 (%2): %3"
@@ -1579,9 +1643,6 @@ msgstr "DMF (クラスター2048)"
 msgid "2.88 MB"
 msgstr "2.88 MB"
 
-msgid "ZIP 100"
-msgstr "ZIP 100"
-
 msgid "3.5\" 128 MB (ISO 10090)"
 msgstr "3.5\" 128 MB (ISO 10090)"
 
@@ -1624,14 +1685,14 @@ msgstr "1.5%低いRPM"
 msgid "2% below perfect RPM"
 msgstr "2%低いRPM"
 
+msgid "Creating image…"
+msgstr "画像を作成中…"
+
 msgid "(System Default)"
 msgstr "(システム既定値)"
 
-msgid "Failed to initialize network driver"
-msgstr "ネットワークドライバの初期化に失敗しました"
-
-msgid "The network configuration will be switched to the null driver"
-msgstr "ネットワーク設定がヌルドライバに切り替えられます"
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "ネットワークドライバの初期化に失敗しました:\n\n%s\n\nネットワーク設定がヌルドライバに切り替えられます。"
 
 msgid "Mouse sensitivity:"
 msgstr "マウスの感度:"
@@ -1651,8 +1712,11 @@ msgstr "遅い"
 msgid "Fast"
 msgstr "速い"
 
-msgid "&Auto-pause on focus loss"
-msgstr "フォーカスが奪われると自動停止(&A)"
+msgid "Auto-pause on focus loss"
+msgstr "フォーカスが奪われると自動停止"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBoxはサポート終了"
@@ -1687,14 +1751,14 @@ msgstr "タブレットツール(&T)"
 msgid "About &Qt"
 msgstr "&Qtについて"
 
-msgid "&MCA devices..."
-msgstr "&MCAデバイス..."
+msgid "&MCA devices…"
+msgstr "&MCAデバイス…"
 
 msgid "Show non-&primary monitors"
 msgstr "プライマリーモニター以外のモニターを表示する(&P)"
 
-msgid "Open screenshots &folder..."
-msgstr "スクリーンショットフォルダを開く(&F)..."
+msgid "Open screenshots &folder…"
+msgstr "スクリーンショットフォルダを開く(&F)…"
 
 msgid "Appl&y fullscreen stretch mode when maximized"
 msgstr "最大化時にフルスクリーンストレッチモードを適用(&Y)"
@@ -1705,8 +1769,8 @@ msgstr "カーソル/パック(&C)"
 msgid "&Pen"
 msgstr "ペン(&P)"
 
-msgid "&Host CD/DVD Drive (%1:)"
-msgstr "ホスト CD/DVD ドライブ (%1:) (&H)"
+msgid "&Host CD/DVD Drive (%1)"
+msgstr "ホスト CD/DVD ドライブ (%1) (&H)"
 
 msgid "&Connected"
 msgstr "コネクテッド"
@@ -1714,8 +1778,8 @@ msgstr "コネクテッド"
 msgid "Clear image &history"
 msgstr "クリア画像履歴(&H)"
 
-msgid "Create..."
-msgstr "作成..."
+msgid "Create…"
+msgstr "作成…"
 
 msgid "Host CD/DVD Drive (%1)"
 msgstr "ホスト CD/DVD ドライブ (%1)"
@@ -1724,7 +1788,7 @@ msgid "Unknown Bus"
 msgstr "不明なバス"
 
 msgid "Null Driver"
-msgstr "ヌル・ドライバー"
+msgstr "ヌルドライバー"
 
 msgid "NIC:"
 msgstr "NIC:"
@@ -1756,35 +1820,35 @@ msgstr "シェーダー"
 msgid "Remove"
 msgstr "削除"
 
-msgid "Browse..."
-msgstr "参照..."
+msgid "Browse…"
+msgstr "参照…"
 
 msgid "Couldn't create OpenGL context."
 msgstr "OpenGLコンテキストを作成できませんでした。"
 
 msgid "Couldn't switch to OpenGL context."
-msgstr "OpenGLコンテキストに切り替えられなかった。"
+msgstr "OpenGLコンテキストに切り替えられませんでした。"
 
 msgid "OpenGL version 3.0 or greater is required. Current version is %1.%2"
 msgstr "OpenGLのバージョン3.0以上が必要です。現在のバージョンは %1.%2 です"
 
-msgid "Error initializing OpenGL"
-msgstr "OpenGLの初期化エラー"
+msgid "Error initializing OpenGL."
+msgstr "OpenGLの初期化エラー。"
 
-msgid "\nFalling back to software rendering."
-msgstr "\nソフトウェアレンダリングに逆戻り。"
+msgid "Falling back to software rendering."
+msgstr "ソフトウェアレンダリングに逆戻り。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>メディアイメージ（CD-ROM、フロッピーなど）を選択するとき、オープンダイアログは86Box設定ファイルと同じディレクトリで開始します。この設定は、おそらく macOS でのみ違いがあります。</p></body></html>"
 
 msgid "This machine might have been moved or copied."
-msgstr "このマシンは移動されたかコピーされた可能性がある。"
+msgstr "このマシンは移動またはコピーされた可能性があります。"
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "ネットワーク機能を正しく動作させるために、86Boxはこのマシンが移動されたかコピーされたかを知る必要があります。\n\n「コピーした」を選択してください。"
+msgstr "ネットワーク機能を正しく動作させるために、86Boxはこのマシンが移動されたかコピーされたかを知る必要があります。\n\n不明な場合は、「コピーした」を選択してください。"
 
 msgid "I Moved It"
-msgstr "動かした"
+msgstr "移動した"
 
 msgid "I Copied It"
 msgstr "コピーした"
@@ -1793,7 +1857,7 @@ msgid "86Box Monitor #%1"
 msgstr "86Box モニター%1"
 
 msgid "No MCA devices."
-msgstr "MCAデバイスはない。"
+msgstr "MCAデバイスはありません。"
 
 msgid "MiB"
 msgstr "MiB"
@@ -1801,17 +1865,17 @@ msgstr "MiB"
 msgid "GiB"
 msgstr "GiB"
 
-msgid "Network Card #1"
-msgstr "ネットワークカード 1"
+msgid "Adapter 1"
+msgstr "アダプター 1"
 
-msgid "Network Card #2"
-msgstr "ネットワークカード 2"
+msgid "Adapter 2"
+msgstr "アダプター 2"
 
-msgid "Network Card #3"
-msgstr "ネットワークカード 3"
+msgid "Adapter 3"
+msgstr "アダプター 3"
 
-msgid "Network Card #4"
-msgstr "ネットワークカード 4"
+msgid "Adapter 4"
+msgstr "アダプター 4"
 
 msgid "Mode:"
 msgstr "モード:"
@@ -1834,20 +1898,8 @@ msgstr "86Boxユニットテスター"
 msgid "Novell NetWare 2.x Key Card"
 msgstr "Novell NetWare 2.xキーカード"
 
-msgid "Serial port passthrough 1"
-msgstr "シリアル・ポート・パススルー 1"
-
-msgid "Serial port passthrough 2"
-msgstr "シリアル・ポート・パススルー 2"
-
-msgid "Serial port passthrough 3"
-msgstr "シリアル・ポート・パススルー 3"
-
-msgid "Serial port passthrough 4"
-msgstr "シリアル・ポート・パススルー 4"
-
-msgid "Renderer &options..."
-msgstr "レンダラー設定(&O)..."
+msgid "Renderer &options…"
+msgstr "レンダラー設定(&O)…"
 
 msgid "PC/XT Keyboard"
 msgstr "PC/XT キーボード"
@@ -1900,8 +1952,8 @@ msgstr "3Mマイクロタッチ（シリアル）"
 msgid "Default Baud rate"
 msgstr "デフォルトのボーレート"
 
-msgid "[COM] Standard Hayes-compliant Modem"
-msgstr "[COM] 標準ヘイズ準拠モデム"
+msgid "Standard Hayes-compliant Modem"
+msgstr "標準ヘイズ準拠モデム"
 
 msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32エミュレーション"
@@ -1984,6 +2036,9 @@ msgstr "シリアルポートのIRQ"
 msgid "Parallel port IRQ"
 msgstr "パラレルポートのIRQ"
 
+msgid "Hard disk"
+msgstr "ハードディスク"
+
 msgid "BIOS Revision"
 msgstr "BIOSリビジョン"
 
@@ -1992,6 +2047,9 @@ msgstr "BIOSバージョン"
 
 msgid "BIOS Language"
 msgstr "BIOS言語"
+
+msgid "Variant"
+msgstr "バリアント"
 
 msgid "IBM 5161 Expansion Unit"
 msgstr "IBM 5161拡張ユニット"
@@ -2059,9 +2117,6 @@ msgstr "MIDI入力のパススルー"
 msgid "MIDI Clockout"
 msgstr "MIDIクロックの出力"
 
-msgid "SoundFont"
-msgstr "サウンドフォント"
-
 msgid "Output Gain"
 msgstr "出力ゲイン"
 
@@ -2072,10 +2127,10 @@ msgid "Chorus Voices"
 msgstr "コーラスの声"
 
 msgid "Chorus Level"
-msgstr "コーラス・レベル"
+msgstr "コーラスレベル"
 
 msgid "Chorus Speed"
-msgstr "コーラス・スピード"
+msgstr "コーラススピード"
 
 msgid "Chorus Depth"
 msgstr "コーラスの深さ"
@@ -2087,16 +2142,16 @@ msgid "Reverb"
 msgstr "リバーブ"
 
 msgid "Reverb Room Size"
-msgstr "リバーブ・ルームの大きさ"
+msgstr "リバーブルームの大きさ"
 
 msgid "Reverb Damping"
-msgstr "リバーブ・ダンピング"
+msgstr "リバーブダンピング"
 
 msgid "Reverb Width"
 msgstr "リバーブ幅"
 
 msgid "Reverb Level"
-msgstr "リバーブ・レベル"
+msgstr "リバーブレベル"
 
 msgid "Interpolation Method"
 msgstr "補間法"
@@ -2111,7 +2166,7 @@ msgid "Reversed stereo"
 msgstr "逆ステレオ"
 
 msgid "Nice ramp"
-msgstr "ナイス・スロープ"
+msgstr "ナイススロープ"
 
 msgid "Hz"
 msgstr "ヘルツ"
@@ -2201,7 +2256,7 @@ msgid "SID Filter Strength"
 msgstr "SIDフィルターの強度"
 
 msgid "Surround module"
-msgstr "サラウンド・モジュール"
+msgstr "サラウンドモジュール"
 
 msgid "SB Address"
 msgstr "SBアドレス"
@@ -2254,14 +2309,14 @@ msgstr "ハイDMA"
 msgid "Control PC speaker"
 msgstr "コントロールPCスピーカー"
 
+msgid "Control MIDI volume"
+msgstr ""
+
 msgid "Memory size"
 msgstr "メモリーサイズ"
 
 msgid "EMU8000 Address"
 msgstr "EMU8000 アドレス"
-
-msgid "IDE Controller"
-msgstr "IDEコントローラ"
 
 msgid "Codec"
 msgstr "コーデック"
@@ -2276,7 +2331,7 @@ msgid "Display type"
 msgstr "表示タイプ"
 
 msgid "Composite type"
-msgstr "コンポジット・タイプ"
+msgstr "コンポジットタイプ"
 
 msgid "RGB type"
 msgstr "RGBタイプ"
@@ -2285,7 +2340,7 @@ msgid "Line doubling type"
 msgstr "ライン倍増タイプ"
 
 msgid "Snow emulation"
-msgstr "スノー・エミュレーション"
+msgstr "スノーエミュレーション"
 
 msgid "Monitor type"
 msgstr "モニタータイプ"
@@ -2312,7 +2367,7 @@ msgid "Font"
 msgstr "フォント"
 
 msgid "Bilinear filtering"
-msgstr "バイリニア・フィルタリング"
+msgstr "バイリニアフィルタリング"
 
 msgid "Video chroma-keying"
 msgstr "ビデオのクロマキー処理"
@@ -2380,20 +2435,47 @@ msgstr "EMS 2メモリ容量"
 msgid "Enable EMS"
 msgstr "EMSを有効にする"
 
-msgid "Enable EMS 1"
-msgstr "EMS 1を有効にする"
-
-msgid "Enable EMS 2"
-msgstr "EMS 2を有効にする"
-
 msgid "Address for > 2 MB"
 msgstr "2MB以上のアドレス"
 
 msgid "Frame Address"
 msgstr "フレームアドレス"
 
-msgid "USA"
-msgstr "アメリカ"
+msgid "English"
+msgstr "英語"
+
+msgid "English (US)"
+msgstr "英語 (米国)"
+
+msgid "English (UK)"
+msgstr "英語 (英国)"
+
+msgid "English (Canada)"
+msgstr "英語 (カナダ)"
+
+msgid "German"
+msgstr "ドイツ語"
+
+msgid "French"
+msgstr "フランス語"
+
+msgid "Spanish"
+msgstr "スペイン語"
+
+msgid "Swedish"
+msgstr "スウェーデン語"
+
+msgid "Italian"
+msgstr "イタリア語"
+
+msgid "Portuguese"
+msgstr "ポルトガル語"
+
+msgid "Norwegian"
+msgstr "ノルウェー語"
+
+msgid "Greek"
+msgstr "ギリシャ語"
 
 msgid "Danish"
 msgstr "デンマーク語"
@@ -2590,9 +2672,6 @@ msgstr "グレイスケール"
 msgid "Color"
 msgstr "カラー"
 
-msgid "U.S. English"
-msgstr "アメリカ英語"
-
 msgid "Scandinavian"
 msgstr "スカンジナビア"
 
@@ -2606,16 +2685,16 @@ msgid "Apply overscan deltas"
 msgstr "オーバースキャンデルタを適用する"
 
 msgid "Mono Interlaced"
-msgstr "モノラル・インターレース"
+msgstr "モノラルインターレース"
 
 msgid "Mono Non-Interlaced"
-msgstr "モノラル・ノンインターレース"
+msgstr "モノラルノンインターレース"
 
 msgid "Color Interlaced"
-msgstr "カラー・インターレース"
+msgstr "カラーインターレース"
 
 msgid "Color Non-Interlaced"
-msgstr "カラー・ノンインターレース"
+msgstr "カラーノンインターレース"
 
 msgid "3Dfx Voodoo Graphics"
 msgstr "3dfx Voodooグラフィック"
@@ -2647,11 +2726,14 @@ msgstr "スタンダード"
 msgid "High-Speed"
 msgstr "高速"
 
+msgid "LPT DAC / Covox Speech Thing"
+msgstr "LPT DAC / Covox Speech Thing"
+
 msgid "Stereo LPT DAC"
 msgstr "ステレオLPT DAC"
 
 msgid "Generic Text Printer"
-msgstr "汎用テキスト・プリンタ"
+msgstr "汎用テキストプリンタ"
 
 msgid "Generic ESC/P 2 Dot-Matrix Printer"
 msgstr "汎用ESC/P 2ドットマトリクスプリンタ"
@@ -2659,44 +2741,92 @@ msgstr "汎用ESC/P 2ドットマトリクスプリンタ"
 msgid "Generic PostScript Printer"
 msgstr "汎用ポストスクリプトプリンタ"
 
-msgid "Generic PCL5e Printer"
-msgstr "汎用PCL5eプリンタ"
+msgid "Generic PCL Printer"
+msgstr "汎用PCLプリンタ"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "パラレルライン・インターネット・プロトコル"
+msgstr "パラレルラインインターネットプロトコル"
 
 msgid "Protection Dongle for Savage Quest"
-msgstr "サベージ・クエスト用プロテクション・ドングル"
+msgstr "サベージクエスト用プロテクションドングル"
 
-msgid "Serial Passthrough Device"
-msgstr "シリアル・ポート・パススルー・デバイス"
+msgid "Loopback Plug"
+msgstr "ループバックプラグ"
 
-msgid "Passthrough Mode"
-msgstr "パススルーモード"
+msgid "Serial Passthrough"
+msgstr "シリアルポートパススルー"
 
-msgid "Host Serial Device"
-msgstr "ホスト・シリアル・デバイス"
+msgid "Host serial device"
+msgstr "ホストシリアルデバイス"
 
-msgid "Name of pipe"
-msgstr "パイプ名"
+msgid "Named Pipe"
+msgstr "名前付きパイプ"
 
-msgid "Data bits"
-msgstr "データビット"
+msgid "Output file"
+msgstr "出力ファイル"
 
-msgid "Stop bits"
-msgstr "ストップビット"
+msgid "Append to file if it exists"
+msgstr "ファイルが存在する場合は、そのファイルに追加する"
 
-msgid "Baud Rate of Passthrough"
-msgstr "パススルーのボーレート"
+msgid "Input file"
+msgstr "入力ファイル"
 
-msgid "Named Pipe (Server)"
-msgstr "名前付きパイプ(サーバー)"
+msgid "Loop input file"
+msgstr "入力ファイルをループ処理する"
 
-msgid "Named Pipe (Client)"
-msgstr "名前付きパイプ(クライアント)"
+msgid "Require STROBE signal"
+msgstr "STROBE信号が必要"
 
-msgid "Host Serial Passthrough"
-msgstr "ホストシリアルポートのパススルー"
+msgid "Loopback Type"
+msgstr "ループバックタイプ"
+
+msgid "Parallel cable"
+msgstr "パラレルケーブル"
+
+msgid "Unidirectional (8-bit) / LapLink (4-bit)"
+msgstr "単方向 (8ビット) / LapLink (4ビット)"
+
+msgid "Bidirectional (8-bit)"
+msgstr "双方向 (8ビット)"
+
+msgid "Pipe path"
+msgstr "パイプへのパス"
+
+msgid "FIFO / terminal"
+msgstr "FIFO / ターミナル"
+
+msgid "Mode"
+msgstr "モード"
+
+msgid "Server"
+msgstr "サーバー"
+
+msgid "Client"
+msgstr "クライアント"
+
+msgid "Reconnect automatically"
+msgstr "自動的に再接続する"
+
+msgid "Use standard input/output"
+msgstr "標準入出力を使用する"
+
+msgid "Create pseudoterminal"
+msgstr "疑似ターミナルを作成する"
+
+msgid "Start terminal emulator"
+msgstr "ターミナルエミュレータを起動する"
+
+msgid "Run custom command"
+msgstr "カスタムコマンドを実行する"
+
+msgid "Custom command"
+msgstr "カスタムコマンド"
+
+msgid "Run custom command in terminal"
+msgstr "ターミナルでカスタムコマンドを実行する"
+
+msgid "Virtual Console"
+msgstr "バーチャルコンソール"
 
 msgid "E&ject %1"
 msgstr "%1を取り出す(&J)"
@@ -2712,6 +2842,12 @@ msgstr "パフォーマンスへの影響が大きい"
 
 msgid "[Generic] RAM Disk (max. speed)"
 msgstr "[汎用] RAMディスク（最高速度）"
+
+msgid "[Generic] 1983 MFM (3600 RPM)"
+msgstr "[汎用] 1983 MFM (3600 RPM)"
+
+msgid "[Generic] 1983 RLL (3600 RPM)"
+msgstr "[汎用] 1983 RLL (3600 RPM)"
 
 msgid "[Generic] 1989 (3500 RPM)"
 msgstr "[汎用] 1989 (3500 RPM)"
@@ -2734,8 +2870,8 @@ msgstr "[汎用] 1998 (5400 RPM)"
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[汎用] 2000 (7200 RPM)"
 
-msgid "IBM 8514/A clone (ISA)"
-msgstr "IBM 8514/A クローン（ISA）"
+msgid "IBM 8514/A clone"
+msgstr "IBM 8514/A クローン"
 
 msgid "Vendor"
 msgstr "業者"
@@ -2752,11 +2888,14 @@ msgstr "汎用PC/XTメモリ拡張カード"
 msgid "Generic PC/AT Memory Expansion"
 msgstr "汎用PC/ATメモリ拡張カード"
 
-msgid "Unable to find Dot-Matrix fonts"
-msgstr "ドットマトリクスフォントが見つかりません"
+msgid "Generic MM58167 RTC"
+msgstr "汎用 MM58167 RTC"
 
-msgid "TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
-msgstr "汎用ESC/P 2ドットマトリクスプリンタのエミュレーションには、roms/printer/fontsディレクトリ内のTrueTypeフォントが必要です。"
+msgid "OPL2Board (External Device)"
+msgstr "OPL2Board (外部デバイス)"
+
+msgid "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer."
+msgstr "ドットマトリクスフォントが見つかりません。汎用ESC/P 2ドットマトリクスプリンタのエミュレーションには、roms/printer/fontsディレクトリ内のTrueTypeフォントが必要です。"
 
 msgid "Inhibit multimedia keys"
 msgstr "マルチメディアキーを無効にする"
@@ -2815,8 +2954,14 @@ msgstr "下に移動する"
 msgid "Could not load file %1"
 msgstr "ファイル %1 をロードできませんでした"
 
-msgid "Key Bindings:"
-msgstr "キーバインド:"
+msgid "Emulator"
+msgstr "エミュレーター"
+
+msgid "Input"
+msgstr "入力"
+
+msgid "Key bindings"
+msgstr "キーバインド"
 
 msgid "Action"
 msgstr "アクション"
@@ -2854,9 +2999,6 @@ msgstr "フルスクリーン表示を切り替える"
 msgid "Toggle UI in fullscreen"
 msgstr "全画面表示時にUIを切り替える"
 
-msgid "Screenshot"
-msgstr "スクリーンショット"
-
 msgid "Release mouse pointer"
 msgstr "マウスポインターを解放する"
 
@@ -2865,6 +3007,12 @@ msgstr "一時停止を切り替える"
 
 msgid "Toggle mute"
 msgstr "ミュートを切り替える"
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "テキストファイル"
@@ -2881,8 +3029,8 @@ msgstr "ローカルスイッチ"
 msgid "Remote Switch"
 msgstr "リモートスイッチ"
 
-msgid "Switch:"
-msgstr "スイッチ:"
+msgid "Shared secret:"
+msgstr "共有秘密:"
 
 msgid "Hub Mode"
 msgstr "ハブモード"
@@ -2900,7 +3048,7 @@ msgid "&Wipe NVRAM"
 msgstr "NVRAMを消去する(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "これによって、仮想マシン内の「nvr」サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン「%1」のすべてのNVRAM内容を削除してもよろしいですか？"
+msgstr "これにより、仮想マシン内の「nvr」サブディレクトリに格納されているすべてのNVRAM(および関連)ファイルが削除されます。必要に応じて、BIOSの設定(および仮想マシン内の他のデバイス設定)を再構成する必要があります。\n\n仮想マシン「%1」のすべてのNVRAM内容を削除してもよろしいですか？"
 
 msgid "Success"
 msgstr "成功"
@@ -2915,13 +3063,14 @@ msgid "%1 VM Manager"
 msgstr "%1 VMマネージャー"
 
 msgid "%n disk(s)"
-msgstr "%n ディスク"
+msgid_plural "%n disks"
+msgstr[0] "%n ディスク"
 
 msgid "Unknown Status"
 msgstr "不明な状態"
 
 msgid "No Machines Found!"
-msgstr "マシンが検出されません！"
+msgstr "マシンが見つかりません！"
 
 msgid "Check for updates on startup"
 msgstr "起動時にアップデートを確認する"
@@ -2963,7 +3112,7 @@ msgid "<b>Build %1</b> is now available."
 msgstr "<b>ビルド %1</b> が現在利用可能です。"
 
 msgid "Would you like to visit the download page?"
-msgstr "ダウンロードページをご覧になりたいですか？"
+msgstr "ダウンロードページを開きますか？"
 
 msgid "Visit download page"
 msgstr "ダウンロードページをご覧ください"
@@ -2971,8 +3120,8 @@ msgstr "ダウンロードページをご覧ください"
 msgid "Update check"
 msgstr "アップデートチェック"
 
-msgid "Checking for updates..."
-msgstr "アップデートを確認中..."
+msgid "Checking for updates…"
+msgstr "アップデートを確認中…"
 
 msgid "86Box Update"
 msgstr "86Box アップデート"
@@ -3010,8 +3159,8 @@ msgstr "明るさ"
 msgid "Sharpness"
 msgstr "シャープネス"
 
-msgid "&CGA composite settings..."
-msgstr "CGA複合モードの設定(&C)..."
+msgid "&CGA composite settings…"
+msgstr "CGA複合モードの設定(&C)…"
 
 msgid "CGA composite settings"
 msgstr "CGA複合モードの設定"
@@ -3019,14 +3168,17 @@ msgstr "CGA複合モードの設定"
 msgid "Monitor EDID"
 msgstr "モニターのEDID"
 
-msgid "Export..."
-msgstr "エクスポート..."
+msgid "Export…"
+msgstr "エクスポート…"
 
 msgid "Export EDID"
 msgstr "EDIDのエクスポート"
 
-msgid "EDID file \"%ls\" is too large."
-msgstr "EDIDファイル「%ls」が大きすぎます。"
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
+msgid "EDID file \"%s\" is too large."
+msgstr "EDIDファイル「%s」が大きすぎます。"
 
 msgid "OpenGL input scale"
 msgstr "OpenGLの入力スケール"
@@ -3043,9 +3195,6 @@ msgstr "光"
 msgid "Dark"
 msgstr "暗闇"
 
-msgid "Search:"
-msgstr "検索:"
-
 msgid "Force interpretation"
 msgstr "解釈を強制する"
 
@@ -3057,3 +3206,186 @@ msgstr "解釈を強制する(&F)"
 
 msgid "&Allow recompilation"
 msgstr "再コンパイルを許可する(&A)"
+
+msgid "&Fast forward"
+msgstr "早送り(&F)"
+
+msgid "Fast forward"
+msgstr "早送り"
+
+msgid "To change the system directory, stop all running machines."
+msgstr "システムディレクトリを変更するには、稼働中のマシンをすべて停止してください。"
+
+msgid "Raw"
+msgstr "生"
+
+msgid "Use EDC/ECC emulation"
+msgstr "EDC/ECCエミュレーションを使用する"
+
+msgid "Audio output device:"
+msgstr "音声出力デバイス:"
+
+msgid "System Default"
+msgstr "システム既定値"
+
+msgid "Unable to open image or folder \"%s\"."
+msgstr "画像またはフォルダ「%s」を開けません。"
+
+msgid "Unable to open cue sheet \"%s\"."
+msgstr "キューシート「%s」を開けません。"
+
+msgid "Unable to open MDS file \"%s\"."
+msgstr "MDSファイル「%s」を開けません。"
+
+msgid "Unable to load CD-ROM image \"%s\"."
+msgstr "CD-ROMイメージ「%s」を読み込めません。"
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+"画像「%s」を読み込めません：Daemon Tools MDS v2 および MDX "
+"イメージのサポートに必要な %1 が見つかりません。"
+
+msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
+msgstr "DVDイメージ「%s」は、DVDメディアに対応していないドライブに挿入されたため、無"
+"視されます。"
+
+msgid "%s: Could not connect to %s: %s"
+msgstr "%s: %s に接続できませんでした: %s"
+
+msgid "%s: Could not create %s: %s"
+msgstr "%s: %s を作成できませんでした: %s"
+
+msgid "%s: Attached to %s"
+msgstr "%s: %s に添付されています"
+
+msgid "%s: Virtual console already in use by %s"
+msgstr "%s: %s によってバーチャルコンソールがすでに使用されています"
+
+msgid "%s: Could not create terminal: %s"
+msgstr "%s: ターミナルを作成できませんでした: %s"
+
+msgid "Auto-detect"
+msgstr "自動検出"
+
+msgid "Channel"
+msgstr "チャンネル"
+
+msgid "Both Channels"
+msgstr "両チャンネル"
+
+msgid "Left Channel"
+msgstr "左チャンネル"
+
+msgid "Right Channel"
+msgstr "右チャンネル"
+
+msgid "Allow Flash BIOS Updates"
+msgstr "フラッシュ経由でのBIOSの更新を許可する"
+
+msgid "Slot #"
+msgstr "スロット"
+
+msgid "Parallel Port"
+msgstr "パラレルポート"
+
+msgid "Paper Size"
+msgstr "用紙サイズ"
+
+msgid "Letter"
+msgstr "Letter"
+
+msgid "Legal (sideways)"
+msgstr "Legal (横書き)"
+
+msgid "B4 (sideways)"
+msgstr "B4 (横書き)"
+
+msgid "Quality"
+msgstr "品質"
+
+msgid "Draft"
+msgstr "草案"
+
+msgid "(Near) Letter"
+msgstr "(ほぼ) 手紙"
+
+msgid "Auto LF"
+msgstr "自動改行"
+
+msgid "Tandy PSSJ Clone"
+msgstr "Tandy PSSJのクローン"
+
+msgid "PC-CM (Color)"
+msgstr "PC-CM (カラー)"
+
+msgid "PC-MM (Monochrome)"
+msgstr "PC-MM (モノクロ)"
+
+msgid "White Monochrome"
+msgstr "ホワイト・モノクローム"
+
+msgid "Hardware font"
+msgstr "ハードウェアフォント"
+
+msgid "Diagnostic mode"
+msgstr "診断モード"
+
+msgid "CGA monitor"
+msgstr "CGAモニター"
+
+msgid "MDA monitor"
+msgstr "MDAモニター"
+
+msgid "Television"
+msgstr "テレビ"
+
+msgid "Invert LCD colors"
+msgstr "LCDの色を反転させる"
+
+msgid "LCD (CGA mode)"
+msgstr "LCD (CGA モード)"
+
+msgid "LCD (MDA mode)"
+msgstr "LCD (MDA モード)"
+
+msgid "Disabled (250h)"
+msgstr "無効 (250h)"
+
+msgid "Enabled (350h)"
+msgstr "有効 (350h)"
+
+msgid "Test mode"
+msgstr "テストモード"
+
+msgid "32 MB"
+msgstr "32 MB"
+
+msgid "64 MB"
+msgstr "64 MB"
+
+msgid "2048 MB"
+msgstr "2048 MB"
+
+msgid "Refresh rate"
+msgstr "リフレッシュレート"
+
+msgid "US (CP 437)"
+msgstr "米国 (CP 437)"
+
+msgid "IBM Nordic (CP 437-Nordic)"
+msgstr "IBM ノルディック (CP 437-Nordic)"
+
+msgid "Czech Kamenicky (CP 895) #1"
+msgstr "チェコのカメニツキー (CP 895) 1"
+
+msgid "Czech Kamenicky (CP 895) #2"
+msgstr "チェコのカメニツキー (CP 895) 2"
+
+msgid "932 (Japanese)"
+msgstr "932 (日本語)"
+
+msgid "938 (Traditional Chinese)"
+msgstr "938 (繁体字中国語)"
+
+msgid "Sample rate:"
+msgstr ""

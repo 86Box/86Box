@@ -294,8 +294,7 @@ sdac_set_ref_clock(void *priv, float ref_clock)
 void *
 sdac_ramdac_init(const device_t *info)
 {
-    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) malloc(sizeof(sdac_ramdac_t));
-    memset(ramdac, 0, sizeof(sdac_ramdac_t));
+    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) calloc(1, sizeof(sdac_ramdac_t));
 
     ramdac->type = info->local;
 

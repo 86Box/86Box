@@ -75,26 +75,26 @@ wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 }
 
 static void
-wss_get_buffer(int32_t *buffer, int len, void *priv)
+wss_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
 
     ad1848_update(&wss->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += wss->ad1848.buffer[c] / 2;
 
     wss->ad1848.pos = 0;
 }
 
 static void
-wss_get_music_buffer(int32_t *buffer, int len, void *priv)
+wss_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
     const int32_t *opl_buf = NULL;
 
     opl_buf = wss->opl.update(wss->opl.priv);
 
-    for (int c = 0; c < len * 2; c++) {
+    for (uint16_t c = 0; c < len * 2; c++) {
         if (opl_buf)
             buffer[c] += opl_buf[c];
     }
@@ -111,7 +111,7 @@ wss_init(UNUSED(const device_t *info))
     wss->opl_enabled = device_get_config_int("opl");
 
     if (wss->opl_enabled)
-        fm_driver_get(FM_YMF262, &wss->opl);
+        fm_driver_get_cs(FM_YMF262, &wss->opl);
 
     ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
 
@@ -142,14 +142,14 @@ wss_init(UNUSED(const device_t *info))
 }
 
 static uint8_t
-ncr_audio_mca_read(int port, void *priv)
+ncr_audio_mca_read(const uint16_t port, void *priv)
 {
     const wss_t *wss = (wss_t *) priv;
     return wss->pos_regs[port & 7];
 }
 
 static void
-ncr_audio_mca_write(int port, uint8_t val, void *priv)
+ncr_audio_mca_write(const uint16_t port, uint8_t val, void *priv)
 {
     wss_t   *wss      = (wss_t *) priv;
     uint16_t ports[4] = { 0x530, 0xE80, 0xF40, 0x604 };
@@ -208,7 +208,7 @@ ncr_audio_init(UNUSED(const device_t *info))
 {
     wss_t *wss = calloc(1, sizeof(wss_t));
 
-    fm_driver_get(FM_YMF262, &wss->opl);
+    fm_driver_get_cs(FM_YMF262, &wss->opl);
     ad1848_init(&wss->ad1848, AD1848_TYPE_DEFAULT);
 
     ad1848_setirq(&wss->ad1848, 7);

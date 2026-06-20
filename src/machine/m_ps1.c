@@ -343,8 +343,8 @@ static const device_config_t ps1_2011_config[] = {
 };
 
 const device_t ps1_2011_device = {
-    .name          = "PS/1 2011",
-    .internal_name = "ps/1_2011",
+    .name          = "IBM PS/1 model 2011",
+    .internal_name = "ibmps1es",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -356,6 +356,7 @@ const device_t ps1_2011_device = {
     .config        = ps1_2011_config
 };
 
+extern const device_t ps1midi_device;
 static void
 ps1_setup(int model)
 {
@@ -411,6 +412,7 @@ ps1_setup(int model)
         lpt_set_next_inst(255);
 
         device_add(&ps1snd_device);
+        device_add(&ps1midi_device);
 
         /* Enable the builtin HDC. */
         if (hdc_current[0] == HDC_INTERNAL) {
@@ -443,9 +445,8 @@ ps1_setup(int model)
         device_add(&ide_isa_device);
 
         device_add(&ps1snd_device);
+        device_add(&ps1midi_device);
     }
-
-    device_add(&ps_nvr_device);
 }
 
 static void

@@ -743,7 +743,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
         return 0;
     }
 
-    dev->current      = (ncr53c8xx_request *) malloc(sizeof(ncr53c8xx_request));
+    dev->current      = (ncr53c8xx_request *) calloc(1, sizeof(ncr53c8xx_request));
     dev->current->tag = id;
 
     sd->buffer_length = -1;
@@ -2283,7 +2283,7 @@ uint8_t ncr53c8xx_pci_regs[256];
 bar_t   ncr53c8xx_pci_bar[4];
 
 static uint8_t
-ncr53c8xx_pci_read(UNUSED(int func), int addr, void *priv)
+ncr53c8xx_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
@@ -2387,7 +2387,7 @@ ncr53c8xx_pci_read(UNUSED(int func), int addr, void *priv)
 }
 
 static void
-ncr53c8xx_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
+ncr53c8xx_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint8_t      valxor;
@@ -2719,7 +2719,7 @@ const device_t ncr53c815_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config
 };
 
 const device_t ncr53c820_pci_device = {

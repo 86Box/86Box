@@ -92,7 +92,7 @@ opMOV_r_DRx_a16(uint32_t fetchdat)
     }
 #ifdef USE_DEBUG_REGS_486
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         return 1;
     }
 #endif
@@ -136,7 +136,7 @@ opMOV_r_DRx_a32(uint32_t fetchdat)
     }
 #ifdef USE_DEBUG_REGS_486
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         return 1;
     }
 #endif
@@ -310,7 +310,7 @@ opMOV_DRx_r_a16(uint32_t fetchdat)
     }
 #ifdef USE_DEBUG_REGS_486
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         x86gen();
         return 1;
     }
@@ -358,7 +358,7 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
     }
 #ifdef USE_DEBUG_REGS_486
     if ((dr[7] & 0x2000) && !(cpu_state.eflags & RF_FLAG)) {
-        trap |= 1;
+        trap |= 16;
         return 1;
     }
 #endif

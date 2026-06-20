@@ -14,7 +14,10 @@ public:
     explicit SettingsSound(QWidget *parent = nullptr);
     ~SettingsSound();
 
-    void save();
+    int  changed();
+
+    void restore();
+    void save(int soft);
 
 public slots:
     void onCurrentMachineChanged(int machineId);
@@ -38,12 +41,24 @@ private slots:
     void on_comboBoxMidiIn_currentIndexChanged(int index);
     void on_pushButtonConfigureMidiIn_clicked();
 
+    void on_comboBoxAudioOutputDevice_currentIndexChanged(int index);
+
     void on_checkBoxMPU401_stateChanged(int arg1);
     void on_pushButtonConfigureMPU401_clicked();
 
 private:
     Ui::SettingsSound *ui;
     int                machineId = 0;
+
+    int                sound_card_cfg_changed[4]      = { 0, 0, 0, 0 };
+    int                mpu401_cfg_changed             = 0;
+    int                midi_output_device_cfg_changed = 0;
+    int                midi_input_device_cfg_changed  = 0;
+
+    SettingsCompleter   *scSound[4];
+
+    SettingsCompleter   *scMidiOut;
+    SettingsCompleter   *scMidiIn;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

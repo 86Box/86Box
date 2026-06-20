@@ -113,8 +113,8 @@ typedef struct mo_drive_t {
     FILE              *fp;
     void              *priv;
 
-    char               image_path[1024];
-    char               prev_image_path[1024];
+    char               image_path[MAX_IMAGE_PATH_LEN];
+    char               prev_image_path[MAX_IMAGE_PATH_LEN + 256];
 
     char              *image_history[MO_IMAGE_HISTORY];
 

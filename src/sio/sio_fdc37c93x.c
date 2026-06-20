@@ -1874,13 +1874,14 @@ static void *
 fdc37c93x_init(const device_t *info)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) calloc(1, sizeof(fdc37c93x_t));
+    int inst = device_get_instance();
 
     dev->fdc = device_add(&fdc_at_smc_device);
 
     dev->uart[0]   = device_add_inst(&ns16550_device, 1);
     dev->uart[1]   = device_add_inst(&ns16550_device, 2);
 
-    dev->lpt       = device_add_inst(&lpt_port_device, 1);
+    dev->lpt       = device_add_inst(&lpt_port_device, inst ? 2 : 1);
 
     dev->chip_id   = info->local & FDC37C93X_CHIP_ID;
     dev->kbc_type  = info->local & FDC37XXXX_KBC;
@@ -1892,7 +1893,7 @@ fdc37c93x_init(const device_t *info)
     dev->port_370  = !!(info->local & FDC37XXXX_370);
 
     if (dev->has_nvr) {
-        dev->nvr = device_add(&amstrad_megapc_nvr_device);
+        dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_ZERO_DEFAULT);
 
         nvr_bank_set(0, 0, dev->nvr);
         nvr_bank_set(1, 0xff, dev->nvr);

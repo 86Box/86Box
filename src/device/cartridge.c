@@ -33,7 +33,7 @@ typedef struct cart_t {
     uint32_t base;
 } cart_t;
 
-char cart_fns[2][512];
+char cart_fns[2][MAX_IMAGE_PATH_LEN];
 char *cart_image_history[2][CART_IMAGE_HISTORY];
 
 static cart_t carts[2];

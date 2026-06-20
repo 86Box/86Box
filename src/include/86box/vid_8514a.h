@@ -65,12 +65,15 @@ typedef union {
 
 typedef struct ibm8514_t {
     rom_t bios_rom;
+    rom_t bios_rom2;
     uint8_t *rom1;
     uint8_t *rom2;
     hwcursor8514_t hwcursor;
     hwcursor8514_t hwcursor_latch;
     uint8_t        pos_regs[8];
     char *rom_path;
+
+    void *log;
 
     int force_old_addr;
     int type;
@@ -97,7 +100,6 @@ typedef struct ibm8514_t {
     int       dac_b;
     int       internal_pitch;
     int       hwcursor_on;
-    int       modechange;
 
     uint64_t  dispontime;
     uint64_t  dispofftime;
@@ -156,6 +158,7 @@ typedef struct ibm8514_t {
         int16_t  sy;
         int16_t  dx;
         int16_t  dy;
+        int16_t  dy2;
         int16_t  err;
         uint32_t src;
         uint32_t dest;
@@ -164,8 +167,11 @@ typedef struct ibm8514_t {
         int      y_count;
         int      input;
         int      input2;
+        int      input3;
         int      output;
         int      output2;
+        int      output3;
+        int      init_cx;
 
         int      ssv_len;
         int      ssv_len_back;
@@ -184,6 +190,7 @@ typedef struct ibm8514_t {
         uint32_t dst_ge_offset;
         uint16_t src_pitch;
         uint16_t dst_pitch;
+        uint16_t read_pixel;
         int64_t cur_x_24bpp;
         int64_t cur_y_24bpp;
         int64_t dest_x_24bpp;
@@ -251,8 +258,11 @@ typedef struct ibm8514_t {
     int     vdisp;
     int     vdisp2;
     int     disp_cntl;
-    int     disp_cntl_2;
+    int     disp_change;
+    int     ext_mode_inc;
     int     interlace;
+    int     disp_cntl_interlace;
+    int     disp_cntl_double_scan;
     uint16_t subsys_cntl;
     uint8_t subsys_stat;
 

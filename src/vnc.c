@@ -29,6 +29,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/vnc.h>
+#include <86box/version.h>
 
 #define VNC_MIN_X 320
 #define VNC_MAX_X 2048
@@ -195,7 +196,7 @@ vnc_blit(int x, int y, int w, int h, int monitor_index)
 int
 vnc_init(UNUSED(void *arg))
 {
-    static char    title[128];
+    static char    title[1536];
     rfbPixelFormat rpf = {
         /*
          * Screen format:
@@ -213,14 +214,14 @@ vnc_init(UNUSED(void *arg))
     cgapal_rebuild_monitor(0);
 
     if (rfb == NULL) {
-        wcstombs(title, ui_window_title(NULL), sizeof(title));
+        snprintf(title, sizeof(title), "%s - " EMU_NAME " " EMU_VERSION_FULL, vm_name);
         updatingSize = 0;
         allowedX     = scrnsz_x;
         allowedY     = scrnsz_y;
 
         rfb              = rfbGetScreen(0, NULL, VNC_MAX_X, VNC_MAX_Y, 8, 3, 4);
         rfb->desktopName = title;
-        rfb->frameBuffer = (char *) malloc(VNC_MAX_X * VNC_MAX_Y * 4);
+        rfb->frameBuffer = (char *) calloc(VNC_MAX_X * VNC_MAX_Y, 4);
 
         rfb->serverFormat  = rpf;
         rfb->alwaysShared  = TRUE;
@@ -303,7 +304,7 @@ vnc_pause(void)
 }
 
 void
-vnc_take_screenshot(UNUSED(wchar_t *fn))
+vnc_take_screenshot(UNUSED(char *fn))
 {
     vnc_log("VNC: take_screenshot\n");
 }

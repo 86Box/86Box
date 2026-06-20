@@ -47,7 +47,7 @@ machine_at_vpc2007_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
+    machine_at_common_init(model);
     is_vpc = 1;
 
     pci_init(PCI_CONFIG_TYPE_1);

@@ -243,7 +243,7 @@ pm2_cntrl_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 }
 
 static void
-i4x0_write(int func, int addr, uint8_t val, void *priv)
+i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     i4x0_t  *dev    = (i4x0_t *) priv;
     uint8_t *regs   = (uint8_t *) dev->regs;
@@ -1535,7 +1535,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-i4x0_read(int func, int addr, void *priv)
+i4x0_read(int func, int addr, UNUSED(int len), void *priv)
 {
     i4x0_t        *dev  = (i4x0_t *) priv;
     uint8_t        ret  = 0xff;
@@ -1563,12 +1563,12 @@ i4x0_reset(void *priv)
         memset(dev->regs_locked, 0x00, 256 * sizeof(uint8_t));
 
     if (dev->type >= INTEL_430FX)
-        i4x0_write(0, 0x59, 0x00, priv);
+        i4x0_write(0, 0x59, 1, 0x00, priv);
     else
-        i4x0_write(0, 0x59, 0x0f, priv);
+        i4x0_write(0, 0x59, 1, 0x0f, priv);
 
     for (uint8_t i = 0; i < 6; i++)
-        i4x0_write(0, 0x5a + i, 0x00, priv);
+        i4x0_write(0, 0x5a + i, 1, 0x00, priv);
 
     for (uint8_t i = 0; i <= dev->max_drb; i++)
         dev->regs[0x60 + i] = dev->drb_default;
@@ -1582,18 +1582,18 @@ i4x0_reset(void *priv)
 
     if (dev->type >= INTEL_430FX) {
         dev->regs[0x72] &= 0xef; /* Forcibly unlock the SMRAM register. */
-        i4x0_write(0, 0x72, 0x02, priv);
+        i4x0_write(0, 0x72, 1, 0x02, priv);
     } else if (dev->type >= INTEL_430LX) {
         dev->regs[0x72] &= 0xf7; /* Forcibly unlock the SMRAM register. */
-        i4x0_write(0, 0x72, 0x00, priv);
+        i4x0_write(0, 0x72, 1, 0x00, priv);
     } else {
         dev->regs[0x57] &= 0xef; /* Forcibly unlock the SMRAM register. */
-        i4x0_write(0, 0x57, 0x02, priv);
+        i4x0_write(0, 0x57, 1, 0x02, priv);
     }
 
     if ((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) {
         i4x0_write(0, (dev->type >= INTEL_440BX) ? 0x73 : 0x71,
-                   (dev->type >= INTEL_440BX) ? 0x38 : 0x00, priv);
+                   1, (dev->type >= INTEL_440BX) ? 0x38 : 0x00, priv);
     }
 }
 
@@ -1932,24 +1932,24 @@ i4x0_init(const device_t *info)
     else if (dev->type >= INTEL_440LX)
         cpu_set_agp_speed(cpu_busspeed);
 
-    i4x0_write(regs[0x59], 0x59, 0x00, dev);
-    i4x0_write(regs[0x5a], 0x5a, 0x00, dev);
-    i4x0_write(regs[0x5b], 0x5b, 0x00, dev);
-    i4x0_write(regs[0x5c], 0x5c, 0x00, dev);
-    i4x0_write(regs[0x5d], 0x5d, 0x00, dev);
-    i4x0_write(regs[0x5e], 0x5e, 0x00, dev);
-    i4x0_write(regs[0x5f], 0x5f, 0x00, dev);
+    i4x0_write(regs[0x59], 0x59, 1, 0x00, dev);
+    i4x0_write(regs[0x5a], 0x5a, 1, 0x00, dev);
+    i4x0_write(regs[0x5b], 0x5b, 1, 0x00, dev);
+    i4x0_write(regs[0x5c], 0x5c, 1, 0x00, dev);
+    i4x0_write(regs[0x5d], 0x5d, 1, 0x00, dev);
+    i4x0_write(regs[0x5e], 0x5e, 1, 0x00, dev);
+    i4x0_write(regs[0x5f], 0x5f, 1, 0x00, dev);
 
     if (dev->type >= INTEL_430FX)
-        i4x0_write(0, 0x72, 0x02, dev);
+        i4x0_write(0, 0x72, 1, 0x02, dev);
     else if (dev->type >= INTEL_430LX)
-        i4x0_write(0, 0x72, 0x00, dev);
+        i4x0_write(0, 0x72, 1, 0x00, dev);
     else
-        i4x0_write(0, 0x57, 0x02, dev);
+        i4x0_write(0, 0x57, 1, 0x02, dev);
 
     if ((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) {
         i4x0_write(0, (dev->type >= INTEL_440BX) ? 0x73 : 0x71,
-                   (dev->type >= INTEL_440BX) ? 0x38 : 0x00, dev);
+                   1, (dev->type >= INTEL_440BX) ? 0x38 : 0x00, dev);
     }
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev, &dev->pci_slot);

@@ -147,16 +147,22 @@ ymf701_wss_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-ymf701_get_buffer(int32_t *buffer, int len, void *priv)
+ymf701_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ymf701_t *ymf701 = (ymf701_t *) priv;
 
     /* wss part */
     ad1848_update(&ymf701->ad1848);
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += (ymf701->ad1848.buffer[c] / 2);
 
     ymf701->ad1848.pos = 0;
+}
+
+static void
+ymf701_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    ymf701_t *ymf701 = (ymf701_t *) priv;
 
     /* sbprov2 part */
     sb_get_buffer_sbpro(buffer, len, ymf701->sb);
@@ -319,7 +325,9 @@ ymf701_reg_write(uint16_t addr, uint8_t val, void *priv)
                         mpu401_setirq(ymf701->mpu, ymf701->cur_mpu401_irq);
                         gameport_remap(ymf701->gameport, (ymf701->regs[3] & 0x1) ? 0x200 : 0x00);
                         break;
-                    case 0x04: /* LSI Version Register, on a real Intel Ruby board this is always 0 */
+                    case 0x04: /* LSI Version Register, bit 0 sets SB DSP version */
+                        ymf701->regs[0x04] = val & 0x01;
+                        ymf701->sb->dsp.opl3sa_dsp_ver = (ymf701->regs[0x04] & 0x01) ? 2 : 3;
                         break;
                     default:
                         break;
@@ -419,16 +427,17 @@ ymf701_init(const device_t *info)
     ymf701->sb->opl_enabled = 1;
 
     sb_dsp_set_real_opl(&ymf701->sb->dsp, 1);
-    sb_dsp_init(&ymf701->sb->dsp, SBPRO2_DSP_302, SB_SUBTYPE_DEFAULT, ymf701);
+    sb_dsp_init(&ymf701->sb->dsp, SBPRO_DSP_301, SB_SUBTYPE_YMF7XX, ymf701);
     sb_dsp_setaddr(&ymf701->sb->dsp, ymf701->cur_sb_addr);
     sb_dsp_setirq(&ymf701->sb->dsp, ymf701->cur_sb_irq);
     sb_dsp_setdma8(&ymf701->sb->dsp, ymf701->cur_sb_dma);
     sb_ct1345_mixer_reset(ymf701->sb);
+    ymf701->sb->dsp.opl3sa_dsp_ver = 3;
 
     ymf701->sb->opl_mixer = ymf701;
     ymf701->sb->opl_mix   = ymf701_filter_opl;
 
-    fm_driver_get(FM_YMF289B, &ymf701->sb->opl);
+    fm_driver_get_cs(FM_YMF289B, &ymf701->sb->opl);
     io_sethandler(ymf701->cur_sb_addr + 0, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
     io_sethandler(ymf701->cur_sb_addr + 8, 0x0002, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
     io_sethandler(0x0388, 0x0004, ymf701->sb->opl.read, NULL, NULL, ymf701->sb->opl.write, NULL, NULL, ymf701->sb->opl.priv);
@@ -436,6 +445,7 @@ ymf701_init(const device_t *info)
     io_sethandler(ymf701->cur_sb_addr + 4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, ymf701->sb);
 
     sound_add_handler(ymf701_get_buffer, ymf701);
+    sound_add_handler(ymf701_get_sbpro_buffer, ymf701);
     music_add_handler(sb_get_music_buffer_sbpro, ymf701->sb);
     ad1848_set_cd_audio_channel(&ymf701->ad1848, AD1848_AUX1);
     sound_set_cd_audio_filter(ad1848_filter_cd_audio, &ymf701->ad1848);
