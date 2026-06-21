@@ -68,6 +68,7 @@ enum {
     KBD_TYPE_PRAVETZ,
     KBD_TYPE_HYUNDAI,
     KBD_TYPE_FE2010,
+    KBD_TYPE_JUKOST,
     KBD_TYPE_XTCLONE
 };
 
@@ -356,6 +357,9 @@ kbd_adddata_ex(uint16_t val)
     kbd_adddata_process(val, kbd_adddata);
 }
 
+static uint8_t jukost_bat_pending;
+static uint8_t jukost_bat_done;
+
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -374,6 +378,17 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                     kbd->blocked                    = 0;
                     kbd_adddata(0xaa);
                 }
+            }
+
+            if ((kbd->type == KBD_TYPE_JUKOST) && new_clock &&
+                  jukost_bat_pending && !jukost_bat_done) {
+                key_queue_start = key_queue_end     = 0;
+                kbd->want_irq                       = 0;
+                kbd->blocked                        = 0;
+                kbd_adddata(0xaa);
+
+                jukost_bat_pending = 0;
+                jukost_bat_done    = 1;
             }
 
             kbd->pb = val;
@@ -593,6 +608,11 @@ kbd_reset(void *priv)
 
     key_queue_start = 0;
     key_queue_end   = 0;
+
+    if (kbd->type == KBD_TYPE_JUKOST) {
+        jukost_bat_pending = 1;
+        jukost_bat_done    = 0;
+    }
 }
 
 void
@@ -984,6 +1004,20 @@ const device_t kbc_xtclone_device = {
     .internal_name = "kbc_xtclone",
     .flags         = 0,
     .local         = KBD_TYPE_XTCLONE,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_jukost_device = {
+    .name          = "Juko ST Keyboard",
+    .internal_name = "kbc_jukost",
+    .flags         = DEVICE_ISA,
+    .local         = KBD_TYPE_JUKOST,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
