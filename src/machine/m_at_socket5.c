@@ -995,6 +995,96 @@ machine_at_pat54pv_init(const machine_t *model)
     return ret;
 }
 
+/* OPTi Viper */
+int
+machine_at_acerm1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/acerm1/acerm1.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_NORMAL     , 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_NORMAL     , 2, 3, 4, 1);
+    pci_register_slot(0x04, PCI_CARD_NORMAL     , 3, 4, 1, 2);
+    pci_register_slot(0x05, PCI_CARD_NORMAL     , 4, 1, 2, 3);
+    pci_register_slot(0x06, PCI_CARD_IDE        , 0, 0, 0, 0);
+    device_add(&opti55x_noide_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&ide_cmd646_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
+machine_at_bristol_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_inverted("roms/machines/bristol/GEM4530.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_NORMAL     , 2, 3, 4, 1);
+    pci_register_slot(0x03, PCI_CARD_NORMAL     , 3, 4, 1, 2);
+    pci_register_slot(0x04, PCI_CARD_NORMAL     , 4, 1, 2, 3);
+    pci_register_slot(0x08, PCI_CARD_IDE        , 0, 0, 0, 0);
+    device_add(&opti55x_noide_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&intel_flash_bxt_ami_device);
+    device_add(&ide_cmd640_pci_device);
+
+    return ret;
+}
+
+int
+machine_at_g586opa_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/g586opa/G586opa8.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_NORMAL     , 2, 3, 4, 1);
+    pci_register_slot(0x03, PCI_CARD_NORMAL     , 3, 4, 1, 2);
+    pci_register_slot(0x04, PCI_CARD_NORMAL     , 4, 1, 2, 3);
+    pci_register_slot(0x05, PCI_CARD_NORMAL     , 1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_IDE        , 4, 0, 0, 0);
+    device_add(&opti55x_noide_device);
+    device_add(&ide_pc87410_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&pc873xx_device, (void *) (PC87332 | PCX730X_398));
+    device_add(&winbond_flash_w29c010_device);
+
+    return ret;
+}
+
 /* SiS 501 */
 int
 machine_at_p54sp4_init(const machine_t *model)
