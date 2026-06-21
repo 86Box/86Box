@@ -175,7 +175,11 @@ typedef struct acpi_t {
     pc_timer_t  gp_timer;
     pc_timer_t  per_timer;
     nvr_t      *nvr;
+#ifdef APM_H
     apm_t      *apm;
+#else
+    void      *apm;
+#endif
     tco_t      *tco;
     void       *i2c;
     void      (*trap_update)(void *priv);
