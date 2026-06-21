@@ -1014,6 +1014,7 @@ then
 	fi
 elif is_mac
 then
+	cwd_root="$(pwd)"
 	# Archive app bundle with libraries.
 	cmake_flags_install=
 	[ $strip -ne 0 ] && cmake_flags_install="$cmake_flags_install --strip"
@@ -1033,17 +1034,16 @@ then
 		librashader_profile=release
 		librashader_profile_dir=release
 		grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-  	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
-		if [ ! -e "librashader" ]
+		if [ ! -e "$cache_dir/librashader" ]
 		then
-			mkdir librashader
-			cd librashader
+			mkdir -p $cache_dir/librashader
+			cd $cache_dir/librashader
 			git init
 			git remote add origin https://github.com/SnowflakePowered/librashader/
-			git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+			git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
 			git checkout FETCH_HEAD
 		else
-			cd librashader
+			cd $cache_dir/librashader
 			git pull
 		fi
 		case $arch in
@@ -1056,8 +1056,8 @@ then
 			ARM64 | arm64) cd target/aarch64-apple-darwin/$librashader_profile_dir/;;
 			*) cd target/$librashader_profile/;;
 		esac
-		cp liblibrashader_capi.dylib ../../../../archive_tmp/librashader.dylib
-		cd ../../../../
+		cp liblibrashader_capi.dylib $cwd_root/archive_tmp/librashader.dylib
+		cd $cwd_root
 
 	  	# Archive librashader library.
 		mv "archive_tmp/librashader.dylib" "archive_tmp/"*".app/Contents/Frameworks/"
@@ -1228,23 +1228,22 @@ else
 	librashader_profile=release
 	librashader_profile_dir=release
 	grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && librashader_profile=dev && librashader_profile_dir=debug
-	[ -e "archive_tmp/librashader" ] && rm -rf archive_tmp/librashader
-	if [ ! -e "librashader" ]
+	if [ ! -e "$cache_dir/librashader" ]
 	then
-		mkdir librashader
-		cd librashader
+		mkdir -p $cache_dir/librashader
+		cd $cache_dir/librashader
 		git init
 		git remote add origin https://github.com/SnowflakePowered/librashader/
-		git fetch origin --depth=1 43bc09c0b449a8a82d056bb0483233de72bab552
+		git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
 		git checkout FETCH_HEAD
 	else
-		cd librashader
+		cd $cache_dir/librashader
 		git pull
 	fi
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd target/$librashader_profile_dir/
-	cp liblibrashader_capi.so ../../../archive_tmp/librashader.so
-	cd ../../../
+	cp liblibrashader_capi.so $cwd_root/archive_tmp/librashader.so
+	cd $cwd_root
 
 	# Archive librashader library.
 	mv "archive_tmp/librashader.so" "archive_tmp/usr/lib/"
