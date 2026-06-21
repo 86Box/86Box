@@ -411,13 +411,9 @@ then
 	fi
 
 	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON"
-	if [ -d "$cache_dir/rust-cache/cargo/" ]
+	if [ -d "$cache_dir/rust-cache/" ]
 	then
-		cp -rpf "$cache_dir/rust-cache/cargo" ./build/
-	fi
-	if [ -d "$cache_dir/rust-cache/corrosion/" ]
-	then
-		cp -rpf "$cache_dir/rust-cache/corrosion" ./build/
+		rm -rf "$cache_dir/rust-cache/"
 	fi
 elif is_mac
 then
@@ -979,11 +975,6 @@ mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 status=0
 if is_windows
 then
-	# Cache cargo directory
-	mkdir -p "$cache_dir/rust-cache/"
-	cp -rpf ./build/cargo  "$cache_dir/rust-cache/"
-	cp -rpf ./build/corrosion  "$cache_dir/rust-cache/"
-
 	# Determine Program Files directory for Ghostscript and 7-Zip.
 	# Manual checks because MSYS is bad at passing the ProgramFiles variables.
 	pf="/c/Program Files"
@@ -1044,7 +1035,6 @@ then
 			git checkout FETCH_HEAD
 		else
 			cd $cache_dir/librashader
-			git pull
 		fi
 		case $arch in
 			64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
@@ -1238,7 +1228,6 @@ else
 		git checkout FETCH_HEAD
 	else
 		cd $cache_dir/librashader
-		git pull
 	fi
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd target/$librashader_profile_dir/
