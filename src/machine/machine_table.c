@@ -1064,9 +1064,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 64,
-            .max  = 640,
-            .step = 64
+            .min  = 512,  /* Juko ST supports only 3 values: 512, 640, 1024 */
+            .max  = 1024,
+            .step = 128
         },
         .nvrmask                  = 0,
         .jumpered_ecp_dma         = 0,
