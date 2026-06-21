@@ -366,7 +366,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     xtkbd_t *kbd = (xtkbd_t *) priv;
     uint8_t  bit;
     uint8_t  set;
-    uint8_t  new_clock;
+    uint8_t  new_clock = 0;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */

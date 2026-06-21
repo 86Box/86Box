@@ -284,6 +284,7 @@ static void
 juko_st_write(uint16_t port, uint8_t val, void *priv)
 {
     juko_st_t *dev = (juko_st_t *) priv;
+#ifdef ENABLE_JUKO_ST_LOG
     uint16_t bda_mem_kb;
 
     bda_mem_kb  = (uint16_t) ram[0x413];
@@ -292,6 +293,7 @@ juko_st_write(uint16_t port, uint8_t val, void *priv)
     juko_st_log("Juko ST: [413h] %04X (%u KB)\n",
                 (unsigned) bda_mem_kb,
                 (unsigned) bda_mem_kb);
+#endif
 
     switch (port) {
         case 0x70:
