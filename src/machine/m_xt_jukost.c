@@ -238,7 +238,7 @@ juko_st_read(uint16_t port, void *priv)
             return dev->ws_latch;
 
         case 0x90:
-            return dev->turbo_latch;
+            return dev->turbo_latch & ~0xf2;
 
         case 0xE0:
             return 0xFF; /* Not the dev->e0_latch -- hardware always returns 0xFF */
