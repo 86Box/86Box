@@ -35,7 +35,7 @@ int gated;
 int speakval;
 int speakon;
 
-static int32_t speaker_buffer[SOUNDBUFLEN];
+static int32_t speaker_buffer[MUSICBUFLEN];
 static int     speaker_pos = 0;
 
 static uint8_t speaker_mode  = 0;
