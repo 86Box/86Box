@@ -198,6 +198,7 @@ extern const device_t kbc_xt_zenith_device;
 extern const device_t kbc_xt_hyundai_device;
 extern const device_t kbc_xt_fe2010_device;
 extern const device_t kbc_xtclone_device;
+extern const device_t kbc_jukost_device;
 
 extern const device_t kbc_at_device;
 

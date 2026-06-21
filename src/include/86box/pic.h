@@ -52,6 +52,7 @@ typedef struct pic {
     uint8_t     pad;
     uint32_t    lines[8];
     uint32_t    at;
+    uint32_t    jr;
     struct pic *slaves[8];
 } pic_t;
 

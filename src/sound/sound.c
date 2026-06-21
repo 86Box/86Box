@@ -33,6 +33,7 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/snd_ac97.h>
+#include <86box/snd_speaker.h>
 #include <86box/timer.h>
 #include <86box/snd_mpu401.h>
 #include <86box/sound.h>
@@ -912,6 +913,8 @@ sound_reset(void)
 void
 sound_card_reset(void)
 {
+    speaker_init();
+
     sound_card_init();
 
     if (mpu401_standalone_enable)
