@@ -140,8 +140,8 @@ speaker_init(const device_t *info)
 const device_t speaker_device = {
     .name          = "PC Speaker",
     .internal_name = "speaker",
-    .flags         = DEVICE_ISA16,
-    .local         = 1,
+    .flags         = 0,
+    .local         = 0,
     .init          = speaker_init,
     .close         = speaker_close,
     .reset         = NULL,
