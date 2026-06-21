@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-15 21:21+0000\n"
+"PO-Revision-Date: 2026-06-21 09:34+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -2917,10 +2917,10 @@ msgid "Options"
 msgstr "选项"
 
 msgid "Model"
-msgstr "模型"
+msgstr "型号"
 
 msgid "Model:"
-msgstr "模型："
+msgstr "型号："
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan 渲染器初始化失败。"
