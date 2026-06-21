@@ -59,8 +59,8 @@ speaker_update(void)
     if (amplitude > 5120.0)
         amplitude = 5120.0;
 
-    if (speaker_pos < sound_pos_global) {
-        for (; speaker_pos < sound_pos_global; speaker_pos++) {
+    if (speaker_pos < music_pos_global) {
+        for (; speaker_pos < music_pos_global; speaker_pos++) {
             if (speaker_gated && was_speaker_enable) {
                 if ((speaker_mode == 0) || (speaker_mode == 4))
                     val = (int32_t) amplitude;
@@ -111,6 +111,6 @@ void
 speaker_init(void)
 {
     memset(speaker_buffer, 0, sizeof(speaker_buffer));
-    sound_add_handler(speaker_get_buffer, NULL);
+    music_add_handler(speaker_get_buffer, NULL);
     speaker_mute = 0;
 }
