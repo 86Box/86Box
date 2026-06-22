@@ -977,7 +977,7 @@ VulkanWindowRenderer::render()
     info.layerCount = 1;
     fn_vkCmdBeginRendering(cmdBufs, &info);
     
-    if (qt_osd_is_visible()) {
+    {
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
         qt_osd_render(width(), height(), devicePixelRatio(), (void*)cmdBufs);
     }
