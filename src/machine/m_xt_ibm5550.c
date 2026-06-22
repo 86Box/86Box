@@ -1718,6 +1718,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                     kbd_epoch_adddata(0xA5);
                     kbd_epoch_adddata(0x00);
                     kbd_epoch_adddata(0x10);
+                    keyboard_set_in_reset(1);
                 }
             } else if ((val & 0x18) == 0x18) {
                 new_clock = !(val & 0x04);
@@ -1770,6 +1771,8 @@ kbd_read(uint16_t port, void *priv)
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
             ret = kbd->pa;
+            if (keyboard_get_in_reset() && (ret == 0x10))
+                keyboard_set_in_reset(0);
             break;
 
         case 0x61: /* Keyboard Control Register (aka Port B) */
