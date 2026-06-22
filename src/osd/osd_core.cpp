@@ -664,6 +664,24 @@ bool osd_core_build_ui(void)
     }
 }
 
+int osd_percentage = 0;
+
+void osd_core_draw_indicators(void)
+{
+#if 0
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoBackground;
+    window_flags |= ImGuiWindowFlags_NoTitleBar;
+    bool open_ptr = true;
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+    if (ImGui::Begin("DrawWin", &open_ptr, window_flags)) {
+        ImGui::TextColored(ImVec4(0, 1, 0, 1.0), "%d%%", osd_percentage);
+        ImGui::End();
+    }
+#endif
+}
+
 void osd_core_install_log_hook(void)
 {
     pclog_hook = osd_core_log_push_c;
