@@ -300,6 +300,7 @@ static void
 opti55x_sb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     opti55x_t *dev = (opti55x_t *) priv;
+    uint8_t oldval = dev->pci_conf_sb[addr];
 
     opti55x_log(dev->log, "[%04X:%08X] OPTi 558: [W] (%02X, %02X) = %02X\n", CS, cpu_state.pc, func, addr, val);
 
@@ -349,6 +350,9 @@ opti55x_sb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
         case 0x4a ... 0x4b: /* 82C558M ROMCS# Range Control Register */
             dev->pci_conf_sb[addr] = val;
+            /* Work around soft reset hang on Octek Rhino 8 BIOS */
+            if ((addr == 0x4a) && (oldval == 0x00) && (val == 0x30))
+                flushmmucache();
             break;
         case 0x4c ... 0x4d: /* 82C558M Reserved Register 3 */
             dev->pci_conf_sb[addr] = val;
