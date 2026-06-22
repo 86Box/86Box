@@ -2404,12 +2404,13 @@ ropXADD_b(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
     if ((fetchdat & 0xc0) == 0xc0) {
         int dest_reg = fetchdat & 7;
 
-        uop_MOV(ir, IREG_temp0_B, IREG_8(dest_reg));
-        uop_MOVZX(ir, IREG_flags_op1, IREG_8(dest_reg));
-        uop_MOVZX(ir, IREG_flags_op2, IREG_8(src_reg));
-        uop_ADD(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
-        uop_MOV(ir, IREG_8(src_reg), IREG_temp0_B);
-        uop_MOVZX(ir, IREG_flags_res, IREG_8(dest_reg));
+        uop_MOV  (ir, IREG_temp0_B,    IREG_8(dest_reg));          // temp0 = old dest
+        uop_MOVZX(ir, IREG_flags_op1,  IREG_8(dest_reg));          // op1   = old dest
+        uop_MOVZX(ir, IREG_flags_op2,  IREG_8(src_reg));           // op2   = old src
+        uop_ADD  (ir, IREG_temp1_B,    IREG_temp0_B, IREG_8(src_reg)); // temp1 = sum
+        uop_MOV  (ir, IREG_8(src_reg), IREG_temp0_B);              // src   = old dest  (before dest is touched)
+        uop_MOV  (ir, IREG_8(dest_reg), IREG_temp1_B);             // dest  = sum
+        uop_MOVZX(ir, IREG_flags_res,  IREG_temp1_B);              // res   = sum (from temp1, safe)
     } else {
         x86seg *target_seg;
 
@@ -2439,12 +2440,13 @@ ropXADD_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
     if ((fetchdat & 0xc0) == 0xc0) {
         int dest_reg = fetchdat & 7;
 
-        uop_MOV(ir, IREG_temp0_W, IREG_16(dest_reg));
-        uop_MOVZX(ir, IREG_flags_op1, IREG_16(dest_reg));
-        uop_MOVZX(ir, IREG_flags_op2, IREG_16(src_reg));
-        uop_ADD(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
-        uop_MOV(ir, IREG_16(src_reg), IREG_temp0_W);
-        uop_MOVZX(ir, IREG_flags_res, IREG_16(dest_reg));
+        uop_MOV  (ir, IREG_temp0_W,     IREG_16(dest_reg));
+        uop_MOVZX(ir, IREG_flags_op1,   IREG_16(dest_reg));
+        uop_MOVZX(ir, IREG_flags_op2,   IREG_16(src_reg));
+        uop_ADD  (ir, IREG_temp1_W,     IREG_temp0_W, IREG_16(src_reg));
+        uop_MOV  (ir, IREG_16(src_reg), IREG_temp0_W);
+        uop_MOV  (ir, IREG_16(dest_reg), IREG_temp1_W);
+        uop_MOVZX(ir, IREG_flags_res,   IREG_temp1_W);
     } else {
         x86seg *target_seg;
 
@@ -2474,12 +2476,13 @@ ropXADD_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
     if ((fetchdat & 0xc0) == 0xc0) {
         int dest_reg = fetchdat & 7;
 
-        uop_MOV(ir, IREG_temp0, IREG_32(dest_reg));
-        uop_MOV(ir, IREG_flags_op1, IREG_32(dest_reg));
-        uop_MOV(ir, IREG_flags_op2, IREG_32(src_reg));
-        uop_ADD(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
+        uop_MOV(ir, IREG_temp0,       IREG_32(dest_reg));
+        uop_MOV(ir, IREG_flags_op1,   IREG_32(dest_reg));
+        uop_MOV(ir, IREG_flags_op2,   IREG_32(src_reg));
+        uop_ADD(ir, IREG_temp1,       IREG_temp0, IREG_32(src_reg));
         uop_MOV(ir, IREG_32(src_reg), IREG_temp0);
-        uop_MOV(ir, IREG_flags_res, IREG_32(dest_reg));
+        uop_MOV(ir, IREG_32(dest_reg), IREG_temp1);
+        uop_MOV(ir, IREG_flags_res,   IREG_temp1);
     } else {
         x86seg *target_seg;
 
