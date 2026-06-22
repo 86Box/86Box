@@ -366,7 +366,7 @@ machine_xt_jukopc_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&kbc_jukost_device);
+    device_add(&kbc_xt_jukost_device);
 
     if ((fdc_current[0] == FDC_INTERNAL) || 0)
         device_add(&fdc_xt_device);
