@@ -390,7 +390,7 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.imageColorSpace          = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 #endif
     swapchain_creation.imageArrayLayers         = 1;
-    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchain_creation.minImageCount            = std::clamp(surfaceCaps.minImageCount + 1u, surfaceCaps.minImageCount, surfaceCaps.maxImageCount ? surfaceCaps.maxImageCount : std::numeric_limits<uint32_t>::max());
     swapchain_creation.imageExtent              = curExtent;
     swapchain_creation.preTransform             = surfaceCaps.currentTransform;
@@ -715,6 +715,26 @@ VulkanWindowRenderer::render()
     }
     vmaFlushAllocation(allocator, img_allocation, 0, VK_WHOLE_SIZE);
 
+    if (shaderSrcImageTransitioned[swapchain_image_index] && !noshadersloaded) {
+        const VkImageMemoryBarrier image3_memory_barrier {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .srcAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
+            .dstAccessMask    = 0,
+            .oldLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .image            = swapchainImages[swapchain_image_index],
+            .subresourceRange = {
+                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                .baseMipLevel   = 0,
+                                .levelCount     = 1,
+                                .baseArrayLayer = 0,
+                                .layerCount     = 1,
+                                }
+        };
+
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
+    }
+
     VkClearColorValue clr_val = {};
     clr_val.float32[0] = 0;
     clr_val.float32[1] = 0;
@@ -827,7 +847,7 @@ VulkanWindowRenderer::render()
         .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
         .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
         .dstAccessMask    = noshadersloaded ? (VkAccessFlags)(VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT) : (VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT),
-        .oldLayout        = noshadersloaded ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : (shaderSrcImageTransitioned[swapchain_image_index] ? VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL : VK_IMAGE_LAYOUT_UNDEFINED),
+        .oldLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         .newLayout        = noshadersloaded ? VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         .image            = noshadersloaded ? swapchainImages[swapchain_image_index] : shaderSrcImages[swapchain_image_index],
         .subresourceRange = {
@@ -839,18 +859,36 @@ VulkanWindowRenderer::render()
                              }
     };
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (noshadersloaded ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
-    shaderSrcImageTransitioned[swapchain_image_index] = 1;
-#endif
+    if (!shaderSrcImageTransitioned[swapchain_image_index] && !noshadersloaded) {
+        for (unsigned int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
+            const VkImageMemoryBarrier image_shader_memory_barrier {
+                .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                .srcAccessMask    = 0,
+                .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+                .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
+                .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                .image            = shaderFilterChains[swapchain_image_index][i].next_image_chain,
+                .subresourceRange = {
+                                    .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+                                    .baseMipLevel   = 0,
+                                    .levelCount     = 1,
+                                    .baseArrayLayer = 0,
+                                    .layerCount     = 1,
+                                    }
+            };
+            m_devFuncs->vkCmdPipelineBarrier(cmdBufs, 0, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_shader_memory_barrier);
+        }
+        shaderSrcImageTransitioned[swapchain_image_index] = 1;
+    }
 
-#   ifdef LIBRA_RUNTIME_VULKAN
     for (unsigned int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
         const VkImageMemoryBarrier image_shader_memory_barrier {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .srcAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT,
+            .srcAccessMask    = VK_ACCESS_SHADER_READ_BIT,
             .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
+            .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .image            = shaderFilterChains[swapchain_image_index][i].next_image_chain,
+            .image            = shaderFilterChains.at(swapchain_image_index).at(i).next_image_chain,
             .subresourceRange = {
                                 .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
                                 .baseMipLevel   = 0,
@@ -859,23 +897,8 @@ VulkanWindowRenderer::render()
                                 .layerCount     = 1,
                                 }
         };
-        const VkImageMemoryBarrier image_shader_memory_barrier_src {
-            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT,
-            .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
-            .oldLayout        = (i == 0) ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .image            = (i == 0) ? shaderSrcImages[swapchain_image_index] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain,
-            .subresourceRange = {
-                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                                .baseMipLevel   = 0,
-                                .levelCount     = 1,
-                                .baseArrayLayer = 0,
-                                .layerCount     = 1,
-                                }
-        };
-        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier);
-        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image_shader_memory_barrier_src);
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_shader_memory_barrier);
+
         auto shader_img_src = (i == 0) ? shaderSrcImages[swapchain_image_index] : shaderFilterChains[swapchain_image_index][i - 1].next_image_chain;
         auto shader_img_dst = shaderFilterChains[swapchain_image_index][i].next_image_chain;
 
@@ -913,16 +936,17 @@ VulkanWindowRenderer::render()
             libra_error_print(error);
 #endif
         }
-    }
 
-    if (!noshadersloaded) {
-        const VkImageMemoryBarrier clear_memory_barrier {
+        if (i == (shaderFilterChains[swapchain_image_index].size() - 1))
+            break;
+
+        const VkImageMemoryBarrier image_shader_memory_barrier_2 {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT,
-            .dstAccessMask    = VK_ACCESS_TRANSFER_WRITE_BIT,
-            .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .newLayout        = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            .image            = shaderSrcImages[swapchain_image_index],
+            .srcAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+            .dstAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+            .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .image            = shaderFilterChains.at(swapchain_image_index).at(i).next_image_chain,
             .subresourceRange = {
                                 .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
                                 .baseMipLevel   = 0,
@@ -931,7 +955,7 @@ VulkanWindowRenderer::render()
                                 .layerCount     = 1,
                                 }
         };
-        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT | VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &image_shader_memory_barrier_2);
     }
 #endif
 
