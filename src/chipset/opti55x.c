@@ -747,6 +747,8 @@ opti55x_isa_read(uint16_t addr, void *priv)
     if (addr == 0x24) {
         if (dev->idx == 0xe0)
             ret = (dev->regs[0xe0] & 0xef) | (in_smm ? 0x10 : 0);
+        else if (dev->idx == 0x07)
+            ret = 0xff;
         else
             ret = dev->regs[dev->idx];
     }
