@@ -637,7 +637,7 @@ opti55x_isa_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 0xe0: /* GREEN Mode Control/Enable Status */
                     dev->regs[0xe0] = ((dev->regs[0xe0] & 0x10) | (val & 0xef));
-                    if ((val & 0x01) && (dev->regs[0xe1] & 0x01)) {
+                    if (((val & 0x81) == 0x81) && (dev->regs[0xe1] & 0x01)) {
                         dev->regs[0xe0] |= 0x10;
                         smi_raise();
                     }
