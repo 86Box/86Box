@@ -1333,7 +1333,7 @@ host_arm64_SCVTF_V2S(codeblock_t *block, int dst_reg, int src_reg)
 }
 
 void
-host_arm64_SHRN_V4H_4S(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
+host_arm64_SQSHRN_V4H_4S(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
 {
     if (shift > 16)
         fatal("host_arm64_SHRN_V4H_4S : shift > 16\n");
