@@ -56,9 +56,15 @@
 #include <86box/sound.h>
 #include <86box/ui.h>
 
-#define DEVICE_MAX 256 /* max # of devices */
+#define DEVICE_MAX 512 /* max # of devices */
+
+typedef struct device_state_t {
+    uintptr_t local;
+    int       inst;
+} device_state_t;
 
 static device_t        *devices[DEVICE_MAX];
+static device_state_t   device_state[DEVICE_MAX];
 static void            *device_priv[DEVICE_MAX];
 static device_context_t device_current;
 static device_context_t device_prev;
@@ -330,14 +336,21 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
 
     if (params != NULL) {
         init_dev = calloc(1, sizeof(device_t));
+        if (init_dev == NULL) {
+            fatal("Unable to allocate memory for device \"%s\", instance %i", dev->name, inst);
+            return NULL;
+        }
         memcpy(init_dev, dev, sizeof(device_t));
         init_dev->local |= (uintptr_t) params;
     } else
         init_dev = (device_t *) dev;
 
     for (c = 0; c < DEVICE_MAX; c++) {
-        if (!inst && (devices[c] == dev)) {
-            device_log("DEVICE: device already exists!\n");
+        if ((devices[c] == dev) && (device_state[c].local == init_dev->local) &&
+            (device_state[c].inst == inst)) {
+            device_log("DEVICE: Device "%s", local %016" PRIX64 ", inst %i already exists!\n",
+                       init_dev->name, init_dev->local,
+                       inst);
             return (NULL);
         }
         if (devices[c] == NULL)
@@ -349,9 +362,15 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
         return NULL;
     }
 
-    /* Do this so that a chained device_add will not identify the same ID
-       its master device is already trying to assign. */
+    /*
+       Do this so that a chained device_add will not identify the same ID
+       its master device is already trying to assign.
+     */
     devices[c] = (device_t *) dev;
+
+    device_state[c].local = init_dev->local;
+    device_state[c].inst  = inst;
+
     if (!strcmp(dev->name, "None") || !strcmp(dev->name, "Internal"))
         fatal("Attempting to add dummy device of type: %s\n", dev->name);
 
@@ -374,7 +393,9 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
                 devices[c]     = NULL;
                 device_priv[c] = NULL;
 
-                if ((init_dev != NULL) && (init_dev != (device_t *) dev))
+                memset(&(device_state[c]), 0x00, sizeof (device_state_t));
+
+                if ((init_dev != (device_t *) dev))
                     free(init_dev);
 
                 return (NULL);
@@ -392,6 +413,7 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
         device_priv[c] = priv;
     } else
         device_priv[c] = p;
+
 
     if (init_dev != dev)
         free(init_dev);
@@ -494,12 +516,14 @@ device_get_common_priv(void)
 }
 
 void
-device_close(const device_t *device)
+device_close_inst_params(const device_t *device, int inst, void *params)
 {
     int16_t c;
 
     for (c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if (devices[c] == device) {
+        if ((devices[c] == device) &&
+            (device_state[c].local == (device->local | (uintptr_t) params)) &&
+            (device_state[c].inst == 0)) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -508,6 +532,7 @@ device_close(const device_t *device)
                 devices[c]->close(device_priv[c]);
             devices[c]     = NULL;
             device_priv[c] = NULL;
+            memset(&(device_state[c]), 0x00, sizeof(device_state_t));
             break;
         }
     }
@@ -516,11 +541,19 @@ device_close(const device_t *device)
         if (d == (DEVICE_MAX - 1)) {
             devices[d]     = NULL;
             device_priv[d] = NULL;
+            memset(&(device_state[d]), 0x00, sizeof(device_state_t));
         } else {
             devices[d]     = devices[d + 1];
             device_priv[d] = device_priv[d + 1];
+            memcpy(&(device_state[d]), &(device_state[d + 1]), sizeof(device_state_t));
         }
     }
+}
+
+void
+device_close(const device_t *device)
+{
+    device_close_inst_params(device, 0, NULL);
 }
 
 void
@@ -536,6 +569,7 @@ device_close_all(void)
                 devices[c]->close(device_priv[c]);
             devices[c]     = NULL;
             device_priv[c] = NULL;
+            memset(&(device_state[c]), 0x00, sizeof(device_state_t));
         }
     }
 }
@@ -553,6 +587,7 @@ device_close_by_flags(uint32_t match_flags)
                 devices[c]->close(device_priv[c]);
             devices[c]     = NULL;
             device_priv[c] = NULL;
+            memset(&(device_state[c]), 0x00, sizeof(device_state_t));
         }
     }
 }

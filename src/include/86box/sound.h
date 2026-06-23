@@ -52,8 +52,6 @@ enum {
 };
 
 extern int ppispeakon;
-extern int gated;
-extern int speakval;
 extern int speakon;
 
 extern int midi_freq;
@@ -277,6 +275,9 @@ extern const device_t acermagic_s20_device;
 extern const device_t mirosound_pcm10_device;
 extern const device_t opti_82c930_device;
 extern const device_t opti_82c931_device;
+
+/* PC Speaker */
+extern const device_t speaker_device;
 
 /* Pro Audio Spectrum, Plus, 16, and 16D */
 extern const device_t pas_device;

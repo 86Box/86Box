@@ -215,26 +215,6 @@ static const char *const mo_exts[] = {
 /* ------------------------------------------------------------------ */
 /*  File browser helpers                                               */
 /* ------------------------------------------------------------------ */
-
-/* Case-insensitive glob: '?' = one char, '*' = any chars. */
-static bool glob_match_ci(const char *pat, const char *str)
-{
-    while (*pat && *str) {
-        if (*pat == '*') {
-            while (*pat == '*') pat++;
-            if (!*pat) return true;
-            while (*str)
-                if (glob_match_ci(pat, str++)) return true;
-            return false;
-        }
-        if (*pat != '?' && tolower((unsigned char)*pat) != tolower((unsigned char)*str))
-            return false;
-        pat++; str++;
-    }
-    while (*pat == '*') pat++;
-    return !*pat && !*str;
-}
-
 static const char *const *exts_for_view(OsdView v)
 {
     switch (v) {
@@ -682,6 +662,24 @@ bool osd_core_build_ui(void)
         case VIEW_LOG:       return draw_log();
         default:             return draw_browser();
     }
+}
+
+int osd_percentage = 0;
+
+void osd_core_draw_indicators(void)
+{
+#if 0
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoBackground;
+    window_flags |= ImGuiWindowFlags_NoTitleBar;
+    bool open_ptr = true;
+    ImGui::SetNextWindowPos(ImVec2(0, 0));
+    ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+    if (ImGui::Begin("DrawWin", &open_ptr, window_flags)) {
+        ImGui::TextColored(ImVec4(0, 1, 0, 1.0), "%d%%", osd_percentage);
+        ImGui::End();
+    }
+#endif
 }
 
 void osd_core_install_log_hook(void)

@@ -27,8 +27,6 @@
 #include <86box/86box.h>
 #include <86box/cdrom.h>
 #include <86box/device.h>
-#include <86box/filters.h>
-#include <86box/machine.h>
 #include <86box/midi.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
@@ -425,8 +423,8 @@ sound_cd_thread(UNUSED(void *param))
                         if (temp_buffer[1] < -32768)
                             temp_buffer[1] = -32768;
 
-                        cd_out_buffer_int16[c]     += (int16_t) temp_buffer[0];
-                        cd_out_buffer_int16[c + 1] += (int16_t) temp_buffer[1];
+                        cd_out_buffer_int16[c]     += *(int16_t *) (&temp_buffer[0]);
+                        cd_out_buffer_int16[c + 1] += *(int16_t *) (&temp_buffer[1]);
                     }
                 }
             }
@@ -912,6 +910,8 @@ sound_reset(void)
 void
 sound_card_reset(void)
 {
+    device_add(&speaker_device);
+
     sound_card_init();
 
     if (mpu401_standalone_enable)

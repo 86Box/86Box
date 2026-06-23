@@ -427,8 +427,8 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, uint16_t len, void *priv)
 
         if (mixer->output_filter) {
             /* We divide by 3 to get the volume down to normal. */
-            out_l += (low_fir_sb16(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
-            out_r += (low_fir_sb16(0, 1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
+            out_l += (low_fir_sb16(0, (double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
+            out_r += (low_fir_sb16(1, (double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
         } else {
             out_l += (((double) sb->dsp.buffer[c]) * mixer->voice_l) / 3.0;
             out_r += (((double) sb->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
@@ -713,14 +713,8 @@ sb16_awe32_filter_pc_speaker(int channel, double *buffer, void *priv)
     const int32_t            bass        = channel ? mixer->bass_r : mixer->bass_l;
     const int32_t            treble      = channel ? mixer->treble_r : mixer->treble_l;
     const double             output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
+    double                   c           = (((*buffer) * spk) / 3.0) * master;
     double                   bass_treble;
-    double                   c;
-
-    if (mixer->output_filter)
-        c = (low_fir_sb16(3, channel, *buffer) * spk) / 3.0;
-    else
-        c = ((*buffer) * spk) / 3.0;
-    c *= master;
 
     /* This is not exactly how one does bass/treble controls, but the end result is like it.
        A better implementation would reduce the CPU usage. */
@@ -797,8 +791,8 @@ sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 
         /* TODO: Implement the stereo switch on the mixer instead of on the dsp? */
         if (mixer->output_filter) {
-            out_l += (low_fir_sb16(0, 0, (double) ess->dsp.buffer[c]) * mixer->voice_l) / 3.0;
-            out_r += (low_fir_sb16(0, 1, (double) ess->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
+            out_l += (low_fir_sb16(0, (double) ess->dsp.buffer[c]) * mixer->voice_l) / 3.0;
+            out_r += (low_fir_sb16(1, (double) ess->dsp.buffer[c + 1]) * mixer->voice_r) / 3.0;
         } else {
             out_l += (ess->dsp.buffer[c] * mixer->voice_l) / 3.0;
             out_r += (ess->dsp.buffer[c + 1] * mixer->voice_r) / 3.0;
@@ -869,31 +863,24 @@ sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 void
 ess_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    const sb_t        *ess   = (sb_t *) priv;
-    const ess_mixer_t *mixer = &ess->mixer_ess;
-    double             c;
-    double             cd     = channel ? mixer->cd_r : mixer->cd_l;
-    double             master = channel ? mixer->master_r : mixer->master_l;
+    const sb_t        *ess    = (sb_t *) priv;
+    const ess_mixer_t *mixer  = &ess->mixer_ess;
+    const double       cd     = channel ? mixer->cd_r : mixer->cd_l;
+    const double       master = channel ? mixer->master_r : mixer->master_l;
+    const double       c      = ((*buffer * cd) / 3.0) * master;
 
     /* TODO: recording from the mixer. */
-    c       = (*buffer * cd) / 3.0;
-    *buffer = c * master;
+    *buffer = c;
 }
 
 void
 ess_filter_pc_speaker(int channel, double *buffer, void *priv)
 {
-    const sb_t        *ess   = (sb_t *) priv;
-    const ess_mixer_t *mixer = &ess->mixer_ess;
-    double             c;
-    double             spk    = mixer->speaker;
-    double             master = channel ? mixer->master_r : mixer->master_l;
-
-    if (mixer->output_filter)
-        c = (low_fir_sb16(3, channel, *buffer) * spk) / 3.0;
-    else
-        c = ((*buffer) * spk) / 3.0;
-    c *= master;
+    const sb_t        *ess    = (sb_t *) priv;
+    const ess_mixer_t *mixer  = &ess->mixer_ess;
+    const double       spk    = mixer->speaker;
+    const double       master = channel ? mixer->master_r : mixer->master_l;
+    const double       c      = (((*buffer) * spk) / 3.0) * master;
 
     *buffer = c;
 }
@@ -901,15 +888,14 @@ ess_filter_pc_speaker(int channel, double *buffer, void *priv)
 void
 ess_filter_midi(int channel, double *buffer, void *priv)
 {
-    const sb_t        *ess   = (sb_t *) priv;
-    const ess_mixer_t *mixer = &ess->mixer_ess;
-    double             c;
-    double             fm     = channel ? mixer->fm_r : mixer->fm_l;
-    double             master = channel ? mixer->master_r : mixer->master_l;
+    const sb_t        *ess    = (sb_t *) priv;
+    const ess_mixer_t *mixer  = &ess->mixer_ess;
+    const double       fm     = channel ? mixer->fm_r : mixer->fm_l;
+    const double       master = channel ? mixer->master_r : mixer->master_l;
+    const double       c      = ((*buffer * fm) / 3.0) * master;
 
     /* TODO: recording from the mixer. */
-    c       = (*buffer * fm) / 3.0;
-    *buffer = c * master;
+    *buffer = c;
 }
 
 void
@@ -1039,8 +1025,6 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x0c:
                 case 0x0e:
                 case 0x2e:
-                    break;
-
                 /* Aztech AZTPR16 mixer */
                 case 0x84:
                 case 0x86:
@@ -1685,6 +1669,8 @@ ess_base_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
     sb_t *ess = (sb_t *) priv;
 
     switch (addr & 0x000f) {
+        default:
+            break;
         case 0x0002:
         case 0x0003:
         case 0x0006:
@@ -1704,6 +1690,8 @@ ess_base_read(uint16_t addr, void *priv)
     sb_t *ess = (sb_t *) priv;
 
     switch (addr & 0x000f) {
+        default:
+            break;
         case 0x0002:
         case 0x0003:
         case 0x0004: /* Undocumented but tested by the LBA 2 ES688 driver. */
@@ -2046,7 +2034,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         mixer->regs[mixer->index] = val;
                         unsigned int c = (unsigned int) (mixer->regs[0x76] << 8U);
                         c |= (unsigned int) val;
-                        ess->ess_dac2_autolen = 0x10000 - c;
+                        ess->ess_dac2_autolen = (int) (0x10000 - c);
                     }
                     break;
                 case 0x76: /* DAC 2 DMA Reload Counter high byte */
@@ -2054,7 +2042,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         mixer->regs[mixer->index] = val;
                         unsigned int c = (unsigned int) (val << 8U);
                         c |= (unsigned int) mixer->regs[0x74];
-                        ess->ess_dac2_autolen = 0x10000 - c;
+                        ess->ess_dac2_autolen = (int) (0x10000 - c);
                     }
                     break;
                 case 0x78: /* DAC 2 Control 1 */
@@ -2107,6 +2095,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                        register writes performed by the Compaq Presario 224x BIOS */
                     if ((ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1888) && (ess->dsp.sb_subtype <= SB_SUBTYPE_ESS_ES1887)) {
                         switch (val & 0x03) {
+                            default:
+                                break;
                             case 0x00: /* DRQA */
                                 ess->ess_dac2_dma = 0;
                                 break;
@@ -2131,6 +2121,8 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     if ((ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1888) && (ess->dsp.sb_subtype <= SB_SUBTYPE_ESS_ES1887)) {
                         val &= 0x0f;
                         switch ((val >> 1) & 0x07) {
+                            default:
+                                break;
                             case 0x00: /* ES1888 interrupt mode */
                                 ess->dsp.es188x_irq_mode = 0;
                                 /* Switch sb_irqnum back to what's in ESS DSP register B1h */
@@ -2151,10 +2143,9 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                         break;
                                 }
                                 switch ((mixer->regs[0x40] >> 5) & 0x7) { /* Switch MPU401 IRQ back to what's in mixer reg 40h */
-                                    case 0:
-                                        mpu401_setirq(ess->mpu, -1);
+                                    default:
                                         break;
-                                    case 1:
+                                    case 0 ... 1:
                                         mpu401_setirq(ess->mpu, -1);
                                         break;
                                     case 2:
@@ -2323,6 +2314,8 @@ ess_mixer_read(uint16_t addr, void *priv)
             case 0x40:
                 if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1868) {
                     switch (ess->es186x_id_state) {
+                        default:
+                            break;
                         case 0:
                             ret = 0x18;
                             ess->es186x_id_state = 1;
@@ -2705,6 +2698,7 @@ ess_scr_write(uint16_t addr, uint8_t val, void *priv)
         return;
 
     switch (addr & 0x0001) {
+        default:
         case 0x0000:
             break;
         case 0x0001:
@@ -2750,6 +2744,8 @@ ess_scr_write(uint16_t addr, uint8_t val, void *priv)
             sb_dsp_setaddr(&ess->dsp, 0);
 
             switch (val & 0x03) {
+                default:
+                    break;
                 case 0x00:
                     dspaddr = 0x220;
                     break;
@@ -2765,6 +2761,8 @@ ess_scr_write(uint16_t addr, uint8_t val, void *priv)
             }
             if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1887) {
                 switch ((val >> 6) & 0x03) {
+                    default:
+                        break;
                     case 0x00:
                         opladdr = 0x388;
                         break;
@@ -2780,6 +2778,8 @@ ess_scr_write(uint16_t addr, uint8_t val, void *priv)
                 }
                 ess->opl_pnp_addr = opladdr;
                 switch ((val >> 4) & 0x03) {
+                    default:
+                        break;
                     case 0x00:
                         ess->gameport_addr = 0x200;
                         break;
@@ -2841,7 +2841,7 @@ ess_scr_write(uint16_t addr, uint8_t val, void *priv)
     sb_log("ESS System Config write! addr = %04X, val = %02X\n", addr, val);
 }
 
-static void ess_186x_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *priv);
+static void ess_186x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
 
 static void
 ess_pnp_control_write(uint16_t addr, uint8_t val, void *priv)
@@ -2868,7 +2868,6 @@ ess_pnp_control_write(uint16_t addr, uint8_t val, void *priv)
             ess->es186x_rom_pos = 0;
             break;
         case 5: /* Status Register */
-            break;
         case 6: /* Interrupt Status Register (RO) */
             break;
         case 7: /* Interrupt Mask Register */
@@ -3390,14 +3389,9 @@ goldfinch_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, v
 {
     goldfinch_t *goldfinch = (goldfinch_t *) priv;
 
-    switch (ld) {
-        default:
-            break;
-
-        case 0: /* WaveTable */
-            emu8k_change_addr(&goldfinch->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
-            break;
-    }
+    if (ld == 0)
+        /* WaveTable */
+        emu8k_change_addr(&goldfinch->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
 }
 
 static void
@@ -4155,8 +4149,8 @@ ess_dac2_update(void *priv)
     sb_t *ess = (sb_t *) priv;
 
     for (; ess->ess_dac2_pos < sound_pos_global; ess->ess_dac2_pos++) {
-        ess->ess_dac2_buffer[ess->ess_dac2_pos * 2]     = ess->ess_dac2_datl;
-        ess->ess_dac2_buffer[ess->ess_dac2_pos * 2 + 1] = ess->ess_dac2_datr;
+        ess->ess_dac2_buffer[ess->ess_dac2_pos * 2]     = *(int16_t *) &ess->ess_dac2_datl;
+        ess->ess_dac2_buffer[ess->ess_dac2_pos * 2 + 1] = *(int16_t *) &ess->ess_dac2_datr;
     }
 }
 
@@ -4174,6 +4168,8 @@ ess_dac2_poll(void *priv)
         format |= ess->ess_dac2_16bit ? 0x04 : 0;
         ess_dac2_update(ess);
         switch (format) {
+            default:
+                break;
             case 0x00: /* Unsigned 8-bit mono */
                 data[0] = ess_dac2_dmaread(ess, ess->ess_dac2_dma);
                 if (data[0] == DMA_NODATA)
@@ -5708,6 +5704,8 @@ ess_1x88_onboard_init(const device_t *info)
     sb_dsp_set_real_opl(&ess->dsp, 1);
     ess->opl_pnp_addr = 0x388;
     switch (type) {
+        default:
+            break;
         case 0: /* ES1688 */
             sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1688, ess);
             ess->es1688_rsk_enable = 1;

@@ -117,27 +117,6 @@ ensure_context(void)
     g_ctx_ready = true;
 }
 
-extern "C" {
-void
-qt_osd_start_vulkan(void (*(*callback)(const char *function_name, void *user_data))(), void* userdata_func, void* initdata)
-{
-    vk_init_info = *(ImGui_ImplVulkan_InitInfo*)initdata;
-    ImGui_ImplVulkan_LoadFunctions(VK_VERSION_1_0, callback, userdata_func);
-
-    g_vk_enabled = true;
-}
-
-void
-qt_osd_vulkan_set_min_image(int min_image)
-{
-    if (g_vk_ready && g_vk_enabled) {
-        ImGui_ImplVulkan_SetMinImageCount(min_image);
-    } else {
-        vk_init_info.MinImageCount = min_image;
-    }
-}
-}
-
 void
 ensure_gl(void)
 {
@@ -253,6 +232,28 @@ osd_close(void)
 /* ------------------------------------------------------------------ */
 /*  Public API                                                         */
 /* ------------------------------------------------------------------ */
+
+extern "C" {
+void
+qt_osd_start_vulkan(void (*(*callback)(const char *function_name, void *user_data))(), void* userdata_func, void* initdata)
+{
+    vk_init_info = *(ImGui_ImplVulkan_InitInfo*)initdata;
+    ImGui_ImplVulkan_LoadFunctions(VK_VERSION_1_0, callback, userdata_func);
+
+    g_vk_enabled = true;
+}
+
+void
+qt_osd_vulkan_set_min_image(int min_image)
+{
+    if (g_vk_ready && g_vk_enabled) {
+        ImGui_ImplVulkan_SetMinImageCount(min_image);
+    } else {
+        vk_init_info.MinImageCount = min_image;
+    }
+}
+}
+
 bool
 qt_osd_is_visible(void)
 {
@@ -284,6 +285,7 @@ qt_osd_shutdown(void)
     if (g_vk_enabled && g_vk_ready) {
         ImGui_ImplVulkan_Shutdown();
         g_vk_ready = false;
+        g_gl_ready = false;
     } else if (g_gl_ready) {
         ImGui_ImplOpenGL3_Shutdown();
         g_gl_ready = false;
@@ -305,9 +307,6 @@ void
 qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf)
 {
     /* OpenGL path for the GL renderer. */
-    if (!g_visible)
-        return;
-
     ensure_context();
     ensure_gl();
     if (!g_gl_ready)
@@ -325,8 +324,11 @@ qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf)
         ImGui_ImplOpenGL3_NewFrame();
     ImGui::NewFrame();
 
-    if (!osd_core_build_ui())
-        osd_close();
+    if (g_visible) {
+        if (!osd_core_build_ui())
+            osd_close();
+    }
+    osd_core_draw_indicators();
 
     ImGui::Render();
     if (g_vk_enabled)
@@ -338,9 +340,6 @@ qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf)
 const QImage *
 qt_osd_render_software(int logical_w, int logical_h, float dpr)
 {
-    if (!g_visible)
-        return nullptr;
-
     ensure_context();
     ensure_fonts();
 
@@ -358,12 +357,15 @@ qt_osd_render_software(int logical_w, int logical_h, float dpr)
     advance_frame_time(io);
 
     ImGui::NewFrame();
-    if (!osd_core_build_ui())
-        osd_close();
+    if (g_visible) {
+        if (!osd_core_build_ui())
+            osd_close();
+    }
+    osd_core_draw_indicators();
     ImGui::Render();
 
     osd_raster_render(ImGui::GetDrawData(), g_software_surface, dpr);
-    return g_visible ? &g_software_surface : nullptr;
+    return &g_software_surface;
 }
 
 bool

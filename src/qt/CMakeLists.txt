@@ -214,9 +214,6 @@ add_library(ui STATIC
     qt_vulkanwindowrenderer.hpp
     qt_vulkanwindowrenderer.cpp
 
-    qt_vulkanrenderer.hpp
-    qt_vulkanrenderer.cpp
-
     qt_mcadevicelist.hpp
     qt_mcadevicelist.cpp
     qt_mcadevicelist.ui
@@ -269,6 +266,16 @@ add_library(ui STATIC
     qt_openglshaderconfig.hpp
     qt_openglshaderconfig.cpp
     qt_openglshaderconfig.ui
+
+    qt_vulkanshadermanagerdialog.hpp
+    qt_vulkanshadermanagerdialog.cpp
+    qt_vulkanshadermanagerdialog.ui
+
+    qt_vulkanshaderconfig.hpp
+    qt_vulkanshaderconfig.cpp
+    qt_vulkanshaderconfig.ui
+
+    qt_slangp.hpp
 
     qt_iconindicators.hpp
     qt_iconindicators.cpp
@@ -425,6 +432,21 @@ target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::Network
     Threads::Threads
 )
+
+if (LIBRASHADER)
+    target_compile_definitions(plat PRIVATE LIBRA_RUNTIME_VULKAN)
+    target_compile_definitions(ui PRIVATE LIBRA_RUNTIME_VULKAN)
+    if (LIBRASHADER_STATIC)
+        if (LIBRASHADER_STATIC_FIND_LIB)
+            find_library(LIBRASHADER_STATIC_LIB liblibrashader_capi.a REQUIRED)
+            target_link_libraries(ui PRIVATE "${LIBRASHADER_STATIC_LIB}" ntdll userenv)
+        else()
+            target_link_libraries(ui PRIVATE librashader_capi)
+        endif()
+        target_compile_definitions(plat PRIVATE LIBRASHADER_STATIC)
+        target_compile_definitions(ui PRIVATE LIBRASHADER_STATIC)
+    endif()
+endif()
 
 if(WIN32)
     if(STATIC_BUILD)
