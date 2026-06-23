@@ -273,7 +273,6 @@ codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
-
 static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
