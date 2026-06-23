@@ -2506,6 +2506,7 @@ ropXADD_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
 uint32_t
 ropIMUL_w_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
@@ -2537,6 +2538,7 @@ ropIMUL_w_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 uint32_t
 ropIMUL_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
@@ -2568,6 +2570,7 @@ ropIMUL_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 uint32_t
 ropIMUL_w_rm_imm16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
     uint32_t start_pc = op_pc;
 
@@ -2605,6 +2608,7 @@ ropIMUL_w_rm_imm16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), ui
 uint32_t
 ropIMUL_l_rm_imm32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
     uint32_t start_pc = op_pc;
 
@@ -2642,6 +2646,7 @@ ropIMUL_l_rm_imm32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), ui
 uint32_t
 ropIMUL_w_rm_imm8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
     uint32_t start_pc = op_pc;
 
@@ -2679,6 +2684,7 @@ ropIMUL_w_rm_imm8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uin
 uint32_t
 ropIMUL_l_rm_imm8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
     uint32_t start_pc = op_pc;
 
