@@ -1337,7 +1337,7 @@ host_arm64_SHRN_V4H_4S(codeblock_t *block, int dst_reg, int src_n_reg, int shift
 {
     if (shift > 16)
         fatal("host_arm64_SHRN_V4H_4S : shift > 16\n");
-    codegen_addlong(block, OPCODE_SQSHRN | Rd(dst_reg) | Rn(src_n_reg) | SHRN_SHIFT_IMM_V4S(16 - shift));
+    codegen_addlong(block, OPCODE_SHRN | Rd(dst_reg) | Rn(src_n_reg) | SHRN_SHIFT_IMM_V4S(16 - shift));
 }
 
 void
