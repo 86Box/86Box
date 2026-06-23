@@ -98,6 +98,64 @@ codegen_ADD_LSHIFT(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_IMUL(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+        host_arm64_MUL(block, dest_reg, src_reg_a, src_reg_b);
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b)) {
+        host_arm64_MUL(block, REG_TEMP, src_reg_a, src_reg_b);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("IMUL size mismatch: dest_size=%x, src_size_a=%x, src_size_b=%x\n", dest_size, src_size_a, src_size_b);
+#    endif
+    return 0;
+}
+
+static int
+codegen_IMUL_IMM(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
+        uint32_t imm = uop->imm_data;
+        if (imm <= 0xffff) {
+            host_arm64_MOVZ_IMM(block, REG_W16, imm);
+        } else {
+            host_arm64_MOVZ_IMM(block, REG_W16, imm & 0xffff);
+            host_arm64_MOVK_IMM(block, REG_W16, imm & 0xffff0000);
+        }
+        host_arm64_MUL(block, dest_reg, src_reg, REG_W16);
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+        uint32_t imm = uop->imm_data;
+        if (imm <= 0xffff) {
+            host_arm64_MOVZ_IMM(block, REG_W16, imm);
+        } else {
+            host_arm64_MOVZ_IMM(block, REG_W16, imm & 0xffff);
+            host_arm64_MOVK_IMM(block, REG_W16, imm & 0xffff0000);
+        }
+        host_arm64_MUL(block, REG_TEMP, src_reg, REG_W16);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("IMUL_IMM size mismatch: dest_size=%x, src_size=%x\n", dest_size, src_size);
+#    endif
+    return 0;
+}
+
+static int
 codegen_AND(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -214,6 +272,7 @@ codegen_CALL_FUNC_RESULT(codeblock_t *block, uop_t *uop)
 
     return 0;
 }
+
 
 static int
 codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
@@ -1246,6 +1305,7 @@ codegen_MOVZX(codeblock_t *block, uop_t *uop)
     int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_L(src_size)) {
+        host_arm64_MOV_REG(block, src_reg, src_reg, 0); //Zero extends src_reg
         host_arm64_FMOV_D_Q(block, dest_reg, src_reg);
     } else if (REG_IS_L(dest_size) && REG_IS_Q(src_size)) {
         host_arm64_FMOV_W_S(block, dest_reg, src_reg);
@@ -1346,6 +1406,8 @@ codegen_MOV_REG_PTR(codeblock_t *block, uop_t *uop)
     host_arm64_MOVX_IMM(block, REG_TEMP, (uint64_t) uop->p);
     if (REG_IS_L(dest_size)) {
         host_arm64_LDR_IMM_W(block, dest_reg, REG_TEMP, 0);
+    } else if (REG_IS_D(dest_size) || REG_IS_Q(dest_size)) {
+        host_arm64_LDR_IMM_F64(block, dest_reg, REG_TEMP, 0);
     } else
         fatal("MOV_REG_PTR %02x\n", uop->dest_reg_a_real);
 
@@ -2100,7 +2162,7 @@ codegen_PMULHW(codeblock_t *block, uop_t *uop)
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a) && REG_IS_Q(src_size_b)) {
         host_arm64_SMULL_V4S_4H(block, dest_reg, src_reg_a, src_reg_b);
-        host_arm64_SHRN_V4H_4S(block, dest_reg, dest_reg, 16);
+        host_arm64_SQSHRN_V4H_4S(block, dest_reg, dest_reg, 16);
     } else
         fatal("PMULHW %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
@@ -3226,6 +3288,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_ADD_IMM &
         UOP_MASK]
     = codegen_ADD_IMM,
+    [UOP_IMUL &
+        UOP_MASK]
+    = codegen_IMUL,
+    [UOP_IMUL_IMM &
+        UOP_MASK]
+    = codegen_IMUL_IMM,
     [UOP_ADD_LSHIFT &
         UOP_MASK]
     = codegen_ADD_LSHIFT,
