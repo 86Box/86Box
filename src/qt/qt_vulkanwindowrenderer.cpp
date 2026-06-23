@@ -759,8 +759,8 @@ VulkanWindowRenderer::render()
     bregion.dstOffsets[0].x = std::clamp((uint32_t)destination.x(), 0u, (uint32_t)curExtent.width);
     bregion.dstOffsets[0].y = std::clamp((uint32_t)destination.y(), 0u, (uint32_t)curExtent.height);
     bregion.dstOffsets[0].z = 0;
-    bregion.dstOffsets[1].x = std::clamp((uint32_t)destination.x() + destination.width(), 0u, (uint32_t)curExtent.width);
-    bregion.dstOffsets[1].y = std::clamp((uint32_t)destination.y() + destination.height(), 0u, (uint32_t)curExtent.height);
+    bregion.dstOffsets[1].x = std::clamp((uint32_t)destination.x() + (uint32_t)destination.width(), 0u, (uint32_t)curExtent.width);
+    bregion.dstOffsets[1].y = std::clamp((uint32_t)destination.y() + (uint32_t)destination.height(), 0u, (uint32_t)curExtent.height);
     bregion.dstOffsets[1].z = 1;
 
     VkImageCopy cregion{};
@@ -1702,7 +1702,16 @@ void
 VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     auto origSource = source;
+    if (w == 0)
+        w = 256;
+    if (h == 0)
+        h = 256;
+
     source.setRect(x, y, w, h);
+    source.setLeft(std::clamp(source.left(), 0, 2048));
+    source.setRight(std::clamp(source.right(), 0, 2048));
+    source.setTop(std::clamp(source.top(), 0, 2048));
+    source.setBottom(std::clamp(source.bottom(), 0, 2048));
     if (origSource != source) {
         this->pixelRatio = devicePixelRatio();
         onResize(this->width(), this->height());
