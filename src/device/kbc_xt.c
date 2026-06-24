@@ -500,7 +500,17 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            ret = kbd->pb;
+            /*
+             * 8255 Port B is configured for output; bits 6/7 (keyboard clock /
+             * keyboard clear) are output controls and do not read back as
+             * status on a real 5160 (memory/I-O parity status lives on Port C,
+             * 0x62, bits 6/7). Mask the upper bits off so they read 0, matching
+             * the canonical XT PPI in port_6x.c (port_61_read: ppi.pb & 0x1f).
+             * Without this, software that reads 0x61 and tests bits 6/7 (e.g.
+             * the AST RAMpage REMM expanded-memory manager's parity check) sees
+             * a spurious parity error from the latched keyboard-clock bit.
+             */
+            ret = kbd->pb & 0x3f;
             break;
 
         case 0x62: /* Switch Register (aka Port C) */
