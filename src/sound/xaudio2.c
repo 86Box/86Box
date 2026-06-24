@@ -45,17 +45,10 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-static int                     initialized    = 0;
-static IXAudio2               *xaudio2        = NULL;
-static IXAudio2MasteringVoice *mastervoice    = NULL;
-static IXAudio2SourceVoice    *srcvoice       = NULL;
-static IXAudio2SourceVoice    *srcvoicemusic  = NULL;
-static IXAudio2SourceVoice    *srcvoicewt     = NULL;
-static IXAudio2SourceVoice    *srcvoicemidi   = NULL;
-static IXAudio2SourceVoice    *srcvoicecd     = NULL;
-static IXAudio2SourceVoice    *srcvoicefdd    = NULL;
-static IXAudio2SourceVoice    *srcvoicehdd    = NULL;
-static IXAudio2SourceVoice    *srcvoiceym2151 = NULL;
+static int                     initialized     = 0;
+static IXAudio2               *xaudio2         = NULL;
+static IXAudio2MasteringVoice *mastervoice     = NULL;
+static IXAudio2SourceVoice    *srcvoice[I_MAX] = { 0 };
 
 extern bool fast_forward;
 
@@ -251,10 +244,24 @@ sound_get_output_devices(void)
 #endif
 }
 
+int sources = 0;
+
 void
 inital(void)
 {
-    #if defined(_WIN32) && !defined(USE_FAUDIO)
+    int init_midi         = 0;
+
+    if (initialized)
+        return;
+
+    const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
+    if ((strcmp(mdn, "none") != 0) && (strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME) != 0))
+        init_midi = 1; /* If the device is neither none, nor system MIDI, initialize the
+                          MIDI buffer and source, otherwise, do not. */
+
+    sources = I_MIDI + !!init_midi;
+
+#if defined(_WIN32) && !defined(USE_FAUDIO)
     if (xaudio2_handle == NULL)
         xaudio2_handle = dynld_module("xaudio2_9.dll", xaudio2_imports);
 
@@ -290,67 +297,40 @@ inital(void)
         fmt.wBitsPerSample = 16;
     }
 
-    fmt.nSamplesPerSec  = sound_sample_rate;
-    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
-    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-    fmt.cbSize          = 0;
+    unsigned long long buf_freqs[I_MAX] = {
+        0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0
+    };
 
-    if (IXAudio2_CreateSourceVoice(xaudio2, &srcvoice, &fmt, 0, 2.0f, &callbacks, NULL, NULL)) {
-        IXAudio2MasteringVoice_DestroyVoice(mastervoice);
-        IXAudio2_Release(xaudio2);
-        xaudio2     = NULL;
-        mastervoice = NULL;
-        return;
+    for (int i = 0; i < I_MIDI; i++) {
+        if (buf_freqs[i] == 0)
+            buf_freqs[i] = sound_sample_rate;
     }
+    if (init_midi)
+        buf_freqs[I_MIDI] = midi_freq;
 
-    fmt.nSamplesPerSec  = MUSIC_FREQ;
-    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
-    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-
-    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicemusic, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-
-    fmt.nSamplesPerSec  = WT_FREQ;
-    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
-    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-
-    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicewt, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-
-    fmt.nSamplesPerSec  = CD_FREQ;
-    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
-    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-
-    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicecd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-
-    fmt.nSamplesPerSec  = sound_sample_rate;
-    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
-    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-
-    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicefdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicehdd, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-
-    fmt.nSamplesPerSec  = YM2151_FREQ;
-    fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
-    fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-
-    (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoiceym2151, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-
-    (void) IXAudio2SourceVoice_SetVolume(srcvoice, 1, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_Start(srcvoice, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_Start(srcvoicecd, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_Start(srcvoicemusic, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_Start(srcvoicewt, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_Start(srcvoicefdd, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_Start(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_Start(srcvoiceym2151, 0, XAUDIO2_COMMIT_NOW);
-
-    const char *mdn = midi_out_device_get_internal_name(midi_output_device_current);
-
-    if ((strcmp(mdn, "none") != 0) && (strcmp(mdn, SYSTEM_MIDI_INTERNAL_NAME) != 0)) {
-        fmt.nSamplesPerSec  = midi_freq;
+    for (int i = 0; i < sources; i++) {
+        fmt.nSamplesPerSec  = buf_freqs[i];
         fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
         fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
-        (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicemidi, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-        (void) IXAudio2SourceVoice_Start(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
+        fmt.cbSize          = 0;
+
+        if (IXAudio2_CreateSourceVoice(xaudio2, &srcvoice[i], &fmt, 0, 2.0f, &callbacks, NULL, NULL)) {
+            if (i > 0)  for (int j = (i - 1); j >= 0; j--) {
+                (void) IXAudio2SourceVoice_Stop(srcvoice[j], 0, XAUDIO2_COMMIT_NOW);
+                (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoice[j]);
+
+                IXAudio2SourceVoice_DestroyVoice(srcvoice[j]);
+            }
+
+            IXAudio2MasteringVoice_DestroyVoice(mastervoice);
+            IXAudio2_Release(xaudio2);
+            xaudio2     = NULL;
+            mastervoice = NULL;
+            return;
+        }
+
+        (void) IXAudio2SourceVoice_SetVolume(srcvoice[i], 1, XAUDIO2_COMMIT_NOW);
+        (void) IXAudio2SourceVoice_Start(srcvoice[i], 0, XAUDIO2_COMMIT_NOW);
     }
 
     initialized = 1;
@@ -364,43 +344,29 @@ closeal(void)
         return;
 
     initialized = 0;
-    (void) IXAudio2SourceVoice_Stop(srcvoice, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoice);
-    (void) IXAudio2SourceVoice_Stop(srcvoicemusic, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemusic);
-    (void) IXAudio2SourceVoice_Stop(srcvoicewt, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicewt);
-    (void) IXAudio2SourceVoice_Stop(srcvoicecd, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicecd);
-    (void) IXAudio2SourceVoice_Stop(srcvoicefdd, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicefdd);
-    (void) IXAudio2SourceVoice_Stop(srcvoicehdd, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicehdd);
-    (void) IXAudio2SourceVoice_Stop(srcvoiceym2151, 0, XAUDIO2_COMMIT_NOW);
-    (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoiceym2151);
-    if (srcvoicemidi) {
-        (void) IXAudio2SourceVoice_Stop(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
-        (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemidi);
-        IXAudio2SourceVoice_DestroyVoice(srcvoicemidi);
+    sources     = 0;
+
+    for (int i = 0; i < (I_MAX - 1); i++) {
+        (void) IXAudio2SourceVoice_Stop(srcvoice[i], 0, XAUDIO2_COMMIT_NOW);
+        (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoice[i]);
     }
-    IXAudio2SourceVoice_DestroyVoice(srcvoicewt);
-    IXAudio2SourceVoice_DestroyVoice(srcvoicecd);
-    IXAudio2SourceVoice_DestroyVoice(srcvoicefdd);
-    IXAudio2SourceVoice_DestroyVoice(srcvoicehdd);
-    IXAudio2SourceVoice_DestroyVoice(srcvoicemusic);
-    IXAudio2SourceVoice_DestroyVoice(srcvoiceym2151);
-    IXAudio2SourceVoice_DestroyVoice(srcvoice);
+
+    if (srcvoice[I_MIDI]) {
+        (void) IXAudio2SourceVoice_Stop(srcvoice[I_MIDI], 0, XAUDIO2_COMMIT_NOW);
+        (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoice[I_MIDI]);
+
+        IXAudio2SourceVoice_DestroyVoice(srcvoice[I_MIDI]);
+    }
+
+    for (int i = (I_MIDI - 1); i >= 0; i--)
+        IXAudio2SourceVoice_DestroyVoice(srcvoice[i]);
+
     IXAudio2MasteringVoice_DestroyVoice(mastervoice);
     IXAudio2_Release(xaudio2);
-    srcvoice       = NULL;
-    srcvoicemusic  = NULL;
-    srcvoicewt     = NULL;
-    srcvoice       = NULL;
-    srcvoicecd     = NULL;
-    srcvoicemidi   = NULL;
-    srcvoicefdd    = NULL;
-    srcvoicehdd    = NULL;
-    srcvoiceym2151 = NULL;
+
+    for (int i = 0; i < I_MAX; i++)
+        srcvoice[i] = NULL;
+
     mastervoice    = NULL;
     xaudio2        = NULL;
 
@@ -410,8 +376,8 @@ closeal(void)
 #endif
 }
 
-void
-givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const size_t buflen)
+static void
+givealbuffer_common(const void *buf, const uint8_t src, const size_t buflen)
 {
     if (!initialized || fast_forward)
         return;
@@ -434,38 +400,38 @@ givealbuffer_common(const void *buf, IXAudio2SourceVoice *sourcevoice, const siz
     buffer.PlayBegin = buffer.PlayLength = 0;
     buffer.PlayLength                    = buflen >> 1;
     buffer.pContext                      = (void *) buffer.pAudioData;
-    (void) IXAudio2SourceVoice_SubmitSourceBuffer(sourcevoice, &buffer, NULL);
+    (void) IXAudio2SourceVoice_SubmitSourceBuffer(srcvoice[src], &buffer, NULL);
 }
 
 void
 givealbuffer(const void *buf)
 {
-    givealbuffer_common(buf, srcvoice, (sound_sample_rate / 50) << 1);
+    givealbuffer_common(buf, I_NORMAL, (sound_sample_rate / 50) << 1);
 }
 
 void
 givealbuffer_music(const void *buf)
 {
-    givealbuffer_common(buf, srcvoicemusic, MUSICBUFLEN << 1);
+    givealbuffer_common(buf, I_MUSIC, MUSICBUFLEN << 1);
 }
 
 void
 givealbuffer_ym2151(const void *buf)
 {
-    givealbuffer_common(buf, srcvoiceym2151, YM2151BUFLEN << 1);
+    givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1);
 }
 
 void
 givealbuffer_wt(const void *buf)
 {
-    givealbuffer_common(buf, srcvoicewt, WTBUFLEN << 1);
+    givealbuffer_common(buf, I_WT, WTBUFLEN << 1);
 }
 
 void
 givealbuffer_cd(const void *buf)
 {
-    if (srcvoicecd)
-        givealbuffer_common(buf, srcvoicecd, CD_BUFLEN << 1);
+    if (srcvoice[I_CD])
+        givealbuffer_common(buf, I_CD, CD_BUFLEN << 1);
 }
 
 void
@@ -474,10 +440,10 @@ givealbuffer_fdd(const void *buf, const uint32_t size)
     if (!initialized)
         return;
     
-    if (!srcvoicefdd)
+    if (!srcvoice[I_FDD])
         return;
 
-    givealbuffer_common(buf, srcvoicefdd, size);
+    givealbuffer_common(buf, I_FDD, size);
 }
 
 void
@@ -486,10 +452,10 @@ givealbuffer_hdd(const void *buf, const uint32_t size)
     if (!initialized)
         return;
     
-    if (!srcvoicefdd)
+    if (!srcvoice[I_HDD])
         return;
 
-    givealbuffer_common(buf, srcvoicehdd, size);
+    givealbuffer_common(buf, I_HDD, size);
 }
 
 void
@@ -498,11 +464,11 @@ al_set_midi(const int freq, const int buf_size)
     midi_freq     = freq;
     midi_buf_size = buf_size;
 
-    if (initialized && srcvoicemidi) {
-        (void) IXAudio2SourceVoice_Stop(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
-        (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoicemidi);
-        IXAudio2SourceVoice_DestroyVoice(srcvoicemidi);
-        srcvoicemidi = NULL;
+    if (initialized && srcvoice[I_MIDI]) {
+        (void) IXAudio2SourceVoice_Stop(srcvoice[I_MIDI], 0, XAUDIO2_COMMIT_NOW);
+        (void) IXAudio2SourceVoice_FlushSourceBuffers(srcvoice[I_MIDI]);
+        IXAudio2SourceVoice_DestroyVoice(srcvoice[I_MIDI]);
+        srcvoice[I_MIDI] = NULL;
         WAVEFORMATEX fmt;
         fmt.nChannels = 2;
         if (sound_is_float) {
@@ -516,30 +482,19 @@ al_set_midi(const int freq, const int buf_size)
         fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
         fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
         fmt.cbSize          = 0;
-        (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoicemidi, &fmt, 0, 2.0f, &callbacks, NULL, NULL);
-        (void) IXAudio2SourceVoice_Start(srcvoicemidi, 0, XAUDIO2_COMMIT_NOW);
+        (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoice[I_MIDI], &fmt, 0, 2.0f, &callbacks, NULL, NULL);
+        (void) IXAudio2SourceVoice_Start(srcvoice[I_MIDI], 0, XAUDIO2_COMMIT_NOW);
     }
 }
 
 void
 givealbuffer_midi(const void *buf, const uint32_t size)
 {
-    givealbuffer_common(buf, srcvoicemidi, size);
+    givealbuffer_common(buf, I_MIDI, size);
 }
 
 int
 sound_get_device_supported_rates(const char *device_name, int *rates_out, int max_rates)
 {
-    /* Candidate rates: only those where rate/50 <= SOUNDBUFLEN to avoid overflowing
-       static device buffers. */
-    static const int candidates[] = { FREQ_44100, FREQ_48000 };
-    const int        num_cands    = (int) (sizeof(candidates) / sizeof(candidates[0]));
-    int            count    = 0;
-
-    /* Fallback: if detection failed entirely, return all candidates. */
-    for (int i = 0; i < num_cands && i < max_rates; i++)
-        rates_out[i] = candidates[i];
-    count = num_cands;
-
-    return count;
+    return 2;
 }
