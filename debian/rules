@@ -6,18 +6,16 @@
 ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
 
 ifeq ($(ARCH), $(filter $(ARCH), amd64))
-	NDR=off		
-	TOOLCHAIN=cmake/flags-gcc-x86_64.cmake
+	NDR=off
 else
 	NDR=on
-	TOOLCHAIN=cmake/flags-gcc-aarch64.cmake
 endif
 
 %:
 	dh $@ --buildsystem cmake+ninja
 
 override_dh_auto_configure:
-	dh_auto_configure --buildsystem cmake+ninja -- --preset regular --toolchain $(TOOLCHAIN) -DNEW_DYNAREC=$(NDR) -B .
+	dh_auto_configure --buildsystem cmake+ninja -- -DNEW_DYNAREC=$(NDR) -B .
 
 override_dh_auto_build:
 	dh_auto_build --buildsystem cmake+ninja

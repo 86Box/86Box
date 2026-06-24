@@ -318,18 +318,6 @@ fi
 
 echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 
-# Determine CMake toolchain file for this architecture.
-toolchain_prefix=flags-gcc
-is_mac && toolchain_prefix=llvm-macos
-case $arch in
-	64 | x86_64)	toolchain="$toolchain_prefix-x86_64";;
-	ARM64 | arm64)	toolchain="$toolchain_prefix-aarch64";;
-	*)		toolchain="$toolchain_prefix-$arch";;
-esac
-[ ! -e "cmake/$toolchain.cmake" ] && toolchain=flags-gcc
-toolchain_file="cmake/$toolchain.cmake"
-toolchain_file_libs=
-
 # Perform platform-specific setup.
 cc_binary=gcc
 strip_binary=strip
@@ -569,7 +557,7 @@ then
 					done
 
 					# Merge a subsequent bundle with this one.
-					merge_src="$merge_dest"	
+					merge_src="$merge_dest"
 				fi
 			fi
 
@@ -758,8 +746,8 @@ else
 	esac
 
 	# Create CMake cross toolchain file.
-	toolchain_file_new="$cache_dir/toolchain.$arch_deb.cmake"
-	cat << EOF > "$toolchain_file_new"
+	toolchain_file="$cache_dir/toolchain.$arch_deb.cmake"
+	cat << EOF > "$toolchain_file"
 set(CMAKE_SYSTEM_NAME Linux)
 set(CMAKE_SYSTEM_PROCESSOR $arch)
 
@@ -779,20 +767,9 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(ENV{PKG_CONFIG_PATH} "")
 set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig:/usr/share/pkgconfig")
-
-include("$(realpath "$toolchain_file")")
 EOF
-	toolchain_file="$toolchain_file_new"
 	cc_binary="$arch_triplet-gcc"
 	strip_binary="$arch_triplet-strip"
-
-	# Create a separate toolchain file for library compilation without including
-	# our own toolchain files, letting libraries set their own C(XX)FLAGS instead.
-	# The file is saved on a fixed location, since running CMake again on a library
-	# we've already built before will *not* update its toolchain file path; therefore,
-	# we cannot point them to our working directory, which may change across builds.
-	toolchain_file_libs="$cache_dir/toolchain.$arch_deb.libs.cmake"
-	grep -Ev "^include\(" "$toolchain_file" > "$toolchain_file_libs"
 
 	# Install dependencies only if we're in a new build and/or architecture.
 	if check_buildtag "$arch_deb"
@@ -1103,7 +1080,7 @@ else
 	sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
 
 	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
@@ -1121,7 +1098,7 @@ else
 		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/4.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
@@ -1137,7 +1114,7 @@ else
 	prefix_build="$prefix/build-$arch_deb"
 	cmake -G Ninja -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
 		-D SndFile_WITH_EXTERNAL_LIBS=ON -D enable-aufile=OFF -D enable-dbus=OFF -D enable-network=OFF -D enable-ipv6=OFF \
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
@@ -1168,7 +1145,7 @@ else
 		-D SDL_ATOMIC=OFF -D SDL_EVENTS=ON -D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_THREADS=ON -D SDL_TIMERS=ON -D SDL_FILE=OFF \
 		-D SDL_LOADSO=ON -D SDL_CPUINFO=ON -D SDL_FILESYSTEM=$sdl_ui -D SDL_DLOPEN=OFF -D SDL_SENSOR=OFF -D SDL_LOCALE=OFF \
 		\
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99

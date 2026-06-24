@@ -37,12 +37,18 @@ jobs:
       matrix:
         build:
 #          - name: Regular
-#            preset: regular
+#            preset:
+#              configure: regular
+#              build: release
           - name: Debug
-            preset: dev_debug
+            preset:
+              configure: development
+              build: debug
             slug: -Debug
           - name: Dev
-            preset: development
+            preset:
+              configure: development
+              build: release
             slug: -Dev
         dynarec:
           - name: ODR
@@ -87,11 +93,9 @@ jobs:
               libvulkan-dev
         environment:
           - arch: x86_64
-            toolchain: ./cmake/flags-gcc-x86_64.cmake
             slug: "-x86_64"
             runner: ubuntu-22.04
           - arch: arm64
-            toolchain: ./cmake/flags-gcc-aarch64.cmake
             slug: -arm64
             runner: ubuntu-22.04-arm
         exclude:
@@ -126,8 +130,7 @@ jobs:
 
       - name: Configure CMake
         run: >-
-          cmake -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ${{ matrix.environment.toolchain }}
+          cmake --preset ${{ matrix.build.preset.configure }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
@@ -135,11 +138,11 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build build
+          cmake --build --preset ${{ matrix.build.preset.build }}
 
       - name: Generate package
         run: |
-          cmake --install build
+          cmake --build --preset ${{ matrix.build.preset.build }} --target install
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
