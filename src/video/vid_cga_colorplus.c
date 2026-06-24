@@ -354,7 +354,7 @@ colorplus_standalone_init(UNUSED(const device_t *info))
     mem_mapping_add(&colorplus->cga.mapping, 0xb8000, 0x08000, colorplus_read, NULL, NULL, colorplus_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, colorplus);
     io_sethandler(0x03d0, 0x0010, colorplus_in, NULL, NULL, colorplus_out, NULL, NULL, colorplus);
 
-    colorplus->lpt = device_add_inst(&lpt_port_device, 1);
+    colorplus->lpt = device_add_inst(&lpt_port_device, -1);
     lpt_port_setup(colorplus->lpt, LPT_MDA_ADDR);
     lpt_set_3bc_used(1);
 
