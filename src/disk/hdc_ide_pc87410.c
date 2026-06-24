@@ -37,6 +37,7 @@
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/log.h>
 
 typedef struct pc87410_t {
     uint8_t  channels;
@@ -49,6 +50,8 @@ typedef struct pc87410_t {
     int      irq_pin;
     int      irq_line;
     uint8_t  type;
+
+    void *   log; /* New logging system */
 } pc87410_t;
 
 //#define ENABLE_PC87410_LOG 1
@@ -57,13 +60,12 @@ typedef struct pc87410_t {
 int pc87410_do_log = ENABLE_PC87410_LOG;
 
 static void
-pc87410_log(const char *fmt, ...)
+pc87410_log(void *priv, const char *fmt, ...)
 {
-    va_list ap;
-
     if (pc87410_do_log) {
+        va_list ap;
         va_start(ap, fmt);
-        pclog_ex(fmt, ap);
+        log_out(priv, fmt, ap);
         va_end(ap);
     }
 }
@@ -82,7 +84,7 @@ pc87410_ide_handlers(pc87410_t *dev)
     main = 0x1f0;
     side = 0x3f6;
 
-    pc87410_log("PC87410 IDE chan0 addresses: main = %04X, side = %04X\n", main, side);
+    pc87410_log(dev->log, "PC87410 IDE chan0 addresses: main = %04X, side = %04X\n", main, side);
 
     ide_set_base(0, main);
     ide_set_side(0, side);
@@ -95,7 +97,7 @@ pc87410_ide_handlers(pc87410_t *dev)
     main = 0x170;
     side = 0x376;
 
-    pc87410_log("PC87410 IDE chan1 addresses: main = %04X, side = %04X\n", main, side);
+    pc87410_log(dev->log, "PC87410 IDE chan1 addresses: main = %04X, side = %04X\n", main, side);
 
     ide_set_base(1, main);
     ide_set_side(1, side);
@@ -109,7 +111,7 @@ pc87410_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
     pc87410_t *dev = (pc87410_t *) priv;
 
-    pc87410_log("pc87410_pci_write(%i, %02X, %02X)\n", func, addr, val);
+    pc87410_log(dev->log, "pc87410_pci_write(%i, %02X, %02X)\n", func, addr, val);
 
     if (func == 0x00)
         switch (addr) {
@@ -151,7 +153,7 @@ pc87410_pci_read(int func, int addr, UNUSED(int len), void *priv)
     if (func == 0x00)
         ret = dev->regs[addr];
 
-    pc87410_log("pc87410_pci_read(%i, %02X, %02X)\n", func, addr, ret);
+    pc87410_log(dev->log, "pc87410_pci_read(%i, %02X, %02X)\n", func, addr, ret);
 
     return ret;
 }
@@ -222,6 +224,11 @@ pc87410_close(void *priv)
 {
     pc87410_t *dev = (pc87410_t *) priv;
 
+    if (dev->log != NULL) {
+        log_close(dev->log);
+        dev->log = NULL;
+    }
+
     free(dev);
 }
 
@@ -229,6 +236,8 @@ static void *
 pc87410_init(const device_t *info)
 {
     pc87410_t *dev = (pc87410_t *) calloc(1, sizeof(pc87410_t));
+
+    dev->log = log_open("PC87410");
 
     device_add(&ide_pci_2ch_device);
 
