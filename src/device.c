@@ -320,8 +320,10 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
        IMPORTANT: This is needed to gracefully handle machine
                   device addition if the relevant device is NULL.
      */
-    if (dev == NULL)
+    if (dev == NULL) {
+        device_log("Attempting to add a NULL device\n");
         return NULL;
+    }
 
     if (!device_available(dev)) {
         char temp[512] = { 0 };
@@ -345,10 +347,21 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     } else
         init_dev = (device_t *) dev;
 
+    if (inst == -1) {
+        inst = 1;
+        for (c = 0; c < DEVICE_MAX; c++) {
+            if ((devices[c] == dev) && (device_state[c].local == init_dev->local))
+                inst = device_state[c].inst + 1;
+            if (devices[c] == NULL)
+                break;
+        }
+        device_log("DEVICE: Automatically assigned instance: %i\n", inst);
+    }
+
     for (c = 0; c < DEVICE_MAX; c++) {
         if ((devices[c] == dev) && (device_state[c].local == init_dev->local) &&
             (device_state[c].inst == inst)) {
-            device_log("DEVICE: Device "%s", local %016" PRIX64 ", inst %i already exists!\n",
+            device_log("DEVICE: Device \"%s\", local %016" PRIX64 ", inst %i already exists!\n",
                        init_dev->name, init_dev->local,
                        inst);
             return (NULL);
