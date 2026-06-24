@@ -24,6 +24,18 @@
 extern int  sound_gain;
 extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
 
+enum {
+    I_NORMAL = 0,
+    I_MUSIC,
+    I_WT,
+    I_CD,
+    I_FDD,
+    I_HDD,
+    I_YM2151,
+    I_MIDI,
+    I_MAX
+};
+
 #define FREQ_44100  44100
 #define FREQ_48000  48000
 #define FREQ_49716  49716
