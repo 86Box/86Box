@@ -500,7 +500,13 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            ret = kbd->pb;
+            /*
+             * Port B bits 6/7 (keyboard clock/clear) are outputs and read back 0
+             * on a real 5160 (parity status is on Port C/0x62); mask them to match
+             * the canonical PPI in port_6x.c. REMM's per-page parity check reads
+             * 0x61 and fails card sizing without this.
+             */
+            ret = kbd->pb & 0x3f;
             break;
 
         case 0x62: /* Switch Register (aka Port C) */
