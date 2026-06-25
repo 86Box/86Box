@@ -297,10 +297,8 @@ inital(void)
         fmt.wBitsPerSample = 16;
     }
 
-    for (int i = 0; i < I_MIDI; i++) {
-        if (src_freqs[i] == 0)
-            src_freqs[i] = sound_sample_rate;
-    }
+    src_freqs[I_NORMAL] = src_freqs[I_FDD] = src_freqs[I_HDD] = sound_sample_rate;
+
     if (init_midi)
         src_freqs[I_MIDI] = midi_freq;
 

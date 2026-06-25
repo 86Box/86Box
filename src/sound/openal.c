@@ -33,7 +33,7 @@
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
 
-ALuint                    buffers[4][I_MAX]; /* front and back buffers */
+ALuint                    buffers[I_MAX][4]; /* front and back buffers */
 static ALuint             source[I_MAX];     /* audio sources */
 
 static int                initialized       = 0;
@@ -199,12 +199,9 @@ inital(void)
 
     const int pcm_buf_len = sound_sample_rate / 50;
 
-    for (int i = 0; i < I_MIDI; i++) {
-        if (buf_sizes[i] == 0) {
-            buf_sizes[i] = (pcm_buf_len << 1);
-            src_freqs[i]     = sound_sample_rate;
-        }
-    }
+    buf_sizes[I_NORMAL] = buf_sizes[I_FDD] = buf_sizes[I_HDD] = (pcm_buf_len << 1);
+    src_freqs[I_NORMAL] = src_freqs[I_FDD] = src_freqs[I_HDD] = sound_sample_rate;
+
     if (init_midi) {
         buf_sizes[I_MIDI] = midi_buf_size;
         src_freqs[I_MIDI]     = midi_freq;

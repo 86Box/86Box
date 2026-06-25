@@ -26,8 +26,8 @@
 #include <86box/plat_unused.h>
 
 extern bool            fast_forward;
-static struct sio_hdl* audio[8]     = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
-static struct sio_par  info[8];
+static struct sio_hdl* audio[I_MAX] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+static struct sio_par  info[I_MAX];
 
 const char *
 sound_get_output_devices(void)
