@@ -27,13 +27,10 @@
 #include <86box/86box.h>
 #include <86box/cdrom.h>
 #include <86box/device.h>
-#include <86box/filters.h>
-#include <86box/machine.h>
 #include <86box/midi.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/snd_ac97.h>
-#include <86box/snd_speaker.h>
 #include <86box/timer.h>
 #include <86box/snd_mpu401.h>
 #include <86box/sound.h>
@@ -60,6 +57,10 @@ char sound_output_device[512]           = { 0 };
 
 int  midi_freq                          = 44100;
 int  midi_buf_size                      = 4410;
+
+unsigned long long src_freqs[I_MAX] = {
+    0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0
+};
 
 #define NUM_SOUND_HANDLERS 16
 #define NUM_MUSIC_HANDLERS 16
@@ -426,8 +427,8 @@ sound_cd_thread(UNUSED(void *param))
                         if (temp_buffer[1] < -32768)
                             temp_buffer[1] = -32768;
 
-                        cd_out_buffer_int16[c]     += (int16_t) temp_buffer[0];
-                        cd_out_buffer_int16[c + 1] += (int16_t) temp_buffer[1];
+                        cd_out_buffer_int16[c]     += *(int16_t *) (&temp_buffer[0]);
+                        cd_out_buffer_int16[c + 1] += *(int16_t *) (&temp_buffer[1]);
                     }
                 }
             }
@@ -913,7 +914,7 @@ sound_reset(void)
 void
 sound_card_reset(void)
 {
-    speaker_init();
+    device_add(&speaker_device);
 
     sound_card_init();
 

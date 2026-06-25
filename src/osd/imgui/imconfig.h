@@ -147,3 +147,4 @@ namespace ImGui
 */
 
 #define IMGUI_IMPL_VULKAN_NO_PROTOTYPES 1
+#define IMGUI_ENABLE_FREETYPE 1

@@ -28,7 +28,6 @@
 #    define USE_OLD_FLUIDSYNTH_API
 #endif
 
-extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
 typedef struct fluidsynth {
