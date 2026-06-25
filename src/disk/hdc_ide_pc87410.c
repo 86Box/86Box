@@ -54,8 +54,6 @@ typedef struct pc87410_t {
     void *   log; /* New logging system */
 } pc87410_t;
 
-//#define ENABLE_PC87410_LOG 1
-
 #ifdef ENABLE_PC87410_LOG
 int pc87410_do_log = ENABLE_PC87410_LOG;
 

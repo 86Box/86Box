@@ -13,8 +13,6 @@
  *          Copyright 2026 win2kgamer
  */
 
-#define ENABLE_OPTI55X_LOG 1
-
 #ifdef ENABLE_OPTI55X_LOG
 #include <stdarg.h>
 #endif
