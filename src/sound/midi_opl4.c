@@ -566,7 +566,6 @@ opl4_midi_thread(UNUSED(void *arg))
 
     int32_t buffer[RENDER_RATE * 2];
 
-    extern void givealbuffer_midi(void *buf, uint32_t size);
     while (opl4_midi->on) {
         thread_wait_event(opl4_midi->wait_event, -1);
         thread_reset_event(opl4_midi->wait_event);

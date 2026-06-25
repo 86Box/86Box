@@ -33,13 +33,18 @@
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
 
-ALuint             buffers[4][I_MAX]; /* front and back buffers */
-static ALuint      source[I_MAX];     /* audio sources */
+ALuint                    buffers[4][I_MAX]; /* front and back buffers */
+static ALuint             source[I_MAX];     /* audio sources */
 
-static int         initialized       = 0;
-static int         sources           = 2;
-static ALCcontext *Context;
-static ALCdevice  *Device;
+static int                initialized       = 0;
+static int                sources           = 2;
+static ALCcontext *       Context;
+static ALCdevice  *       Device;
+
+static unsigned long long buf_sizes[I_MAX] = {
+    0, (MUSICBUFLEN << 1), (WTBUFLEN << 1),     (CD_BUFLEN << 1),
+    0, 0,                  (YM2151BUFLEN << 1), 0
+};
 
 void
 al_set_midi(const int freq, const int buf_size)
@@ -194,24 +199,15 @@ inital(void)
 
     const int pcm_buf_len = sound_sample_rate / 50;
 
-    unsigned long long buf_sizes[I_MAX] = {
-        0, (MUSICBUFLEN << 1), (WTBUFLEN << 1),     (CD_BUFLEN << 1),
-        0, 0,                  (YM2151BUFLEN << 1), 0
-    };
-
-    unsigned long long buf_freqs[I_MAX] = {
-        0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0
-    };
-
     for (int i = 0; i < I_MIDI; i++) {
         if (buf_sizes[i] == 0) {
             buf_sizes[i] = (pcm_buf_len << 1);
-            buf_freqs[i] = sound_sample_rate;
+            src_freqs[i]     = sound_sample_rate;
         }
     }
     if (init_midi) {
         buf_sizes[I_MIDI] = midi_buf_size;
-        buf_freqs[I_MIDI] = midi_freq;
+        src_freqs[I_MIDI]     = midi_freq;
     }
 
     sources = I_MIDI + !!init_midi;
@@ -251,10 +247,10 @@ inital(void)
     for (uint8_t c = 0; c < 4; c++) {
         if (sound_is_float) {
             for (int i = 0; i < sources; i++)
-                alBufferData(buffers[i][c], AL_FORMAT_STEREO_FLOAT32, buf[i], (int) buf_sizes[i] * (int) sizeof(float), (int) buf_freqs[i]);
+                alBufferData(buffers[i][c], AL_FORMAT_STEREO_FLOAT32, buf[i], (int) buf_sizes[i] * (int) sizeof(float), (int) src_freqs[i]);
         } else {
             for (int i = 0; i < sources; i++)
-                alBufferData(buffers[i][c], AL_FORMAT_STEREO16, buf16[i], (int) buf_sizes[i] * (int) sizeof(int16_t), (int) buf_freqs[i]);
+                alBufferData(buffers[i][c], AL_FORMAT_STEREO16, buf16[i], (int) buf_sizes[i] * (int) sizeof(int16_t), (int) src_freqs[i]);
         }
     }
 
@@ -274,9 +270,8 @@ inital(void)
     initialized = 1;
 }
 
-extern bool fast_forward;
-static void
-givealbuffer_common(const void *buf, const uint8_t src, const int size, const int freq)
+void
+givealbuffer_common(const void *buf, const uint8_t src, const int size)
 {
     int    processed;
     int    state;
@@ -299,58 +294,10 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size, const in
         alSourceUnqueueBuffers(source[src], 1, &buffer);
 
         if (sound_is_float)
-            alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, size * (int) sizeof(float), freq);
+            alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, size * (int) sizeof(float), (int) src_freqs[src]);
         else
-            alBufferData(buffer, AL_FORMAT_STEREO16, buf, size * (int) sizeof(int16_t), freq);
+            alBufferData(buffer, AL_FORMAT_STEREO16, buf, size * (int) sizeof(int16_t), (int) src_freqs[src]);
 
         alSourceQueueBuffers(source[src], 1, &buffer);
     }
-}
-
-void
-givealbuffer(const void *buf)
-{
-    givealbuffer_common(buf, I_NORMAL, (sound_sample_rate / 50) << 1, sound_sample_rate);
-}
-
-void
-givealbuffer_music(const void *buf)
-{
-    givealbuffer_common(buf, I_MUSIC, MUSICBUFLEN << 1, MUSIC_FREQ);
-}
-
-void
-givealbuffer_wt(const void *buf)
-{
-    givealbuffer_common(buf, I_WT, WTBUFLEN << 1, WT_FREQ);
-}
-
-void
-givealbuffer_cd(const void *buf)
-{
-    givealbuffer_common(buf, I_CD, CD_BUFLEN << 1, CD_FREQ);
-}
-
-void
-givealbuffer_midi(const void *buf, const uint32_t size)
-{
-    givealbuffer_common(buf, I_MIDI, (int) size, midi_freq);
-}
-
-void
-givealbuffer_fdd(const void *buf, const uint32_t size)
-{
-    givealbuffer_common(buf, I_FDD, (int) size, sound_sample_rate);
-}
-
-void
-givealbuffer_hdd(const void *buf, const uint32_t size)
-{
-    givealbuffer_common(buf, I_HDD, (int) size, sound_sample_rate);
-}
-
-void
-givealbuffer_ym2151(const void *buf)
-{
-    givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1, YM2151_FREQ);
 }

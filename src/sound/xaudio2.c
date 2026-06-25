@@ -297,19 +297,15 @@ inital(void)
         fmt.wBitsPerSample = 16;
     }
 
-    unsigned long long buf_freqs[I_MAX] = {
-        0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0
-    };
-
     for (int i = 0; i < I_MIDI; i++) {
-        if (buf_freqs[i] == 0)
-            buf_freqs[i] = sound_sample_rate;
+        if (src_freqs[i] == 0)
+            src_freqs[i] = sound_sample_rate;
     }
     if (init_midi)
-        buf_freqs[I_MIDI] = midi_freq;
+        src_freqs[I_MIDI] = midi_freq;
 
     for (int i = 0; i < sources; i++) {
-        fmt.nSamplesPerSec  = buf_freqs[i];
+        fmt.nSamplesPerSec  = src_freqs[i];
         fmt.nBlockAlign     = fmt.nChannels * fmt.wBitsPerSample / 8;
         fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nBlockAlign;
         fmt.cbSize          = 0;
@@ -376,10 +372,10 @@ closeal(void)
 #endif
 }
 
-static void
-givealbuffer_common(const void *buf, const uint8_t src, const size_t buflen)
+void
+givealbuffer_common(const void *buf, const uint8_t src, const int size)
 {
-    if (!initialized || fast_forward)
+    if (!initialized || fast_forward || (srcvoice[src] == NULL))
         return;
 
     (void) IXAudio2MasteringVoice_SetVolume(mastervoice, sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0),
@@ -387,75 +383,20 @@ givealbuffer_common(const void *buf, const uint8_t src, const size_t buflen)
     XAUDIO2_BUFFER buffer = { 0 };
     buffer.Flags          = 0;
     if (sound_is_float) {
-        buffer.pAudioData = calloc(buflen, sizeof(float));
-        buffer.AudioBytes = buflen * sizeof(float);
+        buffer.pAudioData = calloc(size, sizeof(float));
+        buffer.AudioBytes = size * sizeof(float);
     } else {
-        buffer.pAudioData = calloc(buflen, sizeof(int16_t));
-        buffer.AudioBytes = buflen * sizeof(int16_t);
+        buffer.pAudioData = calloc(size, sizeof(int16_t));
+        buffer.AudioBytes = size * sizeof(int16_t);
     }
     if (buffer.pAudioData == NULL) {
         fatal("xaudio2: Out Of Memory!");
     }
     memcpy((void *) buffer.pAudioData, buf, buffer.AudioBytes);
     buffer.PlayBegin = buffer.PlayLength = 0;
-    buffer.PlayLength                    = buflen >> 1;
+    buffer.PlayLength                    = (uint32_t) (size >> 1);
     buffer.pContext                      = (void *) buffer.pAudioData;
     (void) IXAudio2SourceVoice_SubmitSourceBuffer(srcvoice[src], &buffer, NULL);
-}
-
-void
-givealbuffer(const void *buf)
-{
-    givealbuffer_common(buf, I_NORMAL, (sound_sample_rate / 50) << 1);
-}
-
-void
-givealbuffer_music(const void *buf)
-{
-    givealbuffer_common(buf, I_MUSIC, MUSICBUFLEN << 1);
-}
-
-void
-givealbuffer_ym2151(const void *buf)
-{
-    givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1);
-}
-
-void
-givealbuffer_wt(const void *buf)
-{
-    givealbuffer_common(buf, I_WT, WTBUFLEN << 1);
-}
-
-void
-givealbuffer_cd(const void *buf)
-{
-    if (srcvoice[I_CD])
-        givealbuffer_common(buf, I_CD, CD_BUFLEN << 1);
-}
-
-void
-givealbuffer_fdd(const void *buf, const uint32_t size)
-{
-    if (!initialized)
-        return;
-    
-    if (!srcvoice[I_FDD])
-        return;
-
-    givealbuffer_common(buf, I_FDD, size);
-}
-
-void
-givealbuffer_hdd(const void *buf, const uint32_t size)
-{
-    if (!initialized)
-        return;
-    
-    if (!srcvoice[I_HDD])
-        return;
-
-    givealbuffer_common(buf, I_HDD, size);
 }
 
 void
@@ -485,12 +426,6 @@ al_set_midi(const int freq, const int buf_size)
         (void) IXAudio2_CreateSourceVoice(xaudio2, &srcvoice[I_MIDI], &fmt, 0, 2.0f, &callbacks, NULL, NULL);
         (void) IXAudio2SourceVoice_Start(srcvoice[I_MIDI], 0, XAUDIO2_COMMIT_NOW);
     }
-}
-
-void
-givealbuffer_midi(const void *buf, const uint32_t size)
-{
-    givealbuffer_common(buf, I_MIDI, size);
 }
 
 int

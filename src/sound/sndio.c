@@ -28,7 +28,6 @@
 extern bool            fast_forward;
 static struct sio_hdl* audio[8]     = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static struct sio_par  info[8];
-static int             freqs[8]     = { 0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0 };
 
 const char *
 sound_get_output_devices(void)
@@ -129,7 +128,7 @@ closeal(void)
 void
 inital(void)
 {
-    freqs[I_NORMAL] = freqs[I_FDD] = freqs[I_HDD] = sound_sample_rate;
+    src_freqs[I_NORMAL] = src_freqs[I_FDD] = src_freqs[I_HDD] = sound_sample_rate;
 
     const char *devname = (sound_output_device[0] != '\0') ? sound_output_device : SIO_DEVANY;
 
@@ -160,7 +159,7 @@ inital(void)
 void
 givealbuffer_common(const void *buf, const uint8_t src, const int size)
 {
-    const int freq = freqs[src];
+    const int freq = (const int) src_freqs[src];
     int16_t* output;
     int output_size;
     int16_t* conv;
@@ -203,55 +202,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
 }
 
 void
-givealbuffer(const void *buf)
-{
-    givealbuffer_common(buf, I_NORMAL, (sound_sample_rate / 50) << 1);
-}
-
-void
-givealbuffer_music(const void *buf)
-{
-    givealbuffer_common(buf, I_MUSIC, MUSICBUFLEN << 1);
-}
-
-void
-givealbuffer_wt(const void *buf)
-{
-    givealbuffer_common(buf, I_WT, WTBUFLEN << 1);
-}
-
-void
-givealbuffer_cd(const void *buf)
-{
-    givealbuffer_common(buf, I_CD, CD_BUFLEN << 1);
-}
-
-void
-givealbuffer_midi(const void *buf, const uint32_t size)
-{
-    givealbuffer_common(buf, I_MIDI, (int) size);
-}
-
-void
-givealbuffer_fdd(const void *buf, const uint32_t size)
-{
-    givealbuffer_common(buf, I_FDD, (int) size);
-}
-
-void
-givealbuffer_hdd(const void *buf, const uint32_t size)
-{
-    givealbuffer_common(buf, I_HDD, (int) size);
-}	
-
-void
-givealbuffer_ym2151(const void *buf)
-{
-    givealbuffer_common(buf, I_YM2151, YM2151BUFLEN << 1);
-}
-
-void
 al_set_midi(const int freq, UNUSED(const int buf_size))
 {
-    freqs[I_MIDI] = freq;
+    src_freqs[I_MIDI] = freq;
 }

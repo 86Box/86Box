@@ -46,7 +46,6 @@
 #define RENDER_RATE      100
 #define BUFFER_SEGMENTS  10
 
-extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
 /* ------------------------------------------------------------------ */

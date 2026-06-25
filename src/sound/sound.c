@@ -58,6 +58,10 @@ char sound_output_device[512]           = { 0 };
 int  midi_freq                          = 44100;
 int  midi_buf_size                      = 4410;
 
+unsigned long long src_freqs[I_MAX] = {
+    0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0
+};
+
 #define NUM_SOUND_HANDLERS 16
 #define NUM_MUSIC_HANDLERS 16
 #define NUM_YM2151_HANDLERS 16

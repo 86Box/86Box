@@ -25,7 +25,6 @@
 #define CM32LN_CTRL_ROM   "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
 #define CM32LN_PCM_ROM    "roms/sound/cm32ln/CM32LN_PCM.ROM"
 
-extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
 static mt32emu_report_handler_version get_mt32_report_handler_version(mt32emu_report_handler_i i);
