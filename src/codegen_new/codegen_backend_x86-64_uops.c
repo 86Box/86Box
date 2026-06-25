@@ -111,60 +111,6 @@ codegen_ADD_LSHIFT(codeblock_t *block, uop_t *uop)
 }
 
 static int
-codegen_IMUL(codeblock_t *block, uop_t *uop)
-{
-    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
-    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
-
-    if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
-        if (dest_reg == src_reg_b) {
-            host_x86_IMUL32_REG_REG(block, dest_reg, src_reg_a);
-        } else {
-            if (dest_reg != src_reg_a)
-                host_x86_MOV32_REG_REG(block, dest_reg, src_reg_a);
-            host_x86_IMUL32_REG_REG(block, dest_reg, src_reg_b);
-        }
-    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size_a) && REG_IS_W(src_size_b)) {
-        if (dest_reg == src_reg_b) {
-            host_x86_IMUL16_REG_REG(block, dest_reg, src_reg_a);
-        } else {
-            if (dest_reg != src_reg_a)
-                host_x86_MOV16_REG_REG(block, dest_reg, src_reg_a);
-            host_x86_IMUL16_REG_REG(block, dest_reg, src_reg_b);
-        }
-    }
-#    ifdef RECOMPILER_DEBUG
-    else
-        fatal("IMUL size mismatch: dest_size=%x, src_size_a=%x, src_size_b=%x\n", dest_size, src_size_a, src_size_b);
-#    endif
-    return 0;
-}
-
-static int
-codegen_IMUL_IMM(codeblock_t *block, uop_t *uop)
-{
-    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
-
-    if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
-        host_x86_IMUL32_REG_IMM(block, dest_reg, src_reg, uop->imm_data);
-    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
-        host_x86_IMUL16_REG_IMM(block, dest_reg, src_reg, (int16_t)uop->imm_data);
-    }
-#    ifdef RECOMPILER_DEBUG
-    else
-        fatal("IMUL_IMM size mismatch: dest_size=%x, src_size=%x\n", dest_size, src_size);
-#    endif
-    return 0;
-}
-
-static int
 codegen_AND(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3047,12 +2993,6 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_ADD_IMM &
         UOP_MASK]
     = codegen_ADD_IMM,
-    [UOP_IMUL &
-        UOP_MASK]
-    = codegen_IMUL,
-    [UOP_IMUL_IMM &
-        UOP_MASK]
-    = codegen_IMUL_IMM,
     [UOP_ADD_LSHIFT &
         UOP_MASK]
     = codegen_ADD_LSHIFT,
