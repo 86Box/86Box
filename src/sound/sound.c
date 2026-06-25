@@ -93,6 +93,10 @@ static uint8_t    sound_handlers_num;
 static uint8_t    music_handlers_num;
 static uint8_t    ym2151_handlers_num;
 static uint8_t    wavetable_handlers_num;
+static pc_timer_t cd_poll_timer;
+static uint64_t   cd_poll_latch;
+static pc_timer_t midi_poll_timer;
+static uint64_t   midi_poll_latch;
 static pc_timer_t sound_poll_timer;
 static uint64_t   sound_poll_latch;
 static pc_timer_t music_poll_timer;
@@ -107,7 +111,6 @@ static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
 static unsigned int cd_vol_l;
 static unsigned int cd_vol_r;
-static int          cd_buf_update    = CD_BUFLEN / SOUNDBUFLEN;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
@@ -327,7 +330,7 @@ sound_cd_clean_buffers(void)
 static void
 sound_cd_thread(UNUSED(void *param))
 {
-    int      temp_buffer[2];
+    int16_t  temp_buffer[2];
     int      channel_select[2];
     double   audio_vol_l;
     double   audio_vol_r;
@@ -415,20 +418,22 @@ sound_cd_thread(UNUSED(void *param))
                         cd_out_buffer[c] += (float) (cd_buffer_temp[0] / 32768.0);
                         cd_out_buffer[c + 1] += (float) (cd_buffer_temp[1] / 32768.0);
                     } else {
-                        temp_buffer[0] = (int) trunc(cd_buffer_temp[0]);
-                        temp_buffer[1] = (int) trunc(cd_buffer_temp[1]);
-
-                        if (temp_buffer[0] > 32767)
+                        if (cd_buffer_temp[0] > 32767.0)
                             temp_buffer[0] = 32767;
-                        if (temp_buffer[0] < -32768)
+                        else if (cd_buffer_temp[0] < -32768.0)
                             temp_buffer[0] = -32768;
-                        if (temp_buffer[1] > 32767)
-                            temp_buffer[1] = 32767;
-                        if (temp_buffer[1] < -32768)
-                            temp_buffer[1] = -32768;
+                        else
+                            temp_buffer[0] = (int16_t) trunc(cd_buffer_temp[0]);
 
-                        cd_out_buffer_int16[c]     += *(int16_t *) (&temp_buffer[0]);
-                        cd_out_buffer_int16[c + 1] += *(int16_t *) (&temp_buffer[1]);
+                        if (cd_buffer_temp[1] > 32767.0)
+                            temp_buffer[1] = 32767;
+                        else if (cd_buffer_temp[1] < -32768.0)
+                            temp_buffer[1] = -32768;
+                        else
+                            temp_buffer[1] = (int16_t) trunc(cd_buffer_temp[1]);
+
+                        cd_out_buffer_int16[c]     = (int16_t) (cd_out_buffer_int16[c] + temp_buffer[0]);
+                        cd_out_buffer_int16[c + 1] = (int16_t) (cd_out_buffer_int16[c + 1] + temp_buffer[1]);
                     }
                 }
             }
@@ -682,13 +687,27 @@ sound_set_midi_filter(void (*filter)(int channel, double *buffer, void *priv), v
 }
 
 void
+cd_poll(UNUSED(void *priv))
+{
+    timer_advance_u64(&cd_poll_timer, cd_poll_latch * CD_BUFLEN);
+
+    thread_set_event(sound_cd_event);
+}
+
+void
+midi_poll_ex(UNUSED(void *priv))
+{
+    timer_advance_u64(&midi_poll_timer, midi_poll_latch * 480);
+
+    midi_poll();
+}
+
+void
 sound_poll(UNUSED(void *priv))
 {
     const uint8_t handler_count = (sound_handlers_num < NUM_SOUND_HANDLERS) ? sound_handlers_num : NUM_SOUND_HANDLERS;
 
     timer_advance_u64(&sound_poll_timer, sound_poll_latch);
-
-    midi_poll();
 
     sound_pos_global++;
     if (sound_pos_global == sound_buf_len) {
@@ -715,14 +734,6 @@ sound_poll(UNUSED(void *priv))
             givealbuffer(outbuffer_ex);
         else
             givealbuffer(outbuffer_ex_int16);
-
-        if (cd_thread_enable) {
-            cd_buf_update--;
-            if (!cd_buf_update) {
-                cd_buf_update = 50 / (CD_FREQ / CD_BUFLEN);
-                thread_set_event(sound_cd_event);
-            }
-        }
 
         if (fdd_thread_enable) {
             thread_set_event(sound_fdd_event);
@@ -851,6 +862,10 @@ sound_speed_changed(void)
 {
     sound_buf_len = sound_sample_rate / 50;
 
+    cd_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) FREQ_44100));
+
+    midi_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) FREQ_48000));
+
     sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
 
     music_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) MUSIC_FREQ));
@@ -875,6 +890,12 @@ sound_reset(void)
     midi_in_device_init();
 
     inital();
+
+    memset(&cd_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&cd_poll_timer, cd_poll, NULL, 1);
+
+    memset(&midi_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&midi_poll_timer, midi_poll_ex, NULL, 1);
 
     memset(&sound_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
@@ -1104,6 +1125,10 @@ sound_recalc_timers(void)
 void
 sound_close(void)
 {
+    timer_disable(&cd_poll_timer);
+
+    timer_disable(&midi_poll_timer);
+
     timer_disable(&sound_poll_timer);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));

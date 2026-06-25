@@ -271,7 +271,7 @@ static const uint8_t g_volume_table[128] = {
 };
 
 #define BUFFER_SEGMENTS 10
-#define RENDER_RATE     (48000 / 100)
+#define RENDER_RATE     100
 
 typedef struct opl4_midi {
     fm_drv_t          opl4;
@@ -279,7 +279,6 @@ typedef struct opl4_midi {
     VOICE_DATA        voice_data[24];
     int16_t           buffer[(48000 / 100) * 2 * BUFFER_SEGMENTS];
     float             buffer_float[(48000 / 100) * 2 * BUFFER_SEGMENTS];
-    uint32_t          midi_pos;
     bool              on;
     atomic_bool       gen_in_progress;
     thread_t         *thread;
@@ -622,11 +621,8 @@ static void
 opl4_midi_poll(void)
 {
     opl4_midi_t *opl4_midi = opl4_midi_cur;
-    opl4_midi->midi_pos++;
-    if (opl4_midi->midi_pos == RENDER_RATE) {
-        opl4_midi->midi_pos = 0;
-        thread_set_event(opl4_midi->wait_event);
-    }
+
+    thread_set_event(opl4_midi->wait_event);
 }
 
 void

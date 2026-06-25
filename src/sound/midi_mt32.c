@@ -162,7 +162,6 @@ static uint32_t samplerate   = 44100;
 static int      buf_size     = 0;
 static float   *buffer       = NULL;
 static int16_t *buffer_int16 = NULL;
-static int      midi_pos     = 0;
 
 static mt32emu_report_handler_version
 get_mt32_report_handler_version(UNUSED(mt32emu_report_handler_i i))
@@ -201,11 +200,7 @@ mt32_stream_int16(int16_t *stream, int len)
 void
 mt32_poll(void)
 {
-    midi_pos++;
-    if (midi_pos == sound_sample_rate / RENDER_RATE) {
-        midi_pos = 0;
-        thread_set_event(event);
-    }
+    thread_set_event(event);
 }
 
 static void
