@@ -24,6 +24,18 @@
 extern int  sound_gain;
 extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
 
+enum {
+    I_NORMAL = 0,
+    I_MUSIC,
+    I_WT,
+    I_CD,
+    I_FDD,
+    I_HDD,
+    I_YM2151,
+    I_MIDI,
+    I_MAX
+};
+
 #define FREQ_44100  44100
 #define FREQ_48000  48000
 #define FREQ_49716  49716
@@ -131,13 +143,23 @@ extern int         sound_get_device_supported_rates(const char *device_name, /* 
                                                     int *rates_out, int max_rates);
 extern void        closeal(void);
 extern void        inital(void);
-extern void givealbuffer(const void *buf);
-extern void givealbuffer_music(const void *buf);
-extern void givealbuffer_ym2151(const void *buf);
-extern void givealbuffer_wt(const void *buf);
-extern void givealbuffer_cd(const void *buf);
-extern void givealbuffer_fdd(const void *buf, const uint32_t size);
-extern void givealbuffer_hdd(const void *buf, const uint32_t size);
+
+#ifdef bool
+extern bool        fast_forward;
+#endif
+
+extern unsigned long long src_freqs[I_MAX];
+
+extern void        givealbuffer_common(const void *buf, const uint8_t src, const int size);
+
+#define givealbuffer(b)         givealbuffer_common(b, I_NORMAL, (sound_sample_rate / 50) << 1)
+#define givealbuffer_music(b)   givealbuffer_common(b, I_MUSIC, MUSICBUFLEN << 1)
+#define givealbuffer_ym2151(b)  givealbuffer_common(b, I_YM2151, YM2151BUFLEN << 1)
+#define givealbuffer_wt(b)      givealbuffer_common(b, I_WT, WTBUFLEN << 1)
+#define givealbuffer_cd(b)      givealbuffer_common(b, I_CD, CD_BUFLEN << 1)
+#define givealbuffer_fdd(b, s)  givealbuffer_common(b, I_FDD, s)
+#define givealbuffer_hdd(b, s)  givealbuffer_common(b, I_HDD, s)
+#define givealbuffer_midi(b, s) givealbuffer_common(b, I_MIDI, s)
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 #define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
