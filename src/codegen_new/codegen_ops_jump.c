@@ -166,12 +166,25 @@ ropRET_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
     }
-    ADD_SP(ir, 2 + offset);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        if (stack32)
+        {
+            /* FIX: Use IREG_temp0 to prevent register tracking collision with IREG_temp1_W */
+            uop_MOVZX(ir, IREG_temp0, IREG_temp1_W);
+            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp0);
+        }
+        else
+            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp1_W);
+        ADD_SP(ir, 2);
+    }
+    else 
+        ADD_SP(ir, 2 + offset);
     uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
 
     codegen_mark_code_present(block, cs + op_pc, 2);
     return -1;
 }
+
 uint32_t
 ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
@@ -185,7 +198,20 @@ ropRET_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_pc, IREG_SS_base, IREG_eaaddr);
     }
-    ADD_SP(ir, 4 + offset);
+
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        if (stack32)
+        {
+            /* FIX: Use IREG_temp0 to prevent register tracking collision with IREG_temp1_W */
+            uop_MOVZX(ir, IREG_temp0, IREG_temp1_W);
+            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp0);
+        }
+        else
+            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp1_W);
+        ADD_SP(ir, 4);
+    }
+    else 
+        ADD_SP(ir, 4 + offset);
 
     codegen_mark_code_present(block, cs + op_pc, 2);
     return -1;
@@ -260,11 +286,24 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
     uop_CALL_FUNC(ir, loadcs);
-    ADD_SP(ir, 4 + offset);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        if (stack32)
+        {
+            /* FIX: Use IREG_temp0 to prevent register tracking collision with IREG_temp1_W */
+            uop_MOVZX(ir, IREG_temp0, IREG_temp1_W);
+            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp0);
+        }
+        else
+            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp1_W);
+        ADD_SP(ir, 4);
+    }
+    else 
+        ADD_SP(ir, 4 + offset);
 
     codegen_mark_code_present(block, cs + op_pc, 2);
     return -1;
 }
+
 uint32_t
 ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
@@ -287,7 +326,19 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
     uop_MOV(ir, IREG_pc, IREG_temp0);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
     uop_CALL_FUNC(ir, loadcs);
-    ADD_SP(ir, 8 + offset);
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+        if (stack32)
+        {
+            /* FIX: Use IREG_temp0 to prevent register tracking collision with IREG_temp1_W */
+            uop_MOVZX(ir, IREG_temp0, IREG_temp1_W);
+            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp0);
+        }
+        else
+            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp1_W);
+        ADD_SP(ir, 8);
+    }
+    else 
+        ADD_SP(ir, 8 + offset);
 
     codegen_mark_code_present(block, cs + op_pc, 2);
     return -1;
