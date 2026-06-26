@@ -993,7 +993,7 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
     }
     mhm.addImageToHistory(i, ui::MediaType::RDisk, rdisk_drives[i].prev_image_path, rdisk_drives[i].image_path);
 
-    ui_sb_update_icon_state(SB_RDISK | i, dev->drv->fp == NULL);
+    ui_sb_update_icon_state(SB_RDISK | i, rdisk_drives[i].fp == nullptr);
     ui_sb_update_icon_wp(SB_RDISK | i, wp);
     rdiskUpdateMenu(i);
     ui_sb_update_tip(SB_RDISK | i);
@@ -1173,7 +1173,7 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
     }
     mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].prev_image_path, mo_drives[i].image_path);
 
-    ui_sb_update_icon_state(SB_MO | i, dev->drv->fp == nullptr);
+    ui_sb_update_icon_state(SB_MO | i, mo_drives[i].fp == nullptr);
     moUpdateMenu(i);
     ui_sb_update_tip(SB_MO | i);
 

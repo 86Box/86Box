@@ -238,7 +238,7 @@ juko_st_read(uint16_t port, void *priv)
             return dev->ws_latch;
 
         case 0x90:
-            return dev->turbo_latch;
+            return dev->turbo_latch & ~0xf2;
 
         case 0xE0:
             return 0xFF; /* Not the dev->e0_latch -- hardware always returns 0xFF */
@@ -366,7 +366,7 @@ machine_xt_jukopc_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    device_add(&kbc_jukost_device);
+    device_add(&kbc_xt_jukost_device);
 
     if ((fdc_current[0] == FDC_INTERNAL) || 0)
         device_add(&fdc_xt_device);

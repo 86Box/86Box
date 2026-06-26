@@ -206,7 +206,7 @@ machine_at_p6bat_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133_device);
-    device_add(&via_vt82c596b_device);
+    device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
