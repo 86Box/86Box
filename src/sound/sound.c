@@ -891,9 +891,6 @@ sound_reset(void)
 
     inital();
 
-    memset(&cd_poll_timer, 0x00, sizeof(pc_timer_t));
-    timer_add(&cd_poll_timer, cd_poll, NULL, 1);
-
     memset(&midi_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&midi_poll_timer, midi_poll_ex, NULL, 1);
 
@@ -994,6 +991,11 @@ sound_cd_thread_reset(void)
         sound_cd_thread_end();
 
     cd_thread_enable = available_cdrom_drives ? 1 : 0;
+
+    if (cd_thread_enable) {
+        memset(&cd_poll_timer, 0x00, sizeof(pc_timer_t));
+        timer_add(&cd_poll_timer, cd_poll, NULL, 1);
+    }
 }
 
 static void
