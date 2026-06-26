@@ -117,11 +117,12 @@ static fdc_cards_t fdc_cards[] = {
 #endif
     { &fdc_monster_device        },
     { &fdc_at_device             },
+    { &fdc_at_ali_device         }, /* No expansion cards use this chip but what if it's used as a standalone SIO/floppy controller? */
     { &fdc_at_nsc_dp8473_device  },
     { &fdc_at_nsc_device         },
-    { &fdc_at_nsc_pc87310_device }, /* TODO: PC87311/PC87312 SIO & floppy controller */
+    { &fdc_at_nsc_pc87310_device }, /* TODO: PC87311/PC87312 SIO/floppy controller */
     { &fdc_at_smc_device         },
-    { &fdc_at_smc_661_device     }, /* TODO: FDC37C66xGT SIO & floppy controller */
+    { &fdc_at_smc_661_device     }, /* TODO: FDC37C66xGT SIO/floppy controller */
     { &fdc_at_winbond_device     },
     { &fdc_xt_device             },
     { &fdc_xt_umc_um8398_device  },
@@ -2908,7 +2909,7 @@ const device_t fdc_at_actlow_device = {
 const device_t fdc_at_smc_661_device = {
     .name          = "PC/AT FDC (SM(s)C FDC37C66x)",
     .internal_name = "fdc_at_smc",
-    .flags         = 0,
+    .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT | FDC_FLAG_SUPERIO | FDC_FLAG_SMC661,
     .init          = fdc_init,
     .close         = fdc_close,
@@ -2936,7 +2937,7 @@ const device_t fdc_at_smc_device = {
 const device_t fdc_at_ali_device = {
     .name          = "PC/AT FDC (ALi M512x/M1543C)",
     .internal_name = "fdc_at_ali",
-    .flags         = 0,
+    .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT | FDC_FLAG_SUPERIO | FDC_FLAG_ALI,
     .init          = fdc_init,
     .close         = fdc_close,
@@ -2976,7 +2977,7 @@ const device_t fdc_at_nsc_device = {
 };
 
 const device_t fdc_at_nsc_pc87310_device = {
-    .name          = "PC/AT FDC (NSC PC87310)",
+    .name          = "PC/AT FDC (NSC PC8731x)",
     .internal_name = "fdc_at_nsc",
     .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_NSC | FDC_FLAG_NO_TDR,

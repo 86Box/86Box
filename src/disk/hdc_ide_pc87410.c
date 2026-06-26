@@ -254,7 +254,7 @@ pc87410_init(const device_t *info)
 }
 
 const device_t ide_pc87410_device = {
-    .name          = "National Semiconductor PC87410 PCI IDE",
+    .name          = "National Semiconductor PC87410 PCI",
     .internal_name = "ide_pc87410",
     .flags         = DEVICE_PCI,
     .local         = 0,

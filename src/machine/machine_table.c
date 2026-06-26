@@ -17993,8 +17993,8 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &s3_trio64vplus_onboard_pci_device,
-        .snd_device               = NULL,
+        .vid_device               = &s3_trio64vplus_onboard_pci_device, /* Machine has also internal video: S3 ViRGE */
+        .snd_device               = NULL, /* Machine has Crystal CS4236-KQ onboard sound but it's unpopulated */
         .net_device               = NULL,
         .aliases                  = { "Packard Bell Orlando", "Packard Bell 2D", "Packard Bell 3D", "Packard Bell MMX", "Packard Bell R501", "Intel NV430VX", "Intel Orlando", "Intel Tampa", "" }
     },
