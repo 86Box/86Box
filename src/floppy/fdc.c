@@ -118,8 +118,10 @@ static fdc_cards_t fdc_cards[] = {
     { &fdc_monster_device        },
     { &fdc_at_device             },
     { &fdc_at_nsc_dp8473_device  },
-    { &fdc_at_nsc_device         }, /* TODO: PC87311 SIO & floppy controller */
+    { &fdc_at_nsc_device         },
+    { &fdc_at_nsc_pc87310_device }, /* TODO: PC87311/PC87312 SIO & floppy controller */
     { &fdc_at_smc_device         },
+    { &fdc_at_smc_661_device     }, /* TODO: FDC37C66xGT SIO & floppy controller */
     { &fdc_at_winbond_device     },
     { &fdc_xt_device             },
     { &fdc_xt_umc_um8398_device  },
@@ -2904,7 +2906,7 @@ const device_t fdc_at_actlow_device = {
 };
 
 const device_t fdc_at_smc_661_device = {
-    .name          = "PC/AT FDC (SM(s)C FDC37C661/2)",
+    .name          = "PC/AT FDC (SM(s)C FDC37C66x)",
     .internal_name = "fdc_at_smc",
     .flags         = 0,
     .local         = FDC_FLAG_AT | FDC_FLAG_SUPERIO | FDC_FLAG_SMC661,

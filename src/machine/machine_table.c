@@ -13089,7 +13089,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 2048,
-            .max  = 131072,
+            .max  = 196608,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -13381,7 +13381,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
-            .max  = 65536,
+            .max  = 131072,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -14728,7 +14728,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "TriGem GEM4530", "" }
     },
 
     /* SiS 85C50x */
@@ -14841,7 +14841,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-        CPU_BLOCK(CPU_PENTIUMMMX),
+            .block       = CPU_BLOCK(CPU_PENTIUMMMX),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 3520,
@@ -14889,7 +14889,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-        CPU_BLOCK(CPU_PENTIUMMMX),
+            .block       = CPU_BLOCK(CPU_PENTIUMMMX),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 3520,
@@ -14937,7 +14937,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-        CPU_BLOCK(CPU_PENTIUMMMX),
+            .block       = CPU_BLOCK(CPU_PENTIUMMMX),
             .min_bus     = 50000000,
             .max_bus     = 66666667,
             .min_voltage = 3520,
@@ -17651,7 +17651,7 @@ const machine_t machines[] = {
         .vid_device               = &s3_trio64v2dx_onboard_pci_device,
         .snd_device               = &ess_1887_device,
         .net_device               = NULL,
-        .aliases                  = { "MiTAC/Trigon SNIPER", "" }
+        .aliases                  = { "MiTAC/Trigon SNIPER", "MiTAC/Trigon TITAN-R", "" }
     },
     /* Has a SM(S)C FDC37C932FR Super I/O chip with on-chip KBC with AMI
        MegaKey (revision '5') KBC firmware. */
@@ -21309,7 +21309,7 @@ const machine_t machines[] = {
         .vid_device               = NULL, /* Onboard video not yet emulated: ATi Rage IIc AGP */
         .snd_device               = &cs4235_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "Olivetti M24KD", "Olivetti M3000 MT/DT", "" }
+        .aliases                  = { "TriGem Como-3", "Olivetti M24KD", "Olivetti M3000 MT/DT", "eMachines eTower 333i", "Sotec Micro PC Station 3__", "" }
     },
 
     /* 440BX */
@@ -21899,7 +21899,7 @@ const machine_t machines[] = {
         .vid_device               = &voodoo_3_2000_agp_onboard_8m_device,
         .snd_device               = &es1373_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Packard Bell Bora", "" }
     },
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
