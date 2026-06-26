@@ -274,7 +274,7 @@ kbd_adddata_process_10x(uint16_t val, void (*adddata)(uint16_t val))
 
     switch (val) {
         case FAKE_LSHIFT_ON:
-            kbd_log("%s: Fake left shift on, scan code: ", dev->name);
+            kbd_log("Fake left shift on, scan code: ");
             if (num_lock) {
                 if (shift_states) {
                     kbd_log("N/A (one or both shifts on)\n");
@@ -309,7 +309,7 @@ kbd_adddata_process_10x(uint16_t val, void (*adddata)(uint16_t val))
             break;
 
         case FAKE_LSHIFT_OFF:
-            kbd_log("%s: Fake left shift on, scan code: ", dev->name);
+            kbd_log("Fake left shift on, scan code: ");
             if (num_lock) {
                 if (shift_states) {
                     kbd_log("N/A (one or both shifts on)\n");
@@ -357,9 +357,6 @@ kbd_adddata_ex(uint16_t val)
     kbd_adddata_process(val, kbd_adddata);
 }
 
-static uint8_t jukost_bat_pending;
-static uint8_t jukost_bat_done;
-
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -370,7 +367,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            if (!(val & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI)) {
+            if (!(val & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+                (kbd->type == KBD_TYPE_JUKOST)) {
                 new_clock = !!(val & 0x40);
                 if (!kbd->clock && new_clock) {
                     key_queue_start = key_queue_end = 0;
@@ -380,19 +378,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 }
             }
 
-            if ((kbd->type == KBD_TYPE_JUKOST) && new_clock &&
-                  jukost_bat_pending && !jukost_bat_done) {
-                key_queue_start = key_queue_end     = 0;
-                kbd->want_irq                       = 0;
-                kbd->blocked                        = 0;
-                kbd_adddata(0xaa);
-
-                jukost_bat_pending = 0;
-                jukost_bat_done    = 1;
-            }
-
             kbd->pb = val;
-            if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI))
+            if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+                (kbd->type == KBD_TYPE_JUKOST))
                 kbd->clock = !!(kbd->pb & 0x40);
             ppi.pb = val;
 
@@ -608,11 +596,6 @@ kbd_reset(void *priv)
 
     key_queue_start = 0;
     key_queue_end   = 0;
-
-    if (kbd->type == KBD_TYPE_JUKOST) {
-        jukost_bat_pending = 1;
-        jukost_bat_done    = 0;
-    }
 }
 
 void
@@ -999,11 +982,11 @@ const device_t kbc_xt_fe2010_device = {
     .config        = NULL
 };
 
-const device_t kbc_xtclone_device = {
-    .name          = "XT (Clone) Keyboard Controller",
-    .internal_name = "kbc_xtclone",
-    .flags         = 0,
-    .local         = KBD_TYPE_XTCLONE,
+const device_t kbc_xt_jukost_device = {
+    .name          = "Juko ST Keyboard",
+    .internal_name = "kbc_xt_jukost",
+    .flags         = DEVICE_ISA,
+    .local         = KBD_TYPE_JUKOST,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
@@ -1013,11 +996,11 @@ const device_t kbc_xtclone_device = {
     .config        = NULL
 };
 
-const device_t kbc_jukost_device = {
-    .name          = "Juko ST Keyboard",
-    .internal_name = "kbc_jukost",
-    .flags         = DEVICE_ISA,
-    .local         = KBD_TYPE_JUKOST,
+const device_t kbc_xtclone_device = {
+    .name          = "XT (Clone) Keyboard Controller",
+    .internal_name = "kbc_xtclone",
+    .flags         = 0,
+    .local         = KBD_TYPE_XTCLONE,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,

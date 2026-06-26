@@ -266,6 +266,7 @@ enum {
     MACHINE_CHIPSET_OPTI_499,
     MACHINE_CHIPSET_OPTI_895_802G,
     MACHINE_CHIPSET_OPTI_547_597,
+    MACHINE_CHIPSET_OPTI_VIPER,
     MACHINE_CHIPSET_SARC_RC2016A,
     MACHINE_CHIPSET_SIS_310,
     MACHINE_CHIPSET_SIS_401,
@@ -977,6 +978,11 @@ extern int             machine_at_ncselp90_init(const machine_t *);
 extern int             machine_at_hot543_init(const machine_t *);
 extern int             machine_at_pat54pv_init(const machine_t *);
 
+/* OPTi Viper */
+extern int             machine_at_acerm1_init(const machine_t *);
+extern int             machine_at_bristol_init(const machine_t *);
+extern int             machine_at_g586opa_init(const machine_t *);
+
 /* SiS 501 */
 extern int             machine_at_p54sp4_init(const machine_t *);
 extern int             machine_at_sq588_init(const machine_t *);
@@ -1052,6 +1058,9 @@ extern int             machine_at_op47_init(const machine_t *);
 
 /* i430VX */
 extern int             machine_at_gw2kma_init(const machine_t *);
+
+/* OPTi Viper */
+extern int             machine_at_rhino8_init(const machine_t *);
 
 /* SiS 5501 */
 #ifdef EMU_DEVICE_H
@@ -1249,6 +1258,7 @@ extern int             machine_at_p6kdi_init(const machine_t *);
 extern int             machine_at_p65up5_cpknd_init(const machine_t *);
 extern int             machine_at_kn97_init(const machine_t *);
 extern int             machine_at_fickn6000_init(const machine_t *);
+extern int             machine_at_dualfortress_init(const machine_t *);
 
 /* i440LX */
 #ifdef EMU_DEVICE_H
