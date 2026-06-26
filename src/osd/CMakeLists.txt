@@ -13,6 +13,7 @@ add_library(osd OBJECT
     osd_core.cpp
     osd_explorer.cpp
     imgui/imgui.cpp
+    imgui/misc/freetype/imgui_freetype.cpp
     imgui/imgui_draw.cpp
     imgui/imgui_tables.cpp
     imgui/imgui_widgets.cpp
