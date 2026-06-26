@@ -13381,7 +13381,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE,
         .ram       = {
             .min  = 2048,
-            .max  = 131072,
+            .max  = 131072, /* Second POST screen has 64MB only, possibly a error? */
             .step = 2048
         },
         .nvrmask                  = 127,

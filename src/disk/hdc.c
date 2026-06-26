@@ -103,7 +103,6 @@ static const struct {
     { &ide_cmd646_ter_qua_device            },
     { &ide_cmd648_ter_qua_device            },
     { &ide_cmd649_ter_qua_device            },
-    { &ide_pc87410_device                   }, /* Found on Tekram DC-290N, a PCI IDE expansion card */
     { &ide_pci_device                       },
     { &ide_pci_2ch_device                   },
     { &ide_w83769f_pci_device               }, /* PCI variant? TODO: to add implement W83759 IDE controller */
