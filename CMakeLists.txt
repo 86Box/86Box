@@ -207,18 +207,21 @@ if(QT)
     if(LIBRASHADER)
         option(LIBRASHADER_STATIC "Statically link with librashader" OFF)
         if(LIBRASHADER_STATIC)
-            set(FETCHCONTENT_QUIET 0)
-            FetchContent_Declare(librashader
-                                 GIT_REPOSITORY https://github.com/SnowflakePowered/librashader.git
-                                 GIT_TAG 4c85cf652f31c4f281cc888cf9654217411578f8 GIT_SUBMODULES "" GIT_PROGRESS 1)
-                                 
-            FetchContent_Declare(corrosion
-                                 GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
-                                 GIT_TAG c4786e7ae2d5ade784aca29448df362c874ed04e)
+            option(LIBRASHADER_STATIC_FIND_LIB "Find static librashader library instead of building." OFF)
+            if (NOT LIBRASHADER_STATIC_FIND_LIB)
+                set(FETCHCONTENT_QUIET 0)
+                FetchContent_Declare(librashader
+                                    GIT_REPOSITORY https://github.com/SnowflakePowered/librashader.git
+                                    GIT_TAG 4c85cf652f31c4f281cc888cf9654217411578f8 GIT_SUBMODULES "" GIT_PROGRESS 1)
+                                    
+                FetchContent_Declare(corrosion
+                                    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+                                    GIT_TAG c4786e7ae2d5ade784aca29448df362c874ed04e)
 
-            FetchContent_MakeAvailable(librashader corrosion)            
-            FetchContent_GetProperties(librashader SOURCE_DIR LIBRASHADER_SOURCE_DIR)
-            corrosion_import_crate(MANIFEST_PATH ${LIBRASHADER_SOURCE_DIR}/librashader-capi/Cargo.toml NO_DEFAULT_FEATURES FEATURES runtime-vulkan CRATE_TYPES staticlib)
+                FetchContent_MakeAvailable(librashader corrosion)            
+                FetchContent_GetProperties(librashader SOURCE_DIR LIBRASHADER_SOURCE_DIR)
+                corrosion_import_crate(MANIFEST_PATH ${LIBRASHADER_SOURCE_DIR}/librashader-capi/Cargo.toml NO_DEFAULT_FEATURES FEATURES runtime-vulkan CRATE_TYPES staticlib)
+            endif()
         endif()
     endif()
 endif()

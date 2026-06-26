@@ -212,6 +212,7 @@ extern void *device_add_inst_params(const device_t *dev, int inst, void *params)
 extern void  device_add_inst_ex(const device_t *dev, void *priv, int inst);
 extern void  device_add_inst_ex_params(const device_t *dev, void *priv, int inst, void *params);
 extern void *device_get_common_priv(void);
+extern void  device_close_inst_params(const device_t *device, int inst, void *params);
 extern void  device_close(const device_t *device);
 extern void  device_close_all(void);
 extern void  device_close_by_flags(uint32_t match_flags);

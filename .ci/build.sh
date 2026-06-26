@@ -410,11 +410,29 @@ then
 		echo [-] Not installing dependencies again
 	fi
 
-	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON"
-	if [ -d "$cache_dir/rust-cache/" ]
+	cwd_root="$(pwd)"
+
+	# Librashader
+	export RUSTFLAGS="-C target-feature=+crt-static"
+	librashader_profile=release
+	librashader_profile_dir=release
+	# TODO: Handle librashader debug builds for Windows.
+	if [ ! -e "$cache_dir/librashader" ]
 	then
-		rm -rf "$cache_dir/rust-cache/"
+		mkdir -p $cache_dir/librashader
+		cd $cache_dir/librashader
+		git init
+		git remote add origin https://github.com/SnowflakePowered/librashader/
+		git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
+		git checkout FETCH_HEAD
+	else
+		cd $cache_dir/librashader
 	fi
+	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
+	cd $cwd_root
+
+	export CMAKE_LIBRARY_PATH="$cache_dir/librashader/target/$librashader_profile_dir/"
+	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON -D LIBRASHADER_STATIC_FIND_LIB=ON"
 elif is_mac
 then
 	# macOS lacks nproc, but sysctl can do the same job.
@@ -809,7 +827,7 @@ EOF
 		curl -sSf https://sh.rustup.rs | sh -s -- -y
 	fi
 	cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
-	PATH="$HOME/.cargo/bin/:$PATH"
+	export PATH="$HOME/.cargo/bin/:$PATH"
 fi
 
 # Point CMake to the toolchain file.
