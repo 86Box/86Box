@@ -79,8 +79,8 @@ pc87410_ide_handlers(pc87410_t *dev)
 
     ide_pri_disable();
 
-    main = 0x1f0;
-    side = 0x3f6;
+    main = (dev->regs[0x11] << 8) | (dev->regs[0x10] & 0xf8);
+    side = ((dev->regs[0x15] << 8) | (dev->regs[0x14] & 0xfc)) + 2;
 
     pc87410_log(dev->log, "PC87410 IDE chan0 addresses: main = %04X, side = %04X\n", main, side);
 
@@ -92,8 +92,8 @@ pc87410_ide_handlers(pc87410_t *dev)
 
     ide_sec_disable();
 
-    main = 0x170;
-    side = 0x376;
+    main = (dev->regs[0x19] << 8) | (dev->regs[0x18] & 0xf8);
+    side = ((dev->regs[0x1d] << 8) | (dev->regs[0x1c] & 0xfc)) + 2;
 
     pc87410_log(dev->log, "PC87410 IDE chan1 addresses: main = %04X, side = %04X\n", main, side);
 
@@ -131,6 +131,7 @@ pc87410_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x30 ... 0x33:
                 dev->regs[addr] = val;
+                dev->regs[0x30] &= 0xfe;
                 break;
             case 0x3c:
                 dev->regs[addr] = val;
@@ -195,11 +196,11 @@ pc87410_reset(void *priv)
 
     dev->regs[0x10] = 0xf1;
     dev->regs[0x11] = 0x01;
-    dev->regs[0x14] = 0xf7;
+    dev->regs[0x14] = 0xf5;
     dev->regs[0x15] = 0x03;
     dev->regs[0x18] = 0x71;
     dev->regs[0x19] = 0x01;
-    dev->regs[0x1c] = 0x77;
+    dev->regs[0x1c] = 0x75;
     dev->regs[0x1d] = 0x03;
     dev->regs[0x3c] = 0x0e; /* Interrupt line */
     dev->regs[0x3d] = 0x00;
