@@ -148,6 +148,8 @@ extern const device_t opti895_device;
 
 extern const device_t opti5x7_device;
 extern const device_t opti5x7_pci_device;
+extern const device_t opti55x_device;
+extern const device_t opti55x_noide_device;
 
 /* Philips */
 extern const device_t philips_device;
