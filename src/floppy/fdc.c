@@ -117,7 +117,7 @@ static fdc_cards_t fdc_cards[] = {
 #endif
     { &fdc_monster_device        },
     { &fdc_at_device             },
-    { &fdc_at_ali_device         }, /* No expansion cards use this chip but what if it's used as a standalone SIO/floppy controller? */
+    { &fdc_at_ali_device         }, /* No expansion cards use this chip but what if it's used for expansion cards as a standalone? */
     { &fdc_at_nsc_dp8473_device  },
     { &fdc_at_nsc_device         },
     { &fdc_at_nsc_pc87310_device }, /* TODO: PC87311/PC87312 SIO/floppy controller */
