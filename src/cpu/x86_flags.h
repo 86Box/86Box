@@ -53,10 +53,7 @@ enum {
 
     FLAGS_SBC8,
     FLAGS_SBC16,
-    FLAGS_SBC32,
-
-    FLAGS_IMUL16,
-    FLAGS_IMUL32
+    FLAGS_SBC32
 #endif
 };
 
@@ -105,8 +102,6 @@ ZF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
-        case FLAGS_IMUL16:
-        case FLAGS_IMUL32:
 #endif
         case FLAGS_UNKNOWN:
             return cpu_state.flags & Z_FLAG;
@@ -174,8 +169,6 @@ NF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
-        case FLAGS_IMUL16:
-        case FLAGS_IMUL32:
 #endif
         case FLAGS_UNKNOWN:
             return cpu_state.flags & N_FLAG;
@@ -235,8 +228,6 @@ PF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
-        case FLAGS_IMUL16:
-        case FLAGS_IMUL32:
 #endif
         case FLAGS_UNKNOWN:
             return cpu_state.flags & P_FLAG;
@@ -329,14 +320,6 @@ VF_SET(void)
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x4000;
         case FLAGS_ROR32:
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x40000000;
-        case FLAGS_IMUL16: {
-            int32_t res = (int32_t)(int16_t)cpu_state.flags_op1 * (int32_t)(int16_t)cpu_state.flags_op2;
-            return ((res >> 15) != 0 && (res >> 15) != -1);
-        }
-        case FLAGS_IMUL32: {
-            int64_t res = (int64_t)(int32_t)cpu_state.flags_op1 * (int64_t)(int32_t)cpu_state.flags_op2;
-            return ((res >> 31) != 0 && (res >> 31) != -1);
-        }
 #endif
 
         case FLAGS_UNKNOWN:
@@ -407,8 +390,6 @@ AF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
-        case FLAGS_IMUL16:
-        case FLAGS_IMUL32:
 #endif
         case FLAGS_UNKNOWN:
             return cpu_state.flags & A_FLAG;
@@ -491,14 +472,6 @@ CF_SET(void)
             return (cpu_state.flags_res & 0x8000) ? 1 : 0;
         case FLAGS_ROR32:
             return (cpu_state.flags_res & 0x80000000) ? 1 : 0;
-        case FLAGS_IMUL16: {
-            int32_t res = (int32_t)(int16_t)cpu_state.flags_op1 * (int32_t)(int16_t)cpu_state.flags_op2;
-            return ((res >> 15) != 0 && (res >> 15) != -1);
-        }
-        case FLAGS_IMUL32: {
-            int64_t res = (int64_t)(int32_t)cpu_state.flags_op1 * (int64_t)(int32_t)cpu_state.flags_op2;
-            return ((res >> 31) != 0 && (res >> 31) != -1);
-        }
 #endif
 
         case FLAGS_DEC8:
@@ -780,23 +753,6 @@ setsbc32(uint32_t a, uint32_t b)
     cpu_state.flags_res = a - (b + tempc);
     cpu_state.flags_op  = FLAGS_SBC32;
 }
-
-static __inline void
-setimul16(int16_t a, int16_t b)
-{
-    flags_rebuild();
-    cpu_state.flags_op1 = a;
-    cpu_state.flags_op2 = b;
-    cpu_state.flags_op  = FLAGS_IMUL16;
-}
-static __inline void
-setimul32(int32_t a, int32_t b)
-{
-    flags_rebuild();
-    cpu_state.flags_op1 = a;
-    cpu_state.flags_op2 = b;
-    cpu_state.flags_op  = FLAGS_IMUL32;
-}
 #else
 static __inline void
 setadc8(uint8_t a, uint8_t b)
@@ -886,27 +842,6 @@ setsbc32(uint32_t a, uint32_t b)
         cpu_state.flags |= V_FLAG;
     if (((a & 0xF) - ((b & 0xF) + tempc)) & 0x10)
         cpu_state.flags |= A_FLAG;
-}
-
-static __inline void
-setimul16(int16_t a, int16_t b)
-{
-    int32_t res = (int32_t)a * (int32_t)b;
-    cpu_state.flags_op = FLAGS_UNKNOWN;
-    if ((res >> 15) != 0 && (res >> 15) != -1)
-        cpu_state.flags |= C_FLAG | V_FLAG;
-    else
-        cpu_state.flags &= ~(C_FLAG | V_FLAG);
-}
-static __inline void
-setimul32(int32_t a, int32_t b)
-{
-    int64_t res = (int64_t)a * (int64_t)b;
-    cpu_state.flags_op = FLAGS_UNKNOWN;
-    if ((res >> 31) != 0 && (res >> 31) != -1)
-        cpu_state.flags |= C_FLAG | V_FLAG;
-    else
-        cpu_state.flags &= ~(C_FLAG | V_FLAG);
 }
 #endif
 

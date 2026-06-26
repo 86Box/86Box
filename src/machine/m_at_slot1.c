@@ -1954,7 +1954,7 @@ machine_at_p3v133_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133_device);
-    device_add(&via_vt82c596b_device);
+    device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(ics9xxx_get(ICS9248_39));
     device_add(&sst_flash_39sf020_device);
@@ -2064,7 +2064,7 @@ machine_at_ms6199va_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133a_device);
-    device_add(&via_vt82c596b_device);
+    device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(&winbond_flash_w29c020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
@@ -2105,7 +2105,7 @@ machine_at_p3v4x_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133a_device);
-    device_add(&via_vt82c596b_device);
+    device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(ics9xxx_get(ICS9250_18));
     device_add(&sst_flash_39sf020_device);

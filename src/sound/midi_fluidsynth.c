@@ -19,7 +19,6 @@
 #include <86box/plat_unused.h>
 #include <86box/plat.h>
 
-#define RENDER_RATE                100
 #define BUFFER_SEGMENTS            10
 
 /* Check the FluidSynth version to determine wheteher to use the older reverb/chorus
@@ -42,7 +41,6 @@ typedef struct fluidsynth {
     int       buf_size;
     float    *buffer;
     int16_t  *buffer_int16;
-    int       midi_pos;
 
     int on;
 } fluidsynth_t;
@@ -59,11 +57,8 @@ void
 fluidsynth_poll(void)
 {
     fluidsynth_t *data = &fsdev;
-    data->midi_pos++;
-    if (data->midi_pos == sound_sample_rate / RENDER_RATE) {
-        data->midi_pos = 0;
-        thread_set_event(data->event);
-    }
+
+    thread_set_event(data->event);
 }
 
 static void

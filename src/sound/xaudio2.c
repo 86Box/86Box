@@ -429,5 +429,13 @@ al_set_midi(const int freq, const int buf_size)
 int
 sound_get_device_supported_rates(const char *device_name, int *rates_out, int max_rates)
 {
+    /* Candidate rates: only those where rate/50 <= SOUNDBUFLEN to avoid overflowing
+       static device buffers. */
+    static const int candidates[] = { FREQ_44100, FREQ_48000 };
+
+    /* Fallback: if detection failed entirely, return all candidates. */
+    for (int i = 0; (i < 2) && (i < max_rates); i++)
+        rates_out[i] = candidates[i];
+
     return 2;
 }

@@ -569,7 +569,7 @@ host_x86_MOV16_ABS_IMM(codeblock_t *block, void *p, uint16_t imm_data)
         codegen_addword(block, imm_data);
     } else {
         if ((uintptr_t) p >> 32)
-            fatal("host_x86_MOV16_ABS_IMM - out of range %p\n", p);
+            fatal("host_x86_MOV32_ABS_IMM - out of range %p\n", p);
         codegen_alloc_bytes(block, 10);
         codegen_addbyte4(block, 0x66, 0xc7, 0x04, 0x25); /*MOV p, imm_data*/
         codegen_addlong(block, (uint32_t) (uintptr_t) p);
@@ -2001,65 +2001,4 @@ host_x86_XOR32_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
     codegen_addbyte2(block, 0x31, 0xc0 | (dst_reg & 7) | ((src_reg & 7) << 3)); /*XOR dst_reg, src_reg*/
 }
 
-void
-host_x86_IMUL16_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
-{
-#ifdef RECOMPILER_DEBUG
-    if ((dst_reg & 8) || (src_reg & 8))
-        fatal("host_x86_IMUL16_REG_REG - dst_reg & 8\n");
 #endif
-
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0x66, 0x0f, 0xaf, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg*/
-}
-
-void
-host_x86_IMUL32_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
-{
-#ifdef RECOMPILER_DEBUG
-    if ((dst_reg & 8) || (src_reg & 8))
-        fatal("host_x86_IMUL32_REG_REG - dst_reg & 8\n");
-#endif
-
-    codegen_alloc_bytes(block, 3);
-    codegen_addbyte3(block, 0x0f, 0xaf, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg*/
-}
-
-void
-host_x86_IMUL16_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, int16_t imm)
-{
-#ifdef RECOMPILER_DEBUG
-    if ((dst_reg & 8) || (src_reg & 8))
-        fatal("host_x86_IMUL16_REG_IMM - dst_reg & 8\n");
-#endif
-
-    if (imm >= -128 && imm <= 127) {
-        codegen_alloc_bytes(block, 4);
-        codegen_addbyte4(block, 0x66, 0x6b, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7), (uint8_t)imm); /*imul dst_reg, src_reg, imm*/
-    } else {
-        codegen_alloc_bytes(block, 5);
-        codegen_addbyte3(block, 0x66, 0x69, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg, imm*/
-        codegen_addbyte2(block, (uint8_t)imm, (uint8_t)(imm >> 8));
-    }
-}
-
-void
-host_x86_IMUL32_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, int32_t imm)
-{
-#ifdef RECOMPILER_DEBUG
-    if ((dst_reg & 8) || (src_reg & 8))
-        fatal("host_x86_IMUL32_REG_IMM - dst_reg & 8\n");
-#endif
-
-    if (imm >= -128 && imm <= 127) {
-        codegen_alloc_bytes(block, 3);
-        codegen_addbyte3(block, 0x6b, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7), (uint8_t)imm); /*imul dst_reg, src_reg, imm*/
-    } else {
-        codegen_alloc_bytes(block, 6);
-        codegen_addbyte2(block, 0x69, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg, imm*/
-        codegen_addlong(block, imm);
-    }
-}
-
-#endif
-
