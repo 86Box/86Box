@@ -51,4 +51,7 @@ bool osd_core_escape(void);
 void osd_core_install_log_hook(void);
 void osd_core_remove_log_hook(void);
 
+/* Draw OSD indicators */
+void osd_core_draw_indicators(void);
+
 #endif /* OSD_CORE_HPP */

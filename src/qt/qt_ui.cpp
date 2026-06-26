@@ -74,6 +74,8 @@ plat_delay_ms(uint32_t count)
 void
 ui_emu_status(int speed_percent)
 {
+    extern int osd_percentage;
+    osd_percentage = speed_percent;
     QString str = QString::number(speed_percent);
     if ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1))
         str += QStringLiteral("%");
