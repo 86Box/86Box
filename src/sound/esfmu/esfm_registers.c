@@ -56,6 +56,9 @@
 #include <string.h>
 #include <stdbool.h>
 
+extern int16_t ESFM_clip_sample(int32 sample);
+extern int16_t ESFM_overflow_clip_sample(int32 sample);
+extern void ESFM_lfsr_jump_init(void);
 
 /*
  * Table of KSL values extracted from OPL3 ROM; taken straight from Nuked OPL3
@@ -66,6 +69,32 @@
 static const int16 kslrom[16] = {
 	0, 32, 40, 45, 48, 51, 53, 55, 56, 58, 59, 60, 61, 62, 63, 64
 };
+
+/*
+ * Copies of esfm.c kslshift and mt tables, used for cache refresh
+ */
+static const uint8_t kslshift_regs[4] = {
+	8, 1, 2, 0
+};
+
+static const uint8_t mt_regs[16] = {
+	1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 20, 24, 24, 30, 30
+};
+
+/*
+ * Refreshes the esfm_slot write-time caches (pg_inc, eg_tl_ksl, eg_ks) from
+ * the slot's register fields. Must be called whenever f_num, block, mult,
+ * t_level, ksl, ksr, in.eg_ksl_offset or in.keyscale change.
+ */
+static void
+ESFM_slot_refresh_caches(esfm_slot *slot)
+{
+	uint32 basefreq = ((uint32)slot->f_num << slot->block) >> 1;
+	slot->pg_inc = (basefreq * mt_regs[slot->mult]) >> 1;
+	slot->eg_tl_ksl = (slot->t_level << 2)
+		+ (slot->in.eg_ksl_offset >> kslshift_regs[slot->ksl]);
+	slot->eg_ks = slot->in.keyscale >> ((!slot->ksr) << 1);
+}
 
 /*
  * This maps the low 5 bits of emulation mode address to an emulation mode
@@ -234,6 +263,9 @@ ESFM_slot_update_keyscale(esfm_slot *slot)
 {
 	if (slot->slot_idx > 0 && !slot->chip->native_mode)
 	{
+		// the caller may still have changed cache inputs (t_level, ksl,
+		// f_num, block, mult)
+		ESFM_slot_refresh_caches(slot);
 		return;
 	}
 
@@ -245,6 +277,7 @@ ESFM_slot_update_keyscale(esfm_slot *slot)
 	slot->in.eg_ksl_offset = ksl;
 	slot->in.keyscale = (slot->block << 1)
 		| ((slot->f_num >> (8 + !slot->chip->keyscale_mode)) & 0x01);
+	ESFM_slot_refresh_caches(slot);
 }
 
 /* ------------------------------------------------------------------------- */
@@ -267,6 +300,7 @@ ESFM_emu_channel_update_keyscale(esfm_channel *channel)
 	ESFM_slot_update_keyscale(&channel->slots[0]);
 	channel->slots[1].in.eg_ksl_offset = channel->slots[0].in.eg_ksl_offset;
 	channel->slots[1].in.keyscale = channel->slots[0].in.keyscale;
+	ESFM_slot_refresh_caches(&channel->slots[1]);
 
 	if (channel->emu_mode_4op_enable && (channel->channel_idx % 9) < 3 && channel->chip->emu_newmode)
 	{
@@ -279,6 +313,7 @@ ESFM_emu_channel_update_keyscale(esfm_channel *channel)
 		{
 			secondary->slots[i].in.eg_ksl_offset = channel->slots[0].in.eg_ksl_offset;
 			secondary->slots[i].in.keyscale = channel->slots[0].in.keyscale;
+			ESFM_slot_refresh_caches(&secondary->slots[i]);
 		}
 	}
 }
@@ -346,6 +381,7 @@ ESFM_slot_write (esfm_slot *slot, uint8_t register_idx, uint8_t data)
 		slot->env_sustaining = (data & 0x20) != 0;
 		slot->ksr = (data & 0x10) != 0;
 		slot->mult = data & 0x0f;
+		ESFM_slot_refresh_caches(slot);
 		break;
 	case 0x01:
 		slot->ksl = data >> 6;
@@ -388,6 +424,12 @@ ESFM_slot_write (esfm_slot *slot, uint8_t register_idx, uint8_t data)
 		slot->emu_connection_typ = data & 0x01;
 		break;
 	case 0x07:
+		if (slot->slot_idx == 3)
+		{
+			slot->chip->rhy_noise_slot3_count = (uint8)
+				(slot->chip->rhy_noise_slot3_count
+				 - (slot->rhy_noise != 0) + (((data >> 3) & 0x03) != 0));
+		}
 		slot->output_level = data >> 5;
 		slot->rhy_noise = (data >> 3) & 0x03;
 		slot->waveform = data & 0x07;
@@ -954,13 +996,25 @@ ESFM_set_mode (esfm_chip *chip, bool native_mode)
 
 /* ------------------------------------------------------------------------- */
 void
-ESFM_init (esfm_chip *chip)
+ESFM_init_with_rev (esfm_chip *chip, esfm_revision rev)
 {
 	esfm_slot *slot;
 	esfm_channel *channel;
 	size_t channel_idx, slot_idx;
 
 	memset(chip, 0, sizeof(esfm_chip));
+	ESFM_lfsr_jump_init();
+	
+	if (rev < 0 || rev >= NUM_ESFM_REVISIONS)
+	{
+		// If the rev argument is invalid, fallback to the older chip revisions
+		chip->rev = ESFM_REV_ES16XX_ES17XX_ES1868;
+	}
+	else
+	{
+		chip->rev = rev;
+	}
+
 	for (channel_idx = 0; channel_idx < 18; channel_idx++)
 	{
 		for (slot_idx = 0; slot_idx < 4; slot_idx++)
@@ -1001,9 +1055,15 @@ ESFM_init (esfm_chip *chip)
 			}
 
 			slot->out_enable[0] = slot->out_enable[1] = ~((int13) 0);
+			ESFM_slot_refresh_caches(slot);
 		}
 	}
 
 	chip->lfsr = 1;
 }
 
+void ESFM_init(esfm_chip *chip)
+{
+	// Init chip with default revision
+	return ESFM_init_with_rev(chip, ESFM_REV_ES16XX_ES17XX_ES1868);
+}

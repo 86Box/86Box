@@ -153,6 +153,8 @@ extern const device_t opti895_device;
 
 extern const device_t opti5x7_device;
 extern const device_t opti5x7_pci_device;
+extern const device_t opti55x_device;
+extern const device_t opti55x_noide_device;
 
 /* Philips */
 extern const device_t philips_device;
@@ -210,6 +212,9 @@ extern const device_t via_apro_device;
 extern const device_t via_apro133_device;
 extern const device_t via_apro133a_device;
 extern const device_t via_vt8601_device;
+
+#define VIA_PIPC_NO_KBC 0x0000000100000000ULL
+
 extern const device_t via_vt82c586b_device;
 extern const device_t via_vt82c596a_device;
 extern const device_t via_vt82c596b_device;
