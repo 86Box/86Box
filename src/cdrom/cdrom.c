@@ -2011,7 +2011,10 @@ cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, const int msf)
 {
     subchannel_t subc;
 
-    cdrom_get_subchannel(dev, dev->seek_pos, &subc, 1);
+    if (dev->cached_sector == -1)
+        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 1);
+    else
+        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 1);
 
     cdrom_log(dev->log, "Returned subchannel at %02i:%02i.%02i, seek pos = %08x, "
               "cd_end = %08x, msf = %x.\n",
@@ -2046,7 +2049,10 @@ cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b)
     uint8_t      ret;
     subchannel_t subc;
 
-    cdrom_get_subchannel(dev, dev->seek_pos, &subc, 0);
+    if (dev->cached_sector == -1)
+        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 0);
+    else
+        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 0);
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
         if (dev->cd_status == CD_STATUS_PLAYING)
@@ -2072,7 +2078,10 @@ cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, const int msf)
     uint8_t      ret;
     subchannel_t subc;
 
-    cdrom_get_subchannel(dev, dev->seek_pos, &subc, 1);
+    if (dev->cached_sector == -1)
+        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 1);
+    else
+        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 1);
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
         if (dev->cd_status == CD_STATUS_PLAYING)
@@ -2105,7 +2114,10 @@ cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b)
 {
     subchannel_t subc;
 
-    cdrom_get_subchannel(dev, dev->seek_pos, &subc, 0);
+    if (dev->cached_sector == -1)
+        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 0);
+    else
+        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 0);
 
     b[0] = (subc.attr >> 4) | ((subc.attr & 0xf) << 4);
     b[1] = subc.track;
