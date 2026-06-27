@@ -2572,8 +2572,6 @@ ropIMUL_w_rm_imm16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), ui
 {
     uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
-    uint32_t start_pc = op_pc;
-
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
         int src_reg = fetchdat & 7;
@@ -2622,7 +2620,8 @@ ropIMUL_w_rm_imm16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), ui
 
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL16);
     uop_MOVZX(ir, IREG_flags_res, IREG_16(dest_reg));
-    codegen_mark_code_present(block, cs + start_pc + 1, op_pc - (start_pc + 1));
+    if (!(block->flags & CODEBLOCK_NO_IMMEDIATES))
+        codegen_mark_code_present(block, cs + op_pc - 2, 2);
     codegen_flags_changed = 1;
     return op_pc;
 }
@@ -2632,8 +2631,6 @@ ropIMUL_l_rm_imm32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), ui
 {
     uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
-    uint32_t start_pc = op_pc;
-
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
         int src_reg = fetchdat & 7;
@@ -2682,7 +2679,8 @@ ropIMUL_l_rm_imm32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), ui
 
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL32);
     uop_MOV(ir, IREG_flags_res, IREG_32(dest_reg));
-    codegen_mark_code_present(block, cs + start_pc + 1, op_pc - (start_pc + 1));
+    if (!(block->flags & CODEBLOCK_NO_IMMEDIATES))
+        codegen_mark_code_present(block, cs + op_pc - 4, 4);
     codegen_flags_changed = 1;
     return op_pc;
 }
@@ -2692,8 +2690,6 @@ ropIMUL_w_rm_imm8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uin
 {
     uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
-    uint32_t start_pc = op_pc;
-
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
         int src_reg = fetchdat & 7;
@@ -2745,7 +2741,8 @@ ropIMUL_w_rm_imm8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uin
 
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL16);
     uop_MOVZX(ir, IREG_flags_res, IREG_16(dest_reg));
-    codegen_mark_code_present(block, cs + start_pc + 1, op_pc - (start_pc + 1));
+    if (!(block->flags & CODEBLOCK_NO_IMMEDIATES))
+        codegen_mark_code_present(block, cs + op_pc - 1, 1);
     codegen_flags_changed = 1;
     return op_pc;
 }
@@ -2755,8 +2752,6 @@ ropIMUL_l_rm_imm8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uin
 {
     uop_CALL_FUNC(ir, jit_flags_rebuild);
     int dest_reg = (fetchdat >> 3) & 7;
-    uint32_t start_pc = op_pc;
-
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
         int src_reg = fetchdat & 7;
@@ -2807,7 +2802,8 @@ ropIMUL_l_rm_imm8(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uin
 
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL32);
     uop_MOV(ir, IREG_flags_res, IREG_32(dest_reg));
-    codegen_mark_code_present(block, cs + start_pc + 1, op_pc - (start_pc + 1));
+    if (!(block->flags & CODEBLOCK_NO_IMMEDIATES))
+        codegen_mark_code_present(block, cs + op_pc - 1, 1);
     codegen_flags_changed = 1;
     return op_pc;
 }

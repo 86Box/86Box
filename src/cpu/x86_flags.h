@@ -587,7 +587,8 @@ flags_rebuild_c(void)
 static __inline int
 flags_res_valid(void)
 {
-    if ((cpu_state.flags_op == FLAGS_UNKNOWN) || ((cpu_state.flags_op >= FLAGS_ROL8) && (cpu_state.flags_op <= FLAGS_ROR32)))
+    if ((cpu_state.flags_op == FLAGS_UNKNOWN) || ((cpu_state.flags_op >= FLAGS_ROL8) && (cpu_state.flags_op <= FLAGS_ROR32))
+        || (cpu_state.flags_op == FLAGS_IMUL16) || (cpu_state.flags_op == FLAGS_IMUL32))
         return 0;
 
     return 1;
