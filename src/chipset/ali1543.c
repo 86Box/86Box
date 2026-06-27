@@ -72,16 +72,6 @@ typedef struct ali1543_t {
 
 } ali1543_t;
 
-/*
-    Notes:
-    - Power Managment isn't functioning properly
-    - IDE isn't functioning properly
-    - 1543C differences have to be examined
-    - Some Chipset functionality might be missing
-    - Device numbers and types might be incorrect
-    - Code quality is abysmal and needs lot's of cleanup.
-*/
-
 int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
                                 1, 11, PCI_IRQ_DISABLED, 12, PCI_IRQ_DISABLED, 14, PCI_IRQ_DISABLED, 15 };
 
