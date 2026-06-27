@@ -2586,8 +2586,7 @@ ropIMUL_w_rm_imm16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), ui
         uop_MOVZX(ir, IREG_flags_op1, IREG_16(src_reg));
         uop_MOV_IMM(ir, IREG_flags_op2, imm);
         if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
-            uop_MOVZX(ir, IREG_temp0, IREG_temp1_W);
-            uop_IMUL(ir, IREG_16(dest_reg), IREG_16(src_reg), IREG_temp0);
+            uop_IMUL(ir, IREG_16(dest_reg), IREG_16(src_reg), IREG_temp1_W);
         }
         else uop_IMUL_IMM(ir, IREG_16(dest_reg), IREG_16(src_reg), imm);
         op_pc += 3;
