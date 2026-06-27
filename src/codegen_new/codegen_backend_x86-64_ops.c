@@ -569,7 +569,7 @@ host_x86_MOV16_ABS_IMM(codeblock_t *block, void *p, uint16_t imm_data)
         codegen_addword(block, imm_data);
     } else {
         if ((uintptr_t) p >> 32)
-            fatal("host_x86_MOV32_ABS_IMM - out of range %p\n", p);
+            fatal("host_x86_MOV16_ABS_IMM - out of range %p\n", p);
         codegen_alloc_bytes(block, 10);
         codegen_addbyte4(block, 0x66, 0xc7, 0x04, 0x25); /*MOV p, imm_data*/
         codegen_addlong(block, (uint32_t) (uintptr_t) p);
