@@ -784,7 +784,6 @@ setsbc32(uint32_t a, uint32_t b)
 static __inline void
 setimul16(int16_t a, int16_t b)
 {
-    flags_rebuild();
     cpu_state.flags_op1 = a;
     cpu_state.flags_op2 = b;
     cpu_state.flags_op  = FLAGS_IMUL16;
@@ -792,7 +791,6 @@ setimul16(int16_t a, int16_t b)
 static __inline void
 setimul32(int32_t a, int32_t b)
 {
-    flags_rebuild();
     cpu_state.flags_op1 = a;
     cpu_state.flags_op2 = b;
     cpu_state.flags_op  = FLAGS_IMUL32;
