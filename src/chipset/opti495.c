@@ -35,9 +35,36 @@ typedef struct opti495_t {
     uint8_t type;
     uint8_t max;
     uint8_t idx;
+    uint8_t ram_mode;
     uint8_t regs[256];
     uint8_t scratch[2];
+
+    mem_mapping_t ram_mapping;
 } opti495_t;
+
+static const uint8_t opti493_ram_modes[64] = {
+    0x07, 0x17, 0x87, 0x87, 0x27, 0x97, 0x97, 0x97,
+    0xc7, 0xc7, 0xc7, 0xc7, 0xc7, 0xc7, 0xc7, 0xc7,
+    0xb7, 0xb7, 0xb7, 0xb7, 0xd7, 0xd7, 0xd7, 0xd7,
+    0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7, 0xd7,
+    0xd0, 0xd0, 0xd0, 0xd0, 0xd1, 0xd1, 0xd1, 0xd1,
+    0xd4, 0xd4, 0xd4, 0xd4, 0xd4, 0xd4, 0xd4, 0xd4,
+    0xd3, 0xd3, 0xd3, 0xd3, 0xd5, 0xd5, 0xd5, 0xd5,
+    0xd5, 0xd5, 0xd5, 0xd5, 0xd5, 0xd5, 0xd5, 0xd5
+};
+
+#define RAM_BANK_256K 0x01
+#define RAM_BANK_1M   0x02
+#define RAM_BANK_4M   0x03
+
+static const uint32_t opti493_ram_bank_sizes[4] = {
+    (0 << 10), (1024 << 10), (4096 << 10), (16384 << 10)
+};
+
+static const uint8_t opti493_ram_banks[16] = {
+    0x10, 0x11, 0x12, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x20, 0x22, 0x23, 0x32, 0x30, 0x33, 0x00, 0x00
+};
 
 #ifdef ENABLE_OPTI495_LOG
 int opti495_do_log = ENABLE_OPTI495_LOG;
@@ -72,6 +99,179 @@ static uint8_t masks[TMAX][0x1c] = { { 0x3f, 0xff, 0xff, 0xff, 0xf7, 0xfb, 0x7f,
                                      { 0x3a, 0x7f, 0xfc, 0xff, 0xf0, 0xfb, 0xff, 0xbf, 0xe3, 0xff, 0x00, 0x00 },
                                      { 0x3a, 0xff, 0xfd, 0xff, 0xf0, 0xfb, 0x7f, 0xbf, 0xe3, 0xff, 0x00, 0x00 },
                                      { 0x3a, 0xff, 0xfc, 0xff, 0xf0, 0xfb, 0xff, 0xbf, 0xe3, 0xff, 0x00, 0x00 } };
+
+static uint32_t
+opti495_addr_to_phys(const opti495_t *dev, uint32_t addr)
+{
+    const uint8_t  sel_mode     = dev->regs[0x24] & 0xf7;
+    const uint8_t  sel_banks01  = opti493_ram_banks[sel_mode >> 4];
+    const uint8_t  sel_banks23  = opti493_ram_banks[(sel_mode & 0x07) | 0x08];
+    const uint8_t  ram_banks01  = opti493_ram_banks[dev->ram_mode >> 4];
+    const uint8_t  ram_banks23  = opti493_ram_banks[(dev->ram_mode & 0x07) | 0x08];
+    uint32_t       sel_start[5] = { 0 };
+    uint32_t       ram_start[5] = { 0 };
+    uint32_t       ret          = 0xffffffff;
+
+    sel_start[1] = sel_start[0] + opti493_ram_bank_sizes[(sel_banks01 >> 4) & 0x03];
+    sel_start[2] = sel_start[1] + opti493_ram_bank_sizes[sel_banks01 & 0x03];
+    sel_start[3] = sel_start[2] + opti493_ram_bank_sizes[(sel_banks23 >> 4) & 0x03];
+    sel_start[4] = sel_start[3] + opti493_ram_bank_sizes[sel_banks23 & 0x03];
+
+    ram_start[1] = ram_start[0] + opti493_ram_bank_sizes[(ram_banks01 >> 4) & 0x03];
+    ram_start[2] = ram_start[1] + opti493_ram_bank_sizes[ram_banks01 & 0x03];
+    ram_start[3] = ram_start[2] + opti493_ram_bank_sizes[(ram_banks23 >> 4) & 0x03];
+    ram_start[4] = ram_start[3] + opti493_ram_bank_sizes[ram_banks23 & 0x03];
+
+    for (int i = 0; i < 4; i++) {
+        if ((addr >= sel_start[i]) && (addr < sel_start[i + 1])) {
+            const uint32_t sel_size = sel_start[i + 1] - sel_start[i];
+            const uint32_t ram_size = ram_start[i + 1] - ram_start[i];
+            const uint32_t addr2    = addr - sel_start[i];
+            uint32_t       col      = 0x00000000;
+            uint32_t       row      = 0x00000000;
+
+            switch (sel_size) {
+                default:
+                case (1024 << 10):
+                    col  = (addr2 >>  2) & 0x000001ff;
+                    row  = (addr2 >> 12) & 0x000000ff;
+                    row |= (((addr2 >> 11) & 0x00000001) << 8);
+                    break;
+                case (4096 << 10):
+                    col = (addr2 >>  2) & 0x000003ff;
+                    row = (addr2 >> 12) & 0x000003ff;
+                    break;
+                case (16384 << 10):
+                    col = (addr2 >>  2) & 0x000007ff;
+                    row = (addr2 >> 13) & 0x000003ff;
+                    row = (row << 1) | ((addr2 >> 23) & 0x00000001);
+                    break;
+            }
+
+            switch (ram_size) {
+                default:
+                case (0 << 10):
+                    break;
+                case (1024 << 10):
+                    col &= 0x000001ff;
+                    row &= 0x000001ff;
+                    ret = (col << 2) | (row << 11);
+                    break;
+                case (4096 << 10):
+                    col &= 0x000003ff;
+                    row &= 0x000003ff;
+                    ret = (col << 2) | (row << 12);
+                    break;
+                case (16384 << 10):
+                    col &= 0x000007ff;
+                    row &= 0x000007ff;
+                    ret = (col << 2) | (row << 13);
+                    break;
+            }
+
+            ret = (ret | (addr & 0x00000003)) + ram_start[i];
+            break;
+        }
+    }
+
+    return ret;
+}
+
+static uint8_t
+opti495_ram_readb(uint32_t addr, void *priv)
+{
+    uint8_t ret = 0xff;
+
+    addr = opti495_addr_to_phys(priv, addr);
+
+    if (addr != 0xffffffff)
+        ret = ram[addr];
+
+    return ret;
+}
+
+static uint16_t
+opti495_ram_readw(uint32_t addr, void *priv)
+{
+    uint16_t ret = 0xffff;
+
+    addr = opti495_addr_to_phys(priv, addr);
+
+    if (addr != 0xffffffff)
+        ret = *(uint16_t *) &(ram[addr]);
+
+    return ret;
+}
+
+static uint32_t
+opti495_ram_readl(uint32_t addr, void *priv)
+{
+    uint32_t ret = 0xffffffff;
+
+    addr = opti495_addr_to_phys(priv, addr);
+
+    if (addr != 0xffffffff)
+        ret = *(uint32_t *) &(ram[addr]);
+
+    return ret;
+}
+
+static void
+opti495_ram_writeb(uint32_t addr, uint8_t val, void *priv)
+{
+    addr = opti495_addr_to_phys(priv, addr);
+
+    if (addr != 0xffffffff)
+        ram[addr] = val;
+}
+
+static void
+opti495_ram_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    addr = opti495_addr_to_phys(priv, addr);
+
+    if (addr != 0xffffffff)
+        *(uint16_t *) &(ram[addr]) = val;
+}
+
+static void
+opti495_ram_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    addr = opti495_addr_to_phys(priv, addr);
+
+    if (addr != 0xffffffff)
+        *(uint32_t *) &(ram[addr]) = val;
+}
+
+static int
+opti495_mode_matches(const opti495_t *dev)
+{
+    uint8_t sel_mode = dev->regs[0x24] & 0xf7;
+
+    if ((sel_mode & 0x07) == 0x06)
+        sel_mode |= 0x01;
+
+    return (sel_mode == dev->ram_mode);
+}
+
+static void
+opti495_recalc_banks(opti495_t *dev)
+{
+    if ((dev->type > OPTI493) || opti495_mode_matches(dev)) {
+        if (dev->type == OPTI493)
+            mem_mapping_disable(&dev->ram_mapping);
+        mem_mapping_enable(&ram_low_mapping);
+        mem_mapping_enable(&ram_mid_mapping);
+        if (mem_size > 1024)
+            mem_mapping_enable(&ram_high_mapping);
+    } else {
+        mem_mapping_disable(&ram_low_mapping);
+        mem_mapping_disable(&ram_mid_mapping);
+        if (mem_size > 1024)
+            mem_mapping_disable(&ram_high_mapping);
+        mem_mapping_enable(&dev->ram_mapping);
+    }
+}
 
 static void
 opti495_recalc(opti495_t *dev)
@@ -165,6 +365,10 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x23:
                     case 0x26:
                         opti495_recalc(dev);
+                        break;
+
+                    case 0x24:
+                        opti495_recalc_banks(dev);
                         break;
 
                     case 0x25: {
@@ -274,9 +478,25 @@ opti495_init(const device_t *info)
         dev->regs[0x29] = 0x10;
         dev->regs[0x2a] = 0x80;
         dev->regs[0x2b] = 0x10;
+        dev->ram_mode = opti493_ram_modes[(mem_size >> 10) - 1];
+
+        mem_mapping_add(&dev->ram_mapping,
+                   0x00000000,
+                   (mem_size + 384) << 10,
+                   opti495_ram_readb,
+                   opti495_ram_readw,
+                   opti495_ram_readl,
+                   opti495_ram_writeb,
+                   opti495_ram_writew,
+                   opti495_ram_writel,
+                   ram,
+                   MEM_MAPPING_INTERNAL,
+                   dev);
+        mem_mapping_disable(&dev->ram_mapping);
     }
 
     opti495_recalc(dev);
+    opti495_recalc_banks(dev);
 
     io_sethandler(0x00e1, 0x0002, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
 
