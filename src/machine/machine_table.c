@@ -8307,7 +8307,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_IDE,
+        .flags     = MACHINE_PS2_KBC | MACHINE_IDE,
         .ram       = {
             .min  = 1024,
             .max  = 32768,
