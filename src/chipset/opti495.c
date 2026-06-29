@@ -117,6 +117,9 @@ opti495_addr_to_phys(const opti495_t *dev, uint32_t addr)
     sel_start[3] = sel_start[2] + opti493_ram_bank_sizes[(sel_banks23 >> 4) & 0x03];
     sel_start[4] = sel_start[3] + opti493_ram_bank_sizes[sel_banks23 & 0x03];
 
+    if (addr > sel_start[4])
+        return 0xffffffff;
+
     ram_start[1] = ram_start[0] + opti493_ram_bank_sizes[(ram_banks01 >> 4) & 0x03];
     ram_start[2] = ram_start[1] + opti493_ram_bank_sizes[ram_banks01 & 0x03];
     ram_start[3] = ram_start[2] + opti493_ram_bank_sizes[(ram_banks23 >> 4) & 0x03];
@@ -126,25 +129,25 @@ opti495_addr_to_phys(const opti495_t *dev, uint32_t addr)
         if ((addr >= sel_start[i]) && (addr < sel_start[i + 1])) {
             const uint32_t sel_size = sel_start[i + 1] - sel_start[i];
             const uint32_t ram_size = ram_start[i + 1] - ram_start[i];
-            const uint32_t addr2    = addr - sel_start[i];
             uint32_t       col      = 0x00000000;
             uint32_t       row      = 0x00000000;
+            uint32_t       row2;
 
             switch (sel_size) {
                 default:
                 case (1024 << 10):
-                    col  = (addr2 >>  2) & 0x000001ff;
-                    row  = (addr2 >> 12) & 0x000000ff;
-                    row |= (((addr2 >> 11) & 0x00000001) << 8);
+                    col  = (addr >>  2) & 0x000001ff;
+                    row  = (addr >> 12) & 0x000000ff;
+                    row |= (((addr >> 11) & 0x00000001) << 8);
                     break;
                 case (4096 << 10):
-                    col = (addr2 >>  2) & 0x000003ff;
-                    row = (addr2 >> 12) & 0x000003ff;
+                    col  = (addr >>  2) & 0x000003ff;
+                    row  = (addr >> 12) & 0x000003ff;
                     break;
                 case (16384 << 10):
-                    col = (addr2 >>  2) & 0x000007ff;
-                    row = (addr2 >> 13) & 0x000003ff;
-                    row = (row << 1) | ((addr2 >> 23) & 0x00000001);
+                    col  = (addr >>  2) & 0x000007ff;
+                    row  = (addr >> 12) & 0x000007fe;
+                    row |= ((addr >> 23) & 0x00000001);
                     break;
             }
 
@@ -155,7 +158,8 @@ opti495_addr_to_phys(const opti495_t *dev, uint32_t addr)
                 case (1024 << 10):
                     col &= 0x000001ff;
                     row &= 0x000001ff;
-                    ret = (col << 2) | (row << 11);
+                    row2 = ((row << 1) & 0x000001ff) | ((row >> 8) & 0x00000001);
+                    ret = (col << 2) | (row2 << 11);
                     break;
                 case (4096 << 10):
                     col &= 0x000003ff;
@@ -165,11 +169,15 @@ opti495_addr_to_phys(const opti495_t *dev, uint32_t addr)
                 case (16384 << 10):
                     col &= 0x000007ff;
                     row &= 0x000007ff;
-                    ret = (col << 2) | (row << 13);
+                    row2 = (row >> 1) | ((row & 0x00000001) << 10);
+                    ret = (col << 2) | (row2 << 13);
                     break;
             }
 
             ret = (ret | (addr & 0x00000003)) + ram_start[i];
+
+            if (ret >= (mem_size << 10))
+                ret = 0xffffffff;
             break;
         }
     }
@@ -255,22 +263,41 @@ opti495_mode_matches(const opti495_t *dev)
 }
 
 static void
+opti495_banked_mapping(opti495_t *dev)
+{
+    mem_mapping_disable(&ram_low_mapping);
+    mem_mapping_disable(&ram_mid_mapping);
+    mem_mapping_disable(&ram_high_mapping);
+}
+
+static void
+opti495_default_mapping(opti495_t *dev)
+{
+    mem_mapping_disable(&dev->ram_mapping);
+    mem_mapping_enable(&ram_low_mapping);
+    mem_mapping_enable(&ram_mid_mapping);
+    mem_mapping_enable(&ram_high_mapping);
+
+    if (mem_size > 1024)
+        mem_set_mem_state_both(0x00100000, (mem_size << 10) - 0x00100000,
+                               MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+}
+
+static void
 opti495_recalc_banks(opti495_t *dev)
 {
-    if ((dev->type > OPTI493) || opti495_mode_matches(dev)) {
-        if (dev->type == OPTI493)
-            mem_mapping_disable(&dev->ram_mapping);
-        mem_mapping_enable(&ram_low_mapping);
-        mem_mapping_enable(&ram_mid_mapping);
-        if (mem_size > 1024)
-            mem_mapping_enable(&ram_high_mapping);
-    } else {
-        mem_mapping_disable(&ram_low_mapping);
-        mem_mapping_disable(&ram_mid_mapping);
-        if (mem_size > 1024)
-            mem_mapping_disable(&ram_high_mapping);
-        mem_mapping_enable(&dev->ram_mapping);
+    mem_set_mem_state_both(0x00100000, 0x03f00000,
+                           MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+
+    if (opti495_mode_matches(dev))
+        opti495_default_mapping(dev);
+    else {
+        opti495_banked_mapping(dev);
+        mem_mapping_set_addr(&dev->ram_mapping, 0x00000000, 0x04000000);
+        mem_set_mem_state_both(0x00100000, 0x03f00000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     }
+
+    flushmmucache();
 }
 
 static void
@@ -328,7 +355,7 @@ opti495_recalc(opti495_t *dev)
         mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 static void
@@ -350,7 +377,7 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
 
                 dev->regs[dev->idx] = val & masks[dev->type][dev->idx - 0x20];
                 if ((dev->type == OPTI493) && (dev->idx == 0x20))
-                    val |= 0x40;
+                    dev->regs[dev->idx] |= 0x40;
 
                 switch (dev->idx) {
                     default:
@@ -368,7 +395,8 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0x24:
-                        opti495_recalc_banks(dev);
+                        if (dev->type == OPTI493)
+                            opti495_recalc_banks(dev);
                         break;
 
                     case 0x25: {
@@ -482,7 +510,7 @@ opti495_init(const device_t *info)
 
         mem_mapping_add(&dev->ram_mapping,
                    0x00000000,
-                   (mem_size + 384) << 10,
+                   65536 << 10,
                    opti495_ram_readb,
                    opti495_ram_readw,
                    opti495_ram_readl,
@@ -496,7 +524,9 @@ opti495_init(const device_t *info)
     }
 
     opti495_recalc(dev);
-    opti495_recalc_banks(dev);
+
+    if (dev->type == OPTI493)
+        opti495_recalc_banks(dev);
 
     io_sethandler(0x00e1, 0x0002, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
 
