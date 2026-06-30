@@ -361,7 +361,7 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     for (c = 0; c < DEVICE_MAX; c++) {
         if ((devices[c] == dev) && (device_state[c].local == init_dev->local) &&
             (device_state[c].inst == inst)) {
-            device_log("DEVICE: Device \"%s\", local %016" PRIX64 ", inst %i already exists!\n",
+            warning("DEVICE: Device \"%s\", local 0x%016" PRIX64 ", inst %i already exists!\n",
                        init_dev->name, init_dev->local,
                        inst);
             return (NULL);
