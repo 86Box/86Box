@@ -132,7 +132,7 @@ static const struct cdrom_drive_types_s {
     { EMU_NAME,   "86B_CD",           CDV,    "",          "86cd",           BUS_TYPE_BOTH, 2, -1, 36, 0, 0, {  4,  2,  2,  5 } },
     { EMU_NAME,   "86B_CD",           "1.00", "",          "86cd100",        BUS_TYPE_BOTH, 1, -1, 36, 1, 0, {  0, -1, -1, -1 } }, /* SCSI-1 / early ATAPI generic - second on purpose so the later variant is the default. */
     { EMU_NAME,   "86B_DVD",          "5.00", "",          "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  5 } },
-    { "ACER",     "656A 043",         "8.4D", "",          "acer_656a",      BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  2, -1 } },
+    { "ACER",     "656A"              "8.4D", "656A 043",  "acer_656a",      BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  2, -1 } },
     { "ACER",     "8432IA",           "5.AX", "",          "acer_8432ia",    BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  2 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "AOpen",    "CD-924E",          "A205", "",          "aopen_924e",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  0 } },
     { "AOpen",    "CD-948E",          "4.02", "",          "aopen_948e",     BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  2 } },
@@ -143,6 +143,7 @@ static const struct cdrom_drive_types_s {
     { "ASUS",     "CD-S520/A4",       "1.6K", "",          "asus_520",       BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
     { "ASUS",     "DVD-E616P2",       "1.08", "",          "asus_e616",      BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
     { "AZT",      "CDA46802I",        "1.15", "",          "azt_cda",        BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  3,  0,  0,  0 } },
+    { "BENQ",     "CD-656A",          "56AI", "",          "benq_656a",      BUS_TYPE_IDE,  0, 56, 36, 0, 0, {  4,  2,  2,  2 } },
     { "BTC",      "CD-ROM BCD16XA",   "U2.2", "",          "btc_16xa",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  2, -1 } },
     { "BTC",      "CD-ROM BCD24X",    "U2.0", "",          "btc_24x",        BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  0 } },
     { "BTC",      "CD-ROM BCD24XHM",  "V1.0", "",          "btc_24xhm",      BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  1 } }, /* Later version of BCD24X */
