@@ -1339,6 +1339,11 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
 #    endif
 #endif
 
+    bool skip = main_window_blocked || (keycode < 0) || (kbd_req_capture && !mouse_capture) || qt_osd_is_visible();
+
+    if (skip)
+        return;
+
     /* Apply special cases. */
     switch (keycode) {
         default:
