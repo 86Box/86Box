@@ -244,6 +244,7 @@ typedef struct it86x1f_t {
     serial_t *uart[2];
     lpt_t    *lpt;
     void     *gameport;
+    void     *kbc;
 } it86x1f_t;
 
 static void it86x1f_remap(it86x1f_t *dev, uint16_t addr_port, uint16_t data_port);
@@ -312,6 +313,14 @@ it8661f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             }
             break;
 
+        case 5:
+            if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
+                it86x1f_log("IT86x1F: ???? enabled at ports %04X %04X IRQs %d %d DMAs %d %d\n", config->io[0].base, config->io[1].base, config->irq[0].irq, config->irq[1].irq, (config->dma[0].dma == ISAPNP_DMA_DISABLED) ? -1 : config->dma[0].dma, (config->dma[1].dma == ISAPNP_DMA_DISABLED) ? -1 : config->dma[1].dma);
+            } else {
+                it86x1f_log("IT86x1F: ???? disabled\n");
+            }
+            break;
+
         default:
             break;
     }
@@ -334,16 +343,30 @@ it8671f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 
         case 5:
             if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED) && (config->io[1].base != ISAPNP_IO_DISABLED)) {
+                if (dev->kbc != NULL) {
+                    kbc_at_port_handler(0, 1, config->io[0].base, dev->kbc);
+                    kbc_at_port_handler(1, 1, config->io[1].base, dev->kbc);
+                    kbc_at_set_irq(0, config->irq[0].irq, dev->kbc);
+                }
                 it86x1f_log("IT86x1F: KBC enabled at ports %04X %04X IRQ %d\n", config->io[0].base, config->io[1].base, config->irq[0].irq);
             } else {
+                if (dev->kbc != NULL) {
+                    kbc_at_port_handler(1, 0, config->io[1].base, dev->kbc);
+                    kbc_at_port_handler(0, 0, config->io[0].base, dev->kbc);
+                    kbc_at_set_irq(0, config->irq[0].irq, dev->kbc);
+                }
                 it86x1f_log("IT86x1F: KBC disabled\n");
             }
             break;
 
         case 6:
             if (config->activate) {
+                if (dev->kbc != NULL)
+                    kbc_at_set_irq(1, config->irq[0].irq, dev->kbc);
                 it86x1f_log("IT86x1F: KBC mouse enabled at IRQ %d\n", config->irq[0].irq);
             } else {
+                if (dev->kbc != NULL)
+                    kbc_at_set_irq(1, config->irq[0].irq, dev->kbc);
                 it86x1f_log("IT86x1F: KBC mouse disabled\n");
             }
             break;
@@ -797,6 +820,11 @@ it86x1f_reset(it86x1f_t *dev)
     lpt_set_epp(dev->lpt, 0);
     lpt_set_ecp(dev->lpt, 0);
 
+    if (dev->kbc != NULL) {
+        kbc_at_port_handler(1, 0, 0x0000, dev->kbc);
+        kbc_at_port_handler(0, 0, 0x0000, dev->kbc);
+    }
+
     isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
 
     dev->locked = 1;
@@ -854,7 +882,7 @@ it86x1f_init(UNUSED(const device_t *info))
     io_sethandler(0x279, 1, NULL, NULL, NULL, it86x1f_write_unlock, NULL, NULL, dev);
 
     if (info->local == ITE_IT8671F)
-        device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00004800));
+        dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00004800));
 
     it86x1f_reset(dev);
 
