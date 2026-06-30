@@ -424,9 +424,11 @@ then
 		git init
 		git remote add origin https://github.com/SnowflakePowered/librashader/
 		git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
-		git checkout FETCH_HEAD
+		git checkout 4c85cf652f31c4f281cc888cf9654217411578f8
 	else
 		cd $cache_dir/librashader
+		git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
+		git checkout 4c85cf652f31c4f281cc888cf9654217411578f8
 	fi
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd $cwd_root
@@ -1050,9 +1052,11 @@ then
 			git init
 			git remote add origin https://github.com/SnowflakePowered/librashader/
 			git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
-			git checkout FETCH_HEAD
+			git checkout 4c85cf652f31c4f281cc888cf9654217411578f8
 		else
 			cd $cache_dir/librashader
+			git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
+			git checkout 4c85cf652f31c4f281cc888cf9654217411578f8
 		fi
 		case $arch in
 			64 | x86_64)	cargo build -p librashader-capi --target=x86_64-apple-darwin --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99;;
@@ -1243,9 +1247,11 @@ else
 		git init
 		git remote add origin https://github.com/SnowflakePowered/librashader/
 		git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
-		git checkout FETCH_HEAD
+		git checkout 4c85cf652f31c4f281cc888cf9654217411578f8
 	else
 		cd $cache_dir/librashader
+		git fetch origin --depth=1 4c85cf652f31c4f281cc888cf9654217411578f8
+		git checkout 4c85cf652f31c4f281cc888cf9654217411578f8
 	fi
 	cargo build -p librashader-capi --profile $librashader_profile --no-default-features --features runtime-vulkan || exit 99
 	cd target/$librashader_profile_dir/
