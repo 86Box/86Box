@@ -132,7 +132,7 @@ static const struct cdrom_drive_types_s {
     { EMU_NAME,   "86B_CD",           CDV,    "",          "86cd",           BUS_TYPE_BOTH, 2, -1, 36, 0, 0, {  4,  2,  2,  5 } },
     { EMU_NAME,   "86B_CD",           "1.00", "",          "86cd100",        BUS_TYPE_BOTH, 1, -1, 36, 1, 0, {  0, -1, -1, -1 } }, /* SCSI-1 / early ATAPI generic - second on purpose so the later variant is the default. */
     { EMU_NAME,   "86B_DVD",          "5.00", "",          "86dvd",          BUS_TYPE_BOTH, 2, -1, 36, 0, 1, {  4,  2,  2,  5 } },
-    { "ACER",     "656A 043"          "8.4D", "",          "acer_656a",      BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  2, -1 } },
+    { "ACER",     "656A",             "8.4D", "656A 043",  "acer_656a",      BUS_TYPE_IDE,  0,  8, 36, 0, 0, {  3,  2,  2, -1 } },
     { "ACER",     "8432IA",           "5.AX", "",          "acer_8432ia",    BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  2,  2 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "AOpen",    "CD-924E",          "A205", "",          "aopen_924e",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  0 } },
     { "AOpen",    "CD-948E",          "4.02", "",          "aopen_948e",     BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  2 } },
