@@ -26,6 +26,7 @@
 #include "cpu.h"
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/port_92.h>
@@ -371,6 +372,21 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
             opti495_log("[%04X:%08X] [W] dev->idx = %02X\n", CS, cpu_state.pc, val);
             dev->idx = val;
             break;
+        case 0x23:
+            if (dev->idx == 0x01) {
+                dev->regs[dev->idx] = val;
+                /*
+                   This is a hack but it is required to get rid of the
+                   System Timer Error.
+                 */
+                if ((machines[machine].init == machine_at_svc486wb_init) &&
+                    (CS == 0xf000) && (cpu_state.pc == 0x000091a5)) {
+                    outb(0x0043, 0x36);
+                    outb(0x0040, 0x00);
+                    outb(0x0040, 0x00);
+                }
+            }
+            break;
         case 0x24:
             if ((dev->idx >= 0x20) && (dev->idx <= dev->max)) {
                 opti495_log("[%04X:%08X] [W] dev->regs[%04X] = %02X\n", CS, cpu_state.pc, dev->idx, val);
@@ -442,6 +458,10 @@ opti495_read(uint16_t addr, void *priv)
         case 0x22:
             opti495_log("[%04X:%08X] [R] dev->idx = %02X\n", CS, cpu_state.pc, ret);
             break;
+        case 0x23:
+            if (dev->idx == 0x01)
+                ret = dev->regs[dev->idx];
+            break;
         case 0x24:
             if ((dev->idx >= 0x20) && (dev->idx <= dev->max)) {
                 ret = dev->regs[dev->idx];
@@ -478,6 +498,9 @@ opti495_init(const device_t *info)
 
     io_sethandler(0x0022, 0x0001, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
     io_sethandler(0x0024, 0x0001, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
+
+    if (info->local == OPTI493)
+        io_sethandler(0x0023, 0x0001, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
 
     dev->scratch[0] = dev->scratch[1] = 0xff;
 
