@@ -242,6 +242,7 @@ static void mount_path(const char *path)
             floppy_mount(0, (char *) path, 0);
             break;
         case VIEW_FILE_CD:
+        case VIEW_CD_FOLDER:
             cdrom_mount(0, (char *) path);
             break;
         case VIEW_FILE_RDISK:
