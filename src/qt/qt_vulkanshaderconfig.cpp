@@ -15,7 +15,7 @@ extern "C" {
 #include <86box/config.h>
 extern void get_glslp_name(const char *f, char *s, int size);
 }
-static char s[512];
+static char s[1024];
 static char name[512];
 
 #ifndef LIBRASHADER_STATIC
