@@ -264,7 +264,7 @@ pic_reset(void)
     if (is_at)
         pic.slaves[2] = &pic2;
 
-    if (!is_zenith) {
+    if (!is_at && !is_zenith) {
         if (tmr_inited)
             timer_on_auto(&pic_timer, 0.0);
         memset(&pic_timer, 0x00, sizeof(pc_timer_t));
@@ -532,7 +532,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 break;
             case STATE_NONE:
                 dev->imr = val;
-                if (dev->zenith)
+                if (dev->at || dev->zenith)
                     update_pending();
                 else
                     timer_on_auto(&pic_timer, .0 * ((10000000.0 * (double) xt_cpu_multi) / (double) cpu_s->rspeed));
