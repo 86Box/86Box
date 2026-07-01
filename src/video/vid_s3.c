@@ -12503,7 +12503,7 @@ static const device_config_t s3_trio32_pci_config[] = {
                 .files         = { ROM_PHOENIX_TRIO32, "" }
             },
             {
-                .name          = "SPEA V7-Mercury P-32",
+                .name          = "SPEA V7-Mirage P-32",
                 .internal_name = "spea_mercury32p_pci",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
