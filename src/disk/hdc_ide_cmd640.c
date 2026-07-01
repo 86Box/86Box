@@ -463,7 +463,7 @@ cmd640_reset(void *priv)
         dev->regs[0x01] = 0x10;
         dev->regs[0x02] = 0x40; /* PCI-0640B */
         dev->regs[0x03] = 0x06;
-        dev->regs[0x04] = 0x00;       /* Apparently required by the ASUS PCI/I-P5SP4 AND PCI/I-P54SP4 */
+        dev->regs[0x04] = 0x01;       /* Apparently required by the ASUS PCI/I-P5SP4 AND PCI/I-P54SP4 */
         dev->regs[0x07] = 0x02;       /* DEVSEL timing: 01 medium */
         dev->regs[0x08] = 0x02;       /* Revision 02 */
         dev->regs[0x09] = dev->local; /* Programming interface */
