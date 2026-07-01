@@ -668,11 +668,13 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         double  bytes_per_second;
         double  period;
 
-        if (dev->was_cached == -1) {
+        if ((dev->drv->speed > 72) || (dev->was_cached == -1)) {
             if (dev->drv->bus_type == CDROM_BUS_SCSI)
                 dev->callback = -1.0; /* Speed depends on SCSI controller */
-            else
+            else if (dev->was_cached == -1)
                 dev->callback = 512.0 + (scsi_cdrom_bus_speed(dev) * (double) (dev->packet_len));
+            else
+                dev->callback = scsi_cdrom_bus_speed(dev) * (double) (dev->packet_len);
         } else {
             if (dev->was_cached) {
                 dev->callback += 512.0;
