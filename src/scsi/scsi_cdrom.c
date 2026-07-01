@@ -673,8 +673,13 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
                 dev->callback = -1.0; /* Speed depends on SCSI controller */
             else if (dev->was_cached == -1)
                 dev->callback = 512.0 + (scsi_cdrom_bus_speed(dev) * (double) (dev->packet_len));
-            else
-                dev->callback = scsi_cdrom_bus_speed(dev) * (double) (dev->packet_len);
+            else {
+                const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) ||
+                                 (dev->block_len == 0)) ? dev->sectors_num :
+                                ((scsi_cdrom_current_mode(dev) == 2) ? 1 : dev->sectors_num);
+
+                dev->callback = scsi_cdrom_bus_speed(dev) * ((double) num) * 2352.0;
+            }
         } else {
             if (dev->was_cached) {
                 dev->callback += 512.0;
