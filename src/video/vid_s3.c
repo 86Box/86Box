@@ -93,7 +93,7 @@
 #define ROM_SPEA_86C964                "roms/video/s3/SPEA V7-Mercury P-64 (S3 Vision964 PCI, BT485).bin"
 #define ROM_GENOA_VISION868            "roms/video/s3/Genoa Phantom 64 PCI (S3 Vision868).bin"
 #define ROM_MIROVIDEO_VISION868        "roms/video/s3/miroVIDEO 20SD PCI (S3 Vision868).bin"
-#define ROM_SPEA_TRIO32                "roms/video/s3/SPEA V7-Mercury P-32 (S3 Trio32 PCI).bin"
+#define ROM_SPEA_TRIO32                "roms/video/s3/SPEA V7-Mirage P-32 (S3 Trio32 PCI).bin"
 #define ROM_DIAMOND_TRIO64V            "roms/video/s3/Diamond Stealth64 Video 2001 (S3 Trio64V+ PCI).bin"
 #define ROM_HERCULES_TRIO64V           "roms/video/s3/Hercules Terminator 64 Video (S3 Trio64V+ PCI).BIN"
 #define ROM_MIROMEDIA_TV               "roms/video/s3/miroMEDIA TV (S3 Trio64V+ PCI).rom"
@@ -12504,7 +12504,7 @@ static const device_config_t s3_trio32_pci_config[] = {
             },
             {
                 .name          = "SPEA V7-Mirage P-32",
-                .internal_name = "spea_mercury32p_pci",
+                .internal_name = "spea_mercury32p_pci", /* TODO: to add migration */
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = S3_SPEA_TRIO32,
