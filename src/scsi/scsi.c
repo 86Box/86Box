@@ -39,6 +39,7 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_qlogic.h>
+#include <86box/scsi_aic7890.h>
 #include <86box/scsi_spock.h>
 
 int scsi_card_current[SCSI_CARD_MAX] = { 0, 0, 0, 0 };
@@ -53,6 +54,7 @@ typedef const struct {
 static SCSI_CARD scsi_cards[] = {
   // clang-format off
     { &device_none,              },
+    { &device_internal,          },
     /* ISA */
     { &scsi_lcs6821n_device,     },
     { &scsi_rt1000b_device,      },
@@ -97,6 +99,7 @@ static SCSI_CARD scsi_cards[] = {
     { &qla1240_device,           },
     { &qla1280_device,           },
     { &qla12160a_device,         },
+    { &aic7890_pci_device,       },
     { &dc390_pci_device,         },
     { NULL,                      },
   // clang-format on
@@ -174,7 +177,7 @@ scsi_card_init(void)
            bus left. */
     if (max > 0) {
         for (int i = 0; i < max; i++) {
-            if ((scsi_card_current[i] > 0) && scsi_cards[scsi_card_current[i]].device)
+            if ((scsi_card_current[i] > SCSI_CARD_INTERNAL) && scsi_cards[scsi_card_current[i]].device)
                 device_add_inst(scsi_cards[scsi_card_current[i]].device, i + 1);
         }
     }

@@ -34,6 +34,7 @@
 #include <86box/sio.h>
 #include <86box/sound.h>
 #include <86box/snd_ac97.h>
+#include <86box/scsi_aic7890.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/plat_unused.h>
@@ -21483,7 +21484,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7890AB */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 1048576,
@@ -21506,6 +21507,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
+        .scsi_device              = &aic7890_onboard_pci_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -22578,7 +22580,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal SCSI */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 16384,
             .max  = 2097152,
@@ -22601,6 +22603,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
+        .scsi_device              = &aic7890_onboard_pci_device,
         .net_device               = NULL,
         .aliases                  = { "" }
     },
@@ -22627,7 +22630,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 16384,
             .max  = 2097152,
@@ -22651,7 +22654,8 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .scsi_device              = &aic7890_onboard_pci_device,
+        .aliases                  = { "Supermicro S2DGU", "" }
     },
 
     /* PGA370 machines */
@@ -23714,6 +23718,15 @@ machine_get_snd_device(int m)
 }
 
 const device_t *
+machine_get_scsi_device(int m)
+{
+    if (machines[m].scsi_device)
+        return (machines[m].scsi_device);
+
+    return (NULL);
+}
+
+const device_t *
 machine_get_net_device(int m)
 {
     if (machines[m].net_device)
@@ -23913,5 +23926,3 @@ machine_get_nvr_name(void)
 {
     return machine_get_nvr_name_ex(machine);
 }
-
-

@@ -1360,7 +1360,7 @@ load_storage_controllers(void)
         if (p != NULL)
             scsi_card_current[c] = scsi_card_get_from_internal_name(p);
         else
-            scsi_card_current[c] = 0;
+            scsi_card_current[c] = SCSI_CARD_NONE;
     }
 
     p = ini_section_get_string(cat, "fdc", NULL);
@@ -3683,7 +3683,7 @@ save_storage_controllers(void)
     for (c = 0; c < SCSI_CARD_MAX; c++) {
         sprintf(temp, "scsicard_%d", c + 1);
 
-        if (scsi_card_current[c] == 0)
+        if (scsi_card_current[c] == SCSI_CARD_NONE)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp,
