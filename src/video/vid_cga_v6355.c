@@ -1068,5 +1068,6 @@ const device_t v6355d_device = {
     .available     = NULL,
     .speed_changed = v6355_speed_changed,
     .force_redraw  = NULL,
-    .config        = v6355_config
+    .config        = v6355_config,
+    .alias         = "Tulip DGA"
 };

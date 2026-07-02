@@ -290,20 +290,28 @@ cmd640_vlb_readl(uint16_t addr, void *priv)
 }
 
 static void
-cmd640_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
+cmd640_pci_write(int func, int addr, int len, uint8_t val, void *priv)
 {
     cmd640_t *dev = (cmd640_t *) priv;
 
     cmd640_log("cmd640_pci_write(%i, %02X, %02X)\n", func, addr, val);
 
-    if (func == 0x00)
+    /* The CMD640 does not support DWORD write cycles. */
+    if ((func == 0x00) && (len < 4))
         switch (addr) {
             case 0x04:
                 dev->regs[addr] = (val & 0x41);
                 cmd640_ide_handlers(dev);
                 break;
+            case 0x05:
+                dev->regs[addr] = (val & 0xfe);
+                break;
+            case 0x06:
+                dev->regs[addr] &= ~val;
+                break;
             case 0x07:
-                dev->regs[addr] &= ~(val & 0x80);
+                dev->regs[addr] = (val & 0x06);
+                dev->regs[addr] &= ~(val & 0x81);
                 break;
             case 0x09:
                 if ((dev->regs[addr] & 0x0a) == 0x0a) {
@@ -350,7 +358,7 @@ cmd640_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 }
                 break;
             case 0x1c:
-                if (dev->regs[0x50] & 0x40) {
+                if ((dev->regs[0x51] & 0x08) && (dev->regs[0x50] & 0x40)) {
                     dev->regs[0x1c] = (val & 0xfc) | 1;
                     cmd640_ide_handlers(dev);
                 }
@@ -379,6 +387,8 @@ cmd640_pci_read(int func, int addr, UNUSED(int len), void *priv)
             dev->regs[0x50] &= ~0x04;
         else if (addr == 0x57)
             dev->regs[0x57] &= ~0x10;
+        else if ((addr >= 0x18) && (addr <= 0x1f) && !(dev->regs[0x51] & 0x08))
+            ret = 0x00;
     }
 
     cmd640_log("cmd640_pci_read(%i, %02X, %02X)\n", func, addr, ret);

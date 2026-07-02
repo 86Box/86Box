@@ -2238,7 +2238,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FLAGS_NONE,
+        .flags     = MACHINE_ZENITH,
         .ram       = {
             .min  = 128,
             .max  = 640,
@@ -2285,7 +2285,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FLAGS_NONE,
+        .flags     = MACHINE_ZENITH,
         .ram       = {
             .min  = 128,
             .max  = 640,
@@ -2332,7 +2332,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_VIDEO_FIXED,
+        .flags     = MACHINE_ZENITH | MACHINE_VIDEO_FIXED,
         .ram       = {
             .min  = 128,
             .max  = 640,
@@ -23741,7 +23741,7 @@ machine_get_nvrmask(int m)
 }
 
 int
-machine_has_flags(int m, int flags)
+machine_has_flags(int m, uintptr_t flags)
 {
     int ret = machines[m].flags & flags;
 
@@ -23769,7 +23769,7 @@ machine_force_ps2(int is_ps2)
 }
 
 int
-machine_has_flags_ex(int flags)
+machine_has_flags_ex(uintptr_t flags)
 {
     int ret = machine_has_flags(machine, flags);
 
@@ -23784,7 +23784,7 @@ machine_has_flags_ex(int flags)
 }
 
 int
-machine_has_bus(int m, int bus_flags)
+machine_has_bus(int m, uintptr_t bus_flags)
 {
     int ret = machines[m].bus_flags & bus_flags;
 
