@@ -7068,7 +7068,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Protech ProX-1331", "Protech ProX-1332" }
+        .aliases                  = { "Protech ProX-1331", "Protech ProX-1332", "" }
     },
 
     /* 486SLC machines */
