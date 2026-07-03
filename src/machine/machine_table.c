@@ -2475,9 +2475,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PC,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
-            .min  = 64,
+            .min  = 640,
             .max  = 640,
-            .step = 64
+            .step = 640
         },
         .nvrmask                  = 63,
         .jumpered_ecp_dma         = 0,
