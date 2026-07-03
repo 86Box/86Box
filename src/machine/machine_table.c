@@ -13533,9 +13533,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_0 | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -13581,9 +13581,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -13629,9 +13629,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -14586,7 +14586,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Canon PAT54PV", "" }
+        .aliases                  = { "Canon PAT54PV", "Canon Computer Systems PAT54PV", "" }
     },
 
     /* OPTi Viper */
@@ -14761,9 +14761,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -14809,9 +14809,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_3,
@@ -14857,9 +14857,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -14905,9 +14905,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_0 | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -14955,7 +14955,7 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 131072,
-            .step = 8192
+            .step = 4096
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_3,
@@ -14975,7 +14975,7 @@ const machine_t machines[] = {
         .vid_device               = &tgui9660_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "TriGem Torino", "" }
+        .aliases                  = { "TriGem Torino", "Olivetti BA2199", "Olivetti BA2259", "Olivetti M4-xxx", "" }
     },
 
     /* UMC 889x */
@@ -15004,9 +15004,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -15052,9 +15052,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 262144,
-            .step = 8192
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -16398,9 +16398,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 131072,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -16449,9 +16449,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 524288,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -16498,9 +16498,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 2048,
             .max  = 524288,
-            .step = 8192
+            .step = 2048
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
@@ -16549,7 +16549,7 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 524288,
-            .step = 8192
+            .step = 4096 /* assumed */
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -16598,7 +16598,7 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 8192,
             .max  = 131072,
-            .step = 8192
+            .step = 4096 /* assumed */
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -16645,9 +16645,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
-            .min  = 8192,
+            .min  = 4096,
             .max  = 524288,
-            .step = 8192
+            .step = 4096
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = MACHINE_DMA_USE_MBDMA,
@@ -16668,7 +16668,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Premio 219E", "Premio 219F", "" }
     },
 
     /* VLSI Wildcat */
