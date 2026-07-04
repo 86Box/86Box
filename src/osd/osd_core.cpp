@@ -21,8 +21,6 @@
 #include <sys/stat.h>
 #include <utility>
 
-extern "C"
-{
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/plat.h>
@@ -31,6 +29,8 @@ extern "C"
 #include <86box/version.h>
 #include <86box/cdrom.h>
 #include <86box/mem.h>
+extern "C"
+{
 #include <86box/rom.h>
 }
 
