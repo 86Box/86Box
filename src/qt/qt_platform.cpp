@@ -289,8 +289,8 @@ void
 plat_unlock_volumes(plat_device_vol_locked_t* vol)
 {
 #ifdef _WIN32
-    for (int i = 0; i < vol->vol_nums; i++) {
-        if (vol->handles_vols[i] != -1) {
+    for (uintptr_t i = 0; i < vol->vol_nums; i++) {
+        if (vol->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
             DWORD bytesRet = 0;
             DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_UNLOCK_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr);
             CloseHandle((HANDLE)vol->handles_vols[i]);
@@ -327,12 +327,12 @@ plat_lock_volumes(FILE* file)
             locked_list->vol_nums = layout_info->PartitionCount;
             for (DWORD i = 0; i < layout_info->PartitionCount; i++) {
                 char path_name[256] = { 0 };
-                snprintf(path_name, sizeof(path_name) - 1, "\\\\?\\Harddisk%uPartition%lu", storage_num.DeviceNumber, i);
+                snprintf(path_name, sizeof(path_name) - 1, "\\\\?\\Harddisk%uPartition%lu", (unsigned int) storage_num.DeviceNumber, i);
                 locked_list->handles_vols[i] = (uintptr_t)CreateFileA(path_name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, 0);
-                if (locked_list->handles_vols[i] != -1) {
+                if (locked_list->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
                     if (DeviceIoControl((HANDLE)locked_list->handles_vols[i], FSCTL_LOCK_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr)) {
                     } else {
-                        warning("Failed to lock partition %lu on disk %d.", i, storage_num.DeviceNumber);
+                        warning("Failed to lock partition %lu on disk %d.", i, (int) storage_num.DeviceNumber);
                     }
                 }
             }
