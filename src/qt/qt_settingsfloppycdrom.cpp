@@ -92,7 +92,10 @@ setCDROMSpeed(QAbstractItemModel *model, const QModelIndex &idx, uint8_t speed)
     if (!speed)
         speed = 8;
     auto i = idx.siblingAtColumn(1);
-    model->setData(i, QString("%1x").arg(speed));
+    if (speed > 72)
+        model->setData(i, QObject::tr("Turbo"));
+    else
+        model->setData(i, QString("%1x").arg(speed));
     model->setData(i, speed, Qt::UserRole);
 }
 
@@ -200,6 +203,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     model = ui->comboBoxSpeed->model();
     for (int i = 0; i < 72; i++)
         Models::AddEntry(model, QString("%1x").arg(i + 1), i + 1);
+    Models::AddEntry(model, tr("Turbo"), 99);
 
     model = new QStandardItemModel(0, 3, this);
     ui->tableViewCDROM->setModel(model);

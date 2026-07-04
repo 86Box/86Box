@@ -361,8 +361,8 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     for (c = 0; c < DEVICE_MAX; c++) {
         if ((devices[c] == dev) && (device_state[c].local == init_dev->local) &&
             (device_state[c].inst == inst)) {
-            device_log("DEVICE: Device \"%s\", local %016" PRIX64 ", inst %i already exists!\n",
-                       init_dev->name, init_dev->local,
+            warning("DEVICE: Device \"%s\", local 0x%016" PRIX64 ", inst %i already exists!\n",
+                       init_dev->name, (uint64_t) init_dev->local,
                        inst);
             return (NULL);
         }
@@ -666,6 +666,11 @@ device_available(const device_t *dev)
 static const device_config_bios_t *
 device_get_bios(const device_t *dev, const char *internal_name)
 {
+    if (internal_name == NULL) {
+        fatal("Failed to get the default BIOS for this device, please update your ROM set and contact 86Box support if it still occurs\n");
+        return NULL;
+    }
+
     if (dev != NULL) {
         const device_config_t *config = dev->config;
         while (config && (config->type != CONFIG_END)) {
