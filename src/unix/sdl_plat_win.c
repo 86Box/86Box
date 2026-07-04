@@ -22,6 +22,60 @@ static dllimp_t kernel32_imports[] = {
     // clang-format on
 };
 
+void
+plat_unlock_volumes(plat_device_vol_locked_t* vol)
+{
+    for (int i = 0; i < vol->vol_nums; i++) {
+        if (vol->handles_vols[i] != -1) {
+            DWORD bytesRet = 0;
+            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_UNLOCK_VOLUME, 0, 0, 0, 0, &bytesRet, NULL);
+            CloseHandle((HANDLE)vol->handles_vols[i]);
+        }
+    }
+    free(vol);
+}
+
+plat_device_vol_locked_t*
+plat_lock_volumes(FILE* file)
+{
+    HANDLE filehandle = (HANDLE)_get_osfhandle(fileno(file));
+    if (filehandle == INVALID_HANDLE_VALUE) {
+        return NULL;
+    }
+    DWORD bytesRet = 0;
+
+    STORAGE_DEVICE_NUMBER storage_num;
+    if (!DeviceIoControl(filehandle, IOCTL_STORAGE_GET_DEVICE_NUMBER, NULL, 0, &storage_num, sizeof(STORAGE_DEVICE_NUMBER), &bytesRet, NULL)) {
+        return 0;
+    }
+
+    // Excessive, but needed.
+    DRIVE_LAYOUT_INFORMATION* layout_info = (DRIVE_LAYOUT_INFORMATION*)calloc(81920, 1);
+    if (DeviceIoControl(filehandle, IOCTL_DISK_GET_DRIVE_LAYOUT, NULL, 0, layout_info, 81920, &bytesRet, NULL)) {
+        //auto partCount = layout_info->PartitionCount;
+        //layout_info = (DRIVE_LAYOUT_INFORMATION_EX*)realloc(layout_info, sizeof(PARTITION_INFORMATION_EX) * (partCount + 1) + sizeof(DRIVE_LAYOUT_INFORMATION_EX));
+        plat_device_vol_locked_t* locked_list = (plat_device_vol_locked_t*)calloc(1, sizeof(plat_device_vol_locked_t) + layout_info->PartitionCount * sizeof(uintptr_t));
+        if (locked_list) {
+            locked_list->vol_nums = layout_info->PartitionCount;
+            for (DWORD i = 0; i < layout_info->PartitionCount; i++) {
+                char path_name[256] = { 0 };
+                snprintf(path_name, sizeof(path_name) - 1, "\\\\?\\Harddisk%uPartition%lu", storage_num.DeviceNumber, i);
+                locked_list->handles_vols[i] = (uintptr_t)CreateFileA(path_name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
+                if (locked_list->handles_vols[i] != -1) {
+                    if (DeviceIoControl((HANDLE)locked_list->handles_vols[i], FSCTL_LOCK_VOLUME, 0, 0, 0, 0, &bytesRet, NULL)) {
+                    } else {
+                        warning("Failed to lock partition %lu on disk %d.", i, storage_num.DeviceNumber);
+                    }
+                }
+            }
+        }
+    } else {
+        pclog("Failed to get drive layout information (%ld).\n", GetLastError());
+    }
+    free(layout_info);
+    return NULL;
+}
+
 /*
  * Common filesystem locations
  */
