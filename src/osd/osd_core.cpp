@@ -167,9 +167,10 @@ osd_core_rebuild_default_font(int pixel_size)
     cfg.OversampleV = 1;
     cfg.SizePixels  = (float) pixel_size;
 
+    static const ImWchar glyph_ranges[] = { 0x0020, 0xffff, 0 }; // Will not be copied by AddFont* so keep in scope.
     int ret = asset_getfile("assets/fonts/unifont-17.0.05.otf", font_cfg_fn, 4096);
     if (ret)
-        io.Fonts->AddFontFromFileTTF(font_cfg_fn, (float)pixel_size, &cfg);
+        io.Fonts->AddFontFromFileTTF(font_cfg_fn, (float)pixel_size, &cfg, glyph_ranges);
     else
         io.Fonts->AddFontDefaultBitmap(&cfg);
 
