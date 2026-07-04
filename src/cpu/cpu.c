@@ -1576,9 +1576,9 @@ cpu_set(void)
             if (cpu_s->cpu_type >= CPU_CxGX1)
                 cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_CR4;
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
-                cpu_features |= CPU_FEATURE_MMX;
-            if (cpu_s->cpu_type >= CPU_CxGX1)
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
+                cpu_features |= CPU_FEATURE_MMX | CPU_FEATURE_CR4;
+            if ((cpu_s->cpu_type >= CPU_CxGX1) || (cpu_s->cpu_type == CPU_Cx6x86MX))
+                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE | CR4_PGE;
 
 #    ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_686);
@@ -2761,7 +2761,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_PGE;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2775,7 +2775,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX;
+                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX | CPUID_PGE;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
