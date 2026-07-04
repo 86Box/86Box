@@ -80,21 +80,12 @@ static const device_config_t s2dge_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "s2dge",
+        .default_string = "s2dge_rev16",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = {
-            {
-                .name          = "AMIBIOS 6 (063100) - Revision 1.6",
-                .internal_name = "s2dge_rev16",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/s2dge/2gu2241.rom", "" }
-            },
             {
                 .name          = "AMIBIOS 6 (063100) - Revision 1.0",
                 .internal_name = "s2dge",
@@ -103,6 +94,15 @@ static const device_config_t s2dge_config[] = {
                 .local         = 0,
                 .size          = 262144,
                 .files         = { "roms/machines/s2dge/2gu7301.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (063100) - Revision 1.6",
+                .internal_name = "s2dge_rev16",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/s2dge/2gu2241.rom", "" }
             },
             { .files_no = 0 }
         },

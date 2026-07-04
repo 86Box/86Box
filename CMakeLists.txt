@@ -212,7 +212,7 @@ if(QT)
                 set(FETCHCONTENT_QUIET 0)
                 FetchContent_Declare(librashader
                                     GIT_REPOSITORY https://github.com/SnowflakePowered/librashader.git
-                                    GIT_TAG 4c85cf652f31c4f281cc888cf9654217411578f8 GIT_SUBMODULES "" GIT_PROGRESS 1)
+                                    GIT_TAG f810cdf6e856e5a5215b1e84a21c978bc3367f23 GIT_SUBMODULES "" GIT_PROGRESS 1)
                                     
                 FetchContent_Declare(corrosion
                                     GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git

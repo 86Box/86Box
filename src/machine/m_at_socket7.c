@@ -2040,7 +2040,6 @@ machine_at_richmond_init(const machine_t *model)
 
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&it8671f_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
