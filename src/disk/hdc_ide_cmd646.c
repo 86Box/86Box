@@ -676,8 +676,6 @@ cmd646_init(const device_t *info)
 
     dev->local = info->local;
 
-    device_add(&ide_pci_2ch_device);
-
     if (info->local & 0x80000) {
         first = 2;
         device_add(&ide_pci_ter_qua_2ch_device);

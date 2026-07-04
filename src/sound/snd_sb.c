@@ -600,7 +600,7 @@ sb_get_wavetable_buffer_goldfinch(int32_t *buffer, const uint16_t len, void *pri
         buffer[c + 1] += (int32_t) out_r;
     }
 
-    goldfinch->emu8k.pos = 0;
+    emu8k_reset_buffer(&goldfinch->emu8k);
 }
 
 static void
@@ -664,7 +664,7 @@ sb_get_wavetable_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *pr
         buffer[c + 1] += (int32_t) (out_r * mixer->output_gain_R);
     }
 
-    sb->emu8k.pos = 0;
+    emu8k_reset_buffer(&sb->emu8k);
 }
 
 void
@@ -8528,7 +8528,7 @@ const device_t ess_chipchat_16_mca_device = {
 };
 
 const device_t ess_1788_device = {
-    .name          = "ESS AudioDrive ES1788",
+    .name          = "ESS AudioDrive ES1788/ES1698", /* ES1698 is a rebadged ES1788 */
     .internal_name = "ess_es1788",
     .flags         = DEVICE_ISA16,
     .local         = 1,
