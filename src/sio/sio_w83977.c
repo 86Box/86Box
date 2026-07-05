@@ -513,36 +513,38 @@ w83977_nvr_handler(w83977_t *dev)
 static void
 w83977_kbc_handler(w83977_t *dev)
 {
-    const uint8_t  local_enable = !!dev->ld_regs[5][0x30];
-    const uint16_t old_base = dev->kbc_base[0];
-    const uint16_t old_base2 = dev->kbc_base[1];
+    if (dev->kbc != NULL) {
+        const uint8_t  local_enable = !!dev->ld_regs[5][0x30];
+        const uint16_t old_base = dev->kbc_base[0];
+        const uint16_t old_base2 = dev->kbc_base[1];
 
-    dev->kbc_base[0] = dev->kbc_base[1] = 0x0000;
+        dev->kbc_base[0] = dev->kbc_base[1] = 0x0000;
 
-    if (local_enable) {
-        dev->kbc_base[0] = make_port(dev, 5);
-        dev->kbc_base[1] = make_port_sec(dev, 5);
-    }
+        if (local_enable) {
+            dev->kbc_base[0] = make_port(dev, 5);
+            dev->kbc_base[1] = make_port_sec(dev, 5);
+        }
 
-    if (dev->kbc_base[0] != old_base) {
-        if ((dev->id != 1) && (dev->kbc != NULL) && (old_base >= 0x0100) && (old_base <= 0x0ff8))
-            kbc_at_port_handler(0, 0, old_base, dev->kbc);
+        if (dev->kbc_base[0] != old_base) {
+            if ((dev->id != 1) && (dev->kbc != NULL) && (old_base >= 0x0100) && (old_base <= 0x0ff8))
+                kbc_at_port_handler(0, 0, old_base, dev->kbc);
 
-        if ((dev->id != 1) && (dev->kbc != NULL) && (dev->kbc_base[0] >= 0x0100) && (dev->kbc_base[0] <= 0x0ff8))
-            kbc_at_port_handler(0, 1, dev->kbc_base[0], dev->kbc);
-    }
+            if ((dev->id != 1) && (dev->kbc != NULL) && (dev->kbc_base[0] >= 0x0100) && (dev->kbc_base[0] <= 0x0ff8))
+                kbc_at_port_handler(0, 1, dev->kbc_base[0], dev->kbc);
+        }
 
-    if (dev->kbc_base[1] != old_base2) {
-        if ((dev->id != 1) && (dev->kbc != NULL) && (old_base2 >= 0x0100) && (old_base2 <= 0x0ff8))
-            kbc_at_port_handler(1, 0, old_base2, dev->kbc);
+        if (dev->kbc_base[1] != old_base2) {
+            if ((dev->id != 1) && (dev->kbc != NULL) && (old_base2 >= 0x0100) && (old_base2 <= 0x0ff8))
+                kbc_at_port_handler(1, 0, old_base2, dev->kbc);
 
-        if ((dev->id != 1) && (dev->kbc != NULL) && (dev->kbc_base[1] >= 0x0100) && (dev->kbc_base[1] <= 0x0ff8))
-            kbc_at_port_handler(1, 1, dev->kbc_base[1], dev->kbc);
-    }
+            if ((dev->id != 1) && (dev->kbc != NULL) && (dev->kbc_base[1] >= 0x0100) && (dev->kbc_base[1] <= 0x0ff8))
+                kbc_at_port_handler(1, 1, dev->kbc_base[1], dev->kbc);
+        }
 
-    if ((dev->id != 1) && (dev->kbc != NULL)) {
-        kbc_at_set_irq(0, dev->ld_regs[5][0x70], dev->kbc);
-        kbc_at_set_irq(1, dev->ld_regs[5][0x72], dev->kbc);
+        if ((dev->id != 1) && (dev->kbc != NULL)) {
+            kbc_at_set_irq(0, dev->ld_regs[5][0x70], dev->kbc);
+            kbc_at_set_irq(1, dev->ld_regs[5][0x72], dev->kbc);
+        }
     }
 }
 
@@ -872,7 +874,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xc7;
                             else
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x83;
-                            if (valxor & 0x01)
+                            if ((dev->kbc != NULL) && (valxor & 0x01))
                                 kbc_at_set_fast_reset(val & 0x01);
                             break;
                     }

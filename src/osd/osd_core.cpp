@@ -28,6 +28,11 @@
 #include <86box/ui.h>
 #include <86box/version.h>
 #include <86box/cdrom.h>
+#include <86box/mem.h>
+extern "C"
+{
+#include <86box/rom.h>
+}
 
 #include "osd_core.hpp"
 #include "osd_explorer.hpp"
@@ -151,6 +156,7 @@ osd_core_rebuild_default_font(int pixel_size)
 {
     ImGuiIO &io = ImGui::GetIO();
     ImFontConfig cfg;
+    char font_cfg_fn[4096] = { 0 };
 
     if (pixel_size < OSD_FONT_SIZE)
         pixel_size = OSD_FONT_SIZE;
@@ -160,7 +166,13 @@ osd_core_rebuild_default_font(int pixel_size)
     cfg.OversampleH = 1;
     cfg.OversampleV = 1;
     cfg.SizePixels  = (float) pixel_size;
-    io.Fonts->AddFontDefaultBitmap(&cfg);
+
+    static const ImWchar glyph_ranges[] = { 0x0020, 0xffff, 0 }; // Will not be copied by AddFont* so keep in scope.
+    int ret = asset_getfile("assets/fonts/unifont-17.0.05.otf", font_cfg_fn, 4096);
+    if (ret)
+        io.Fonts->AddFontFromFileTTF(font_cfg_fn, (float)pixel_size, &cfg, glyph_ranges);
+    else
+        io.Fonts->AddFontDefaultBitmap(&cfg);
 
     osd_font_raster_scale = (float) pixel_size / (float) OSD_FONT_SIZE;
     apply_layout_scale();

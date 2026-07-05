@@ -887,6 +887,45 @@ opWBINVD(UNUSED(uint32_t fetchdat))
     return 0;
 }
 
+static void
+set_segment_limit(x86seg *s, uint8_t segdat3)
+{
+    if ((s->access & 0x18) != 0x10 || !(s->access & (1 << 2))) /*expand-down*/
+    {
+        s->limit_high = s->limit;
+        s->limit_low  = 0;
+    } else {
+        s->limit_high = (segdat3 & 0x40) ? 0xffffffff : 0xffff;
+        s->limit_low  = s->limit + 1;
+    }
+}
+
+static void
+loadall_load_segment(uint32_t addr, x86seg *s)
+{
+    uint32_t segdat2 = readmemw(0, addr) |
+                       (readmemw(0, addr + 2) << 16);
+    s->base          = segdat2 & 0x00ffffff;
+    s->access        = 0x00;
+    s->ar_high       = segdat2 >> 24;
+    s->limit         = readmemw(0, addr + 4);
+
+    set_segment_limit(s, 0x00);
+
+    if (s == &cpu_state.seg_ds) {
+        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    }
+    if (s == &cpu_state.seg_ss) {
+        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+    }
+}
+
 static int
 opLOADALL(UNUSED(uint32_t fetchdat))
 {
@@ -912,56 +951,21 @@ opLOADALL(UNUSED(uint32_t fetchdat))
     DX                      = readmemw(0, 0x830);
     CX                      = readmemw(0, 0x832);
     AX                      = readmemw(0, 0x834);
-    es                      = readmemw(0, 0x836) | (readmemb(0, 0x838) << 16);
-    cpu_state.seg_es.access = readmemb(0, 0x839);
-    cpu_state.seg_es.limit  = readmemw(0, 0x83A);
-    cs                      = readmemw(0, 0x83C) | (readmemb(0, 0x83E) << 16);
-    cpu_state.seg_cs.access = readmemb(0, 0x83F);
-    cpu_state.seg_cs.limit  = readmemw(0, 0x840);
-    ss                      = readmemw(0, 0x842) | (readmemb(0, 0x844) << 16);
-    cpu_state.seg_ss.access = readmemb(0, 0x845);
-    cpu_state.seg_ss.limit  = readmemw(0, 0x846);
-    if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 && cpu_state.seg_ss.limit_high == 0xffffffff)
-        cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-    else
-        cpu_cur_status |= CPU_STATUS_NOTFLATSS;
-    ds                      = readmemw(0, 0x848) | (readmemb(0, 0x84A) << 16);
-    cpu_state.seg_ds.access = readmemb(0, 0x84B);
-    cpu_state.seg_ds.limit  = readmemw(0, 0x84C);
-    if (cpu_state.seg_ds.base == 0 && cpu_state.seg_ds.limit_low == 0 && cpu_state.seg_ds.limit_high == 0xffffffff)
-        cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
-    else
-        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
-    gdt.base   = readmemw(0, 0x84E) | (readmemb(0, 0x850) << 16);
-    gdt.limit  = readmemw(0, 0x852);
-    ldt.base   = readmemw(0, 0x854) | (readmemb(0, 0x856) << 16);
-    ldt.access = readmemb(0, 0x857);
-    ldt.limit  = readmemw(0, 0x858);
-    idt.base   = readmemw(0, 0x85A) | (readmemb(0, 0x85C) << 16);
-    idt.limit  = readmemw(0, 0x85E);
-    tr.base    = readmemw(0, 0x860) | (readmemb(0, 0x862) << 16);
-    tr.access  = readmemb(0, 0x863);
-    tr.limit   = readmemw(0, 0x864);
+    loadall_load_segment(0x836, &cpu_state.seg_es);
+    loadall_load_segment(0x83c, &cpu_state.seg_cs);
+    loadall_load_segment(0x842, &cpu_state.seg_ss);
+    loadall_load_segment(0x848, &cpu_state.seg_ds);
+    loadall_load_segment(0x84e, &gdt);
+    loadall_load_segment(0x854, &ldt);
+    loadall_load_segment(0x85a, &idt);
+    loadall_load_segment(0x860, &tr);
     CLOCK_CYCLES(195);
     PREFETCH_RUN(195, 1, -1, 51, 0, 0, 0, 0);
     return 0;
 }
 
 static void
-set_segment_limit(x86seg *s, uint8_t segdat3)
-{
-    if ((s->access & 0x18) != 0x10 || !(s->access & (1 << 2))) /*expand-down*/
-    {
-        s->limit_high = s->limit;
-        s->limit_low  = 0;
-    } else {
-        s->limit_high = (segdat3 & 0x40) ? 0xffffffff : 0xffff;
-        s->limit_low  = s->limit + 1;
-    }
-}
-
-static void
-loadall_load_segment(uint32_t addr, x86seg *s)
+loadall386_load_segment(uint32_t addr, x86seg *s)
 {
     uint32_t attrib  = readmeml(0, addr);
     uint32_t segdat3 = (attrib >> 16) & 0xff;
@@ -1026,16 +1030,16 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
     CS           = readmemw(0, la_addr + 0x4C);
     ES           = readmemw(0, la_addr + 0x50);
 
-    loadall_load_segment(la_addr + 0x54, &tr);
-    loadall_load_segment(la_addr + 0x60, &idt);
-    loadall_load_segment(la_addr + 0x6c, &gdt);
-    loadall_load_segment(la_addr + 0x78, &ldt);
-    loadall_load_segment(la_addr + 0x84, &cpu_state.seg_gs);
-    loadall_load_segment(la_addr + 0x90, &cpu_state.seg_fs);
-    loadall_load_segment(la_addr + 0x9c, &cpu_state.seg_ds);
-    loadall_load_segment(la_addr + 0xa8, &cpu_state.seg_ss);
-    loadall_load_segment(la_addr + 0xb4, &cpu_state.seg_cs);
-    loadall_load_segment(la_addr + 0xc0, &cpu_state.seg_es);
+    loadall386_load_segment(la_addr + 0x54, &tr);
+    loadall386_load_segment(la_addr + 0x60, &idt);
+    loadall386_load_segment(la_addr + 0x6c, &gdt);
+    loadall386_load_segment(la_addr + 0x78, &ldt);
+    loadall386_load_segment(la_addr + 0x84, &cpu_state.seg_gs);
+    loadall386_load_segment(la_addr + 0x90, &cpu_state.seg_fs);
+    loadall386_load_segment(la_addr + 0x9c, &cpu_state.seg_ds);
+    loadall386_load_segment(la_addr + 0xa8, &cpu_state.seg_ss);
+    loadall386_load_segment(la_addr + 0xb4, &cpu_state.seg_cs);
+    loadall386_load_segment(la_addr + 0xc0, &cpu_state.seg_es);
 
     if (CPL == 3 && oldcpl != 3)
         flushmmucache_nopc();

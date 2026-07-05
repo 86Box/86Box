@@ -58,7 +58,7 @@ if(VCPKG_TOOLCHAIN)
         # `-static-md` triplet, use static linking with dynamic CRT
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD ON)
-    elseif()
+    else()
         # Regular triplet, use dynamic linking
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD OFF)
