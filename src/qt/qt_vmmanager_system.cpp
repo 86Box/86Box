@@ -170,7 +170,6 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
             root_cfg = QString("%1%2").arg(search_directory, config_file_name);
         else
             root_cfg = QString("%1/%2").arg(search_directory, config_file_name);
-        printf("\"%s\", \"%s\"\n", filename.toUtf8().data(), root_cfg.toUtf8().data());
         if (filename.compare(root_cfg, Qt::CaseInsensitive) != 0)
             matches.append(filename);
     }
