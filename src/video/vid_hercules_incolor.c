@@ -196,6 +196,14 @@ recalc_timings(incolor_t *dev)
     _dispontime *= HERCCONST;
     _dispofftime *= HERCCONST;
 
+    if (dev->ctrl & 0x02) {
+        _dispontime *= 16;
+        _dispofftime *= 16;
+    } else {
+        _dispontime *= 9;
+        _dispofftime *= 9;
+    }
+
     dev->dispontime  = (uint64_t) (int64_t) (_dispontime);
     dev->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
