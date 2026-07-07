@@ -188,6 +188,10 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
     uint8_t  jm;
     uint8_t  valid;
     uint8_t  phys_reg;
+    /* Reserved-area hijack: preserve exact ismmx/tag across the round trip (see below). */
+    int      have_exact  = 0;
+    uint8_t  exact_tag[8];
+    uint8_t  exact_ismmx = 0;
     /* Exp_all_1 Exp_all_0 Frac_all_0 J M FTW_Valid  |  Ent
        ----------------------------------------------+------ */
     uint8_t ftw_table_idx;
@@ -323,12 +327,27 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
                 mmx_tags++;
         }
 
+        /* Reserved-area hijack: if our FXSAVE stashed the exact ismmx/tag state in the
+           PII-unused reserved bytes, use them verbatim instead of the guessy
+           mmx_tags heuristic. This is a hack, not a fix (it writes emulator state
+           into a hardware-defined image), but it dramatically cuts the residual
+           MMX-mode misclassification until the proper register-model refactor is
+           implemented. */
+        if (readmeml(easeg, old_eaaddr + 464) == 0x54474553UL) {
+            have_exact = 1;
+            for (i = 0; i <= 7; i++)
+                exact_tag[i] = readmemb(easeg, old_eaaddr + 468 + i);
+            exact_ismmx = readmemb(easeg, old_eaaddr + 476);
+        }
+
         cpu_state.ismmx = 0;
         /* Determine, whether or not the saved state is x87 or MMX based on a heuristic,
            because we do not keep the internal state in 64-bit precision.
 
            TODO: Is there no way to unify the whole lot? */
-        if ((mmx_tags == 8) && !cpu_state.TOP)
+        if (have_exact)
+            cpu_state.ismmx = exact_ismmx;
+        else if ((mmx_tags == 8) && !cpu_state.TOP)
             cpu_state.ismmx = 1;
 
         x87_settag(rec_ftw);
@@ -343,6 +362,12 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
                 cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
                 x87_ld_frstor(i);
             }
+        }
+
+        /* Reserved-area hijack: apply the exact tag array after the loaders. */
+        if (have_exact) {
+            for (i = 0; i <= 7; i++)
+                cpu_state.tag[i] = exact_tag[i];
         }
 
         CLOCK_CYCLES(1);
@@ -395,6 +420,12 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
                 x87_st_fsave(i);
             }
         }
+
+        /* Reserved-area hijack: stash exact ismmx/tag in the PII-unused reserved tail. */
+        writememl(easeg, old_eaaddr + 464, 0x54474553UL);
+        for (i = 0; i <= 7; i++)
+            writememb(easeg, old_eaaddr + 468 + i, cpu_state.tag[i]);
+        writememb(easeg, old_eaaddr + 476, cpu_state.ismmx);
 
         cpu_state.eaaddr = old_eaaddr;
 
