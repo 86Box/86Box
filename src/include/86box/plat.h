@@ -55,6 +55,7 @@ enum {
 
 struct plat_device_vol_locked_t
 {
+    uintptr_t handle_disk;
     uintptr_t vol_nums;
     uintptr_t handles_vols[1];
 };
