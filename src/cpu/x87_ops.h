@@ -158,7 +158,12 @@ x87_pop(void)
 #ifdef USE_NEW_DYNAREC
     cpu_state.TOP++;
 #else
-    cpu_state.tag[cpu_state.TOP & 7] |= TAG_UINT64;
+    /* Old-dynarec "empty" is packed tag 3 (see FINIT's 0x0303... and the dynarec's
+       FP_POP, which writes 3). The previous `|= TAG_UINT64` left the vacated slot
+       tagged as a live 64-bit integer (x87_gettag maps TAG_UINT64 -> non-empty 2),
+       diverging from the dynarec and causing FXSAVE to serialize a stale MM.q with
+       the 0x5555 sentinel. Mark it empty like FP_POP/FINIT do. */
+    cpu_state.tag[cpu_state.TOP & 7] = 3;
     cpu_state.TOP = (cpu_state.TOP + 1) & 7;
 #endif
     return t;
