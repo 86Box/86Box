@@ -158,6 +158,7 @@ typedef struct acpi_t {
     int         irq_pin;
     int         irq_line;
     int         mirq_is_level;
+    uint64_t    pmtmr_latch;
     pc_timer_t  timer;
     pc_timer_t  resume_timer;
     pc_timer_t  pwrbtn_timer;
