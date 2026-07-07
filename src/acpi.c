@@ -306,7 +306,7 @@ acpi_reg_read_common_regs(UNUSED(int size), uint16_t addr, void *priv)
         case 0x0a:
         case 0x0b:
             /* PMTMR - Power Management Timer Register (IO) */
-            ret = (acpi_timer_get(dev) >> shift32) & 0xff;
+            ret = (dev->pmtmr_latch >> shift32) & 0xff;
 #ifdef USE_DYNAREC
             if (cpu_use_dynarec)
                 update_tsc();
@@ -1982,10 +1982,36 @@ acpi_aux_reg_write_common(int size, uint16_t addr, uint8_t val, void *priv)
         acpi_aux_reg_write_smc(size, addr, val, priv);
 }
 
+static void
+acpi_latch_pmtmr(acpi_t *dev)
+{
+    uint32_t new_latch = acpi_timer_get(dev);
+
+    if (new_latch == dev->pmtmr_latch) {
+        /* Windows Vista and 7 division by zero mitigation measure. */
+        if (dev->regs.timer32)
+            dev->pmtmr_latch = (new_latch + 1) & 0xffffffff;
+        else
+            dev->pmtmr_latch = (new_latch + 1) & 0x00ffffff;
+    } else
+        dev->pmtmr_latch = new_latch;
+
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+}
+
 static uint32_t
 acpi_reg_readl(uint16_t addr, void *priv)
 {
-    uint32_t ret = 0x00000000;
+    acpi_t *       dev = (acpi_t *) priv;
+    const uint16_t reg = addr - dev->io_base;
+
+    uint32_t       ret = 0x00000000;
+
+    if ((reg >= 0x0008) && (reg <= 0x000b))
+        acpi_latch_pmtmr(dev);
 
     ret = acpi_reg_read_common(4, addr, priv);
     ret |= (acpi_reg_read_common(4, addr + 1, priv) << 8);
@@ -2000,7 +2026,13 @@ acpi_reg_readl(uint16_t addr, void *priv)
 static uint16_t
 acpi_reg_readw(uint16_t addr, void *priv)
 {
-    uint16_t ret = 0x0000;
+    acpi_t *       dev = (acpi_t *) priv;
+    const uint16_t reg = addr - dev->io_base;
+
+    uint16_t       ret = 0x0000;
+
+    if ((reg >= 0x0008) && (reg <= 0x000b))
+        acpi_latch_pmtmr(dev);
 
     ret = acpi_reg_read_common(2, addr, priv);
     ret |= (acpi_reg_read_common(2, addr + 1, priv) << 8);
@@ -2013,7 +2045,13 @@ acpi_reg_readw(uint16_t addr, void *priv)
 static uint8_t
 acpi_reg_read(uint16_t addr, void *priv)
 {
-    uint8_t ret = 0x00;
+    acpi_t *       dev = (acpi_t *) priv;
+    const uint16_t reg = addr - dev->io_base;
+
+    uint8_t        ret = 0x00;
+
+    if ((reg >= 0x0008) && (reg <= 0x000b))
+        acpi_latch_pmtmr(dev);
 
     ret = acpi_reg_read_common(1, addr, priv);
 
