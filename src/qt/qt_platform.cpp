@@ -289,10 +289,17 @@ void
 plat_unlock_volumes(plat_device_vol_locked_t* vol)
 {
 #ifdef _WIN32
+    DWORD bytesRet = 0;
     for (uintptr_t i = 0; i < vol->vol_nums; i++) {
         if (vol->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
-            DWORD bytesRet = 0;
+            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_DISMOUNT_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr);
             DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_UNLOCK_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr);
+        }
+    }
+    DeviceIoControl((HANDLE)vol->handle_disk, IOCTL_DISK_UPDATE_PROPERTIES, 0, 0, 0, 0, &bytesRet, nullptr);
+    (void)GetLogicalDrives();
+    for (uintptr_t i = 0; i < vol->vol_nums; i++) {
+        if (vol->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
             CloseHandle((HANDLE)vol->handles_vols[i]);
         }
     }
@@ -324,6 +331,7 @@ plat_lock_volumes(FILE* file)
         //layout_info = (DRIVE_LAYOUT_INFORMATION_EX*)realloc(layout_info, sizeof(PARTITION_INFORMATION_EX) * (partCount + 1) + sizeof(DRIVE_LAYOUT_INFORMATION_EX));
         plat_device_vol_locked_t* locked_list = (plat_device_vol_locked_t*)calloc(1, sizeof(plat_device_vol_locked_t) + layout_info->PartitionCount * sizeof(uintptr_t));
         if (locked_list) {
+            locked_list->handle_disk = (uintptr_t)filehandle;
             locked_list->vol_nums = layout_info->PartitionCount;
             for (DWORD i = 0; i < layout_info->PartitionCount; i++) {
                 char path_name[256] = { 0 };
