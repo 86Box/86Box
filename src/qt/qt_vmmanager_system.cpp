@@ -750,7 +750,10 @@ VMManagerSystem::setupVars()
                 cdrom_speed = "8";
 
             if ((cdrom_bus != "NONE") && (cdrom_type != -1)) {
-                cdrom_speed = QString("%1x ").arg(cdrom_speed);
+                if (cdrom_speed.toInt() > 72)
+                    cdrom_speed = QString("Turbo ");
+                else
+                    cdrom_speed = QString("%1x ").arg(cdrom_speed);
                 cdrom_bus   = QString(" (%1)").arg(cdrom_bus);
                 cdromDevices.append(QString("%1%2 %3 %4%5").arg(cdrom_speed, cdrom_drive_types[cdrom_type].vendor, cdrom_drive_types[cdrom_type].model, cdrom_drive_types[cdrom_type].revision, cdrom_bus));
             }
