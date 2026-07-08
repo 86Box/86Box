@@ -491,7 +491,7 @@ main_thread_fn()
                 frames     = 0;
             }
 
-            if (!cpu_uncapped && !fast_forward && debt_ns >= quantum_ns)
+            if (!fast_forward && debt_ns >= quantum_ns)
                 debt_ns -= quantum_ns;
             else
                 debt_ns = 0;
@@ -508,8 +508,7 @@ main_thread_fn()
             if (dopause)
                 ack_pause();
 
-            if (!cpu_uncapped)
-                plat_delay_ms(1);
+            plat_delay_ms(1);
         }
     }
 
