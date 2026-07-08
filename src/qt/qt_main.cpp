@@ -508,7 +508,8 @@ main_thread_fn()
             if (dopause)
                 ack_pause();
 
-            plat_delay_ms(1);
+            if (!cpu_uncapped)
+                plat_delay_ms(1);
         }
     }
 
