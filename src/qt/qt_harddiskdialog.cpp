@@ -17,6 +17,12 @@
 #include "qt_harddiskdialog.hpp"
 #include "ui_qt_harddiskdialog.h"
 
+#include "qt_physdiskdialog.hpp"
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 extern "C" {
 #ifdef __unix__
 #    include <unistd.h>
@@ -107,6 +113,33 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
         ui->comboBoxFormat->hide();
         ui->labelFormat->hide();
 
+#ifndef _WIN32
+        ui->pushButtonPhysDisk->setHidden(true);
+        ui->labelElevated->setHidden(true);
+#else
+        bool elevated = false;
+        HANDLE hToken = INVALID_HANDLE_VALUE;
+        
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+            TOKEN_ELEVATION elevation;
+            DWORD size_data;
+
+            if (GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &size_data)) {
+                elevated = elevation.TokenIsElevated;
+            }
+        }
+
+        ui->pushButtonPhysDisk->setEnabled(elevated);
+        ui->labelElevated->setHidden(elevated);
+#endif
+
+        connect(ui->pushButtonPhysDisk, &QPushButton::clicked, this, [this]()
+        {
+            auto dialog = new PhysicalHddDialog(this);
+            dialog->setAttribute(Qt::WA_DeleteOnClose, true);
+            dialog->exec();
+        });
+
         connect(ui->fileField, &FileField::fileSelected, this, &HarddiskDialog::onExistingFileSelected);
     } else {
         ui->fileField->setFilter(filters.join(";;"));
@@ -129,6 +162,9 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
         // so the currentIndexChanged signal can do what is needed
         ui->comboBoxFormat->setCurrentIndex(DEFAULT_DISK_FORMAT);
         ui->fileField->setselectedFilter(filters.value(DEFAULT_DISK_FORMAT));
+
+        ui->pushButtonPhysDisk->setHidden(true);
+        ui->labelElevated->setHidden(true);
     }
 }
 
