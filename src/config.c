@@ -326,6 +326,8 @@ load_general(void)
 
     force_10ms = !!ini_section_get_int(cat, "force_10ms", 0);
 
+    cpu_uncapped = !!ini_section_get_int(cat, "cpu_uncapped", 0);
+
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
 
@@ -2933,6 +2935,10 @@ save_general(void)
     ini_section_set_int(cat, "vid_resize", vid_resize);
     if (vid_resize == 0)
         ini_section_delete_var(cat, "vid_resize");
+
+    ini_section_set_int(cat, "cpu_uncapped", cpu_uncapped);
+    if (!cpu_uncapped)
+        ini_section_delete_var(cat, "cpu_uncapped");
 
     va_name = plat_vidapi_name(vid_api);
     if (!strcmp(va_name, "default"))
