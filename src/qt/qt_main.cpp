@@ -491,7 +491,7 @@ main_thread_fn()
                 frames     = 0;
             }
 
-            if (!fast_forward && debt_ns >= quantum_ns)
+            if (!cpu_uncapped && !fast_forward && debt_ns >= quantum_ns)
                 debt_ns -= quantum_ns;
             else
                 debt_ns = 0;
