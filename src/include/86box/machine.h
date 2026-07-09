@@ -972,6 +972,7 @@ extern int             machine_at_zappa_init(const machine_t *);
 extern const device_t  powermatev_device;
 #endif
 extern int             machine_at_powermatev_init(const machine_t *);
+extern int             machine_at_sjp54csr_init(const machine_t *);
 extern int             machine_at_hawk_init(const machine_t *);
 
 /* OPTi 597 */
@@ -1046,6 +1047,7 @@ extern int             machine_at_mb500n_init(const machine_t *);
 extern const device_t  fmb_device;
 #endif
 extern int             machine_at_fmb_init(const machine_t *);
+extern int             machine_at_sjptm_init(const machine_t *);
 
 /* i430HX */
 extern int             machine_at_acerv35n_init(const machine_t *);

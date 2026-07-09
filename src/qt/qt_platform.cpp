@@ -777,12 +777,6 @@ plat_language_code(char *langcode)
     return Preferences::languageCodeToId(QString(langcode));
 }
 
-uint64_t
-plat_get_ns(void)
-{
-    return (uint64_t)elapsed_timer.nsecsElapsed();
-}
-
 /* Converts the numeric language ID to a language code string */
 void
 plat_language_code_r(int id, char *outbuf, int len)
