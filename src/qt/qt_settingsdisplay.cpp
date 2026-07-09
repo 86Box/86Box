@@ -117,6 +117,13 @@ SettingsDisplay::changed()
 
     has_changed  |= strcmp(monitor_edid_path, ui->lineEditCustomEDID->fileName().toUtf8().data());
 
+    for (uint8_t i = 0; i < GFXCARD_MAX; i++)
+        has_changed  |= gfxcard_cfg_changed[i];
+    has_changed  |= voodoo_cfg_changed;
+    has_changed  |= ibm8514_cfg_changed;
+    has_changed  |= xga_cfg_changed;
+    has_changed  |= ps55da2_cfg_changed;
+
     soft_changed |= (video_grayscale                != ui->comboBoxScreenType->currentData().toInt());
     soft_changed |= (video_graytype                 != ui->comboBoxConversionType->currentData().toInt());
 

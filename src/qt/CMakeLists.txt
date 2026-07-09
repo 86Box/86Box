@@ -282,6 +282,10 @@ add_library(ui STATIC
     qt_cgasettingsdialog.hpp
     qt_cgasettingsdialog.cpp
     qt_cgasettingsdialog.ui
+
+    qt_physdiskdialog.cpp
+    qt_physdiskdialog.hpp
+    qt_physdiskdialog.ui
 )
 
 # Build the Qt ImGui backend separately so AUTOMOC skips it.

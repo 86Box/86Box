@@ -738,7 +738,8 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 if ((svga->crtcreg & 0x3f) < 0xE || (svga->crtcreg & 0x3f) > 0x10) {
                     if (((svga->crtcreg & 0x3f) == 0xc) || ((svga->crtcreg & 0x3f) == 0xd)) {
                         svga->fullchange = 3;
-                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch      = (((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
+                                                     (svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -770,8 +771,8 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 if (!(mystique->type >= MGA_2164W))
                     svga->rowoffset <<= 1;
 
-                svga->memaddr_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
-                                      (svga->crtc[0xc] << 8) | svga->crtc[0xd];
+                svga->memaddr_latch      = (((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
+                                             (svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                 if ((mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8))) {
                     svga->rowoffset <<= 1;
                     svga->memaddr_latch <<= 1;
