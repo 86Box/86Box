@@ -314,27 +314,6 @@ plat_get_ticks_common(void)
     return elapsed_microseconds;
 }
 
-uint64_t
-plat_get_ns(void)
-{
-    static int first_use = 1;
-    static uint64_t starting_time;
-    static uint64_t frequency;
-
-    uint64_t ending_time;
-    uint64_t elapsed_nanoseconds;
-
-    if (first_use) {
-        frequency     = SDL_GetPerformanceFrequency();
-        starting_time = SDL_GetPerformanceCounter();
-        first_use     = 0;
-    }
-    ending_time          = SDL_GetPerformanceCounter();
-    elapsed_nanoseconds = ((ending_time - starting_time) * 1000000000ull) / frequency;
-
-    return elapsed_nanoseconds;
-}
-
 uint32_t
 plat_get_ticks(void)
 {

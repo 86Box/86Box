@@ -56,7 +56,6 @@ if(DYNAREC)
         codegen_timing_p6.c
         codegen_timing_winchip.c
         codegen_timing_winchip2.c
-        codegen_timing_uncapped.c
     )
 endif()
 

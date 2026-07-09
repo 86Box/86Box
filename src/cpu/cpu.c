@@ -1827,11 +1827,6 @@ cpu_set(void)
             fatal("cpu_set : unknown CPU type %" PRIu64 "\n", cpu_s->cpu_type);
     }
 
-#ifdef USE_DYNAREC
-    if (cpu_uncapped)
-        codegen_timing_set(&codegen_timing_uncapped);
-#endif
-
     switch (fpu_type) {
         case FPU_NONE:
             break;
