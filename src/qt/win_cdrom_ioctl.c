@@ -381,25 +381,6 @@ ioctl_get_raw_track_info(const void *local, int *num, uint8_t *rti)
 }
 
 static int
-ioctl_is_track_pre(const void *local, const uint32_t sector)
-{
-    const ioctl_t          *ioctl   = (const ioctl_t *) local;
-    const raw_track_info_t *rti     = (const raw_track_info_t *) ioctl->cur_rti;
-    int                     ret     = 0;
-
-    if (ioctl->has_audio && !ioctl->is_dvd) {
-        const int track   = ioctl_get_track(ioctl, sector);
-        const int control = rti[track].adr_ctl;
-
-        ret     = control & 0x01;
-
-        ioctl_log(ioctl->log, "ioctl_is_track_pre(%08X, %02X): %i\n", sector, track, ret);
-    }
-
-    return ret;
-}
-
-static int
 ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
 {
     typedef struct SCSI_PASS_THROUGH_DIRECT_BUF {
@@ -808,7 +789,6 @@ ioctl_load(const void *local)
 static const cdrom_ops_t ioctl_ops = {
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
-    ioctl_is_track_pre,
     ioctl_read_sector,
     ioctl_get_track_type,
     ioctl_get_last_block,
