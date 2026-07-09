@@ -14486,7 +14486,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "TriGem GEM4570", "" }
+        .aliases                  = { "TriGem GEM4570", "TriGem TG2304", "" }
     },
 
     /* OPTi 596/597 */
