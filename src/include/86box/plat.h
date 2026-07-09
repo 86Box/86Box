@@ -148,7 +148,6 @@ extern int      plat_file_check(const char *path);
 extern int      plat_dir_create(char *path);
 extern void    *plat_mmap(size_t size, uint8_t executable);
 extern void     plat_munmap(void *ptr, size_t size);
-extern uint64_t plat_get_ns(void);
 extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
 extern void     plat_delay_ms(uint32_t count);
