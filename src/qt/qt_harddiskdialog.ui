@@ -32,6 +32,46 @@
    <string>Dialog</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
+   <item row="0" column="0">
+    <widget class="QLabel" name="labelFileName">
+     <property name="text">
+      <string>File name:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="0" column="1" colspan="5">
+    <widget class="FileField" name="fileField" native="true"/>
+   </item>
+   <item row="1" column="0">
+    <widget class="QLabel" name="labelCylinders">
+     <property name="text">
+      <string>Cylinders:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="1">
+    <widget class="QLineEdit" name="lineEditCylinders">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>64</width>
+       <height>16777215</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item row="1" column="2">
+    <widget class="QLabel" name="labelHeads">
+     <property name="text">
+      <string>Heads:</string>
+     </property>
+    </widget>
+   </item>
    <item row="1" column="3">
     <widget class="QLineEdit" name="lineEditHeads">
      <property name="sizePolicy">
@@ -58,50 +98,6 @@
      </property>
     </widget>
    </item>
-   <item row="3" column="4">
-    <widget class="QLabel" name="labelChannel">
-     <property name="text">
-      <string>Channel:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="0" column="0">
-    <widget class="QLabel" name="labelFileName">
-     <property name="text">
-      <string>File name:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="1" colspan="3">
-    <widget class="QComboBox" name="comboBoxBus">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-    </widget>
-   </item>
-   <item row="9" column="3" colspan="3">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
-   </item>
-   <item row="8" column="0" colspan="6">
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>20</width>
-       <height>20</height>
-      </size>
-     </property>
-    </spacer>
-   </item>
    <item row="1" column="5">
     <widget class="QLineEdit" name="lineEditSectors">
      <property name="sizePolicy">
@@ -121,54 +117,10 @@
      </property>
     </widget>
    </item>
-   <item row="6" column="0">
-    <widget class="QLabel" name="labelBlockSize">
+   <item row="2" column="0">
+    <widget class="QLabel" name="labelSize">
      <property name="text">
-      <string>Block Size:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="9" column="0" colspan="2">
-    <widget class="QPushButton" name="pushButtonPhysDisk">
-     <property name="enabled">
-      <bool>false</bool>
-     </property>
-     <property name="text">
-      <string>Physical disks...</string>
-     </property>
-    </widget>
-   </item>
-   <item row="1" column="0">
-    <widget class="QLabel" name="labelCylinders">
-     <property name="text">
-      <string>Cylinders:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="3" column="0">
-    <widget class="QLabel" name="labelBus">
-     <property name="text">
-      <string>Bus:</string>
-     </property>
-    </widget>
-   </item>
-   <item row="7" column="0" colspan="6">
-    <widget class="QProgressBar" name="progressBar">
-     <property name="visible">
-      <bool>false</bool>
-     </property>
-     <property name="value">
-      <number>0</number>
-     </property>
-     <property name="textVisible">
-      <bool>true</bool>
-     </property>
-    </widget>
-   </item>
-   <item row="4" column="0">
-    <widget class="QLabel" name="labelSpeed">
-     <property name="text">
-      <string>Model:</string>
+      <string>Size (MB):</string>
      </property>
     </widget>
    </item>
@@ -188,6 +140,41 @@
      </property>
     </widget>
    </item>
+   <item row="2" column="2">
+    <widget class="QLabel" name="labelType">
+     <property name="text">
+      <string>Type:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="2" column="3" colspan="3">
+    <widget class="QComboBox" name="comboBoxType">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="0">
+    <widget class="QLabel" name="labelBus">
+     <property name="text">
+      <string>Bus:</string>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="1" colspan="3">
+    <widget class="QComboBox" name="comboBoxBus">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
+   </item>
+   <item row="3" column="4">
+    <widget class="QLabel" name="labelChannel">
+     <property name="text">
+      <string>Channel:</string>
+     </property>
+    </widget>
+   </item>
    <item row="3" column="5">
     <widget class="QComboBox" name="comboBoxChannel">
      <property name="maxVisibleItems">
@@ -195,45 +182,15 @@
      </property>
     </widget>
    </item>
-   <item row="5" column="1" colspan="5">
-    <widget class="QComboBox" name="comboBoxFormat">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="0">
-    <widget class="QLabel" name="labelSize">
+   <item row="4" column="0">
+    <widget class="QLabel" name="labelSpeed">
      <property name="text">
-      <string>Size (MB):</string>
+      <string>Model:</string>
      </property>
     </widget>
    </item>
-   <item row="1" column="1">
-    <widget class="QLineEdit" name="lineEditCylinders">
-     <property name="sizePolicy">
-      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-       <horstretch>0</horstretch>
-       <verstretch>0</verstretch>
-      </sizepolicy>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>64</width>
-       <height>16777215</height>
-      </size>
-     </property>
-    </widget>
-   </item>
-   <item row="6" column="1" colspan="5">
-    <widget class="QComboBox" name="comboBoxBlockSize">
-     <property name="maxVisibleItems">
-      <number>30</number>
-     </property>
-    </widget>
-   </item>
-   <item row="2" column="3" colspan="3">
-    <widget class="QComboBox" name="comboBoxType">
+   <item row="4" column="1" colspan="5">
+    <widget class="QComboBox" name="comboBoxSpeed">
      <property name="maxVisibleItems">
       <number>30</number>
      </property>
@@ -246,34 +203,60 @@
      </property>
     </widget>
    </item>
-   <item row="4" column="1" colspan="5">
-    <widget class="QComboBox" name="comboBoxSpeed">
+   <item row="5" column="1" colspan="5">
+    <widget class="QComboBox" name="comboBoxFormat">
      <property name="maxVisibleItems">
       <number>30</number>
      </property>
     </widget>
    </item>
-   <item row="1" column="2">
-    <widget class="QLabel" name="labelHeads">
+   <item row="6" column="0">
+    <widget class="QLabel" name="labelBlockSize">
      <property name="text">
-      <string>Heads:</string>
+      <string>Block Size:</string>
      </property>
     </widget>
    </item>
-   <item row="0" column="1" colspan="5">
-    <widget class="FileField" name="fileField" native="true"/>
-   </item>
-   <item row="2" column="2">
-    <widget class="QLabel" name="labelType">
-     <property name="text">
-      <string>Type:</string>
+   <item row="6" column="1" colspan="5">
+    <widget class="QComboBox" name="comboBoxBlockSize">
+     <property name="maxVisibleItems">
+      <number>30</number>
      </property>
     </widget>
    </item>
-   <item row="10" column="0" colspan="2">
-    <widget class="QLabel" name="labelElevated">
-     <property name="text">
-      <string>86Box is not elevated.</string>
+   <item row="7" column="0" colspan="6">
+    <widget class="QProgressBar" name="progressBar">
+     <property name="visible">
+      <bool>false</bool>
+     </property>
+     <property name="value">
+      <number>0</number>
+     </property>
+     <property name="textVisible">
+      <bool>true</bool>
+     </property>
+    </widget>
+   </item>
+   <item row="8" column="0" colspan="6">
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>20</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item row="9" column="0" colspan="6">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
      </property>
     </widget>
    </item>
