@@ -402,7 +402,6 @@ typedef struct cdrom_ops_t {
                                const int end, track_info_t *ti);
     void     (*get_raw_track_info)(const void *local, int *num,
                                    uint8_t *rti);
-    int      (*is_track_pre)(const void *local, const uint32_t sector);
     int      (*read_sector)(const void *local, uint8_t *buffer,
                             const uint32_t sector);
     uint8_t  (*get_track_type)(const void *local, const uint32_t sector);

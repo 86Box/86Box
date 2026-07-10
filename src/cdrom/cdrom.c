@@ -1475,15 +1475,6 @@ cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type)
     dev->cached_sector = -1;
 }
 
-int
-cdrom_is_pre(const cdrom_t *dev, const uint32_t lba)
-{
-    if (dev->ops && dev->ops->is_track_pre)
-        return dev->ops->is_track_pre(dev->local, lba);
-
-    return 0;
-}
-
 #include <86box/filters.h>
 
 static void
