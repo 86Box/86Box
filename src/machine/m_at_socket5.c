@@ -904,7 +904,7 @@ machine_at_sjp54csr_init(const machine_t *model)
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add_params(&um8669f_device, (void *) 0);
+    device_add_params(&um866x_device, (void *) UM8663AF);
     device_add(&intel_flash_bxt_device);
 
     return ret;
