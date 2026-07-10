@@ -305,9 +305,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     start_track_info[1].pf = 0x00;
 
                     start_track_info[2].tno = 0;                        
-                    start_track_info[2].pm = (cdrom_lba_to_msf_accurate(end_lba) >> 16) & 0xFF;
-                    start_track_info[2].ps = (cdrom_lba_to_msf_accurate(end_lba) >> 8) & 0xFF;
-                    start_track_info[2].pf = cdrom_lba_to_msf_accurate(end_lba) & 0xFF;
+                    start_track_info[2].pm = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
+                    start_track_info[2].ps = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
+                    start_track_info[2].pf = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
                     start_track_info[2].m = 0;
                     start_track_info[2].s = 0;
                     start_track_info[2].f = 0;
@@ -394,9 +394,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[1].pf   = 0x00;
 
             start_track_info[2].tno  = 0;
-            start_track_info[2].pm   = (cdrom_lba_to_msf_accurate(end_lba) >> 16) & 0xFF;
-            start_track_info[2].ps   = (cdrom_lba_to_msf_accurate(end_lba) >> 8) & 0xFF;
-            start_track_info[2].pf   = cdrom_lba_to_msf_accurate(end_lba) & 0xFF;
+            start_track_info[2].pm   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
+            start_track_info[2].ps   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
+            start_track_info[2].pf   = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
             start_track_info[2].m    = 0;
             start_track_info[2].s    = 0;
             start_track_info[2].f    = 0;
