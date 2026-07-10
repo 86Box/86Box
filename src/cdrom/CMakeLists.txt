@@ -15,6 +15,8 @@
 #          Copyright 2024-2026 Jasmine Iwanek.
 #
 
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory(libaaruformat)
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SNDFILE REQUIRED IMPORTED_TARGET sndfile)
@@ -24,6 +26,7 @@ add_library(cdrom OBJECT
     cdrom_image.c
     cdrom_image_viso.c
     cdrom_mke.c
+    cdrom_aaru.c
 )
 if(NOT WIN32)
 	target_include_directories(86Box PRIVATE PkgConfig::SNDFILE)
@@ -42,3 +45,6 @@ if (WIN32)
     # MSYS2
     target_link_libraries(86Box -static ${SNDFILE_STATIC_LIBRARIES})
 endif()
+
+target_link_libraries(cdrom PUBLIC aaruformat)
+target_include_directories(cdrom PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")

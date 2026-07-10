@@ -1,0 +1,3 @@
+[submodule "src/cdrom/libaaruformat"]
+	path = src/cdrom/libaaruformat
+	url = ./src/cdrom/libaaruformat/
