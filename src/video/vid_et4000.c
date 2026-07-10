@@ -675,7 +675,7 @@ et4000_recalctimings(svga_t *svga)
 
     if (svga->getclock == NULL) {
         /* Assume it has the same timings as the ET3000AX. */
-        switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x24] << 1) & 4)) {
+        switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x34] << 1) & 4)) {
             case 0:
             case 1:
                 break;
