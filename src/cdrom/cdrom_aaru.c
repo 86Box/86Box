@@ -443,6 +443,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     last_track->pm               = 0x40;
                     last_track->ps               = 0x02;
                     last_track->pf               = 0x00;
+                    last_track->session          = cur_sess;
                     if (cur_sess == 1) {
                         last_track          = aaru_image_allocate_track(img);
                         last_track->adr_ctl = 0x54;
@@ -455,6 +456,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                         last_track->pm      = 0x5f;
                         last_track->ps      = 0x00;
                         last_track->pf      = 0x00;
+                        last_track->session          = cur_sess;
                     }
 
                     first_track_sess = (int64_t) LLONG_MAX;
