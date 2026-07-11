@@ -402,6 +402,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     start_track_info[2].adr_ctl = 0x10;
 
                     start_track_info[0].tno  = 0;
+                    start_track_info[0].session = cur_sess;
                     start_track_info[0].m    = 0;
                     start_track_info[0].s    = 0;
                     start_track_info[0].f    = 0;
@@ -411,6 +412,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     start_track_info[0].pf   = 0x00;
 
                     start_track_info[1].tno  = 0;
+                    start_track_info[1].session = cur_sess;
                     start_track_info[1].m    = 0;
                     start_track_info[1].s    = 0;
                     start_track_info[1].f    = 0;
@@ -420,6 +422,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     start_track_info[1].pf   = 0x00;
 
                     start_track_info[2].tno  = 0;
+                    start_track_info[2].session = cur_sess;
                     start_track_info[2].pm   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
                     start_track_info[2].ps   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
                     start_track_info[2].pf   = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
@@ -431,6 +434,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     raw_track_info_t *last_track = aaru_image_allocate_track(img);
                     last_track->adr_ctl          = 0x54;
                     last_track->point            = 0xB0;
+                    last_track->session          = cur_sess;
                     last_track->m                = (cdrom_lba_to_msf_accurate(img->track_entries[i].start - img->track_entries[i].pregap) >> 16) & 0xFF;
                     last_track->s                = (cdrom_lba_to_msf_accurate(img->track_entries[i].start - img->track_entries[i].pregap) >> 8) & 0xFF;
                     last_track->f                = cdrom_lba_to_msf_accurate(img->track_entries[i].start - img->track_entries[i].pregap) & 0xFF;
@@ -458,10 +462,12 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     end_lba          = (int64_t) LLONG_MIN;
 
                     // Generate new 0xA0/0xA1/0xA2 tracks.
+                    start_track_info = (raw_track_info_t *) (img->full_toc + img->full_toc_size);
+                    offset_lead = (uint8_t*)start_track_info - img->full_toc;
                     (void) aaru_image_allocate_track(img);
                     (void) aaru_image_allocate_track(img);
                     (void) aaru_image_allocate_track(img);
-                    start_track_info = (raw_track_info_t *) (img->full_toc + img->full_toc_size) - 3;
+                    start_track_info             = (raw_track_info_t *) (img->full_toc + offset_lead);
 
                     start_track_info[0].point = 0xA0;
                     start_track_info[1].point = 0xA1;
@@ -541,20 +547,6 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 last_track->pm               = 0x40;
                 last_track->ps               = 0x02;
                 last_track->pf               = 0x00;
-
-                if (cur_sess == 1) {
-                    last_track          = aaru_image_allocate_track(img);
-                    last_track->adr_ctl = 0x54;
-                    last_track->point   = 0xC0;
-                    last_track->m       = 0;
-                    last_track->s       = 0;
-                    last_track->f       = 0;
-                    last_track->tno     = 0;
-                    last_track->zero    = 0;
-                    last_track->pm      = 0x5f;
-                    last_track->ps      = 0x00;
-                    last_track->pf      = 0x00;
-                }
             }
 
             // We don't handle first and last session numbers in the backend for now
