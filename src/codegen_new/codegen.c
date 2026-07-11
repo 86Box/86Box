@@ -231,11 +231,17 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 }
                 break;
             case 1:
-                new_eaaddr = (uint32_t) (int8_t) ((fetchdat >> 16) & 0xff);
-                uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                    LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0_B, cs + (*op_pc) + 1);
+                    uop_MOVSX(ir, IREG_eaaddr, IREG_temp0_B);
+                    extra_bytes = 1;
+                } else {
+                    new_eaaddr = (uint32_t) (int8_t) ((fetchdat >> 16) & 0xff);
+                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    extra_bytes = 2;
+                }
                 uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 (*op_pc)++;
-                extra_bytes = 2;
                 break;
             case 2:
                 if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
@@ -298,9 +304,15 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 if (cpu_rm == 5 && !op_ssegs)
                     op_ea_seg = &cpu_state.seg_ss;
                 if (cpu_mod == 1) {
-                    uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
+                    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                        LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0_B, cs + (*op_pc) + 1);
+                        uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
+                        uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
+                    } else {
+                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
+                        extra_bytes = 1;
+                    }
                     (*op_pc)++;
-                    extra_bytes = 1;
                 } else {
                     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
                         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + (*op_pc) + 1);
