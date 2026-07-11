@@ -906,8 +906,8 @@ loadall_load_segment(uint32_t addr, x86seg *s)
     uint32_t segdat2 = readmemw(0, addr) |
                        (readmemw(0, addr + 2) << 16);
     s->base          = segdat2 & 0x00ffffff;
-    s->access        = 0x00;
-    s->ar_high       = segdat2 >> 24;
+    s->access        = segdat2 >> 24;
+    s->ar_high       = 0x00;
     s->limit         = readmemw(0, addr + 4);
 
     set_segment_limit(s, 0x00);

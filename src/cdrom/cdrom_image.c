@@ -2821,7 +2821,7 @@ image_read_sector(const void *local, uint8_t *buffer,
                 /* Construct the header. */
                 memset(buffer + 1, 0xff, 10);
                 buffer += 12;
-                FRAMES_TO_MSF(sector + 150, &m, &s, &f);
+                FRAMES_TO_MSF(lba + 150, &m, &s, &f);
                 /* These have to be BCD. */
                 buffer[0] = bin2bcd(m & 0xff);
                 buffer[1] = bin2bcd(s & 0xff);
