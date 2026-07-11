@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include "libaaruformat/include/aaruformat.h"
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/config.h>
@@ -3019,10 +3020,12 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     if ((strlen(dev->image_path) != 0) &&
         (strstr(dev->image_path, "ioctl://") == dev->image_path))
         dev->local = ioctl_open(dev, dev->image_path);
-    else {
+    else if (aaruf_identify(dev->image_path))
         dev->local = aaru_image_open(dev, dev->image_path);
+    else {
+        dev->local = image_open(dev, dev->image_path);
         if (!dev->local)
-            dev->local = image_open(dev, dev->image_path);
+            dev->local = aaru_image_open(dev, dev->image_path);
     }
 
     dev->cached_sector  = -1;
