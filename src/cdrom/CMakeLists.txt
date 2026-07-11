@@ -46,5 +46,5 @@ if (WIN32)
     target_link_libraries(86Box -static ${SNDFILE_STATIC_LIBRARIES})
 endif()
 
-target_link_libraries(cdrom PUBLIC aaruformat)
-target_include_directories(cdrom PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")
+target_link_libraries(cdrom SYSTEM PUBLIC aaruformat)
+target_include_directories(cdrom SYSTEM PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")
