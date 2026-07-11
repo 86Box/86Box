@@ -107,7 +107,7 @@ aaru_image_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
     *num = (ioctl->full_toc_size - 4) / 11;
     memcpy(rti, ioctl->full_toc + 4, *num * 11);
 
-    raw_track_info_t* raw_track_info = (raw_track_info_t*)rti;
+    raw_track_info_t *raw_track_info = (raw_track_info_t *) rti;
 #if 0
     for (int i = 0; i < *num; i++) {
         pclog("======================================\n");
@@ -144,6 +144,56 @@ aaru_image_get_track(const aaru_image_t *ioctl, const uint32_t sector)
     return track;
 }
 
+static void
+aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, uint8_t *form)
+{
+    uint8_t  buffer[1024];
+    uint32_t length = 0;
+    // Mode shall be determined by getting the type of the track.
+    // Form is determined by reading the sector metadata.
+    *mode = 0;
+    *form = 0;
+    for (int i = 0; i < img->track_size; i++) {
+        if (lba <= img->track_entries[i].end && lba >= img->track_entries[i].start) {
+            if (img->track_entries[i].type == kTrackTypeAudio) {
+                *mode = 0;
+                *form = 0;
+                return;
+            }
+            if (img->track_entries[i].type == kTrackTypeCdMode1 || img->track_entries[i].type == kTrackTypeData) {
+                *mode = 1;
+                *form = 0;
+                return;
+            }
+            if (img->track_entries[i].type == kTrackTypeCdMode2Form1) {
+                *mode = 2;
+                *form = 1;
+                return;
+            }
+            if (img->track_entries[i].type == kTrackTypeCdMode2Form2) {
+                *mode = 2;
+                *form = 2;
+                return;
+            }
+            // Mode Formless, try to extract the metadata.
+            length = 276;
+            *mode  = 2;
+            *form  = 0;
+            if (!aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba, false, buffer, &length, kSectorTagCdEcc)) {
+                // ECC data exists.
+                *form = 1;
+            } else {
+                length = 4;
+                if (!aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba, false, buffer, &length, kSectorTagCdEdc)) {
+                    // Only EDC data exists.
+                    *form = 2;
+                }
+            }
+        }
+    }
+    return;
+}
+
 static int
 aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
@@ -156,11 +206,14 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
     const raw_track_info_t *ct            = &(rti[track]);
     const uint32_t          start         = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
     int                     m, s, f;
+    uint8_t                 mode = 0, form = 0;
 
     memset(buffer, 0, 2448);
 
     if (sector == 0xFFFFFFFF)
         lba = ioctl->dev->seek_pos;
+
+    aaru_image_get_track_mode(local, (int64_t) (uint64_t) sector, &mode, &form);
 
     track = aaru_image_get_track(local, lba);
 
@@ -190,8 +243,31 @@ generate_headers:
             buffer[13] = bin2bcd(s);
             buffer[14] = bin2bcd(f);
 
-            /* Mode 1 data. */
-            buffer[15] = 0x01;
+            /* Mode 1/Mode 2 data. */
+            buffer[15] = mode;
+            if (form >= 1) {
+                uint8_t *subheader = buffer + 16;
+                /* Construct the CD-I/XA sub-header. */
+                subheader[2] = subheader[6] = (form - 1) << 5;
+            }
+
+            uint32_t crc;
+
+            if ((mode == 2) && (form == 1)) {
+                crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2056) ^ 0xffffffff;
+                memcpy(&(buffer[2072]), &crc, 4);
+            } else {
+                crc = cdrom_crc32(0xffffffff, buffer, 2064) ^ 0xffffffff;
+                memcpy(&(buffer[2064]), &crc, 4);
+            }
+
+            int m2f1 = (mode == 2) && (form == 1);
+
+            /* Compute ECC P code. */
+            cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]), &(buffer[12]), 86, 24, 2, 86, m2f1);
+
+            /* Compute ECC Q code. */
+            cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]), &(buffer[12]), 52, 43, 86, 88, m2f1);
         }
 
 generate_subchannel:
@@ -262,18 +338,17 @@ aaru_image_close(void *local)
     free(img);
 }
 
-
 static int
 aaru_image_track_audio(const aaru_image_t *ioctl, const uint32_t pos)
 {
-    raw_track_info_t *      rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
-    int                     ret     = 0;
+    raw_track_info_t *rti = (raw_track_info_t *) (ioctl->full_toc + 4);
+    int               ret = 0;
 
     if (!ioctl->is_dvd) {
         const int track   = aaru_image_get_track(ioctl, pos);
         const int control = rti[track].adr_ctl;
 
-        ret     = !(control & 0x04);
+        ret = !(control & 0x04);
     }
 
     return ret;
@@ -282,28 +357,29 @@ aaru_image_track_audio(const aaru_image_t *ioctl, const uint32_t pos)
 static uint8_t
 aaru_image_get_track_type(const void *local, const uint32_t sector)
 {
-    aaru_image_t *          ioctl = (aaru_image_t *) local;
+    aaru_image_t           *ioctl = (aaru_image_t *) local;
     int                     track = aaru_image_get_track(ioctl, sector);
-    raw_track_info_t *      rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
+    raw_track_info_t       *rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
     const raw_track_info_t *trk   = &(rti[track]);
     uint8_t                 ret   = 0x00;
 
     if (aaru_image_track_audio(ioctl, sector))
         ret = CD_TRACK_AUDIO;
-    else  if (track != -1)  for (int i = 0; i < (ioctl->full_toc_size - 4) / 11; i++) {
-        const raw_track_info_t *ct = &(rti[i]);
-        const raw_track_info_t *nt = &(rti[i + 1]);
+    else if (track != -1)
+        for (int i = 0; i < (ioctl->full_toc_size - 4) / 11; i++) {
+            const raw_track_info_t *ct = &(rti[i]);
+            const raw_track_info_t *nt = &(rti[i + 1]);
 
-        if (ct->point == 0xa0) {
-            uint8_t first = ct->pm;
-            uint8_t last  = nt->pm;
+            if (ct->point == 0xa0) {
+                uint8_t first = ct->pm;
+                uint8_t last  = nt->pm;
 
-            if ((trk->point >= first) && (trk->point <= last)) {
-                ret = ct->ps;
-                break;
+                if ((trk->point >= first) && (trk->point <= last)) {
+                    ret = ct->ps;
+                    break;
+                }
             }
         }
-    }
 
     return ret;
 }
@@ -343,10 +419,10 @@ aaru_image_open(cdrom_t *dev, const char *path)
         img->dev           = dev;
         img->aaruf_context = aaruf_open(path, false, NULL);
         if (img->aaruf_context) {
-            uint32_t length       = 0;
+            uint32_t  length       = 0;
             ptrdiff_t offset_lead  = 0;
-            size_t   large_length = 0;
-            int32_t  res          = 0;
+            size_t    large_length = 0;
+            int32_t   res          = 0;
 
             if (aaruf_get_image_info(img->aaruf_context, &img->img_info)) {
                 pclog("Failed to get Aaru image info\n");
@@ -383,7 +459,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
             img->full_toc_size = 4 + sizeof(raw_track_info_t) * 3;
 
             raw_track_info_t *start_track_info = (raw_track_info_t *) (img->full_toc + 4);
-            offset_lead = 4;
+            offset_lead                        = 4;
 
             start_track_info[0].point = 0xA0;
             start_track_info[1].point = 0xA1;
@@ -402,35 +478,35 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     start_track_info[1].adr_ctl = 0x10;
                     start_track_info[2].adr_ctl = 0x10;
 
-                    start_track_info[0].tno  = 0;
+                    start_track_info[0].tno     = 0;
                     start_track_info[0].session = cur_sess;
-                    start_track_info[0].m    = 0;
-                    start_track_info[0].s    = 0;
-                    start_track_info[0].f    = 0;
-                    start_track_info[0].zero = 0;
-                    start_track_info[0].pm   = first_track_sess;
-                    start_track_info[0].ps   = 0x00; // TODO: Fill this in actually.
-                    start_track_info[0].pf   = 0x00;
+                    start_track_info[0].m       = 0;
+                    start_track_info[0].s       = 0;
+                    start_track_info[0].f       = 0;
+                    start_track_info[0].zero    = 0;
+                    start_track_info[0].pm      = first_track_sess;
+                    start_track_info[0].ps      = 0x00; // TODO: Fill this in actually.
+                    start_track_info[0].pf      = 0x00;
 
-                    start_track_info[1].tno  = 0;
+                    start_track_info[1].tno     = 0;
                     start_track_info[1].session = cur_sess;
-                    start_track_info[1].m    = 0;
-                    start_track_info[1].s    = 0;
-                    start_track_info[1].f    = 0;
-                    start_track_info[1].zero = 0;
-                    start_track_info[1].pm   = last_track_sess;
-                    start_track_info[1].ps   = 0x00;
-                    start_track_info[1].pf   = 0x00;
+                    start_track_info[1].m       = 0;
+                    start_track_info[1].s       = 0;
+                    start_track_info[1].f       = 0;
+                    start_track_info[1].zero    = 0;
+                    start_track_info[1].pm      = last_track_sess;
+                    start_track_info[1].ps      = 0x00;
+                    start_track_info[1].pf      = 0x00;
 
-                    start_track_info[2].tno  = 0;
+                    start_track_info[2].tno     = 0;
                     start_track_info[2].session = cur_sess;
-                    start_track_info[2].pm   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
-                    start_track_info[2].ps   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
-                    start_track_info[2].pf   = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
-                    start_track_info[2].m    = 0;
-                    start_track_info[2].s    = 0;
-                    start_track_info[2].f    = 0;
-                    start_track_info[2].zero = 0;
+                    start_track_info[2].pm      = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
+                    start_track_info[2].ps      = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
+                    start_track_info[2].pf      = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
+                    start_track_info[2].m       = 0;
+                    start_track_info[2].s       = 0;
+                    start_track_info[2].f       = 0;
+                    start_track_info[2].zero    = 0;
 
                     raw_track_info_t *last_track = aaru_image_allocate_track(img);
                     last_track->adr_ctl          = 0x54;
@@ -457,7 +533,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                         last_track->pm      = 0x5f;
                         last_track->ps      = 0x00;
                         last_track->pf      = 0x00;
-                        last_track->session          = cur_sess;
+                        last_track->session = cur_sess;
                     }
 
                     first_track_sess = (int64_t) LLONG_MAX;
@@ -466,19 +542,19 @@ aaru_image_open(cdrom_t *dev, const char *path)
 
                     // Generate new 0xA0/0xA1/0xA2 tracks.
                     start_track_info = (raw_track_info_t *) (img->full_toc + img->full_toc_size);
-                    offset_lead = (uint8_t*)start_track_info - img->full_toc;
+                    offset_lead      = (uint8_t *) start_track_info - img->full_toc;
                     (void) aaru_image_allocate_track(img);
                     (void) aaru_image_allocate_track(img);
                     (void) aaru_image_allocate_track(img);
-                    start_track_info             = (raw_track_info_t *) (img->full_toc + offset_lead);
+                    start_track_info = (raw_track_info_t *) (img->full_toc + offset_lead);
 
                     start_track_info[0].point = 0xA0;
                     start_track_info[1].point = 0xA1;
                     start_track_info[2].point = 0xA2;
                     start_track_info[0].ps    = (img->track_entries[i].type == kTrackTypeCdMode2Formless || img->track_entries[i].type == kTrackTypeCdMode2Form1 || img->track_entries[i].type == kTrackTypeCdMode2Formless) ? 0x20 : 0x00;
-                    cur_sess = img->track_entries[i].session;
+                    cur_sess                  = img->track_entries[i].session;
                 }
-                offset_lead = (uint8_t*)start_track_info - img->full_toc;
+                offset_lead                  = (uint8_t *) start_track_info - img->full_toc;
                 raw_track_info_t *last_track = aaru_image_allocate_track(img);
                 start_track_info             = (raw_track_info_t *) (img->full_toc + offset_lead);
 
@@ -488,13 +564,13 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 last_track->session                                              = img->track_entries[i].session;
                 last_track->point                                                = img->track_entries[i].sequence;
                 if (i != 0) {
-                    last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 16) & 0xFF;
-                    last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 8) & 0xFF;
-                    last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) & 0xFF;
+                    last_track->pm = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 16) & 0xFF;
+                    last_track->ps = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 8) & 0xFF;
+                    last_track->pf = cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) & 0xFF;
                 } else {
-                    last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 16) & 0xFF;
-                    last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 8) & 0xFF;
-                    last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start) & 0xFF;
+                    last_track->pm = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 16) & 0xFF;
+                    last_track->ps = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 8) & 0xFF;
+                    last_track->pf = cdrom_lba_to_msf_accurate(img->track_entries[i].start) & 0xFF;
                 }
                 if (img->track_entries[i].end > end_lba) {
                     end_lba = img->track_entries[i].end;
