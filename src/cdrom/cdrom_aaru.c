@@ -340,6 +340,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
 
                     first_track_sess = (int64_t)LLONG_MAX;
                     last_track_sess = (int64_t)LLONG_MIN;
+                    end_lba = (int64_t)LLONG_MIN;
 
                     // Generate new 0xA0/0xA1/0xA2 tracks.
                     start_track_info = aaru_image_allocate_track(img);
