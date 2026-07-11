@@ -474,6 +474,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     start_track_info[0].point = 0xA0;
                     start_track_info[1].point = 0xA1;
                     start_track_info[2].point = 0xA2;
+                    cur_sess = img->track_entries[i].session;
                 }
                 offset_lead = (uint8_t*)start_track_info - img->full_toc;
                 raw_track_info_t *last_track = aaru_image_allocate_track(img);
