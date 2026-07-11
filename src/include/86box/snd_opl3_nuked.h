@@ -29,6 +29,38 @@ extern "C" {
 #define OPL3_ENABLE_STEREOEXT 0
 #endif
 
+/* Quirk: Some FM channels are output one sample later on the left side than
+ * the right. Defined here (not only in the .c) so the opl3_channel mix
+ * pointer lists guarded by it are laid out consistently. */
+#ifndef OPL3_QUIRK_CHANNELSAMPLEDELAY
+#define OPL3_QUIRK_CHANNELSAMPLEDELAY (!OPL3_ENABLE_STEREOEXT)
+#endif
+
+/* OPL3_WF_TABLE_RUNTIME=1 builds the 16 KB logsin waveform table at the
+ * first OPL3_Reset instead of compiling in snd_opl3_nuked_wf_rom.h, trading
+ * read-only data for zero-initialized RAM. The table data is identical
+ * either way. The first OPL3_Reset in the process must not run concurrently
+ * with another reset. */
+#ifndef OPL3_WF_TABLE_RUNTIME
+#define OPL3_WF_TABLE_RUNTIME 0
+#endif
+
+/* Compatibility switches for parity with older upstream Nuked-OPL3 commits.
+ * Both default to 0, the behavior of upstream master (cfedb09). Enabled,
+ * they reproduce the older behavior exactly.
+ *
+ * OPL3_COMPAT_OLD_EG=1 selects the envelope stepping from before upstream
+ * commits e4afafc and cfedb09 (June/July 2024). OPL3_COMPAT_DEFERRED_4OP_ALG=1
+ * selects the pre-f2c9873 (Nov 2022) behavior where writes to the 4-op enable
+ * register 0x104 do not update a channel's operator routing until its next
+ * C0 write. */
+#ifndef OPL3_COMPAT_OLD_EG
+#define OPL3_COMPAT_OLD_EG 0
+#endif
+#ifndef OPL3_COMPAT_DEFERRED_4OP_ALG
+#define OPL3_COMPAT_DEFERRED_4OP_ALG 0
+#endif
+
 #define OPL3_WRITEBUF_SIZE  1024
 #define OPL3_WRITEBUF_DELAY 2
 
@@ -44,6 +76,11 @@ struct _opl3_slot {
     uint32_t      pg_reset;
     uint32_t      pg_phase;
     uint32_t      pg_inc;
+    /* Equal to chip->write_gen while the slot is provably inert: fully
+     * attenuated, key off, all-zero phase/output state, and mod/trem frozen
+     * at zeromod. Set by the trivially-dead path in OPL3_ProcessSlotImpl;
+     * invalidated by any register write (write_gen bump). 0 = not dormant. */
+    uint32_t      dormant_gen;
     int16_t       out;
     int16_t       fbmod;
     int16_t       prout;
@@ -73,6 +110,10 @@ struct _opl3_slot {
     uint8_t  eg_rates[4];
     uint8_t  eg_rate_hi[4];
     uint8_t  eg_rate_lo[4];
+    /* Phase increment per vibrato position, maintained by
+     * OPL3_PhaseUpdateInc (and rebuilt on vibshift changes); pg_inc_vib[pos]
+     * equals the upstream per-sample vibrato f_num adjustment for that pos. */
+    uint32_t pg_inc_vib[8];
 };
 
 struct _opl3_channel {
@@ -80,6 +121,16 @@ struct _opl3_channel {
     opl3_channel *pair;
     opl3_chip    *chip;
     int16_t      *out[4];
+#if OPL3_QUIRK_CHANNELSAMPLEDELAY
+    /* Mix-pass pointer lists: identical to out[] except entries pointing at
+     * a delayed slot's out are redirected to its prout, which holds the
+     * previous sample's out once all 36 slots are processed. out_left delays
+     * slots 15-35 and out_right delays 33-35, reproducing the
+     * CHANNELSAMPLEDELAY snapshots without staging slot processing around
+     * the mixes. */
+    int16_t      *out_left[4];
+    int16_t      *out_right[4];
+#endif
     uint8_t       out_cnt;
 
 #if OPL_ENABLE_STEREOEXT
@@ -123,7 +174,23 @@ struct _opl3_chip {
     uint8_t      tremolopos;
     uint8_t      tremoloshift;
     uint8_t      tremolo_dirty;
+    /* Bumped on every OPL3_WriteReg call; never 0 after reset. A slot whose
+     * dormant_gen matches is skipped without re-checking its dead-state
+     * conditions. Wrap is handled by clearing all dormant_gen tags. */
+    uint32_t     write_gen;
     uint32_t     noise;
+    /* Bit 0 of the noise LFSR state as seen by the hh (slot 13) and sd
+     * (slot 16) rhythm operators, precomputed per sample. */
+    uint32_t     noise_hh;
+    uint32_t     noise_sd;
+    /* Channels eligible for each mix pass: out_cnt > 0 and routed to at
+     * least one output on that side. Eligibility only changes on register
+     * writes; mix_dirty triggers a rebuild at the top of the next sample. */
+    opl3_channel *mix_left[18];
+    opl3_channel *mix_right[18];
+    uint8_t      nmix_left;
+    uint8_t      nmix_right;
+    uint8_t      mix_dirty;
     int16_t      zeromod;
     int32_t      mixbuff[4];
     uint8_t      rm_hh_bit2;
