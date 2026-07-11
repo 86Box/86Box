@@ -109,23 +109,91 @@ aaru_image_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
 }
 
 static int
+aaru_image_get_track(const aaru_image_t *ioctl, const uint32_t sector) {
+    raw_track_info_t *rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
+    int               track = -1;
+    int               tracks = (ioctl->full_toc_size - 4) / 11;
+
+    for (int i = (tracks - 1); i >= 0; i--) {
+         const raw_track_info_t *ct    = &(rti[i]);
+         const uint32_t          start = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf - 150;
+
+         if ((ct->point >= 1) && (ct->point <= 99) && (sector >= start)) {
+             track = i;
+             break;
+         }
+    }
+
+    return track;
+}
+
+static int
 aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
     aaru_image_t *ioctl = (aaru_image_t *) local;
     uint8_t sector_status = 0;
     uint64_t lba = sector;
     uint32_t length = 2352;
+    uint32_t track = -1;
+    raw_track_info_t *rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
+    const raw_track_info_t *ct    = &(rti[track]);
+    const uint32_t          start = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
+    int                     m, s, f;
+
     memset(buffer, 0, 2448);
 
     if (sector == 0xFFFFFFFF)
         lba = ioctl->dev->seek_pos;
     
-    if (aaruf_read_sector_long(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status))
+    track = aaru_image_get_track(local, lba);
+
+    if (aaruf_read_sector_long(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status)) {
+        length = 2048;
+        if (!aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status))
+            goto generate_headers;
         return -1;
+    }
 
     length = 96;
-    if (!aaruf_read_sector_tag(ioctl->aaruf_context, lba, false, &buffer[2352], &length, kSectorTagCdSubchannel))
-        return -1;
+    if (aaruf_read_sector_tag(ioctl->aaruf_context, lba, false, &buffer[2352], &length, kSectorTagCdSubchannel)) {
+generate_headers:
+        m = s = f = 0;
+        if (length == 96)
+            goto generate_subchannel;
+        /* Construct sector header and sub-header. */
+        {
+            /* Sync bytes. */
+            buffer[0] = 0x00;
+            memset(&(buffer[1]), 0xff, 10);
+            buffer[11] = 0x00;
+
+            /* Sector header. */
+            FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+            buffer[12] = bin2bcd(m);
+            buffer[13] = bin2bcd(s);
+            buffer[14] = bin2bcd(f);
+
+            /* Mode 1 data. */
+            buffer[15] = 0x01;
+        }
+
+generate_subchannel:
+        /* Construct Q. */
+        buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
+        buffer[2352 + 1] = bin2bcd(ct->point);
+        buffer[2352 + 2] = 1;
+        FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
+        buffer[2352 + 3] = bin2bcd(m);
+        buffer[2352 + 4] = bin2bcd(s);
+        buffer[2352 + 5] = bin2bcd(f);
+        FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+        buffer[2352 + 7] = bin2bcd(m);
+        buffer[2352 + 8] = bin2bcd(s);
+        buffer[2352 + 9] = bin2bcd(f);
+        for (int i = 11; i >= 0; i--)
+            for (int j = 7; j >= 0; j--)
+                buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
+    }
 
     return 0;
 }
@@ -238,10 +306,12 @@ aaru_image_open(cdrom_t *dev, const char *path)
             int32_t res = 0;
 
             if (aaruf_get_image_info(img->aaruf_context, &img->img_info)) {
+                pclog("Failed to get Aaru image info\n");
                 goto cleanup_error;
             }
 
             if (img->img_info.MediaType != OpticalDisc) {
+                pclog("Aaru image is not a optical disc image\n");
                 goto cleanup_error;
             }
 
@@ -260,6 +330,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 img->track_entries = calloc(1, large_length);
                 if (!(res = aaruf_get_tracks(img->aaruf_context, (uint8_t*)img->track_entries, &large_length))) {
                     img->track_size = large_length / sizeof(TrackEntry);
+                } else {
+                    pclog("Failed to allocate tracks for Aaru images (1)\n");
+                    goto cleanup_error;
                 }
             }
 
@@ -439,15 +512,22 @@ toc_skip:
                     img->track_entries = calloc(1, large_length);
                     if (!(res = aaruf_get_tracks(img->aaruf_context, (uint8_t*)img->track_entries, &large_length))) {
                         img->track_size = large_length / sizeof(TrackEntry);
+                    } else {
+                        pclog("Failed to allocate tracks for Aaru images\n");
+                        goto cleanup_error;
                     }
                 }
             }
 
             dev->ops = &aaru_image_ops;
+        } else {
+            goto cleanup_error;
         }
+        img->dev = dev;
+        return img;
+    } else {
+        return NULL;
     }
-    img->dev = dev;
-    return img;
 cleanup_error:
     if (img->track_entries)
         free(img->track_entries);
