@@ -435,9 +435,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     last_track->adr_ctl          = 0x54;
                     last_track->point            = 0xB0;
                     last_track->session          = cur_sess;
-                    last_track->m                = (cdrom_lba_to_msf_accurate(img->track_entries[i].start - img->track_entries[i].pregap) >> 16) & 0xFF;
-                    last_track->s                = (cdrom_lba_to_msf_accurate(img->track_entries[i].start - img->track_entries[i].pregap) >> 8) & 0xFF;
-                    last_track->f                = cdrom_lba_to_msf_accurate(img->track_entries[i].start - img->track_entries[i].pregap) & 0xFF;
+                    last_track->m                = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 16) & 0xFF;
+                    last_track->s                = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 8) & 0xFF;
+                    last_track->f                = cdrom_lba_to_msf_accurate(img->track_entries[i].start) & 0xFF;
                     last_track->tno              = 0;
                     last_track->zero             = cur_sess == 1 ? 2 : 1;
                     last_track->pm               = 0x40;
@@ -485,7 +485,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 last_track->tno                                                  = 0;
                 last_track->session                                              = img->track_entries[i].session;
                 last_track->point                                                = img->track_entries[i].sequence;
-                if (img->track_entries[i].type == kTrackTypeAudio) {
+                if (i != 0) {
                     last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 16) & 0xFF;
                     last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 8) & 0xFF;
                     last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) & 0xFF;
@@ -550,6 +550,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 last_track->pm               = 0x40;
                 last_track->ps               = 0x02;
                 last_track->pf               = 0x00;
+                last_track->session          = cur_sess;
             }
 
             // We don't handle first and last session numbers in the backend for now
