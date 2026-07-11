@@ -653,6 +653,7 @@ toc_skip:
             goto cleanup_error;
         }
         img->dev = dev;
+        img->is_dvd = aaru_image_is_dvd(img);
         return img;
     } else {
         return NULL;
