@@ -213,27 +213,6 @@ generate_subchannel:
     return 1;
 }
 
-static uint8_t
-aaru_image_get_track_type(UNUSED(const void *local), UNUSED(const uint32_t sector))
-{
-    aaru_image_t *img = (aaru_image_t *) local;
-
-    for (int i = 0; i < img->track_size; i++) {
-        if (img->track_entries[i].start >= sector && sector <= img->track_entries[i].end) {
-            switch (img->track_entries[i].type) {
-                case kTrackTypeAudio:
-                    return CD_TRACK_AUDIO;
-                case kTrackTypeCdMode1:
-                case kTrackTypeData:
-                    return CD_TRACK_NORMAL;
-                default:
-                    return CD_TRACK_MODE2 | CD_TRACK_XA;
-            }
-        }
-    }
-    return CD_TRACK_NORMAL;
-}
-
 static uint32_t
 aaru_image_get_last_block(const void *local)
 {
@@ -279,6 +258,52 @@ aaru_image_close(void *local)
     if (img->aaruf_context)
         aaruf_close(img->aaruf_context);
     free(img);
+}
+
+
+static int
+aaru_image_track_audio(const aaru_image_t *ioctl, const uint32_t pos)
+{
+    raw_track_info_t *      rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
+    int                     ret     = 0;
+
+    if (!ioctl->is_dvd) {
+        const int track   = aaru_image_get_track(ioctl, pos);
+        const int control = rti[track].adr_ctl;
+
+        ret     = !(control & 0x04);
+    }
+
+    return ret;
+}
+
+static uint8_t
+aaru_image_get_track_type(const void *local, const uint32_t sector)
+{
+    aaru_image_t *          ioctl = (aaru_image_t *) local;
+    int                     track = aaru_image_get_track(ioctl, sector);
+    raw_track_info_t *      rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
+    const raw_track_info_t *trk   = &(rti[track]);
+    uint8_t                 ret   = 0x00;
+
+    if (aaru_image_track_audio(ioctl, sector))
+        ret = CD_TRACK_AUDIO;
+    else  if (track != -1)  for (int i = 0; i < (ioctl->full_toc_size - 4) / 11; i++) {
+        const raw_track_info_t *ct = &(rti[i]);
+        const raw_track_info_t *nt = &(rti[i + 1]);
+
+        if (ct->point == 0xa0) {
+            uint8_t first = ct->pm;
+            uint8_t last  = nt->pm;
+
+            if ((trk->point >= first) && (trk->point <= last)) {
+                ret = ct->ps;
+                break;
+            }
+        }
+    }
+
+    return ret;
 }
 
 static const cdrom_ops_t aaru_image_ops = {
