@@ -372,7 +372,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 if (img->track_entries[i].sequence == 0)
                     continue; // This is not actionable.
                 if (img->track_entries[i].session != cur_sess) {
-                    start_track_info[0].adr_ctl = 0x10;
+                    start_track_info[0].adr_ctl = 0x14;
                     start_track_info[1].adr_ctl = 0x10;
                     start_track_info[2].adr_ctl = 0x10;
 
@@ -473,7 +473,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
 
             start_track_info[0].tno     = 0;
             start_track_info[0].session = cur_sess;
-            start_track_info[0].adr_ctl = 0x10;
+            start_track_info[0].adr_ctl = 0x14;
             start_track_info[0].m       = 0;
             start_track_info[0].s       = 0;
             start_track_info[0].f       = 0;
