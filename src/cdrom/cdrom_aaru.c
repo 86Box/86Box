@@ -195,7 +195,7 @@ generate_subchannel:
                 buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
     }
 
-    return 0;
+    return 1;
 }
 
 static uint8_t
