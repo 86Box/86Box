@@ -426,7 +426,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 }
                 raw_track_info_t* last_track = aaru_image_allocate_track(img);
 
-                last_track->adr_ctl = img->track_entries[i].flags;
+                last_track->adr_ctl = (img->track_entries[i].flags) | 0x10;
                 last_track->m = last_track->s = last_track->f = last_track->zero = 0;
                 last_track->tno = 0;
                 last_track->session = img->track_entries[i].session;
@@ -476,30 +476,32 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[2].f    = 0;
             start_track_info[2].zero = 0;
 
-            raw_track_info_t* last_track = aaru_image_allocate_track(img);
-            last_track->adr_ctl = 0x54;
-            last_track->point = 0xB0;
-            last_track->m = (cdrom_lba_to_msf_accurate(end_lba) >> 16) & 0xFF;
-            last_track->s = (cdrom_lba_to_msf_accurate(end_lba) >> 8) & 0xFF;
-            last_track->f = cdrom_lba_to_msf_accurate(end_lba) & 0xFF;
-            last_track->tno = 0;
-            last_track->zero = cur_sess == 1 ? 2 : 1;
-            last_track->pm = 0x40;
-            last_track->ps = 0x02;
-            last_track->pf = 0x00;
-
-            if (cur_sess == 1) {
-                last_track          = aaru_image_allocate_track(img);
+            if (cur_sess != 1) {
+                raw_track_info_t* last_track = aaru_image_allocate_track(img);
                 last_track->adr_ctl = 0x54;
-                last_track->point   = 0xC0;
-                last_track->m       = 0;
-                last_track->s       = 0;
-                last_track->f       = 0;
-                last_track->tno     = 0;
-                last_track->zero    = 0;
-                last_track->pm      = 0x5f;
-                last_track->ps      = 0x00;
-                last_track->pf      = 0x00;
+                last_track->point = 0xB0;
+                last_track->m = (cdrom_lba_to_msf_accurate(end_lba) >> 16) & 0xFF;
+                last_track->s = (cdrom_lba_to_msf_accurate(end_lba) >> 8) & 0xFF;
+                last_track->f = cdrom_lba_to_msf_accurate(end_lba) & 0xFF;
+                last_track->tno = 0;
+                last_track->zero = cur_sess == 1 ? 2 : 1;
+                last_track->pm = 0x40;
+                last_track->ps = 0x02;
+                last_track->pf = 0x00;
+
+                if (cur_sess == 1) {
+                    last_track          = aaru_image_allocate_track(img);
+                    last_track->adr_ctl = 0x54;
+                    last_track->point   = 0xC0;
+                    last_track->m       = 0;
+                    last_track->s       = 0;
+                    last_track->f       = 0;
+                    last_track->tno     = 0;
+                    last_track->zero    = 0;
+                    last_track->pm      = 0x5f;
+                    last_track->ps      = 0x00;
+                    last_track->pf      = 0x00;
+                }
             }
 
             // We don't handle first and last session numbers in the backend for now
@@ -519,6 +521,10 @@ toc_skip:
                 }
             }
 
+            raw_track_info_t* rti = (raw_track_info_t*)(img->full_toc + 4);
+            for (int i = 0; i < (img->full_toc_size - 4) / 11; i++) {
+                __builtin_dump_struct(&rti[i], &pclog);
+            }
             dev->ops = &aaru_image_ops;
         } else {
             goto cleanup_error;
