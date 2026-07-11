@@ -108,6 +108,7 @@ aaru_image_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
     memcpy(rti, ioctl->full_toc + 4, *num * 11);
 
     raw_track_info_t* raw_track_info = (raw_track_info_t*)rti;
+#if 0
     for (int i = 0; i < *num; i++) {
         pclog("======================================\n");
         pclog("Track %d\n", i);
@@ -120,6 +121,7 @@ aaru_image_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
         pclog("PM:PS:PF: %d:%d:%d (%X:%X:%X, hex)\n", raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf, raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf);
         pclog("======================================\n");
     }
+#endif
 }
 
 static int
@@ -386,6 +388,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[0].point = 0xA0;
             start_track_info[1].point = 0xA1;
             start_track_info[2].point = 0xA2;
+            start_track_info[0].ps    = (img->track_entries[0].type == kTrackTypeCdMode2Formless || img->track_entries[0].type == kTrackTypeCdMode2Form1 || img->track_entries[0].type == kTrackTypeCdMode2Formless) ? 0x20 : 0x00;
 
             int64_t first_track_sess = (int64_t) LLONG_MAX;
             int64_t last_track_sess  = (int64_t) LLONG_MIN;
@@ -474,6 +477,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                     start_track_info[0].point = 0xA0;
                     start_track_info[1].point = 0xA1;
                     start_track_info[2].point = 0xA2;
+                    start_track_info[0].ps    = (img->track_entries[i].type == kTrackTypeCdMode2Formless || img->track_entries[i].type == kTrackTypeCdMode2Form1 || img->track_entries[i].type == kTrackTypeCdMode2Formless) ? 0x20 : 0x00;
                     cur_sess = img->track_entries[i].session;
                 }
                 offset_lead = (uint8_t*)start_track_info - img->full_toc;
@@ -513,8 +517,8 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[0].f       = 0;
             start_track_info[0].zero    = 0;
             start_track_info[0].pm      = first_track_sess;
-            start_track_info[0].ps      = 0x00; // TODO: Fill this in actually.
             start_track_info[0].pf      = 0x00;
+            // Session type already filled in beforehand.
 
             start_track_info[1].tno     = 0;
             start_track_info[1].session = cur_sess;
