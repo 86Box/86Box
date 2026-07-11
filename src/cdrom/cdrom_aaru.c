@@ -134,7 +134,7 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
     uint8_t sector_status = 0;
     uint64_t lba = sector;
     uint32_t length = 2352;
-    uint32_t track = -1;
+    uint32_t track = aaru_image_get_track(local, sector == ~0u ? ioctl->dev->seek_pos : sector);
     raw_track_info_t *rti   = (raw_track_info_t *) (ioctl->full_toc + 4);
     const raw_track_info_t *ct    = &(rti[track]);
     const uint32_t          start = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
@@ -445,11 +445,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 }
             }
 
-            start_track_info[0].adr_ctl = 0x14;
-            start_track_info[1].adr_ctl = 0x14;
-            start_track_info[2].adr_ctl = 0x14;
-
             start_track_info[0].tno  = 0;
+            start_track_info[0].session = cur_sess;
+            start_track_info[0].adr_ctl = 0x14;
             start_track_info[0].m    = 0;
             start_track_info[0].s    = 0;
             start_track_info[0].f    = 0;
@@ -459,6 +457,8 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[0].pf   = 0x00;
 
             start_track_info[1].tno  = 0;
+            start_track_info[1].session = cur_sess;
+            start_track_info[1].adr_ctl = 0x14;
             start_track_info[1].m    = 0;
             start_track_info[1].s    = 0;
             start_track_info[1].f    = 0;
@@ -468,6 +468,8 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[1].pf   = 0x00;
 
             start_track_info[2].tno  = 0;
+            start_track_info[2].session = cur_sess;
+            start_track_info[2].adr_ctl = 0x14;
             start_track_info[2].pm   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
             start_track_info[2].ps   = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
             start_track_info[2].pf   = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
@@ -519,11 +521,6 @@ toc_skip:
                         goto cleanup_error;
                     }
                 }
-            }
-
-            raw_track_info_t* rti = (raw_track_info_t*)(img->full_toc + 4);
-            for (int i = 0; i < (img->full_toc_size - 4) / 11; i++) {
-                __builtin_dump_struct(&rti[i], &pclog);
             }
             dev->ops = &aaru_image_ops;
         } else {
