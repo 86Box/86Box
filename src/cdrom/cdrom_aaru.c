@@ -477,9 +477,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 last_track->session                                              = img->track_entries[i].session;
                 last_track->point                                                = img->track_entries[i].sequence;
                 if (img->track_entries[i].type == kTrackTypeAudio) {
-                    last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + 150) >> 16) & 0xFF;
-                    last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + 150) >> 8) & 0xFF;
-                    last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start + 150) & 0xFF;
+                    last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 16) & 0xFF;
+                    last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 8) & 0xFF;
+                    last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) & 0xFF;
                 } else {
                     last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 16) & 0xFF;
                     last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 8) & 0xFF;
