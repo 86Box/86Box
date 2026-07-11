@@ -2769,6 +2769,21 @@ image_get_raw_track_info(const void *local, int *num, uint8_t *buffer)
     }
 
     *num = img->tracks_num;
+#if 0
+    raw_track_info_t* raw_track_info = (raw_track_info_t*)buffer;
+    for (int i = 0; i < *num; i++) {
+        pclog("======================================\n");
+        pclog("Track %d (CUE)\n", i);
+        pclog("======================================\n");
+        pclog("Session: %d\n", raw_track_info[i].session);
+        pclog("ADR/CTL: 0x%02X\n", raw_track_info[i].adr_ctl);
+        pclog("Point: %d\n", raw_track_info[i].point);
+        pclog("M:S:F: %02d:%02d:%02d (%02X:%02X:%02X, hex)\n", raw_track_info[i].m, raw_track_info[i].s, raw_track_info[i].f, raw_track_info[i].m, raw_track_info[i].s, raw_track_info[i].f);
+        pclog("Zero: 0x%02X\n", raw_track_info[i].zero);
+        pclog("PM:PS:PF: %d:%d:%d (%X:%X:%X, hex)\n", raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf, raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf);
+        pclog("======================================\n");
+    }
+#endif
 }
 
 static int
