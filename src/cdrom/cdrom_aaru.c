@@ -106,6 +106,20 @@ aaru_image_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
 
     *num = (ioctl->full_toc_size - 4) / 11;
     memcpy(rti, ioctl->full_toc + 4, *num * 11);
+
+    raw_track_info_t* raw_track_info = (raw_track_info_t*)rti;
+    for (int i = 0; i < *num; i++) {
+        pclog("======================================\n");
+        pclog("Track %d\n", i);
+        pclog("======================================\n");
+        pclog("Session: %d\n", raw_track_info[i].session);
+        pclog("ADR/CTL: 0x%02X\n", raw_track_info[i].adr_ctl);
+        pclog("Point: %d\n", raw_track_info[i].point);
+        pclog("M:S:F: %02d:%02d:%02d (%02X:%02X:%02X, hex)\n", raw_track_info[i].m, raw_track_info[i].s, raw_track_info[i].f, raw_track_info[i].m, raw_track_info[i].s, raw_track_info[i].f);
+        pclog("Zero: 0x%02X\n", raw_track_info[i].zero);
+        pclog("PM:PS:PF: %d:%d:%d (%X:%X:%X, hex)\n", raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf, raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf);
+        pclog("======================================\n");
+    }
 }
 
 static int
@@ -358,9 +372,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 if (img->track_entries[i].sequence == 0)
                     continue; // This is not actionable.
                 if (img->track_entries[i].session != cur_sess) {
-                    start_track_info[0].adr_ctl = 0x14;
-                    start_track_info[1].adr_ctl = 0x14;
-                    start_track_info[2].adr_ctl = 0x14;
+                    start_track_info[0].adr_ctl = 0x10;
+                    start_track_info[1].adr_ctl = 0x10;
+                    start_track_info[2].adr_ctl = 0x10;
 
                     start_track_info[0].tno  = 0;
                     start_track_info[0].m    = 0;
@@ -437,9 +451,15 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 last_track->tno                                                  = 0;
                 last_track->session                                              = img->track_entries[i].session;
                 last_track->point                                                = img->track_entries[i].sequence;
-                last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 16) & 0xFF;
-                last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 8) & 0xFF;
-                last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start) & 0xFF;
+                if (img->track_entries[i].type == kTrackTypeAudio) {
+                    last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + 150) >> 16) & 0xFF;
+                    last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + 150) >> 8) & 0xFF;
+                    last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start + 150) & 0xFF;
+                } else {
+                    last_track->pm                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 16) & 0xFF;
+                    last_track->ps                                                   = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 8) & 0xFF;
+                    last_track->pf                                                   = cdrom_lba_to_msf_accurate(img->track_entries[i].start) & 0xFF;
+                }
                 if (img->track_entries[i].end > end_lba) {
                     end_lba = img->track_entries[i].end;
                 }
@@ -453,7 +473,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
 
             start_track_info[0].tno     = 0;
             start_track_info[0].session = cur_sess;
-            start_track_info[0].adr_ctl = 0x14;
+            start_track_info[0].adr_ctl = 0x10;
             start_track_info[0].m       = 0;
             start_track_info[0].s       = 0;
             start_track_info[0].f       = 0;
@@ -464,7 +484,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
 
             start_track_info[1].tno     = 0;
             start_track_info[1].session = cur_sess;
-            start_track_info[1].adr_ctl = 0x14;
+            start_track_info[1].adr_ctl = 0x10;
             start_track_info[1].m       = 0;
             start_track_info[1].s       = 0;
             start_track_info[1].f       = 0;
@@ -475,7 +495,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
 
             start_track_info[2].tno     = 0;
             start_track_info[2].session = cur_sess;
-            start_track_info[2].adr_ctl = 0x14;
+            start_track_info[2].adr_ctl = 0x10;
             start_track_info[2].pm      = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
             start_track_info[2].ps      = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
             start_track_info[2].pf      = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
