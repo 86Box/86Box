@@ -26,6 +26,7 @@
 #include <QClipboard>
 #include <QMessageBox>
 #include <QWindow>
+#include <QPainter>
 
 extern "C"
 {
@@ -1150,6 +1151,11 @@ VulkanWindowRenderer::render()
             unsigned char *rgb = scrShotImageMapPtr;
 
             QImage image((uchar*)rgb, width, height, scrShotImagePitch, QImage::Format_RGBA8888);
+            {
+                QPainter painter(&image);
+                painter.setCompositionMode(QPainter::CompositionMode_Plus);
+                painter.fillRect(0, 0, width, height, QColor(0, 0, 0, 255));
+            }
             image.rgbSwapped().save(path, "png");
             monitors[r_monitor_index].mon_screenshots--;
         }
@@ -1159,6 +1165,11 @@ VulkanWindowRenderer::render()
             unsigned char *rgb = scrShotImageMapPtr;
 
             QImage image((uchar*)rgb, width, height, scrShotImagePitch, QImage::Format_RGBA8888);
+            {
+                QPainter painter(&image);
+                painter.setCompositionMode(QPainter::CompositionMode_Plus);
+                painter.fillRect(0, 0, width, height, QColor(0, 0, 0, 255));
+            }
             QClipboard *clipboard = QApplication::clipboard();
             clipboard->setImage(image.rgbSwapped(), QClipboard::Clipboard);
             monitors[r_monitor_index].mon_screenshots_clipboard--;
