@@ -310,7 +310,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 goto cleanup_error;
             }
 
-            if (img->img_info.MediaType != OpticalDisc) {
+            if (img->img_info.MetadataMediaType != OpticalDisc) {
                 pclog("Aaru image is not a optical disc image\n");
                 goto cleanup_error;
             }
