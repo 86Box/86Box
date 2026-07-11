@@ -397,8 +397,6 @@ aaru_image_open(cdrom_t *dev, const char *path)
             uint32_t cur_sess = img->track_entries[0].session;
 
             for (unsigned int i = 0; i < img->track_size; i++) {
-                if (img->track_entries[i].sequence == 0)
-                    continue; // This is not actionable.
                 if (img->track_entries[i].session != cur_sess) {
                     start_track_info[0].adr_ctl = 0x14;
                     start_track_info[1].adr_ctl = 0x10;
