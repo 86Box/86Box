@@ -1147,20 +1147,30 @@ VulkanWindowRenderer::render()
             plat_tempfile(fn, NULL, (char *) ".png");
             strcat(path, fn);
 
-            unsigned char *rgb = scrShotImageMapPtr;
+            unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
+            for (int i = 0; i < (width * height * 4); i += 4) {
+                uint32_t pixel = *reinterpret_cast<uint32_t *>(&(scrShotImageMapPtr[i]));
+                memcpy(&(rgb[(i / 4) * 3]), &pixel, 3);
+            }
 
-            QImage image((uchar*)rgb, width, height, scrShotImagePitch, QImage::Format_RGBA8888);
+            QImage image((uchar*)rgb, width, height, (scrShotImagePitch / 4) * 3, QImage::Format_RGB888);
             image.rgbSwapped().save(path, "png");
+            free(rgb);
             monitors[r_monitor_index].mon_screenshots--;
         }
         if (monitors[r_monitor_index].mon_screenshots_clipboard) {
             int  width = curExtent.width, height = curExtent.height;
 
-            unsigned char *rgb = scrShotImageMapPtr;
+            unsigned char *rgb = (unsigned char *) calloc(1, (size_t) width * height * 4);
+            for (int i = 0; i < (width * height * 4); i += 4) {
+                uint32_t pixel = *reinterpret_cast<uint32_t *>(&(scrShotImageMapPtr[i]));
+                memcpy(&(rgb[(i / 4) * 3]), &pixel, 3);
+            }
 
-            QImage image((uchar*)rgb, width, height, scrShotImagePitch, QImage::Format_RGBA8888);
+            QImage image((uchar*)rgb, width, height, (scrShotImagePitch / 4) * 3, QImage::Format_RGB888);
             QClipboard *clipboard = QApplication::clipboard();
             clipboard->setImage(image.rgbSwapped(), QClipboard::Clipboard);
+            free(rgb);
             monitors[r_monitor_index].mon_screenshots_clipboard--;
         }
     }
