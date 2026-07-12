@@ -27,11 +27,6 @@
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
 
-/* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
-   there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
-   of the audio while audio still plays. With an absolute conversion, the counter is fine. */
-#define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
-
 typedef struct aaru_image_t {
     cdrom_t *dev;
     void    *aaruf_context;
@@ -161,22 +156,28 @@ aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, u
                 return;
             }
             // Mode Formless, try to extract the metadata.
-            length = 276;
+            length = 8;
             *mode  = 2;
             *form  = 0;
-            if (!aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba, false, buffer, &length, kSectorTagCdEcc)) {
-                // ECC data exists.
-                *form = 1;
-            } else {
-                length = 4;
-                if (!aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba, false, buffer, &length, kSectorTagCdEdc)) {
-                    // Only EDC data exists.
-                    *form = 2;
-                }
+            if (!aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba, false, buffer, &length, kSectorTagCdSubHeader)) {
+                *form = 1 + !!(buffer[2] & (1 << 5));
             }
         }
     }
     return;
+}
+
+static int64_t
+aaru_image_get_pregap_length(const aaru_image_t *img, int track)
+{
+    for (int i = 0; i < img->track_size; i++) {
+        if (img->track_entries[i].sequence == track) {
+            if (i == 0)
+                return 0; // The pregap starts in the negative area.
+            return img->track_entries[i].pregap;
+        }
+    }
+    return 0;
 }
 
 static int
@@ -192,6 +193,7 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
     const uint32_t          start         = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
     int                     m, s, f;
     uint8_t                 mode = 0, form = 0;
+    int64_t                 pregap_length = 0;
 
     memset(buffer, 0, 2448);
 
@@ -202,7 +204,11 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
 
     track = aaru_image_get_track(local, lba);
 
-    if (aaruf_read_sector_long(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status)) {
+    if (mode == 0) {
+        length = 2352;
+        // Just read the audio sector. Errors can be ignored here.
+        (void)aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status);
+    } else if (aaruf_read_sector_long(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status)) {
         length = 2048;
         if (!aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status))
             goto generate_headers;
@@ -259,8 +265,18 @@ generate_subchannel:
         /* Construct Q. */
         buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
         buffer[2352 + 1] = bin2bcd(ct->point);
-        buffer[2352 + 2] = 1;
-        FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
+        pregap_length = aaru_image_get_pregap_length(ioctl, ct->point);
+        if (pregap_length && ((lba + 150) - start) < pregap_length) {
+            /*
+                Pre-gap sector relative frame addresses count from
+                the pregap length downwards.
+            */
+            buffer[2352 + 2] = 0;
+            FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
+        } else {
+            buffer[2352 + 2] = 1;
+            FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
+        }
         buffer[2352 + 3] = bin2bcd(m);
         buffer[2352 + 4] = bin2bcd(s);
         buffer[2352 + 5] = bin2bcd(f);
