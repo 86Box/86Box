@@ -19,7 +19,7 @@
 #ifndef LIBAARUFORMAT_ENUMS_H
 #define LIBAARUFORMAT_ENUMS_H
 
-#ifndef _MSC_VER
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #endif
