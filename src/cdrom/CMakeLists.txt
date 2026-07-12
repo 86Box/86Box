@@ -56,7 +56,7 @@ string(REPLACE "-Og" "-O3" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 
 target_include_directories(cdrom_aaru PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")
 
-if(APPLE OR WIN32)
+if(WIN32)
 target_link_libraries(cdrom_aaru -static aaruformat)
 else()
 target_link_libraries(cdrom_aaru aaruformat)
