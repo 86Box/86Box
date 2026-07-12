@@ -342,7 +342,7 @@ typedef enum
     kECGroupIndex       = 4   ///< Index block (K=1, M replicas).
 } ErasureCodingGroupType;
 
-#ifndef _MSC_VER
+#ifdef __clang_
 #pragma clang diagnostic pop
 #endif
 

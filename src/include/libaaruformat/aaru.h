@@ -19,7 +19,7 @@
 #ifndef LIBAARUFORMAT_AARU_H
 #define LIBAARUFORMAT_AARU_H
 
-#ifndef _MSC_VER
+#ifdef __clang_
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 #endif
@@ -1094,7 +1094,7 @@ typedef enum
 
 // NOLINTEND(readability-identifier-naming)
 
-#ifndef _MSC_VER
+#ifdef __clang_
 #pragma clang diagnostic pop
 #endif
 

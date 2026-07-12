@@ -44,6 +44,6 @@
 
 #endif  // LIBAARUFORMAT_STRUCTS_H
 
-#ifndef _MSC_VER
+#ifdef __clang_
 #pragma clang diagnostic pop
 #endif
