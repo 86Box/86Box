@@ -36,7 +36,7 @@ else()
 endif()
 
 target_include_directories(cdrom_aaru PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")
-target_link_libraries(cdrom_aaru PRIVATE aaruformat)
+target_link_libraries(cdrom_aaru -static aaruformat)
 
 add_library(cdrom OBJECT
     cdrom.c
