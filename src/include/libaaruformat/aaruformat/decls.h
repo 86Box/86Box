@@ -277,17 +277,17 @@ AARU_EXPORT void AARU_CALL aaruf_sha256_buffer(const void *data, unsigned long s
 #if defined(__x86_64__) || defined(__amd64) || defined(_M_AMD64) || defined(_M_X64) || defined(__I386__) || \
     defined(__i386__) || defined(__THW_INTEL) || defined(_M_IX86)
 
-AARU_EXPORT int have_clmul();
-AARU_EXPORT int have_ssse3();
-AARU_EXPORT int have_avx2();
+AARU_EXPORT int have_clmul(void);
+AARU_EXPORT int have_ssse3(void);
+AARU_EXPORT int have_avx2(void);
 
 AARU_EXPORT CLMUL uint64_t AARU_CALL aaruf_crc64_clmul(uint64_t crc, const uint8_t *data, long length);
 #endif
 
 #if defined(__aarch64__) || defined(_M_ARM64) || defined(__arm__) || defined(_M_ARM)
-AARU_EXPORT int have_neon();
-AARU_EXPORT int have_arm_crc32();
-AARU_EXPORT int have_arm_crypto();
+AARU_EXPORT int have_neon(void);
+AARU_EXPORT int have_arm_crc32(void);
+AARU_EXPORT int have_arm_crypto(void);
 
 AARU_EXPORT TARGET_WITH_SIMD uint64_t AARU_CALL aaruf_crc64_vmull(uint64_t previous_crc, const uint8_t *data, long len);
 #endif
