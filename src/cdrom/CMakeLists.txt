@@ -35,8 +35,10 @@ else()
     target_compile_options(aaruformat PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types -Wno-pointer-sign -w)
 endif()
 
+target_compile_options(cdrom_aaru PRIVATE "$<$<CONFIG:DEBUG>:-O3>")
+
 target_include_directories(cdrom_aaru PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")
-target_link_libraries(cdrom_aaru -static png aaruformat)
+target_link_libraries(cdrom_aaru aaruformat)
 
 add_library(cdrom OBJECT
     cdrom.c
