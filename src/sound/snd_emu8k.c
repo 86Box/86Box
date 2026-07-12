@@ -1772,11 +1772,8 @@ emu8k_update(emu8k_t *emu8k)
         emu_voice = &emu8k->voice[c];
         buf       = &emu8k->buffer[emu8k->pos * 2];
 
-        /* Skip entirely idle voices — no sound output and no envelope to process. */
-        if (!emu_voice->env_engine_on && !emu_voice->cvcf_curr_volume)
-            continue;
-
-        num_active++;
+        if (emu_voice->env_engine_on || emu_voice->cvcf_curr_volume)
+            num_active++;
 
         for (pos = emu8k->pos; pos < wavetable_pos_global; pos++) {
             int32_t dat;
