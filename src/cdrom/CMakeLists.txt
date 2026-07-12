@@ -26,13 +26,13 @@ add_library(cdrom_aaru OBJECT
     cdrom_aaru.c)
 
 if(APPLE)
-    target_compile_options(cdrom_aaru PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline)
+    target_compile_options(cdrom_aaru PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types)
 
-    target_compile_options(aaruformat PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline)
+    target_compile_options(aaruformat PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types)
 else()
-    target_compile_options(cdrom_aaru PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline)
+    target_compile_options(cdrom_aaru PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types)
 
-    target_compile_options(aaruformat PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline)
+    target_compile_options(aaruformat PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types)
 endif()
 
 target_include_directories(cdrom_aaru PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")
