@@ -5134,8 +5134,10 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5424:
-            if (local & 0x200)
-                romfn = /*NULL*/ "roms/machines/advantage40xxd/AST101.09A";
+            if ((local & 0x200) && (machines[machine].init == machine_at_advantage40xxd_init))
+                romfn = "roms/machines/advantage40xxd/AST101.09A";
+            else if (local & 0x200)
+                romfn = NULL;
             else
                 romfn = BIOS_GD5422_PATH;
             break;

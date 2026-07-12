@@ -82,7 +82,8 @@ enum {
     PHOENIX_JUMPER_PCI     = 1,
     PHOENIX_JUMPER_PB600   = 2,
     PHOENIX_JUMPER_MONSOON = 3,
-    PHOENIX_JUMPER_PB400   = 4
+    PHOENIX_JUMPER_PB400   = 4,
+    PHOENIX_JUMPER_PB430   = 5
 };
 
 #ifdef ENABLE_PHOENIX_486_JUMPER_LOG
@@ -118,6 +119,8 @@ phoenix_486_jumper_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
             dev->jumper |= 0x10;
     } else if (dev->type == PHOENIX_JUMPER_PB400)
         dev->jumper = val & 0xfb;
+    else if (dev->type == PHOENIX_JUMPER_PB430)
+        dev->jumper = (val & 0xdf) | 0x9f;
     else
         dev->jumper = val;
 }
@@ -148,6 +151,10 @@ phoenix_486_jumper_reset(void *priv)
         dev->jumper = 0xfb;
         if (gfxcard[0] != 0x01)
             dev->jumper &= 0xf3;
+    } else if (dev->type == PHOENIX_JUMPER_PB430) {
+        dev->jumper = 0x9f;
+        if (gfxcard[0] != 0x01)
+            dev->jumper |= 0x40;
     } else {
         dev->jumper = 0x9f;
         if (gfxcard[0] != 0x01)
@@ -246,3 +253,18 @@ const device_t phoenix_486_jumper_pb400_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+const device_t phoenix_486_jumper_pb430_device = {
+    .name          = "Phoenix 486 Jumper Readout (PB430)",
+    .internal_name = "phoenix_486_jumper_pb430",
+    .flags         = 0,
+    .local         = PHOENIX_JUMPER_PB430,
+    .init          = phoenix_486_jumper_init,
+    .close         = phoenix_486_jumper_close,
+    .reset         = phoenix_486_jumper_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+

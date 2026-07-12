@@ -241,6 +241,7 @@ extern const device_t phoenix_486_jumper_pci_device;
 extern const device_t phoenix_486_jumper_pci_pb600_device;
 extern const device_t phoenix_486_jumper_monsoon_device;
 extern const device_t phoenix_486_jumper_pb400_device;
+extern const device_t phoenix_486_jumper_pb430_device;
 
 extern const device_t ast_readout_device;
 extern const device_t ast_nvr_device;
