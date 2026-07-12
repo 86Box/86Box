@@ -422,8 +422,10 @@ aaru_image_open(cdrom_t *dev, const char *path)
             if (res == AARUF_ERROR_BUFFER_TOO_SMALL && length != 0) {
                 img->full_toc = calloc(1, length);
                 res           = aaruf_read_media_tag(img->aaruf_context, img->full_toc, kMediaTagFullToc, &length);
-                if (!res)
+                if (!res) {
+                    img->full_toc_size = length;
                     goto toc_skip;
+                }
             }
             // Start generating the full TOC.
             res = aaruf_get_tracks(img->aaruf_context, NULL, &large_length);
