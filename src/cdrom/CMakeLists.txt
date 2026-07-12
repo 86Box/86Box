@@ -48,6 +48,8 @@ else()
 endif()
 endif()
 
+target_include_directories(aaruformat BEFORE PRIVATE "libaaruformat/3rdparty/flac/include" "libaaruformat/3rdparty/flac/src/libFLAC/include")
+
 target_compile_options(cdrom_aaru PRIVATE "$<$<CONFIG:DEBUG>:-O3>")
 
 string(REPLACE "-Og" "-O3" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
