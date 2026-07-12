@@ -16,6 +16,7 @@
 #
 
 set(AARU_BUILD_PACKAGE ON)
+set(BUILD_SHARED_LIBS OFF)
 add_subdirectory(libaaruformat)
 find_package(PkgConfig REQUIRED)
 
