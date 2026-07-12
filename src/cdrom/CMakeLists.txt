@@ -30,11 +30,11 @@ if(ARCH STREQUAL "arm64")
 if(APPLE)
     target_compile_options(cdrom_aaru PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types -Wno-pointer-sign -w)
 
-    target_compile_options(aaruformat PRIVATE -DBLAKE3_USE_NEON=1 -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types -Wno-pointer-sign -w)
+    target_compile_options(aaruformat PRIVATE -DBLAKE3_USE_NEON=0 -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types -Wno-pointer-sign -w)
 else()
     target_compile_options(cdrom_aaru PRIVATE -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types -Wno-pointer-sign -w)
 
-    target_compile_options(aaruformat PRIVATE -DBLAKE3_USE_NEON=1 -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types -Wno-pointer-sign -w)
+    target_compile_options(aaruformat PRIVATE -DBLAKE3_USE_NEON=0 -Wno-unknown-pragmas -Wno-strict-prototypes -Wno-parentheses -Wno-unused-variable -Wno-old-style-definition -Wno-dangling-pointer -Wno-unused-but-set-variable -Wno-unused-function -Wno-unused-variable -Wno-int-conversion -Wno-typedef-redefinition -Wno-inline -Wno-incompatible-pointer-types -Wno-pointer-sign -w)
 endif()
 else()
 if(APPLE)
