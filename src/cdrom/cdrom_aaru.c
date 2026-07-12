@@ -106,22 +106,6 @@ aaru_image_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
 
     *num = (ioctl->full_toc_size - 4) / 11;
     memcpy(rti, ioctl->full_toc + 4, *num * 11);
-
-    raw_track_info_t *raw_track_info = (raw_track_info_t *) rti;
-#if 0
-    for (int i = 0; i < *num; i++) {
-        pclog("======================================\n");
-        pclog("Track %d\n", i);
-        pclog("======================================\n");
-        pclog("Session: %d\n", raw_track_info[i].session);
-        pclog("ADR/CTL: 0x%02X\n", raw_track_info[i].adr_ctl);
-        pclog("Point: %d\n", raw_track_info[i].point);
-        pclog("M:S:F: %02d:%02d:%02d (%02X:%02X:%02X, hex)\n", raw_track_info[i].m, raw_track_info[i].s, raw_track_info[i].f, raw_track_info[i].m, raw_track_info[i].s, raw_track_info[i].f);
-        pclog("Zero: 0x%02X\n", raw_track_info[i].zero);
-        pclog("PM:PS:PF: %d:%d:%d (%X:%X:%X, hex)\n", raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf, raw_track_info[i].pm, raw_track_info[i].ps, raw_track_info[i].pf);
-        pclog("======================================\n");
-    }
-#endif
 }
 
 static int
@@ -412,7 +396,6 @@ aaru_image_allocate_track(aaru_image_t *img)
 void *
 aaru_image_open(cdrom_t *dev, const char *path)
 {
-    int32_t       cur_sess = -1;
     aaru_image_t *img      = (aaru_image_t *) calloc(1, sizeof(aaru_image_t));
 
     if (img) {
@@ -447,9 +430,9 @@ aaru_image_open(cdrom_t *dev, const char *path)
 
             if (res == AARUF_ERROR_BUFFER_TOO_SMALL) {
                 img->track_entries = calloc(1, large_length);
-                if (!(res = aaruf_get_tracks(img->aaruf_context, (uint8_t *) img->track_entries, &large_length))) {
+                if (!(res = aaruf_get_tracks(img->aaruf_context, (uint8_t *) img->track_entries, &large_length)))
                     img->track_size = large_length / sizeof(TrackEntry);
-                } else {
+                else {
                     pclog("Failed to allocate tracks for Aaru images (1)\n");
                     goto cleanup_error;
                 }
@@ -668,4 +651,10 @@ cleanup_error:
     free(img);
 
     return NULL;
+}
+
+int
+cdrom_image_is_aaru(const char *fn)
+{
+    return aaruf_identify(fn);
 }

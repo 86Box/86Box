@@ -606,6 +606,8 @@ extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, co
 extern unsigned long   cdrom_crc32(unsigned long crc, const unsigned char *buf,
                                    size_t len);
 
+extern int             cdrom_image_is_aaru(const char *fn);
+
 extern int             cdrom_assigned_letters;
 
 #ifdef __cplusplus
