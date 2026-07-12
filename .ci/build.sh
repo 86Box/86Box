@@ -994,6 +994,8 @@ mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 prefix="$cache_dir/libaaruformat"
 debug_args=
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
+# Do this temporarily.
+rm -rf $prfix
 if [ -e "$prefix/src/close.c" ]
 then
 	if ! check_buildtag libaaruformat
@@ -1012,7 +1014,7 @@ else
 	for retry in 0 5 10 20 40
 	do
 		sleep $retry
-		git clone --recurse-submodules "https://github.com/obattler/libaaruformat" "$prefix" && break
+		git clone --recurse-submodules --no-shallow-submodules --remote-submodules "https://github.com/obattler/libaaruformat" "$prefix" && break
 	done
 fi
 cd $prefix/src
