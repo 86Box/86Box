@@ -37,6 +37,8 @@ endif()
 
 target_compile_options(cdrom_aaru PRIVATE "$<$<CONFIG:DEBUG>:-O3>")
 
+string(REPLACE "-Og" "-O3" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
+
 target_include_directories(cdrom_aaru PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/libaaruformat/include/")
 target_link_libraries(cdrom_aaru aaruformat)
 
@@ -47,6 +49,7 @@ add_library(cdrom OBJECT
     cdrom_mke.c
 )
 target_link_libraries(86Box cdrom_aaru)
+string(REPLACE "-O3" "-Og" CMAKE_C_FLAGS_DEBUG ${CMAKE_C_FLAGS_DEBUG})
 if(NOT WIN32)
 	target_include_directories(86Box PRIVATE PkgConfig::SNDFILE)
 endif()
