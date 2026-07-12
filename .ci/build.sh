@@ -1005,7 +1005,7 @@ then
 			sleep $retry
 			git -C "$prefix" pull && break
 		done
-		save_buildtag mdsx
+		save_buildtag libaaruformat
 	fi
 else
 	rm -rf "$prefix"
