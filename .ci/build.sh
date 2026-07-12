@@ -970,7 +970,7 @@ then
 	if ! check_buildtag mdsx
 	then
 		git -C "$prefix" clean -dfx
-		git -C "$prefix" reset --recurse-submodules --hard HEAD
+		git -C "$prefix" reset --hard HEAD
 		for retry in 0 5 10 20 40
 		do
 			sleep $retry
@@ -999,7 +999,7 @@ then
 	if ! check_buildtag libaaruformat
 	then
 		git -C "$prefix" clean -dfx
-		git -C "$prefix" reset --hard HEAD
+		git -C "$prefix" reset --recurse-submodules --hard HEAD
 		for retry in 0 5 10 20 40
 		do
 			sleep $retry
