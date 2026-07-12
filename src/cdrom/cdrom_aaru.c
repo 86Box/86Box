@@ -13,6 +13,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <zlib.h>
+#include <limits.h>
 #include <sys/stat.h>
 #ifndef _WIN32
 #    include <libgen.h>
