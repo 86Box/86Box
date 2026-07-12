@@ -80,7 +80,7 @@ AARU_EXPORT int AARU_CALL aaruf_close(void *context);
 
 AARU_EXPORT int32_t AARU_CALL aaruf_read_media_tag(void *context, uint8_t *data, int32_t tag, uint32_t *length);
 
-AARU_EXPORT crc64_ctx *AARU_CALL aaruf_crc64_init();
+AARU_EXPORT crc64_ctx *AARU_CALL aaruf_crc64_init(void);
 AARU_EXPORT int AARU_CALL        aaruf_crc64_update(crc64_ctx *ctx, const uint8_t *data, uint32_t len);
 AARU_EXPORT int AARU_CALL        aaruf_crc64_final(crc64_ctx *ctx, uint64_t *crc);
 AARU_EXPORT void AARU_CALL       aaruf_crc64_free(crc64_ctx *ctx);
@@ -120,7 +120,7 @@ AARU_EXPORT int32_t AARU_CALL aaruf_cst_transform(const uint8_t *interleaved, ui
 
 AARU_EXPORT int32_t AARU_CALL aaruf_cst_untransform(const uint8_t *sequential, uint8_t *interleaved, size_t length);
 
-AARU_EXPORT void *AARU_CALL aaruf_ecc_cd_init();
+AARU_EXPORT void *AARU_CALL aaruf_ecc_cd_init(void);
 
 AARU_EXPORT void AARU_CALL aaruf_ecc_cd_free(void *context);
 
