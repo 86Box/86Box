@@ -114,7 +114,7 @@
 /** Magic number at the end of the recovery footer: "AVRECMFR" in ASCII little-endian. */
 #define AARU_RECOVERY_FOOTER_MAGIC 0x52464D4345525641ULL
 
-#ifdef __clang_
+#ifdef __clang__
 #pragma clang diagnostic pop
 #endif
 
