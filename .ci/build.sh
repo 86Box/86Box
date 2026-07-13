@@ -1017,20 +1017,20 @@ else
 		git clone --recurse-submodules --no-shallow-submodules --remote-submodules "https://github.com/obattler/libaaruformat" "$prefix" && break
 	done
 fi
-PRECD_DIR=$(dirname "$0")
+cwd_root="$(pwd)"
 cd $prefix/src
 echo Now in $prefix/src
 cmake -B build -S .. --preset release -DAARU_BUILD_PACKAGE=ON
 ninja -j12 -C build
 status=0
-mv "build/libaaruformat.dll" $PRECD_DIR/archive_tmp/ || status=1
+mv "build/libaaruformat.dll" $cwd_root/archive_tmp/ || status=1
 rm -rf build
 if [ status == 1 ]
 then
   exit 99
 fi
-cd $PRECD_DIR
-echo Now back in $PRECD_DIR
+cd $cwd_root
+echo Now back in $cwd_root
 
 # Archive the executable and its dependencies.
 # The executable should always be archived last for the check after this block.
