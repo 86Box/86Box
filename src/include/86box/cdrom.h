@@ -156,6 +156,7 @@ static const struct cdrom_drive_types_s {
     { "GOLDSTAR", "CRD-8160B",        "3.14", "",          "goldstar",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  1, -1 } },
     { "GOLDSTAR", "CRD-8240B",        "1.11", "",          "goldstar_8240b", BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  1, -1 } },
     { "GOLDSTAR", "CRD-8320B",        "1.10", "",          "goldstar_8320b", BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  1, -1 } },
+    { "GOLDSTAR", "CRD-8400B",        "1.03", "",          "gs_8400b_103",   BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 } },
     { "GOLDSTAR", "CRD-8400B",        "1.12", "",          "goldstar_8400b", BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 } },
     { "GOLDSTAR", "CRD-8484B",        "1.03", "",          "goldstar_8484b", BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  2 } },
     { "GOLDSTAR", "GCD-R542B",        "1.20", "",          "goldstar_r542b", BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  3,  2,  1, -1 } },
