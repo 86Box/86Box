@@ -1020,8 +1020,8 @@ fi
 cd $prefix/src
 cmake -B build -S .. --preset release -DAARU_BUILD_PACKAGE=ON
 ninja -j12 -C build
-status = 0
-mv "build/src/libaaruformat.dll"* ../../archive_tmp/ || status = 1
+status=0
+mv "build/src/libaaruformat.dll"* ../../archive_tmp/ || status=1
 rm -rf build
 if [ status == 1 ]
 then
