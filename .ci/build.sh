@@ -995,7 +995,7 @@ prefix="$cache_dir/libaaruformat"
 debug_args=
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
 # Do this temporarily.
-rm -rf $prfix
+rm -rf $prefix
 if [ -e "$prefix/src/close.c" ]
 then
 	if ! check_buildtag libaaruformat
