@@ -40,26 +40,26 @@
       <number>0</number>
      </property>
      <item row="0" column="0" colspan="3">
-      <widget class="QTableView" name="tableKeys">
+      <widget class="QTreeView" name="treeViewKeys">
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
        <property name="selectionMode">
         <enum>QAbstractItemView::SingleSelection</enum>
        </property>
-       <property name="selectionBehavior">
-        <enum>QAbstractItemView::SelectRows</enum>
-       </property>
-       <property name="tabKeyNavigation">
-        <bool>false</bool>
-       </property>
-       <property name="showGrid">
-        <bool>true</bool>
-       </property>
        <attribute name="verticalHeaderVisible">
         <bool>false</bool>
        </attribute>
        <property name="alternatingRowColors">
+        <bool>true</bool>
+       </property>
+       <property name="tabKeyNavigation">
+        <bool>false</bool>
+       </property>
+       <property name="rootIsDecorated">
+        <bool>false</bool>
+       </property>
+       <property name="allColumnsShowFocus">
         <bool>true</bool>
        </property>
       </widget>

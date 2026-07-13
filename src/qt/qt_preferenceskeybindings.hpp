@@ -18,7 +18,7 @@ public:
 
 private slots:
     void onKeyBindingsRowChanged(const QModelIndex &current);
-    void on_tableKeys_doubleClicked(const QModelIndex &idx);
+    void on_treeViewKeys_doubleClicked(const QModelIndex &idx);
 
     void on_pushButtonClearBind_clicked();
     void on_pushButtonBind_clicked();

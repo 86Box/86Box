@@ -55,15 +55,14 @@ PreferencesKeyBindings::PreferencesKeyBindings(QWidget *parent)
 
     model->setHeaderData(0, Qt::Horizontal, tr("Action"));
     model->setHeaderData(1, Qt::Horizontal, tr("Keybind"));
-    ui->tableKeys->setModel(model);
+    ui->treeViewKeys->setModel(model);
 
     model->insertRows(0, NUM_ACCELS);
-    ui->tableKeys->setColumnWidth(0, 200);
-    ui->tableKeys->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    ui->treeViewKeys->header()->setSectionResizeMode(0, QHeaderView::Stretch);
 
-    connect(ui->tableKeys->selectionModel(), &QItemSelectionModel::currentRowChanged,
+    connect(ui->treeViewKeys->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &PreferencesKeyBindings::onKeyBindingsRowChanged);
-    ui->tableKeys->setCurrentIndex(model->index(0, 0));
+    ui->treeViewKeys->setCurrentIndex(model->index(0, 0));
 
     // Make a working copy of acc_keys so we can check for dupes later without getting
     // confused
@@ -90,16 +89,15 @@ PreferencesKeyBindings::save()
 void
 PreferencesKeyBindings::refreshInputList()
 {
-    auto *model = ui->tableKeys->model();
+    auto *model = ui->treeViewKeys->model();
 
     for (int x = 0; x < NUM_ACCELS; x++) {
-        ui->tableKeys->setRowHeight(x, 25);
         QModelIndex idx = model->index(x, 0);
         model->setData(idx, tr(acc_keys[x].desc));
         model->setData(idx, QString(acc_keys[x].name), Qt::UserRole);
         model->setData(idx.siblingAtColumn(1), QKeySequence(acc_keys_t[x].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText));
     }
-    ui->tableKeys->resizeColumnToContents(0);
+    ui->treeViewKeys->resizeColumnToContents(0);
 }
 
 void
@@ -115,13 +113,13 @@ PreferencesKeyBindings::onKeyBindingsRowChanged(const QModelIndex &current)
 }
 
 void
-PreferencesKeyBindings::on_tableKeys_doubleClicked(const QModelIndex &idx)
+PreferencesKeyBindings::on_treeViewKeys_doubleClicked(const QModelIndex &idx)
 {
     // Edit bind
     if (!idx.isValid())
         return;
 
-    auto        *model      = ui->tableKeys->model();
+    auto        *model      = ui->treeViewKeys->model();
     QString      keyseqText = model->data(idx.siblingAtColumn(1)).toString();
     QKeySequence keyseq     = KeyBinder::BindKey(this, keyseqText);
     if (keyseq != false) {
@@ -160,22 +158,22 @@ void
 PreferencesKeyBindings::on_pushButtonBind_clicked()
 {
     // Edit bind
-    auto idx = ui->tableKeys->selectionModel()->currentIndex();
+    auto idx = ui->treeViewKeys->selectionModel()->currentIndex();
     if (!idx.isValid())
         return;
 
-    on_tableKeys_doubleClicked(idx);
+    on_treeViewKeys_doubleClicked(idx);
 }
 
 void
 PreferencesKeyBindings::on_pushButtonClearBind_clicked()
 {
     // Wipe bind
-    auto idx = ui->tableKeys->selectionModel()->currentIndex();
+    auto idx = ui->treeViewKeys->selectionModel()->currentIndex();
     if (!idx.isValid())
         return;
 
-    auto *model = ui->tableKeys->model();
+    auto *model = ui->treeViewKeys->model();
     model->setData(idx.siblingAtColumn(1), "");
 
     // Find the correct accelerator key entry
