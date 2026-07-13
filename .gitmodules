@@ -1,3 +1,0 @@
-[submodule "src/cdrom/libaaruformat"]
-	path = src/cdrom/libaaruformat
-	url = https://github.com/Cacodemon345/libaaruformat

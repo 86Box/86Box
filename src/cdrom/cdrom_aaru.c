@@ -1,4 +1,4 @@
-#include "libaaruformat/include/aaruformat.h"
+#include <aaruformat.h>
 
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
@@ -26,6 +26,53 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
+#include <86box/plat_dynld.h>
+
+int (* AARU_CALL f_aaruf_identify)(const char *filename);
+void* (* AARU_CALL f_aaruf_open)(const char *filepath, bool resume_mode, const char *options);
+void* (* AARU_CALL f_aaruf_close)(void *context);
+int32_t (* AARU_CALL f_aaruf_get_tracks)(const void *context, uint8_t *buffer, size_t *length);
+int32_t (* AARU_CALL f_aaruf_set_tracks)(const void *context, TrackEntry *tracks, const int count);
+int32_t (* AARU_CALL f_aaruf_read_sector)(void *context, uint64_t sector_address, bool negative, uint8_t *data, uint32_t *length, uint8_t *sector_status);
+int32_t (* AARU_CALL f_aaruf_read_sector_long)(void *context, uint64_t sector_address, bool negative, uint8_t *data, uint32_t *length, uint8_t *sector_status);
+int32_t (* AARU_CALL f_aaruf_read_sector_tag)(const void *context, uint64_t sector_address, bool negative, uint8_t *buffer, uint32_t *length, int32_t tag);
+int32_t (* AARU_CALL f_aaruf_read_media_tag)(void *context, uint8_t *data, int32_t tag, uint32_t *length);
+int32_t (* AARU_CALL f_aaruf_get_image_info)(const void *context, ImageInfo *image_info);
+
+static dllimp_t aaruf_imports[] = {
+    { "aaruf_identify",         &f_aaruf_identify         },
+    { "aaruf_open",             &f_aaruf_open             },
+    { "aaruf_close",            &f_aaruf_close            },
+    { "aaruf_get_tracks",       &f_aaruf_get_tracks       },
+    { "aaruf_set_tracks",       &f_aaruf_set_tracks       },
+    { "aaruf_read_sector",      &f_aaruf_read_sector      },
+    { "aaruf_read_sector_long", &f_aaruf_read_sector_long },
+    { "aaruf_read_sector_tag",  &f_aaruf_read_sector_tag  },
+    { "aaruf_read_media_tag",   &f_aaruf_read_media_tag   },
+    { "aaruf_get_image_info",   &f_aaruf_get_image_info   },
+    { NULL,                     NULL                      },
+};
+
+static volatile void* libaaruformat_handle = NULL;
+static bool load_failed = false;
+
+static bool
+ensure_libaaruformat(void)
+{
+    if (load_failed)
+        return false;
+    if (!libaaruformat_handle) {
+        libaaruformat_handle = dynld_module("libaaruformat.dll", aaruf_imports);
+        if (!libaaruformat_handle) {
+            warning("Failed to load libaaruformat library.");
+            load_failed = true;
+            return false;
+        }
+    } else {
+        return true;
+    }
+    return true;
+}
 
 typedef struct aaru_image_t {
     cdrom_t *dev;
@@ -159,7 +206,7 @@ aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, u
             length = 8;
             *mode  = 2;
             *form  = 0;
-            if (!aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba, false, buffer, &length, kSectorTagCdSubHeader)) {
+            if (!f_aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba, false, buffer, &length, kSectorTagCdSubHeader)) {
                 *form = 1 + !!(buffer[2] & (1 << 5));
             }
         }
@@ -207,16 +254,16 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
     if (mode == 0) {
         length = 2352;
         // Just read the audio sector. Errors can be ignored here.
-        (void)aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status);
-    } else if (aaruf_read_sector_long(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status)) {
+        (void)f_aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status);
+    } else if (f_aaruf_read_sector_long(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status)) {
         length = 2048;
-        if (!aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status))
+        if (!f_aaruf_read_sector(ioctl->aaruf_context, lba, false, buffer, &length, &sector_status))
             goto generate_headers;
         return -1;
     }
 
     length = 96;
-    if (aaruf_read_sector_tag(ioctl->aaruf_context, lba, false, &buffer[2352], &length, kSectorTagCdSubchannel)) {
+    if (f_aaruf_read_sector_tag(ioctl->aaruf_context, lba, false, &buffer[2352], &length, kSectorTagCdSubchannel)) {
 generate_headers:
         m = s = f = 0;
         if (length == 96)
@@ -335,7 +382,7 @@ aaru_image_close(void *local)
     if (img->full_toc)
         free(img->full_toc);
     if (img->aaruf_context)
-        aaruf_close(img->aaruf_context);
+        f_aaruf_close(img->aaruf_context);
     free(img);
 }
 
@@ -415,16 +462,21 @@ aaru_image_open(cdrom_t *dev, const char *path)
 {
     aaru_image_t *img      = (aaru_image_t *) calloc(1, sizeof(aaru_image_t));
 
+    if (!ensure_libaaruformat()) {
+        free(img);
+        return NULL;
+    }
+
     if (img) {
         img->dev           = dev;
-        img->aaruf_context = aaruf_open(path, false, NULL);
+        img->aaruf_context = f_aaruf_open(path, false, NULL);
         if (img->aaruf_context) {
             uint32_t  length       = 0;
             ptrdiff_t offset_lead  = 0;
             size_t    large_length = 0;
             int32_t   res          = 0;
 
-            if (aaruf_get_image_info(img->aaruf_context, &img->img_info)) {
+            if (f_aaruf_get_image_info(img->aaruf_context, &img->img_info)) {
                 pclog("Failed to get Aaru image info\n");
                 goto cleanup_error;
             }
@@ -434,22 +486,22 @@ aaru_image_open(cdrom_t *dev, const char *path)
                 goto cleanup_error;
             }
 
-            res = aaruf_read_media_tag(img->aaruf_context, NULL, kMediaTagFullToc, &length);
+            res = f_aaruf_read_media_tag(img->aaruf_context, NULL, kMediaTagFullToc, &length);
 
             if (res == AARUF_ERROR_BUFFER_TOO_SMALL && length != 0) {
                 img->full_toc = calloc(1, length);
-                res           = aaruf_read_media_tag(img->aaruf_context, img->full_toc, kMediaTagFullToc, &length);
+                res           = f_aaruf_read_media_tag(img->aaruf_context, img->full_toc, kMediaTagFullToc, &length);
                 if (!res) {
                     img->full_toc_size = length;
                     goto toc_skip;
                 }
             }
             // Start generating the full TOC.
-            res = aaruf_get_tracks(img->aaruf_context, NULL, &large_length);
+            res = f_aaruf_get_tracks(img->aaruf_context, NULL, &large_length);
 
             if (res == AARUF_ERROR_BUFFER_TOO_SMALL) {
                 img->track_entries = calloc(1, large_length);
-                if (!(res = aaruf_get_tracks(img->aaruf_context, (uint8_t *) img->track_entries, &large_length)))
+                if (!(res = f_aaruf_get_tracks(img->aaruf_context, (uint8_t *) img->track_entries, &large_length)))
                     img->track_size = large_length / sizeof(TrackEntry);
                 else {
                     pclog("Failed to allocate tracks for Aaru images (1)\n");
@@ -466,6 +518,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[0].point = 0xA0;
             start_track_info[1].point = 0xA1;
             start_track_info[2].point = 0xA2;
+            // This at least satisfies both the Hexen and Microsoft Music Sampler disc images.
             start_track_info[0].ps    = (img->track_entries[0].type == kTrackTypeCdMode2Formless || img->track_entries[0].type == kTrackTypeCdMode2Form1 || img->track_entries[0].type == kTrackTypeCdMode2Formless) ? 0x20 : 0x00;
 
             int64_t first_track_sess = (int64_t) LLONG_MAX;
@@ -637,11 +690,11 @@ aaru_image_open(cdrom_t *dev, const char *path)
             // so the 3rd and 4th bytes of the Raw TOC is meaningless.
 toc_skip:
             if (!img->track_entries) {
-                res = aaruf_get_tracks(img->aaruf_context, NULL, &large_length);
+                res = f_aaruf_get_tracks(img->aaruf_context, NULL, &large_length);
 
                 if (res == AARUF_ERROR_BUFFER_TOO_SMALL) {
                     img->track_entries = calloc(1, large_length);
-                    if (!(res = aaruf_get_tracks(img->aaruf_context, (uint8_t *) img->track_entries, &large_length))) {
+                    if (!(res = f_aaruf_get_tracks(img->aaruf_context, (uint8_t *) img->track_entries, &large_length))) {
                         img->track_size = large_length / sizeof(TrackEntry);
                     } else {
                         pclog("Failed to allocate tracks for Aaru images\n");
@@ -666,7 +719,7 @@ cleanup_error:
     if (img->full_toc)
         free(img->full_toc);
     if (img->aaruf_context)
-        aaruf_close(img->aaruf_context);
+        f_aaruf_close(img->aaruf_context);
     free(img);
 
     return NULL;
@@ -675,5 +728,7 @@ cleanup_error:
 int
 cdrom_image_is_aaru(const char *fn)
 {
-    return aaruf_identify(fn);
+    if (!ensure_libaaruformat())
+        return 0;
+    return f_aaruf_identify(fn);
 }
