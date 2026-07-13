@@ -48,6 +48,33 @@
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
 
+/* ACC 2168 */
+int
+machine_at_pb430_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pb430/PB430-Dump-2.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&acc3221_device);
+    device_add(&acc2168_device);
+
+    device_add(&phoenix_486_jumper_pb430_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+
 /* ALi M1429G */
 int
 machine_at_atc1762_init(const machine_t *model)
