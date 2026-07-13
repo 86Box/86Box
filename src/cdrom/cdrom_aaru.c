@@ -62,7 +62,13 @@ ensure_libaaruformat(void)
     if (load_failed)
         return false;
     if (!libaaruformat_handle) {
+#ifdef __APPLE__
+        libaaruformat_handle = dynld_module("libaaruformat.dylib", aaruf_imports);
+#elif defined __unix__
+        libaaruformat_handle = dynld_module("libaaruformat.so", aaruf_imports);
+#else
         libaaruformat_handle = dynld_module("libaaruformat.dll", aaruf_imports);
+#endif
         if (!libaaruformat_handle) {
             warning("Failed to load libaaruformat library.");
             load_failed = true;
