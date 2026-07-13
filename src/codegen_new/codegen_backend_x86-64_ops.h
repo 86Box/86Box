@@ -199,4 +199,7 @@ void host_x86_IMUL16_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_IMUL32_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
 void host_x86_IMUL16_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, int16_t imm);
 void host_x86_IMUL32_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, int32_t imm);
+void host_x86_IMUL64_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_MOVSXD_REG_REG(codeblock_t *block, int dst_reg, int src_reg);
+void host_x86_SAR64_IMM(codeblock_t *block, int dst_reg, int shift);
 

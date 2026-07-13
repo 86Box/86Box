@@ -55,6 +55,7 @@ enum {
     FLAGS_SBC16,
     FLAGS_SBC32,
 
+    FLAGS_IMUL8,
     FLAGS_IMUL16,
     FLAGS_IMUL32
 #endif
@@ -105,6 +106,7 @@ ZF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
 #endif
@@ -174,6 +176,7 @@ NF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
 #endif
@@ -235,6 +238,7 @@ PF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
 #endif
@@ -329,6 +333,10 @@ VF_SET(void)
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x4000;
         case FLAGS_ROR32:
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x40000000;
+        case FLAGS_IMUL8: {
+            int32_t res = (int32_t)(int8_t)cpu_state.flags_op1 * (int32_t)(int8_t)cpu_state.flags_op2;
+            return ((res >> 7) != 0 && (res >> 7) != -1);
+        }
         case FLAGS_IMUL16: {
             int32_t res = (int32_t)(int16_t)cpu_state.flags_op1 * (int32_t)(int16_t)cpu_state.flags_op2;
             return ((res >> 15) != 0 && (res >> 15) != -1);
@@ -407,6 +415,7 @@ AF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
 #endif
@@ -491,6 +500,10 @@ CF_SET(void)
             return (cpu_state.flags_res & 0x8000) ? 1 : 0;
         case FLAGS_ROR32:
             return (cpu_state.flags_res & 0x80000000) ? 1 : 0;
+        case FLAGS_IMUL8: {
+            int32_t res = cpu_state.flags_res;
+            return ((res >> 7) != 0 && (res >> 7) != -1);
+        }
         case FLAGS_IMUL16: {
             int32_t res = (int32_t)(int16_t)cpu_state.flags_op1 * (int32_t)(int16_t)cpu_state.flags_op2;
             return ((res >> 15) != 0 && (res >> 15) != -1);

@@ -306,8 +306,8 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 if (cpu_mod == 1) {
                     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
                         LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0_B, cs + (*op_pc) + 1);
-                        uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
-                        uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
+                        uop_MOVSX(ir, IREG_temp1, IREG_temp0_B);
+                        uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp1);
                     } else {
                         uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
                         extra_bytes = 1;

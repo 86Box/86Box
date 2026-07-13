@@ -95,6 +95,7 @@ void host_arm64_FMIN_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src
 void host_arm64_FMUL_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_FMUL_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_MUL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+void host_arm64_SMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_FSUB_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_FSUB_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 
@@ -155,6 +156,7 @@ void host_arm64_MOV_REG_ROR(codeblock_t *block, int dst_reg, int src_m_reg, int 
 
 void host_arm64_MOVX_IMM(codeblock_t *block, int reg, uint64_t imm_data);
 void host_arm64_MOVX_REG(codeblock_t *block, int dst_reg, int src_m_reg, int shift);
+void host_arm64_MOVX_REG_ASR(codeblock_t *block, int dst_reg, int src_m_reg, int shift);
 
 void host_arm64_MOVZ_IMM(codeblock_t *block, int reg, uint32_t imm_data);
 void host_arm64_MOVK_IMM(codeblock_t *block, int reg, uint32_t imm_data);

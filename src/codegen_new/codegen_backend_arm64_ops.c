@@ -101,6 +101,7 @@
 #    define OPCODE_ORR_LSL            (0x150 << 21)
 #    define OPCODE_ORR_LSR            (0x152 << 21)
 #    define OPCODE_ORR_ROR            (0x156 << 21)
+#    define OPCODE_ORRX_ASR           (0x554 << 21)
 #    define OPCODE_ORRX_LSL           (0x550 << 21)
 #    define OPCODE_SUB_LSL            (0x258 << 21)
 #    define OPCODE_SUB_LSR            (0x25a << 21)
@@ -177,6 +178,7 @@
 #    define OPCODE_MSR_FPCR           (0xd51b4400)
 #    define OPCODE_MUL_V4H            (0x0e609c00)
 #    define OPCODE_MUL                (0x1b007c00)
+#    define OPCODE_SMULL              (0x9b207c00)
 #    define OPCODE_NOP                (0xd503201f)
 #    define OPCODE_ORR_V              (0x0ea01c00)
 #    define OPCODE_RET                (0xd65f0000)
@@ -1213,6 +1215,11 @@ host_arm64_MOVX_REG(codeblock_t *block, int dst_reg, int src_m_reg, int shift)
     if (dst_reg != src_m_reg)
         codegen_addlong(block, OPCODE_ORRX_LSL | Rd(dst_reg) | Rn(REG_XZR) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
+void
+host_arm64_MOVX_REG_ASR(codeblock_t *block, int dst_reg, int src_m_reg, int shift)
+{
+    codegen_addlong(block, OPCODE_ORRX_ASR | Rd(dst_reg) | Rn(REG_XZR) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
+}
 
 void
 host_arm64_MOVZ_IMM(codeblock_t *block, int reg, uint32_t imm_data)
@@ -1260,6 +1267,12 @@ void
 host_arm64_MUL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_MUL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+
+void
+host_arm64_SMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_SMULL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 
 void

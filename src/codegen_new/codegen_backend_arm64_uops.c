@@ -156,6 +156,27 @@ codegen_IMUL_IMM(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_IMUL_HI(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
+        host_arm64_SMULL(block, dest_reg, src_reg_a, src_reg_b);
+        host_arm64_MOVX_REG_ASR(block, dest_reg, dest_reg, 32);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("IMUL_HI size mismatch: dest_size=%x, src_size_a=%x, src_size_b=%x\n", dest_size, src_size_a, src_size_b);
+#    endif
+    return 0;
+}
+
+static int
 codegen_AND(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3307,6 +3328,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_IMUL_IMM &
         UOP_MASK]
     = codegen_IMUL_IMM,
+    [UOP_IMUL_HI &
+        UOP_MASK]
+    = codegen_IMUL_HI,
     [UOP_ADD_LSHIFT &
         UOP_MASK]
     = codegen_ADD_LSHIFT,

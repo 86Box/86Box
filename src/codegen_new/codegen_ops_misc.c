@@ -52,7 +52,7 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
     uint8_t imm_data;
     int     reg;
 
-    if (fetchdat & 0x20)
+    if ((fetchdat & 0x20) && ((fetchdat & 0x38) != 0x28)) /*MUL/DIV/IDIV*/
         return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
@@ -110,6 +110,20 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
             codegen_flags_changed = 1;
             return op_pc + 1;
 
+        case 0x28: /*IMUL*/
+            uop_CALL_FUNC(ir, jit_flags_rebuild);
+            uop_MOVZX(ir, IREG_flags_op1, IREG_AL);
+            uop_MOVZX(ir, IREG_flags_op2, reg);
+            uop_MOVSX(ir, IREG_temp1_W, IREG_AL);
+            uop_MOVSX(ir, IREG_temp2_W, reg);
+            uop_IMUL(ir, IREG_temp1_W, IREG_temp1_W, IREG_temp2_W);
+            uop_MOV(ir, IREG_AX, IREG_temp1_W);
+            uop_MOVZX(ir, IREG_flags_res, IREG_AX);
+            uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL8);
+
+            codegen_flags_changed = 1;
+            return op_pc + 1;
+
         default:
             break;
     }
@@ -122,7 +136,7 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     uint16_t imm_data;
     int      reg;
 
-    if (fetchdat & 0x20)
+    if ((fetchdat & 0x20) && ((fetchdat & 0x38) != 0x28)) /*MUL/DIV/IDIV*/
         return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
@@ -180,6 +194,22 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             codegen_flags_changed = 1;
             return op_pc + 1;
 
+        case 0x28: /*IMUL*/
+            uop_CALL_FUNC(ir, jit_flags_rebuild);
+            uop_MOVZX(ir, IREG_flags_op1, IREG_AX);
+            uop_MOVZX(ir, IREG_flags_op2, reg);
+            uop_MOVSX(ir, IREG_temp1, IREG_AX);
+            uop_MOVSX(ir, IREG_temp2, reg);
+            uop_IMUL(ir, IREG_temp1, IREG_temp1, IREG_temp2);
+            uop_MOV(ir, IREG_AX, IREG_temp1_W);
+            uop_SAR_IMM(ir, IREG_temp1, IREG_temp1, 16);
+            uop_MOV(ir, IREG_DX, IREG_temp1_W);
+            uop_MOVZX(ir, IREG_flags_res, IREG_AX);
+            uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL16);
+
+            codegen_flags_changed = 1;
+            return op_pc + 1;
+
         default:
             break;
     }
@@ -192,7 +222,7 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     uint32_t imm_data;
     int      reg;
 
-    if (fetchdat & 0x20)
+    if ((fetchdat & 0x20) && ((fetchdat & 0x38) != 0x28)) /*MUL/DIV/IDIV*/
         return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
@@ -245,6 +275,19 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             }
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SUB32);
             uop_MOV_IMM(ir, IREG_flags_op1, 0);
+
+            codegen_flags_changed = 1;
+            return op_pc + 1;
+
+        case 0x28: /*IMUL*/
+            uop_CALL_FUNC(ir, jit_flags_rebuild);
+            uop_MOV(ir, IREG_flags_op1, IREG_EAX);
+            uop_MOV(ir, IREG_flags_op2, reg);
+            uop_IMUL_HI(ir, IREG_temp1, IREG_EAX, reg);
+            uop_IMUL(ir, IREG_EAX, IREG_EAX, reg);
+            uop_MOV(ir, IREG_EDX, IREG_temp1);
+            uop_MOV(ir, IREG_flags_res, IREG_EAX);
+            uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL32);
 
             codegen_flags_changed = 1;
             return op_pc + 1;

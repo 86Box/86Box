@@ -2061,5 +2061,41 @@ host_x86_IMUL32_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, int32_t im
     }
 }
 
+void
+host_x86_MOVSXD_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
+{
+#ifdef RECOMPILER_DEBUG
+    if ((dst_reg & 8) || (src_reg & 8))
+        fatal("host_x86_MOVSXD_REG_REG - reg & 8\n");
+#endif
+
+    codegen_alloc_bytes(block, 3);
+    codegen_addbyte3(block, 0x48, 0x63, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*movsxd dst_reg, src_reg*/
+}
+
+void
+host_x86_IMUL64_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
+{
+#ifdef RECOMPILER_DEBUG
+    if ((dst_reg & 8) || (src_reg & 8))
+        fatal("host_x86_IMUL64_REG_REG - reg & 8\n");
+#endif
+
+    codegen_alloc_bytes(block, 4);
+    codegen_addbyte4(block, 0x48, 0x0f, 0xaf, 0xc0 | ((dst_reg & 7) << 3) | (src_reg & 7)); /*imul dst_reg, src_reg*/
+}
+
+void
+host_x86_SAR64_IMM(codeblock_t *block, int dst_reg, int shift)
+{
+#ifdef RECOMPILER_DEBUG
+    if (dst_reg & 8)
+        fatal("host_x86_SAR64_IMM - dst_reg & 8\n");
+#endif
+
+    codegen_alloc_bytes(block, 4);
+    codegen_addbyte4(block, 0x48, 0xc1, 0xc0 | RM_OP_SAR | dst_reg, shift); /*SAR dst_reg, shift*/
+}
+
 #endif
 
