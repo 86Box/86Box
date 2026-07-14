@@ -1705,7 +1705,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
                 plat_pause(isNonPause ? dopause : (isShowMessage ? 2 : 1));
             }
             if (mouse_was_captured)
-                emit setMouseCapture(false);
+                plat_mouse_capture(0);
             releaseKeyboard();
             main_window_blocked = 1;
         } else if (event->type() == QEvent::WindowUnblocked) {
@@ -1713,7 +1713,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if (do_auto_dialog_pause > 0)
                 plat_pause(curdopause);
             if (mouse_was_captured) {
-                emit setMouseCapture(true);
+                plat_mouse_capture(1);
             }
             main_window_blocked = 0;
         } else if (event->type() == QEvent::WindowStateChange) {
