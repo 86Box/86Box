@@ -310,6 +310,12 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .desc="Toggle on-screen display",
         .seq="Ctrl+Alt+O"
     }
+,
+    {
+        .name="exit",
+        .desc="Exit",
+        .seq=""
+    }
 };
 
 char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */

@@ -336,7 +336,7 @@ struct accelKey {
 	char desc[64];
 	char seq[64];
 };
-#define NUM_ACCELS 15
+#define NUM_ACCELS 16
 extern struct accelKey acc_keys[NUM_ACCELS];
 extern struct accelKey def_acc_keys[NUM_ACCELS];
 extern int FindAccelerator(const char *name);
