@@ -409,35 +409,45 @@ cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba,
                      subchannel_t *subc, const int cooked)
 {
     uint8_t         q[16]    = { 0 };
+
     if (lba != dev->cached_sector)
         dev->cached_sector = -1;
 
-    (void) read_data(dev, lba, 0);
+    if (dev->cached_sector == -1)
+        dev->subc_sector = -1;
 
-    for (int i = 0; i < 12; i++)
-        for (int j = 0; j < 8; j++)
-             q[i] |= ((dev->raw_buffer[dev->cur_buf][RAW_SECTOR_SIZE +
-                                       (i << 3) + j] >> 6) & 0x01) << (7 - j);
+    if ((dev->cached_sector == -1) || (dev->cached_sector != dev->subc_sector)) {
+        (void) read_data(dev, lba, 0);
 
-    if (cooked) {
-        uint8_t temp = (q[0] >> 4) | ((q[0] & 0xf) << 4);
-        q[0] = temp;
+        for (int i = 0; i < 12; i++)
+            for (int j = 0; j < 8; j++)
+                q[i] |= ((dev->raw_buffer[dev->cur_buf][RAW_SECTOR_SIZE +
+                                          (i << 3) + j] >> 6) & 0x01) << (7 - j);
 
-        for (int i = 1; i < 10; i++) {
-             temp = bcd2bin(q[i]);
-             q[i] = temp;
+        if (cooked) {
+            uint8_t temp = (q[0] >> 4) | ((q[0] & 0xf) << 4);
+            q[0] = temp;
+
+            for (int i = 1; i < 10; i++) {
+                temp = bcd2bin(q[i]);
+                q[i] = temp;
+            }
         }
+
+        dev->cached_subc.attr  = q[0];
+        dev->cached_subc.track = q[1];
+        dev->cached_subc.index = q[2];
+        dev->cached_subc.rel_m = q[3];
+        dev->cached_subc.rel_s = q[4];
+        dev->cached_subc.rel_f = q[5];
+        dev->cached_subc.abs_m = q[7];
+        dev->cached_subc.abs_s = q[8];
+        dev->cached_subc.abs_f = q[9];
+
+        dev->cached_sector = dev->subc_sector;
     }
 
-    subc->attr  = q[0];
-    subc->track = q[1];
-    subc->index = q[2];
-    subc->rel_m = q[3];
-    subc->rel_s = q[4];
-    subc->rel_f = q[5];
-    subc->abs_m = q[7];
-    subc->abs_s = q[8];
-    subc->abs_f = q[9];
+    memcpy(subc, &dev->cached_subc, sizeof(subchannel_t));
 }
 
 static void
@@ -1910,7 +1920,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
     /* Format code. */
     switch (b[0]) {
         /*
-           Mode 0 = Q subchannel mode, first 16 bytes are indentical to mode 1 (current
+           Mode 0 = Q subchannel mode, first 16 bytes are identical to mode 1 (current
                     position), the rest are stuff like ISRC etc., which can be all zeroes.
          */
         case 0x00:

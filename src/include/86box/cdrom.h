@@ -500,6 +500,9 @@ typedef struct cdrom {
 
     uint8_t            p_parity[172];
     uint8_t            q_parity[104];
+
+    subchannel_t      cached_subc;
+    int               subc_sector;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
