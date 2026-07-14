@@ -32,8 +32,8 @@ extern "C" {
 #else
 #    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(dark)} QToolButton:pressed {background: palette(mid)}"
 #endif
-#define SCROLLAREA_STYLESHEET_LIGHT  "QWidget {background-color: palette(light)} QScrollBar{ background-color: none }"
-#define SYSTEMLABEL_STYLESHEET_LIGHT "background-color: palette(midlight);"
+#define SCROLLAREA_STYLESHEET_LIGHT  ""
+#define SYSTEMLABEL_STYLESHEET_LIGHT ""
 
 using namespace VMManager;
 
