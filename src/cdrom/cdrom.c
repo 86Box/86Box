@@ -370,6 +370,7 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
 
     if (dev->cached_sector != lba) {
         dev->cached_sector = lba;
+        dev->audio_read    = 0;
 
         ret = dev->ops->read_sector(dev->local,
                                     dev->raw_buffer[dev->cur_buf ^ 1], lba);
@@ -401,24 +402,24 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
         }
 
         dev->cur_buf ^= 1;
+        dev->subc_sector= -1;
     }
 
     return ret;
 }
 
 static void
-cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba,
-                     subchannel_t *subc, const int cooked)
+cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba, const int cooked)
 {
-    uint8_t         q[16]    = { 0 };
-
-    if (lba != dev->cached_sector)
+    if (lba != dev->cached_sector) {
         dev->cached_sector = -1;
-
-    if (dev->cached_sector == -1)
         dev->subc_sector = -1;
+    }
 
-    if ((dev->cached_sector == -1) || (dev->cached_sector != dev->subc_sector)) {
+    if (dev->subc_sector == -1) {
+        subchannel_t *subc  = &dev->cached_subc;
+        uint8_t       q[16] = { 0 };
+
         (void) read_data(dev, lba, 0);
 
         for (int i = 0; i < 12; i++)
@@ -436,20 +437,10 @@ cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba,
             }
         }
 
-        dev->cached_subc.attr  = q[0];
-        dev->cached_subc.track = q[1];
-        dev->cached_subc.index = q[2];
-        dev->cached_subc.rel_m = q[3];
-        dev->cached_subc.rel_s = q[4];
-        dev->cached_subc.rel_f = q[5];
-        dev->cached_subc.abs_m = q[7];
-        dev->cached_subc.abs_s = q[8];
-        dev->cached_subc.abs_f = q[9];
+        memcpy(subc, q, 10);
 
-        dev->cached_sector = dev->subc_sector;
+        dev->subc_sector = dev->cached_sector;
     }
-
-    memcpy(subc, &dev->cached_subc, sizeof(subchannel_t));
 }
 
 static void
@@ -1509,6 +1500,7 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, const int len)
 
     while (dev->cd_buflen < len) {
         if (dev->seek_pos < dev->cd_end) {
+            dev->audio_read = 1;
             ret = dev->ops->read_sector(dev->local,
                                         dev->raw_buffer[dev->cur_buf ^ 1],
                                         dev->seek_pos);
@@ -1532,6 +1524,9 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, const int len)
                 }
                 dev->seek_pos++;
                 dev->cd_buflen += (RAW_SECTOR_SIZE / 2);
+
+                dev->subc_sector   = -1;
+
                 ret = 1;
             } else {
                 cdrom_log(dev->log, "Read LBA %08X failed\n", dev->seek_pos);
@@ -1912,18 +1907,18 @@ cdrom_get_current_status(const cdrom_t *dev)
 void
 cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
 {
-    subchannel_t  subc;
-    int           base      = 0;
-    int           diff      = 4;
+    const subchannel_t *subc      = &dev->cached_subc;
+    int                 base      = 0;
+    int                 diff      = 4;
 
     if (dev->cached_sector == -1)
-        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 1);
+        cdrom_get_subchannel(dev, dev->seek_pos, 1);
     else
-        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 1);
+        cdrom_get_subchannel(dev, dev->cached_sector, 1);
 
     cdrom_log(dev->log, "Returned subchannel absolute at %02i:%02i.%02i, "
               "relative at %02i:%02i.%02i, seek pos = %08x, cd_end = %08x.\n",
-              subc.abs_m, subc.abs_s, subc.abs_f, subc.rel_m, subc.rel_s, subc.rel_f,
+              subc->abs_m, subc->abs_s, subc->abs_f, subc->rel_m, subc->rel_s, subc->rel_f,
               dev->seek_pos, dev->cd_end);
 
     /* Format code. */
@@ -1939,43 +1934,43 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
             fallthrough;
         case 0x01:
             /* Current position. */
-            b[1] = subc.attr;
+            b[1] = subc->attr;
             if ((dev->is_bcd || dev->is_chinon) &&
-                (subc.track >= 1) && (subc.track <= 99))
-                b[2] = bin2bcd(subc.track);
+                (subc->track >= 1) && (subc->track <= 99))
+                b[2] = bin2bcd(subc->track);
             else
-                b[2] = subc.track;
-            b[3] = subc.index;
+                b[2] = subc->track;
+            b[3] = subc->index;
 
             if (msf) {
                 b[4] = b[8] = 0x00;
 
                 /* NEC CDR-260 speaks BCD. */
                 if (dev->is_bcd) {
-                    b[5]  = bin2bcd(subc.abs_m);
-                    b[6]  = bin2bcd(subc.abs_s);
-                    b[7]  = bin2bcd(subc.abs_f);
+                    b[5]  = bin2bcd(subc->abs_m);
+                    b[6]  = bin2bcd(subc->abs_s);
+                    b[7]  = bin2bcd(subc->abs_f);
 
-                    b[9]  = bin2bcd(subc.rel_m);
-                    b[10] = bin2bcd(subc.rel_s);
-                    b[11] = bin2bcd(subc.rel_f);
+                    b[9]  = bin2bcd(subc->rel_m);
+                    b[10] = bin2bcd(subc->rel_s);
+                    b[11] = bin2bcd(subc->rel_f);
                 } else {
-                    b[5]  = subc.abs_m;
-                    b[6]  = subc.abs_s;
-                    b[7]  = subc.abs_f;
+                    b[5]  = subc->abs_m;
+                    b[6]  = subc->abs_s;
+                    b[7]  = subc->abs_f;
 
-                    b[9]  = subc.rel_m;
-                    b[10] = subc.rel_s;
-                    b[11] = subc.rel_f;
+                    b[9]  = subc->rel_m;
+                    b[10] = subc->rel_s;
+                    b[11] = subc->rel_f;
                 }
             } else {
-                uint32_t dat   = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
+                uint32_t dat   = MSFtoLBA(subc->abs_m, subc->abs_s, subc->abs_f) - 150;
                 b[4]  = (dat >> 24) & 0xff;
                 b[5]  = (dat >> 16) & 0xff;
                 b[6]  = (dat >> 8) & 0xff;
                 b[7]  = dat & 0xff;
 
-                dat   = MSFtoLBA(subc.rel_m, subc.rel_s, subc.rel_f);
+                dat   = MSFtoLBA(subc->rel_m, subc->rel_s, subc->rel_f);
                 b[8]  = (dat >> 24) & 0xff;
                 b[9]  = (dat >> 16) & 0xff;
                 b[10] = (dat >> 8) & 0xff;
@@ -1992,9 +1987,9 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
             memset(&(b[base + 1]), 0x30, 13);
             /* NEC CDR-260 speaks BCD. */
             if (dev->is_bcd)
-                b[base + 15] = bin2bcd(subc.abs_f);
+                b[base + 15] = bin2bcd(subc->abs_f);
             else
-                b[base + 15] = subc.abs_f;
+                b[base + 15] = subc->abs_f;
             if (b[0] != 0x00)
                 break;
             base += 16;
@@ -2006,9 +2001,9 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
             memset(&(b[base]), 0x30, 12);
             /* NEC CDR-260 speaks BCD. */
             if (dev->is_bcd)
-                b[base + 14] = bin2bcd(subc.abs_f);
+                b[base + 14] = bin2bcd(subc->abs_f);
             else
-                b[base + 14] = subc.abs_f;
+                b[base + 14] = subc->abs_f;
             break;
         default:
             cdrom_log(dev->log, "b[0] = %02X\n", b[0]);
@@ -2019,34 +2014,34 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
 void
 cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, const int msf)
 {
-    subchannel_t subc;
+    const subchannel_t *subc = &dev->cached_subc;
 
     if (dev->cached_sector == -1)
-        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 1);
+        cdrom_get_subchannel(dev, dev->seek_pos, 1);
     else
-        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 1);
+        cdrom_get_subchannel(dev, dev->cached_sector, 1);
 
     cdrom_log(dev->log, "Returned subchannel at %02i:%02i.%02i, seek pos = %08x, "
               "cd_end = %08x, msf = %x.\n",
               subc.abs_m, subc.abs_s, subc.abs_f, dev->seek_pos, dev->cd_end, msf);
 
-    b[0] = subc.attr;
-    b[1] = subc.track;
-    b[2] = subc.index;
+    b[0] = subc->attr;
+    b[1] = subc->track;
+    b[2] = subc->index;
 
     if (msf) {
-        b[3] = subc.rel_m;
-        b[4] = subc.rel_s;
-        b[5] = subc.rel_f;
-        b[6] = subc.abs_m;
-        b[7] = subc.abs_s;
-        b[8] = subc.abs_f;
+        b[3] = subc->rel_m;
+        b[4] = subc->rel_s;
+        b[5] = subc->rel_f;
+        b[6] = subc->abs_m;
+        b[7] = subc->abs_s;
+        b[8] = subc->abs_f;
     } else {
-        uint32_t dat      = MSFtoLBA(subc.rel_m, subc.rel_s, subc.rel_f);
+        uint32_t dat      = MSFtoLBA(subc->rel_m, subc->rel_s, subc->rel_f);
         b[3] = (dat >> 16) & 0xff;
         b[4] = (dat >> 8) & 0xff;
         b[5] = dat & 0xff;
-        dat      = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
+        dat      = MSFtoLBA(subc->abs_m, subc->abs_s, subc->abs_f) - 150;
         b[6] = (dat >> 16) & 0xff;
         b[7] = (dat >> 8) & 0xff;
         b[8] = dat & 0xff;
@@ -2056,13 +2051,13 @@ cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, const int msf)
 uint8_t
 cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b)
 {
-    uint8_t      ret;
-    subchannel_t subc;
+    uint8_t             ret;
+    const subchannel_t *subc = &dev->cached_subc;
 
     if (dev->cached_sector == -1)
-        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 0);
+        cdrom_get_subchannel(dev, dev->seek_pos, 0);
     else
-        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 0);
+        cdrom_get_subchannel(dev, dev->cached_sector, 0);
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
         if (dev->cd_status == CD_STATUS_PLAYING)
@@ -2075,9 +2070,9 @@ cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b)
         ret = 0x05;
 
     b[0] = 0;
-    b[1] = subc.abs_m;
-    b[2] = subc.abs_s;
-    b[3] = subc.abs_f;
+    b[1] = subc->abs_m;
+    b[2] = subc->abs_s;
+    b[3] = subc->abs_f;
 
     return ret;
 }
@@ -2085,13 +2080,13 @@ cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b)
 uint8_t
 cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, const int msf)
 {
-    uint8_t      ret;
-    subchannel_t subc;
+    const subchannel_t *subc = &dev->cached_subc;
+    uint8_t             ret;
 
     if (dev->cached_sector == -1)
-        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 1);
+        cdrom_get_subchannel(dev, dev->seek_pos, 1);
     else
-        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 1);
+        cdrom_get_subchannel(dev, dev->cached_sector, 1);
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
         if (dev->cd_status == CD_STATUS_PLAYING)
@@ -2105,11 +2100,11 @@ cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, const int msf)
 
     if (msf) {
         b[0] = 0;
-        b[1] = subc.abs_m;
-        b[2] = subc.abs_s;
-        b[3] = subc.abs_f;
+        b[1] = subc->abs_m;
+        b[2] = subc->abs_s;
+        b[3] = subc->abs_f;
     } else {
-        const uint32_t dat = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
+        const uint32_t dat = MSFtoLBA(subc->abs_m, subc->abs_s, subc->abs_f) - 150;
         b[0] = (dat >> 24) & 0xff;
         b[1] = (dat >> 16) & 0xff;
         b[2] = (dat >> 8) & 0xff;
@@ -2122,22 +2117,22 @@ cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, const int msf)
 void
 cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b)
 {
-    subchannel_t subc;
+    const subchannel_t *subc = &dev->cached_subc;
 
     if (dev->cached_sector == -1)
-        cdrom_get_subchannel(dev, dev->seek_pos, &subc, 0);
+        cdrom_get_subchannel(dev, dev->seek_pos, 0);
     else
-        cdrom_get_subchannel(dev, dev->cached_sector, &subc, 0);
+        cdrom_get_subchannel(dev, dev->cached_sector, 0);
 
-    b[0] = (subc.attr >> 4) | ((subc.attr & 0xf) << 4);
-    b[1] = subc.track;
-    b[2] = subc.index;
-    b[3] = subc.rel_m;
-    b[4] = subc.rel_s;
-    b[5] = subc.rel_f;
-    b[6] = subc.abs_m;
-    b[7] = subc.abs_s;
-    b[8] = subc.abs_f;
+    b[0] = (subc->attr >> 4) | ((subc->attr & 0xf) << 4);
+    b[1] = subc->track;
+    b[2] = subc->index;
+    b[3] = subc->rel_m;
+    b[4] = subc->rel_s;
+    b[5] = subc->rel_f;
+    b[6] = subc->abs_m;
+    b[7] = subc->abs_s;
+    b[8] = subc->abs_f;
 
     cdrom_log(dev->log, "SubCodeQ: %02X %02X %02X %02X %02X %02X %02X %02X "
               "%02X\n",
@@ -2986,7 +2981,9 @@ void
 cdrom_set_empty(cdrom_t *dev)
 {
     dev->cd_status      = CD_STATUS_EMPTY;
+
     dev->cached_sector  = -1;
+    dev->subc_sector    = -1;
 }
 
 void
@@ -3011,6 +3008,8 @@ cdrom_update_status(cdrom_t *dev)
                                                                 CD_STATUS_DATA_ONLY;
 
     dev->cached_sector  = -1;
+    dev->subc_sector    = -1;
+
     dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
 
     if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
@@ -3047,6 +3046,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     }
 
     dev->cached_sector  = -1;
+    dev->subc_sector    = -1;
 
     if (dev->local == NULL) {
         dev->ops           = NULL;
