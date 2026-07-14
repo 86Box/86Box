@@ -1169,6 +1169,8 @@ scsi_cdrom_insert(void *priv)
 
     /* Make sure all cached sectors are cleared. */
     dev->drv->cached_sector = -1;
+    dev->drv->subc_sector = -1;
+
     dev->toc_cached         = 0;
 
     if (dev->drv->ops == NULL) {
@@ -1407,6 +1409,7 @@ scsi_cdrom_reset(scsi_common_t *sc)
         scsi_cdrom_info         = 0x00000000;
         dev->drv->cd_status    &= ~CD_STATUS_TRANSITION;
         dev->drv->cached_sector = -1;
+        dev->drv->subc_sector   = -1;
         dev->toc_cached         = 0;
     }
 }
@@ -1558,6 +1561,7 @@ scsi_cdrom_cache_toc(scsi_cdrom_t *dev)
         dev->drv->seek_pos      = -150;
         dev->requested_blocks   = 150;
         dev->drv->cached_sector = -1;
+        dev->drv->subc_sector   = -1;
     }
 }
 
@@ -3935,7 +3939,9 @@ scsi_cdrom_drive_reset(const int c)
     dev->cur_lun       = SCSI_LUN_USE_CDB;
 
     dev->toc_cached    = 0;
+
     drv->cached_sector = -1;
+    drv->subc_sector   = -1;
 
     drv->insert        = scsi_cdrom_insert;
     drv->get_volume    = scsi_cdrom_get_volume;

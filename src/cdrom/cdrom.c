@@ -395,7 +395,9 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
 
         if (ret <= 0) {
             memset(dev->raw_buffer[dev->cur_buf ^ 1], 0x00, 2448);
+
             dev->cached_sector = -1;
+            dev->subc_sector = -1;
         }
 
         dev->cur_buf ^= 1;
@@ -1047,6 +1049,7 @@ cdrom_drive_reset(cdrom_t *dev)
     dev->get_channel   = NULL;
 
     dev->cached_sector = -1;
+    dev->subc_sector = -1;
 
     if (cdrom_drive_types[dev->type].speed == -1)
         dev->real_speed  = dev->speed;
@@ -1062,7 +1065,9 @@ cdrom_unload(cdrom_t *dev)
     }
 
     dev->cd_status     = CD_STATUS_EMPTY;
+
     dev->cached_sector = -1;
+    dev->subc_sector = -1;
 
     if (dev->local != NULL) {
         dev->ops->close(dev->local);
@@ -1482,7 +1487,9 @@ cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type)
     cdrom_stop(dev);
 
     dev->seek_pos      = real_pos;
+
     dev->cached_sector = -1;
+    dev->subc_sector = -1;
 }
 
 #include <86box/filters.h>
@@ -1656,8 +1663,10 @@ cdrom_audio_play(cdrom_t *dev, const uint32_t pos, const uint32_t len, const int
             dev->cd_status     = CD_STATUS_PLAYING;
             dev->cd_buflen     = 0;
 
-            if (dev->cached_sector != dev->seek_pos)
+            if (dev->cached_sector != dev->seek_pos) {
                 dev->cached_sector = -1;
+                dev->subc_sector = -1;
+            }
         } else {
             cdrom_log(dev->log, "LBA %08X not on an audio track\n", pos);
             cdrom_stop(dev);
@@ -3095,8 +3104,10 @@ cdrom_global_init(void)
     /* Clear the global data. */
     memset(cdrom, 0x00, sizeof(cdrom));
 
-    for (uint8_t i = 0; i < CDROM_NUM; i++)
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom[i].cached_sector = -1;
+        cdrom[i].subc_sector = -1;
+    }
 }
 
 void
@@ -3153,6 +3164,7 @@ cdrom_hard_reset(void)
             dev->host_letter = 0xff;
 
             dev->cached_sector = -1;
+            dev->subc_sector = -1;
 
             if (strlen(dev->image_path) > 0) {
 #ifdef _WIN32
@@ -3212,6 +3224,7 @@ cdrom_insert(const uint8_t id)
     cdrom_t *dev = &cdrom[id];
 
     dev->cached_sector = -1;
+    dev->subc_sector = -1;
 
     if (dev->bus_type && dev->insert)
         dev->insert(dev->priv);
@@ -3225,6 +3238,7 @@ cdrom_exit(const uint8_t id)
     strcpy(dev->prev_image_path, dev->image_path);
 
     dev->cached_sector = -1;
+    dev->subc_sector = -1;
 
     if (dev->ops) {
         cdrom_unload(dev);
