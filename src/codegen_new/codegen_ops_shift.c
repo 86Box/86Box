@@ -1139,10 +1139,17 @@ ropSHLD_16_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
 {
     int src_reg = (fetchdat >> 3) & 7;
 
+    /*A zero count must preserve the destination and all flags, and counts > 16
+      are undefined for 16-bit operands - leave both to the interpreter*/
     if (!(CL & 0x1f) || (CL & 0x1f) > 16 || !block->ins)
         return 0;
 
-    uop_AND_IMM(ir, IREG_temp2, REG_ECX, 0x1f);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
+
+    uop_AND_IMM(ir, IREG_temp2, IREG_ECX, 0x1f);
+    uop_CMP_IMM_JZ(ir, IREG_temp2, 0, codegen_exit_rout);
+    uop_MOV_IMM(ir, IREG_temp3, 16);
+    uop_CMP_JNBE(ir, IREG_temp2, IREG_temp3, codegen_exit_rout);
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
@@ -1153,7 +1160,8 @@ ropSHLD_16_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
         uop_SHL_IMM(ir, IREG_temp0, IREG_temp0, 16);
         uop_MOVZX(ir, IREG_temp1, IREG_16(src_reg));
         uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
-        uop_SUB(ir, IREG_temp3, IREG_temp3, IREG_temp2); /*temp3 still holds 16*/
+        uop_MOV_IMM(ir, IREG_temp3, 16);
+        uop_SUB(ir, IREG_temp3, IREG_temp3, IREG_temp2);
         uop_SHR(ir, IREG_temp0, IREG_temp0, IREG_temp3);
         uop_MOV(ir, IREG_16(dest_reg), IREG_temp0_W);
         uop_MOV(ir, IREG_flags_op2, IREG_temp2);
@@ -1182,7 +1190,10 @@ ropSHLD_16_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHL16);
     }
 
-    codegen_flags_changed = 1;
+    /*The interpreter materializes SHLD/SHRD flags (flags_op ends up
+      FLAGS_UNKNOWN at codegen time) but the code emitted above leaves them
+      lazy, so the compile-time flags_op doesn't describe the runtime state*/
+    codegen_flags_changed = 0;
     return op_pc + 1;
 }
 uint32_t
@@ -1190,10 +1201,15 @@ ropSHLD_32_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
 {
     int src_reg = (fetchdat >> 3) & 7;
 
+    /*A zero count must preserve the destination and all flags - leave it to
+      the interpreter (the shifts by 32-count below would corrupt the result)*/
     if (!(CL & 0x1f) || !block->ins)
         return 0;
 
-    uop_AND_IMM(ir, IREG_temp2, REG_ECX, 0x1f);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
+
+    uop_AND_IMM(ir, IREG_temp2, IREG_ECX, 0x1f);
+    uop_CMP_IMM_JZ(ir, IREG_temp2, 0, codegen_exit_rout);
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
@@ -1229,7 +1245,8 @@ ropSHLD_32_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHL32);
     }
 
-    codegen_flags_changed = 1;
+    /*See ropSHLD_16_CL - compile-time flags_op doesn't match the runtime state*/
+    codegen_flags_changed = 0;
     return op_pc + 1;
 }
 uint32_t
@@ -1237,10 +1254,15 @@ ropSHRD_16_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
 {
     int src_reg = (fetchdat >> 3) & 7;
 
+    /*A zero count must preserve the destination and all flags - leave it to
+      the interpreter*/
     if (!(CL & 0x1f) || !block->ins)
         return 0;
 
-    uop_AND_IMM(ir, IREG_temp2, REG_ECX, 0x1f);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
+
+    uop_AND_IMM(ir, IREG_temp2, IREG_ECX, 0x1f);
+    uop_CMP_IMM_JZ(ir, IREG_temp2, 0, codegen_exit_rout);
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
@@ -1277,7 +1299,8 @@ ropSHRD_16_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHR16);
     }
 
-    codegen_flags_changed = 1;
+    /*See ropSHLD_16_CL - compile-time flags_op doesn't match the runtime state*/
+    codegen_flags_changed = 0;
     return op_pc + 1;
 }
 uint32_t
@@ -1285,10 +1308,15 @@ ropSHRD_32_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
 {
     int src_reg = (fetchdat >> 3) & 7;
 
+    /*A zero count must preserve the destination and all flags - leave it to
+      the interpreter (the shifts by 32-count below would corrupt the result)*/
     if (!(CL & 0x1f) || !block->ins)
         return 0;
 
-    uop_AND_IMM(ir, IREG_temp2, REG_ECX, 0x1f);
+    uop_CALL_FUNC(ir, jit_flags_rebuild);
+
+    uop_AND_IMM(ir, IREG_temp2, IREG_ECX, 0x1f);
+    uop_CMP_IMM_JZ(ir, IREG_temp2, 0, codegen_exit_rout);
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
@@ -1324,6 +1352,7 @@ ropSHRD_32_CL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
         uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SHR32);
     }
 
-    codegen_flags_changed = 1;
+    /*See ropSHLD_16_CL - compile-time flags_op doesn't match the runtime state*/
+    codegen_flags_changed = 0;
     return op_pc + 1;
 }
