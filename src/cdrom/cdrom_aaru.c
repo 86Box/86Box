@@ -736,5 +736,5 @@ cdrom_image_is_aaru(const char *fn)
 {
     if (!ensure_libaaruformat())
         return 0;
-    return f_aaruf_identify(fn);
+    return (f_aaruf_identify(fn) == 100);
 }

@@ -5145,6 +5145,12 @@ sb_awe32_pnp_available(void)
 }
 
 static int
+sb_awe32_ide_pnp_available(void)
+{
+    return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE32_IDE_PNP);
+}
+
+static int
 sb_awe64_value_available(void)
 {
     return sb_awe32_available() && rom_present(PNP_ROM_SB_AWE64_VALUE);
@@ -8324,7 +8330,7 @@ const device_t sb_awe32_ide_pnp_device = {
     .init          = sb_awe32_pnp_init,
     .close         = sb_awe32_close,
     .reset         = NULL,
-    .available     = sb_awe32_pnp_available,
+    .available     = sb_awe32_ide_pnp_available,
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe32_pnp_config,

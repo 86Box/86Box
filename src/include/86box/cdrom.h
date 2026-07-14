@@ -367,12 +367,13 @@ typedef struct subchannel_t {
     uint8_t attr;
     uint8_t track;
     uint8_t index;
-    uint8_t abs_m;
-    uint8_t abs_s;
-    uint8_t abs_f;
     uint8_t rel_m;
     uint8_t rel_s;
     uint8_t rel_f;
+    uint8_t reserved;
+    uint8_t abs_m;
+    uint8_t abs_s;
+    uint8_t abs_f;
 } subchannel_t;
 
 typedef struct track_info_t {
@@ -500,6 +501,11 @@ typedef struct cdrom {
 
     uint8_t            p_parity[172];
     uint8_t            q_parity[104];
+
+    subchannel_t      cached_subc;
+    int               subc_sector;
+
+    int               audio_read;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];
