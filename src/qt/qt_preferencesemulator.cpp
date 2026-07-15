@@ -86,6 +86,13 @@ PreferencesEmulator::~PreferencesEmulator()
     delete ui;
 }
 
+int
+PreferencesEmulator::changed()
+{
+    return ((lang_id != ui->comboBoxLanguage->currentData().toInt()) ? 1 : 0);
+}
+
+
 void
 PreferencesEmulator::save()
 {
