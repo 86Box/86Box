@@ -604,6 +604,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     if ((ESCSICmd->TargetId > 15) || (ESCSICmd->LogicalUnit > 7)) {
         DataInBuf[2] = CCB_INVALID_CCB;
         DataInBuf[3] = SCSI_STATUS_OK;
+        dev->DataReplyLeft = DataReply;
         return;
     }
 
@@ -615,6 +616,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
         buslogic_log("SCSI Target ID %i has no device attached\n", ESCSICmd->TargetId);
         DataInBuf[2] = CCB_SELECTION_TIMEOUT;
         DataInBuf[3] = SCSI_STATUS_OK;
+        dev->DataReplyLeft = DataReply;
         return;
     } else {
         buslogic_log("SCSI Target ID %i detected and working\n", ESCSICmd->TargetId);
