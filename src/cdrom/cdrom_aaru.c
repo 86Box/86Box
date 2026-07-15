@@ -1,3 +1,22 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Support for Aaru format images via libaaruformat.
+ *
+ * Authors: TheCollector1995, <mariogplayer@gmail.com>,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Cacodemon345
+ *
+ *          Copyright 2023 TheCollector1995.
+ *          Copyright 2023 Miran Grca.
+ *          Copyright 2026 Cacodemon345.
+ */
+
 #include <aaruformat.h>
 
 #define __STDC_FORMAT_MACROS
