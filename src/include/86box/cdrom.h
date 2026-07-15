@@ -506,6 +506,7 @@ typedef struct cdrom {
     int               subc_sector;
 
     int               audio_read;
+    int               formed_mode2;
 } cdrom_t;
 
 extern cdrom_t cdrom[CDROM_NUM];

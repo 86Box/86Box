@@ -337,26 +337,49 @@ cdrom_generate_ecc_data(cdrom_t *dev, const uint8_t *data, int m2f1)
     cdrom_compute_ecc_block(dev, dev->q_parity, data, 52, 43, 86, 88, m2f1);
 }
 
+static void
+cdrom_check_for_formed_mode2(cdrom_t *dev, const uint8_t *b)
+{
+    if (dev->cd_status != CD_STATUS_DVD) {
+        /* XA Mode 2 Form 1 */
+        uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
+
+        dev->formed_mode2 = dev->formed_mode2 || (crc == (*(uint32_t *) &(b[2072])));
+
+        /* XA Mode 2 Form 2 */
+        crc = cdrom_crc32(0xffffffff, &(b[16]), 2332) ^ 0xffffffff;
+
+        dev->formed_mode2 = dev->formed_mode2 || (crc == (*(uint32_t *) &(b[2348])));
+    }
+}
+
 static int
 cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const uint8_t form)
 {
     int            ret = 1;
 
-    if (!dev->no_check && (dev->cd_status != CD_STATUS_DVD) && (!mode2 || (form == 1))) {
+    if (!dev->no_check && (dev->cd_status != CD_STATUS_DVD) && (!mode2 || (form >= 1))) {
         if (mode2 && (form == 1)) {
             const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 
             ret = ret && (crc == (*(uint32_t *) &(b[2072])));
+        } else if (mode2 && (form == 2)) {
+            /* CRC on the 2324 user bytes + the 8 bytes of the sub-headers and no EDC. */
+            const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2332) ^ 0xffffffff;
+
+            ret = ret && (crc == (*(uint32_t *) &(b[2348])));
         } else if (!mode2) {
             const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
 
             ret = ret && (crc == (*(uint32_t *) &(b[2064])));
         }
 
-        cdrom_generate_ecc_data(dev, &(b[12]), mode2 && (form == 1));
+        if (!mode2 || (form == 1)) {
+            cdrom_generate_ecc_data(dev, &(b[12]), mode2 && (form == 1));
 
-        ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
-        ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
+            ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
+            ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
+        }
     }
 
     return ret;
@@ -372,8 +395,12 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
         dev->cached_sector = lba;
         dev->audio_read    = 0;
 
+        dev->formed_mode2  = 0;
+
         ret = dev->ops->read_sector(dev->local,
                                     dev->raw_buffer[dev->cur_buf ^ 1], lba);
+
+        cdrom_check_for_formed_mode2(dev, dev->raw_buffer[dev->cur_buf ^ 1]);
 
         if ((ret > 0) && check) {
             if (dev->mode2) {
@@ -382,13 +409,19 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
                        Use Mode 1, since evidently specification-violating
                        discs exist.
                      */
-                    dev->mode2 = 0;
+                        dev->mode2 = 0;
                 else if (dev->raw_buffer[dev->cur_buf ^ 1][0x0012] ==
                          dev->raw_buffer[dev->cur_buf ^ 1][0x0016])
                     form = ((dev->raw_buffer[dev->cur_buf ^ 1][0x0012] &
                             0x20) >> 5) + 1;
-            } else if (dev->raw_buffer[dev->cur_buf ^ 1][0x000f] == 0x02)
+            } else if (dev->raw_buffer[dev->cur_buf ^ 1][0x000f] == 0x02) {
                 dev->mode2 = 1;
+
+                if (dev->formed_mode2 && (dev->raw_buffer[dev->cur_buf ^ 1][0x0012] ==
+                    dev->raw_buffer[dev->cur_buf ^ 1][0x0016]))
+                    form = ((dev->raw_buffer[dev->cur_buf ^ 1][0x0012] &
+                            0x20) >> 5) + 1;
+            }
 
             if (!cdrom_is_sector_good(dev, dev->raw_buffer[dev->cur_buf ^ 1], dev->mode2, form))
                 ret = -1;
@@ -2574,8 +2607,14 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
                         } else
                             form = ((dev->raw_buffer[dev->cur_buf][0x0012] &
                                     0x20) >> 5) + 1;
-                    } else if (dev->raw_buffer[dev->cur_buf][0x000f] == 0x02)
+                    } else if (dev->raw_buffer[dev->cur_buf][0x000f] == 0x02) {
                         mode2 = 1;
+
+                        if (dev->formed_mode2 && (dev->raw_buffer[dev->cur_buf][0x0012] ==
+                            dev->raw_buffer[dev->cur_buf][0x0016]))
+                            form = ((dev->raw_buffer[dev->cur_buf][0x0012] &
+                                    0x20) >> 5) + 1;
+                    }
 
                     if (ret > 0) {
                         const int mode_id = mode2 + form;
