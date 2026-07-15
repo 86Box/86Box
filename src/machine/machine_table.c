@@ -13836,8 +13836,9 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = 3,
         .kbc_device               = &kbc_at_device,
         .kbc_params               = KBC_VEN_PHOENIX | 0x00021400, /* Guess */
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
+        /* NVR is on the chipset. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
