@@ -2851,6 +2851,9 @@ image_read_sector(const void *local, uint8_t *buffer,
                 if ((trk->mode == 2) && (trk->form == 1)) {
                     crc = cdrom_crc32(0xffffffff, &(buf[16]), 2056) ^ 0xffffffff;
                     memcpy(&(buf[2072]), &crc, 4);
+                } else if ((trk->mode == 2) && (trk->form == 2)) {
+                    crc = cdrom_crc32(0xffffffff, &(buf[16]), 2332) ^ 0xffffffff;
+                    memcpy(&(buf[2348]), &crc, 4);
                 } else {
                     crc = cdrom_crc32(0xffffffff, buf, 2064) ^ 0xffffffff;
                     memcpy(&(buf[2064]), &crc, 4);
@@ -2858,11 +2861,13 @@ image_read_sector(const void *local, uint8_t *buffer,
 
                 int m2f1 = (trk->mode == 2) && (trk->form == 1);
 
-                /* Compute ECC P code. */
-                cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
+                if ((trk->mode == 1) || m2f1) {
+                    /* Compute ECC P code. */
+                    cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
 
-                /* Compute ECC Q code. */
-                cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
+                    /* Compute ECC Q code. */
+                    cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
+                }
             }
 
             if ((ret > 0) && ((idx->type < INDEX_NORMAL) || (trk->subch_type != 0x08))) {
