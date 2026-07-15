@@ -69,6 +69,8 @@ machine_init_ex(int m)
 {
     int ret = 0;
 
+    is_pcjr = !!machine_has_bus(machine, MACHINE_BUS_SIDECAR);
+
     if (!bios_only) {
         machine_log("Initializing as \"%s\"\n", machine_getname(machine));
 
@@ -94,7 +96,8 @@ machine_init_ex(int m)
         pc_speed_changed();
 
         /* Reset the memory state. */
-        mem_reset();
+        if (!dump_missing)
+            mem_reset();
         smbase = is_am486dxl ? 0x00060000 : 0x00030000;
 
         if (cassette_enable)
@@ -122,8 +125,6 @@ machine_init_ex(int m)
         if (machines[m].nvr_device)
             device_add_params(machines[m].nvr_device, (void *) (uintptr_t) machines[m].nvr_params);
     }
-
-    is_pcjr = 0;
 
     /* All good, boot the machine! */
     if (machines[m].init)

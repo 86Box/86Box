@@ -29,7 +29,8 @@ else()
     set(QT_MAJOR 5)
 endif()
 
-set(QT_STATIC ${STATIC_BUILD})
+# set(QT_STATIC ${STATIC_BUILD})
+set(QT_STATIC OFF)
 
 if(QT_STATIC AND MINGW)
     set(CMAKE_PREFIX_PATH "$ENV{MSYSTEM_PREFIX}/qt${QT_MAJOR}-static")

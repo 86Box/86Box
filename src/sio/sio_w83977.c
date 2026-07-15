@@ -1232,10 +1232,12 @@ w83977_reset(void *priv)
             w83977_nvr_handler(dev);
             nvr_bank_set(0, 0, dev->nvr);
 
-            nvr_lock_set(0x80, 0x20, 0, dev->nvr);
-            nvr_lock_set(0xa0, 0x20, 0, dev->nvr);
-            nvr_lock_set(0xc0, 0x20, 0, dev->nvr);
-            nvr_lock_set(0xe0, 0x20, 0, dev->nvr);
+            if (!dump_missing) {
+                nvr_lock_set(0x80, 0x20, 0, dev->nvr);
+                nvr_lock_set(0xa0, 0x20, 0, dev->nvr);
+                nvr_lock_set(0xc0, 0x20, 0, dev->nvr);
+                nvr_lock_set(0xe0, 0x20, 0, dev->nvr);
+            }
         }
 
         w83977_kbc_handler(dev);
@@ -1277,10 +1279,18 @@ w83977_init(const device_t *info)
     else
         dev->fdc       = device_add(&fdc_at_smc_device);
 
-    dev->uart[0]   = device_add_inst(&ns16550_device, (next_id << 1) + 1);
-    dev->uart[1]   = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+    if (info->local & W83977_UART_FORCE_SEC) {
+        dev->uart[0]   = device_add_inst(&ns16550_device, 3);
+        dev->uart[1]   = device_add_inst(&ns16550_device, 4);
+    } else {
+        dev->uart[0]   = device_add_inst(&ns16550_device, (next_id << 1) + 1);
+        dev->uart[1]   = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+    }
 
-    dev->lpt       = device_add_inst(&lpt_port_device, next_id + 1);
+    if (info->local & W83977_LPT_FORCE_SEC)
+        dev->lpt       = device_add_inst(&lpt_port_device, 2);
+    else
+        dev->lpt       = device_add_inst(&lpt_port_device, next_id + 1);
 
     dev->type      = info->local & W83977_TYPE;
 

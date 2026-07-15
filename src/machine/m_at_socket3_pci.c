@@ -534,6 +534,7 @@ machine_at_bat4ip3e_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&i420ex_device);
+    device_close(&ide_pci_2ch_device);
     device_add(&ide_cmd640_pci_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
 
@@ -938,6 +939,7 @@ machine_at_acerp3_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
 
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
+    device_close(&ide_pci_2ch_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
 
     if (gfxcard[0] == VID_INTERNAL)

@@ -531,7 +531,8 @@ opti495_init(const device_t *info)
         dev->regs[0x29] = 0x10;
         dev->regs[0x2a] = 0x80;
         dev->regs[0x2b] = 0x10;
-        dev->ram_mode = opti493_ram_modes[(mem_size >> 10) - 1];
+        if (((mem_size >> 10) - 1) <= 63)
+            dev->ram_mode = opti493_ram_modes[(mem_size >> 10) - 1];
 
         mem_mapping_add(&dev->ram_mapping,
                    0x00000000,

@@ -929,7 +929,8 @@ v6355_standalone_init(const device_t *info) {
                   v6355);
 
     v6355->rgb_type = device_get_config_int("rgb_type");
-    cga_palette     = (v6355->rgb_type << 1);
+    if (&(cga_palette) != NULL)
+        cga_palette     = (v6355->rgb_type << 1);
     cgapal_rebuild();
     update_cga16_color(v6355->cgamode, v6355->cgacol);
 
