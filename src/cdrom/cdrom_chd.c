@@ -33,6 +33,12 @@
 #include <86box/plat_dynld.h>
 
 #undef CD_TRACK_AUDIO
+#undef CD_TRACK_MODE2
+#undef CD_TRACK_MODE2_MASK
+#undef CD_TRACK_MODE_MASK
+#undef CD_TRACK_CDI
+#undef CD_TRACK_NORMAL
+#undef CD_TRACK_UNK_DATA
 
 // TODO: support DVD images.
 
@@ -71,7 +77,7 @@ typedef struct TrackEntry_CHD
 typedef struct chd_image_t {
     cdrom_t *dev;
     chd_file *img_file;
-    chd_header *header;
+    const chd_header *header;
 
     TrackEntry_CHD* track_entries;
     int track_size;
@@ -79,13 +85,15 @@ typedef struct chd_image_t {
     uint8_t* hunk_bytes;
     uint64_t hunk_size;
 
+    int64_t cur_hunk;
+
     uint64_t sectors_per_hunk;
 
     int64_t end_lba;
 
     raw_track_info_t* rti_infos;
     uint32_t rti_size; // NOT in bytes.
-};
+} chd_image_t;
 
 typedef struct chd_image_t chd_image_t;
 
@@ -153,7 +161,7 @@ chd_image_get_track_info(UNUSED(const void *local), UNUSED(const uint32_t track)
 }
 
 static int
-chd_get_track(const chd_image_t *ioctl, const uint32_t sector)
+chd_image_get_track(const chd_image_t *ioctl, const uint32_t sector)
 {
     raw_track_info_t *rti    = (raw_track_info_t *) ioctl->rti_infos;
     int               track  = -1;
@@ -173,7 +181,7 @@ chd_get_track(const chd_image_t *ioctl, const uint32_t sector)
 }
 
 static uint32_t
-chd_get_last_block(const void *local)
+chd_image_get_last_block(const void *local)
 {
     chd_image_t *ioctl = (chd_image_t *) local;
 
@@ -297,21 +305,218 @@ chd_image_close(void *local)
 }
 
 static int
+chd_image_track_audio(const chd_image_t *ioctl, const uint32_t pos)
+{
+    raw_track_info_t *rti = (raw_track_info_t *) ioctl->rti_infos;
+    int               ret = 0;
+
+    if (1) {
+        const int track   = chd_image_get_track(ioctl, pos);
+        const int control = rti[track].adr_ctl;
+
+        ret = !(control & 0x04);
+    }
+
+    return ret;
+}
+
+static int
 chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
-    return 0;
+    chd_image_t            *ioctl         = (chd_image_t *) local;
+    uint8_t                 sector_status = 0;
+    uint64_t                lba           = sector;
+    uint32_t                length        = 2352;
+    int                     track         = chd_image_get_track(local, sector == ~0u ? ioctl->dev->seek_pos : sector);
+    raw_track_info_t       *rti           = (raw_track_info_t *) ioctl->rti_infos;
+    const raw_track_info_t *ct            = &(rti[track]);
+    const uint32_t          start         = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
+    int                     m, s, f;
+    uint8_t                 mode = 0, form = 0;
+    int64_t                 pregap_length = 0;
+    TrackEntry_CHD*         chd_track = &ioctl->track_entries[track - 3];
+
+    if (track == -1)
+        return 0;
+
+    memset(buffer, 0, 2448);
+
+    if (!chd_track->pregap_exists_in_file && sector < (chd_track->start + chd_track->pregap)) {
+        return 1;
+    }
+
+    uint64_t chd_offset = 0;
+    if (chd_track->pregap_exists_in_file) {
+        chd_offset = (chd_track->start - sector) * 2448 + chd_track->chd_start;
+    } else {
+        chd_offset = (chd_track->start - sector - chd_track->pregap) * 2448 + chd_track->chd_start;
+    }
+
+    uint64_t chd_sector = chd_offset / 2448;
+    int64_t hunk_to_use = chd_sector / ioctl->sectors_per_hunk;
+    uint64_t offset_from_hunk = chd_offset - hunk_to_use * ioctl->hunk_size;
+    if (hunk_to_use != ioctl->cur_hunk) {
+        chd_error res = chd_read(ioctl->img_file, (uint32_t)hunk_to_use, ioctl->hunk_bytes);
+        if (res != CHDERR_NONE) {
+            return 0;
+        }
+        ioctl->cur_hunk = hunk_to_use;
+    }
+
+    uint32_t crc = 0;
+
+    switch (chd_track->sector_size) {
+        case 2048:
+        {
+            switch(chd_track->track_type) {
+                case CD_TRACK_MODE1: {
+                    memcpy(&buffer[16], &ioctl->hunk_bytes[offset_from_hunk], 2048);
+                    /* Sync bytes. */
+                    buffer[0] = 0x00;
+                    memset(&(buffer[1]), 0xff, 10);
+                    buffer[11] = 0x00;
+
+                    /* Sector header. */
+                    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+                    buffer[12] = bin2bcd(m);
+                    buffer[13] = bin2bcd(s);
+                    buffer[14] = bin2bcd(f);
+
+                    /* Mode 1/Mode 2 data. */
+                    buffer[15]         = 1;
+                    crc = cdrom_crc32(0xffffffff, buffer, 2064) ^ 0xffffffff;
+                    memcpy(&(buffer[2064]), &crc, 4);
+
+                    /* Compute ECC P code. */
+                    cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]), &(buffer[12]), 86, 24, 2, 86, 0);
+
+                    /* Compute ECC Q code. */
+                    cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]), &(buffer[12]), 52, 43, 86, 88, 0);
+                    break;
+                }
+                case CD_TRACK_MODE2_FORM1: {
+                    memcpy(&buffer[24], &ioctl->hunk_bytes[offset_from_hunk], 2048);
+                    /* Sync bytes. */
+                    buffer[0] = 0x00;
+                    memset(&(buffer[1]), 0xff, 10);
+                    buffer[11] = 0x00;
+
+                    /* Sector header. */
+                    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+                    buffer[12] = bin2bcd(m);
+                    buffer[13] = bin2bcd(s);
+                    buffer[14] = bin2bcd(f);
+
+                    /* Mode 1/Mode 2 data. */
+                    buffer[15]         = 2;
+
+                    uint8_t *subheader = buffer + 16;
+                    /* Construct the CD-I/XA sub-header. */
+                    subheader[2] = subheader[6] = 0;
+
+                    crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2056) ^ 0xffffffff;
+                    memcpy(&(buffer[2072]), &crc, 4);
+
+                    /* Compute ECC P code. */
+                    cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]), &(buffer[12]), 86, 24, 2, 86, 1);
+
+                    /* Compute ECC Q code. */
+                    cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]), &(buffer[12]), 52, 43, 86, 88, 1);
+                    break;
+                }
+            }
+            break;
+        }
+        case 2352:
+        {
+            memcpy(buffer, &ioctl->hunk_bytes[offset_from_hunk], 2352);
+            break;
+        }
+        case 2324:
+        {
+            memcpy(&buffer[24], &ioctl->hunk_bytes[offset_from_hunk], 2324);
+            /* Sync bytes. */
+            buffer[0] = 0x00;
+            memset(&(buffer[1]), 0xff, 10);
+            buffer[11] = 0x00;
+
+            /* Sector header. */
+            FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+            buffer[12] = bin2bcd(m);
+            buffer[13] = bin2bcd(s);
+            buffer[14] = bin2bcd(f);
+
+            /* Mode 1/Mode 2 data. */
+            buffer[15]         = 2;
+            uint8_t *subheader = buffer + 16;
+            /* Construct the CD-I/XA sub-header. */
+            subheader[2] = subheader[6] = 1 << 5;
+            break;
+        }
+        case 2336:
+        {
+            memcpy(&buffer[16], &ioctl->hunk_bytes[offset_from_hunk], 2336);
+            switch (chd_track->track_type) {
+                case CD_TRACK_MODE2_FORM_MIX:
+                case CD_TRACK_MODE2: {
+                    /* Sync bytes. */
+                    buffer[0] = 0x00;
+                    memset(&(buffer[1]), 0xff, 10);
+                    buffer[11] = 0x00;
+
+                    /* Sector header. */
+                    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+                    buffer[12] = bin2bcd(m);
+                    buffer[13] = bin2bcd(s);
+                    buffer[14] = bin2bcd(f);
+
+                    /* Mode 1/Mode 2 data. */
+                    buffer[15] = 2;
+                }
+            }
+            break;
+        }
+    }
+
+    /* Construct Q. */
+    buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
+    buffer[2352 + 1] = bin2bcd(ct->point);
+    pregap_length    = chd_track->pregap;
+    if (pregap_length && ((lba + 150) - start) < pregap_length) {
+        /*
+            Pre-gap sector relative frame addresses count from
+            the pregap length downwards.
+        */
+        buffer[2352 + 2] = 0;
+        FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
+    } else {
+        buffer[2352 + 2] = 1;
+        FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
+    }
+    buffer[2352 + 3] = bin2bcd(m);
+    buffer[2352 + 4] = bin2bcd(s);
+    buffer[2352 + 5] = bin2bcd(f);
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[2352 + 7] = bin2bcd(m);
+    buffer[2352 + 8] = bin2bcd(s);
+    buffer[2352 + 9] = bin2bcd(f);
+    for (int i = 11; i >= 0; i--)
+        for (int j = 7; j >= 0; j--)
+            buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
+
+    return 1;
 }
 
 static uint8_t
 chd_image_get_track_type(const void *local, const uint32_t sector)
 {
     chd_image_t            *ioctl = (chd_image_t *) local;
-    int                     track = aaru_image_get_track(ioctl, sector);
+    int                     track = chd_image_get_track(ioctl, sector);
     raw_track_info_t       *rti   = (raw_track_info_t *) (ioctl->rti_infos);
     const raw_track_info_t *trk   = &(rti[track]);
     uint8_t                 ret   = 0x00;
 
-    if (aaru_image_track_audio(ioctl, sector))
+    if (chd_image_track_audio(ioctl, sector))
         ret = CD_TRACK_AUDIO;
     else if (track != -1)
         for (int i = 0; i < ioctl->rti_size; i++) {
@@ -352,12 +557,12 @@ chd_image_is_dvd(UNUSED(const void *local))
 }
 
 // read sector.
-static const cdrom_ops_t aaru_image_ops = {
+static const cdrom_ops_t chd_image_ops = {
     chd_image_get_track_info,
     chd_image_get_raw_track_info,
     chd_image_read_sector,
     chd_image_get_track_type,
-    chd_get_last_block,
+    chd_image_get_last_block,
     chd_image_read_dvd_structure,
     chd_image_is_dvd,
     chd_image_has_audio,
@@ -405,7 +610,7 @@ chd_image_open(cdrom_t *dev, const char *path)
             int frames = 0;
 
             if (chd_get_metadata(img->img_file, CDROM_TRACK_METADATA2_TAG, img->track_size, temp, sizeof(temp), &temp_len, &temp_tag, &temp_flags) == CHDERR_NONE) {
-                sscanf(temp, CDROM_TRACK_METADATA2_FORMAT, &trk_num, type, subtype, &frames, &trk_pregap, pgtype, pgsub, trk_postgap);
+                sscanf(temp, CDROM_TRACK_METADATA2_FORMAT, &trk_num, type, subtype, &frames, &trk_pregap, pgtype, pgsub, &trk_postgap);
             } else if (chd_get_metadata(img->img_file, CDROM_TRACK_METADATA2_TAG, img->track_size, temp, sizeof(temp), &temp_len, &temp_tag, &temp_flags) == CHDERR_NONE) {
                 sscanf(temp, CDROM_TRACK_METADATA_FORMAT, &trk_num, type, subtype, &frames);
             } else {
@@ -500,6 +705,10 @@ chd_image_open(cdrom_t *dev, const char *path)
         img->rti_infos[2].zero    = 0;
 
         img->end_lba = end_lba;
+
+        img->dev = dev;
+        img->dev->ops = &chd_image_ops;
+        return img;
     }
     return NULL;
 }
