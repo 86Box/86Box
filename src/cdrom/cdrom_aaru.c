@@ -384,7 +384,50 @@ static int
 aaru_image_read_dvd_structure(UNUSED(const void *local), UNUSED(const uint8_t layer), UNUSED(const uint8_t format),
                               UNUSED(uint8_t *buffer), UNUSED(uint32_t *info))
 {
-    // FIXME: How to do this?
+    aaru_image_t *img = (aaru_image_t *) local;
+    if (img->is_dvd) {
+        uint8_t res[2052] = { };
+        uint32_t length = 2052;
+        switch (format) {
+            case 0x00:  /* Physical Format Information (PFI). */
+            {
+                if (!f_aaruf_read_media_tag(img->aaruf_context, res, layer ? kMediaTagDvdPfi2ndLayer : kMediaTagDvdPfi, &length)) {
+                    if (length == 2048) {
+                        memcpy(buffer + 4, res, 2048);
+                        return 2048 + 2;
+                    } else if (length == 2052) {
+                        memcpy(buffer, res, 2052);
+                        return 2048 + 2;
+                    }
+                }
+                
+                break;
+            }
+            case 0x01: /* DVD copyright information (CMI). */
+            {
+                length = 8;
+                if (!f_aaruf_read_media_tag(img->aaruf_context, res, kMediaTagDvdCmi, &length)) {
+                    if (length == 8) {
+                        memcpy(buffer, res, 8);
+                        return 4 + 2;
+                    }
+                }
+
+                break;
+            }
+            case 0x04: /* DVD disc manufacturing information (DMI). */
+            {
+                if (!f_aaruf_read_media_tag(img->aaruf_context, res, kMediaTagDvdDmi, &length)) {
+                    if (length == 2052) {
+                        memcpy(buffer, res, 2052);
+                        return 2048 + 2;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
     return 0;
 }
 
