@@ -346,6 +346,49 @@ ropSETCC_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t o
     return op_pc + 1;
 }
 
+static void
+cmov_select(ir_data_t *ir, int dest_reg, int src_reg)
+{
+    int size        = IREG_GET_SIZE(dest_reg);
+    int mask_reg    = (size == IREG_SIZE_W) ? IREG_temp0_W : IREG_temp0;
+    int scratch_reg = (size == IREG_SIZE_W) ? IREG_temp1_W : IREG_temp1;
+
+    /* IREG_temp0 holds 0/1 from the condition generator. Turn it into
+       0/all-ones and use dest ^= (dest ^ src) & mask. */
+    uop_MOV_IMM(ir, scratch_reg, 0);
+    uop_SUB(ir, mask_reg, scratch_reg, mask_reg);
+    uop_MOV(ir, scratch_reg, dest_reg);
+    uop_XOR(ir, scratch_reg, scratch_reg, src_reg);
+    uop_AND(ir, scratch_reg, scratch_reg, mask_reg);
+    uop_XOR(ir, dest_reg, dest_reg, scratch_reg);
+}
+
+static uint32_t
+ropCMOV_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_pc,
+               void (*gen_cond)(ir_data_t *ir, int invert), int invert, int is_32)
+{
+    int dest_reg;
+    int src_reg;
+
+    if ((fetchdat & 0xc0) != 0xc0)
+        return 0;
+
+    codegen_mark_code_present(block, cs + op_pc, 1);
+
+    if (is_32) {
+        dest_reg = IREG_32((fetchdat >> 3) & 7);
+        src_reg  = IREG_32(fetchdat & 7);
+    } else {
+        dest_reg = IREG_16((fetchdat >> 3) & 7);
+        src_reg  = IREG_16(fetchdat & 7);
+    }
+
+    gen_cond(ir, invert);
+    cmov_select(ir, dest_reg, src_reg);
+
+    return op_pc + 1;
+}
+
 // clang-format off
 #define ropSET(cond, gen, invert)                                       \
     uint32_t ropSET##cond(codeblock_t *block,                           \
@@ -374,4 +417,42 @@ ropSET(L,   setcc_gen_L,  0)
 ropSET(NL,  setcc_gen_L,  1)
 ropSET(LE,  setcc_gen_LE, 0)
 ropSET(NLE, setcc_gen_LE, 1)
+
+#define ropCMOV(cond, gen, invert)                                      \
+    uint32_t ropCMOV##cond##_w(codeblock_t *block,                      \
+                               ir_data_t *ir,                           \
+                               UNUSED(uint8_t opcode),                  \
+                               uint32_t fetchdat,                       \
+                               UNUSED(uint32_t op_32),                  \
+                               uint32_t op_pc)                          \
+    {                                                                   \
+        return ropCMOV_common(block, ir, fetchdat, op_pc, gen, invert, 0); \
+    }                                                                   \
+                                                                        \
+    uint32_t ropCMOV##cond##_l(codeblock_t *block,                      \
+                               ir_data_t *ir,                           \
+                               UNUSED(uint8_t opcode),                  \
+                               uint32_t fetchdat,                       \
+                               UNUSED(uint32_t op_32),                  \
+                               uint32_t op_pc)                          \
+    {                                                                   \
+        return ropCMOV_common(block, ir, fetchdat, op_pc, gen, invert, 1); \
+    }
+
+ropCMOV(O,   setcc_gen_O,  0)
+ropCMOV(NO,  setcc_gen_O,  1)
+ropCMOV(B,   setcc_gen_B,  0)
+ropCMOV(NB,  setcc_gen_B,  1)
+ropCMOV(E,   setcc_gen_E,  0)
+ropCMOV(NE,  setcc_gen_E,  1)
+ropCMOV(BE,  setcc_gen_BE, 0)
+ropCMOV(NBE, setcc_gen_BE, 1)
+ropCMOV(S,   setcc_gen_S,  0)
+ropCMOV(NS,  setcc_gen_S,  1)
+ropCMOV(P,   setcc_gen_P,  0)
+ropCMOV(NP,  setcc_gen_P,  1)
+ropCMOV(L,   setcc_gen_L,  0)
+ropCMOV(NL,  setcc_gen_L,  1)
+ropCMOV(LE,  setcc_gen_LE, 0)
+ropCMOV(NLE, setcc_gen_LE, 1)
 // clang-format on
