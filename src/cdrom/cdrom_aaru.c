@@ -19,7 +19,14 @@
 
 /* Format identification code (C) Natalia Portillo, licensed under LGPLv2.1+. */
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#endif
 #include <aaruformat.h>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
@@ -595,7 +602,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
             start_track_info[1].point = 0xA1;
             start_track_info[2].point = 0xA2;
             // This at least satisfies both the Hexen and Microsoft Music Sampler disc images.
-            start_track_info[0].ps    = (img->track_entries[0].type == kTrackTypeCdMode2Formless || img->track_entries[0].type == kTrackTypeCdMode2Form1 || img->track_entries[0].type == kTrackTypeCdMode2Formless) ? 0x20 : 0x00;
+            start_track_info[0].ps    = (img->track_entries[0].type == kTrackTypeCdMode2Formless || img->track_entries[0].type == kTrackTypeCdMode2Form1 || img->track_entries[0].type == kTrackTypeCdMode2Form2) ? 0x20 : 0x00;
 
             int64_t first_track_sess = (int64_t) LLONG_MAX;
             int64_t last_track_sess  = (int64_t) LLONG_MIN;
