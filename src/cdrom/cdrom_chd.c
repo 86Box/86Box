@@ -345,7 +345,7 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         return 1;
     }
 
-    if (sector >= (chd_track->end - chd_track->postgap)) {
+    if (sector >= ((chd_track->end + 1) - chd_track->postgap)) {
         return 1;
     }
 
