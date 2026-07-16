@@ -1,6 +1,7 @@
 #if defined __amd64__ || defined _M_X64
 
 #    include <stdint.h>
+#    include <limits.h>
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
@@ -13,9 +14,11 @@
 #    include "x87.h"
 #    include "386_common.h"
 #    include "codegen.h"
+#    include "codegen_allocator.h"
 #    include "codegen_backend.h"
 #    include "codegen_backend_x86-64_defs.h"
 #    include "codegen_backend_x86-64_ops.h"
+#    include "codegen_backend_x86-64_ops_helpers.h"
 #    include "codegen_backend_x86-64_ops_sse.h"
 #    include "codegen_ir_defs.h"
 
@@ -32,6 +35,273 @@
 #    define REG_IS_BH(size)   (size == IREG_SIZE_BH)
 #    define REG_IS_D(size)    (size == IREG_SIZE_D)
 #    define REG_IS_Q(size)    (size == IREG_SIZE_Q)
+
+static uint64_t
+codegen_div_u64(uint32_t low, uint32_t high)
+{
+    return ((uint64_t) high << 32) | low;
+}
+
+static int64_t
+codegen_div_s64(uint32_t low, uint32_t high)
+{
+    return (int64_t) codegen_div_u64(low, high);
+}
+
+static uint32_t
+codegen_udiv_check_bits(uint32_t low, uint32_t high, uint32_t divisor, uint32_t bits)
+{
+    uint64_t max_quotient = (bits == 32) ? UINT32_MAX : ((UINT64_C(1) << bits) - 1);
+
+    if (!divisor)
+        return 1;
+
+    return (codegen_div_u64(low, high) / divisor) > max_quotient;
+}
+
+static uint32_t
+codegen_idiv_check_bits(uint32_t low, uint32_t high, uint32_t divisor, uint32_t bits)
+{
+    int64_t dividend = codegen_div_s64(low, high);
+    int32_t divs     = (int32_t) divisor;
+    int64_t min_quotient;
+    int64_t max_quotient;
+    int64_t quotient;
+
+    if (!divs)
+        return 1;
+
+    switch (bits) {
+        case 8:
+            min_quotient = -128;
+            max_quotient = 127;
+            break;
+        case 16:
+            min_quotient = -32768;
+            max_quotient = 32767;
+            break;
+        default:
+            min_quotient = INT32_MIN;
+            max_quotient = INT32_MAX;
+            break;
+    }
+
+    if (dividend == INT64_MIN && divs == -1)
+        return 1;
+
+    quotient = dividend / divs;
+    return quotient < min_quotient || quotient > max_quotient;
+}
+
+static uint32_t
+codegen_udiv_check8(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    return codegen_udiv_check_bits(low, high, divisor, 8);
+}
+
+static uint32_t
+codegen_udiv_check16(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    return codegen_udiv_check_bits(low, high, divisor, 16);
+}
+
+static uint32_t
+codegen_udiv_check32(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    return codegen_udiv_check_bits(low, high, divisor, 32);
+}
+
+static uint32_t
+codegen_idiv_check8(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    return codegen_idiv_check_bits(low, high, divisor, 8);
+}
+
+static uint32_t
+codegen_idiv_check16(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    return codegen_idiv_check_bits(low, high, divisor, 16);
+}
+
+static uint32_t
+codegen_idiv_check32(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    return codegen_idiv_check_bits(low, high, divisor, 32);
+}
+
+static uint32_t
+codegen_udiv_quot(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    if (!divisor)
+        return 0;
+    return (uint32_t) (codegen_div_u64(low, high) / divisor);
+}
+
+static uint32_t
+codegen_umod_rem(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    if (!divisor)
+        return 0;
+    return (uint32_t) (codegen_div_u64(low, high) % divisor);
+}
+
+static uint32_t
+codegen_idiv_quot(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    int64_t dividend = codegen_div_s64(low, high);
+    int32_t divs     = (int32_t) divisor;
+
+    if (!divs || (dividend == INT64_MIN && divs == -1))
+        return 0;
+    return (uint32_t) (dividend / divs);
+}
+
+static uint32_t
+codegen_imod_rem(uint32_t low, uint32_t high, uint32_t divisor)
+{
+    int64_t dividend = codegen_div_s64(low, high);
+    int32_t divs     = (int32_t) divisor;
+
+    if (!divs || (dividend == INT64_MIN && divs == -1))
+        return 0;
+    return (uint32_t) (dividend % divs);
+}
+
+static void *
+codegen_udiv_check_helper(uint32_t bits)
+{
+    switch (bits) {
+        case 8:
+            return codegen_udiv_check8;
+        case 16:
+            return codegen_udiv_check16;
+        case 32:
+            return codegen_udiv_check32;
+        default:
+            fatal("codegen_udiv_check_helper - bits=%u\n", bits);
+    }
+
+    return NULL;
+}
+
+static void *
+codegen_idiv_check_helper(uint32_t bits)
+{
+    switch (bits) {
+        case 8:
+            return codegen_idiv_check8;
+        case 16:
+            return codegen_idiv_check16;
+        case 32:
+            return codegen_idiv_check32;
+        default:
+            fatal("codegen_idiv_check_helper - bits=%u\n", bits);
+    }
+
+    return NULL;
+}
+
+static void
+host_x86_MOV32_REG_REG_ANY(codeblock_t *block, int dst_reg, int src_reg)
+{
+    if (!((dst_reg | src_reg) & 8)) {
+        host_x86_MOV32_REG_REG(block, dst_reg, src_reg);
+        return;
+    }
+
+    codegen_alloc_bytes(block, 3);
+    codegen_addbyte3(block,
+                     0x40 | ((src_reg & 8) ? 0x04 : 0) | ((dst_reg & 8) ? 0x01 : 0),
+                     0x89,
+                     0xc0 | ((src_reg & 7) << 3) | (dst_reg & 7));
+}
+
+static void
+host_x86_MOV32_REG_BASE_OFFSET_ANY(codeblock_t *block, int dst_reg, int base_reg, int offset)
+{
+    if (!((dst_reg | base_reg) & 8)) {
+        host_x86_MOV32_REG_BASE_OFFSET(block, dst_reg, base_reg, offset);
+        return;
+    }
+
+    if (offset < -128 || offset > 127)
+        fatal("host_x86_MOV32_REG_BASE_OFFSET_ANY - offset %i\n", offset);
+
+    if (base_reg == REG_RSP) {
+        codegen_alloc_bytes(block, 5);
+        codegen_addbyte(block, 0x40 | ((dst_reg & 8) ? 0x04 : 0));
+        codegen_addbyte4(block, 0x8b, 0x40 | (base_reg & 7) | ((dst_reg & 7) << 3), 0x24, offset);
+    } else {
+        codegen_alloc_bytes(block, 4);
+        codegen_addbyte4(block,
+                         0x40 | ((dst_reg & 8) ? 0x04 : 0) | ((base_reg & 8) ? 0x01 : 0),
+                         0x8b,
+                         0x40 | (base_reg & 7) | ((dst_reg & 7) << 3),
+                         offset);
+    }
+}
+
+static void
+codegen_DIV_HELPER_LOAD_ARG(codeblock_t *block, int dst_reg, int src_reg, int saved_eax_offset, int saved_edx_offset)
+{
+    if (src_reg == REG_EAX)
+        host_x86_MOV32_REG_BASE_OFFSET_ANY(block, dst_reg, REG_RSP, saved_eax_offset);
+    else if (src_reg == REG_EDX)
+        host_x86_MOV32_REG_BASE_OFFSET_ANY(block, dst_reg, REG_RSP, saved_edx_offset);
+    else
+        host_x86_MOV32_REG_REG_ANY(block, dst_reg, src_reg);
+}
+
+static int
+codegen_DIV_HELPER(codeblock_t *block, uop_t *uop, void *helper)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_c  = HOST_REG_GET(uop->src_reg_c_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+    int src_size_c = IREG_GET_SIZE(uop->src_reg_c_real);
+
+    if (REG_IS_L(dest_size) && REG_IS_L(src_size_a) && REG_IS_L(src_size_b) && REG_IS_L(src_size_c)) {
+#    if _WIN64
+        const int local_size       = 48;
+        const int result_offset    = 32;
+        const int saved_edx_offset = 48;
+        const int saved_eax_offset = 56;
+#    else
+        const int local_size       = 16;
+        const int result_offset    = 0;
+        const int saved_edx_offset = 16;
+        const int saved_eax_offset = 24;
+#    endif
+
+        host_x86_PUSH(block, REG_RAX);
+        host_x86_PUSH(block, REG_RDX);
+        host_x86_SUB64_REG_IMM(block, REG_RSP, local_size);
+#    if _WIN64
+        codegen_DIV_HELPER_LOAD_ARG(block, REG_ECX, src_reg_a, saved_eax_offset, saved_edx_offset);
+        codegen_DIV_HELPER_LOAD_ARG(block, REG_EDX, src_reg_b, saved_eax_offset, saved_edx_offset);
+        codegen_DIV_HELPER_LOAD_ARG(block, REG_R8, src_reg_c, saved_eax_offset, saved_edx_offset);
+#    else
+        codegen_DIV_HELPER_LOAD_ARG(block, REG_EDI, src_reg_a, saved_eax_offset, saved_edx_offset);
+        codegen_DIV_HELPER_LOAD_ARG(block, REG_ESI, src_reg_b, saved_eax_offset, saved_edx_offset);
+        codegen_DIV_HELPER_LOAD_ARG(block, REG_EDX, src_reg_c, saved_eax_offset, saved_edx_offset);
+#    endif
+        host_x86_CALL(block, helper);
+        host_x86_MOV32_BASE_OFFSET_REG(block, REG_RSP, result_offset, REG_EAX);
+        host_x86_MOV32_REG_BASE_OFFSET(block, REG_EDX, REG_RSP, saved_edx_offset);
+        host_x86_MOV32_REG_BASE_OFFSET(block, REG_EAX, REG_RSP, saved_eax_offset);
+        host_x86_MOV32_REG_BASE_OFFSET(block, dest_reg, REG_RSP, result_offset);
+        host_x86_ADD64_REG_IMM(block, REG_RSP, local_size + 16);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("DIV helper size mismatch: dest_size=%x, src_size_a=%x, src_size_b=%x, src_size_c=%x\n", dest_size, src_size_a, src_size_b, src_size_c);
+#    endif
+    return 0;
+}
 
 static int
 codegen_ADD(codeblock_t *block, uop_t *uop)
@@ -296,6 +566,42 @@ codegen_UMUL_HI(codeblock_t *block, uop_t *uop)
         fatal("UMUL_HI size mismatch: dest_size=%x, src_size_a=%x, src_size_b=%x\n", dest_size, src_size_a, src_size_b);
 #    endif
     return 0;
+}
+
+static int
+codegen_UDIV_CHECK(codeblock_t *block, uop_t *uop)
+{
+    return codegen_DIV_HELPER(block, uop, codegen_udiv_check_helper(uop->imm_data));
+}
+
+static int
+codegen_IDIV_CHECK(codeblock_t *block, uop_t *uop)
+{
+    return codegen_DIV_HELPER(block, uop, codegen_idiv_check_helper(uop->imm_data));
+}
+
+static int
+codegen_UDIV(codeblock_t *block, uop_t *uop)
+{
+    return codegen_DIV_HELPER(block, uop, codegen_udiv_quot);
+}
+
+static int
+codegen_UMOD(codeblock_t *block, uop_t *uop)
+{
+    return codegen_DIV_HELPER(block, uop, codegen_umod_rem);
+}
+
+static int
+codegen_IDIV(codeblock_t *block, uop_t *uop)
+{
+    return codegen_DIV_HELPER(block, uop, codegen_idiv_quot);
+}
+
+static int
+codegen_IMOD(codeblock_t *block, uop_t *uop)
+{
+    return codegen_DIV_HELPER(block, uop, codegen_imod_rem);
 }
 
 static int
@@ -3214,6 +3520,24 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_UMUL_HI &
         UOP_MASK]
     = codegen_UMUL_HI,
+    [UOP_UDIV_CHECK &
+        UOP_MASK]
+    = codegen_UDIV_CHECK,
+    [UOP_IDIV_CHECK &
+        UOP_MASK]
+    = codegen_IDIV_CHECK,
+    [UOP_UDIV &
+        UOP_MASK]
+    = codegen_UDIV,
+    [UOP_UMOD &
+        UOP_MASK]
+    = codegen_UMOD,
+    [UOP_IDIV &
+        UOP_MASK]
+    = codegen_IDIV,
+    [UOP_IMOD &
+        UOP_MASK]
+    = codegen_IMOD,
     [UOP_ADD_LSHIFT &
         UOP_MASK]
     = codegen_ADD_LSHIFT,

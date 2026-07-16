@@ -16,6 +16,61 @@
 #include "codegen_ops_jit_wrappers.h"
 #include "codegen_ops_misc.h"
 
+static JIT_WRAPPER void
+jit_div_exception(void)
+{
+    x86de(NULL, 0);
+}
+
+static JIT_WRAPPER void
+jit_div8_flags(void)
+{
+    flags_rebuild();
+    cpu_state.flags |= 0x8d5;
+    cpu_state.flags &= ~C_FLAG;
+    cpu_state.flags_op = FLAGS_UNKNOWN;
+}
+
+static void
+div_exception_if(ir_data_t *ir, int status_reg)
+{
+    int no_exception = uop_CMP_IMM_JZ_DEST(ir, status_reg, 0);
+
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    uop_CALL_FUNC(ir, jit_div_exception);
+    uop_JMP(ir, codegen_exit_rout);
+    uop_set_jump_dest(ir, no_exception);
+}
+
+static void
+div8_success_flags(ir_data_t *ir)
+{
+    if (!cpu_iscyrix && !is6117) {
+        uop_CALL_FUNC(ir, jit_div8_flags);
+        codegen_flags_changed = 0;
+    }
+}
+
+static void
+div16_success_flags(ir_data_t *ir)
+{
+    if (!cpu_iscyrix && !is6117) {
+        uop_MOVZX(ir, IREG_flags_res, IREG_AX);
+        uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
+        codegen_flags_changed = 1;
+    }
+}
+
+static void
+div32_success_flags(ir_data_t *ir)
+{
+    if (!cpu_iscyrix && !is6117) {
+        uop_MOV(ir, IREG_flags_res, IREG_EAX);
+        uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN32);
+        codegen_flags_changed = 1;
+    }
+}
+
 uint32_t
 ropLEA_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
@@ -51,9 +106,6 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
     x86seg *target_seg = NULL;
     uint8_t imm_data;
     int     reg;
-
-    if ((fetchdat & 0x30) == 0x30) /*DIV/IDIV*/
-        return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0)
@@ -136,6 +188,36 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
             codegen_flags_changed = 1;
             return op_pc + 1;
 
+        case 0x30: /*DIV*/
+            uop_MOVZX(ir, IREG_temp2, reg);
+            uop_MOVZX(ir, IREG_temp0, IREG_AX);
+            uop_MOV_IMM(ir, IREG_temp1, 0);
+            uop_UDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 8);
+            div_exception_if(ir, IREG_temp1);
+            uop_MOV_IMM(ir, IREG_temp1, 0);
+            uop_UDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV_IMM(ir, IREG_temp3, 0);
+            uop_UMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
+            uop_MOV(ir, IREG_AL, IREG_temp1_B);
+            uop_MOV(ir, IREG_AH, IREG_temp3_B);
+            div8_success_flags(ir);
+            return op_pc + 1;
+
+        case 0x38: /*IDIV*/
+            uop_MOVSX(ir, IREG_temp2, reg);
+            uop_MOVSX(ir, IREG_temp0, IREG_AX);
+            uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
+            uop_IDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 8);
+            div_exception_if(ir, IREG_temp1);
+            uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
+            uop_IDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_SAR_IMM(ir, IREG_temp3, IREG_temp0, 31);
+            uop_IMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
+            uop_MOV(ir, IREG_AL, IREG_temp1_B);
+            uop_MOV(ir, IREG_AH, IREG_temp3_B);
+            div8_success_flags(ir);
+            return op_pc + 1;
+
         default:
             break;
     }
@@ -147,9 +229,6 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     x86seg  *target_seg = NULL;
     uint16_t imm_data;
     int      reg;
-
-    if ((fetchdat & 0x30) == 0x30) /*DIV/IDIV*/
-        return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0)
@@ -236,6 +315,42 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             codegen_flags_changed = 1;
             return op_pc + 1;
 
+        case 0x30: /*DIV*/
+            uop_MOVZX(ir, IREG_temp2, reg);
+            uop_MOVZX(ir, IREG_temp0, IREG_AX);
+            uop_MOVZX(ir, IREG_temp1, IREG_DX);
+            uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 16);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+            uop_MOV_IMM(ir, IREG_temp1, 0);
+            uop_UDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 16);
+            div_exception_if(ir, IREG_temp1);
+            uop_MOV_IMM(ir, IREG_temp1, 0);
+            uop_UDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV_IMM(ir, IREG_temp3, 0);
+            uop_UMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
+            uop_MOV(ir, IREG_AX, IREG_temp1_W);
+            uop_MOV(ir, IREG_DX, IREG_temp3_W);
+            div16_success_flags(ir);
+            return op_pc + 1;
+
+        case 0x38: /*IDIV*/
+            uop_MOVSX(ir, IREG_temp2, reg);
+            uop_MOVZX(ir, IREG_temp0, IREG_AX);
+            uop_MOVZX(ir, IREG_temp1, IREG_DX);
+            uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 16);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+            uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
+            uop_IDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 16);
+            div_exception_if(ir, IREG_temp1);
+            uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
+            uop_IDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_SAR_IMM(ir, IREG_temp3, IREG_temp0, 31);
+            uop_IMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
+            uop_MOV(ir, IREG_AX, IREG_temp1_W);
+            uop_MOV(ir, IREG_DX, IREG_temp3_W);
+            div16_success_flags(ir);
+            return op_pc + 1;
+
         default:
             break;
     }
@@ -247,9 +362,6 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     x86seg  *target_seg = NULL;
     uint32_t imm_data;
     int      reg;
-
-    if ((fetchdat & 0x30) == 0x30) /*DIV/IDIV*/
-        return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0)
@@ -327,6 +439,36 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_IMUL32);
 
             codegen_flags_changed = 1;
+            return op_pc + 1;
+
+        case 0x30: /*DIV*/
+            uop_MOV(ir, IREG_temp2, reg);
+            uop_MOV(ir, IREG_temp0, IREG_EAX);
+            uop_MOV(ir, IREG_temp1, IREG_EDX);
+            uop_UDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 32);
+            div_exception_if(ir, IREG_temp1);
+            uop_MOV(ir, IREG_temp1, IREG_EDX);
+            uop_UDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV(ir, IREG_temp3, IREG_EDX);
+            uop_UMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
+            uop_MOV(ir, IREG_EAX, IREG_temp1);
+            uop_MOV(ir, IREG_EDX, IREG_temp3);
+            div32_success_flags(ir);
+            return op_pc + 1;
+
+        case 0x38: /*IDIV*/
+            uop_MOV(ir, IREG_temp2, reg);
+            uop_MOV(ir, IREG_temp0, IREG_EAX);
+            uop_MOV(ir, IREG_temp1, IREG_EDX);
+            uop_IDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 32);
+            div_exception_if(ir, IREG_temp1);
+            uop_MOV(ir, IREG_temp1, IREG_EDX);
+            uop_IDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV(ir, IREG_temp3, IREG_EDX);
+            uop_IMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
+            uop_MOV(ir, IREG_EAX, IREG_temp1);
+            uop_MOV(ir, IREG_EDX, IREG_temp3);
+            div32_success_flags(ir);
             return op_pc + 1;
 
         default:

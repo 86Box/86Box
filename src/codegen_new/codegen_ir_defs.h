@@ -167,6 +167,18 @@
 #define UOP_ROR (UOP_TYPE_PARAMS_REGS | 0x58)
 /*UOP_ROR_IMM - dest_reg = src_reg_a rotate>> immediate*/
 #define UOP_ROR_IMM (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x59)
+/*UOP_UDIV_CHECK - dest_reg = unsigned divide of src_reg_b:src_reg_a by src_reg_c traps for imm_data-bit quotient*/
+#define UOP_UDIV_CHECK (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x5a)
+/*UOP_IDIV_CHECK - dest_reg = signed divide of src_reg_b:src_reg_a by src_reg_c traps for imm_data-bit quotient*/
+#define UOP_IDIV_CHECK (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x5b)
+/*UOP_UDIV - dest_reg = unsigned quotient of src_reg_b:src_reg_a / src_reg_c*/
+#define UOP_UDIV (UOP_TYPE_PARAMS_REGS | 0x5c)
+/*UOP_UMOD - dest_reg = unsigned remainder of src_reg_b:src_reg_a / src_reg_c*/
+#define UOP_UMOD (UOP_TYPE_PARAMS_REGS | 0x5d)
+/*UOP_IDIV - dest_reg = signed quotient of src_reg_b:src_reg_a / src_reg_c*/
+#define UOP_IDIV (UOP_TYPE_PARAMS_REGS | 0x5e)
+/*UOP_IMOD - dest_reg = signed remainder of src_reg_b:src_reg_a / src_reg_c*/
+#define UOP_IMOD (UOP_TYPE_PARAMS_REGS | 0x5f)
 
 /*UOP_CMP_IMM_JZ_DEST - if (src_reg_a == imm_data) then jump to ptr*/
 #define UOP_CMP_IMM_JZ_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x60 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
@@ -576,6 +588,19 @@ uop_gen_reg_dst_src3(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg
 }
 
 static inline void
+uop_gen_reg_dst_src3_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg_a, int src_reg_b, int src_reg_c, uint32_t imm)
+{
+    uop_t *uop = uop_alloc(ir, uop_type);
+
+    uop->type       = uop_type;
+    uop->src_reg_a  = codegen_reg_read(src_reg_a);
+    uop->src_reg_b  = codegen_reg_read(src_reg_b);
+    uop->src_reg_c  = codegen_reg_read(src_reg_c);
+    uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
+    uop->imm_data   = imm;
+}
+
+static inline void
 uop_gen_reg_dst_src_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg, uint32_t imm)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
@@ -721,6 +746,12 @@ extern int codegen_fp_enter(void);
 #define uop_IMUL_HI(ir, dst_reg, src_reg_a, src_reg_b)           uop_gen_reg_dst_src2(UOP_IMUL_HI, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_UMUL(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_UMUL, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_UMUL_HI(ir, dst_reg, src_reg_a, src_reg_b)           uop_gen_reg_dst_src2(UOP_UMUL_HI, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_UDIV_CHECK(ir, dst_reg, src_reg_a, src_reg_b, src_reg_c, bits) uop_gen_reg_dst_src3_imm(UOP_UDIV_CHECK, ir, dst_reg, src_reg_a, src_reg_b, src_reg_c, bits)
+#define uop_IDIV_CHECK(ir, dst_reg, src_reg_a, src_reg_b, src_reg_c, bits) uop_gen_reg_dst_src3_imm(UOP_IDIV_CHECK, ir, dst_reg, src_reg_a, src_reg_b, src_reg_c, bits)
+#define uop_UDIV(ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)    uop_gen_reg_dst_src3(UOP_UDIV, ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)
+#define uop_UMOD(ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)    uop_gen_reg_dst_src3(UOP_UMOD, ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)
+#define uop_IDIV(ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)    uop_gen_reg_dst_src3(UOP_IDIV, ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)
+#define uop_IMOD(ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)    uop_gen_reg_dst_src3(UOP_IMOD, ir, dst_reg, src_reg_a, src_reg_b, src_reg_c)
 
 #define uop_SAR(ir, dst_reg, src_reg, shift_reg)                 uop_gen_reg_dst_src2(UOP_SAR, ir, dst_reg, src_reg, shift_reg)
 #define uop_SAR_IMM(ir, dst_reg, src_reg, imm)                   uop_gen_reg_dst_src_imm(UOP_SAR_IMM, ir, dst_reg, src_reg, imm)
