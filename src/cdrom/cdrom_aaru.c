@@ -34,6 +34,7 @@
 #include <string.h>
 #include <wchar.h>
 #include <zlib.h>
+#include <errno.h>
 #include <limits.h>
 #include <sys/stat.h>
 #ifndef _WIN32
