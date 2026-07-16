@@ -192,14 +192,12 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
             uop_MOVZX(ir, IREG_temp2, reg);
             uop_MOVZX(ir, IREG_temp0, IREG_AX);
             uop_MOV_IMM(ir, IREG_temp1, 0);
-            uop_UDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 8);
-            div_exception_if(ir, IREG_temp1);
-            uop_MOV_IMM(ir, IREG_temp1, 0);
-            uop_UDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
-            uop_MOV_IMM(ir, IREG_temp3, 0);
-            uop_UMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
-            uop_MOV(ir, IREG_AL, IREG_temp1_B);
-            uop_MOV(ir, IREG_AH, IREG_temp3_B);
+            uop_UDIV_CHECK(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2, 8);
+            div_exception_if(ir, IREG_temp3);
+            uop_UDIV(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_UMOD(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV(ir, IREG_AL, IREG_temp3_B);
+            uop_MOV(ir, IREG_AH, IREG_temp1_B);
             div8_success_flags(ir);
             return op_pc + 1;
 
@@ -207,14 +205,12 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
             uop_MOVSX(ir, IREG_temp2, reg);
             uop_MOVSX(ir, IREG_temp0, IREG_AX);
             uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
-            uop_IDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 8);
-            div_exception_if(ir, IREG_temp1);
-            uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
-            uop_IDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
-            uop_SAR_IMM(ir, IREG_temp3, IREG_temp0, 31);
-            uop_IMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
-            uop_MOV(ir, IREG_AL, IREG_temp1_B);
-            uop_MOV(ir, IREG_AH, IREG_temp3_B);
+            uop_IDIV_CHECK(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2, 8);
+            div_exception_if(ir, IREG_temp3);
+            uop_IDIV(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_IMOD(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV(ir, IREG_AL, IREG_temp3_B);
+            uop_MOV(ir, IREG_AH, IREG_temp1_B);
             div8_success_flags(ir);
             return op_pc + 1;
 
@@ -322,14 +318,12 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 16);
             uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
             uop_MOV_IMM(ir, IREG_temp1, 0);
-            uop_UDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 16);
-            div_exception_if(ir, IREG_temp1);
-            uop_MOV_IMM(ir, IREG_temp1, 0);
-            uop_UDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
-            uop_MOV_IMM(ir, IREG_temp3, 0);
-            uop_UMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
-            uop_MOV(ir, IREG_AX, IREG_temp1_W);
-            uop_MOV(ir, IREG_DX, IREG_temp3_W);
+            uop_UDIV_CHECK(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2, 16);
+            div_exception_if(ir, IREG_temp3);
+            uop_UDIV(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_UMOD(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV(ir, IREG_AX, IREG_temp3_W);
+            uop_MOV(ir, IREG_DX, IREG_temp1_W);
             div16_success_flags(ir);
             return op_pc + 1;
 
@@ -340,14 +334,12 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_SHL_IMM(ir, IREG_temp1, IREG_temp1, 16);
             uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
             uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
-            uop_IDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 16);
-            div_exception_if(ir, IREG_temp1);
-            uop_SAR_IMM(ir, IREG_temp1, IREG_temp0, 31);
-            uop_IDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
-            uop_SAR_IMM(ir, IREG_temp3, IREG_temp0, 31);
-            uop_IMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
-            uop_MOV(ir, IREG_AX, IREG_temp1_W);
-            uop_MOV(ir, IREG_DX, IREG_temp3_W);
+            uop_IDIV_CHECK(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2, 16);
+            div_exception_if(ir, IREG_temp3);
+            uop_IDIV(ir, IREG_temp3, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_IMOD(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
+            uop_MOV(ir, IREG_AX, IREG_temp3_W);
+            uop_MOV(ir, IREG_DX, IREG_temp1_W);
             div16_success_flags(ir);
             return op_pc + 1;
 
@@ -442,32 +434,22 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             return op_pc + 1;
 
         case 0x30: /*DIV*/
-            uop_MOV(ir, IREG_temp2, reg);
-            uop_MOV(ir, IREG_temp0, IREG_EAX);
-            uop_MOV(ir, IREG_temp1, IREG_EDX);
-            uop_UDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 32);
-            div_exception_if(ir, IREG_temp1);
-            uop_MOV(ir, IREG_temp1, IREG_EDX);
-            uop_UDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
-            uop_MOV(ir, IREG_temp3, IREG_EDX);
-            uop_UMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
-            uop_MOV(ir, IREG_EAX, IREG_temp1);
-            uop_MOV(ir, IREG_EDX, IREG_temp3);
+            uop_UDIV_CHECK(ir, IREG_temp3, IREG_EAX, IREG_EDX, reg, 32);
+            div_exception_if(ir, IREG_temp3);
+            uop_UDIV(ir, IREG_temp3, IREG_EAX, IREG_EDX, reg);
+            uop_UMOD(ir, IREG_temp1, IREG_EAX, IREG_EDX, reg);
+            uop_MOV(ir, IREG_EAX, IREG_temp3);
+            uop_MOV(ir, IREG_EDX, IREG_temp1);
             div32_success_flags(ir);
             return op_pc + 1;
 
         case 0x38: /*IDIV*/
-            uop_MOV(ir, IREG_temp2, reg);
-            uop_MOV(ir, IREG_temp0, IREG_EAX);
-            uop_MOV(ir, IREG_temp1, IREG_EDX);
-            uop_IDIV_CHECK(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2, 32);
-            div_exception_if(ir, IREG_temp1);
-            uop_MOV(ir, IREG_temp1, IREG_EDX);
-            uop_IDIV(ir, IREG_temp1, IREG_temp0, IREG_temp1, IREG_temp2);
-            uop_MOV(ir, IREG_temp3, IREG_EDX);
-            uop_IMOD(ir, IREG_temp3, IREG_temp0, IREG_temp3, IREG_temp2);
-            uop_MOV(ir, IREG_EAX, IREG_temp1);
-            uop_MOV(ir, IREG_EDX, IREG_temp3);
+            uop_IDIV_CHECK(ir, IREG_temp3, IREG_EAX, IREG_EDX, reg, 32);
+            div_exception_if(ir, IREG_temp3);
+            uop_IDIV(ir, IREG_temp3, IREG_EAX, IREG_EDX, reg);
+            uop_IMOD(ir, IREG_temp1, IREG_EAX, IREG_EDX, reg);
+            uop_MOV(ir, IREG_EAX, IREG_temp3);
+            uop_MOV(ir, IREG_EDX, IREG_temp1);
             div32_success_flags(ir);
             return op_pc + 1;
 
