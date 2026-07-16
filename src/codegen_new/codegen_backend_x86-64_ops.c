@@ -2086,6 +2086,30 @@ host_x86_IMUL64_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
 }
 
 void
+host_x86_MUL16_REG(codeblock_t *block, int src_reg)
+{
+#ifdef RECOMPILER_DEBUG
+    if (src_reg & 8)
+        fatal("host_x86_MUL16_REG - src_reg & 8\n");
+#endif
+
+    codegen_alloc_bytes(block, 3);
+    codegen_addbyte3(block, 0x66, 0xf7, 0xe0 | (src_reg & 7)); /*MUL src_reg*/
+}
+
+void
+host_x86_MUL32_REG(codeblock_t *block, int src_reg)
+{
+#ifdef RECOMPILER_DEBUG
+    if (src_reg & 8)
+        fatal("host_x86_MUL32_REG - src_reg & 8\n");
+#endif
+
+    codegen_alloc_bytes(block, 2);
+    codegen_addbyte2(block, 0xf7, 0xe0 | (src_reg & 7)); /*MUL src_reg*/
+}
+
+void
 host_x86_SAR64_IMM(codeblock_t *block, int dst_reg, int shift)
 {
 #ifdef RECOMPILER_DEBUG
@@ -2098,4 +2122,3 @@ host_x86_SAR64_IMM(codeblock_t *block, int dst_reg, int shift)
 }
 
 #endif
-

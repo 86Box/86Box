@@ -114,6 +114,8 @@
 #define UOP_IMUL_IMM (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x3d)
 /*UOP_IMUL_HI - dest_reg = ((int64_t)(int32_t)src_reg_a * (int64_t)(int32_t)src_reg_b) >> 32*/
 #define UOP_IMUL_HI (UOP_TYPE_PARAMS_REGS | 0x3e)
+/*UOP_UMUL_HI - dest_reg = ((uint64_t)src_reg_a * (uint64_t)src_reg_b) >> 32*/
+#define UOP_UMUL_HI (UOP_TYPE_PARAMS_REGS | 0x3f)
 /*UOP_MEM_LOAD_ABS - dest_reg = src_reg_a:[immediate]*/
 #define UOP_MEM_LOAD_ABS (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0x40 | UOP_TYPE_ORDER_BARRIER)
 /*UOP_MEM_LOAD_REG - dest_reg = src_reg_a:[src_reg_b]*/
@@ -142,6 +144,8 @@
 #define UOP_CMP_JB (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x4c | UOP_TYPE_ORDER_BARRIER)
 /*UOP_CMP_JNBE - if (src_reg_a > src_reg_b) then jump to ptr*/
 #define UOP_CMP_JNBE (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x4d | UOP_TYPE_ORDER_BARRIER)
+/*UOP_UMUL - dest_reg = src_reg_a * src_reg_b*/
+#define UOP_UMUL (UOP_TYPE_PARAMS_REGS | 0x4e)
 
 /*UOP_SAR - dest_reg = src_reg_a >> src_reg_b*/
 #define UOP_SAR (UOP_TYPE_PARAMS_REGS | 0x50)
@@ -715,6 +719,8 @@ extern int codegen_fp_enter(void);
 #define uop_IMUL(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_IMUL, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_IMUL_IMM(ir, dst_reg, src_reg, imm)                  uop_gen_reg_dst_src_imm(UOP_IMUL_IMM, ir, dst_reg, src_reg, imm)
 #define uop_IMUL_HI(ir, dst_reg, src_reg_a, src_reg_b)           uop_gen_reg_dst_src2(UOP_IMUL_HI, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_UMUL(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_UMUL, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_UMUL_HI(ir, dst_reg, src_reg_a, src_reg_b)           uop_gen_reg_dst_src2(UOP_UMUL_HI, ir, dst_reg, src_reg_a, src_reg_b)
 
 #define uop_SAR(ir, dst_reg, src_reg, shift_reg)                 uop_gen_reg_dst_src2(UOP_SAR, ir, dst_reg, src_reg, shift_reg)
 #define uop_SAR_IMM(ir, dst_reg, src_reg, imm)                   uop_gen_reg_dst_src_imm(UOP_SAR_IMM, ir, dst_reg, src_reg, imm)

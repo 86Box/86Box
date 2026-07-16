@@ -55,6 +55,10 @@ enum {
     FLAGS_SBC16,
     FLAGS_SBC32,
 
+    FLAGS_MUL8,
+    FLAGS_MUL16,
+    FLAGS_MUL32,
+
     FLAGS_IMUL8,
     FLAGS_IMUL16,
     FLAGS_IMUL32
@@ -106,6 +110,9 @@ ZF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_MUL8:
+        case FLAGS_MUL16:
+        case FLAGS_MUL32:
         case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
@@ -176,6 +183,9 @@ NF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_MUL8:
+        case FLAGS_MUL16:
+        case FLAGS_MUL32:
         case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
@@ -238,6 +248,9 @@ PF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_MUL8:
+        case FLAGS_MUL16:
+        case FLAGS_MUL32:
         case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
@@ -333,6 +346,10 @@ VF_SET(void)
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x4000;
         case FLAGS_ROR32:
             return (cpu_state.flags_res ^ (cpu_state.flags_res >> 1)) & 0x40000000;
+        case FLAGS_MUL8:
+        case FLAGS_MUL16:
+        case FLAGS_MUL32:
+            return cpu_state.flags_res != 0;
         case FLAGS_IMUL8: {
             int32_t res = (int32_t)(int8_t)cpu_state.flags_op1 * (int32_t)(int8_t)cpu_state.flags_op2;
             return ((res >> 7) != 0 && (res >> 7) != -1);
@@ -415,6 +432,9 @@ AF_SET(void)
         case FLAGS_ROR8:
         case FLAGS_ROR16:
         case FLAGS_ROR32:
+        case FLAGS_MUL8:
+        case FLAGS_MUL16:
+        case FLAGS_MUL32:
         case FLAGS_IMUL8:
         case FLAGS_IMUL16:
         case FLAGS_IMUL32:
@@ -500,6 +520,10 @@ CF_SET(void)
             return (cpu_state.flags_res & 0x8000) ? 1 : 0;
         case FLAGS_ROR32:
             return (cpu_state.flags_res & 0x80000000) ? 1 : 0;
+        case FLAGS_MUL8:
+        case FLAGS_MUL16:
+        case FLAGS_MUL32:
+            return cpu_state.flags_res != 0;
         case FLAGS_IMUL8: {
             int32_t res = cpu_state.flags_res;
             return ((res >> 7) != 0 && (res >> 7) != -1);
@@ -601,6 +625,7 @@ static __inline int
 flags_res_valid(void)
 {
     if ((cpu_state.flags_op == FLAGS_UNKNOWN) || ((cpu_state.flags_op >= FLAGS_ROL8) && (cpu_state.flags_op <= FLAGS_ROR32))
+        || (cpu_state.flags_op == FLAGS_MUL8) || (cpu_state.flags_op == FLAGS_MUL16) || (cpu_state.flags_op == FLAGS_MUL32)
         || (cpu_state.flags_op == FLAGS_IMUL16) || (cpu_state.flags_op == FLAGS_IMUL32))
         return 0;
 
