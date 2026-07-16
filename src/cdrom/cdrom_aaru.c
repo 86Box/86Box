@@ -17,6 +17,8 @@
  *          Copyright 2026 Cacodemon345.
  */
 
+/* Format identification code (C) Natalia Portillo, licensed under LGPLv2.1+. */
+
 #include <aaruformat.h>
 
 #define __STDC_FORMAT_MACROS
@@ -755,10 +757,37 @@ cleanup_error:
     return NULL;
 }
 
+static int aaruf_identify_local(const char *filename)
+{
+    if (filename == NULL)
+        return EINVAL;
+
+    FILE *stream = NULL;
+
+    stream = fopen(filename, "rb");
+
+    if (stream == NULL)
+        return errno;
+
+    AaruHeader header;
+
+    size_t ret = fread(&header, sizeof(AaruHeader), 1, stream);
+
+    if(ret != 1) {
+        fclose(stream);
+        return 0;
+    }
+
+    if((header.identifier == DIC_MAGIC || header.identifier == AARU_MAGIC) && header.imageMajorVersion <= AARUF_VERSION)
+        ret = 100;
+
+    fclose(stream);
+
+    return ret;
+}
+
 int
 cdrom_image_is_aaru(const char *fn)
 {
-    if (!ensure_libaaruformat())
-        return 0;
-    return (f_aaruf_identify(fn) == 100);
+    return (aaruf_identify_local(fn) == 100);
 }
