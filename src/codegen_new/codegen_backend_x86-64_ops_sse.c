@@ -13,6 +13,32 @@
 #    include "codegen_backend_x86-64_ops_sse.h"
 #    include "codegen_backend_x86-64_ops_helpers.h"
 
+static inline uint8_t
+rex(int w, int reg, int index, int rm)
+{
+    return 0x40 | (w ? 0x08 : 0) | ((reg & 8) ? 0x04 : 0) |
+           ((index & 8) ? 0x02 : 0) | ((rm & 8) ? 0x01 : 0);
+}
+
+static inline int
+rex_needed(int w, int reg, int index, int rm)
+{
+    return w || ((reg | index | rm) & 8);
+}
+
+static inline void
+add_rex_if_needed(codeblock_t *block, int w, int reg, int index, int rm)
+{
+    if (rex_needed(w, reg, index, rm))
+        codegen_addbyte(block, rex(w, reg, index, rm));
+}
+
+static inline uint8_t
+modrm_reg_reg(int reg, int rm)
+{
+    return 0xc0 | ((reg & 7) << 3) | (rm & 7);
+}
+
 void
 host_x86_ADDPS_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
@@ -56,15 +82,17 @@ host_x86_CVTPS2DQ_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_CVTSD2SI_REG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0xf2, 0x0f, 0x2d, 0xc0 | src_reg | (dst_reg << 3)); /*CVTSD2SI dst_reg, src_reg*/
+    codegen_alloc_bytes(block, 5);
+    codegen_addbyte(block, 0xf2);
+    add_rex_if_needed(block, 0, dst_reg, 0, src_reg);
+    codegen_addbyte3(block, 0x0f, 0x2d, modrm_reg_reg(dst_reg, src_reg)); /*CVTSD2SI dst_reg, src_reg*/
 }
 void
 host_x86_CVTSD2SI_REG64_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
     codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0xf2, 0x48, 0x0f, 0x2d); /*CVTSD2SI dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | src_reg | (dst_reg << 3));
+    codegen_addbyte4(block, 0xf2, rex(1, dst_reg, 0, src_reg), 0x0f, 0x2d); /*CVTSD2SI dst_reg, src_reg*/
+    codegen_addbyte(block, modrm_reg_reg(dst_reg, src_reg));
 }
 void
 host_x86_CVTSD2SS_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
@@ -76,21 +104,25 @@ host_x86_CVTSD2SS_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 void
 host_x86_CVTSI2SD_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0xf2, 0x0f, 0x2a, 0xc0 | src_reg | (dst_reg << 3)); /*CVTSI2SD dst_reg, src_reg*/
+    codegen_alloc_bytes(block, 5);
+    codegen_addbyte(block, 0xf2);
+    add_rex_if_needed(block, 0, dst_reg, 0, src_reg);
+    codegen_addbyte3(block, 0x0f, 0x2a, modrm_reg_reg(dst_reg, src_reg)); /*CVTSI2SD dst_reg, src_reg*/
 }
 void
 host_x86_CVTSI2SS_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0xf3, 0x0f, 0x2a, 0xc0 | src_reg | (dst_reg << 3)); /*CVTSI2SD dst_reg, src_reg*/
+    codegen_alloc_bytes(block, 5);
+    codegen_addbyte(block, 0xf3);
+    add_rex_if_needed(block, 0, dst_reg, 0, src_reg);
+    codegen_addbyte3(block, 0x0f, 0x2a, modrm_reg_reg(dst_reg, src_reg)); /*CVTSI2SD dst_reg, src_reg*/
 }
 void
 host_x86_CVTSI2SD_XREG_REG64(codeblock_t *block, int dst_reg, int src_reg)
 {
     codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0xf2, 0x48, 0x0f, 0x2a); /*CVTSI2SD dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | src_reg | (dst_reg << 3));
+    codegen_addbyte4(block, 0xf2, rex(1, dst_reg, 0, src_reg), 0x0f, 0x2a); /*CVTSI2SD dst_reg, src_reg*/
+    codegen_addbyte(block, modrm_reg_reg(dst_reg, src_reg));
 }
 
 void
@@ -154,8 +186,10 @@ host_x86_MOVD_BASE_INDEX_XREG(codeblock_t *block, int base_reg, int idx_reg, int
 void
 host_x86_MOVD_REG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0x66, 0x0f, 0x7e, 0xc0 | dst_reg | (src_reg << 3));
+    codegen_alloc_bytes(block, 5);
+    codegen_addbyte(block, 0x66);
+    add_rex_if_needed(block, 0, src_reg, 0, dst_reg);
+    codegen_addbyte3(block, 0x0f, 0x7e, modrm_reg_reg(src_reg, dst_reg));
 }
 void
 host_x86_MOVD_XREG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int idx_reg)
@@ -167,8 +201,10 @@ host_x86_MOVD_XREG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int
 void
 host_x86_MOVD_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
-    codegen_alloc_bytes(block, 4);
-    codegen_addbyte4(block, 0x66, 0x0f, 0x6e, 0xc0 | src_reg | (dst_reg << 3));
+    codegen_alloc_bytes(block, 5);
+    codegen_addbyte(block, 0x66);
+    add_rex_if_needed(block, 0, dst_reg, 0, src_reg);
+    codegen_addbyte3(block, 0x0f, 0x6e, modrm_reg_reg(dst_reg, src_reg));
 }
 
 void
@@ -307,15 +343,15 @@ void
 host_x86_MOVQ_REG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 {
     codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x48, 0x0f, 0x7e); /*MOVQ dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | dst_reg | (src_reg << 3));
+    codegen_addbyte4(block, 0x66, rex(1, src_reg, 0, dst_reg), 0x0f, 0x7e); /*MOVQ dst_reg, src_reg*/
+    codegen_addbyte(block, modrm_reg_reg(src_reg, dst_reg));
 }
 void
 host_x86_MOVQ_XREG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
     codegen_alloc_bytes(block, 5);
-    codegen_addbyte4(block, 0x66, 0x48, 0x0f, 0x6e); /*MOVQ dst_reg, src_reg*/
-    codegen_addbyte(block, 0xc0 | src_reg | (dst_reg << 3));
+    codegen_addbyte4(block, 0x66, rex(1, dst_reg, 0, src_reg), 0x0f, 0x6e); /*MOVQ dst_reg, src_reg*/
+    codegen_addbyte(block, modrm_reg_reg(dst_reg, src_reg));
 }
 
 void

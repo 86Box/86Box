@@ -27,7 +27,7 @@
 #    define STACK_ARG2        (8)
 #    define STACK_ARG3        (12)
 
-#    define HOST_REG_GET(reg) ((IREG_GET_SIZE(reg) == IREG_SIZE_BH) ? (IREG_GET_REG((reg) &3) | 4) : (IREG_GET_REG(reg) & 7))
+#    define HOST_REG_GET(reg) ((IREG_GET_SIZE(reg) == IREG_SIZE_BH) ? (IREG_GET_REG((reg) &3) | 4) : (IREG_GET_REG(reg) & 15))
 
 #    define REG_IS_L(size)    (size == IREG_SIZE_L)
 #    define REG_IS_W(size)    (size == IREG_SIZE_W)
@@ -366,13 +366,17 @@ codegen_ADD_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_ADD_LSHIFT(codeblock_t *block, uop_t *uop)
 {
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+
     if (!uop->imm_data) {
-        if (uop->dest_reg_a_real == uop->src_reg_a_real)
-            host_x86_ADD32_REG_REG(block, uop->dest_reg_a_real, uop->src_reg_b_real);
+        if (dest_reg == src_reg_a)
+            host_x86_ADD32_REG_REG(block, dest_reg, src_reg_b);
         else
-            host_x86_LEA_REG_REG(block, uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+            host_x86_LEA_REG_REG(block, dest_reg, src_reg_a, src_reg_b);
     } else if (uop->imm_data < 4)
-        host_x86_LEA_REG_REG_SHIFT(block, uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->imm_data);
+        host_x86_LEA_REG_REG_SHIFT(block, dest_reg, src_reg_a, src_reg_b, uop->imm_data);
 #    ifdef RECOMPILER_DEBUG
     else
         fatal("codegen_ADD_LSHIFT - shift out of range %i\n", uop->imm_data);
@@ -1790,7 +1794,9 @@ codegen_MOV_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_MOV_PTR(codeblock_t *block, uop_t *uop)
 {
-    host_x86_MOV64_REG_IMM(block, uop->dest_reg_a_real, (uint64_t) uop->p);
+    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
+
+    host_x86_MOV64_REG_IMM(block, dest_reg, (uint64_t) uop->p);
     return 0;
 }
 static int
