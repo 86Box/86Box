@@ -23,8 +23,6 @@ pkg_check_modules(SNDFILE REQUIRED IMPORTED_TARGET sndfile)
 add_library(cdrom_aaru OBJECT
     cdrom_aaru.c)
 
-target_include_directories(cdrom_aaru PRIVATE "${CMAKE_SOURCE_DIR}/src/include/libaaruformat/")
-
 add_library(cdrom OBJECT
     cdrom.c
     cdrom_image.c
