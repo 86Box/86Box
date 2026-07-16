@@ -1,0 +1,518 @@
+#define __STDC_FORMAT_MACROS
+#include <ctype.h>
+#include <inttypes.h>
+#ifdef ENABLE_IMAGE_LOG
+#    include <stdarg.h>
+#endif
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+#include <wchar.h>
+#include <zlib.h>
+#include <limits.h>
+#include <sys/stat.h>
+#ifndef _WIN32
+#    include <libgen.h>
+#endif
+
+#include <libchdr/chd.h>
+#include <libchdr/cdrom.h>
+#include <libchdr/bitstream.h>
+#include <libchdr/macros.h>
+
+#include <86box/86box.h>
+#include <86box/log.h>
+#include <86box/nvr.h>
+#include <86box/path.h>
+#include <86box/plat.h>
+#include <86box/cdrom.h>
+#include <86box/cdrom_image.h>
+#include <86box/cdrom_image_viso.h>
+#include <86box/plat_dynld.h>
+
+#undef CD_TRACK_AUDIO
+
+// TODO: support DVD images.
+
+// Note: CHD files are not able to describe session information yet. Flycast simply hardcodes it.
+// Note 2: We can determine track start and end positions in the CHD just by using the track lengths alone.
+// The indices should be inferred from the pregap length instead.
+// Note 3: For CD metadata, if PGTYPE is valid, and starts with 'V', the pregap sectors exist in the file.
+// Otherwise, they do not exist in the file, and need to be handled appropriately.
+// Note 4: Postgap shifts the start of the next track on the TOC.
+// Whether it actually exists in the file or not is also entirely dependent on the next track
+// actually having the pregap data.
+// Note 5: The 4-frame padding does not consider the existence of pregap data in the file itself;
+// it's only calculated from the FRAMES field.
+
+typedef struct TrackEntry_CHD
+{
+    union {
+        uint8_t point;
+        uint8_t sequence;
+    };
+    uint32_t sector_size;
+    uint32_t track_type;
+    bool    pregap_exists_in_file;
+    // The start position is always inclusive of pregaps, no matter if it exists in the file or not.
+    int64_t start; // sectors, incl pregap
+    int64_t end; // sectors, incl postgap
+    int64_t pregap;
+    int64_t postgap;
+    uint8_t adr_ctl; // [0:3]CTL, [4:7]ADR
+    bool    audioswap;
+
+    // If the pregap exists in the file, start position of index 0 data, index 1 otherwise.
+    uint64_t chd_start; // in bytes.
+} TrackEntry_CHD;
+
+typedef struct chd_image_t {
+    cdrom_t *dev;
+    chd_file *img_file;
+    chd_header *header;
+
+    TrackEntry_CHD* track_entries;
+    int track_size;
+
+    uint8_t* hunk_bytes;
+    uint64_t hunk_size;
+
+    uint64_t sectors_per_hunk;
+
+    int64_t end_lba;
+
+    raw_track_info_t* rti_infos;
+    uint32_t rti_size; // NOT in bytes.
+};
+
+typedef struct chd_image_t chd_image_t;
+
+static void
+chd_image_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
+{
+    chd_image_t *ioctl = (chd_image_t *) local;
+
+    *num = ioctl->rti_size;
+    memcpy(rti, ioctl->rti_infos, *num * 11);
+}
+
+static int
+chd_image_get_track_info(UNUSED(const void *local), UNUSED(const uint32_t track),
+                          UNUSED(int end), UNUSED(track_info_t *ti))
+{
+    const chd_image_t      *ioctl      = (const chd_image_t *) local;
+    const raw_track_info_t *rti        = (const raw_track_info_t *) ioctl->rti_infos;
+    int                     ret        = 1;
+    int                     trk        = -1;
+    int                     next       = -1;
+    uint32_t                blocks_num = (ioctl->rti_size);
+
+    if ((track >= 1) && (track < 99))
+        for (int i = 0; i < blocks_num; i++)
+            if (rti[i].point == track) {
+                trk = i;
+                break;
+            }
+
+    if ((track >= 1) && (track < 98))
+        for (int i = 0; i < blocks_num; i++)
+            if ((rti[i].point == (track + 1)) && (rti[i].session == rti[trk].session)) {
+                next = i;
+                break;
+            }
+
+    if ((track >= 1) && (track < 99) && (trk != -1) && (next == -1))
+        for (int i = 0; i < blocks_num; i++)
+            if ((rti[i].point == 0xa2) && (rti[i].session == rti[trk].session)) {
+                next = i;
+                break;
+            }
+
+    if ((track == 0xaa) || (trk == -1)) {
+        ret = 0;
+    } else {
+        if (end) {
+            if (next != -1) {
+                ti->m = rti[next].pm;
+                ti->s = rti[next].ps;
+                ti->f = rti[next].pf;
+            }
+        } else {
+            ti->m = rti[trk].pm;
+            ti->s = rti[trk].ps;
+            ti->f = rti[trk].pf;
+        }
+
+        ti->number = rti[trk].point;
+        ti->attr   = rti[trk].adr_ctl;
+    }
+
+    return ret;
+}
+
+static int
+chd_get_track(const chd_image_t *ioctl, const uint32_t sector)
+{
+    raw_track_info_t *rti    = (raw_track_info_t *) ioctl->rti_infos;
+    int               track  = -1;
+    int               tracks = ioctl->rti_size;
+
+    for (int i = (tracks - 1); i >= 0; i--) {
+        const raw_track_info_t *ct    = &(rti[i]);
+        const uint32_t          start = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf - 150;
+
+        if ((ct->point >= 1) && (ct->point <= 99) && (sector >= start)) {
+            track = i;
+            break;
+        }
+    }
+
+    return track;
+}
+
+static uint32_t
+chd_get_last_block(const void *local)
+{
+    chd_image_t *ioctl = (chd_image_t *) local;
+
+    return ioctl->end_lba;
+}
+
+static TrackEntry_CHD*
+chd_image_allocate_track(chd_image_t *img)
+{
+    img->track_entries                    = realloc(img->track_entries, img->track_size * sizeof(TrackEntry_CHD) + sizeof(TrackEntry_CHD));
+    TrackEntry_CHD *track_info = (TrackEntry_CHD *) (img->track_entries + img->track_size * sizeof(TrackEntry_CHD));
+    memset(track_info, 0, sizeof(TrackEntry_CHD));
+    img->track_size += 1;
+    return track_info;
+}
+
+// From the horse's mouth (i.e. taken from MAME).
+void chd_img_get_info_from_type_string(const char *typestring, uint32_t *trktype, uint32_t *datasize)
+{
+	if (!strcmp(typestring, "MODE1"))
+	{
+		*trktype = CD_TRACK_MODE1;
+		*datasize = 2048;
+	}
+	else if (!strcmp(typestring, "MODE1/2048"))
+	{
+		*trktype = CD_TRACK_MODE1;
+		*datasize = 2048;
+	}
+	else if (!strcmp(typestring, "MODE1_RAW"))
+	{
+		*trktype = CD_TRACK_MODE1_RAW;
+		*datasize = 2352;
+	}
+	else if (!strcmp(typestring, "MODE1/2352"))
+	{
+		*trktype = CD_TRACK_MODE1_RAW;
+		*datasize = 2352;
+	}
+	else if (!strcmp(typestring, "MODE2"))
+	{
+		*trktype = CD_TRACK_MODE2;
+		*datasize = 2336;
+	}
+	else if (!strcmp(typestring, "MODE2/2336"))
+	{
+		*trktype = CD_TRACK_MODE2;
+		*datasize = 2336;
+	}
+	else if (!strcmp(typestring, "MODE2_FORM1"))
+	{
+		*trktype = CD_TRACK_MODE2_FORM1;
+		*datasize = 2048;
+	}
+	else if (!strcmp(typestring, "MODE2/2048"))
+	{
+		*trktype = CD_TRACK_MODE2_FORM1;
+		*datasize = 2048;
+	}
+	else if (!strcmp(typestring, "MODE2_FORM2"))
+	{
+		*trktype = CD_TRACK_MODE2_FORM2;
+		*datasize = 2324;
+	}
+	else if (!strcmp(typestring, "MODE2/2324"))
+	{
+		*trktype = CD_TRACK_MODE2_FORM2;
+		*datasize = 2324;
+	}
+	else if (!strcmp(typestring, "MODE2_FORM_MIX"))
+	{
+		*trktype = CD_TRACK_MODE2_FORM_MIX;
+		*datasize = 2336;
+	}
+	else if (!strcmp(typestring, "MODE2_RAW"))
+	{
+		*trktype = CD_TRACK_MODE2_RAW;
+		*datasize = 2352;
+	}
+	else if (!strcmp(typestring, "MODE2/2352"))
+	{
+		*trktype = CD_TRACK_MODE2_RAW;
+		*datasize = 2352;
+	}
+	else if (!strcmp(typestring, "CDI/2352"))
+	{
+		*trktype = CD_TRACK_MODE2_RAW;
+		*datasize = 2352;
+	}
+	else if (!strcmp(typestring, "AUDIO"))
+	{
+		*trktype = CD_TRACK_AUDIO;
+		*datasize = 2352;
+	}
+}
+
+static int
+chd_image_has_audio(UNUSED(const void *local))
+{
+    chd_image_t *img = (chd_image_t *) local;
+    for (unsigned int i = 0; i < img->track_size; i++) {
+        if (img->track_entries[i].track_type == CD_TRACK_AUDIO)
+            return 1;
+    }
+    return 0;
+}
+
+static void
+chd_image_close(void *local)
+{
+    chd_image_t *img = local;
+    if (img->hunk_bytes)
+        free(img->hunk_bytes);
+    if (img->track_entries)
+        free(img->track_entries);
+    if (img->rti_infos)
+        free(img->rti_infos);
+    if (img->img_file)
+        chd_close(img->img_file);
+    free(img);
+}
+
+static int
+chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
+{
+    return 0;
+}
+
+static uint8_t
+chd_image_get_track_type(const void *local, const uint32_t sector)
+{
+    chd_image_t            *ioctl = (chd_image_t *) local;
+    int                     track = aaru_image_get_track(ioctl, sector);
+    raw_track_info_t       *rti   = (raw_track_info_t *) (ioctl->rti_infos);
+    const raw_track_info_t *trk   = &(rti[track]);
+    uint8_t                 ret   = 0x00;
+
+    if (aaru_image_track_audio(ioctl, sector))
+        ret = CD_TRACK_AUDIO;
+    else if (track != -1)
+        for (int i = 0; i < ioctl->rti_size; i++) {
+            const raw_track_info_t *ct = &(rti[i]);
+            const raw_track_info_t *nt = &(rti[i + 1]);
+
+            if (ct->point == 0xa0) {
+                uint8_t first = ct->pm;
+                uint8_t last  = nt->pm;
+
+                if ((trk->point >= first) && (trk->point <= last)) {
+                    ret = ct->ps;
+                    break;
+                }
+            }
+        }
+
+    return ret;
+}
+
+static int
+chd_image_read_dvd_structure(UNUSED(const void *local), UNUSED(const uint8_t layer), UNUSED(const uint8_t format),
+                              UNUSED(uint8_t *buffer), UNUSED(uint32_t *info))
+{
+    return 0;
+}
+
+static int
+chd_image_is_dvd(UNUSED(const void *local))
+{
+    chd_image_t            *ioctl = (chd_image_t *) local;
+    uint8_t output[2048] = { };
+    uint32_t temp_res;
+    uint32_t temp_restag;
+    uint8_t  temp_resflags;
+
+    return chd_get_metadata(ioctl->img_file, DVD_METADATA_TAG, 0, output, sizeof(output), &temp_res, &temp_restag, &temp_resflags) == CHDERR_NONE;
+}
+
+// read sector.
+static const cdrom_ops_t aaru_image_ops = {
+    chd_image_get_track_info,
+    chd_image_get_raw_track_info,
+    chd_image_read_sector,
+    chd_image_get_track_type,
+    chd_get_last_block,
+    chd_image_read_dvd_structure,
+    chd_image_is_dvd,
+    chd_image_has_audio,
+    NULL,
+    chd_image_close,
+    NULL
+};
+
+/* Public functions */
+void *
+chd_image_open(cdrom_t *dev, const char *path)
+{
+    chd_file *file = NULL;
+    chd_image_t *img = (chd_image_t*)calloc(1, sizeof(chd_image_t));
+
+    chd_open(path, CHD_OPEN_READ, NULL, &file);
+    if (file) {
+        uint64_t chd_offset = 0;
+        uint64_t sector_offset = 0;
+        bool mode2_found = false;
+        img->img_file = file;
+        img->header = chd_get_header(img->img_file);
+
+        if ((img->header->hunkbytes % (RAW_SECTOR_SIZE + 96)) != 0) {
+            chd_close(file);
+            free(img);
+            return NULL;
+        }
+        img->hunk_bytes = calloc(1, img->header->hunkbytes);
+        img->hunk_size = img->header->hunkbytes;
+        img->sectors_per_hunk = img->hunk_size / (RAW_SECTOR_SIZE + 96);
+
+        while (1) {
+            char type[256] = { };
+            char subtype[256] = { };
+            char pgtype[256] = { };
+            char pgsub[256] = { };
+            char temp[1024] = { };
+            uint32_t temp_len = 0;
+            uint32_t temp_tag = 0;
+            uint8_t temp_flags = 0;
+            int trk_pregap = 0;
+            int trk_postgap = 0;
+            int trk_num = 0;
+            int frames = 0;
+
+            if (chd_get_metadata(img->img_file, CDROM_TRACK_METADATA2_TAG, img->track_size, temp, sizeof(temp), &temp_len, &temp_tag, &temp_flags) == CHDERR_NONE) {
+                sscanf(temp, CDROM_TRACK_METADATA2_FORMAT, &trk_num, type, subtype, &frames, &trk_pregap, pgtype, pgsub, trk_postgap);
+            } else if (chd_get_metadata(img->img_file, CDROM_TRACK_METADATA2_TAG, img->track_size, temp, sizeof(temp), &temp_len, &temp_tag, &temp_flags) == CHDERR_NONE) {
+                sscanf(temp, CDROM_TRACK_METADATA_FORMAT, &trk_num, type, subtype, &frames);
+            } else {
+                break;
+            }
+            
+            TrackEntry_CHD* track = chd_image_allocate_track(img);
+            track->chd_start = chd_offset;
+
+            chd_offset += frames * 2448 + ((frames + 3) & ~3) * 2448;
+            track->pregap_exists_in_file = !!(pgtype[0] == 'V');
+            track->pregap = trk_pregap;
+            track->postgap = trk_postgap;
+            track->point = trk_num;
+            track->start = sector_offset;
+            sector_offset += frames + track->postgap;
+            track->adr_ctl = 0x10 | (strcmp(type, "AUDIO")) ? 0x4 : 0x0;
+            track->audioswap = !(track->adr_ctl & 4);
+            track->end = sector_offset - 1;
+
+            chd_img_get_info_from_type_string(type, &track->track_type, &track->sector_size);
+            if (track->track_type >= CD_TRACK_MODE2 && track->track_type <= CD_TRACK_MODE2_RAW) {
+                mode2_found = true;
+            }
+        }
+        img->rti_infos = calloc(1, sizeof(raw_track_info_t) * (3 + img->track_size));
+        img->rti_size = 3 + img->track_size;
+
+        int64_t first_track_sess = (int64_t) LLONG_MAX;
+        int64_t last_track_sess  = (int64_t) LLONG_MIN;
+
+        int64_t end_lba  = (int64_t) LLONG_MIN;
+        for (int i = 0; i < img->track_size; i++) {
+            raw_track_info_t* rti = &img->rti_infos[3 + i];
+
+            rti->m = rti->s = rti->f = rti->zero = 0;
+            rti->tno                             = 0;
+            rti->session                         = 1;
+            rti->point                           = img->track_entries[i].point;
+            if (i != 0) {
+                rti->pm = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 16) & 0xFF;
+                rti->ps = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 8) & 0xFF;
+                rti->pf = cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) & 0xFF;
+            } else {
+                rti->pm = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 16) & 0xFF;
+                rti->ps = (cdrom_lba_to_msf_accurate(img->track_entries[i].start) >> 8) & 0xFF;
+                rti->pf = cdrom_lba_to_msf_accurate(img->track_entries[i].start) & 0xFF;
+            }
+
+            if (img->track_entries[i].end > end_lba) {
+                end_lba = img->track_entries[i].end;
+            }
+            if (img->track_entries[i].sequence > last_track_sess) {
+                last_track_sess = img->track_entries[i].sequence;
+            }
+            if (img->track_entries[i].sequence < first_track_sess) {
+                first_track_sess = img->track_entries[i].sequence;
+            }
+        }
+
+        img->rti_infos[0].tno     = 0;
+        img->rti_infos[0].session = 1;
+        img->rti_infos[0].adr_ctl = 0x14;
+        img->rti_infos[0].m       = 0;
+        img->rti_infos[0].s       = 0;
+        img->rti_infos[0].f       = 0;
+        img->rti_infos[0].zero    = 0;
+        img->rti_infos[0].pm      = first_track_sess;
+        img->rti_infos[0].ps      = mode2_found ? 0x20 : 0x00;
+        img->rti_infos[0].pf      = 0x00;
+
+        img->rti_infos[1].tno     = 0;
+        img->rti_infos[1].session = 1;
+        img->rti_infos[1].adr_ctl = 0x10;
+        img->rti_infos[1].m       = 0;
+        img->rti_infos[1].s       = 0;
+        img->rti_infos[1].f       = 0;
+        img->rti_infos[1].zero    = 0;
+        img->rti_infos[1].pm      = last_track_sess;
+        img->rti_infos[1].ps      = 0x00;
+        img->rti_infos[1].pf      = 0x00;
+
+        img->rti_infos[2].tno     = 0;
+        img->rti_infos[2].session = 1;
+        img->rti_infos[2].adr_ctl = 0x10;
+        img->rti_infos[2].pm      = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
+        img->rti_infos[2].ps      = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 8) & 0xFF;
+        img->rti_infos[2].pf      = cdrom_lba_to_msf_accurate(end_lba + 1) & 0xFF;
+        img->rti_infos[2].m       = 0;
+        img->rti_infos[2].s       = 0;
+        img->rti_infos[2].f       = 0;
+        img->rti_infos[2].zero    = 0;
+
+        img->end_lba = end_lba;
+    }
+    return NULL;
+}
+
+int
+cdrom_image_is_chd(const char *fn)
+{
+    chd_file *file = NULL;
+
+    chd_open(fn, CHD_OPEN_READ, NULL, &file);
+    if (file) {
+        chd_close(file);
+        return 1;
+    }
+    return 0;
+}

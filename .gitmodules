@@ -1,0 +1,3 @@
+[submodule "src/cdrom/libchdr"]
+	path = src/cdrom/libchdr
+	url = https://github.com/rtissera/libchdr
