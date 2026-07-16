@@ -364,7 +364,7 @@
 /*UOP_PAVGUSB - (packed byte) dest_reg = (src_reg_a + src_reg_b + 1) >> 1*/
 #define UOP_PAVGUSB (UOP_TYPE_PARAMS_REGS | 0xc8)
 
-#define UOP_MAX     0xce
+#define UOP_MAX     0xd0
 
 #define UOP_INVALID 0xff
 
