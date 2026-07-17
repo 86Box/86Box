@@ -532,7 +532,7 @@ chd_image_get_track_type(const void *local, const uint32_t sector)
     uint8_t                 ret   = 0x00;
 
     if (chd_image_track_audio(ioctl, sector))
-        ret = 0x4;
+        ret = 0x08; // per CD_TRACK_AUDIO definitions in non-libchdr headers.
     else if (track != -1)
         for (int i = 0; i < ioctl->rti_size; i++) {
             const raw_track_info_t *ct = &(rti[i]);
