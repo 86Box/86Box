@@ -2058,7 +2058,7 @@ cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, const int msf)
 
     cdrom_log(dev->log, "Returned subchannel at %02i:%02i.%02i, seek pos = %08x, "
               "cd_end = %08x, msf = %x.\n",
-              subc.abs_m, subc.abs_s, subc.abs_f, dev->seek_pos, dev->cd_end, msf);
+              subc->abs_m, subc->abs_s, subc->abs_f, dev->seek_pos, dev->cd_end, msf);
 
     b[0] = subc->attr;
     b[1] = subc->track;

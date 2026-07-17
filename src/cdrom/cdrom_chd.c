@@ -286,7 +286,6 @@ chd_image_has_audio(UNUSED(const void *local))
         if (img->track_entries[i].track_type == CD_TRACK_AUDIO)
             return 1;
     }
-    pclog("Image CHD has no tracks\n");
     return 0;
 }
 
@@ -533,7 +532,7 @@ chd_image_get_track_type(const void *local, const uint32_t sector)
     uint8_t                 ret   = 0x00;
 
     if (chd_image_track_audio(ioctl, sector))
-        ret = CD_TRACK_AUDIO;
+        ret = 0x4;
     else if (track != -1)
         for (int i = 0; i < ioctl->rti_size; i++) {
             const raw_track_info_t *ct = &(rti[i]);
