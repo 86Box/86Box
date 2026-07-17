@@ -332,13 +332,15 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     raw_track_info_t       *rti           = (raw_track_info_t *) ioctl->rti_infos;
     const raw_track_info_t *ct            = &(rti[track]);
     const uint32_t          start         = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
-    int                     m, s, f;
+    int                     m = 0, s = 0, f = 0;
     uint8_t                 mode = 0, form = 0;
     int64_t                 pregap_length = 0;
     TrackEntry_CHD*         chd_track = &ioctl->track_entries[track - 3];
 
-    if (track == -1)
+    if (track == -1) {
+        pclog("No tracks found for sector %u\n", sector);
         return 0;
+    }
 
     memset(buffer, 0, 2448);
 
@@ -363,6 +365,7 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     if (hunk_to_use != ioctl->cur_hunk) {
         chd_error res = chd_read(ioctl->img_file, (uint32_t)hunk_to_use, ioctl->hunk_bytes);
         if (res != CHDERR_NONE) {
+            pclog("Failed to read hunk %lld\n", hunk_to_use);
             return 0;
         }
         ioctl->cur_hunk = hunk_to_use;
