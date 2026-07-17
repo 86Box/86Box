@@ -157,7 +157,7 @@
        <item>
           <widget class="QGroupBox" name="groupBoxCHD">
          <property name="title">
-          <string>CHD precaching level</string>
+          <string>CHD precache</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayoutCHD">
           <item>
@@ -171,13 +171,6 @@
            <widget class="QRadioButton" name="radioButtonCHDFileOnly">
             <property name="text">
              <string>File-only</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="radioButtonCHDDecompressed">
-            <property name="text">
-               <string>Fully decompressed</string>
             </property>
            </widget>
           </item>

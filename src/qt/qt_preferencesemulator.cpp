@@ -76,7 +76,6 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
 
     ui->radioButtonCHDNone->setChecked(chd_precache_level == 0);
     ui->radioButtonCHDFileOnly->setChecked(chd_precache_level == 1);
-    ui->radioButtonCHDDecompressed->setChecked(chd_precache_level == 2);
 
 #ifndef Q_OS_WINDOWS
     ui->groupBox->setHidden(true);
