@@ -720,7 +720,7 @@ chd_image_open(cdrom_t *dev, const char *path)
             TrackEntry_CHD* track = chd_image_allocate_track(img);
             track->chd_start = chd_offset;
 
-            chd_offset += frames * 2448 + ((frames + 3) & ~3) * 2448;
+            chd_offset += frames * 2448 + (((frames + 3) & ~3) - frames) * 2448;
             track->pregap_exists_in_file = !!(pgtype[0] == 'V');
             track->pregap = trk_pregap;
             track->postgap = trk_postgap;
@@ -825,6 +825,8 @@ chd_image_open(cdrom_t *dev, const char *path)
         img->dev = dev;
         img->dev->ops = &chd_image_ops;
         img->cur_hunk = -1;
+
+        pclog("Logical block count = %lld, CHD block count = %llu\n", end_lba + 1, chd_offset / 2448);
         return img;
     }
     return NULL;
