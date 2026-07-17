@@ -342,11 +342,11 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     memset(buffer, 0, 2448);
 
     if (!chd_track->pregap_exists_in_file && sector < (chd_track->start + chd_track->pregap)) {
-        return 1;
+        goto generate_subchannels;
     }
 
     if (sector >= ((chd_track->end + 1) - chd_track->postgap)) {
-        return 1;
+        goto generate_subchannels;
     }
 
     uint64_t chd_offset = 0;
@@ -489,6 +489,7 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         }
     }
 
+generate_subchannels:
     /* Construct Q. */
     buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
     buffer[2352 + 1] = bin2bcd(ct->point);
@@ -602,6 +603,13 @@ chd_image_open(cdrom_t *dev, const char *path)
             free(img);
             return NULL;
         }
+
+        if (img->header->version < 5) {
+            warning("CHDv4 and earlier versions are not supported.");
+            chd_close(file);
+            free(img);
+            return NULL;
+        }
         img->hunk_bytes = calloc(1, img->header->hunkbytes);
         img->hunk_size = img->header->hunkbytes;
         img->sectors_per_hunk = img->hunk_size / (RAW_SECTOR_SIZE + 96);
@@ -648,6 +656,13 @@ chd_image_open(cdrom_t *dev, const char *path)
             if (track->track_type >= CD_TRACK_MODE2 && track->track_type <= CD_TRACK_MODE2_RAW) {
                 mode2_found = true;
             }
+        }
+        if (img->track_size == 0) {
+            warning("CHD image '%s' contains no tracks!", path);
+            free(img->hunk_bytes);
+            chd_close(file);
+            free(img);
+            return NULL;
         }
         img->rti_infos = calloc(1, sizeof(raw_track_info_t) * (3 + img->track_size));
         img->rti_size = 3 + img->track_size;
@@ -721,6 +736,7 @@ chd_image_open(cdrom_t *dev, const char *path)
 
         img->dev = dev;
         img->dev->ops = &chd_image_ops;
+        img->cur_hunk = -1;
         return img;
     }
     return NULL;
