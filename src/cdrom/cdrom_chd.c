@@ -11,10 +11,15 @@
  * Authors: TheCollector1995, <mariogplayer@gmail.com>,
  *          Miran Grca, <mgrca8@gmail.com>
  *          Cacodemon345
+ *          Aaron Giles
+ *          R. Belmont
  *
  *          Copyright 2023 TheCollector1995.
  *          Copyright 2023 Miran Grca.
  *          Copyright 2026 Cacodemon345.
+ *          
+ *          Copyright - Aaron Giles
+ *          Copyright - R. Belmont
  */
 
 #define __STDC_FORMAT_MACROS
@@ -60,6 +65,7 @@
 #undef CD_TRACK_UNK_DATA
 
 // TODO: support DVD images.
+// TODO 2: support subchannel data.
 
 // Note: CHD files are not able to describe session information yet. Flycast simply hardcodes it.
 // Note 2: For CD metadata, if PGTYPE is valid, and starts with 'V', the pregap sectors exist in the file
@@ -77,6 +83,8 @@ typedef struct TrackEntry_CHD
     };
     uint32_t sector_size;
     uint32_t track_type;
+    uint32_t sector_size_pg;
+    uint32_t track_type_pg;
     bool    pregap_exists_in_file;
     int64_t start; // sectors, incl pregap
     int64_t end; // sectors, incl postgap
@@ -108,6 +116,10 @@ typedef struct chd_image_t {
 
     raw_track_info_t* rti_infos;
     uint32_t rti_size; // NOT in bytes.
+
+    bool uncompressed;
+    uint8_t* uncompressed_chd_sectors;
+    uint64_t uncompressed_length;
 } chd_image_t;
 
 typedef struct chd_image_t chd_image_t;
@@ -350,6 +362,8 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     uint8_t                 mode = 0, form = 0;
     int64_t                 pregap_length = 0;
     TrackEntry_CHD*         chd_track = &ioctl->track_entries[track - 3];
+    uint32_t                sector_track_type = chd_track->track_type;
+    uint32_t                sector_sector_size = chd_track->sector_size;
 
     if (track == -1) {
         pclog("No tracks found for sector %u\n", sector);
@@ -366,6 +380,15 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         goto generate_subchannels;
     }
 
+    if (sector < (chd_track->start + chd_track->pregap)) {
+        if (chd_track->track_type_pg != ~0u) {
+            sector_track_type = chd_track->track_type_pg;
+        }
+        if (chd_track->sector_size_pg != ~0u) {
+            sector_sector_size = chd_track->sector_size_pg;
+        }
+    }
+
     uint64_t chd_offset = 0;
     if (chd_track->pregap_exists_in_file) {
         chd_offset = (sector - chd_track->start) * 2448 + chd_track->chd_start;
@@ -373,16 +396,21 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         chd_offset = (sector - (chd_track->start + chd_track->pregap)) * 2448 + chd_track->chd_start;
     }
 
-    uint64_t chd_sector = chd_offset / 2448;
-    int64_t hunk_to_use = chd_sector / ioctl->sectors_per_hunk;
+    int64_t hunk_to_use = (chd_offset / 2448) / ioctl->sectors_per_hunk;
     uint64_t offset_from_hunk = chd_offset - hunk_to_use * ioctl->hunk_size;
-    if (hunk_to_use != ioctl->cur_hunk) {
-        chd_error res = chd_read(ioctl->img_file, (uint32_t)hunk_to_use, ioctl->hunk_bytes);
-        if (res != CHDERR_NONE) {
-            pclog("Failed to read hunk %lld\n", hunk_to_use);
-            return 0;
+
+    if (ioctl->uncompressed) {
+        hunk_to_use = 0;
+        offset_from_hunk = chd_offset;
+    } else {
+        if (hunk_to_use != ioctl->cur_hunk) {
+            chd_error res = chd_read(ioctl->img_file, (uint32_t)hunk_to_use, ioctl->hunk_bytes);
+            if (res != CHDERR_NONE) {
+                pclog("Failed to read hunk %lld\n", hunk_to_use);
+                return 0;
+            }
+            ioctl->cur_hunk = hunk_to_use;
         }
-        ioctl->cur_hunk = hunk_to_use;
     }
 
     uint32_t crc = 0;
@@ -586,7 +614,6 @@ chd_image_is_dvd(UNUSED(const void *local))
     return chd_get_metadata(ioctl->img_file, DVD_METADATA_TAG, 0, output, sizeof(output), &temp_res, &temp_restag, &temp_resflags) == CHDERR_NONE;
 }
 
-// read sector.
 static const cdrom_ops_t chd_image_ops = {
     chd_image_get_track_info,
     chd_image_get_raw_track_info,
@@ -628,9 +655,45 @@ chd_image_open(cdrom_t *dev, const char *path)
             free(img);
             return NULL;
         }
-        img->hunk_bytes = calloc(1, img->header->hunkbytes);
         img->hunk_size = img->header->hunkbytes;
         img->sectors_per_hunk = img->hunk_size / (RAW_SECTOR_SIZE + 96);
+
+        switch (chd_precache_level) {
+            case 0:
+                break;
+            case 1:
+                {
+                    if (chd_precache(file) != CHDERR_NONE) {
+                        warning("Failed to precache file \"%s\"!\n", path);
+                    }
+                    break;
+                }
+            case 2:
+            default:
+                {
+                    img->uncompressed_chd_sectors = calloc(img->header->totalhunks, img->header->hunkbytes);
+                    if (!img->uncompressed_chd_sectors) {
+                        warning("Failed to allocate %llu bytes for CHD decompression!\n", (uint64_t)img->header->totalhunks * (uint64_t)img->header->hunkbytes);
+                        break;
+                    }
+                    img->uncompressed_length = (uint64_t)img->header->totalhunks * (uint64_t)img->header->hunkbytes;
+                    for (uint64_t i = 0; i < img->header->totalhunks; i++) {
+                        if (chd_read(img->img_file, i, img->uncompressed_chd_sectors + i * img->header->hunkbytes) != CHDERR_NONE) {
+                            warning("Failed to read hunk %llu for CHD decompression!\n", (long long unsigned)i);
+                            free(img->uncompressed_chd_sectors);
+                            img->uncompressed_chd_sectors = NULL;
+                            img->uncompressed_length = 0;
+                            break;
+                        }
+                    }
+                    img->uncompressed = true;
+                    break;
+                }
+        }
+        if (!img->uncompressed)
+            img->hunk_bytes = calloc(1, img->header->hunkbytes);
+        else
+            img->hunk_bytes = img->uncompressed_chd_sectors;
 
         while (1) {
             char type[256] = { };
@@ -669,8 +732,11 @@ chd_image_open(cdrom_t *dev, const char *path)
             track->adr_ctl = 0x10 | ((strcmp(type, "AUDIO")) ? 0x4 : 0x0);
             track->audioswap = !(track->adr_ctl & 4);
             track->end = sector_offset - 1;
+            track->track_type_pg = ~0u;
+            track->sector_size_pg = ~0u;
 
             chd_img_get_info_from_type_string(type, &track->track_type, &track->sector_size);
+            chd_img_get_info_from_type_string(pgtype + !!track->pregap_exists_in_file, &track->track_type_pg, &track->sector_size_pg);
             if (track->track_type >= CD_TRACK_MODE2 && track->track_type <= CD_TRACK_MODE2_RAW) {
                 mode2_found = true;
             }
