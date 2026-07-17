@@ -677,6 +677,7 @@ chd_image_open(cdrom_t *dev, const char *path)
             rti->m = rti->s = rti->f = rti->zero = 0;
             rti->tno                             = 0;
             rti->session                         = 1;
+            rti->adr_ctl                         = img->track_entries[i].adr_ctl;
             rti->point                           = img->track_entries[i].point;
             if (i != 0) {
                 rti->pm = (cdrom_lba_to_msf_accurate(img->track_entries[i].start + img->track_entries[i].pregap) >> 16) & 0xFF;
