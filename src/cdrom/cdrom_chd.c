@@ -286,6 +286,7 @@ chd_image_has_audio(UNUSED(const void *local))
         if (img->track_entries[i].track_type == CD_TRACK_AUDIO)
             return 1;
     }
+    pclog("Image CHD has no tracks\n");
     return 0;
 }
 
@@ -493,15 +494,7 @@ generate_subchannels:
     /* Construct Q. */
     buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
     buffer[2352 + 1] = bin2bcd(ct->point);
-    pregap_length    = chd_track->pregap;
-    if (pregap_length && ((lba + 150) - start) < pregap_length) {
-        /*
-            Pre-gap sector relative frame addresses count from
-            the pregap length downwards.
-        */
-        buffer[2352 + 2] = 0;
-        FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
-    } else {
+    {
         buffer[2352 + 2] = 1;
         FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
     }
@@ -649,7 +642,7 @@ chd_image_open(cdrom_t *dev, const char *path)
             sector_offset += frames + track->postgap;
             if (!track->pregap_exists_in_file)
                 sector_offset += track->pregap;
-            track->adr_ctl = 0x10 | (strcmp(type, "AUDIO")) ? 0x4 : 0x0;
+            track->adr_ctl = 0x10 | ((strcmp(type, "AUDIO")) ? 0x4 : 0x0);
             track->audioswap = !(track->adr_ctl & 4);
             track->end = sector_offset - 1;
 
@@ -702,6 +695,7 @@ chd_image_open(cdrom_t *dev, const char *path)
         }
 
         img->rti_infos[0].tno     = 0;
+        img->rti_infos[0].point   = 0xa0;
         img->rti_infos[0].session = 1;
         img->rti_infos[0].adr_ctl = 0x14;
         img->rti_infos[0].m       = 0;
@@ -709,10 +703,11 @@ chd_image_open(cdrom_t *dev, const char *path)
         img->rti_infos[0].f       = 0;
         img->rti_infos[0].zero    = 0;
         img->rti_infos[0].pm      = first_track_sess;
-        img->rti_infos[0].ps      = 0x20;
+        img->rti_infos[0].ps      = mode2_found ? 0x20 : 0x00;
         img->rti_infos[0].pf      = 0x00;
 
         img->rti_infos[1].tno     = 0;
+        img->rti_infos[1].point   = 0xa1;
         img->rti_infos[1].session = 1;
         img->rti_infos[1].adr_ctl = 0x10;
         img->rti_infos[1].m       = 0;
@@ -724,6 +719,7 @@ chd_image_open(cdrom_t *dev, const char *path)
         img->rti_infos[1].pf      = 0x00;
 
         img->rti_infos[2].tno     = 0;
+        img->rti_infos[2].point   = 0xa2;
         img->rti_infos[2].session = 1;
         img->rti_infos[2].adr_ctl = 0x10;
         img->rti_infos[2].pm      = (cdrom_lba_to_msf_accurate(end_lba + 1) >> 16) & 0xFF;
