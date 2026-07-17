@@ -638,7 +638,6 @@ chd_image_open(cdrom_t *dev, const char *path)
             } else {
                 break;
             }
-            pclog("%s\n", temp);
             
             TrackEntry_CHD* track = chd_image_allocate_track(img);
             track->chd_start = chd_offset;
