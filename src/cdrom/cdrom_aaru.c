@@ -74,6 +74,7 @@ typedef struct ImageInfo
     uint8_t  MetadataMediaType;
 } ImageInfo;
 
+#pragma pack(push, 1)
 typedef struct TrackEntry
 {
     uint8_t  sequence;
@@ -99,6 +100,7 @@ typedef struct AaruHeader
     int64_t  creationTime;
     int64_t  lastWrittenTime;
 } AaruHeader;
+#pragma pack(pop)
 
 typedef enum
 {
