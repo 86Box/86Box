@@ -352,7 +352,7 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
 {
     chd_image_t            *ioctl         = (chd_image_t *) local;
     uint8_t                 sector_status = 0;
-    uint64_t                lba           = sector;
+    uint64_t                lba           = sector == ~0u ? ioctl->dev->seek_pos : sector;
     uint32_t                length        = 2352;
     int                     track         = chd_image_get_track(local, sector == ~0u ? ioctl->dev->seek_pos : sector);
     raw_track_info_t       *rti           = (raw_track_info_t *) ioctl->rti_infos;
