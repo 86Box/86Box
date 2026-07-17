@@ -494,7 +494,15 @@ generate_subchannels:
     /* Construct Q. */
     buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
     buffer[2352 + 1] = bin2bcd(ct->point);
-    {
+    pregap_length    = chd_track->pregap;
+    if (pregap_length && ((lba + 150) - start) < pregap_length) {
+        /*
+            Pre-gap sector relative frame addresses count from
+            the pregap length downwards.
+        */
+        buffer[2352 + 2] = 0;
+        FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
+    } else {
         buffer[2352 + 2] = 1;
         FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
     }
