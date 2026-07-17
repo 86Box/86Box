@@ -678,11 +678,11 @@ aaru_image_open(cdrom_t *dev, const char *path)
             res = f_aaruf_read_media_tag(img->aaruf_context, NULL, kMediaTagFullToc, &length);
 
             if (res == AARUF_ERROR_BUFFER_TOO_SMALL && length != 0) {
-                img->full_toc = calloc(1, length);
-                res           = f_aaruf_read_media_tag(img->aaruf_context, img->full_toc,
+                img->full_toc = calloc(1, length + 2);
+                res           = f_aaruf_read_media_tag(img->aaruf_context, img->full_toc + 2,
                                                        kMediaTagFullToc, &length);
                 if (!res) {
-                    img->full_toc_size = length;
+                    img->full_toc_size = length + 2;
                     goto toc_skip;
                 }
             }
