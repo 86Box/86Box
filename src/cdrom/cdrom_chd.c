@@ -709,7 +709,7 @@ chd_image_open(cdrom_t *dev, const char *path)
         img->rti_infos[0].f       = 0;
         img->rti_infos[0].zero    = 0;
         img->rti_infos[0].pm      = first_track_sess;
-        img->rti_infos[0].ps      = mode2_found ? 0x20 : 0x00;
+        img->rti_infos[0].ps      = 0x20;
         img->rti_infos[0].pf      = 0x00;
 
         img->rti_infos[1].tno     = 0;
