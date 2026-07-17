@@ -1,3 +1,22 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Support for CHD images via libchdr.
+ *
+ * Authors: TheCollector1995, <mariogplayer@gmail.com>,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Cacodemon345
+ *
+ *          Copyright 2023 TheCollector1995.
+ *          Copyright 2023 Miran Grca.
+ *          Copyright 2026 Cacodemon345.
+ */
+
 #define __STDC_FORMAT_MACROS
 #include <ctype.h>
 #include <inttypes.h>
@@ -43,15 +62,12 @@
 // TODO: support DVD images.
 
 // Note: CHD files are not able to describe session information yet. Flycast simply hardcodes it.
-// Note 2: We can determine track start and end positions in the CHD just by using the track lengths alone.
-// The indices should be inferred from the pregap length instead.
-// Note 3: For CD metadata, if PGTYPE is valid, and starts with 'V', the pregap sectors exist in the file.
+// Note 2: For CD metadata, if PGTYPE is valid, and starts with 'V', the pregap sectors exist in the file
+// and will count in the FRAMES field.
 // Otherwise, they do not exist in the file, and need to be handled appropriately.
-// Note 4: Postgap shifts the start of the next track on the TOC.
-// Whether it actually exists in the file or not is also entirely dependent on the next track
-// actually having the pregap data.
-// Note 5: The 4-frame padding does not consider the existence of pregap data in the file itself;
-// it's only calculated from the FRAMES field.
+// Note 3: Postgap shifts the start of the next track on the TOC.
+// Whether it actually exists in the file or not is very unclear.
+// Note 4: The padding of the frames in the CHD, depends on the FRAMES field itself, nothing else.
 
 typedef struct TrackEntry_CHD
 {
@@ -62,7 +78,6 @@ typedef struct TrackEntry_CHD
     uint32_t sector_size;
     uint32_t track_type;
     bool    pregap_exists_in_file;
-    // The start position is always inclusive of pregaps, no matter if it exists in the file or not.
     int64_t start; // sectors, incl pregap
     int64_t end; // sectors, incl postgap
     int64_t pregap;
