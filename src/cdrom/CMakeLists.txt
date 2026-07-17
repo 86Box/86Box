@@ -19,19 +19,14 @@ find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SNDFILE REQUIRED IMPORTED_TARGET sndfile)
 
-# AARU
-add_library(cdrom_aaru OBJECT
-    cdrom_aaru.c)
-
-target_include_directories(cdrom_aaru PRIVATE "${CMAKE_SOURCE_DIR}/src/include/libaaruformat/")
-
 add_library(cdrom OBJECT
     cdrom.c
+    cdrom_aaru.c
     cdrom_image.c
     cdrom_image_viso.c
     cdrom_mke.c
 )
-target_link_libraries(86Box cdrom_aaru)
+
 if(NOT WIN32)
 	target_include_directories(86Box PRIVATE PkgConfig::SNDFILE)
 endif()

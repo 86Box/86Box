@@ -522,7 +522,7 @@ am29f016d_init(const device_t *info)
 
     FILE *fp = nvr_fopen(dev->flash_path, "rb");
     if (fp) {
-        if (fread(&(dev->array[0x00000]), 1, 0x00200000, fp) != 0x00200000)
+        if (!dump_missing && (fread(&(dev->array[0x00000]), 1, 0x00200000, fp) != 0x00200000))
             pclog("Less than %i bytes read from the Am29F016D Flash ROM file\n", dev->size);
         fclose(fp);
     } else
@@ -538,7 +538,7 @@ am29f016d_close(void *priv)
 
     if (dev->dirty) {
         FILE *fp = nvr_fopen(dev->flash_path, "wb");
-        if (fp != NULL) {
+        if (!dump_missing && (fp != NULL)) {
             fwrite(&(dev->array[0x00000]), 0x00200000, 1, fp);
             fclose(fp);
         }

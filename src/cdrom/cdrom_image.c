@@ -2969,15 +2969,15 @@ image_read_dvd_structure(const void *local, const uint8_t layer, const uint8_t f
 
     if ((img->has_dstruct > 0) && ((layer + 1) > img->has_dstruct)) {
         switch (format) {
-            case 0x00:
+            case 0x00: /* Physical Format Information (PFI). */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f0, 2048);
                 ret = 2048 + 2;
                 break;
-            case 0x01:
+            case 0x01: /* DVD copyright information */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f1, 4);
                 ret = 4 + 2;
                 break;
-            case 0x04:
+            case 0x04: /* DVD disc manufacturing information. */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f4, 2048);
                 ret = 2048 + 2;
                 break;

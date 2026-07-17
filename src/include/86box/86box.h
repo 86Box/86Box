@@ -227,6 +227,7 @@ extern int      other_ide_present;          /* IDE controllers from non-IDE card
 extern int      other_scsi_present;         /* SCSI controllers from non-SCSI cards are present */
 extern int      is_pcjr;                    /* The current machine is PCjr. */
 
+extern int    dump_missing;
 extern int    hard_reset_pending;
 extern int    fixed_size_x;
 extern int    fixed_size_y;
@@ -335,7 +336,7 @@ struct accelKey {
 	char desc[64];
 	char seq[64];
 };
-#define NUM_ACCELS 15
+#define NUM_ACCELS 16
 extern struct accelKey acc_keys[NUM_ACCELS];
 extern struct accelKey def_acc_keys[NUM_ACCELS];
 extern int FindAccelerator(const char *name);

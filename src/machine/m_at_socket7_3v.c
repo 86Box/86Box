@@ -639,58 +639,60 @@ machine_at_thor_init(const machine_t *model)
 static void
 machine_at_endeavor_gpio_init(void)
 {
-    uint32_t gpio = 0xffffe0cf;
-    uint16_t addr;
+    if (!dump_missing) {
+        uint32_t gpio = 0xffffe0cf;
+        uint16_t addr;
 
-    /* Register 0x0078 (Undocumented): */
-    /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
-    device_context(machine_get_snd_device(machine));
-    addr = device_get_config_hex16("base");
-    switch (addr) {
-        case 0x0220:
-            gpio |= 0xffff00cf;
-            break;
-        case 0x0240:
-            gpio |= 0xffff00ef;
-            break;
-        case 0x0260:
-            gpio |= 0xffff00df;
-            break;
-        case 0x0280:
-            gpio |= 0xffff00ff;
-            break;
+        /* Register 0x0078 (Undocumented): */
+        /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
+        device_context(machine_get_snd_device(machine));
+        addr = device_get_config_hex16("base");
+        switch (addr) {
+            case 0x0220:
+                gpio |= 0xffff00cf;
+                break;
+            case 0x0240:
+                gpio |= 0xffff00ef;
+                break;
+            case 0x0260:
+                gpio |= 0xffff00df;
+                break;
+            case 0x0280:
+                gpio |= 0xffff00ff;
+                break;
+        }
+        device_context_restore();
+
+        /* Register 0x0079: */
+        /* Bit 7: 0 = Clear password, 1 = Keep password. */
+        /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+        /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+        /* Bit 4: External CPU clock (Switch 8). */
+        /* Bit 3: External CPU clock (Switch 7). */
+        /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+        /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+        /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+        /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+        /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
+        /* Bit 0: 0 = 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
+        /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+        if (cpu_busspeed <= 50000000)
+            gpio |= 0xffff0000;
+        else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+            gpio |= 0xffff0800;
+        else if (cpu_busspeed > 60000000)
+            gpio |= 0xffff1000;
+
+        if (sound_card_current[0] == SOUND_INTERNAL)
+            gpio |= 0xffff0400;
+
+        if (cpu_dmulti <= 1.5)
+            gpio |= 0xffff0100;
+        else
+            gpio |= 0xffff0000;
+
+        machine_set_gpio_default(gpio);
     }
-    device_context_restore();
-
-    /* Register 0x0079: */
-    /* Bit 7: 0 = Clear password, 1 = Keep password. */
-    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
-    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
-    /* Bit 4: External CPU clock (Switch 8). */
-    /* Bit 3: External CPU clock (Switch 7). */
-    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
-    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
-    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
-    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
-    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
-    /* Bit 0: 0 = 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
-    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
-    if (cpu_busspeed <= 50000000)
-        gpio |= 0xffff0000;
-    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        gpio |= 0xffff0800;
-    else if (cpu_busspeed > 60000000)
-        gpio |= 0xffff1000;
-
-    if (sound_card_current[0] == SOUND_INTERNAL)
-        gpio |= 0xffff0400;
-
-    if (cpu_dmulti <= 1.5)
-        gpio |= 0xffff0100;
-    else
-        gpio |= 0xffff0000;
-
-    machine_set_gpio_default(gpio);
 }
 
 uint32_t

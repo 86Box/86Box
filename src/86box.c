@@ -310,6 +310,12 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .desc="Toggle on-screen display",
         .seq="Ctrl+Alt+O"
     }
+,
+    {
+        .name="exit",
+        .desc="Exit",
+        .seq=""
+    }
 };
 
 char vmm_path[1024] = { '\0' }; /* VM manager path to scan for VMs */
@@ -1382,10 +1388,12 @@ usage:
 void
 pc_speed_changed(void)
 {
-    if (cpu_s->cpu_type >= CPU_286)
-        pit_set_clock(cpu_s->rspeed);
-    else
-        pit_set_clock((uint32_t) 14318184.0);
+    if (cpu_s != NULL) {
+        if (cpu_s->cpu_type >= CPU_286)
+            pit_set_clock(cpu_s->rspeed);
+        else
+            pit_set_clock((uint32_t) 14318184.0);
+    }
 }
 
 void
@@ -1407,8 +1415,6 @@ pc_init_roms(void)
     char    tempc[512];
 
     if (dump_missing) {
-        dump_missing = 0;
-
         c = 0;
         while (machine_get_internal_name_ex(c) != NULL) {
             m = machine_available(c);
@@ -1428,6 +1434,8 @@ pc_init_roms(void)
                 pclog("Missing video card: %s\n", tempc);
             c++;
         }
+
+        dump_missing = 0;
     }
 
     pc_log("Scanning for ROM images:\n");

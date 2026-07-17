@@ -510,7 +510,7 @@ intel_flash_init(const device_t *info)
     dev->status  = 0;
 
     fp = nvr_fopen(flash_path, "rb");
-    if (fp) {
+    if (!dump_missing && (fp != NULL)) {
         (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
         if (dev->block_len[BLOCK_MAIN2])
             (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
@@ -534,16 +534,18 @@ intel_flash_close(void *priv)
     flash_t *dev = (flash_t *) priv;
 
     fp = nvr_fopen(flash_path, "wb");
-    fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
-    if (dev->block_len[BLOCK_MAIN2])
-        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
-    if (dev->block_len[BLOCK_MAIN3])
-        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
-    if (dev->block_len[BLOCK_MAIN4])
-        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
+    if (!dump_missing) {
+        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
+        if (dev->block_len[BLOCK_MAIN2])
+            fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
+        if (dev->block_len[BLOCK_MAIN3])
+            fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
+        if (dev->block_len[BLOCK_MAIN4])
+            fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
 
-    fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
-    fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+        fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
+        fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+    }
     fclose(fp);
 
     free(dev->array);

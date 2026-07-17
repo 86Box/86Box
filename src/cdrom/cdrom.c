@@ -346,10 +346,12 @@ cdrom_check_for_formed_mode2(cdrom_t *dev, const uint8_t *b)
 
         dev->formed_mode2 = dev->formed_mode2 || (crc == (*(uint32_t *) &(b[2072])));
 
-        /* XA Mode 2 Form 2 */
-        crc = cdrom_crc32(0xffffffff, &(b[16]), 2332) ^ 0xffffffff;
+        if ((*(uint32_t *) &(b[2348])) != 0x00000000) {
+            /* XA Mode 2 Form 2 */
+            crc = cdrom_crc32(0xffffffff, &(b[16]), 2332) ^ 0xffffffff;
 
-        dev->formed_mode2 = dev->formed_mode2 || (crc == (*(uint32_t *) &(b[2348])));
+            dev->formed_mode2 = dev->formed_mode2 || (crc == (*(uint32_t *) &(b[2348])));
+        }
     }
 }
 
@@ -363,7 +365,7 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
             const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2056) ^ 0xffffffff;
 
             ret = ret && (crc == (*(uint32_t *) &(b[2072])));
-        } else if (mode2 && (form == 2)) {
+        } else if (mode2 && (form == 2) && ((*(uint32_t *) &(b[2348])) != 0x00000000)) {
             /* CRC on the 2324 user bytes + the 8 bytes of the sub-headers and no EDC. */
             const uint32_t crc = cdrom_crc32(0xffffffff, &(b[16]), 2332) ^ 0xffffffff;
 
