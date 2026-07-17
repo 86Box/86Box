@@ -192,7 +192,7 @@ static TrackEntry_CHD*
 chd_image_allocate_track(chd_image_t *img)
 {
     img->track_entries                    = realloc(img->track_entries, img->track_size * sizeof(TrackEntry_CHD) + sizeof(TrackEntry_CHD));
-    TrackEntry_CHD *track_info = (TrackEntry_CHD *) (img->track_entries + img->track_size * sizeof(TrackEntry_CHD));
+    TrackEntry_CHD *track_info = (TrackEntry_CHD *) (img->track_entries + img->track_size);
     memset(track_info, 0, sizeof(TrackEntry_CHD));
     img->track_size += 1;
     return track_info;
