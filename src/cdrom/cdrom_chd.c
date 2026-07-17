@@ -631,6 +631,8 @@ chd_image_open(cdrom_t *dev, const char *path)
             track->point = trk_num;
             track->start = sector_offset;
             sector_offset += frames + track->postgap;
+            if (!track->pregap_exists_in_file)
+                sector_offset += track->pregap;
             track->adr_ctl = 0x10 | (strcmp(type, "AUDIO")) ? 0x4 : 0x0;
             track->audioswap = !(track->adr_ctl & 4);
             track->end = sector_offset - 1;
