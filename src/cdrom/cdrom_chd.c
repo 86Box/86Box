@@ -64,9 +64,6 @@
 #undef CD_TRACK_NORMAL
 #undef CD_TRACK_UNK_DATA
 
-// TODO: support DVD images.
-// TODO 2: support subchannel data.
-
 // Note: CHD files are not able to describe session information yet. Flycast simply hardcodes it.
 // Note 2: For CD metadata, if PGTYPE is valid, and starts with 'V', the pregap sectors exist in the file
 // and will count in the FRAMES field.
@@ -83,8 +80,10 @@ typedef struct TrackEntry_CHD
     };
     uint32_t sector_size;
     uint32_t track_type;
+    uint8_t  subcode_type;
     uint32_t sector_size_pg;
     uint32_t track_type_pg;
+    uint8_t  subcode_type_pg;
     bool    pregap_exists_in_file;
     int64_t start; // sectors, incl pregap
     int64_t end; // sectors, incl postgap
@@ -118,6 +117,7 @@ typedef struct chd_image_t {
     uint32_t rti_size; // NOT in bytes.
 
     bool uncompressed;
+    bool is_dvd;
     uint8_t* uncompressed_chd_sectors;
     uint64_t uncompressed_length;
 } chd_image_t;
@@ -347,11 +347,95 @@ chd_image_track_audio(const chd_image_t *ioctl, const uint32_t pos)
     return ret;
 }
 
+static void sub_to_interleaved(const uint8_t *s, uint8_t *d)
+{
+	for (int i = 0; i < 8 * 12; i ++) {
+		int dmask = 0x80;
+		int smask = 1 << (7 - (i & 7));
+		(*d) = 0;
+		for (int j = 0; j < 8; j++) {
+			(*d) |= (s[(i / 8) + j * 12] & smask) ? dmask : 0;
+			dmask >>= 1;
+		}
+		d++;
+	}
+}
+
+static int
+chd_image_read_sector_dvd(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t sector))
+{
+    chd_image_t *ioctl = (chd_image_t *) local;
+    int          m = 0, s = 0, f = 0;
+    if (sector == ~0u)
+        sector = ioctl->dev->seek_pos;
+
+    uint32_t lba = sector;
+
+    memset(buffer, 0, 2448);
+
+    uint64_t chd_offset       = 2048 * sector;
+    int64_t  hunk_to_use      = (chd_offset / 2048) / ioctl->sectors_per_hunk;
+    uint64_t offset_from_hunk = chd_offset - hunk_to_use * ioctl->hunk_size;
+
+    if (ioctl->uncompressed) {
+        hunk_to_use      = 0;
+        offset_from_hunk = chd_offset;
+    } else {
+        if (hunk_to_use != ioctl->cur_hunk) {
+            chd_error res = chd_read(ioctl->img_file, (uint32_t) hunk_to_use, ioctl->hunk_bytes);
+            if (res != CHDERR_NONE) {
+                pclog("Failed to read hunk %lld\n", hunk_to_use);
+                return 0;
+            }
+            ioctl->cur_hunk = hunk_to_use;
+        }
+    }
+
+    memcpy(&buffer[16], &ioctl->hunk_bytes[offset_from_hunk], 2048);
+    /* Sync bytes. */
+    buffer[0] = 0x00;
+    memset(&(buffer[1]), 0xff, 10);
+    buffer[11] = 0x00;
+
+    /* Sector header. */
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[12] = bin2bcd(m);
+    buffer[13] = bin2bcd(s);
+    buffer[14] = bin2bcd(f);
+
+    /* Mode 1/Mode 2 data. */
+    buffer[15]   = 1;
+    uint32_t crc = cdrom_crc32(0xffffffff, buffer, 2064) ^ 0xffffffff;
+    memcpy(&(buffer[2064]), &crc, 4);
+
+    /* Compute ECC P code. */
+    cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]), &(buffer[12]), 86, 24, 2, 86, 0);
+
+    /* Compute ECC Q code. */
+    cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]), &(buffer[12]), 52, 43, 86, 88, 0);
+
+    /* Construct Q. */
+    buffer[2352 + 0] = 0x41;
+    buffer[2352 + 1] = bin2bcd(1);
+    buffer[2352 + 2] = 1;
+    FRAMES_TO_MSF((int32_t) (lba + 150), &m, &s, &f);
+    buffer[2352 + 3] = bin2bcd(m);
+    buffer[2352 + 4] = bin2bcd(s);
+    buffer[2352 + 5] = bin2bcd(f);
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[2352 + 7] = bin2bcd(m);
+    buffer[2352 + 8] = bin2bcd(s);
+    buffer[2352 + 9] = bin2bcd(f);
+    for (int i = 11; i >= 0; i--)
+        for (int j = 7; j >= 0; j--)
+            buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
+    return 1;
+}
+
 static int
 chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
     chd_image_t            *ioctl         = (chd_image_t *) local;
-    uint8_t                 sector_status = 0;
     uint64_t                lba           = sector == ~0u ? ioctl->dev->seek_pos : sector;
     uint32_t                length        = 2352;
     int                     track         = chd_image_get_track(local, sector == ~0u ? ioctl->dev->seek_pos : sector);
@@ -364,6 +448,8 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     TrackEntry_CHD*         chd_track = &ioctl->track_entries[track - 3];
     uint32_t                sector_track_type = chd_track->track_type;
     uint32_t                sector_sector_size = chd_track->sector_size;
+    uint8_t                 subchannel_exists = chd_track->subcode_type;
+    bool                    in_pregap = false;
 
     if (track == -1) {
         pclog("No tracks found for sector %u\n", sector);
@@ -373,20 +459,21 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     memset(buffer, 0, 2448);
 
     if (!chd_track->pregap_exists_in_file && sector < (chd_track->start + chd_track->pregap)) {
-        goto generate_subchannels;
+        in_pregap = true;
     }
 
     if (sector >= ((chd_track->end + 1) - chd_track->postgap)) {
-        goto generate_subchannels;
+        in_pregap = true;
+        sector_track_type = ~0u;
+        sector_sector_size = 0;
+        subchannel_exists = false;
     }
 
     if (sector < (chd_track->start + chd_track->pregap)) {
-        if (chd_track->track_type_pg != ~0u) {
-            sector_track_type = chd_track->track_type_pg;
-        }
-        if (chd_track->sector_size_pg != ~0u) {
-            sector_sector_size = chd_track->sector_size_pg;
-        }
+        sector_track_type = chd_track->track_type_pg;
+        sector_sector_size = chd_track->sector_size_pg;
+        subchannel_exists = chd_track->subcode_type_pg;
+        in_pregap = true;
     }
 
     uint64_t chd_offset = 0;
@@ -399,28 +486,31 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     int64_t hunk_to_use = (chd_offset / 2448) / ioctl->sectors_per_hunk;
     uint64_t offset_from_hunk = chd_offset - hunk_to_use * ioctl->hunk_size;
 
-    if (ioctl->uncompressed) {
-        hunk_to_use = 0;
-        offset_from_hunk = chd_offset;
-    } else {
-        if (hunk_to_use != ioctl->cur_hunk) {
-            chd_error res = chd_read(ioctl->img_file, (uint32_t)hunk_to_use, ioctl->hunk_bytes);
-            if (res != CHDERR_NONE) {
-                pclog("Failed to read hunk %lld\n", hunk_to_use);
-                return 0;
+    if (!in_pregap || (in_pregap && chd_track->pregap_exists_in_file)) {
+        if (ioctl->uncompressed) {
+            hunk_to_use = 0;
+            offset_from_hunk = chd_offset;
+        } else {
+            if (hunk_to_use != ioctl->cur_hunk) {
+                chd_error res = chd_read(ioctl->img_file, (uint32_t)hunk_to_use, ioctl->hunk_bytes);
+                if (res != CHDERR_NONE) {
+                    pclog("Failed to read hunk %lld\n", hunk_to_use);
+                    return 0;
+                }
+                ioctl->cur_hunk = hunk_to_use;
             }
-            ioctl->cur_hunk = hunk_to_use;
         }
     }
 
     uint32_t crc = 0;
 
-    switch (chd_track->sector_size) {
+    switch (sector_sector_size) {
         case 2048:
         {
-            switch(chd_track->track_type) {
+            switch(sector_track_type) {
                 case CD_TRACK_MODE1: {
-                    memcpy(&buffer[16], &ioctl->hunk_bytes[offset_from_hunk], 2048);
+                    if (!in_pregap || (in_pregap && chd_track->pregap_exists_in_file))
+                        memcpy(&buffer[16], &ioctl->hunk_bytes[offset_from_hunk], 2048);
                     /* Sync bytes. */
                     buffer[0] = 0x00;
                     memset(&(buffer[1]), 0xff, 10);
@@ -445,7 +535,8 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
                     break;
                 }
                 case CD_TRACK_MODE2_FORM1: {
-                    memcpy(&buffer[24], &ioctl->hunk_bytes[offset_from_hunk], 2048);
+                    if (!in_pregap || (in_pregap && chd_track->pregap_exists_in_file))
+                        memcpy(&buffer[24], &ioctl->hunk_bytes[offset_from_hunk], 2048);
                     /* Sync bytes. */
                     buffer[0] = 0x00;
                     memset(&(buffer[1]), 0xff, 10);
@@ -479,7 +570,8 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         }
         case 2352:
         {
-            memcpy(buffer, &ioctl->hunk_bytes[offset_from_hunk], 2352);
+            if (!in_pregap || (in_pregap && chd_track->pregap_exists_in_file))
+                memcpy(buffer, &ioctl->hunk_bytes[offset_from_hunk], 2352);
             if (chd_track->audioswap) {
                 for (int i = 0; i < 2352; i += 2) {
                     uint8_t samp_1 = buffer[i];
@@ -491,7 +583,8 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         }
         case 2324:
         {
-            memcpy(&buffer[24], &ioctl->hunk_bytes[offset_from_hunk], 2324);
+            if (!in_pregap || (in_pregap && chd_track->pregap_exists_in_file))
+                memcpy(&buffer[24], &ioctl->hunk_bytes[offset_from_hunk], 2324);
             /* Sync bytes. */
             buffer[0] = 0x00;
             memset(&(buffer[1]), 0xff, 10);
@@ -512,7 +605,8 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         }
         case 2336:
         {
-            memcpy(&buffer[16], &ioctl->hunk_bytes[offset_from_hunk], 2336);
+            if (!in_pregap || (in_pregap && chd_track->pregap_exists_in_file))
+                memcpy(&buffer[16], &ioctl->hunk_bytes[offset_from_hunk], 2336);
             switch (chd_track->track_type) {
                 case CD_TRACK_MODE2_FORM_MIX:
                 case CD_TRACK_MODE2: {
@@ -536,6 +630,14 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     }
 
 generate_subchannels:
+    if (subchannel_exists) {
+        if (subchannel_exists == 2) {
+            sub_to_interleaved(&ioctl->hunk_bytes[offset_from_hunk + sector_sector_size], &buffer[2352]);
+        } else {
+            memcpy(&buffer[2352], &ioctl->hunk_bytes[offset_from_hunk + sector_sector_size], 96);
+        }
+        return 1;
+    }
     /* Construct Q. */
     buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
     buffer[2352 + 1] = bin2bcd(ct->point);
@@ -628,6 +730,20 @@ static const cdrom_ops_t chd_image_ops = {
     NULL
 };
 
+static const cdrom_ops_t chd_image_dvd_ops = {
+    chd_image_get_track_info,
+    chd_image_get_raw_track_info,
+    chd_image_read_sector_dvd,
+    chd_image_get_track_type,
+    chd_image_get_last_block,
+    chd_image_read_dvd_structure,
+    chd_image_is_dvd,
+    chd_image_has_audio,
+    NULL,
+    chd_image_close,
+    NULL
+};
+
 /* Public functions */
 void *
 chd_image_open(cdrom_t *dev, const char *path)
@@ -643,21 +759,37 @@ chd_image_open(cdrom_t *dev, const char *path)
         img->img_file = file;
         img->header = chd_get_header(img->img_file);
 
-        if ((img->header->hunkbytes % (RAW_SECTOR_SIZE + 96)) != 0) {
-            chd_close(file);
-            free(img);
-            return NULL;
-        }
-
         if (img->header->version < 5) {
             warning("CHDv4 and earlier versions are not supported.");
             chd_close(file);
             free(img);
             return NULL;
         }
+
+        if (!(img->header->hunkbytes % 2048)) {
+            uint8_t output[2048] = { };
+            uint32_t temp_res;
+            uint32_t temp_restag;
+            uint8_t  temp_resflags;
+
+            if (chd_get_metadata(img->img_file, DVD_METADATA_TAG, 0, output, sizeof(output), &temp_res, &temp_restag, &temp_resflags) == CHDERR_NONE) {
+                img->hunk_size = img->header->hunkbytes;
+                img->sectors_per_hunk = img->hunk_size / 2048;
+                img->is_dvd = 1;
+                goto precache_start;
+            }
+        }
+
+        if ((img->header->hunkbytes % (RAW_SECTOR_SIZE + 96)) != 0) {
+            chd_close(file);
+            free(img);
+            return NULL;
+        }
+
         img->hunk_size = img->header->hunkbytes;
         img->sectors_per_hunk = img->hunk_size / (RAW_SECTOR_SIZE + 96);
 
+precache_start:
         switch (chd_precache_level) {
             case 0:
                 break;
@@ -694,6 +826,24 @@ chd_image_open(cdrom_t *dev, const char *path)
             img->hunk_bytes = calloc(1, img->header->hunkbytes);
         else
             img->hunk_bytes = img->uncompressed_chd_sectors;
+
+        if (img->is_dvd) {
+            TrackEntry_CHD* track = chd_image_allocate_track(img);
+
+            track->pregap_exists_in_file = 0;
+            track->pregap = 0;
+            track->postgap = 0;
+            track->point = 1;
+            track->start = 0;
+            track->adr_ctl = 0x14;
+            track->audioswap = false;
+            track->end = img->header->unitcount - 1;
+            track->track_type_pg = 0;
+            track->sector_size_pg = 0;
+            track->subcode_type = 0;
+            track->subcode_type_pg = 0;
+            goto generate_raw_track_info;
+        }
 
         while (1) {
             char type[256] = { };
@@ -733,7 +883,21 @@ chd_image_open(cdrom_t *dev, const char *path)
             track->audioswap = !(track->adr_ctl & 4);
             track->end = sector_offset - 1;
             track->track_type_pg = ~0u;
-            track->sector_size_pg = ~0u;
+            track->sector_size_pg = 0;
+            track->subcode_type = 0;
+            track->subcode_type_pg = 0;
+
+            if (!strcmp(subtype, "RW_RAW"))
+                track->subcode_type = 1;
+            
+            if (!strcmp(subtype, "RW"))
+                track->subcode_type = 2;
+
+            if (!strcmp(pgsub, "RW_RAW"))
+                track->subcode_type_pg = 1;
+            
+            if (!strcmp(pgsub, "RW"))
+                track->subcode_type_pg = 2;
 
             chd_img_get_info_from_type_string(type, &track->track_type, &track->sector_size);
             chd_img_get_info_from_type_string(pgtype + !!track->pregap_exists_in_file, &track->track_type_pg, &track->sector_size_pg);
@@ -741,6 +905,7 @@ chd_image_open(cdrom_t *dev, const char *path)
                 mode2_found = true;
             }
         }
+
         if (img->track_size == 0) {
             warning("CHD image '%s' contains no tracks!", path);
             free(img->hunk_bytes);
@@ -748,6 +913,7 @@ chd_image_open(cdrom_t *dev, const char *path)
             free(img);
             return NULL;
         }
+generate_raw_track_info:
         img->rti_infos = calloc(1, sizeof(raw_track_info_t) * (3 + img->track_size));
         img->rti_size = 3 + img->track_size;
 
@@ -823,7 +989,7 @@ chd_image_open(cdrom_t *dev, const char *path)
         img->end_lba = end_lba;
 
         img->dev = dev;
-        img->dev->ops = &chd_image_ops;
+        img->dev->ops = img->is_dvd ? &chd_image_dvd_ops : &chd_image_ops;
         img->cur_hunk = -1;
 
         return img;
