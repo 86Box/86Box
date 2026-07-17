@@ -434,6 +434,13 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         case 2352:
         {
             memcpy(buffer, &ioctl->hunk_bytes[offset_from_hunk], 2352);
+            if (chd_track->audioswap) {
+                for (int i = 0; i < 2352; i += 2) {
+                    uint8_t samp_1 = buffer[i];
+                    buffer[i] = buffer[i + 1];
+                    buffer[i + 1] = samp_1;
+                }
+            }
             break;
         }
         case 2324:
