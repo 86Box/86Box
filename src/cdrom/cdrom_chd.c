@@ -351,9 +351,9 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
 
     uint64_t chd_offset = 0;
     if (chd_track->pregap_exists_in_file) {
-        chd_offset = (chd_track->start - sector) * 2448 + chd_track->chd_start;
+        chd_offset = (sector - chd_track->start) * 2448 + chd_track->chd_start;
     } else {
-        chd_offset = ((chd_track->start + chd_track->pregap) - sector) * 2448 + chd_track->chd_start;
+        chd_offset = (sector - (chd_track->start + chd_track->pregap)) * 2448 + chd_track->chd_start;
     }
 
     uint64_t chd_sector = chd_offset / 2448;
@@ -635,6 +635,7 @@ chd_image_open(cdrom_t *dev, const char *path)
             } else {
                 break;
             }
+            pclog("%s\n", temp);
             
             TrackEntry_CHD* track = chd_image_allocate_track(img);
             track->chd_start = chd_offset;
