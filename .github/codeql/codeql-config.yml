@@ -4,13 +4,8 @@ queries:
   - uses: security-extended
 #  - uses: security-and-quality
 
-paths:
-  - src
-
-paths-ignore:
-  - src/cdrom/libchdr/deps/**
-  - src/cdrom/libchdr/dr_libs/dr_flac.h
-
 query-filters:
   - exclude:
       id: cpp/path-injection
+  - exclude:
+      id: cpp/suspicious-pointer-scaling
