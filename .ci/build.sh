@@ -1018,8 +1018,8 @@ fi
 cwd_root="$(pwd)"
 cd $prefix/src
 echo Now in $prefix/src
-cmake -B build -S .. -DCMAKE_BUILD_TYPE-Release -DBUILD_TOOL=1 -DAARU_BUILD_PACKAGE=ON
-cmake --build build -j$(nproc)
+cmake -B build -S .. -DCMAKE_BUILD_TYPE-Release -DBUILD_TOOL=1 -DAARU_BUILD_PACKAGE=ON || exit 99
+cmake --build build -j$(nproc) || exit 99
 status=0
 if is_windows
 then
@@ -1031,7 +1031,7 @@ else
   mv "build/libaaruformat.so" $cwd_root/archive_tmp/ || status=1
 fi
 rm -rf build
-if [ status == 1 ]
+if [ "status" -eq "1" ]
 then
   exit 99
 fi
