@@ -14,6 +14,11 @@ int main(int argc, char** argv)
   clock_t start, end;
   double time_taken;
 
+  if (argc < 2) {
+    printf("Expected a file path as first pararmeter, got none.\n");
+    return 0;
+  }
+
   printf("\nlibchdr benchmark tool....");
 
   /* Recording the starting clock tick.*/
