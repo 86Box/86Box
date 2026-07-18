@@ -22810,7 +22810,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name              = "[i440GX] Supermicro S2DGE",
+        .name              = "[i440GX] Supermicro S2DGU/DGE",
         .internal_name     = "s2dge",
         .type              = MACHINE_TYPE_SLOT2,
         .chipset           = MACHINE_CHIPSET_INTEL_440GX,
@@ -22855,7 +22855,7 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .scsi_device              = &aic7890_onboard_pci_device,
-        .aliases                  = { "Supermicro S2DGU", "" }
+        .aliases                  = { "" }
     },
 
     /* PGA370 machines */
