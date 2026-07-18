@@ -1018,8 +1018,8 @@ fi
 cwd_root="$(pwd)"
 cd $prefix/src
 echo Now in $prefix/src
-cmake -B build -S .. --preset release -DAARU_BUILD_PACKAGE=ON
-ninja -j12 -C build
+cmake -B build -S .. -DCMAKE_BUILD_TYPE-Release -DBUILD_TOOL=1 -DAARU_BUILD_PACKAGE=ON
+cmake --build build -j$(nproc)
 status=0
 if is_windows
 then
