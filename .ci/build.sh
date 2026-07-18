@@ -994,8 +994,6 @@ mv "$prefix/src/mdsx."* archive_tmp/ || exit 99
 prefix="$cache_dir/libaaruformat"
 debug_args=
 grep -qiE "^CMAKE_BUILD_TYPE:[^=]+=Debug" build/CMakeCache.txt && debug_args=DEBUG=y
-# Do this temporarily to force a complete rebuild.
-rm -rf $prefix
 if [ -e "$prefix/src/close.c" ]
 then
 	if ! check_buildtag libaaruformat
