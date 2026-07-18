@@ -2005,14 +2005,14 @@ static chd_error hunk_read_into_memory(chd_file *chd, uint32_t hunknum, uint8_t 
 						free(buf);
 						return err;
 					}
-					memcpy(dest, buf + unit_in_hunk * chd->header.unitbytes, (units_in_hunk - unit_in_hunk) * chd->header.unitbytes);
+					memcpy(dest, buf + (size_t)unit_in_hunk * chd->header.unitbytes, (size_t)(units_in_hunk - unit_in_hunk) * chd->header.unitbytes);
 					/* Read second half of hunk which contains blockoffs */
 					err = hunk_read_into_memory(chd->parent, (blockoffs / units_in_hunk) + 1, buf);
 					if (err != CHDERR_NONE) {
 						free(buf);
 						return err;
 					}
-					memcpy(dest + (units_in_hunk - unit_in_hunk) * chd->header.unitbytes, buf, unit_in_hunk * chd->header.unitbytes);
+					memcpy(dest + (size_t)(units_in_hunk - unit_in_hunk) * chd->header.unitbytes, buf, (size_t)unit_in_hunk * chd->header.unitbytes);
 					free(buf);
 				}
 				break;
@@ -2057,9 +2057,9 @@ static chd_error map_read(chd_file *chd)
 			entries = MAP_STACK_ENTRIES;
 
 		/* read that many */
-		if (!seek_and_read(chd, fileoffset, raw_map_entries, entries * entrysize))
+		if (!seek_and_read(chd, fileoffset, raw_map_entries, entries * (size_t)entrysize))
 			EARLY_EXIT(err = CHDERR_READ_ERROR);
-		fileoffset += entries * entrysize;
+		fileoffset += entries * (size_t)entrysize;
 
 		/* process that many */
 		if (entrysize == MAP_ENTRY_SIZE)
