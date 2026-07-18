@@ -15,7 +15,8 @@
 #          Copyright 2024-2026 Jasmine Iwanek.
 #
 
-set(USE_SYSTEM_ZLIB ON)
+set(WITH_SYSTEM_ZLIB ON)
+set(WITH_SYSTEM_ZSTD ON)
 add_subdirectory(libchdr)
 
 find_package(PkgConfig REQUIRED)
