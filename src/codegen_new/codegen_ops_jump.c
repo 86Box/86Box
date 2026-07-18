@@ -273,7 +273,7 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
         return 0;
 
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
-        LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp2_W, cs + op_pc);
+        LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp1_W, cs + op_pc);
     }
     else {
         offset = fastreadw(cs + op_pc);
@@ -282,11 +282,11 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
 
     if (stack32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp2_W, IREG_SS_base, IREG_ESP, 2);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP, 2);
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp2_W, IREG_SS_base, IREG_eaaddr, 2);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr, 2);
     }
     uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
@@ -295,11 +295,11 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
         if (stack32)
         {
             /* FIX: Use IREG_temp0 to prevent register tracking collision with IREG_temp1_W */
-            uop_MOVZX(ir, IREG_temp3, IREG_temp2_W);
-            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp3);
+            uop_MOVZX(ir, IREG_temp0, IREG_temp1_W);
+            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp0);
         }
         else
-            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp2_W);
+            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp1_W);
         ADD_SP(ir, 4);
     }
     else 
@@ -322,11 +322,11 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
 
     if (stack32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_ESP);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp2_W, IREG_SS_base, IREG_ESP, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP, 4);
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0, IREG_SS_base, IREG_eaaddr);
-        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp2_W, IREG_SS_base, IREG_eaaddr, 4);
+        uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr, 4);
     }
     uop_MOV(ir, IREG_pc, IREG_temp0);
     uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
@@ -335,11 +335,11 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
         if (stack32)
         {
             /* FIX: Use IREG_temp0 to prevent register tracking collision with IREG_temp1_W */
-            uop_MOVZX(ir, IREG_temp2, IREG_temp2_W);
-            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp2);
+            uop_MOVZX(ir, IREG_temp0, IREG_temp1_W);
+            uop_ADD(ir, IREG_ESP, IREG_ESP, IREG_temp0);
         }
         else
-            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp2_W);
+            uop_ADD(ir, IREG_SP, IREG_SP, IREG_temp1_W);
         ADD_SP(ir, 8);
     }
     else 
