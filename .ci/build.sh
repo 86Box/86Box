@@ -1021,7 +1021,15 @@ echo Now in $prefix/src
 cmake -B build -S .. --preset release -DAARU_BUILD_PACKAGE=ON
 ninja -j12 -C build
 status=0
-mv "build/libaaruformat.dll" $cwd_root/archive_tmp/ || status=1
+if is_windows
+then
+  mv "build/libaaruformat.dll" $cwd_root/archive_tmp/ || status=1
+elif is_mac
+then
+  mv "build/libaaruformat.dylib" $cwd_root/archive_tmp/ || status=1
+else
+  mv "build/libaaruformat.so" $cwd_root/archive_tmp/ || status=1
+fi
 rm -rf build
 if [ status == 1 ]
 then
