@@ -349,18 +349,7 @@ ropSETCC_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t o
 static void
 cmov_select(ir_data_t *ir, int dest_reg, int src_reg)
 {
-    int size        = IREG_GET_SIZE(dest_reg);
-    int mask_reg    = (size == IREG_SIZE_W) ? IREG_temp0_W : IREG_temp0;
-    int scratch_reg = (size == IREG_SIZE_W) ? IREG_temp1_W : IREG_temp1;
-
-    /* IREG_temp0 holds 0/1 from the condition generator. Turn it into
-       0/all-ones and use dest ^= (dest ^ src) & mask. */
-    uop_MOV_IMM(ir, scratch_reg, 0);
-    uop_SUB(ir, mask_reg, scratch_reg, mask_reg);
-    uop_MOV(ir, scratch_reg, dest_reg);
-    uop_XOR(ir, scratch_reg, scratch_reg, src_reg);
-    uop_AND(ir, scratch_reg, scratch_reg, mask_reg);
-    uop_XOR(ir, dest_reg, dest_reg, scratch_reg);
+    uop_CMOVNZ(ir, dest_reg, dest_reg, src_reg, IREG_temp0);
 }
 
 static uint32_t

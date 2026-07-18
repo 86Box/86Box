@@ -1107,6 +1107,40 @@ codegen_CMP_JZ_DEST(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_CMOVNZ(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int old_reg    = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg    = HOST_REG_GET(uop->src_reg_b_real);
+    int cond_reg   = HOST_REG_GET(uop->src_reg_c_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int old_size   = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size   = IREG_GET_SIZE(uop->src_reg_b_real);
+    int cond_size  = IREG_GET_SIZE(uop->src_reg_c_real);
+
+    if (!REG_IS_L(cond_size))
+        fatal("CMOVNZ cond %02x\n", uop->src_reg_c_real);
+
+    if (REG_IS_L(dest_size) && REG_IS_L(old_size) && REG_IS_L(src_size)) {
+        if (dest_reg != old_reg)
+            host_x86_MOV32_REG_REG(block, dest_reg, old_reg);
+        host_x86_TEST32_REG(block, cond_reg, cond_reg);
+        host_x86_CMOVNZ32_REG_REG(block, dest_reg, src_reg);
+    } else if (REG_IS_W(dest_size) && REG_IS_W(old_size) && REG_IS_W(src_size)) {
+        if (dest_reg != old_reg)
+            host_x86_MOV16_REG_REG(block, dest_reg, old_reg);
+        host_x86_TEST32_REG(block, cond_reg, cond_reg);
+        host_x86_CMOVNZ16_REG_REG(block, dest_reg, src_reg);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("CMOVNZ %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+#    endif
+
+    return 0;
+}
+
+static int
 codegen_FABS(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3653,6 +3687,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CMP_JZ_DEST &
         UOP_MASK]
     = codegen_CMP_JZ_DEST,
+    [UOP_CMOVNZ &
+        UOP_MASK]
+    = codegen_CMOVNZ,
 
     [UOP_CMP_IMM_JNZ_DEST &
         UOP_MASK]

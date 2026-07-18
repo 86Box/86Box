@@ -339,6 +339,23 @@ host_x86_CMP32_REG_REG(codeblock_t *block, int src_reg_a, int src_reg_b)
 }
 
 void
+host_x86_CMOVNZ16_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
+{
+    codegen_alloc_bytes(block, 5);
+    codegen_addbyte(block, 0x66);
+    add_rex_if_needed(block, 0, dst_reg, 0, src_reg);
+    codegen_addbyte3(block, 0x0f, 0x45, modrm_reg_reg(dst_reg, src_reg)); /*CMOVNZ dst_reg, src_reg*/
+}
+
+void
+host_x86_CMOVNZ32_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
+{
+    codegen_alloc_bytes(block, 4);
+    add_rex_if_needed(block, 0, dst_reg, 0, src_reg);
+    codegen_addbyte3(block, 0x0f, 0x45, modrm_reg_reg(dst_reg, src_reg)); /*CMOVNZ dst_reg, src_reg*/
+}
+
+void
 host_x86_JMP(codeblock_t *block, void *p)
 {
     jmp(block, (uintptr_t) p);
