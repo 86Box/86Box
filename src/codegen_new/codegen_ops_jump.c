@@ -312,17 +312,12 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
 uint32_t
 ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    uint16_t offset = 0;
+    uint16_t offset;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
         return 0;
 
-    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
-        LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp2_W, cs + op_pc);
-    }
-    else {
-        offset = fastreadw(cs + op_pc);
-    }
+    offset = fastreadw(cs + op_pc);
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
 
     if (stack32) {
