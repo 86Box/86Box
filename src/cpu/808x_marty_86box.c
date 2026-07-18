@@ -60,6 +60,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/timer.h>
+#include <86box/video.h>
 
 #include "cpu.h"
 #include "x86.h"
@@ -854,6 +855,31 @@ static void m808x_dma_tick(m808x_cpu_t *cpu)
     }
 }
 
+/*
+ * NOCONA_CGA_PREWAIT_808X_UPDATE_V1
+ *
+ * IBM CGA VRAM is available only in fixed slots of the 14.31818 MHz
+ * motherboard clock.  Determine the slot during CPU T2 and preload the
+ * measured READY delay before the memory callback is allowed to run.
+ *
+ * This is important for snow: invoking cga_read()/cga_write() first and only
+ * then converting their cycle deduction into Tw states commits the VRAM/snow
+ * side effect at the initial T3 instead of the terminal Tw.
+ */
+static unsigned
+m808x_cga_wait_clocks(const m808x_cpu_t *cpu)
+{
+    /* MartyPC's 16 master-clock phases converted to 4.77 MHz CPU clocks. */
+    static const uint8_t waits[16] = {
+        5, 5, 4, 4, 4, 3, 8, 8,
+        8, 7, 7, 7, 6, 6, 6, 5
+    };
+
+    const unsigned master_phase =
+        (unsigned)((cpu->cycle_num * 3u + 1u) & 0x0fu);
+    return waits[master_phase];
+}
+
 static void biu_cycle_i(m808x_cpu_t *cpu, uint16_t mc_line, const char *comment)
 {
     m808x_biu_t *b = &cpu->biu;
@@ -907,6 +933,20 @@ static void biu_cycle_i(m808x_cpu_t *cpu, uint16_t mc_line, const char *comment)
                          b->bus_status_latch == BUS_IOW) &&
                         b->wait_remaining == 0u)
                         b->wait_remaining = 1u;
+
+                    /*
+                     * CGA READY is phase-dependent.  Precharge it in T2 so the
+                     * device callback and snow side effects occur only on the
+                     * final T3/Tw data-transfer edge.
+                     */
+                    if ((b->bus_status_latch == BUS_CODE ||
+                         b->bus_status_latch == BUS_MEMR ||
+                         b->bus_status_latch == BUS_MEMW) &&
+                        b->address_latch >= 0xb8000u &&
+                        b->address_latch <= 0xbffffu &&
+                        video_is_cga()) {
+                        b->wait_remaining += m808x_cga_wait_clocks(cpu);
+                    }
 
                     if (b->final_transfer) {
                         biu_make_fetch_decision(cpu);
