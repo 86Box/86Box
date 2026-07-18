@@ -74,6 +74,9 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
     ui->radioButtonLight->setChecked(color_scheme == 1);
     ui->radioButtonDark->setChecked(color_scheme == 2);
 
+    ui->radioButtonCHDNone->setChecked(chd_precache_level == 0);
+    ui->radioButtonCHDFileOnly->setChecked(chd_precache_level == 1);
+
 #ifndef Q_OS_WINDOWS
     ui->groupBox->setHidden(true);
 #endif
@@ -105,7 +108,8 @@ PreferencesEmulator::save()
     confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
     confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
 
-    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
+    color_scheme       = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
+    chd_precache_level = (ui->radioButtonCHDNone->isChecked()) ? 0 : (ui->radioButtonCHDFileOnly->isChecked() ? 1 : 2);
 
 #ifdef Q_OS_WINDOWS
     extern void selectDarkMode();

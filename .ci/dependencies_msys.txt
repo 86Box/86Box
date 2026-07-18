@@ -20,3 +20,4 @@ rust
 rust-src
 cargo-c
 corrosion
+zstd
