@@ -29,9 +29,7 @@ static void flac_decoder_write_callback(void *userdata, void *buffer, size_t byt
 
 
 /* getters (valid after reset) */
-static uint32_t sample_rate(flac_decoder *decoder)  { return decoder->sample_rate; }
 static uint8_t channels(flac_decoder *decoder)  { return decoder->channels; }
-static uint8_t bits_per_sample(flac_decoder *decoder) { return decoder->bits_per_sample; }
 
 /*-------------------------------------------------
  *  flac_decoder - constructor

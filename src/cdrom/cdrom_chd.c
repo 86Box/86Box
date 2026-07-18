@@ -437,13 +437,11 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
 {
     chd_image_t            *ioctl         = (chd_image_t *) local;
     uint64_t                lba           = sector == ~0u ? ioctl->dev->seek_pos : sector;
-    uint32_t                length        = 2352;
     int                     track         = chd_image_get_track(local, sector == ~0u ? ioctl->dev->seek_pos : sector);
     raw_track_info_t       *rti           = (raw_track_info_t *) ioctl->rti_infos;
     const raw_track_info_t *ct            = &(rti[track]);
     const uint32_t          start         = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
     int                     m = 0, s = 0, f = 0;
-    uint8_t                 mode = 0, form = 0;
     int64_t                 pregap_length = 0;
     TrackEntry_CHD*         chd_track = &ioctl->track_entries[track - 3];
     uint32_t                sector_track_type = chd_track->track_type;
@@ -629,7 +627,6 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
         }
     }
 
-generate_subchannels:
     if (subchannel_exists) {
         if (subchannel_exists == 2) {
             sub_to_interleaved(&ioctl->hunk_bytes[offset_from_hunk + sector_sector_size], &buffer[2352]);
