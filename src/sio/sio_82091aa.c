@@ -199,7 +199,7 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x20:
             *reg = (val & 0xef);
-            if (valxor & 0xe8)
+            if (valxor & 0xef)
                 lpt_handler(dev);
             break;
         case 0x21:

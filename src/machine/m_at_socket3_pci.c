@@ -534,6 +534,7 @@ machine_at_bat4ip3e_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&i420ex_device);
+    device_close(&ide_pci_2ch_device);
     device_add(&ide_cmd640_pci_device);
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
 
@@ -938,7 +939,7 @@ machine_at_acerp3_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
 
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_close(&ide_pci_2ch_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -970,7 +971,6 @@ machine_at_486sp3c_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&intel_flash_bxt_device);
 
@@ -999,7 +999,6 @@ machine_at_ls486e_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1026,7 +1025,6 @@ machine_at_m4li_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1052,7 +1050,6 @@ machine_at_ms4144_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&sst_flash_29ee010_device);
 
@@ -1081,7 +1078,6 @@ machine_at_r418_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1108,7 +1104,6 @@ machine_at_4saw2_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&w837x7_device, (void *) (W83777F | W837X7_KEY_89));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&intel_flash_bxt_device);
 
@@ -1137,7 +1132,6 @@ machine_at_4dps_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&w837x7_device, (void *) (W83787IF | W837X7_KEY_89));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&intel_flash_bxt_device);
 

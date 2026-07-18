@@ -61,7 +61,7 @@ extern "C" {
 #include <86box/path.h>
 #include <86box/ini.h>
 #include <86box/config.h>
-#include <86box/qt-glslp-parser.h>
+#include <86box/qt_glslp_parser.h>
 
 char        gl3_shader_file[MAX_USER_SHADERS][512];
 extern bool cpu_thread_running;
@@ -1826,7 +1826,7 @@ OpenGLRenderer::render()
 
     /* Draw the OSD crisp on top of the shaded image, in the default
        framebuffer at full window resolution. */
-    if (qt_osd_is_visible()) {
+    {
         glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());

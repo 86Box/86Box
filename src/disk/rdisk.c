@@ -2305,11 +2305,11 @@ rdisk_hard_reset(void)
 
             rdisk_log(dev->log, "Removable Disk hard_reset drive=%d\n", c);
 
-            if (dev->tf == NULL)
-                continue;
-
             dev->id  = c;
             dev->drv = &rdisk_drives[c];
+
+            if (dev->tf == NULL)
+                continue;
 
             rdisk_init(dev);
 

@@ -2199,11 +2199,11 @@ mo_hard_reset(void)
 
             mo_log(dev->log, "MO hard_reset drive=%d\n", c);
 
-            if (dev->tf == NULL)
-                continue;
-
             dev->id  = c;
             dev->drv = &mo_drives[c];
+
+            if (dev->tf == NULL)
+                continue;
 
             mo_init(dev);
 

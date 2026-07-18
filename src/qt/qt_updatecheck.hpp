@@ -92,8 +92,8 @@ private:
     static std::optional<GithubReleaseInfo>        parseGithubRelease(const QJsonObject &json);
 
 private slots:
-    void jenkinsDownloadComplete(const QString &filename, const QVariant &varData);
-    void githubDownloadComplete(const QString &filename, const QVariant &varData);
+    void jenkinsDownloadComplete(const QString &filename);
+    void githubDownloadComplete(const QString &filename);
     void generalDownloadError(const QString &error);
 };
 

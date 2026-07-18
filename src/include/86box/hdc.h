@@ -84,6 +84,8 @@ extern const device_t ide_cmd648_ter_qua_device;                /* CMD PCI-648 (
 extern const device_t ide_cmd648_ter_qua_onboard_device;        /* CMD PCI-648 (Tertiary and quaternary channels, on-board) */
 extern const device_t ide_cmd649_ter_qua_device;                /* CMD PCI-649 (Tertiary and quaternary channels) */
 
+extern const device_t ide_pc87410_device;                       /* National Semiconductor PC87410 PCI */
+
 extern const device_t ide_opti611_vlb_device;                   /* OPTi 82c611/611A VLB */
 extern const device_t ide_opti611_vlb_sec_device;               /* OPTi 82c611/611A VLB (Secondary channel) */
 

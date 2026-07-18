@@ -1578,60 +1578,51 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
         ide_set_callback(ide, 0.0);
         ide_set_callback(ide_other, 0.0);
 
-        /* We must set set the status to busy in reset mode or
-           some 286 and 386 machines error out. */
-        if (!(ch & 1)) {
-            if (ide->type != IDE_NONE) {
-                ide->tf->atastat = BSY_STAT;
-                ide->tf->error   = 1;
-            }
+        /*
+           Both devices set BSY within 400 ns and post diagnostic results
+           in the Error Register.
+         */
+        if (ide->type != IDE_NONE) {
+            ide->tf->atastat = BSY_STAT;
+            ide->tf->error   = 1;
+        }
 
-            if (ide_other->type != IDE_NONE) {
-                ide_other->tf->atastat = BSY_STAT;
-                ide_other->tf->error   = 1;
-            }
+        if (ide_other->type != IDE_NONE) {
+            ide_other->tf->atastat = BSY_STAT;
+            ide_other->tf->error   = 1;
         }
     } else if (!(val & 4) && (dev->devctl & 4)) {
         /* Reset toggled from 1 to 0. */
-        if (!(ch & 1)) {
-            /* Currently active device is 0, use the device 0 reset protocol. */
-            /* Device 0. */
-            dev_reset(ide);
-            ide->tf->atastat = BSY_STAT;
-            ide->tf->error   = 1;
 
-            /* Device 1. */
-            dev_reset(ide_other);
-            ide_other->tf->atastat = BSY_STAT;
-            ide_other->tf->error   = 1;
+        /* Actually reset the devices. */
+        dev_reset(ide);
 
-            /* Fire the timer. */
-            dev->diag  = 0;
-            ide->reset = 1;
-            ide_set_callback(ide, 0.0);
-            ide_set_callback(ide_other, 0.0);
-            ide_set_board_callback(ide->board, 1000.4); /* 1 ms + 400 ns, per the specification */
-        } else {
-            /* Currently active device is 1, simply reset the status and the active device. */
-            dev_reset(ide);
-            if (ide->type == IDE_ATAPI) {
-                /* Non-early ATAPI devices have DRDY clear after SRST. */
-                ide->tf->atastat = 0;
-                if (IDE_ATAPI_IS_EARLY)
-                    ide->tf->atastat |= DRDY_STAT;
-            } else
-                ide->tf->atastat = DRDY_STAT | DSC_STAT;
-            ide->tf->error   = 1;
-            ide_other->tf->error   = 1;    /* Assert PDIAG-. */
-            dev->cur_dev &= ~1;
-            ch = dev->cur_dev;
+        /* Device 0. */
+        dev_reset(ide);
+        ide->tf->atastat = BSY_STAT;
+        ide->tf->error   = 1;
 
-            ide           = ide_drives[ch];
-            ide->selected = 1;
+        /* Device 1. */
+        dev_reset(ide_other);
+        ide_other->tf->atastat = BSY_STAT;
+        ide_other->tf->error   = 1;
 
-            ide_other           = ide_drives[ch ^ 1];
-            ide_other->selected = 0;
-        }
+        /* Fire the timer. */
+        dev->diag  = 0;
+        ide->reset = 1;
+        ide_set_callback(ide, 0.0);
+        ide_set_callback(ide_other, 0.0);
+
+        ide_set_board_callback(ide->board, 1000.4); /* 1 ms + 400 ns, per the specification */
+
+        dev->cur_dev &= ~1;
+        ch = dev->cur_dev;
+
+        ide           = ide_drives[ch];
+        ide->selected = 1;
+
+        ide_other           = ide_drives[ch ^ 1];
+        ide_other->selected = 0;
     }
 
     old         = dev->devctl;
@@ -1825,14 +1816,6 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide->tf->atastat  = DRDY_STAT;
 
                     ide_set_callback(ide, 100.0 * IDE_TIME);
-
-                    if (ide_other->type == IDE_ATAPI) {
-                        ide_other->tf->atastat  = BSY_STAT;
-                        ide_other->sc->callback = 100.0 * IDE_TIME;
-                    } else
-                        ide_other->tf->atastat  = DRDY_STAT;
-
-                    ide_set_callback(ide_other, 100.0 * IDE_TIME);
                     break;
 
                 case WIN_READ_MULTIPLE:
@@ -2402,25 +2385,27 @@ ide_callback(void *priv)
            Status = 00h, Error = 01h, Sector Count = 01h, Sector Number = 01h,
            Cylinder Low = 14h, Cylinder High = EBh and Drive/Head = 00h. */
         case WIN_SRST: /*ATAPI Device Reset */
-            ide->tf->error     = 1; /*Device passed*/
-
-            ide->tf->secount   = 1;
-            ide->tf->sector    = 1;
-
-            ide_set_signature(ide);
-
-            ide->tf->atastat = DRDY_STAT | DSC_STAT;
             if (ide->type == IDE_ATAPI) {
+                ide->tf->error     = 1; /*Device passed*/
+
+                ide->tf->secount   = 1;
+                ide->tf->sector    = 1;
+
+                ide_set_signature(ide);
+
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
+
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
                 if (!IDE_ATAPI_IS_EARLY)
                     ide->tf->atastat = 0;
-            }
 
-            ide_irq_raise(ide);
+                ide_irq_raise(ide);
 
-            if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
-                ide->service = 0;
+                if ((ide->type == IDE_ATAPI) && !IDE_ATAPI_IS_EARLY)
+                    ide->service = 0;
+            } else
+                err = ABRT_ERR;
             break;
 
         case WIN_NOP:

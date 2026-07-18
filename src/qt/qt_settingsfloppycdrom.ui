@@ -43,7 +43,7 @@
       <layout class="QVBoxLayout" name="verticalLayoutFloppy">
 
        <item>
-        <widget class="QTableView" name="tableViewFloppy">
+        <widget class="QTreeView" name="treeViewFloppy">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -56,12 +56,12 @@
          <property name="tabKeyNavigation">
           <bool>false</bool>
          </property>
-         <property name="showGrid">
+         <property name="rootIsDecorated">
           <bool>false</bool>
          </property>
-         <attribute name="verticalHeaderVisible">
-          <bool>false</bool>
-         </attribute>
+         <property name="allColumnsShowFocus">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
@@ -138,7 +138,7 @@
       <layout class="QVBoxLayout" name="verticalLayoutCDROM">
 
        <item>
-        <widget class="QTableView" name="tableViewCDROM">
+        <widget class="QTreeView" name="treeViewCDROM">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -151,12 +151,12 @@
          <property name="tabKeyNavigation">
           <bool>false</bool>
          </property>
-         <property name="showGrid">
+         <property name="rootIsDecorated">
           <bool>false</bool>
          </property>
-         <attribute name="verticalHeaderVisible">
-          <bool>false</bool>
-         </attribute>
+         <property name="allColumnsShowFocus">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
@@ -261,12 +261,12 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>tableViewFloppy</tabstop>
+  <tabstop>treeViewFloppy</tabstop>
   <tabstop>comboBoxFloppyType</tabstop>
   <tabstop>checkBoxTurboTimings</tabstop>
   <tabstop>checkBoxCheckBPB</tabstop>
   <tabstop>comboBoxFloppyAudio</tabstop>
-  <tabstop>tableViewCDROM</tabstop>
+  <tabstop>treeViewCDROM</tabstop>
   <tabstop>comboBoxBus</tabstop>
   <tabstop>comboBoxChannel</tabstop>
   <tabstop>comboBoxSpeed</tabstop>

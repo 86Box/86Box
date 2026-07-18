@@ -2772,25 +2772,6 @@ image_get_raw_track_info(const void *local, int *num, uint8_t *buffer)
 }
 
 static int
-image_is_track_pre(const void *local, const uint32_t sector)
-{
-    const cd_image_t *img   = (const cd_image_t *) local;
-    int               ret   = 0;
-
-    if (img->has_audio) {
-        const int track = image_get_track(img, sector);
-
-        if (track >= 0) {
-            const track_t *trk = &(img->tracks[track]);
-
-            ret = !!(trk->attr & 0x01);
-        }
-    }
-
-    return ret;
-}
-
-static int
 image_read_sector(const void *local, uint8_t *buffer,
                   const uint32_t sector)
 {
@@ -2840,7 +2821,7 @@ image_read_sector(const void *local, uint8_t *buffer,
                 /* Construct the header. */
                 memset(buffer + 1, 0xff, 10);
                 buffer += 12;
-                FRAMES_TO_MSF(sector + 150, &m, &s, &f);
+                FRAMES_TO_MSF(lba + 150, &m, &s, &f);
                 /* These have to be BCD. */
                 buffer[0] = bin2bcd(m & 0xff);
                 buffer[1] = bin2bcd(s & 0xff);
@@ -2870,6 +2851,9 @@ image_read_sector(const void *local, uint8_t *buffer,
                 if ((trk->mode == 2) && (trk->form == 1)) {
                     crc = cdrom_crc32(0xffffffff, &(buf[16]), 2056) ^ 0xffffffff;
                     memcpy(&(buf[2072]), &crc, 4);
+                } else if ((trk->mode == 2) && (trk->form == 2)) {
+                    crc = cdrom_crc32(0xffffffff, &(buf[16]), 2332) ^ 0xffffffff;
+                    memcpy(&(buf[2348]), &crc, 4);
                 } else {
                     crc = cdrom_crc32(0xffffffff, buf, 2064) ^ 0xffffffff;
                     memcpy(&(buf[2064]), &crc, 4);
@@ -2877,11 +2861,13 @@ image_read_sector(const void *local, uint8_t *buffer,
 
                 int m2f1 = (trk->mode == 2) && (trk->form == 1);
 
-                /* Compute ECC P code. */
-                cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
+                if ((trk->mode == 1) || m2f1) {
+                    /* Compute ECC P code. */
+                    cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
 
-                /* Compute ECC Q code. */
-                cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
+                    /* Compute ECC Q code. */
+                    cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
+                }
             }
 
             if ((ret > 0) && ((idx->type < INDEX_NORMAL) || (trk->subch_type != 0x08))) {
@@ -2983,15 +2969,15 @@ image_read_dvd_structure(const void *local, const uint8_t layer, const uint8_t f
 
     if ((img->has_dstruct > 0) && ((layer + 1) > img->has_dstruct)) {
         switch (format) {
-            case 0x00:
+            case 0x00: /* Physical Format Information (PFI). */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f0, 2048);
                 ret = 2048 + 2;
                 break;
-            case 0x01:
+            case 0x01: /* DVD copyright information */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f1, 4);
                 ret = 4 + 2;
                 break;
-            case 0x04:
+            case 0x04: /* DVD disc manufacturing information. */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f4, 2048);
                 ret = 2048 + 2;
                 break;
@@ -3045,7 +3031,6 @@ image_close(void *local)
 static const cdrom_ops_t image_ops = {
     image_get_track_info,
     image_get_raw_track_info,
-    image_is_track_pre,
     image_read_sector,
     image_get_track_type,
     image_get_last_block,

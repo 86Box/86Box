@@ -93,20 +93,6 @@ ioctl_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
 }
 
 static int
-ioctl_is_track_pre(const void *local, UNUSED(const uint32_t sector))
-{
-    ioctl_t *ioctl = (ioctl_t *) local;
-
-    ioctl_read_toc(ioctl);
-
-    const int ret = 0;
-
-    ioctl_log("ioctl_is_track_audio(%08X): %i\n", sector, ret);
-
-    return ret;
-}
-
-static int
 ioctl_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
     ioctl_t *ioctl = (ioctl_t *) local;
@@ -205,7 +191,6 @@ ioctl_load(const void *local)
 static const cdrom_ops_t ioctl_ops = {
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
-    ioctl_is_track_pre,
     ioctl_read_sector,
     ioctl_get_track_type,
     ioctl_get_last_block,

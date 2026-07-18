@@ -1,3 +1,5 @@
+(We need help in developing this emulator! See https://github.com/86Box/86Box/issues/7386 for details. Any and all help is appreciated.)
+
 86Box
 =====
 

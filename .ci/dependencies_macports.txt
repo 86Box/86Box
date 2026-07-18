@@ -16,3 +16,8 @@ libslirp
 vde2
 libsndfile
 libserialport
+rust
+rust-src
+cargo
+cargo-c
+corrosion

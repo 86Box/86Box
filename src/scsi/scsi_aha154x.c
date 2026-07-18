@@ -375,7 +375,6 @@ aha_cmds(void *priv)
                         mbi->Count,
                         ADDR_TO_U32(mbi->Address));
 
-                dev->Status &= ~STAT_INIT;
                 dev->DataReplyLeft = 0;
                 break;
 

@@ -72,16 +72,6 @@ typedef struct ali1543_t {
 
 } ali1543_t;
 
-/*
-    Notes:
-    - Power Managment isn't functioning properly
-    - IDE isn't functioning properly
-    - 1543C differences have to be examined
-    - Some Chipset functionality might be missing
-    - Device numbers and types might be incorrect
-    - Code quality is abysmal and needs lot's of cleanup.
-*/
-
 int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
                                 1, 11, PCI_IRQ_DISABLED, 12, PCI_IRQ_DISABLED, 14, PCI_IRQ_DISABLED, 15 };
 
@@ -781,7 +771,7 @@ ali5229_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x21:
             /* Datasheet erratum: the PCI BAR's actually have different sizes. */
             if (addr == 0x20)
-                dev->ide_conf[addr] = (val & 0xe0) | 0x01;
+                dev->ide_conf[addr] = (val & 0xf0) | 0x01;
             else if ((addr & 0x07) == 0x00)
                 dev->ide_conf[addr] = (val & 0xf8) | 0x01;
             else if ((addr & 0x07) == 0x04)

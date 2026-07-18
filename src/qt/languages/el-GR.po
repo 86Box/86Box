@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-13 14:23+0000\n"
+"PO-Revision-Date: 2026-06-17 07:28+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -3056,6 +3056,9 @@ msgstr "Εναλλαγή σίγασης"
 
 msgid "Toggle on-screen display"
 msgstr "Ενεργοποίηση απεικόνισης στην οθόνη"
+
+msgid "Toggle &on-screen display"
+msgstr "Ενεργοποίηση &απεικόνισης στην οθόνη"
 
 msgid "Text files"
 msgstr "Αρχεία κειμένου"

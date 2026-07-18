@@ -172,7 +172,8 @@ bool opn_registers_base<IsOpnA>::write(uint16_t index, uint8_t data, uint32_t &c
 	}
 
 	// everything else is normal
-	m_regdata[index] = data;
+        if (index < sizeof(m_regdata))
+	    m_regdata[index] = data;
 
 	// handle writes to the key on index
 	if (index == 0x28)

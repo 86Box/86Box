@@ -27,11 +27,6 @@ Downloader::Downloader(const DownloadLocation downloadLocation, QObject *parent)
     : QObject(parent)
     , file(nullptr)
     , reply(nullptr)
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    , variantData(QMetaType(QMetaType::UnknownType))
-#else
-    , variantData(QVariant::Invalid)
-#endif
 {
     char PATHBUF[256];
     switch (downloadLocation) {
@@ -51,10 +46,9 @@ Downloader::Downloader(const DownloadLocation downloadLocation, QObject *parent)
 Downloader::~Downloader() { delete file; }
 
 void
-Downloader::download(const QUrl &url, const QString &filepath, const QVariant &varData)
+Downloader::download(const QUrl &url, const QString &filepath)
 {
 
-    variantData = varData;
     // temporary until I get the plat stuff fixed
     // const auto global_dir = temporaryGetGlobalDataDir();
     // qDebug() << "I was passed filepath " << filepath;
@@ -92,5 +86,5 @@ Downloader::onResult()
 
     reply->deleteLater();
     qDebug() << Q_FUNC_INFO << "Downloaded complete: file written to " << file->fileName();
-    emit downloadCompleted(file->fileName(), variantData);
+    emit downloadCompleted(file->fileName());
 }

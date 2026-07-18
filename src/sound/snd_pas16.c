@@ -2880,7 +2880,7 @@ pas16_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         buffer[c + 1] += (int32_t) out_r;
     }
 
-    pas16->dsp.pos = 0;
+    pas16->pos = 0;
 }
 
 void

@@ -36,13 +36,14 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 6.1
+    VERSION 7.0
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
 
 include(CPack)
 include(CMakeDependentOption)
+include(FetchContent)
 
 # Basic build options
 if(VCPKG_TOOLCHAIN)
@@ -57,7 +58,7 @@ if(VCPKG_TOOLCHAIN)
         # `-static-md` triplet, use static linking with dynamic CRT
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD ON)
-    elseif()
+    else()
         # Regular triplet, use dynamic linking
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD OFF)
@@ -199,6 +200,29 @@ if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
     if(APPLE)
         option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
+    endif()
+
+    option(LIBRASHADER "Build with librashader support" ON)
+
+    if(LIBRASHADER)
+        option(LIBRASHADER_STATIC "Statically link with librashader" OFF)
+        if(LIBRASHADER_STATIC)
+            option(LIBRASHADER_STATIC_FIND_LIB "Find static librashader library instead of building." OFF)
+            if (NOT LIBRASHADER_STATIC_FIND_LIB)
+                set(FETCHCONTENT_QUIET 0)
+                FetchContent_Declare(librashader
+                                    GIT_REPOSITORY https://github.com/SnowflakePowered/librashader.git
+                                    GIT_TAG f810cdf6e856e5a5215b1e84a21c978bc3367f23 GIT_SUBMODULES "" GIT_PROGRESS 1)
+                                    
+                FetchContent_Declare(corrosion
+                                    GIT_REPOSITORY https://github.com/corrosion-rs/corrosion.git
+                                    GIT_TAG c4786e7ae2d5ade784aca29448df362c874ed04e)
+
+                FetchContent_MakeAvailable(librashader corrosion)            
+                FetchContent_GetProperties(librashader SOURCE_DIR LIBRASHADER_SOURCE_DIR)
+                corrosion_import_crate(MANIFEST_PATH ${LIBRASHADER_SOURCE_DIR}/librashader-capi/Cargo.toml NO_DEFAULT_FEATURES FEATURES runtime-vulkan CRATE_TYPES staticlib)
+            endif()
+        endif()
     endif()
 endif()
 

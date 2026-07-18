@@ -1360,7 +1360,6 @@ x54x_in(uint16_t port, void *priv)
                     }
                     dev->Geometry++;
                     dev->Geometry &= 0x03;
-                    dev->Status = STAT_IDLE | STAT_INIT;
                 } else
                     ret = 0xff;
                 break;
@@ -1509,7 +1508,6 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
             /* Fast path for the mailbox execution command. */
             if ((val == CMD_START_SCSI) && (dev->Command == 0xff)) {
                 dev->MailboxReq++;
-                dev->Status &= ~STAT_INIT;
                 x54x_log("Start SCSI command\n");
                 return;
             }

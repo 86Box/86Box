@@ -274,7 +274,6 @@ extern mem_mapping_t ram_low_mapping;
 extern mem_mapping_t ram_mid_mapping;
 extern mem_mapping_t ram_remapped_mapping;
 extern mem_mapping_t ram_high_mapping;
-extern mem_mapping_t ram_2gb_mapping;
 extern mem_mapping_t bios_mapping;
 extern mem_mapping_t bios_high_mapping;
 
@@ -423,13 +422,6 @@ extern uint32_t mem_read_raml(uint32_t addr, void *priv);
 extern void     mem_write_ram(uint32_t addr, uint8_t val, void *priv);
 extern void     mem_write_ramw(uint32_t addr, uint16_t val, void *priv);
 extern void     mem_write_raml(uint32_t addr, uint32_t val, void *priv);
-
-extern uint8_t  mem_read_ram_2gb(uint32_t addr, void *priv);
-extern uint16_t mem_read_ram_2gbw(uint32_t addr, void *priv);
-extern uint32_t mem_read_ram_2gbl(uint32_t addr, void *priv);
-extern void     mem_write_ram_2gb(uint32_t addr, uint8_t val, void *priv);
-extern void     mem_write_ram_2gbw(uint32_t addr, uint16_t val, void *priv);
-extern void     mem_write_ram_2gbl(uint32_t addr, uint32_t val, void *priv);
 
 extern int mem_addr_is_ram(uint32_t addr);
 

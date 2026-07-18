@@ -19,6 +19,8 @@ typedef struct osd_host_t {
 
 void osd_core_set_host(const osd_host_t *host);
 
+float osd_core_scaled(float value);
+
 float osd_core_layout_scale_for_output(int output_w, int output_h);
 
 /* Shared OSD layout scale. Frontends may supply a backend-specific hint. */
@@ -48,5 +50,8 @@ bool osd_core_escape(void);
 /* Route the emulator log into the OSD's log ring. */
 void osd_core_install_log_hook(void);
 void osd_core_remove_log_hook(void);
+
+/* Draw OSD indicators */
+void osd_core_draw_indicators(void);
 
 #endif /* OSD_CORE_HPP */

@@ -668,11 +668,18 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         double  bytes_per_second;
         double  period;
 
-        if (dev->was_cached == -1) {
+        if ((dev->drv->speed > 72) || (dev->was_cached == -1)) {
             if (dev->drv->bus_type == CDROM_BUS_SCSI)
                 dev->callback = -1.0; /* Speed depends on SCSI controller */
-            else
+            else if (dev->was_cached == -1)
                 dev->callback = 512.0 + (scsi_cdrom_bus_speed(dev) * (double) (dev->packet_len));
+            else {
+                const int num = ((dev->drv->bus_type == CDROM_BUS_SCSI) ||
+                                 (dev->block_len == 0)) ? dev->sectors_num :
+                                ((scsi_cdrom_current_mode(dev) == 2) ? 1 : dev->sectors_num);
+
+                dev->callback = scsi_cdrom_bus_speed(dev) * ((double) num) * 2352.0;
+            }
         } else {
             if (dev->was_cached) {
                 dev->callback += 512.0;
@@ -1162,6 +1169,8 @@ scsi_cdrom_insert(void *priv)
 
     /* Make sure all cached sectors are cleared. */
     dev->drv->cached_sector = -1;
+    dev->drv->subc_sector = -1;
+
     dev->toc_cached         = 0;
 
     if (dev->drv->ops == NULL) {
@@ -1401,6 +1410,7 @@ scsi_cdrom_reset(scsi_common_t *sc)
         scsi_cdrom_info         = 0x00000000;
         dev->drv->cd_status    &= ~CD_STATUS_TRANSITION;
         dev->drv->cached_sector = -1;
+        dev->drv->subc_sector   = -1;
         dev->toc_cached         = 0;
     }
 }
@@ -1552,6 +1562,7 @@ scsi_cdrom_cache_toc(scsi_cdrom_t *dev)
         dev->drv->seek_pos      = -150;
         dev->requested_blocks   = 150;
         dev->drv->cached_sector = -1;
+        dev->drv->subc_sector   = -1;
     }
 }
 
@@ -3929,7 +3940,9 @@ scsi_cdrom_drive_reset(const int c)
     dev->cur_lun       = SCSI_LUN_USE_CDB;
 
     dev->toc_cached    = 0;
+
     drv->cached_sector = -1;
+    drv->subc_sector   = -1;
 
     drv->insert        = scsi_cdrom_insert;
     drv->get_volume    = scsi_cdrom_get_volume;

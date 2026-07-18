@@ -601,7 +601,7 @@ sff_init(UNUSED(const device_t *info))
     sff8038i_t *dev = (sff8038i_t *) calloc(1, sizeof(sff8038i_t));
 
     /* Make sure to only add IDE once. */
-    if (next_id == 0)
+    if ((device_get_instance() < 3) && (next_id == 0))
         device_add(&ide_pci_2ch_device);
 
     ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);

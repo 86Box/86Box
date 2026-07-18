@@ -497,3 +497,14 @@ plat_run_command(const char *cmd, const char **env, const char *title)
         free(new_env);
     return ret;
 }
+
+plat_device_vol_locked_t*
+plat_lock_volumes(FILE* file)
+{
+    return NULL;
+}
+
+void
+plat_unlock_volumes(plat_device_vol_locked_t* vol)
+{
+}

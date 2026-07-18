@@ -19,7 +19,7 @@ extern "C" {
 #include <86box/path.h>
 #include <86box/ini.h>
 #include <86box/config.h>
-#include <86box/qt-glslp-parser.h>
+#include <86box/qt_glslp_parser.h>
 
 extern char gl3_shader_file[MAX_USER_SHADERS][512];
 }

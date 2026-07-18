@@ -3011,6 +3011,9 @@ msgstr "ミュートを切り替える"
 msgid "Toggle on-screen display"
 msgstr ""
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "テキストファイル"
 

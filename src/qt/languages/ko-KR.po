@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-09 01:33+0000\n"
+"PO-Revision-Date: 2026-06-17 07:28+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -1764,7 +1764,7 @@ msgid "Auto-pause on focus loss"
 msgstr "창 포커스를 잃으면 자동 일시 중지"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "대화 상자가 표시되면 자동 일시정지"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox는 더 이상 지원되지 않습니다"
@@ -3079,6 +3079,9 @@ msgstr "음소거 켜기/끄기"
 
 msgid "Toggle on-screen display"
 msgstr "화면 정보 표시 켜기/끄기"
+
+msgid "Toggle &on-screen display"
+msgstr "화면 정보 표시 켜기/끄기(&O)"
 
 msgid "Text files"
 msgstr "텍스트 파일"

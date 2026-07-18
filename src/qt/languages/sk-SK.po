@@ -3021,6 +3021,9 @@ msgstr "Prepnúť stlmenie"
 msgid "Toggle on-screen display"
 msgstr ""
 
+msgid "Toggle &on-screen display"
+msgstr ""
+
 msgid "Text files"
 msgstr "Textové súbory"
 

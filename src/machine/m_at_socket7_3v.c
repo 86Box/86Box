@@ -639,58 +639,60 @@ machine_at_thor_init(const machine_t *model)
 static void
 machine_at_endeavor_gpio_init(void)
 {
-    uint32_t gpio = 0xffffe0cf;
-    uint16_t addr;
+    if (!dump_missing) {
+        uint32_t gpio = 0xffffe0cf;
+        uint16_t addr;
 
-    /* Register 0x0078 (Undocumented): */
-    /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
-    device_context(machine_get_snd_device(machine));
-    addr = device_get_config_hex16("base");
-    switch (addr) {
-        case 0x0220:
-            gpio |= 0xffff00cf;
-            break;
-        case 0x0240:
-            gpio |= 0xffff00ef;
-            break;
-        case 0x0260:
-            gpio |= 0xffff00df;
-            break;
-        case 0x0280:
-            gpio |= 0xffff00ff;
-            break;
+        /* Register 0x0078 (Undocumented): */
+        /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
+        device_context(machine_get_snd_device(machine));
+        addr = device_get_config_hex16("base");
+        switch (addr) {
+            case 0x0220:
+                gpio |= 0xffff00cf;
+                break;
+            case 0x0240:
+                gpio |= 0xffff00ef;
+                break;
+            case 0x0260:
+                gpio |= 0xffff00df;
+                break;
+            case 0x0280:
+                gpio |= 0xffff00ff;
+                break;
+        }
+        device_context_restore();
+
+        /* Register 0x0079: */
+        /* Bit 7: 0 = Clear password, 1 = Keep password. */
+        /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+        /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+        /* Bit 4: External CPU clock (Switch 8). */
+        /* Bit 3: External CPU clock (Switch 7). */
+        /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+        /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+        /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+        /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+        /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
+        /* Bit 0: 0 = 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
+        /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+        if (cpu_busspeed <= 50000000)
+            gpio |= 0xffff0000;
+        else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+            gpio |= 0xffff0800;
+        else if (cpu_busspeed > 60000000)
+            gpio |= 0xffff1000;
+
+        if (sound_card_current[0] == SOUND_INTERNAL)
+            gpio |= 0xffff0400;
+
+        if (cpu_dmulti <= 1.5)
+            gpio |= 0xffff0100;
+        else
+            gpio |= 0xffff0000;
+
+        machine_set_gpio_default(gpio);
     }
-    device_context_restore();
-
-    /* Register 0x0079: */
-    /* Bit 7: 0 = Clear password, 1 = Keep password. */
-    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
-    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
-    /* Bit 4: External CPU clock (Switch 8). */
-    /* Bit 3: External CPU clock (Switch 7). */
-    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
-    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
-    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
-    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
-    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
-    /* Bit 0: 0 = 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
-    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
-    if (cpu_busspeed <= 50000000)
-        gpio |= 0xffff0000;
-    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        gpio |= 0xffff0800;
-    else if (cpu_busspeed > 60000000)
-        gpio |= 0xffff1000;
-
-    if (sound_card_current[0] == SOUND_INTERNAL)
-        gpio |= 0xffff0400;
-
-    if (cpu_dmulti <= 1.5)
-        gpio |= 0xffff0100;
-    else
-        gpio |= 0xffff0000;
-
-    machine_set_gpio_default(gpio);
 }
 
 uint32_t
@@ -1139,6 +1141,35 @@ machine_at_fmb_init(const machine_t *model)
 }
 
 int
+machine_at_sjptm_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sjptm/p28f001bx-t-at-dip32-sj-pentium-fx-intel-p28f001bx-t-6a283cfb3cbff518008684.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      4, 1, 2, 3);
+
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&um866x_device, (void *) UM8663AF);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
 machine_at_acerv35n_init(const machine_t *model)
 {
     int ret;
@@ -1407,6 +1438,35 @@ machine_at_gw2kma_init(const machine_t *model)
     device_add(&piix3_device);
     device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_FR));
     device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+/* OPTi Viper */
+int
+machine_at_rhino8_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/rhino8/R8V9704.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x14, PCI_CARD_IDE,         4, 0, 0, 0);
+    device_add(&opti55x_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }

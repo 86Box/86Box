@@ -25,6 +25,7 @@
 #include <86box/snd_mpu401.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_sb_dsp.h>
+#include <86box/isapnp.h>
 
 enum {
     SADLIB  = 1,     /* No DSP */
@@ -209,6 +210,17 @@ typedef struct sb_t {
     uint8_t  es188x_readseq_state;
     uint8_t  es188x_readseq_mode;
     uint16_t es188x_dsp_addr;
+    uint16_t es186x_ctrl_addr;
+    uint8_t  es186x_id_state;
+    uint8_t  es186x_ctrl_regs[8];
+    uint8_t  es186x_ctrl_iregs[256];
+    void     *pnp_card;
+    uint8_t  es186x_key_pos : 5;
+    uint8_t  es186x_bypass;
+    uint8_t  es186x_bypass_state;
+    uint16_t es186x_confaddr;
+    uint16_t es186x_rom_pos;
+    isapnp_device_config_t *es186x_bypass_conf;
 
     /* ESS ES188x secondary DAC */
     int        ess_dac2_freq;

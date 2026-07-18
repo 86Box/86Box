@@ -1,7 +1,7 @@
 #ifndef SRC_WX_GLSLP_PARSER_H_
 #define SRC_WX_GLSLP_PARSER_H_
 
-#include "qt-glsl.h"
+#include "qt_glsl.h"
 
 struct parameter {
         char id[64];

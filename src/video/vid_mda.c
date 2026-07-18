@@ -451,7 +451,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda_init(mda);
 
-    mda->lpt = device_add_inst(&lpt_port_device, 1);
+    mda->lpt = device_add_inst(&lpt_port_device, -1);
     lpt_port_setup(mda->lpt, LPT_MDA_ADDR);
     lpt_set_3bc_used(1);
 
@@ -538,4 +538,3 @@ const device_t mda_device = {
     .force_redraw  = NULL,
     .config        = mda_config
 };
-

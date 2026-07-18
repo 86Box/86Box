@@ -148,7 +148,15 @@ plat_dir_count_children(plat_dir_t *context)
     return ret;
 }
 
-static const char *plat_dir_get_path(plat_dir_t *context);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern const char *plat_dir_get_path(plat_dir_t *context);
+
+#ifdef __cplusplus
+}
+#endif
 
 static inline int
 plat_dir_read(plat_dir_t *context)
@@ -687,27 +695,15 @@ plat_dir_read(plat_dir_t *context)
 #    define plat_dir_is_hidden(context) (plat_dir_get_name((context))[0] == '.')
 #endif
 
-static const char *
-plat_dir_get_path(plat_dir_t *context)
-{
-    if (context->path[context->path_dir_len])
-        return context->path;
-    if (plat_dir_is_special_entry(plat_dir_get_name(context)))
-        return context->path;
-    size_t len = context->path_dir_len + strlen(plat_dir_get_name(context)) + 2;
-    if (len > context->path_len) {
-        context->path     = (char *) realloc(context->path, len);
-        context->path_len = len;
-    }
-    snprintf(&context->path[context->path_dir_len], context->path_len - context->path_dir_len,
-#ifdef _WIN32
-        "\\"
-#else
-        "/"
+#ifdef __cplusplus
+extern "C" {
 #endif
-        "%s", plat_dir_get_name(context));
-    return context->path;
+
+extern const char *plat_dir_get_path(plat_dir_t *context);
+
+#ifdef __cplusplus
 }
+#endif
 
 #ifdef plat_dir_is_file_stat
 static inline struct stat *

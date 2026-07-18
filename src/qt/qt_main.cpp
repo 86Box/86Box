@@ -211,9 +211,14 @@ win_keyboard_handle(uint32_t scancode, int up, int e0, int e1)
     }
 }
 
+extern int         main_window_blocked;
+
 static LRESULT CALLBACK
 emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+    if (is_quit)
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+
     LPKBDLLHOOKSTRUCT lpKdhs = (LPKBDLLHOOKSTRUCT) lParam;
     /* Checks if CTRL was pressed. */
     BOOL bCtrlDown      = GetAsyncKeyState(VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
@@ -228,7 +233,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             is_over_window                = is_over_window || ((secondaryRenderer != nullptr) && (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
         }
 
-    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture)) || qt_osd_is_visible();
+    bool skip = (main_window_blocked || (nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture)) || qt_osd_is_visible();
 
     if (skip)
         return CallNextHookEx(NULL, nCode, wParam, lParam);

@@ -150,7 +150,7 @@ bool opm_registers::write(uint16_t index, uint8_t data, uint32_t &channel, uint3
 	// redirect the PM depth to an unused neighbor (0x1a)
 	if (index == 0x19)
 		m_regdata[index + bitfield(data, 7)] = data;
-	else if (index != 0x1a)
+	else if ((index != 0x1a) && (index < sizeof(m_regdata)))
 		m_regdata[index] = data;
 
 	// handle writes to the key on index

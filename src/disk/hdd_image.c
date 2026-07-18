@@ -54,6 +54,7 @@ typedef struct hdd_image_t {
     uint8_t   type; /* HDD_IMAGE_RAW, HDD_IMAGE_HDI, HDD_IMAGE_HDX, or HDD_IMAGE_VHD */
     uint8_t   loaded;
     uint8_t   is_block_device; /* 1 if this is a raw block device (e.g., /dev/disk4s1) */
+    plat_device_vol_locked_t *locked_drives;
 } hdd_image_t;
 
 hdd_image_t hdd_images[HDD_NUM];
@@ -318,6 +319,8 @@ hdd_image_load(int id)
             /* Don't clear hdd[id].fn - preserve config even if device is unavailable */
             goto fail_raw;
         }
+
+        hdd_images[id].locked_drives = plat_lock_volumes(hdd_images[id].file);
 
         hdd_images[id].is_block_device = 1;
         hdd_images[id].type = HDD_IMAGE_RAW;
@@ -774,6 +777,11 @@ hdd_image_close(uint8_t id)
 
     if (!hdd_images[id].loaded)
         return;
+
+    if (hdd_images[id].locked_drives) {
+        plat_unlock_volumes(hdd_images[id].locked_drives);
+        hdd_images[id].locked_drives = NULL;
+    }
 
     if (hdd_images[id].file != NULL) {
         fclose(hdd_images[id].file);
