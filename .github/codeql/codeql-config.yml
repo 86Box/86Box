@@ -5,8 +5,8 @@ queries:
 #  - uses: security-and-quality
 
 paths-ignore:
-  - src/cdrom/libchdr/deps/
-  - src/cdrom/libchdr/dr_libs/
+  - src/cdrom/libchdr/deps/**
+  - src/cdrom/libchdr/dr_libs/dr_flac.h
 
 query-filters:
   - exclude:
