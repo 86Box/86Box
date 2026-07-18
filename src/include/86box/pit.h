@@ -16,6 +16,8 @@
 #ifndef EMU_PIT_H
 #define EMU_PIT_H
 
+#include <86box/pit_exact.h>
+
 #define NUM_COUNTERS 3
 
 typedef struct ctr_t {
@@ -66,6 +68,7 @@ typedef struct PIT {
     int        flags;
     int        clock;
     pc_timer_t callback_timer;
+    pitx_device_t exact; /* pin-clocked 8253/8254 state */
 
     ctr_t counters[NUM_COUNTERS];
 

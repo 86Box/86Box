@@ -41,6 +41,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
+#include "808x_marty_86box.h"
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
@@ -175,42 +176,56 @@ static void set_pzs(int bits);
 void
 prefetch_queue_set_pos(int pos)
 {
+    if (m808x_86box_active()) { m808x_86box_pfq_set_pos(pos); return; }
+
     pfq_pos = pos;
 }
 
 void
 prefetch_queue_set_ip(uint16_t ip)
 {
+    if (m808x_86box_active()) { m808x_86box_pfq_set_ip(ip); return; }
+
     pfq_ip = ip;
 }
 
 void
 prefetch_queue_set_prefetching(int p)
 {
+    if (m808x_86box_active()) { m808x_86box_pfq_set_prefetching(p); return; }
+
     prefetching = p;
 }
 
 int
 prefetch_queue_get_pos(void)
 {
+    if (m808x_86box_active()) return m808x_86box_pfq_get_pos();
+
     return pfq_pos;
 }
 
 uint16_t
 prefetch_queue_get_ip(void)
 {
+    if (m808x_86box_active()) return m808x_86box_pfq_get_ip();
+
     return pfq_ip;
 }
 
 int
 prefetch_queue_get_prefetching(void)
 {
+    if (m808x_86box_active()) return m808x_86box_pfq_get_prefetching();
+
     return prefetching;
 }
 
 int
 prefetch_queue_get_size(void)
 {
+    if (m808x_86box_active()) return m808x_86box_pfq_get_size();
+
     return pfq_size;
 }
 static void set_if(int cond);
@@ -256,6 +271,11 @@ fetch_and_bus(int c, int bus)
 static void
 wait_cycs(int c, int bus)
 {
+    if (m808x_86box_active()) {
+        m808x_86box_wait(c, bus);
+        return;
+    }
+
     if (is_new_biu)
         wait_vx0(c);
     else {
@@ -268,6 +288,11 @@ wait_cycs(int c, int bus)
 void
 sub_cycles(int c)
 {
+    if (m808x_86box_active()) {
+        m808x_86box_external_sub_cycles(c);
+        return;
+    }
+
     if (c <= 0)
         return;
 
@@ -706,6 +731,11 @@ static void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_808x(int hard)
 {
+    if (m808x_86box_should_use()) {
+        m808x_86box_reset(hard);
+        return;
+    }
+
     is_new_biu = 0;
     biu_cycles = 0;
     in_rep     = 0;
@@ -766,6 +796,11 @@ set_ip(uint16_t new_ip)
 void
 refreshread(void)
 {
+    if (m808x_86box_active()) {
+        m808x_86box_refresh();
+        return;
+    }
+
     refresh++;
 }
 
@@ -1892,6 +1927,78 @@ cpu_outw(uint16_t port, uint16_t val)
     }
 
     resub_cycles(old_cycles);
+}
+
+
+
+/* MARTY808X_86BOX_INTEGRATION: retain 86Box's established 8087 operation
+ * tables while the replacement EU/BIU core owns CPU clocks and prefetch. */
+bool
+m808x_86box_fpu_busy(void)
+{
+    /* 86Box's current 8087 implementations execute synchronously.  Pending
+     * unmasked exceptions are still delivered by their existing code path. */
+    return false;
+}
+
+void
+m808x_86box_fpu_exec(uint8_t op, uint8_t modrm, uint16_t ea, uint8_t segment_index)
+{
+    const uint8_t saved_opcode = opcode;
+    const uint32_t saved_rmdat = rmdat;
+    const uint32_t saved_easeg = easeg;
+    const int32_t saved_rm_data = cpu_state.rm_data.rm_mod_reg_data;
+    const uint16_t saved_pc = cpu_state.pc;
+
+    opcode = op;
+    rmdat = modrm;
+    cpu_mod = (modrm >> 6) & 3;
+    cpu_reg = (modrm >> 3) & 7;
+    cpu_rm = modrm & 7;
+    cpu_state.eaaddr = ea;
+
+    switch (segment_index) {
+        case 0: easeg = es; break;
+        case 1: easeg = cs; break;
+        case 2: easeg = ss; break;
+        case 3: easeg = ds; break;
+        default: easeg = ds; break;
+    }
+
+    if (!hasfpu) {
+        if (cpu_mod != 3)
+            (void) readmemw(easeg, ea);
+    } else if (fpu_softfloat) {
+        switch (op) {
+            case 0xd8: ops_sf_fpu_8087_d8[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xd9: ops_sf_fpu_8087_d9[modrm](modrm); break;
+            case 0xda: ops_sf_fpu_8087_da[modrm](modrm); break;
+            case 0xdb: ops_sf_fpu_8087_db[modrm](modrm); break;
+            case 0xdc: ops_sf_fpu_8087_dc[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xdd: ops_sf_fpu_8087_dd[modrm](modrm); break;
+            case 0xde: ops_sf_fpu_8087_de[modrm](modrm); break;
+            case 0xdf: ops_sf_fpu_8087_df[modrm](modrm); break;
+            default: break;
+        }
+    } else {
+        switch (op) {
+            case 0xd8: ops_fpu_8087_d8[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xd9: ops_fpu_8087_d9[modrm](modrm); break;
+            case 0xda: ops_fpu_8087_da[modrm](modrm); break;
+            case 0xdb: ops_fpu_8087_db[modrm](modrm); break;
+            case 0xdc: ops_fpu_8087_dc[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xdd: ops_fpu_8087_dd[modrm](modrm); break;
+            case 0xde: ops_fpu_8087_de[modrm](modrm); break;
+            case 0xdf: ops_fpu_8087_df[modrm](modrm); break;
+            default: break;
+        }
+    }
+
+    cpu_state.pc = saved_pc;
+    cpu_state.rm_data.rm_mod_reg_data = saved_rm_data;
+    easeg = saved_easeg;
+    rmdat = saved_rmdat;
+    opcode = saved_opcode;
 }
 
 void
@@ -3350,6 +3457,11 @@ execx86_instruction(void)
 void
 execx86(int cycs)
 {
+    if (m808x_86box_should_use()) {
+        m808x_86box_exec(cycs);
+        return;
+    }
+
     cycles += cycs;
 
     while (cycles > 0) {
