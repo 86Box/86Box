@@ -499,19 +499,6 @@ static CHDR_INLINE uint32_t get_bigendian_uint32_t(const uint8_t *base)
 }
 
 /*-------------------------------------------------
-    put_bigendian_uint32_t - write a uint32_t to
-    the data stream in bigendian order
--------------------------------------------------*/
-
-static CHDR_INLINE void put_bigendian_uint32_t(uint8_t *base, uint32_t value)
-{
-	base[0] = value >> 24;
-	base[1] = value >> 16;
-	base[2] = value >> 8;
-	base[3] = value;
-}
-
-/*-------------------------------------------------
     put_bigendian_uint24 - write a UINT24 to
     the data stream in bigendian order
 -------------------------------------------------*/
