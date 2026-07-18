@@ -953,7 +953,7 @@ MainWindow::closeEvent(QCloseEvent *event)
             return;
         }
     }
-    if (window_remember) {
+    if (window_remember && !video_fullscreen) {
         window_w = ui->stackedWidget->width();
         window_h = ui->stackedWidget->height();
         if (!QApplication::platformName().contains("wayland")) {
