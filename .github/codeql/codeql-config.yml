@@ -7,5 +7,3 @@ queries:
 query-filters:
   - exclude:
       id: cpp/path-injection
-  - exclude:
-      id: cpp/suspicious-pointer-scaling
