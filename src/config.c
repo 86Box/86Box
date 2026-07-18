@@ -153,6 +153,8 @@ load_global_emulator(void)
 
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
 
+    chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
+
     p = ini_section_get_string(cat, "vmm_path", NULL);
     if (p != NULL) {
         /* Convert relative paths to absolute in portable mode */
@@ -2826,6 +2828,12 @@ save_global_emulator(void)
         ini_section_set_int(cat, "confirm_save", confirm_save);
     else
         ini_section_delete_var(cat, "confirm_save");
+
+
+    if (chd_precache_level)
+        ini_section_set_int(cat, "chd_precache_level", chd_precache_level);
+    else
+        ini_section_delete_var(cat, "chd_precache_level");
 
     if (vmm_disabled != 0)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
