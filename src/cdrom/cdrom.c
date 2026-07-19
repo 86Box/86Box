@@ -17,6 +17,7 @@
 #include <stdarg.h>
 #endif
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -372,7 +373,7 @@ cdrom_crc16(unsigned short crc, const unsigned char *buf, size_t len)
     return res.word;
 }
 
-static void
+void
 cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s)
 {
     for (int i = 0; i < 8 * 12; i++) {
@@ -1074,9 +1075,16 @@ process_c2_and_subch(cdrom_t *dev, const int cdrom_sector_flags,
                 2352, 96);
          dev->cdrom_sector_size += 96;
      } else if ((cdrom_sector_flags & 0x700) == 0x200) {
+         uint8_t deinterleaved_subch[96] = { };
          cdrom_log(dev->log, "Q subchannel data\n");
-         memcpy(b + dev->cdrom_sector_size, dev->raw_buffer[dev->cur_buf] +
-                2352, 16);
+         cdrom_deinterleave_subch(deinterleaved_subch,
+                                  dev->raw_buffer[dev->cur_buf] + 2352);
+         bool p_bit = !!deinterleaved_subch[0]; // all P bits in a subchannel are either 0 or 1.
+         memcpy(b + dev->cdrom_sector_size, deinterleaved_subch + 12, 12);
+         *(b + dev->cdrom_sector_size + 12) = 0;
+         *(b + dev->cdrom_sector_size + 13) = 0;
+         *(b + dev->cdrom_sector_size + 14) = 0;
+         *(b + dev->cdrom_sector_size + 15) = ((uint8_t)p_bit) << 7;
          dev->cdrom_sector_size += 16;
      } else if ((cdrom_sector_flags & 0x700) == 0x400) {
          cdrom_log(dev->log, "R/W subchannel data\n");

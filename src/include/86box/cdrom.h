@@ -550,6 +550,7 @@ extern int             cdrom_get_type(const int model);
 
 extern int             cdrom_lba_to_msf_accurate(const int lba);
 extern void            cdrom_interleave_subch(uint8_t *d, const uint8_t *s);
+extern void            cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s);
 extern double          cdrom_seek_time(const cdrom_t *dev);
 extern void            cdrom_stop(cdrom_t *dev);
 extern void            cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type);
