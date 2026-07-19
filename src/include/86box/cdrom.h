@@ -613,6 +613,8 @@ extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, co
                                                uint32_t major_mult, uint32_t minor_inc, int m2f1);
 extern unsigned long   cdrom_crc32(unsigned long crc, const unsigned char *buf,
                                    size_t len);
+extern unsigned short  cdrom_crc16(unsigned short crc, const unsigned char *buf,
+                                   size_t len);
 
 extern int             cdrom_image_is_aaru(const char *fn);
 extern int             cdrom_image_is_chd(const char *fn);
