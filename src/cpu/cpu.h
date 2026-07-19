@@ -720,6 +720,7 @@ extern void codegen_reset(void);
 extern void cpu_set_edx(void);
 extern int  divl(uint32_t val);
 extern void execx86(int32_t cycs);
+extern void execx86_new(int32_t cycs);
 extern void execvx0(int32_t cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);

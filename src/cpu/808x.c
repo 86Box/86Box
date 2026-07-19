@@ -3367,6 +3367,11 @@ execx86_instruction(void)
 void
 execx86(int cycs)
 {
+    if (m808x_86box_should_use()) {
+        execx86_new(cycs);
+        return;
+    }
+
     cycles += cycs;
 
     while (cycles > 0) {
