@@ -24,6 +24,7 @@
 #include <math.h>
 #include <86box/86box.h>
 #include "cpu.h"
+#include "808x_marty_86box.h"
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
@@ -203,11 +204,23 @@ cga_pravetz_in(UNUSED(uint16_t addr), void *priv)
 void
 cga_waitstates(UNUSED(void *priv))
 {
-    int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
-    int ws;
+    /*
+     * NOCONA_CGA_WAIT_PHASE_808X_UPDATE_V1
+     *
+     * The Marty-derived CPU has already selected the physical CGA slot in T2
+     * and emitted the corresponding Tw clocks before invoking this callback.
+     * Charging the legacy countdown here would double the delay and, more
+     * importantly, would put VRAM/snow side effects back on the wrong edge.
+     */
+    static const uint8_t legacy_waits[16] = {
+        3, 4, 5, 6, 7, 8, 4, 5,
+        6, 7, 8, 4, 5, 6, 7, 8
+    };
 
-    ws = ws_array[cycles & 0xf];
-    cycles -= ws;
+    if (m808x_86box_active())
+        return;
+
+    cycles -= legacy_waits[cycles & 0x0f];
 }
 
 void
@@ -536,6 +549,107 @@ cga_blit_memtoscreen(int x, int y, int w, int h, int double_type)
     video_blit_memtoscreen(x, y, w, h);
 }
 
+/*
+ * NOCONA_CGA_PRESENT_GEOMETRY_LATCH_V1
+ *
+ * Timing-sensitive software can move VSYNC or terminate a frame early while
+ * the CRT beam is active.  That changes the raw firstline/lastline extent for
+ * the affected frame, but it must not immediately resize the host window.
+ *
+ * A real monitor retains its physical raster geometry through a transient bad
+ * frame.  Require a new geometry to repeat for several complete frames before
+ * presenting it as a genuine mode change.
+ */
+#define CGA_PRESENT_GEOMETRY_CONFIRM_FRAMES 3u
+#define CGA_PRESENT_GEOMETRY_SLOTS          2u
+
+typedef struct cga_present_geometry_latch_t {
+    cga_t   *owner;
+    int      candidate_x;
+    int      candidate_y;
+    unsigned candidate_frames;
+} cga_present_geometry_latch_t;
+
+static cga_present_geometry_latch_t
+    cga_present_geometry_latches[CGA_PRESENT_GEOMETRY_SLOTS];
+
+static cga_present_geometry_latch_t *
+cga_present_geometry_latch(cga_t *cga)
+{
+    cga_present_geometry_latch_t *free_slot = NULL;
+
+    for (unsigned i = 0; i < CGA_PRESENT_GEOMETRY_SLOTS; ++i) {
+        cga_present_geometry_latch_t *slot =
+            &cga_present_geometry_latches[i];
+
+        if (slot->owner == cga)
+            return slot;
+        if (slot->owner == NULL && free_slot == NULL)
+            free_slot = slot;
+    }
+
+    if (free_slot == NULL)
+        free_slot = &cga_present_geometry_latches[0];
+
+    memset(free_slot, 0, sizeof(*free_slot));
+    free_slot->owner = cga;
+    return free_slot;
+}
+
+static void
+cga_present_geometry_release(cga_t *cga)
+{
+    for (unsigned i = 0; i < CGA_PRESENT_GEOMETRY_SLOTS; ++i) {
+        cga_present_geometry_latch_t *slot =
+            &cga_present_geometry_latches[i];
+
+        if (slot->owner == cga) {
+            memset(slot, 0, sizeof(*slot));
+            return;
+        }
+    }
+}
+
+static int
+cga_present_geometry_should_commit(cga_t *cga, int new_x, int new_y,
+                                   int force_resize)
+{
+    cga_present_geometry_latch_t *slot =
+        cga_present_geometry_latch(cga);
+
+    if (force_resize || xsize <= 0 || ysize <= 0) {
+        slot->candidate_x = 0;
+        slot->candidate_y = 0;
+        slot->candidate_frames = 0;
+        return 1;
+    }
+
+    if (new_x == xsize && new_y == ysize) {
+        slot->candidate_x = 0;
+        slot->candidate_y = 0;
+        slot->candidate_frames = 0;
+        return 0;
+    }
+
+    if (new_x != slot->candidate_x || new_y != slot->candidate_y) {
+        slot->candidate_x = new_x;
+        slot->candidate_y = new_y;
+        slot->candidate_frames = 1;
+        return 0;
+    }
+
+    if (slot->candidate_frames < CGA_PRESENT_GEOMETRY_CONFIRM_FRAMES)
+        ++slot->candidate_frames;
+
+    if (slot->candidate_frames < CGA_PRESENT_GEOMETRY_CONFIRM_FRAMES)
+        return 0;
+
+    slot->candidate_x = 0;
+    slot->candidate_y = 0;
+    slot->candidate_frames = 0;
+    return 1;
+}
+
 void
 cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type)
 {
@@ -703,13 +817,24 @@ cga_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != xsize) ||
-                            (ys_temp != ysize) || video_force_resize_get())) {
+                        /*
+                         * Keep raw beam timing separate from host presentation
+                         * geometry.  Beam-racing software may create one short
+                         * frame; Qt must not magnify that frame to fill a newly
+                         * shortened window.
+                         */
+                        const int force_resize = video_force_resize_get();
+
+                        if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) &&
+                            cga_present_geometry_should_commit(
+                                cga, xs_temp, ys_temp, force_resize)) {
                             xsize = xs_temp;
                             ysize = ys_temp;
-                            set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                            set_screen_size(xsize,
+                                            ysize +
+                                                (enable_overscan ? 16 : 0));
 
-                            if (video_force_resize_get())
+                            if (force_resize)
                                 video_force_resize_set(0);
                         }
 
@@ -830,6 +955,7 @@ cga_close(void *priv)
 {
     cga_t *cga = (cga_t *) priv;
 
+    cga_present_geometry_release(cga);
     free(cga->vram);
     free(cga);
 }

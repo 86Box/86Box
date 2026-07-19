@@ -2058,7 +2058,7 @@ cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, const int msf)
 
     cdrom_log(dev->log, "Returned subchannel at %02i:%02i.%02i, seek pos = %08x, "
               "cd_end = %08x, msf = %x.\n",
-              subc.abs_m, subc.abs_s, subc.abs_f, dev->seek_pos, dev->cd_end, msf);
+              subc->abs_m, subc->abs_s, subc->abs_f, dev->seek_pos, dev->cd_end, msf);
 
     b[0] = subc->attr;
     b[1] = subc->track;
@@ -3078,6 +3078,8 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     if ((strlen(dev->image_path) != 0) &&
         (strstr(dev->image_path, "ioctl://") == dev->image_path))
         dev->local = ioctl_open(dev, dev->image_path);
+    else if (cdrom_image_is_chd(dev->image_path))
+        dev->local = chd_image_open(dev, dev->image_path);
     else if (cdrom_image_is_aaru(dev->image_path))
         dev->local = aaru_image_open(dev, dev->image_path);
     else {

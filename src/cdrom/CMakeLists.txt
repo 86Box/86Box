@@ -15,6 +15,10 @@
 #          Copyright 2024-2026 Jasmine Iwanek.
 #
 
+set(WITH_SYSTEM_ZLIB ON)
+set(WITH_SYSTEM_ZSTD ON)
+add_subdirectory(libchdr)
+
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(SNDFILE REQUIRED IMPORTED_TARGET sndfile)
@@ -25,8 +29,9 @@ add_library(cdrom OBJECT
     cdrom_image.c
     cdrom_image_viso.c
     cdrom_mke.c
+    cdrom_chd.c
 )
-
+target_link_libraries(cdrom chdr-static)
 if(NOT WIN32)
 	target_include_directories(86Box PRIVATE PkgConfig::SNDFILE)
 endif()
