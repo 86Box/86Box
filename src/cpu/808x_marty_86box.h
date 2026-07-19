@@ -45,11 +45,4 @@ unsigned m808x_86box_test_t_cycle(void);
 unsigned m808x_86box_test_bus_status(void);
 #endif
 
-/* Implemented in 86Box's legacy 808x translation unit so the existing 8087
- * operation tables remain available while CPU timing is supplied by the new
- * EU/BIU core. */
-void m808x_86box_fpu_exec(uint8_t op, uint8_t modrm,
-                           uint16_t ea, uint8_t segment_index);
-bool m808x_86box_fpu_busy(void);
-
 #endif

@@ -1394,6 +1394,305 @@ biu_io_write_u16(m808x_cpu_t *icpu, const uint16_t port, const uint16_t value)
     biu_bus_wait_until_tx(icpu);
 }
 
+/* Reads a word from the memory and advances the BIU. */
+static uint16_t
+readmemw(const uint32_t s, const uint16_t a)
+{
+    uint16_t ret;
+
+    wait_cycs(4, 1);
+    if (is8086 && !(a & 1))
+        ret = read_mem_w(s + a);
+    else {
+        wait_cycs(4, 1);
+        ret = read_mem_b(s + a);
+        ret |= read_mem_b(s + ((is186 && !is_nec) ? (a + 1) : (a + 1) & 0xffff)) << 8;
+    }
+
+    return ret;
+}
+
+static uint32_t
+readmeml(const uint32_t s, const uint16_t a)
+{
+    uint32_t temp = (uint32_t) (readmemw(s, a + 2)) << 16;
+    temp |= readmemw(s, a);
+
+    return temp;
+}
+
+static uint64_t
+readmemq(const uint32_t s, const uint16_t a)
+{
+    uint64_t temp = (uint64_t) (readmeml(s, a + 4)) << 32;
+    temp |= readmeml(s, a);
+
+    return temp;
+}
+
+/* Writes a byte to the memory and advances the BIU. */
+static void
+writememb(const uint32_t s, const uint32_t a, const uint8_t v)
+{
+    const uint32_t addr = s + a;
+
+    wait_cycs(4, 1);
+    write_mem_b(addr, v);
+
+    if ((addr >= 0xf0000) && (addr <= 0xfffff))
+        last_addr = addr & 0xffff;
+}
+
+/* Writes a word to the memory and advances the BIU. */
+static void
+writememw(const uint32_t s, const uint32_t a, const uint16_t v)
+{
+    uint32_t addr = s + a;
+
+    wait_cycs(4, 1);
+    if (is8086 && !(a & 1))
+        write_mem_w(addr, v);
+    else {
+        write_mem_b(addr, v & 0xff);
+        wait_cycs(4, 1);
+        addr = s + ((is186 && !is_nec) ? (a + 1) : ((a + 1) & 0xffff));
+        write_mem_b(addr, v >> 8);
+    }
+
+    if ((addr >= 0xf0000) && (addr <= 0xfffff))
+        last_addr = addr & 0xffff;
+}
+
+static void
+writememl(const uint32_t s, const uint32_t a, const uint32_t v)
+{
+    writememw(s, a, v & 0xffff);
+    writememw(s, a + 2, v >> 16);
+}
+
+static void
+writememq(const uint32_t s, const uint32_t a, const uint64_t v)
+{
+    writememl(s, a, v & 0xffffffff);
+    writememl(s, a + 4, v >> 32);
+}
+
+/* Various things needed for 8087. */
+extern int        tempc_fpu;
+extern uint32_t   cpu_data;
+
+#define OP_TABLE(name) ops_##name
+
+#define CPU_BLOCK_END()
+#define SEG_CHECK_READ(seg)
+#define SEG_CHECK_WRITE(seg)
+#define CHECK_READ(a, b, c)
+#define CHECK_WRITE(a, b, c)
+#define UN_USED(x) (void) (x)
+#define fetch_ea_16(val)
+#define fetch_ea_32(val)
+#define PREFETCH_RUN(a, b, c, d, e, f, g, h)
+
+#define CYCLES(val)        \
+{                      \
+wait_cycs(val, 0); \
+}
+
+#define CLOCK_CYCLES_ALWAYS(val) \
+{                            \
+wait_cycs(val, 0);       \
+}
+
+#if 0
+#    define CLOCK_CYCLES_FPU(val) \
+{                         \
+wait_cycs(val, 0);    \
+}
+
+#    define CLOCK_CYCLES(val)          \
+{                              \
+if (fpu_cycles > 0) {      \
+fpu_cycles -= (val);   \
+if (fpu_cycles < 0) {  \
+wait_cycs(val, 0); \
+}                      \
+} else {                   \
+wait_cycs(val, 0);     \
+}                          \
+}
+
+#    define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
+#else
+#    define CLOCK_CYCLES(val)  \
+{                      \
+wait_cycs(val, 0); \
+}
+
+#    define CLOCK_CYCLES_FPU(val) \
+{                         \
+wait_cycs(val, 0);    \
+}
+
+#    define CONCURRENCY_CYCLES(c)
+#endif
+
+typedef int (*OpFn)(uint32_t fetchdat);
+
+#undef getr8
+#define getr8(r) ((r & 4) ? cpu_state.regs[r & 3].b.h : cpu_state.regs[r & 3].b.l)
+
+#undef setr8
+#define setr8(r, v)                    \
+    if (r & 4)                         \
+        cpu_state.regs[r & 3].b.h = v; \
+    else                               \
+        cpu_state.regs[r & 3].b.l = v;
+
+/* Reads a word from the effective address. */
+static uint16_t
+geteaw(void)
+{
+    if (cpu_mod == 3)
+        return cpu_state.regs[cpu_rm].w;
+
+    return readmemw(easeg, cpu_state.eaaddr);
+}
+
+/* Neede for 8087 - memory only. */
+static uint32_t
+geteal(void)
+{
+    if (cpu_mod == 3) {
+        fatal("808x register geteal()\n");
+        return 0xffffffff;
+    }
+
+    return readmeml(easeg, cpu_state.eaaddr);
+}
+
+/* Neede for 8087 - memory only. */
+static uint64_t
+geteaq(void)
+{
+    if (cpu_mod == 3) {
+        fatal("808x register geteaq()\n");
+        return 0xffffffff;
+    }
+
+    return readmemq(easeg, cpu_state.eaaddr);
+}
+
+/* Writes a word to the effective address. */
+static void
+seteaw(const uint16_t val)
+{
+    if (cpu_mod == 3)
+        cpu_state.regs[cpu_rm].w = val;
+    else
+        writememw(easeg, cpu_state.eaaddr, val);
+}
+
+static void
+seteal(const uint32_t val)
+{
+    if (cpu_mod == 3) {
+        fatal("808x register seteal()\n");
+        return;
+    } else
+        writememl(easeg, cpu_state.eaaddr, val);
+}
+
+static void
+seteaq(const uint64_t val)
+{
+    if (cpu_mod == 3) {
+        fatal("808x register seteaq()\n");
+        return;
+    } else
+        writememq(easeg, cpu_state.eaaddr, val);
+}
+
+/* Leave out the 686 stuff as it's not needed and
+   complicates compiling. */
+#define FPU_8087
+#define tempc tempc_fpu
+#include "x87_sf.h"
+#include "x87.h"
+#include "x87_ops.h"
+#undef tempc
+#undef FPU_8087
+
+static bool
+m808x_86box_fpu_busy(void)
+{
+    /*
+       86Box's current 8087 implementations execute synchronously. Pending
+       unmasked exceptions are still delivered by their existing code path.
+     */
+    return false;
+}
+
+static void
+m808x_86box_fpu_exec(const uint8_t op, uint8_t modrm,
+                     const uint16_t ea, const uint8_t segment_index)
+{
+    const uint8_t saved_opcode = opcode;
+    const uint32_t saved_rmdat = rmdat;
+    const uint32_t saved_easeg = easeg;
+    const int32_t saved_rm_data = cpu_state.rm_data.rm_mod_reg_data;
+    const uint16_t saved_pc = cpu_state.pc;
+
+    opcode = op;
+    rmdat = modrm;
+    cpu_mod = (modrm >> 6) & 3;
+    cpu_reg = (modrm >> 3) & 7;
+    cpu_rm = modrm & 7;
+    cpu_state.eaaddr = ea;
+
+    switch (segment_index) {
+        case 0: easeg = es; break;
+        case 1: easeg = cs; break;
+        case 2: easeg = ss; break;
+        case 3: easeg = ds; break;
+        default: easeg = ds; break;
+    }
+
+    if (!hasfpu) {
+        if (cpu_mod != 3)
+            (void) readmemw(easeg, ea);
+    } else if (fpu_softfloat) {
+        switch (op) {
+            case 0xd8: ops_sf_fpu_8087_d8[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xd9: ops_sf_fpu_8087_d9[modrm](modrm); break;
+            case 0xda: ops_sf_fpu_8087_da[modrm](modrm); break;
+            case 0xdb: ops_sf_fpu_8087_db[modrm](modrm); break;
+            case 0xdc: ops_sf_fpu_8087_dc[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xdd: ops_sf_fpu_8087_dd[modrm](modrm); break;
+            case 0xde: ops_sf_fpu_8087_de[modrm](modrm); break;
+            case 0xdf: ops_sf_fpu_8087_df[modrm](modrm); break;
+            default: break;
+        }
+    } else {
+        switch (op) {
+            case 0xd8: ops_fpu_8087_d8[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xd9: ops_fpu_8087_d9[modrm](modrm); break;
+            case 0xda: ops_fpu_8087_da[modrm](modrm); break;
+            case 0xdb: ops_fpu_8087_db[modrm](modrm); break;
+            case 0xdc: ops_fpu_8087_dc[(modrm >> 3) & 0x1f](modrm); break;
+            case 0xdd: ops_fpu_8087_dd[modrm](modrm); break;
+            case 0xde: ops_fpu_8087_de[modrm](modrm); break;
+            case 0xdf: ops_fpu_8087_df[modrm](modrm); break;
+            default: break;
+        }
+    }
+
+    cpu_state.pc = saved_pc;
+    cpu_state.rm_data.rm_mod_reg_data = saved_rm_data;
+    easeg = saved_easeg;
+    rmdat = saved_rmdat;
+    opcode = saved_opcode;
+}
+
 static void
 biu_fetch_suspend(m808x_cpu_t *icpu)
 {
@@ -4329,305 +4628,6 @@ m808x_import_arch_state(void)
 
         biu_queue_flush(&m808x_cpu);
     }
-}
-
-/* Reads a word from the memory and advances the BIU. */
-static uint16_t
-readmemw(const uint32_t s, const uint16_t a)
-{
-    uint16_t ret;
-
-    wait_cycs(4, 1);
-    if (is8086 && !(a & 1))
-        ret = read_mem_w(s + a);
-    else {
-        wait_cycs(4, 1);
-        ret = read_mem_b(s + a);
-        ret |= read_mem_b(s + ((is186 && !is_nec) ? (a + 1) : (a + 1) & 0xffff)) << 8;
-    }
-
-    return ret;
-}
-
-static uint32_t
-readmeml(const uint32_t s, const uint16_t a)
-{
-    uint32_t temp = (uint32_t) (readmemw(s, a + 2)) << 16;
-    temp |= readmemw(s, a);
-
-    return temp;
-}
-
-static uint64_t
-readmemq(const uint32_t s, const uint16_t a)
-{
-    uint64_t temp = (uint64_t) (readmeml(s, a + 4)) << 32;
-    temp |= readmeml(s, a);
-
-    return temp;
-}
-
-/* Writes a byte to the memory and advances the BIU. */
-static void
-writememb(const uint32_t s, const uint32_t a, const uint8_t v)
-{
-    const uint32_t addr = s + a;
-
-    wait_cycs(4, 1);
-    write_mem_b(addr, v);
-
-    if ((addr >= 0xf0000) && (addr <= 0xfffff))
-        last_addr = addr & 0xffff;
-}
-
-/* Writes a word to the memory and advances the BIU. */
-static void
-writememw(const uint32_t s, const uint32_t a, const uint16_t v)
-{
-    uint32_t addr = s + a;
-
-    wait_cycs(4, 1);
-    if (is8086 && !(a & 1))
-        write_mem_w(addr, v);
-    else {
-        write_mem_b(addr, v & 0xff);
-        wait_cycs(4, 1);
-        addr = s + ((is186 && !is_nec) ? (a + 1) : ((a + 1) & 0xffff));
-        write_mem_b(addr, v >> 8);
-    }
-
-    if ((addr >= 0xf0000) && (addr <= 0xfffff))
-        last_addr = addr & 0xffff;
-}
-
-static void
-writememl(const uint32_t s, const uint32_t a, const uint32_t v)
-{
-    writememw(s, a, v & 0xffff);
-    writememw(s, a + 2, v >> 16);
-}
-
-static void
-writememq(const uint32_t s, const uint32_t a, const uint64_t v)
-{
-    writememl(s, a, v & 0xffffffff);
-    writememl(s, a + 4, v >> 32);
-}
-
-/* Various things needed for 8087. */
-extern int        tempc_fpu;
-extern uint32_t   cpu_data;
-
-#define OP_TABLE(name) ops_##name
-
-#define CPU_BLOCK_END()
-#define SEG_CHECK_READ(seg)
-#define SEG_CHECK_WRITE(seg)
-#define CHECK_READ(a, b, c)
-#define CHECK_WRITE(a, b, c)
-#define UN_USED(x) (void) (x)
-#define fetch_ea_16(val)
-#define fetch_ea_32(val)
-#define PREFETCH_RUN(a, b, c, d, e, f, g, h)
-
-#define CYCLES(val)        \
-{                      \
-wait_cycs(val, 0); \
-}
-
-#define CLOCK_CYCLES_ALWAYS(val) \
-{                            \
-wait_cycs(val, 0);       \
-}
-
-#if 0
-#    define CLOCK_CYCLES_FPU(val) \
-{                         \
-wait_cycs(val, 0);    \
-}
-
-#    define CLOCK_CYCLES(val)          \
-{                              \
-if (fpu_cycles > 0) {      \
-fpu_cycles -= (val);   \
-if (fpu_cycles < 0) {  \
-wait_cycs(val, 0); \
-}                      \
-} else {                   \
-wait_cycs(val, 0);     \
-}                          \
-}
-
-#    define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
-#else
-#    define CLOCK_CYCLES(val)  \
-{                      \
-wait_cycs(val, 0); \
-}
-
-#    define CLOCK_CYCLES_FPU(val) \
-{                         \
-wait_cycs(val, 0);    \
-}
-
-#    define CONCURRENCY_CYCLES(c)
-#endif
-
-typedef int (*OpFn)(uint32_t fetchdat);
-
-#undef getr8
-#define getr8(r) ((r & 4) ? cpu_state.regs[r & 3].b.h : cpu_state.regs[r & 3].b.l)
-
-#undef setr8
-#define setr8(r, v)                    \
-    if (r & 4)                         \
-        cpu_state.regs[r & 3].b.h = v; \
-    else                               \
-        cpu_state.regs[r & 3].b.l = v;
-
-/* Reads a word from the effective address. */
-static uint16_t
-geteaw(void)
-{
-    if (cpu_mod == 3)
-        return cpu_state.regs[cpu_rm].w;
-
-    return readmemw(easeg, cpu_state.eaaddr);
-}
-
-/* Neede for 8087 - memory only. */
-static uint32_t
-geteal(void)
-{
-    if (cpu_mod == 3) {
-        fatal("808x register geteal()\n");
-        return 0xffffffff;
-    }
-
-    return readmeml(easeg, cpu_state.eaaddr);
-}
-
-/* Neede for 8087 - memory only. */
-static uint64_t
-geteaq(void)
-{
-    if (cpu_mod == 3) {
-        fatal("808x register geteaq()\n");
-        return 0xffffffff;
-    }
-
-    return readmemq(easeg, cpu_state.eaaddr);
-}
-
-/* Writes a word to the effective address. */
-static void
-seteaw(const uint16_t val)
-{
-    if (cpu_mod == 3)
-        cpu_state.regs[cpu_rm].w = val;
-    else
-        writememw(easeg, cpu_state.eaaddr, val);
-}
-
-static void
-seteal(const uint32_t val)
-{
-    if (cpu_mod == 3) {
-        fatal("808x register seteal()\n");
-        return;
-    } else
-        writememl(easeg, cpu_state.eaaddr, val);
-}
-
-static void
-seteaq(const uint64_t val)
-{
-    if (cpu_mod == 3) {
-        fatal("808x register seteaq()\n");
-        return;
-    } else
-        writememq(easeg, cpu_state.eaaddr, val);
-}
-
-/* Leave out the 686 stuff as it's not needed and
-   complicates compiling. */
-#define FPU_8087
-#define tempc tempc_fpu
-#include "x87_sf.h"
-#include "x87.h"
-#include "x87_ops.h"
-#undef tempc
-#undef FPU_8087
-
-bool
-m808x_86box_fpu_busy(void)
-{
-    /*
-       86Box's current 8087 implementations execute synchronously. Pending
-       unmasked exceptions are still delivered by their existing code path.
-     */
-    return false;
-}
-
-void
-m808x_86box_fpu_exec(const uint8_t op, uint8_t modrm,
-                     const uint16_t ea, const uint8_t segment_index)
-{
-    const uint8_t saved_opcode = opcode;
-    const uint32_t saved_rmdat = rmdat;
-    const uint32_t saved_easeg = easeg;
-    const int32_t saved_rm_data = cpu_state.rm_data.rm_mod_reg_data;
-    const uint16_t saved_pc = cpu_state.pc;
-
-    opcode = op;
-    rmdat = modrm;
-    cpu_mod = (modrm >> 6) & 3;
-    cpu_reg = (modrm >> 3) & 7;
-    cpu_rm = modrm & 7;
-    cpu_state.eaaddr = ea;
-
-    switch (segment_index) {
-        case 0: easeg = es; break;
-        case 1: easeg = cs; break;
-        case 2: easeg = ss; break;
-        case 3: easeg = ds; break;
-        default: easeg = ds; break;
-    }
-
-    if (!hasfpu) {
-        if (cpu_mod != 3)
-            (void) readmemw(easeg, ea);
-    } else if (fpu_softfloat) {
-        switch (op) {
-            case 0xd8: ops_sf_fpu_8087_d8[(modrm >> 3) & 0x1f](modrm); break;
-            case 0xd9: ops_sf_fpu_8087_d9[modrm](modrm); break;
-            case 0xda: ops_sf_fpu_8087_da[modrm](modrm); break;
-            case 0xdb: ops_sf_fpu_8087_db[modrm](modrm); break;
-            case 0xdc: ops_sf_fpu_8087_dc[(modrm >> 3) & 0x1f](modrm); break;
-            case 0xdd: ops_sf_fpu_8087_dd[modrm](modrm); break;
-            case 0xde: ops_sf_fpu_8087_de[modrm](modrm); break;
-            case 0xdf: ops_sf_fpu_8087_df[modrm](modrm); break;
-            default: break;
-        }
-    } else {
-        switch (op) {
-            case 0xd8: ops_fpu_8087_d8[(modrm >> 3) & 0x1f](modrm); break;
-            case 0xd9: ops_fpu_8087_d9[modrm](modrm); break;
-            case 0xda: ops_fpu_8087_da[modrm](modrm); break;
-            case 0xdb: ops_fpu_8087_db[modrm](modrm); break;
-            case 0xdc: ops_fpu_8087_dc[(modrm >> 3) & 0x1f](modrm); break;
-            case 0xdd: ops_fpu_8087_dd[modrm](modrm); break;
-            case 0xde: ops_fpu_8087_de[modrm](modrm); break;
-            case 0xdf: ops_fpu_8087_df[modrm](modrm); break;
-            default: break;
-        }
-    }
-
-    cpu_state.pc = saved_pc;
-    cpu_state.rm_data.rm_mod_reg_data = saved_rm_data;
-    easeg = saved_easeg;
-    rmdat = saved_rmdat;
-    opcode = saved_opcode;
 }
 
 static void
