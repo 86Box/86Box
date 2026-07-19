@@ -1401,12 +1401,14 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
                         dev->temp_buffer[idx++] = 0x00;
                         dev->temp_buffer[idx++] = 68;
                         /* Vendor */
-                        ide_padstr8(dev->temp_buffer + idx, 8, EMU_NAME);
+                        ide_padstr8(dev->temp_buffer + idx, 8,
+                                    (dev->drv->vendor) ? dev->drv->vendor : EMU_NAME);
                         idx += 8;
                         /* Product */
-                        ide_padstr8(dev->temp_buffer + idx, 40, device_identify_ex);
+                        ide_padstr8(dev->temp_buffer + idx, 40,
+                                    (dev->drv->model) ? dev->drv->model : device_identify_ex);
                         idx += 40;
-                        /* Product */
+                        /* Serial */
                         ide_padstr8(dev->temp_buffer + idx, 20, "53R141");
                         idx += 20;
                         break;
@@ -1439,12 +1441,23 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
                 }
                 dev->temp_buffer[7] |= 0x02;
 
-                /* Vendor */
-                ide_padstr8(dev->temp_buffer + 8, 8, EMU_NAME);
-                /* Product */
-                ide_padstr8(dev->temp_buffer + 16, 16, device_identify);
-                /* Revision */
-                ide_padstr8(dev->temp_buffer + 32, 4, EMU_VERSION_EX);
+                if (dev->drv->model) {
+                    /* Vendor */
+                    ide_padstr8(dev->temp_buffer + 8, 8,
+                                (dev->drv->vendor) ? dev->drv->vendor : EMU_NAME);
+                    /* Product */
+                    ide_padstr8(dev->temp_buffer + 16, 16, dev->drv->model);
+                    /* Revision */
+                    ide_padstr8(dev->temp_buffer + 32, 4,
+                                (dev->drv->version) ? dev->drv->version : EMU_VERSION_EX);
+                } else {
+                    /* Vendor */
+                    ide_padstr8(dev->temp_buffer + 8, 8, EMU_NAME);
+                    /* Product */
+                    ide_padstr8(dev->temp_buffer + 16, 16, device_identify);
+                    /* Revision */
+                    ide_padstr8(dev->temp_buffer + 32, 4, EMU_VERSION_EX);
+                }
                 idx = 36;
 
                 if (max_len == 96) {
@@ -1733,6 +1746,7 @@ scsi_disk_identify(const ide_t *ide, const int ide_has_dma)
 {
     const scsi_disk_t *dev                = (scsi_disk_t *) ide->sc;
     char               device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
+    char               model[40];
 
     device_identify[7] = dev->id + 0x30;
     scsi_disk_log(dev->log, "ATAPI Identify: %s\n", device_identify);
@@ -1741,8 +1755,19 @@ scsi_disk_identify(const ide_t *ide, const int ide_has_dma)
     ide->buffer[0] = 0x8000 | (0 << 8) | 0x00 | (2 << 5);
     ide_padstr((char *) (ide->buffer + 10), "", 20);               /* Serial Number */
 
-    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);    /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), device_identify, 40);     /* Model */
+    memset(model, 0, 40);
+    if (dev->drv->model) {
+        if (dev->drv->vendor)
+            snprintf(model, 40, "%s %s", dev->drv->vendor, dev->drv->model);
+        else
+            snprintf(model, 40, "%s", dev->drv->model);
+        ide_padstr((char *) (ide->buffer + 23),
+                   (dev->drv->version) ? dev->drv->version : EMU_VERSION_EX, 8);    /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), model, 40);                         /* Model */
+    } else {
+        ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);    /* Firmware */
+        ide_padstr((char *) (ide->buffer + 27), device_identify, 40);  /* Model */
+    }
 
     ide->buffer[49]  = 0x200;                                            /* LBA supported */
     /* Interpret zero byte count limit as maximum length. */
