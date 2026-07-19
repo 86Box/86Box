@@ -51,6 +51,7 @@
 #include <86box/nvr.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
@@ -657,6 +658,7 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     buffer[2352 + 7] = bin2bcd(m);
     buffer[2352 + 8] = bin2bcd(s);
     buffer[2352 + 9] = bin2bcd(f);
+    *(uint16_t*)&buffer[2352 + 10] = bswap16(cdrom_crc16(0xffff, &buffer[2352], 10));
     for (int i = 11; i >= 0; i--)
         for (int j = 7; j >= 0; j--)
             buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;

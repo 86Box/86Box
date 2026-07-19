@@ -550,6 +550,7 @@ extern int             cdrom_get_type(const int model);
 
 extern int             cdrom_lba_to_msf_accurate(const int lba);
 extern void            cdrom_interleave_subch(uint8_t *d, const uint8_t *s);
+extern void            cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s);
 extern double          cdrom_seek_time(const cdrom_t *dev);
 extern void            cdrom_stop(cdrom_t *dev);
 extern void            cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type);
@@ -612,6 +613,8 @@ extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, co
                                                uint32_t major_count, uint32_t minor_count,
                                                uint32_t major_mult, uint32_t minor_inc, int m2f1);
 extern unsigned long   cdrom_crc32(unsigned long crc, const unsigned char *buf,
+                                   size_t len);
+extern unsigned short  cdrom_crc16(unsigned short crc, const unsigned char *buf,
                                    size_t len);
 
 extern int             cdrom_image_is_aaru(const char *fn);

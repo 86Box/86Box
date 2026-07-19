@@ -41,11 +41,11 @@
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
 
-#define do_cycle()           wait_vx0(1)
+#define do_cycle()           wait_vx0(1, 0)
 #define do_cycle_no_modrm()  if (!nx)       \
                                  do_cycle()
 #define do_cycle_i()         do_cycle()
-#define do_cycles(c)         wait_vx0(c)
+#define do_cycles(c)         wait_vx0(c, 0)
 #define do_cycles_i(c)       do_cycles(c)
 #define do_cycle_nx()        nx = 1
 #define do_cycle_nx_i()      nx = 1
@@ -468,6 +468,10 @@ void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_vx0(int hard)
 {
+    i808x_hook_prefetch_queue(biu_pfq_set_pos, biu_pfq_set_ip, biu_pfq_set_prefetching,
+                              biu_pfq_get_pos, biu_pfq_get_ip, biu_pfq_get_prefetching,
+                              biu_pfq_get_size, wait_vx0);
+
     is_new_biu = 1;
     halted     = 0;
     in_hlt     = 0;
