@@ -60,6 +60,16 @@
 static char temp_keyword[1024];
 static char temp_file[260]     = { 0 };
 
+#pragma pack(push, 1)
+struct sbi_replacement_ent
+{
+  uint8_t m, s, f; // all in BCD.
+  uint8_t type;
+  uint8_t q[10]; // Q-subchannel data.
+};
+typedef struct sbi_replacement_ent sbi_replacement_ent;
+#pragma pack(pop)
+
 #define INDEX_SPECIAL -2 /* Track A0h onwards. */
 #define INDEX_NONE    -1 /* Empty block. */
 #define INDEX_ZERO     0 /* Block not in the file, return all 0x00's. */
@@ -130,6 +140,9 @@ typedef struct cd_image_t {
     track_t      *tracks;
     uint32_t     *bad_sectors;
     dstruct_t     dstruct;
+
+    sbi_replacement_ent* sector_subs;
+    uint64_t sector_subs_size;
 } cd_image_t;
 
 typedef enum
@@ -1898,6 +1911,46 @@ image_load_cue(cd_image_t *img, const char *cuefile)
         warning(plat_get_string(STRING_CDROM_OPEN_CUE_ERROR), cuefile);
 #endif
 
+    if (success) {
+        char ident[4] = { 0, 0, 0, 0 };
+        // Look for .SBI sidecar files.
+        char* sbifile = strdup(cuefile);
+        sbifile[strlen(sbifile) - 3] = 's';
+        sbifile[strlen(sbifile) - 2] = 'b';
+        sbifile[strlen(sbifile) - 1] = 'i';
+
+        FILE* sbi_handle = plat_fopen(sbifile, "rb");
+        if (sbi_handle) {
+            goto process_sbi;
+        } else {
+            sbifile[strlen(sbifile) - 3] = 'S';
+            sbifile[strlen(sbifile) - 2] = 'B';
+            sbifile[strlen(sbifile) - 1] = 'I';
+            
+            sbi_handle = plat_fopen(sbifile, "rb");
+            if (sbi_handle) {
+process_sbi:
+                (void)fread(ident, 1, 4, sbi_handle);
+                if (!memcmp(ident, "SBI", 4)) { // null character is implicit
+                    fseek(sbi_handle, 0, SEEK_END);
+                    long len = ftell(sbi_handle);
+                    fseek(sbi_handle, 4, SEEK_SET);
+                    if (!((len - 4) % sizeof(sbi_replacement_ent))) {
+                        img->sector_subs = (sbi_replacement_ent*)calloc(1, len - 4);
+                        if (!fread(img->sector_subs, 1, len - 4, sbi_handle)) {
+                            free(img->sector_subs);
+                            img->sector_subs = NULL;
+                        } else {
+                            img->sector_subs_size = (len - 4) / sizeof(sbi_replacement_ent);
+                        }
+                    }
+                }
+            }
+        }
+
+        free(sbifile);
+    }
+
     return success;
 }
 
@@ -2905,6 +2958,25 @@ image_read_sector(const void *local, uint8_t *buffer,
                 for (int i = 0; i < 12; i++)
                      for (int j = 0; j < 8; j++)
                           buffer[2352 + (i << 3) + j] = ((q[i] >> (7 - j)) & 0x01) << 6;
+            }
+        }
+
+        if (img->sector_subs) {
+            uint8_t deinterleaved_subch[96] = {};
+            FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+            cdrom_deinterleave_subch(deinterleaved_subch, &buffer[2352]);
+
+            for (int i = 0; i < img->sector_subs_size; i++) {
+                if (img->sector_subs[i].m == bin2bcd(m)
+                && img->sector_subs[i].s == bin2bcd(s)
+                && img->sector_subs[i].f == bin2bcd(f)
+                && img->sector_subs[i].type == 0x01) {
+                    memcpy(&deinterleaved_subch[12], img->sector_subs[i].q, 10);
+
+                    *(uint16_t*)(&deinterleaved_subch[12 + 10]) = ~bswap16(cdrom_crc16(0xffff, img->sector_subs[i].q, 10));
+                    cdrom_interleave_subch(&buffer[2352], deinterleaved_subch);
+                    break;
+                }
             }
         }
     }
