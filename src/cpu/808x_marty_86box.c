@@ -1287,6 +1287,9 @@ biu_write_u8(m808x_cpu_t *icpu, const m808x_segment_t segment,
     const uint32_t address = segment == SEG_NONE ? offset : linear_address(icpu->segs[segment], offset);
     biu_bus_begin(icpu, BUS_MEMW, segment, address, value, XFER_BYTE, OPERAND_8, true);
     biu_bus_wait_until_tx(icpu);
+
+    if ((address >= 0xf0000) && (address <= 0xfffff))
+        last_addr = address & 0xffff;
 }
 
 static uint16_t
@@ -1327,6 +1330,9 @@ biu_write_u16(m808x_cpu_t *icpu, const m808x_segment_t segment,
         biu_bus_begin(icpu, BUS_MEMW, segment, address, value, XFER_WORD, OPERAND_16, true);
         biu_bus_wait_until_tx(icpu);
 
+        if ((address >= 0xf0000) && (address <= 0xfffff))
+            last_addr = address & 0xffff;
+
         return;
     }
 
@@ -1339,6 +1345,9 @@ biu_write_u16(m808x_cpu_t *icpu, const m808x_segment_t segment,
     const uint32_t address1 = segment == SEG_NONE ? offset1 : linear_address(icpu->segs[segment], offset1);
     biu_bus_begin(icpu, BUS_MEMW, segment, address1, value >> 8, XFER_BYTE, OPERAND_16, false);
     biu_bus_wait_until_tx(icpu);
+
+    if ((address0 >= 0xf0000) && (address0 <= 0xfffff))
+        last_addr = address0 & 0xffff;
 }
 
 static uint8_t
@@ -1451,6 +1460,9 @@ writememb(const uint32_t s, const uint32_t a, const uint8_t v)
     const uint32_t address = s + a;
     biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address, v, XFER_BYTE, OPERAND_8, true);
     biu_bus_wait_until_tx(icpu);
+
+    if ((address >= 0xf0000) && (address <= 0xfffff))
+        last_addr = address & 0xffff;
 }
 
 /* Writes a word to the memory and advances the BIU. */
@@ -1465,6 +1477,9 @@ writememw(const uint32_t s, const uint32_t a, const uint16_t v)
         biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address, v, XFER_WORD, OPERAND_16, true);
         biu_bus_wait_until_tx(icpu);
 
+        if ((address >= 0xf0000) && (address <= 0xfffff))
+            last_addr = address & 0xffff;
+
         return;
     }
 
@@ -1476,6 +1491,9 @@ writememw(const uint32_t s, const uint32_t a, const uint16_t v)
     const uint32_t address1 = s + (uint16_t) (a + 1);
     biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address1, v, XFER_BYTE, OPERAND_16, false);
     biu_bus_wait_until_tx(icpu);
+
+    if ((address0 >= 0xf0000) && (address0 <= 0xfffff))
+        last_addr = address0 & 0xffff;
 }
 
 static void
