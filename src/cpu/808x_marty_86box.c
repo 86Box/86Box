@@ -4818,7 +4818,6 @@ void m808x_86box_dma_request(unsigned wait_clocks)
 
 void m808x_86box_refresh(void)
 {
-    /* One channel-0 refresh occupies one four-clock 8088 memory bus cycle. */
     m808x_86box_dma_request(4u);
 }
 
@@ -4991,14 +4990,14 @@ uint64_t m808x_86box_test_tw_clocks(void)
     return m808x_test_tw_clocks;
 }
 
-unsigned m808x_86box_test_dma_state(void)
+unsigned m808x_86box_test__state(void)
 {
-    return (unsigned)m808x_dma_state;
+    return (unsigned)m808x__state;
 }
 
-unsigned m808x_86box_test_dma_wait_states(void)
+unsigned m808x_86box_test__wait_states(void)
 {
-    return m808x_dma_wait_states;
+    return m808x__wait_states;
 }
 
 bool m808x_86box_test_dma_holda(void)
