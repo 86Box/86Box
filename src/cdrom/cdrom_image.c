@@ -37,6 +37,7 @@
 #include <86box/nvr.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
@@ -2896,6 +2897,8 @@ image_read_sector(const void *local, uint8_t *buffer,
                     q[7] = bin2bcd(m & 0xff);
                     q[8] = bin2bcd(s & 0xff);
                     q[9] = bin2bcd(f & 0xff);
+
+                    *(uint16_t*)(&q[10]) = bswap16(cdrom_crc16(0xffff, q, 10));
                 }
 
                 /* Construct raw subchannel data from Q only. */

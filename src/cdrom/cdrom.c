@@ -31,9 +31,11 @@
 #include <86box/cdrom_mitsumi.h>
 #endif
 #include <86box/cdrom_mke.h>
+#include <86box/crc.h>
 #include <86box/log.h>
 #include <86box/plat.h>
 #include <86box/plat_cdrom_ioctl.h>
+#include <86box/bswap.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_cdrom.h>
@@ -46,6 +48,8 @@
 #define MAX_SEEK           333333
 
 cdrom_t cdrom[CDROM_NUM] = { 0 };
+
+uint16_t subq_crc16_table[256] = { 0 };
 
 int cdrom_interface_current;
 int cdrom_assigned_letters = 0;
@@ -355,6 +359,37 @@ cdrom_check_for_formed_mode2(cdrom_t *dev, const uint8_t *b)
     }
 }
 
+// CRC16-CCITT
+unsigned short
+cdrom_crc16(unsigned short crc, const unsigned char *buf, size_t len)
+{
+    crc_t res;
+    res.word = ~crc;
+    for (int i = 0; i < len; i++) {
+        crc16_calc(subq_crc16_table, buf[i], &res);
+    }
+    res.word = ~res.word;
+    return res.word;
+}
+
+static void
+cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s)
+{
+    for (int i = 0; i < 8 * 12; i++) {
+        int dmask = 0x80;
+        int smask = 1 << (7 - (i / 12));
+
+        (*d) = 0;
+
+        for (int j = 0; j < 8; j++) {
+            (*d) |= (s[(i % 12) * 8 + j] & smask) ? dmask : 0;
+            dmask >>= 1;
+        }
+
+        d++;
+    }
+}
+
 static int
 cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const uint8_t form)
 {
@@ -382,6 +417,13 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
             ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
             ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
         }
+    }
+
+    if (!dev->no_check && (dev->cd_status != CD_STATUS_DVD)) {
+        uint8_t deinterleaved_subch[96] = { };
+        cdrom_deinterleave_subch(deinterleaved_subch, &b[2352]);
+        uint16_t q_sub_crc16 = cdrom_crc16(0xffff, &deinterleaved_subch[12], 10);
+        ret = ret && (q_sub_crc16 == bswap16(*(uint16_t*)&deinterleaved_subch[12 + 10]));
     }
 
     return ret;
@@ -1016,24 +1058,6 @@ process_c2(cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
         cdrom_log(dev->log, "Full error flags\n");
         memcpy(b + dev->cdrom_sector_size, dev->extra_buffer, 296);
         dev->cdrom_sector_size += 296;
-    }
-}
-
-static void
-cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s)
-{
-    for (int i = 0; i < 8 * 12; i++) {
-        int dmask = 0x80;
-        int smask = 1 << (7 - (i / 12));
-
-        (*d) = 0;
-
-        for (int j = 0; j < 8; j++) {
-            (*d) |= (s[(i % 12) * 8 + j] & smask) ? dmask : 0;
-            dmask >>= 1;
-        }
-
-        d++;
     }
 }
 
@@ -3146,6 +3170,9 @@ cdrom_global_init(void)
 {
     /* Clear the global data. */
     memset(cdrom, 0x00, sizeof(cdrom));
+
+    /* Initialize the CRC16-CCITT table */
+    crc16_setup(subq_crc16_table, 0x1021);
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom[i].cached_sector = -1;
