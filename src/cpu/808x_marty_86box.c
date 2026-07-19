@@ -289,6 +289,7 @@ typedef struct {
     m808x_biu_t biu;
 } m808x_cpu_t;
 
+static m808x_cpu_t m808x_cpu;
 
 void m808x_86box_export_arch_state(const m808x_cpu_t *icpu);
 void m808x_86box_import_register_state(m808x_cpu_t *icpu);
@@ -1398,18 +1399,30 @@ biu_io_write_u16(m808x_cpu_t *icpu, const uint16_t port, const uint16_t value)
 static uint16_t
 readmemw(const uint32_t s, const uint16_t a)
 {
-    uint16_t ret;
+    m808x_cpu_t *icpu = &m808x_cpu;
 
-    wait_cycs(4, 1);
-    if (is8086 && !(a & 1))
-        ret = read_mem_w(s + a);
-    else {
-        wait_cycs(4, 1);
-        ret = read_mem_b(s + a);
-        ret |= read_mem_b(s + ((is186 && !is_nec) ? (a + 1) : (a + 1) & 0xffff)) << 8;
+    if (icpu->is_8086 && (a & 1u) == 0u) {
+        const uint32_t address = s + a;
+
+        biu_bus_begin(icpu, BUS_MEMR, SEG_NONE, address, 0u, XFER_WORD, OPERAND_16, true);
+        biu_bus_wait_finish(icpu);
+
+        return icpu->biu.data_bus;
     }
 
-    return ret;
+    /* A word read on the 8088 is one indivisible operand transfer made of
+     * two byte bus cycles.  The first byte is not a final transfer and may
+     * not admit an intervening prefetch. */
+    const uint32_t address0 = s + a;
+    biu_bus_begin(icpu, BUS_MEMR, SEG_NONE, address0, 0u, XFER_BYTE, OPERAND_16, true);
+    biu_bus_wait_finish(icpu);
+    const uint8_t lo = icpu->biu.bhe ? (uint8_t)(icpu->biu.data_bus >> 8) : (uint8_t)icpu->biu.data_bus;
+
+    const uint32_t address1 = s + (uint16_t) (a + 1);
+    biu_bus_begin(icpu, BUS_MEMR, SEG_NONE, address1, 0u, XFER_BYTE, OPERAND_16, false);
+    biu_bus_wait_finish(icpu);
+    const uint8_t hi = icpu->biu.bhe ? (uint8_t)(icpu->biu.data_bus >> 8) : (uint8_t)icpu->biu.data_bus;
+    return (uint16_t)(lo | ((uint16_t)hi << 8));
 }
 
 static uint32_t
@@ -1434,33 +1447,35 @@ readmemq(const uint32_t s, const uint16_t a)
 static void
 writememb(const uint32_t s, const uint32_t a, const uint8_t v)
 {
-    const uint32_t addr = s + a;
-
-    wait_cycs(4, 1);
-    write_mem_b(addr, v);
-
-    if ((addr >= 0xf0000) && (addr <= 0xfffff))
-        last_addr = addr & 0xffff;
+    m808x_cpu_t *icpu = &m808x_cpu;
+    const uint32_t address = s + a;
+    biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address, v, XFER_BYTE, OPERAND_8, true);
+    biu_bus_wait_until_tx(icpu);
 }
 
 /* Writes a word to the memory and advances the BIU. */
 static void
 writememw(const uint32_t s, const uint32_t a, const uint16_t v)
 {
-    uint32_t addr = s + a;
+    m808x_cpu_t *icpu = &m808x_cpu;
 
-    wait_cycs(4, 1);
-    if (is8086 && !(a & 1))
-        write_mem_w(addr, v);
-    else {
-        write_mem_b(addr, v & 0xff);
-        wait_cycs(4, 1);
-        addr = s + ((is186 && !is_nec) ? (a + 1) : ((a + 1) & 0xffff));
-        write_mem_b(addr, v >> 8);
+    if (icpu->is_8086 && (a & 1u) == 0u) {
+        const uint32_t address = s + a;
+
+        biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address, v, XFER_WORD, OPERAND_16, true);
+        biu_bus_wait_until_tx(icpu);
+
+        return;
     }
 
-    if ((addr >= 0xf0000) && (addr <= 0xfffff))
-        last_addr = addr & 0xffff;
+    const uint32_t address0 = s + a;
+
+    biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address0, v & 0xffu, XFER_BYTE, OPERAND_16, true);
+    biu_bus_wait_finish(icpu);
+
+    const uint32_t address1 = s + (uint16_t) (a + 1);
+    biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address1, v, XFER_BYTE, OPERAND_16, false);
+    biu_bus_wait_until_tx(icpu);
 }
 
 static void
@@ -4517,7 +4532,6 @@ reset_cpu(m808x_cpu_t *icpu)
  * 86Box ABI adapter
  * ------------------------------------------------------------------------- */
 
-static m808x_cpu_t m808x_cpu;
 static bool m808x_initialized = false;
 static bool m808x_suppress_host_cycles = false;
 static int m808x_restore_pfq_pos = -1;
