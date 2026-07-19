@@ -850,13 +850,24 @@ extern int cpu_override_interpreter;
 
 extern int is_lock_legal(uint32_t fetchdat);
 
-extern void     prefetch_queue_set_pos(int pos);
-extern void     prefetch_queue_set_ip(uint16_t ip);
-extern void     prefetch_queue_set_prefetching(int p);
-extern int      prefetch_queue_get_pos(void);
-extern uint16_t prefetch_queue_get_ip(void);
-extern int      prefetch_queue_get_prefetching(void);
-extern int      prefetch_queue_get_size(void);
+void     (*prefetch_queue_set_pos)(int pos);
+void     (*prefetch_queue_set_ip)(uint16_t ip);
+void     (*prefetch_queue_set_prefetching)(int p);
+int      (*prefetch_queue_get_pos)(void);
+uint16_t (*prefetch_queue_get_ip)(void);
+int      (*prefetch_queue_get_prefetching)(void);
+int      (*prefetch_queue_get_size)(void);
+
+extern void    i808x_hook_prefetch_queue(void     (*pf_set_pos)(int pos),
+                                         void     (*pf_set_ip)(uint16_t ip),
+                                         void     (*pf_set_prefetching)(int p),
+                                         int      (*pf_get_pos)(void),
+                                         uint16_t (*pf_get_ip)(void),
+                                         int      (*pf_get_prefetching)(void),
+                                         int      (*pf_get_size)(void),
+                                         void     (*c_wait)(int c, int bus));
+
+extern void    wait_cycs(int c, int bus);
 
 #define prefetch_queue_set_suspended(s) prefetch_queue_set_prefetching(!s)
 #define prefetch_queue_get_suspended !prefetch_queue_get_prefetching
