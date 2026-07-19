@@ -5182,13 +5182,14 @@ sb_awe32_init(UNUSED(const device_t *info))
     uint16_t mpu_addr    = device_get_config_hex16("base401");
     uint16_t emu_addr    = device_get_config_hex16("emu_base");
     int      onboard_ram = device_get_config_int("onboard_ram");
+    const uint8_t  dspver = device_get_config_int("dspver");
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
         fm_driver_get_cs(FM_YMF262, &sb->opl);
 
     sb_dsp_set_real_opl(&sb->dsp, 1);
-    sb_dsp_init(&sb->dsp, SBAWE32_DSP_412, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, dspver, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -7353,6 +7354,21 @@ static const device_config_t sb_awe32_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dspver",
+        .description    = "DSP Version",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = SBAWE32_DSP_412,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "4.12", .value = SBAWE32_DSP_412 },
+            { .description = "4.13", .value = SBAWE32_DSP_413 },
+            { .description = ""                               }
+        },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
