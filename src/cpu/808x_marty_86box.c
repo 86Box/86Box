@@ -804,7 +804,7 @@ static bool m808x_dma_ack = false;
 static bool m808x_dma_aen = false;
 static unsigned m808x_dma_operating_cycle = 0u;
 static unsigned m808x_dma_wait_states = 0u;
-static unsigned m808x_dma_wait_target = 6u;
+static unsigned m808x_dma_wait_target = 4u;
 typedef void (*m808x_dma_ack_callback_t)(void *opaque);
 static m808x_dma_ack_callback_t m808x_dma_ack_callback = NULL;
 static void *m808x_dma_ack_opaque = NULL;
@@ -4704,7 +4704,7 @@ m808x_86box_reset(UNUSED(int hard))
     m808x_dma_aen = false;
     m808x_dma_operating_cycle = 0u;
     m808x_dma_wait_states = 0u;
-    m808x_dma_wait_target = 6u;
+    m808x_dma_wait_target = 4u;
     m808x_dma_ack_callback = NULL;
     m808x_dma_ack_opaque = NULL;
 
@@ -4751,8 +4751,14 @@ m808x_86box_external_sub_cycles(int clocks)
      * directly rather than calling sub_cycles(). */
     cpu_state._cycles -= clocks;
     tsc += (uint64_t)clocks * ((uint64_t)xt_cpu_multi >> 32ULL);
-    if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t)tsc))
-        timer_process();
+
+    /*
+     * Do not dispatch timers recursively from a device callback. DMA devices
+     * can charge cycles while timer_process() is already executing (the FDC
+     * byte callback is one example). The outer timer_process() loop observes
+     * the advanced TSC after the callback returns; an out-of-band caller is
+     * caught by the next host cycle.
+     */
 }
 
 bool
@@ -4791,7 +4797,7 @@ m808x_86box_dma_cancel_request_ex(void (*ack_callback)(void *opaque),
     m808x_dma_req = false;
     m808x_dma_ack_callback = NULL;
     m808x_dma_ack_opaque = NULL;
-    m808x_dma_wait_target = 6u;
+    m808x_dma_wait_target = 4u;
     if (m808x_dma_state == M808X_DMA_DREQ ||
         m808x_dma_state == M808X_DMA_HRQ)
         m808x_dma_state = M808X_DMA_IDLE;
@@ -4812,8 +4818,8 @@ void m808x_86box_dma_request(unsigned wait_clocks)
 
 void m808x_86box_refresh(void)
 {
-    /* Measured PC/XT refresh DMAWAIT is six effective clocks. */
-    m808x_86box_dma_request(6u);
+    /* One channel-0 refresh occupies one four-clock 8088 memory bus cycle. */
+    m808x_86box_dma_request(4u);
 }
 
 uint64_t
