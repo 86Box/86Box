@@ -2975,7 +2975,7 @@ image_read_sector(const void *local, uint8_t *buffer,
                 && img->sector_subs[i].type == 0x01) {
                     memcpy(&deinterleaved_subch[12], img->sector_subs[i].q, 10);
 
-                    *(uint16_t*)(&deinterleaved_subch[12 + 10]) = ~bswap16(cdrom_crc16(0xffff, img->sector_subs[i].q, 10));
+                    *(uint16_t*)(&deinterleaved_subch[12 + 10]) = bswap16(cdrom_crc16(0xffff, img->sector_subs[i].q, 10) ^ 0x8001);
                     cdrom_interleave_subch(&buffer[2352], deinterleaved_subch);
                     break;
                 }

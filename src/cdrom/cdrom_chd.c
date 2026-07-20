@@ -451,24 +451,23 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     bool                    in_pregap = false;
 
     if (track == -1) {
-        pclog("No tracks found for sector %u\n", sector);
         return 0;
     }
 
     memset(buffer, 0, 2448);
 
-    if (!chd_track->pregap_exists_in_file && sector < (chd_track->start + chd_track->pregap)) {
+    if (!chd_track->pregap_exists_in_file && lba < (chd_track->start + chd_track->pregap)) {
         in_pregap = true;
     }
 
-    if (sector >= ((chd_track->end + 1) - chd_track->postgap)) {
+    if (lba >= ((chd_track->end + 1) - chd_track->postgap)) {
         in_pregap = true;
         sector_track_type = ~0u;
         sector_sector_size = 0;
         subchannel_exists = false;
     }
 
-    if (sector < (chd_track->start + chd_track->pregap)) {
+    if (lba < (chd_track->start + chd_track->pregap)) {
         sector_track_type = chd_track->track_type_pg;
         sector_sector_size = chd_track->sector_size_pg;
         subchannel_exists = chd_track->subcode_type_pg;
@@ -477,9 +476,9 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
 
     uint64_t chd_offset = 0;
     if (chd_track->pregap_exists_in_file) {
-        chd_offset = (sector - chd_track->start) * 2448 + chd_track->chd_start;
+        chd_offset = (lba - chd_track->start) * 2448 + chd_track->chd_start;
     } else {
-        chd_offset = (sector - (chd_track->start + chd_track->pregap)) * 2448 + chd_track->chd_start;
+        chd_offset = (lba - (chd_track->start + chd_track->pregap)) * 2448 + chd_track->chd_start;
     }
 
     int64_t hunk_to_use = (chd_offset / 2448) / ioctl->sectors_per_hunk;
