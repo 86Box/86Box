@@ -1931,17 +1931,19 @@ image_load_cue(cd_image_t *img, const char *cuefile)
 
         if (sbi_handle != NULL) {
             (void)fread(ident, 1, 4, sbi_handle);
-            if (!memcmp(ident, "SBI", 4)) { // null character is implicit
-            fseek(sbi_handle, 0, SEEK_END);
-            long len = ftell(sbi_handle);
-            fseek(sbi_handle, 4, SEEK_SET);
-            if (!((len - 4) % sizeof(sbi_replacement_ent))) {
-                img->sector_subs = (sbi_replacement_ent*)calloc(1, len - 4);
-                if (!fread(img->sector_subs, 1, len - 4, sbi_handle)) {
-                    free(img->sector_subs);
-                    img->sector_subs = NULL;
-                } else
-                    img->sector_subs_size = (len - 4) / sizeof(sbi_replacement_ent);
+            if (!memcmp(ident, "SBI", 4)) {
+                /* Null character is implicit. */
+                fseek(sbi_handle, 0, SEEK_END);
+                long len = ftell(sbi_handle);
+                fseek(sbi_handle, 4, SEEK_SET);
+                if (!((len - 4) % sizeof(sbi_replacement_ent))) {
+                    img->sector_subs = (sbi_replacement_ent*)calloc(1, len - 4);
+                    if (!fread(img->sector_subs, 1, len - 4, sbi_handle)) {
+                        free(img->sector_subs);
+                        img->sector_subs = NULL;
+                    } else
+                        img->sector_subs_size = (len - 4) / sizeof(sbi_replacement_ent);
+                }
             }
         }
 
