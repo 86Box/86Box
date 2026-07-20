@@ -10,11 +10,13 @@
  *
  *          Uses code from libxcvt to calculate CRTC timings.
  *
- * Authors: Cacodemon345
+ * Authors: Christopher Lentocha
+ *          Cacodemon345
  *          The Bochs Project
  *          Fabrice Bellard
  *          The libxcvt authors
  *
+ *          Copyright 2025 Christopher Lentocha
  *          Copyright 2024 Cacodemon345
  *          Copyright 2003 Fabrice Bellard
  *          Copyright 2002-2024 The Bochs Project
@@ -64,6 +66,7 @@
 #define VBE_DISPI_INDEX_Y_OFFSET         0x9
 #define VBE_DISPI_INDEX_VIDEO_MEMORY_64K 0xa
 #define VBE_DISPI_INDEX_DDC              0xb
+#define VBE_DISPI_INDEX_CFG              0xc
 
 #define VBE_DISPI_ID0                    0xB0C0
 #define VBE_DISPI_ID1                    0xB0C1
@@ -71,6 +74,10 @@
 #define VBE_DISPI_ID3                    0xB0C3
 #define VBE_DISPI_ID4                    0xB0C4
 #define VBE_DISPI_ID5                    0xB0C5
+#define VBE_DISPI_ID_VBOX_VIDEO          0xBE00
+#define VBE_DISPI_ID_HGSMI               0xBE01
+#define VBE_DISPI_ID_ANYX                0xBE02
+#define VBE_DISPI_ID_CFG                 0xBE03
 
 #define VBE_DISPI_DISABLED               0x00
 #define VBE_DISPI_ENABLED                0x01
@@ -84,59 +91,67 @@
 #define VBE_DISPI_BANK_RD                0x8000
 #define VBE_DISPI_BANK_RW                0xc000
 
+/* VBE_DISPI_INDEX_CFG values. */
+#define VBE_DISPI_CFG_ID_VERSION \
+    0x0000                                /* Version of the configuration interface. */
+#define VBE_DISPI_CFG_ID_VRAM_SIZE 0x0001 /* VRAM size. */
+#define VBE_DISPI_CFG_ID_3D        0x0002 /* 3D support. */
+#define VBE_DISPI_CFG_ID_VMSVGA \
+    0x0003                                /* VMSVGA FIFO and ports are available. */
+#define VBE_DISPI_CFG_ID_VMSVGA_DX 0x0004 /* VGPU10 is enabled. */
 
 typedef struct vbe_mode_info_t {
-    uint32_t                hdisplay;
-    uint32_t                vdisplay;
-    float                   vrefresh;
-    float                   hsync;
-    uint64_t                dot_clock;
-    uint16_t                hsync_start;
-    uint16_t                hsync_end;
-    uint16_t                htotal;
-    uint16_t                vsync_start;
-    uint16_t                vsync_end;
-    uint16_t                vtotal;
+    uint32_t hdisplay;
+    uint32_t vdisplay;
+    float    vrefresh;
+    float    hsync;
+    uint64_t dot_clock;
+    uint16_t hsync_start;
+    uint16_t hsync_end;
+    uint16_t htotal;
+    uint16_t vsync_start;
+    uint16_t vsync_end;
+    uint16_t vtotal;
 } vbe_mode_info_t;
 
-static video_timings_t timing_bochs  = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+static video_timings_t timing_bochs = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
 typedef struct bochs_vbe_t {
-    svga_t        svga;
+    svga_t svga;
 
-    uint8_t       pci_conf_status;
-    uint8_t       pci_rom_enable;
-    uint8_t       pci_line_interrupt;
-    uint8_t       slot;
+    uint8_t pci_conf_status;
+    uint8_t pci_rom_enable;
+    uint8_t pci_line_interrupt;
+    uint8_t slot;
 
-    uint8_t       pci_regs[256];
+    uint8_t pci_regs[256];
 
-    uint16_t      vbe_index;
-    uint16_t      bank_gran;
-    uint16_t      rom_addr;
-    uint16_t      id5_val;
+    uint16_t vbe_index;
+    uint16_t bank_gran;
+    uint16_t rom_addr;
+    uint16_t id5_val;
 
-    uint16_t      vbe_regs[16];
+    uint16_t vbe_regs[16];
 
-    uint32_t      vram_size;
+    uint32_t vram_size;
 
-    rom_t         bios_rom;
+    rom_t bios_rom;
 
     mem_mapping_t linear_mapping;
     mem_mapping_t linear_mapping_2;
     uint32_t      ma_latch_old;
 
-    void *        i2c;
-    void *        ddc;
+    void *i2c;
+    void *ddc;
 } bochs_vbe_t;
 
 static bochs_vbe_t *reset_state = NULL;
 
 static void
-gen_mode_info(int hdisplay, int vdisplay, float vrefresh, vbe_mode_info_t* mode_info)
+gen_mode_info(int hdisplay, int vdisplay, float vrefresh, vbe_mode_info_t *mode_info)
 {
-    int   vsync;
-    int   vsync_and_back_porch;
+    int vsync;
+    int vsync_and_back_porch;
 
     mode_info->hdisplay = hdisplay;
     mode_info->vdisplay = vdisplay;
@@ -165,56 +180,51 @@ gen_mode_info(int hdisplay, int vdisplay, float vrefresh, vbe_mode_info_t* mode_
     const float vfield_rate = mode_info->vrefresh;
 
     /* 2. Horizontal pixels */
-    const int hdisplay_rnd  = mode_info->hdisplay - (mode_info->hdisplay % CVT_H_GRANULARITY);
+    const int hdisplay_rnd = mode_info->hdisplay - (mode_info->hdisplay % CVT_H_GRANULARITY);
 
     /* 3. Determine left and right borders */
-    const int   hmargin     = 0;
+    const int hmargin = 0;
 
     /* 4. Find total active pixels */
-    mode_info->hdisplay     = hdisplay_rnd + (2 * hmargin);
+    mode_info->hdisplay = hdisplay_rnd + (2 * hmargin);
 
     /* 5. Find number of lines per field */
-    const int vdisplay_rnd  = mode_info->vdisplay;
+    const int vdisplay_rnd = mode_info->vdisplay;
 
     /* 6. Find top and bottom margins */
-    const  int   vmargin    = 0;
+    const int vmargin = 0;
 
-    mode_info->vdisplay     = mode_info->vdisplay + 2 * vmargin;
+    mode_info->vdisplay = mode_info->vdisplay + 2 * vmargin;
 
     /* 7. interlace */
     /* Please rename this */
-    const float interlace   = 0.0;
+    const float interlace = 0.0;
 
     /* Determine vsync Width from aspect ratio */
     if (!(mode_info->vdisplay % 3) && ((mode_info->vdisplay * 4 / 3) == mode_info->hdisplay))
         vsync = 4;
-    else if (!(mode_info->vdisplay % 9) &&
-             ((mode_info->vdisplay * 16 / 9) == mode_info->hdisplay))
+    else if (!(mode_info->vdisplay % 9) && ((mode_info->vdisplay * 16 / 9) == mode_info->hdisplay))
         vsync = 5;
-    else if (!(mode_info->vdisplay % 10) &&
-             ((mode_info->vdisplay * 16 / 10) == mode_info->hdisplay))
+    else if (!(mode_info->vdisplay % 10) && ((mode_info->vdisplay * 16 / 10) == mode_info->hdisplay))
         vsync = 6;
-    else if (!(mode_info->vdisplay % 4) &&
-             ((mode_info->vdisplay * 5 / 4) == mode_info->hdisplay))
+    else if (!(mode_info->vdisplay % 4) && ((mode_info->vdisplay * 5 / 4) == mode_info->hdisplay))
         vsync = 7;
-    else if (!(mode_info->vdisplay % 9) &&
-             ((mode_info->vdisplay * 15 / 9) == mode_info->hdisplay))
+    else if (!(mode_info->vdisplay % 9) && ((mode_info->vdisplay * 15 / 9) == mode_info->hdisplay))
         vsync = 7;
-    else    /* Custom */
+    else /* Custom */
         vsync = 10;
 
-    /* Simplified GTF calculation. */
+        /* Simplified GTF calculation. */
 
-    /* 4) Minimum time of vertical sync + back porch interval (µs)
-     * default 550.0 */
+        /* 4) Minimum time of vertical sync + back porch interval (µs)
+         * default 550.0 */
 #define CVT_MIN_VSYNC_BP 550.0
 
-    /* 3) Nominal HSync width (% of line period) - default 8 */
+        /* 3) Nominal HSync width (% of line period) - default 8 */
 #define CVT_HSYNC_PERCENTAGE 8
 
     /* 8. Estimated Horizontal period */
-    const float hperiod = ((float) (1000000.0 / vfield_rate - CVT_MIN_VSYNC_BP)) /
-                          (vdisplay_rnd + 2 * vmargin + CVT_MIN_V_PORCH_RND + interlace);
+    const float hperiod = ((float) (1000000.0 / vfield_rate - CVT_MIN_VSYNC_BP)) / (vdisplay_rnd + 2 * vmargin + CVT_MIN_V_PORCH_RND + interlace);
 
     /* 9. Find number of lines in sync + backporch */
     if (((int) (CVT_MIN_VSYNC_BP / hperiod) + 1) < (vsync + CVT_MIN_V_BPORCH))
@@ -225,8 +235,7 @@ gen_mode_info(int hdisplay, int vdisplay, float vrefresh, vbe_mode_info_t* mode_
     /* 10. Find number of lines in back porch */
 
     /* 11. Find total number of lines in vertical field */
-    mode_info->vtotal = vdisplay_rnd + (2 * vmargin) + vsync_and_back_porch + interlace +
-                        CVT_MIN_V_PORCH_RND;
+    mode_info->vtotal = vdisplay_rnd + (2 * vmargin) + vsync_and_back_porch + interlace + CVT_MIN_V_PORCH_RND;
 
     /* 5) Definition of Horizontal blanking time limitation */
     /* Gradient (%/kHz) - default 600 */
@@ -241,14 +250,13 @@ gen_mode_info(int hdisplay, int vdisplay, float vrefresh, vbe_mode_info_t* mode_
     /* Scaling factor weighting - default 20 */
 #define CVT_J_FACTOR 20
 
-#define CVT_M_PRIME CVT_M_FACTOR * CVT_K_FACTOR / 256
-#define CVT_C_PRIME (CVT_C_FACTOR - CVT_J_FACTOR) * CVT_K_FACTOR / 256 + \
-        CVT_J_FACTOR
+#define CVT_M_PRIME  CVT_M_FACTOR *CVT_K_FACTOR / 256
+#define CVT_C_PRIME  (CVT_C_FACTOR - CVT_J_FACTOR) * CVT_K_FACTOR / 256 + CVT_J_FACTOR
 
     /* 12. Find ideal blanking duty cycle from formula */
     float hblank_percentage = CVT_C_PRIME - CVT_M_PRIME * hperiod / 1000.0;
 
-        /* 13. Blanking time */
+    /* 13. Blanking time */
     if (hblank_percentage < 20)
         hblank_percentage = 20;
 
@@ -267,7 +275,7 @@ gen_mode_info(int hdisplay, int vdisplay, float vrefresh, vbe_mode_info_t* mode_
 
     /* Fill in vsync values */
     mode_info->vsync_start = mode_info->vdisplay + CVT_MIN_V_PORCH_RND;
-    mode_info->vsync_end = mode_info->vsync_start + vsync;
+    mode_info->vsync_end   = mode_info->vsync_start + vsync;
 
     /* 15/13. Find pixel clock frequency (kHz for xf86) */
     mode_info->dot_clock = mode_info->htotal * 1000.0 / hperiod;
@@ -277,21 +285,20 @@ gen_mode_info(int hdisplay, int vdisplay, float vrefresh, vbe_mode_info_t* mode_
     mode_info->hsync = ((float) mode_info->dot_clock) / ((float) mode_info->htotal);
 
     /* 17/15. Find actual Field rate */
-    mode_info->vrefresh = (1000.0 * ((float) mode_info->dot_clock)) /
-                          ((float) (mode_info->htotal * mode_info->vtotal));
+    mode_info->vrefresh = (1000.0 * ((float) mode_info->dot_clock)) / ((float) (mode_info->htotal * mode_info->vtotal));
 
     /* 18/16. Find actual vertical frame frequency */
     /* ignore - we don't do interlace here */
 }
 
 void
-bochs_vbe_recalctimings(svga_t* svga)
+bochs_vbe_recalctimings(svga_t *svga)
 {
-    bochs_vbe_t *dev  = (bochs_vbe_t *) svga->priv;
+    bochs_vbe_t *dev = (bochs_vbe_t *) svga->priv;
 
     if (dev->vbe_regs[VBE_DISPI_INDEX_ENABLE] & VBE_DISPI_ENABLED) {
         vbe_mode_info_t mode = { 0 };
-        svga->bpp = dev->vbe_regs[VBE_DISPI_INDEX_BPP];
+        svga->bpp            = dev->vbe_regs[VBE_DISPI_INDEX_BPP];
         dev->vbe_regs[VBE_DISPI_INDEX_XRES] &= ~7;
         if (dev->vbe_regs[VBE_DISPI_INDEX_XRES] == 0) {
             dev->vbe_regs[VBE_DISPI_INDEX_XRES] = 8;
@@ -311,19 +318,19 @@ bochs_vbe_recalctimings(svga_t* svga)
             dev->vbe_regs[VBE_DISPI_INDEX_YRES] = VBE_DISPI_MAX_YRES;
         gen_mode_info(dev->vbe_regs[VBE_DISPI_INDEX_XRES],
                       dev->vbe_regs[VBE_DISPI_INDEX_YRES], 72.f, &mode);
-        svga->char_width = 1;
+        svga->char_width     = 1;
         svga->dots_per_clock = 1;
-        svga->clock = (cpuclock * (double) (1ULL << 32)) / (mode.dot_clock * 1000.);
-        svga->dispend = mode.vdisplay;
-        svga->hdisp = mode.hdisplay;
-        svga->vsyncstart = mode.vsync_start;
-        svga->vtotal = mode.vtotal;
-        svga->htotal = mode.htotal;
-        svga->hblankstart = mode.hdisplay;
-        svga->hblankend = mode.htotal - 1;
-        svga->vblankstart = svga->dispend; /* no vertical overscan. */
-        svga->rowcount = 0;
-        svga->hoverride = 1;
+        svga->clock          = (cpuclock * (double) (1ULL << 32)) / (mode.dot_clock * 1000.);
+        svga->dispend        = mode.vdisplay;
+        svga->hdisp          = mode.hdisplay;
+        svga->vsyncstart     = mode.vsync_start;
+        svga->vtotal         = mode.vtotal;
+        svga->htotal         = mode.htotal;
+        svga->hblankstart    = mode.hdisplay;
+        svga->hblankend      = mode.htotal - 1;
+        svga->vblankstart    = svga->dispend; /* no vertical overscan. */
+        svga->rowcount       = 0;
+        svga->hoverride      = 1;
         if (dev->vbe_regs[VBE_DISPI_INDEX_BPP] != 4) {
             svga->fb_only = 1;
             svga->adv_flags |= FLAG_NO_SHIFT3;
@@ -335,16 +342,14 @@ bochs_vbe_recalctimings(svga_t* svga)
         svga->bpp = dev->vbe_regs[VBE_DISPI_INDEX_BPP];
 
         if (svga->bpp == 4) {
-            svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
-            svga->memaddr_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
-                              (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
+            svga->rowoffset     = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
+            svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) + (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
 
             svga->fullchange = 3;
         } else {
-            svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
-            svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
-                             (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
-            svga->fullchange = 3;
+            svga->rowoffset     = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
+            svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) + (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
+            svga->fullchange    = 3;
         }
 
         if (svga->bpp == 4)
@@ -369,13 +374,13 @@ bochs_vbe_recalctimings(svga_t* svga)
                 break;
             case 24:
                 svga->render = svga_render_24bpp_highres;
-               break;
+                break;
             case 32:
                 svga->render = svga_render_32bpp_highres;
                 break;
         }
     } else {
-        svga->fb_only = 0;
+        svga->fb_only     = 0;
         svga->packed_4bpp = 0;
         svga->adv_flags &= ~FLAG_NO_SHIFT3;
         svga->hoverride = 0;
@@ -386,43 +391,64 @@ uint16_t
 bochs_vbe_inw(const uint16_t addr, void *priv)
 {
     const bochs_vbe_t *dev          = (bochs_vbe_t *) priv;
-    const bool         vbe_get_caps = !!(dev->vbe_regs[VBE_DISPI_INDEX_ENABLE] &
-                                         VBE_DISPI_GETCAPS);
+    const bool         vbe_get_caps = !!(dev->vbe_regs[VBE_DISPI_INDEX_ENABLE] & VBE_DISPI_GETCAPS);
     uint16_t           ret;
 
     if (addr == 0x1ce)
         ret = dev->vbe_index;
-    else  switch (dev->vbe_index) {
-        default:
-            ret = dev->vbe_regs[dev->vbe_index];
-            break;
-        case VBE_DISPI_INDEX_XRES:
-            ret = vbe_get_caps ? VBE_DISPI_MAX_XRES : dev->vbe_regs[dev->vbe_index];
-            break;
-        case VBE_DISPI_INDEX_YRES:
-            ret = vbe_get_caps ? VBE_DISPI_MAX_YRES : dev->vbe_regs[dev->vbe_index];
-            break;
-        case VBE_DISPI_INDEX_BPP:
-            ret = vbe_get_caps ? 32 : dev->vbe_regs[dev->vbe_index];
-            break;
-        case VBE_DISPI_INDEX_VIDEO_MEMORY_64K:
-            ret = dev->vram_size >> 16;
-            break;
-        case VBE_DISPI_INDEX_BANK:
-            ret = vbe_get_caps ? (VBE_DISPI_BANK_GRANULARITY_32K << 8) :
-                                 dev->vbe_regs[dev->vbe_index];
-            break;
-        case VBE_DISPI_INDEX_DDC:
-            if (dev->vbe_regs[dev->vbe_index] & (1 << 7)) {
-                ret = dev->vbe_regs[dev->vbe_index] & ((1 << 7) | 0x3);
-                if ((ret & 0x01) && i2c_gpio_get_scl(dev->i2c))
-                    ret |= 0x04;
-                if ((ret & 0x02) && i2c_gpio_get_sda(dev->i2c))
-                    ret |= 0x08;
-            } else
-                ret = 0x000f;
-            break;
-    }
+    else
+        switch (dev->vbe_index) {
+            default:
+                ret = dev->vbe_regs[dev->vbe_index];
+                break;
+            case VBE_DISPI_INDEX_XRES:
+                ret = vbe_get_caps ? VBE_DISPI_MAX_XRES : dev->vbe_regs[dev->vbe_index];
+                break;
+            case VBE_DISPI_INDEX_YRES:
+                ret = vbe_get_caps ? VBE_DISPI_MAX_YRES : dev->vbe_regs[dev->vbe_index];
+                break;
+            case VBE_DISPI_INDEX_BPP:
+                ret = vbe_get_caps ? 32 : dev->vbe_regs[dev->vbe_index];
+                break;
+            case VBE_DISPI_INDEX_VIDEO_MEMORY_64K:
+                ret = dev->vram_size >> 16;
+                break;
+            case VBE_DISPI_INDEX_BANK:
+                ret = vbe_get_caps ? (VBE_DISPI_BANK_GRANULARITY_32K << 8) : dev->vbe_regs[dev->vbe_index];
+                break;
+            case VBE_DISPI_INDEX_DDC:
+                if (dev->vbe_regs[dev->vbe_index] & (1 << 7)) {
+                    ret = dev->vbe_regs[dev->vbe_index] & ((1 << 7) | 0x3);
+                    if ((ret & 0x01) && i2c_gpio_get_scl(dev->i2c))
+                        ret |= 0x04;
+                    if ((ret & 0x02) && i2c_gpio_get_sda(dev->i2c))
+                        ret |= 0x08;
+                } else
+                    ret = 0x000f;
+                break;
+            case VBE_DISPI_INDEX_CFG:
+                switch (dev->vbe_regs[dev->vbe_index] & 0x0fff) {
+                    case VBE_DISPI_CFG_ID_VERSION:
+                        ret = 1;
+                        break;
+                    case VBE_DISPI_CFG_ID_VRAM_SIZE:
+                        ret = dev->vram_size;
+                        break;
+                    case VBE_DISPI_CFG_ID_3D:
+                        ret = 1;
+                        break;
+                    case VBE_DISPI_CFG_ID_VMSVGA:
+                        ret = 0;
+                        break;
+                    case VBE_DISPI_CFG_ID_VMSVGA_DX:
+                        ret = 0;
+                        break;
+                    default:
+                        ret = 0;
+                        break;
+                }
+                break;
+        }
 
     return ret;
 }
@@ -430,7 +456,7 @@ bochs_vbe_inw(const uint16_t addr, void *priv)
 uint32_t
 bochs_vbe_inl(const uint16_t addr, void *priv)
 {
-    const bochs_vbe_t *dev          = (bochs_vbe_t *) priv;
+    const bochs_vbe_t *dev = (bochs_vbe_t *) priv;
     uint32_t           ret;
 
     if (addr == 0x1ce)
@@ -444,92 +470,89 @@ bochs_vbe_inl(const uint16_t addr, void *priv)
 void
 bochs_vbe_outw(const uint16_t addr, const uint16_t val, void *priv)
 {
-    bochs_vbe_t  *dev  = (bochs_vbe_t *) priv;
+    bochs_vbe_t *dev = (bochs_vbe_t *) priv;
 
     if (addr == 0x1ce)
         dev->vbe_index = val;
-    else if ((addr == 0x1cf) || (addr == 0x1d0))  switch (dev->vbe_index) {
-        default:
-            break;
-        case VBE_DISPI_INDEX_ID:
-            if ((val == VBE_DISPI_ID0) || (val == VBE_DISPI_ID1) ||
-                (val == VBE_DISPI_ID2) || (val == VBE_DISPI_ID3) ||
-                (val == VBE_DISPI_ID4))
+    else if ((addr == 0x1cf) || (addr == 0x1d0))
+        switch (dev->vbe_index) {
+            default:
                 dev->vbe_regs[dev->vbe_index] = val;
-            else if (val == VBE_DISPI_ID5)
-                dev->vbe_regs[dev->vbe_index] = dev->id5_val;
-            break;
-        case VBE_DISPI_INDEX_XRES:
-        case VBE_DISPI_INDEX_YRES:
-        case VBE_DISPI_INDEX_BPP:
-        case VBE_DISPI_INDEX_VIRT_WIDTH:
-        case VBE_DISPI_INDEX_X_OFFSET:
-        case VBE_DISPI_INDEX_Y_OFFSET:
-            dev->vbe_regs[dev->vbe_index] = val;
-            if (dev->vbe_index == VBE_DISPI_INDEX_X_OFFSET || dev->vbe_index == VBE_DISPI_INDEX_Y_OFFSET) {
-                svga_t *svga = &dev->svga;
-                if (svga->bpp == 4) {
-                    svga->rowoffset = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
-                    svga->memaddr_latch  = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
-                                    (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
-                } else {
-                    svga->rowoffset = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
-                    svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) +
-                                    (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
+                break;
+            case VBE_DISPI_INDEX_ID:
+                if ((val == VBE_DISPI_ID0) || (val == VBE_DISPI_ID1) || (val == VBE_DISPI_ID2) || (val == VBE_DISPI_ID3) || (val == VBE_DISPI_ID4) || (val == VBE_DISPI_ID_VBOX_VIDEO) || (val == VBE_DISPI_ID_ANYX) || (val == VBE_DISPI_ID_CFG))
+                    dev->vbe_regs[dev->vbe_index] = val;
+                else if (val == VBE_DISPI_ID5)
+                    dev->vbe_regs[dev->vbe_index] = dev->id5_val;
+                break;
+            case VBE_DISPI_INDEX_XRES:
+            case VBE_DISPI_INDEX_YRES:
+            case VBE_DISPI_INDEX_BPP:
+            case VBE_DISPI_INDEX_VIRT_WIDTH:
+            case VBE_DISPI_INDEX_X_OFFSET:
+            case VBE_DISPI_INDEX_Y_OFFSET:
+                dev->vbe_regs[dev->vbe_index] = val;
+                if (dev->vbe_index == VBE_DISPI_INDEX_X_OFFSET || dev->vbe_index == VBE_DISPI_INDEX_Y_OFFSET) {
+                    svga_t *svga = &dev->svga;
+                    if (svga->bpp == 4) {
+                        svga->rowoffset     = (dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] / 2) >> 3;
+                        svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) + (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] >> 3);
+                    } else {
+                        svga->rowoffset     = dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8));
+                        svga->memaddr_latch = (dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] * svga->rowoffset) + (dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] * ((svga->bpp == 15) ? 2 : (svga->bpp / 8)));
+                    }
+
+                    svga->fullchange = 3;
+                } else
+                    svga_recalctimings(&dev->svga);
+                break;
+
+            case VBE_DISPI_INDEX_BANK:
+                if (val & VBE_DISPI_BANK_RD)
+                    dev->svga.read_bank = (val & 0x1ff) * (dev->bank_gran << 10);
+                if (val & VBE_DISPI_BANK_WR)
+                    dev->svga.write_bank = (val & 0x1ff) * (dev->bank_gran << 10);
+                break;
+
+            case VBE_DISPI_INDEX_DDC:
+                if (val & (1 << 7)) {
+                    i2c_gpio_set(dev->i2c, !!(val & 1), !!(val & 2));
+                    dev->vbe_regs[dev->vbe_index] = val;
+                } else
+                    dev->vbe_regs[dev->vbe_index] &= ~(1 << 7);
+                break;
+
+            case VBE_DISPI_INDEX_ENABLE:
+                {
+                    uint32_t new_bank_gran;
+                    dev->vbe_regs[dev->vbe_index] = val;
+                    if ((val & VBE_DISPI_ENABLED) && !(dev->vbe_regs[VBE_DISPI_ENABLED] & VBE_DISPI_ENABLED)) {
+                        dev->vbe_regs[dev->vbe_index]             = val;
+                        dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET]   = 0;
+                        dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET]   = 0;
+                        dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] = 0;
+                        svga_recalctimings(&dev->svga);
+                        if (!(val & VBE_DISPI_NOCLEARMEM)) {
+                            memset(dev->svga.vram, 0,
+                                   (size_t) dev->vbe_regs[VBE_DISPI_INDEX_YRES] * dev->svga.rowoffset);
+                        }
+                    } else
+                        dev->svga.read_bank = dev->svga.write_bank = 0;
+                    if ((val & VBE_DISPI_BANK_GRANULARITY_32K) != 0)
+                        new_bank_gran = 32;
+                    else
+                        new_bank_gran = 64;
+                    if (dev->bank_gran != new_bank_gran) {
+                        dev->bank_gran      = new_bank_gran;
+                        dev->svga.read_bank = dev->svga.write_bank = 0;
+                    }
+                    if (val & VBE_DISPI_8BIT_DAC)
+                        dev->svga.adv_flags &= ~FLAG_RAMDAC_SHIFT;
+                    else
+                        dev->svga.adv_flags |= FLAG_RAMDAC_SHIFT;
+                    dev->vbe_regs[dev->vbe_index] &= ~VBE_DISPI_NOCLEARMEM;
                 }
-
-                svga->fullchange = 3;
-            }
-            else
-                svga_recalctimings(&dev->svga);
-            break;
-
-        case VBE_DISPI_INDEX_BANK:
-            if (val & VBE_DISPI_BANK_RD)
-                dev->svga.read_bank = (val & 0x1ff) * (dev->bank_gran << 10);
-            if (val & VBE_DISPI_BANK_WR)
-                dev->svga.write_bank = (val & 0x1ff) * (dev->bank_gran << 10);
-            break;
-
-        case VBE_DISPI_INDEX_DDC:
-            if (val & (1 << 7)) {
-                i2c_gpio_set(dev->i2c, !!(val & 1), !!(val & 2));
-                dev->vbe_regs[dev->vbe_index] = val;
-            } else
-                dev->vbe_regs[dev->vbe_index] &= ~(1 << 7);
-            break;
-
-        case VBE_DISPI_INDEX_ENABLE: {
-            uint32_t new_bank_gran;
-            dev->vbe_regs[dev->vbe_index] = val;
-            if ((val & VBE_DISPI_ENABLED) &&
-                !(dev->vbe_regs[VBE_DISPI_ENABLED] & VBE_DISPI_ENABLED)) {
-                dev->vbe_regs[dev->vbe_index] = val;
-                dev->vbe_regs[VBE_DISPI_INDEX_X_OFFSET] = 0;
-                dev->vbe_regs[VBE_DISPI_INDEX_Y_OFFSET] = 0;
-                dev->vbe_regs[VBE_DISPI_INDEX_VIRT_WIDTH] = 0;
-                svga_recalctimings(&dev->svga);
-                if (!(val & VBE_DISPI_NOCLEARMEM)) {
-                    memset(dev->svga.vram, 0,
-                           (size_t) dev->vbe_regs[VBE_DISPI_INDEX_YRES] * dev->svga.rowoffset);
-                }
-            } else
-                dev->svga.read_bank = dev->svga.write_bank = 0;
-            if ((val & VBE_DISPI_BANK_GRANULARITY_32K) != 0)
-                new_bank_gran = 32;
-            else
-                new_bank_gran = 64;
-            if (dev->bank_gran != new_bank_gran) {
-                dev->bank_gran = new_bank_gran;
-                dev->svga.read_bank = dev->svga.write_bank = 0;
-            }
-            if (val & VBE_DISPI_8BIT_DAC)
-                dev->svga.adv_flags &= ~FLAG_RAMDAC_SHIFT;
-            else
-                dev->svga.adv_flags |= FLAG_RAMDAC_SHIFT;
-            dev->vbe_regs[dev->vbe_index] &= ~VBE_DISPI_NOCLEARMEM;
         }
-    }
 }
 
 void
@@ -543,7 +566,7 @@ void
 bochs_vbe_out(uint16_t addr, uint8_t val, void *priv)
 {
     bochs_vbe_t *dev  = (bochs_vbe_t *) priv;
-    svga_t *     svga = &dev->svga;
+    svga_t      *svga = &dev->svga;
     uint8_t      old;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -574,8 +597,8 @@ bochs_vbe_out(uint16_t addr, uint8_t val, void *priv)
             if (old != val) {
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
                     if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
-                        svga->fullchange = 3;
-                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->fullchange    = 3;
+                        svga->memaddr_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -595,7 +618,7 @@ uint8_t
 bochs_vbe_in(uint16_t addr, void *priv)
 {
     bochs_vbe_t *dev  = (bochs_vbe_t *) priv;
-    svga_t *     svga = &dev->svga;
+    svga_t      *svga = &dev->svga;
     uint8_t      ret;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -634,55 +657,57 @@ bochs_vbe_pci_read(const int func, const int addr, UNUSED(const int len), void *
     const bochs_vbe_t *dev = (bochs_vbe_t *) priv;
     uint8_t            ret = 0x00;
 
-    if (func == 0x00)  switch (addr) {
-        default:
-            break;
-        case 0x00:
-            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x34 : 0xee;
-            break;
-        case 0x01:
-            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x12 : 0x80;
-            break;
-        case 0x02:
-            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xef;
-            break;
-        case 0x03:
-            ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xbe;
-            break;
-        case 0x04:
-            ret = (dev->pci_conf_status & 0b11100011) | 0x80;
-            break;
-        case 0x06:
-            ret = 0x80;
-            break;
-        case 0x07:
-            ret = 0x02;
-            break;
-        case 0x0b:
-            ret = 0x03;
-            break;
-        case 0x13:
-            ret = dev->pci_regs[addr];
-            break;
-        case 0x17:
-            ret = (dev->pci_regs[0x13] != 0x00) ? 0xe0 : 0x00;
-            break;
-        case 0x30:
-            ret = dev->pci_rom_enable & 0x01;
-            break;
-        case 0x32:
-            ret = dev->rom_addr & 0xfc;
-            break;
-        case 0x33:
-            ret = (dev->rom_addr & 0xff00) >> 8;
-            break;
-        case 0x3c:
-            ret = dev->pci_line_interrupt;
-            break;
-        case 0x3d:
-            ret = 0x01;
-            break;
-    } else
+    if (func == 0x00)
+        switch (addr) {
+            default:
+                break;
+            case 0x00:
+                ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x34 : 0xee;
+                break;
+            case 0x01:
+                ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x12 : 0x80;
+                break;
+            case 0x02:
+                ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xef;
+                break;
+            case 0x03:
+                ret = (dev->id5_val == VBE_DISPI_ID5) ? 0x11 : 0xbe;
+                break;
+            case 0x04:
+                ret = (dev->pci_conf_status & 0b11100011) | 0x80;
+                break;
+            case 0x06:
+                ret = 0x80;
+                break;
+            case 0x07:
+                ret = 0x02;
+                break;
+            case 0x0b:
+                ret = 0x03;
+                break;
+            case 0x13:
+                ret = dev->pci_regs[addr];
+                break;
+            case 0x17:
+                ret = (dev->pci_regs[0x13] != 0x00) ? 0xe0 : 0x00;
+                break;
+            case 0x30:
+                ret = dev->pci_rom_enable & 0x01;
+                break;
+            case 0x32:
+                ret = dev->rom_addr & 0xfc;
+                break;
+            case 0x33:
+                ret = (dev->rom_addr & 0xff00) >> 8;
+                break;
+            case 0x3c:
+                ret = dev->pci_line_interrupt;
+                break;
+            case 0x3d:
+                ret = 0x01;
+                break;
+        }
+    else
         ret = 0xff;
 
     return ret;
@@ -707,8 +732,8 @@ bochs_vbe_disable_handlers(bochs_vbe_t *dev)
     reset_state->svga.mapping     = dev->svga.mapping;
     reset_state->bios_rom.mapping = dev->bios_rom.mapping;
 
-    reset_state->svga.timer       = dev->svga.timer;
-    reset_state->svga.timer_8514  = dev->svga.timer_8514;
+    reset_state->svga.timer      = dev->svga.timer;
+    reset_state->svga.timer_8514 = dev->svga.timer_8514;
 }
 
 static void
@@ -716,76 +741,74 @@ bochs_vbe_pci_write(const int func, const int addr, UNUSED(const int len), const
 {
     bochs_vbe_t *dev = (bochs_vbe_t *) priv;
 
-    if (func == 0x00)  switch (addr) {
-        default:
-            break;
-        case 0x04:
-            dev->pci_conf_status = val;
-            io_removehandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
-                             bochs_vbe_out, NULL, NULL, dev);
-            io_removehandler(0x01ce, 0x0003, bochs_vbe_in, bochs_vbe_inw,
-                             bochs_vbe_inl, bochs_vbe_out, bochs_vbe_outw, bochs_vbe_outl, dev);
-            mem_mapping_disable(&dev->linear_mapping_2);
-            mem_mapping_disable(&dev->linear_mapping);
-            mem_mapping_disable(&dev->svga.mapping);
-            mem_mapping_disable(&dev->bios_rom.mapping);
-            if (dev->pci_conf_status & PCI_COMMAND_IO) {
-                io_sethandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
-                              bochs_vbe_out, NULL, NULL, dev);
-                io_sethandler(0x01ce, 0x0003, bochs_vbe_in, bochs_vbe_inw, bochs_vbe_inl,
-                              bochs_vbe_out, bochs_vbe_outw, bochs_vbe_outl, dev);
-            }
-            if (dev->pci_conf_status & PCI_COMMAND_MEM) {
-                mem_mapping_enable(&dev->svga.mapping);
-                if ((dev->pci_regs[0x13] != 0x00) && (dev->pci_regs[0x13] != 0xff)) {
-                    mem_mapping_enable(&dev->linear_mapping);
-                    if (dev->pci_regs[0x13] != 0xe0)
-                        mem_mapping_enable(&dev->linear_mapping_2);
+    if (func == 0x00)
+        switch (addr) {
+            default:
+                break;
+            case 0x04:
+                dev->pci_conf_status = val;
+                io_removehandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
+                                 bochs_vbe_out, NULL, NULL, dev);
+                io_removehandler(0x01ce, 0x0003, bochs_vbe_in, bochs_vbe_inw,
+                                 bochs_vbe_inl, bochs_vbe_out, bochs_vbe_outw, bochs_vbe_outl, dev);
+                mem_mapping_disable(&dev->linear_mapping_2);
+                mem_mapping_disable(&dev->linear_mapping);
+                mem_mapping_disable(&dev->svga.mapping);
+                mem_mapping_disable(&dev->bios_rom.mapping);
+                if (dev->pci_conf_status & PCI_COMMAND_IO) {
+                    io_sethandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
+                                  bochs_vbe_out, NULL, NULL, dev);
+                    io_sethandler(0x01ce, 0x0003, bochs_vbe_in, bochs_vbe_inw, bochs_vbe_inl,
+                                  bochs_vbe_out, bochs_vbe_outw, bochs_vbe_outl, dev);
                 }
-                if (dev->pci_rom_enable && (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8))
+                if (dev->pci_conf_status & PCI_COMMAND_MEM) {
+                    mem_mapping_enable(&dev->svga.mapping);
+                    if ((dev->pci_regs[0x13] != 0x00) && (dev->pci_regs[0x13] != 0xff)) {
+                        mem_mapping_enable(&dev->linear_mapping);
+                        if (dev->pci_regs[0x13] != 0xe0)
+                            mem_mapping_enable(&dev->linear_mapping_2);
+                    }
+                    if (dev->pci_rom_enable && (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8))
+                        mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
+                }
+                break;
+            case 0x13:
+                dev->pci_regs[addr] = val;
+
+                mem_mapping_disable(&dev->linear_mapping_2);
+                mem_mapping_disable(&dev->linear_mapping);
+
+                if ((dev->pci_conf_status & PCI_COMMAND_MEM) && (val != 0x00) && (val != 0xff)) {
+                    mem_mapping_set_addr(&dev->linear_mapping, val << 24, 0x01000000);
+                    if (val != 0xe0)
+                        mem_mapping_set_addr(&dev->linear_mapping_2, 0xe0000000, 0x01000000);
+                }
+                break;
+            case 0x3c:
+                dev->pci_line_interrupt = val;
+                break;
+            case 0x30:
+                dev->pci_rom_enable = val & 0x01;
+                mem_mapping_disable(&dev->bios_rom.mapping);
+                if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) && (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
                     mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
-            }
-            break;
-        case 0x13:
-            dev->pci_regs[addr] = val;
-
-            mem_mapping_disable(&dev->linear_mapping_2);
-            mem_mapping_disable(&dev->linear_mapping);
-
-            if ((dev->pci_conf_status & PCI_COMMAND_MEM) && (val != 0x00) && (val != 0xff)) {
-                mem_mapping_set_addr(&dev->linear_mapping, val << 24, 0x01000000);
-                if (val != 0xe0)
-                    mem_mapping_set_addr(&dev->linear_mapping_2, 0xe0000000, 0x01000000);
-            }
-            break;
-        case 0x3c:
-            dev->pci_line_interrupt = val;
-            break;
-        case 0x30:
-            dev->pci_rom_enable = val & 0x01;
-            mem_mapping_disable(&dev->bios_rom.mapping);
-            if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) &&
-                (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
-                mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
-            }
-            break;
-        case 0x32:
-            dev->rom_addr = (dev->rom_addr & 0xff00) | (val & 0xfc);
-            mem_mapping_disable(&dev->bios_rom.mapping);
-            if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) &&
-                (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
-                mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
-            }
-            break;
-         case 0x33:
-            dev->rom_addr = (dev->rom_addr & 0x00ff) | (val << 8);
-            mem_mapping_disable(&dev->bios_rom.mapping);
-            if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) &&
-                (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
-                mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
-            }
-            break;
-    }
+                }
+                break;
+            case 0x32:
+                dev->rom_addr = (dev->rom_addr & 0xff00) | (val & 0xfc);
+                mem_mapping_disable(&dev->bios_rom.mapping);
+                if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) && (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
+                    mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
+                }
+                break;
+            case 0x33:
+                dev->rom_addr = (dev->rom_addr & 0x00ff) | (val << 8);
+                mem_mapping_disable(&dev->bios_rom.mapping);
+                if (dev->pci_rom_enable && (dev->pci_conf_status & PCI_COMMAND_MEM) && (dev->rom_addr != 0x0000) && (dev->rom_addr < 0xfff8)) {
+                    mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr << 16, 0x10000);
+                }
+                break;
+        }
 }
 
 static void
@@ -805,9 +828,9 @@ static void *
 bochs_vbe_init(const device_t *info)
 {
     bochs_vbe_t *dev = calloc(1, sizeof(bochs_vbe_t));
-    reset_state = calloc(1, sizeof(bochs_vbe_t));
+    reset_state      = calloc(1, sizeof(bochs_vbe_t));
 
-    dev->id5_val = device_get_config_int("revision");
+    dev->id5_val   = device_get_config_int("revision");
     dev->vram_size = device_get_config_int("memory") * (1 << 20);
 
     rom_init(&dev->bios_rom, "roms/video/bochs/VGABIOS-lgpl-latest.bin",
@@ -858,15 +881,15 @@ bochs_vbe_init(const device_t *info)
     dev->svga.bpp     = 8;
     dev->svga.miscout = 1;
 
-    dev->bank_gran    = 64;
+    dev->bank_gran = 64;
 
     svga_set_ramdac_type(&dev->svga, RAMDAC_8BIT);
 
     dev->svga.adv_flags |= FLAG_RAMDAC_SHIFT;
     dev->svga.decode_mask = 0xffffff;
 
-    dev->i2c = i2c_gpio_init("ddc_bochs");
-    dev->ddc = ddc_init(i2c_gpio_get_bus(dev->i2c));
+    dev->i2c                = i2c_gpio_init("ddc_bochs");
+    dev->ddc                = ddc_init(i2c_gpio_get_bus(dev->i2c));
     dev->svga.packed_chain4 = 1;
 
     pci_add_card(PCI_ADD_NORMAL, bochs_vbe_pci_read, bochs_vbe_pci_write, dev, &dev->slot);
@@ -915,7 +938,7 @@ bochs_vbe_force_redraw(void *priv)
 }
 
 static const device_config_t bochs_vbe_config[] = {
-    // clang-format off
+  // clang-format off
     {
         .name           = "revision",
         .description    = "Revision",
@@ -940,15 +963,22 @@ static const device_config_t bochs_vbe_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description =  "4 MB", .value =  4 },
-            { .description =  "8 MB", .value =  8 },
-            { .description = "16 MB", .value = 16 },
+            { .description =  "1 MB", .value =    1 },
+            { .description =  "2 MB", .value =    2 },
+            { .description =  "4 MB", .value =    4 },
+            { .description =  "8 MB", .value =    8 },
+            { .description = "16 MB", .value =   16 },
+            { .description = "32 MB", .value =   32 },
+            { .description = "64 MB", .value =   64 },
+            { .description = "128 MB", .value = 128 },
+            { .description = "256 MB", .value = 256 },
+            { .description = "512 MB", .value = 512 },
             { .description = ""                   }
         },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-    // clang-format on
+  // clang-format on
 };
 
 const device_t bochs_svga_device = {
