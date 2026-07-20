@@ -8,6 +8,7 @@ In order to accept new emulated hardware or a request thereof, the following cri
 * Documentation must be available or it must be feasible to reverse engineer with a reasonable amount of time and effort
 * It must be feasible to implement with a reasonable amount of time and effort
 * It has to fall inside the project's scope
+* The build guide must be updated on any changes to the project's dependencies
 
 ## Minimum requirements for a code pull request to be merged
 
