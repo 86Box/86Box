@@ -619,6 +619,7 @@ extern unsigned short  cdrom_crc16(unsigned short crc, const unsigned char *buf,
 
 extern int             cdrom_image_is_aaru(const char *fn);
 extern int             cdrom_image_is_chd(const char *fn);
+extern int             cdrom_image_is_ccd(const char *fn);
 
 extern int             cdrom_assigned_letters;
 
