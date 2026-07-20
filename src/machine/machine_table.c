@@ -18221,7 +18221,7 @@ const machine_t machines[] = {
             .max_multi   = 4.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
         .ram       = {
             .min  = 4096,
             .max  = 131072,
@@ -18242,7 +18242,7 @@ const machine_t machines[] = {
         .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = NULL,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device, /* Machine has also internal video: S3 ViRGE */
         .snd_device               = &cs4237b_device,
         .net_device               = NULL,
         .aliases                  = { "Packard Bell PB820", "BCM FM530", "" }

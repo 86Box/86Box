@@ -366,9 +366,8 @@ cdrom_crc16(unsigned short crc, const unsigned char *buf, size_t len)
 {
     crc_t res;
     res.word = ~crc;
-    for (int i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++)
         crc16_calc(subq_crc16_table, buf[i], &res);
-    }
     res.word = ~res.word;
     return res.word;
 }
@@ -418,13 +417,6 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
             ret = ret && !memcmp(dev->p_parity, &(b[2076]), 172);
             ret = ret && !memcmp(dev->q_parity, &(b[2248]), 104);
         }
-    }
-
-    if (!dev->no_check && (dev->cd_status != CD_STATUS_DVD)) {
-        uint8_t deinterleaved_subch[96] = { };
-        cdrom_deinterleave_subch(deinterleaved_subch, &b[2352]);
-        uint16_t q_sub_crc16 = cdrom_crc16(0xffff, &deinterleaved_subch[12], 10);
-        ret = ret && (q_sub_crc16 == bswap16(*(uint16_t*)&deinterleaved_subch[12 + 10]));
     }
 
     return ret;
@@ -496,7 +488,9 @@ cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba, const int cooked)
 
     if (dev->subc_sector == -1) {
         subchannel_t *subc  = &dev->cached_subc;
-        uint8_t       q[16] = { 0 };
+        uint8_t       q[16]    = { 0 };
+        uint8_t       adr      = 0x00;
+        int           crc_good = 1;
 
         (void) read_data(dev, lba, 0);
 
@@ -504,6 +498,14 @@ cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba, const int cooked)
             for (int j = 0; j < 8; j++)
                 q[i] |= ((dev->raw_buffer[dev->cur_buf][RAW_SECTOR_SIZE +
                                           (i << 3) + j] >> 6) & 0x01) << (7 - j);
+
+        adr = q[0] & 0x0f;
+
+        if (!dev->no_check && (dev->cd_status != CD_STATUS_DVD) &&
+            ((q[12] & 0x0f) >= 0x01) && ((q[12] & 0x0f) <= 0x05)) {
+            const uint16_t q_sub_crc16 = cdrom_crc16(0xffff, q, 10);
+            crc_good = crc_good && (q_sub_crc16 == bswap16(*(uint16_t *) &q[10]));
+        }
 
         if (cooked) {
             uint8_t temp = (q[0] >> 4) | ((q[0] & 0xf) << 4);
@@ -515,7 +517,8 @@ cdrom_get_subchannel(cdrom_t *dev, const uint32_t lba, const int cooked)
             }
         }
 
-        memcpy(subc, q, 10);
+        if (crc_good && (adr == 0x01))
+            memcpy(subc, q, 10);
 
         dev->subc_sector = dev->cached_sector;
     }

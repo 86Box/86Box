@@ -55,6 +55,7 @@ enum {
     ROM_LCS6821N = 0,
     ROM_LS2000,
     ROM_RT1000B,
+    ROM_T130,
     ROM_T130B
 };
 
@@ -144,6 +145,19 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
     scsi_device_t       *dev        = &scsi_devices[ncr->bus][scsi_bus->target_id];
     int                  ncr400_offs = 0;
     uint8_t              old_ctrl   = 0;
+    double               period     = scsi_bus->period;
+
+    if (ncr400->type == ROM_T130B) {
+        if (dev->buffer_length > 2048)
+            period /= 300.0;
+        else
+            period /= 20.0;
+    } else {
+        if (dev->buffer_length > 2048)
+            period /= 265.0;
+        else
+            period /= 20.0;
+    }
 
     addr &= 0x3fff;
 
@@ -174,8 +188,10 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
                         ncr400->busy = 1;
-                        if (ncr400->type != ROM_T130B)
-                            timer_on_auto(&ncr400->timer, 1.0);
+                        if (period >= 10.0)
+                            timer_on_auto(&ncr400->timer, period);
+                        else
+                            timer_on_auto(&ncr400->timer, 10.0);
                     }
                 } else {
                     ncr53c400_log("No Write.\n");
@@ -234,6 +250,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
                         }
                         if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
                             memset(ncr400->buffer, 0, MIN(128, dev->buffer_length));
+                            timer_stop(&ncr400->timer);
                             timer_on_auto(&ncr400->timer, 10.0);
                             ncr53c400_log("DMA timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, p=%lf enabled=%d.\n",
                                   ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, scsi_bus->wait_data, scsi_bus->wait_complete, scsi_bus->clear_req, scsi_bus->period, timer_is_enabled(&ncr400->timer));
@@ -243,6 +260,7 @@ ncr53c400_write(uint32_t addr, uint8_t val, void *priv)
 
                     case 0x3982: /* resume transfer register */
                         if ((ncr->mode & MODE_DMA) && (dev->buffer_length > 0)) {
+                            timer_stop(&ncr400->timer);
                             timer_on_auto(&ncr400->timer, 10.0);
                             ncr53c400_log("DMA Resume timer on=%02x, callback=%lf, scsi buflen=%d, waitdata=%d, waitcomplete=%d, clearreq=%d, p=%lf enabled=%d.\n",
                                   ncr->mode & MODE_MONITOR_BUSY, scsi_device_get_callback(dev), dev->buffer_length, scsi_bus->wait_data, scsi_bus->wait_complete, scsi_bus->clear_req, scsi_bus->period, timer_is_enabled(&ncr400->timer));
@@ -271,11 +289,24 @@ ncr53c400_read(uint32_t addr, void *priv)
     scsi_device_t       *dev        = &scsi_devices[ncr->bus][scsi_bus->target_id];
     uint8_t              ret        = 0xff;
     int                  ncr400_offs = 0;
+    double               period     = scsi_bus->period;
+
+    if (ncr400->type == ROM_T130B) {
+        if (dev->buffer_length > 2048)
+            period /= 300.0;
+        else
+            period /= 20.0;
+    } else {
+        if (dev->buffer_length > 2048)
+            period /= 265.0;
+        else
+            period /= 20.0;
+    }
 
     addr &= 0x3fff;
 
     if (addr < 0x2000)
-        ret = ncr400->bios_rom.rom[addr & 0x1fff];
+        ret = (ncr400->type == ROM_T130) ? 0xff : ncr400->bios_rom.rom[addr & 0x1fff];
     else if (addr < 0x3800)
         ret = 0xff;
     else if (addr >= 0x3a00)
@@ -305,20 +336,22 @@ ncr53c400_read(uint32_t addr, void *priv)
 
                     if (ncr400->buffer_host_pos == MIN(128, dev->buffer_length)) {
                         ncr400->status_ctrl |= STATUS_BUFFER_NOT_READY;
-                        if (ncr400->type != ROM_T130B) {
-                            if (!ncr400->block_count_loaded) {
-                                scsi_bus->tx_mode = PIO_TX_BUS;
-                                ncr53c400_log("IO End of read transfer\n");
-                                ncr->isr |= STATUS_END_OF_DMA;
-                                if (ncr->mode & MODE_ENA_EOP_INT) {
-                                    ncr53c400_log("NCR read irq\n");
-                                    ncr53c400_irq_enable(ncr, ncr400, 1);
-                                    ncr->isr |= STATUS_INT;
-                                }
-                            } else if (!timer_is_enabled(&ncr400->timer)) {
-                                ncr53c400_log("Timer re-enabled.\n");
-                                timer_on_auto(&ncr400->timer, 1.0);
+
+                        if (!ncr400->block_count_loaded) {
+                            scsi_bus->tx_mode = PIO_TX_BUS;
+                            ncr53c400_log("IO End of read transfer\n");
+                            ncr->isr |= STATUS_END_OF_DMA;
+                            if (ncr->mode & MODE_ENA_EOP_INT) {
+                                ncr53c400_log("NCR read irq\n");
+                                ncr53c400_irq_enable(ncr, ncr400, 1);
+                                ncr->isr |= STATUS_INT;
                             }
+                            timer_stop(&ncr400->timer);
+                        } else {
+                            if (period >= 10.0)
+                                timer_on_auto(&ncr400->timer, period);
+                            else
+                                timer_on_auto(&ncr400->timer, 10.0);
                         }
                     }
                 }
@@ -374,7 +407,7 @@ t130b_write(uint32_t addr, uint8_t val, void *priv)
     ncr53c400_t *ncr400 = (ncr53c400_t *) priv;
 
     addr &= 0x3fff;
-    //ncr53c400_log("MEM: Writing %02X to %08X\n", val, addr);
+    ncr53c400_log("MEM: Writing %02X to %08X\n", val, addr);
     if (addr >= 0x1800 && addr < 0x1880)
         ncr400->ext_ram[addr & 0x7f] = val;
 }
@@ -383,8 +416,8 @@ t130b_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 t130b_read(uint32_t addr, void *priv)
 {
-    const ncr53c400_t *ncr400  = (ncr53c400_t *) priv;
-    uint8_t            ret     = 0xff;
+    ncr53c400_t *ncr400 = (ncr53c400_t *) priv;
+    uint8_t      ret    = 0xff;
 
     addr &= 0x3fff;
     if (addr < 0x1800)
@@ -392,7 +425,7 @@ t130b_read(uint32_t addr, void *priv)
     else if (addr >= 0x1800 && addr < 0x1880)
         ret = ncr400->ext_ram[addr & 0x7f];
 
-    //ncr53c400_log("MEM: Reading %02X from %08X\n", ret, addr);
+    ncr53c400_log("MEM: Reading %02X from %08X\n", ret, addr);
     return ret;
 }
 
@@ -501,10 +534,25 @@ ncr53c400_callback(void *priv)
     uint8_t        c;
     uint8_t        temp;
     uint8_t        status;
+    double         period      = scsi_bus->period;
+
+    if (ncr400->type == ROM_T130B) {
+        if (dev->buffer_length > 2048)
+            period /= 300.0;
+        else
+            period /= 20.0;
+    } else {
+        if (dev->buffer_length > 2048)
+            period /= 265.0;
+        else
+            period /= 20.0;
+    }
 
     if (scsi_bus->tx_mode != PIO_TX_BUS) {
-        ncr53c400_log("PERIOD T130B DMA=%lf.\n", scsi_bus->period / 225.0);
-        timer_on_auto(&ncr400->timer, scsi_bus->period / 225.0);
+        if (period >= 10.0)
+            timer_on_auto(&ncr400->timer, period);
+        else
+            timer_on_auto(&ncr400->timer, 10.0);
     }
 
     if (scsi_bus->data_wait & 1) {
@@ -614,20 +662,8 @@ ncr53c400_callback(void *priv)
                     ncr400->buffer_host_pos = 0;
                     ncr400->block_count = (ncr400->block_count - 1) & 0xff;
                     ncr53c400_log("NCR 53c400 Remaining blocks to be read=%d\n", ncr400->block_count);
-                    if (!ncr400->block_count) {
+                    if (!ncr400->block_count)
                         ncr400->block_count_loaded = 0;
-                        if (ncr400->type == ROM_T130B) {
-                            scsi_bus->tx_mode = PIO_TX_BUS;
-                            ncr53c400_log("IO End of read transfer\n");
-                            ncr->isr |= STATUS_END_OF_DMA;
-                            if (ncr->mode & MODE_ENA_EOP_INT) {
-                                ncr53c400_log("NCR read irq\n");
-                                ncr53c400_irq_enable(ncr, ncr400, 1);
-                                ncr->isr |= STATUS_INT;
-                            }
-                        } else
-                            timer_on_auto(&ncr400->timer, 1.0);
-                    }
                     break;
                 }
             }
@@ -780,6 +816,17 @@ ncr53c400_init(const device_t *info)
             }
             break;
 
+        case ROM_T130: /* Trantor T130 */
+            ncr400->rom_addr = device_get_config_hex20("bios_addr");
+            ncr400->irq_config = device_get_config_hex16("irq");
+            ncr->irq = (ncr400->irq_config >> 5) & 7;
+
+            mem_mapping_add(&ncr400->mapping, ncr400->rom_addr, 0x4000,
+                            ncr53c400_read, NULL, NULL,
+                            ncr53c400_write, NULL, NULL,
+                            NULL, MEM_MAPPING_EXTERNAL, ncr400);
+            break;
+
         case ROM_T130B: /* Trantor T130B */
             ncr400->rom_addr = device_get_config_hex20("bios_addr");
             ncr400->base     = device_get_config_hex16("base");
@@ -819,13 +866,8 @@ ncr53c400_init(const device_t *info)
 
     scsi_bus_set_speed(ncr->bus, 5000000.0);
     scsi_bus->speed = 0.2;
-    if (ncr400->type == ROM_T130B) {
-        scsi_bus->divider = 2.0;
-        scsi_bus->multi = 1.750;
-    } else {
-        scsi_bus->divider = 1.0;
-        scsi_bus->multi = 1.0;
-    }
+    scsi_bus->divider = 1.0;
+    scsi_bus->multi = 1.0;
 
     for (int i = 0; i < 8; i++)
         scsi_device_reset(&scsi_devices[ncr->bus][i]);
@@ -1004,6 +1046,44 @@ static const device_config_t rt1000b_mc_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t t130_config[] = {
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xD8000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800H",    .value = 0xc8000 },
+            { .description = "CC00H",    .value = 0xcc000 },
+            { .description = "D800H",    .value = 0xd8000 },
+            { .description = "DC00H",    .value = 0xdc000 },
+            { .description = ""                           }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0xe0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IRQ 3", .value =  0x60 },
+            { .description = "IRQ 4", .value =  0x80 },
+            { .description = "IRQ 5", .value =  0xa0 },
+            { .description = "IRQ 7", .value =  0xe0 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t t130b_config[] = {
     {
         .name           = "bios_addr",
@@ -1101,6 +1181,20 @@ const device_t scsi_rt1000mc_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = rt1000b_mc_config
+};
+
+const device_t scsi_t130_device = {
+    .name          = "Trantor T130",
+    .internal_name = "t130",
+    .flags         = DEVICE_ISA,
+    .local         = ROM_T130,
+    .init          = ncr53c400_init,
+    .close         = ncr53c400_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = t130_config
 };
 
 const device_t scsi_t130b_device = {
