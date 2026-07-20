@@ -451,7 +451,6 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
     bool                    in_pregap = false;
 
     if (track == -1) {
-        pclog("No tracks found for sector %u\n", lba);
         return 0;
     }
 
