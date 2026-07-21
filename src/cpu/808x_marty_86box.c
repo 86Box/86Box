@@ -228,6 +228,7 @@ typedef struct {
     bool bhe;
     bool ale;
     bool transfer_done;
+    unsigned precharged_wait;
     unsigned wait_remaining;
 
     m808x_pfq_t queue;
@@ -676,15 +677,27 @@ biu_do_bus_transfer(m808x_cpu_t *icpu)
         case BUS_IOR:
             if (b->transfer_size == XFER_WORD)
                 b->data_bus = inw((uint16_t)addr);
-            else
-                b->data_bus = inb((uint16_t)addr);
+            else {
+                /*
+                 * NOCONA_8086_IO_LANE_FIX_V1
+                 *
+                 * On an 8086, an odd-address byte transfer uses D8-D15 with
+                 * BHE asserted. Keep the internal pin-level data bus on that
+                 * lane, just as the memory path already does.
+                 */
+                const uint8_t byte = inb((uint16_t)addr);
+                b->data_bus = b->bhe ? (uint16_t)((uint16_t)byte << 8)
+                                     : (uint16_t)byte;
+            }
             break;
 
         case BUS_IOW:
             if (b->transfer_size == XFER_WORD)
                 outw((uint16_t)addr, b->data_bus);
             else
-                outb((uint16_t)addr, (uint8_t)b->data_bus);
+                outb((uint16_t)addr,
+                     b->bhe ? (uint8_t)(b->data_bus >> 8)
+                            : (uint8_t)b->data_bus);
             break;
 
         case BUS_INTA:
@@ -705,16 +718,30 @@ biu_do_bus_transfer(m808x_cpu_t *icpu)
     cpu_state._cycles = host_cycles_before;
 
     if (charged_clocks > 0) {
-        const unsigned charge = (unsigned)charged_clocks;
+        unsigned charge = (unsigned)charged_clocks;
+
+        /* A video provider may have supplied this device delay
+         * in T2.  Legacy video handlers may still subtract the same delay
+         * from `cycles`; remove
+         * only that duplicate and preserve any additional device charge. */
+        if (b->precharged_wait) {
+            const unsigned duplicate = (charge < b->precharged_wait) ?
+                                       charge : b->precharged_wait;
+            charge -= duplicate;
+        }
+
 #ifdef M808X_86BOX_TESTING
         m808x_test_captured_wait_clocks += charge;
 #endif
-        if (UINT_MAX - b->wait_remaining < charge) {
-            icpu->fatal = true;
-            return;
+        if (charge) {
+            if (UINT_MAX - b->wait_remaining < charge) {
+                icpu->fatal = true;
+                return;
+            }
+            b->wait_remaining += charge;
         }
-        b->wait_remaining += charge;
     }
+    b->precharged_wait = 0;
     b->transfer_done = true;
 }
 
@@ -884,31 +911,6 @@ m808x_dma_tick(m808x_cpu_t *icpu)
     }
 }
 
-/*
- * NOCONA_CGA_PREWAIT_808X_UPDATE_V1
- *
- * IBM CGA VRAM is available only in fixed slots of the 14.31818 MHz
- * motherboard clock.  Determine the slot during CPU T2 and preload the
- * measured READY delay before the memory callback is allowed to run.
- *
- * This is important for snow: invoking cga_read()/cga_write() first and only
- * then converting their cycle deduction into Tw states commits the VRAM/snow
- * side effect at the initial T3 instead of the terminal Tw.
- */
-static unsigned
-m808x_cga_wait_clocks(const m808x_cpu_t *icpu)
-{
-    /* MartyPC's 16 master-clock phases converted to 4.77 MHz CPU clocks. */
-    static const uint8_t waits[16] = {
-        5, 5, 4, 4, 4, 3, 8, 8,
-        8, 7, 7, 7, 6, 6, 6, 5
-    };
-
-    const unsigned master_phase =
-        (unsigned)((icpu->cycle_num * 3u + 1u) & 0x0fu);
-    return waits[master_phase];
-}
-
 static void
 biu_cycle_i(m808x_cpu_t *icpu, uint16_t mc_line, const char *comment)
 {
@@ -951,6 +953,7 @@ biu_cycle_i(m808x_cpu_t *icpu, uint16_t mc_line, const char *comment)
                 case T_2:
                     b->ale = false;
                     b->wait_remaining = icpu->configured_wait_states;
+                    b->precharged_wait = 0;
 
                     /* NOCONA_M808X_IO_WAIT_CONSOLIDATED_V1
                      * IBM 5150/5160 motherboard READY logic imposes at least
@@ -963,15 +966,27 @@ biu_cycle_i(m808x_cpu_t *icpu, uint16_t mc_line, const char *comment)
                         b->wait_remaining = 1u;
 
                     /*
-                     * CGA READY is phase-dependent.  Precharge it in T2 so the
-                     * device callback and snow side effects occur only on the
-                     * final T3/Tw data-transfer edge.
+                     * Ask the active video implementation for any READY delay.  This keeps
+                     * machine-specific contention out of the CPU and commits VRAM/snow
+                     * side effects on the final bus edge.
                      */
-                    if (((b->bus_status_latch == BUS_CODE) || (b->bus_status_latch == BUS_MEMR) ||
-                         (b->bus_status_latch == BUS_MEMW)) &&
-                        (b->address_latch >= 0xb8000u) && (b->address_latch <= 0xbffffu) &&
-                        video_is_cga())
-                        b->wait_remaining += m808x_cga_wait_clocks(icpu);
+                    if ((b->bus_status_latch == BUS_CODE) ||
+                        (b->bus_status_latch == BUS_MEMR) ||
+                        (b->bus_status_latch == BUS_MEMW)) {
+                        const unsigned video_wait = video_get_wait_states(
+                            b->address_latch & 0xfffffu,
+                            b->bus_status_latch == BUS_MEMW,
+                            (unsigned)b->transfer_size,
+                            icpu->cycle_num);
+
+                        if (UINT_MAX - b->wait_remaining < video_wait) {
+                            icpu->fatal = true;
+                            return;
+                        }
+
+                        b->precharged_wait = video_wait;
+                        b->wait_remaining += video_wait;
+                    }
 
                     if (b->final_transfer)
                         biu_make_fetch_decision(icpu);
@@ -1356,7 +1371,8 @@ biu_io_read_u8(m808x_cpu_t *icpu, const uint16_t port)
     biu_bus_begin(icpu, BUS_IOR, SEG_NONE, port, 0u, XFER_BYTE, OPERAND_8, true);
     biu_bus_wait_finish(icpu);
 
-    return (uint8_t) icpu->biu.data_bus;
+    return icpu->biu.bhe ? (uint8_t)(icpu->biu.data_bus >> 8)
+                         : (uint8_t)icpu->biu.data_bus;
 }
 
 static uint16_t
@@ -1372,12 +1388,14 @@ biu_io_read_u16(m808x_cpu_t *icpu, const uint16_t port)
     biu_bus_begin(icpu, BUS_IOR, SEG_NONE, port, 0u, XFER_BYTE, OPERAND_16, true);
     biu_bus_wait_finish(icpu);
 
-    const uint8_t lo = (uint8_t)icpu->biu.data_bus;
+    const uint8_t lo = icpu->biu.bhe ? (uint8_t)(icpu->biu.data_bus >> 8)
+                                     : (uint8_t)icpu->biu.data_bus;
 
     biu_bus_begin(icpu, BUS_IOR, SEG_NONE, (uint16_t)(port + 1u), 0u, XFER_BYTE, OPERAND_16, false);
     biu_bus_wait_finish(icpu);
 
-    const uint8_t hi = (uint8_t)icpu->biu.data_bus;
+    const uint8_t hi = icpu->biu.bhe ? (uint8_t)(icpu->biu.data_bus >> 8)
+                                     : (uint8_t)icpu->biu.data_bus;
 
     return (uint16_t) (lo | ((uint16_t) hi << 8));
 }
@@ -1489,7 +1507,7 @@ writememw(const uint32_t s, const uint32_t a, const uint16_t v)
     biu_bus_wait_finish(icpu);
 
     const uint32_t address1 = s + (uint16_t) (a + 1);
-    biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address1, v, XFER_BYTE, OPERAND_16, false);
+    biu_bus_begin(icpu, BUS_MEMW, SEG_NONE, address1, v >> 8, XFER_BYTE, OPERAND_16, false);
     biu_bus_wait_until_tx(icpu);
 
     if ((address0 >= 0xf0000) && (address0 <= 0xfffff))
