@@ -587,3 +587,39 @@ video_is_cga(void)
 {
     return (video_get_type() == VIDEO_FLAG_TYPE_CGA);
 }
+
+static unsigned
+video_default_cga_wait_states(uint32_t address, uint64_t cpu_cycle)
+{
+    /* Existing Marty-derived IBM CGA READY-slot model.  This fallback is
+     * limited to ISA CGA timing descriptors; integrated VIDEO_BUS devices
+     * such as the PC1512 must publish their own model. */
+    static const uint8_t waits[16] = {
+        5, 5, 4, 4, 4, 3, 8, 8,
+        8, 7, 7, 7, 6, 6, 6, 5
+    };
+
+    if ((address < 0xb8000u) || (address > 0xbffffu))
+        return 0;
+
+    return waits[(unsigned)((cpu_cycle * 3u + 1u) & 0x0fu)];
+}
+
+unsigned
+video_get_wait_states(uint32_t address, int write, unsigned size,
+                      uint64_t cpu_cycle)
+{
+    const video_timings_t *timings = monitors[0].mon_vid_timings;
+
+    if (timings && timings->wait_states)
+        return timings->wait_states(address, write, size, cpu_cycle,
+                                    timings->wait_states_priv);
+
+    /* Preserve the previous exact-808x behavior for ordinary ISA CGA while
+     * avoiding the IBM table for machine-integrated video buses. */
+    if (timings && (timings->type == VIDEO_ISA) &&
+        (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_CGA))
+        return video_default_cga_wait_states(address, cpu_cycle);
+
+    return 0;
+}
