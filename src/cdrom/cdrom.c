@@ -52,6 +52,10 @@ cdrom_t cdrom[CDROM_NUM] = { 0 };
 
 uint16_t subq_crc16_table[256] = { 0 };
 
+uint8_t  __attribute__((aligned(16))) cdrom_scramble_table[2352] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
 int cdrom_interface_current;
 int cdrom_assigned_letters = 0;
 
@@ -2542,6 +2546,39 @@ cdrom_is_track_audio(cdrom_t *dev, const int sector,
     return audio;
 }
 
+void
+cdrom_generate_scramble_lut(uint8_t *b)
+{
+    /* 15 bits wide (0x0001 is the preset value). */
+    uint16_t shift_reg = 0x0001;
+    uint8_t  tbl_val;
+
+    for (int32_t i = 12; i < 2352; i++) {
+        tbl_val = 0;
+
+        for (int32_t j = 0; j < 8; j++) {
+            /* Get the 1st and 2nd LSBs from the shift register. */
+            uint8_t s0 = ((shift_reg) & (1 << 0)) ? 1 : 0;
+            uint8_t s1 = ((shift_reg) & (1 << 1)) ? 1 : 0;
+
+            /* Perform the XOR operation. */
+            uint8_t xor_res = s0 ^ s1;
+
+            /* Shift the register right by 1 bit. */
+            shift_reg >>= 1;
+
+            /* Push the XOR result into the MSB of the shift register. */
+            if (xor_res != 0) 
+                shift_reg += 16384; // Set bit 15
+
+            /* Set the bit in the table byte. */
+            tbl_val |= (s0 << j);
+        }
+
+        b[i] = tbl_val;
+    }
+}
+
 int
 cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int ismsf,
                      int cdrom_sector_type, const int cdrom_sector_flags,
@@ -3180,6 +3217,9 @@ cdrom_global_init(void)
 
     /* Initialize the CRC16-CCITT table */
     crc16_setup(subq_crc16_table, 0x1021);
+
+    /* Initialize the scramble table. */
+    cdrom_generate_scramble_lut(cdrom_scramble_table);
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom[i].cached_sector = -1;
