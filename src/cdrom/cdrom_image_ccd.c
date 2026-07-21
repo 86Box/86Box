@@ -32,6 +32,7 @@
 #include <wchar.h>
 #include <errno.h>
 #include <limits.h>
+#include <ctype.h>
 #ifndef _WIN32
 #    include <libgen.h>
 #endif
@@ -424,6 +425,11 @@ int
 cdrom_image_is_ccd(const char *fn)
 {
     int res = 0;
+    if (tolower(fn[strlen(fn) - 1]) != 'd'
+    || tolower(fn[strlen(fn) - 2]) != 'c'
+    || tolower(fn[strlen(fn) - 3]) != 'c')
+        return res;
+
     ini_t ccd_ini = ini_read(fn);
     if (ccd_ini && ini_find_section(ccd_ini, "CloneCD")) {
         res = 1;
