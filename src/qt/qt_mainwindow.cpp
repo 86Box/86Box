@@ -405,8 +405,10 @@ MainWindow::MainWindow(QWidget *parent)
         if (mouse_capture) {
             if (hook_enabled)
                 this->grabKeyboard();
-            if (ui->stackedWidget->mouse_capture_func)
-                ui->stackedWidget->mouse_capture_func(this->windowHandle());
+            if (ui->stackedWidget->mouse_capture_func) {
+                auto *win = ui->stackedWidget->captureWindow();
+                ui->stackedWidget->mouse_capture_func(win ? win : this->windowHandle());
+            }
         } else {
             this->releaseKeyboard();
             if (ui->stackedWidget->mouse_uncapture_func) {
