@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-09 01:33+0000\n"
+"PO-Revision-Date: 2026-07-21 10:48+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -1716,7 +1716,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Tự tạm dừng giả lập khi không tập trung ở cửa sổ"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Tự tạm dừng khi các hộp thoại con mở"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox không còn được hỗ trợ"
@@ -3012,7 +3012,7 @@ msgid "Toggle on-screen display"
 msgstr "Bật/tắt thông tin trên màn hình"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Bật/tắt t&hông tin trên màn hình"
 
 msgid "Text files"
 msgstr "Tập tin văn bản"
@@ -3202,16 +3202,18 @@ msgid "Allow recompilation"
 msgstr "Cho phép biên dịch lại"
 
 msgid "&Force interpretation"
-msgstr "&Buộc giải thích"
+msgstr "&Buộc thông dịch"
 
 msgid "&Allow recompilation"
 msgstr "&Cho phép biên dịch lại"
 
+#, fuzzy
 msgid "&Fast forward"
-msgstr "&Chuyển nhanh băng"
+msgstr "&Tăng tốc giả lập"
 
+#, fuzzy
 msgid "Fast forward"
-msgstr "Chuyển nhanh băng"
+msgstr "Tăng tốc giả lập"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Để thay đổi thư mục hệ thống, hãy tắt tất cả các máy đang chạy."

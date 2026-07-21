@@ -591,6 +591,7 @@ extern int             cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const
                                             int *len, const uint8_t vendor_type);
 extern int             cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t format,
                                                 uint8_t *buffer, uint32_t *info);
+extern void            cdrom_generate_scramble_lut(uint8_t *b);
 extern void            cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer);
 extern int             cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer);
 extern uint8_t         cdrom_get_current_mode(cdrom_t *dev);
@@ -619,8 +620,11 @@ extern unsigned short  cdrom_crc16(unsigned short crc, const unsigned char *buf,
 
 extern int             cdrom_image_is_aaru(const char *fn);
 extern int             cdrom_image_is_chd(const char *fn);
+extern int             cdrom_image_is_ccd(const char *fn);
 
 extern int             cdrom_assigned_letters;
+
+extern uint8_t __attribute__((aligned(16))) cdrom_scramble_table[2352];
 
 #ifdef __cplusplus
 }

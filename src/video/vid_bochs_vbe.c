@@ -46,8 +46,8 @@
 #define VBE_DISPI_BANK_SIZE_KB           64
 #define VBE_DISPI_BANK_GRANULARITY_KB    32
 
-#define VBE_DISPI_MAX_XRES               1920
-#define VBE_DISPI_MAX_YRES               1600
+#define VBE_DISPI_MAX_XRES               2048
+#define VBE_DISPI_MAX_YRES               2048
 
 #define VBE_DISPI_IOPORT_INDEX           0x01CE
 #define VBE_DISPI_IOPORT_DATA            0x01CF

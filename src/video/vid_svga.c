@@ -1593,7 +1593,6 @@ svga_poll(void *priv)
                 svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + (svga->rowoffset << 1) + svga->hblank_sub;
             else
                 svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + svga->hblank_sub;
-            pclog("memaddr = %08X\n", svga->memaddr);
 
             svga->cursoraddr     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
             if (!(svga->adv_flags & FLAG_NO_SHIFT3)) {

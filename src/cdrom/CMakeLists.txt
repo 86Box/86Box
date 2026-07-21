@@ -30,6 +30,7 @@ add_library(cdrom OBJECT
     cdrom_image_viso.c
     cdrom_mke.c
     cdrom_chd.c
+    cdrom_image_ccd.c
 )
 target_link_libraries(cdrom chdr-static)
 if(NOT WIN32)

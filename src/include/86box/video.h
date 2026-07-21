@@ -89,6 +89,12 @@ typedef enum video_font_format_e
 #define FONT_KAMCL16_PATH            "roms/video/mda/kamcl16.bin"
 #define FONT_TULIP_DGA_PATH          "roms/video/mda/tulip-dga-bios.bin"
 
+typedef unsigned (*video_wait_states_cb_t)(uint32_t address,
+                                           int write,
+                                           unsigned size,
+                                           uint64_t cpu_cycle,
+                                           void *priv);
+
 typedef struct video_timings_t {
     int type;
     int write_b;
@@ -97,6 +103,8 @@ typedef struct video_timings_t {
     int read_b;
     int read_w;
     int read_l;
+    video_wait_states_cb_t wait_states;
+    void                  *wait_states_priv;
 } video_timings_t;
 
 typedef struct bitmap_t {
@@ -273,6 +281,10 @@ extern const device_t *video_get_video_from_old_internal_name(char *s);
 extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
+/* Query the active video implementation before a memory transfer so
+ * pin-level CPU cores can model READY without hardcoding a card. */
+extern unsigned    video_get_wait_states(uint32_t address, int write,
+                                         unsigned size, uint64_t cpu_cycle);
 extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int         video_get_type_monitor(int monitor_index);
 
