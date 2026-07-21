@@ -304,6 +304,10 @@ tape_image_write(uint32_t offset, const uint8_t *buf, uint32_t len)
 /* QIC-117 command set                                                    */
 /* --------------------------------------------------------------------- */
 
+/* Forward references: the transfer clock is driven from command handling. */
+static void tape_start_clock(void);
+static void tape_stop_clock(void);
+
 /* Segments per tape track. The real figure lives in the cartridge's header
    segment, which only the host has read, so this is the QIC-80 default
    unless the host has told us otherwise. */
@@ -652,9 +656,12 @@ tape_command(uint8_t command)
                 break;
             }
             /* The tape is now streaming; the command itself is done, so the
-               drive stays ready for whatever comes next. */
+               drive stays ready for whatever comes next. Any transfer the
+               host armed beforehand starts flowing now. */
             tape.running = 1;
             tape.reverse = 0;
+            if (tape.xfer_state != TAPE_XFER_IDLE)
+                tape_start_clock();
             break;
 
         case QIC_PHYSICAL_REVERSE:
@@ -938,8 +945,8 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
                  ((state == TAPE_XFER_COMPARE) ? "compare" : "read"),
                  track, side, sector, sector_size, tape.running);
 
-    if (!tape_has_cartridge() || !tape.running) {
-        fdd_tape_log("Tape: ... no cartridge or tape stopped\n");
+    if (!tape_has_cartridge()) {
+        fdd_tape_log("Tape: ... no cartridge\n");
         fdc_nosector(tape_fdc);
         return;
     }
@@ -976,7 +983,16 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
     /* The segment under the head advances as sectors stream past. */
     tape.segment = (int) (offset / FDD_TAPE_SEGMENT_SIZE);
 
-    tape_start_clock();
+    /*
+       The host arms the controller before it starts the tape, exactly as
+       it would for a streaming device: nothing reaches the head until the
+       cartridge is actually moving. If the tape is still stopped, the
+       transfer waits here and a motion command sets it going.
+     */
+    if (tape.running)
+        tape_start_clock();
+    else
+        fdd_tape_log("Tape: ... armed, waiting for tape motion\n");
 }
 
 static void
@@ -1124,14 +1140,15 @@ tape_clock(UNUSED(void *priv))
 
         case TAPE_XFER_READ:
             if (!fdc_is_verify(tape_fdc)) {
-                data = fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
+                /*
+                   A -1 here means the host's DMA transfer has hit its
+                   terminal count, which is how a multi-sector read
+                   normally ends - the controller raises TC and finishes
+                   the command itself. Treating it as an overrun would
+                   turn every successful transfer into an error.
+                 */
+                (void) fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
                                 tape.xfer_pos == (tape.xfer_len - 1));
-                if (data == -1) {
-                    tape.xfer_state = TAPE_XFER_IDLE;
-                    tape_stop_clock();
-                    fdc_overrun(tape_fdc);
-                    return;
-                }
             }
 
             tape.xfer_pos++;
