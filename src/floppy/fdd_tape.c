@@ -107,13 +107,20 @@ enum {
 #define QIC_TAPE_QIC80               0x02
 #define QIC_TAPE_307FT               0x20
 
-/* Error codes, as returned by QIC_REPORT_ERROR_CODE. */
+/* Error codes, from the QIC-117 rev. J error code list (3.5). */
 #define QIC_ERROR_NONE               0
-#define QIC_ERROR_COMMAND_WHILE_ERROR 3
-#define QIC_ERROR_ILLEGAL_COMMAND    5
-#define QIC_ERROR_NO_CARTRIDGE       9
-#define QIC_ERROR_WRITE_PROTECTED    10
-#define QIC_ERROR_NOT_REFERENCED     15
+#define QIC_ERROR_NOT_READY          1
+#define QIC_ERROR_NO_CARTRIDGE       2
+#define QIC_ERROR_WRITE_PROTECTED    5
+#define QIC_ERROR_UNDEFINED_COMMAND  6
+#define QIC_ERROR_ILLEGAL_SEEK_TRACK 7
+#define QIC_ERROR_ILLEGAL_IN_REPORT  8
+#define QIC_ERROR_NOT_REFERENCED     19
+
+/* Undefined codes at or above Report Vendor ID are ignored rather than
+   faulted, so that a host recalibrating its controller - which produces a
+   long pulse train - provokes no reaction from the drive (3.0). */
+#define QIC_IGNORE_ABOVE             QIC_REPORT_VENDOR_ID
 
 /* Identity of the emulated drive: "Colorado DJ-10/DJ-20 (new)". */
 #define QIC_VENDOR_ID                0x011c4
@@ -136,7 +143,8 @@ enum {
     TAPE_XFER_READ,
     TAPE_XFER_WRITE,
     TAPE_XFER_COMPARE,
-    TAPE_XFER_FORMAT
+    TAPE_XFER_FORMAT,
+    TAPE_XFER_READID
 };
 
 typedef struct tape_t {
@@ -148,7 +156,9 @@ typedef struct tape_t {
     uint32_t image_size;
 
     /* Step pulse decoding. */
-    int      last_track;    /* head position the previous seek left us at */
+    int      pulse_count;   /* pulses received since the last command gap */
+    int      bit_presented; /* the train so far has been answered as a
+                               Report Next Bit, without waiting it out */
     int      params_left;   /* parameters the pending command still wants */
     uint8_t  param_cmd;     /* command those parameters belong to */
     uint8_t  param[3];
@@ -186,18 +196,34 @@ typedef struct tape_t {
     int      format_datac;
     int      format_count;
     uint32_t format_offset;
-
-    /*
-       The drive runs its own capstan motor under QIC-117 control and pays
-       no attention to the controller's motor line, so the transfer clock
-       is ours rather than the floppy drive poll.
-     */
-    pc_timer_t timer;
-    int        timer_added;
 } tape_t;
 
 static tape_t  tape;
 static fdc_t  *tape_fdc = NULL;
+
+/*
+   The drive runs its own capstan motor under QIC-117 control and pays no
+   attention to the controller's motor line, so the transfer clock is ours
+   rather than the floppy drive poll.
+
+   This lives outside tape_t deliberately: detaching the drive wipes the
+   rest of the state, and a registered timer must never be memset while it
+   might still be linked into the timer list.
+ */
+static pc_timer_t tape_timer;
+static int        tape_timer_added = 0;
+
+/*
+   QIC-117 delimits commands by time, not by seek boundaries: a pulse train
+   ends when no further STEP pulse arrives for TTIMEOUT, and only then does
+   the drive act on the count. This timer measures that gap. It lives
+   outside tape_t for the same reason as the transfer clock above.
+ */
+static pc_timer_t tape_cmd_timer;
+static int        tape_cmd_timer_added = 0;
+
+/* QIC-117 rev. J table 1: command time-out, nominal 2.5 ms. */
+#define TAPE_TTIMEOUT (2500ULL * TIMER_USEC)
 
 int  fdd_tape_enabled = 0;
 int  fdd_tape_unit    = 1;
@@ -326,6 +352,8 @@ tape_update_status(void)
 static void
 tape_set_error(uint8_t error, uint8_t command)
 {
+    fdd_tape_log("Tape: error %i on command %i\n", error, command);
+
     tape.error     = error;
     tape.error_cmd = command;
     tape.status |= QIC_STATUS_ERROR;
@@ -338,6 +366,8 @@ tape_set_error(uint8_t error, uint8_t command)
 static void
 tape_start_report(uint32_t value, int length)
 {
+    fdd_tape_log("Tape: reporting %i bits: %0*x\n", length, length / 4, value);
+
     tape.report_value = value;
     tape.report_len   = length;
     tape.report_pos   = 0;
@@ -353,18 +383,20 @@ tape_report_next_bit(void)
         return;
     }
 
-    if (tape.report_pos < tape.report_len)
+    if (tape.report_pos < tape.report_len) {
         tape.ack = (tape.report_value >> tape.report_pos) & 1;
-    else if (tape.report_pos == tape.report_len)
-        tape.ack = 1; /* stop bit */
-    else {
-        /* One bit past the stop bit puts TRACK 0 back to normal. */
-        tape.ack        = 0;
+        tape.report_pos++;
+    } else {
+        /*
+           The final bit of a report is always true, and presenting it
+           exits the report subcontext (1.4.2). TRACK 0 stays asserted
+           until the drive receives another command - which may be a
+           Report Next Bit, ignored outside the subcontext but serving to
+           clear the line.
+         */
+        tape.ack        = 1;
         tape.report_pos = TAPE_REPORT_IDLE;
-        return;
     }
-
-    tape.report_pos++;
 }
 
 static void
@@ -432,6 +464,25 @@ tape_finish_parameters(void)
     tape_stop_motion();
 }
 
+/* Whether the code is part of the QIC-117 rev. J command set at all. */
+static int
+tape_command_defined(uint8_t command)
+{
+    switch (command) {
+        case QIC_RESET ... QIC_STOP_TAPE:
+        case QIC_MICRO_STEP_HEAD_UP ... QIC_ENTER_PRIMARY_MODE:
+        case QIC_REPORT_VENDOR_ID ... QIC_SET_FORMAT_SEGMENTS:
+        case QIC_PHANTOM_SELECT:
+        case QIC_PHANTOM_DESELECT:
+        case QIC_EXT_SELECT_RATE:
+        case QIC_EXT_REPORT_DRIVE_CONFIG:
+            return 1;
+
+        default:
+            return 0;
+    }
+}
+
 /* How many parameters a command expects, if any. */
 static int
 tape_command_params(uint8_t command)
@@ -459,10 +510,48 @@ tape_command_params(uint8_t command)
     }
 }
 
+#ifdef ENABLE_FDD_TAPE_LOG
+static const char *
+tape_command_name(uint8_t command)
+{
+    static const char *const names[] = {
+        "no command",         "soft reset",          "report next bit",
+        "pause",              "micro step pause",    "alternate timeout",
+        "report drive status","report error code",   "report drive config",
+        "report rom version", "logical forward",     "physical reverse",
+        "physical forward",   "seek head to track",  "seek load point",
+        "enter format mode",  "write reference burst","enter verify mode",
+        "stop tape",          "reserved (19)",       "reserved (20)",
+        "micro step head up", "micro step head down","soft select",
+        "soft deselect",      "skip reverse",        "skip forward",
+        "select rate",        "enter diag mode 1",   "enter diag mode 2",
+        "enter primary mode", "vendor unique (31)",  "report vendor id",
+        "report tape status", "skip extended reverse","skip extended forward",
+        "calibrate tape length","report format segments","set format segments"
+    };
+
+    if (command < (sizeof(names) / sizeof(names[0])))
+        return names[command];
+
+    switch (command) {
+        case QIC_PHANTOM_SELECT:
+            return "phantom select";
+        case QIC_PHANTOM_DESELECT:
+            return "phantom deselect";
+        case QIC_EXT_SELECT_RATE:
+            return "extended select rate";
+        case QIC_EXT_REPORT_DRIVE_CONFIG:
+            return "ext report drive config";
+        default:
+            return "unknown";
+    }
+}
+#endif
+
 static void
 tape_command(uint8_t command)
 {
-    fdd_tape_log("Tape: QIC-117 command %i\n", command);
+    fdd_tape_log("Tape: QIC-117 command %i (%s)\n", command, tape_command_name(command));
 
     /* "Report next bit" is the one command that never disturbs the drive
        state, so it is handled before anything else. */
@@ -471,7 +560,28 @@ tape_command(uint8_t command)
         return;
     }
 
-    /* Anything else ends a report in progress and drops TRACK 0. */
+    /*
+       An unsupported code above Report Vendor ID is ignored outright: it
+       does not even disturb a report in progress, whose current bit is
+       simply repeated to the next Report Next Bit (3.0).
+     */
+    if (!tape_command_defined(command) && (command >= QIC_IGNORE_ABOVE)) {
+        fdd_tape_log("Tape: ignoring %i pulse(s)\n", command);
+        return;
+    }
+
+    /*
+       QIC-117 rev. J 3.4: during a report, any command other than Report
+       Next Bit terminates the report subcontext with an "illegal command
+       during report subcontext" error, and the final report bit - normally
+       a one - comes back as a zero to tell the host the status it just
+       read is invalid. Reset is the one exception.
+     */
+    if ((tape.report_pos != TAPE_REPORT_IDLE) && (command != QIC_RESET)) {
+        fdd_tape_log("Tape: %s during report subcontext\n", tape_command_name(command));
+        tape_set_error(QIC_ERROR_ILLEGAL_IN_REPORT, command);
+    }
+
     tape.report_pos = TAPE_REPORT_IDLE;
     tape.ack        = 0;
 
@@ -616,10 +726,20 @@ tape_command(uint8_t command)
             break;
 
         default:
-            if (command > QIC_MAX_COMMAND) {
-                tape_set_error(QIC_ERROR_ILLEGAL_COMMAND, command);
+            /* Defined commands with no immediate effect: their work
+               happens when their arguments arrive, or they only change a
+               mode the emulation does not model. */
+            if (tape_command_defined(command))
                 break;
-            }
+
+            /*
+               QIC-117 rev. J 3.0: only undefined codes below Report
+               Vendor ID raise an error. Longer pulse trains are ignored,
+               which is what lets a host recalibrate its controller
+               without provoking the drive.
+             */
+            if (command < QIC_IGNORE_ABOVE)
+                tape_set_error(QIC_ERROR_UNDEFINED_COMMAND, command);
             break;
     }
 
@@ -633,7 +753,7 @@ tape_command(uint8_t command)
     else
         tape.status &= ~QIC_STATUS_READY;
 
-    /* Selection is only complete once the unit parameter has arrived. */
+    /* Selection is only complete once the unit address argument arrives. */
     if ((command == QIC_SOFT_SELECT) || (command == QIC_PHANTOM_SELECT))
         tape.selected = 1;
 }
@@ -650,7 +770,7 @@ tape_step_pulses(int steps)
            can't be mistaken for the "no command" pulse count. */
         if (steps < 2) {
             tape.params_left = 0;
-            tape_set_error(QIC_ERROR_ILLEGAL_COMMAND, tape.param_cmd);
+            tape_set_error(QIC_ERROR_UNDEFINED_COMMAND, tape.param_cmd);
             tape.status |= QIC_STATUS_READY;
             return;
         }
@@ -699,16 +819,88 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
     return 1;
 }
 
-static void
-tape_seek(int drive, int track)
+/* Interval between STEP pulses, from the controller's SPECIFY and data
+   rate. QIC-117 hosts program this to TSTEP, nominally 2 ms. */
+static int
+tape_step_interval_us(void)
 {
-    int steps;
+    int srt;
+    int bit_rate;
 
+    if (tape_fdc == NULL)
+        return 2000;
+
+    srt      = tape_fdc->specify[0] >> 4;
+    bit_rate = fdc_get_bit_rate(tape_fdc);
+    if (bit_rate <= 0)
+        bit_rate = 250;
+
+    return ((16 - srt) * 1000 * 500) / bit_rate;
+}
+
+/*
+   Adds a burst of step pulses to the train in progress and reports how
+   long the controller will take to clock them out, so the seek completes
+   at a realistic time rather than instantly.
+ */
+int
+fdd_tape_step(int drive, int steps)
+{
+    if (drive != tape.drive)
+        return 0;
+
+    tape.pulse_count += steps;
+
+    /*
+       Report Next Bit is the one command exempt from the command
+       time-out: TRACK 0 must be valid within TBIT of the second step
+       pulse (1.4.2), and hosts sample it as soon as the seek finishes,
+       long before a TTIMEOUT gap could elapse. So answer it as the pulses
+       land. A longer train is a different command, and takes the report
+       subcontext down with it when it is eventually decoded.
+     */
+    if ((tape.pulse_count == QIC_REPORT_NEXT_BIT) && (tape.params_left == 0)) {
+        tape_report_next_bit();
+        tape.bit_presented = 1;
+    }
+
+    return steps * tape_step_interval_us();
+}
+
+/*
+   Called once the burst has been delivered, immediately before the seek
+   complete interrupt goes back to the host. The command is not decoded
+   yet - the host may still be part way through a longer pulse train, and
+   only a TTIMEOUT gap marks the end of it.
+ */
+static void
+tape_seek(int drive, UNUSED(int track))
+{
     if (drive != tape.drive)
         return;
 
-    steps           = abs(track - tape.last_track);
-    tape.last_track = track;
+    if (tape_cmd_timer_added)
+        timer_set_delay_u64(&tape_cmd_timer, TAPE_TTIMEOUT);
+}
+
+/* Fires TTIMEOUT after the last step pulse: the pulse train is complete. */
+static void
+tape_command_timeout(UNUSED(void *priv))
+{
+    int steps     = tape.pulse_count;
+    int presented = tape.bit_presented;
+
+    tape.pulse_count   = 0;
+    tape.bit_presented = 0;
+
+    if (steps <= 0)
+        return;
+
+    /* A bare Report Next Bit was already answered as its pulses arrived. */
+    if ((steps == QIC_REPORT_NEXT_BIT) && presented)
+        return;
+
+    fdd_tape_log("Tape: pulse train complete, %i pulse(s)\n", steps);
 
     tape_step_pulses(steps);
 }
@@ -719,15 +911,15 @@ tape_seek(int drive, int track)
 static void
 tape_start_clock(void)
 {
-    if (tape.timer_added)
-        timer_set_delay_u64(&tape.timer, TAPE_BYTE_PERIOD);
+    if (tape_timer_added)
+        timer_set_delay_u64(&tape_timer, TAPE_BYTE_PERIOD);
 }
 
 static void
 tape_stop_clock(void)
 {
-    if (tape.timer_added)
-        timer_disable(&tape.timer);
+    if (tape_timer_added)
+        timer_disable(&tape_timer);
 }
 
 static void
@@ -736,24 +928,37 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
     uint32_t offset = 0;
 
     tape.xfer_state = TAPE_XFER_IDLE;
+    tape_stop_clock();
+
+    if (tape_fdc == NULL)
+        return;
+
+    fdd_tape_log("Tape: %s c=%i h=%i r=%i n=%i (running=%i)\n",
+                 (state == TAPE_XFER_WRITE) ? "write" :
+                 ((state == TAPE_XFER_COMPARE) ? "compare" : "read"),
+                 track, side, sector, sector_size, tape.running);
 
     if (!tape_has_cartridge() || !tape.running) {
+        fdd_tape_log("Tape: ... no cartridge or tape stopped\n");
         fdc_nosector(tape_fdc);
         return;
     }
 
     /* The tape format only ever uses 1024-byte sectors. */
     if (sector_size != 3) {
+        fdd_tape_log("Tape: ... bad sector size %i\n", sector_size);
         fdc_nosector(tape_fdc);
         return;
     }
 
     if (!tape_sector_offset(track, side, sector, &offset)) {
+        fdd_tape_log("Tape: ... address is not on tape\n");
         fdc_nosector(tape_fdc);
         return;
     }
 
     if ((state == TAPE_XFER_WRITE) && tape.readonly) {
+        fdd_tape_log("Tape: ... cartridge is write protected\n");
         fdc_writeprotect(tape_fdc);
         return;
     }
@@ -807,21 +1012,13 @@ tape_comparesector(int drive, int sector, int track, int side, UNUSED(int densit
     tape_setup_transfer(TAPE_XFER_COMPARE, sector, track, side, sector_size);
 }
 
-/* The host uses READ ID to find out where on the tape it currently is. */
+/* Hands back the ID of the sector currently under the head. */
 static void
-tape_readaddress(int drive, UNUSED(int side), UNUSED(int density))
+tape_finish_readaddress(void)
 {
     int segment;
     int cylinder;
     int sector;
-
-    if (drive != tape.drive)
-        return;
-
-    if (!tape_has_cartridge()) {
-        fdc_nosector(tape_fdc);
-        return;
-    }
 
     if (!tape.running) {
         /* A stopped tape has no sector passing the head. The host reads
@@ -834,15 +1031,41 @@ tape_readaddress(int drive, UNUSED(int side), UNUSED(int density))
     cylinder = (segment % FDD_TAPE_SEGS_PER_HEAD) / FDD_TAPE_SEGS_PER_CYL;
     sector   = ((segment % FDD_TAPE_SEGS_PER_CYL) * FDD_TAPE_SECTORS_PER_SEG) + 1;
 
+    fdd_tape_log("Tape: read ID -> segment %i (c=%i h=%i r=%i)\n", segment, cylinder,
+                 segment / FDD_TAPE_SEGS_PER_HEAD, sector);
+
     fdc_sectorid(tape_fdc, (uint8_t) cylinder, (uint8_t) (segment / FDD_TAPE_SEGS_PER_HEAD),
                  (uint8_t) sector, 3, 0, 0);
+}
+
+/* The host uses READ ID to find out where on the tape it currently is. */
+static void
+tape_readaddress(int drive, UNUSED(int side), UNUSED(int density))
+{
+    if ((drive != tape.drive) || (tape_fdc == NULL))
+        return;
+
+    if (!tape_has_cartridge()) {
+        fdc_nosector(tape_fdc);
+        return;
+    }
+
+    /*
+       The result has to come back from the transfer clock rather than from
+       here: the controller finishes setting up its own state after this
+       call returns, and would overwrite the result phase we just set up.
+     */
+    tape.xfer_state = TAPE_XFER_READID;
+    tape_start_clock();
 }
 
 static void
 tape_format(int drive, UNUSED(int side), UNUSED(int density), UNUSED(uint8_t fill))
 {
-    if (drive != tape.drive)
+    if ((drive != tape.drive) || (tape_fdc == NULL))
         return;
+
+    fdd_tape_log("Tape: format track, %i sectors\n", fdc_get_format_sectors(tape_fdc));
 
     if (!tape_has_cartridge() || tape.readonly) {
         fdc_writeprotect(tape_fdc);
@@ -885,9 +1108,20 @@ tape_clock(UNUSED(void *priv))
 {
     int data;
 
-    timer_advance_u64(&tape.timer, TAPE_BYTE_PERIOD);
+    timer_advance_u64(&tape_timer, TAPE_BYTE_PERIOD);
+
+    if (tape_fdc == NULL) {
+        tape_stop_clock();
+        return;
+    }
 
     switch (tape.xfer_state) {
+        case TAPE_XFER_READID:
+            tape.xfer_state = TAPE_XFER_IDLE;
+            tape_stop_clock();
+            tape_finish_readaddress();
+            break;
+
         case TAPE_XFER_READ:
             if (!fdc_is_verify(tape_fdc)) {
                 data = fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
@@ -1111,11 +1345,15 @@ fdd_tape_init(void)
     tape.error_cmd  = QIC_NO_COMMAND;
     tape.xfer_state = TAPE_XFER_IDLE;
 
-    /* Step pulses are counted relative to wherever the head already is. */
-    tape.last_track = fdd_current_track(drive);
+    /* timer_add() clears the struct, which also clears any stale enabled
+       flag left behind by a timer_close() during a hard reset. */
+    timer_add(&tape_timer, tape_clock, NULL, 0);
+    tape_timer_added = 1;
 
-    timer_add(&tape.timer, tape_clock, NULL, 0);
-    tape.timer_added = 1;
+    timer_add(&tape_cmd_timer, tape_command_timeout, NULL, 0);
+    tape_cmd_timer_added = 1;
+
+    fdd_tape_log("Tape: attached to drive %i\n", drive);
 
     /* The tape drive takes over this drive select line from whatever
        floppy drive may have been configured on it. Note that it has no
@@ -1144,10 +1382,14 @@ fdd_tape_close(void)
 
     fdd_tape_eject();
 
-    /* The timer has to leave the active list before the state is wiped. */
-    tape_stop_clock();
-    tape.timer_added = 0;
-
+    /*
+       The timer is left alone on purpose. It lives outside tape_t, so the
+       wipe below cannot corrupt it, and it may legitimately still be in
+       the timer list here or have been orphaned by a hard reset - calling
+       timer_disable() in the latter case would trip the timer layer's own
+       consistency check. Should it fire before the drive is re-attached,
+       the idle branch of tape_clock() takes it back out of the list.
+     */
     if (tape.attached) {
         drives[drive].seek          = NULL;
         drives[drive].readsector    = NULL;

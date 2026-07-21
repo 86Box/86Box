@@ -393,8 +393,24 @@ fdd_seek_complete_callback(void *priv)
         po->op      = FDD_OP_NONE;
     }
 
-    if (!had_pending)
+    /*
+       On a floppy tape drive the seek is not head movement at all - it is
+       how the host delivers a QIC-117 command, and it is waiting for the
+       interrupt that ends it. Never swallow that interrupt.
+     */
+    if (!had_pending || fdd_tape_present(drive->id))
         fdc_seek_complete_interrupt(fdd_fdc, drive->id);
+}
+
+/*
+   Whether an I/O request has to wait for a seek to finish first. A tape
+   drive's head position has no bearing on data access, so its requests are
+   never held back - doing so would strand the seek the host is waiting on.
+ */
+static int
+fdd_defer_op(int drive)
+{
+    return fdd_seek_in_progress[drive] && !fdd_tape_present(drive);
 }
 
 void
@@ -404,38 +420,49 @@ fdd_seek(int drive, int track_diff)
     if (track_diff == 0)
         return;
 
+    /* A seek already under way must run to completion, tape or not. */
     if (fdd_seek_in_progress[drive]) {
         fdd_log("Seek already in progress for drive %d, ignoring new seek request\n", drive);
         return;
     }
 
+    if (fdd_tape_present(drive)) {
+        /*
+           A floppy tape drive has no cylinders and no head to position: it
+           counts the step pulses in each burst and reads them as a QIC-117
+           command. So hand it the pulse count directly and leave the track
+           position alone - tracking an absolute head position would clamp
+           at the end of travel and leave the drive permanently deaf, since
+           the host zeroes the controller's cylinder counter between
+           commands while the pulses keep coming in the same direction.
+
+           The seek must also complete promptly: the host sends one command
+           per seek and waits for the interrupt each time.
+         */
+        const int step_time_us = fdd_tape_step(drive, abs(track_diff));
+
+        fdd_seek_in_progress[drive] = 1;
+
+        if (!fdd_seek_timer[drive].callback)
+            timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
+
+        timer_set_delay_u64(&fdd_seek_timer[drive], (uint64_t) step_time_us * TIMER_USEC);
+        return;
+    }
+
     int old_track = fdd[drive].track;
-    int max_track = fdd_tape_present(drive) ? FDD_TAPE_MAX_TRACK
-                                            : drive_types[fdd[drive].type].max_track;
 
     fdd[drive].track += track_diff;
 
     if (fdd[drive].track < 0)
         fdd[drive].track = 0;
 
-    if (fdd[drive].track > max_track)
-        fdd[drive].track = max_track;
+    if (fdd[drive].track > drive_types[fdd[drive].type].max_track)
+        fdd[drive].track = drive_types[fdd[drive].type].max_track;
 
     fdd_changed[drive] = 0;
 
-    if (fdd_tape_present(drive)) {
-        /*
-           A floppy tape drive decodes the step pulses as a QIC-117 command,
-           so the seek has to complete promptly - the host sends a whole
-           command per seek and waits for the interrupt each time.
-         */
-        fdd_seek_in_progress[drive] = 1;
-
-        if (!fdd_seek_timer[drive].callback)
-            timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
-
-        timer_set_delay_u64(&fdd_seek_timer[drive], 100ULL * TIMER_USEC);
-    } else if (fdd[drive].turbo) {
+    if (fdd[drive].turbo) {
         fdd_do_seek(drive, fdd[drive].track);
     } else {
         /* Trigger appropriate audio for track movements */
@@ -910,7 +937,7 @@ fdd_readsector(int drive, int sector, int track, int side, int density, int sect
         fdd_set_boot_status(BIOS_BOOT_NORMAL);
     }
 
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring READ (trk=%d->%d, side=%d, sec=%d)\n",
                 drive, fdd[drive].track, track, side, sector);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -936,7 +963,7 @@ fdd_writesector(int drive, int sector, int track, int side, int density, int sec
 {
     fdd_log("fdd_writesector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
 
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring WRITE (trk=%d->%d, side=%d, sec=%d)\n",
                 drive, fdd[drive].track, track, side, sector);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -960,7 +987,7 @@ fdd_writesector(int drive, int sector, int track, int side, int density, int sec
 void
 fdd_comparesector(int drive, int sector, int track, int side, int density, int sector_size)
 {
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring COMPARE (trk=%d->%d, side=%d, sec=%d)\n",
                 drive, fdd[drive].track, track, side, sector);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -984,7 +1011,7 @@ fdd_comparesector(int drive, int sector, int track, int side, int density, int s
 void
 fdd_readaddress(int drive, int side, int density)
 {
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring READADDRESS (trk=%d, side=%d)\n",
                 drive, fdd[drive].track, side);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -1004,7 +1031,7 @@ fdd_readaddress(int drive, int side, int density)
 void
 fdd_format(int drive, int side, int density, uint8_t fill)
 {
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring FORMAT (trk=%d, side=%d)\n",
                 drive, fdd[drive].track, side);
         fdd_pending[drive] = (fdd_pending_op_t) {

@@ -19,6 +19,12 @@
 #define EMU_FDD_TAPE_H
 
 /*
+   Set to 1 to trace the QIC-117 conversation, and every floppy controller
+   command that reaches the drive, into the emulator log. Diagnostic only.
+ */
+#define ENABLE_FDD_TAPE_LOG 1
+
+/*
    QIC-40/80 tape layout, as seen through the floppy controller. A segment
    is the unit the host reads and writes in, and is made up of 32 sectors
    of 1024 bytes. Segments are mapped onto the C/H/R address space of the
@@ -31,7 +37,7 @@
 #define FDD_TAPE_SEGS_PER_CYL    4
 #define FDD_TAPE_SEGS_PER_HEAD   1020
 
-/* The tape drive's head assembly steps over the full 0..255 cylinder range. */
+/* Highest cylinder a data transfer may name in the C/H/R address space. */
 #define FDD_TAPE_MAX_TRACK       255
 
 #ifdef __cplusplus
@@ -51,6 +57,10 @@ extern void fdd_tape_load(const char *fn);
 extern void fdd_tape_eject(void);
 
 extern void fdd_tape_set_fdc(void *fdc);
+
+/* Adds a burst of step pulses to the train in progress, and returns how
+   long the controller needs to clock them out, in microseconds. */
+extern int fdd_tape_step(int drive, int steps);
 
 /* Queries used by the floppy drive and controller layers. */
 extern int fdd_tape_present(int drive);
