@@ -1,0 +1,1168 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Emulation of a QIC-117 "floppy tape" drive, modelled after the
+ *          Colorado Jumbo 250 (a QIC-80 drive).
+ *
+ *          These drives share the floppy ribbon cable with the regular
+ *          floppy drives and occupy one of the four drive select lines.
+ *          Bulk data moves with plain FDC READ DATA / WRITE DATA commands
+ *          at 500 kbps, but the drive itself has no way of receiving
+ *          commands over the floppy interface, so QIC-117 abuses the step
+ *          line instead: the host issues a SEEK a given number of
+ *          cylinders away, and the drive counts the resulting step pulses.
+ *          The pulse count is the command. Results travel back over the
+ *          TRACK 0 line, one bit per "report next bit" command, which the
+ *          host samples with SENSE DRIVE STATUS.
+ *
+ *          The cartridge is a flat image addressed by segment. A segment
+ *          is 32 sectors of 1024 bytes and is mapped onto the controller's
+ *          C/H/R space at four segments per cylinder, 1020 segments per
+ *          head - the same fixed geometry the QIC-40/80 format specifies.
+ */
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
+
+#define HAVE_STDARG_H
+#include <86box/86box.h>
+#include <86box/timer.h>
+#include <86box/plat.h>
+#include <86box/path.h>
+#include <86box/ui.h>
+#include <86box/dma.h>
+#include <86box/fdd.h>
+#include <86box/fdd_tape.h>
+#include <86box/fdc.h>
+
+/* QIC-117 rev. J command set. Only the ones the drive acts on are named. */
+enum {
+    QIC_NO_COMMAND             = 0,
+    QIC_RESET                  = 1,
+    QIC_REPORT_NEXT_BIT        = 2,
+    QIC_PAUSE                  = 3,
+    QIC_MICRO_STEP_PAUSE       = 4,
+    QIC_ALTERNATE_TIMEOUT      = 5,
+    QIC_REPORT_DRIVE_STATUS    = 6,
+    QIC_REPORT_ERROR_CODE      = 7,
+    QIC_REPORT_DRIVE_CONFIG    = 8,
+    QIC_REPORT_ROM_VERSION     = 9,
+    QIC_LOGICAL_FORWARD        = 10,
+    QIC_PHYSICAL_REVERSE       = 11,
+    QIC_PHYSICAL_FORWARD       = 12,
+    QIC_SEEK_HEAD_TO_TRACK     = 13,
+    QIC_SEEK_LOAD_POINT        = 14,
+    QIC_ENTER_FORMAT_MODE      = 15,
+    QIC_WRITE_REFERENCE_BURST  = 16,
+    QIC_ENTER_VERIFY_MODE      = 17,
+    QIC_STOP_TAPE              = 18,
+    QIC_MICRO_STEP_HEAD_UP     = 21,
+    QIC_MICRO_STEP_HEAD_DOWN   = 22,
+    QIC_SOFT_SELECT            = 23,
+    QIC_SOFT_DESELECT          = 24,
+    QIC_SKIP_REVERSE           = 25,
+    QIC_SKIP_FORWARD           = 26,
+    QIC_SELECT_RATE            = 27,
+    QIC_ENTER_DIAGNOSTIC_1     = 28,
+    QIC_ENTER_DIAGNOSTIC_2     = 29,
+    QIC_ENTER_PRIMARY_MODE     = 30,
+    QIC_REPORT_VENDOR_ID       = 32,
+    QIC_REPORT_TAPE_STATUS     = 33,
+    QIC_SKIP_EXTENDED_REVERSE  = 34,
+    QIC_SKIP_EXTENDED_FORWARD  = 35,
+    QIC_CALIBRATE_TAPE_LENGTH  = 36,
+    QIC_REPORT_FORMAT_SEGMENTS = 37,
+    QIC_SET_FORMAT_SEGMENTS    = 38,
+    QIC_PHANTOM_SELECT         = 46,
+    QIC_PHANTOM_DESELECT       = 47,
+    QIC_EXT_SELECT_RATE        = 50,
+    QIC_EXT_REPORT_DRIVE_CONFIG = 51,
+    QIC_MAX_COMMAND            = 55
+};
+
+/* Drive status bits, as returned by QIC_REPORT_DRIVE_STATUS. */
+#define QIC_STATUS_READY             0x01
+#define QIC_STATUS_ERROR             0x02
+#define QIC_STATUS_CARTRIDGE_PRESENT 0x04
+#define QIC_STATUS_WRITE_PROTECT     0x08
+#define QIC_STATUS_NEW_CARTRIDGE     0x10
+#define QIC_STATUS_REFERENCED        0x20
+#define QIC_STATUS_AT_BOT            0x40
+#define QIC_STATUS_AT_EOT            0x80
+
+/* Drive configuration bits, as returned by QIC_REPORT_DRIVE_CONFIG. */
+#define QIC_CONFIG_RATE_500          (2 << 3)
+#define QIC_CONFIG_LONG              0x40
+#define QIC_CONFIG_80                0x80
+
+/* Tape status bits, as returned by QIC_REPORT_TAPE_STATUS. */
+#define QIC_TAPE_QIC80               0x02
+#define QIC_TAPE_307FT               0x20
+
+/* Error codes, as returned by QIC_REPORT_ERROR_CODE. */
+#define QIC_ERROR_NONE               0
+#define QIC_ERROR_COMMAND_WHILE_ERROR 3
+#define QIC_ERROR_ILLEGAL_COMMAND    5
+#define QIC_ERROR_NO_CARTRIDGE       9
+#define QIC_ERROR_WRITE_PROTECTED    10
+#define QIC_ERROR_NOT_REFERENCED     15
+
+/* Identity of the emulated drive: "Colorado DJ-10/DJ-20 (new)". */
+#define QIC_VENDOR_ID                0x011c4
+#define QIC_ROM_VERSION              0x54
+
+/* The head parks at cylinder 0 while idle, so TRACK 0 doubles as the
+   result line. Bits are handed back one at a time, framed by a leading
+   acknowledge bit and a trailing stop bit. */
+#define TAPE_REPORT_IDLE             (-1)
+
+/* A blank cartridge holds this many segments (QIC-80, 307.5 ft, 28 tracks
+   of 150 segments), which is what a Jumbo 250 ships with. */
+#define TAPE_SEGMENTS_PER_TRACK      150
+#define TAPE_TRACKS                  28
+#define TAPE_TOTAL_SEGMENTS          (TAPE_SEGMENTS_PER_TRACK * TAPE_TRACKS)
+
+/* Transfer states of the read/write engine. */
+enum {
+    TAPE_XFER_IDLE = 0,
+    TAPE_XFER_READ,
+    TAPE_XFER_WRITE,
+    TAPE_XFER_COMPARE,
+    TAPE_XFER_FORMAT
+};
+
+typedef struct tape_t {
+    int      attached;      /* drive is fitted to the cable */
+    int      drive;         /* drive select line it answers to */
+
+    FILE    *fp;
+    int      readonly;
+    uint32_t image_size;
+
+    /* Step pulse decoding. */
+    int      last_track;    /* head position the previous seek left us at */
+    int      params_left;   /* parameters the pending command still wants */
+    uint8_t  param_cmd;     /* command those parameters belong to */
+    uint8_t  param[3];
+    int      params_got;
+
+    /* Result reporting over the TRACK 0 line. */
+    uint32_t report_value;
+    int      report_len;
+    int      report_pos;    /* TAPE_REPORT_IDLE, or 0..report_len inclusive */
+    int      ack;           /* current state of the TRACK 0 line */
+
+    /* Drive state. */
+    uint8_t  status;
+    uint8_t  error;
+    uint8_t  error_cmd;
+    uint8_t  last_command;
+    int      selected;
+    int      running;       /* tape is streaming past the head */
+    int      reverse;
+    int      format_mode;
+    int      verify_mode;
+    int      track;         /* logical tape track the head sits on */
+    int      segment;       /* segment under the head, in the controller's
+                               C/H/R address space */
+    uint16_t format_segments;
+
+    /* Read/write engine, driven one byte at a time by the transfer clock. */
+    int      xfer_state;
+    int      xfer_pos;
+    int      xfer_len;
+    uint32_t xfer_offset;   /* image offset the buffer came from/goes to */
+    uint8_t  buffer[FDD_TAPE_SECTOR_SIZE];
+
+    /* Formatting engine. */
+    int      format_datac;
+    int      format_count;
+    uint32_t format_offset;
+
+    /*
+       The drive runs its own capstan motor under QIC-117 control and pays
+       no attention to the controller's motor line, so the transfer clock
+       is ours rather than the floppy drive poll.
+     */
+    pc_timer_t timer;
+    int        timer_added;
+} tape_t;
+
+static tape_t  tape;
+static fdc_t  *tape_fdc = NULL;
+
+int  fdd_tape_enabled = 0;
+int  fdd_tape_unit    = 1;
+char fdd_tape_fn[MAX_IMAGE_PATH_LEN];
+
+#ifdef ENABLE_FDD_TAPE_LOG
+int fdd_tape_do_log = ENABLE_FDD_TAPE_LOG;
+
+static void
+fdd_tape_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (fdd_tape_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define fdd_tape_log(fmt, ...)
+#endif
+
+/* --------------------------------------------------------------------- */
+/* Cartridge image access                                                 */
+/* --------------------------------------------------------------------- */
+
+static int
+tape_has_cartridge(void)
+{
+    return tape.fp != NULL;
+}
+
+/* Reads a sector's worth of image, zero-filling past the end of the file.
+   A short or missing image simply reads back as blank tape. */
+static void
+tape_image_read(uint32_t offset, uint8_t *buf, uint32_t len)
+{
+    uint32_t got = 0;
+
+    memset(buf, 0x00, len);
+
+    if ((tape.fp == NULL) || (offset >= tape.image_size))
+        return;
+
+    if (fseek(tape.fp, (long) offset, SEEK_SET) != 0)
+        return;
+
+    if ((offset + len) > tape.image_size)
+        len = tape.image_size - offset;
+
+    got = (uint32_t) fread(buf, 1, len, tape.fp);
+    if (got < len)
+        memset(buf + got, 0x00, len - got);
+}
+
+static void
+tape_image_write(uint32_t offset, const uint8_t *buf, uint32_t len)
+{
+    if ((tape.fp == NULL) || tape.readonly)
+        return;
+
+    /* Writing past the end grows the image, so a fresh cartridge can start
+       out as an empty file. */
+    if (fseek(tape.fp, (long) offset, SEEK_SET) != 0)
+        return;
+
+    if (fwrite(buf, 1, len, tape.fp) != len)
+        return;
+
+    fflush(tape.fp);
+
+    if ((offset + len) > tape.image_size)
+        tape.image_size = offset + len;
+}
+
+/* --------------------------------------------------------------------- */
+/* QIC-117 command set                                                    */
+/* --------------------------------------------------------------------- */
+
+/* Segments per tape track. The real figure lives in the cartridge's header
+   segment, which only the host has read, so this is the QIC-80 default
+   unless the host has told us otherwise. */
+static int
+tape_segments_per_track(void)
+{
+    return tape.format_segments ? tape.format_segments : TAPE_SEGMENTS_PER_TRACK;
+}
+
+/* The first segment of the track the head currently sits on. */
+static int
+tape_track_start(void)
+{
+    return tape.track * tape_segments_per_track();
+}
+
+static void
+tape_update_status(void)
+{
+    tape.status &= ~(QIC_STATUS_CARTRIDGE_PRESENT | QIC_STATUS_WRITE_PROTECT |
+                     QIC_STATUS_REFERENCED | QIC_STATUS_AT_BOT | QIC_STATUS_AT_EOT);
+
+    if (!tape_has_cartridge())
+        return;
+
+    tape.status |= QIC_STATUS_CARTRIDGE_PRESENT;
+
+    if (tape.readonly)
+        tape.status |= QIC_STATUS_WRITE_PROTECT;
+
+    /* A cartridge with a reference burst written to it is "referenced",
+       which is what the host takes as "formatted". An empty image is
+       reported as unformatted so the host offers to format it. */
+    if (tape.image_size > 0)
+        tape.status |= QIC_STATUS_REFERENCED;
+
+    /* Beginning and end of tape are relative to the current track. */
+    const int offset = tape.segment - tape_track_start();
+
+    if (offset <= 0)
+        tape.status |= QIC_STATUS_AT_BOT;
+    else if (offset >= (tape_segments_per_track() - 1))
+        tape.status |= QIC_STATUS_AT_EOT;
+}
+
+static void
+tape_set_error(uint8_t error, uint8_t command)
+{
+    tape.error     = error;
+    tape.error_cmd = command;
+    tape.status |= QIC_STATUS_ERROR;
+}
+
+/* Loads the shift register the host will clock out over the TRACK 0 line.
+   The drive first raises TRACK 0 as an acknowledge, then hands over one
+   bit per "report next bit", least significant first, and finally raises
+   the line once more as a stop bit. */
+static void
+tape_start_report(uint32_t value, int length)
+{
+    tape.report_value = value;
+    tape.report_len   = length;
+    tape.report_pos   = 0;
+    tape.ack          = 1;
+}
+
+static void
+tape_report_next_bit(void)
+{
+    if (tape.report_pos == TAPE_REPORT_IDLE) {
+        /* Not reporting - the line returns to its idle state. */
+        tape.ack = 0;
+        return;
+    }
+
+    if (tape.report_pos < tape.report_len)
+        tape.ack = (tape.report_value >> tape.report_pos) & 1;
+    else if (tape.report_pos == tape.report_len)
+        tape.ack = 1; /* stop bit */
+    else {
+        /* One bit past the stop bit puts TRACK 0 back to normal. */
+        tape.ack        = 0;
+        tape.report_pos = TAPE_REPORT_IDLE;
+        return;
+    }
+
+    tape.report_pos++;
+}
+
+static void
+tape_stop_motion(void)
+{
+    tape.running = 0;
+    tape.status |= QIC_STATUS_READY;
+}
+
+/* Moves the head to an absolute segment, clamped to the cartridge. */
+static void
+tape_seek_to_segment(int segment)
+{
+    const int last = (FDD_TAPE_SEGS_PER_HEAD * 2) - 1;
+
+    if (segment < 0)
+        segment = 0;
+    if (segment > last)
+        segment = last;
+
+    tape.segment = segment;
+}
+
+/* Handles a command that takes parameters once the last one has arrived. */
+static void
+tape_finish_parameters(void)
+{
+    uint32_t count;
+
+    switch (tape.param_cmd) {
+        case QIC_SEEK_HEAD_TO_TRACK:
+            tape.track = tape.param[0];
+            /* Odd tracks are written back to front. */
+            tape.reverse = tape.track & 1;
+            tape_seek_to_segment(tape_track_start());
+            break;
+
+        case QIC_SKIP_FORWARD:
+        case QIC_SKIP_EXTENDED_FORWARD:
+        case QIC_SKIP_REVERSE:
+        case QIC_SKIP_EXTENDED_REVERSE:
+            /* The count arrives as 2 or 3 nibbles, low nibble first, and
+               is biased by one - zero means "skip one gap". */
+            count = 0;
+            for (int i = tape.params_got - 1; i >= 0; i--)
+                count = (count << 4) | (tape.param[i] & 0x0f);
+            count++;
+            if ((tape.param_cmd == QIC_SKIP_REVERSE) ||
+                (tape.param_cmd == QIC_SKIP_EXTENDED_REVERSE))
+                tape_seek_to_segment(tape.segment - (int) count);
+            else
+                tape_seek_to_segment(tape.segment + (int) count);
+            break;
+
+        case QIC_SET_FORMAT_SEGMENTS:
+            tape.format_segments = tape.param[0];
+            break;
+
+        default:
+            /* Rate selection, drive selection and timeouts have no effect
+               on an emulated drive - the parameter is simply accepted. */
+            break;
+    }
+
+    tape_stop_motion();
+}
+
+/* How many parameters a command expects, if any. */
+static int
+tape_command_params(uint8_t command)
+{
+    switch (command) {
+        case QIC_SKIP_EXTENDED_FORWARD:
+        case QIC_SKIP_EXTENDED_REVERSE:
+            return 3;
+
+        case QIC_SKIP_FORWARD:
+        case QIC_SKIP_REVERSE:
+            return 2;
+
+        case QIC_ALTERNATE_TIMEOUT:
+        case QIC_SEEK_HEAD_TO_TRACK:
+        case QIC_SOFT_SELECT:
+        case QIC_SELECT_RATE:
+        case QIC_SET_FORMAT_SEGMENTS:
+        case QIC_PHANTOM_SELECT:
+        case QIC_EXT_SELECT_RATE:
+            return 1;
+
+        default:
+            return 0;
+    }
+}
+
+static void
+tape_command(uint8_t command)
+{
+    fdd_tape_log("Tape: QIC-117 command %i\n", command);
+
+    /* "Report next bit" is the one command that never disturbs the drive
+       state, so it is handled before anything else. */
+    if (command == QIC_REPORT_NEXT_BIT) {
+        tape_report_next_bit();
+        return;
+    }
+
+    /* Anything else ends a report in progress and drops TRACK 0. */
+    tape.report_pos = TAPE_REPORT_IDLE;
+    tape.ack        = 0;
+
+    tape.last_command = command;
+
+    switch (command) {
+        case QIC_RESET:
+            tape.selected    = 0;
+            tape.running     = 0;
+            tape.reverse     = 0;
+            tape.format_mode = 0;
+            tape.verify_mode = 0;
+            tape.track       = 0;
+            tape.segment     = 0;
+            tape.error       = QIC_ERROR_NONE;
+            tape.error_cmd   = QIC_NO_COMMAND;
+            tape.status      = QIC_STATUS_READY;
+            tape.xfer_state  = TAPE_XFER_IDLE;
+            break;
+
+        case QIC_REPORT_DRIVE_STATUS:
+            tape_update_status();
+            tape_start_report(tape.status, 8);
+            return;
+
+        case QIC_REPORT_ERROR_CODE:
+            /* The error code comes back with the offending command in the
+               high byte. Reading it clears the error condition. */
+            tape_start_report(tape.error | (tape.error_cmd << 8), 16);
+            tape.error     = QIC_ERROR_NONE;
+            tape.error_cmd = QIC_NO_COMMAND;
+            tape.status &= ~(QIC_STATUS_ERROR | QIC_STATUS_NEW_CARTRIDGE);
+            return;
+
+        case QIC_REPORT_DRIVE_CONFIG:
+            tape_start_report(QIC_CONFIG_RATE_500 | QIC_CONFIG_LONG | QIC_CONFIG_80, 8);
+            return;
+
+        case QIC_REPORT_ROM_VERSION:
+            tape_start_report(QIC_ROM_VERSION, 8);
+            return;
+
+        case QIC_REPORT_VENDOR_ID:
+            tape_start_report(QIC_VENDOR_ID & 0xffff, 16);
+            return;
+
+        case QIC_REPORT_TAPE_STATUS:
+            if (!tape_has_cartridge()) {
+                tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
+                break;
+            }
+            tape_start_report(QIC_TAPE_QIC80 | QIC_TAPE_307FT, 8);
+            return;
+
+        case QIC_REPORT_FORMAT_SEGMENTS:
+            tape_start_report(tape.format_segments ? tape.format_segments
+                                                   : TAPE_SEGMENTS_PER_TRACK, 16);
+            return;
+
+        case QIC_EXT_REPORT_DRIVE_CONFIG:
+            tape_start_report(0x00, 8);
+            return;
+
+        case QIC_LOGICAL_FORWARD:
+        case QIC_PHYSICAL_FORWARD:
+            if (!tape_has_cartridge()) {
+                tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
+                break;
+            }
+            /* The tape is now streaming; the command itself is done, so the
+               drive stays ready for whatever comes next. */
+            tape.running = 1;
+            tape.reverse = 0;
+            break;
+
+        case QIC_PHYSICAL_REVERSE:
+            if (!tape_has_cartridge()) {
+                tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
+                break;
+            }
+            tape_seek_to_segment(tape_track_start());
+            tape_stop_motion();
+            break;
+
+        case QIC_SEEK_LOAD_POINT:
+            if (!tape_has_cartridge()) {
+                tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
+                break;
+            }
+            tape.track = 0;
+            tape_seek_to_segment(0);
+            tape_stop_motion();
+            break;
+
+        case QIC_STOP_TAPE:
+        case QIC_PAUSE:
+        case QIC_MICRO_STEP_PAUSE:
+            tape.xfer_state = TAPE_XFER_IDLE;
+            tape_stop_motion();
+            break;
+
+        case QIC_ENTER_FORMAT_MODE:
+            if (tape.readonly) {
+                tape_set_error(QIC_ERROR_WRITE_PROTECTED, command);
+                break;
+            }
+            tape.format_mode = 1;
+            tape.verify_mode = 0;
+            break;
+
+        case QIC_ENTER_VERIFY_MODE:
+            tape.verify_mode = 1;
+            tape.format_mode = 0;
+            break;
+
+        case QIC_ENTER_PRIMARY_MODE:
+        case QIC_ENTER_DIAGNOSTIC_1:
+        case QIC_ENTER_DIAGNOSTIC_2:
+            tape.format_mode = 0;
+            tape.verify_mode = 0;
+            break;
+
+        case QIC_WRITE_REFERENCE_BURST:
+            /* Laying down the reference burst is what makes a blank
+               cartridge "referenced". */
+            if (tape.readonly) {
+                tape_set_error(QIC_ERROR_WRITE_PROTECTED, command);
+                break;
+            }
+            if (tape.image_size == 0)
+                tape.image_size = 1;
+            break;
+
+        case QIC_CALIBRATE_TAPE_LENGTH:
+        case QIC_MICRO_STEP_HEAD_UP:
+        case QIC_MICRO_STEP_HEAD_DOWN:
+            break;
+
+        case QIC_SOFT_DESELECT:
+        case QIC_PHANTOM_DESELECT:
+            tape.selected = 0;
+            break;
+
+        default:
+            if (command > QIC_MAX_COMMAND) {
+                tape_set_error(QIC_ERROR_ILLEGAL_COMMAND, command);
+                break;
+            }
+            break;
+    }
+
+    /* Commands taking parameters stay busy until the last one lands. */
+    tape.params_left = tape_command_params(command);
+    tape.params_got  = 0;
+    tape.param_cmd   = command;
+
+    if (tape.params_left == 0)
+        tape.status |= QIC_STATUS_READY;
+    else
+        tape.status &= ~QIC_STATUS_READY;
+
+    /* Selection is only complete once the unit parameter has arrived. */
+    if ((command == QIC_SOFT_SELECT) || (command == QIC_PHANTOM_SELECT))
+        tape.selected = 1;
+}
+
+/* Decodes one burst of step pulses into a command or a parameter. */
+static void
+tape_step_pulses(int steps)
+{
+    if (steps <= 0)
+        return;
+
+    if (tape.params_left > 0) {
+        /* Parameters arrive biased by two, so that a parameter of zero
+           can't be mistaken for the "no command" pulse count. */
+        if (steps < 2) {
+            tape.params_left = 0;
+            tape_set_error(QIC_ERROR_ILLEGAL_COMMAND, tape.param_cmd);
+            tape.status |= QIC_STATUS_READY;
+            return;
+        }
+
+        if (tape.params_got < (int) (sizeof(tape.param) / sizeof(tape.param[0])))
+            tape.param[tape.params_got] = (uint8_t) (steps - 2);
+        tape.params_got++;
+        tape.params_left--;
+
+        fdd_tape_log("Tape: QIC-117 parameter %i (%i left)\n", steps - 2, tape.params_left);
+
+        if (tape.params_left == 0)
+            tape_finish_parameters();
+
+        return;
+    }
+
+    tape_command((uint8_t) steps);
+}
+
+/* --------------------------------------------------------------------- */
+/* Floppy drive interface                                                 */
+/* --------------------------------------------------------------------- */
+
+/* Turns a floppy C/H/R address into an offset into the cartridge image.
+   Returns 0 if the address doesn't name a sector that can exist on tape. */
+static int
+tape_sector_offset(int track, int side, int sector, uint32_t *offset)
+{
+    int segment;
+    int sector_in_segment;
+
+    if ((sector < 1) || (sector > (FDD_TAPE_SEGS_PER_CYL * FDD_TAPE_SECTORS_PER_SEG)))
+        return 0;
+
+    if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 1))
+        return 0;
+
+    segment = (side * FDD_TAPE_SEGS_PER_HEAD) + (track * FDD_TAPE_SEGS_PER_CYL) +
+              ((sector - 1) / FDD_TAPE_SECTORS_PER_SEG);
+    sector_in_segment = (sector - 1) % FDD_TAPE_SECTORS_PER_SEG;
+
+    *offset = ((uint32_t) segment * FDD_TAPE_SEGMENT_SIZE) +
+              ((uint32_t) sector_in_segment * FDD_TAPE_SECTOR_SIZE);
+
+    return 1;
+}
+
+static void
+tape_seek(int drive, int track)
+{
+    int steps;
+
+    if (drive != tape.drive)
+        return;
+
+    steps           = abs(track - tape.last_track);
+    tape.last_track = track;
+
+    tape_step_pulses(steps);
+}
+
+/* QIC-80 streams at 500 kbps, which is 16 microseconds per byte. */
+#define TAPE_BYTE_PERIOD (16ULL * TIMER_USEC)
+
+static void
+tape_start_clock(void)
+{
+    if (tape.timer_added)
+        timer_set_delay_u64(&tape.timer, TAPE_BYTE_PERIOD);
+}
+
+static void
+tape_stop_clock(void)
+{
+    if (tape.timer_added)
+        timer_disable(&tape.timer);
+}
+
+static void
+tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
+{
+    uint32_t offset = 0;
+
+    tape.xfer_state = TAPE_XFER_IDLE;
+
+    if (!tape_has_cartridge() || !tape.running) {
+        fdc_nosector(tape_fdc);
+        return;
+    }
+
+    /* The tape format only ever uses 1024-byte sectors. */
+    if (sector_size != 3) {
+        fdc_nosector(tape_fdc);
+        return;
+    }
+
+    if (!tape_sector_offset(track, side, sector, &offset)) {
+        fdc_nosector(tape_fdc);
+        return;
+    }
+
+    if ((state == TAPE_XFER_WRITE) && tape.readonly) {
+        fdc_writeprotect(tape_fdc);
+        return;
+    }
+
+    tape.xfer_offset = offset;
+    tape.xfer_pos    = 0;
+    tape.xfer_len    = FDD_TAPE_SECTOR_SIZE;
+    tape.xfer_state  = state;
+
+    if (state != TAPE_XFER_WRITE)
+        tape_image_read(offset, tape.buffer, FDD_TAPE_SECTOR_SIZE);
+    else
+        memset(tape.buffer, 0x00, FDD_TAPE_SECTOR_SIZE);
+
+    /* The segment under the head advances as sectors stream past. */
+    tape.segment = (int) (offset / FDD_TAPE_SEGMENT_SIZE);
+
+    tape_start_clock();
+}
+
+static void
+tape_readsector(int drive, int sector, int track, int side, UNUSED(int density), int sector_size)
+{
+    if (drive != tape.drive)
+        return;
+
+    /* Read A Track isn't meaningful on tape. */
+    if (sector < 0) {
+        fdc_nosector(tape_fdc);
+        return;
+    }
+
+    tape_setup_transfer(TAPE_XFER_READ, sector, track, side, sector_size);
+}
+
+static void
+tape_writesector(int drive, int sector, int track, int side, UNUSED(int density), int sector_size)
+{
+    if (drive != tape.drive)
+        return;
+
+    tape_setup_transfer(TAPE_XFER_WRITE, sector, track, side, sector_size);
+}
+
+static void
+tape_comparesector(int drive, int sector, int track, int side, UNUSED(int density), int sector_size)
+{
+    if (drive != tape.drive)
+        return;
+
+    tape_setup_transfer(TAPE_XFER_COMPARE, sector, track, side, sector_size);
+}
+
+/* The host uses READ ID to find out where on the tape it currently is. */
+static void
+tape_readaddress(int drive, UNUSED(int side), UNUSED(int density))
+{
+    int segment;
+    int cylinder;
+    int sector;
+
+    if (drive != tape.drive)
+        return;
+
+    if (!tape_has_cartridge()) {
+        fdc_nosector(tape_fdc);
+        return;
+    }
+
+    if (!tape.running) {
+        /* A stopped tape has no sector passing the head. The host reads
+           this back as sector zero and goes looking for the drive status. */
+        fdc_sectorid(tape_fdc, 0, 0, 0, 3, 0, 0);
+        return;
+    }
+
+    segment  = tape.segment;
+    cylinder = (segment % FDD_TAPE_SEGS_PER_HEAD) / FDD_TAPE_SEGS_PER_CYL;
+    sector   = ((segment % FDD_TAPE_SEGS_PER_CYL) * FDD_TAPE_SECTORS_PER_SEG) + 1;
+
+    fdc_sectorid(tape_fdc, (uint8_t) cylinder, (uint8_t) (segment / FDD_TAPE_SEGS_PER_HEAD),
+                 (uint8_t) sector, 3, 0, 0);
+}
+
+static void
+tape_format(int drive, UNUSED(int side), UNUSED(int density), UNUSED(uint8_t fill))
+{
+    if (drive != tape.drive)
+        return;
+
+    if (!tape_has_cartridge() || tape.readonly) {
+        fdc_writeprotect(tape_fdc);
+        return;
+    }
+
+    tape.xfer_state   = TAPE_XFER_FORMAT;
+    tape.format_datac = 0;
+    tape.format_count = 0;
+
+    tape_start_clock();
+}
+
+static void
+tape_stop(int drive)
+{
+    if (drive != tape.drive)
+        return;
+
+    tape.xfer_state = TAPE_XFER_IDLE;
+    tape_stop_clock();
+}
+
+static int
+tape_hole(UNUSED(int drive))
+{
+    /* QIC-80 streams at 500 kbps, same as a high density floppy. */
+    return 1;
+}
+
+static uint64_t
+tape_byteperiod(UNUSED(int drive))
+{
+    return TAPE_BYTE_PERIOD;
+}
+
+/* Moves one byte of the current transfer, once per byte period. */
+static void
+tape_clock(UNUSED(void *priv))
+{
+    int data;
+
+    timer_advance_u64(&tape.timer, TAPE_BYTE_PERIOD);
+
+    switch (tape.xfer_state) {
+        case TAPE_XFER_READ:
+            if (!fdc_is_verify(tape_fdc)) {
+                data = fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
+                                tape.xfer_pos == (tape.xfer_len - 1));
+                if (data == -1) {
+                    tape.xfer_state = TAPE_XFER_IDLE;
+                    tape_stop_clock();
+                    fdc_overrun(tape_fdc);
+                    return;
+                }
+            }
+
+            tape.xfer_pos++;
+            if (tape.xfer_pos >= tape.xfer_len) {
+                tape.xfer_state = TAPE_XFER_IDLE;
+                tape_stop_clock();
+                fdc_sector_finishread(tape_fdc);
+            }
+            break;
+
+        case TAPE_XFER_WRITE:
+            data = fdc_getdata(tape_fdc, tape.xfer_pos == (tape.xfer_len - 1));
+            if ((data & DMA_OVER) || (data == -1))
+                data = (data == -1) ? 0 : (data & 0xff);
+
+            tape.buffer[tape.xfer_pos] = (uint8_t) (data & 0xff);
+
+            tape.xfer_pos++;
+            if (tape.xfer_pos >= tape.xfer_len) {
+                tape.xfer_state = TAPE_XFER_IDLE;
+                tape_stop_clock();
+                tape_image_write(tape.xfer_offset, tape.buffer, tape.xfer_len);
+                fdc_sector_finishread(tape_fdc);
+            }
+            break;
+
+        case TAPE_XFER_COMPARE:
+            data = fdc_getdata(tape_fdc, tape.xfer_pos == (tape.xfer_len - 1));
+            if ((data & DMA_OVER) || (data == -1))
+                data = (data == -1) ? 0 : (data & 0xff);
+
+            tape.xfer_pos++;
+            if (tape.xfer_pos >= tape.xfer_len) {
+                tape.xfer_state = TAPE_XFER_IDLE;
+                tape_stop_clock();
+                fdc_sector_finishcompare(tape_fdc, 1);
+            }
+            break;
+
+        case TAPE_XFER_FORMAT:
+            /* The host feeds four ID bytes per sector through DMA; the
+               sector itself is laid down blank. */
+            if (tape.format_datac <= 3) {
+                data = fdc_getdata(tape_fdc, 0);
+                if (data == -1)
+                    data = 0;
+                tape_fdc->format_sector_id.byte_array[tape.format_datac] = data & 0xff;
+
+                if (tape.format_datac == 3) {
+                    fdc_stop_id_request(tape_fdc);
+                    if (!tape_sector_offset(tape_fdc->format_sector_id.id.c,
+                                            tape_fdc->format_sector_id.id.h,
+                                            tape_fdc->format_sector_id.id.r,
+                                            &tape.format_offset))
+                        tape.format_offset = UINT32_MAX;
+                }
+            } else if (tape.format_datac == 4) {
+                if (tape.format_offset != UINT32_MAX) {
+                    memset(tape.buffer, 0x00, FDD_TAPE_SECTOR_SIZE);
+                    tape_image_write(tape.format_offset, tape.buffer, FDD_TAPE_SECTOR_SIZE);
+                }
+                tape.format_count++;
+            }
+
+            tape.format_datac++;
+
+            if (tape.format_datac == 6) {
+                tape.format_datac = 0;
+
+                if (tape.format_count < fdc_get_format_sectors(tape_fdc))
+                    fdc_request_next_sector_id(tape_fdc);
+                else {
+                    tape.xfer_state = TAPE_XFER_IDLE;
+                    tape_stop_clock();
+                    fdc_sector_finishread(tape_fdc);
+                }
+            }
+            break;
+
+        default:
+            tape_stop_clock();
+            break;
+    }
+}
+
+/* --------------------------------------------------------------------- */
+/* Public interface                                                       */
+/* --------------------------------------------------------------------- */
+
+int
+fdd_tape_present(int drive)
+{
+    return tape.attached && (drive == tape.drive);
+}
+
+int
+fdd_tape_track0(int drive)
+{
+    if (!fdd_tape_present(drive))
+        return 0;
+
+    /* TRACK 0 carries the result of the last "report" command instead of
+       the head position. */
+    return tape.ack;
+}
+
+int
+fdd_tape_get_flags(int drive)
+{
+    if (!fdd_tape_present(drive))
+        return 0;
+
+    /* Enough of a drive for the controller to talk to it: 300 rpm, double
+       sided, and both double and high density media. */
+    return 0x01 | 0x08 | 0x10 | 0x20;
+}
+
+void
+fdd_tape_set_fdc(void *fdc)
+{
+    tape_fdc = (fdc_t *) fdc;
+}
+
+void
+fdd_tape_eject(void)
+{
+    if (tape.fp != NULL) {
+        fclose(tape.fp);
+        tape.fp = NULL;
+    }
+
+    tape.image_size = 0;
+    tape.readonly   = 0;
+    tape.xfer_state = TAPE_XFER_IDLE;
+
+    if (tape.attached)
+        writeprot[tape.drive] = 1;
+}
+
+void
+fdd_tape_load(const char *fn)
+{
+    FILE *fp;
+
+    fdd_tape_eject();
+
+    if ((fn == NULL) || (fn[0] == 0x00))
+        return;
+
+    tape.readonly = 0;
+
+    /* The configuration marks write-protected images with a wp:// prefix. */
+    if (strstr(fn, "wp://") == fn) {
+        fn += 5;
+        tape.readonly = 1;
+    }
+
+    if (tape.readonly)
+        fp = NULL;
+    else
+        fp = plat_fopen((char *) fn, "rb+");
+    if (fp == NULL) {
+        fp = plat_fopen((char *) fn, "rb");
+        if (fp != NULL)
+            tape.readonly = 1;
+    }
+
+    /* A cartridge that isn't there yet is a blank one - create it. */
+    if (fp == NULL) {
+        fp = plat_fopen((char *) fn, "wb+");
+        if (fp == NULL) {
+            fdd_tape_log("Tape: unable to open image %s\n", fn);
+            return;
+        }
+    }
+
+    if (fseek(fp, 0, SEEK_END) == 0)
+        tape.image_size = (uint32_t) ftell(fp);
+    else
+        tape.image_size = 0;
+
+    tape.fp = fp;
+
+    if (tape.attached)
+        writeprot[tape.drive] = tape.readonly;
+
+    fdd_tape_log("Tape: loaded %s (%u bytes%s)\n", fn, tape.image_size,
+                 tape.readonly ? ", read-only" : "");
+}
+
+void
+fdd_tape_init(void)
+{
+    int drive;
+
+    fdd_tape_close();
+
+    if (!fdd_tape_enabled)
+        return;
+
+    drive = fdd_tape_unit;
+    if ((drive < 0) || (drive >= FDD_NUM))
+        drive = 1;
+
+    memset(&tape, 0x00, sizeof(tape));
+
+    tape.attached   = 1;
+    tape.drive      = drive;
+    tape.status     = QIC_STATUS_READY;
+    tape.report_pos = TAPE_REPORT_IDLE;
+    tape.error_cmd  = QIC_NO_COMMAND;
+    tape.xfer_state = TAPE_XFER_IDLE;
+
+    /* Step pulses are counted relative to wherever the head already is. */
+    tape.last_track = fdd_current_track(drive);
+
+    timer_add(&tape.timer, tape_clock, NULL, 0);
+    tape.timer_added = 1;
+
+    /* The tape drive takes over this drive select line from whatever
+       floppy drive may have been configured on it. Note that it has no
+       poll handler - the transfer clock is the drive's own. */
+    drives[drive].seek          = tape_seek;
+    drives[drive].readsector    = tape_readsector;
+    drives[drive].writesector   = tape_writesector;
+    drives[drive].comparesector = tape_comparesector;
+    drives[drive].readaddress   = tape_readaddress;
+    drives[drive].format        = tape_format;
+    drives[drive].hole          = tape_hole;
+    drives[drive].byteperiod    = tape_byteperiod;
+    drives[drive].stop          = tape_stop;
+    drives[drive].poll          = NULL;
+
+    drive_empty[drive] = 0;
+    fdd_changed[drive] = 0;
+
+    fdd_tape_load(fdd_tape_fn);
+}
+
+void
+fdd_tape_close(void)
+{
+    int drive = tape.drive;
+
+    fdd_tape_eject();
+
+    /* The timer has to leave the active list before the state is wiped. */
+    tape_stop_clock();
+    tape.timer_added = 0;
+
+    if (tape.attached) {
+        drives[drive].seek          = NULL;
+        drives[drive].readsector    = NULL;
+        drives[drive].writesector   = NULL;
+        drives[drive].comparesector = NULL;
+        drives[drive].readaddress   = NULL;
+        drives[drive].format        = NULL;
+        drives[drive].hole          = NULL;
+        drives[drive].byteperiod    = NULL;
+        drives[drive].stop          = NULL;
+        drives[drive].poll          = NULL;
+
+        drive_empty[drive] = 1;
+    }
+
+    memset(&tape, 0x00, sizeof(tape));
+    tape.report_pos = TAPE_REPORT_IDLE;
+}

@@ -40,6 +40,7 @@
 #include <86box/fdd_pcjs.h>
 #include <86box/fdd_mfm.h>
 #include <86box/fdd_td0.h>
+#include <86box/fdd_tape.h>
 #include <86box/fdc.h>
 #include <86box/fdd_audio.h>
 #include <86box/plat_floppy_ioctl.h>
@@ -409,18 +410,32 @@ fdd_seek(int drive, int track_diff)
     }
 
     int old_track = fdd[drive].track;
+    int max_track = fdd_tape_present(drive) ? FDD_TAPE_MAX_TRACK
+                                            : drive_types[fdd[drive].type].max_track;
 
     fdd[drive].track += track_diff;
 
     if (fdd[drive].track < 0)
         fdd[drive].track = 0;
 
-    if (fdd[drive].track > drive_types[fdd[drive].type].max_track)
-        fdd[drive].track = drive_types[fdd[drive].type].max_track;
+    if (fdd[drive].track > max_track)
+        fdd[drive].track = max_track;
 
     fdd_changed[drive] = 0;
 
-    if (fdd[drive].turbo) {
+    if (fdd_tape_present(drive)) {
+        /*
+           A floppy tape drive decodes the step pulses as a QIC-117 command,
+           so the seek has to complete promptly - the host sends a whole
+           command per seek and waits for the interrupt each time.
+         */
+        fdd_seek_in_progress[drive] = 1;
+
+        if (!fdd_seek_timer[drive].callback)
+            timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
+
+        timer_set_delay_u64(&fdd_seek_timer[drive], 100ULL * TIMER_USEC);
+    } else if (fdd[drive].turbo) {
         fdd_do_seek(drive, fdd[drive].track);
     } else {
         /* Trigger appropriate audio for track movements */
@@ -456,6 +471,10 @@ int
 fdd_track0(int drive)
 {
     fdd_log("fdd_track0(drive=%d)\n", drive);
+
+    /* On a floppy tape drive, TRK0 is the drive's result line. */
+    if (fdd_tape_present(drive))
+        return fdd_tape_track0(drive);
 
     /* If drive is disabled, TRK0 never gets set. */
     if (!drive_types[fdd[drive].type].max_track)
@@ -546,7 +565,7 @@ fdd_can_read_medium(int drive)
 
     hole = 1 << (hole + 4);
 
-    return !!(drive_types[fdd[drive].type].flags & hole);
+    return !!(fdd_get_flags(drive) & hole);
 }
 
 int
@@ -572,37 +591,42 @@ fdd_get_type(int drive)
 int
 fdd_get_flags(int drive)
 {
+    /* A floppy tape drive answers on this drive select line instead of
+       whatever floppy drive may be configured on it. */
+    if (fdd_tape_present(drive))
+        return fdd_tape_get_flags(drive);
+
     return drive_types[fdd[drive].type].flags;
 }
 
 int
 fdd_is_525(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_525;
+    return fdd_get_flags(drive) & FLAG_525;
 }
 
 int
 fdd_is_dd(int drive)
 {
-    return (drive_types[fdd[drive].type].flags & 0x70) == 0x10;
+    return (fdd_get_flags(drive) & 0x70) == 0x10;
 }
 
 int
 fdd_is_hd(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_HOLE1;
+    return fdd_get_flags(drive) & FLAG_HOLE1;
 }
 
 int
 fdd_is_ed(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_HOLE2;
+    return fdd_get_flags(drive) & FLAG_HOLE2;
 }
 
 int
 fdd_is_double_sided(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_DS;
+    return fdd_get_flags(drive) & FLAG_DS;
 }
 
 void
@@ -665,6 +689,11 @@ fdd_load(int drive, char *fn)
 
     if (!fn)
         return;
+
+    /* This drive select line belongs to the tape drive, not to a floppy. */
+    if (fdd_tape_present(drive))
+        return;
+
     if (strstr(fn, "wp://") == fn) {
         offs                = 5;
         ui_writeprot[drive] = 1;
@@ -735,6 +764,12 @@ fdd_load(int drive, char *fn)
 void
 fdd_close(int drive)
 {
+    /* Closing a tape drive ejects the cartridge; the drive stays on the cable. */
+    if (fdd_tape_present(drive)) {
+        fdd_tape_eject();
+        return;
+    }
+
     d86f_stop(drive); /* Call this first of all to make sure the 86F poll is back to idle state. */
 
     drives[drive].hole          = NULL;
@@ -860,6 +895,9 @@ fdd_reset(void)
         /* Clear any pending seek state */
         fdd_seek_in_progress[i] = 0;
     }
+
+    /* The tape drive keeps its own timer, which the reset has just torn down. */
+    fdd_tape_init();
 }
 
 void
@@ -1016,7 +1054,13 @@ fdd_init(void)
     imd_init();
     pcjs_init();
 
+    /* Claims a drive select line before any floppy image is loaded onto it. */
+    fdd_tape_init();
+
     for (i = 0; i < FDD_NUM; i++) {
+        if (fdd_tape_present(i))
+            continue;
+
         fdd_load(i, floppyfns[i]);
     }
 
