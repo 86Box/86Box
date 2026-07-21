@@ -2485,7 +2485,7 @@ cdrom_msf_to_lba(const int sector, const int ismsf,
     int      pos = sector;
     uint32_t lba;
 
-    if ((cdrom_sector_type & 0x0f) >= 0x08) {
+    if ((cdrom_sector_type & 0x0f) >= 0x08 && !ismsf) {
         mult               = cdrom_sector_type >> 4;
         pos               /= mult;
     }
@@ -2496,6 +2496,11 @@ cdrom_msf_to_lba(const int sector, const int ismsf,
         const int f = pos & 0xff;
 
         lba = MSFtoLBA(m, s, f) - 150;
+
+        if ((cdrom_sector_type & 0x0f) >= 0x08) {
+            mult  = cdrom_sector_type >> 4;
+            lba  /= mult;
+        }
     } else {
         switch (vendor_type) {
             case 0x00:
