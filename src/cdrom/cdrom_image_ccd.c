@@ -9,13 +9,13 @@
  *          Support for CloneCD images.
  *
  *
- * Authors: TheCollector1995, <mariogplayer@gmail.com>,
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          The Domesday Project (The (de)scrambling code), <https://www.domesday86.com/?page_id=2678>
  *          Cacodemon345
  *
- *          Copyright 2023 TheCollector1995.
- *          Copyright 2023 Miran Grca.
- *          Copyright 2026 Cacodemon345.
+ *          Copyright 2026 Miran Grca.
+ *          Copyright 2026 The Domesday Project.
+ *          Copyright 2025-2026 Cacodemon345.
  */
 
 #define __STDC_FORMAT_MACROS
