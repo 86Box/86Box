@@ -363,6 +363,17 @@ static const device_config_t tc430hx_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "Intel AMIBIOS - Revision 1.00.02.DH05 (Micron Millennia LXA/ClientPro MTA)",
+                .internal_name = "millennialxa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/tc430hx/1002DH05.BIO", "roms/machines/tc430hx/1002DH05.BI1",
+                                   "roms/machines/tc430hx/1002DH05.BI2", "roms/machines/tc430hx/1002DH05.BI3",
+                                   "roms/machines/tc430hx/1002DH05.RCV", "" }
+            },
+            {
                 .name          = "Intel AMIBIOS - Revision 1.00.07.DH0",
                 .internal_name = "tc430hx",
                 .bios_type     = BIOS_NORMAL,
@@ -1847,6 +1858,17 @@ static const device_config_t an430tx_config[] = {
                 .files         = { "roms/machines/an430tx/P02-0011.BIO", "roms/machines/an430tx/P02-0011.BI1",
                                    "roms/machines/an430tx/P02-0011.BI2", "roms/machines/an430tx/P02-0011.BI3",
                                    "roms/machines/an430tx/P02-0011.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0024 (Micron Millennia MME)",
+                .internal_name = "millenniamme",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/an430tx/P07-0024.BIO", "roms/machines/an430tx/P07-0024.BI1",
+                                   "roms/machines/an430tx/P07-0024.BI2", "roms/machines/an430tx/P07-0024.BI3",
+                                   "roms/machines/an430tx/P07-0024.RCV", "" }
             },
             {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P09-0006 (Packard Bell PB79x)",
