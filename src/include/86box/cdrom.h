@@ -550,6 +550,7 @@ extern int             cdrom_get_type(const int model);
 
 extern int             cdrom_lba_to_msf_accurate(const int lba);
 extern void            cdrom_interleave_subch(uint8_t *d, const uint8_t *s);
+extern void            cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s);
 extern double          cdrom_seek_time(const cdrom_t *dev);
 extern void            cdrom_stop(cdrom_t *dev);
 extern void            cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type);
@@ -590,6 +591,7 @@ extern int             cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const
                                             int *len, const uint8_t vendor_type);
 extern int             cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t format,
                                                 uint8_t *buffer, uint32_t *info);
+extern void            cdrom_generate_scramble_lut(uint8_t *b);
 extern void            cdrom_read_disc_information(const cdrom_t *dev, uint8_t *buffer);
 extern int             cdrom_read_track_information(cdrom_t *dev, const uint8_t *cdb, uint8_t *buffer);
 extern uint8_t         cdrom_get_current_mode(cdrom_t *dev);
@@ -613,11 +615,16 @@ extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, co
                                                uint32_t major_mult, uint32_t minor_inc, int m2f1);
 extern unsigned long   cdrom_crc32(unsigned long crc, const unsigned char *buf,
                                    size_t len);
+extern unsigned short  cdrom_crc16(unsigned short crc, const unsigned char *buf,
+                                   size_t len);
 
 extern int             cdrom_image_is_aaru(const char *fn);
 extern int             cdrom_image_is_chd(const char *fn);
+extern int             cdrom_image_is_ccd(const char *fn);
 
 extern int             cdrom_assigned_letters;
+
+extern uint8_t __attribute__((aligned(16))) cdrom_scramble_table[2352];
 
 #ifdef __cplusplus
 }

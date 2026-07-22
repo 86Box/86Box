@@ -755,7 +755,12 @@ ini_section_get_uint(ini_section_t self, const char *name, uint32_t def)
     if (entry == NULL)
         return def;
 
-    sscanf(entry->data, "%u", &value);
+    if (stricmp(entry->data, "true") == 0)
+        return 1;
+    if (stricmp(entry->data, "false") == 0)
+        return 0;
+
+    value = (uint32_t)strtoul(entry->data, NULL, 0);
 
     return value;
 }

@@ -17,6 +17,7 @@
 #include <stdarg.h>
 #endif
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -31,9 +32,11 @@
 #include <86box/cdrom_mitsumi.h>
 #endif
 #include <86box/cdrom_mke.h>
+#include <86box/crc.h>
 #include <86box/log.h>
 #include <86box/plat.h>
 #include <86box/plat_cdrom_ioctl.h>
+#include <86box/bswap.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_cdrom.h>
@@ -46,6 +49,12 @@
 #define MAX_SEEK           333333
 
 cdrom_t cdrom[CDROM_NUM] = { 0 };
+
+uint16_t subq_crc16_table[256] = { 0 };
+
+uint8_t  __attribute__((aligned(16))) cdrom_scramble_table[2352] = {
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
 
 int cdrom_interface_current;
 int cdrom_assigned_letters = 0;
@@ -352,6 +361,36 @@ cdrom_check_for_formed_mode2(cdrom_t *dev, const uint8_t *b)
 
             dev->formed_mode2 = dev->formed_mode2 || (crc == (*(uint32_t *) &(b[2348])));
         }
+    }
+}
+
+// CRC16-CCITT
+unsigned short
+cdrom_crc16(unsigned short crc, const unsigned char *buf, size_t len)
+{
+    crc_t res;
+    res.word = ~crc;
+    for (int i = 0; i < len; i++)
+        crc16_calc(subq_crc16_table, buf[i], &res);
+    res.word = ~res.word;
+    return res.word;
+}
+
+void
+cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s)
+{
+    for (int i = 0; i < 8 * 12; i++) {
+        int dmask = 0x80;
+        int smask = 1 << (7 - (i / 12));
+
+        (*d) = 0;
+
+        for (int j = 0; j < 8; j++) {
+            (*d) |= (s[(i % 12) * 8 + j] & smask) ? dmask : 0;
+            dmask >>= 1;
+        }
+
+        d++;
     }
 }
 
@@ -1020,24 +1059,6 @@ process_c2(cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
 }
 
 static void
-cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s)
-{
-    for (int i = 0; i < 8 * 12; i++) {
-        int dmask = 0x80;
-        int smask = 1 << (7 - (i / 12));
-
-        (*d) = 0;
-
-        for (int j = 0; j < 8; j++) {
-            (*d) |= (s[(i % 12) * 8 + j] & smask) ? dmask : 0;
-            dmask >>= 1;
-        }
-
-        d++;
-    }
-}
-
-static void
 process_c2_and_subch(cdrom_t *dev, const int cdrom_sector_flags,
                       uint8_t *b)
 {
@@ -1050,9 +1071,16 @@ process_c2_and_subch(cdrom_t *dev, const int cdrom_sector_flags,
                 2352, 96);
          dev->cdrom_sector_size += 96;
      } else if ((cdrom_sector_flags & 0x700) == 0x200) {
+         uint8_t deinterleaved_subch[96] = { };
          cdrom_log(dev->log, "Q subchannel data\n");
-         memcpy(b + dev->cdrom_sector_size, dev->raw_buffer[dev->cur_buf] +
-                2352, 16);
+         cdrom_deinterleave_subch(deinterleaved_subch,
+                                  dev->raw_buffer[dev->cur_buf] + 2352);
+         bool p_bit = !!deinterleaved_subch[0]; // all P bits in a subchannel are either 0 or 1.
+         memcpy(b + dev->cdrom_sector_size, deinterleaved_subch + 12, 12);
+         *(b + dev->cdrom_sector_size + 12) = 0;
+         *(b + dev->cdrom_sector_size + 13) = 0;
+         *(b + dev->cdrom_sector_size + 14) = 0;
+         *(b + dev->cdrom_sector_size + 15) = ((uint8_t)p_bit) << 7;
          dev->cdrom_sector_size += 16;
      } else if ((cdrom_sector_flags & 0x700) == 0x400) {
          cdrom_log(dev->log, "R/W subchannel data\n");
@@ -2461,7 +2489,7 @@ cdrom_msf_to_lba(const int sector, const int ismsf,
     int      pos = sector;
     uint32_t lba;
 
-    if ((cdrom_sector_type & 0x0f) >= 0x08) {
+    if ((cdrom_sector_type & 0x0f) >= 0x08 && !ismsf) {
         mult               = cdrom_sector_type >> 4;
         pos               /= mult;
     }
@@ -2472,6 +2500,11 @@ cdrom_msf_to_lba(const int sector, const int ismsf,
         const int f = pos & 0xff;
 
         lba = MSFtoLBA(m, s, f) - 150;
+
+        if ((cdrom_sector_type & 0x0f) >= 0x08) {
+            mult  = cdrom_sector_type >> 4;
+            lba  /= mult;
+        }
     } else {
         switch (vendor_type) {
             case 0x00:
@@ -2511,6 +2544,39 @@ cdrom_is_track_audio(cdrom_t *dev, const int sector,
     audio        &= CD_TRACK_AUDIO;
 
     return audio;
+}
+
+void
+cdrom_generate_scramble_lut(uint8_t *b)
+{
+    /* 15 bits wide (0x0001 is the preset value). */
+    uint16_t shift_reg = 0x0001;
+    uint8_t  tbl_val;
+
+    for (int32_t i = 12; i < 2352; i++) {
+        tbl_val = 0;
+
+        for (int32_t j = 0; j < 8; j++) {
+            /* Get the 1st and 2nd LSBs from the shift register. */
+            uint8_t s0 = ((shift_reg) & (1 << 0)) ? 1 : 0;
+            uint8_t s1 = ((shift_reg) & (1 << 1)) ? 1 : 0;
+
+            /* Perform the XOR operation. */
+            uint8_t xor_res = s0 ^ s1;
+
+            /* Shift the register right by 1 bit. */
+            shift_reg >>= 1;
+
+            /* Push the XOR result into the MSB of the shift register. */
+            if (xor_res != 0) 
+                shift_reg += 16384; // Set bit 15
+
+            /* Set the bit in the table byte. */
+            tbl_val |= (s0 << j);
+        }
+
+        b[i] = tbl_val;
+    }
 }
 
 int
@@ -3078,6 +3144,8 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     if ((strlen(dev->image_path) != 0) &&
         (strstr(dev->image_path, "ioctl://") == dev->image_path))
         dev->local = ioctl_open(dev, dev->image_path);
+    else if (cdrom_image_is_ccd(dev->image_path))
+        dev->local = ccd_image_open(dev, dev->image_path);
     else if (cdrom_image_is_chd(dev->image_path))
         dev->local = chd_image_open(dev, dev->image_path);
     else if (cdrom_image_is_aaru(dev->image_path))
@@ -3146,6 +3214,12 @@ cdrom_global_init(void)
 {
     /* Clear the global data. */
     memset(cdrom, 0x00, sizeof(cdrom));
+
+    /* Initialize the CRC16-CCITT table */
+    crc16_setup(subq_crc16_table, 0x1021);
+
+    /* Initialize the scramble table. */
+    cdrom_generate_scramble_lut(cdrom_scramble_table);
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom[i].cached_sector = -1;

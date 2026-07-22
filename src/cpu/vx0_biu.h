@@ -76,10 +76,19 @@ enum {
     DMA_STATE_OPERATING
 };
 
+
 extern void        execx86_instruction(void);
 
+extern void        biu_pfq_set_pos(int pos);
+extern void        biu_pfq_set_ip(uint16_t ip);
+extern void        biu_pfq_set_prefetching(int p);
+extern int         biu_pfq_get_pos(void);
+extern uint16_t    biu_pfq_get_ip(void);
+extern int         biu_pfq_get_prefetching(void);
+extern int         biu_pfq_get_size(void);
+
 extern void        biu_resume_on_queue_read(void);
-extern void        wait_vx0(int c);
+extern void        wait_vx0(int c, int bus);
 extern void        biu_reset(void);
 extern void        cpu_io_vx0(int bits, int out, uint16_t port);
 extern void        biu_state_set_eu(void);

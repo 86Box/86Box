@@ -38,6 +38,7 @@
 #endif
 #include <86box/86box.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/plat_dynld.h>
@@ -478,6 +479,7 @@ generate_subchannel:
         buffer[2352 + 7] = bin2bcd(m);
         buffer[2352 + 8] = bin2bcd(s);
         buffer[2352 + 9] = bin2bcd(f);
+        *(uint16_t*)&buffer[2352 + 10] = bswap16(cdrom_crc16(0xffff, &buffer[2352], 10));
         for (int i = 11; i >= 0; i--)
             for (int j = 7; j >= 0; j--)
                 buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;

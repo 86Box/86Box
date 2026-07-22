@@ -363,6 +363,17 @@ static const device_config_t tc430hx_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "Intel AMIBIOS - Revision 1.00.02.DH05 (Micron Millennia LXA/ClientPro MTA)",
+                .internal_name = "millennialxa",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/tc430hx/1002DH05.BIO", "roms/machines/tc430hx/1002DH05.BI1",
+                                   "roms/machines/tc430hx/1002DH05.BI2", "roms/machines/tc430hx/1002DH05.BI3",
+                                   "roms/machines/tc430hx/1002DH05.RCV", "" }
+            },
+            {
                 .name          = "Intel AMIBIOS - Revision 1.00.07.DH0",
                 .internal_name = "tc430hx",
                 .bios_type     = BIOS_NORMAL,
@@ -1212,8 +1223,11 @@ machine_at_pb810_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 3, 2, 4);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0b, PCI_CARD_VIDEO,       1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
@@ -1844,6 +1858,17 @@ static const device_config_t an430tx_config[] = {
                 .files         = { "roms/machines/an430tx/P02-0011.BIO", "roms/machines/an430tx/P02-0011.BI1",
                                    "roms/machines/an430tx/P02-0011.BI2", "roms/machines/an430tx/P02-0011.BI3",
                                    "roms/machines/an430tx/P02-0011.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0024 (Micron Millennia MME)",
+                .internal_name = "millenniamme",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/an430tx/P07-0024.BIO", "roms/machines/an430tx/P07-0024.BI1",
+                                   "roms/machines/an430tx/P07-0024.BI2", "roms/machines/an430tx/P07-0024.BI3",
+                                   "roms/machines/an430tx/P07-0024.RCV", "" }
             },
             {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P09-0006 (Packard Bell PB79x)",

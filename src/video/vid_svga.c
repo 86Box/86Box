@@ -933,6 +933,8 @@ svga_recalctimings(svga_t *svga)
         svga->y_add = (svga->monitor->mon_overscan_y >> 1);
         svga->left_overscan = svga->x_add = (svga->monitor->mon_overscan_x >> 1);
 
+        svga->hblank_sub = 0;
+
         svga->htotal &= 0x7fff;
     } else {
         const uint32_t hadj    = (svga->htotal & 0x8000) ? 0x100 : 0;
@@ -1613,7 +1615,7 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            if ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank) {
+            if (svga->hoverride || ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank)) {
                 svga->scrollcache = 0;
                 svga->half_pixel  = 0;
 
