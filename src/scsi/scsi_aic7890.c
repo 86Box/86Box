@@ -1759,12 +1759,19 @@ aic7890_reg_read(uint32_t addr, void *priv)
 
         case REG_SEECTL: {
             uint8_t ret = dev->regs[REG_SEECTL] | SEECTL_SEERDY;
+
             if (dev->regs[REG_SEECTL] & SEECTL_EXTARBREQ)
                 ret |= SEECTL_EXTARBACK;
             if (nmc93cxx_eeprom_read(dev->eeprom))
                 ret |= SEECTL_SEEDI;
             else
                 ret &= ~SEECTL_SEEDI;
+
+            if (dev->regs[REG_SEECTL] & SEECTL_SEEMS) {
+                dev->regs[REG_SEECTL] &= ~(SEECTL_SEEMS | SEECTL_EXTARBREQ);
+                if (!(ret & SEECTL_SEEMS))
+                    ret |= SEECTL_SEEMS;
+            }
             AIC7890_REG_READ_RETURN(ret);
         }
 
@@ -1873,10 +1880,17 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
             return;
 
         case REG_SEECTL:
-            dev->regs[reg] = val & ~(SEECTL_SEERDY | SEECTL_SEEDI | SEECTL_EXTARBACK);
+        {
+            uint8_t new_val = val & ~(SEECTL_SEERDY | SEECTL_SEEDI | SEECTL_EXTARBACK);
+
+            if (!(dev->regs[reg] & SEECTL_SEEMS) && (new_val & SEECTL_SEEMS))
+                new_val |= SEECTL_EXTARBREQ;
+
+            dev->regs[reg] = new_val;
             nmc93cxx_eeprom_write(dev->eeprom, !!(val & SEECTL_SEECS),
                                   !!(val & SEECTL_SEECK), !!(val & SEECTL_SEEDO));
             return;
+        }
 
         case REG_BRDCTL:
             dev->regs[reg] = val;
