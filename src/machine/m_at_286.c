@@ -315,29 +315,6 @@ machine_at_portableiii_init(const machine_t *model)
 }
 
 int
-machine_at_ev1806_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/ev1806/Everex EV-1806 - BIOS ROM - REV-F1A-21 - ODD - U61.bin",
-                                "roms/machines/ev1806/Everex EV-1806 - BIOS ROM - REV-F1A-21 - EVEN - U62.bin",
-                                0x000f8000, 32768, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_at_common_init(model);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    if (fdc_current[0] == FDC_INTERNAL)
-        device_add(&fdc_at_device);
-
-    /* device_add(everex_device); (TODO) */
-
-    return ret;
-}
-
-int
 machine_at_ft286_init(const machine_t *model)
 {
     int ret;

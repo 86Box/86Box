@@ -3686,55 +3686,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has a proprietary Everex chipset which is not emulated/documented. The POST string (S286-2098 Rev-F3-21 04/26/89) is interesting. */
-    {
-        .name              = "[ISA] Everex STEP 286",
-        .internal_name     = "ev1806",
-        .type              = MACHINE_TYPE_286,
-        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
-        .init              = machine_at_ev1806_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_286,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_FLAGS_NONE,
-        .ram       = {
-            .min  = 512,
-            .max  = 4096,
-            .step = 128
-        },
-        .nvrmask                  = 63,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "Everex EV-1806", "" }
-    },
-    /* Has IBM AT KBC firmware. Early AMIBIOS (Access Methods). */
+    /* Has IBM AT KBC firmware. Early AMIBIOS (Access Methods) that requires disk-based BIOS setup. */
     {
         .name              = "[ISA] Flying Triumph FT-286",
         .internal_name     = "ft286",
@@ -3780,7 +3732,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "FTC FT-286", "" }
+        .aliases                  = { "FTC FT-286", "Access Methods AT clone", "" }
     },
     {
         .name              = "[ISA] GRiD GRiDcase 1520",
@@ -4455,7 +4407,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Early AMIBIOS (Access Methods). */
+    /* Early AMIBIOS (Access Methods) that requires disk-based BIOS setup. */
     {
         .name              = "[C&T PC/AT] Flying Triumph BABY-286",
         .internal_name     = "ftbaby286",
@@ -4501,7 +4453,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "FTC BABY-286 VER 8.0", "" }
+        .aliases                  = { "FTC BABY-286 VER 8.0", "Access Methods 286 clone", "" }
     },
     /* Has an Award-branded KBC controller. */
     {

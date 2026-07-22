@@ -509,7 +509,6 @@ extern int             machine_at_ibmxt286_init(const machine_t *);
 extern int             machine_at_cmdpc_init(const machine_t *);
 extern int             machine_at_portableii_init(const machine_t *);
 extern int             machine_at_portableiii_init(const machine_t *);
-extern int             machine_at_ev1806_init(const machine_t *);
 extern int             machine_at_ft286_init(const machine_t *);
 extern int             machine_at_grid1520_init(const machine_t *);
 extern int             machine_at_pc900_init(const machine_t *);
