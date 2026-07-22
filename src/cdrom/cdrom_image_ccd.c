@@ -395,6 +395,7 @@ ccd_image_open(cdrom_t *dev, const char *path)
                 }
             }
         }
+        ini_close(ccd_ini);
     }
 
     if (real_tracks_num == 0) {
