@@ -15126,10 +15126,10 @@ const machine_t machines[] = {
     },
     /* This has an AMIKey-2, which is type 'H'. */
     {
-        .name              = "[SiS 5501] MSI MS-5109",
+        .name              = "[SiS 501] MSI MS-5109",
         .internal_name     = "ms5109",
         .type              = MACHINE_TYPE_SOCKET5,
-        .chipset           = MACHINE_CHIPSET_SIS_5501,
+        .chipset           = MACHINE_CHIPSET_SIS_501,
         .init              = machine_at_ms5109_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
