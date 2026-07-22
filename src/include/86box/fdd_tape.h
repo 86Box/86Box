@@ -18,11 +18,10 @@
 #ifndef EMU_FDD_TAPE_H
 #define EMU_FDD_TAPE_H
 
-/*
-   Set to 1 to trace the QIC-117 conversation, and every floppy controller
-   command that reaches the drive, into the emulator log. Diagnostic only.
- */
-#define ENABLE_FDD_TAPE_LOG 1
+/* Define to trace the QIC-117 conversation into the emulator log. */
+#if 0
+#    define ENABLE_FDD_TAPE_LOG 1
+#endif
 
 /*
    QIC-40/80 tape layout, as seen through the floppy controller. A segment
@@ -34,6 +33,11 @@
 #define FDD_TAPE_SECTOR_SIZE     1024
 #define FDD_TAPE_SECTORS_PER_SEG 32
 #define FDD_TAPE_SEGMENT_SIZE    (FDD_TAPE_SECTOR_SIZE * FDD_TAPE_SECTORS_PER_SEG)
+/*
+   Defaults only. The cartridge's own header segment states the mapping it
+   was formatted with, and a QIC-80 tape typically uses 150 cylinders per
+   head rather than the 255 these defaults imply.
+ */
 #define FDD_TAPE_SEGS_PER_CYL    4
 #define FDD_TAPE_SEGS_PER_HEAD   1020
 

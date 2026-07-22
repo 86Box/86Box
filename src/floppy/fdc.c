@@ -801,9 +801,6 @@ fdc_sis(fdc_t *fdc)
             fdc->res[9] = (fdc->st0 & ~0x04) | (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0);
             fdc->fintr  = 0;
         } else {
-#ifdef ENABLE_FDD_TAPE_LOG
-            pclog("FDC: sense interrupt status -> 80 (no interrupt pending)\n");
-#endif
             fdc->res[10]    = 0x80;
             fdc->paramstogo = 1;
             return;
@@ -812,10 +809,6 @@ fdc_sis(fdc_t *fdc)
 
     fdc->res[10] = fdc->pcn[fdc->res[9] & 3];
 
-#ifdef ENABLE_FDD_TAPE_LOG
-    pclog("FDC: sense interrupt status -> ST0 %02X, PCN %02X (reset_stat %i)\n",
-          fdc->res[9], fdc->res[10], fdc->reset_stat);
-#endif
     fdc_log("Sense interrupt status: 2 parameters to go\n");
     fdc->paramstogo = 2;
 }
@@ -852,10 +845,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
     int drive;
     int drive_num;
 
-#ifdef ENABLE_FDD_TAPE_LOG
-    pclog("FDC: write port %X <- %02X%s\n", addr & 7, val,
-          ((addr & 7) == 5) ? ((fdc->pnum == fdc->ptot) ? "  (command byte)" : "  (parameter)") : "");
-#endif
     fdc_log("Write FDC %04X %02X\n", addr, val);
 
     cycles -= ISA_CYCLES(8);
@@ -956,11 +945,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     current_drive = drive_num;
                     fdc->st0      = (fdc->st0 & 0xf8) | (val & 0x03) | (fdd_get_head(drive_num) ? 4 : 0);
                 }
-#ifdef ENABLE_FDD_TAPE_LOG
-                if (val != fdc->dor)
-                    pclog("FDC: DOR %02X -> %02X (unit %i, reset %i, motors %X)\n",
-                          fdc->dor, val, val & 3, !(val & 4), (val >> 4) & 0x0f);
-#endif
                 fdc->dor = val;
                 return;
             case 3: /* TDR */
@@ -1268,13 +1252,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
                                 break;
                         }
-#ifdef ENABLE_FDD_TAPE_LOG
-                        pclog("FDC: command %02X, drive %i (unit %i), params"
-                              " %02X %02X %02X %02X %02X %02X %02X %02X\n",
-                              fdc->processed_cmd, real_drive(fdc, fdc->drive), fdc->drive,
-                              fdc->params[0], fdc->params[1], fdc->params[2], fdc->params[3],
-                              fdc->params[4], fdc->params[5], fdc->params[6], fdc->params[7]);
-#endif
                         /* Process the firt phase of the command. */
                         switch (fdc->processed_cmd) {
                             case 0x02: /* Read a track */
@@ -1455,12 +1432,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     }
                                 } else {
                                     fdc_log("Seeking to track %i (PCN = %i)...\n", fdc->params[1], fdc->pcn[fdc->params[0] & 3]);
-#ifdef ENABLE_FDD_TAPE_LOG
-                                    pclog("FDC: seek drive %i to cylinder %i, PCN[%i] = %i, diff %i\n",
-                                          real_drive(fdc, fdc->drive), fdc->params[1], fdc->params[0] & 3,
-                                          fdc->pcn[fdc->params[0] & 3],
-                                          fdc->params[1] - fdc->pcn[fdc->params[0] & 3]);
-#endif
                                     if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
                                         fdc_log("Failed seek\n");
                                         fdc->st0 = 0x20 | (fdc->params[0] & 3);
@@ -1731,12 +1702,6 @@ fdc_read(uint16_t addr, void *priv)
             default:
                 ret = 0xff;
         }
-#ifdef ENABLE_FDD_TAPE_LOG
-    /* Everything except the main status and data registers, which the guest
-       polls far too hard for a trace to be readable. */
-    if (((addr & 7) != 4) && ((addr & 7) != 5))
-        pclog("FDC: read port %X -> %02X\n", addr & 7, ret);
-#endif
     fdc_log("[%04X:%08X] Read FDC %04X %02X [%i:%02X]\n", CS, cpu_state.pc, addr, ret, drive, fdc->dor & (0x10 << drive));
     return ret;
 }
@@ -1888,10 +1853,6 @@ fdc_callback(void *priv)
             if ((fdc->flags & FDC_FLAG_5550) && drive_empty[fdc->drive])//IBM 5550
                 fdc->res[10] &= 0xdf; /* Set Not Ready */
 
-#ifdef ENABLE_FDD_TAPE_LOG
-            pclog("FDC: sense drive status, drive %i -> ST3 %02X (TRK0 %i)\n",
-                  real_drive(fdc, fdc->drive), fdc->res[10], !!(fdc->res[10] & 0x10));
-#endif
             fdc->stat       = (fdc->stat & 0xf) | 0xd0;
             fdc->paramstogo = 1;
             fdc->interrupt  = 0;

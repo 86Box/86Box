@@ -155,6 +155,10 @@ typedef struct tape_t {
     int      readonly;
     uint32_t image_size;
 
+    /* How the cartridge's format maps segments onto C/H/R addresses. */
+    int      segs_per_cyl;
+    int      segs_per_head;
+
     /* Step pulse decoding. */
     int      pulse_count;   /* pulses received since the last command gap */
     int      bit_presented; /* the train so far has been answered as a
@@ -191,7 +195,6 @@ typedef struct tape_t {
     int      xfer_pos;
     int      xfer_len;
     uint32_t xfer_offset;   /* image offset the buffer came from/goes to */
-    int      xfer_taken;    /* bytes the controller actually accepted */
     uint8_t  buffer[FDD_TAPE_SECTOR_SIZE];
 
     /* Formatting engine. */
@@ -434,7 +437,7 @@ tape_stop_motion(void)
 static void
 tape_seek_to_segment(int segment)
 {
-    const int last = (FDD_TAPE_SEGS_PER_HEAD * 2) - 1;
+    const int last = (tape.segs_per_head * 8) - 1;
 
     if (segment < 0)
         segment = 0;
@@ -831,7 +834,7 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
     int segment;
     int sector_in_segment;
 
-    if ((sector < 1) || (sector > (FDD_TAPE_SEGS_PER_CYL * FDD_TAPE_SECTORS_PER_SEG)))
+    if ((sector < 1) || (sector > (tape.segs_per_cyl * FDD_TAPE_SECTORS_PER_SEG)))
         return 0;
 
     /*
@@ -843,7 +846,7 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
     if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 0xff))
         return 0;
 
-    segment = (side * FDD_TAPE_SEGS_PER_HEAD) + (track * FDD_TAPE_SEGS_PER_CYL) +
+    segment = (side * tape.segs_per_head) + (track * tape.segs_per_cyl) +
               ((sector - 1) / FDD_TAPE_SECTORS_PER_SEG);
     sector_in_segment = (sector - 1) % FDD_TAPE_SECTORS_PER_SEG;
 
@@ -1033,7 +1036,6 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
     }
 
     tape.xfer_offset = offset;
-    tape.xfer_taken  = 0;
     tape.xfer_pos    = 0;
     tape.xfer_len    = FDD_TAPE_SECTOR_SIZE;
     tape.xfer_state  = state;
@@ -1107,16 +1109,16 @@ tape_finish_readaddress(void)
     }
 
     segment  = tape_head_segment();
-    cylinder = (segment % FDD_TAPE_SEGS_PER_HEAD) / FDD_TAPE_SEGS_PER_CYL;
+    cylinder = (segment % tape.segs_per_head) / tape.segs_per_cyl;
     /* The ID of the sector actually under the head, not just the start of
        the segment - this is what tells a streaming host where it is. */
-    sector   = ((segment % FDD_TAPE_SEGS_PER_CYL) * FDD_TAPE_SECTORS_PER_SEG) +
+    sector   = ((segment % tape.segs_per_cyl) * FDD_TAPE_SECTORS_PER_SEG) +
                (tape.head_sector % FDD_TAPE_SECTORS_PER_SEG) + 1;
 
     fdd_tape_log("Tape: read ID -> segment %i (c=%i h=%i r=%i)\n", segment, cylinder,
-                 segment / FDD_TAPE_SEGS_PER_HEAD, sector);
+                 segment / tape.segs_per_head, sector);
 
-    fdc_sectorid(tape_fdc, (uint8_t) cylinder, (uint8_t) (segment / FDD_TAPE_SEGS_PER_HEAD),
+    fdc_sectorid(tape_fdc, (uint8_t) cylinder, (uint8_t) (segment / tape.segs_per_head),
                  (uint8_t) sector, 3, 0, 0);
 }
 
@@ -1213,9 +1215,8 @@ tape_clock(UNUSED(void *priv))
                    the command itself. Treating it as an overrun would
                    turn every successful transfer into an error.
                  */
-                if (fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
-                             tape.xfer_pos == (tape.xfer_len - 1)) != -1)
-                    tape.xfer_taken++;
+                (void) fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
+                                tape.xfer_pos == (tape.xfer_len - 1));
             }
 
             tape.xfer_pos++;
@@ -1342,6 +1343,50 @@ fdd_tape_set_fdc(void *fdc)
     tape_fdc = (fdc_t *) fdc;
 }
 
+/*
+   Works out how the cartridge maps segments onto C/H/R addresses.
+
+   A real drive knows nothing about the format - the host writes whatever
+   sector IDs it likes during formatting, and the drive just streams tape.
+   This emulation serves data straight from the address the host asks for,
+   though, so it has to agree with the host on the mapping. The cartridge
+   states it in its own header segment: sectors per cylinder comes from the
+   maximum sector number, and cylinders per head from the maximum track.
+
+   QIC-80 cartridges are typically 150 cylinders per head rather than the
+   255 the defaults assume, so getting this wrong corrupts every read past
+   the first head boundary.
+ */
+static void
+tape_read_geometry(void)
+{
+    uint8_t hdr[FDD_TAPE_SECTOR_SIZE];
+
+    tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
+    tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
+
+    if (tape.fp == NULL)
+        return;
+
+    tape_image_read(0, hdr, sizeof(hdr));
+
+    /* Header segment signature, little endian 0xaa55aa55. */
+    if ((hdr[0] != 0x55) || (hdr[1] != 0xaa) || (hdr[2] != 0x55) || (hdr[3] != 0xaa))
+        return;
+
+    const int max_track  = hdr[28];
+    const int max_sector = hdr[29];
+
+    if ((max_sector < FDD_TAPE_SECTORS_PER_SEG) || (max_track < 1))
+        return;
+
+    tape.segs_per_cyl  = max_sector / FDD_TAPE_SECTORS_PER_SEG;
+    tape.segs_per_head = (max_track + 1) * tape.segs_per_cyl;
+
+    fdd_tape_log("Tape: geometry from header - %i segments/cylinder, "
+                 "%i segments/head\n", tape.segs_per_cyl, tape.segs_per_head);
+}
+
 void
 fdd_tape_eject(void)
 {
@@ -1402,6 +1447,8 @@ fdd_tape_load(const char *fn)
 
     tape.fp = fp;
 
+    tape_read_geometry();
+
     if (tape.attached)
         writeprot[tape.drive] = tape.readonly;
 
@@ -1425,8 +1472,10 @@ fdd_tape_init(void)
 
     memset(&tape, 0x00, sizeof(tape));
 
-    tape.attached   = 1;
-    tape.drive      = drive;
+    tape.attached      = 1;
+    tape.drive         = drive;
+    tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
+    tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
     tape.status     = QIC_STATUS_READY;
     tape.report_pos = TAPE_REPORT_IDLE;
     tape.error_cmd  = QIC_NO_COMMAND;
