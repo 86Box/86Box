@@ -751,7 +751,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     fdc->rw_track        = fdc->params[1];
 
     int implied_seek = 0;
-    /* A floppy tape drive would read an implied seek as a QIC-117 command. */
+    /* Treat as an implied seek, unless it's a tape drive, which will treat it as a QIC-117 command. */
     if ((fdc->config & 0x40) && !fdd_tape_present(real_drive(fdc, fdc->drive))) {
         if (fdc->rw_track != fdc->pcn[fdc->params[0] & 3]) {
             implied_seek = 1;
@@ -1327,9 +1327,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc->st0 |= 0x80;
                                 drive_num = real_drive(fdc, fdc->drive);
                                 /*
-                                   Three conditions under which the command should fail. A floppy
-                                   tape drive spins its own motor under QIC-117 control and uses
-                                   TRK0 as a result line, so neither applies to it.
+                                   Three conditions under which the command should fail. And if this
+                                   is a QIC-117 tape drive, it will spin its own motor and use TRK0
+                                   as a result line, so none of these apply.
                                  */
                                 if (!fdd_tape_present(drive_num) &&
                                     ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num))) {

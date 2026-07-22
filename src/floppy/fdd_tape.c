@@ -24,6 +24,10 @@
  *          is 32 sectors of 1024 bytes and is mapped onto the controller's
  *          C/H/R space at four segments per cylinder, 1020 segments per
  *          head - the same fixed geometry the QIC-40/80 format specifies.
+ *
+ * Authors: Dmitry Brant, <me@dmitrybrant.com>
+ *
+ *          Copyright 2026 Dmitry Brant
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -282,7 +286,7 @@ fdd_tape_log(const char *fmt, ...)
 #endif
 
 /* --------------------------------------------------------------------- */
-/* Cartridge image access                                                 */
+/* Cartridge image access                                                */
 /* --------------------------------------------------------------------- */
 
 static int
@@ -335,7 +339,7 @@ tape_image_write(uint32_t offset, const uint8_t *buf, uint32_t len)
 }
 
 /* --------------------------------------------------------------------- */
-/* QIC-117 command set                                                    */
+/* QIC-117 command set                                                   */
 /* --------------------------------------------------------------------- */
 
 /* Forward references: the clocks are driven from command handling. */
@@ -879,7 +883,7 @@ tape_step_pulses(int steps)
 }
 
 /* --------------------------------------------------------------------- */
-/* Floppy drive interface                                                 */
+/* Floppy drive interface                                                */
 /* --------------------------------------------------------------------- */
 
 /* Turns a floppy C/H/R address into an offset into the cartridge image.
@@ -1366,7 +1370,7 @@ tape_clock(UNUSED(void *priv))
 }
 
 /* --------------------------------------------------------------------- */
-/* Public interface                                                       */
+/* Public interface                                                      */
 /* --------------------------------------------------------------------- */
 
 int

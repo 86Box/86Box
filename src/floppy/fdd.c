@@ -393,19 +393,13 @@ fdd_seek_complete_callback(void *priv)
         po->op      = FDD_OP_NONE;
     }
 
-    /*
-       On a floppy tape drive the seek is not head movement at all - it is
-       how the host delivers a QIC-117 command, and it is waiting for the
-       interrupt that ends it. Never swallow that interrupt.
-     */
     if (!had_pending || fdd_tape_present(drive->id))
         fdc_seek_complete_interrupt(fdd_fdc, drive->id);
 }
 
 /*
-   Whether an I/O request has to wait for a seek to finish first. A tape
-   drive's head position has no bearing on data access, so its requests are
-   never held back - doing so would strand the seek the host is waiting on.
+   Whether an I/O request has to wait for a seek to finish first.
+   Applies only if this is not a tape drive.
  */
 static int
 fdd_defer_op(int drive)
@@ -420,7 +414,6 @@ fdd_seek(int drive, int track_diff)
     if (track_diff == 0)
         return;
 
-    /* A seek already under way must run to completion, tape or not. */
     if (fdd_seek_in_progress[drive]) {
         fdd_log("Seek already in progress for drive %d, ignoring new seek request\n", drive);
         return;
@@ -1080,8 +1073,6 @@ fdd_init(void)
     td0_init();
     imd_init();
     pcjs_init();
-
-    /* Claims a drive select line before any floppy image is loaded onto it. */
     fdd_tape_init();
 
     for (i = 0; i < FDD_NUM; i++) {
@@ -1104,7 +1095,6 @@ fdd_do_writeback(int drive)
     if (fdd_tape_present(drive))
         return;
 
-    /* Not every drive has a writeback handler - an empty one has none. */
     if (d86f_handler[drive].writeback != NULL)
         d86f_handler[drive].writeback(drive);
 }
