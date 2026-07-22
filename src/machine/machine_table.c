@@ -3686,7 +3686,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has a proprietary Everex chipset which is not yet emulated. */
+    /* Has a proprietary Everex chipset which is not emulated/documented. The POST string (S286-2098 Rev-F3-21 04/26/89) is interesting. */
     {
         .name              = "[ISA] Everex STEP 286",
         .internal_name     = "ev1806",
@@ -4359,7 +4359,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* AMI BIOS for a chipset-less machine, most likely has AMI 'F' KBC firmware. */
+    /* AMIBIOS for a chipset-less machine, most likely has AMI 'F' KBC firmware. */
     {
         .name              = "[ISA] Trangg Bow Unknown 286",
         .internal_name     = "ibmatami",
@@ -4455,7 +4455,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has early AMIBIOS (Access Methods). */
+    /* Early AMIBIOS (Access Methods). */
     {
         .name              = "[C&T PC/AT] Flying Triumph BABY-286",
         .internal_name     = "ftbaby286",
@@ -4501,9 +4501,9 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "FTC BABY-286 VER 8.0" }
+        .aliases                  = { "FTC BABY-286 VER 8.0", "" }
     },
-    /* has an Award-branded KBC controller */
+    /* Has an Award-branded KBC controller. */
     {
         .name              = "[C&T PC/AT] Hyundai Super-286C",
         .internal_name     = "super286c",
