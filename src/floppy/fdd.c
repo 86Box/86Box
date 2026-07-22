@@ -1099,5 +1099,12 @@ fdd_init(void)
 void
 fdd_do_writeback(int drive)
 {
-    d86f_handler[drive].writeback(drive);
+    /* A floppy tape drive commits each sector to its image as the transfer
+       runs, and has no d86f handler behind it to flush. */
+    if (fdd_tape_present(drive))
+        return;
+
+    /* Not every drive has a writeback handler - an empty one has none. */
+    if (d86f_handler[drive].writeback != NULL)
+        d86f_handler[drive].writeback(drive);
 }

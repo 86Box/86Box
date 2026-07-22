@@ -18,7 +18,7 @@
 #ifndef EMU_FDD_TAPE_H
 #define EMU_FDD_TAPE_H
 
-/* Define to trace the QIC-117 conversation into the emulator log. */
+/* Change to #if 1 to trace the QIC-117 conversation into the emulator log. */
 #if 0
 #    define ENABLE_FDD_TAPE_LOG 1
 #endif

@@ -99,9 +99,27 @@ enum {
 #define QIC_STATUS_AT_EOT            0x80
 
 /* Drive configuration bits, as returned by QIC_REPORT_DRIVE_CONFIG. */
-#define QIC_CONFIG_RATE_500          (2 << 3)
+#define QIC_CONFIG_RATE_SHIFT        3
 #define QIC_CONFIG_LONG              0x40
 #define QIC_CONFIG_80                0x80
+
+/*
+   Rate codes, as they appear in bits 4-3 of the drive configuration and as
+   the argument to Select Rate. A QIC-80 drive only runs at the first two.
+ */
+#define QIC_RATE_250                 0
+#define QIC_RATE_2000                1
+#define QIC_RATE_500                 2
+#define QIC_RATE_1000                3
+
+/*
+   Arguments to Select Rate above the rate codes name a tape format instead,
+   as (Tape Format * 4) + Increment, where increment 1 is standard quarter
+   inch media and 3 is 8 mm wide tape. This drive handles the two QIC-80
+   family formats on standard media and nothing else.
+ */
+#define QIC_FORMAT_QIC40             ((1 << 2) | 1)
+#define QIC_FORMAT_QIC80             ((2 << 2) | 1)
 
 /* Tape status bits, as returned by QIC_REPORT_TAPE_STATUS. */
 #define QIC_TAPE_QIC80               0x02
@@ -116,6 +134,7 @@ enum {
 #define QIC_ERROR_ILLEGAL_SEEK_TRACK 7
 #define QIC_ERROR_ILLEGAL_IN_REPORT  8
 #define QIC_ERROR_NOT_REFERENCED     19
+#define QIC_ERROR_RATE_SELECTION     31
 
 /* Undefined codes at or above Report Vendor ID are ignored rather than
    faulted, so that a host recalibrating its controller - which produces a
@@ -189,6 +208,8 @@ typedef struct tape_t {
                                in the controller's C/H/R address space times
                                32, plus the sector within it */
     uint16_t format_segments;
+    uint8_t  rate_code;     /* data rate, as a drive configuration code */
+    uint8_t  format_code;   /* tape format the host selected for formatting */
 
     /* Read/write engine, driven one byte at a time by the transfer clock. */
     int      xfer_state;
@@ -482,9 +503,43 @@ tape_finish_parameters(void)
             tape.format_segments = tape.param[0];
             break;
 
+        case QIC_SELECT_RATE:
+            /*
+               The one argument selects either a data rate or a tape format.
+               Whatever the drive cannot do has to be refused rather than
+               quietly ignored: a host that asks for something and gets no
+               complaint will read the configuration back, find nothing
+               changed, and conclude the drive cannot reach the capacity it
+               wants.
+             */
+            switch (tape.param[0]) {
+                case QIC_RATE_250:
+                case QIC_RATE_500:
+                    tape.rate_code = tape.param[0];
+                    break;
+
+                case QIC_FORMAT_QIC40:
+                case QIC_FORMAT_QIC80:
+                    /* Only consulted when the host goes on to format. */
+                    tape.format_code = tape.param[0];
+                    break;
+
+                default:
+                    /* 1 and 2 Mbps, the QIC-3010 and QIC-3020 formats, and
+                       8 mm wide media are all beyond a QIC-80 drive. */
+                    tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
+                    break;
+            }
+            break;
+
+        case QIC_EXT_SELECT_RATE:
+            /* The extended form only names rates beyond this drive's reach. */
+            tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
+            break;
+
         default:
-            /* Rate selection, drive selection and timeouts have no effect
-               on an emulated drive - the parameter is simply accepted. */
+            /* Drive selection and timeouts have no effect on an emulated
+               drive - the argument is simply accepted. */
             break;
     }
 
@@ -644,7 +699,8 @@ tape_command(uint8_t command)
             return;
 
         case QIC_REPORT_DRIVE_CONFIG:
-            tape_start_report(QIC_CONFIG_RATE_500 | QIC_CONFIG_LONG | QIC_CONFIG_80, 8);
+            tape_start_report((tape.rate_code << QIC_CONFIG_RATE_SHIFT) |
+                              QIC_CONFIG_LONG | QIC_CONFIG_80, 8);
             return;
 
         case QIC_REPORT_ROM_VERSION:
@@ -1221,8 +1277,8 @@ tape_clock(UNUSED(void *priv))
 
             tape.xfer_pos++;
             if (tape.xfer_pos >= tape.xfer_len) {
-                fdd_tape_log("Tape: ... offset %u, %i/%i bytes taken, data %02x %02x %02x %02x\n",
-                             tape.xfer_offset, tape.xfer_taken, tape.xfer_len,
+                fdd_tape_log("Tape: ... read %i bytes from offset %u, starting %02x %02x %02x %02x\n",
+                             tape.xfer_len, tape.xfer_offset,
                              tape.buffer[0], tape.buffer[1], tape.buffer[2], tape.buffer[3]);
                 tape.xfer_state = TAPE_XFER_IDLE;
                 tape_stop_clock();
@@ -1231,14 +1287,18 @@ tape_clock(UNUSED(void *priv))
             break;
 
         case TAPE_XFER_WRITE:
+            /* fdc_getdata() masks its result to a byte, so a terminal count
+               is not distinguishable here - the controller ends the command
+               itself once its DMA transfer is spent. */
             data = fdc_getdata(tape_fdc, tape.xfer_pos == (tape.xfer_len - 1));
-            if ((data & DMA_OVER) || (data == -1))
-                data = (data == -1) ? 0 : (data & 0xff);
 
             tape.buffer[tape.xfer_pos] = (uint8_t) (data & 0xff);
 
             tape.xfer_pos++;
             if (tape.xfer_pos >= tape.xfer_len) {
+                fdd_tape_log("Tape: ... wrote %i bytes to offset %u, starting %02x %02x %02x %02x\n",
+                             tape.xfer_len, tape.xfer_offset,
+                             tape.buffer[0], tape.buffer[1], tape.buffer[2], tape.buffer[3]);
                 tape.xfer_state = TAPE_XFER_IDLE;
                 tape_stop_clock();
                 tape_image_write(tape.xfer_offset, tape.buffer, tape.xfer_len);
@@ -1476,6 +1536,8 @@ fdd_tape_init(void)
     tape.drive         = drive;
     tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
     tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
+    tape.rate_code     = QIC_RATE_500;
+    tape.format_code   = QIC_FORMAT_QIC80;
     tape.status     = QIC_STATUS_READY;
     tape.report_pos = TAPE_REPORT_IDLE;
     tape.error_cmd  = QIC_NO_COMMAND;
