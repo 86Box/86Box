@@ -315,6 +315,23 @@ machine_at_portableiii_init(const machine_t *model)
 }
 
 int
+machine_at_ft286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ft286/286-Access methods-ROM2.BIN",
+                                "roms/machines/ft286/286-Access methods-ROM4.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
+int
 machine_at_grid1520_init(const machine_t *model)
 {
     int ret = 0;
@@ -680,6 +697,23 @@ machine_at_dells200_init(const machine_t *model)
     ret = bios_load_interleaved("roms/machines/dells200/dellL200256_LO_@DIP28.BIN",
                                 "roms/machines/dells200/Dell200256_HI_@DIP28.BIN",
                                 0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_ftbaby286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ftbaby286/AMI286_u17.bin",
+                                "roms/machines/ftbaby286/AMI286_u18.bin",
+                                0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
         return ret;

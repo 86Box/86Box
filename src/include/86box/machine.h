@@ -509,6 +509,7 @@ extern int             machine_at_ibmxt286_init(const machine_t *);
 extern int             machine_at_cmdpc_init(const machine_t *);
 extern int             machine_at_portableii_init(const machine_t *);
 extern int             machine_at_portableiii_init(const machine_t *);
+extern int             machine_at_ft286_init(const machine_t *);
 extern int             machine_at_grid1520_init(const machine_t *);
 extern int             machine_at_pc900_init(const machine_t *);
 #ifdef EMU_DEVICE_H
@@ -528,6 +529,7 @@ extern int             machine_at_tbunk286_init(const machine_t *);
 
 /* C&T PC/AT */
 extern int             machine_at_dells200_init(const machine_t *);
+extern int             machine_at_ftbaby286_init(const machine_t *);
 extern int             machine_at_super286c_init(const machine_t *);
 extern int             machine_at_at122_init(const machine_t *);
 extern int             machine_at_tuliptc7_init(const machine_t *);
