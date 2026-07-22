@@ -181,8 +181,9 @@ typedef struct tape_t {
     int      format_mode;
     int      verify_mode;
     int      track;         /* logical tape track the head sits on */
-    int      segment;       /* segment under the head, in the controller's
-                               C/H/R address space */
+    int      head_sector;   /* absolute sector passing the head: the segment
+                               in the controller's C/H/R address space times
+                               32, plus the sector within it */
     uint16_t format_segments;
 
     /* Read/write engine, driven one byte at a time by the transfer clock. */
@@ -190,6 +191,7 @@ typedef struct tape_t {
     int      xfer_pos;
     int      xfer_len;
     uint32_t xfer_offset;   /* image offset the buffer came from/goes to */
+    int      xfer_taken;    /* bytes the controller actually accepted */
     uint8_t  buffer[FDD_TAPE_SECTOR_SIZE];
 
     /* Formatting engine. */
@@ -224,6 +226,14 @@ static int        tape_cmd_timer_added = 0;
 
 /* QIC-117 rev. J table 1: command time-out, nominal 2.5 ms. */
 #define TAPE_TTIMEOUT (2500ULL * TIMER_USEC)
+
+/*
+   While the cartridge is moving, sectors stream past the head whether or not
+   the host is reading them - and the host tracks its position by watching
+   the sector IDs go by with READ ID. This timer keeps that position moving.
+ */
+static pc_timer_t tape_motion_timer;
+static int        tape_motion_timer_added = 0;
 
 int  fdd_tape_enabled = 0;
 int  fdd_tape_unit    = 1;
@@ -304,9 +314,18 @@ tape_image_write(uint32_t offset, const uint8_t *buf, uint32_t len)
 /* QIC-117 command set                                                    */
 /* --------------------------------------------------------------------- */
 
-/* Forward references: the transfer clock is driven from command handling. */
+/* Forward references: the clocks are driven from command handling. */
 static void tape_start_clock(void);
 static void tape_stop_clock(void);
+static void tape_start_motion(void);
+static void tape_stop_motion_clock(void);
+
+/* The segment currently under the head. */
+static int
+tape_head_segment(void)
+{
+    return tape.head_sector / FDD_TAPE_SECTORS_PER_SEG;
+}
 
 /* Segments per tape track. The real figure lives in the cartridge's header
    segment, which only the host has read, so this is the QIC-80 default
@@ -345,7 +364,7 @@ tape_update_status(void)
         tape.status |= QIC_STATUS_REFERENCED;
 
     /* Beginning and end of tape are relative to the current track. */
-    const int offset = tape.segment - tape_track_start();
+    const int offset = tape_head_segment() - tape_track_start();
 
     if (offset <= 0)
         tape.status |= QIC_STATUS_AT_BOT;
@@ -407,6 +426,7 @@ static void
 tape_stop_motion(void)
 {
     tape.running = 0;
+    tape_stop_motion_clock();
     tape.status |= QIC_STATUS_READY;
 }
 
@@ -421,7 +441,7 @@ tape_seek_to_segment(int segment)
     if (segment > last)
         segment = last;
 
-    tape.segment = segment;
+    tape.head_sector = segment * FDD_TAPE_SECTORS_PER_SEG;
 }
 
 /* Handles a command that takes parameters once the last one has arrived. */
@@ -450,9 +470,9 @@ tape_finish_parameters(void)
             count++;
             if ((tape.param_cmd == QIC_SKIP_REVERSE) ||
                 (tape.param_cmd == QIC_SKIP_EXTENDED_REVERSE))
-                tape_seek_to_segment(tape.segment - (int) count);
+                tape_seek_to_segment(tape_head_segment() - (int) count);
             else
-                tape_seek_to_segment(tape.segment + (int) count);
+                tape_seek_to_segment(tape_head_segment() + (int) count);
             break;
 
         case QIC_SET_FORMAT_SEGMENTS:
@@ -599,7 +619,7 @@ tape_command(uint8_t command)
             tape.format_mode = 0;
             tape.verify_mode = 0;
             tape.track       = 0;
-            tape.segment     = 0;
+            tape.head_sector = 0;
             tape.error       = QIC_ERROR_NONE;
             tape.error_cmd   = QIC_NO_COMMAND;
             tape.status      = QIC_STATUS_READY;
@@ -660,6 +680,7 @@ tape_command(uint8_t command)
                host armed beforehand starts flowing now. */
             tape.running = 1;
             tape.reverse = 0;
+            tape_start_motion();
             if (tape.xfer_state != TAPE_XFER_IDLE)
                 tape_start_clock();
             break;
@@ -813,7 +834,13 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
     if ((sector < 1) || (sector > (FDD_TAPE_SEGS_PER_CYL * FDD_TAPE_SECTORS_PER_SEG)))
         return 0;
 
-    if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 1))
+    /*
+       The head field is not a physical head here, just the high digits of
+       the segment number, so it ranges well beyond the two a floppy has:
+       a full QIC-80 cartridge holds over 4000 segments, which is head 4 at
+       1020 segments per head.
+     */
+    if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 0xff))
         return 0;
 
     segment = (side * FDD_TAPE_SEGS_PER_HEAD) + (track * FDD_TAPE_SEGS_PER_CYL) +
@@ -929,6 +956,41 @@ tape_stop_clock(void)
         timer_disable(&tape_timer);
 }
 
+/* One sector of tape passes the head every this many microseconds. */
+#define TAPE_SECTOR_PERIOD (FDD_TAPE_SECTOR_SIZE * 16ULL * TIMER_USEC)
+
+static void
+tape_start_motion(void)
+{
+    if (tape_motion_timer_added)
+        timer_set_delay_u64(&tape_motion_timer, TAPE_SECTOR_PERIOD);
+}
+
+static void
+tape_stop_motion_clock(void)
+{
+    if (tape_motion_timer_added)
+        timer_disable(&tape_motion_timer);
+}
+
+/* Advances the head past one more sector of moving tape. */
+static void
+tape_motion_tick(UNUSED(void *priv))
+{
+    timer_advance_u64(&tape_motion_timer, TAPE_SECTOR_PERIOD);
+
+    if (!tape.running) {
+        tape_stop_motion_clock();
+        return;
+    }
+
+    if (tape.reverse) {
+        if (tape.head_sector > 0)
+            tape.head_sector--;
+    } else
+        tape.head_sector++;
+}
+
 static void
 tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
 {
@@ -971,6 +1033,7 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
     }
 
     tape.xfer_offset = offset;
+    tape.xfer_taken  = 0;
     tape.xfer_pos    = 0;
     tape.xfer_len    = FDD_TAPE_SECTOR_SIZE;
     tape.xfer_state  = state;
@@ -981,7 +1044,7 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
         memset(tape.buffer, 0x00, FDD_TAPE_SECTOR_SIZE);
 
     /* The segment under the head advances as sectors stream past. */
-    tape.segment = (int) (offset / FDD_TAPE_SEGMENT_SIZE);
+    tape.head_sector = (int) (offset / FDD_TAPE_SECTOR_SIZE);
 
     /*
        The host arms the controller before it starts the tape, exactly as
@@ -1043,9 +1106,12 @@ tape_finish_readaddress(void)
         return;
     }
 
-    segment  = tape.segment;
+    segment  = tape_head_segment();
     cylinder = (segment % FDD_TAPE_SEGS_PER_HEAD) / FDD_TAPE_SEGS_PER_CYL;
-    sector   = ((segment % FDD_TAPE_SEGS_PER_CYL) * FDD_TAPE_SECTORS_PER_SEG) + 1;
+    /* The ID of the sector actually under the head, not just the start of
+       the segment - this is what tells a streaming host where it is. */
+    sector   = ((segment % FDD_TAPE_SEGS_PER_CYL) * FDD_TAPE_SECTORS_PER_SEG) +
+               (tape.head_sector % FDD_TAPE_SECTORS_PER_SEG) + 1;
 
     fdd_tape_log("Tape: read ID -> segment %i (c=%i h=%i r=%i)\n", segment, cylinder,
                  segment / FDD_TAPE_SEGS_PER_HEAD, sector);
@@ -1147,12 +1213,16 @@ tape_clock(UNUSED(void *priv))
                    the command itself. Treating it as an overrun would
                    turn every successful transfer into an error.
                  */
-                (void) fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
-                                tape.xfer_pos == (tape.xfer_len - 1));
+                if (fdc_data(tape_fdc, tape.buffer[tape.xfer_pos],
+                             tape.xfer_pos == (tape.xfer_len - 1)) != -1)
+                    tape.xfer_taken++;
             }
 
             tape.xfer_pos++;
             if (tape.xfer_pos >= tape.xfer_len) {
+                fdd_tape_log("Tape: ... offset %u, %i/%i bytes taken, data %02x %02x %02x %02x\n",
+                             tape.xfer_offset, tape.xfer_taken, tape.xfer_len,
+                             tape.buffer[0], tape.buffer[1], tape.buffer[2], tape.buffer[3]);
                 tape.xfer_state = TAPE_XFER_IDLE;
                 tape_stop_clock();
                 fdc_sector_finishread(tape_fdc);
@@ -1369,6 +1439,9 @@ fdd_tape_init(void)
 
     timer_add(&tape_cmd_timer, tape_command_timeout, NULL, 0);
     tape_cmd_timer_added = 1;
+
+    timer_add(&tape_motion_timer, tape_motion_tick, NULL, 0);
+    tape_motion_timer_added = 1;
 
     fdd_tape_log("Tape: attached to drive %i\n", drive);
 
