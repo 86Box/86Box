@@ -1047,11 +1047,16 @@ tape_motion_tick(UNUSED(void *priv))
         return;
     }
 
+    const int min_sector = tape_track_start() * FDD_TAPE_SECTORS_PER_SEG;
+    const int max_sector = (tape_track_start() + tape_segments_per_track()) * FDD_TAPE_SECTORS_PER_SEG - 1;
+
     if (tape.reverse) {
-        if (tape.head_sector > 0)
+        if (tape.head_sector > min_sector)
             tape.head_sector--;
-    } else
-        tape.head_sector++;
+    } else {
+        if (tape.head_sector < max_sector)
+            tape.head_sector++;
+    }
 }
 
 static void
@@ -1291,13 +1296,12 @@ tape_clock(UNUSED(void *priv))
             break;
 
         case TAPE_XFER_WRITE:
-            /* fdc_getdata() masks its result to a byte, so a terminal count
-               is not distinguishable here - the controller ends the command
-               itself once its DMA transfer is spent. */
+            /* Terminal count can be indicated via DMA_OVER; when it happens, treat missing bytes as 0. */
             data = fdc_getdata(tape_fdc, tape.xfer_pos == (tape.xfer_len - 1));
+            if ((data & DMA_OVER) || (data == -1))
+                 data = 0;
 
             tape.buffer[tape.xfer_pos] = (uint8_t) (data & 0xff);
-
             tape.xfer_pos++;
             if (tape.xfer_pos >= tape.xfer_len) {
                 fdd_tape_log("Tape: ... wrote %i bytes to offset %u, starting %02x %02x %02x %02x\n",
@@ -1311,15 +1315,39 @@ tape_clock(UNUSED(void *priv))
             break;
 
         case TAPE_XFER_COMPARE:
+            static int satisfying_bytes = 0;
+            if (tape.xfer_pos == 0)
+                satisfying_bytes = 0;
+
             data = fdc_getdata(tape_fdc, tape.xfer_pos == (tape.xfer_len - 1));
             if ((data & DMA_OVER) || (data == -1))
-                data = (data == -1) ? 0 : (data & 0xff);
+                data = 0;
+
+            const uint8_t received_byte = (uint8_t) (data & 0xff);
+            const uint8_t tape_byte     = tape.buffer[tape.xfer_pos];
+
+            switch (fdc_get_compare_condition(tape_fdc)) {
+                case 0: /* SCAN EQUAL */
+                    if ((received_byte == tape_byte) || (received_byte == 0xFF))
+                        satisfying_bytes++;
+                    break;
+                case 1: /* SCAN LOW OR EQUAL */
+                    if ((received_byte <= tape_byte) || (received_byte == 0xFF))
+                        satisfying_bytes++;
+                    break;
+                case 2: /* SCAN HIGH OR EQUAL */
+                    if ((received_byte >= tape_byte) || (received_byte == 0xFF))
+                        satisfying_bytes++;
+                    break;
+                default:
+                    break;
+            }
 
             tape.xfer_pos++;
             if (tape.xfer_pos >= tape.xfer_len) {
                 tape.xfer_state = TAPE_XFER_IDLE;
                 tape_stop_clock();
-                fdc_sector_finishcompare(tape_fdc, 1);
+                fdc_sector_finishcompare(tape_fdc, satisfying_bytes >= tape.xfer_len);
             }
             break;
 
@@ -1495,8 +1523,13 @@ fdd_tape_load(const char *fn)
             tape.readonly = 1;
     }
 
-    /* A cartridge that isn't there yet is a blank one - create it. */
+    /* A cartridge that isn't there yet is a blank one - create it (unless write-protected). */
     if (fp == NULL) {
+        if (tape.readonly) {
+            fdd_tape_log("Tape: image %s not found (write-protected)\n", fn);
+            return;
+        }
+
         fp = plat_fopen((char *) fn, "wb+");
         if (fp == NULL) {
             fdd_tape_log("Tape: unable to open image %s\n", fn);
@@ -1583,7 +1616,8 @@ fdd_tape_init(void)
 void
 fdd_tape_close(void)
 {
-    int drive = tape.drive;
+    const int drive        = tape.drive;
+    const int was_attached = tape.attached;
 
     fdd_tape_eject();
 
@@ -1595,7 +1629,7 @@ fdd_tape_close(void)
        consistency check. Should it fire before the drive is re-attached,
        the idle branch of tape_clock() takes it back out of the list.
      */
-    if (tape.attached) {
+    if (was_attached) {
         drives[drive].seek          = NULL;
         drives[drive].readsector    = NULL;
         drives[drive].writesector   = NULL;
@@ -1610,6 +1644,11 @@ fdd_tape_close(void)
         drive_empty[drive] = 1;
     }
 
+    memset(&tape, 0x00, sizeof(tape));
+    tape.report_pos = TAPE_REPORT_IDLE;
+
+    if (was_attached)
+        fdd_load(drive, floppyfns[drive]);
     memset(&tape, 0x00, sizeof(tape));
     tape.report_pos = TAPE_REPORT_IDLE;
 }
