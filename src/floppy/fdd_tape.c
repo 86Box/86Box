@@ -910,8 +910,11 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
               ((sector - 1) / FDD_TAPE_SECTORS_PER_SEG);
     sector_in_segment = (sector - 1) % FDD_TAPE_SECTORS_PER_SEG;
 
-    *offset = ((uint32_t) segment * FDD_TAPE_SEGMENT_SIZE) +
-              ((uint32_t) sector_in_segment * FDD_TAPE_SECTOR_SIZE);
+    const uint64_t off64 = ((uint64_t) segment * FDD_TAPE_SEGMENT_SIZE) +
+                           ((uint64_t) sector_in_segment * FDD_TAPE_SECTOR_SIZE);
+    if (off64 > UINT32_MAX)
+        return 0;
+    *offset = (uint32_t) off64;
 
     return 1;
 }
