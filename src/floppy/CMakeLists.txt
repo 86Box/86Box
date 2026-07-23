@@ -34,6 +34,7 @@ add_library(fdd OBJECT
     fdd_pcjs.c
     fdd_mfm.c
     fdd_td0.c
+    fdd_tape.c
     fdd_audio.c
 )
 

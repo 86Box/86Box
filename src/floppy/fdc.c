@@ -34,6 +34,7 @@
 #include <86box/timer.h>
 #include <86box/ui.h>
 #include <86box/fdd.h>
+#include <86box/fdd_tape.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/plat_fallthrough.h>
@@ -707,7 +708,14 @@ fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
 
     fdc->fintr = 1;
     fdc->interrupt = -3;
-    fdc->st0   = 0x20 | (drive & 3);
+    /*
+       ST0 reports the unit the command named, not the drive the pulses
+       physically went to. The two only differ when the DOR selects one
+       unit while the command's drive select field names another, which is
+       what QIC-117 tape software does - and it also decides which PCN
+       SENSE INTERRUPT STATUS hands back.
+     */
+    fdc->st0   = 0x20 | (fdc->rw_drive & 3);
     if (fdd_get_head(drive))
         fdc->st0 |= 0x04;
 
@@ -743,7 +751,8 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     fdc->rw_track        = fdc->params[1];
 
     int implied_seek = 0;
-    if (fdc->config & 0x40) {
+    /* Treat as an implied seek, unless it's a tape drive, which will treat it as a QIC-117 command. */
+    if ((fdc->config & 0x40) && !fdd_tape_present(real_drive(fdc, fdc->drive))) {
         if (fdc->rw_track != fdc->pcn[fdc->params[0] & 3]) {
             implied_seek = 1;
             fdc_seek(fdc, fdc->drive, ((int) fdc->rw_track) - ((int) fdc->pcn[fdc->params[0] & 3]));
@@ -1317,8 +1326,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc->st0 |= fdd_get_head(real_drive(fdc, fdc->drive)) ? 0x04 : 0x00;
                                 fdc->st0 |= 0x80;
                                 drive_num = real_drive(fdc, fdc->drive);
-                                /* Three conditions under which the command should fail. */
-                                if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num)) {
+                                /*
+                                   Three conditions under which the command should fail. And if this
+                                   is a QIC-117 tape drive, it will spin its own motor and use TRK0
+                                   as a result line, so none of these apply.
+                                 */
+                                if (!fdd_tape_present(drive_num) &&
+                                    ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num))) {
                                     fdc_log("Failed recalibrate\n");
                                     if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num])
                                         fdc->st0 = 0x70 | (fdc->params[0] & 3);
@@ -1375,7 +1389,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
                                 drive_num = real_drive(fdc, fdc->drive);
                                 /* Three conditions under which the command should fail. */
-                                if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num]) {
+                                if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) ||
+                                    (!motoron[drive_num] && !fdd_tape_present(drive_num))) {
                                     /* Yes, failed SEEK's still report success, unlike failed RECALIBRATE's. */
                                     fdc->st0 = 0x20 | (fdc->params[0] & 3);
                                     if (fdc->command & 0x80) {
@@ -2677,6 +2692,7 @@ fdc_init(const device_t *info)
     timer_add(&fdc->timer, fdc_callback, fdc, 0);
 
     d86f_set_fdc(fdc);
+    fdd_tape_set_fdc(fdc);
     fdi_set_fdc(fdc);
     fdd_set_fdc(fdc);
     imd_set_fdc(fdc);

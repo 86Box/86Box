@@ -40,6 +40,7 @@
 #include <86box/fdd_pcjs.h>
 #include <86box/fdd_mfm.h>
 #include <86box/fdd_td0.h>
+#include <86box/fdd_tape.h>
 #include <86box/fdc.h>
 #include <86box/fdd_audio.h>
 #include <86box/plat_floppy_ioctl.h>
@@ -392,8 +393,18 @@ fdd_seek_complete_callback(void *priv)
         po->op      = FDD_OP_NONE;
     }
 
-    if (!had_pending)
+    if (!had_pending || fdd_tape_present(drive->id))
         fdc_seek_complete_interrupt(fdd_fdc, drive->id);
+}
+
+/*
+   Whether an I/O request has to wait for a seek to finish first.
+   Applies only if this is not a tape drive.
+ */
+static int
+fdd_defer_op(int drive)
+{
+    return fdd_seek_in_progress[drive] && !fdd_tape_present(drive);
 }
 
 void
@@ -405,6 +416,30 @@ fdd_seek(int drive, int track_diff)
 
     if (fdd_seek_in_progress[drive]) {
         fdd_log("Seek already in progress for drive %d, ignoring new seek request\n", drive);
+        return;
+    }
+
+    if (fdd_tape_present(drive)) {
+        /*
+           A floppy tape drive has no cylinders and no head to position: it
+           counts the step pulses in each burst and reads them as a QIC-117
+           command. So hand it the pulse count directly and leave the track
+           position alone - tracking an absolute head position would clamp
+           at the end of travel and leave the drive permanently deaf, since
+           the host zeroes the controller's cylinder counter between
+           commands while the pulses keep coming in the same direction.
+
+           The seek must also complete promptly: the host sends one command
+           per seek and waits for the interrupt each time.
+         */
+        const int step_time_us = fdd_tape_step(drive, abs(track_diff));
+
+        fdd_seek_in_progress[drive] = 1;
+
+        if (!fdd_seek_timer[drive].callback)
+            timer_add(&(fdd_seek_timer[drive]), fdd_seek_complete_callback, &drives[drive], 0);
+
+        timer_set_delay_u64(&fdd_seek_timer[drive], (uint64_t) step_time_us * TIMER_USEC);
         return;
     }
 
@@ -456,6 +491,10 @@ int
 fdd_track0(int drive)
 {
     fdd_log("fdd_track0(drive=%d)\n", drive);
+
+    /* On a floppy tape drive, TRK0 is the drive's result line. */
+    if (fdd_tape_present(drive))
+        return fdd_tape_track0(drive);
 
     /* If drive is disabled, TRK0 never gets set. */
     if (!drive_types[fdd[drive].type].max_track)
@@ -546,7 +585,7 @@ fdd_can_read_medium(int drive)
 
     hole = 1 << (hole + 4);
 
-    return !!(drive_types[fdd[drive].type].flags & hole);
+    return !!(fdd_get_flags(drive) & hole);
 }
 
 int
@@ -572,37 +611,42 @@ fdd_get_type(int drive)
 int
 fdd_get_flags(int drive)
 {
+    /* A floppy tape drive answers on this drive select line instead of
+       whatever floppy drive may be configured on it. */
+    if (fdd_tape_present(drive))
+        return fdd_tape_get_flags(drive);
+
     return drive_types[fdd[drive].type].flags;
 }
 
 int
 fdd_is_525(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_525;
+    return fdd_get_flags(drive) & FLAG_525;
 }
 
 int
 fdd_is_dd(int drive)
 {
-    return (drive_types[fdd[drive].type].flags & 0x70) == 0x10;
+    return (fdd_get_flags(drive) & 0x70) == 0x10;
 }
 
 int
 fdd_is_hd(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_HOLE1;
+    return fdd_get_flags(drive) & FLAG_HOLE1;
 }
 
 int
 fdd_is_ed(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_HOLE2;
+    return fdd_get_flags(drive) & FLAG_HOLE2;
 }
 
 int
 fdd_is_double_sided(int drive)
 {
-    return drive_types[fdd[drive].type].flags & FLAG_DS;
+    return fdd_get_flags(drive) & FLAG_DS;
 }
 
 void
@@ -665,6 +709,11 @@ fdd_load(int drive, char *fn)
 
     if (!fn)
         return;
+
+    /* This drive select line belongs to the tape drive, not to a floppy. */
+    if (fdd_tape_present(drive))
+        return;
+
     if (strstr(fn, "wp://") == fn) {
         offs                = 5;
         ui_writeprot[drive] = 1;
@@ -735,6 +784,12 @@ fdd_load(int drive, char *fn)
 void
 fdd_close(int drive)
 {
+    /* Closing a tape drive ejects the cartridge; the drive stays on the cable. */
+    if (fdd_tape_present(drive)) {
+        fdd_tape_eject();
+        return;
+    }
+
     d86f_stop(drive); /* Call this first of all to make sure the 86F poll is back to idle state. */
 
     drives[drive].hole          = NULL;
@@ -860,6 +915,9 @@ fdd_reset(void)
         /* Clear any pending seek state */
         fdd_seek_in_progress[i] = 0;
     }
+
+    /* The tape drive keeps its own timer, which the reset has just torn down. */
+    fdd_tape_init();
 }
 
 void
@@ -872,7 +930,7 @@ fdd_readsector(int drive, int sector, int track, int side, int density, int sect
         fdd_set_boot_status(BIOS_BOOT_NORMAL);
     }
 
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring READ (trk=%d->%d, side=%d, sec=%d)\n",
                 drive, fdd[drive].track, track, side, sector);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -898,7 +956,7 @@ fdd_writesector(int drive, int sector, int track, int side, int density, int sec
 {
     fdd_log("fdd_writesector(%d, %d, %d, %d, %d, %d)\n", drive, sector, track, side, density, sector_size);
 
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring WRITE (trk=%d->%d, side=%d, sec=%d)\n",
                 drive, fdd[drive].track, track, side, sector);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -922,7 +980,7 @@ fdd_writesector(int drive, int sector, int track, int side, int density, int sec
 void
 fdd_comparesector(int drive, int sector, int track, int side, int density, int sector_size)
 {
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring COMPARE (trk=%d->%d, side=%d, sec=%d)\n",
                 drive, fdd[drive].track, track, side, sector);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -946,7 +1004,7 @@ fdd_comparesector(int drive, int sector, int track, int side, int density, int s
 void
 fdd_readaddress(int drive, int side, int density)
 {
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring READADDRESS (trk=%d, side=%d)\n",
                 drive, fdd[drive].track, side);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -966,7 +1024,7 @@ fdd_readaddress(int drive, int side, int density)
 void
 fdd_format(int drive, int side, int density, uint8_t fill)
 {
-    if (fdd_seek_in_progress[drive]) {
+    if (fdd_defer_op(drive)) {
         fdd_log("Seek in progress on drive %d, deferring FORMAT (trk=%d, side=%d)\n",
                 drive, fdd[drive].track, side);
         fdd_pending[drive] = (fdd_pending_op_t) {
@@ -1015,8 +1073,12 @@ fdd_init(void)
     td0_init();
     imd_init();
     pcjs_init();
+    fdd_tape_init();
 
     for (i = 0; i < FDD_NUM; i++) {
+        if (fdd_tape_present(i))
+            continue;
+
         fdd_load(i, floppyfns[i]);
     }
 
@@ -1028,5 +1090,11 @@ fdd_init(void)
 void
 fdd_do_writeback(int drive)
 {
-    d86f_handler[drive].writeback(drive);
+    /* A floppy tape drive commits each sector to its image as the transfer
+       runs, and has no d86f handler behind it to flush. */
+    if (fdd_tape_present(drive))
+        return;
+
+    if (d86f_handler[drive].writeback != NULL)
+        d86f_handler[drive].writeback(drive);
 }
