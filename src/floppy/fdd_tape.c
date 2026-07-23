@@ -1317,7 +1317,7 @@ tape_clock(UNUSED(void *priv))
             }
             break;
 
-        case TAPE_XFER_COMPARE:
+        case TAPE_XFER_COMPARE: {
             static int satisfying_bytes = 0;
             if (tape.xfer_pos == 0)
                 satisfying_bytes = 0;
@@ -1353,6 +1353,7 @@ tape_clock(UNUSED(void *priv))
                 fdc_sector_finishcompare(tape_fdc, satisfying_bytes >= tape.xfer_len);
             }
             break;
+        }
 
         case TAPE_XFER_FORMAT:
             /* The host feeds four ID bytes per sector through DMA; the
