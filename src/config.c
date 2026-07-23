@@ -98,12 +98,13 @@ extern char gl3_shader_file[MAX_USER_SHADERS][512];
 extern char vk_shader_file[20][512];
 #endif
 
-static int   cx;
-static int   cy;
-static int   cw;
-static int   ch;
-static ini_t config;
-static ini_t global;
+static int      cx;
+static int      cy;
+static int      cw;
+static int      ch;
+static ini_t    config;
+static ini_t    global;
+static mutex_t *config_mutex = NULL;
 
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
@@ -2775,6 +2776,11 @@ config_load(void)
         config_log("VM config loaded.\n\n");
     }
 
+    /* Protecet concurrent config_save() calls from the emulation
+       thread and UI thread. */
+    if (config_mutex == NULL)
+        config_mutex = thread_create_mutex();
+
     /* Mark the configuration as changed. */
     config_changed = 1;
 
@@ -4384,6 +4390,9 @@ config_save_global(void)
 void
 config_save(void)
 {
+    if (config_mutex)
+        thread_wait_mutex(config_mutex);
+
     save_general();                 /* General */
     for (uint8_t i = 0; i < MONITORS_NUM; i++)
         save_monitor(i);            /* Monitors */
@@ -4407,6 +4416,9 @@ config_save(void)
     ini_write(config, cfg_path);
 
     config_save_global();
+
+    if (config_mutex)
+        thread_release_mutex(config_mutex);
 }
 
 ini_t
