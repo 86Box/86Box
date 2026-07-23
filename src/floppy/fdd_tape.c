@@ -1649,6 +1649,4 @@ fdd_tape_close(void)
 
     if (was_attached)
         fdd_load(drive, floppyfns[drive]);
-    memset(&tape, 0x00, sizeof(tape));
-    tape.report_pos = TAPE_REPORT_IDLE;
 }
