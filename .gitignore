@@ -3,7 +3,6 @@ CMakeUserPresets.json
 CMakeCache.txt
 CMakeFiles
 /build
-Makefile
 *.a
 /src/*.exe
 /src/86Box
