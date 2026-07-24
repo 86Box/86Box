@@ -27,6 +27,11 @@
 #define SCSI_ID_MAX   16 /* 16 on wide buses */
 #define SCSI_LUN_MAX  8  /* always 8 */
 
+enum {
+    SCSI_CARD_NONE = 0,
+    SCSI_CARD_INTERNAL
+};
+
 extern int             scsi_card_current[SCSI_CARD_MAX];
 
 extern void            scsi_reset(void);
