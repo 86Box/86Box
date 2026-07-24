@@ -190,7 +190,7 @@ i420ex_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
     if (func > 0)
         return;
 
-    if (((addr >= 0x0f) && (addr < 0x4c)) && (addr != 0x40))
+    if ((addr >= 0x0f) && (addr < 0x40))
         return;
 
     switch (addr) {
@@ -556,7 +556,8 @@ i420ex_init(const device_t *info)
 
     dma_alias_set();
 
-    device_add(&ide_pci_2ch_device);
+    if (dev->has_ide)
+        device_add(&ide_pci_2ch_device);
 
 #ifndef USE_DRB_HACK
     row_device.local = 4 | (1 << 8) | (0x01 << 16) | (8 << 24);
