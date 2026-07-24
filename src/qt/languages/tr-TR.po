@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-16 17:51+0000\n"
-"Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
+"PO-Revision-Date: 2026-07-24 06:25+0000\n"
+"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -3074,7 +3074,7 @@ msgid "Toggle on-screen display"
 msgstr "Ekran üstü göstergeyi ayarla"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Ekran üstü &göstergeyi ayarla"
 
 msgid "Text files"
 msgstr "Metin dosyaları"
