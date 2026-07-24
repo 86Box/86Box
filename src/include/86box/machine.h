@@ -858,6 +858,9 @@ extern const device_t  sb486pv_device;
 extern int             machine_at_sb486pv_init(const machine_t *);
 
 /* IMS 8848 */
+#ifdef EMU_DEVICE_H
+extern const device_t  pci400cb_device;
+#endif
 extern int             machine_at_pci400cb_init(const machine_t *);
 
 /* SiS 496 */
