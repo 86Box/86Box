@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-09 10:25+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-07-24 06:25+0000\n"
+"Last-Translator: Canadew <chun-awa@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -1074,13 +1074,13 @@ msgid "&File"
 msgstr "文件(&F)"
 
 msgid "&New machine…"
-msgstr "新建计算机(&N)…"
+msgstr "新建虚拟机(&N)…"
 
 msgid "New machine…"
-msgstr "新建计算机…"
+msgstr "新建虚拟机…"
 
 msgid "New machine"
-msgstr "新建计算机"
+msgstr "新建虚拟机"
 
 msgid "&Check for updates…"
 msgstr "检查更新(&C)…"
@@ -1243,7 +1243,7 @@ msgid "Add new system wizard"
 msgstr "添加新系统向导"
 
 msgid "Introduction"
-msgstr "介绍"
+msgstr "概述"
 
 msgid "This will help you add a new system to 86Box."
 msgstr "这将帮助您在86Box中添加一个新系统。"
@@ -1759,7 +1759,7 @@ msgid "&MCA devices…"
 msgstr "&MCA 设备…"
 
 msgid "Show non-&primary monitors"
-msgstr "显示非主要显示器(&P)"
+msgstr "显示非主显示器(&P)"
 
 msgid "Open screenshots &folder…"
 msgstr "打开屏幕截图文件夹(&F)…"
