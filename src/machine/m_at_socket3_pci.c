@@ -298,7 +298,7 @@ static const device_config_t pc330_6573_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "English (PC 330, type 6573)",
+                .name          = "English",
                 .internal_name = "pc330_6573", .bios_type = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -881,22 +881,22 @@ static const device_config_t pci400cb_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMI WinBIOS 061594 (March 21, 1995)",
-                .internal_name = "pci400cb",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 131072,
-                .files         = { "roms/machines/pci400cb/032295.ROM", "" }
-            },
-            {
-                .name          = "AMI Color 060692 (August 3, 1994)",
+                .name          = "AMIBIOS 060692 - Revision 08/03/94",
                 .internal_name = "pci400cb_060692",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
                 .files         = { "roms/machines/pci400cb/080394.ROM", "" }
+            },
+            {
+                .name          = "AMI WinBIOS (061594) - Revision 03/21/95",
+                .internal_name = "pci400cb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pci400cb/032295.ROM", "" }
             },
             { .files_no = 0 }
         }

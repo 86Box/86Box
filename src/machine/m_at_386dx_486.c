@@ -113,7 +113,7 @@ static const device_config_t opti495_ami_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMI 060692",
+                .name          = "AMIBIOS 060692",
                 .internal_name = "ami495",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
