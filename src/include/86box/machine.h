@@ -761,6 +761,7 @@ extern int             machine_at_cougar_init(const machine_t *);
 extern int             machine_at_spc7500p_init(const machine_t *);
 
 /* SiS 461 */
+extern int             machine_at_auvacam_init(const machine_t *);
 extern int             machine_at_decpclpv_init(const machine_t *);
 extern int             machine_at_dell466np_init(const machine_t *);
 extern int             machine_at_valuepoint433_init(const machine_t *);

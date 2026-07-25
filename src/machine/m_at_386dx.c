@@ -61,7 +61,7 @@ static const device_config_t deskpro386_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS Version",
+        .description    = "BIOS Date",
         .type           = CONFIG_BIOS,
         .default_string = "deskpro386",
         .default_int    = 0,
