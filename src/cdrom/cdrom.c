@@ -2639,12 +2639,9 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
                     }
 
                     if ((cdrom_sector_flags & 0xff) == 0 && ((cdrom_sector_flags >> 8) & 7)) {
-                        dev->cdrom_sector_size = 96;
-                        memcpy(b, dev->raw_buffer[dev->cur_buf] + 2352, 96);
-                        *len = dev->cdrom_sector_size;
-                        return ret;
+                        dev->cdrom_sector_size = 0;
                     } else {
-                        dev->cdrom_sector_size = 2352; // Let the common code run.
+                        dev->cdrom_sector_size = 2352;
                     }
                 }
             } else if ((cdrom_sector_type > 1) && audio &&
