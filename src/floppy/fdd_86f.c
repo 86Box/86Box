@@ -747,6 +747,37 @@ d86f_hole(int drive)
     return (d86f_handler[drive].disk_flags(drive) >> 1) & 3;
 }
 
+void
+d86f_set_track_pos(const int drive, const uint32_t track_pos)
+{
+    d86f_t    *dev = d86f[drive];
+
+    if (dev != NULL)
+        dev->track_pos = track_pos;
+}
+
+uint32_t
+d86f_get_track_pos(const int drive)
+{
+    const d86f_t *dev = d86f[drive];
+
+    if (dev == NULL)
+        return 0;
+
+    return dev->track_pos;
+}
+
+uint32_t
+d86f_get_raw_size(const int drive, const int side)
+{
+    const d86f_t *dev = d86f[drive];
+
+    if (dev == NULL)
+        return 12500;
+
+    return d86f_handler[drive].get_raw_size(drive, side);
+}
+
 uint8_t
 d86f_get_encoding(int drive)
 {
@@ -2367,7 +2398,10 @@ d86f_turbo_poll(int drive, int side)
         case STATE_16_FIND_ID:
             if (!d86f_sector_is_present(drive, side, dev->req_sector.id.c, dev->req_sector.id.h, dev->req_sector.id.r, dev->req_sector.id.n)) {
                 dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-                fdc_nosector(d86f_fdc);
+                if (d86f_sector_is_present(drive, side, d86f_fdc->pcn[dev->req_sector.id.h], dev->req_sector.id.h, dev->req_sector.id.r, dev->req_sector.id.n))
+                    fdc_wrongcylinder(d86f_fdc);
+                else
+                    fdc_nosector(d86f_fdc);
                 dev->state = STATE_IDLE;
                 return;
             } else if (d86f_sector_flags(drive, side, dev->req_sector.id.c, dev->req_sector.id.h, dev->req_sector.id.r, dev->req_sector.id.n) & SECTOR_NO_ID) {
