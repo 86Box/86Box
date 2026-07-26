@@ -18,6 +18,7 @@
  *          Copyright 2018-2019 Fred N. van Kempen.
  *          Copyright 2025 Toni Riikonen.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -333,6 +334,24 @@ fdd_do_seek(int drive, int track)
         drives[drive].seek(drive, track);
 }
 
+static void
+fdd_do_seek_ex(const int drive, const int track)
+{
+    if (fdd_tape_present(drive))
+        fdd_do_seek(drive, track);
+    else {
+        const int      head = fdd_get_head(drive);
+        uint32_t       pos  = d86f_get_track_pos(drive);
+        const uint32_t old  = d86f_get_raw_size(drive, head);
+
+        fdd_do_seek(drive, track);
+
+        const uint32_t new  = d86f_get_raw_size(drive, head);
+        pos                 = (uint32_t) round((((double) pos) / ((double) old)) * ((double) new));
+        d86f_set_track_pos(drive, pos);
+    }
+}
+
 void
 fdd_forced_seek(int drive, int track_diff)
 {
@@ -344,7 +363,7 @@ fdd_forced_seek(int drive, int track_diff)
     if (fdd[drive].track > drive_types[fdd[drive].type].max_track)
         fdd[drive].track = drive_types[fdd[drive].type].max_track;
 
-    fdd_do_seek(drive, fdd[drive].track);
+    fdd_do_seek_ex(drive, fdd[drive].track);
 }
 
 static void
@@ -356,7 +375,7 @@ fdd_seek_complete_callback(void *priv)
 
     fdd_log("fdd_seek_complete_callback(drive=%d) - TIMER FIRED! seek_in_progress=1\n", drive->id);
     fdd_log("Notifying FDC of seek completion\n");
-    fdd_do_seek(drive->id, fdd[drive->id].track);
+    fdd_do_seek_ex(drive->id, fdd[drive->id].track);
 
     int had_pending = fdd_pending[drive->id].pending;
     if (had_pending) {
@@ -456,7 +475,7 @@ fdd_seek(int drive, int track_diff)
     fdd_changed[drive] = 0;
 
     if (fdd[drive].turbo) {
-        fdd_do_seek(drive, fdd[drive].track);
+        fdd_do_seek_ex(drive, fdd[drive].track);
     } else {
         /* Trigger appropriate audio for track movements */
         int actual_track_diff = abs(old_track - fdd[drive].track);
