@@ -7856,7 +7856,7 @@ const machine_t machines[] = {
         .internal_name     = "asus386siq",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_SIS_460, // Also seen with a SiS 461 chipset
-        .init              = machine_at_isa386siq_init,
+        .init              = machine_at_asus386siq_init,
         .p1_handler        = machine_generic_p1_handler,
         .gpio_handler      = NULL,
         .available_flag    = MACHINE_AVAILABLE,
@@ -8528,7 +8528,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Daewoo CPC-2000", "Leading Edge CPC-2008", "" }
     },
     /* Uses the AMIKey 'F' keyboard controller firmware. */
     {
