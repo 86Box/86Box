@@ -1737,7 +1737,7 @@ ess_fm_midi_read(UNUSED(uint16_t addr), void *priv)
     return 0xff;
 }
 
-static void ess_rsk_reset(void *priv);
+void ess_rsk_reset(void *priv);
 static uint8_t ess_rsk_read(uint16_t addr, void *priv);
 
 void
@@ -2436,7 +2436,7 @@ ess_mixer_reset(sb_t *ess)
     ess_mixer_write(5, 0, ess);
 }
 
-static void
+void
 ess_rsk_reset(void *priv)
 {
     sb_t *ess = (sb_t *) priv;
