@@ -1131,17 +1131,20 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
                     flags = 0x000;
                     break;
                 case 1:
-                    flags = 0x400;
-                    break;
-                case 2:
                     flags = 0x200;
                     break;
+                case 2:
+                    flags = 0x400;
+                    break;
                 case 3:
+                case 8:
                     flags = 0x100;
                     break;
             }
 
             flags |= CD_SECTOR_FLAG_SCRAMBLED | 0xb8;
+            if (dev->current_cdb[10] == 8)
+                flags |= 2;
             handled = 1;
             break;
         }
