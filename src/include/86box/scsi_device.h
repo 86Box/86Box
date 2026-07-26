@@ -173,6 +173,7 @@
 #define GPCMD_CADDY_EJECT_NEC                         0xdc /* NEC Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC        0xdd /* NEC Vendor Unique command */
 #define GPCMD_READ_DISC_INFORMATION_NEC               0xde /* NEC Vendor Unique command */
+#define GPCMD_READ_ALL_SUBCODES_PIONEER               0xdf /* Pioneer Vendor Unique command */
 #define GPCMD_DRIVE_STATUS_PIONEER                    0xe0 /* Pioneer Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_12_MATSUSHITA                0xe5 /* Matsushita Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
