@@ -819,6 +819,7 @@ extern int             machine_at_dtk486_init(const machine_t *);
 extern int             machine_at_ami471_init(const machine_t *);
 extern int             machine_at_px471_init(const machine_t *);
 extern int             machine_at_tg486g_init(const machine_t *);
+extern int             machine_at_vs486f3vl_init(const machine_t *);
 
 /* m_at_socket3_pci.c */
 /* ALi M1429G */
