@@ -1728,8 +1728,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     sound_add_handler(sb_get_buffer_ess, gus->ess);
     music_add_handler(sb_get_music_buffer_ess, gus->ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);
-    if (device_get_config_int("control_pc_speaker"))
-        sound_set_pc_speaker_filter(ess_filter_pc_speaker, gus->ess);
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
@@ -1739,9 +1737,6 @@ gus_extreme_init(UNUSED(const device_t *info))
      * It will be later initialized by the guest OS's drivers. */
     mpu401_init(gus->ess->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&gus->ess->dsp, gus->ess->mpu);
-
-    if (device_get_config_int("control_midi"))
-        sound_set_midi_filter(ess_filter_midi, gus->ess);
 
     gus->ess->gameport      = gameport_add(&gameport_200_device);
     gus->ess->gameport_addr = 0x200;
@@ -2061,28 +2056,6 @@ static const device_config_t gus_extreme_config[] = {
             { .description = "1 MB",   .value = 2 },
             { NULL                                }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "control_pc_speaker",
-        .description    = "Control PC speaker",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "control_midi",
-        .description    = "Control MIDI volume",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
