@@ -873,6 +873,11 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
     ess_mixer_t *mixer = &ess->mixer_ess;
     uint8_t      t     = 0x00;
 
+    /* Bits 1-0 differ between the ES186x and the non-ISAPnP chips: On ES186x the
+       bits are part of the IRQ/DMA readout while on the non-ISAPnP chips these are
+       unused. The Synergy ViperMax DOS initialization utility relies on those bits
+       being cleared */
+
     /* IRQ control */
     if (legacy) {
         t |= 0x80;
@@ -885,13 +890,22 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
             t |= 0x0;
             break;
         case 5:
-            t |= 0x5;
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
+                t |= 0x5;
+            else
+                t |= 0x4;
             break;
         case 7:
-            t |= 0xA;
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
+                t |= 0xA;
+            else
+                t |= 0x8;
             break;
         case 10:
-            t |= 0xF;
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
+                t |= 0xF;
+            else
+                t |= 0xC;
             break;
     }
     ESSreg(0xB1) = (ESSreg(0xB1) & 0xF0) | t;
@@ -907,13 +921,22 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
         default:
             break;
         case 0:
-            t |= 0x5;
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
+                t |= 0x5;
+            else
+                t |= 0x4;
             break;
         case 1:
-            t |= 0xA;
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
+                t |= 0xA;
+            else
+                t |= 0x8;
             break;
         case 3:
-            t |= 0xF;
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
+                t |= 0xF;
+            else
+                t |= 0xC;
             break;
     }
     ESSreg(0xB2) = (ESSreg(0xB2) & 0xF0) | t;

@@ -19,6 +19,8 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/snd_ad1848.h>
+#include <86box/snd_sb.h>
+#include <86box/snd_sb_dsp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
@@ -47,7 +49,8 @@ enum {
     GUS_CLASSIC    = 0,
     GUS_CLASSIC_37 = 1,
     GUS_MAX        = 2,
-    GUS_ACE        = 3
+    GUS_ACE        = 3,
+    GUS_EXTREME    = 4
 };
 
 enum {
@@ -176,6 +179,11 @@ typedef struct gus_t {
     ad1848_t ad1848;
 
     ics2101_t ics2101;
+
+    sb_t    *ess; /* GUS Extreme ES1688 */
+    uint16_t gus_new_base;
+    uint8_t  gus_reloc_latch;
+    uint8_t  gus_reloc_state;
 } gus_t;
 
 static int gus_gf1_irqs[8]  = { -1, 2, 5, 3, 7, 11, 12, 15 };
@@ -686,7 +694,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 6:
                     if (gus->type > GUS_CLASSIC) {
-                        if (gus->type != GUS_ACE) {
+                        if ((gus->type != GUS_ACE) && (gus->type != GUS_EXTREME)) {
                             if (!(val & 0x2) && (gus->jumper & 0x2))
                                 io_removehandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
                             else if ((val & 0x2) && !(gus->jumper & 0x2))
@@ -975,6 +983,8 @@ gus_read(uint16_t addr, void *priv)
                 val = 0x0a; /* GUS MAX */
             else if (gus->type == GUS_ACE)
                 val = 0x30; /* GUS ACE */
+            else if (gus->type == GUS_EXTREME)
+                val = 0x50; /* GUS Extreme */
             else
                 val = 0xff; /* Pre 3.7 - no mixer */
             break;
@@ -1020,7 +1030,7 @@ gus_read(uint16_t addr, void *priv)
             return gus->sb_2xe;
 
         case 0x388:
-            if ((gus->type == GUS_ACE) && !device_get_config_int("adlib_ports"))
+            if (((gus->type == GUS_ACE) && !device_get_config_int("adlib_ports")) || (gus->type == GUS_EXTREME))
                 break;
             fallthrough;
         case 0x208:
@@ -1041,7 +1051,7 @@ gus_read(uint16_t addr, void *priv)
             val = gus->ad_data;
             break;
         case 0x389:
-            if ((gus->type != GUS_ACE) || device_get_config_int("adlib_ports"))
+            if (((gus->type != GUS_ACE) || device_get_config_int("adlib_ports")) && (gus->type != GUS_EXTREME))
                 val = gus->ad_data;
             break;
 
@@ -1366,6 +1376,27 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     gus->pos = 0;
 }
 
+static void
+gus_extreme_get_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    gus_t *gus = (gus_t *) priv;
+
+    gus_update(gus);
+
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        double temp_l = 0.0;
+        double temp_r = 0.0;
+        temp_l = (double) gus->buffer[0][c >> 1] * gus->ess->mixer_ess.auxb_l;
+        temp_r = (double) gus->buffer[1][c >> 1] * gus->ess->mixer_ess.auxb_r;
+        temp_l *= gus->ess->mixer_ess.master_l;
+        temp_r *= gus->ess->mixer_ess.master_r;
+        buffer[c]     += (int32_t) temp_l;
+        buffer[c + 1] += (int32_t) temp_r;
+    }
+
+    gus->pos = 0;
+}
+
 void
 gus_filter_cd_audio(int channel, double *buffer, void *priv)
 {
@@ -1415,6 +1446,60 @@ gus_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     }
     gus->sysex = 0;
     return 0;
+}
+
+static void
+gus_relocate_base(void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+
+    io_removehandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_removehandler(0x0102 + gus->base, 0x000e, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_removehandler(0x0506 + gus->base, 0x0001, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_removehandler(0x0388, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+
+    gus->base = gus->gus_new_base;
+
+    io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0102 + gus->base, 0x000e, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0506 + gus->base, 0x0001, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0388, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+}
+
+static void
+gus_reloc_write(uint16_t addr, uint8_t val, void *priv)
+{
+    gus_t   *gus          = (gus_t *) priv;
+    uint16_t cur_gpo_port = gus->ess->dsp.sb_addr + 7;
+
+    switch (gus->gus_reloc_state) {
+        case 0:
+            if (addr == cur_gpo_port)
+                gus->gus_reloc_latch = val;
+            else if (addr == 0x201) {
+                gus->gus_new_base = 0x200 + ((gus->gus_reloc_latch & 0x02) ? 0x40 : 0);
+                if ((gus->gus_reloc_latch == 0x00) || (gus->gus_reloc_latch == 0x02))
+                    gus->gus_reloc_state++;
+            }
+            break;
+        case 1:
+            if (addr == cur_gpo_port)
+                gus->gus_reloc_latch = val;
+            else if (addr == 0x201) {
+                gus->gus_new_base |= ((gus->gus_reloc_latch & 0x02) ? 0x20 : 0);
+                gus->gus_reloc_state++;
+            }
+            break;
+        case 2:
+            if (addr == cur_gpo_port) {
+                if (val & 0x02)
+                    gus->gus_new_base |= 0x10;
+                if (val & 0x01)
+                    gus_relocate_base(gus);
+                gus->gus_reloc_state = 0;
+            }
+            break;
+    }
 }
 
 static void
@@ -1609,6 +1694,115 @@ gus_init(UNUSED(const device_t *info))
 
     if ((gus->type != GUS_ACE) && (device_get_config_int("receive_input")))
         midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
+
+    return gus;
+}
+
+void *
+gus_extreme_init(UNUSED(const device_t *info))
+{
+    int     c;
+    double  out     = 1.0;
+    gus_t  *gus     = calloc(1, sizeof(gus_t));
+    uint8_t gus_ram = device_get_config_int("gus_ram");
+
+    /* Init ES1688 section */
+    gus->ess = calloc(1, sizeof(sb_t));
+
+    fm_driver_get_cs(FM_ESFM, &gus->ess->opl);
+
+    sb_dsp_set_real_opl(&gus->ess->dsp, 1);
+    gus->ess->opl_pnp_addr = 0x388;
+
+    sb_dsp_init(&gus->ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1688, gus);
+    gus->ess->es1688_rsk_enable = 1;
+    sb_dsp_setaddr(&gus->ess->dsp, 0x220);
+    sb_dsp_setirq(&gus->ess->dsp, 0);
+    sb_dsp_setdma8(&gus->ess->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16_8(&gus->ess->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16_supported(&gus->ess->dsp, 0);
+    ess_mixer_reset(gus->ess);
+
+    gus->ess->mixer_enabled = 1;
+    gus->ess->mixer_ess.regs[0x40] = 0x0a;
+    sound_add_handler(sb_get_buffer_ess, gus->ess);
+    music_add_handler(sb_get_music_buffer_ess, gus->ess);
+    sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(ess_filter_pc_speaker, gus->ess);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
+
+    gus->ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
+    /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
+     * It will be later initialized by the guest OS's drivers. */
+    mpu401_init(gus->ess->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
+    sb_dsp_set_mpu(&gus->ess->dsp, gus->ess->mpu);
+
+    if (device_get_config_int("control_midi"))
+        sound_set_midi_filter(ess_filter_midi, gus->ess);
+
+    gus->ess->gameport      = gameport_add(&gameport_200_device);
+    gus->ess->gameport_addr = 0x200;
+
+    gus->ess->es188x_readseq_state = 0;
+    gus->ess->es188x_dsp_addr      = 0;
+    ess_rsk_reset(gus->ess);
+
+    /* Init GF1 section */
+    gus->gus_end_ram = 1 << (18 + gus_ram);
+    gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
+
+    for (c = 0; c < 32; c++) {
+        gus->ctrl[c]  = 1;
+        gus->rctrl[c] = 1;
+        gus->rfreq[c] = 63 * 512;
+    }
+
+    for (c = 4095; c >= 0; c--) {
+        vol16bit[c] = out;
+        out /= 1.002709201; /* 0.0235 dB Steps */
+    }
+
+    gus->voices = 14;
+
+    gus->samp_latch = (uint64_t) (TIMER_USEC * (1000000.0 / 44100.0));
+
+    gus->t1l = gus->t2l = 0xff;
+
+    gus->uart_out = 1;
+
+    gus->type = info->local;
+
+    gus->jumper = 0x06;
+
+    for (int i = 0; i < GUS_ICS2101_MAX; i++) {
+        gus->ics2101.channels[i].level[0] = gus->ics2101.channels[i].level[1] = 1.0;
+        gus->ics2101.channels[i].ctrl[0] = 1;
+        gus->ics2101.channels[i].ctrl[1] = 2;
+        gus->ics2101.channels[i].pan = 7;
+    }
+
+    gus->base = 0x240;
+
+    io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0102 + gus->base, 0x000e, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0506 + gus->base, 0x0001, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+    io_sethandler(0x0388, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
+
+    timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
+    timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
+    timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
+
+    sound_add_handler(gus_extreme_get_buffer, gus);
+
+    /* GUS Extreme base I/O relocation is done via ES1688 GPO and joystick port writes */
+    io_sethandler(0x227, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
+    io_sethandler(0x237, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
+    io_sethandler(0x247, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
+    io_sethandler(0x257, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
+    io_sethandler(0x201, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
 
     return gus;
 }
@@ -1853,6 +2047,70 @@ static const device_config_t gus_ace_config[] = {
 // clang-format off
 };
 
+static const device_config_t gus_extreme_config[] = {
+    {
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "control_pc_speaker",
+        .description    = "Control PC speaker",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "control_midi",
+        .description    = "Control MIDI volume",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
 const device_t gus_device = {
     .name          = "Gravis UltraSound",
     .internal_name = "gus",
@@ -1907,4 +2165,18 @@ const device_t gus_ace_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_ace_config
+};
+
+const device_t gus_extreme_device = {
+    .name          = "Gravis UltraSound Extreme",
+    .internal_name = "gusextreme",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_EXTREME,
+    .init          = gus_extreme_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_extreme_config
 };

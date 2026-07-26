@@ -274,4 +274,13 @@ extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb_close(void *priv);
 extern void sb_speed_changed(void *priv);
 
+extern void ess_mixer_reset(sb_t *ess);
+extern void ess_rsk_reset(void *priv);
+
+extern void sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void ess_filter_cd_audio(int channel, double *buffer, void *priv);
+extern void ess_filter_pc_speaker(int channel, double *buffer, void *priv);
+extern void ess_filter_midi(int channel, double *buffer, void *priv);
+
 #endif /*SOUND_SND_SB_H*/
