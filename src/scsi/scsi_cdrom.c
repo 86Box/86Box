@@ -1139,6 +1139,29 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
             type     = 0x00;
             flags    = 0x20;
             break;
+        case GPCMD_READ_CDDA_MSF:
+            ven_type = 0x00;
+            fallthrough;
+        case GPCMD_READ_CDDA:
+            type     = 0x01;
+
+            switch (dev->current_cdb[10]) {
+                case 0:
+                    flags = 0x000;
+                    break;
+                case 1:
+                    flags = 0x400;
+                    break;
+                case 2:
+                    flags = 0x200;
+                    break;
+                case 3:
+                    flags = 0x100;
+                    break;
+            }
+
+            flags |= CD_SECTOR_FLAG_SCRAMBLED | ((dev->current_cdb[10] != 3) ? 0xb8 : 0x00);
+            break;
         default:
             if (dev->sector_type == 0xff) {
                 scsi_cdrom_illegal_mode(dev);
@@ -2626,6 +2649,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_READ_CD_MSF_OLD:
         case GPCMD_READ_CD:
         case GPCMD_READ_CD_MSF:
+        case GPCMD_READ_CDDA:
+        case GPCMD_READ_CDDA_MSF:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
             dev->was_cached = 0;
 
@@ -2686,9 +2711,22 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 case GPCMD_PLAY_CD:
                 case GPCMD_READ_CD_OLD:
                 case GPCMD_READ_CD:
+                case GPCMD_READ_CDDA:
+                case GPCMD_READ_CDDA_MSF:
                     alloc_length    = 2856;
 
-                    if (msf) {
+                    if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                        dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
+                        dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
+
+                        dev->sector_len -= dev->sector_pos;
+                        dev->sector_len++;
+                    } else if (dev->current_cdb[0] == GPCMD_READ_CDDA) {
+                        dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) |
+                                          (cdb[8] << 8) | cdb[9];
+                        dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) |
+                                          (cdb[4] << 8) | cdb[5];
+                    } else if (msf) {
                         dev->sector_len = MSFtoLBA(cdb[6], cdb[7], cdb[8]) - 150;
                         dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
 
@@ -2700,7 +2738,13 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                                           (cdb[4] << 8) | cdb[5];
                     }
 
-                    if (((cdb[9] & 0xf8) == 0x08) || ((cdb[9] == 0x00) &&
+                    if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                        if (cdb[10] > 0x3) {
+                            /* Illegal mode */
+                            scsi_cdrom_invalid_field(dev, cdb[9]);
+                            ret = 0;
+                        }
+                    } else if (((cdb[9] & 0xf8) == 0x08) || ((cdb[9] == 0x00) &&
                         ((cdb[10] & 0x07) != 0x00))) {
                         /* Illegal mode */
                         scsi_cdrom_invalid_field(dev, cdb[9]);

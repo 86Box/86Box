@@ -161,7 +161,9 @@
 #define GPCMD_PLAYBACK_STATUS_PIONEER                 0xcc /* Pioneer Vendor Unique command */
 #define GPCMD_SCAN_PIONEER                            0xcd /* Should be equivalent to 0xba */
 #define GPCMD_READ_CD_MSF_OLD                         0xd5 /* Should be equivalent to 0xb9 */
+#define GPCMD_READ_CDDA                               0xd8
 #define GPCMD_AUDIO_TRACK_SEARCH_NEC                  0xd8 /* NEC Vendor Unique command */
+#define GPCMD_READ_CDDA_MSF                           0xd9
 #define GPCMD_PLAY_AUDIO_NEC                          0xd9 /* NEC Vendor Unique command */
 #define GPCMD_SET_SPEED_ALT                           0xda /* Should be equivalent to 0xbb */
 #define GPCMD_STILL_NEC                               0xda /* NEC Vendor Unique command */

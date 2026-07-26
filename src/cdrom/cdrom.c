@@ -2631,7 +2631,14 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
                       "type from an image\n");
             return 0;
         } else {
-            if ((cdrom_sector_type > 1) && audio &&
+            if (cdrom_sector_flags & CD_SECTOR_FLAG_SCRAMBLED) {
+                ret = read_audio(dev, lba, temp_b);
+                if (ret > 0 && !audio) {
+                    for (int i = 0; i < 2352; i++) {
+                        buffer[i] ^= cdrom_scramble_table[i];
+                    }
+                }
+            } else if ((cdrom_sector_type > 1) && audio &&
                 (dev->cd_status & CD_STATUS_HAS_AUDIO)) {
                 cdrom_log(dev->log, "[%s] Attempting to read a data sector "
                           "from an audio track\n",
