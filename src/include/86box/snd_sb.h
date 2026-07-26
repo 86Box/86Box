@@ -207,9 +207,9 @@ typedef struct sb_t {
 
     uint8_t  ess_scr_locked;
     uint8_t  es1688_rsk_enable;
-    uint8_t  es188x_readseq_state;
-    uint8_t  es188x_readseq_mode;
-    uint16_t es188x_dsp_addr;
+    uint8_t  ess_readseq_state;
+    uint8_t  ess_readseq_mode;
+    uint16_t ess_dsp_addr;
     uint16_t es186x_ctrl_addr;
     uint8_t  es186x_id_state;
     uint8_t  es186x_ctrl_regs[8];

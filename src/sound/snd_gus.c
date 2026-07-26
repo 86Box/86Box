@@ -1616,7 +1616,10 @@ gus_init(UNUSED(const device_t *info))
     uint8_t gus_ram = device_get_config_int("gus_ram");
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
-    gus->gus_end_ram = 1 << (18 + gus_ram);
+    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_37))
+        gus->gus_end_ram = gus_ram * 262144;
+    else
+        gus->gus_end_ram = 1 << (18 + gus_ram);
     gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
@@ -1728,8 +1731,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     sound_add_handler(sb_get_buffer_ess, gus->ess);
     music_add_handler(sb_get_music_buffer_ess, gus->ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);
-    if (device_get_config_int("control_pc_speaker"))
-        sound_set_pc_speaker_filter(ess_filter_pc_speaker, gus->ess);
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
@@ -1740,14 +1741,11 @@ gus_extreme_init(UNUSED(const device_t *info))
     mpu401_init(gus->ess->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&gus->ess->dsp, gus->ess->mpu);
 
-    if (device_get_config_int("control_midi"))
-        sound_set_midi_filter(ess_filter_midi, gus->ess);
-
     gus->ess->gameport      = gameport_add(&gameport_200_device);
     gus->ess->gameport_addr = 0x200;
 
-    gus->ess->es188x_readseq_state = 0;
-    gus->ess->es188x_dsp_addr      = 0;
+    gus->ess->ess_readseq_state = 0;
+    gus->ess->ess_dsp_addr      = 0;
     ess_rsk_reset(gus->ess);
 
     /* Init GF1 section */
@@ -1776,13 +1774,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     gus->type = info->local;
 
     gus->jumper = 0x06;
-
-    for (int i = 0; i < GUS_ICS2101_MAX; i++) {
-        gus->ics2101.channels[i].level[0] = gus->ics2101.channels[i].level[1] = 1.0;
-        gus->ics2101.channels[i].ctrl[0] = 1;
-        gus->ics2101.channels[i].ctrl[1] = 2;
-        gus->ics2101.channels[i].pan = 7;
-    }
 
     gus->base = 0x240;
 
@@ -1856,13 +1847,14 @@ static const device_config_t gus_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "256 KB", .value = 0 },
-            { .description = "512 KB", .value = 1 },
-            { .description = "1 MB",   .value = 2 },
+            { .description = "256 KB", .value = 1 },
+            { .description = "512 KB", .value = 2 },
+            { .description = "768 KB", .value = 3 },
+            { .description = "1 MB",   .value = 4 },
             { NULL                                }
         },
         .bios           = { { 0 } }
@@ -1919,13 +1911,14 @@ static const device_config_t gus_v37_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "256 KB", .value = 0 },
-            { .description = "512 KB", .value = 1 },
-            { .description = "1 MB",   .value = 2 },
+            { .description = "256 KB", .value = 1 },
+            { .description = "512 KB", .value = 2 },
+            { .description = "768 KB", .value = 3 },
+            { .description = "1 MB",   .value = 4 },
             { NULL                                }
         },
         .bios           = { { 0 } }
@@ -2061,28 +2054,6 @@ static const device_config_t gus_extreme_config[] = {
             { .description = "1 MB",   .value = 2 },
             { NULL                                }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "control_pc_speaker",
-        .description    = "Control PC speaker",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "control_midi",
-        .description    = "Control MIDI volume",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
