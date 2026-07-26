@@ -1120,6 +1120,23 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
 
     if (dev->drv->is_pioneer) {
         switch (dev->current_cdb[0]) {
+        case GPCMD_READ_CDXA_PIONEER:
+        {
+            ven_type = 0x00;
+            flags = 0x00;
+            switch (dev->current_cdb[6]) {
+                case 0x00:
+                    flags = 0x10;
+                    break;
+                case 0x0F:
+                    flags = 0xF8;
+                    break;
+                case 0x1F:
+                    flags = 0xFA;
+                    break;
+            }
+            break;
+        }
         case GPCMD_READ_CDDA_MSF:
             ven_type = 0x00;
             fallthrough;
@@ -1143,7 +1160,7 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
 
             flags |= CD_SECTOR_FLAG_SCRAMBLED;
             if (dev->current_cdb[10] != 3)
-                flags |= 0xb8;
+                flags |= 0xF8;
             handled = 1;
             break;
         }
@@ -1171,7 +1188,7 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
 
             flags |= CD_SECTOR_FLAG_SCRAMBLED;
             if (dev->current_cdb[10] != 3)
-                flags |= 0xb8;
+                flags |= 0xF8;
             handled = 1;
             break;
         case GPCMD_READ_CDDA_MSF:
@@ -1194,7 +1211,7 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
                     break;
             }
 
-            flags |= CD_SECTOR_FLAG_SCRAMBLED | 0xb8;
+            flags |= CD_SECTOR_FLAG_SCRAMBLED | 0xF8;
             if (dev->current_cdb[10] == 8)
                 flags |= 2;
             handled = 1;
@@ -2381,6 +2398,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
     switch (cdb[0]) {
         case GPCMD_READ_CDDA:
         case GPCMD_READ_CDDA_MSF:
+        case GPCMD_READ_CDXA_PIONEER:
             cmd_stat = 1;
             if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
                 dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
@@ -2388,13 +2406,19 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
                 dev->sector_len -= dev->sector_pos;
                 dev->sector_len++;
-            } else if (dev->current_cdb[0] == GPCMD_READ_CDDA) {
+            } else {
                 dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
                 dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
             }
 
             if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
                 if (cdb[10] > 0x3) {
+                    /* Illegal mode */
+                    scsi_cdrom_invalid_field(dev, cdb[9]);
+                    break;
+                }
+            } else {
+                if (cdb[6] != 0x00 && cdb[6] != 0x0F && cdb[6] != 0x1F) {
                     /* Illegal mode */
                     scsi_cdrom_invalid_field(dev, cdb[9]);
                     break;

@@ -168,6 +168,7 @@
 #define GPCMD_SET_SPEED_ALT                           0xda /* Should be equivalent to 0xbb */
 #define GPCMD_STILL_NEC                               0xda /* NEC Vendor Unique command */
 #define GPCMD_SET_STOP_TIME_NEC                       0xdb /* NEC Vendor Unique command */
+#define GPCMD_READ_CDXA_PIONEER                       0xdb /* Pioneer Vendor Unique command */
 #define GPCMD_CADDY_EJECT_NEC                         0xdc /* NEC Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC        0xdd /* NEC Vendor Unique command */
 #define GPCMD_READ_DISC_INFORMATION_NEC               0xde /* NEC Vendor Unique command */
