@@ -124,6 +124,8 @@ enum {
  */
 #define QIC_FORMAT_QIC40             ((1 << 2) | 1)
 #define QIC_FORMAT_QIC80             ((2 << 2) | 1)
+#define QIC_FORMAT_QIC3020           ((3 << 2) | 1)
+#define QIC_FORMAT_QIC3010           ((4 << 2) | 1)
 
 /* Tape status bits, as returned by QIC_REPORT_TAPE_STATUS. */
 #define QIC_TAPE_QIC80               0x02
@@ -137,17 +139,43 @@ enum {
 #define QIC_ERROR_UNDEFINED_COMMAND  6
 #define QIC_ERROR_ILLEGAL_SEEK_TRACK 7
 #define QIC_ERROR_ILLEGAL_IN_REPORT  8
+#define QIC_ERROR_ILLEGAL_DIAG_ENTRY 9
+#define QIC_ERROR_NEW_CARTRIDGE      13
+#define QIC_ERROR_ILLEGAL_IN_FORMAT  15
 #define QIC_ERROR_NOT_REFERENCED     19
+#define QIC_ERROR_POWER_ON_RESET     26
+#define QIC_ERROR_SOFT_RESET         27
 #define QIC_ERROR_RATE_SELECTION     31
+
+/* The error code list (3.5) divides errors into classes: initialization
+   errors overwrite any pending code, while every other class leaves an
+   already-latched error in place until Report Error Code clears it. A soft
+   or power-on reset is an initialization error (3.2). */
+#define QIC_ERROR_IS_INIT(e)         (((e) == QIC_ERROR_POWER_ON_RESET) || \
+                                      ((e) == QIC_ERROR_SOFT_RESET))
 
 /* Undefined codes at or above Report Vendor ID are ignored rather than
    faulted, so that a host recalibrating its controller - which produces a
    long pulse train - provokes no reaction from the drive (3.0). */
 #define QIC_IGNORE_ABOVE             QIC_REPORT_VENDOR_ID
 
-/* Identity of the emulated drive: "Colorado DJ-10/DJ-20 (new)". */
-#define QIC_VENDOR_ID                0x011c4
-#define QIC_ROM_VERSION              0x54
+/*
+   Vendor ID and ROM version, pulled from a real Colorado 250 drive.
+ */
+#define QIC_VENDOR_ID                0x0047
+#define QIC_ROM_VERSION              0x58
+
+/* Signature handed back by Report ROM Version while in diagnostic mode 1,
+   by which a host confirms the drive really is a Colorado/CMS make. */
+#define QIC_CMS_SIGNATURE            0xa5
+
+/*
+   Status handed back by Report Format Segments in that same mode. Nothing
+   documents the encoding, but the host reads the drive's format capability
+   out of it, so use the same numbering the Report Tape Status format field
+   uses - 1 for QIC-40, 2 for QIC-80.
+ */
+#define QIC_CMS_DIAG_STATUS          QIC_TAPE_QIC80
 
 /* The head parks at cylinder 0 while idle, so TRACK 0 doubles as the
    result line. Bits are handed back one at a time, framed by a leading
@@ -195,6 +223,8 @@ typedef struct tape_t {
     uint32_t report_value;
     int      report_len;
     int      report_pos;    /* TAPE_REPORT_IDLE, or 0..report_len inclusive */
+    int      report_final;  /* value of the closing bit: false marks the
+                               status handed over as invalid */
     int      ack;           /* current state of the TRACK 0 line */
 
     /* Drive state. */
@@ -204,13 +234,20 @@ typedef struct tape_t {
     uint8_t  last_command;
     int      selected;
     int      running;       /* tape is streaming past the head */
-    int      reverse;
+    int      reverse;       /* this track is laid down back to front, so its
+                               segment order runs from the physical end of
+                               the tape towards the start */
     int      format_mode;
     int      verify_mode;
+    int      diag_mode;     /* 0 = primary, else the diagnostic mode entered */
+    uint8_t  diag_arm;      /* a diagnostic entry seen once, awaiting its twin
+                               - the mode only switches on the second (1.4.1) */
     int      track;         /* logical tape track the head sits on */
     int      head_sector;   /* absolute sector passing the head: the segment
                                in the controller's C/H/R address space times
                                32, plus the sector within it */
+    int      run_off;       /* sectors of tape the drive has pulled past the
+                               end of the track before coming to a halt */
     uint16_t format_segments;
     uint8_t  rate_code;     /* data rate, as a drive configuration code */
     uint8_t  format_code;   /* tape format the host selected for formatting */
@@ -342,7 +379,9 @@ tape_image_write(uint32_t offset, const uint8_t *buf, uint32_t len)
 /* QIC-117 command set                                                   */
 /* --------------------------------------------------------------------- */
 
-/* Forward references: the clocks are driven from command handling. */
+/* Forward references: the clocks are driven from command handling, and the
+   cartridge's geometry is re-read when the host lays down a header. */
+static void tape_read_geometry(void);
 static void tape_start_clock(void);
 static void tape_stop_clock(void);
 static void tape_start_motion(void);
@@ -371,11 +410,30 @@ tape_track_start(void)
     return tape.track * tape_segments_per_track();
 }
 
+/* The last segment of that track. */
+static int
+tape_track_end(void)
+{
+    return tape_track_start() + tape_segments_per_track() - 1;
+}
+
 static void
 tape_update_status(void)
 {
     tape.status &= ~(QIC_STATUS_CARTRIDGE_PRESENT | QIC_STATUS_WRITE_PROTECT |
                      QIC_STATUS_REFERENCED | QIC_STATUS_AT_BOT | QIC_STATUS_AT_EOT);
+
+    /*
+       The ready bit says the drive has nothing in progress, and a cartridge
+       in motion counts as something in progress: the host starts a pass, and
+       waits for ready to come back as the signal that the pass is over. A
+       drive that claims to be idle the moment the last segment of a format
+       has been written is taken to have failed the format outright.
+     */
+    if (tape.running || (tape.params_left > 0))
+        tape.status &= ~QIC_STATUS_READY;
+    else
+        tape.status |= QIC_STATUS_READY;
 
     if (!tape_has_cartridge())
         return;
@@ -391,22 +449,54 @@ tape_update_status(void)
     if (tape.image_size > 0)
         tape.status |= QIC_STATUS_REFERENCED;
 
-    /* Beginning and end of tape are relative to the current track. */
+    /*
+       Beginning and end of tape are physical positions, and only even tracks
+       run in segment order from the one to the other: an odd track is laid
+       down back to front, so its first segment sits at the end of the tape.
+       Hosts rely on this - they rewind an odd track to its first segment
+       with Physical Forward rather than Physical Reverse.
+     */
     const int offset = tape_head_segment() - tape_track_start();
 
     if (offset <= 0)
-        tape.status |= QIC_STATUS_AT_BOT;
+        tape.status |= tape.reverse ? QIC_STATUS_AT_EOT : QIC_STATUS_AT_BOT;
     else if (offset >= (tape_segments_per_track() - 1))
-        tape.status |= QIC_STATUS_AT_EOT;
+        tape.status |= tape.reverse ? QIC_STATUS_AT_BOT : QIC_STATUS_AT_EOT;
 }
 
 static void
 tape_set_error(uint8_t error, uint8_t command)
 {
+    /*
+       QIC-117 rev. J 1.4.4/3.5: with the sole exception of the
+       initialization errors, no error overwrites a previous error code, so
+       that the first fault in a sequence survives until the host reads it
+       with Report Error Code. An initialization error is set through
+       tape_set_init_error() instead, which is allowed to overwrite.
+     */
+    if (!QIC_ERROR_IS_INIT(error) && (tape.status & QIC_STATUS_ERROR))
+        return;
+
     fdd_tape_log("Tape: error %i on command %i\n", error, command);
 
     tape.error     = error;
     tape.error_cmd = command;
+    tape.status |= QIC_STATUS_ERROR;
+}
+
+/*
+   A power-on or soft reset is an initialization error (3.2): it is set
+   unconditionally, overwriting any pending code, and Report Error Code
+   returns it with an associated command code of one - the value the spec
+   reserves for initialization errors (command 7 description).
+ */
+static void
+tape_set_init_error(uint8_t error)
+{
+    fdd_tape_log("Tape: init error %i\n", error);
+
+    tape.error     = error;
+    tape.error_cmd = QIC_RESET;
     tape.status |= QIC_STATUS_ERROR;
 }
 
@@ -422,6 +512,7 @@ tape_start_report(uint32_t value, int length)
     tape.report_value = value;
     tape.report_len   = length;
     tape.report_pos   = 0;
+    tape.report_final = 1;
     tape.ack          = 1;
 }
 
@@ -439,13 +530,14 @@ tape_report_next_bit(void)
         tape.report_pos++;
     } else {
         /*
-           The final bit of a report is always true, and presenting it
+           The final bit of a report is normally true, and presenting it
            exits the report subcontext (1.4.2). TRACK 0 stays asserted
            until the drive receives another command - which may be a
            Report Next Bit, ignored outside the subcontext but serving to
-           clear the line.
+           clear the line. A false final bit marks the status just handed
+           over as invalid.
          */
-        tape.ack        = 1;
+        tape.ack        = tape.report_final;
         tape.report_pos = TAPE_REPORT_IDLE;
     }
 }
@@ -470,6 +562,16 @@ tape_seek_to_segment(int segment)
         segment = last;
 
     tape.head_sector = segment * FDD_TAPE_SECTORS_PER_SEG;
+    tape.run_off     = 0;
+}
+
+/* Puts the head on the sector at a given image offset: what the host
+   transfers is what passes the head. */
+static void
+tape_head_to_offset(uint32_t offset)
+{
+    tape.head_sector = (int) (offset / FDD_TAPE_SECTOR_SIZE);
+    tape.run_off     = 0;
 }
 
 /* Handles a command that takes parameters once the last one has arrived. */
@@ -480,6 +582,16 @@ tape_finish_parameters(void)
 
     switch (tape.param_cmd) {
         case QIC_SEEK_HEAD_TO_TRACK:
+            /*
+               The track number must be valid for the format in effect. A
+               QIC-80 cartridge has 28 tracks; anything beyond that is an
+               "illegal track address specified for seek" (cmd 13, error 7),
+               and the head stays where it is.
+             */
+            if (tape.param[0] >= TAPE_TRACKS) {
+                tape_set_error(QIC_ERROR_ILLEGAL_SEEK_TRACK, QIC_SEEK_HEAD_TO_TRACK);
+                break;
+            }
             tape.track = tape.param[0];
             /* Odd tracks are written back to front. */
             tape.reverse = tape.track & 1;
@@ -504,7 +616,11 @@ tape_finish_parameters(void)
             break;
 
         case QIC_SET_FORMAT_SEGMENTS:
-            tape.format_segments = tape.param[0];
+            /* Three nibbles, low first, biased by two on the wire and already
+               un-biased by the parameter decoder. */
+            tape.format_segments = (uint16_t) (tape.param[0] |
+                                               (tape.param[1] << 4) |
+                                               (tape.param[2] << 8));
             break;
 
         case QIC_SELECT_RATE:
@@ -519,6 +635,13 @@ tape_finish_parameters(void)
             switch (tape.param[0]) {
                 case QIC_RATE_250:
                 case QIC_RATE_500:
+                    /*
+                       Both are rates a QIC-80 drive can run at - 250 Kbps
+                       is how it reads QIC-40 media - so either selection is
+                       accepted and reported back as-is. A host that asks
+                       for one and reads back the other takes the drive to
+                       have failed the request.
+                     */
                     tape.rate_code = tape.param[0];
                     break;
 
@@ -576,6 +699,8 @@ tape_command_params(uint8_t command)
     switch (command) {
         case QIC_SKIP_EXTENDED_FORWARD:
         case QIC_SKIP_EXTENDED_REVERSE:
+        case QIC_SET_FORMAT_SEGMENTS:
+            /* Three nibbles, low first, for a value up to 4095 (table 2b). */
             return 3;
 
         case QIC_SKIP_FORWARD:
@@ -586,7 +711,6 @@ tape_command_params(uint8_t command)
         case QIC_SEEK_HEAD_TO_TRACK:
         case QIC_SOFT_SELECT:
         case QIC_SELECT_RATE:
-        case QIC_SET_FORMAT_SEGMENTS:
         case QIC_PHANTOM_SELECT:
         case QIC_EXT_SELECT_RATE:
             return 1;
@@ -634,6 +758,43 @@ tape_command_name(uint8_t command)
 }
 #endif
 
+/*
+   The commands that *start* a fresh pass of tape motion require a clean, ready
+   drive before they will run (table 2a; "Drive Ready" bit, cmd 6). While an
+   error or a new cartridge is pending - notably straight after a reset - these
+   are inhibited until the host clears the condition with Report Error Code
+   (3.1, 3.3), and a drive still in motion rejects them as not ready. Only the
+   argument-less ones are gated here: a gated command with arguments would leave
+   those arguments to be misread as commands (3.0), so Seek Head to Track,
+   Skip N and Calibrate are left to fault on their own terms.
+
+   Three groups of motion commands are deliberately NOT gated, because the spec
+   has each of them operate while the drive is running and NOT ready:
+     - the motion-*terminating* commands Pause, Micro Step Pause and Stop Tape
+       stop the tape "if in motion" (cmd 3, 4, 18);
+     - Micro Step Head Up/Down "may be issued with the tape either stopped or in
+       Logical Forward motion" for off-track read recovery (cmd 21, 22);
+     - Seek Load Point "will not be stopped by any command or error and will
+       continue to completion" (cmd 14), and a host relies on it to re-reference
+       straight after a reset, while an error is still latched.
+   Gating any of these on ready wedges the host: it issues Pause to halt the
+   tape at the end of a write pass, then polls Drive Status for the ready that
+   only executing the Pause can produce.
+ */
+static int
+tape_command_needs_ready(uint8_t command)
+{
+    switch (command) {
+        case QIC_LOGICAL_FORWARD:
+        case QIC_PHYSICAL_REVERSE:
+        case QIC_PHYSICAL_FORWARD:
+            return 1;
+
+        default:
+            return 0;
+    }
+}
+
 static void
 tape_command(uint8_t command)
 {
@@ -673,6 +834,36 @@ tape_command(uint8_t command)
 
     tape.last_command = command;
 
+    /*
+       A diagnostic mode is entered only by issuing its command twice in a
+       row (1.4.1). If a single diagnostic entry is followed by anything
+       else, the entry has failed and the drive sets "illegal entry into a
+       diagnostic mode". Reset and Report Next Bit do not count against it.
+     */
+    if (tape.diag_arm && (command != tape.diag_arm) && (command != QIC_RESET)) {
+        tape_set_error(QIC_ERROR_ILLEGAL_DIAG_ENTRY, tape.diag_arm);
+        tape.diag_arm = 0;
+    }
+
+    /*
+       Motion commands are gated on ready, error-clear and new-cartridge-clear
+       status. An error already pending inhibits them without raising a new
+       one (no error overwrites a pending code); a new cartridge raises error
+       13; a drive still in motion raises error 1.
+     */
+    if (tape_command_needs_ready(command)) {
+        if (tape.status & QIC_STATUS_ERROR)
+            return;
+        if (tape.status & QIC_STATUS_NEW_CARTRIDGE) {
+            tape_set_error(QIC_ERROR_NEW_CARTRIDGE, command);
+            return;
+        }
+        if (tape.running) {
+            tape_set_error(QIC_ERROR_NOT_READY, command);
+            return;
+        }
+    }
+
     switch (command) {
         case QIC_RESET:
             tape.selected    = 0;
@@ -680,12 +871,32 @@ tape_command(uint8_t command)
             tape.reverse     = 0;
             tape.format_mode = 0;
             tape.verify_mode = 0;
+            tape.diag_mode   = 0;
+            tape.diag_arm    = 0;
             tape.track       = 0;
             tape.head_sector = 0;
-            tape.error       = QIC_ERROR_NONE;
-            tape.error_cmd   = QIC_NO_COMMAND;
             tape.status      = QIC_STATUS_READY;
             tape.xfer_state  = TAPE_XFER_IDLE;
+            /*
+               A reset restores all defaults (cmd 1): the data rate returns to
+               the drive's own, and the format-segment count is cleared, so
+               Report Format Segments reads back zero until the host calibrates
+               or sets it again (cmd 37).
+             */
+            tape.rate_code       = QIC_RATE_500;
+            tape.format_code     = QIC_FORMAT_QIC80;
+            tape.format_segments = 0;
+            /*
+               A reset is itself an error condition (cmd 1, 3.2): the drive
+               comes up with the Software Reset error latched and Error
+               Detected set, and the host must clear it with Report Error
+               Code before any motion command will be accepted. If a
+               cartridge is present the reset also raises New Cartridge, the
+               same status a fresh insertion sets (3.1).
+             */
+            tape_set_init_error(QIC_ERROR_SOFT_RESET);
+            if (tape_has_cartridge())
+                tape.status |= QIC_STATUS_NEW_CARTRIDGE;
             break;
 
         case QIC_REPORT_DRIVE_STATUS:
@@ -702,13 +913,26 @@ tape_command(uint8_t command)
             tape.status &= ~(QIC_STATUS_ERROR | QIC_STATUS_NEW_CARTRIDGE);
             return;
 
-        case QIC_REPORT_DRIVE_CONFIG:
+        case QIC_REPORT_DRIVE_CONFIG: {
+            /* The only rate the drive will accept is the only one it can
+               ever be running at, so the selected rate is the live one. */
             tape_start_report((tape.rate_code << QIC_CONFIG_RATE_SHIFT) |
                               QIC_CONFIG_LONG | QIC_CONFIG_80, 8);
             return;
+        }
 
         case QIC_REPORT_ROM_VERSION:
-            tape_start_report(QIC_ROM_VERSION, 8);
+            /*
+               In diagnostic mode this command hands back the manufacturer's
+               signature rather than the ROM version - it is how a host
+               confirms it really is talking to a Colorado/CMS drive. A host
+               that gets anything else treats the drive as an unknown make
+               and refuses to use it.
+             */
+            if (tape.diag_mode == 1)
+                tape_start_report(QIC_CMS_SIGNATURE, 8);
+            else
+                tape_start_report(QIC_ROM_VERSION, 8);
             return;
 
         case QIC_REPORT_VENDOR_ID:
@@ -724,8 +948,25 @@ tape_command(uint8_t command)
             return;
 
         case QIC_REPORT_FORMAT_SEGMENTS:
-            tape_start_report(tape.format_segments ? tape.format_segments
-                                                   : TAPE_SEGMENTS_PER_TRACK, 16);
+            /*
+               Diagnostic mode redefines this code as manufacturer
+               territory: it hands back an eight bit status rather than the
+               sixteen bit segment count. The host wants a valid answer -
+               silence times it out and a report marked invalid makes it
+               retry - and reads the make and model out of the value.
+             */
+            if (tape.diag_mode) {
+                tape_start_report(QIC_CMS_DIAG_STATUS, 8);
+                return;
+            }
+
+            /*
+               Zero until the host calibrates the tape or sets the count
+               explicitly - the value is only meaningful after one of those
+               (cmd 37). Internal geometry falls back to the QIC-80 default
+               separately, in tape_segments_per_track().
+             */
+            tape_start_report(tape.format_segments, 16);
             return;
 
         case QIC_EXT_REPORT_DRIVE_CONFIG:
@@ -733,19 +974,45 @@ tape_command(uint8_t command)
             return;
 
         case QIC_LOGICAL_FORWARD:
+            if (!tape_has_cartridge()) {
+                tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
+                break;
+            }
+            /*
+               Outside Format mode the cartridge must be referenced - the
+               load point reference burst found - before it can be streamed,
+               or the drive has no fix on where the data segments lie (cmd 10,
+               error 19). In Format mode the burst is being written, so the
+               requirement does not apply.
+             */
+            if (!tape.format_mode && (tape.image_size == 0)) {
+                tape_set_error(QIC_ERROR_NOT_REFERENCED, command);
+                break;
+            }
+            /* The cartridge starts streaming past the head, and stays in
+               motion - and the drive busy with it - until the host stops it
+               or the track runs out. Any transfer the host armed beforehand
+               starts flowing now. */
+            tape.running = 1;
+            tape.run_off = 0;
+            tape_start_motion();
+            if (tape.xfer_state != TAPE_XFER_IDLE)
+                tape_start_clock();
+            break;
+
+        /*
+           The two physical motion commands wind the cartridge to one of its
+           ends at high speed rather than streaming it past the head. Which
+           end of the current track that leaves the head on depends on the
+           direction the track was laid down in.
+         */
         case QIC_PHYSICAL_FORWARD:
             if (!tape_has_cartridge()) {
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            /* The tape is now streaming; the command itself is done, so the
-               drive stays ready for whatever comes next. Any transfer the
-               host armed beforehand starts flowing now. */
-            tape.running = 1;
-            tape.reverse = 0;
-            tape_start_motion();
-            if (tape.xfer_state != TAPE_XFER_IDLE)
-                tape_start_clock();
+            tape_seek_to_segment(tape.reverse ? tape_track_start() : tape_track_end());
+            tape_stop_motion();
             break;
 
         case QIC_PHYSICAL_REVERSE:
@@ -753,7 +1020,7 @@ tape_command(uint8_t command)
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            tape_seek_to_segment(tape_track_start());
+            tape_seek_to_segment(tape.reverse ? tape_track_end() : tape_track_start());
             tape_stop_motion();
             break;
 
@@ -762,15 +1029,35 @@ tape_command(uint8_t command)
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            tape.track = 0;
+            tape.track   = 0;
+            tape.reverse = 0;
             tape_seek_to_segment(0);
             tape_stop_motion();
             break;
 
         case QIC_STOP_TAPE:
+            /* Stop is legal in any mode and simply halts motion in place. */
+            tape.xfer_state = TAPE_XFER_IDLE;
+            tape_stop_motion();
+            break;
+
         case QIC_PAUSE:
         case QIC_MICRO_STEP_PAUSE:
+            /* Neither is legal in Format mode (cmd 3). */
+            if (tape.format_mode) {
+                tape_set_error(QIC_ERROR_ILLEGAL_IN_FORMAT, command);
+                break;
+            }
+            /*
+               Pause stops the tape and then winds back over the preceding
+               data segments, so that when logical forward motion resumes the
+               host re-reads from ahead of where the fault occurred. The spec
+               fixes the distance at two segments reverse (cmd 3); the micro
+               step variant adds a head offset used for off-track retries,
+               which this fixed-geometry image drive has no analogue for.
+             */
             tape.xfer_state = TAPE_XFER_IDLE;
+            tape_seek_to_segment(tape_head_segment() - 2);
             tape_stop_motion();
             break;
 
@@ -789,10 +1076,35 @@ tape_command(uint8_t command)
             break;
 
         case QIC_ENTER_PRIMARY_MODE:
+            tape.format_mode = 0;
+            tape.verify_mode = 0;
+            tape.diag_mode   = 0;
+            break;
+
+        /*
+           The diagnostic modes are manufacturer territory, and the spec
+           requires the command twice in succession as a safeguard (1.4.1).
+           Hosts use diagnostic mode 1 to read a vendor signature out of the
+           drive and confirm what make it really is.
+         */
         case QIC_ENTER_DIAGNOSTIC_1:
+            tape.format_mode = 0;
+            tape.verify_mode = 0;
+            if (tape.diag_arm == QIC_ENTER_DIAGNOSTIC_1) {
+                tape.diag_mode = 1;
+                tape.diag_arm  = 0;
+            } else
+                tape.diag_arm = QIC_ENTER_DIAGNOSTIC_1;
+            break;
+
         case QIC_ENTER_DIAGNOSTIC_2:
             tape.format_mode = 0;
             tape.verify_mode = 0;
+            if (tape.diag_arm == QIC_ENTER_DIAGNOSTIC_2) {
+                tape.diag_mode = 2;
+                tape.diag_arm  = 0;
+            } else
+                tape.diag_arm = QIC_ENTER_DIAGNOSTIC_2;
             break;
 
         case QIC_WRITE_REFERENCE_BURST:
@@ -807,6 +1119,19 @@ tape_command(uint8_t command)
             break;
 
         case QIC_CALIBRATE_TAPE_LENGTH:
+            /*
+               Calibrate determines the number of segments per track the tape
+               can hold (cmd 36). This fixed-geometry QIC-80 XL cartridge has a
+               known count, so record it; Report Format Segments reads it back
+               afterwards, having returned zero until now (cmd 37).
+             */
+            if (!tape_has_cartridge()) {
+                tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
+                break;
+            }
+            tape.format_segments = TAPE_SEGMENTS_PER_TRACK;
+            break;
+
         case QIC_MICRO_STEP_HEAD_UP:
         case QIC_MICRO_STEP_HEAD_DOWN:
             break;
@@ -1050,15 +1375,26 @@ tape_motion_tick(UNUSED(void *priv))
         return;
     }
 
-    const int min_sector = tape_track_start() * FDD_TAPE_SECTORS_PER_SEG;
-    const int max_sector = (tape_track_start() + tape_segments_per_track()) * FDD_TAPE_SECTORS_PER_SEG - 1;
+    /* Segments are numbered along the track whichever way round the track
+       itself is laid down, so the head always works its way up. */
+    const int last_sector = ((tape_track_end() + 1) * FDD_TAPE_SECTORS_PER_SEG) - 1;
 
-    if (tape.reverse) {
-        if (tape.head_sector > min_sector)
-            tape.head_sector--;
-    } else {
-        if (tape.head_sector < max_sector)
-            tape.head_sector++;
+    if (tape.head_sector < last_sector) {
+        tape.head_sector++;
+        tape.run_off = 0;
+        return;
+    }
+
+    /*
+       The track has run out. A drive carries the cartridge on into the slack
+       at the end and only then brings it to a halt, and it is the ready bit
+       coming back that tells the host the pass is over. Halting the instant
+       the last segment goes by would have the drive claiming to be idle
+       while the host is still looking at the result of writing it.
+     */
+    if (++tape.run_off >= FDD_TAPE_SECTORS_PER_SEG) {
+        fdd_tape_log("Tape: end of track %i, stopping\n", tape.track);
+        tape_stop_motion();
     }
 }
 
@@ -1114,7 +1450,7 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
         memset(tape.buffer, 0x00, FDD_TAPE_SECTOR_SIZE);
 
     /* The segment under the head advances as sectors stream past. */
-    tape.head_sector = (int) (offset / FDD_TAPE_SECTOR_SIZE);
+    tape_head_to_offset(offset);
 
     /*
        The host arms the controller before it starts the tape, exactly as
@@ -1313,6 +1649,21 @@ tape_clock(UNUSED(void *priv))
                 tape.xfer_state = TAPE_XFER_IDLE;
                 tape_stop_clock();
                 tape_image_write(tape.xfer_offset, tape.buffer, tape.xfer_len);
+
+                /*
+                   The header segment states the geometry the cartridge was
+                   formatted with, and a host that has just formatted one
+                   goes on using it without ejecting anything. Reading the
+                   header back as it lands is the only chance to notice: a
+                   blank cartridge has no header to read at load time, so
+                   the drive would otherwise carry on addressing a freshly
+                   formatted tape by the defaults for the rest of the
+                   session and put every segment past the first head in the
+                   wrong place.
+                 */
+                if (tape.xfer_offset == 0)
+                    tape_read_geometry();
+
                 fdc_sector_finishread(tape_fdc);
             }
             break;
@@ -1376,6 +1727,22 @@ tape_clock(UNUSED(void *priv))
                 if (tape.format_offset != UINT32_MAX) {
                     memset(tape.buffer, 0x00, FDD_TAPE_SECTOR_SIZE);
                     tape_image_write(tape.format_offset, tape.buffer, FDD_TAPE_SECTOR_SIZE);
+
+                    /*
+                       Laying a sector down is the cartridge moving past the
+                       head, exactly as a data transfer is - and here it is
+                       the only thing that may move it. A format writes a
+                       whole track back to back and finishes far sooner in
+                       emulated time than tape takes to run in real time, so
+                       the free running motion clock is held off for as long
+                       as the host keeps feeding the drive. Left to itself it
+                       would reach the end of the track first, stop the tape,
+                       and have the drive report the pass finished while the
+                       host was still writing it.
+                     */
+                    tape_head_to_offset(tape.format_offset);
+                    if (tape.running)
+                        tape_start_motion();
                 }
                 tape.format_count++;
             }
@@ -1548,7 +1915,20 @@ fdd_tape_load(const char *fn)
 
     tape.fp = fp;
 
+    /* A newly inserted cartridge is uncalibrated: Report Format Segments
+       reads back zero until the host calibrates or sets it (cmd 37). */
+    tape.format_segments = 0;
+
     tape_read_geometry();
+
+    /*
+       A cartridge that has just been put in the drive is a new one, and
+       stays new until the host reads the error status (1.4.3). This is the
+       only thing that tells a host the cartridge it knows about is no
+       longer the one in the drive, so without it a host that has already
+       made up its mind about the contents never looks again.
+     */
+    tape.status |= QIC_STATUS_NEW_CARTRIDGE;
 
     if (tape.attached)
         writeprot[tape.drive] = tape.readonly;
@@ -1615,6 +1995,14 @@ fdd_tape_init(void)
     fdd_changed[drive] = 0;
 
     fdd_tape_load(fdd_tape_fn);
+
+    /*
+       A cartridge that was already in the drive when the power came on is
+       not a new one. Saying otherwise leaves a host latching a media change
+       it has no reason to expect, and hosts that never acknowledge one stay
+       latched for good.
+     */
+    tape.status &= ~QIC_STATUS_NEW_CARTRIDGE;
 }
 
 void
