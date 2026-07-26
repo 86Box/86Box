@@ -2637,12 +2637,13 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
                     for (int i = 0; i < 2352; i++) {
                         dev->raw_buffer[dev->cur_buf][i] ^= cdrom_scramble_table[i];
                     }
+                }
 
-                    if ((cdrom_sector_flags & 0xff) == 0 && ((cdrom_sector_flags >> 8) & 7)) {
-                        dev->cdrom_sector_size = 0;
-                    } else {
-                        dev->cdrom_sector_size = 2352;
-                    }
+                if ((cdrom_sector_flags & 0xff) == 0 && ((cdrom_sector_flags >> 8) & 7)) {
+                    dev->cdrom_sector_size = 0;
+                } else {
+                    memcpy(temp_b, dev->raw_buffer[dev->cur_buf], 2352);
+                    dev->cdrom_sector_size = 2352;
                 }
             } else if ((cdrom_sector_type > 1) && audio &&
                 (dev->cd_status & CD_STATUS_HAS_AUDIO)) {
