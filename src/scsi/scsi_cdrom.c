@@ -2743,8 +2743,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_READ_CD_MSF_OLD:
         case GPCMD_READ_CD:
         case GPCMD_READ_CD_MSF:
-        case GPCMD_READ_CDDA:
-        case GPCMD_READ_CDDA_MSF:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
             dev->was_cached = 0;
 
@@ -2819,13 +2817,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                                           (cdb[4] << 8) | cdb[5];
                     }
 
-                    if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
-                        if (cdb[10] > 0x3) {
-                            /* Illegal mode */
-                            scsi_cdrom_invalid_field(dev, cdb[9]);
-                            ret = 0;
-                        }
-                    } else if (((cdb[9] & 0xf8) == 0x08) || ((cdb[9] == 0x00) &&
+                    if (((cdb[9] & 0xf8) == 0x08) || ((cdb[9] == 0x00) &&
                         ((cdb[10] & 0x07) != 0x00))) {
                         /* Illegal mode */
                         scsi_cdrom_invalid_field(dev, cdb[9]);
