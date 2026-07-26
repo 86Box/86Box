@@ -110,8 +110,10 @@ uint8_t scsi_cdrom_command_flags[0x100] = {
     [0xbd]          = IMPLEMENTED,
     [0xbe ... 0xbf] = IMPLEMENTED | CHECK_READY,
     [0xc0 ... 0xcd] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0xd4]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xd5]          = IMPLEMENTED | CHECK_READY,
     [0xd8 ... 0xde] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0xdf]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xe0 ... 0xe1] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xe3 ... 0xe9] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xeb]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
@@ -1109,6 +1111,7 @@ static int
 scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
 {
     int     ret      = 1;
+    int     handled  = 0;
     int     type     = dev->sector_type;
     int     flags    = dev->sector_flags;
     uint8_t ven_type = dev->vendor_type;
@@ -1117,7 +1120,103 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
                 dev->requested_blocks : 1;
 #endif
 
-    switch (dev->current_cdb[0]) {
+    if (dev->drv->is_nec) {
+        switch (dev->current_cdb[0]) {
+            case GPCMD_READ_CDDA_NEC:
+            {
+                type = 0;
+                flags = CD_SECTOR_FLAG_SCRAMBLED | 0xf8;
+                break;
+            }
+        }
+    }
+
+    if (dev->drv->is_pioneer) {
+        switch (dev->current_cdb[0]) {
+        case GPCMD_READ_CDXA_PIONEER:
+        {
+            ven_type = 0x00;
+            flags = 0x00;
+            switch (dev->current_cdb[6]) {
+                case 0x00:
+                    flags = 0x10;
+                    break;
+                case 0x0F:
+                    flags = 0xF8;
+                    break;
+                case 0x1F:
+                    flags = 0xFA;
+                    break;
+            }
+            break;
+        }
+        }
+    }
+
+    if (dev->drv->is_sony || dev->drv->is_pioneer) {
+        switch (dev->current_cdb[0]) {
+        case GPCMD_READ_CDDA_MSF:
+            ven_type = 0x00;
+            fallthrough;
+        case GPCMD_READ_CDDA:
+            type     = 0x01;
+
+            switch (dev->current_cdb[10]) {
+                case 0:
+                    flags = 0x000;
+                    break;
+                case 1:
+                    flags = 0x200;
+                    break;
+                case 2:
+                    flags = 0x100;
+                    break;
+                case 3:
+                    flags = 0x100;
+                    break;
+            }
+
+            flags |= CD_SECTOR_FLAG_SCRAMBLED;
+            if (dev->current_cdb[10] != 3)
+                flags |= 0xF8;
+            handled = 1;
+            break;
+        }
+    }
+
+    if (dev->drv->is_plextor) {
+        switch (dev->current_cdb[0]) {
+        case GPCMD_READ_CDDA_MSF:
+            ven_type = 0x00;
+            fallthrough;
+        case GPCMD_READ_CDDA:
+            type     = 0x01;
+
+            switch (dev->current_cdb[10]) {
+                case 0:
+                    flags = 0x000;
+                    break;
+                case 1:
+                    flags = 0x200;
+                    break;
+                case 2:
+                    flags = 0x400;
+                    break;
+                case 3:
+                case 8:
+                    flags = 0x100;
+                    break;
+            }
+
+            flags |= CD_SECTOR_FLAG_SCRAMBLED | 0xf8;
+            if (dev->current_cdb[10] == 8)
+                flags |= 2;
+            handled = 1;
+            break;
+        }
+    }
+
+    if (!handled) switch (dev->current_cdb[0]) {
         case GPCMD_READ_CD_MSF_OLD:
         case GPCMD_READ_CD_MSF:
             /*
@@ -1521,6 +1620,94 @@ scsi_cdrom_set_speed(scsi_cdrom_t *dev, const uint8_t *cdb)
 }
 
 static uint8_t
+scsi_cdrom_command_plextor(void *sc, const uint8_t *cdb, UNUSED(int32_t *BufLen))
+{
+    scsi_cdrom_t *dev                    = (scsi_cdrom_t *) sc;
+    uint8_t       cmd_stat               = 0x00;
+    uint32_t      alloc_length           = 0;
+    int           pos                    = dev->drv->seek_pos;
+
+    switch (cdb[0]) {
+        case GPCMD_READ_CDDA:
+        case GPCMD_READ_CDDA_MSF:
+            alloc_length = 2852;
+            cmd_stat = 1;
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
+                dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
+
+                dev->sector_len -= dev->sector_pos;
+                dev->sector_len++;
+            } else if (dev->current_cdb[0] == GPCMD_READ_CDDA) {
+                dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
+                dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+            }
+
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                if (cdb[10] > 0x3) {
+                    /* Illegal mode */
+                    scsi_cdrom_invalid_field(dev, cdb[9]);
+                    break;
+                }
+            }
+            if (dev->sector_len > 0) {
+                uint32_t max_len      = dev->sector_len;
+                dev->requested_blocks = max_len;
+
+                dev->packet_len = max_len * alloc_length;
+                scsi_cdrom_buf_alloc(dev, dev->packet_len);
+
+                dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->drv->seek_pos  = dev->sector_pos;
+
+                /* Any of these commands stop the audio playing. */
+                cdrom_stop(dev->drv);
+
+                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
+                    dev->vendor_type = cdb[9] & 0xc0;
+                else
+                    dev->vendor_type = 0x00;
+
+                dev->block_len  = 0xffffffff;
+                dev->buffer_pos = 0x00000000;
+
+                int ret      = scsi_cdrom_read_blocks(dev);
+                alloc_length = dev->requested_blocks * dev->block_len;
+
+                if (ret > 0) {
+                    dev->packet_len = alloc_length;
+
+                    scsi_cdrom_set_buf_len(dev, BufLen,
+                                           (int32_t *) &dev->packet_len);
+
+                    scsi_cdrom_data_command_finish(dev, alloc_length,
+                                                   dev->block_len,
+                                                   alloc_length, 0);
+
+                    if (dev->packet_status != PHASE_COMPLETE)
+                        ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                    else
+                        ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
+            break;
+    }
+
+    return cmd_stat;
+}
+
+static uint8_t
 scsi_cdrom_command_chinon(void *sc, const uint8_t *cdb, UNUSED(int32_t *BufLen))
 {
     scsi_cdrom_t *dev                    = (scsi_cdrom_t *) sc;
@@ -1615,12 +1802,157 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
     scsi_cdrom_t *dev                    = (scsi_cdrom_t *) sc;
     int           ret                    = 1;
     uint8_t       cmd_stat               = 0x00;
+    uint32_t      pos                    = dev->drv->seek_pos;
+    int           alloc_length           = 0;
     int           msf;
     int           len;
     int           max_len;
 
     switch (cdb[0]) {
         default:
+            break;
+
+        case GPCMD_READ_ALL_SUBCODES_PIONEER:
+            cmd_stat = 1;
+            alloc_length = 2852;
+            
+            if (dev->drv->cd_status <= CD_STATUS_DVD) {
+                scsi_cdrom_illegal_mode(dev);
+                break;
+            }
+
+            dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
+            dev->sector_pos = dev->drv->seek_pos;
+            dev->sector_type = 1;
+            dev->sector_flags = 0x100;
+
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                if (cdb[10] > 0x3) {
+                    /* Illegal mode */
+                    scsi_cdrom_invalid_field(dev, cdb[9]);
+                    break;
+                }
+            }
+            if (dev->sector_len > 0) {
+                uint32_t max_len      = dev->sector_len;
+                dev->requested_blocks = max_len;
+
+                dev->packet_len = max_len * alloc_length;
+                scsi_cdrom_buf_alloc(dev, dev->packet_len);
+
+                dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->drv->seek_pos  = dev->sector_pos;
+
+                dev->vendor_type = 0x00;
+
+                dev->block_len  = 0xffffffff;
+                dev->buffer_pos = 0x00000000;
+
+                int ret      = scsi_cdrom_read_blocks(dev);
+                alloc_length = dev->requested_blocks * dev->block_len;
+
+                if (ret > 0) {
+                    dev->packet_len = alloc_length;
+
+                    scsi_cdrom_set_buf_len(dev, BufLen,
+                                           (int32_t *) &dev->packet_len);
+
+                    scsi_cdrom_data_command_finish(dev, alloc_length,
+                                                   dev->block_len,
+                                                   alloc_length, 0);
+
+                    if (dev->packet_status != PHASE_COMPLETE)
+                        ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                    else
+                        ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
+            break;
+
+        case GPCMD_READ_CDDA:
+        case GPCMD_READ_CDDA_MSF:
+            cmd_stat = 1;
+            alloc_length = 2852;
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
+                dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
+
+                dev->sector_len -= dev->sector_pos;
+                dev->sector_len++;
+            } else if (dev->current_cdb[0] == GPCMD_READ_CDDA) {
+                dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
+                dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+            }
+
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                if (cdb[10] > 0x3) {
+                    /* Illegal mode */
+                    scsi_cdrom_invalid_field(dev, cdb[9]);
+                    break;
+                }
+            }
+            if (dev->sector_len > 0) {
+                uint32_t max_len      = dev->sector_len;
+                dev->requested_blocks = max_len;
+
+                dev->packet_len = max_len * alloc_length;
+                scsi_cdrom_buf_alloc(dev, dev->packet_len);
+
+                dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->drv->seek_pos  = dev->sector_pos;
+
+                /* Any of these commands stop the audio playing. */
+                cdrom_stop(dev->drv);
+
+                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
+                    dev->vendor_type = cdb[9] & 0xc0;
+                else
+                    dev->vendor_type = 0x00;
+
+                dev->block_len  = 0xffffffff;
+                dev->buffer_pos = 0x00000000;
+
+                int ret      = scsi_cdrom_read_blocks(dev);
+                alloc_length = dev->requested_blocks * dev->block_len;
+
+                if (ret > 0) {
+                    dev->packet_len = alloc_length;
+
+                    scsi_cdrom_set_buf_len(dev, BufLen,
+                                           (int32_t *) &dev->packet_len);
+
+                    scsi_cdrom_data_command_finish(dev, alloc_length,
+                                                   dev->block_len,
+                                                   alloc_length, 0);
+
+                    if (dev->packet_status != PHASE_COMPLETE)
+                        ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                    else
+                        ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
             break;
 
         case GPCMD_SET_ADDRESS_FORMAT_SONY:
@@ -1959,6 +2291,65 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
         default:
             break;
 
+        case GPCMD_READ_CDDA_NEC:
+            cmd_stat = 1;
+            alloc_length = 2852;
+            dev->sector_len = (cdb[7] << 8) | cdb[8];
+            dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+
+            if (dev->sector_len > 0) {
+                uint32_t max_len      = dev->sector_len;
+                dev->requested_blocks = max_len;
+
+                dev->packet_len = max_len * alloc_length;
+                scsi_cdrom_buf_alloc(dev, dev->packet_len);
+
+                dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->drv->seek_pos  = dev->sector_pos;
+
+                /* Any of these commands stop the audio playing. */
+                cdrom_stop(dev->drv);
+
+                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
+                    dev->vendor_type = cdb[9] & 0xc0;
+                else
+                    dev->vendor_type = 0x00;
+
+                dev->block_len  = 0xffffffff;
+                dev->buffer_pos = 0x00000000;
+
+                int ret      = scsi_cdrom_read_blocks(dev);
+                alloc_length = dev->requested_blocks * dev->block_len;
+
+                if (ret > 0) {
+                    dev->packet_len = alloc_length;
+
+                    scsi_cdrom_set_buf_len(dev, BufLen,
+                                           (int32_t *) &dev->packet_len);
+
+                    scsi_cdrom_data_command_finish(dev, alloc_length,
+                                                   dev->block_len,
+                                                   alloc_length, 0);
+
+                    if (dev->packet_status != PHASE_COMPLETE)
+                        ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                    else
+                        ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
+            break;
+
         case GPCMD_NO_OPERATION_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_command_complete(dev);
@@ -2099,6 +2490,149 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
     int           alloc_length;
 
     switch (cdb[0]) {
+        case GPCMD_READ_ALL_SUBCODES_PIONEER:
+            cmd_stat = 1;
+            alloc_length = 2852;
+            
+            if (dev->drv->cd_status <= CD_STATUS_DVD) {
+                scsi_cdrom_illegal_mode(dev);
+                break;
+            }
+
+            dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
+            dev->sector_pos = dev->drv->seek_pos;
+            dev->sector_type = 1;
+            dev->sector_flags = 0x100;
+
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                if (cdb[10] > 0x3) {
+                    /* Illegal mode */
+                    scsi_cdrom_invalid_field(dev, cdb[9]);
+                    break;
+                }
+            }
+            if (dev->sector_len > 0) {
+                uint32_t max_len      = dev->sector_len;
+                dev->requested_blocks = max_len;
+
+                dev->packet_len = max_len * alloc_length;
+                scsi_cdrom_buf_alloc(dev, dev->packet_len);
+
+                dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->drv->seek_pos  = dev->sector_pos;
+                dev->vendor_type = 0x00;
+
+                dev->block_len  = 0xffffffff;
+                dev->buffer_pos = 0x00000000;
+
+                int ret      = scsi_cdrom_read_blocks(dev);
+                alloc_length = dev->requested_blocks * dev->block_len;
+
+                if (ret > 0) {
+                    dev->packet_len = alloc_length;
+
+                    scsi_cdrom_set_buf_len(dev, BufLen,
+                                           (int32_t *) &dev->packet_len);
+
+                    scsi_cdrom_data_command_finish(dev, alloc_length,
+                                                   dev->block_len,
+                                                   alloc_length, 0);
+
+                    if (dev->packet_status != PHASE_COMPLETE)
+                        ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                    else
+                        ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
+            break;
+
+        case GPCMD_READ_CDDA:
+        case GPCMD_READ_CDDA_MSF:
+        case GPCMD_READ_CDXA_PIONEER:
+            cmd_stat = 1;
+            alloc_length = 2852;
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
+                dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
+
+                dev->sector_len -= dev->sector_pos;
+                dev->sector_len++;
+            } else {
+                dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
+                dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+            }
+
+            if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
+                if (cdb[10] > 0x3) {
+                    /* Illegal mode */
+                    scsi_cdrom_invalid_field(dev, cdb[9]);
+                    break;
+                }
+            }
+            if (dev->sector_len > 0) {
+                uint32_t max_len      = dev->sector_len;
+                dev->requested_blocks = max_len;
+
+                dev->packet_len = max_len * alloc_length;
+                scsi_cdrom_buf_alloc(dev, dev->packet_len);
+
+                dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->drv->seek_pos  = dev->sector_pos;
+
+                /* Any of these commands stop the audio playing. */
+                cdrom_stop(dev->drv);
+
+                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
+                    dev->vendor_type = cdb[9] & 0xc0;
+                else
+                    dev->vendor_type = 0x00;
+
+                dev->block_len  = 0xffffffff;
+                dev->buffer_pos = 0x00000000;
+
+                int ret      = scsi_cdrom_read_blocks(dev);
+                alloc_length = dev->requested_blocks * dev->block_len;
+
+                if (ret > 0) {
+                    dev->packet_len = alloc_length;
+
+                    scsi_cdrom_set_buf_len(dev, BufLen,
+                                           (int32_t *) &dev->packet_len);
+
+                    scsi_cdrom_data_command_finish(dev, alloc_length,
+                                                   dev->block_len,
+                                                   alloc_length, 0);
+
+                    if (dev->packet_status != PHASE_COMPLETE)
+                        ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                    else
+                        ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
+            break;
+
         default:
             break;
 
@@ -3967,7 +4501,9 @@ scsi_cdrom_drive_reset(const int c)
         dev->ms_pages_default      = scsi_cdrom_ms_pages_default_scsi;
         dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable_scsi;
 
-        if (dev->drv->is_chinon)
+        if (dev->drv->is_plextor)
+            dev->ven_cmd               = scsi_cdrom_command_plextor;
+        else if (dev->drv->is_chinon)
             dev->ven_cmd               = scsi_cdrom_command_chinon;
         else if (dev->drv->is_sony) {
             dev->ven_cmd               = scsi_cdrom_command_dec_sony_texel;
