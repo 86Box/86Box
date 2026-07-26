@@ -1744,8 +1744,8 @@ gus_extreme_init(UNUSED(const device_t *info))
     gus->ess->gameport      = gameport_add(&gameport_200_device);
     gus->ess->gameport_addr = 0x200;
 
-    gus->ess->es188x_readseq_state = 0;
-    gus->ess->es188x_dsp_addr      = 0;
+    gus->ess->ess_readseq_state = 0;
+    gus->ess->ess_dsp_addr      = 0;
     ess_rsk_reset(gus->ess);
 
     /* Init GF1 section */
