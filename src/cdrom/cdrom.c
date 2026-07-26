@@ -2632,10 +2632,19 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
             return 0;
         } else {
             if (cdrom_sector_flags & CD_SECTOR_FLAG_SCRAMBLED) {
-                ret = read_audio(dev, lba, temp_b);
+                ret = read_data(dev, lba, 0);
                 if (ret > 0 && !audio) {
                     for (int i = 0; i < 2352; i++) {
-                        buffer[i] ^= cdrom_scramble_table[i];
+                        dev->raw_buffer[dev->cur_buf][i] ^= cdrom_scramble_table[i];
+                    }
+
+                    if ((cdrom_sector_flags & 0xff) == 0 && ((cdrom_sector_flags >> 8) & 7)) {
+                        dev->cdrom_sector_size = 96;
+                        memcpy(b, dev->raw_buffer[dev->cur_buf] + 2352, 96);
+                        *len = dev->cdrom_sector_size;
+                        return ret;
+                    } else {
+                        dev->cdrom_sector_size = 2352; // Let the common code run.
                     }
                 }
             } else if ((cdrom_sector_type > 1) && audio &&
