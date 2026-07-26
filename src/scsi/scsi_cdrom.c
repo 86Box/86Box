@@ -110,8 +110,10 @@ uint8_t scsi_cdrom_command_flags[0x100] = {
     [0xbd]          = IMPLEMENTED,
     [0xbe ... 0xbf] = IMPLEMENTED | CHECK_READY,
     [0xc0 ... 0xcd] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0xd4]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xd5]          = IMPLEMENTED | CHECK_READY,
     [0xd8 ... 0xde] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0xdf]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xe0 ... 0xe1] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xe3 ... 0xe9] = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0xeb]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
@@ -1117,6 +1119,17 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
     int num   = (dev->drv->bus_type == CDROM_BUS_SCSI) ?
                 dev->requested_blocks : 1;
 #endif
+
+    if (dev->drv->is_nec) {
+        switch (dev->current_cdb[0]) {
+            case GPCMD_READ_CDDA_NEC:
+            {
+                type = 0;
+                flags = CD_SECTOR_FLAG_SCRAMBLED | 0xf8;
+                break;
+            }
+        }
+    }
 
     if (dev->drv->is_pioneer) {
         switch (dev->current_cdb[0]) {
@@ -2210,6 +2223,65 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
         default:
             break;
 
+        case GPCMD_READ_CDDA_NEC:
+            cmd_stat = 1;
+            alloc_length = 2852;
+            dev->sector_len = (cdb[7] << 8) | cdb[8];
+            dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+
+            if (dev->sector_len > 0) {
+                uint32_t max_len      = dev->sector_len;
+                dev->requested_blocks = max_len;
+
+                dev->packet_len = max_len * alloc_length;
+                scsi_cdrom_buf_alloc(dev, dev->packet_len);
+
+                dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->drv->seek_pos  = dev->sector_pos;
+
+                /* Any of these commands stop the audio playing. */
+                cdrom_stop(dev->drv);
+
+                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
+                    dev->vendor_type = cdb[9] & 0xc0;
+                else
+                    dev->vendor_type = 0x00;
+
+                dev->block_len  = 0xffffffff;
+                dev->buffer_pos = 0x00000000;
+
+                int ret      = scsi_cdrom_read_blocks(dev);
+                alloc_length = dev->requested_blocks * dev->block_len;
+
+                if (ret > 0) {
+                    dev->packet_len = alloc_length;
+
+                    scsi_cdrom_set_buf_len(dev, BufLen,
+                                           (int32_t *) &dev->packet_len);
+
+                    scsi_cdrom_data_command_finish(dev, alloc_length,
+                                                   dev->block_len,
+                                                   alloc_length, 0);
+
+                    if (dev->packet_status != PHASE_COMPLETE)
+                        ui_sb_update_icon(SB_CDROM | dev->id, 1);
+                    else
+                        ui_sb_update_icon(SB_CDROM | dev->id, 0);
+                } else {
+                    scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                    dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
+                    dev->callback      = 20.0 * CDROM_TIME;
+                    scsi_cdrom_set_callback(dev);
+                }
+            } else {
+                scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+                /* scsi_cdrom_log(dev->log, "All done - callback set\n"); */
+                dev->packet_status = PHASE_COMPLETE;
+                dev->callback      = 20.0 * CDROM_TIME;
+                scsi_cdrom_set_callback(dev);
+            }
+            break;
+
         case GPCMD_NO_OPERATION_NEC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_command_complete(dev);
@@ -2368,12 +2440,6 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
             if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
                 if (cdb[10] > 0x3) {
-                    /* Illegal mode */
-                    scsi_cdrom_invalid_field(dev, cdb[9]);
-                    break;
-                }
-            } else {
-                if (cdb[6] != 0x00 && cdb[6] != 0x0F && cdb[6] != 0x1F) {
                     /* Illegal mode */
                     scsi_cdrom_invalid_field(dev, cdb[9]);
                     break;
