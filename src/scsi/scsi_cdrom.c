@@ -1208,7 +1208,7 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
                     break;
             }
 
-            flags |= CD_SECTOR_FLAG_SCRAMBLED | 0xb8;
+            flags |= CD_SECTOR_FLAG_SCRAMBLED | 0xf8;
             if (dev->current_cdb[10] == 8)
                 flags |= 2;
             handled = 1;
@@ -1843,13 +1843,7 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
                 dev->drv->seek_pos  = dev->sector_pos;
 
-                /* Any of these commands stop the audio playing. */
-                cdrom_stop(dev->drv);
-
-                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
-                    dev->vendor_type = cdb[9] & 0xc0;
-                else
-                    dev->vendor_type = 0x00;
+                dev->vendor_type = 0x00;
 
                 dev->block_len  = 0xffffffff;
                 dev->buffer_pos = 0x00000000;
@@ -2526,14 +2520,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
 
                 dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
                 dev->drv->seek_pos  = dev->sector_pos;
-
-                /* Any of these commands stop the audio playing. */
-                cdrom_stop(dev->drv);
-
-                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
-                    dev->vendor_type = cdb[9] & 0xc0;
-                else
-                    dev->vendor_type = 0x00;
+                dev->vendor_type = 0x00;
 
                 dev->block_len  = 0xffffffff;
                 dev->buffer_pos = 0x00000000;
