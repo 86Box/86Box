@@ -1826,13 +1826,6 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
             dev->sector_type = 1;
             dev->sector_flags = 0x100;
 
-            if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
-                if (cdb[10] > 0x3) {
-                    /* Illegal mode */
-                    scsi_cdrom_invalid_field(dev, cdb[9]);
-                    break;
-                }
-            }
             if (dev->sector_len > 0) {
                 uint32_t max_len      = dev->sector_len;
                 dev->requested_blocks = max_len;
@@ -2310,10 +2303,7 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 /* Any of these commands stop the audio playing. */
                 cdrom_stop(dev->drv);
 
-                if (dev->use_cdb_9 && ((dev->current_cdb[0] == GPCMD_READ_10) || (dev->current_cdb[0] == GPCMD_READ_12)))
-                    dev->vendor_type = cdb[9] & 0xc0;
-                else
-                    dev->vendor_type = 0x00;
+                dev->vendor_type = 0x00;
 
                 dev->block_len  = 0xffffffff;
                 dev->buffer_pos = 0x00000000;
@@ -2504,13 +2494,6 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
             dev->sector_type = 1;
             dev->sector_flags = 0x100;
 
-            if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
-                if (cdb[10] > 0x3) {
-                    /* Illegal mode */
-                    scsi_cdrom_invalid_field(dev, cdb[9]);
-                    break;
-                }
-            }
             if (dev->sector_len > 0) {
                 uint32_t max_len      = dev->sector_len;
                 dev->requested_blocks = max_len;
