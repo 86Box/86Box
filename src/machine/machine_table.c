@@ -7851,6 +7851,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Has AMIKey F KBC firmware. */
     {
         .name              = "[SiS 460] ASUS ISA-386SIQ",
         .internal_name     = "asus386siq",
@@ -9794,7 +9795,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has early Phoenix DragonBIOS 4.00. */
+    /* Uses an Intel KBC with Phoenix MultiKey 2.03 KBC firmware and has a early PhoenixBIOS (known as Phoenix DragonBIOS) 4.00. */
     {
         .name              = "[SiS 461] Auva Compter CAM/SG0",
         .internal_name     = "auvacam",
