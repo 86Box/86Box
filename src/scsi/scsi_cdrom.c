@@ -2288,7 +2288,7 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
             cmd_stat = 1;
             alloc_length = 2852;
             dev->sector_len = (cdb[7] << 8) | cdb[8];
-            dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+            pos             = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
             if (dev->sector_len > 0) {
                 uint32_t max_len      = dev->sector_len;
@@ -2298,6 +2298,7 @@ scsi_cdrom_command_nec(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 scsi_cdrom_buf_alloc(dev, dev->packet_len);
 
                 dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->sector_pos     = pos;
                 dev->drv->seek_pos  = dev->sector_pos;
 
                 /* Any of these commands stop the audio playing. */
@@ -2490,7 +2491,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
             }
 
             dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
-            dev->sector_pos = dev->drv->seek_pos;
+            pos             = dev->drv->seek_pos;
             dev->sector_type = 1;
             dev->sector_flags = 0x100;
 
@@ -2502,6 +2503,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 scsi_cdrom_buf_alloc(dev, dev->packet_len);
 
                 dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->sector_pos     = pos;
                 dev->drv->seek_pos  = dev->sector_pos;
                 dev->vendor_type = 0x00;
 
@@ -2547,13 +2549,13 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
             alloc_length = 2852;
             if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
                 dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
-                dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
+                pos             = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
 
-                dev->sector_len -= dev->sector_pos;
+                dev->sector_len -= pos;
                 dev->sector_len++;
             } else {
                 dev->sector_len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
-                dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+                pos             = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
             }
 
             if (dev->current_cdb[0] == GPCMD_READ_CDDA || dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
@@ -2571,6 +2573,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
                 scsi_cdrom_buf_alloc(dev, dev->packet_len);
 
                 dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
+                dev->sector_pos     = pos;
                 dev->drv->seek_pos  = dev->sector_pos;
 
                 /* Any of these commands stop the audio playing. */
