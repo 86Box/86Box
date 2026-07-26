@@ -679,6 +679,7 @@ extern int             machine_at_c747_init(const machine_t *);
 extern const device_t  opti495_ami_device;
 #endif
 extern int             machine_at_opti495_ami_init(const machine_t *);
+extern int             machine_at_pred1plus_init(const machine_t *);
 
 /* m_at_common.c */
 extern void            machine_at_common_init(const machine_t *);

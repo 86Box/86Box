@@ -393,7 +393,7 @@ machine_at_advantage40xxd_init(const machine_t *model)
     return ret;
 }
 
-/* Symphony SL42C460 */
+/* Symphony SL82C460 */
 int
 machine_at_dtk461_init(const machine_t *model)
 {
