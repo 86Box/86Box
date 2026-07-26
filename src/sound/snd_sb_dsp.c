@@ -890,19 +890,19 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
             t |= 0x0;
             break;
         case 5:
-            if (dsp->sb.subtype >= SB_SUBTYPE_ESS_ES1868)
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
                 t |= 0x5;
             else
                 t |= 0x4;
             break;
         case 7:
-            if (dsp->sb.subtype >= SB_SUBTYPE_ESS_ES1868)
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
                 t |= 0xA;
             else
                 t |= 0x8;
             break;
         case 10:
-            if (dsp->sb.subtype >= SB_SUBTYPE_ESS_ES1868)
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
                 t |= 0xF;
             else
                 t |= 0xC;
@@ -921,19 +921,19 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
         default:
             break;
         case 0:
-            if (dsp->sb.subtype >= SB_SUBTYPE_ESS_ES1868)
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
                 t |= 0x5;
             else
                 t |= 0x4;
             break;
         case 1:
-            if (dsp->sb.subtype >= SB_SUBTYPE_ESS_ES1868)
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
                 t |= 0xA;
             else
                 t |= 0x8;
             break;
         case 3:
-            if (dsp->sb.subtype >= SB_SUBTYPE_ESS_ES1868)
+            if (dsp->sb_subtype >= SB_SUBTYPE_ESS_ES1868)
                 t |= 0xF;
             else
                 t |= 0xC;
