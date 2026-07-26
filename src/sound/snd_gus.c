@@ -1748,14 +1748,6 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     gus->ess->es188x_readseq_state = 0;
     gus->ess->es188x_dsp_addr      = 0;
-    /*io_sethandler(0x220, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);
-    io_sethandler(0x229, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);
-    io_sethandler(0x22b, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);
-    io_sethandler(0x22d, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);
-    io_sethandler(0x22f, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);
-    io_sethandler(0x230, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);
-    io_sethandler(0x240, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);
-    io_sethandler(0x250, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, gus);*/
     ess_rsk_reset(gus->ess);
 
     /* Init GF1 section */
