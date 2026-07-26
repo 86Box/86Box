@@ -1388,6 +1388,8 @@ gus_extreme_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         double temp_r = 0.0;
         temp_l = (double) gus->buffer[0][c >> 1] * gus->ess->mixer_ess.auxb_l;
         temp_r = (double) gus->buffer[1][c >> 1] * gus->ess->mixer_ess.auxb_r;
+        temp_l *= gus->ess->mixer_ess.master_l;
+        temp_r *= gus->ess->mixer_ess.master_r;
         buffer[c]     += (int32_t) temp_l;
         buffer[c + 1] += (int32_t) temp_r;
     }
