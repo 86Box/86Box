@@ -1137,6 +1137,11 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
             }
             break;
         }
+        }
+    }
+
+    if (dev->drv->is_sony || dev->drv->is_pioneer) {
+        switch (dev->current_cdb[0]) {
         case GPCMD_READ_CDDA_MSF:
             ven_type = 0x00;
             fallthrough;
@@ -1161,59 +1166,6 @@ scsi_cdrom_read_blocks(scsi_cdrom_t *dev)
             flags |= CD_SECTOR_FLAG_SCRAMBLED;
             if (dev->current_cdb[10] != 3)
                 flags |= 0xF8;
-            handled = 1;
-            break;
-        }
-    }
-
-    if (dev->drv->is_sony) {
-        switch (dev->current_cdb[0]) {
-        case GPCMD_READ_CDDA:
-            type     = 0x01;
-
-            switch (dev->current_cdb[10]) {
-                case 0:
-                    flags = 0x000;
-                    break;
-                case 1:
-                    flags = 0x200;
-                    break;
-                case 2:
-                    flags = 0x100;
-                    break;
-                case 3:
-                    flags = 0x100;
-                    break;
-            }
-
-            flags |= CD_SECTOR_FLAG_SCRAMBLED;
-            if (dev->current_cdb[10] != 3)
-                flags |= 0xF8;
-            handled = 1;
-            break;
-        case GPCMD_READ_CDDA_MSF:
-            ven_type = 0x00;
-            type     = 0x01;
-
-            switch (dev->current_cdb[10]) {
-                case 0:
-                    flags = 0x000;
-                    break;
-                case 1:
-                    flags = 0x200;
-                    break;
-                case 2:
-                    flags = 0x400;
-                    break;
-                case 3:
-                case 8:
-                    flags = 0x100;
-                    break;
-            }
-
-            flags |= CD_SECTOR_FLAG_SCRAMBLED | 0xF8;
-            if (dev->current_cdb[10] == 8)
-                flags |= 2;
             handled = 1;
             break;
         }
@@ -1665,6 +1617,7 @@ scsi_cdrom_command_plextor(void *sc, const uint8_t *cdb, UNUSED(int32_t *BufLen)
     switch (cdb[0]) {
         case GPCMD_READ_CDDA:
         case GPCMD_READ_CDDA_MSF:
+            alloc_length = 2852;
             cmd_stat = 1;
             if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
                 dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
@@ -1849,6 +1802,7 @@ scsi_cdrom_command_dec_sony_texel(void *sc, const uint8_t *cdb, int32_t *BufLen)
         case GPCMD_READ_CDDA:
         case GPCMD_READ_CDDA_MSF:
             cmd_stat = 1;
+            alloc_length = 2852;
             if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
                 dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
                 dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
@@ -2400,6 +2354,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
         case GPCMD_READ_CDDA_MSF:
         case GPCMD_READ_CDXA_PIONEER:
             cmd_stat = 1;
+            alloc_length = 2852;
             if (dev->current_cdb[0] == GPCMD_READ_CDDA_MSF) {
                 dev->sector_len = MSFtoLBA(cdb[7], cdb[8], cdb[9]) - 150;
                 dev->sector_pos = MSFtoLBA(cdb[3], cdb[4], cdb[5]) - 150;
