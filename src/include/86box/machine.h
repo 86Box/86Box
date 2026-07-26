@@ -669,6 +669,9 @@ extern int             machine_at_opti495_init(const machine_t *);
 extern int             machine_at_asus3863364k_init(const machine_t *);
 extern int             machine_at_asus386_init(const machine_t *);
 
+/* SiS 461 */
+extern int             machine_at_asus386siq_init(const machine_t *);
+
 /* m_at_386dx_486.c */
 /* ALi M1429G */
 extern int             machine_at_exp4349_init(const machine_t *);
