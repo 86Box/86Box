@@ -1616,7 +1616,10 @@ gus_init(UNUSED(const device_t *info))
     uint8_t gus_ram = device_get_config_int("gus_ram");
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
-    gus->gus_end_ram = 1 << (18 + gus_ram);
+    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_37))
+        gus->gus_end_ram = gus_ram * 262144;
+    else
+        gus->gus_end_ram = 1 << (18 + gus_ram);
     gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
@@ -1844,13 +1847,14 @@ static const device_config_t gus_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "256 KB", .value = 0 },
-            { .description = "512 KB", .value = 1 },
-            { .description = "1 MB",   .value = 2 },
+            { .description = "256 KB", .value = 1 },
+            { .description = "512 KB", .value = 2 },
+            { .description = "768 KB", .value = 3 },
+            { .description = "1 MB",   .value = 4 },
             { NULL                                }
         },
         .bios           = { { 0 } }
@@ -1907,13 +1911,14 @@ static const device_config_t gus_v37_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "256 KB", .value = 0 },
-            { .description = "512 KB", .value = 1 },
-            { .description = "1 MB",   .value = 2 },
+            { .description = "256 KB", .value = 1 },
+            { .description = "512 KB", .value = 2 },
+            { .description = "768 KB", .value = 3 },
+            { .description = "1 MB",   .value = 4 },
             { NULL                                }
         },
         .bios           = { { 0 } }
