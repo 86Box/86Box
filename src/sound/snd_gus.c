@@ -1702,6 +1702,7 @@ gus_extreme_init(UNUSED(const device_t *info))
     int     c;
     double  out     = 1.0;
     gus_t  *gus     = calloc(1, sizeof(gus_t));
+    uint8_t gus_ram = device_get_config_int("gus_ram");
 
     /* Init ES1688 section */
     gus->ess = calloc(1, sizeof(sb_t));
@@ -1756,7 +1757,7 @@ gus_extreme_init(UNUSED(const device_t *info))
     ess_rsk_reset(gus->ess);
 
     /* Init GF1 section */
-    gus->gus_end_ram = 1 << (18 + 2);
+    gus->gus_end_ram = 1 << (18 + gus_ram);
     gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
@@ -2053,6 +2054,21 @@ static const device_config_t gus_ace_config[] = {
 };
 
 static const device_config_t gus_extreme_config[] = {
+    {
+        .name           = "gus_ram",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value = 1 },
+            { .description = "1 MB",   .value = 2 },
+            { NULL                                }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "control_pc_speaker",
         .description    = "Control PC speaker",
