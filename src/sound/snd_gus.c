@@ -1772,13 +1772,6 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     gus->jumper = 0x06;
 
-    for (int i = 0; i < GUS_ICS2101_MAX; i++) {
-        gus->ics2101.channels[i].level[0] = gus->ics2101.channels[i].level[1] = 1.0;
-        gus->ics2101.channels[i].ctrl[0] = 1;
-        gus->ics2101.channels[i].ctrl[1] = 2;
-        gus->ics2101.channels[i].pan = 7;
-    }
-
     gus->base = 0x240;
 
     io_sethandler(gus->base, 0x0010, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
