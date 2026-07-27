@@ -1583,15 +1583,13 @@ scsi_cdrom_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t al
 static void
 scsi_cdrom_set_buf_len(const scsi_cdrom_t *dev, int32_t *BufLen, int32_t *src_len)
 {
-    if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-        if (*BufLen == -1)
-            *BufLen = *src_len;
-        else {
-            *BufLen  = MIN(*src_len, *BufLen);
-            *src_len = *BufLen;
-        }
-        scsi_cdrom_log(dev->log, "Actual transfer length: %i\n", *BufLen);
+    if (*BufLen == -1)
+        *BufLen = *src_len;
+    else {
+        *BufLen  = MIN(*src_len, *BufLen);
+        *src_len = *BufLen;
     }
+    scsi_cdrom_log(dev->log, "Actual transfer length: %i\n", *BufLen);
 }
 
 static void
@@ -2956,7 +2954,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
     int           pos                    = dev->drv->seek_pos;
     int           idx                    = 0;
     int           ret                    = 1;
-    int32_t       blen                   = 0;
+    int32_t       blen                   = 65536;
     uint32_t      profiles[2]            = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
     uint8_t       scsi_bus               = (dev->drv->scsi_device_id >> 4) & 0x0f;
     uint8_t       scsi_id                = dev->drv->scsi_device_id & 0x0f;

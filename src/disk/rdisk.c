@@ -1233,15 +1233,13 @@ rdisk_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, const uint8_t a
 static void
 rdisk_set_buf_len(const rdisk_t *dev, int32_t *BufLen, int32_t *src_len)
 {
-    if (dev->drv->bus_type == RDISK_BUS_SCSI) {
-        if (*BufLen == -1)
-            *BufLen = *src_len;
-        else {
-            *BufLen  = MIN(*src_len, *BufLen);
-            *src_len = *BufLen;
-        }
-        rdisk_log(dev->log, "Actual transfer length: %i\n", *BufLen);
+    if (*BufLen == -1)
+        *BufLen = *src_len;
+    else {
+        *BufLen  = MIN(*src_len, *BufLen);
+        *src_len = *BufLen;
     }
+    rdisk_log(dev->log, "Actual transfer length: %i\n", *BufLen);
 }
 
 static void
@@ -1253,7 +1251,7 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
     const uint8_t  scsi_id            = dev->drv->scsi_device_id & 0x0f;
     int            pos                = 0;
     int            idx                = 0;
-    int32_t        blen               = 0;
+    int32_t        blen               = 65536;
     uint32_t       i;
     unsigned       preamble_len;
     int32_t        len;
