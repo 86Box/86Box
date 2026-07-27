@@ -23,6 +23,24 @@
 #include <86box/snd_sb_dsp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/log.h>
+
+#ifdef ENABLE_GUS_LOG
+int gus_do_log = ENABLE_GUS_LOG;
+
+static void
+gus_log(void *priv, const char *fmt, ...)
+{
+    if (gus_do_log) {
+        va_list ap;
+        va_start(ap, fmt);
+        log_out(priv, fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define gus_log(fmt, ...)
+#endif
 
 enum {
     MIDI_INT_RECEIVE  = 0x01,
@@ -184,6 +202,8 @@ typedef struct gus_t {
     uint16_t gus_new_base;
     uint8_t  gus_reloc_latch;
     uint8_t  gus_reloc_state;
+
+    void *   log; /* New logging system */
 } gus_t;
 
 static int gus_gf1_irqs[8]  = { -1, 2, 5, 3, 7, 11, 12, 15 };
@@ -305,6 +325,8 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
     ics2101_t *ics2101 = &gus->ics2101;
     uint8_t    mixer_ch;
     uint8_t    mixer_lr;
+
+    gus_log(gus->log, "GUS write: port = %04X, val = %02X\n", addr, val);
 
     if ((addr == 0x388) || (addr == 0x389))
         port = addr;
@@ -844,12 +866,14 @@ gus_read(uint16_t addr, void *priv)
             break;
 
         case 0x200:
+            gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, 0);
             return 0;
 
         case 0x206: /*IRQ status*/
             val = gus->irqstatus & ~0x10;
             if (gus->ad_status & 0x19)
                 val |= 0x10;
+            gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
             return val;
 
         case 0x20F:
@@ -860,23 +884,30 @@ gus_read(uint16_t addr, void *priv)
             break;
 
         case 0x302:
+            gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->voice);
             return gus->voice;
 
         case 0x303:
+            gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->global);
             return gus->global;
 
         case 0x304: /*Global low*/
             switch (gus->global) {
                 case 0x82: /*Start addr high*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->start[gus->voice] >> 16);
                     return gus->start[gus->voice] >> 16;
                 case 0x83: /*Start addr low*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->start[gus->voice] & 0xFF);
                     return gus->start[gus->voice] & 0xFF;
 
                 case 0x89: /*Current volume*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->rcur[gus->voice] >> 6);
                     return gus->rcur[gus->voice] >> 6;
                 case 0x8A: /*Current addr high*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->cur[gus->voice] >> 16);
                     return gus->cur[gus->voice] >> 16;
                 case 0x8B: /*Current addr low*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->cur[gus->voice] & 0xFF);
                     return gus->cur[gus->voice] & 0xFF;
 
                 case 0x8F: /*IRQ status*/
@@ -884,6 +915,7 @@ gus_read(uint16_t addr, void *priv)
                     gus->rampirqs[gus->irqstatus2 & 0x1F] = 0;
                     gus->waveirqs[gus->irqstatus2 & 0x1F] = 0;
                     gus_update_int_status(gus);
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
                     return val;
 
                 case 0x00:
@@ -912,25 +944,33 @@ gus_read(uint16_t addr, void *priv)
         case 0x305: /*Global high*/
             switch (gus->global) {
                 case 0x80: /*Voice control*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->ctrl[gus->voice] | (gus->waveirqs[gus->voice] ? 0x80 : 0));
                     return gus->ctrl[gus->voice] | (gus->waveirqs[gus->voice] ? 0x80 : 0);
 
                 case 0x82: /*Start addr high*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->start[gus->voice] >> 24);
                     return gus->start[gus->voice] >> 24;
                 case 0x83: /*Start addr low*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->start[gus->voice] >> 8);
                     return gus->start[gus->voice] >> 8;
 
                 case 0x89: /*Current volume*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->rcur[gus->voice] >> 14);
                     return gus->rcur[gus->voice] >> 14;
 
                 case 0x8A: /*Current addr high*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->cur[gus->voice] >> 24);
                     return gus->cur[gus->voice] >> 24;
                 case 0x8B: /*Current addr low*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->cur[gus->voice] >> 8);
                     return gus->cur[gus->voice] >> 8;
 
                 case 0x8C: /*Pan*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->pan_r[gus->voice]);
                     return gus->pan_r[gus->voice];
 
                 case 0x8D:
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->rctrl[gus->voice] | (gus->rampirqs[gus->voice] ? 0x80 : 0));
                     return gus->rctrl[gus->voice] | (gus->rampirqs[gus->voice] ? 0x80 : 0);
 
                 case 0x8F: /*IRQ status*/
@@ -938,18 +978,23 @@ gus_read(uint16_t addr, void *priv)
                     gus->rampirqs[gus->irqstatus2 & 0x1F] = 0;
                     gus->waveirqs[gus->irqstatus2 & 0x1F] = 0;
                     gus_update_int_status(gus);
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
                     return val;
 
                 case 0x41: /*DMA control*/
                     val = gus->dmactrl | ((gus->irqstatus & 0x80) ? 0x40 : 0);
                     gus->irqstatus &= ~0x80;
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
                     return val;
                 case 0x45: /*Timer control*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->tctrl);
                     return gus->tctrl;
                 case 0x49: /*Sampling control*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, 0);
                     return 0;
 
                 case 0x4B: /*Joystick trim DAC*/
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->joy_trim);
                     return gus->joy_trim;
 
                 case 0x00:
@@ -995,8 +1040,10 @@ gus_read(uint16_t addr, void *priv)
                 val = gus->ram[gus->addr];
             else
                 val = 0;
+            gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
             return val;
         case 0x309:
+            gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, 0);
             return 0;
 
         case 0x20b:
@@ -1027,6 +1074,7 @@ gus_read(uint16_t addr, void *priv)
                 gus->sb_2xc &= 0x80;
             break;
         case 0x20e:
+            gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->sb_2xe);
             return gus->sb_2xe;
 
         case 0x388:
@@ -1062,6 +1110,9 @@ gus_read(uint16_t addr, void *priv)
         default:
             break;
     }
+
+    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
+
     return val;
 }
 
@@ -1616,6 +1667,8 @@ gus_init(UNUSED(const device_t *info))
     uint8_t gus_ram = device_get_config_int("gus_ram");
     gus_t  *gus     = calloc(1, sizeof(gus_t));
 
+    gus->log = log_open("GUS");
+
     if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_37))
         gus->gus_end_ram = gus_ram * 262144;
     else
@@ -1708,6 +1761,8 @@ gus_extreme_init(UNUSED(const device_t *info))
     double  out     = 1.0;
     gus_t  *gus     = calloc(1, sizeof(gus_t));
     uint8_t gus_ram = device_get_config_int("gus_ram");
+
+    gus->log = log_open("GUS");
 
     /* Init ES1688 section */
     gus->ess = calloc(1, sizeof(sb_t));
@@ -1802,6 +1857,11 @@ void
 gus_close(void *priv)
 {
     gus_t *gus = (gus_t *) priv;
+
+    if (gus->log != NULL) {
+        log_close(gus->log);
+        gus->log = NULL;
+    }
 
     free(gus->ram);
     free(gus);
