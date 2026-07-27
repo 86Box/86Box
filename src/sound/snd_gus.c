@@ -68,7 +68,8 @@ enum {
     GUS_CLASSIC_37 = 1,
     GUS_MAX        = 2,
     GUS_ACE        = 3,
-    GUS_EXTREME    = 4
+    GUS_VIPERMAX   = 4,
+    GUS_EXTREME    = 5
 };
 
 enum {
@@ -716,7 +717,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 6:
                     if (gus->type > GUS_CLASSIC) {
-                        if ((gus->type != GUS_ACE) && (gus->type != GUS_EXTREME)) {
+                        if ((gus->type != GUS_ACE) && (gus->type != GUS_EXTREME) && (gus->type != GUS_VIPERMAX)) {
                             if (!(val & 0x2) && (gus->jumper & 0x2))
                                 io_removehandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
                             else if ((val & 0x2) && !(gus->jumper & 0x2))
@@ -1028,8 +1029,10 @@ gus_read(uint16_t addr, void *priv)
                 val = 0x0a; /* GUS MAX */
             else if (gus->type == GUS_ACE)
                 val = 0x30; /* GUS ACE */
+            else if (gus->type == GUS_VIPERMAX)
+                val = 0x50; /* Synergy Vipermax */
             else if (gus->type == GUS_EXTREME)
-                val = 0x50; /* GUS Extreme */
+                val = 0x70; /* GUS Extreme */
             else
                 val = 0xff; /* Pre 3.7 - no mixer */
             break;
@@ -1078,7 +1081,7 @@ gus_read(uint16_t addr, void *priv)
             return gus->sb_2xe;
 
         case 0x388:
-            if (((gus->type == GUS_ACE) && !device_get_config_int("adlib_ports")) || (gus->type == GUS_EXTREME))
+            if (((gus->type == GUS_ACE) && !device_get_config_int("adlib_ports")) || (gus->type == GUS_EXTREME) || (gus->type == GUS_VIPERMAX))
                 break;
             fallthrough;
         case 0x208:
@@ -1099,7 +1102,7 @@ gus_read(uint16_t addr, void *priv)
             val = gus->ad_data;
             break;
         case 0x389:
-            if (((gus->type != GUS_ACE) || device_get_config_int("adlib_ports")) && (gus->type != GUS_EXTREME))
+            if (((gus->type != GUS_ACE) || device_get_config_int("adlib_ports")) && (gus->type != GUS_EXTREME) && (gus->type != GUS_VIPERMAX))
                 val = gus->ad_data;
             break;
 
@@ -2196,6 +2199,20 @@ const device_t gus_ace_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_ace_config
+};
+
+const device_t gus_vipermax_device = {
+    .name          = "Gravis/Synergy Vipermax",
+    .internal_name = "gusvipermax",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_VIPERMAX,
+    .init          = gus_extreme_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_extreme_config
 };
 
 const device_t gus_extreme_device = {
