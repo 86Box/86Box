@@ -2500,7 +2500,7 @@ ess_rsk_reset(void *priv)
         io_sethandler(0x3b8, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
     }
 
-    ess->es188x_readseq_state = 0;
+    ess->ess_readseq_state = 0;
 }
 
 static uint8_t
@@ -2509,108 +2509,108 @@ ess_rsk_read(uint16_t addr, void *priv)
     sb_t *ess = (sb_t *) priv;
     uint8_t ret = 0xff;
 
-    switch (ess->es188x_readseq_state) {
+    switch (ess->ess_readseq_state) {
         case 0:
             if (addr == 0x229) {
-                ess->es188x_readseq_state = 1;
-                ess->es188x_readseq_mode = 0;
+                ess->ess_readseq_state = 1;
+                ess->ess_readseq_mode = 0;
                 return ret;
             } else if ((addr == 0x22b) && (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1887)) {
-                ess->es188x_readseq_state = 1;
-                ess->es188x_readseq_mode = 1;
+                ess->ess_readseq_state = 1;
+                ess->ess_readseq_mode = 1;
                 return ret;
             }
             break;
         case 1:
             if (addr == 0x229) {
-                ess->es188x_readseq_state = 2;
+                ess->ess_readseq_state = 2;
                 return ret;
             }
             break;
         case 2:
-            if ((addr == 0x229) || ((addr == 0x22f) && ess->es188x_readseq_mode)) {
-                ess->es188x_readseq_state = 3;
+            if ((addr == 0x229) || ((addr == 0x22f) && ess->ess_readseq_mode)) {
+                ess->ess_readseq_state = 3;
                 return ret;
             }
             break;
         case 3:
-            if ((addr == 0x22b) || ((addr == 0x22d) && ess->es188x_readseq_mode)) {
-                ess->es188x_readseq_state = 4;
+            if ((addr == 0x22b) || ((addr == 0x22d) && ess->ess_readseq_mode)) {
+                ess->ess_readseq_state = 4;
                 return ret;
             }
             break;
         case 4:
-            if ((addr == 0x229) || ((addr == 0x22d) && ess->es188x_readseq_mode)) {
-                ess->es188x_readseq_state = 5;
+            if ((addr == 0x229) || ((addr == 0x22d) && ess->ess_readseq_mode)) {
+                ess->ess_readseq_state = 5;
                 return ret;
             }
             break;
         case 5:
-            if ((addr == 0x22b) || ((addr == 0x22f) && ess->es188x_readseq_mode)) {
-                ess->es188x_readseq_state = 6;
+            if ((addr == 0x22b) || ((addr == 0x22f) && ess->ess_readseq_mode)) {
+                ess->ess_readseq_state = 6;
                 return ret;
             }
             break;
         case 6:
             if (addr == 0x229) {
-                ess->es188x_readseq_state = 7;
+                ess->ess_readseq_state = 7;
                 return ret;
             }
             break;
         case 7:
-            if ((addr == 0x229) && !ess->es188x_readseq_mode) {
-                ess->es188x_readseq_state = 8;
+            if ((addr == 0x229) && !ess->ess_readseq_mode) {
+                ess->ess_readseq_state = 8;
                 return ret;
-            } else if (ess->es188x_readseq_mode && ((addr == 0x220) || (addr == 0x230) || (addr == 0x240) || (addr == 0x250))) {
-                ess->es188x_dsp_addr = addr;
-                sb_log("ES1887 Read-Sequence-Key: new DSP addr = %04X\n", ess->es188x_dsp_addr);
-                ess->es188x_readseq_state = 8;
+            } else if (ess->ess_readseq_mode && ((addr == 0x220) || (addr == 0x230) || (addr == 0x240) || (addr == 0x250))) {
+                ess->ess_dsp_addr = addr;
+                sb_log("ES1887 Read-Sequence-Key: new DSP addr = %04X\n", ess->ess_dsp_addr);
+                ess->ess_readseq_state = 8;
                 return ret;
             }
             break;
         case 8:
-            if ((addr == 0x22b) && !ess->es188x_readseq_mode) {
-                ess->es188x_readseq_state = 9;
+            if ((addr == 0x22b) && !ess->ess_readseq_mode) {
+                ess->ess_readseq_state = 9;
                 return ret;
-            } else if (ess->es188x_readseq_mode && ((addr >= 0x200) && (addr <= 0x203))) {
+            } else if (ess->ess_readseq_mode && ((addr >= 0x200) && (addr <= 0x203))) {
                 ess->gameport_addr = addr;
                 sb_log("ES1887 Read-Sequence-Key: new gameport addr = %04X\n", ess->gameport_addr);
-                ess->es188x_readseq_state = 9;
+                ess->ess_readseq_state = 9;
                 return ret;
-            } else if (ess->es188x_readseq_mode) {
+            } else if (ess->ess_readseq_mode) {
                 ess->gameport_addr = 0;
                 sb_log("ES1887 Read-Sequence-Key: new gameport addr = %04X\n", ess->gameport_addr);
-                ess->es188x_readseq_state = 9;
+                ess->ess_readseq_state = 9;
                 return ret;
             }
             break;
         case 9:
             if (addr == 0x229) {
-                ess->es188x_readseq_state = 10;
+                ess->ess_readseq_state = 10;
                 return ret;
-            } else if (ess->es188x_readseq_mode && ((addr == 0x388) || (addr == 0x398) || (addr == 0x3a8) || (addr == 0x3b8))) {
+            } else if (ess->ess_readseq_mode && ((addr == 0x388) || (addr == 0x398) || (addr == 0x3a8) || (addr == 0x3b8))) {
                 ess->opl_pnp_addr = addr;
                 sb_log("ES1887 Read-Sequence-Key: new OPL addr = %04X\n", ess->opl_pnp_addr);
-                ess->es188x_readseq_state = 11;
-            } else if (ess->es188x_readseq_mode) {
+                ess->ess_readseq_state = 11;
+            } else if (ess->ess_readseq_mode) {
                 ess->opl_pnp_addr = 0x388;
                 sb_log("ES1887 Read-Sequence-Key: new OPL addr = %04X\n", ess->opl_pnp_addr);
-                ess->es188x_readseq_state = 11;
+                ess->ess_readseq_state = 11;
             }
             break;
         case 10:
             if ((addr == 0x220) || (addr == 0x230) || (addr == 0x240) || (addr == 0x250)) {
-                ess->es188x_readseq_state = 11;
-                ess->es188x_dsp_addr = addr;
-                sb_log("ESS Read-Sequence-Key complete, new addr = %04X\n", ess->es188x_dsp_addr);
+                ess->ess_readseq_state = 11;
+                ess->ess_dsp_addr = addr;
+                sb_log("ESS Read-Sequence-Key complete, new addr = %04X\n", ess->ess_dsp_addr);
             }
             break;
         default:
-            ess->es188x_readseq_state = 0;
+            ess->ess_readseq_state = 0;
             break;
     }
 
-    if (ess->es188x_readseq_state != 11)
+    if (ess->ess_readseq_state != 11)
         return ret;
     else {
         io_removehandler(0x220, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
@@ -2629,34 +2629,34 @@ ess_rsk_read(uint16_t addr, void *priv)
             io_removehandler(0x3a8, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
             io_removehandler(0x3b8, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
         }
-        io_sethandler(ess->es188x_dsp_addr, 0x0004,
+        io_sethandler(ess->ess_dsp_addr, 0x0004,
                       ess->opl.read, NULL, NULL,
                       ess->opl.write, NULL, NULL,
                       ess->opl.priv);
-        io_sethandler(ess->es188x_dsp_addr + 8, 0x0002,
+        io_sethandler(ess->ess_dsp_addr + 8, 0x0002,
                       ess->opl.read, NULL, NULL,
                       ess->opl.write, NULL, NULL,
                       ess->opl.priv);
-        io_sethandler(ess->es188x_dsp_addr + 8, 0x0002,
+        io_sethandler(ess->ess_dsp_addr + 8, 0x0002,
                       ess_fm_midi_read, NULL, NULL,
                       ess_fm_midi_write, NULL, NULL,
                       ess);
-        io_sethandler(ess->es188x_dsp_addr + 4, 0x0002,
+        io_sethandler(ess->ess_dsp_addr + 4, 0x0002,
                       ess_mixer_read, NULL, NULL,
                       ess_mixer_write, NULL, NULL,
                       ess);
 
-        sb_dsp_setaddr(&ess->dsp, ess->es188x_dsp_addr);
-        sb_log("ESS DSP set to addr %04X\n", ess->es188x_dsp_addr);
-        io_sethandler(ess->es188x_dsp_addr + 2, 0x0003,
+        sb_dsp_setaddr(&ess->dsp, ess->ess_dsp_addr);
+        sb_log("ESS DSP set to addr %04X\n", ess->ess_dsp_addr);
+        io_sethandler(ess->ess_dsp_addr + 2, 0x0003,
                       ess_base_read, NULL, NULL,
                       ess_base_write, NULL, NULL,
                       ess);
-        io_sethandler(ess->es188x_dsp_addr + 6, 0x0001,
+        io_sethandler(ess->ess_dsp_addr + 6, 0x0001,
                       ess_base_read, NULL, NULL,
                       ess_base_write, NULL, NULL,
                       ess);
-        io_sethandler(ess->es188x_dsp_addr + 0x0a, 0x0006,
+        io_sethandler(ess->ess_dsp_addr + 0x0a, 0x0006,
                       ess_base_read, NULL, NULL,
                       ess_base_write, NULL, NULL,
                       ess);
@@ -2668,7 +2668,7 @@ ess_rsk_read(uint16_t addr, void *priv)
                       ess_fm_midi_read, NULL, NULL,
                       ess_fm_midi_write, NULL, NULL,
                       ess);
-        ess->es188x_readseq_state = 12;
+        ess->ess_readseq_state = 12;
         if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1887)
             gameport_remap(ess->gameport, ess->gameport_addr);
     }
@@ -5766,15 +5766,15 @@ ess_1x88_onboard_init(const device_t *info)
         ess->gameport_addr = 0x200;
     }
 
-    /* ES1788/188x System Configuration Register ports */
+    /* ES1688/1788/188x System Configuration Register ports */
     io_sethandler(0xe0, 0x0002, NULL, NULL, NULL, ess_scr_write, NULL, NULL, ess);
     io_sethandler(0xf9, 0x0001, NULL, NULL, NULL, ess_scr_write, NULL, NULL, ess);
     io_sethandler(0xfb, 0x0001, NULL, NULL, NULL, ess_scr_write, NULL, NULL, ess);
     ess->ess_scr_locked = 1;
 
-    /* ES1788/188x Read-Sequence-Key mode */
-    ess->es188x_readseq_state = 0;
-    ess->es188x_dsp_addr      = 0;
+    /* ES1688/1788/188x Read-Sequence-Key mode */
+    ess->ess_readseq_state = 0;
+    ess->ess_dsp_addr      = 0;
     io_sethandler(0x220, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
     io_sethandler(0x229, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);
     io_sethandler(0x22b, 0x0001, ess_rsk_read, NULL, NULL, NULL, NULL, NULL, ess);

@@ -207,9 +207,9 @@ typedef struct sb_t {
 
     uint8_t  ess_scr_locked;
     uint8_t  es1688_rsk_enable;
-    uint8_t  es188x_readseq_state;
-    uint8_t  es188x_readseq_mode;
-    uint16_t es188x_dsp_addr;
+    uint8_t  ess_readseq_state;
+    uint8_t  ess_readseq_mode;
+    uint16_t ess_dsp_addr;
     uint16_t es186x_ctrl_addr;
     uint8_t  es186x_id_state;
     uint8_t  es186x_ctrl_regs[8];
@@ -276,6 +276,7 @@ extern void sb_speed_changed(void *priv);
 
 extern void ess_mixer_reset(sb_t *ess);
 extern void ess_rsk_reset(void *priv);
+extern void ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
 
 extern void sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
 extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
