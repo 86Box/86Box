@@ -1781,7 +1781,7 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     sb_dsp_init(&gus->ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1688, gus->ess);
     gus->ess->es1688_rsk_enable = 1;
-    sb_dsp_setaddr(&gus->ess->dsp, 0x220);
+    sb_dsp_setaddr(&gus->ess->dsp, 0);
     sb_dsp_setirq(&gus->ess->dsp, 0);
     sb_dsp_setdma8(&gus->ess->dsp, ISAPNP_DMA_DISABLED);
     sb_dsp_setdma16_8(&gus->ess->dsp, ISAPNP_DMA_DISABLED);
