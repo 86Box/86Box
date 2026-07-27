@@ -273,9 +273,6 @@ typedef struct tape_t {
     int      xfer_len;
     uint32_t xfer_offset;   /* image offset the buffer came from/goes to */
     uint8_t  buffer[FDD_TAPE_SECTOR_SIZE];
-    int      readid_pending; /* a READ ID arrived since the last motion tick:
-                                the host is scanning for a spot, so search
-                                ahead fast - see tape_motion_period() */
 
     /* Formatting engine. */
     int      format_datac;
@@ -1628,11 +1625,6 @@ tape_motion_tick(UNUSED(void *priv))
 {
     timer_advance_u64(&tape_motion_timer, tape_motion_period());
 
-    /* One tick's worth of the search burst is spent; the host has to read
-       another ID to keep it going, otherwise the head settles back to the
-       data rate. */
-    tape.readid_pending = 0;
-
     if (!tape.running) {
         tape_stop_motion_clock();
         return;
@@ -1832,10 +1824,6 @@ tape_readaddress(int drive, UNUSED(int side), UNUSED(int density))
         fdc_nosector(tape_fdc);
         return;
     }
-
-    /* The host is scanning: keep the search running fast until it stops
-       asking (tape_motion_period consumes this each tick). */
-    tape.readid_pending = 1;
 
     /*
        The result has to come back from the transfer clock rather than from
