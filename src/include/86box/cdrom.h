@@ -513,7 +513,7 @@ typedef struct cdrom {
 
 extern cdrom_t cdrom[CDROM_NUM];
 
-#define MSFtoLBA(m, s, f)  ((((m * 60) + s) * 75) + f)
+#define MSFtoLBA(m, s, f)  (((((m) * 60) + (s)) * 75) + (f))
 
 static __inline int
 bin2bcd(int x)
