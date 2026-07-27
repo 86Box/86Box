@@ -2200,20 +2200,6 @@ const device_t gus_ace_device = {
     .config        = gus_ace_config
 };
 
-const device_t gus_vipermax_device = {
-    .name          = "Gravis/Synergy Vipermax",
-    .internal_name = "gusvipermax",
-    .flags         = DEVICE_ISA16,
-    .local         = GUS_VIPERMAX,
-    .init          = gus_extreme_init,
-    .close         = gus_close,
-    .reset         = gus_reset,
-    .available     = NULL,
-    .speed_changed = gus_speed_changed,
-    .force_redraw  = NULL,
-    .config        = gus_extreme_config
-};
-
 const device_t gus_extreme_device = {
     .name          = "Gravis UltraSound Extreme",
     .internal_name = "gusextreme",
@@ -2225,5 +2211,20 @@ const device_t gus_extreme_device = {
     .available     = NULL,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
+    .config        = gus_extreme_config
+};
+
+const device_t gus_vipermax_device = {
+    .name          = "Synergy ViperMAX",
+    .internal_name = "gusvipermax",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_VIPERMAX,
+    .init          = gus_extreme_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .alias         = "Synergy UltraSound VIP/Extreme",
     .config        = gus_extreme_config
 };
