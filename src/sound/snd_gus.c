@@ -2225,6 +2225,6 @@ const device_t gus_vipermax_device = {
     .available     = NULL,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
-    .alias         = "Gravis/Synergy UltraSound VIP/Extreme",
+    .alias         = "Synergy UltraSound VIP/Extreme",
     .config        = gus_extreme_config
 };
