@@ -6,8 +6,9 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of a QIC-117 "floppy tape" drive, modelled after the
- *          Colorado Jumbo 250 (a QIC-80 drive).
+ *          Emulation of a QIC-117 "floppy tape" drive, modelled after a
+ *          Colorado QIC-40 drive ("Colorado 120", implying 60MB tapes,
+ *          up to 120MB compressed).
  *
  *          These drives share the floppy ribbon cable with the regular
  *          floppy drives and occupy one of the four drive select lines.
@@ -109,7 +110,10 @@ enum {
 
 /*
    Rate codes, as they appear in bits 4-3 of the drive configuration and as
-   the argument to Select Rate. A QIC-80 drive only runs at the first two.
+   the argument to Select Rate. A QIC-40 drive runs at 250 Kbps by default, so
+   that is what it reports and calibrates to; 500 Kbps is accepted too, and
+   the transfer clock (tape_byte_period()) follows whichever the host actually
+   programs into the controller.
  */
 #define QIC_RATE_250                 0
 #define QIC_RATE_2000                1
@@ -119,8 +123,9 @@ enum {
 /*
    Arguments to Select Rate above the rate codes name a tape format instead,
    as (Tape Format * 4) + Increment, where increment 1 is standard quarter
-   inch media and 3 is 8 mm wide tape. This drive handles the two QIC-80
-   family formats on standard media and nothing else.
+   inch media and 3 is 8 mm wide tape. This QIC-40 drive works QIC-40 media on
+   standard quarter-inch cartridges; the QIC-80 code is tolerated but nothing
+   past it.
  */
 #define QIC_FORMAT_QIC40             ((1 << 2) | 1)
 #define QIC_FORMAT_QIC80             ((2 << 2) | 1)
@@ -128,8 +133,16 @@ enum {
 #define QIC_FORMAT_QIC3010           ((4 << 2) | 1)
 
 /* Tape status bits, as returned by QIC_REPORT_TAPE_STATUS. */
+#define QIC_TAPE_QIC40               0x01
 #define QIC_TAPE_QIC80               0x02
+#define QIC_TAPE_QIC3020             0x03
+#define QIC_TAPE_QIC3010             0x04
+#define QIC_TAPE_205FT               0x10
 #define QIC_TAPE_307FT               0x20
+#define QIC_TAPE_VAR_LEN_550         0x30
+#define QIC_TAPE_1100FT              0x40
+#define QIC_TAPE_VAR_LEN_900         0x60
+#define QIC_TAPE_WIDE                0x80
 
 /* Error codes, from the QIC-117 rev. J error code list (3.5). */
 #define QIC_ERROR_NONE               0
@@ -160,32 +173,28 @@ enum {
 #define QIC_IGNORE_ABOVE             QIC_REPORT_VENDOR_ID
 
 /*
-   Vendor ID and ROM version, pulled from a real Colorado 250 drive.
+   Vendor ID and ROM version, pulled from a real Colorado 120 drive.
  */
 #define QIC_VENDOR_ID                0x0047
 #define QIC_ROM_VERSION              0x58
 
-/* Signature handed back by Report ROM Version while in diagnostic mode 1,
-   by which a host confirms the drive really is a Colorado/CMS make. */
+/* Manufacturer-specific signature handed back by command 37 while in
+   diagnostic mode (observed on a real Colorado 120 drive). */
 #define QIC_CMS_SIGNATURE            0xa5
 
-/*
-   Status handed back by Report Format Segments in that same mode. Nothing
-   documents the encoding, but the host reads the drive's format capability
-   out of it, so use the same numbering the Report Tape Status format field
-   uses - 1 for QIC-40, 2 for QIC-80.
- */
-#define QIC_CMS_DIAG_STATUS          QIC_TAPE_QIC80
+/* Manufacturer-specific signature handed back by command 9 while in
+   diagnostic mode (observed on a real Colorado 120 drive). */
+#define QIC_CMS_DIAG_STATUS          0xc
 
 /* The head parks at cylinder 0 while idle, so TRACK 0 doubles as the
    result line. Bits are handed back one at a time, framed by a leading
    acknowledge bit and a trailing stop bit. */
 #define TAPE_REPORT_IDLE             (-1)
 
-/* A blank cartridge holds this many segments (QIC-80, 307.5 ft, 28 tracks
-   of 150 segments), which is what a Jumbo 250 ships with. */
-#define TAPE_SEGMENTS_PER_TRACK      150
-#define TAPE_TRACKS                  28
+/* A blank cartridge holds this many segments (QIC-40, 307.5 ft extended
+   length, 20 tracks of 102 segments), the layout this QIC-40 drive presents. */
+#define TAPE_SEGMENTS_PER_TRACK      102
+#define TAPE_TRACKS                  20
 #define TAPE_TOTAL_SEGMENTS          (TAPE_SEGMENTS_PER_TRACK * TAPE_TRACKS)
 
 /* Transfer states of the read/write engine. */
@@ -234,6 +243,9 @@ typedef struct tape_t {
     uint8_t  last_command;
     int      selected;
     int      running;       /* tape is streaming past the head */
+    int      busy;          /* a physical wind or reference-burst write is in
+                               progress, and the drive is NOT Ready until it
+                               ends - see tape_begin_busy() */
     int      reverse;       /* this track is laid down back to front, so its
                                segment order runs from the physical end of
                                the tape towards the start */
@@ -248,6 +260,9 @@ typedef struct tape_t {
                                32, plus the sector within it */
     int      run_off;       /* sectors of tape the drive has pulled past the
                                end of the track before coming to a halt */
+    int      winding;       /* a Physical Forward/Reverse high-speed wind is
+                               under way, running the head toward wind_target */
+    int      wind_target;   /* head_sector that wind is making for */
     uint16_t format_segments;
     uint8_t  rate_code;     /* data rate, as a drive configuration code */
     uint8_t  format_code;   /* tape format the host selected for formatting */
@@ -258,6 +273,9 @@ typedef struct tape_t {
     int      xfer_len;
     uint32_t xfer_offset;   /* image offset the buffer came from/goes to */
     uint8_t  buffer[FDD_TAPE_SECTOR_SIZE];
+    int      readid_pending; /* a READ ID arrived since the last motion tick:
+                                the host is scanning for a spot, so search
+                                ahead fast - see tape_motion_period() */
 
     /* Formatting engine. */
     int      format_datac;
@@ -299,6 +317,57 @@ static int        tape_cmd_timer_added = 0;
  */
 static pc_timer_t tape_motion_timer;
 static int        tape_motion_timer_added = 0;
+
+/*
+   A physical reposition - a high-speed wind to an end of tape, a rewind to
+   the load point, or writing the reference burst - keeps the drive NOT Ready
+   for as long as the wind takes. Real drives spend anywhere from a few tens
+   of milliseconds to most of a minute over these, and the host polls Report
+   Drive Status for the ready that marks the end. A drive that answers ready
+   the instant it is asked can wedge a host whose completion check waits to
+   first see the drive go busy: it never does, so the check keeps retrying
+   and eventually gives up. This one-shot timer models the wind and drops the
+   busy state when it fires. It lives outside tape_t for the same reason as
+   the timers above.
+ */
+static pc_timer_t tape_busy_timer;
+static int        tape_busy_timer_added = 0;
+
+/*
+   Modelled wind durations, in microseconds (tape_begin_busy scales them to
+   the timer's units). They need not match a real drive's mechanics - they
+   need only keep the drive NOT Ready long enough to span several of the
+   host's status polls. Distance-scaled winds run at TAPE_WIND_PER_SEG_US per
+   segment travelled, held between a TAPE_WIND_MIN_US floor and a
+   TAPE_WIND_FULL_US ceiling; writing the reference burst, a whole-tape
+   operation with the longest time-out in the command set, takes
+   TAPE_WIND_FULL_US outright.
+ */
+#define TAPE_WIND_PER_SEG_US 3000ULL   /* 3 ms per segment travelled */
+#define TAPE_WIND_MIN_US     60000ULL  /* 60 ms floor */
+#define TAPE_WIND_FULL_US    750000ULL /* 750 ms: a whole-tape wind */
+
+/*
+   Seeking the head to a track is a lateral move rather than a wind along the
+   tape, and settles quickly whatever track it starts from - so it takes a
+   short fixed time, not one that grows with the segment distance. Scaling it
+   like a wind let a seek to a far track reach the whole-tape ceiling, and a
+   seconds-long seek outlasts the host's patience: it gives up and reports
+   the seek as failed.
+ */
+#define TAPE_HEAD_SEEK_US    60000ULL  /* 60 ms head settle */
+
+/*
+   While the host is only scanning sector IDs to find a position - Logical
+   Forward with no data transfer armed - the head advances this many times
+   faster than the data rate. A real drive covers ground far quicker than it
+   reads, and the host counts on reaching its target segment promptly: at the
+   plain data rate a scan of even the first couple of segments takes about a
+   second, long enough that the host's periodic drive-status poll can land in
+   the middle of the pass and abort it. Moving data still streams at the true
+   data rate - see tape_motion_period().
+ */
+#define TAPE_SCAN_SPEEDUP    32
 
 int  fdd_tape_enabled = 0;
 int  fdd_tape_unit    = 1;
@@ -395,7 +464,7 @@ tape_head_segment(void)
 }
 
 /* Segments per tape track. The real figure lives in the cartridge's header
-   segment, which only the host has read, so this is the QIC-80 default
+   segment, which only the host has read, so this is the QIC-40 default
    unless the host has told us otherwise. */
 static int
 tape_segments_per_track(void)
@@ -430,7 +499,7 @@ tape_update_status(void)
        drive that claims to be idle the moment the last segment of a format
        has been written is taken to have failed the format outright.
      */
-    if (tape.running || (tape.params_left > 0))
+    if (tape.running || tape.busy || (tape.params_left > 0))
         tape.status &= ~QIC_STATUS_READY;
     else
         tape.status |= QIC_STATUS_READY;
@@ -546,15 +615,51 @@ static void
 tape_stop_motion(void)
 {
     tape.running = 0;
+    tape.winding = 0;
     tape_stop_motion_clock();
     tape.status |= QIC_STATUS_READY;
 }
 
-/* Moves the head to an absolute segment, clamped to the cartridge. */
+/*
+   Begins a Physical Forward/Reverse wind. The head runs toward the target
+   segment at high speed and the drive stays NOT Ready until it arrives, the
+   whole time reporting where it has got to, so a Stop, Pause or Skip can halt
+   it partway (cmd 11/12). A wind to where the head already sits is a no-op.
+ */
+static void
+tape_start_wind(int target_segment)
+{
+    const int target = target_segment * FDD_TAPE_SECTORS_PER_SEG;
+
+    if (tape.head_sector == target) {
+        tape_stop_motion();
+        return;
+    }
+
+    tape.xfer_state  = TAPE_XFER_IDLE;
+    tape.winding     = 1;
+    tape.wind_target = target;
+    tape.running     = 1;
+    tape.run_off     = 0;
+    tape.status     &= ~QIC_STATUS_READY;
+    tape_start_motion();
+}
+
+/*
+   Moves the head to an absolute segment, clamped to the length of the
+   cartridge, and carries the serpentine track (and the direction it was laid
+   down in) along with it. Because the track follows the head, a skip that
+   runs off the end of one track keeps going into the next rather than pinning
+   the drive at a single track's end-of-tape: the host walks the whole
+   cartridge one skip at a time, and only the true last segment reads back as
+   an end. Streaming motion (tape_motion_tick) deliberately does not come
+   through here - a logical-forward pass stays on the one track it was seeked
+   to and halts at that track's end.
+ */
 static void
 tape_seek_to_segment(int segment)
 {
-    const int last = (tape.segs_per_head * 8) - 1;
+    const int last = TAPE_TOTAL_SEGMENTS - 1;
 
     if (segment < 0)
         segment = 0;
@@ -563,6 +668,59 @@ tape_seek_to_segment(int segment)
 
     tape.head_sector = segment * FDD_TAPE_SECTORS_PER_SEG;
     tape.run_off     = 0;
+
+    tape.track   = segment / tape_segments_per_track();
+    tape.reverse = tape.track & 1;
+}
+
+/* Clears the busy state a modelled wind raised. The drive answers ready
+   again from the next Report Drive Status, which recomputes it. */
+static void
+tape_busy_done(UNUSED(void *priv))
+{
+    tape.busy = 0;
+    fdd_tape_log("Tape: wind complete - ready\n");
+}
+
+/* Holds the drive NOT Ready for the given span of microseconds, modelling
+   the time a physical wind or reference-burst write occupies. */
+static void
+tape_begin_busy(uint64_t us)
+{
+    if (!tape_busy_timer_added || (us == 0))
+        return;
+
+    tape.busy = 1;
+    timer_set_delay_u64(&tape_busy_timer, us * TIMER_USEC);
+    fdd_tape_log("Tape: wind - busy for %llu us\n", (unsigned long long) us);
+}
+
+/* Seeks the head to a segment and then stays busy for as long as winding
+   there would take, so the host sees the drive go busy and come back ready
+   the way it does on real hardware. A seek that covers no ground - the head
+   is already there - raises no busy, matching a no-op seek. */
+static void
+tape_seek_busy(int segment)
+{
+    const int from = tape.head_sector / FDD_TAPE_SECTORS_PER_SEG;
+    int       dist;
+    uint64_t  us;
+
+    tape_seek_to_segment(segment);
+
+    dist = (tape.head_sector / FDD_TAPE_SECTORS_PER_SEG) - from;
+    if (dist < 0)
+        dist = -dist;
+    if (dist == 0)
+        return;
+
+    us = (uint64_t) dist * TAPE_WIND_PER_SEG_US;
+    if (us < TAPE_WIND_MIN_US)
+        us = TAPE_WIND_MIN_US;
+    if (us > TAPE_WIND_FULL_US)
+        us = TAPE_WIND_FULL_US;
+
+    tape_begin_busy(us);
 }
 
 /* Puts the head on the sector at a given image offset: what the host
@@ -584,7 +742,7 @@ tape_finish_parameters(void)
         case QIC_SEEK_HEAD_TO_TRACK:
             /*
                The track number must be valid for the format in effect. A
-               QIC-80 cartridge has 28 tracks; anything beyond that is an
+               QIC-40 cartridge has 20 tracks; anything beyond that is an
                "illegal track address specified for seek" (cmd 13, error 7),
                and the head stays where it is.
              */
@@ -595,7 +753,16 @@ tape_finish_parameters(void)
             tape.track = tape.param[0];
             /* Odd tracks are written back to front. */
             tape.reverse = tape.track & 1;
-            tape_seek_to_segment(tape_track_start());
+            /* A lateral head move, not a wind: short and fixed, and only when
+               the head actually has to move (an already-parked track is a
+               no-op, cmd 13). See TAPE_HEAD_SEEK_US. */
+            {
+                const int moved = tape_head_segment() != tape_track_start();
+
+                tape_seek_to_segment(tape_track_start());
+                if (moved)
+                    tape_begin_busy(TAPE_HEAD_SEEK_US);
+            }
             break;
 
         case QIC_SKIP_FORWARD:
@@ -610,9 +777,9 @@ tape_finish_parameters(void)
             count++;
             if ((tape.param_cmd == QIC_SKIP_REVERSE) ||
                 (tape.param_cmd == QIC_SKIP_EXTENDED_REVERSE))
-                tape_seek_to_segment(tape_head_segment() - (int) count);
+                tape_seek_busy(tape_head_segment() - (int) count);
             else
-                tape_seek_to_segment(tape_head_segment() + (int) count);
+                tape_seek_busy(tape_head_segment() + (int) count);
             break;
 
         case QIC_SET_FORMAT_SEGMENTS:
@@ -636,11 +803,11 @@ tape_finish_parameters(void)
                 case QIC_RATE_250:
                 case QIC_RATE_500:
                     /*
-                       Both are rates a QIC-80 drive can run at - 250 Kbps
-                       is how it reads QIC-40 media - so either selection is
-                       accepted and reported back as-is. A host that asks
-                       for one and reads back the other takes the drive to
-                       have failed the request.
+                       250 Kbps is this QIC-40 drive's native rate; 500 Kbps is
+                       accepted too so a host probing rates sees no hard
+                       refusal. Either selection is reported back as-is, and a
+                       host that asks for one and reads back the other takes the
+                       drive to have failed the request.
                      */
                     tape.rate_code = tape.param[0];
                     break;
@@ -653,7 +820,7 @@ tape_finish_parameters(void)
 
                 default:
                     /* 1 and 2 Mbps, the QIC-3010 and QIC-3020 formats, and
-                       8 mm wide media are all beyond a QIC-80 drive. */
+                       8 mm wide media are all beyond a QIC-40 drive. */
                     tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
                     break;
             }
@@ -824,7 +991,7 @@ tape_command(uint8_t command)
        a one - comes back as a zero to tell the host the status it just
        read is invalid. Reset is the one exception.
      */
-    if ((tape.report_pos != TAPE_REPORT_IDLE) && (command != QIC_RESET)) {
+    if ((tape.report_pos != TAPE_REPORT_IDLE) && (command != QIC_RESET) && (command != QIC_PHANTOM_SELECT)) {
         fdd_tape_log("Tape: %s during report subcontext\n", tape_command_name(command));
         tape_set_error(QIC_ERROR_ILLEGAL_IN_REPORT, command);
     }
@@ -858,7 +1025,14 @@ tape_command(uint8_t command)
             tape_set_error(QIC_ERROR_NEW_CARTRIDGE, command);
             return;
         }
-        if (tape.running) {
+        /* Only Logical Forward must begin from rest - it opens a streaming
+           pass and needs a known start point. The high-speed physical winds
+           may instead interrupt a pass already in motion: a host that has
+           just written a segment reasonably winds forward to reposition
+           without first coasting the whole Logical Forward pass to its end,
+           and faulting the wind as not-ready traps it in a retry loop. The
+           wind halts the stream itself before it runs. */
+        if ((command == QIC_LOGICAL_FORWARD) && tape.running) {
             tape_set_error(QIC_ERROR_NOT_READY, command);
             return;
         }
@@ -868,6 +1042,8 @@ tape_command(uint8_t command)
         case QIC_RESET:
             tape.selected    = 0;
             tape.running     = 0;
+            tape.winding     = 0;
+            tape.busy        = 0;
             tape.reverse     = 0;
             tape.format_mode = 0;
             tape.verify_mode = 0;
@@ -884,7 +1060,7 @@ tape_command(uint8_t command)
                or sets it again (cmd 37).
              */
             tape.rate_code       = QIC_RATE_500;
-            tape.format_code     = QIC_FORMAT_QIC80;
+            tape.format_code     = QIC_FORMAT_QIC40;
             tape.format_segments = 0;
             /*
                A reset is itself an error condition (cmd 1, 3.2): the drive
@@ -917,7 +1093,7 @@ tape_command(uint8_t command)
             /* The only rate the drive will accept is the only one it can
                ever be running at, so the selected rate is the live one. */
             tape_start_report((tape.rate_code << QIC_CONFIG_RATE_SHIFT) |
-                              QIC_CONFIG_LONG | QIC_CONFIG_80, 8);
+                              QIC_CONFIG_LONG, 8);
             return;
         }
 
@@ -944,7 +1120,7 @@ tape_command(uint8_t command)
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            tape_start_report(QIC_TAPE_QIC80 | QIC_TAPE_307FT, 8);
+            tape_start_report(QIC_TAPE_QIC40 | QIC_TAPE_307FT, 8);
             return;
 
         case QIC_REPORT_FORMAT_SEGMENTS:
@@ -963,7 +1139,7 @@ tape_command(uint8_t command)
             /*
                Zero until the host calibrates the tape or sets the count
                explicitly - the value is only meaningful after one of those
-               (cmd 37). Internal geometry falls back to the QIC-80 default
+               (cmd 37). Internal geometry falls back to the QIC-40 default
                separately, in tape_segments_per_track().
              */
             tape_start_report(tape.format_segments, 16);
@@ -1001,18 +1177,19 @@ tape_command(uint8_t command)
             break;
 
         /*
-           The two physical motion commands wind the cartridge to one of its
-           ends at high speed rather than streaming it past the head. Which
-           end of the current track that leaves the head on depends on the
-           direction the track was laid down in.
+           The two physical motion commands start the cartridge winding toward
+           one of its ends at high speed rather than streaming it past the head.
+           They do not jump there: the drive stays NOT Ready and runs the head
+           over until it reaches the end and auto-stops, or a Stop, Pause or
+           Skip halts it partway (cmd 11/12). Which end of the current track is
+           the physical end depends on the direction the track was laid down in.
          */
         case QIC_PHYSICAL_FORWARD:
             if (!tape_has_cartridge()) {
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            tape_seek_to_segment(tape.reverse ? tape_track_start() : tape_track_end());
-            tape_stop_motion();
+            tape_start_wind(tape.reverse ? tape_track_start() : tape_track_end());
             break;
 
         case QIC_PHYSICAL_REVERSE:
@@ -1020,8 +1197,7 @@ tape_command(uint8_t command)
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            tape_seek_to_segment(tape.reverse ? tape_track_end() : tape_track_start());
-            tape_stop_motion();
+            tape_start_wind(tape.reverse ? tape_track_end() : tape_track_start());
             break;
 
         case QIC_SEEK_LOAD_POINT:
@@ -1031,7 +1207,7 @@ tape_command(uint8_t command)
             }
             tape.track   = 0;
             tape.reverse = 0;
-            tape_seek_to_segment(0);
+            tape_seek_busy(0);
             tape_stop_motion();
             break;
 
@@ -1057,7 +1233,7 @@ tape_command(uint8_t command)
                which this fixed-geometry image drive has no analogue for.
              */
             tape.xfer_state = TAPE_XFER_IDLE;
-            tape_seek_to_segment(tape_head_segment() - 2);
+            tape_seek_busy(tape_head_segment() - 2);
             tape_stop_motion();
             break;
 
@@ -1114,16 +1290,31 @@ tape_command(uint8_t command)
                 tape_set_error(QIC_ERROR_WRITE_PROTECTED, command);
                 break;
             }
+
+            /* in case we need to send back an error in this case:
+            if (tape.format_mode == 0) {
+                tape_set_error(QIC_ERROR_ILLEGAL_IN_FORMAT, command);
+                break;
+            }
+            */
+
             if (tape.image_size == 0)
                 tape.image_size = 1;
+            /* Writing the burst runs the cartridge the length of the load
+               zone and carries the longest time-out in the command set, so
+               the drive stays busy over a full-length wind. A host that
+               polls for the burst to finish only sees it done once this
+               elapses. */
+            tape_begin_busy(TAPE_WIND_FULL_US);
             break;
 
         case QIC_CALIBRATE_TAPE_LENGTH:
             /*
                Calibrate determines the number of segments per track the tape
-               can hold (cmd 36). This fixed-geometry QIC-80 XL cartridge has a
-               known count, so record it; Report Format Segments reads it back
-               afterwards, having returned zero until now (cmd 37).
+               can hold (cmd 36). This fixed-geometry QIC-40 extended-length
+               cartridge has a known count, so record it; Report Format
+               Segments reads it back afterwards, having returned zero until
+               now (cmd 37).
              */
             if (!tape_has_cartridge()) {
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
@@ -1225,8 +1416,8 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
     /*
        The head field is not a physical head here, just the high digits of
        the segment number, so it ranges well beyond the two a floppy has:
-       a full QIC-80 cartridge holds over 4000 segments, which is head 4 at
-       1020 segments per head.
+       a full QIC-40 cartridge holds a couple of thousand segments, which is
+       head 2 at 1020 segments per head.
      */
     if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 0xff))
         return 0;
@@ -1245,7 +1436,14 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
 }
 
 /* Interval between STEP pulses, from the controller's SPECIFY and data
-   rate. QIC-117 hosts program this to TSTEP, nominally 2 ms. */
+   rate. QIC-117 hosts program this to TSTEP, nominally 2 ms. The SPECIFY
+   step rate is in milliseconds that scale inversely with the data rate, so
+   the interval must divide by the real rate in kbps - fdc_get_bit_rate()
+   hands back a rate *code* (0 for 500 kbps, 2 for 250 kbps), not the rate
+   itself, which would blow the 250 kbps interval up to a quarter second per
+   step and make a seek take seconds. A slow seek trips the host's own
+   time-out, which then injects extra step pulses that run into the next
+   command's pulse train and corrupt its count. */
 static int
 tape_step_interval_us(void)
 {
@@ -1256,11 +1454,11 @@ tape_step_interval_us(void)
         return 2000;
 
     srt      = tape_fdc->specify[0] >> 4;
-    bit_rate = fdc_get_bit_rate(tape_fdc);
+    bit_rate = tape_fdc->bit_rate;
     if (bit_rate <= 0)
-        bit_rate = 250;
+        bit_rate = 500;
 
-    return ((16 - srt) * 1000 * 500) / bit_rate;
+    return ((16 - srt) * 1000000) / bit_rate;
 }
 
 /*
@@ -1325,19 +1523,82 @@ tape_command_timeout(UNUSED(void *priv))
     if ((steps == QIC_REPORT_NEXT_BIT) && presented)
         return;
 
-    fdd_tape_log("Tape: pulse train complete, %i pulse(s)\n", steps);
+    fdd_tape_log("Tape: pulse train complete, %i pulse(s), fdc rate %i kbps\n",
+                 steps, (tape_fdc != NULL) ? tape_fdc->bit_rate : -1);
 
     tape_step_pulses(steps);
 }
 
-/* QIC-80 streams at 500 kbps, which is 16 microseconds per byte. */
-#define TAPE_BYTE_PERIOD (16ULL * TIMER_USEC)
+/*
+   The transfer clock runs at the controller's current data rate, so it
+   tracks whatever rate the host has selected: a QIC-40 host formats and
+   reads at 250 kbps (32 us/byte), a QIC-80 one at 500 kbps (16 us/byte).
+   Streaming at the wrong rate would over- or under-run the FDC. The step
+   timing in tape_step_interval_us() follows the same rate for the same
+   reason.
+ */
+static uint64_t
+tape_byte_period(void)
+{
+    int kbps = (tape_fdc != NULL) ? tape_fdc->bit_rate : 500;
+
+    if (kbps <= 0)
+        kbps = 500;
+
+    /* Eight bits to the byte: microseconds per byte = 8000 / kbps. */
+    return (8000ULL * TIMER_USEC) / (uint64_t) kbps;
+}
+
+/* One sector of tape passes the head every this many microseconds. */
+static uint64_t
+tape_sector_period(void)
+{
+    return FDD_TAPE_SECTOR_SIZE * tape_byte_period();
+}
+
+/*
+   How fast the head works its way along the tape while streaming. When a
+   transfer is moving data, the head must keep step with it, one sector per
+   data-rate sector time. When the host is only scanning sector IDs to find
+   a position, nothing is tied to the data rate, so the head searches at the
+   faster TAPE_SCAN_SPEEDUP rate - this is what lets the host reach its target
+   segment before its own status poll interrupts the pass.
+ */
+static uint64_t
+tape_motion_period(void)
+{
+    /* A physical wind runs at the drive's highest speed, faster than either
+       streaming or an ID search. */
+    if (tape.winding)
+        return tape_sector_period() / TAPE_SCAN_SPEEDUP;
+
+    switch (tape.xfer_state) {
+        case TAPE_XFER_READ:
+        case TAPE_XFER_WRITE:
+        case TAPE_XFER_COMPARE:
+        case TAPE_XFER_FORMAT:
+            return tape_sector_period();
+
+        default:
+            /* Streaming and ID searches both advance at the data rate. The
+               head does not free-run ahead under the timer while the host
+               scans for a position: instead every sector ID the host reads
+               carries the head on to the next sector (tape_finish_readaddress),
+               so a search is paced by the host and stops exactly where the host
+               means to - the tape does not run on between its reads. An earlier
+               revision ran the scan TAPE_SCAN_SPEEDUP times faster here to
+               reach a target before a status poll interrupted the pass, but the
+               head then flew tens of segments past before the host could react,
+               so a selective restore could never land on its target. */
+            return tape_sector_period();
+    }
+}
 
 static void
 tape_start_clock(void)
 {
     if (tape_timer_added)
-        timer_set_delay_u64(&tape_timer, TAPE_BYTE_PERIOD);
+        timer_set_delay_u64(&tape_timer, tape_byte_period());
 }
 
 static void
@@ -1347,14 +1608,11 @@ tape_stop_clock(void)
         timer_disable(&tape_timer);
 }
 
-/* One sector of tape passes the head every this many microseconds. */
-#define TAPE_SECTOR_PERIOD (FDD_TAPE_SECTOR_SIZE * 16ULL * TIMER_USEC)
-
 static void
 tape_start_motion(void)
 {
     if (tape_motion_timer_added)
-        timer_set_delay_u64(&tape_motion_timer, TAPE_SECTOR_PERIOD);
+        timer_set_delay_u64(&tape_motion_timer, tape_motion_period());
 }
 
 static void
@@ -1368,10 +1626,33 @@ tape_stop_motion_clock(void)
 static void
 tape_motion_tick(UNUSED(void *priv))
 {
-    timer_advance_u64(&tape_motion_timer, TAPE_SECTOR_PERIOD);
+    timer_advance_u64(&tape_motion_timer, tape_motion_period());
+
+    /* One tick's worth of the search burst is spent; the host has to read
+       another ID to keep it going, otherwise the head settles back to the
+       data rate. */
+    tape.readid_pending = 0;
 
     if (!tape.running) {
         tape_stop_motion_clock();
+        return;
+    }
+
+    /*
+       A physical wind runs the head toward the end it was sent to and comes
+       to rest there. Until then the drive reports the position it has reached,
+       so a host watching the sector IDs can halt the wind where it wants with
+       a Stop, Pause or Skip.
+     */
+    if (tape.winding) {
+        if (tape.head_sector < tape.wind_target)
+            tape.head_sector++;
+        else if (tape.head_sector > tape.wind_target)
+            tape.head_sector--;
+        tape.run_off = 0;
+
+        if (tape.head_sector == tape.wind_target)
+            tape_stop_motion();
         return;
     }
 
@@ -1505,25 +1786,39 @@ tape_finish_readaddress(void)
     int cylinder;
     int sector;
 
-    if (!tape.running) {
-        /* A stopped tape has no sector passing the head. The host reads
-           this back as sector zero and goes looking for the drive status. */
-        fdc_sectorid(tape_fdc, 0, 0, 0, 3, 0, 0);
-        return;
-    }
-
     segment  = tape_head_segment();
     cylinder = (segment % tape.segs_per_head) / tape.segs_per_cyl;
     /* The ID of the sector actually under the head, not just the start of
-       the segment - this is what tells a streaming host where it is. */
+       the segment - this is what tells a streaming host where it is.
+
+       A stopped tape reports the real head position too, rather than a fixed
+       sector zero. The host driver issues READ ID to locate the head and
+       caches the C/H/R it reads back as the head's position for its seek
+       arithmetic (target - current); handing back 0/0/0 while stopped makes
+       it believe the head sits at segment 0 wherever it really is, so every
+       later seek is computed from the wrong origin. */
     sector   = ((segment % tape.segs_per_cyl) * FDD_TAPE_SECTORS_PER_SEG) +
                (tape.head_sector % FDD_TAPE_SECTORS_PER_SEG) + 1;
 
-    fdd_tape_log("Tape: read ID -> segment %i (c=%i h=%i r=%i)\n", segment, cylinder,
-                 segment / tape.segs_per_head, sector);
+    fdd_tape_log("Tape: read ID -> segment %i (c=%i h=%i r=%i)%s\n", segment, cylinder,
+                 segment / tape.segs_per_head, sector, tape.running ? "" : " [stopped]");
 
     fdc_sectorid(tape_fdc, (uint8_t) cylinder, (uint8_t) (segment / tape.segs_per_head),
                  (uint8_t) sector, 3, 0, 0);
+
+    /* A search is host-clocked: reading this ID carries the head on to the
+       next sector, so a host reading IDs to find a segment sees the position
+       step forward one sector per read and stops the pass exactly on its
+       target. Because the tape does not run on under the timer between the
+       host's reads, there is no overshoot - a precise seek (selective restore)
+       lands where it means to, while the search still goes as fast as the host
+       can read. Motion halts at the end of the track, as the streaming timer's
+       own advance does. */
+    if (tape.running) {
+        const int last_sector = ((tape_track_end() + 1) * FDD_TAPE_SECTORS_PER_SEG) - 1;
+        if (tape.head_sector < last_sector)
+            tape.head_sector++;
+    }
 }
 
 /* The host uses READ ID to find out where on the tape it currently is. */
@@ -1537,6 +1832,10 @@ tape_readaddress(int drive, UNUSED(int side), UNUSED(int density))
         fdc_nosector(tape_fdc);
         return;
     }
+
+    /* The host is scanning: keep the search running fast until it stops
+       asking (tape_motion_period consumes this each tick). */
+    tape.readid_pending = 1;
 
     /*
        The result has to come back from the transfer clock rather than from
@@ -1580,14 +1879,15 @@ tape_stop(int drive)
 static int
 tape_hole(UNUSED(int drive))
 {
-    /* QIC-80 streams at 500 kbps, same as a high density floppy. */
+    /* Reports a high-density style medium; the actual byte rate follows the
+       controller's data rate in tape_byte_period(). */
     return 1;
 }
 
 static uint64_t
 tape_byteperiod(UNUSED(int drive))
 {
-    return TAPE_BYTE_PERIOD;
+    return tape_byte_period();
 }
 
 /* Moves one byte of the current transfer, once per byte period. */
@@ -1596,7 +1896,7 @@ tape_clock(UNUSED(void *priv))
 {
     int data;
 
-    timer_advance_u64(&tape_timer, TAPE_BYTE_PERIOD);
+    timer_advance_u64(&tape_timer, tape_byte_period());
 
     if (tape_fdc == NULL) {
         tape_stop_clock();
@@ -1816,7 +2116,7 @@ fdd_tape_set_fdc(void *fdc)
    states it in its own header segment: sectors per cylinder comes from the
    maximum sector number, and cylinders per head from the maximum track.
 
-   QIC-80 cartridges are typically 150 cylinders per head rather than the
+   A formatted cartridge typically uses far fewer cylinders per head than the
    255 the defaults assume, so getting this wrong corrupts every read past
    the first head boundary.
  */
@@ -1958,7 +2258,7 @@ fdd_tape_init(void)
     tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
     tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
     tape.rate_code     = QIC_RATE_500;
-    tape.format_code   = QIC_FORMAT_QIC80;
+    tape.format_code   = QIC_FORMAT_QIC40;
     tape.status     = QIC_STATUS_READY;
     tape.report_pos = TAPE_REPORT_IDLE;
     tape.error_cmd  = QIC_NO_COMMAND;
@@ -1974,6 +2274,9 @@ fdd_tape_init(void)
 
     timer_add(&tape_motion_timer, tape_motion_tick, NULL, 0);
     tape_motion_timer_added = 1;
+
+    timer_add(&tape_busy_timer, tape_busy_done, NULL, 0);
+    tape_busy_timer_added = 1;
 
     fdd_tape_log("Tape: attached to drive %i\n", drive);
 

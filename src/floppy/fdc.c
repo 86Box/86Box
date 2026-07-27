@@ -716,7 +716,7 @@ fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
        what QIC-117 tape software does - and it also decides which PCN
        SENSE INTERRUPT STATUS hands back.
      */
-    fdc->st0   = 0x20 | (fdc->rw_drive & 3);
+    fdc->st0   = 0x20 | (fdd_tape_present(real_drive(fdc, drive)) ? (fdc->rw_drive & 3) : (drive & 3));
     if (fdd_get_head(drive))
         fdc->st0 |= 0x04;
 
