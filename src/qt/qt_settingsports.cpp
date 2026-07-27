@@ -76,23 +76,41 @@ SettingsPorts::changed()
     has_changed |= (jumpered_internal_ecp_dma != ui->comboBoxLptECPDMA->currentData().toInt());
 
     for (int i = 0; i < PARALLEL_MAX; i++) {
-        auto *cbox     = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
-        if (cbox != NULL)
-            soft_changed |= (lpt_ports[i].device           != cbox->currentData().toInt());
         if (checkBox != NULL)
-            has_changed  |= (lpt_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
-        soft_changed  |= lpt_device_cfg_changed[i];
+            has_changed |= (lpt_ports[i].enabled != (checkBox->isChecked() ? 1 : 0));
+
+        int device_changed = lpt_device_cfg_changed[i];
+        auto *comboBox = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+        if (comboBox != NULL) {
+            int device = comboBox->currentData().toInt();
+            device_changed |= (lpt_ports[i].device != device);
+            if ((lpt_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG) || !(char_get_device(device)->flags & DEVICE_HOTPLUG_IN))
+                has_changed |= device_changed;
+            else
+                soft_changed |= device_changed;
+        } else {
+            has_changed |= device_changed;
+        }
     }
 
     for (int i = 0; i < SERIAL_MAX_UI; i++) {
-    	auto *cbox     = findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxSerial%1").arg(i + 1));
-        if (cbox != NULL)
-            has_changed  |= (com_ports[i].device           != cbox->currentData().toInt());
         if (checkBox != NULL)
-            has_changed  |= (com_ports[i].enabled          != (checkBox->isChecked() ? 1 : 0));
-        has_changed   |= com_device_cfg_changed[i];
+            has_changed |= (com_ports[i].enabled != (checkBox->isChecked() ? 1 : 0));
+
+        int device_changed = com_device_cfg_changed[i];
+    	auto *comboBox = findChild<QComboBox *>(QString("comboBoxCom%1").arg(i + 1));
+        if (comboBox != NULL) {
+            int device = comboBox->currentData().toInt();
+            device_changed |= (com_ports[i].device != device);
+            if ((com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG) || !(char_get_device(device)->flags & DEVICE_HOTPLUG_IN))
+                has_changed |= device_changed;
+            else
+                soft_changed |= device_changed;
+        } else {
+            has_changed |= device_changed;
+        }
     }
 
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
@@ -105,10 +123,8 @@ SettingsPorts::restore()
 }
 
 void
-SettingsPorts::save()
+SettingsPorts::save(int soft)
 {
-    jumpered_internal_ecp_dma = ui->comboBoxLptECPDMA->currentData().toInt();
-
     for (int i = 0; i < PARALLEL_MAX; i++) {
         auto *cbox     = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
@@ -126,6 +142,11 @@ SettingsPorts::save()
         if (checkBox != NULL)
             com_ports[i].enabled = checkBox->isChecked() ? 1 : 0;
     }
+
+    if (soft)
+        return;
+
+    jumpered_internal_ecp_dma = ui->comboBoxLptECPDMA->currentData().toInt();
 }
 
 void

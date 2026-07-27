@@ -278,6 +278,7 @@ MPU401_Reset(mpu_t *mpu)
     mpu->state.midi_mask                            = 0xffff;
     mpu->state.command_byte                         = 0;
     mpu->state.block_ack                            = 0;
+    mpu->state.sysex_in_finished                    = 1; // Initialize in finished state
     mpu->clock.tempo = mpu->clock.old_tempo         = 100;
     mpu->clock.timebase = mpu->clock.old_timebase   = 120;
     mpu->clock.tempo_rel = mpu->clock.old_tempo_rel = 0x40;

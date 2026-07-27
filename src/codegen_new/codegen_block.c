@@ -526,6 +526,12 @@ codegen_block_init(uint32_t phys_addr)
     block->pc          = cs + cpu_state.pc;
     block->_cs         = cs;
     block->phys        = phys_addr;
+#if defined(__aarch64__) || defined(_M_ARM64)
+    /* ARM64-only state initialization for delayed NO_IMMEDIATES policy. */
+    block->dirty_list_recompile_hits = 0;
+    /* ARM64-only: zero epoch so first dirty-list hit starts a new burst. */
+    block->dirty_list_last_epoch     = 0;
+#endif
     block->dirty_mask  = &page->dirty_mask;
     block->dirty_mask2 = NULL;
     block->next = block->prev = BLOCK_INVALID;

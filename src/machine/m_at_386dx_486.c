@@ -113,7 +113,7 @@ static const device_config_t opti495_ami_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMI 060692",
+                .name          = "AMIBIOS 060692",
                 .internal_name = "ami495",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
@@ -138,8 +138,8 @@ static const device_config_t opti495_ami_config[] = {
 };
 
 const device_t opti495_ami_device = {
-    .name          = "DataExpert SX495",
-    .internal_name = "opti495_ami_device",
+    .name          = "DataExpert OPTI-495SX",
+    .internal_name = "ami495",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -174,5 +174,29 @@ machine_at_opti495_ami_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
+    return ret;
+}
+
+int
+machine_at_pred1plus_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pred1plus/PRED1PLUS.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sl82c461_device);
+    device_add(&ide_isa_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+    
     return ret;
 }

@@ -17,7 +17,7 @@ public:
     int  changed();
 
     void restore();
-    void save();
+    void save(int soft);
 
 public slots:
     void onCurrentMachineChanged(int machineId);

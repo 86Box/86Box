@@ -54,7 +54,7 @@ UpdateCheck::checkForUpdates()
 }
 
 void
-UpdateCheck::jenkinsDownloadComplete(const QString &filename, const QVariant &varData)
+UpdateCheck::jenkinsDownloadComplete(const QString &filename)
 {
     auto generalError             = tr("Unable to determine release information");
     auto jenkinsReleaseListResult = parseJenkinsJson(filename);
@@ -97,7 +97,7 @@ UpdateCheck::generalDownloadError(const QString &error)
 }
 
 void
-UpdateCheck::githubDownloadComplete(const QString &filename, const QVariant &varData)
+UpdateCheck::githubDownloadComplete(const QString &filename)
 {
     const auto generalError            = tr("Unable to determine release information");
     const auto githubReleaseListResult = parseGithubJson(filename);
@@ -245,7 +245,11 @@ UpdateCheck::parseJenkinsRelease(const QJsonObject &json)
             // Convert the paths for each commit to a string list
             QStringList paths;
             for (const auto &each_path : itemObject["affectedPaths"].toArray().toVariantList()) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+                if (each_path.typeId() == QMetaType::QString) {
+#else
                 if (each_path.type() == QVariant::String) {
+#endif
                     paths.append(each_path.toString());
                 }
             }

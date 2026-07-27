@@ -40,6 +40,7 @@
 #define BIOS_ROM_PATH_W32_MACHSPEED_VGA_GUI_2400S   "roms/video/et4000w32/ET4000W32VLB_bios_MX27C512.BIN"
 #define BIOS_ROM_PATH_W32I_REVB_AXIS_MICRODEVICE    "roms/video/et4000w32/ET4KW32I.VBI"
 #define BIOS_ROM_PATH_W32I_REVB_HERCULES_DYNAMITE_VLB_PRO "roms/video/et4000w32/Hercules Dynamite VL Pro v8.00 c 1993 Hercules.bin"
+#define BIOS_ROM_PATH_W32P_REVB_STB                 "roms/video/et4000w32/STB Systems Lightspeed Rev. B (Tseng Labs ET4000-W32p VLB, STG1702J).bin"
 #define BIOS_ROM_PATH_W32P_REVB_VIDEOMAGIC          "roms/video/et4000w32/VideoMagic-BioS-HXIRTW32PWSRL.BIN"
 #define BIOS_ROM_PATH_W32P_REVC_CARDEX              "roms/video/et4000w32/et4000w32pcardex.BIN"
 #define BIOS_ROM_PATH_W32P_REVD                     "roms/video/et4000w32/ET4K_W32.BIN"
@@ -63,6 +64,7 @@ enum {
     MACHSPEED_VGA_GUI_2400S   = 0,
     AXIS_MICRODEVICE_ET4W32_5,
     HERCULES_DYNAMITE_PRO_VLB,
+    STB_LIGHTSPEED,
     VIDEOMAGIC_ETW32PVS,
     CARDEX_REVC,
     GENERIC_REVD,
@@ -2770,10 +2772,16 @@ et4000w32p_init(const device_t *info)
     if (local == USE_CONFIG_BIOS)
         local = device_get_bios_local(info, device_get_config_bios("bios"));
 
+    const uint64_t bios_flags = (info->local == USE_CONFIG_BIOS) ?
+                                device_get_bios_flags(info, device_get_config_bios("bios")) :
+                                0x0000000000000000ULL;
+
     et4000->card_type = local & 0xff;
     et4000->onboard_vid = (local >> 8) & 0xff;
 
     et4000->vram_size = device_get_config_int("memory");
+
+    video_clamp_vram(bios_flags, &et4000->vram_size);
 
     if (info->flags & DEVICE_PCI)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_et4000w32_pci);
@@ -2845,6 +2853,19 @@ et4000w32p_init(const device_t *info)
             et4000->svga.ramdac    = device_add(&att490_ramdac_device);
             et4000->svga.clock_gen = device_add(&ics2494an_324_device);
             et4000->svga.getclock  = ics2494_getclock;
+            break;
+
+        case STB_LIGHTSPEED:
+            /* ET4000/W32p rev B */
+            et4000->rev = ET4000W32P_REVB;
+            et4000->ramdac_type = STG170X;
+
+            rom_init(&et4000->bios_rom, BIOS_ROM_PATH_W32P_REVB_STB, 0xc0000, 0x8000, 0x7fff, 0,
+                     MEM_MAPPING_EXTERNAL);
+
+            et4000->svga.ramdac    = device_add(&stg1702_ramdac_device);
+            et4000->svga.clock_gen = et4000->svga.ramdac;
+            et4000->svga.getclock  = stg_getclock;
             break;
 
         case VIDEOMAGIC_ETW32PVS:
@@ -3025,13 +3046,23 @@ static const device_config_t et4000w32p_vlb_config[] = {
   // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "et4000w32p_nc_vlb",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .bios           = {
+            {
+                .name          = "Rev. B (STB Systems Lightspeed)",
+                .internal_name = "et4000w32p_stb_revb_vlb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = ('B' << 24) | STB_LIGHTSPEED,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { BIOS_ROM_PATH_W32P_REVB_STB, "" }
+            },
             {
                 .name          = "Rev. B (VideoMagic ETW32PVS)",
                 .internal_name = "et4000w32p_videomagic_revb_vlb",
@@ -3108,7 +3139,7 @@ static const device_config_t et4000w32p_pci_config[] = {
   // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "et4000w32p_nc_pci",
         .default_int    = 0,

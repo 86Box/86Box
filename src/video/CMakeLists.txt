@@ -106,6 +106,7 @@ add_library(vid OBJECT
     vid_ati28800.c
     vid_ati_mach8.c
     vid_ati_mach64.c
+    vid_ati_mach64_accel.c
 
     # Chips & Technologies
     vid_chips_69000.c
@@ -144,7 +145,6 @@ add_library(vid OBJECT
 
     # Generic
     vid_bochs_vbe.c
-
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")

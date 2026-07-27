@@ -219,7 +219,7 @@ catalyst_flash_init(UNUSED(const device_t *info))
     dev->is_amd  = info->local;
 
     fp = nvr_fopen(flash_path, "rb");
-    if (fp) {
+    if (!dump_missing && (fp != NULL)) {
         (void) !fread(dev->array, 0x20000, 1, fp);
         fclose(fp);
     }
@@ -234,7 +234,8 @@ catalyst_flash_close(void *priv)
     flash_t *dev = (flash_t *) priv;
 
     fp = nvr_fopen(flash_path, "wb");
-    fwrite(dev->array, 0x20000, 1, fp);
+    if (!dump_missing)
+        fwrite(dev->array, 0x20000, 1, fp);
     fclose(fp);
 
     free(dev->array);

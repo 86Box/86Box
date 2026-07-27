@@ -998,6 +998,7 @@ mke_init(const device_t *info)
             dev->get_volume    = mke_get_volume;
             dev->get_channel   = mke_get_channel;
             dev->cached_sector = -1;
+            dev->subc_sector = -1;
 
             timer_add(&mke->timer, mke_command_callback, mke, 0);
 

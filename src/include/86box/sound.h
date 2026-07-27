@@ -24,23 +24,39 @@
 extern int  sound_gain;
 extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
 
+enum {
+    I_NORMAL = 0,
+    I_MUSIC,
+    I_WT,
+    I_CD,
+    I_FDD,
+    I_HDD,
+    I_YM2151,
+    I_MIDI,
+    I_MAX
+};
+
 #define FREQ_44100  44100
 #define FREQ_48000  48000
 #define FREQ_49716  49716
+#define FREQ_55930  55930
 #define FREQ_88200  88200
 #define FREQ_96000  96000
 
-#define SOUND_FREQ  FREQ_48000
-#define SOUNDBUFLEN (SOUND_FREQ / 50)
+#define SOUND_FREQ   FREQ_48000
+#define SOUNDBUFLEN  (SOUND_FREQ / 50)
 
-#define MUSIC_FREQ  FREQ_49716
-#define MUSICBUFLEN (MUSIC_FREQ / 36)
+#define MUSIC_FREQ   FREQ_49716
+#define MUSICBUFLEN  (MUSIC_FREQ / 36)
 
-#define CD_FREQ     FREQ_44100
-#define CD_BUFLEN   (CD_FREQ / 10)
+#define YM2151_FREQ  FREQ_55930
+#define YM2151BUFLEN (YM2151_FREQ / 70)
 
-#define WT_FREQ     FREQ_44100
-#define WTBUFLEN    (WT_FREQ / 45)
+#define CD_FREQ      FREQ_44100
+#define CD_BUFLEN    (CD_FREQ / 10)
+
+#define WT_FREQ      FREQ_44100
+#define WTBUFLEN     (WT_FREQ / 45)
 
 enum {
     SOUND_NONE = 0,
@@ -48,27 +64,32 @@ enum {
 };
 
 extern int ppispeakon;
-extern int gated;
-extern int speakval;
 extern int speakon;
 
-extern int sound_pos_global;
+extern int midi_freq;
+extern int midi_buf_size;
 
+extern int sound_pos_global;
 extern int music_pos_global;
+extern int ym2151_pos_global;
 extern int wavetable_pos_global;
 
 extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 int len, void *priv),
+                                                 uint16_t len, void *priv),
                               void *priv);
 
 extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 int len, void *priv),
+                                                 uint16_t len, void *priv),
                               void *priv);
 
+extern void ym2151_add_handler(void (*get_buffer)(int32_t *buffer,
+                                                  uint16_t len, void *priv),
+                               void *priv);
+
 extern void wavetable_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                     int len, void *priv),
+                                                     uint16_t len, void *priv),
                                   void *priv);
 
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
@@ -77,9 +98,15 @@ extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
 extern void sound_set_pc_speaker_filter(void (*filter)(int     channel,
                                                        double *buffer, void *priv),
                                         void *priv);
+extern void sound_set_midi_filter(void (*filter)(int     channel,
+                                                 double *buffer, void *priv),
+                                  void *priv);
 
 extern void (*filter_pc_speaker)(int channel, double *buffer, void *priv);
 extern void *filter_pc_speaker_p;
+
+extern void (*filter_midi)(int channel, double *buffer, void *priv);
+extern void *filter_midi_p;
 
 extern int sound_card_available(int card);
 #ifdef EMU_DEVICE_H
@@ -98,6 +125,9 @@ extern void sound_reset(void);
 
 extern void sound_card_reset(void);
 
+extern void sound_recalc_timers(void);
+extern void sound_close(void);
+
 extern void sound_cd_thread_end(void);
 extern void sound_cd_thread_reset(void);
 
@@ -108,14 +138,28 @@ extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
 extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
+extern int         sound_get_device_sample_rate(const char *device_name);   /* probe native rate, 0 = unknown */
+extern int         sound_get_device_supported_rates(const char *device_name, /* probe supported rates into rates_out; returns count */
+                                                    int *rates_out, int max_rates);
 extern void        closeal(void);
 extern void        inital(void);
-extern void givealbuffer(const void *buf);
-extern void givealbuffer_music(const void *buf);
-extern void givealbuffer_wt(const void *buf);
-extern void givealbuffer_cd(const void *buf);
-extern void givealbuffer_fdd(const void *buf, const uint32_t size);
-extern void givealbuffer_hdd(const void *buf, const uint32_t size);
+
+#ifdef bool
+extern bool        fast_forward;
+#endif
+
+extern unsigned long long src_freqs[I_MAX];
+
+extern void        givealbuffer_common(const void *buf, const uint8_t src, const int size);
+
+#define givealbuffer(b)         givealbuffer_common(b, I_NORMAL, (sound_sample_rate / 50) << 1)
+#define givealbuffer_music(b)   givealbuffer_common(b, I_MUSIC, MUSICBUFLEN << 1)
+#define givealbuffer_ym2151(b)  givealbuffer_common(b, I_YM2151, YM2151BUFLEN << 1)
+#define givealbuffer_wt(b)      givealbuffer_common(b, I_WT, WTBUFLEN << 1)
+#define givealbuffer_cd(b)      givealbuffer_common(b, I_CD, CD_BUFLEN << 1)
+#define givealbuffer_fdd(b, s)  givealbuffer_common(b, I_FDD, s)
+#define givealbuffer_hdd(b, s)  givealbuffer_common(b, I_HDD, s)
+#define givealbuffer_midi(b, s) givealbuffer_common(b, I_MIDI, s)
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 #define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
@@ -182,6 +226,7 @@ extern const device_t sb_goldfinch_device;
 extern const device_t sb_32_pnp_device;
 extern const device_t sb_awe32_device;
 extern const device_t sb_awe32_pnp_device;
+extern const device_t sb_awe32_ide_pnp_device;
 extern const device_t sb_awe64_value_device;
 extern const device_t sb_awe64_device;
 extern const device_t sb_awe64_ide_device;
@@ -203,11 +248,18 @@ extern const device_t ess_688_device;
 extern const device_t ess_ess0100_pnp_device;
 extern const device_t ess_ess0968_pnp_688_device;
 extern const device_t ess_1688_device;
+extern const device_t ess_1688_compaq_device;
 extern const device_t ess_ess0102_pnp_device;
 extern const device_t ess_ess0968_pnp_device;
 extern const device_t ess_soundpiper_16_mca_device;
 extern const device_t ess_soundpiper_32_mca_device;
 extern const device_t ess_chipchat_16_mca_device;
+extern const device_t ess_1788_device;
+extern const device_t ess_1888_device;
+extern const device_t ess_1888_compaq_device;
+extern const device_t ess_1887_device;
+extern const device_t ess_1868_device;
+extern const device_t ess_1869_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1370_device;
@@ -223,6 +275,11 @@ extern const device_t gus_device;
 extern const device_t gus_v37_device;
 extern const device_t gus_max_device;
 extern const device_t gus_ace_device;
+extern const device_t gus_extreme_device;
+extern const device_t gus_vipermax_device;
+
+/* IBM Music Feature Card */
+extern const device_t imfc_device;
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
@@ -242,6 +299,9 @@ extern const device_t acermagic_s20_device;
 extern const device_t mirosound_pcm10_device;
 extern const device_t opti_82c930_device;
 extern const device_t opti_82c931_device;
+
+/* PC Speaker */
+extern const device_t speaker_device;
 
 /* Pro Audio Spectrum, Plus, 16, and 16D */
 extern const device_t pas_device;

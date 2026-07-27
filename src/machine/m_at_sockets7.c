@@ -216,7 +216,7 @@ static const device_config_t g5x_config[] = {
 
 const device_t g5x_device = {
     .name          = "Gigabyte GA-5AX",
-    .internal_name = "g5x_device",
+    .internal_name = "5ax",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -337,7 +337,7 @@ static const device_config_t delhi3_config[] = {
 
 const device_t delhi3_device = {
     .name          = "TriGem Delhi-III",
-    .internal_name = "delhi3_device",
+    .internal_name = "delhi3",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -445,7 +445,7 @@ machine_at_ficva503a_init(const machine_t *model)
     hwm_values.temperatures[2] = 0;  /* unused */
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&wm9701a_device); /* on daughtercard */
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -477,7 +477,6 @@ machine_at_5emapro_init(const machine_t *model)
     device_add(&via_vt82c686a_device);
     device_add(&sst_flash_39sf010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-    device_add(&via_vt82c686_hwm_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
     hwm_values.temperatures[0] += 2;      /* CPU offset */
     hwm_values.temperatures[1] += 2;      /* System offset */
     hwm_values.temperatures[2] = 0;       /* unused */

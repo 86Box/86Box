@@ -19,6 +19,7 @@
 extern const device_t acc3221_device;
 
 /* Acer / ALi */
+extern const device_t ali5113_device;
 extern const device_t ali5123_device;
 
 /* Chips & Technologies */
@@ -209,6 +210,9 @@ extern const device_t w83877_device;
 #define W83977_PHOENIX       0x00020    /* Unknown Phoenix Multikey KBC firmware. */
 
 #define W83977_KBC           0x000f0
+
+#define W83977_UART_FORCE_SEC 0x01000000
+#define W83977_LPT_FORCE_SEC  0x02000000
 
 extern const device_t w83977_device;
 

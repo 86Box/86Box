@@ -37,6 +37,7 @@ add_executable(86Box
     pci_dummy.c
     pic.c
     pit.c
+    pit_exact.c
     pit_fast.c
     port_6x.c
     port_92.c
@@ -161,6 +162,10 @@ if(STATIC_BUILD)
     if(MINGW OR UNIX)
         target_link_options(86Box PRIVATE "-static")
         set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
+    endif()
+
+    if(MINGW AND NOT $ENV{MSYSTEM} MATCHES "MINGW")
+        target_link_libraries(86Box ucrt)
     endif()
 endif()
 
@@ -290,6 +295,8 @@ add_subdirectory(video)
 if (APPLE)
     add_subdirectory(mac)
 endif()
+
+add_subdirectory(osd)
 
 if (QT)
     add_subdirectory(qt)

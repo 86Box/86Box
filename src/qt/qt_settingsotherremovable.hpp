@@ -21,7 +21,7 @@ public:
     int  changed();
 
     void restore();
-    void save();
+    void save(int soft);
 
 signals:
     void moChannelChanged();
@@ -63,6 +63,7 @@ private:
     QIcon rdisk_disabled_icon;
     QIcon rdisk_icon;
     QIcon zip_icon;
+    QIcon jaz_icon;
     QIcon tape_disabled_icon;
     QIcon tape_icon;
 

@@ -100,7 +100,7 @@ machine_at_awo671r_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_inst_params(&w83977_device, 1, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
-    device_add_inst_params(&w83977_device, 2, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    device_add_inst_params(&w83977_device, 2, (void *) (W83977EF | W83977_NO_NVR));
     device_add(&sst_flash_39sf020_device);
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
@@ -312,7 +312,7 @@ machine_at_m773_init(const machine_t *model)
     hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -368,22 +368,27 @@ machine_at_p6bap_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 4, 3, 2, 1);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0a, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0c, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0d, PCI_CARD_SOUND,       4, 3, 2, 1); /* assumed */
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133a_device);  /* Rebranded as ET82C693A */
-    device_add(&via_vt82c596b_device); /* Rebranded as ET82C696B */
+    device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC); /* Rebranded as ET82C696B */
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    device_add(&gl520sm_2d_device);  /* fans: CPU, Chassis; temperature: System */
+    hwm_values.temperatures[0] += 2; /* System offset */
+    hwm_values.temperatures[1] += 2; /* CPU offset */
+    hwm_values.voltages[0] = 3300;   /* Vcore and 3.3V are swapped */
+    hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -422,7 +427,7 @@ machine_at_6via90ap_init(const machine_t *model)
     hwm_values.temperatures[2] = 0;  /* unused */
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
+        device_add(machine_get_snd_device(machine)); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
 
     return ret;
 }
@@ -461,7 +466,7 @@ machine_at_cuv4xls_init(const machine_t *model)
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -541,7 +546,7 @@ static const device_config_t ms6318_config[] = {
 
 const device_t ms6318_device = {
     .name          = "MSI MS-6318",
-    .internal_name = "ms6318_device",
+    .internal_name = "ms6318",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

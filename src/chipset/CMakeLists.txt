@@ -59,6 +59,7 @@ add_library(chipset OBJECT
     opti822.c
     opti895.c
     opti5x7.c
+    opti55x.c
     philips.c
     sanyo.c
     scamp.c

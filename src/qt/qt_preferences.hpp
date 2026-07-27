@@ -43,10 +43,11 @@ protected:
             return QTranslator::translate("", sourceText, disambiguation, n);
         }
     };
+    static bool                             translationsLoaded;
     static CustomTranslator                *translator;
     static QTranslator                     *qtTranslator;
     static QVector<QPair<QString, QString>> languages;
-    static QMap<int, std::wstring>          translatedstrings;
+    static QMap<int, QByteArray>            translatedstrings;
 protected slots:
     void accept() override;
 

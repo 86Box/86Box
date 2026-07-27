@@ -308,7 +308,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 
     ac97_via_log("[%04X:%08X] [%i] AC97 VIA %d: sgd_write(%02X, %02X)\n", CS, cpu_state.pc, msw & 1, modem, addr, val);
 
-    // if ((CS == 0x10000) && (cpu_state.pc == 0x000073d1))
+#if 0
+    if ((CS == 0x10000) && (cpu_state.pc == 0x000073d1))
+#endif
 
     /* Check function-specific read only registers. */
     if ((addr >= (modem ? 0x00 : 0x40)) && (addr < (modem ? 0x40 : 0x60)))
@@ -854,7 +856,7 @@ ac97_via_poll_modem_capture(void *priv)
 }
 
 static void
-ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
+ac97_via_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
 
@@ -862,7 +864,7 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
     ac97_via_update_stereo(dev, &dev->sgd[2]);
     ac97_via_update_stereo(dev, &dev->sgd[4]);
 
-    for (int c = 0; c < len * 2; c++) {
+    for (uint16_t c = 0; c < len * 2; c++) {
         buffer[c] += dev->sgd[0].buffer[c] / 2;
         buffer[c] += dev->sgd[2].buffer[c] / 2;
         buffer[c] += dev->sgd[4].buffer[c] / 2;

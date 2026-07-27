@@ -64,6 +64,8 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
     ui->comboBoxLanguage->model()->sort(Qt::AscendingOrder);
 
     ui->openDirUsrPath->setChecked(open_dir_usr_path > 0);
+    ui->checkBoxAutoPause->setChecked(do_auto_pause);
+    ui->checkBoxAutoDialogPause->setChecked(do_auto_dialog_pause);
     ui->checkBoxConfirmExit->setChecked(confirm_exit);
     ui->checkBoxConfirmSave->setChecked(confirm_save);
     ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
@@ -71,6 +73,9 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
     ui->radioButtonSystem->setChecked(color_scheme == 0);
     ui->radioButtonLight->setChecked(color_scheme == 1);
     ui->radioButtonDark->setChecked(color_scheme == 2);
+
+    ui->radioButtonCHDNone->setChecked(chd_precache_level == 0);
+    ui->radioButtonCHDFileOnly->setChecked(chd_precache_level == 1);
 
 #ifndef Q_OS_WINDOWS
     ui->groupBox->setHidden(true);
@@ -84,17 +89,27 @@ PreferencesEmulator::~PreferencesEmulator()
     delete ui;
 }
 
+int
+PreferencesEmulator::changed()
+{
+    return ((lang_id != ui->comboBoxLanguage->currentData().toInt()) ? 1 : 0);
+}
+
+
 void
 PreferencesEmulator::save()
 {
     auto size               = main_window->centralWidget()->size();
     lang_id                 = ui->comboBoxLanguage->currentData().toInt();
     open_dir_usr_path       = ui->openDirUsrPath->isChecked() ? 1 : 0;
+    do_auto_pause           = ui->checkBoxAutoPause->isChecked() ? 1 : 0;
+    do_auto_dialog_pause    = ui->checkBoxAutoDialogPause->isChecked() ? 1 : 0;
     confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
     confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
     confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
 
-    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
+    color_scheme       = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
+    chd_precache_level = (ui->radioButtonCHDNone->isChecked()) ? 0 : (ui->radioButtonCHDFileOnly->isChecked() ? 1 : 2);
 
 #ifdef Q_OS_WINDOWS
     extern void selectDarkMode();
@@ -103,7 +118,6 @@ PreferencesEmulator::save()
 
     Preferences::loadTranslators(QCoreApplication::instance());
     Preferences::reloadStrings();
-    update_mouse_msg();
     main_window->ui->retranslateUi(main_window);
     QString vmname(vm_name);
     if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')

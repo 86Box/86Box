@@ -19,6 +19,7 @@ public:
     RendererCommon();
 
     void         onResize(int width, int height);
+    float        osdLayoutScaleHint() const;
     virtual void finalize() { }
 
     virtual uint32_t getBytesPerRow() { return 2048 * 4; }

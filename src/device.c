@@ -56,9 +56,15 @@
 #include <86box/sound.h>
 #include <86box/ui.h>
 
-#define DEVICE_MAX 256 /* max # of devices */
+#define DEVICE_MAX 512 /* max # of devices */
+
+typedef struct device_state_t {
+    uintptr_t local;
+    int       inst;
+} device_state_t;
 
 static device_t        *devices[DEVICE_MAX];
+static device_state_t   device_state[DEVICE_MAX];
 static void            *device_priv[DEVICE_MAX];
 static device_context_t device_current;
 static device_context_t device_prev;
@@ -176,11 +182,31 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "ST-50X Fixed Disk Controller", .new = "ST-50X (XTA)" },
         { .old = "ST-50X Fixed Disk Controller (PC5086)", .new = "ST-50X (XTA) (PC5086)" },
         { .old = "Acculogic XT IDE", .new = "Acculogic sIDE-1/16 (IDE)" },
-        { .old = "Multitech PC-500", .new = "Multitech PC-500 / Franklin PC 8000" },
+        { .old = "Multitech PC-500 / Franklin PC 8000", .new = "Multitech PC-500" }, /* 6.0 pre-release */
         { .old = "Multitech PC-500 plus", .new = "Multitech PC-500+" },
-        { .old = "Multitech PC-700", .new = "Multitech PC-700 / Siemens SICOMP PC 16 05" },
-        { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300/PB320" },
-        { .old = "AST Bravo MS P/90", .new = "AST Bravo MS/MS-T/MS-L (Rattler)" },
+        { .old = "Multitech PC-700 / Siemens SICOMP PC 16 05", .new = "Multitech PC-700" }, /* 6.0 pre-release */
+        { .old = "Vendex 888T", .new = "Vendex HeadStart Turbo 888-XT" },
+        { .old = "VTech Laser Turbo XT", .new = "VTech Laser XT3" },
+        { .old = "PS/1 2011", .new = "IBM PS/1 model 2011" },
+        { .old = "IBM XT Model 286", .new = "IBM XT model 286" },
+        { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300" },
+        { .old = "Packard Bell PB300/PB320", .new = "Packard Bell PB300" }, /* 6.0 pre-release */
+        { .old = "DataExpert SX495", .new = "DataExpert OPTI-495SX" },
+        { .old = "Packard Bell PB410/PB410A/PB420/PB420T", .new = "Packard Bell PB410A" }, /* 6.0 pre-release */
+        { .old = "Intel Premiere/PCI (Batman)", .new = "Intel Premiere/PCI" },
+        { .old = "Intel Premiere/PCI II (Plato)", .new = "Intel Premiere/PCI II" },
+        { .old = "Intel Advanced/ZP (Zappa)", .new = "Intel Advanced/ZP" },
+        { .old = "AST Bravo MS P/90", .new = "AST Bravo MS" },
+        { .old = "AST Bravo MS/MS-T/MS-L (Rattler)", .new = "AST Bravo MS" }, /* 6.0 pre-release */
+        { .old = "Intel Advanced/ATX (Thor)", .new = "Intel Advanced/ATX" },
+        { .old = "Intel Advanced/MA (Monaco)", .new = "Intel Advanced/MA" },
+        { .old = "Chaintech 5SBM/5SBM2 (M103)", .new = "Chaintech 5SBM2" },
+        { .old = "Intel CU430HX (Cumberland)", .new = "Intel CU430HX" },
+        { .old = "Intel TC430HX (Tucson)", .new = "Intel TC430HX" },
+        { .old = "LG IBM Multinet x52 (MSI MS-5136)", .new = "LG IBM Multinet x52" },
+        { .old = "Intel AN430TX (Anchorage)", .new = "Intel AN430TX" },
+        { .old = "Intel VS440FX (Venus)", .new = "Intel VS440FX" },
+        { .old = "Advanced Integration Research (AIR) P6KDI", .new = "AIR P6KDI" }, /* 6.0 pre-release */
         { .old = "DTK PII-151B (MiniMicro) Floppy Drive Controller", .new = "DTK PII-151B (MiniMicro) FDC" },
         { .old = "DTK PII-158B (MiniMicro4) Floppy Drive Controller", .new = "DTK PII-158B (MiniMicro4) FDC" },
         { .old = "Monster FDC Floppy Drive Controller", .new = "Monster FDC" },
@@ -216,6 +242,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)", .new = "Cirrus Logic GD5428 (MCA)" },
         { .old = "Cirrus Logic GD5426 (MCA) (Reply Video Adapter)", .new = "Cirrus Logic GD5426 (MCA)" },
         { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
+        { .old = "Gravis/Synergy Vipermax", .new = "Synergy ViperMAX" },
         { 0 }
     };
 
@@ -229,7 +256,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
     if (!config_find_section(ctx->name)) {
         /* Find and migrate old config sections. */
         void *old_sec;
-        char  old_name[2048] = { 0 };
+        char  old_name[2048];
         for (int i = 0; section_migrations[i].new; i++) {
             if (!strcmp(dev->name, section_migrations[i].new)) {
                 if (inst) {
@@ -294,15 +321,17 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
        IMPORTANT: This is needed to gracefully handle machine
                   device addition if the relevant device is NULL.
      */
-    if (dev == NULL)
+    if (dev == NULL) {
+        device_log("Attempting to add a NULL device\n");
         return NULL;
+    }
 
     if (!device_available(dev)) {
-        wchar_t temp[512] = { 0 };
-        swprintf(temp, sizeof_w(temp),
+        char temp[512] = { 0 };
+        snprintf(temp, sizeof(temp),
                  plat_get_string(STRING_HW_NOT_AVAILABLE_DEVICE),
                  dev->name);
-        ui_msgbox_header(MBX_INFO,
+        ui_msgbox_header(MBX_WARNING,
                          plat_get_string(STRING_HW_NOT_AVAILABLE_TITLE),
                          temp);
         return ((void *) dev->name);
@@ -310,14 +339,32 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
 
     if (params != NULL) {
         init_dev = calloc(1, sizeof(device_t));
+        if (init_dev == NULL) {
+            fatal("Unable to allocate memory for device \"%s\", instance %i", dev->name, inst);
+            return NULL;
+        }
         memcpy(init_dev, dev, sizeof(device_t));
         init_dev->local |= (uintptr_t) params;
     } else
         init_dev = (device_t *) dev;
 
+    if (inst == -1) {
+        inst = 1;
+        for (c = 0; c < DEVICE_MAX; c++) {
+            if ((devices[c] == dev) && (device_state[c].local == init_dev->local))
+                inst = device_state[c].inst + 1;
+            if (devices[c] == NULL)
+                break;
+        }
+        device_log("DEVICE: Automatically assigned instance: %i\n", inst);
+    }
+
     for (c = 0; c < DEVICE_MAX; c++) {
-        if (!inst && (devices[c] == dev)) {
-            device_log("DEVICE: device already exists!\n");
+        if ((devices[c] == dev) && (device_state[c].local == init_dev->local) &&
+            (device_state[c].inst == inst)) {
+            warning("DEVICE: Device \"%s\", local 0x%016" PRIX64 ", inst %i already exists!\n",
+                       init_dev->name, (uint64_t) init_dev->local,
+                       inst);
             return (NULL);
         }
         if (devices[c] == NULL)
@@ -329,9 +376,15 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
         return NULL;
     }
 
-    /* Do this so that a chained device_add will not identify the same ID
-       its master device is already trying to assign. */
+    /*
+       Do this so that a chained device_add will not identify the same ID
+       its master device is already trying to assign.
+     */
     devices[c] = (device_t *) dev;
+
+    device_state[c].local = init_dev->local;
+    device_state[c].inst  = inst;
+
     if (!strcmp(dev->name, "None") || !strcmp(dev->name, "Internal"))
         fatal("Attempting to add dummy device of type: %s\n", dev->name);
 
@@ -354,7 +407,9 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
                 devices[c]     = NULL;
                 device_priv[c] = NULL;
 
-                if ((init_dev != NULL) && (init_dev != (device_t *) dev))
+                memset(&(device_state[c]), 0x00, sizeof (device_state_t));
+
+                if ((init_dev != (device_t *) dev))
                     free(init_dev);
 
                 return (NULL);
@@ -372,6 +427,7 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
         device_priv[c] = priv;
     } else
         device_priv[c] = p;
+
 
     if (init_dev != dev)
         free(init_dev);
@@ -474,6 +530,47 @@ device_get_common_priv(void)
 }
 
 void
+device_close_inst_params(const device_t *device, int inst, void *params)
+{
+    int16_t c;
+
+    for (c = (DEVICE_MAX - 1); c >= 0; c--) {
+        if ((devices[c] == device) &&
+            (device_state[c].local == (device->local | (uintptr_t) params)) &&
+            (device_state[c].inst == 0)) {
+#ifdef ENABLE_DEVICE_LOG
+            if (devices[c]->name)
+                device_log("Closing device: \"%s\"...\n", devices[c]->name);
+#endif
+            if (devices[c]->close != NULL)
+                devices[c]->close(device_priv[c]);
+            devices[c]     = NULL;
+            device_priv[c] = NULL;
+            memset(&(device_state[c]), 0x00, sizeof(device_state_t));
+            break;
+        }
+    }
+
+    if (c >= 0)  for (int16_t d = c; d <= (DEVICE_MAX - 1); d++) {
+        if (d == (DEVICE_MAX - 1)) {
+            devices[d]     = NULL;
+            device_priv[d] = NULL;
+            memset(&(device_state[d]), 0x00, sizeof(device_state_t));
+        } else {
+            devices[d]     = devices[d + 1];
+            device_priv[d] = device_priv[d + 1];
+            memcpy(&(device_state[d]), &(device_state[d + 1]), sizeof(device_state_t));
+        }
+    }
+}
+
+void
+device_close(const device_t *device)
+{
+    device_close_inst_params(device, 0, NULL);
+}
+
+void
 device_close_all(void)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
@@ -486,6 +583,7 @@ device_close_all(void)
                 devices[c]->close(device_priv[c]);
             devices[c]     = NULL;
             device_priv[c] = NULL;
+            memset(&(device_state[c]), 0x00, sizeof(device_state_t));
         }
     }
 }
@@ -494,7 +592,7 @@ void
 device_close_by_flags(uint32_t match_flags)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if ((devices[c] != NULL) && (devices[c]->flags & match_flags)) {
+        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags)) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -503,6 +601,7 @@ device_close_by_flags(uint32_t match_flags)
                 devices[c]->close(device_priv[c]);
             devices[c]     = NULL;
             device_priv[c] = NULL;
+            memset(&(device_state[c]), 0x00, sizeof(device_state_t));
         }
     }
 }
@@ -568,6 +667,11 @@ device_available(const device_t *dev)
 static const device_config_bios_t *
 device_get_bios(const device_t *dev, const char *internal_name)
 {
+    if (internal_name == NULL) {
+        fatal("Failed to get the default BIOS for this device, please update your ROM set and contact 86Box support if it still occurs\n");
+        return NULL;
+    }
+
     if (dev != NULL) {
         const device_config_t *config = dev->config;
         while (config && (config->type != CONFIG_END)) {
@@ -780,7 +884,7 @@ device_get_name(const device_t *dev, int bus, char *name)
                 strcat(name, tname + strlen(sbus) + 1);
             /* Special case to not strip the "oPCI" from "Ensoniq AudioPCI",
                the "-ISA" from "AMD PCnet-ISA" or the " PCI" from "CMD PCI-064x". */
-            else if ((fbus == NULL) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
+            else if ((fbus < &tname[2]) || (*(fbus - 1) == 'o') || (*(fbus - 1) == '-') || (*(fbus - 2) == 'r') || ((fbus[0] == 'P') && (fbus[1] == 'C') && (fbus[2] == 'I') && (fbus[3] == '-')) || is_dac)
                 strcat(name, tname);
             else {
                 strncat(name, tname, fbus - tname - 1);

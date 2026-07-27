@@ -59,6 +59,8 @@ extern int             isartc_has_config(int board);
 extern const device_t vendex_xt_rtc_onboard_device;
 extern const device_t rtc58167_device;
 
+extern const device_t rp5c01a_zenith_device;
+
 #ifdef __cplusplus
 }
 #endif

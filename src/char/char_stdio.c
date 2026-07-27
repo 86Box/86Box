@@ -44,6 +44,7 @@
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/version.h>
 #include <86box/device.h>
 #include <86box/char.h>
 #include <86box/log.h>
@@ -75,10 +76,10 @@ typedef struct {
     void        *log;
     char_port_t *port;
 
-    FILE *prev_log;
 #ifdef _WIN32
     HANDLE       fd_in;
     HANDLE       fd_out;
+    unsigned int stdout_redirected   : 1;
     unsigned int prev_in_mode_valid  : 1;
     unsigned int prev_out_mode_valid : 1;
     DWORD        prev_in_mode;
@@ -91,6 +92,8 @@ typedef struct {
 #else
     int            fd_in;
     int            fd_out;
+    int            fd_err;
+    unsigned int   stdout_redirected : 1;
     unsigned int   prev_config_valid : 1;
     unsigned int   prev_flags_valid  : 1;
     struct termios prev_config;
@@ -98,9 +101,9 @@ typedef struct {
 #endif
 } char_stdio_t;
 
-#ifdef _WIN32
-static int stdio_claimed = 0;
+static const char *stdio_claimed_by = NULL;
 
+#ifdef _WIN32
 static void
 char_stdio_stdin_thread(void *priv)
 {
@@ -206,19 +209,30 @@ char_stdio_control(uint32_t flags, void *priv)
     }
 }
 
-#ifdef USE_NEW_DYNAREC
-extern FILE *stdlog;
-#endif
-
 static void
 char_stdio_close(void *priv)
 {
     char_stdio_t *dev = (char_stdio_t *) priv;
 
-    /* Resume logging to stdout if it had been stopped. */
-    if (dev->prev_log) {
-        fclose(stdlog);
-        stdlog = dev->prev_log;
+    /* Restore original stdout/stderr. */
+    if (dev->stdout_redirected) {
+#ifdef _WIN32
+        freopen("CONOUT$", "w", stdout);
+        freopen("CONOUT$", "w", stderr);
+        CloseHandle(dev->fd_out);
+#else
+        if (dev->fd_out != STDOUT_FILENO) {
+            fflush(stdout);
+            if (CHAR_FD_VALID(dup2(dev->fd_out, STDOUT_FILENO)))
+                close(dev->fd_out);
+            dev->fd_out = STDOUT_FILENO; /* for claim release later on */
+        }
+        if (CHAR_FD_VALID(dev->fd_err)) {
+            fflush(stderr);
+            if (CHAR_FD_VALID(dup2(dev->fd_err, STDERR_FILENO)))
+                close(dev->fd_err);
+        }
+#endif
     }
 
     char_stdio_log(dev->log, "close()\n");
@@ -243,7 +257,7 @@ char_stdio_close(void *priv)
         char_stdio_log(dev->log, "Output restore SetConsoleMode failed (%08X)\n", GetLastError());
 
     /* Release console. */
-    stdio_claimed = 0;
+    stdio_claimed_by = NULL;
     if (dev->prev_title) { /* reset title */
         SetConsoleTitle(dev->prev_title);
         free(dev->prev_title);
@@ -254,9 +268,11 @@ char_stdio_close(void *priv)
     if (dev->prev_flags_valid && CHAR_FD_VALID(dev->fd_out) && (fcntl(dev->fd_out, F_SETFL, dev->prev_flags) < 0))
         char_stdio_log(dev->log, "Restore F_SETFL failed (%d)\n", errno);
 
-    /* Terminate pseudoterminal if we have one. */
-    if (CHAR_FD_VALID(dev->fd_out) && (dev->fd_out != STDOUT_FILENO))
-        close(dev->fd_out);
+    /* Release console. */
+    if (dev->fd_out == STDOUT_FILENO)
+        stdio_claimed_by = NULL;
+    else if (CHAR_FD_VALID(dev->fd_out))
+        close(dev->fd_out); /* terminate pseudoterminal */
 #endif
 
     log_close(dev->log);
@@ -274,21 +290,33 @@ char_stdio_init(const device_t *info)
     dev->log  = char_log_open(dev->port, "StdIO");
     char_stdio_log(dev->log, "init()\n");
 
-#ifdef _WIN32
     /* Check if another instance has already claimed the console. */
     char msg[2048];
-    if (stdio_claimed) {
-        char_stdio_log(dev->log, "Windows console already claimed\n");
+#ifndef _WIN32
+    int mode = device_get_config_int("mode");
+    if (mode == CHAR_STDIO_MODE_STDIO)
+#endif
+    {
+        if (stdio_claimed_by) {
+            char_stdio_log(dev->log, "Standard input/output already claimed by %s\n", stdio_claimed_by);
 
-        snprintf(msg, sizeof(msg), "%s: Only one virtual console can be used on Windows", dev->port->name);
-        ui_msgbox(MBX_INFO | MBX_ANSI, msg);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_VCON_IN_USE), dev->port->name, stdio_claimed_by);
+            ui_msgbox(MBX_INFO, msg);
 
-        dev->fd_in = dev->fd_out = INVALID_HANDLE_VALUE;
-        char_update_status(dev->port);
-        return dev;
+            dev->fd_in = dev->fd_out =
+#ifdef _WIN32
+                INVALID_HANDLE_VALUE
+#else
+                -1
+#endif
+                ;
+            char_update_status(dev->port);
+            return dev;
+        }
+        stdio_claimed_by = dev->port->name;
     }
-    stdio_claimed = 1;
 
+#ifdef _WIN32
     /* Set file descriptors. */
     dev->fd_in = GetStdHandle(STD_INPUT_HANDLE);
     if (!CHAR_FD_VALID(dev->fd_in)) {
@@ -331,10 +359,8 @@ char_stdio_init(const device_t *info)
             char_stdio_log(dev->log, "Output SetConsoleMode failed (%08X)\n", GetLastError());
     }
 #else
-    int mode = device_get_config_int("mode");
     if (mode != CHAR_STDIO_MODE_STDIO) {
         /* Create pseudoterminal. */
-        char msg[2048];
         int  err;
         dev->fd_in = dev->fd_out = posix_openpt(O_RDWR | O_NOCTTY | O_NONBLOCK);
         fcntl(dev->fd_out, F_SETFD, FD_CLOEXEC); /* required for any commands we run to properly detach from the pty when it's closed */
@@ -354,8 +380,8 @@ char_stdio_init(const device_t *info)
 #    endif
 
                         if (mode == CHAR_STDIO_MODE_PTY) {
-                            snprintf(msg, sizeof(msg), "%s: Attached to %s", dev->port->name, pty);
-                            ui_msgbox(MBX_INFO | MBX_ANSI, msg);
+                            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_ATTACHED), dev->port->name, pty);
+                            ui_msgbox(MBX_INFO, msg);
                         } else {
                             /* Build environment variables. */
                             static const char *pipe_cmd = "PIPECMD="
@@ -366,6 +392,9 @@ char_stdio_init(const device_t *info)
                                                           "exec kill $$)"     /* (stop script once the read connection is broken) */
                                                           "<\"$PTY\"&"        /* ...from pty in the background */
                                                           "clear;"            /* suppress background task indicator (zsh prints it to stdout) */
+#    ifdef __APPLE__
+                                                          "ARGV0='" EMU_NAME "' " /* override title bar command on macOS Terminal + zsh */
+#    endif
                                                           "cat>\"$PTY\";"     /* pipe from stdin to pty */
                                                           "exec kill $!";     /* stop script once the write connection is broken */
                             char               env[3][2048];
@@ -376,7 +405,13 @@ char_stdio_init(const device_t *info)
                             /* Determine command to execute. */
                             const char *cmd;
                             if (mode == CHAR_STDIO_MODE_TERM) {
-                                cmd = "eval $PIPECMD";
+                                cmd =
+#    ifdef __APPLE__
+                                      "$(which zsh || echo sh)"
+#    else
+                                      "sh"
+#    endif
+                                      " -c \"$PIPECMD\";reset;clear";
                             } else {
                                 cmd = device_get_config_string("command");
                                 if (!cmd || !cmd[0]) {
@@ -392,7 +427,7 @@ char_stdio_init(const device_t *info)
                                 msg[0] = '\0';
 
                             /* Execute command. */
-                            if (!plat_run_command(cmd, (const char *[]) { pipe_cmd, env[0], env[1], env[2], NULL }, msg[0] ? msg : NULL))
+                            if (!plat_run_command(cmd, (const char *[]) { pipe_cmd, env[0], env[1], env[2], "ARGV0=" EMU_NAME, NULL }, msg[0] ? msg : NULL))
                                 char_stdio_log(dev->log, "plat_run_command(%s) failed\n", cmd);
                         }
                     } else {
@@ -414,8 +449,8 @@ char_stdio_init(const device_t *info)
             err = errno;
             char_stdio_log(dev->log, "posix_openpt failed (%d)\n", err);
 errmsg:
-            snprintf(msg, sizeof(msg), "%s: Could not create pseudoterminal: %s", dev->port->name, strerror(err));
-            ui_msgbox(MBX_ERROR | MBX_ANSI, msg);
+            snprintf(msg, sizeof(msg), plat_get_string(STRING_CHARDEV_TERMINAL_ERROR), dev->port->name, strerror(err));
+            ui_msgbox(MBX_ERROR, msg);
             close(dev->fd_out);
             dev->fd_out = -1;
         }
@@ -455,16 +490,39 @@ errmsg:
         char_stdio_log(dev->log, "Raw mode tcsetattr failed (%d)\n", errno);
 #endif
 
-    /* Stop logging to stdout. */
-    if (stdlog == stdout) {
-        char_stdio_log(dev->log, "Disconnecting logging from stdout\n");
-        dev->prev_log = stdlog;
+    /* Redirect logging and other external output away from stdout/stderr. */
 #ifdef _WIN32
-        stdlog = plat_fopen("NUL", "w");
-#else
-        stdlog = plat_fopen("/dev/null", "w");
-#endif
+    HANDLE new_stdout = CreateFileA("CONOUT$", GENERIC_WRITE, FILE_SHARE_WRITE, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (CHAR_FD_VALID(new_stdout)) {
+        dev->fd_out            = new_stdout;
+        dev->stdout_redirected = 1;
+        freopen("NUL", "w", stdout);
+        freopen("NUL", "w", stderr);
     }
+#else
+    int devnull = open("/dev/null", O_WRONLY);
+    if (CHAR_FD_VALID(devnull)) {
+        int new_stdout = dup(STDOUT_FILENO);
+        if (CHAR_FD_VALID(new_stdout)) {
+            if (CHAR_FD_VALID(dup2(devnull, STDOUT_FILENO))) {
+                dev->fd_out            = new_stdout;
+                dev->stdout_redirected = 1;
+            } else {
+                close(new_stdout);
+            }
+        }
+        int new_stderr = dup(STDERR_FILENO);
+        if (CHAR_FD_VALID(new_stderr)) {
+            if (CHAR_FD_VALID(dup2(devnull, STDERR_FILENO))) {
+                dev->fd_err            = new_stderr;
+                dev->stdout_redirected = 1;
+            } else {
+                close(new_stderr);
+            }
+        }
+        close(devnull);
+    }
+#endif
 
     char_update_status(dev->port);
     return dev;
@@ -516,7 +574,7 @@ static const device_config_t char_stdio_config[] = {
 const device_t char_stdio_com_device = {
     .name          = "Virtual Console (COM)",
     .internal_name = "stdio",
-    .flags         = DEVICE_COM,
+    .flags         = DEVICE_COM | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = char_stdio_init,
     .close         = char_stdio_close,

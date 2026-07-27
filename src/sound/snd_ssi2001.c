@@ -36,13 +36,13 @@ ssi2001_update(ssi2001_t *ssi2001)
 }
 
 static void
-ssi2001_get_buffer(int32_t *buffer, int len, void *priv)
+ssi2001_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     ssi2001_t *ssi2001 = (ssi2001_t *) priv;
 
     ssi2001_update(ssi2001);
 
-    for (int c = 0; c < len * 2; c++)
+    for (uint16_t c = 0; c < len * 2; c++)
         buffer[c] += ssi2001->buffer[c >> 1] / 2;
 
     ssi2001->pos = 0;

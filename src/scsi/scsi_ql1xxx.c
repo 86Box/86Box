@@ -73,6 +73,10 @@
 #define QL_ISP1280                   0x00000003
 #define QL_ISP12160                  0x00000004
 
+/*
+ * ISP chip revision
+ * See BIU_CONF0_HW_MASK
+ */
 #define QL_REV_ISP1020               0x00000001
 #define QL_REV_ISP1020A              0x00000002
 #define QL_REV_ISP1040               0x00000003
@@ -1284,9 +1288,15 @@ ql_update_irq(ql_t *dev)
     isr &= QL_RISC_INTR_REQ;
 
     if (isr != 0)
+    {
+        ql_log("QL: Raise IRQ\n");
         pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+    }
     else
+    {
+        ql_log("QL: Lower IRQ\n");
         pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+    }
 }
 
 static void
@@ -1349,6 +1359,8 @@ ql_sxp_abort_commands(ql_t *dev, uint8_t path_id, uint8_t target_id, uint8_t lun
     bool success = false;
     uint16_t cons;
 
+    ql_log("QL: Abort commands\n");
+
     if (!(dev->sxp_flags & SXP_FLAG_ENGINE_ACTIVE)) {
         return false;
     }
@@ -1363,11 +1375,19 @@ ql_sxp_abort_commands(ql_t *dev, uint8_t path_id, uint8_t target_id, uint8_t lun
             continue;
         }
 
+        /* We can abort only SCSI comands */
+        if ((pkt.hdr.entry_type != RQSTYPE_REQUEST) && (pkt.hdr.entry_type != RQSTYPE_REQUEST_A64)) {
+            continue;
+        }
+
         curr_path_id = (pkt.bus_target & 0x80) >> 7;
         curr_target_id = pkt.bus_target & ~0x80;
 
         /* Exact match? */
-        if ((curr_path_id != path_id) || (curr_target_id != target_id)) {
+        if (curr_path_id != path_id) {
+            continue;
+        }
+        if ((target_id != 0xFF) && (curr_target_id != target_id)) {
             continue;
         }
         if ((lun != 0xFF) && (pkt.lun != lun)) {
@@ -1376,6 +1396,8 @@ ql_sxp_abort_commands(ql_t *dev, uint8_t path_id, uint8_t target_id, uint8_t lun
         if (is_handle_valid && (pkt.handle != handle)) {
             continue;
         }
+
+        ql_log("QL: Abort command at %u queue index\n", cons);
 
         /* Save the queue index, it will be checked before the next command is processed */
         fifo8_push(&dev->abort_iocbs_fifo, cons & 0xFF);
@@ -1401,6 +1423,13 @@ ql_sxp_initialize_queues(ql_t *dev)
     } else {
         dev->sxp_flags &= ~SXP_FLAG_ENGINE_ACTIVE;
     }
+}
+
+static uint32_t
+ql_mbox_get_phys_address(ql_t *dev, UNUSED(bool is_64bit_addr))
+{
+    /* The high part of the address is ignored for 86Box */
+    return ((uint32_t)dev->reg_mbox_in[2] << 16) | dev->reg_mbox_in[3];
 }
 
 static uint16_t
@@ -1474,12 +1503,12 @@ ql_handle_cmd_read_ram_word(ql_t *dev)
 }
 
 static uint16_t
-ql_handle_cmd_load_ram_block(ql_t *dev, UNUSED(bool is_64bit_addr))
+ql_handle_cmd_load_ram_block(ql_t *dev, bool is_64bit_addr)
 {
     uint32_t offset = dev->reg_mbox_in[1];
     uint32_t block_size_words = dev->reg_mbox_in[4];
     uint8_t *dest_address = (uint8_t *)&dev->cpu_mem[offset];
-    uint32_t src_address = ((uint32_t)dev->reg_mbox_in[2] << 16) | dev->reg_mbox_in[3];
+    uint32_t src_address = ql_mbox_get_phys_address(dev, is_64bit_addr);
 
     if ((offset + block_size_words) > ARRAY_SIZE(dev->cpu_mem)) {
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
@@ -1490,12 +1519,12 @@ ql_handle_cmd_load_ram_block(ql_t *dev, UNUSED(bool is_64bit_addr))
 }
 
 static uint16_t
-ql_handle_cmd_dump_ram_block(ql_t *dev, UNUSED(bool is_64bit_addr))
+ql_handle_cmd_dump_ram_block(ql_t *dev, bool is_64bit_addr)
 {
     uint32_t offset = dev->reg_mbox_in[1];
     uint32_t block_size_words = dev->reg_mbox_in[4];
     uint8_t *src_address = (uint8_t *)&dev->cpu_mem[offset];
-    uint32_t dest_address = ((uint32_t)dev->reg_mbox_in[2] << 16) | dev->reg_mbox_in[3];
+    uint32_t dest_address = ql_mbox_get_phys_address(dev, is_64bit_addr);
 
     if ((offset + block_size_words) > ARRAY_SIZE(dev->cpu_mem)) {
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
@@ -1620,9 +1649,9 @@ ql_handle_cmd_about_firmware(ql_t *dev)
 }
 
 static uint16_t
-ql_handle_cmd_init_request_queue(ql_t *dev, UNUSED(bool is_64bit_addr))
+ql_handle_cmd_init_request_queue(ql_t *dev, bool is_64bit_addr)
 {
-    uint32_t address = ((uint32_t)dev->reg_mbox_in[2] << 16) | dev->reg_mbox_in[3];
+    uint32_t address = ql_mbox_get_phys_address(dev, is_64bit_addr);
     uint16_t queue_length = dev->reg_mbox_in[1];
 
     ql_log("QL: REQ queue address 0x%X, length %u\n", address, queue_length);
@@ -1641,9 +1670,9 @@ ql_handle_cmd_init_request_queue(ql_t *dev, UNUSED(bool is_64bit_addr))
 }
 
 static uint16_t
-ql_handle_cmd_init_response_queue(ql_t *dev, UNUSED(bool is_64bit_addr))
+ql_handle_cmd_init_response_queue(ql_t *dev, bool is_64bit_addr)
 {
-    uint32_t address = ((uint32_t)dev->reg_mbox_in[2] << 16) | dev->reg_mbox_in[3];
+    uint32_t address = ql_mbox_get_phys_address(dev, is_64bit_addr);
     uint16_t queue_length = dev->reg_mbox_in[1];
 
     ql_log("QL: RSP queue address 0x%X, length %u\n", address, queue_length);
@@ -1690,6 +1719,7 @@ ql_handle_cmd_abort_command(ql_t *dev)
     dev->mbox_data[2] = dev->reg_mbox_in[2];
     dev->mbox_data[3] = dev->reg_mbox_in[3];
 
+    /* Command was not found */
     if (!success) {
         return QL_MBOX_STATUS_CMD_ERROR;
     }
@@ -1773,6 +1803,9 @@ ql_handle_cmd_bus_reset(ql_t *dev)
             scsi_device_reset(&scsi_devices[dev->scsi_bus][i]);
         }
     }
+
+    /* Abort all active commands on the bus (PATH) */
+    (void) ql_sxp_abort_commands(dev, path_id, 0xFF, 0xFF, 0, false);
 
     dev->mbox_out_mask |= QL_BIT(1) | QL_BIT(2) | QL_BIT(3);
     dev->mbox_data[1] = dev->reg_mbox_in[1];
@@ -2613,7 +2646,7 @@ ql_sxp_state_machine(ql_t *dev)
             }
 
             if (dev->sxp_flags & SXP_FLAG_MBOX_IOCB) {
-                dev->pkt_address = ((uint32_t)dev->reg_mbox_in[2] << 16) | dev->reg_mbox_in[3];
+                dev->pkt_address = ql_mbox_get_phys_address(dev, dev->reg_mbox_in[0] == QL_CMD_EXECUTE_IOCB_A64);
             } else {
                 /* Skip processing command queues if they are not initialized */
                 if (!(dev->sxp_flags & SXP_FLAG_ENGINE_ACTIVE)) {
@@ -2639,9 +2672,15 @@ ql_sxp_state_machine(ql_t *dev)
                     rqst_idx = ((uint16_t)idx_buf[1] << 8) | idx_buf[0];
 
                     if (rqst_idx == QL_RQST_CONS(dev)) {
+                        isp_req_status_t *resp = &dev->pkt_resp;
+
                         fifo8_drop(&dev->abort_iocbs_fifo, sizeof(rqst_idx));
 
-                        dev->sxp_flags |= SXP_FLAG_ABORTED_CMD;
+                        ql_sxp_begin_response_entry(pkt, resp);
+                        resp->scsi_status = SCSI_STATUS_OK;
+                        resp->comp_status = RQCS_ABORTED;
+                        resp->state_flags = RQSF_GOT_BUS;
+                        resp->status_flags = RQSTF_BUS_RESET;
 
                         dev->timer_period = QL_MBOX_GENERIC_TIME_US;
                         dev->sxp_state = SXP_STATE_COMPLETE_COMMAND;
@@ -2797,11 +2836,8 @@ ql_sxp_state_machine(ql_t *dev)
                 uint16_t num_consumed = MAX(pkt->hdr.entry_count, 1);
                 QL_RQST_CONS(dev) = (QL_RQST_CONS(dev) + num_consumed) % dev->rqst_ring_size;
 
-                if ((dev->sxp_flags & SXP_FLAG_ABORTED_CMD) || (pkt->hdr.entry_type == RQSTYPE_MARKER)) {
-                    /*
-                     * Marker entries never raise an interrupt, even if the SCSI device does not exist.
-                     * Aborted commands also never raise an interrupt.
-                     */
+                if (pkt->hdr.entry_type == RQSTYPE_MARKER) {
+                    /* Marker entries never raise an interrupt, even if the SCSI device does not exist */
                     dev->sxp_state = SXP_STATE_SCHEDULE_TIMER_SILENCE;
                 } else if ((dev->sxp_flags & SXP_FLAG_FAST_POSTING) &&
                            (resp->scsi_status == SCSI_STATUS_OK) &&
@@ -2839,6 +2875,7 @@ ql_sxp_state_machine(ql_t *dev)
         case SXP_STATE_ACQUIRE_MBOX_SEMAPHORE: {
             /* Wait for the mailbox semaphore to be released */
             if (dev->reg_semaphore & QL_SEMAPHORE_LOCK) {
+                ql_log("Mailbox semaphore is not released\n");
                 return false;
             }
 
@@ -2860,7 +2897,7 @@ ql_sxp_state_machine(ql_t *dev)
                 }
             }
             dev->sxp_flags &= ~(SXP_FLAG_WRITE_RESP_IOCB | SXP_FLAG_INC_RESP_RING
-                                | SXP_FLAG_BIOS_IOCB | SXP_FLAG_MBOX_IOCB | SXP_FLAG_ABORTED_CMD);
+                                | SXP_FLAG_BIOS_IOCB | SXP_FLAG_MBOX_IOCB);
 
             dev->reg_intr_status |= QL_INTR_REQ | QL_RISC_INTR_REQ;
             ql_update_irq(dev);
@@ -2971,10 +3008,18 @@ ql_write_host_command(ql_t *dev, uint16_t val)
         case QL_HC_SET_HOST_INTR:
             dev->reg_host_cmd_flags |= QL_HC_FLAG_HOST_INTR;
             dev->sxp_flags |= SXP_FLAG_PICK_UP_MBOX;
+
+            /* The host can send a new mailbox command without releasing the mailbox registers */
+            if (dev->sxp_state == SXP_STATE_ACQUIRE_MBOX_SEMAPHORE) {
+                ql_log("QL: Discard pending mailbox result\n");
+                dev->reg_semaphore = QL_SEMAPHORE_STATUS;
+                dev->sxp_state = SXP_STATE_IDLE;
+            }
+
             ql_sxp_kick_engine(dev);
             break;
         case QL_HC_CLEAR_HOST_INTR:
-            /* This command does nothing */
+            /* This command does nothing on real hardware */
             break;
         case QL_HC_CLEAR_RISC_INTR:
             dev->reg_host_cmd_flags &= ~QL_HC_FLAG_HOST_INTR;
@@ -3593,10 +3638,11 @@ ql_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pri
 
     switch (addr) {
         case PCI_REG_COMMAND_L:
-            write_bits_mask = 0x57;
+            write_bits_mask = PCI_COMMAND_L_IO | PCI_COMMAND_L_MEM | PCI_COMMAND_L_BM
+                              | PCI_COMMAND_L_MEM_WIEN | PCI_COMMAND_L_PARITY;
             break;
         case PCI_REG_COMMAND_H:
-            write_bits_mask = 0x01;
+            write_bits_mask = PCI_COMMAND_H_SERR;
             break;
 
         case PCI_REG_CACHELINE_SIZE:
@@ -3649,6 +3695,7 @@ ql_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pri
             write_bits_mask = 0xFF;
             break;
 
+        /* Unknown */
         case 0x40:
             write_bits_mask = 0xFF;
             break;
@@ -3817,10 +3864,9 @@ static void ql_init_scsi(ql_t *dev) {
 static uint8_t
 ql_get_eeprom_checksum(const uint8_t* buffer, size_t size)
 {
-    size_t i;
     uint8_t crc = 0;
 
-    for (i = 0; i < size - 1; i++) {
+    for (size_t i = 0; i < size - 1; i++) {
         crc += buffer[i];
     }
 
@@ -4047,9 +4093,7 @@ ql_create_eeprom_image_1080(ql_t *dev, uint8_t* nvr)
 static void
 ql_register_eeprom_device(const device_t *info, ql_t *dev)
 {
-    int inst = device_get_instance();
     nmc93cxx_eeprom_params_t params;
-    char filename[1024] = { 0 };
     nmc93cxx_eeprom_type nvram_type;
     size_t nvram_size;
 
@@ -4079,6 +4123,8 @@ ql_register_eeprom_device(const device_t *info, ql_t *dev)
     /* Checksum */
     nvr[nvram_size - 1] = ql_get_eeprom_checksum(nvr, nvram_size);
 
+    char filename[1024] = { 0 };
+    int inst = device_get_instance();
     snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, inst);
     params.type = nvram_type;
     params.default_content = nvr;
@@ -4219,8 +4265,6 @@ am29_init(const device_t *info, flash_t *dev)
 static void
 ql_init_pci_config(ql_t *dev)
 {
-    const uint8_t *eeprom_data = (const uint8_t *)nmc93cxx_eeprom_data(dev->eeprom_device);
-
     memset(dev->pci_cfg, 0, sizeof(dev->pci_cfg));
 
     dev->pci_cfg[PCI_REG_STATUS_H] = PCI_DEVSEL_MEDIUM;
@@ -4263,8 +4307,10 @@ ql_init_pci_config(ql_t *dev)
             break;
     }
 
-    /* Actual system ID comes from NVRAM. The 1020/1040 system ID words are in swapped order */
+    /* Actual system ID comes from NVRAM */
+    const uint8_t *eeprom_data = (const uint8_t *)nmc93cxx_eeprom_data(dev->eeprom_device);
     if (dev->isp_type == QL_ISP1040) {
+        /* Older chips use a different word order */
         dev->pci_cfg[PCI_REG_SUBVEN_ID_L] = eeprom_data[0x14];
         dev->pci_cfg[PCI_REG_SUBVEN_ID_H] = eeprom_data[0x15];
         dev->pci_cfg[PCI_REG_SUBSYS_ID_L] = eeprom_data[0x12];
@@ -4293,6 +4339,7 @@ ql_init_pci_config(ql_t *dev)
     /* BAR[1] Memory */
     dev->pci_cfg[PCI_REG_BAR1_BYTE0] = 0;
 
+    /* Unknown register */
     if (dev->isp_type == QL_ISP1040) {
         if (dev->isp_rev >= QL_REV_ISP1040) {
             dev->pci_cfg[0x40] = 0x34;

@@ -68,6 +68,7 @@ enum {
     KBD_TYPE_PRAVETZ,
     KBD_TYPE_HYUNDAI,
     KBD_TYPE_FE2010,
+    KBD_TYPE_JUKOST,
     KBD_TYPE_XTCLONE
 };
 
@@ -273,7 +274,7 @@ kbd_adddata_process_10x(uint16_t val, void (*adddata)(uint16_t val))
 
     switch (val) {
         case FAKE_LSHIFT_ON:
-            kbd_log("%s: Fake left shift on, scan code: ", dev->name);
+            kbd_log("Fake left shift on, scan code: ");
             if (num_lock) {
                 if (shift_states) {
                     kbd_log("N/A (one or both shifts on)\n");
@@ -308,7 +309,7 @@ kbd_adddata_process_10x(uint16_t val, void (*adddata)(uint16_t val))
             break;
 
         case FAKE_LSHIFT_OFF:
-            kbd_log("%s: Fake left shift on, scan code: ", dev->name);
+            kbd_log("Fake left shift on, scan code: ");
             if (num_lock) {
                 if (shift_states) {
                     kbd_log("N/A (one or both shifts on)\n");
@@ -362,11 +363,12 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     xtkbd_t *kbd = (xtkbd_t *) priv;
     uint8_t  bit;
     uint8_t  set;
-    uint8_t  new_clock;
+    uint8_t  new_clock = 0;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            if (!(val & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI)) {
+            if (!(val & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+                (kbd->type == KBD_TYPE_JUKOST)) {
                 new_clock = !!(val & 0x40);
                 if (!kbd->clock && new_clock) {
                     key_queue_start = key_queue_end = 0;
@@ -377,7 +379,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
             }
 
             kbd->pb = val;
-            if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI))
+            if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI) ||
+                (kbd->type == KBD_TYPE_JUKOST))
                 kbd->clock = !!(kbd->pb & 0x40);
             ppi.pb = val;
 
@@ -970,6 +973,20 @@ const device_t kbc_xt_fe2010_device = {
     .internal_name = "kbc_xt_fe2010",
     .flags         = 0,
     .local         = KBD_TYPE_FE2010,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t kbc_xt_jukost_device = {
+    .name          = "Juko ST Keyboard",
+    .internal_name = "kbc_xt_jukost",
+    .flags         = DEVICE_ISA,
+    .local         = KBD_TYPE_JUKOST,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,

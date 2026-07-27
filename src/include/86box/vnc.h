@@ -26,7 +26,7 @@ extern int  vnc_pause(void);
 
 extern void vnc_kbinput(int, int);
 
-extern void vnc_take_screenshot(wchar_t *fn);
+extern void vnc_take_screenshot(char *fn);
 
 #ifdef __cplusplus
 }

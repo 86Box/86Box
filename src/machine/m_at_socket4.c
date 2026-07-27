@@ -79,7 +79,7 @@ static const device_config_t v12p_config[] = {
 
 const device_t v12p_device = {
     .name          = "Acer V12P",
-    .internal_name = "v12p_device",
+    .internal_name = "v12p",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -197,7 +197,7 @@ static const device_config_t p5mp3_config[] = {
 
 const device_t p5mp3_device = {
     .name          = "ASUS P/I-P5MP3",
-    .internal_name = "p5mp3_device",
+    .internal_name = "p5mp3",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -398,8 +398,8 @@ static const device_config_t batman_config[] = {
 };
 
 const device_t batman_device = {
-    .name          = "Intel Premiere/PCI (Batman)",
-    .internal_name = "batman_device",
+    .name          = "Intel Premiere/PCI",
+    .internal_name = "batman",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -557,14 +557,14 @@ machine_at_pb520r_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     device_add(&i430lx_device);
-    device_add(&ide_cmd640_pci_single_channel_device);
+    device_add(&ide_cmd640_pci_single_channel_legacy_only_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5434_onboard_pci_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&sio_zb_device);
-    device_add_params(&i82091aa_device, (void *) (I82091AA_022 | I82091AA_IDE_PRI));
+    device_add_params(&i82091aa_device, (void *) (I82091AA_022 | I82091AA_IDE_SEC));
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;

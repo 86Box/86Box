@@ -25,7 +25,7 @@ class Settings : public QDialog {
 public:
     explicit Settings(QWidget *parent = nullptr);
     ~Settings();
-    void save();
+    void save(int soft);
 
     static Settings *settings;
 protected slots:

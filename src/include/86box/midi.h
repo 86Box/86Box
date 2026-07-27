@@ -3,6 +3,8 @@
 
 #define SYSEX_SIZE 8192
 
+#define RENDER_RATE                100
+
 extern uint8_t MIDI_InSysexBuf[SYSEX_SIZE];
 extern uint8_t MIDI_evt_len[256];
 
@@ -117,6 +119,9 @@ extern const device_t mt32_new_device;
 extern const device_t cm32l_device;
 extern const device_t cm32ln_device;
 #    endif /* USE_MUNT */
+#    ifdef USE_SOUNDCANVAS
+extern const device_t soundcanvas_device;
+#    endif /* USE_SOUNDCANVAS */
 #endif
 
 #endif /*EMU_SOUND_MIDI_H*/

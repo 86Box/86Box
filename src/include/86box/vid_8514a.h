@@ -73,6 +73,8 @@ typedef struct ibm8514_t {
     uint8_t        pos_regs[8];
     char *rom_path;
 
+    void *log;
+
     int force_old_addr;
     int type;
     ibm8514_card_type local;

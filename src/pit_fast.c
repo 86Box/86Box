@@ -124,6 +124,8 @@ static int
 pitf_read_timer(ctrf_t *ctr)
 {
     if (ctr->using_timer && !(ctr->m == 3 && !ctr->gate) && timer_is_enabled(&ctr->timer)) {
+        if (ctr->pit_const == 0)
+            return 0x10000;
         int read = (int) ((timer_get_remaining_u64(&ctr->timer)) / ctr->pit_const);
         if (ctr->m == 2)
             read++;

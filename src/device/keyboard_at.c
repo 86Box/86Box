@@ -34,6 +34,7 @@
 #define FLAG_ENABLED 0x10  /* dev is enabled for use */
 #define FLAG_CTRLDAT 0x08  /* ctrl or data mode */
 
+/* The ABNT2 keyboard ID's and scan codes have been confirmed by RichardG. */
 const uint8_t id_bytes[24][4] = { { 0x00, 0x00, 0x00, 0x00 },    /* XT 83-key */
                                   { 0x00, 0x00, 0x00, 0x00 },    /* AT 84-key */
                                   { 0xab, 0x83, 0x00, 0x00 },    /* XT/AT 101-key */
@@ -3308,7 +3309,7 @@ static const scancode scancode_set3[512] = {
     { .mk = {0x8c, 0x7b, 0 }, .brk = { 0xf0, 0x8c, 0x7b, 0 } }, /* 07b */
     { .mk = {      0x68, 0 }, .brk = {       0xf0, 0x68, 0 } }, /* 07c */
     { .mk = {0x8c, 0x7d, 0 }, .brk = { 0xf0, 0x8c, 0x7d, 0 } }, /* 07d */
-    { .mk = {            0 }, .brk = {                   0 } }, /* 07e */
+    { .mk = {0x8c, 0x7e, 0 }, .brk = { 0xf0, 0x8c, 0x7e, 0 } }, /* 07e */
     { .mk = {            0 }, .brk = {                   0 } }, /* 07f */
     { .mk = {      0x80, 0 }, .brk = {       0xf0, 0x80, 0 } }, /* 080 */
     { .mk = {      0x81, 0 }, .brk = {       0xf0, 0x81, 0 } }, /* 081 */
@@ -5433,8 +5434,11 @@ add_data_kbd(uint16_t val)
                     default:
                         val = 0x59;
                         break;
-                    case KBD_JIS: case KBD_ABNT2:
+                    case KBD_JIS:
                         val = 0x5c;
+                        break;
+                    case KBD_ABNT2:
+                        val = 0x51;
                         break;
                 }
                 break;
@@ -5465,6 +5469,16 @@ add_data_kbd(uint16_t val)
                         break;
                     case KBD_JIS:
                         val = 0x13;
+                        break;
+                }
+                break;
+            case 0x7e:
+                switch (keys) {
+                    default:
+                        val = 0x49;
+                        break;
+                    case KBD_ABNT2:
+                        val = 0x7b;
                         break;
                 }
                 break;

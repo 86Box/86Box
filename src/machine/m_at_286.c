@@ -125,7 +125,7 @@ static const device_config_t ibmat_config[] = {
 
 const device_t ibmat_device = {
     .name          = "IBM AT",
-    .internal_name = "ibmat_device",
+    .internal_name = "ibmat",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -197,8 +197,8 @@ static const device_config_t ibmxt286_config[] = {
 };
 
 const device_t ibmxt286_device = {
-    .name          = "IBM XT Model 286",
-    .internal_name = "ibmxt286_device",
+    .name          = "IBM XT model 286",
+    .internal_name = "ibmxt286",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -310,6 +310,23 @@ machine_at_portableiii_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_at_ft286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ft286/286-Access methods-ROM2.BIN",
+                                "roms/machines/ft286/286-Access methods-ROM4.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ibm_common_init(model);
 
     return ret;
 }
@@ -680,6 +697,23 @@ machine_at_dells200_init(const machine_t *model)
     ret = bios_load_interleaved("roms/machines/dells200/dellL200256_LO_@DIP28.BIN",
                                 "roms/machines/dells200/Dell200256_HI_@DIP28.BIN",
                                 0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
+int
+machine_at_ftbaby286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ftbaby286/AMI286_u17.bin",
+                                "roms/machines/ftbaby286/AMI286_u18.bin",
+                                0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
         return ret;

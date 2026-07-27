@@ -131,7 +131,8 @@ bool opq_registers::write(uint16_t index, uint8_t data, uint32_t &channel, uint3
 	if ((index & 0xe0) == 0x40 && bitfield(data, 7) != 0)
 		index += 0xc0;
 
-	m_regdata[index] = data;
+        if (index < sizeof(m_regdata))
+	    m_regdata[index] = data;
 
 	// handle writes to the key on index
 	if (index == 0x05)

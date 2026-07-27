@@ -417,6 +417,10 @@ tvga_init(const device_t *info)
 
     tvga->card_id = local & 0xff;
 
+    const uint64_t bios_flags = (info->local == 0x00000000) ?
+                            device_get_bios_flags(info, device_get_config_bios("bios")) :
+                            0x0000000000000000ULL;
+
     if (tvga->card_id == TVGA9000B_ID) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga9000);
         tvga->vram_size = 512 << 10;
@@ -425,7 +429,9 @@ tvga_init(const device_t *info)
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900dr);
         else
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tvga8900);
-        tvga->vram_size = device_get_config_int("memory") << 10;
+        tvga->vram_size = device_get_config_int("memory");
+        video_clamp_vram(bios_flags, &tvga->vram_size);
+        tvga->vram_size <<= 10;
     }
 
     tvga->vram_mask = tvga->vram_size - 1;
@@ -496,7 +502,7 @@ static const device_config_t tvga8900_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "tvga8900dr",
         .default_int    = 0,
@@ -584,7 +590,7 @@ static const device_config_t tvga9000b_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "tvga9000b",
         .default_int    = 0,

@@ -111,6 +111,7 @@ struct Pixmaps {
     PixmapSetEmptyActive rdisk_disabled;
     PixmapSetEmptyActive rdisk;
     PixmapSetEmptyActive zip;
+    PixmapSetEmptyActive jaz;
     PixmapSetEmptyActive mo;
     PixmapSetEmptyActive tape;
     PixmapSetActive      hd;
@@ -342,6 +343,7 @@ struct MachineStatus::States {
         pixmaps.rdisk_disabled.empty_read_write_active = pixmaps.rdisk_disabled.normal;
         pixmaps.rdisk.load(QIcon(":/settings/qt/icons/rdisk.ico"));
         pixmaps.zip.load(QIcon(":/settings/qt/icons/zip.ico"));
+        pixmaps.jaz.load(QIcon(":/settings/qt/icons/jaz.ico"));
         pixmaps.mo.load(QIcon(":/settings/qt/icons/mo.ico"));
         pixmaps.tape.load(QIcon(":/settings/qt/icons/tape.ico"));
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
@@ -443,9 +445,10 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
     for (size_t i = 0; i < CDROM_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -466,9 +469,10 @@ MachineStatus::iterateRDisk(const std::function<void(int)> &cb)
     for (size_t i = 0; i < RDISK_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((rdisk_drives[i].bus_type == RDISK_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -487,9 +491,10 @@ MachineStatus::iterateMO(const std::function<void(int)> &cb)
     for (size_t i = 0; i < MO_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -508,9 +513,10 @@ MachineStatus::iterateTape(const std::function<void(int)> &cb)
     for (size_t i = 0; i < TAPE_NUM; i++) {
         /* Could be Internal or External IDE.. */
         if ((tape_drives[i].bus_type == TAPE_BUS_ATAPI) && !hasIDE() &&
-            (hdc_name.left(3) != QStringLiteral("ide")) &&
-            (hdc_name.left(5) != QStringLiteral("xtide")) &&
-            (hdc_name.left(5) != QStringLiteral("mcide")))
+            !hdc_name.startsWith(QStringLiteral("ide")) &&
+            !hdc_name.startsWith(QStringLiteral("xtide")) &&
+//            !hdc_name.startsWith(QStringLiteral("jride")) &&
+            !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
         if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -826,6 +832,8 @@ MachineStatus::refresh(QStatusBar *sbar)
             d->rdisk[i].pixmaps = &d->pixmaps.rdisk_disabled;
         else if ((t == RDISK_TYPE_ZIP_100) || (t == RDISK_TYPE_ZIP_250))
             d->rdisk[i].pixmaps = &d->pixmaps.zip;
+        else if ((t == RDISK_TYPE_JAZ_1GB) || (t == RDISK_TYPE_JAZ_2GB))
+            d->rdisk[i].pixmaps = &d->pixmaps.jaz;
         else
             d->rdisk[i].pixmaps = &d->pixmaps.rdisk;
         d->rdisk[i].label = std::make_unique<ClickableLabel>();
@@ -958,9 +966,10 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_XTA].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
-    if (hasIDE() || (hdc_name.left(5) == QStringLiteral("xtide")) ||
-        (hdc_name.left(5) == QStringLiteral("mcide")) ||
-        (hdc_name.left(3) == QStringLiteral("ide"))) {
+    if (hasIDE() || hdc_name.startsWith(QStringLiteral("xtide")) ||
+        hdc_name.startsWith(QStringLiteral("jride")) ||
+        hdc_name.startsWith(QStringLiteral("mcide")) ||
+        hdc_name.startsWith(QStringLiteral("ide"))) {
         if (c_ide > 0) {
             d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
             d->hdds[HDD_BUS_IDE].setActive(false);

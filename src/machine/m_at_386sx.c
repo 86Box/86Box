@@ -134,8 +134,8 @@ static const device_config_t pbl300sx_config[] = {
 };
 
 const device_t pbl300sx_device = {
-    .name          = "Packard Bell PB300/PB320",
-    .internal_name = "pbl300sx_device",
+    .name          = "Packard Bell PB300",
+    .internal_name = "pbl300sx",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -286,7 +286,7 @@ static const device_config_t c325ax_config[] = {
 
 const device_t c325ax_device = {
     .name          = "Chaintech 3xxAX/AXB",
-    .internal_name = "325ax_device",
+    .internal_name = "325ax",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -690,7 +690,7 @@ static const device_config_t dells333sl_config[] = {
 
 const device_t dells333sl_device = {
     .name          = "Dell System 333s/L",
-    .internal_name = "dells333sl_device",
+    .internal_name = "dells333sl",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

@@ -358,7 +358,7 @@ mm67_time_set(nvr_t *nvr, struct tm *tm)
         else
             regs[dev->year] = year % 100;
 
-        if ((dev->year != -1) && !(dev->flags & FLAG_YEAR80)) {
+        if (!(dev->flags & FLAG_YEAR80)) {
             if (dev->flags & FLAG_YEARBCD)
                 regs[dev->century] = RTC_BCD((year + 1900) / 100);
             else
@@ -405,13 +405,17 @@ static uint8_t
 mm67_read(uint16_t port, void *priv)
 {
     rtcdev_t *dev = (rtcdev_t *) priv;
-    int       reg = port - dev->base_addr;
-    uint8_t   ret = 0xff;
+    const int reg = port - dev->base_addr;
+    uint8_t   ret;
 
     /* This chip is directly mapped on I/O. */
     cycles -= ISA_CYCLES(4);
 
     switch (reg) {
+        default:
+            ret = dev->nvr.regs[reg];
+            break;
+
         case MM67_ISTAT: /* IRQ status (RO) */
             ret                = dev->nvr.regs[reg];
             dev->nvr.regs[reg] = 0x00;
@@ -430,10 +434,6 @@ mm67_read(uint16_t port, void *priv)
 
         case MM67_DOW:
             ret                = dev->nvr.regs[reg] & 0x07;
-            break;
-
-        default:
-            ret = dev->nvr.regs[reg];
             break;
     }
 
@@ -1034,6 +1034,327 @@ const device_t rtc58167_device = {
     .local         = ISARTC_RTC58167,
     .init          = isartc_init,
     .close         = isartc_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+typedef struct rp5c01a_t
+{
+    nvr_t nvr;
+} rp5c01a_t;
+
+/* Local variant of the 'struct tm' type. */
+typedef struct tm intclk_t;
+
+/*
+ * Ricoh RP5C01A registers.
+ *
+ * In modes 0 and 1, registers are accessible as noted.
+ * In modes 2 and 3, addresses 00 through 0c are treated
+ * as non-volatile RAM, 4 bits wide.
+ */
+enum RTC_REGS {
+    RTC_SECOND1 = 0,			/* BCD */
+    RTC_CLOCK_OUT = RTC_SECOND1,	/* Bank 1 */
+    RTC_SECOND10,
+    RTC_ADJUST = RTC_SECOND10,		/* Bank 1 */
+    RTC_MINUTE1,			/* BCD */
+    RTC_MINUTE10,
+    RTC_HOUR1,				/* BCD */
+    RTC_HOUR10,
+    RTC_WEEKDAY,			/* BCD, 1-base */
+    RTC_DAY1,				/* BCD, 1-base */
+    RTC_DAY10,
+    RTC_MONTH1,				/* BCD, 1-base */
+    RTC_MONTH10,
+    RTC_SELECT24 = RTC_MONTH10,		/* Bank 1 */
+    RTC_YEAR1,				/* BCD */
+    RTC_LEAP = RTC_YEAR1,		/* Bank 1 */
+    RTC_YEAR10,
+    RTC_MODE,				/* MODE */
+    RTC_TEST,				/* TEST */
+    RTC_RESET				/* RESET */
+};
+
+/* Set the current NVR time. */
+#define set_nibbles(a, v) regs[(a##10)] = ((v)/10) ; regs[(a##1)] = ((v)%10)
+static void
+rtc_time_set(uint8_t *regs, const intclk_t *clk)
+{
+    set_nibbles(RTC_SECOND, clk->tm_sec);
+    set_nibbles(RTC_MINUTE, clk->tm_min);
+    set_nibbles(RTC_HOUR, clk->tm_hour);
+    regs[RTC_WEEKDAY] = (clk->tm_wday - 1);
+    set_nibbles(RTC_DAY, clk->tm_mday);
+    set_nibbles(RTC_MONTH, clk->tm_mon + 1);
+    set_nibbles(RTC_YEAR, (clk->tm_year % 100));
+    regs[RTC_LEAP | 0x10] = (clk->tm_year % 4);
+    regs[RTC_WEEKDAY | 0x30] = (clk->tm_year / 100) ^ 1;
+#ifdef ENABLE_ISARTC_LOG
+    const int days = nvr_get_days(clk->tm_mon + 1, clk->tm_year + 1900);
+    isartc_log("days = %i\n", days);
+#endif
+}
+
+/* Get the current NVR time. */
+#define get_nibbles(a) ((regs[(a##10)]*10)+regs[(a##1)])
+static void
+rtc_time_get(const uint8_t *regs, intclk_t *clk)
+{
+    clk->tm_sec = get_nibbles(RTC_SECOND);
+    clk->tm_min = get_nibbles(RTC_MINUTE);
+    clk->tm_hour = get_nibbles(RTC_HOUR);
+    clk->tm_wday = regs[RTC_WEEKDAY] + 1;
+    clk->tm_mday = get_nibbles(RTC_DAY);
+    clk->tm_mon = get_nibbles(RTC_MONTH) - 1;
+    const int cent = regs[RTC_WEEKDAY | 0x30] & 0x01;
+    clk->tm_year = (get_nibbles(RTC_YEAR) + ((cent ^ 1) * 100));
+}
+
+/* Bump a dual-4bit-register. */
+static int
+rtc_bump(uint8_t *regs, int base, int min, int max)
+{
+    int k;
+
+    if (base == RTC_YEAR1)
+        k = (((regs[RTC_WEEKDAY | 0x30] & 0x01) ^ 0x01) * 100) +
+            (regs[base + 1] * 10) + regs[base];
+    else if ((base == RTC_HOUR1) && !(regs[RTC_SELECT24 | 0x10] & 0x01)) {
+        /* 12 hour system. */
+        k = (regs[base + 1] * 10) + regs[base];
+        /* Treat 12 as 0, so we have 0 PM = noon and 0 AM = midnight. */
+        k %= 12;
+        if (regs[RTC_SELECT24 | 0x10] & 0x02)
+            k += 12;
+    } else
+        k = (regs[base + 1] * 10) + regs[base];
+
+    if (++k >= (max + min)) {
+	/* Rollover, reset to 'min' and return. */
+        if (base == RTC_YEAR1) {
+            regs[base]                 = (min % 10);
+            regs[base + 1]             = ((min / 10) % 10);
+            regs[RTC_LEAP | 0x10]      = ((min + 1900) % 4);
+            regs[RTC_WEEKDAY | 0x30]   = ((min / 100) ^ 1);
+        } else if ((base == RTC_HOUR1) && !(regs[RTC_SELECT24 | 0x10] & 0x01)) {
+            regs[base]                 = 0x02;
+            regs[base + 1]             = 0x01;
+            regs[RTC_SELECT24 | 0x10] &= ~0x02;
+        } else {
+            regs[base]                 = min;
+            regs[base + 1]             = 0x00;
+        }
+
+        return 1;
+    }
+
+    /* No rollover, save the bumped value. */
+    if (base == RTC_YEAR1) {
+        regs[base]                = (k % 10);
+        regs[base + 1]            = ((k / 10) % 10);
+        regs[RTC_LEAP | 0x10]     = ((k + 1900) % 4);
+        regs[RTC_WEEKDAY | 0x30]  = ((k / 100) ^ 1);
+    } else if ((base == RTC_HOUR1) && !(regs[RTC_SELECT24 | 0x10] & 0x01)) {
+        regs[RTC_SELECT24 | 0x10] = (k / 12) ? 0x02 : 0x00;
+        k %= 12;
+        if (k == 0) {
+            regs[base]     = 0x02;
+            regs[base + 1] = 0x01;
+        } else {
+            regs[base]     = (k % 10);
+            regs[base + 1] = (k / 10);
+        }
+    } else {
+        regs[base] = (k % 10);
+        regs[base + 1] = (k / 10);
+    }
+
+    return 0;
+}
+
+/*
+ * This is called every second through the NVR/RTC hook.
+ *
+ * We fake a 'running' RTC by updating its registers on
+ * each passing second. Not exactly accurate, but good
+ * enough.
+ */
+static void
+rtc_ticker(nvr_t *nvr)
+{
+    uint8_t *regs = nvr->regs;
+
+    /* Only if RTC is running.. */
+    if (! (regs[RTC_MODE] & 0x08))
+        return;
+
+    if (rtc_bump(regs, RTC_SECOND1, 0, 60)) {
+        if (rtc_bump(regs, RTC_MINUTE1, 0, 60)) {
+            if (rtc_bump(regs, RTC_HOUR1, 0, 24)) {
+                const int mon = get_nibbles(RTC_MONTH);
+                const int cent = nvr->regs[RTC_WEEKDAY | 0x30] & 0x01;
+                const int yr = (2000 - (cent * 100)) + get_nibbles(RTC_YEAR);
+                const int days = nvr_get_days(mon, yr);
+
+                if (rtc_bump(regs, RTC_DAY1, 1, days)) {
+                    if (rtc_bump(regs, RTC_MONTH1, 1, 12))
+                        rtc_bump(regs, RTC_YEAR1, 0, 199);
+                }
+            }
+        }
+    }
+}
+
+static void
+rtc_start(nvr_t *nvr)
+{
+    intclk_t clk;
+
+    /* Initialize the internal and chip times. */
+    if (time_sync != TIME_SYNC_DISABLED) {
+	/* Use the internal clock's time. */
+	nvr_time_get(&clk);
+	rtc_time_set(nvr->regs, &clk);
+    } else {
+        /* Set the internal clock from the chip time. */
+	rtc_time_get(nvr->regs, &clk);
+	nvr_time_set(&clk);
+    }
+}
+
+
+/* Reset the machine's NVR to a sane state. */
+static void
+rtc_reset(nvr_t *nvr)
+{
+    /* Initialize the RTC to a known state. */
+    memset(nvr->regs, 0x00, sizeof(nvr->regs));
+
+    /* Not needed, chip is 0-based. */
+    nvr->regs[RTC_WEEKDAY]         = 0x00;
+    nvr->regs[RTC_DAY1]            = 0x01;
+    nvr->regs[RTC_MONTH1]          = 0x01;
+    nvr->regs[RTC_YEAR10]          = 0x08;
+    nvr->regs[RTC_SELECT24 | 0x10] = 0x01;
+    /* Register 0x36 has century in bit 0 = 0 = 21st, 1 = 20th. */
+    nvr->regs[RTC_WEEKDAY | 0x30]  = 0x01;
+}
+
+
+/* Write to one of the RTC registers. */
+static void
+rtc_write(uint16_t addr, uint8_t val, void *priv)
+{
+    nvr_t *  nvr = (nvr_t *)priv;
+
+    /* Point to the correct bank. */
+    uint8_t *ptr = &nvr->regs[16 * (nvr->regs[RTC_MODE] & 0x03)];
+
+    isartc_log("Zenith: rtc_wr(%04x, %02x)\n", addr, val);
+
+    switch (addr & 0x000f) {
+        case RTC_MODE:
+        case RTC_TEST:
+        case RTC_RESET:
+            nvr->regs[addr & 0x000f] = (val & 0x0f);
+            nvr_dosave = 1;
+            break;
+
+        case RTC_ADJUST:
+            ptr[addr & 0x000f] = (val & 0x0f);
+            nvr_dosave = 1;
+
+            if (((nvr->regs[RTC_MODE] & 0x03) == 0x01) && (val & 0x01)) {
+                const int s = (nvr->regs[RTC_SECOND10] * 10) +
+                               nvr->regs[RTC_SECOND1];
+                if ((s >= 0) && (s <= 29))
+                    nvr->regs[RTC_SECOND1] = nvr->regs[RTC_SECOND10] = 0x00;
+                else if ((s >= 30) && (s <= 59)) {
+                    for (int i = 0; i < (30 - s); i++)
+                        rtc_ticker(nvr);
+                }
+            }
+            break;
+
+        default:
+            ptr[addr & 0x000f] = (val & 0x0f);
+            nvr_dosave = 1;
+            break;
+    }
+}
+
+/* Read from one of the RTC registers. */
+static uint8_t
+rtc_read(uint16_t addr, void *priv)
+{
+    const nvr_t *  nvr = (nvr_t *) priv;
+    uint8_t        ret;
+
+    /* Point to the correct bank. */
+    const uint8_t *ptr = &nvr->regs[16 * (nvr->regs[RTC_MODE] & 0x03)];
+
+    switch (addr & 0x000f) {
+        default:
+            ret = ptr[addr & 0x000f];
+            break;
+
+        case RTC_MODE:
+        case RTC_TEST:
+        case RTC_RESET:
+            /* Write-only registers */
+            ret = 0x00;
+            break;
+    }
+
+    ret &= 0x0f;
+
+    isartc_log("Zenith: rtc_rd(%04x) = %02x\n", addr, ret);
+
+    return ret;
+}
+
+static void
+rp5c01a_close(void *priv)
+{
+    rp5c01a_t *dev = (rp5c01a_t *) priv;
+
+    /* Make sure NVR gets saved. */
+    nvr_dosave = 1;
+    nvr_save();
+
+    free(dev);
+}
+
+static void *
+rp5c01a_init(const device_t *info)
+{
+    rp5c01a_t *dev = (rp5c01a_t *) calloc(1, sizeof(rp5c01a_t));
+
+    /* Set up and initialize the Ricoh RP5C15 RTC. */
+    dev->nvr.size = 64;
+    dev->nvr.irq = -1;
+    dev->nvr.reset = rtc_reset;
+    dev->nvr.start = rtc_start;
+    dev->nvr.tick = rtc_ticker;
+    nvr_init(&dev->nvr);
+    io_sethandler(0x0050, 16,
+                  rtc_read,NULL,NULL,
+                  rtc_write,NULL,NULL, &dev->nvr);
+
+    return dev;
+}
+
+const device_t rp5c01a_zenith_device = {
+    .name          = "Ricoh RP5C01A RTC (Zenith)",
+    .internal_name = "rp5c01a_zenith_rtc",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = rp5c01a_init,
+    .close         = rp5c01a_close,
     .reset         = NULL,
     .available     = NULL,
     .speed_changed = NULL,

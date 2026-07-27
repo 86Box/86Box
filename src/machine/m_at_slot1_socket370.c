@@ -78,15 +78,6 @@ static const device_config_t prosignias31x_config[] = {
                 .size          = 262144,
                 .files         = { "roms/machines/prosignias31x_bx/p6bxt-a-56-6990cdf1659c7829277668.bin", "" }
             },
-            {
-                .name          = "Phoenix - AwardBIOS v6.00PG - Unofficial Version 6.0 (by rushieda)",
-                .internal_name = "p6bxt_600pg",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/prosignias31x_bx/p6bxtap-600-67b8bfdce5de3470118202.bin", "" }
-            },
             { .files_no = 0 }
         }
     },
@@ -96,7 +87,7 @@ static const device_config_t prosignias31x_config[] = {
 
 const device_t prosignias31x_device = {
     .name          = "ECS P6BXT-A+",
-    .internal_name = "prosignias31x_device",
+    .internal_name = "prosignias31x_bx",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -147,7 +138,7 @@ machine_at_prosignias31x_bx_init(const machine_t *model)
     hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -206,22 +197,27 @@ machine_at_p6bat_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0a, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0c, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL,      4, 3, 2, 1);
+    pci_register_slot(0x0d, PCI_CARD_SOUND,       4, 3, 2, 1); /* assumed */
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133_device);
-    device_add(&via_vt82c596b_device);
+    device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    device_add(&gl520sm_2d_device);  /* fans: CPU, Chassis; temperature: System */
+    hwm_values.temperatures[0] += 2; /* System offset */
+    hwm_values.temperatures[1] += 2; /* CPU offset */
+    hwm_values.voltages[0] = 3300;   /* Vcore and 3.3V are swapped */
+    hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        device_add(&cmi8738_onboard_device);
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }

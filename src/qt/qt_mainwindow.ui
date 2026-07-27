@@ -76,10 +76,10 @@
     <addaction name="actionUpdate_mouse_every_CPU_frame"/>
     <addaction name="actionAuto_capture_mouse"/>
     <addaction name="separator"/>
-    <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionFullscreen"/>
+    <addaction name="actionToggle_OSD"/>
     <addaction name="separator"/>
     <addaction name="actionFast_forward"/>
     <addaction name="actionForce_interpretation"/>
@@ -406,6 +406,11 @@
   <action name="actionFullscreen">
    <property name="text">
     <string>&amp;Fullscreen</string>
+   </property>
+  </action>
+  <action name="actionToggle_OSD">
+   <property name="text">
+    <string>Toggle &amp;on-screen display</string>
    </property>
   </action>
   <action name="actionSoftware_Renderer">

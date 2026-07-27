@@ -317,14 +317,30 @@
 #define UOP_PFCMPGT (UOP_TYPE_PARAMS_REGS | 0xc1)
 /*UOP_PF2ID - (packed long)dest_reg = (packed float)src_reg_a*/
 #define UOP_PF2ID (UOP_TYPE_PARAMS_REGS | 0xc2)
+/*UOP_PF2IW - dest_reg keeps high 32-bit lane from src_reg_a; low 32 bits get truncated low words from src_reg_b floats*/
+#define UOP_PF2IW (UOP_TYPE_PARAMS_REGS | 0xc9)
 /*UOP_PI2FD - (packed float)dest_reg = (packed long)src_reg_a*/
 #define UOP_PI2FD (UOP_TYPE_PARAMS_REGS | 0xc3)
+/*UOP_PI2FW - (packed float)dest_reg = sign-extended low words from src_reg_a*/
+#define UOP_PI2FW (UOP_TYPE_PARAMS_REGS | 0xca)
 /*UOP_PFRCP - (packed float) dest_reg[0] = dest_reg[1] = 1.0 / src_reg[0]*/
 #define UOP_PFRCP (UOP_TYPE_PARAMS_REGS | 0xc4)
 /*UOP_PFRSQRT - (packed float) dest_reg[0] = dest_reg[1] = 1.0 / sqrt(src_reg[0])*/
 #define UOP_PFRSQRT (UOP_TYPE_PARAMS_REGS | 0xc5)
+/*UOP_PFACC - (packed float) dest_reg[0] = dest_reg[0] + dest_reg[1], dest_reg[1] = src_reg_b[0] + src_reg_b[1]*/
+#define UOP_PFACC (UOP_TYPE_PARAMS_REGS | 0xc6)
+/*UOP_PFNACC - (packed float) dest_reg[0] = src_reg_a[0] - src_reg_a[1], dest_reg[1] = src_reg_b[0] - src_reg_b[1]*/
+#define UOP_PFNACC (UOP_TYPE_PARAMS_REGS | 0xcb)
+/*UOP_PFPNACC - (packed float) dest_reg[0] = src_reg_a[0] - src_reg_a[1], dest_reg[1] = src_reg_b[0] + src_reg_b[1]*/
+#define UOP_PFPNACC (UOP_TYPE_PARAMS_REGS | 0xcc)
+/*UOP_PSWAPD - (packed float) dest_reg[0] = src_reg_a[1], dest_reg[1] = src_reg_a[0]*/
+#define UOP_PSWAPD (UOP_TYPE_PARAMS_REGS | 0xcd)
+/*UOP_PMULHRW - (packed word) dest_reg = ((src_reg_a * src_reg_b) + 0x8000) >> 16*/
+#define UOP_PMULHRW (UOP_TYPE_PARAMS_REGS | 0xc7)
+/*UOP_PAVGUSB - (packed byte) dest_reg = (src_reg_a + src_reg_b + 1) >> 1*/
+#define UOP_PAVGUSB (UOP_TYPE_PARAMS_REGS | 0xc8)
 
-#define UOP_MAX     0xc6
+#define UOP_MAX     0xce
 
 #define UOP_INVALID 0xff
 
@@ -669,6 +685,7 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
 }
 
 extern int codegen_mmx_enter(void);
+extern int codegen_femms(void);
 extern int codegen_fp_enter(void);
 
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
@@ -826,6 +843,7 @@ extern int codegen_fp_enter(void);
 #define uop_PCMPGTD(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_PCMPGTD, ir, dst_reg, src_reg_a, src_reg_b)
 
 #define uop_PF2ID(ir, dst_reg, src_reg)                                  uop_gen_reg_dst_src1(UOP_PF2ID, ir, dst_reg, src_reg)
+#define uop_PF2IW(ir, dst_reg, src_reg_a, src_reg_b)                     uop_gen_reg_dst_src2(UOP_PF2IW, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PFADD(ir, dst_reg, src_reg_a, src_reg_b)                     uop_gen_reg_dst_src2(UOP_PFADD, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PFCMPEQ(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_PFCMPEQ, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PFCMPGE(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_PFCMPGE, ir, dst_reg, src_reg_a, src_reg_b)
@@ -835,8 +853,15 @@ extern int codegen_fp_enter(void);
 #define uop_PFMUL(ir, dst_reg, src_reg_a, src_reg_b)                     uop_gen_reg_dst_src2(UOP_PFMUL, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PFRCP(ir, dst_reg, src_reg)                                  uop_gen_reg_dst_src1(UOP_PFRCP, ir, dst_reg, src_reg)
 #define uop_PFRSQRT(ir, dst_reg, src_reg)                                uop_gen_reg_dst_src1(UOP_PFRSQRT, ir, dst_reg, src_reg)
+#define uop_PFACC(ir, dst_reg, src_reg_a, src_reg_b)                     uop_gen_reg_dst_src2(UOP_PFACC, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_PFNACC(ir, dst_reg, src_reg_a, src_reg_b)                    uop_gen_reg_dst_src2(UOP_PFNACC, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_PFPNACC(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_PFPNACC, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_PSWAPD(ir, dst_reg, src_reg)                                 uop_gen_reg_dst_src1(UOP_PSWAPD, ir, dst_reg, src_reg)
+#define uop_PMULHRW(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_PMULHRW, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_PAVGUSB(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_PAVGUSB, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PFSUB(ir, dst_reg, src_reg_a, src_reg_b)                     uop_gen_reg_dst_src2(UOP_PFSUB, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PI2FD(ir, dst_reg, src_reg)                                  uop_gen_reg_dst_src1(UOP_PI2FD, ir, dst_reg, src_reg)
+#define uop_PI2FW(ir, dst_reg, src_reg)                                  uop_gen_reg_dst_src1(UOP_PI2FW, ir, dst_reg, src_reg)
 
 #define uop_PMADDWD(ir, dst_reg, src_reg_a, src_reg_b)                   uop_gen_reg_dst_src2(UOP_PMADDWD, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PMULHW(ir, dst_reg, src_reg_a, src_reg_b)                    uop_gen_reg_dst_src2(UOP_PMULHW, ir, dst_reg, src_reg_a, src_reg_b)

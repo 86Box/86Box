@@ -280,9 +280,9 @@ NameAndLocationPage::isComplete() const
     // return true if complete
     if (systemName->text().isEmpty()) {
         systemNameValidation->setText(tr("Please enter a system name"));
-#ifdef CUSTOM_SYSTEM_LOCATION
     } else if (!systemName->text().contains(dirValidate)) {
         systemNameValidation->setText(tr("System name cannot contain certain characters"));
+#ifdef CUSTOM_SYSTEM_LOCATION
     } else if (const QDir newDir = QDir::cleanPath(systemLocation->text() + "/" + systemName->text()); newDir.exists()) {
 #else
     } else if (const QDir newDir = QDir::cleanPath(QString(vmm_path) + "/" + systemName->text()); newDir.exists()) {

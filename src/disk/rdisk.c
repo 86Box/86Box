@@ -145,6 +145,41 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_changeable = {
 static void rdisk_command_complete(rdisk_t *dev);
 static void rdisk_init(rdisk_t *dev);
 
+static uint32_t
+rdisk_max_medium_size(const rdisk_t *dev)
+{
+    switch (dev->drv->type) {
+        case RDISK_TYPE_ZIP_100:
+            return ZIP_SECTORS;
+        case RDISK_TYPE_ZIP_250:
+            return ZIP_250_SECTORS;
+        case RDISK_TYPE_JAZ_1GB:
+            return JAZ_1GB_SECTORS;
+        case RDISK_TYPE_JAZ_2GB:
+            return JAZ_2GB_SECTORS;
+        default:
+            return ZIP_250_SECTORS;
+    }
+}
+
+static int
+rdisk_supports_medium_size(const rdisk_t *dev, const uint32_t sectors)
+{
+    switch (dev->drv->type) {
+        case RDISK_TYPE_ZIP_100:
+            return sectors == ZIP_SECTORS;
+        case RDISK_TYPE_ZIP_250:
+            return (sectors == ZIP_SECTORS) || (sectors == ZIP_250_SECTORS);
+        case RDISK_TYPE_JAZ_1GB:
+            return sectors == JAZ_1GB_SECTORS;
+        case RDISK_TYPE_JAZ_2GB:
+            return (sectors == JAZ_1GB_SECTORS) || (sectors == JAZ_2GB_SECTORS);
+        default:
+            return (sectors == ZIP_SECTORS) || (sectors == ZIP_250_SECTORS) ||
+                   (sectors == JAZ_1GB_SECTORS) || (sectors == JAZ_2GB_SECTORS);
+    }
+}
+
 #ifdef ENABLE_RDISK_LOG
 int rdisk_do_log = ENABLE_RDISK_LOG;
 
@@ -243,16 +278,10 @@ rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert)
             } else
                 dev->drv->base = 0;
 
-            if (dev->drv->type != RDISK_TYPE_ZIP_100) {
-                if ((size != (ZIP_250_SECTORS << 9)) && (size != (ZIP_SECTORS << 9))) {
-                    rdisk_log(dev->log, "File is incorrect size for a RDISK image\n");
-                    rdisk_log(dev->log, "Must be exactly %i or %i bytes\n",
-                            ZIP_250_SECTORS << 9, ZIP_SECTORS << 9);
-                    ret = rdisk_load_abort(dev);
-                }
-            } else if (size != (ZIP_SECTORS << 9)) {
+            if ((size < 0) || ((size & 511) != 0) ||
+                !rdisk_supports_medium_size(dev, (uint32_t) size >> 9)) {
                 rdisk_log(dev->log, "File is incorrect size for a RDISK image\n");
-                rdisk_log(dev->log, "Must be exactly %i bytes\n", ZIP_SECTORS << 9);
+                rdisk_log(dev->log, "Image size is not supported by this removable drive\n");
                 ret = rdisk_load_abort(dev);
             }
 
@@ -265,7 +294,10 @@ rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert)
                  log_fatal(dev->log, "rdisk_load(): Error seeking to the beginning of "
                            "the file\n");
 
-             strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
+             if (dev->drv->image_path != (fn - offs)) {
+                 const int len = MIN(strlen(fn - offs), (strlen(dev->drv->image_path) - 1));
+                 strncpy(dev->drv->image_path, fn - offs, len);
+             }
              /*
                 After using strncpy, dev->drv->image_path needs to be explicitly null
                 terminated to make gcc happy.
@@ -1201,15 +1233,13 @@ rdisk_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, const uint8_t a
 static void
 rdisk_set_buf_len(const rdisk_t *dev, int32_t *BufLen, int32_t *src_len)
 {
-    if (dev->drv->bus_type == RDISK_BUS_SCSI) {
-        if (*BufLen == -1)
-            *BufLen = *src_len;
-        else {
-            *BufLen  = MIN(*src_len, *BufLen);
-            *src_len = *BufLen;
-        }
-        rdisk_log(dev->log, "Actual transfer length: %i\n", *BufLen);
+    if (*BufLen == -1)
+        *BufLen = *src_len;
+    else {
+        *BufLen  = MIN(*src_len, *BufLen);
+        *src_len = *BufLen;
     }
+    rdisk_log(dev->log, "Actual transfer length: %i\n", *BufLen);
 }
 
 static void
@@ -1221,7 +1251,7 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
     const uint8_t  scsi_id            = dev->drv->scsi_device_id & 0x0f;
     int            pos                = 0;
     int            idx                = 0;
-    int32_t        blen               = 0;
+    int32_t        blen               = 65536;
     uint32_t       i;
     unsigned       preamble_len;
     int32_t        len;
@@ -1719,7 +1749,9 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                         dev->buffer[idx++] = 0x00;
                         dev->buffer[idx++] = 68;
                         /* Vendor */
-                        if (dev->drv->type >= RDISK_TYPE_ZIP_100)
+                        if (dev->drv->type == RDISK_TYPE_JAZ_1GB || dev->drv->type == RDISK_TYPE_JAZ_2GB)
+                            ide_padstr8(dev->buffer + idx, 8, "iomega  ");
+                        else if (dev->drv->type >= RDISK_TYPE_ZIP_100)
                             ide_padstr8(dev->buffer + idx, 8, "IOMEGA  ");
                         else
                             ide_padstr8(dev->buffer + 8, 8, EMU_NAME);          /* Vendor */
@@ -1729,6 +1761,10 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                             ide_padstr8(dev->buffer + idx, 40, "ZIP 250         ");
                         else if (dev->drv->type == RDISK_TYPE_ZIP_100)
                             ide_padstr8(dev->buffer + idx, 40, "ZIP 100         ");
+                        else if (dev->drv->type == RDISK_TYPE_JAZ_2GB)
+                            ide_padstr8(dev->buffer + idx, 40, "jaz 2GB         ");
+                        else if (dev->drv->type == RDISK_TYPE_JAZ_1GB)
+                            ide_padstr8(dev->buffer + idx, 40, "jaz 1GB         ");
                         else
                             ide_padstr8(dev->buffer + 16, 40, device_identify);      /* Product */
                         idx += 40;
@@ -1764,7 +1800,12 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                 }
                 dev->buffer[7] |= 0x02;
 
-                ide_padstr8(dev->buffer + 8, 8, "IOMEGA  ");    /* Vendor */
+                if (dev->drv->type == RDISK_TYPE_JAZ_2GB || dev->drv->type == RDISK_TYPE_JAZ_1GB) {
+                    ide_padstr8(dev->buffer + 8, 8, "iomega  ");    /* Vendor */
+                } else {
+                    ide_padstr8(dev->buffer + 8, 8, "IOMEGA  ");    /* Vendor */
+                }
+                    
                 if (dev->drv->type == RDISK_TYPE_ZIP_250) {
                     /* Product */
                     ide_padstr8(dev->buffer + 16, 16, "ZIP 250         ");
@@ -1780,6 +1821,12 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                     ide_padstr8(dev->buffer + 16, 16, "ZIP 100         ");
                     /* Revision */
                     ide_padstr8(dev->buffer + 32, 4, "E.08");
+                } else if (dev->drv->type == RDISK_TYPE_JAZ_2GB) {
+                    ide_padstr8(dev->buffer + 16, 16, "jaz 2GB         ");
+                    ide_padstr8(dev->buffer + 32, 4, "E.17");
+                } else if (dev->drv->type == RDISK_TYPE_JAZ_1GB) {
+                    ide_padstr8(dev->buffer + 16, 16, "jaz 1GB         ");
+                    ide_padstr8(dev->buffer + 32, 4, "H.72");
                 } else {
                     ide_padstr8(dev->buffer + 8, 8,
                                 EMU_NAME);          /* Vendor */
@@ -1877,19 +1924,22 @@ atapi_out:
                 dev->buffer[pos++] = 8;
 
             /* Current/Maximum capacity header */
-            if (dev->drv->type == RDISK_TYPE_ZIP_100) {
-                /* ZIP 100 only supports ZIP 100 media, so we always return the ZIP 100 size. */
-                dev->buffer[pos++] = (ZIP_SECTORS >> 24) & 0xff;
-                dev->buffer[pos++] = (ZIP_SECTORS >> 16) & 0xff;
-                dev->buffer[pos++] = (ZIP_SECTORS >> 8) & 0xff;
-                dev->buffer[pos++] = ZIP_SECTORS & 0xff;
+            if ((dev->drv->type == RDISK_TYPE_ZIP_100) ||
+                (dev->drv->type == RDISK_TYPE_JAZ_1GB)) {
+                /* ZIP 100 only supports ZIP 100 media, so we always return the ZIP 100 size. Same for the Jaz 1GB, so we return the Jaz 1GB size. */
+                const uint32_t medium_size = rdisk_max_medium_size(dev);
+                dev->buffer[pos++] = (medium_size >> 24) & 0xff;
+                dev->buffer[pos++] = (medium_size >> 16) & 0xff;
+                dev->buffer[pos++] = (medium_size >> 8) & 0xff;
+                dev->buffer[pos++] = medium_size & 0xff;
                 if (dev->drv->fp != NULL)
                     dev->buffer[pos++] = 2;
                 else
                     dev->buffer[pos++] = 3;
             } else {
-                /* ZIP 250 also supports ZIP 100 media, so if the medium is inserted,
-                   we return the inserted medium's size, otherwise, the ZIP 250 size. */
+                /* ZIP 250 and Jaz 2GB accept lower-capacity media, so if the medium is inserted,
+                   we return the inserted medium's size, otherwise, the respective drive size. */
+
                 if (dev->drv->fp != NULL) {
                     dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
                     dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
@@ -1897,10 +1947,11 @@ atapi_out:
                     dev->buffer[pos++] = dev->drv->medium_size & 0xff;
                     dev->buffer[pos++] = 2; /* Current medium capacity */
                 } else {
-                    dev->buffer[pos++] = (ZIP_250_SECTORS >> 24) & 0xff;
-                    dev->buffer[pos++] = (ZIP_250_SECTORS >> 16) & 0xff;
-                    dev->buffer[pos++] = (ZIP_250_SECTORS >> 8) & 0xff;
-                    dev->buffer[pos++] = ZIP_250_SECTORS & 0xff;
+                    const uint32_t medium_size = rdisk_max_medium_size(dev);
+                    dev->buffer[pos++] = (medium_size >> 24) & 0xff;
+                    dev->buffer[pos++] = (medium_size >> 16) & 0xff;
+                    dev->buffer[pos++] = (medium_size >> 8) & 0xff;
+                    dev->buffer[pos++] = medium_size & 0xff;
                     dev->buffer[pos++] = 3; /* Maximum medium capacity */
                 }
             }
@@ -2188,6 +2239,34 @@ rdisk_generic_identify(const ide_t *ide, const int ide_has_dma, const rdisk_t *r
 }
 
 static void
+rdisk_jaz_1gb_identify(const ide_t *ide, const int ide_has_dma)
+{
+    /* Firmware */
+    ide_padstr((char *) (ide->buffer + 23), "42.S", 8);
+    /* Model */
+    ide_padstr((char *) (ide->buffer + 27), "iomega jaz 1GB       ATAPI", 40);
+
+    if (ide_has_dma) {
+        ide->buffer[80] = 0x70;    /* took from the ZIP 250 config, fix if wrong */
+        ide->buffer[81] = 0x19;
+    }
+}
+
+static void
+rdisk_jaz_2gb_identify(const ide_t *ide, const int ide_has_dma)
+{
+    /* Firmware */
+    ide_padstr((char *) (ide->buffer + 23), "42.S", 8);
+    /* Model */
+    ide_padstr((char *) (ide->buffer + 27), "iomega jaz 2GB       ATAPI", 40);
+
+    if (ide_has_dma) {
+        ide->buffer[80] = 0x70;    /* took from the ZIP 250 config, fix if wrong */
+        ide->buffer[81] = 0x19;
+    }
+}
+
+static void
 rdisk_identify(const ide_t *ide, const int ide_has_dma)
 {
     const rdisk_t *rdisk = (rdisk_t *) ide->sc;
@@ -2208,6 +2287,10 @@ rdisk_identify(const ide_t *ide, const int ide_has_dma)
         rdisk_zip_250_identify(ide, ide_has_dma);
     else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_ZIP_100)
         rdisk_zip_100_identify(ide);
+    else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_JAZ_1GB)
+        rdisk_jaz_1gb_identify(ide, ide_has_dma);
+    else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_JAZ_2GB)
+        rdisk_jaz_2gb_identify(ide, ide_has_dma);
     else
         rdisk_generic_identify(ide, ide_has_dma, rdisk);
 }
@@ -2302,11 +2385,11 @@ rdisk_hard_reset(void)
 
             rdisk_log(dev->log, "Removable Disk hard_reset drive=%d\n", c);
 
-            if (dev->tf == NULL)
-                continue;
-
             dev->id  = c;
             dev->drv = &rdisk_drives[c];
+
+            if (dev->tf == NULL)
+                continue;
 
             rdisk_init(dev);
 

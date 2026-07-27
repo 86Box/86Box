@@ -89,6 +89,12 @@ typedef enum video_font_format_e
 #define FONT_KAMCL16_PATH            "roms/video/mda/kamcl16.bin"
 #define FONT_TULIP_DGA_PATH          "roms/video/mda/tulip-dga-bios.bin"
 
+typedef unsigned (*video_wait_states_cb_t)(uint32_t address,
+                                           int write,
+                                           unsigned size,
+                                           uint64_t cpu_cycle,
+                                           void *priv);
+
 typedef struct video_timings_t {
     int type;
     int write_b;
@@ -97,6 +103,8 @@ typedef struct video_timings_t {
     int read_b;
     int read_w;
     int read_l;
+    video_wait_states_cb_t wait_states;
+    void                  *wait_states_priv;
 } video_timings_t;
 
 typedef struct bitmap_t {
@@ -156,6 +164,7 @@ typedef struct monitor_t {
     int                      mon_vid_type;
     atomic_bool              mon_interlace;
     atomic_bool              mon_composite;
+    atomic_bool              mon_dpms;
     struct blit_data_struct *mon_blit_data_ptr;
 } monitor_t;
 
@@ -272,6 +281,10 @@ extern const device_t *video_get_video_from_old_internal_name(char *s);
 extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
+/* Query the active video implementation before a memory transfer so
+ * pin-level CPU cores can model READY without hardcoding a card. */
+extern unsigned    video_get_wait_states(uint32_t address, int write,
+                                         unsigned size, uint64_t cpu_cycle);
 extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int         video_get_type_monitor(int monitor_index);
 
@@ -307,6 +320,8 @@ extern void    video_update_timing(void);
 #define LOAD_FONT_NO_OFFSET       0
 extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
+
+extern void     video_clamp_vram(uint64_t bios_flags, int *vram);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
 #define video_get_type()                      video_get_type_monitor(0)
@@ -476,6 +491,7 @@ extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
 extern const device_t millennium_ii_device;
+extern const device_t millennium_ii_agp_device;
 #ifdef USE_G100
 extern const device_t productiva_g100_device;
 #endif /* USE_G100 */
@@ -490,6 +506,7 @@ extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
 extern const device_t oti077_acer100t_device;
+extern const device_t oti077_pb400_device;
 extern const device_t oti077_pcs44c_device;
 extern const device_t oti077_device;
 
@@ -581,6 +598,7 @@ extern const device_t ps1vga_mca_device;
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
 extern const device_t voodoo_banshee_pci_device;
+extern const device_t voodoo_banshee_agp_device;
 extern const device_t voodoo_3_1000_device;
 extern const device_t voodoo_3_1000_agp_device;
 extern const device_t voodoo_3_2000_device;

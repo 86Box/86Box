@@ -480,6 +480,11 @@ sio_reset(void *priv)
     dma_set_params(1, 0xffffffff);
 
     if (dev->id == 0x03) {
+        sio_write(0, 0x60, 1, 0x80, priv);
+        sio_write(0, 0x61, 1, 0x80, priv);
+        sio_write(0, 0x62, 1, 0x80, priv);
+        sio_write(0, 0x63, 1, 0x80, priv);
+
         sio_write(0, 0xa0, 1, 0x08, priv);
         sio_write(0, 0xa2, 1, 0x00, priv);
         sio_write(0, 0xa4, 1, 0x00, priv);

@@ -652,7 +652,7 @@ const device_config_t nga_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "U.S. English",    .value = 0 },
+            { .description = "English (US)",    .value = 0 },
             { .description = "Scandinavian",    .value = 1 },
             { .description = "Other languages", .value = 2 },
             { .description = "E.F. Hutton",     .value = 3 },

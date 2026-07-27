@@ -375,7 +375,6 @@ aha_cmds(void *priv)
                         mbi->Count,
                         ADDR_TO_U32(mbi->Address));
 
-                dev->Status &= ~STAT_INIT;
                 dev->DataReplyLeft = 0;
                 break;
 
@@ -835,7 +834,7 @@ aha_setmcode(x54x_t *dev)
         return;
 
     /* Open the microcode image file and make sure it exists. */
-    aha_log("%s: loading microcode from '%ls'\n", dev->name, dev->bios_path);
+    aha_log("%s: loading microcode from '%s'\n", dev->name, dev->bios_path);
     if ((fp = rom_fopen(dev->mcode_path, "rb")) == NULL) {
         aha_log("%s: microcode ROM not found!\n", dev->name);
         return;

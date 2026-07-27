@@ -214,9 +214,6 @@ add_library(ui STATIC
     qt_vulkanwindowrenderer.hpp
     qt_vulkanwindowrenderer.cpp
 
-    qt_vulkanrenderer.hpp
-    qt_vulkanrenderer.cpp
-
     qt_mcadevicelist.hpp
     qt_mcadevicelist.cpp
     qt_mcadevicelist.ui
@@ -270,12 +267,32 @@ add_library(ui STATIC
     qt_openglshaderconfig.cpp
     qt_openglshaderconfig.ui
 
+    qt_vulkanshadermanagerdialog.hpp
+    qt_vulkanshadermanagerdialog.cpp
+    qt_vulkanshadermanagerdialog.ui
+
+    qt_vulkanshaderconfig.hpp
+    qt_vulkanshaderconfig.cpp
+    qt_vulkanshaderconfig.ui
+
+    qt_slangp.hpp
+
     qt_iconindicators.hpp
     qt_iconindicators.cpp
     qt_cgasettingsdialog.hpp
     qt_cgasettingsdialog.cpp
     qt_cgasettingsdialog.ui
 )
+
+# Build the Qt ImGui backend separately so AUTOMOC skips it.
+set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
+add_library(osd_backend OBJECT ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp ${OSD_DIR}/imgui/imgui_impl_vulkan.cpp)
+set_target_properties(osd_backend PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
+target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
+target_link_libraries(86Box osd_backend)
+
+target_sources(ui PRIVATE qt_osd.cpp qt_osd.hpp qt_osd_raster.cpp qt_osd_raster.hpp)
+target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(EMU_BUILD_NUM)
     target_sources(ui PRIVATE
@@ -306,7 +323,7 @@ if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC 86Box-qt.rc)
     target_sources(plat PRIVATE win_dynld.c)
-    target_link_libraries(86Box dwmapi)
+    target_link_libraries(86Box dwmapi SetupAPI)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
@@ -415,6 +432,21 @@ target_link_libraries(ui PRIVATE
     Qt${QT_MAJOR}::Network
     Threads::Threads
 )
+
+if (LIBRASHADER)
+    target_compile_definitions(plat PRIVATE LIBRA_RUNTIME_VULKAN)
+    target_compile_definitions(ui PRIVATE LIBRA_RUNTIME_VULKAN)
+    if (LIBRASHADER_STATIC)
+        if (LIBRASHADER_STATIC_FIND_LIB)
+            find_library(LIBRASHADER_STATIC_LIB liblibrashader_capi.a REQUIRED)
+            target_link_libraries(ui PRIVATE "${LIBRASHADER_STATIC_LIB}" ntdll userenv)
+        else()
+            target_link_libraries(ui PRIVATE librashader_capi)
+        endif()
+        target_compile_definitions(plat PRIVATE LIBRASHADER_STATIC)
+        target_compile_definitions(ui PRIVATE LIBRASHADER_STATIC)
+    endif()
+endif()
 
 if(WIN32)
     if(STATIC_BUILD)

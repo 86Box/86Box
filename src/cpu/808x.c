@@ -41,6 +41,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
+#include "808x_marty_86box.h"
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
@@ -172,47 +173,48 @@ x808x_log(const char *fmt, ...)
 static void pfq_add(int c, int add);
 static void set_pzs(int bits);
 
-void
-prefetch_queue_set_pos(int pos)
+static void
+pfq_set_pos(int pos)
 {
     pfq_pos = pos;
 }
 
-void
-prefetch_queue_set_ip(uint16_t ip)
+static void
+pfq_set_ip(uint16_t ip)
 {
     pfq_ip = ip;
 }
 
 void
-prefetch_queue_set_prefetching(int p)
+pfq_set_prefetching(int p)
 {
     prefetching = p;
 }
 
 int
-prefetch_queue_get_pos(void)
+pfq_get_pos(void)
 {
     return pfq_pos;
 }
 
 uint16_t
-prefetch_queue_get_ip(void)
+pfq_get_ip(void)
 {
     return pfq_ip;
 }
 
 int
-prefetch_queue_get_prefetching(void)
+pfq_get_prefetching(void)
 {
     return prefetching;
 }
 
 int
-prefetch_queue_get_size(void)
+pfq_get_size(void)
 {
     return pfq_size;
 }
+
 static void set_if(int cond);
 
 uint16_t
@@ -254,20 +256,21 @@ fetch_and_bus(int c, int bus)
 }
 
 static void
-wait_cycs(int c, int bus)
+i808x_wait(int c, int bus)
 {
-    if (is_new_biu)
-        wait_vx0(c);
-    else {
-        cycles -= c;
-        fetch_and_bus(c, bus);
-    }
+    cycles -= c;
+    fetch_and_bus(c, bus);
 }
 
 /* This is for external subtraction of cycles. */
 void
 sub_cycles(int c)
 {
+    if (m808x_86box_active()) {
+        m808x_86box_external_sub_cycles(c);
+        return;
+    }
+
     if (c <= 0)
         return;
 
@@ -706,6 +709,15 @@ static void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_808x(int hard)
 {
+    i808x_hook_prefetch_queue(pfq_set_pos, pfq_set_ip, pfq_set_prefetching,
+                              pfq_get_pos, pfq_get_ip, pfq_get_prefetching,
+                              pfq_get_size, i808x_wait);
+
+    if (m808x_86box_should_use()) {
+        m808x_86box_reset(hard);
+        return;
+    }
+
     is_new_biu = 0;
     biu_cycles = 0;
     in_rep     = 0;
@@ -766,6 +778,11 @@ set_ip(uint16_t new_ip)
 void
 refreshread(void)
 {
+    if (m808x_86box_active()) {
+        m808x_86box_refresh();
+        return;
+    }
+
     refresh++;
 }
 
@@ -3350,6 +3367,11 @@ execx86_instruction(void)
 void
 execx86(int cycs)
 {
+    if (m808x_86box_should_use()) {
+        execx86_new(cycs);
+        return;
+    }
+
     cycles += cycs;
 
     while (cycles > 0) {

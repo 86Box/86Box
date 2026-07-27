@@ -87,6 +87,8 @@ jobs:
           libslirp
           vde
           libserialport
+          vulkan-headers
+          zstd
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

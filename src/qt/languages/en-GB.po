@@ -25,14 +25,39 @@ msgstr "Greyscale conversion type:"
 msgid "Time synchronization"
 msgstr "Time synchronisation"
 
-msgid "Unable to initialize Ghostscript"
-msgstr "Unable to initialise Ghostscript"
+msgid "%n wait state(s)"
+msgid_plural "%n wait states"
+msgstr[0] "%n wait state"
+msgstr[1] "%n wait states"
 
-msgid "Unable to initialize GhostPCL"
-msgstr "Unable to initialise GhostPCL"
+msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr "Unable to initialise Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 
-msgid "Failed to initialize network driver"
-msgstr "Failed to initialise network driver"
+msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr "Unable to initialise GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+
+msgid "%n running"
+msgid_plural "%n running"
+msgstr[0] "%n running"
+msgstr[1] "%n running"
+
+msgid "%n paused"
+msgid_plural "%n paused"
+msgstr[0] "%n paused"
+msgstr[1] "%n paused"
+
+msgid "%n waiting"
+msgid_plural "%n waiting"
+msgstr[0] "%n waiting"
+msgstr[1] "%n waiting"
+
+msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
+msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[0] "%n machine is currently active. Are you sure you want to exit the VM manager anyway?"
+msgstr[1] "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
+
+msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
+msgstr "Failed to initialise network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
 msgstr "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behaviour should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behaviour will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
@@ -46,8 +71,8 @@ msgstr "Render behaviour"
 msgid "Synchronize with video"
 msgstr "Synchronise with video"
 
-msgid "Error initializing OpenGL"
-msgstr "Error initialising OpenGL"
+msgid "Error initializing OpenGL."
+msgstr "Error initialising OpenGL."
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialogue will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
@@ -100,11 +125,13 @@ msgstr "Colour Non-Interlaced"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Failed to initialise Vulkan renderer."
 
+msgid "%n disk(s)"
+msgid_plural "%n disks"
+msgstr[0] "%n disk"
+msgstr[1] "%n disks"
+
 msgid "Color scheme"
 msgstr "Colour scheme"
 
-msgid "Audio output device:"
-msgstr "Audio output device:"
-
-msgid "System Default"
-msgstr "System Default"
+msgid "PC-CM (Color)"
+msgstr "PC-CM (Colour)"

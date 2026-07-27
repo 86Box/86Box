@@ -20,6 +20,7 @@ public:
     explicit PreferencesEmulator(QWidget *parent = nullptr);
     ~PreferencesEmulator();
 
+    int  changed();
     void save();
 
 private slots:

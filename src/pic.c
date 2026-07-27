@@ -251,8 +251,9 @@ pic_callback(UNUSED(void *priv))
 void
 pic_reset(void)
 {
-    int is_at = IS_AT(machine);
-    is_at     = is_at || (machines[machine].init == machine_xt_xi8088_init);
+    int is_at     = IS_AT(machine);
+    int is_zenith = machine_has_flags(machine, MACHINE_ZENITH);
+    is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
 
     memset(&pic, 0, sizeof(pic_t));
     memset(&pic2, 0, sizeof(pic_t));
@@ -270,7 +271,8 @@ pic_reset(void)
     tmr_inited = 1;
 
     update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
-    pic.at = pic2.at = is_at;
+    pic.at     = pic2.at     = is_at;
+    pic.zenith = pic2.zenith = is_zenith;
 
     smi_irq_mask = smi_irq_status = 0x0000;
 
@@ -528,7 +530,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 break;
             case STATE_NONE:
                 dev->imr = val;
-                if (is286)
+                if (is286 || dev->zenith)
                     update_pending();
                 else
                     timer_on_auto(&pic_timer, .0 * ((10000000.0 * (double) xt_cpu_multi) / (double) cpu_s->rspeed));

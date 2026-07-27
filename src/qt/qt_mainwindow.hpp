@@ -34,13 +34,17 @@ public:
     ~MainWindow();
 
     void         showMessage(int flags, const QString &header, const QString &message, bool richText);
-    void         getTitle(wchar_t *title);
+    QString      getTitle();
     void         blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize        getRenderWidgetSize();
     void         setSendKeyboardInput(bool enabled);
     void         reloadAllRenderers();
     QShortcut   *windowedShortcut;
     QKeySequence FindAcceleratorSeq(const char *name);
+
+    QString mouseStringUncaptured;
+    QString mouseStringCaptured;
+    void    updateMouseStrings();
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:
@@ -66,7 +70,6 @@ signals:
     void setMouseCapture(bool state);
 
     void showMessageForNonQtThread(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done);
-    void getTitleForNonQtThread(wchar_t *title);
 
     void vmmRunningStateChanged(VMManagerProtocol::RunningState state);
     void vmmConfigurationChanged();
@@ -85,10 +88,10 @@ private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
-    void on_actionAuto_pause_triggered();
     void on_actionUpdate_mouse_every_CPU_frame_triggered();
     void on_actionAuto_capture_mouse_triggered();
     void on_actionPause_triggered();
+    void on_actionToggle_OSD_triggered();
     void on_actionCtrl_Alt_Del_triggered();
     void on_actionCtrl_Alt_Esc_triggered();
     void on_actionHard_Reset_triggered();
@@ -136,7 +139,6 @@ private slots:
 
     void refreshMediaMenu();
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);
-    void getTitle_(wchar_t *title);
 
     void on_actionMCA_devices_triggered();
 

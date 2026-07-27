@@ -260,7 +260,7 @@ SettingsNetwork::changed()
         if (temp_host_dev_name[0] == 0x00)
             strncpy(temp_host_dev_name, "none", 5);
         temp_host_dev_name[sizeof(temp_host_dev_name) - 1] = 0x00;
-        has_changed |= strcmp(temp_host_dev_name, net_cards_conf[i].host_dev_name);
+        has_changed |= strcmp(temp_host_dev_name, net_cards_conf[i].host_dev_name[0] ? net_cards_conf[i].host_dev_name : "none");
         has_changed |= strcmp(temp_secret,        net_cards_conf[i].secret);
         has_changed |= strcmp(temp_nrs_hostname,  net_cards_conf[i].nrs_hostname);
     }
@@ -274,8 +274,11 @@ SettingsNetwork::restore()
 }
 
 void
-SettingsNetwork::save()
+SettingsNetwork::save(int soft)
 {
+    if (soft)
+        return;
+
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *cbox = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
 #ifdef HAS_VDE
@@ -463,9 +466,11 @@ SettingsNetwork::on_pushButtonConf1_clicked()
 {
     int   netCard = ui->comboBoxNIC1->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
-    if (netCard == NET_INTERNAL)
+    if (netCard == NET_INTERNAL) {
         device = machine_get_net_device(machineId);
-    net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
+        net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device);
+    } else
+        net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void

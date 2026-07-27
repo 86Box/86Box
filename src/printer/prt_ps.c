@@ -12,8 +12,8 @@
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *          Cacodemon345
  *
- *          Copyright 2019 David Hrdlička.
- *          Copyright 2024 Cacodemon345.
+ *          Copyright 2019-2026 David Hrdlička.
+ *          Copyright 2024-2026 Cacodemon345.
  */
 #include <inttypes.h>
 #include <memory.h>
@@ -21,18 +21,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
-#include <86box/device.h>
 #include <86box/lpt.h>
 #include <86box/pit.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
-#include <86box/prt_devs.h>
 #include "cpu.h"
 
 #ifdef _WIN32
@@ -42,22 +39,7 @@
 #endif
 
 #define GS_ARG_ENCODING_UTF8 1
-#define gs_error_Quit        -101
-
-#ifdef _WIN32
-#    define PATH_GHOSTSCRIPT_DLL "gsdll64.dll"
-#    define PATH_GHOSTPCL_DLL    "gpcl6dll64.dll"
-#elif defined __APPLE__
-#    define PATH_GHOSTSCRIPT_DLL "libgs.dylib"
-#    define PATH_GHOSTPCL_DLL    "libgpcl6.9.54.dylib"
-#else
-#    define PATH_GHOSTSCRIPT_DLL      "libgs.so.10"
-#    define PATH_GHOSTSCRIPT_DLL_ALT1 "libgs.so.9"
-#    define PATH_GHOSTSCRIPT_DLL_ALT2 "libgs.so"
-#    define PATH_GHOSTPCL_DLL         "libgpcl6.so.10"
-#    define PATH_GHOSTPCL_DLL_ALT1    "libgpcl6.so.9"
-#    define PATH_GHOSTPCL_DLL_ALT2    "libgpcl6.so"
-#endif
+#define gs_error_Quit        (-101)
 
 #define POSTSCRIPT_BUFFER_LENGTH 65536
 
@@ -71,8 +53,6 @@ enum {
 };
 
 typedef struct ps_t {
-    const char *name;
-
     void *      lpt;
 
     pc_timer_t  pulse_timer;
@@ -80,21 +60,18 @@ typedef struct ps_t {
 
     bool        ack;
     bool        select;
-    bool        busy;
-    bool        int_pending;
-    bool        error;
     bool        autofeed;
     bool        pcl;
     bool        pending;
     bool        pjl;
     bool        pjl_command;
 
-    char        data;
+    uint8_t     data;
 
     char        printer_path[260];
     char        filename[260];
 
-    char        buffer[POSTSCRIPT_BUFFER_LENGTH];
+    uint8_t     buffer[POSTSCRIPT_BUFFER_LENGTH];
 
     uint8_t     ctrl;
     uint8_t     pcl_escape;
@@ -220,9 +197,6 @@ convert_to_pdf(ps_t *dev)
 static void
 reset_ps(ps_t *dev)
 {
-    if (dev == NULL)
-        return;
-
     dev->ack = false;
 
     if (dev->pending) {
@@ -272,7 +246,7 @@ write_buffer(ps_t *dev, bool finish)
     if (dev->pcl)
         fwrite(dev->buffer, 1, dev->buffer_pos, fp);
     else
-        fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer);
+        fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, (const char *) dev->buffer);
 
     fclose(fp);
 
@@ -317,7 +291,7 @@ ps_write_data(uint8_t val, void *priv)
     if (dev == NULL)
         return;
 
-    dev->data = (char) val;
+    dev->data = val;
 }
 
 static int
@@ -328,6 +302,8 @@ process_escape(ps_t *dev, int do_pjl)
     if (dev->data == 0x1b)
         dev->pcl_escape = 1;
     else  switch (dev->pcl_escape) {
+        default:
+            break;
         case 1:
             dev->pcl_escape = (dev->data == 0x25) ? 2 : 0;
             break;
@@ -532,21 +508,24 @@ ps_init(const device_t *info)
 
     if (dev->lang != LANG_RAW) {
         /* Try loading the DLL. */
-        ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
-#ifdef PATH_GHOSTSCRIPT_DLL_ALT1
-        if (ghostscript_handle == NULL) {
-            ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT1, ghostscript_imports);
-#    ifdef PATH_GHOSTSCRIPT_DLL_ALT2
-            if (ghostscript_handle == NULL)
-                ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT2, ghostscript_imports);
-#    endif
-        }
+        static const char *ghostscript_libs[] = {
+#ifdef _WIN32
+            "gsdll64.dll", "libgs-10.dll", "libgs-9.dll"
+#elif defined(__APPLE__)
+            "libgs.dylib"
+#else
+            "libgs.so.10", "libgs.so.9", "libgs.so"
 #endif
+        };
+        for (int i = 0; i < (sizeof(ghostscript_libs) / sizeof(ghostscript_libs[0])); i++) {
+            if ((ghostscript_handle = dynld_module(ghostscript_libs[i], ghostscript_imports)))
+                break;
+        }
 
         if (ghostscript_handle == NULL) {
-            ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTSCRIPT_ERROR_TITLE), plat_get_string(STRING_GHOSTSCRIPT_ERROR_DESC));
-            } else {
-                if (gsapi_revision(&rev, sizeof(rev)) == 0) {
+            ui_msgbox(MBX_WARNING, plat_get_string(STRING_GHOSTSCRIPT_ERROR));
+        } else {
+            if (gsapi_revision(&rev, sizeof(rev)) == 0) {
                 pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
             } else {
                 dynld_close(ghostscript_handle);
@@ -584,19 +563,22 @@ pcl_init(const device_t *info)
 
     if (dev->lang != LANG_RAW) {
         /* Try loading the DLL. */
-        ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL, ghostscript_imports);
-#ifdef PATH_GHOSTPCL_DLL_ALT1
-        if (ghostscript_handle == NULL) {
-            ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT1, ghostscript_imports);
-#    ifdef PATH_GHOSTPCL_DLL_ALT2
-            if (ghostscript_handle == NULL)
-                ghostscript_handle = dynld_module(PATH_GHOSTPCL_DLL_ALT2, ghostscript_imports);
-#    endif
-        }
+        static const char *ghostpcl_libs[] = {
+#ifdef _WIN32
+            "gpcl6dll64.dll", "libgpcl6-10.dll", "libgpcl6-9.dll"
+#elif defined(__APPLE__)
+            "libgpcl6.dylib", "libgpcl6.9.dylib", "libgpcl6.9.54.dylib"
+#else
+            "libgpcl6.so.10", "libgpcl6.so.9", "libgpcl6.so"
 #endif
+        };
+        for (int i = 0; i < (sizeof(ghostpcl_libs) / sizeof(ghostpcl_libs[0])); i++) {
+            if ((ghostscript_handle = dynld_module(ghostpcl_libs[i], ghostscript_imports)))
+                break;
+        }
 
         if (ghostscript_handle == NULL) {
-            ui_msgbox_header(MBX_ERROR, plat_get_string(STRING_GHOSTPCL_ERROR_TITLE), plat_get_string(STRING_GHOSTPCL_ERROR_DESC));
+            ui_msgbox(MBX_WARNING, plat_get_string(STRING_GHOSTPCL_ERROR));
         } else {
             if (gsapi_revision(&rev, sizeof(rev)) == 0) {
                 pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
@@ -637,6 +619,9 @@ ps_close(void *priv)
         dynld_close(ghostscript_handle);
         ghostscript_handle = NULL;
     }
+
+    timer_disable(&dev->pulse_timer);
+    timer_disable(&dev->timeout_timer);
 
     free(dev);
 }
@@ -689,7 +674,7 @@ static const device_config_t lpt_prt_pcl_config[] = {
 const device_t lpt_prt_ps_device = {
     .name          = "Generic PostScript Printer",
     .internal_name = "postscript",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = ps_init,
     .close         = ps_close,
@@ -703,7 +688,7 @@ const device_t lpt_prt_ps_device = {
 const device_t lpt_prt_pcl_device = {
     .name          = "Generic PCL Printer",
     .internal_name = "pcl",
-    .flags         = DEVICE_LPT,
+    .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
     .init          = pcl_init,
     .close         = ps_close,

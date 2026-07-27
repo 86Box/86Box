@@ -32,8 +32,8 @@ extern "C" {
 #else
 #    define TOOLBUTTON_STYLESHEET_DARK "QToolButton {background: transparent; border: none; padding: 5px} QToolButton:hover {background: palette(dark)} QToolButton:pressed {background: palette(mid)}"
 #endif
-#define SCROLLAREA_STYLESHEET_LIGHT  "QWidget {background-color: palette(light)} QScrollBar{ background-color: none }"
-#define SYSTEMLABEL_STYLESHEET_LIGHT "background-color: palette(midlight);"
+#define SCROLLAREA_STYLESHEET_LIGHT  ""
+#define SYSTEMLABEL_STYLESHEET_LIGHT ""
 
 using namespace VMManager;
 
@@ -275,7 +275,7 @@ VMManagerDetails::updateData(VMManagerSystem *passed_sysconfig)
     updateScreenshots(passed_sysconfig);
 
     ui->systemLabel->setText(passed_sysconfig->displayName);
-    ui->statusLabel->setText(sysconfig->process->processId() == 0 ? tr("Not running") : QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
+    ui->statusLabel->setText(sysconfig->process->processId() == 0 ? tr("Not running") : QString(Preferences::languageIdToCode(lang_id).startsWith("fr-") ? "%1 : PID %2" : "%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())));
     ui->notesTextEdit->setPlainText(passed_sysconfig->notes);
     ui->notesTextEdit->setEnabled(true);
 
@@ -415,7 +415,7 @@ void
 VMManagerDetails::updateProcessStatus()
 {
     const bool running     = sysconfig->process->state() == QProcess::ProcessState::Running;
-    QString    status_text = running ? QString("%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())) : tr("Not running");
+    QString    status_text = running ? QString(Preferences::languageIdToCode(lang_id).startsWith("fr-") ? "%1 : PID %2" : "%1: PID %2").arg(tr("Running"), QString::number(sysconfig->process->processId())) : tr("Not running");
     status_text.append(sysconfig->window_obscured ? QString(" (%1)").arg(tr("Waiting")) : "");
     ui->statusLabel->setText(status_text);
     resetButton->setEnabled(running);

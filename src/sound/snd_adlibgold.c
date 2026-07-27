@@ -774,19 +774,17 @@ adgold_timer_poll(void *priv)
 }
 
 static void
-adgold_get_buffer(int32_t *buffer, int len, void *priv)
+adgold_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     adgold_t *adgold        = (adgold_t *) priv;
     int16_t  *adgold_buffer = calloc(len * 2, sizeof(int16_t));
     if (adgold_buffer == NULL)
         fatal("adgold_buffer = NULL");
 
-    int c;
-
     int32_t *opl_buf = adgold->opl.update(adgold->opl.priv);
     adgold_update(adgold);
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         adgold_buffer[c] = ((opl_buf[c] * adgold->fm_vol_l) >> 7) / 2;
         adgold_buffer[c] += ((adgold->mma_buffer[0][c >> 1] * adgold->samp_vol_l) >> 7) / 4;
         adgold_buffer[c + 1] = ((opl_buf[c + 1] * adgold->fm_vol_r) >> 7) / 2;
@@ -798,15 +796,15 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 6) {
         case 0:
-            for (c = 0; c < len * 2; c++)
+            for (uint16_t c = 0; c < len * 2; c++)
                 adgold_buffer[c] = 0;
             break;
         case 2: /*Left channel only*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c + 1] = adgold_buffer[c];
             break;
         case 4: /*Right channel only*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] = adgold_buffer[c + 1];
             break;
         case 6: /*Left and right channels*/
@@ -818,7 +816,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
 
     switch (adgold->adgold_38x_regs[0x8] & 0x18) {
         case 0x00: /*Forced mono*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] = adgold_buffer[c + 1] = ((int32_t) adgold_buffer[c] + (int32_t) adgold_buffer[c + 1]) / 2;
             break;
         case 0x08: /*Linear stereo*/
@@ -826,13 +824,13 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
         case 0x10: /*Pseudo stereo*/
             /*Filter left channel, leave right channel unchanged*/
             /*Filter cutoff is largely a guess*/
-            for (c = 0; c < len * 2; c += 2)
+            for (uint16_t c = 0; c < len * 2; c += 2)
                 adgold_buffer[c] += adgold_pseudo_stereo_iir(adgold_buffer[c]);
             break;
         case 0x18: /*Spatial stereo*/
             /*Quite probably wrong, I only have the diagram in the TDA8425 datasheet
               and a very vague understanding of how op-amps work to go on*/
-            for (c = 0; c < len * 2; c += 2) {
+            for (uint16_t c = 0; c < len * 2; c += 2) {
                 int16_t l = adgold_buffer[c];
                 int16_t r = adgold_buffer[c + 1];
 
@@ -845,7 +843,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
             break;
     }
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (uint16_t c = 0; c < len * 2; c += 2) {
         int32_t temp;
         int32_t lowpass;
         int32_t highpass;
@@ -957,7 +955,7 @@ adgold_init(UNUSED(const device_t *info))
     adgold->surround_enabled = device_get_config_int("surround");
     adgold->gameport_enabled = device_get_config_int("gameport");
 
-    fm_driver_get_ex(FM_YMF262, &adgold->opl, 1);
+    fm_driver_get_ex(FM_YMF262, &adgold->opl, 3);
     if (adgold->surround_enabled)
         ym7128_init(&adgold->ym7128);
 

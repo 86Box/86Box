@@ -17,7 +17,7 @@ public:
     int  changed();
 
     void restore();
-    void save();
+    void save(int soft);
 
 public slots:
     void onCurrentMachineChanged(int machineId);
@@ -46,6 +46,8 @@ private slots:
     void on_pushButtonSCSI3_clicked();
     void on_comboBoxSCSI4_currentIndexChanged(int index);
     void on_pushButtonSCSI4_clicked();
+
+    void on_checkBoxFloppyTape_stateChanged(int state);
 
 private:
     Ui::SettingsStorageControllers *ui;

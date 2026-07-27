@@ -57,7 +57,7 @@ Initial release. Authored by GreaseMonkey.
 - `u8` denotes an unsigned 8-bit value.
 - `w8` denotes an 8-bit value which wraps around.
 - `x8` denotes an 8-bit value where the signedness is irrelevant.
-- `e8` ("either") denotes an 8-bit value where the most significant bit is clear - in effect, this is a 7-bit unsigned value, and can be interepreted identically as a signed 8-bit value.
+- `e8` ("either") denotes an 8-bit value where the most significant bit is clear - in effect, this is a 7-bit unsigned value, and can be interpreted identically as a signed 8-bit value.
 - `u16L` denotes a little-endian unsigned 16-bit value.
 - `u16B` would denote a big-endian unsigned 16-bit value if we had any big-endian values.
 - `[N]T` denotes an array of `N` values of type `T`, whatever `N` and `T` are.

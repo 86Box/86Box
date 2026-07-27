@@ -72,7 +72,7 @@ machine_at_cs4031_init(const machine_t *model)
     return ret;
 }
 
-/* OPTi 381 */
+/* OPTi 481 */
 int
 machine_at_ga486l_init(const machine_t *model)
 {
@@ -86,7 +86,30 @@ machine_at_ga486l_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&opti381_device);
+    device_add(&opti481_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_vantage4865c_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vantage4865c/nmc27c512-69cc9b5ad7639879340132.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti481_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -97,6 +120,109 @@ machine_at_ga486l_init(const machine_t *model)
 }
 
 /* OPTi 493 */
+static const device_config_t precisionv486_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "precisionv486",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 070791 (stock)",
+                .internal_name = "precisionv486",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/precisionv486/dell-486sx.bin", "" }
+            },
+            {
+                .name          = "AMIBIOS 070791 (modded, all setup options unhidden)",
+                .internal_name = "precisionv486_modded",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/precisionv486/dellmod.rom", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t precisionv486_device = {
+    .name          = "Dell Precision V486/xx",
+    .internal_name = "precisionv486",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = precisionv486_config
+};
+int
+machine_at_precisionv486_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti493_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_cpc2000le_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cpc2000le/cpc-2000le.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti493_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
 int
 machine_at_svc486wb_init(const machine_t *model)
 {
@@ -117,6 +243,32 @@ machine_at_svc486wb_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
+
+    return ret;
+}
+
+/* OPTi 495SX */
+int
+machine_at_pb400_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pb400/PB_400_SYSTEM_VGA_BIOS.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&opti495sx_device);
+
+    device_add(&phoenix_486_jumper_pb400_device);
+    device_add_params(&um866x_device, (void *) (UM82C862F | UM866X_IDE_PRI));
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -241,7 +393,7 @@ machine_at_advantage40xxd_init(const machine_t *model)
     return ret;
 }
 
-/* Symphony SL42C460 */
+/* Symphony SL82C460 */
 int
 machine_at_dtk461_init(const machine_t *model)
 {

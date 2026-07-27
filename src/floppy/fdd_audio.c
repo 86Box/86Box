@@ -100,6 +100,8 @@ fdd_audio_detect_bios_vendor(void)
                 fdd_log("FDD Audio: Detected AMI BIOS\n");
                 return BIOS_VENDOR_AMI;
             }
+        }
+        if ((i + 19) < (biosmask + 1)) {
             if (memcmp(&rom[i], "American Megatrends", 19) == 0) {
                 fdd_log("FDD Audio: Detected AMI BIOS (American Megatrends)\n");
                 return BIOS_VENDOR_AMI;

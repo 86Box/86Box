@@ -46,6 +46,7 @@
 #include <86box/nvr.h>
 #include <86box/nvr_ps2.h>
 #include <86box/rom.h>
+#include "cpu.h"
 
 typedef struct ps2_nvr_t {
     int addr;
@@ -131,7 +132,7 @@ ps2_nvr_init(const device_t *info)
 
     nvr->ram = (uint8_t *) calloc(1, nvr->size);
     if (fp != NULL) {
-        if (fread(nvr->ram, 1, nvr->size, fp) != nvr->size)
+        if ((cpu_s != NULL) && (fread(nvr->ram, 1, nvr->size, fp) != nvr->size))
             fatal("ps2_nvr_init(): Error reading EEPROM data\n");
         fclose(fp);
     }

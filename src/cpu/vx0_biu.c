@@ -38,7 +38,7 @@
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
 
-#define do_cycle()           wait_vx0(1)
+#define do_cycle()           wait_vx0(1, 0)
 #define do_cycle_i()         do_cycle()
 
 uint8_t            biu_preload_byte      = 0x00;
@@ -103,6 +103,48 @@ vx0_biu_log(const char *fmt, ...)
 #else
 #    define vx0_biu_log(fmt, ...)
 #endif
+
+void
+biu_pfq_set_pos(int pos)
+{
+    pfq_pos = pos;
+}
+
+void
+biu_pfq_set_ip(uint16_t ip)
+{
+    pfq_ip = ip;
+}
+
+void
+biu_pfq_set_prefetching(int p)
+{
+    fetch_suspended = !p;
+}
+
+int
+biu_pfq_get_pos(void)
+{
+    return pfq_pos;
+}
+
+uint16_t
+biu_pfq_get_ip(void)
+{
+    return pfq_ip;
+}
+
+int
+biu_pfq_get_prefetching(void)
+{
+    return !fetch_suspended;
+}
+
+int
+biu_pfq_get_size(void)
+{
+    return pfq_size;
+}
 
 void
 biu_set_bus_cycle(int bus_cycle)
@@ -705,7 +747,7 @@ biu_eu_request(void)
 }
 
 void
-wait_vx0(int c)
+wait_vx0(int c, UNUSED(int bus))
 {
     vx0_biu_log("[%04X:%04X] %02X %i cycles\n", CS, cpu_state.pc, opcode, c);
 

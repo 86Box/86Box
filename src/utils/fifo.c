@@ -285,13 +285,13 @@ fifo_read_evt(void *priv)
             fifo->ready   = 0;
             if (fifo->d_ready && (fifo->d_ready_evt != NULL))
                 fifo->d_ready_evt(fifo->priv);
+        }
 
-            if (count == 0) {
-                fifo->d_empty = (fifo->empty != 1);
-                fifo->empty   = 1;
-                if (fifo->d_empty && (fifo->d_empty_evt != NULL))
-                    fifo->d_empty_evt(fifo->priv);
-            }
+        if (count == 0) {
+            fifo->d_empty = (fifo->empty != 1);
+            fifo->empty   = 1;
+            if (fifo->d_empty && (fifo->d_empty_evt != NULL))
+                fifo->d_empty_evt(fifo->priv);
         }
     }
 
@@ -326,13 +326,13 @@ fifo_read_evt_tagged(uint8_t *tag, void *priv)
             fifo->ready   = 0;
             if (fifo->d_ready && (fifo->d_ready_evt != NULL))
                 fifo->d_ready_evt(fifo->priv);
+        }
 
-            if (count == 0) {
-                fifo->d_empty = (fifo->empty != 1);
-                fifo->empty   = 1;
-                if (fifo->d_empty && (fifo->d_empty_evt != NULL))
-                    fifo->d_empty_evt(fifo->priv);
-            }
+        if (count == 0) {
+            fifo->d_empty = (fifo->empty != 1);
+            fifo->empty   = 1;
+            if (fifo->d_empty && (fifo->d_empty_evt != NULL))
+                fifo->d_empty_evt(fifo->priv);
         }
     } else
         *tag        = 0x00;

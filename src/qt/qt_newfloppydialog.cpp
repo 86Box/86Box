@@ -67,6 +67,8 @@ static const QStringList floppyTypes = {
 static const QStringList rdiskTypes = {
     "ZIP 100",
     "ZIP 250",
+    "Jaz 1 GB",
+    "Jaz 2 GB",
 #if 0
     "ZIP 750",
     "LS-120",
@@ -183,7 +185,9 @@ NewFloppyDialog::onCreate()
 
                 std::atomic_bool res;
                 std::thread      t([this, &res, filename, fileType, &progress] {
-                    res = createRDiskSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
+                    res = createRDiskSectorImage(filename,
+                                                  rdisk_types[ui->comboBoxSize->currentIndex()].sectors,
+                                                  fileType, progress);
                 });
                 progress.exec();
                 t.join();
@@ -372,7 +376,7 @@ NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &d
     memset(empty + zero_bytes, 0xF6, total_size - zero_bytes);
 
     empty[0x00] = 0xEB; /* Jump to make MS-DOS happy. */
-    empty[0x01] = 0x58;
+    empty[0x01] = 0x3C;
     empty[0x02] = 0x90;
 
     empty[0x03] = 0x38; /* '86BOX5.0' OEM ID. */
@@ -410,6 +414,124 @@ NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &d
     empty[0x3A] = '2';
     memset(&(empty[0x3B]), 0x20, 0x0003);
 
+    /* A simple boot loader that tries to jump execution to the first
+       hard disk.  It tries to load the first hard disk's boot sector
+       into memory and jump execution there, printing an error message
+       if unable to do so.
+    */
+    empty[0x3E] = 0xFA;
+    empty[0x3F] = 0x31;
+    empty[0x40] = 0xC0;
+    empty[0x41] = 0x8E;
+    empty[0x42] = 0xD8;
+    empty[0x43] = 0x8E;
+    empty[0x44] = 0xC0;
+    empty[0x45] = 0x8E;
+    empty[0x46] = 0xD0;
+    empty[0x47] = 0xBC;
+    empty[0x48] = 0x00;
+    empty[0x49] = 0x7C;
+    empty[0x4A] = 0xFB;
+    empty[0x4B] = 0xBE;
+    empty[0x4C] = 0x00;
+    empty[0x4D] = 0x7C;
+    empty[0x4E] = 0xBF;
+    empty[0x4F] = 0x00;
+    empty[0x50] = 0x06;
+    empty[0x51] = 0xB9;
+    empty[0x52] = 0x00;
+    empty[0x53] = 0x01;
+    empty[0x54] = 0xF3;
+    empty[0x55] = 0xA5;
+    empty[0x56] = 0xEA;
+    empty[0x57] = 0x5B;
+    empty[0x58] = 0x06;
+    empty[0x59] = 0x00;
+    empty[0x5A] = 0x00;
+    empty[0x5B] = 0xB2;
+    empty[0x5C] = 0x80;
+    empty[0x5D] = 0x31;
+    empty[0x5E] = 0xC0;
+    empty[0x5F] = 0xCD;
+    empty[0x60] = 0x13;
+    empty[0x61] = 0x72;
+    empty[0x62] = 0x14;
+    empty[0x63] = 0xB8;
+    empty[0x64] = 0x01;
+    empty[0x65] = 0x02;
+    empty[0x66] = 0xB9;
+    empty[0x67] = 0x01;
+    empty[0x68] = 0x00;
+    empty[0x69] = 0xB6;
+    empty[0x6A] = 0x00;
+    empty[0x6B] = 0xBB;
+    empty[0x6C] = 0x00;
+    empty[0x6D] = 0x7C;
+    empty[0x6E] = 0xCD;
+    empty[0x6F] = 0x13;
+    empty[0x70] = 0x72;
+    empty[0x71] = 0x05;
+    empty[0x72] = 0xEA;
+    empty[0x73] = 0x00;
+    empty[0x74] = 0x7C;
+    empty[0x75] = 0x00;
+    empty[0x76] = 0x00;
+    empty[0x77] = 0xBE;
+    empty[0x78] = 0x89;
+    empty[0x79] = 0x7C;
+    empty[0x7A] = 0xAC;
+    empty[0x7B] = 0x84;
+    empty[0x7C] = 0xC0;
+    empty[0x7D] = 0x74;
+    empty[0x7E] = 0x06;
+    empty[0x7F] = 0xB4;
+    empty[0x80] = 0x0E;
+    empty[0x81] = 0xCD;
+    empty[0x82] = 0x10;
+    empty[0x83] = 0xEB;
+    empty[0x84] = 0xF5;
+    empty[0x85] = 0xFA;
+    empty[0x86] = 0xF4;
+    empty[0x87] = 0xEB;
+    empty[0x88] = 0xFC;
+    empty[0x89] = 'F';
+    empty[0x8A] = 'a';
+    empty[0x8B] = 'i';
+    empty[0x8C] = 'l';
+    empty[0x8D] = 'e';
+    empty[0x8E] = 'd';
+    empty[0x8F] = ' ';
+    empty[0x90] = 't';
+    empty[0x91] = 'o';
+    empty[0x92] = ' ';
+    empty[0x93] = 'f';
+    empty[0x94] = 'i';
+    empty[0x95] = 'n';
+    empty[0x96] = 'd';
+    empty[0x97] = ' ';
+    empty[0x98] = 'a';
+    empty[0x99] = ' ';
+    empty[0x9A] = 'v';
+    empty[0x9B] = 'a';
+    empty[0x9C] = 'l';
+    empty[0x9D] = 'i';
+    empty[0x9E] = 'd';
+    empty[0x9F] = ' ';
+    empty[0xA0] = 'b';
+    empty[0xA1] = 'o';
+    empty[0xA2] = 'o';
+    empty[0xA3] = 't';
+    empty[0xA4] = ' ';
+    empty[0xA5] = 'd';
+    empty[0xA6] = 'e';
+    empty[0xA7] = 'v';
+    empty[0xA8] = 'i';
+    empty[0xA9] = 'c';
+    empty[0xAA] = 'e';
+    empty[0xAB] = '.';
+    empty[0xAC] = '\r';
+    empty[0xAD] = '\n';
+
     empty[0x1FE] = 0x55;
     empty[0x1FF] = 0xAA;
 
@@ -422,11 +544,10 @@ NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &d
 }
 
 bool
-NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar)
+NewFloppyDialog::createRDiskSectorImage(const QString &filename, uint32_t total_sectors, FileType type, QProgressDialog &pbar)
 {
     uint64_t total_size    = 0;
-    uint32_t total_sectors = 0;
-    uint32_t sector_bytes  = 0;
+    const uint32_t sector_bytes = 512;
     uint16_t base          = 0x1000;
     uint64_t pbar_max      = 0;
 
@@ -437,17 +558,9 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
     QDataStream stream(&file);
     stream.setByteOrder(QDataStream::LittleEndian);
 
-    sector_bytes  = (128 << disk_size.sector_len);
-    total_sectors = disk_size.sides * disk_size.tracks * disk_size.sectors;
-    if (total_sectors > ZIP_SECTORS)
-        total_sectors = ZIP_250_SECTORS;
     total_size = (uint64_t) total_sectors * sector_bytes;
 
-    pbar_max = total_size;
-    if (type == FileType::Zdi) {
-        pbar_max += base;
-    }
-    pbar_max >>= 11;
+    pbar_max = (total_size + 1048575) >> 20;
 
     if (type == FileType::Zdi) {
         QByteArray data(base, 0);
@@ -456,15 +569,14 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
         *(uint32_t *) &(empty[0x08]) = (uint32_t) base;
         *(uint32_t *) &(empty[0x0C]) = total_size;
         *(uint16_t *) &(empty[0x10]) = (uint16_t) sector_bytes;
-        *(uint8_t *) &(empty[0x14])  = (uint8_t) disk_size.sectors;
-        *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sides;
-        *(uint8_t *) &(empty[0x1C])  = (uint8_t) disk_size.tracks;
+        *(uint8_t *) &(empty[0x14])  = 63;
+        *(uint8_t *) &(empty[0x18])  = 255;
+        *(uint8_t *) &(empty[0x1C])  = (uint8_t) (total_sectors / (63 * 255));
 
         stream.writeRawData(empty, base);
-        pbar_max -= 2;
     }
 
-    QByteArray bytes(total_size, 0);
+    QByteArray bytes(1048576, 0);
     auto       empty = bytes.data();
 
     if (total_sectors == ZIP_SECTORS) {
@@ -521,7 +633,7 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
 
         /* Root directory = 0x35000
         Data = 0x39000 */
-    } else {
+    } else if (total_sectors == ZIP_250_SECTORS) {
         /* ZIP 250 */
         /* MBR */
         *(uint64_t *) &(empty[0x0000]) = 0x2054524150492EEBLL;
@@ -595,8 +707,13 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
     }
 
     pbar.setMaximum(pbar_max);
-    for (uint32_t i = 0; i < pbar_max; i++) {
-        stream.writeRawData(&empty[i << 11], 2048);
+    uint64_t written = 0;
+    for (uint32_t i = 0; written < total_size; i++) {
+        const qint64 count = (qint64) MIN((uint64_t) bytes.size(), total_size - written);
+        stream.writeRawData(empty, count);
+        written += count;
+        if (i == 0)
+            bytes.fill(0);
         fileProgress(i);
     }
     fileProgress(pbar_max);

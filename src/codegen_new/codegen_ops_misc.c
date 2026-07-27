@@ -612,6 +612,29 @@ ropSTD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
 }
 
 uint32_t
+ropPREFETCH(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    if ((fetchdat & 0xc0) == 0xc0)
+        return 0;
+
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    return op_pc + 1;
+}
+
+uint32_t
+ropFEMMS(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
+{
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_femms);
+    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+
+    codegen_mmx_entered = 0;
+    codegen_fpu_entered = 0;
+    return op_pc;
+}
+
+uint32_t
 ropCLI(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))

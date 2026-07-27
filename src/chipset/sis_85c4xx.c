@@ -758,7 +758,7 @@ sis_85c4xx_reset(void *priv)
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
-    if (cpu_s->rspeed < 25000000)
+    if ((cpu_s != NULL) && (cpu_s->rspeed < 25000000))
         dev->regs[0x08] = 0x80;
 
     if (dev->is_471) {
