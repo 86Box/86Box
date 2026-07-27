@@ -180,12 +180,12 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         picint(1 << dev->irq);
     }
     if (!dev->readcount) {
-        cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xFF, (dev->readmsf >> 8) & 0xFF, dev->readmsf & 0xFF) - 150, 0);
+        cdrom_seek(dev->cdrom_dev, MSFtoLBA(((dev->readmsf >> 16) & 0xff), ((dev->readmsf >> 8) & 0xff), (dev->readmsf & 0xff)) - 150, 0);
         dev->data = 0;
         return 0;
     }
     cdrom_stop(dev->cdrom_dev);
-    cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xFF, (dev->readmsf >> 8) & 0xFF, dev->readmsf & 0xFF) - 150, 0);
+    cdrom_seek(dev->cdrom_dev, MSFtoLBA(((dev->readmsf >> 16) & 0xff), ((dev->readmsf >> 8) & 0xff), (dev->readmsf & 0xff)) - 150, 0);
     ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 2, (dev->mode & 0x40) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
     if (ret <= 0)
         return 0;
