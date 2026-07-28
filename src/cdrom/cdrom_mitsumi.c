@@ -21,6 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <limits.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -77,7 +78,7 @@ enum {
 enum {
     FLAG_NODATA = 2,
     FLAG_NOSTAT = 4,
-    FLAG_UNK    = 8, //??
+    FLAG_AUDIO  = 8,
     FLAG_OPEN   = 16
 };
 enum {
@@ -111,7 +112,6 @@ typedef struct mcd_t {
     int      locked;
     int      drvmode;
     int      cur_toc_track;
-    int      pos;
     int      newstat;
 
     cdrom_t *cdrom_dev;
@@ -181,14 +181,16 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     }
     if (!dev->readcount) {
         cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
+        dev->cur_toc_track = INT32_MIN;
         dev->data = 0;
         return 0;
     }
     cdrom_stop(dev->cdrom_dev);
     cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
+    dev->cur_toc_track = INT32_MIN;
     ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 0, (dev->mode & 0x80) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
     if (ret <= 0)
-        return 0;
+        return -1;
     dev->readmsf   = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
     dev->buf_count = dev->dmalen + 1;
     dev->buf_idx   = 0;
@@ -200,13 +202,6 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         }
     }
     dev->data      = 1;
-    if (dev->enable_dma) {
-        while (dev->pos < dev->dmalen) {
-            dma_channel_write(dev->dma, dev->buf[dev->pos]);
-            dev->pos++;
-        }
-        dev->pos = 0;
-    }
     dev->readcount--;
     if ((dev->enable_irq & IRQ_DATAREADY) && first)
         picint(1 << dev->irq);
@@ -244,8 +239,8 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NODATA;
             if (!dev->cmdbuf_count || !dev->newstat)
                 ret |= FLAG_NOSTAT;
-            pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK);
-            return ret | FLAG_UNK;
+            pclog("Read port 1: ret = %02x\n", ret | FLAG_AUDIO);
+            return ret | FLAG_AUDIO;
         case 2:
             break;
         default:
@@ -258,7 +253,8 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
 static void
 mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 {
-    mcd_t   *dev   = (mcd_t *) priv;
+    mcd_t   *dev      = (mcd_t *) priv;
+    int      read_res = -1;
 
     pclog("Mitsumi CD-ROM OUT=%03x, val=%02x\n", port, val);
     switch (port & 1) {
@@ -315,9 +311,19 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
-                                mitsumi_cdrom_read_sector(dev, 1);
+                                read_res = mitsumi_cdrom_read_sector(dev, 1);
+                                if (dev->enable_dma && read_res > 0) {
+                                    do {
+                                        while (dev->buf_count) {
+                                            dma_channel_write(dev->dma, dev->buf[dev->buf_idx] | (dev->buf[dev->buf_idx + 1] << 8));
+                                            dev->buf_idx += 2;
+                                            dev->buf_count -= 2;
+                                        }
+                                        dev->buf_idx = 0;
+                                    } while ((read_res = mitsumi_cdrom_read_sector(dev, 0)) > 0);
+                                }
                                 dev->cmdbuf_count = 1;
-                                dev->cmdbuf[0]    = STAT_SPIN | STAT_READY;
+                                dev->cmdbuf[0]    = (read_res < 0) ? STAT_CMD_CHECK : (STAT_SPIN | STAT_READY);
                                 break;
                             case 1:
                                 dev->readcount |= (val << 8);
