@@ -56,6 +56,7 @@ enum {
     CMD_SOFT_RESET = 0x60,
     CMD_STOPCDDA   = 0x70,
     CMD_CONFIG     = 0x90,
+    CMD_SET_SMODE  = 0xa0, // sets mode of sector to read.
     CMD_SET_VOL    = 0xae,
     CMD_READ1X     = 0xc0,
     CMD_READ2X     = 0xc1,
@@ -102,6 +103,7 @@ typedef struct mcd_t {
     int      cmdrd_count;
     int      cmdbuf_idx;
     uint8_t  mode;
+    uint8_t  smode;
     uint8_t  cmd;
     uint8_t  conf;
     uint8_t  enable_irq;
@@ -308,6 +310,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             if (dev->cmdrd_count) {
                 dev->cmdrd_count--;
                 switch (dev->cmd) {
+                    case CMD_SET_SMODE:
+                        dev->smode        = val;
+                        break;
                     case CMD_SET_MODE:
                         dev->mode         = val;
                         dev->cmdbuf[1]    = 0;
@@ -472,6 +477,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     dev->readcount = 0;
                     break;
                 case CMD_LOCK:
+                case CMD_SET_SMODE:
                     dev->cmdrd_count = 1;
                     break;
                 case CMD_SOFT_RESET:
@@ -482,6 +488,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 default:
                     dev->cmdbuf[0] = dev->stat | STAT_CMD_CHECK;
+                    pclog("Mitsumi: Unhandled command 0x%02X\n", val);
                     break;
             }
             break;
