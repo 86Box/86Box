@@ -305,7 +305,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
     int      read_res = -1;
 
     pclog("Mitsumi CD-ROM OUT=%03x, val=%02x\n", port, val);
-    switch (port & 1) {
+    switch (port & 3) {
         case 0:
             if (dev->cmdrd_count) {
                 dev->cmdrd_count--;
