@@ -208,8 +208,6 @@ mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
     b[5] = bin2bcd(track_type_buf[2]);
     b[6] = bin2bcd(track_type_buf[3]);
     b[7] = bin2bcd(track_type_buf[4]);
-    mke_log("mitsumi_disc_info: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
-            b[0], b[1], b[2], b[3], b[4], b[5]);
     return 1;
 }
 
