@@ -154,6 +154,7 @@ enum {
 #define QIC_ERROR_ILLEGAL_IN_REPORT  8
 #define QIC_ERROR_ILLEGAL_DIAG_ENTRY 9
 #define QIC_ERROR_NEW_CARTRIDGE      13
+#define QIC_ERROR_ILLEGAL_IN_PRIMARY 14
 #define QIC_ERROR_ILLEGAL_IN_FORMAT  15
 #define QIC_ERROR_NOT_REFERENCED     19
 #define QIC_ERROR_POWER_ON_RESET     26
@@ -1288,12 +1289,10 @@ tape_command(uint8_t command)
                 break;
             }
 
-            /* in case we need to send back an error in this case:
             if (tape.format_mode == 0) {
-                tape_set_error(QIC_ERROR_ILLEGAL_IN_FORMAT, command);
+                tape_set_error(QIC_ERROR_ILLEGAL_IN_PRIMARY, command);
                 break;
             }
-            */
 
             if (tape.image_size == 0)
                 tape.image_size = 1;
@@ -1519,9 +1518,6 @@ tape_command_timeout(UNUSED(void *priv))
     /* A bare Report Next Bit was already answered as its pulses arrived. */
     if ((steps == QIC_REPORT_NEXT_BIT) && presented)
         return;
-
-    fdd_tape_log("Tape: pulse train complete, %i pulse(s), fdc rate %i kbps\n",
-                 steps, (tape_fdc != NULL) ? tape_fdc->bit_rate : -1);
 
     tape_step_pulses(steps);
 }
