@@ -715,6 +715,10 @@ fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
        unit while the command's drive select field names another, which is
        what QIC-117 tape software does - and it also decides which PCN
        SENSE INTERRUPT STATUS hands back.
+
+       Note by OBattler: Verified to be correct by the PC87306 Super I/O
+       chip's datasheet - these two bits in ST0 are supposed to return the
+       logical drive specified by the command, not the physical drive.
      */
     fdc->st0   = 0x20 | (fdc->rw_drive & 3);
     if (fdd_get_head(drive))

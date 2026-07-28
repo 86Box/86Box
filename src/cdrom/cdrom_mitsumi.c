@@ -107,6 +107,7 @@ typedef struct mcd_t {
     uint16_t dmalen;
     uint32_t readmsf;
     uint32_t readcount;
+    uint32_t readbuflen;
     int      locked;
     int      drvmode;
     int      cur_toc_track;
@@ -168,7 +169,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     int      ret = 0;
 
     if (dev->drvmode == DRV_MODE_CDDA) {
-        status = cdrom_mitsumi_audio_play(dev->cdrom_dev, dev->readmsf, dev->readcount);
+        status = cdrom_mitsumi_audio_play(dev->cdrom_dev, dev->readmsf, MSFtoLBA(CD_DCB((dev->readcount >> 16) & 0xff), CD_DCB((dev->readcount >> 8) & 0xff), CD_DCB(dev->readcount & 0xff)) - 150);
         if (status == 1)
             return status;
         else
@@ -179,23 +180,21 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         picint(1 << dev->irq);
     }
     if (!dev->readcount) {
+        cdrom_seek(dev->cdrom_dev, MSFtoLBA(((dev->readmsf >> 16) & 0xff), ((dev->readmsf >> 8) & 0xff), (dev->readmsf & 0xff)) - 150, 0);
         dev->data = 0;
         return 0;
     }
     cdrom_stop(dev->cdrom_dev);
-    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 2, 0x10, (int *) &dev->readcount, 0);
+    cdrom_seek(dev->cdrom_dev, MSFtoLBA(((dev->readmsf >> 16) & 0xff), ((dev->readmsf >> 8) & 0xff), (dev->readmsf & 0xff)) - 150, 0);
+    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 2, (dev->mode & 0x40) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
     if (ret <= 0)
         return 0;
-    if (dev->mode & 0x40) {
-        dev->buf[12] = CD_BCD((dev->readmsf >> 16) & 0xff);
-        dev->buf[13] = CD_BCD((dev->readmsf >> 8) & 0xff);
-    }
     dev->readmsf   = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
     dev->buf_count = dev->dmalen + 1;
     dev->buf_idx   = 0;
     dev->data      = 1;
     if (dev->enable_dma) {
-        while (dev->pos < dev->readcount) {
+        while (dev->pos < dev->dmalen) {
             dma_channel_write(dev->dma, dev->buf[dev->pos]);
             dev->pos++;
         }
