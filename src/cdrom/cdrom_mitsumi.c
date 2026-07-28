@@ -14,6 +14,8 @@
  *          Copyright 2022       Miran Grca.
  *          Copyright 2024-2025 Jasmine Iwanek.
  */
+
+// TODO: What, exactly, is the order reads are returned in PIO modes? Does status come first? Or does data come first instead?
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -254,9 +256,10 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 
     if (dev->drvmode == DRV_MODE_CDDA) {
         status = cdrom_mitsumi_audio_play(dev->cdrom_dev, dev->readmsf, MSFtoLBA(CD_DCB((dev->readcount >> 16) & 0xff), CD_DCB((dev->readcount >> 8) & 0xff), CD_DCB(dev->readcount & 0xff)) - 150);
-        if (status == 1)
+        if (status == 1) {
+            pclog("Mitsumi read sector: Playing audio.\n");
             return status;
-        else
+        } else
             dev->drvmode = DRV_MODE_READ;
     }
 
@@ -265,6 +268,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     }
     if (!dev->readcount) {
         cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
+        pclog("Mitsumi read sector: Seek to sector %u.\n", dev->cdrom_dev->seek_pos);
         dev->cur_toc_track = INT32_MIN;
         dev->data = 0;
         return 0;
@@ -273,6 +277,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
     dev->cur_toc_track = INT32_MIN;
     ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 0, (dev->mode & 0x80) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
+    pclog("Mitsumi read sector: Read sector @ %u, ret = %d, readlen = %u, blocklen = %u\n", dev->cdrom_dev->seek_pos, ret, dev->readbuflen, dev->dmalen + 1);
     if (ret <= 0)
         return -1;
     dev->readmsf   = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
