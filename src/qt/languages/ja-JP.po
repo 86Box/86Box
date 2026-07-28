@@ -3263,6 +3263,9 @@ msgstr ""
 "画像「%s」を読み込めません：Daemon Tools MDS v2 および MDX "
 "イメージのサポートに必要な %1 が見つかりません。"
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVDイメージ「%s」は、DVDメディアに対応していないドライブに挿入されたため、無"
 "視されます。"

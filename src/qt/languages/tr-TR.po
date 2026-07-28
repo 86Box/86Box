@@ -3331,6 +3331,9 @@ msgstr ""
 "\"%s\" görüntüsü yüklenemiyor: Daemon Tools MDS v2 ve MDX görüntü desteği "
 "için gerekli olan %1 mevcut değil."
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 "\"%s\" DVD görüntüsü DVD ortamını desteklemeyen bir sürücüde açıldığı için "

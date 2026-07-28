@@ -3276,6 +3276,9 @@ msgstr ""
 "Nije bilo moguće otvoriti sliku \"%s\": nedostaje biblioteka %1, potrebna za "
 "podršku slika formata MDS v2 i MDX programa Daemon Tools."
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 "Slika DVD-a \"%s\" bila je umetnuta u pogon, koji ne podržava medije DVD i "

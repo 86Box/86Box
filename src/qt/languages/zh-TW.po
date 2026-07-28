@@ -3280,6 +3280,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr "無法開啟映像 \"%s\": %1 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
 "映像之必要檔案。"
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 映像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
 

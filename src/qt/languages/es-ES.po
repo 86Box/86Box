@@ -3269,6 +3269,9 @@ msgstr ""
 "No fué posible cargar a la imagen \"%s\": Falta el %1, necesario para "
 "admitir imagenes Daemon Tools MDS v2 y MDX."
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 "La imagen de DVD \"%s\" fué inserida en una unidad que no admite discos DVD "

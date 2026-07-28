@@ -3275,6 +3275,9 @@ msgstr ""
 "Nepodarilo sa načítať obraz „%s“: nenašla sa knižnica %1, ktorá je "
 "potrebná na podporu obrazov vo Daemon Tools formátoch MDS v2 a MDX."
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 "Obraz DVD disku \"%s\" bol vložený do mechaniky, ktorá nepodporuje médiá "

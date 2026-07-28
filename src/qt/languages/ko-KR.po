@@ -3337,6 +3337,9 @@ msgstr ""
 "이미지 “%s”를 불러올 수 없습니다. Daemon Tools MDS v2 및 MDX 이미지 지원에 "
 "필요한 %1 파일이 없습니다."
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 이미지 “%s”가 DVD 미디어를 지원하지 않는 드라이브에 삽입되었으므로 "
 "무시됩니다."

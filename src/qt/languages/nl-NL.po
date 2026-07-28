@@ -3263,6 +3263,9 @@ msgstr ""
 "De image „%s“ kan niet worden geladen: het bestand „%1“ ontbreekt, dat nodig "
 "is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
 "De DVD-image „%s“ is in een station geplaatst dat geen DVD-media ondersteunt "

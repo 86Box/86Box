@@ -3282,6 +3282,11 @@ msgstr ""
 "Невозможно загрузить образ «%s»: отсутствеут библиотека %1, необходимая для "
 "поддержки образов Daemon Tools MDS v2 и MDX."
 
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Невозможно загрузить образ «%s»: отсутствеут библиотека %1, необходимая для "
+"поддержки образов формата Aaru."
+
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "Образ DVD «%s» был вставлен в дисковод, не поддерживающий DVD, и будет проигнорирован."
 
