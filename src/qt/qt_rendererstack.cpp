@@ -451,9 +451,6 @@ RendererStack::createRenderer(Renderer renderer)
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, QString(), tr("Failed to initialize Vulkan renderer.") % QStringLiteral("\n") % tr("Falling back to software rendering."), QMessageBox::Ok);
-                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-                    msgBox->show();
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
