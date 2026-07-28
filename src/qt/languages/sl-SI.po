@@ -1248,6 +1248,9 @@ msgstr "Ni bilo mogože odpreti izbrane datoteke z nastavitvami za branje: %1"
 msgid "Use regular expressions in search box"
 msgstr "V iskalnem polju uporabi regularne ekspresije"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "Trenutno je dejavna %n naprava. Ali vseeno želite izstopiti iz upravitelja navideznih naprav?"
@@ -1423,8 +1426,11 @@ msgstr "Prisilno končanje navidezne naprave lahko povzroči izgubo podatkov. To
 msgid "&Delete"
 msgstr "Iz&briši"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Ali res želite izbrisati navidezno napravo \"%1\" in vse njene datoteke? Preklic teka dejanja ni mogoč!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Ali res želite izbrisati navidezno napravo \"%1\" in vse njene datoteke?"
+
+msgid "This action cannot be undone!"
+msgstr "Preklic teka dejanja ni mogoč!"
 
 msgid "Show &config file"
 msgstr "Prikaži datoteko z &nastavitvami"

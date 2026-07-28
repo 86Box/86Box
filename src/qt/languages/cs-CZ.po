@@ -1264,6 +1264,9 @@ msgstr "Nebylo možné otevřít vybraný konfigurační soubor pro čtení: %1"
 msgid "Use regular expressions in search box"
 msgstr "Použít ve vyhledávacím poli regulární výrazy"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n počítač je stále aktivní. Opravdu chcete ukončit správce virtuálních počítačů?"
@@ -1439,8 +1442,11 @@ msgstr "Ukončení virtuálního počítače může způsobit ztrátu dat. Prove
 msgid "&Delete"
 msgstr "&Odstranit"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Opravdu chcete odstranit virtuální počítač \"%1\" a všechny jeho soubory? Tuto akci nelze vrátit zpět!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Opravdu chcete odstranit virtuální počítač \"%1\" a všechny jeho soubory?"
+
+msgid "This action cannot be undone!"
+msgstr "Tuto akci nelze vrátit zpět!"
 
 msgid "Show &config file"
 msgstr "Zobrazit &konfigurační soubor"

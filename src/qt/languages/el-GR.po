@@ -1249,6 +1249,9 @@ msgstr "Αδυναμία ανοίγματος επιλεγμένου αρχεί�
 msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n μηχανή είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
@@ -1422,10 +1425,11 @@ msgstr "Ο εξαναγκαστικός τέρματισμός της εικον
 msgid "&Delete"
 msgstr "&Διαγραφή"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
-"Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα "
-"αρχεία της; Αυτή η ενέργεια είναι ανεπανόρθωτη!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα αρχεία της;"
+
+msgid "This action cannot be undone!"
+msgstr "Αυτή η ενέργεια είναι ανεπανόρθωτη!"
 
 msgid "Show &config file"
 msgstr "Εμφάνιση αρχείου &προσαρμογής"

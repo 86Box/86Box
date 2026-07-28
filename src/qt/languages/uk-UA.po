@@ -1244,6 +1244,9 @@ msgstr "Неможливо відкрити вибраний файл конфі
 msgid "Use regular expressions in search box"
 msgstr "Використовувати регулярні вирази в полі пошуку"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n машина наразі активна. Ви впевнені, що все одно хочете вийти з менеджера віртуальних машин?"
@@ -1418,8 +1421,11 @@ msgstr "Примусове завершення процесу віртуаль�
 msgid "&Delete"
 msgstr "&Видалити"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Ви дійсно хочете видалити віртуальну машину «%1» і всі її файли? Цю дію не можна скасувати!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Ви дійсно хочете видалити віртуальну машину «%1» і всі її файли?"
+
+msgid "This action cannot be undone!"
+msgstr "Цю дію не можна скасувати!"
 
 msgid "Show &config file"
 msgstr "Показати файл &конфігурації"

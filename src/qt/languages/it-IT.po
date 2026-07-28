@@ -1270,6 +1270,9 @@ msgstr "Impossibile aprire il file di configurazione selezionato per la lettura:
 msgid "Use regular expressions in search box"
 msgstr "Utilizza espressioni regolari nella casella di ricerca"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "È attualmente attiva %n macchina. Vuoi comunque uscire dal gestore delle macchine virtuali?"
@@ -1449,8 +1452,11 @@ msgstr ""
 msgid "&Delete"
 msgstr "&Elimina"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Vuoi davvero eliminare la macchina virtuale \"%1\" e tutti i suoi file? Questa operazione è irreversibile!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Vuoi davvero eliminare la macchina virtuale \"%1\" e tutti i suoi file?"
+
+msgid "This action cannot be undone!"
+msgstr "Questa operazione è irreversibile!"
 
 msgid "Show &config file"
 msgstr "Mostra file di &configurazione"

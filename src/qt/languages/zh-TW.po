@@ -1240,6 +1240,9 @@ msgstr "無法開啟選取的組態檔進行讀取: %1"
 msgid "Use regular expressions in search box"
 msgstr "在搜尋欄中使用正規表示式"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"

@@ -1235,6 +1235,9 @@ msgstr "選択した設定ファイルを読み込むことができませんで
 msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
@@ -1407,8 +1410,11 @@ msgstr "仮想マシンを強制終了すると、データが失われる可能
 msgid "&Delete"
 msgstr "削除(&D)"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？ この操作は元に戻せません！"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？"
+
+msgid "This action cannot be undone!"
+msgstr "この操作は元に戻せません！"
 
 msgid "Show &config file"
 msgstr "設定ファイルを表示する(&C)"

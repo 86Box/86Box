@@ -1272,6 +1272,9 @@ msgstr "선택한 구성 파일을 읽기 위해 열 수 없습니다: %1"
 msgid "Use regular expressions in search box"
 msgstr "검색 상자에 정규 표현식 사용"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "현재 실행 중인 머신이 %n개 있습니다. 그래도 VM 관리자를 종료하시겠습니까?"
@@ -1444,8 +1447,11 @@ msgstr "가상 머신을 강제 종료하면 데이터 손실이 발생할 수 �
 msgid "&Delete"
 msgstr "삭제(&D)"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "정말 가상 머신 \"%1\"과 모든 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "정말 가상 머신 \"%1\"과 모든 파일을 삭제하시겠습니까?"
+
+msgid "This action cannot be undone!"
+msgstr "이 작업은 되돌릴 수 없습니다!"
 
 msgid "Show &config file"
 msgstr "구성 파일 표시(&C)"
