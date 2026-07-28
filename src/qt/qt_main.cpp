@@ -46,6 +46,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/floppy_control_socket.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
@@ -688,6 +689,7 @@ main(int argc, char *argv[])
     }
 
     pc_init_modules();
+    floppy_control_socket_init();
 
     // UUID / copy / move detection
     if (!util::compareUuid()) {
