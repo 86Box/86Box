@@ -180,18 +180,25 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         picint(1 << dev->irq);
     }
     if (!dev->readcount) {
-        cdrom_seek(dev->cdrom_dev, MSFtoLBA(((dev->readmsf >> 16) & 0xff), ((dev->readmsf >> 8) & 0xff), (dev->readmsf & 0xff)) - 150, 0);
+        cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
         dev->data = 0;
         return 0;
     }
     cdrom_stop(dev->cdrom_dev);
-    cdrom_seek(dev->cdrom_dev, MSFtoLBA(((dev->readmsf >> 16) & 0xff), ((dev->readmsf >> 8) & 0xff), (dev->readmsf & 0xff)) - 150, 0);
-    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 2, (dev->mode & 0x40) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
+    cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
+    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 0, (dev->mode & 0x80) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
     if (ret <= 0)
         return 0;
     dev->readmsf   = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
     dev->buf_count = dev->dmalen + 1;
     dev->buf_idx   = 0;
+    if (dev->mode & 0x80) {
+        if (!(dev->mode & 0x40)) {
+            // Skip the main header.
+            dev->buf_count -= 16;
+            dev->buf_idx += 16;
+        }
+    }
     dev->data      = 1;
     if (dev->enable_dma) {
         while (dev->pos < dev->dmalen) {
@@ -219,7 +226,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 dev->cmdbuf_count--;
                 return dev->cmdbuf[dev->cmdbuf_idx++];
             } else if (dev->buf_count) {
-                ret = (dev->buf_idx < RAW_SECTOR_SIZE) ? dev->buf[dev->buf_idx] : 0;
+                ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
                 dev->buf_idx++;
                 dev->buf_count--;
                 if (!dev->buf_count)
