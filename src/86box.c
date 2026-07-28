@@ -1992,6 +1992,8 @@ pc_close(UNUSED(thread_t *ptr))
     lpt_devices_close(0);
     serial_devices_close(0);
 
+    floppy_control_socket_close();
+
     for (uint8_t i = 0; i < FDD_NUM; i++)
         fdd_close(i);
 

@@ -19,6 +19,7 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
+#include <86box/floppy_control_socket.h>
 
 #include "sdl_monitor.h"
 #include "sdl_render.h"
@@ -320,6 +321,7 @@ main(int argc, char **argv)
     }
 
     monitor_init();
+    floppy_control_socket_init();
 
     mousemutex = SDL_CreateMutex();
 
