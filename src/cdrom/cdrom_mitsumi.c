@@ -214,7 +214,6 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
     mcd_t  *dev = (mcd_t *) priv;
     uint8_t ret = 0xff;
 
-    pclog("Mitsumi CD-ROM IN=%03x\n", port);
     switch (port & 1) {
         case 0:
             if (dev->cmdbuf_count) {
@@ -241,8 +240,6 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NOSTAT;
             pclog("Read port 1: ret = %02x\n", ret | FLAG_AUDIO);
             return ret | FLAG_AUDIO;
-        case 2:
-            break;
         default:
             break;
     }
@@ -419,6 +416,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                 case CMD_SOFT_RESET:
                     pclog("Soft Reset\n");
                     mitsumi_cdrom_reset(dev);
+                    dev->cmdbuf_count = 1;
+                    dev->cmdbuf[0]    = dev->stat;
                     break;
                 default:
                     dev->cmdbuf[0] = dev->stat | STAT_CMD_CHECK;
@@ -427,8 +426,6 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 1:
             mitsumi_cdrom_reset(dev);
-            break;
-        case 2:
             break;
         default:
             break;
