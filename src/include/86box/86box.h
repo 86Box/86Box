@@ -273,6 +273,11 @@ extern char gpio_device[256];               /* (G) GPIO chip device path */
 extern int  gpio_hdd_pin;                   /* (G) GPIO pin for HDD activity LED */
 #endif
 
+#ifdef USE_FLOPPY_CONTROL_SOCKET
+extern int  floppy_control_socket_enabled;  /* (C) Enable floppy control socket */
+extern char floppy_control_socket_path[1024]; /* (C) Floppy control socket path */
+#endif
+
 #ifndef USE_NEW_DYNAREC
 extern FILE *stdlog; /* file to log output to */
 #endif

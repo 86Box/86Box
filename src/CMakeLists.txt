@@ -128,6 +128,11 @@ if(GPIO)
     target_link_libraries(86Box ${GPIOD_LIBRARIES})
 endif()
 
+if(FLOPPY_CONTROL_SOCKET AND NOT WIN32)
+    add_compile_definitions(USE_FLOPPY_CONTROL_SOCKET)
+    target_sources(86Box PRIVATE floppy_control_socket.c)
+endif()
+
 target_link_libraries(86Box
     cpu
     char

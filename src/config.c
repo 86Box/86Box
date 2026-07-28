@@ -397,6 +397,13 @@ load_general(void)
     gpio_hdd_pin = ini_section_get_int(cat, "gpio_hdd_pin", -1);
 #endif
 
+#ifdef USE_FLOPPY_CONTROL_SOCKET
+    floppy_control_socket_enabled = ini_section_get_int(cat, "floppy_control_socket_enabled", 0);
+    p = ini_section_get_string(cat, "floppy_control_socket_path", "/run/86box/floppy.sock");
+    strncpy(floppy_control_socket_path, p, sizeof(floppy_control_socket_path) - 1);
+    floppy_control_socket_path[sizeof(floppy_control_socket_path) - 1] = '\0';
+#endif
+
     p = ini_section_get_string(cat, "uuid", NULL);
     if (p != NULL)
         strncpy(uuid, p, sizeof(uuid) - 1);
@@ -3139,6 +3146,18 @@ save_general(void)
         ini_section_set_int(cat, "gpio_hdd_pin", gpio_hdd_pin);
     else
         ini_section_delete_var(cat, "gpio_hdd_pin");
+#endif
+
+#ifdef USE_FLOPPY_CONTROL_SOCKET
+    if (floppy_control_socket_enabled)
+        ini_section_set_int(cat, "floppy_control_socket_enabled", floppy_control_socket_enabled);
+    else
+        ini_section_delete_var(cat, "floppy_control_socket_enabled");
+
+    if (strcmp(floppy_control_socket_path, "/run/86box/floppy.sock") != 0)
+        ini_section_set_string(cat, "floppy_control_socket_path", floppy_control_socket_path);
+    else
+        ini_section_delete_var(cat, "floppy_control_socket_path");
 #endif
 
     char cpu_buf[128] = { 0 };

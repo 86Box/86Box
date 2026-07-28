@@ -28,6 +28,8 @@
 #include <QApplication>
 #include <QStyle>
 #include <QDirIterator>
+#include <QMetaObject>
+#include <QThread>
 #include <QTextStream>
 
 extern "C" {
@@ -1480,13 +1482,29 @@ cartridge_eject(uint8_t id)
 void
 floppy_mount(uint8_t id, char *fn, uint8_t wp)
 {
-    MediaMenu::ptr->floppyMount(id, QString(fn), wp);
+    QString filename(fn);
+
+    if (QThread::currentThread() == MediaMenu::ptr->thread()) {
+        MediaMenu::ptr->floppyMount(id, filename, wp);
+        return;
+    }
+
+    QMetaObject::invokeMethod(MediaMenu::ptr.get(), [id, filename, wp]() {
+        MediaMenu::ptr->floppyMount(id, filename, wp);
+    }, Qt::BlockingQueuedConnection);
 }
 
 void
 floppy_eject(uint8_t id)
 {
-    MediaMenu::ptr->floppyEject(id);
+    if (QThread::currentThread() == MediaMenu::ptr->thread()) {
+        MediaMenu::ptr->floppyEject(id);
+        return;
+    }
+
+    QMetaObject::invokeMethod(MediaMenu::ptr.get(), [id]() {
+        MediaMenu::ptr->floppyEject(id);
+    }, Qt::BlockingQueuedConnection);
 }
 
 void
