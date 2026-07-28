@@ -49,6 +49,7 @@ enum {
 };
 enum {
     CMD_GET_INFO   = 0x10,
+    CMD_DISC_INFO  = 0x11,
     CMD_GET_Q      = 0x20,
     CMD_GET_STAT   = 0x40,
     CMD_SET_MODE   = 0x50,
@@ -114,6 +115,8 @@ typedef struct mcd_t {
     int      cur_toc_track;
     int      newstat;
 
+    uint8_t  temp_buf[0x10000];
+
     cdrom_t *cdrom_dev;
 } mcd_t;
 
@@ -160,6 +163,54 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->change        = 1;
     dev->newstat       = 1;
     dev->data          = 0;
+}
+
+/* Lifted from FreeBSD */
+static void
+blk_to_msf(int blk, unsigned char *msf)
+{
+    blk = blk + 150;        /* 2 seconds skip required to
+                               reach ISO data */
+    msf[0] = blk / 4500;
+    blk = blk % 4500;
+    msf[1] = blk / 75;
+    msf[2] = blk % 75;
+
+    return;
+}
+
+uint8_t
+mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
+{
+    cdrom_t *dev               = mcd->cdrom_dev;
+    uint8_t  disc_type_buf[34];
+    uint8_t  track_type_buf[34];
+    int      first_track;
+    int      last_track;
+
+    cdrom_read_toc(dev, mcd->temp_buf, CD_TOC_NORMAL, 0, 2 << 8, 65536);
+    cdrom_read_disc_information(dev, disc_type_buf);
+    cdrom_get_track_buffer(mcd->cdrom_dev, track_type_buf);
+    first_track = mcd->temp_buf[2];
+    last_track  = mcd->temp_buf[3];
+
+    b[0] = first_track;
+    b[1] = last_track;
+
+    b[2] = 0;
+    b[3] = 0;
+    b[4] = 0;
+    blk_to_msf(dev->cdrom_capacity, &b[2]);
+    b[2] = bin2bcd(b[2]);
+    b[3] = bin2bcd(b[3]);
+    b[4] = bin2bcd(b[4]);
+
+    b[5] = bin2bcd(track_type_buf[2]);
+    b[6] = bin2bcd(track_type_buf[3]);
+    b[7] = bin2bcd(track_type_buf[4]);
+    mke_log("mitsumi_disc_info: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
+            b[0], b[1], b[2], b[3], b[4], b[5]);
+    return 1;
 }
 
 static int
@@ -358,6 +409,18 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         cdrom_get_track_buffer(dev->cdrom_dev, &(dev->cmdbuf[1]));
                         dev->cmdbuf_count = 10;
                         dev->readcount    = 0;
+                    } else {
+                        dev->cmdbuf_count = 1;
+                        dev->cmdbuf[0]    = STAT_CMD_CHECK;
+                    }
+                    break;
+                case CMD_DISC_INFO:
+                    if (mitsumi_cdrom_is_ready(dev)) {
+                        uint8_t info[65536];
+                        dev->cmdbuf_count = 9;
+                        dev->cmdbuf[0] = dev->stat;
+                        mitsumi_disc_info(dev, &dev->cmdbuf[1]);
+                        dev->readcount = 0;
                     } else {
                         dev->cmdbuf_count = 1;
                         dev->cmdbuf[0]    = STAT_CMD_CHECK;
