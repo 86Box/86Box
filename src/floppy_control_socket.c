@@ -12,6 +12,7 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/floppy_control_socket.h>
+#include <86box/plat.h>
 #include <86box/thread.h>
 
 #define FCS_MAX_FRAME 65536
@@ -118,6 +119,77 @@ fcs_handle_status(const cJSON *id, cJSON *params)
     return fcs_success_response(id, result);
 }
 
+static int
+fcs_path_is_absolute(const char *path)
+{
+    return path && path[0] == '/';
+}
+
+static int
+fcs_path_is_readable_file(const char *path)
+{
+    return path && access(path, R_OK) == 0;
+}
+
+static int
+fcs_get_read_only(cJSON *params, int *read_only)
+{
+    cJSON *read_only_json = cJSON_GetObjectItemCaseSensitive(params, "read_only");
+
+    *read_only = 0;
+    if (!read_only_json)
+        return 0;
+    if (!cJSON_IsBool(read_only_json))
+        return -1;
+
+    *read_only = cJSON_IsTrue(read_only_json);
+    return 0;
+}
+
+static cJSON *
+fcs_handle_insert(const cJSON *id, cJSON *params)
+{
+    int    drive     = -1;
+    int    read_only = 0;
+    cJSON *path_json = cJSON_GetObjectItemCaseSensitive(params, "path");
+
+    if (fcs_get_drive(params, 1, &drive) < 0)
+        return fcs_error_response(id, "invalid_drive", "Drive must be an integer from 0 through 3.");
+    if (!cJSON_IsString(path_json) || !path_json->valuestring || path_json->valuestring[0] == '\0')
+        return fcs_error_response(id, "missing_image", "Image path must be a non-empty absolute path.");
+    if (!fcs_path_is_absolute(path_json->valuestring))
+        return fcs_error_response(id, "missing_image", "Image path must be absolute.");
+    if (!fcs_path_is_readable_file(path_json->valuestring))
+        return fcs_error_response(id, "missing_image", "Image path does not exist or is not readable.");
+    if (fcs_get_read_only(params, &read_only) < 0)
+        return fcs_error_response(id, "unsupported_mode", "read_only must be a boolean.");
+    if (fdd_is_busy(drive))
+        return fcs_error_response(id, "busy_drive", "Drive is busy.");
+
+    floppy_mount((uint8_t) drive, path_json->valuestring, (uint8_t) read_only);
+    if (!fdd_runtime_inserted(drive))
+        return fcs_error_response(id, "unsupported_mode", "Image could not be mounted by the floppy loaders.");
+
+    return fcs_success_response(id, fcs_create_drive_status(drive));
+}
+
+static cJSON *
+fcs_handle_eject(const cJSON *id, cJSON *params)
+{
+    int drive = -1;
+
+    if (fcs_get_drive(params, 1, &drive) < 0)
+        return fcs_error_response(id, "invalid_drive", "Drive must be an integer from 0 through 3.");
+    if (fdd_is_busy(drive))
+        return fcs_error_response(id, "busy_drive", "Drive is busy.");
+
+    floppy_eject((uint8_t) drive);
+    ui_writeprot[drive] = 0;
+    fdd_changed[drive]  = 1;
+
+    return fcs_success_response(id, fcs_create_drive_status(drive));
+}
+
 static cJSON *
 fcs_process_request(cJSON *request)
 {
@@ -130,6 +202,10 @@ fcs_process_request(cJSON *request)
 
     if (!strcmp(command->valuestring, "floppy.status"))
         return fcs_handle_status(id, params);
+    if (!strcmp(command->valuestring, "floppy.insert"))
+        return fcs_handle_insert(id, params);
+    if (!strcmp(command->valuestring, "floppy.eject"))
+        return fcs_handle_eject(id, params);
 
     return fcs_error_response(id, "internal_failure", "Unknown command.");
 }
