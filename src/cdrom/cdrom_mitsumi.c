@@ -80,7 +80,7 @@ enum {
 enum {
     FLAG_NODATA = 2,
     FLAG_NOSTAT = 4,
-    FLAG_AUDIO  = 8,
+    FLAG_UNK  = 8,
     FLAG_OPEN   = 16
 };
 enum {
@@ -322,8 +322,8 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NODATA;
             if (!dev->cmdbuf_count || !dev->newstat)
                 ret |= FLAG_NOSTAT;
-            pclog("Read port 1: ret = %02x\n", ret | FLAG_AUDIO);
-            return ret | FLAG_AUDIO;
+            pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK | 1);
+            return ret | FLAG_UNK | 1;
         default:
             break;
     }
