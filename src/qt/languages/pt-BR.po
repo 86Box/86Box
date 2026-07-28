@@ -2927,6 +2927,21 @@ msgstr "Modelo:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Falha ao inicializar o renderizador Vulkan."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "Erro GLSL"
 
@@ -2947,6 +2962,9 @@ msgstr "Gerenciador de Shaders"
 
 msgid "Shader Configuration"
 msgstr "Configuração de Shaders"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Adicionar"

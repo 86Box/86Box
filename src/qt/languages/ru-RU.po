@@ -2938,6 +2938,21 @@ msgstr "Модель:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Не удалось инициализировать рендерер Vulkan."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "Ошибка GLSL"
 
@@ -2958,6 +2973,9 @@ msgstr "Управление шейдерами"
 
 msgid "Shader Configuration"
 msgstr "Конфигурация шейдера"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Добавить"
