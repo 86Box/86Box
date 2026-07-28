@@ -190,7 +190,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     if (ret <= 0)
         return 0;
     dev->readmsf   = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
-    dev->buf_count = dev->dmalen + 1;
+    dev->buf_count = dev->readbuflen;
     dev->buf_idx   = 0;
     dev->data      = 1;
     if (dev->enable_dma) {
