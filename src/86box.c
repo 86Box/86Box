@@ -100,6 +100,7 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/gpio.h>
+#include <86box/floppy_control_socket.h>
 #include <86box/machine_status.h>
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
@@ -238,6 +239,11 @@ int      is_new_808x = 0;                                         /* (C) Use the
 int      gpio_enabled = 0;
 char     gpio_device[256] = "/dev/gpiochip0";
 int      gpio_hdd_pin = -1;                                      /* -1 = disabled */
+#endif
+
+#ifdef USE_FLOPPY_CONTROL_SOCKET
+int      floppy_control_socket_enabled = 0;
+char     floppy_control_socket_path[1024] = "/run/86box/floppy.sock";
 #endif
 
 // Accelerator key array

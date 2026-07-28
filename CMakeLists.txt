@@ -141,6 +141,7 @@ option(DISCORD      "Discord Rich Presence support"                             
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 option(GPIO         "GPIO support via libgpiod (requires libgpiod 2.0)"         OFF)
+option(FLOPPY_CONTROL_SOCKET "Unix socket server for runtime floppy control"     OFF)
 option(QT           "Use the Qt-based user interface"                            ON)
 
 if((ARCH STREQUAL "arm64"))
