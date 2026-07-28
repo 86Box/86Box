@@ -150,6 +150,38 @@ mitsumi_cdrom_is_ready(const mcd_t *dev)
 }
 
 static void
+mitsumi_print_cmd(mcd_t* dev, uint8_t command) {
+    char cmd_print[32] = { 0 };
+    snprintf(cmd_print, sizeof(cmd_print) - 1, "0x%02x", command);
+
+#define CASE(e) case e: \
+                    pclog("Mitsumi: command %s, params %d\n", #e, dev->cmdrd_count); \
+                    break;
+    
+    switch (command) {
+        default:
+            pclog("Mitsumi: command %s, params %d\n", cmd_print, dev->cmdrd_count);
+            break;
+        CASE(CMD_GET_INFO)
+        CASE(CMD_DISC_INFO)
+        CASE(CMD_GET_Q)
+        CASE(CMD_GET_STAT)
+        CASE(CMD_SET_MODE)
+        CASE(CMD_SOFT_RESET)
+        CASE(CMD_STOPCDDA)
+        CASE(CMD_CONFIG)
+        CASE(CMD_SET_SMODE)
+        CASE(CMD_SET_VOL)
+        CASE(CMD_READ1X)
+        CASE(CMD_READ2X)
+        CASE(CMD_GET_VER)
+        CASE(CMD_STOP)
+        CASE(CMD_EJECT)
+        CASE(CMD_LOCK)
+    }
+}
+
+static void
 mitsumi_cdrom_reset(mcd_t *dev)
 {
     dev->stat          = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | STAT_CHANGE) : 0;
@@ -165,6 +197,7 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->change        = 1;
     dev->newstat       = 1;
     dev->data          = 0;
+    dev->smode         = 1;
 }
 
 /* Lifted from FreeBSD */
@@ -491,6 +524,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     pclog("Mitsumi: Unhandled command 0x%02X\n", val);
                     break;
             }
+            mitsumi_print_cmd(dev, val);
             break;
         case 1:
             mitsumi_cdrom_reset(dev);
