@@ -76,6 +76,9 @@ extern char *fdd_get_internal_name(int type);
 extern int   fdd_get_from_internal_name(char *s);
 
 extern int fdd_current_track(int drive);
+extern int fdd_is_busy(int drive);
+extern int fdd_get_effective_read_only(int drive);
+extern int fdd_runtime_inserted(int drive);
 
 typedef struct DRIVE {
     int id;

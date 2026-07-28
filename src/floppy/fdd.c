@@ -282,6 +282,36 @@ fdd_is_post_complete(void)
     return (bios_boot_status == BIOS_BOOT_NORMAL);
 }
 
+int
+fdd_runtime_inserted(int drive)
+{
+    if (drive < 0 || drive >= FDD_NUM)
+        return 0;
+
+    return !drive_empty[drive] && (floppyfns[drive][0] != '\0');
+}
+
+int
+fdd_get_effective_read_only(int drive)
+{
+    if (drive < 0 || drive >= FDD_NUM)
+        return 0;
+
+    return !!(ui_writeprot[drive] || writeprot[drive] || fwriteprot[drive]);
+}
+
+int
+fdd_is_busy(int drive)
+{
+    if (drive < 0 || drive >= FDD_NUM)
+        return 0;
+
+    if (fdd_seek_in_progress[drive])
+        return 1;
+
+    return 0;
+}
+
 void
 fdd_set_audio_profile(int drive, int profile)
 {
