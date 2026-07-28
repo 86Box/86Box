@@ -218,6 +218,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
         case 0:
             if (dev->cmdbuf_count) {
                 dev->cmdbuf_count--;
+                pclog("Read port 0: cmdres = %02x\n", dev->cmdbuf[dev->cmdbuf_idx]);
                 return dev->cmdbuf[dev->cmdbuf_idx++];
             } else if (dev->buf_count) {
                 ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
@@ -229,7 +230,6 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 pclog("Read port 0: ret = %02x\n", ret);
                 return ret;
             }
-            pclog("Read port 0: stat = %02x\n", dev->stat);
             return dev->stat;
         case 1:
             ret = 0;
@@ -400,9 +400,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     }
                     break;
                 case CMD_GET_VER:
-                    dev->cmdbuf[0]    = 1;
+                    dev->cmdbuf[0]    = dev->stat;
                     dev->cmdbuf[1]    = 'D';
-                    dev->cmdbuf[2]    = 0;
+                    dev->cmdbuf[2]    = 0x10;
                     dev->cmdbuf_count = 3;
                     break;
                 case CMD_EJECT:
