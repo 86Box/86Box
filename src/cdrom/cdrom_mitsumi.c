@@ -448,17 +448,21 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             dev->cmdbuf[0]    = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
             dev->data         = 0;
             switch (val) {
-                case CMD_GET_INFO:
+                case CMD_DISC_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
-                        cdrom_get_track_buffer(dev->cdrom_dev, &(dev->cmdbuf[1]));
-                        dev->cmdbuf_count = 10;
+                        // TODO: Handle multisession.
+                        dev->cmdbuf[1]    = 0;
+                        dev->cmdbuf[2]    = 0;
+                        dev->cmdbuf[3]    = 0;
+                        dev->cmdbuf[4]    = 0;
+                        dev->cmdbuf_count = 5;
                         dev->readcount    = 0;
                     } else {
                         dev->cmdbuf_count = 1;
                         dev->cmdbuf[0]    = STAT_CMD_CHECK;
                     }
                     break;
-                case CMD_DISC_INFO:
+                case CMD_GET_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
                         dev->cmdbuf_count = 9;
                         dev->cmdbuf[0] = dev->stat;
