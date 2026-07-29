@@ -1770,7 +1770,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     int     c;
     double  out     = 1.0;
     gus_t  *gus     = calloc(1, sizeof(gus_t));
-    uint8_t gus_ram = device_get_config_int("gus_ram");
 
     gus->log = log_open("GUS");
 
@@ -1814,7 +1813,11 @@ gus_extreme_init(UNUSED(const device_t *info))
     ess_rsk_reset(gus->ess);
 
     /* Init GF1 section */
-    gus->gus_end_ram = 1 << (18 + gus_ram);
+    if (info->local != GUS_EXTREME) {
+        uint8_t gus_ram = device_get_config_int("gus_ram");
+        gus->gus_end_ram = 1 << (18 + gus_ram);
+    } else
+        gus->gus_end_ram = 1 << 20;
     gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
@@ -2114,7 +2117,7 @@ static const device_config_t gus_ace_config[] = {
 // clang-format off
 };
 
-static const device_config_t gus_extreme_config[] = {
+static const device_config_t gus_vipermax_config[] = {
     {
         .name           = "gus_ram",
         .description    = "Memory size",
@@ -2130,6 +2133,43 @@ static const device_config_t gus_extreme_config[] = {
         },
         .bios           = { { 0 } }
     },
+    {
+        .name           = "enable_ide",
+        .description    = "Enable IDE (Secondary Channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gus_extreme_config[] = {
     {
         .name           = "enable_ide",
         .description    = "Enable IDE (Secondary Channel)",
@@ -2249,5 +2289,5 @@ const device_t gus_vipermax_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .alias         = "Synergy UltraSound VIP/Extreme",
-    .config        = gus_extreme_config
+    .config        = gus_vipermax_config
 };
