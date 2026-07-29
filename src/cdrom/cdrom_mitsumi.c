@@ -234,8 +234,9 @@ mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
     first_track = mcd->temp_buf[2];
     last_track  = mcd->temp_buf[3];
 
-    b[0] = first_track;
-    b[1] = last_track;
+    // Yes, it returns first and last tracks in BCD format.
+    b[0] = bin2bcd(first_track);
+    b[1] = bin2bcd(last_track);
 
 
     b[5] = bin2bcd(track_type_buf[2]);
