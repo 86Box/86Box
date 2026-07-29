@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-17 07:28+0000\n"
+"PO-Revision-Date: 2026-07-29 10:19+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -2948,19 +2948,19 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Не удалось инициализировать рендерер Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Не удалось создать экземпляр Vulkan 1.3."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Не найдены физические устройства, поддерживающие Vulkan."
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "Не найдена библиотека librashader. Шейдеры не будут работать."
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Потеряно устройство Vulkan."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Потеряна поверхность Vulkan."
 
 msgid "GLSL Error"
 msgstr "Ошибка GLSL"
@@ -2984,7 +2984,7 @@ msgid "Shader Configuration"
 msgstr "Конфигурация шейдера"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Добавить"
