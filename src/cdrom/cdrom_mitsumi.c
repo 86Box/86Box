@@ -286,7 +286,6 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     if (dev->mode & 0x80) {
         if (!(dev->mode & 0x40)) {
             // Skip the main header.
-            dev->buf_count -= 16;
             dev->buf_idx += 16;
         }
     }
