@@ -456,7 +456,6 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_DISC_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
-                        uint8_t info[65536];
                         dev->cmdbuf_count = 9;
                         dev->cmdbuf[0] = dev->stat;
                         mitsumi_disc_info(dev, &dev->cmdbuf[1]);
