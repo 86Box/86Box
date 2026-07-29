@@ -1479,9 +1479,15 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             case 7:
                 if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_UMC))
                     return;
-                fdc->rate = val & 0x03;
-                if (fdc->flags & FDC_FLAG_PS2)
+                if (fdc->flags & FDC_FLAG_PS2) {
+                    /*
+                     * On the Model 25/30 gate array, bit 1 alone selects
+                     * 250 kbps; bit 0 is reserved and always reads as zero.
+                     */
+                    fdc->rate   = val & 0x02;
                     fdc->noprec = !!(val & 0x04);
+                } else
+                    fdc->rate = val & 0x03;
                 return;
 
             default:
