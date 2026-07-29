@@ -557,7 +557,12 @@ machine_ps2_m25_init(const machine_t *model)
         return ret;
 
     machine_common_init(model);
-    nmi_init();
+    /*
+     * Unlike an XT, the Model 25 has no global NMI mask at port A0h. Its
+     * system-board NMI sources are masked individually by port 61h, so keep
+     * the CPU NMI input enabled and leave A0h to the I/O-support gate array.
+     */
+    nmi_mask = 1;
 
     dev = (ps2_m25_t *) calloc(1, sizeof(ps2_m25_t));
 
@@ -585,8 +590,12 @@ machine_ps2_m25_init(const machine_t *model)
 
     dev->kbc = device_add_params(machine_get_kbc_device(machine),
                                  (void *) model->kbc_params);
-    /* Keyboard and pointing device share IRQ1 on the Model 25. */
-    kbc_at_set_irq(1, 1, dev->kbc);
+    /*
+     * The gate-array interrupt controller vectors internal IRQ1 sources to
+     * 71h. BIOS then dispatches keyboard data to the programmable PIC's
+     * normal IRQ1 vector and pointing-device data to interrupt 73h.
+     */
+    pic_set_vector_override(1, 0x71);
 
     dev->uart = device_add_inst(&ns8250_device, 1);
     dev->lpt  = device_add_inst(&lpt_port_device, 1);

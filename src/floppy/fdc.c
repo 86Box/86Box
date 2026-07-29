@@ -1321,7 +1321,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 if (((dma_mode(2) & 0x0C) == 0x00) && !(fdc->flags & FDC_FLAG_PCJR) && fdc->dma) {
                                     /* DMA is in verify mode, treat this like a VERIFY command. */
                                     fdc_log("Verify-mode read!\n");
-                                    fdc->tc = 1;
                                     fdc->deleted |= 2;
                                 }
                                 fdd_readsector(real_drive(fdc, fdc->drive), fdc->sector, fdc->params[1], fdc->head, fdc->rate, fdc->params[4]);
@@ -2200,7 +2199,7 @@ fdc_overrun(fdc_t *fdc)
 int
 fdc_is_verify(fdc_t *fdc)
 {
-    return (fdc->deleted & 2) ? 1 : 0;
+    return ((fdc->deleted & 2) && (fdc->processed_cmd == 0x16)) ? 1 : 0;
 }
 
 int
@@ -2208,8 +2207,8 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 {
     int result = 0;
 
-    if (fdc->deleted & 2) {
-        /* We're in a VERIFY command, so return with 0. */
+    if ((fdc->deleted & 2) && (fdc->processed_cmd == 0x16)) {
+        /* A native FDC VERIFY command has no host data transfer. */
         return 0;
     }
 

@@ -191,6 +191,8 @@ typedef struct d86f_t {
     uint16_t  satisfying_bytes;
     uint16_t  turbo_pos;
     uint16_t  cur_track;
+    uint16_t  format_id_count;
+    d86f_format_id_t format_ids[256];
     uint16_t  track_encoded_data[2][53048];
     uint16_t *track_surface_data[2];
     uint16_t  thin_track_encoded_data[2][2][53048];
@@ -373,6 +375,14 @@ void
 null_set_sector(UNUSED(int drive), UNUSED(int side), UNUSED(uint8_t c), UNUSED(uint8_t h), UNUSED(uint8_t r), UNUSED(uint8_t n))
 {
     return;
+}
+
+int
+null_format_track(UNUSED(int drive), UNUSED(int side),
+                  UNUSED(const d86f_format_id_t *ids), UNUSED(uint16_t count),
+                  UNUSED(uint8_t fill))
+{
+    return 1;
 }
 
 void
@@ -569,6 +579,7 @@ d86f_unregister(int drive)
     d86f_handler[drive].side_flags        = null_side_flags;
     d86f_handler[drive].writeback         = null_writeback;
     d86f_handler[drive].set_sector        = null_set_sector;
+    d86f_handler[drive].format_track      = null_format_track;
     d86f_handler[drive].write_data        = null_write_data;
     d86f_handler[drive].format_conditions = null_format_conditions;
     d86f_handler[drive].extra_bit_cells   = null_extra_bit_cells;
@@ -588,6 +599,7 @@ d86f_register_86f(int drive)
     d86f_handler[drive].side_flags        = d86f_side_flags;
     d86f_handler[drive].writeback         = d86f_writeback;
     d86f_handler[drive].set_sector        = null_set_sector;
+    d86f_handler[drive].format_track      = null_format_track;
     d86f_handler[drive].write_data        = null_write_data;
     d86f_handler[drive].format_conditions = d86f_format_conditions;
     d86f_handler[drive].extra_bit_cells   = d86f_extra_bit_cells;
@@ -1935,6 +1947,7 @@ void
 d86f_format_finish(int drive, int side, int mfm, UNUSED(uint16_t sc), uint16_t gap_fill, int do_write)
 {
     d86f_t *dev = d86f[drive];
+    int     format_ok;
 
     if (mfm && do_write) {
         if (do_write && (dev->track_pos == d86f_handler[drive].index_hole_pos(drive, side))) {
@@ -1944,27 +1957,42 @@ d86f_format_finish(int drive, int side, int mfm, UNUSED(uint16_t sc), uint16_t g
 
     dev->state = STATE_IDLE;
 
-    if (do_write)
+    format_ok = d86f_handler[drive].format_track(
+        drive, side, dev->format_ids, dev->format_id_count, dev->fill);
+
+    if (format_ok && do_write)
         d86f_handler[drive].writeback(drive);
 
     dev->error_condition = 0;
     dev->datac           = 0;
-    fdc_sector_finishread(d86f_fdc);
+    dev->format_id_count = 0;
+    if (format_ok)
+        fdc_sector_finishread(d86f_fdc);
+    else
+        fdc_cannotformat(d86f_fdc);
 }
 
 void
-d86f_format_turbo_finish(int drive, UNUSED(int side), int do_write)
+d86f_format_turbo_finish(int drive, int side, int do_write)
 {
     d86f_t *dev = d86f[drive];
+    int     format_ok;
 
     dev->state = STATE_IDLE;
 
-    if (do_write)
+    format_ok = d86f_handler[drive].format_track(
+        drive, side, dev->format_ids, dev->format_id_count, dev->fill);
+
+    if (format_ok && do_write)
         d86f_handler[drive].writeback(drive);
 
     dev->error_condition = 0;
     dev->datac           = 0;
-    fdc_sector_finishread(d86f_fdc);
+    dev->format_id_count = 0;
+    if (format_ok)
+        fdc_sector_finishread(d86f_fdc);
+    else
+        fdc_cannotformat(d86f_fdc);
 }
 
 void
@@ -2064,6 +2092,12 @@ d86f_format_track(int drive, int side, int do_write)
 
         case FMT_SECTOR_ID:
             max_len = 4;
+            if ((dev->datac == 3) && (dev->format_id_count < 256)) {
+                memcpy(dev->format_ids[dev->format_id_count],
+                       d86f_fdc->format_sector_id.byte_array,
+                       sizeof(d86f_format_id_t));
+                dev->format_id_count++;
+            }
             if (do_write) {
                 d86f_write_direct(drive, side, d86f_fdc->format_sector_id.byte_array[dev->datac], 0);
                 d86f_calccrc(dev, d86f_fdc->format_sector_id.byte_array[dev->datac]);
@@ -2301,6 +2335,12 @@ d86f_turbo_format(int drive, int side, int nop)
         d86f_fdc->format_sector_id.byte_array[dev->datac] = dat & 0xff;
         if (dev->datac == 3) {
             fdc_stop_id_request(d86f_fdc);
+            if (dev->format_id_count < 256) {
+                memcpy(dev->format_ids[dev->format_id_count],
+                       d86f_fdc->format_sector_id.byte_array,
+                       sizeof(d86f_format_id_t));
+                dev->format_id_count++;
+            }
             d86f_handler[drive].set_sector(drive, side, d86f_fdc->format_sector_id.id.c, d86f_fdc->format_sector_id.id.h, d86f_fdc->format_sector_id.id.r, d86f_fdc->format_sector_id.id.n);
         }
     } else if (dev->datac == 4) {
@@ -3493,7 +3533,8 @@ d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int prox
     dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = 0;
     dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
     dev->index_count = dev->error_condition = dev->satisfying_bytes = dev->sector_count = 0;
-    dev->dma_over                                                                       = 0;
+    dev->dma_over        = 0;
+    dev->format_id_count = 0;
 
     if (d86f_wrong_densel(drive) && !proxy) {
         dev->state = STATE_SECTOR_NOT_FOUND;

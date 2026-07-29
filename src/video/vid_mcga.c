@@ -431,9 +431,13 @@ mcga_io_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x13:
-                    if ((val == 0x00) || (val == 0x10) ||
-                        (val == 0x20) || (val == 0x30))
-                        dev->crtc[0x13] = val;
+                    /*
+                     * All eight register latches are readable/writable.  The
+                     * documented font-table pointers use only bits 5-4
+                     * (00h, 10h, 20h, or 30h); mcga_load_font() masks those
+                     * bits when turning the latched value into an address.
+                     */
+                    dev->crtc[0x13] = val;
                     break;
 
                 default:
