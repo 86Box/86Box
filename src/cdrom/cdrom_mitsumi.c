@@ -100,7 +100,7 @@ typedef struct mcd_t {
     uint8_t  buf[RAW_SECTOR_SIZE];
     int      buf_count;
     int      buf_idx;
-    uint8_t  cmdbuf[16];
+    uint8_t  cmdbuf[32];
     int      cmdbuf_count;
     int      cmdrd_count;
     int      cmdbuf_idx;
@@ -242,7 +242,7 @@ mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
     b[5] = bin2bcd(track_type_buf[2]);
     b[6] = bin2bcd(track_type_buf[3]);
     b[7] = bin2bcd(track_type_buf[4]);
-    uint32_t lo = cdrom_lba_to_msf_accurate(dev->cdrom_capacity);
+    uint32_t lo = cdrom_lba_to_msf_accurate(dev->cdrom_capacity + 1);
     b[2] = bin2bcd((lo >> 16) & 0xff);
     b[3] = bin2bcd((lo >> 8) & 0xff);
     b[4] = bin2bcd(lo & 0xff);
@@ -312,7 +312,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 if (!dev->buf_count)
                     mitsumi_cdrom_read_sector(dev, 0);
 
-                pclog("Read port 0: ret = %02x\n", ret);
+                //pclog("Read port 0: ret = %02x\n", ret);
                 return ret;
             } else if (dev->cmdbuf_count) {
                 dev->cmdbuf_count--;
@@ -519,12 +519,13 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_GET_Q:
                     if (mitsumi_cdrom_is_ready(dev)) {
-                        cdrom_get_q(dev->cdrom_dev, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
-                        dev->cmdbuf_count = 11;
-                        dev->readcount    = 0;
+                        dev->cur_toc_track = cdrom_get_q(dev->cdrom_dev, &dev->cmdbuf[1], dev->cur_toc_track, dev->mode & MODE_GET_TOC);
+                        dev->cmdbuf_count  = 11;
+                        dev->readcount     = 0;
+                        dev->cmdbuf[0]     = dev->stat;
                     } else {
-                        dev->cmdbuf_count = 1;
-                        dev->cmdbuf[0]    = STAT_CMD_CHECK | dev->stat;
+                        dev->cmdbuf_count  = 1;
+                        dev->cmdbuf[0]     = STAT_CMD_CHECK | dev->stat;
                     }
                     break;
                 case CMD_GET_STAT:
