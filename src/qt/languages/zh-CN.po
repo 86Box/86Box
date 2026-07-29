@@ -2925,6 +2925,21 @@ msgstr "型号："
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan 渲染器初始化失败。"
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "GLSL 错误"
 
@@ -2945,6 +2960,9 @@ msgstr "着色器管理器"
 
 msgid "Shader Configuration"
 msgstr "着色器配置"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "添加"
@@ -3247,6 +3265,9 @@ msgstr "无法加载 CD-ROM 映像 \"%s\"。"
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr "无法加载映像 \"%s\"：缺少 %1，这是 Daemon Tools MDS v2和 MDX "
 "映像支持所必需的。"
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 映像 \"%s\" 已插入不支持 DVD 介质的驱动器，将被忽略。"

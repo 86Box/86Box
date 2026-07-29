@@ -2931,6 +2931,21 @@ msgstr "Model:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Inicializácia renderera Vulkan zlyhala."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "Chyba GLSL"
 
@@ -2951,6 +2966,9 @@ msgstr "Správca shaderov"
 
 msgid "Shader Configuration"
 msgstr "Konfigurácia shaderu"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Pridať"
@@ -3256,6 +3274,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Nepodarilo sa načítať obraz „%s“: nenašla sa knižnica %1, ktorá je "
 "potrebná na podporu obrazov vo Daemon Tools formátoch MDS v2 a MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

@@ -2909,6 +2909,21 @@ msgstr ""
 msgid "Failed to initialize Vulkan renderer."
 msgstr ""
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr ""
 
@@ -2928,6 +2943,9 @@ msgid "Shader Manager"
 msgstr ""
 
 msgid "Shader Configuration"
+msgstr ""
+
+msgid "GPU:"
 msgstr ""
 
 msgid "Add"
@@ -3229,6 +3247,9 @@ msgid "Unable to load CD-ROM image \"%s\"."
 msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
