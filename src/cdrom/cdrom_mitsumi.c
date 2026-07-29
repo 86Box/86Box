@@ -119,6 +119,8 @@ typedef struct mcd_t {
     int      cur_toc_track;
     int      newstat;
 
+    uint8_t  cur_control;
+
     uint8_t  temp_buf[0x10000];
 
     cdrom_t *cdrom_dev;
@@ -194,12 +196,13 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->enable_dma    = 0;
     dev->enable_irq    = 0;
     dev->conf          = 0;
-    dev->dmalen        = COOKED_SECTOR_SIZE;
+    dev->dmalen        = COOKED_SECTOR_SIZE - 1;
     dev->locked        = 0;
     dev->change        = 1;
     dev->newstat       = 1;
     dev->data          = 0;
     dev->smode         = 1;
+    dev->cur_control   = 0x0c;
 }
 
 /* Lifted from FreeBSD */
@@ -305,7 +308,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
 
     switch (port & 1) {
         case 0:
-            if (dev->buf_count) {
+            if (dev->buf_count && dev->cur_control == 0x04) {
                 ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
                 dev->buf_idx++;
                 dev->buf_count--;
@@ -318,7 +321,8 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 dev->cmdbuf_count--;
                 pclog("Read port 0: cmdres = %02x\n", dev->cmdbuf[dev->cmdbuf_idx]);
                 return dev->cmdbuf[dev->cmdbuf_idx++];
-            }            return dev->stat;
+            }
+            return dev->stat;
         case 1:
             ret = 0;
             picintc(1 << dev->irq);
@@ -531,6 +535,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 1:
             mitsumi_cdrom_reset(dev);
+            break;
+        case 2:
+            dev->cur_control = val;
             break;
         default:
             break;
