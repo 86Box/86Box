@@ -619,6 +619,49 @@ machine_ibmxt_init(const machine_t *model)
     return ret;
 }
 
+/*
+ * IBM 3270 PC (model 5271).
+ *
+ * The planar is a stock 5160 -- these two ROMs are byte-identical to the
+ * 08NOV82 XT set -- and every 3270-specific part of the machine lives on the
+ * display adapter and its option ROMs.  So there is nothing to do here beyond
+ * the ordinary XT init plus the card itself.
+ *
+ * The 3270 keyboard adapter at ports 0x1B0-0x1B7 is deliberately not emulated.
+ * A 5271 works with an ordinary XT keyboard, reporting a non-fatal 302 at
+ * POST; a partial implementation is far worse than none, because the adapter
+ * ROM's handshake loop at CA0CE spins forever if port 0x1B2 answers with bit 5
+ * set but bits 6-7 clear.  Leaving the range undecoded reads as open bus and
+ * takes the ROM cleanly down its "no 3270 keyboard" path.
+ */
+int
+machine_xt_ibm3270pc_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ibm3270pc/1501512.bin",
+                           0x000f8000, 65536, 0);
+    if (ret)
+        ret = bios_load_aux_linear("roms/machines/ibm3270pc/6359116.bin",
+                                   0x000f6000, 8192, 0);
+
+    /* The adapter and font ROMs are read by the display device with
+       rom_fopen(), which is not bios_only-aware, so gate on them here. */
+    if (ret && !device_available(&ibm3270pc_vid_device))
+        ret = 0;
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
+
+    machine_xt_common_init(model, 0);
+
+    device_add(&ibm3270pc_vid_device);
+
+    return ret;
+}
+
 static const device_config_t ibmxt86_config[] = {
     // clang-format off
     {
