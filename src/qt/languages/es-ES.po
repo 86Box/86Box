@@ -1238,6 +1238,9 @@ msgstr "No fúe posible abrir el archivo de configuración seleccionado para lee
 msgid "Use regular expressions in search box"
 msgstr "Utilizar expresiones regulares en la caja de búsqueda"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n máquina es activa en este momento. ¿Está seguro de que quiere salir del administrador de MV?"
@@ -1411,8 +1414,11 @@ msgstr "Terminar forzadamente a la máquina virtual puede cusar la pérdida de d
 msgid "&Delete"
 msgstr "&Borrar"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "¿De verdad quiere borrar la máquina virtual \"%1\" y todos sus archivos? ¡Esta acción no se puede deshacer!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "¿De verdad quiere borrar la máquina virtual \"%1\" y todos sus archivos?"
+
+msgid "This action cannot be undone!"
+msgstr "¡Esta acción no se puede deshacer!"
 
 msgid "Show &config file"
 msgstr "Mostrar archivo de &configuración"

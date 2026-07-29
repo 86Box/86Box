@@ -1228,6 +1228,9 @@ msgstr ""
 msgid "Use regular expressions in search box"
 msgstr ""
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] ""
@@ -1400,7 +1403,10 @@ msgstr ""
 msgid "&Delete"
 msgstr ""
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr ""
+
+msgid "This action cannot be undone!"
 msgstr ""
 
 msgid "Show &config file"

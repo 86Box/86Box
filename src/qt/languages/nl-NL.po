@@ -1238,6 +1238,9 @@ msgstr "Openen van geselecteerd configuratiebestand voor lezen niet mogelijk: %1
 msgid "Use regular expressions in search box"
 msgstr "Gebruik reguliere expressies in zoekveld"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n machine is nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
@@ -1411,8 +1414,11 @@ msgstr "Gedwongen beëindiging van een virtuele machine kan dataverlies veroorza
 msgid "&Delete"
 msgstr "&Verwijderen"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Weet je zeker dat je de virtuele machine \"%1\" en al haar bestanden wil verwijderen? Deze actie kan niet ongedaan gemaakt worden!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Weet je zeker dat je de virtuele machine \"%1\" en al haar bestanden wil verwijderen?"
+
+msgid "This action cannot be undone!"
+msgstr "Deze actie kan niet ongedaan gemaakt worden!"
 
 msgid "Show &config file"
 msgstr "Toon &configuratiebestand"

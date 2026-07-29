@@ -1243,6 +1243,9 @@ msgstr "Nie udało się otworzyć wybranego pliku konfiguracyjnego do odczytu: %
 msgid "Use regular expressions in search box"
 msgstr "Użyj wyrażeń regularnych w polu wyszukiwania"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n maszyna jest obecnie aktywna. Czy mimo to chcesz wyjść z menedżera maszyn wirtualnych?"
@@ -1417,8 +1420,11 @@ msgstr "Zabicie maszyny wirtualnej może spowodować utratę danych. Zrób to ty
 msgid "&Delete"
 msgstr "&Usuń"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Czy na pewno chcesz usunąć maszynę wirtualną „%1” i jej wszystkie pliki? Tej operacji nie można cofnąć!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Czy na pewno chcesz usunąć maszynę wirtualną „%1” i jej wszystkie pliki?"
+
+msgid "This action cannot be undone!"
+msgstr "Tej operacji nie można cofnąć!"
 
 msgid "Show &config file"
 msgstr "&Pokaż plik konfiguracyjny"

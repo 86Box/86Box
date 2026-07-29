@@ -1235,6 +1235,9 @@ msgstr "Không thể mở cấu hình đã chọn để đọc: %1"
 msgid "Use regular expressions in search box"
 msgstr "Dùng regex trong hộp tìm kiếm"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
@@ -1407,8 +1410,11 @@ msgstr "Buộc một máy ảo dừng có thể gây ra mất mát dữ liệu. 
 msgid "&Delete"
 msgstr "Xóa"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Bạn có thật sự muốn xóa máy ảo \"%1\" và tất cả các tập tin của nó không? Thao tác này không thể được phục hồi!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Bạn có thật sự muốn xóa máy ảo \"%1\" và tất cả các tập tin của nó không?"
+
+msgid "This action cannot be undone!"
+msgstr "Thao tác này không thể được phục hồi!"
 
 msgid "Show &config file"
 msgstr "Hiện tập tin cấu hình"

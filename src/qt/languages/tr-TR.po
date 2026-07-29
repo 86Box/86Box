@@ -1258,6 +1258,9 @@ msgstr "Seçili yapılandırma dosyası okunmak için açılamıyor: %1"
 msgid "Use regular expressions in search box"
 msgstr "Arama kutusunda düzenli ifadeler kullan"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n makine şu anda aktif. Yine de sanal makine yöneticisinden çıkmak istediğinize emin misiniz?"
@@ -1435,10 +1438,11 @@ msgstr ""
 msgid "&Delete"
 msgstr "&Sil"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
-"Gerçekten \"%1\" sanal makinesini tüm dosyalarıyla birlikte silmek istiyor "
-"musunuz? Bu işlem geri alınamaz!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Gerçekten \"%1\" sanal makinesini tüm dosyalarıyla birlikte silmek istiyor musunuz?"
+
+msgid "This action cannot be undone!"
+msgstr "Bu işlem geri alınamaz!"
 
 msgid "Show &config file"
 msgstr "Yap&ılandırma dosyasını göster"

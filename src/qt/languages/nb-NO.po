@@ -1239,6 +1239,9 @@ msgstr "Kan ikke åpne valgt konfigurasjonsfil for lesing: %1"
 msgid "Use regular expressions in search box"
 msgstr "Bruk regulære uttrykk i søkeboksen"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n maskin er for øyeblikket aktive. Er du sikker på at du vil avslutte VM-administratoren uansett?"
@@ -1412,8 +1415,11 @@ msgstr "Å avslutte en virtuell maskin kan føre til datatap. Gjør dette kun hv
 msgid "&Delete"
 msgstr "&Slett"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Vil du virkelig slette den virtuelle maskinen \"%1\" og alle dens filer? Denne handlingen kan ikke angres!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Vil du virkelig slette den virtuelle maskinen \"%1\" og alle dens filer?"
+
+msgid "This action cannot be undone!"
+msgstr "Denne handlingen kan ikke angres!"
 
 msgid "Show &config file"
 msgstr "Vis &konfigurasjonsfil"

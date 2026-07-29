@@ -1238,6 +1238,9 @@ msgstr "No fou possible obrir el fitxer de configuració seleccionat per llegir:
 msgid "Use regular expressions in search box"
 msgstr "Utilitzeu expressions regulars a la caixa de cerca"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n màquina és activa en aquest moment. Segur que voleu sortir de l'administrador de MV?"
@@ -1411,8 +1414,11 @@ msgstr "Finalitzar forçosament la màquina virtual pot causar la pèrdua de dad
 msgid "&Delete"
 msgstr "&Suprimir"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Realment voleu suprimir la màquina virtual \"%1\" i tots els seus fitxers? Aquesta acció no es pot desfer!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Realment voleu suprimir la màquina virtual \"%1\" i tots els seus fitxers?"
+
+msgid "This action cannot be undone!"
+msgstr "Aquesta acció no es pot desfer!"
 
 msgid "Show &config file"
 msgstr "Mostra fitxer de &configuració"

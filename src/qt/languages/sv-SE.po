@@ -1238,6 +1238,9 @@ msgstr "Kunde inte läsa den valda konfigurationsfilen: %1"
 msgid "Use regular expressions in search box"
 msgstr "Använd vanliga uttryck i sökfältet"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n maskin är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
@@ -1411,8 +1414,11 @@ msgstr "Att döda en virtuell maskin kan orsaka dataförlust. Gör detta endast 
 msgid "&Delete"
 msgstr "&Ta bort"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Vill du verkligen ta bort virtuella maskinen \"%1\" och alla dess filer? Denna handling kan inte ångras!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Vill du verkligen ta bort virtuella maskinen \"%1\" och alla dess filer?"
+
+msgid "This action cannot be undone!"
+msgstr "Denna handling kan inte ångras!"
 
 msgid "Show &config file"
 msgstr "Visa &konfigurationsfil"

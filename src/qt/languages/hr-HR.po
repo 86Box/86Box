@@ -1244,6 +1244,9 @@ msgstr "Nije moguće otvoriti odabranu konfiguracijsku datoteku za čitanje: %1"
 msgid "Use regular expressions in search box"
 msgstr "U polju za pretraživanje koristite regularne izraze"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n računalo je trenutno aktivno. Jeste li sigurni da ipak želite izaći iz upravitelja virtualnih sistema?"
@@ -1418,8 +1421,11 @@ msgstr "Prisilno prekidanje virtualnog stroja može uzrokovati gubitak podataka.
 msgid "&Delete"
 msgstr "&Izbriši"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Želite li zaista izbrisati virtualni stroj \"%1\" i sve njegove datoteke? Ovu radnju nije moguće poništiti!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Želite li zaista izbrisati virtualni stroj \"%1\" i sve njegove datoteke?"
+
+msgid "This action cannot be undone!"
+msgstr "Ovu radnju nije moguće poništiti!"
 
 msgid "Show &config file"
 msgstr "Prikaži &konfiguracijsku datoteku"

@@ -77,6 +77,12 @@ VMManagerPreferences::
     ui->regexSearchCheckBox->setChecked(useRegexSearch);
     const auto rememberSizePosition = config->getStringValue("window_remember").toInt();
     ui->rememberSizePositionCheckBox->setChecked(rememberSizePosition);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    const auto deleteToTrash = config->getStringValue("delete_to_trash").toInt();
+    ui->deleteToTrashCheckBox->setChecked(deleteToTrash);
+#else
+    ui->deleteToTrashCheckBox->setVisible(false);
+#endif
 
     ui->radioButtonSystem->setChecked(color_scheme == 0);
     ui->radioButtonLight->setChecked(color_scheme == 1);
@@ -128,6 +134,9 @@ VMManagerPreferences::accept()
 #endif
     config->setStringValue("window_remember", ui->rememberSizePositionCheckBox->isChecked() ? "1" : "0");
     config->setStringValue("regex_search", ui->regexSearchCheckBox->isChecked() ? "1" : "0");
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    config->setStringValue("delete_to_trash", ui->deleteToTrashCheckBox->isChecked() ? "1" : "0");
+#endif
     QDialog::accept();
 }
 
