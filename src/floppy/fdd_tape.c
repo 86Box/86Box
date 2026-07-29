@@ -23,8 +23,10 @@
  *
  *          The cartridge is a flat image addressed by segment. A segment
  *          is 32 sectors of 1024 bytes and is mapped onto the controller's
- *          C/H/R space at four segments per cylinder, 1020 segments per
- *          head - the same fixed geometry the QIC-40/80 format specifies.
+ *          C/H/R space at four segments per cylinder; the host states its
+ *          cylinders per head in the cartridge header (150 for QIC-80, 255
+ *          for QIC-40), so the "head" digit runs well past the two a floppy
+ *          has.
  *
  * Authors: Dmitry Brant, <me@dmitrybrant.com>
  *
@@ -1087,7 +1089,7 @@ tape_command(uint8_t command)
             /* The only rate the drive will accept is the only one it can
                ever be running at, so the selected rate is the live one. */
             tape_start_report((tape.rate_code << QIC_CONFIG_RATE_SHIFT) |
-                              QIC_CONFIG_LONG | QIC_CONFIG_80, 8);
+                              QIC_CONFIG_80, 8);
             return;
         }
 
@@ -1238,6 +1240,11 @@ tape_command(uint8_t command)
             }
             tape.format_mode = 1;
             tape.verify_mode = 0;
+            /* Settle the C/H/R mapping before the format writes arrive: a
+               blank cartridge takes the mapping of the format the host just
+               selected (Select Rate sets format_code first), and a
+               reformatted one re-reads its existing header. */
+            tape_read_geometry();
             break;
 
         case QIC_ENTER_VERIFY_MODE:
@@ -1418,7 +1425,7 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
        The head field is not a physical head here, just the high digits of
        the segment number, so it ranges well beyond the two a floppy has:
        a full QIC-80 cartridge holds a few thousand segments, which is
-       head 4 at 1020 segments per head.
+       head 6 at 600 segments per head.
      */
     if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 0xff))
         return 0;
@@ -2114,8 +2121,18 @@ tape_read_geometry(void)
 {
     uint8_t hdr[FDD_TAPE_SECTOR_SIZE];
 
+    /*
+       With no header to read - a blank cartridge about to be formatted - fall
+       back to the mapping the selected format is laid down with, so the format
+       writes land in the same C/H/R space the host later reads them back from.
+       A QIC-80 cartridge is packed at 150 cylinders per head, a QIC-40 one at
+       255; getting this wrong scatters the host's writes across a sparse,
+       oversized image.
+     */
     tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
-    tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
+    tape.segs_per_head = (tape.format_code == QIC_FORMAT_QIC40)
+                             ? FDD_TAPE_SEGS_PER_HEAD_QIC40
+                             : FDD_TAPE_SEGS_PER_HEAD_QIC80;
 
     if (tape.fp == NULL)
         return;
