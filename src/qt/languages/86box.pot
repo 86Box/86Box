@@ -60,10 +60,13 @@ msgstr ""
 msgid "&Qt (Software)"
 msgstr ""
 
-msgid "Open&GL (3.0 Core)"
+msgid "Open&GL"
 msgstr ""
 
-msgid "&VNC"
+msgid "&Vulkan"
+msgstr ""
+
+msgid "V&NC"
 msgstr ""
 
 msgid "Specify &dimensions…"
