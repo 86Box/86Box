@@ -237,17 +237,14 @@ mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
     b[0] = first_track;
     b[1] = last_track;
 
-    b[2] = 0;
-    b[3] = 0;
-    b[4] = 0;
-    blk_to_msf(dev->cdrom_capacity, &b[2]);
-    b[2] = bin2bcd(b[2]);
-    b[3] = bin2bcd(b[3]);
-    b[4] = bin2bcd(b[4]);
 
     b[5] = bin2bcd(track_type_buf[2]);
     b[6] = bin2bcd(track_type_buf[3]);
     b[7] = bin2bcd(track_type_buf[4]);
+    uint32_t lo = cdrom_lba_to_msf_accurate(dev->cdrom_capacity);
+    b[2] = bin2bcd((lo >> 16) & 0xff);
+    b[3] = bin2bcd((lo >> 8) & 0xff);
+    b[4] = bin2bcd(lo & 0xff);
     return 1;
 }
 
