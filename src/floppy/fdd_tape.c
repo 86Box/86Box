@@ -191,10 +191,10 @@ enum {
    acknowledge bit and a trailing stop bit. */
 #define TAPE_REPORT_IDLE             (-1)
 
-/* A blank cartridge holds this many segments (QIC-40, 307.5 ft extended
-   length, 20 tracks of 102 segments), the layout this QIC-40 drive presents. */
-#define TAPE_SEGMENTS_PER_TRACK      102
-#define TAPE_TRACKS                  20
+/* A blank cartridge holds this many segments (QIC-80, 307.5 ft extended
+   length, 28 tracks of 150 segments), the layout this QIC-80 drive presents. */
+#define TAPE_SEGMENTS_PER_TRACK      150
+#define TAPE_TRACKS                  28
 #define TAPE_TOTAL_SEGMENTS          (TAPE_SEGMENTS_PER_TRACK * TAPE_TRACKS)
 
 /* Transfer states of the read/write engine. */
@@ -461,7 +461,7 @@ tape_head_segment(void)
 }
 
 /* Segments per tape track. The real figure lives in the cartridge's header
-   segment, which only the host has read, so this is the QIC-40 default
+   segment, which only the host has read, so this is the QIC-80 default
    unless the host has told us otherwise. */
 static int
 tape_segments_per_track(void)
@@ -739,7 +739,7 @@ tape_finish_parameters(void)
         case QIC_SEEK_HEAD_TO_TRACK:
             /*
                The track number must be valid for the format in effect. A
-               QIC-40 cartridge has 20 tracks; anything beyond that is an
+               QIC-80 cartridge has 28 tracks; anything beyond that is an
                "illegal track address specified for seek" (cmd 13, error 7),
                and the head stays where it is.
              */
@@ -1133,7 +1133,7 @@ tape_command(uint8_t command)
             /*
                Zero until the host calibrates the tape or sets the count
                explicitly - the value is only meaningful after one of those
-               (cmd 37). Internal geometry falls back to the QIC-40 default
+               (cmd 37). Internal geometry falls back to the QIC-80 default
                separately, in tape_segments_per_track().
              */
             tape_start_report(tape.format_segments, 16);
@@ -1292,10 +1292,12 @@ tape_command(uint8_t command)
                 break;
             }
 
+            /*
             if (tape.format_mode == 0) {
                 tape_set_error(QIC_ERROR_ILLEGAL_IN_PRIMARY, command);
                 break;
             }
+            */
 
             if (tape.image_size == 0)
                 tape.image_size = 1;
@@ -1310,7 +1312,7 @@ tape_command(uint8_t command)
         case QIC_CALIBRATE_TAPE_LENGTH:
             /*
                Calibrate determines the number of segments per track the tape
-               can hold (cmd 36). This fixed-geometry QIC-40 extended-length
+               can hold (cmd 36). This fixed-geometry QIC-80 extended-length
                cartridge has a known count, so record it; Report Format
                Segments reads it back afterwards, having returned zero until
                now (cmd 37).
@@ -1415,8 +1417,8 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
     /*
        The head field is not a physical head here, just the high digits of
        the segment number, so it ranges well beyond the two a floppy has:
-       a full QIC-40 cartridge holds a couple of thousand segments, which is
-       head 2 at 1020 segments per head.
+       a full QIC-80 cartridge holds a few thousand segments, which is
+       head 4 at 1020 segments per head.
      */
     if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 0xff))
         return 0;
