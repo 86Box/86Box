@@ -1397,7 +1397,9 @@ EOF
 	then
 		rm -rf "$cache_dir/appimage-builder-"* # remove old versions
 		python3 -m venv "$appimage_builder_dir" # venv to solve some Debian setuptools headaches
-		"$appimage_builder_dir/bin/pip" install -U "git+https://github.com/AppImageCrafters/appimage-builder.git@$appimage_builder_commit" 'setuptools<81'
+		# This old appimage-builder setup.py is incompatible with current setuptools_scm.
+		"$appimage_builder_dir/bin/pip" install -U 'setuptools==69.5.1' 'setuptools_scm==7.1.0' wheel
+		"$appimage_builder_dir/bin/pip" install --no-build-isolation "git+https://github.com/AppImageCrafters/appimage-builder.git@$appimage_builder_commit"
 	fi
 
 	# Symlink appimage-builder global cache directory.
