@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-17 07:28+0000\n"
+"PO-Revision-Date: 2026-07-29 09:21+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1250,7 +1250,7 @@ msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Διαγραφή εικονικών μηχανών στον Κάδο Ανακύκλωσης"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -2966,19 +2966,19 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Αποτυχία αρχικοποίησης απεικονιστή Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Αποτυχία δημιουργίας στιγμιότυπου Vulkan 1.3."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Δεν βρέθηκαν φυσικές συσκευές με δυνατότητα Vulkan."
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "Το librashader δεν βρέθηκε. Τα shaders δεν θα είναι διαθέσιμα."
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "H συσκευή Vulkan χάθηκε."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Η επιφάνεια Vulkan χάθηκε."
 
 msgid "GLSL Error"
 msgstr "Σφάλμα GLSL"
@@ -3008,7 +3008,7 @@ msgid "Shader Configuration"
 msgstr "Διαμόρφωση Σκίασης"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Προσθήκη"
@@ -3332,6 +3332,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Αδυναμία φόρτωσης της εικόνας \"%s\": Λείπει το %1, το οποίο απαιτείται για "
+"την υποστήριξη εικόνων σε μορφή Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
