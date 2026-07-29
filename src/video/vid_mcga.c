@@ -15,6 +15,7 @@
  * first edition (June 1987).
  */
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <86box/86box.h>
