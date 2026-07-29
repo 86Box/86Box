@@ -876,7 +876,8 @@ gus_read(uint16_t addr, void *priv)
 
         case 0x206: /*IRQ status*/
             val = gus->irqstatus & ~0x10;
-            if (gus->ad_status & 0x19)
+            /* Handling for undocumented NMI status bit, needed by SBOS */
+            if (((gus->ad_status & 0x18) && (gus->sb_ctrl & 0x20)) || ((gus->ad_status & 0x01) && (gus->sb_ctrl & 0x02)))
                 val |= 0x10;
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
             return val;
