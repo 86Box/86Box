@@ -3540,7 +3540,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "IBM PS/2 model 25-386", "" }
     },
     /* Has IBM AT KBC firmware. */
     {

@@ -1,7 +1,10 @@
 /*
  * 86Box    A hypervisor and IBM PC system emulator that specializes in
- *          running old operating systems and software designed based on
- *          the IBM PC architecture.
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
  *
  *          IBM Personal System/2 Model 25 keyboard and pointing-device
  *          interface.
@@ -10,7 +13,8 @@
  * system-board gate array expose device data at 67h and 68h. Their control
  * and status registers occupy 66h, 69h, and 6Ah. BIOS copies received data
  * into the software latch at 60h before dispatching the normal keyboard or
- * pointing-device handler.
+ * pointing-device handler. The implementation follows the IBM Personal
+ * System/2 Model 25 Technical Reference, first edition (June 1987).
  */
 #include <stdint.h>
 #include <stdlib.h>

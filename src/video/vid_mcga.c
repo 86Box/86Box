@@ -8,11 +8,11 @@
  *
  *          IBM PS/2 Model 25 MCGA video subsystem.
  *
- * The Model 25 predates the VGA register interface.  Its two proprietary
- * gate arrays provide CGA-compatible text and graphics modes plus 640x480
- * monochrome and 320x200 256-colour modes.  Register and storage behaviour
- * here follows the June 1987 IBM Personal System/2 Model 25 Technical
- * Reference.
+ * The Model 25 MCGA does not implement the VGA register interface. Its two
+ * proprietary gate arrays provide CGA-compatible text and graphics modes
+ * plus 640x480 monochrome and 320x200 256-colour modes. Register and storage
+ * behaviour follows the IBM Personal System/2 Model 25 Technical Reference,
+ * first edition (June 1987).
  */
 #include <stdint.h>
 #include <stdlib.h>

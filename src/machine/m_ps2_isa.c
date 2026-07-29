@@ -543,7 +543,6 @@ machine_ps2_m25_init(const machine_t *model)
     const char *fn[2];
     ps2_m25_t  *dev;
 
-    /* No ROMs available. */
     if (!device_available(model->device))
         return ret;
 
