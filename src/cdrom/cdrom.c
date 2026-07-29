@@ -2353,13 +2353,26 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
     if (*curtoctrk < 0)
         *curtoctrk = 0;
 
+    // Mitsumi encodes points in BCD format, always.
+    int i = 0;
+    while (t[*curtoctrk].point > 99) {
+        (void)*curtoctrk++;
+        i++;
+
+        if (*curtoctrk > num) {
+            *curtoctrk = 0;
+        }
+        if (i == num)
+            break;
+    }
+
     buf[0] = (t[*curtoctrk].adr_ctl >> 4) | ((t[*curtoctrk].adr_ctl & 0xf) << 4);
     buf[1] = 0;
-    buf[2] = t[*curtoctrk].point;
+    buf[2] = bin2bcd(t[*curtoctrk].point);
     buf[3] = bin2bcd(t[*curtoctrk].m);
     buf[4] = bin2bcd(t[*curtoctrk].s);
     buf[5] = bin2bcd(t[*curtoctrk].f);
-    buf[6] = t[*curtoctrk].zero;
+    buf[6] = bin2bcd(t[*curtoctrk].zero);
     buf[7] = bin2bcd(t[*curtoctrk].pm);
     buf[8] = bin2bcd(t[*curtoctrk].ps);
     buf[9] = bin2bcd(t[*curtoctrk].pf);
