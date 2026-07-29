@@ -1,109 +1,43 @@
-name: CMake (Linux)
+name: Linux SDL
 
 on:
-
-  push:
-    paths:
-      - src/**
-      - cmake/**
-      - "**/CMakeLists.txt"
-      - "CMakePresets.json"
-      - "!.github/workflows/**"
-      - .github/workflows/cmake_linux.yml
-      - vcpkg.json
-      - "!**/Makefile*"
-
   pull_request:
-    paths:
-      - src/**
-      - cmake/**
-      - "**/CMakeLists.txt"
-      - "CMakePresets.json"
-      - "!.github/workflows/**"
-      - .github/workflows/cmake_linux.yml
-      - vcpkg.json
-      - "!**/Makefile*"
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+
+env:
+  CMAKE_FLAGS: >-
+    -D QT=OFF
+    -D USE_SDL_SHADER=ON
+    -D NEW_DYNAREC=ON
 
 jobs:
-
-  linux:
-
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
-
-    runs-on: ${{ matrix.environment.runner }}
-
+  pull-request:
+    if: github.event_name == 'pull_request'
+    name: "PR ${{ matrix.build.name }}"
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: true
       matrix:
         build:
-#          - name: Regular
-#            preset: regular
           - name: Debug
-            preset: dev_debug
-            slug: -Debug
-          - name: Dev
-            preset: development
-            slug: -Dev
-        dynarec:
-          - name: ODR
-            new: off
-            slug: -ODR
-          - name: NDR
-            new: on
-            slug: -NDR
-        ui:
-          - name: SDL GUI
-            qt: off
-            qt6: off
-            sdl_shader: on
-            slug: -SDL
-            static: on
-          - name: Qt 5 GUI
-            qt: on
-            qt6: off
-            sdl_shader: off
-            slug: -Qt5
-            packages: >-
-              qtbase5-dev
-              qtbase5-private-dev
-              qttools5-dev
-              qttranslations5-l10n
-              libevdev-dev
-              libxkbcommon-x11-dev
-          - name: Qt 6 GUI
-            qt: on
-            qt6: on
-            sdl_shader: off
-            slug: -Qt6
-            packages: >-
-              qt6-base-dev
-              qt6-base-private-dev
-              qt6-tools-dev
-              qt6-tools-dev-tools
-              qt6-l10n-tools
-              qt6-translations-l10n
-              libevdev-dev
-              libxkbcommon-x11-dev
-              libvulkan-dev
-        environment:
-          - arch: x86_64
-            toolchain: ./cmake/flags-gcc-x86_64.cmake
-            slug: "-x86_64"
-            runner: ubuntu-22.04
-          - arch: arm64
-            toolchain: ./cmake/flags-gcc-aarch64.cmake
-            slug: -arm64
-            runner: ubuntu-22.04-arm
-        exclude:
-          - dynarec:
-              new: off
-            environment:
-              arch: arm64
+            preset: debug
+            slug: Debug
+          - name: Release
+            preset: regular
+            slug: Release
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Install dependencies
         run: >-
-          sudo apt update && sudo apt install
+          sudo apt update && sudo apt install -y
           build-essential
           ninja-build
           libfreetype-dev
@@ -118,32 +52,88 @@ jobs:
           libvdeplug-dev
           libserialport-dev
           libzstd-dev
-          ${{ matrix.ui.packages }}
-
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ${{ matrix.environment.toolchain }}
-          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
-          -D QT=${{ matrix.ui.qt }}
-          -D USE_QT6=${{ matrix.ui.qt6 }}
-          -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
+          $CMAKE_FLAGS
 
       - name: Build
-        run: |
-          cmake --build build
+        run: cmake --build build --parallel
 
-      - name: Generate package
-        run: |
-          cmake --install build
+      - name: Install package
+        run: cmake --install build
 
-      - name: Upload artifact
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy${{ matrix.environment.slug }}-gha${{ github.run_number }}'
+          name: 86Box-SDL-${{ matrix.build.slug }}-PR-${{ github.event.pull_request.number }}
           path: build/artifacts/**
+
+  release-build:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    name: "AppImage ${{ matrix.arch }}"
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build AppImage
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: >-
+          ./.ci/build.sh
+          -b 86Box-SDL-${{ matrix.arch }}-${{ github.run_number }}
+          ${{ matrix.arch }}
+          -t
+          --preset=regular
+          -D QT=OFF
+          -D USE_SDL_SHADER=ON
+          -D NEW_DYNAREC=ON
+          -D BUILD_TYPE=release
+          -D EMU_BUILD_NUM=$BUILD_NUMBER
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: 86Box-AppImage-${{ matrix.arch }}
+          path: 86Box-SDL-${{ matrix.arch }}-${{ github.run_number }}.AppImage
+          if-no-files-found: error
+
+  publish-release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    name: Publish GitHub release
+    needs: release-build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download AppImages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: 86Box-AppImage-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: v7.0.0-master.${{ github.run_number }}
+        run: >-
+          gh release create "$TAG"
+          --target "$GITHUB_SHA"
+          --title "$TAG"
+          --notes "Automated SDL release for $GITHUB_SHA."
+          release-assets/*.AppImage
