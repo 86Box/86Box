@@ -302,7 +302,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
     mcd_t  *dev = (mcd_t *) priv;
     uint8_t ret = 0xff;
 
-    switch (port & 1) {
+    switch (port & 3) {
         case 0:
             if (dev->buf_count && dev->cur_control == 0x04) {
                 ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
@@ -318,7 +318,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 pclog("Read port 0: cmdres = %02x\n", dev->cmdbuf[dev->cmdbuf_idx]);
                 return dev->cmdbuf[dev->cmdbuf_idx++];
             }
-            return dev->stat;
+            return 0xFF;
         case 1:
             ret = 0;
             picintc(1 << dev->irq);
@@ -328,6 +328,10 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NOSTAT;
             pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK | 1);
             return ret | FLAG_UNK | 1;
+        case 2:
+            return 0xFF;
+        case 3:
+            return 0xFF;
         default:
             break;
     }
