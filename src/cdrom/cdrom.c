@@ -2349,49 +2349,38 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
     }
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
-    // Find out current session.
-    uint32_t cur_lba = dev->seek_pos;
-    uint32_t cur_sess = 1;
 
-    for (int i = 0; i < num; i++) {
-        if (t[i].point == 0xb0) {
-            uint32_t next_sess_start = MSFtoLBA(t[i].m, t[i].s, t[i].f) - 150;
-            if (cur_lba >= next_sess_start) {
-                cur_sess++;
-            }
+    if (*curtoctrk < 0)
+        *curtoctrk = 0;
+
+    // Mitsumi encodes points in BCD format, always.
+    int i = 0;
+    while (t[*curtoctrk].point > 99) {
+        (void)*curtoctrk++;
+        i++;
+
+        if (*curtoctrk > num) {
+            *curtoctrk = 0;
         }
+        if (i == num)
+            break;
     }
-
-    for (int i = 0; i < num; i++)
-        if ((t[i].session == cur_sess) && (t[i].point >= 1) && (t[i].point <= 99)) {
-            first = t[i].point;
-            break;
-        }
-
-    for (int i = (num - 1); i >= 0; i--)
-        if ((t[i].session == cur_sess) && (t[i].point >= 1) && (t[i].point <= 99)) {
-            last  = t[i].point;
-            break;
-        }
-
-    if (*curtoctrk < first)
-        *curtoctrk = first;
 
     buf[0] = (t[*curtoctrk].adr_ctl >> 4) | ((t[*curtoctrk].adr_ctl & 0xf) << 4);
     buf[1] = 0;
-    buf[2] = t[*curtoctrk].point;
+    buf[2] = bin2bcd(t[*curtoctrk].point);
     buf[3] = bin2bcd(t[*curtoctrk].m);
     buf[4] = bin2bcd(t[*curtoctrk].s);
     buf[5] = bin2bcd(t[*curtoctrk].f);
-    buf[6] = t[*curtoctrk].zero;
+    buf[6] = bin2bcd(t[*curtoctrk].zero);
     buf[7] = bin2bcd(t[*curtoctrk].pm);
     buf[8] = bin2bcd(t[*curtoctrk].ps);
     buf[9] = bin2bcd(t[*curtoctrk].pf);
 
-    if (*curtoctrk > last) {
-        *curtoctrk = first;
-    } else {
-        (void)*curtoctrk++;
+    (void)*curtoctrk++;
+
+    if (*curtoctrk > num) {
+        *curtoctrk = 0;
     }
 
     return;

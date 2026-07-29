@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-15 21:21+0000\n"
+"PO-Revision-Date: 2026-07-29 12:35+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -1243,7 +1243,7 @@ msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Excluir máquinas virtuais para a Lixeira"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -2937,19 +2937,19 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Falha ao inicializar o renderizador Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Falha ao criar instância Vulkan 1.3."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Nenhum dispositivo físico compatível com Vulkan foi encontrado."
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "librashader não encontrada. Shaders não estarão disponíveis."
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Dispositivo Vulkan perdido."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Superfície Vulkan perdida."
 
 msgid "GLSL Error"
 msgstr "Erro GLSL"
@@ -2973,7 +2973,7 @@ msgid "Shader Configuration"
 msgstr "Configuração de Shaders"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Adicionar"
@@ -3281,6 +3281,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Não foi possível carregar a imagem \"%s\": %1 está faltando, o que é "
+"necessário para suporte a imagens no formato Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

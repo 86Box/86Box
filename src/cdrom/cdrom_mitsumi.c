@@ -119,6 +119,8 @@ typedef struct mcd_t {
     int      cur_toc_track;
     int      newstat;
 
+    uint8_t  cur_control;
+
     uint8_t  temp_buf[0x10000];
 
     cdrom_t *cdrom_dev;
@@ -194,12 +196,13 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->enable_dma    = 0;
     dev->enable_irq    = 0;
     dev->conf          = 0;
-    dev->dmalen        = COOKED_SECTOR_SIZE;
+    dev->dmalen        = COOKED_SECTOR_SIZE - 1;
     dev->locked        = 0;
     dev->change        = 1;
     dev->newstat       = 1;
     dev->data          = 0;
     dev->smode         = 1;
+    dev->cur_control   = 0x0c;
 }
 
 /* Lifted from FreeBSD */
@@ -231,20 +234,18 @@ mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
     first_track = mcd->temp_buf[2];
     last_track  = mcd->temp_buf[3];
 
-    b[0] = first_track;
-    b[1] = last_track;
+    // Yes, it returns first and last tracks in BCD format.
+    b[0] = bin2bcd(first_track);
+    b[1] = bin2bcd(last_track);
 
-    b[2] = 0;
-    b[3] = 0;
-    b[4] = 0;
-    blk_to_msf(dev->cdrom_capacity, &b[2]);
-    b[2] = bin2bcd(b[2]);
-    b[3] = bin2bcd(b[3]);
-    b[4] = bin2bcd(b[4]);
 
     b[5] = bin2bcd(track_type_buf[2]);
     b[6] = bin2bcd(track_type_buf[3]);
     b[7] = bin2bcd(track_type_buf[4]);
+    uint32_t lo = cdrom_lba_to_msf_accurate(dev->cdrom_capacity);
+    b[2] = bin2bcd((lo >> 16) & 0xff);
+    b[3] = bin2bcd((lo >> 8) & 0xff);
+    b[4] = bin2bcd(lo & 0xff);
     return 1;
 }
 
@@ -286,7 +287,6 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     if (dev->mode & 0x80) {
         if (!(dev->mode & 0x40)) {
             // Skip the main header.
-            dev->buf_count -= 16;
             dev->buf_idx += 16;
         }
     }
@@ -303,9 +303,9 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
     mcd_t  *dev = (mcd_t *) priv;
     uint8_t ret = 0xff;
 
-    switch (port & 1) {
+    switch (port & 3) {
         case 0:
-            if (dev->buf_count) {
+            if (dev->buf_count && dev->cur_control == 0x04) {
                 ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
                 dev->buf_idx++;
                 dev->buf_count--;
@@ -318,7 +318,8 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 dev->cmdbuf_count--;
                 pclog("Read port 0: cmdres = %02x\n", dev->cmdbuf[dev->cmdbuf_idx]);
                 return dev->cmdbuf[dev->cmdbuf_idx++];
-            }            return dev->stat;
+            }
+            return 0xFF;
         case 1:
             ret = 0;
             picintc(1 << dev->irq);
@@ -328,11 +329,62 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NOSTAT;
             pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK | 1);
             return ret | FLAG_UNK | 1;
+        case 2:
+            return 0xFF;
+        case 3:
+            return 0xFF;
         default:
             break;
     }
 
     return ret;
+}
+
+void
+mitsumi_read_multisess(mcd_t* mcd, uint8_t* b)
+{
+    cdrom_t      *dev            = mcd->cdrom_dev;
+    const raw_track_info_t *trti = (raw_track_info_t *) mcd->temp_buf;
+    int           num            = 0;
+    int           first_sess     = 0;
+    int           last_sess      = 0;
+
+    dev->ops->get_raw_track_info(dev->local, &num, mcd->temp_buf);
+
+    if (num > 0) {
+        int trk = - 1;
+
+        for (int i = 0; i < num; i++) {
+            if (trti[i].point == 0xa2) {
+                first_sess = trti[i].session;
+                break;
+            }
+        }
+
+        for (int i = (num - 1); i >= 0; i--) {
+            if (trti[i].point == 0xa2) {
+                last_sess = trti[i].session;
+                break;
+            }
+        }
+
+        for (int i = 0; i < num; i++) {
+            if ((trti[i].point >= 1) && (trti[i].point >= 99) &&
+                (trti[i].session == last_sess)) {
+                trk = i;
+                break;
+            }
+        }
+
+        if ((first_sess > 0) && (last_sess < 0) && (trk != -1)) {
+            b[0] = (first_sess == last_sess) ? 0x00 : 0x01;
+            b[1] = bin2bcd(trti[trk].pm);
+            b[2] = bin2bcd(trti[trk].ps);
+            b[3] = bin2bcd(trti[trk].pf);
+        }
+    } else {
+        memset(b, 0x00, 4);
+    }
 }
 
 static void
@@ -444,17 +496,17 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             dev->cmdbuf[0]    = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
             dev->data         = 0;
             switch (val) {
-                case CMD_GET_INFO:
+                case CMD_DISC_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
-                        cdrom_get_track_buffer(dev->cdrom_dev, &(dev->cmdbuf[1]));
-                        dev->cmdbuf_count = 10;
+                        mitsumi_read_multisess(dev, &dev->cmdbuf[1]);
+                        dev->cmdbuf_count = 5;
                         dev->readcount    = 0;
                     } else {
                         dev->cmdbuf_count = 1;
                         dev->cmdbuf[0]    = STAT_CMD_CHECK;
                     }
                     break;
-                case CMD_DISC_INFO:
+                case CMD_GET_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
                         dev->cmdbuf_count = 9;
                         dev->cmdbuf[0] = dev->stat;
@@ -467,12 +519,12 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_GET_Q:
                     if (mitsumi_cdrom_is_ready(dev)) {
-                        cdrom_get_q(cdrom, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
+                        cdrom_get_q(dev->cdrom_dev, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
                         dev->cmdbuf_count = 11;
                         dev->readcount    = 0;
                     } else {
                         dev->cmdbuf_count = 1;
-                        dev->cmdbuf[0]    = STAT_CMD_CHECK;
+                        dev->cmdbuf[0]    = STAT_CMD_CHECK | dev->stat;
                     }
                     break;
                 case CMD_GET_STAT:
@@ -531,6 +583,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 1:
             mitsumi_cdrom_reset(dev);
+            break;
+        case 2:
+            dev->cur_control = val;
             break;
         default:
             break;

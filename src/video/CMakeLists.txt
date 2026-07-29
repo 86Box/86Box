@@ -75,6 +75,7 @@ add_library(vid OBJECT
     vid_hercules_incolor.c
 
     # Other early CGA-era cards
+    vid_3270pc.c
     vid_genius.c
     vid_sigma.c
 
