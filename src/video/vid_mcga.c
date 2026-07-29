@@ -107,8 +107,10 @@ mcga_mode(const mcga_t *dev)
         return MCGA_MODE_13;
     if (dev->crtc[0x10] & 0x02)
         return MCGA_MODE_11;
+    if (dev->cga_mode & MCGA_CGA_HIRES)
+        return MCGA_MODE_CGA6;
     if (dev->cga_mode & MCGA_CGA_GRAPHICS)
-        return (dev->cga_mode & MCGA_CGA_HIRES) ? MCGA_MODE_CGA6 : MCGA_MODE_CGA4;
+        return MCGA_MODE_CGA4;
     return MCGA_MODE_TEXT;
 }
 
