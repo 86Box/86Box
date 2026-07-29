@@ -8192,6 +8192,54 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "APC FP-PR1PW-01", "" }
     },
+    /* Has a Lance LT38C41 that clones an AMIKEY ('F'). */
+    {
+        .name              = "[VIA VT82C495] FIC 4386-VC-V",
+        .internal_name     = "fic4386vcv",
+        .type              = MACHINE_TYPE_386DX_486,
+        .chipset           = MACHINE_CHIPSET_VIA_VT82C495,
+        .init              = machine_at_fic4386vcv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX | CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536, /* AwardBIOS v4.20 does not recognize more than this amount */
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device, /* TODO: Lance LT38C41. */
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &fic4386vcv_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/2 model 70 (type 3)",
@@ -8533,7 +8581,7 @@ const machine_t machines[] = {
     },
     /* Uses Phoenix keyboard controller firmware. */
     {
-        .name              = "[OPTi 493] Leading Edge CPC-2000LE",
+        .name              = "[OPTi 493] Leading Edge CPC-2000",
         .internal_name     = "cpc2000le",
         .type              = MACHINE_TYPE_486,
         .chipset           = MACHINE_CHIPSET_OPTI_493,
@@ -8577,7 +8625,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Daewoo CPC-2000", "Leading Edge CPC-2008", "" }
+        .aliases                  = { "Daewoo CPC-2000", "Leading Edge CPC-2004", "Leading Edge CPC-2008", "" }
     },
     /* Uses the AMIKey 'F' keyboard controller firmware. */
     {
@@ -9042,7 +9090,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 1024,
-            .max  = 64512,
+            .max  = 65536, /* AwardBIOS v4.20 does not recognize more than this amount */
             .step = 1024
         },
         .nvrmask                  = 127,
