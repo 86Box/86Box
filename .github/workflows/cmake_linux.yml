@@ -135,6 +135,7 @@ jobs:
           TAG: v7.0.0-master.${{ github.run_number }}
         run: >-
           gh release create "$TAG"
+          --repo "$GITHUB_REPOSITORY"
           --target "$GITHUB_SHA"
           --title "$TAG"
           --notes "Automated SDL release for $GITHUB_SHA."
