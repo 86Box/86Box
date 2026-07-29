@@ -947,9 +947,10 @@ if grep -qiE "^BUILD_TYPE:[^=]+=release" build/CMakeCache.txt 2> /dev/null
 then
 	if [ -n "$git_repo" ]
 	then
+		assets_repo=${ASSETS_REPOSITORY:-"$(dirname "$git_repo")/assets.git"}
 		echo [-] Downloading assets
 		cd archive_tmp
-		if ! git clone --depth 1 "$(dirname "$git_repo")/assets.git" assets
+		if ! git clone --depth 1 "$assets_repo" assets
 		then
 			echo [!] Assets download failed
 			exit 7
@@ -980,10 +981,11 @@ then
 	fi
 else
 	rm -rf "$prefix"
+	mdsx_repo=${MDSX_REPOSITORY:-"$(dirname "$git_repo")/mdsx.git"}
 	for retry in 0 5 10 20 40
 	do
 		sleep $retry
-		git clone --depth 1 "$(dirname "$git_repo")/mdsx.git" "$prefix" && break
+		git clone --depth 1 "$mdsx_repo" "$prefix" && break
 	done
 fi
 make -C "$prefix/src" -j$(nproc) CC="$cc_binary" STRIP="$strip_binary" $debug_args || exit 99
