@@ -518,12 +518,12 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     break;
                 case CMD_GET_Q:
                     if (mitsumi_cdrom_is_ready(dev)) {
-                        cdrom_get_q(cdrom, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
+                        cdrom_get_q(dev->cdrom_dev, &(dev->cmdbuf[1]), &dev->cur_toc_track, dev->mode & MODE_GET_TOC);
                         dev->cmdbuf_count = 11;
                         dev->readcount    = 0;
                     } else {
                         dev->cmdbuf_count = 1;
-                        dev->cmdbuf[0]    = STAT_CMD_CHECK;
+                        dev->cmdbuf[0]    = STAT_CMD_CHECK | dev->stat;
                     }
                     break;
                 case CMD_GET_STAT:
