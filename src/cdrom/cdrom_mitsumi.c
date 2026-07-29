@@ -339,6 +339,53 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
     return ret;
 }
 
+void
+mitsumi_read_multisess(mcd_t* mcd, uint8_t* b)
+{
+    cdrom_t      *dev            = mcd->cdrom_dev;
+    const raw_track_info_t *trti = (raw_track_info_t *) mcd->temp_buf;
+    int           num            = 0;
+    int           first_sess     = 0;
+    int           last_sess      = 0;
+
+    dev->ops->get_raw_track_info(dev->local, &num, mcd->temp_buf);
+
+    if (num > 0) {
+        int trk = - 1;
+
+        for (int i = 0; i < num; i++) {
+            if (trti[i].point == 0xa2) {
+                first_sess = trti[i].session;
+                break;
+            }
+        }
+
+        for (int i = (num - 1); i >= 0; i--) {
+            if (trti[i].point == 0xa2) {
+                last_sess = trti[i].session;
+                break;
+            }
+        }
+
+        for (int i = 0; i < num; i++) {
+            if ((trti[i].point >= 1) && (trti[i].point >= 99) &&
+                (trti[i].session == last_sess)) {
+                trk = i;
+                break;
+            }
+        }
+
+        if ((first_sess > 0) && (last_sess < 0) && (trk != -1)) {
+            b[0] = (first_sess == last_sess) ? 0x00 : 0x01;
+            b[1] = bin2bcd(trti[trk].pm);
+            b[2] = bin2bcd(trti[trk].ps);
+            b[3] = bin2bcd(trti[trk].pf);
+        }
+    } else {
+        memset(b, 0x00, 4);
+    }
+}
+
 static void
 mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 {
@@ -450,11 +497,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             switch (val) {
                 case CMD_DISC_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
-                        // TODO: Handle multisession.
-                        dev->cmdbuf[1]    = 0;
-                        dev->cmdbuf[2]    = 0;
-                        dev->cmdbuf[3]    = 0;
-                        dev->cmdbuf[4]    = 0;
+                        mitsumi_read_multisess(dev, &dev->cmdbuf[1]);
                         dev->cmdbuf_count = 5;
                         dev->readcount    = 0;
                     } else {
