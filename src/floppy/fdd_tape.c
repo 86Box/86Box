@@ -7,8 +7,8 @@
  *          This file is part of the 86Box distribution.
  *
  *          Emulation of a QIC-117 "floppy tape" drive, modelled after a
- *          Colorado QIC-40 drive ("Colorado 120", implying 60MB tapes,
- *          up to 120MB compressed).
+ *          Colorado QIC-80 drive ("Colorado 250", implying 120MB tapes,
+ *          up to 250MB compressed).
  *
  *          These drives share the floppy ribbon cable with the regular
  *          floppy drives and occupy one of the four drive select lines.
@@ -79,6 +79,7 @@ enum {
     QIC_ENTER_DIAGNOSTIC_1     = 28,
     QIC_ENTER_DIAGNOSTIC_2     = 29,
     QIC_ENTER_PRIMARY_MODE     = 30,
+    QIC_CMS_COMMAND_31         = 31,
     QIC_REPORT_VENDOR_ID       = 32,
     QIC_REPORT_TAPE_STATUS     = 33,
     QIC_SKIP_EXTENDED_REVERSE  = 34,
@@ -110,10 +111,10 @@ enum {
 
 /*
    Rate codes, as they appear in bits 4-3 of the drive configuration and as
-   the argument to Select Rate. A QIC-40 drive runs at 250 Kbps by default, so
-   that is what it reports and calibrates to; 500 Kbps is accepted too, and
-   the transfer clock (tape_byte_period()) follows whichever the host actually
-   programs into the controller.
+   the argument to Select Rate. A QIC-80 drive runs at 500 Kbps by default, so
+   that is what it reports and calibrates to; the transfer clock
+   (tape_byte_period()) follows whichever the host actually programs into the
+   controller.
  */
 #define QIC_RATE_250                 0
 #define QIC_RATE_2000                1
@@ -123,9 +124,7 @@ enum {
 /*
    Arguments to Select Rate above the rate codes name a tape format instead,
    as (Tape Format * 4) + Increment, where increment 1 is standard quarter
-   inch media and 3 is 8 mm wide tape. This QIC-40 drive works QIC-40 media on
-   standard quarter-inch cartridges; the QIC-80 code is tolerated but nothing
-   past it.
+   inch media and 3 is 8 mm wide tape.
  */
 #define QIC_FORMAT_QIC40             ((1 << 2) | 1)
 #define QIC_FORMAT_QIC80             ((2 << 2) | 1)
@@ -185,7 +184,7 @@ enum {
 
 /* Manufacturer-specific signature handed back by command 9 while in
    diagnostic mode (observed on a real Colorado 120 drive). */
-#define QIC_CMS_DIAG_STATUS          0xc
+#define QIC_CMS_DIAG_STATUS          0x4
 
 /* The head parks at cylinder 0 while idle, so TRACK 0 doubles as the
    result line. Bits are handed back one at a time, framed by a leading
@@ -798,15 +797,8 @@ tape_finish_parameters(void)
                wants.
              */
             switch (tape.param[0]) {
-                case QIC_RATE_250:
                 case QIC_RATE_500:
-                    /*
-                       250 Kbps is this QIC-40 drive's native rate; 500 Kbps is
-                       accepted too so a host probing rates sees no hard
-                       refusal. Either selection is reported back as-is, and a
-                       host that asks for one and reads back the other takes the
-                       drive to have failed the request.
-                     */
+                case QIC_RATE_1000:
                     tape.rate_code = tape.param[0];
                     break;
 
@@ -817,14 +809,18 @@ tape_finish_parameters(void)
                     break;
 
                 default:
-                    /* 1 and 2 Mbps, the QIC-3010 and QIC-3020 formats, and
-                       8 mm wide media are all beyond a QIC-40 drive. */
                     tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
                     break;
             }
             break;
 
         case QIC_EXT_SELECT_RATE:
+
+            if (tape.diag_mode == 1) {
+                tape_start_report(0x34, 8);
+                return;
+            }
+
             /* The extended form only names rates beyond this drive's reach. */
             tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
             break;
@@ -1058,7 +1054,7 @@ tape_command(uint8_t command)
                or sets it again (cmd 37).
              */
             tape.rate_code       = QIC_RATE_500;
-            tape.format_code     = QIC_FORMAT_QIC40;
+            tape.format_code     = QIC_FORMAT_QIC80;
             tape.format_segments = 0;
             /*
                A reset is itself an error condition (cmd 1, 3.2): the drive
@@ -1091,7 +1087,7 @@ tape_command(uint8_t command)
             /* The only rate the drive will accept is the only one it can
                ever be running at, so the selected rate is the live one. */
             tape_start_report((tape.rate_code << QIC_CONFIG_RATE_SHIFT) |
-                              QIC_CONFIG_LONG, 8);
+                              QIC_CONFIG_LONG | QIC_CONFIG_80, 8);
             return;
         }
 
@@ -1118,7 +1114,7 @@ tape_command(uint8_t command)
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            tape_start_report(QIC_TAPE_QIC40 | QIC_TAPE_307FT, 8);
+            tape_start_report(QIC_TAPE_QIC80 | QIC_TAPE_307FT, 8);
             return;
 
         case QIC_REPORT_FORMAT_SEGMENTS:
@@ -1253,6 +1249,13 @@ tape_command(uint8_t command)
             tape.format_mode = 0;
             tape.verify_mode = 0;
             tape.diag_mode   = 0;
+            break;
+
+        case QIC_CMS_COMMAND_31:
+            if (tape.diag_mode == 1) {
+                tape_start_report(0x4a, 8);
+                return;
+            }
             break;
 
         /*
@@ -2242,7 +2245,7 @@ fdd_tape_init(void)
     tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
     tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
     tape.rate_code     = QIC_RATE_500;
-    tape.format_code   = QIC_FORMAT_QIC40;
+    tape.format_code   = QIC_FORMAT_QIC80;
     tape.status     = QIC_STATUS_READY;
     tape.report_pos = TAPE_REPORT_IDLE;
     tape.error_cmd  = QIC_NO_COMMAND;
