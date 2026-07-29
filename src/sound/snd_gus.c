@@ -23,6 +23,8 @@
 #include <86box/snd_sb_dsp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
 #include <86box/log.h>
 
 #ifdef ENABLE_GUS_LOG
@@ -1853,6 +1855,15 @@ gus_extreme_init(UNUSED(const device_t *info))
     io_sethandler(0x257, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
     io_sethandler(0x201, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
 
+    /* Secondary IDE Channel */
+    if (device_get_config_int("enable_ide")) {
+        device_add(&ide_isa_sec_device);
+        ide_set_base(1, 0x170);
+        ide_set_side(1, 0x376);
+        ide_set_irq(1, 0xf);
+        other_ide_present++;
+    }
+
     return gus;
 }
 
@@ -2117,6 +2128,17 @@ static const device_config_t gus_extreme_config[] = {
             { .description = "1 MB",   .value = 2 },
             { NULL                                }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "enable_ide",
+        .description    = "Enable IDE (Secondary Channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
