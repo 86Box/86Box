@@ -66,11 +66,14 @@ msgstr "Re&nderitzador"
 msgid "&Qt (Software)"
 msgstr "&Qt (Programari)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "E&specifica dimensions…"
@@ -1238,6 +1241,9 @@ msgstr "No fou possible obrir el fitxer de configuració seleccionat per llegir:
 msgid "Use regular expressions in search box"
 msgstr "Utilitzeu expressions regulars a la caixa de cerca"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n màquina és activa en aquest moment. Segur que voleu sortir de l'administrador de MV?"
@@ -1411,8 +1417,11 @@ msgstr "Finalitzar forçosament la màquina virtual pot causar la pèrdua de dad
 msgid "&Delete"
 msgstr "&Suprimir"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Realment voleu suprimir la màquina virtual \"%1\" i tots els seus fitxers? Aquesta acció no es pot desfer!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Realment voleu suprimir la màquina virtual \"%1\" i tots els seus fitxers?"
+
+msgid "This action cannot be undone!"
+msgstr "Aquesta acció no es pot desfer!"
 
 msgid "Show &config file"
 msgstr "Mostra fitxer de &configuració"
@@ -2925,6 +2934,21 @@ msgstr "Model:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Error en inicialitzar el renderitzador Vulkan."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "Error de GLSL"
 
@@ -2945,6 +2969,9 @@ msgstr "Administrador de shaders"
 
 msgid "Shader Configuration"
 msgstr "Configuració de shaders"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Afegeix"
@@ -3249,6 +3276,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "No ha esta possible carregar la imatge \"%s\": falta %1, que és necessari "
 "per donar suport a les imatges Daemon Tools MDS v2 i MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

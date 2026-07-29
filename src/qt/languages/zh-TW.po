@@ -67,11 +67,14 @@ msgstr "渲染器(&N)"
 msgid "&Qt (Software)"
 msgstr "Qt (軟體)(&Q)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 Core)(&G)"
+msgid "Open&GL"
+msgstr "OpenGL(&G)"
 
-msgid "&VNC"
-msgstr "VNC(&V)"
+msgid "&Vulkan"
+msgstr "&Vulkan(&V)"
+
+msgid "V&NC"
+msgstr "VNC(&N)"
 
 msgid "Specify &dimensions…"
 msgstr "指定視窗大小(&D)…"
@@ -1240,6 +1243,9 @@ msgstr "無法開啟選取的組態檔進行讀取: %1"
 msgid "Use regular expressions in search box"
 msgstr "在搜尋欄中使用正規表示式"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n 台機器目前處於活動狀態。您確定要退出虛擬機器管理員嗎？"
@@ -1412,8 +1418,11 @@ msgstr "強制終止虛擬機器可能會導致資料遺失。只有在 86Box �
 msgid "&Delete"
 msgstr "刪除(&D)"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？此操作無法回復！"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？"
+
+msgid "This action cannot be undone!"
+msgstr "此操作無法回復！"
 
 msgid "Show &config file"
 msgstr "顯示組態檔(&C)"
@@ -2934,6 +2943,21 @@ msgstr "型號:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "初始化 Vulkan 渲染器失敗。"
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "GLSL 錯誤"
 
@@ -2954,6 +2978,9 @@ msgstr "著色器管理員"
 
 msgid "Shader Configuration"
 msgstr "著色器組態"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "新增"
@@ -3261,6 +3288,9 @@ msgstr "無法開啟光碟映像 \"%s\"。"
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
 msgstr "無法開啟映像 \"%s\": %1 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
 "映像之必要檔案。"
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 映像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"

@@ -66,11 +66,14 @@ msgstr "&Renderöijä"
 msgid "&Qt (Software)"
 msgstr "&Qt (ohjelmistopohjainen)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "&Määritä koko…"
@@ -1238,6 +1241,9 @@ msgstr "Valittua määritystä ei voitu avata: %1"
 msgid "Use regular expressions in search box"
 msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] ""
@@ -1415,8 +1421,11 @@ msgstr "Virtuaalikoneen pakkopysäytys saattaa johtaa datan menettämiseen. Tee 
 msgid "&Delete"
 msgstr "&Poista"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Haluatko varmasti poistaa \"%1\"-virtuaalikoneen ja kaikki sen tiedostot? Poistamista ei voi perua!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Haluatko varmasti poistaa \"%1\"-virtuaalikoneen ja kaikki sen tiedostot?"
+
+msgid "This action cannot be undone!"
+msgstr "Poistamista ei voi perua!"
 
 msgid "Show &config file"
 msgstr "Näytä &määritystiedosto"
@@ -2929,6 +2938,21 @@ msgstr "Malli:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan-rendereriä ei voitu alustaa."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "GLSL-virhe"
 
@@ -2949,6 +2973,9 @@ msgstr "Varjostinhallinta"
 
 msgid "Shader Configuration"
 msgstr "Varjostinasetukset"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Lisää"
@@ -3253,6 +3280,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Levykuvaa \"%s\" ei voitu ladata: Daemon Tools MDS v2- ja MDX-levykuvatukeen "
 "tarvittava %1 puuttuu."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

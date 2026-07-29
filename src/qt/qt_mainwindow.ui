@@ -134,7 +134,7 @@
       <string>Re&amp;nderer</string>
      </property>
      <addaction name="actionSoftware_Renderer"/>
-     <addaction name="actionOpenGL_3_0_Core"/>
+     <addaction name="actionOpenGL"/>
      <addaction name="actionVulkan"/>
      <addaction name="actionVNC"/>
     </widget>
@@ -678,12 +678,12 @@
     <string>Sound &amp;gain…</string>
    </property>
   </action>
-  <action name="actionOpenGL_3_0_Core">
+  <action name="actionOpenGL">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Open&amp;GL (3.0 Core)</string>
+    <string>Open&amp;GL</string>
    </property>
    <property name="vid_api" stdset="0">
     <number>1</number>
@@ -790,7 +790,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;VNC</string>
+    <string>V&amp;NC</string>
    </property>
    <property name="vid_api" stdset="0">
     <number>3</number>

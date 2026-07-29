@@ -66,11 +66,14 @@ msgstr "Re&nderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Fenstergröße &einstellen…"
@@ -1238,6 +1241,9 @@ msgstr "Die ausgewählte Konfigurationsdatei konnte nicht eingelesen werden: %1"
 msgid "Use regular expressions in search box"
 msgstr "Benutze reguläre Ausdrücke in der Suche"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n Maschine ist aktuell aktiv. Bist du sicher, dass du den VM Manager trotzdem schließen möchtest?"
@@ -1411,8 +1417,11 @@ msgstr "Das Erzwingen des Beendens einer virtuellen Maschine kann zu Datenverlus
 msgid "&Delete"
 msgstr "&Löschen"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Bist du sicher das du die virtuelle Maschine inklusive all ihrer Dateien löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Bist du sicher das du die virtuelle Maschine inklusive all ihrer Dateien löschen möchtest?"
+
+msgid "This action cannot be undone!"
+msgstr "Diese Aktion kann nicht rückgängig gemacht werden!"
 
 msgid "Show &config file"
 msgstr "&Konfigurationsdatei anzeigen"
@@ -2925,6 +2934,21 @@ msgstr "Modell:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Fehler bei der Initialisierung des Vulkan-Renderers."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "GLSL-Fehler"
 
@@ -2945,6 +2969,9 @@ msgstr "Shader-Manager"
 
 msgid "Shader Configuration"
 msgstr "Shader-Konfiguration"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Hinzufügen"
@@ -3250,6 +3277,9 @@ msgstr ""
 "Das Abbild „%s“ kann nicht geladen werden: Die Datei „%1“ fehlt, die "
 "für die Unterstützung von Daemon Tools MDS v2- und MDX-Abbilder erforderlich "
 "ist."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

@@ -682,7 +682,15 @@ extern int             machine_at_c747_init(const machine_t *);
 extern const device_t  opti495_ami_device;
 #endif
 extern int             machine_at_opti495_ami_init(const machine_t *);
+
+/* Symphony SL82C460 */
 extern int             machine_at_pred1plus_init(const machine_t *);
+
+/* VIA VT82C495 */
+#ifdef EMU_DEVICE_H
+extern const device_t  fic4386vcv_device;
+#endif
+extern int             machine_at_fic4386vcv_init(const machine_t *);
 
 /* m_at_common.c */
 extern void            machine_at_common_init(const machine_t *);
@@ -822,6 +830,8 @@ extern int             machine_at_dtk486_init(const machine_t *);
 extern int             machine_at_ami471_init(const machine_t *);
 extern int             machine_at_px471_init(const machine_t *);
 extern int             machine_at_tg486g_init(const machine_t *);
+
+/* Symphony SL82C460 */
 extern int             machine_at_vs486f3vl_init(const machine_t *);
 
 /* m_at_socket3_pci.c */

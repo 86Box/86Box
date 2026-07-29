@@ -66,11 +66,14 @@ msgstr "&Renderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "&Zadať veľkosť…"
@@ -1242,6 +1245,9 @@ msgstr "Nie je možné otvoriť vybraný konfiguračný súbor na čítanie: %1"
 msgid "Use regular expressions in search box"
 msgstr "Použiť v poli vyhľadávania regulárne výrazy"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n počítač je stále aktívny. Naozaj chcete ukončiť správcu virtuálnych počítačov?"
@@ -1416,8 +1422,11 @@ msgstr "Ukončenie virtuálneho počítača môže spôsobiť stratu údajov. Uk
 msgid "&Delete"
 msgstr "&Odstrániť"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Naozaj chcete odstrániť virtuálny počítač \"%1\" a všetky jeho súbory? Táto akcia sa nedá vrátiť späť!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Naozaj chcete odstrániť virtuálny počítač \"%1\" a všetky jeho súbory?"
+
+msgid "This action cannot be undone!"
+msgstr "Táto akcia sa nedá vrátiť späť!"
 
 msgid "Show &config file"
 msgstr "Zobraziť &konfiguračný súbor"
@@ -2931,6 +2940,21 @@ msgstr "Model:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Inicializácia renderera Vulkan zlyhala."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "Chyba GLSL"
 
@@ -2951,6 +2975,9 @@ msgstr "Správca shaderov"
 
 msgid "Shader Configuration"
 msgstr "Konfigurácia shaderu"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Pridať"
@@ -3256,6 +3283,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Nepodarilo sa načítať obraz „%s“: nenašla sa knižnica %1, ktorá je "
 "potrebná na podporu obrazov vo Daemon Tools formátoch MDS v2 a MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

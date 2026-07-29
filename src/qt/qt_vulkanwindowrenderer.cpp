@@ -171,7 +171,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
         instance.setExtensions(list);
     }
     if (!instance.create()) {
-        throw vulkan_init_error(tr("Failed to create Vulkan 1.3 instance"));
+        throw vulkan_init_error(tr("Failed to create Vulkan 1.3 instance."));
     }
     setSurfaceType(QSurface::VulkanSurface);
     setVulkanInstance(&instance);
@@ -591,7 +591,7 @@ VulkanWindowRenderer::render()
         return;
     auto fence_res = m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_TRUE, UINT64_MAX);
     if (fence_res == VK_ERROR_DEVICE_LOST) {
-        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+        QMessageBox::critical(main_window, tr("Error"), tr("Vulkan device lost."));
         finalize();
         return;
     }
@@ -603,7 +603,7 @@ VulkanWindowRenderer::render()
         try {
             recreateShaderSrcImages();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            QMessageBox::critical(main_window, tr("Error"), e.what());
             finalize();
             return;
         }
@@ -624,12 +624,12 @@ VulkanWindowRenderer::render()
         return;
     }
     if (res == VK_ERROR_DEVICE_LOST) {
-        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+        QMessageBox::critical(main_window, tr("Error"), tr("Vulkan device lost."));
         finalize();
         return;
     }
     if (res == VK_ERROR_SURFACE_LOST_KHR) {
-        QMessageBox::critical(main_window, tr("Error"), tr("Surface lost"));
+        QMessageBox::critical(main_window, tr("Error"), tr("Vulkan surface lost."));
         finalize();
         return;
     }
@@ -637,7 +637,7 @@ VulkanWindowRenderer::render()
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            QMessageBox::critical(main_window, tr("Error"), e.what());
             main_window->reloadAllRenderers();
         }
         return;
@@ -1189,12 +1189,12 @@ VulkanWindowRenderer::render()
     instance.presentAboutToBeQueued(this);
     auto result                    = fn_vkQueuePresentKHR(gfx_queue_o, &presentInfo);
     if (result == VK_ERROR_SURFACE_LOST_KHR) {
-        QMessageBox::critical(main_window, tr("Error"), tr("Surface lost"));
+        QMessageBox::critical(main_window, tr("Error"), tr("Vulkan surface lost."));
         finalize();
         return;
     }
     if (result == VK_ERROR_DEVICE_LOST) {
-        QMessageBox::critical(main_window, tr("Error"), tr("Device lost"));
+        QMessageBox::critical(main_window, tr("Error"), tr("Vulkan device lost."));
         finalize();
         return;
     }
@@ -1202,7 +1202,7 @@ VulkanWindowRenderer::render()
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            QMessageBox::critical(main_window, tr("Error"), e.what());
             main_window->reloadAllRenderers();
         }
     } else if (result != VK_SUCCESS) {
@@ -1331,7 +1331,7 @@ VulkanWindowRenderer::initialize()
         static bool not_found_msg_disp = false;
         if (!ensure_librashader_instance()) {
             if (!not_found_msg_disp) {
-                auto msgBox = new QMessageBox(QMessageBox::Critical, tr("Error"), tr("librashader not found. Shaders will not be available"), QMessageBox::Ok);
+                auto msgBox = new QMessageBox(QMessageBox::Critical, tr("Error"), tr("librashader not found. Shaders will not be available."), QMessageBox::Ok);
                 msgBox->setAttribute(Qt::WA_DeleteOnClose);
                 msgBox->show();
             }
@@ -1555,13 +1555,13 @@ VulkanWindowRenderer::initialize()
 #ifndef LIBRASHADER_STATIC
                                 char* errmsg = nullptr;
                                 librashader_inst.error_write(err, &errmsg);
-                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + "\n\n" + errmsg);
+                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + QStringLiteral("\n\n") + errmsg);
                                 librashader_inst.error_free_string(&errmsg);
                                 librashader_inst.error_free(&err);
 #else
                                 char* errmsg = nullptr;
                                 libra_error_write(err, &errmsg);
-                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + "\n\n" + errmsg);
+                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + QStringLiteral("\n\n") + errmsg);
                                 libra_error_free_string(&errmsg);
                                 libra_error_free(&err);
 #endif
@@ -1610,7 +1610,7 @@ skip_shaders:
                 emit rendererInitialized();
             }
         } else {
-            throw vulkan_init_error("No Vulkan-capable physical devices found.");
+            throw vulkan_init_error(tr("No Vulkan-capable physical devices found."));
         }
     } catch (const vulkan_init_error &e) {
         /* Mark all buffers as in use */
@@ -1620,7 +1620,7 @@ skip_shaders:
         isFinalized   = true;
         isInitialized = true;
 
-        main_window->showMessage(MBX_ERROR, QString(), tr("Error initializing Vulkan.") + QStringLiteral("\n") + tr(e.what()) + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
+        main_window->showMessage(MBX_ERROR, QString(), tr("Failed to initialize Vulkan renderer.") + QStringLiteral("\n") + e.what() + QStringLiteral("\n") + tr("Falling back to software rendering."), false);
 
         emit errorInitializing();
     }
@@ -1643,7 +1643,7 @@ VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            QMessageBox::critical(main_window, tr("Error"), e.what());
             main_window->reloadAllRenderers();
         }
     }
@@ -1662,7 +1662,7 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
             if (video_framerate == -1)
                 render();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            QMessageBox::critical(main_window, tr("Error"), e.what());
             main_window->reloadAllRenderers();
         }
     }
@@ -1729,7 +1729,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
             if (isInitialized && isExposed())
                 recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), tr(e.what()));
+            QMessageBox::critical(main_window, tr("Error"), e.what());
             main_window->reloadAllRenderers();
         }
     }

@@ -196,7 +196,6 @@ ensure_libaaruformat(void)
         libaaruformat_handle = dynld_module("libaaruformat.so", aaruf_imports);
 #endif
         if (!libaaruformat_handle) {
-            warning("Failed to load libaaruformat library.");
             load_failed = true;
             return false;
         }
@@ -656,6 +655,7 @@ aaru_image_open(cdrom_t *dev, const char *path)
     aaru_image_t *img = (aaru_image_t *) calloc(1, sizeof(aaru_image_t));
 
     if (!ensure_libaaruformat()) {
+        warning(plat_get_string(STRING_CDROM_LOAD_AARU_ERROR), path);
         free(img);
         return NULL;
     }

@@ -66,11 +66,14 @@ msgstr "렌더러(&N)"
 msgid "&Qt (Software)"
 msgstr "Qt (소프트웨어)(&Q)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 Core)(&G)"
+msgid "Open&GL"
+msgstr "OpenGL(&G)"
 
-msgid "&VNC"
-msgstr "VNC(&V)"
+msgid "&Vulkan"
+msgstr "Vulkan(&V)"
+
+msgid "V&NC"
+msgstr "VNC(&N)"
 
 msgid "Specify &dimensions…"
 msgstr "창 크기 지정하기(&D)…"
@@ -1272,6 +1275,9 @@ msgstr "선택한 구성 파일을 읽기 위해 열 수 없습니다: %1"
 msgid "Use regular expressions in search box"
 msgstr "검색 상자에 정규 표현식 사용"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "현재 실행 중인 머신이 %n개 있습니다. 그래도 VM 관리자를 종료하시겠습니까?"
@@ -1444,8 +1450,11 @@ msgstr "가상 머신을 강제 종료하면 데이터 손실이 발생할 수 �
 msgid "&Delete"
 msgstr "삭제(&D)"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "정말 가상 머신 \"%1\"과 모든 파일을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "정말 가상 머신 \"%1\"과 모든 파일을 삭제하시겠습니까?"
+
+msgid "This action cannot be undone!"
+msgstr "이 작업은 되돌릴 수 없습니다!"
 
 msgid "Show &config file"
 msgstr "구성 파일 표시(&C)"
@@ -2987,6 +2996,21 @@ msgstr "모델:"
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan 렌더러 초기화 실패."
 
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
+
 msgid "GLSL Error"
 msgstr "GLSL 오류"
 
@@ -3010,6 +3034,9 @@ msgstr "쉐이더 관리자"
 
 msgid "Shader Configuration"
 msgstr "쉐이더 구성"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "추가"
@@ -3318,6 +3345,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "이미지 “%s”를 불러올 수 없습니다. Daemon Tools MDS v2 및 MDX 이미지 지원에 "
 "필요한 %1 파일이 없습니다."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 이미지 “%s”가 DVD 미디어를 지원하지 않는 드라이브에 삽입되었으므로 "
