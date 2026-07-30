@@ -23,6 +23,8 @@
 #include <86box/snd_sb_dsp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
 #include <86box/log.h>
 
 #ifdef ENABLE_GUS_LOG
@@ -876,7 +878,8 @@ gus_read(uint16_t addr, void *priv)
 
         case 0x206: /*IRQ status*/
             val = gus->irqstatus & ~0x10;
-            if (gus->ad_status & 0x19)
+            /* Handling for undocumented NMI status bit, needed by SBOS */
+            if (((gus->ad_status & 0x18) && (gus->sb_ctrl & 0x20)) || ((gus->ad_status & 0x01) && (gus->sb_ctrl & 0x02)))
                 val |= 0x10;
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
             return val;
@@ -1767,7 +1770,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     int     c;
     double  out     = 1.0;
     gus_t  *gus     = calloc(1, sizeof(gus_t));
-    uint8_t gus_ram = device_get_config_int("gus_ram");
 
     gus->log = log_open("GUS");
 
@@ -1811,7 +1813,11 @@ gus_extreme_init(UNUSED(const device_t *info))
     ess_rsk_reset(gus->ess);
 
     /* Init GF1 section */
-    gus->gus_end_ram = 1 << (18 + gus_ram);
+    if (info->local != GUS_EXTREME) {
+        uint8_t gus_ram = device_get_config_int("gus_ram");
+        gus->gus_end_ram = 1 << (18 + gus_ram);
+    } else
+        gus->gus_end_ram = 1 << 20;
     gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
@@ -1851,6 +1857,15 @@ gus_extreme_init(UNUSED(const device_t *info))
     io_sethandler(0x247, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
     io_sethandler(0x257, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
     io_sethandler(0x201, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
+
+    /* Secondary IDE Channel */
+    if (device_get_config_int("enable_ide")) {
+        device_add(&ide_isa_sec_device);
+        ide_set_base(1, 0x170);
+        ide_set_side(1, 0x376);
+        ide_set_irq(1, 0xf);
+        other_ide_present++;
+    }
 
     return gus;
 }
@@ -2102,7 +2117,7 @@ static const device_config_t gus_ace_config[] = {
 // clang-format off
 };
 
-static const device_config_t gus_extreme_config[] = {
+static const device_config_t gus_vipermax_config[] = {
     {
         .name           = "gus_ram",
         .description    = "Memory size",
@@ -2116,6 +2131,54 @@ static const device_config_t gus_extreme_config[] = {
             { .description = "1 MB",   .value = 2 },
             { NULL                                }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "enable_ide",
+        .description    = "Enable IDE (Secondary Channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gus_extreme_config[] = {
+    {
+        .name           = "enable_ide",
+        .description    = "Enable IDE (Secondary Channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -2226,5 +2289,5 @@ const device_t gus_vipermax_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .alias         = "Synergy UltraSound VIP/Extreme",
-    .config        = gus_extreme_config
+    .config        = gus_vipermax_config
 };

@@ -205,20 +205,6 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->cur_control   = 0x0c;
 }
 
-/* Lifted from FreeBSD */
-static void
-blk_to_msf(int blk, unsigned char *msf)
-{
-    blk = blk + 150;        /* 2 seconds skip required to
-                               reach ISO data */
-    msf[0] = blk / 4500;
-    blk = blk % 4500;
-    msf[1] = blk / 75;
-    msf[2] = blk % 75;
-
-    return;
-}
-
 uint8_t
 mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
 {
