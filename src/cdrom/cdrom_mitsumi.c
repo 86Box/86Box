@@ -206,6 +206,7 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->data          = 0;
     dev->smode         = 1;
     dev->cur_control   = 0x0c;
+    cdrom_stop(dev->cdrom_dev);
 }
 
 /* Lifted from FreeBSD */
@@ -257,6 +258,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 {
     uint8_t  status;
     int      ret = 0;
+    dev->data    = 0;
 
     if (dev->drvmode == DRV_MODE_CDDA) {
         status = cdrom_mitsumi_audio_play(dev->cdrom_dev, dev->readmsf, MSFtoLBA(CD_DCB((dev->readcount >> 16) & 0xff), CD_DCB((dev->readcount >> 8) & 0xff), CD_DCB(dev->readcount & 0xff)) - 150);
@@ -274,7 +276,6 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
         pclog("Mitsumi read sector: Seek to sector %u.\n", dev->cdrom_dev->seek_pos);
         dev->cur_toc_track = INT32_MIN;
-        dev->data = 0;
         return 0;
     }
     cdrom_stop(dev->cdrom_dev);
@@ -311,14 +312,14 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
 
     switch (port & 3) {
         case 0:
-            if (dev->buf_count && dev->cur_control == 0x04) {
+            if (dev->buf_count) {
                 ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
                 dev->buf_idx++;
                 dev->buf_count--;
                 if (!dev->buf_count)
                     mitsumi_cdrom_read_sector(dev, 0);
 
-                //pclog("Read port 0: ret = %02x\n", ret);
+                pclog("Read port 0 data\n");
                 return ret;
             } else if (dev->cmdbuf_count) {
                 dev->cmdbuf_count--;
@@ -333,6 +334,9 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NODATA;
             if (!dev->cmdbuf_count || !dev->newstat)
                 ret |= FLAG_NOSTAT;
+            if (!(ret & FLAG_NODATA) && !(ret & FLAG_NOSTAT))
+                ret |= FLAG_NOSTAT;
+
             pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK | 1);
             return ret | FLAG_UNK | 1;
         case 2:
@@ -597,10 +601,14 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             mitsumi_print_cmd(dev, val);
             break;
         case 1:
-            mitsumi_cdrom_reset(dev);
+            dev->cmdbuf_count = 1;
+            dev->cmdbuf[0]    = dev->stat;
             break;
         case 2:
-            dev->cur_control = val;
+            dev->cur_control  = val;
+            break;
+        case 3:
+            mitsumi_cdrom_reset(dev);
             break;
         default:
             break;
