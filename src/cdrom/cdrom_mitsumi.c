@@ -319,7 +319,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 if (!dev->buf_count)
                     mitsumi_cdrom_read_sector(dev, 0);
 
-                pclog("Read port 0 data\n");
+                //pclog("Read port 0 data\n");
                 return ret;
             } else if (dev->cmdbuf_count) {
                 dev->cmdbuf_count--;
