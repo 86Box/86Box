@@ -930,7 +930,7 @@ mke_get_volume(void *priv, int channel)
 {
     mke_t *dev = (mke_t *) priv;
 
-    return channel == 0 ? dev->vol0 : dev->vol1;
+    return !(channel & 1) ? dev->vol0 : dev->vol1;
 }
 
 uint32_t

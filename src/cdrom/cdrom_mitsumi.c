@@ -15,7 +15,6 @@
  *          Copyright 2024-2025 Jasmine Iwanek.
  */
 
-// TODO: What, exactly, is the order reads are returned in PIO modes? Does status come first? Or does data come first instead?
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -58,6 +57,7 @@ enum {
     CMD_SET_MODE   = 0x50,
     CMD_SOFT_RESET = 0x60,
     CMD_STOPCDDA   = 0x70,
+    CMD_GET_VOL    = 0x8e,
     CMD_CONFIG     = 0x90,
     CMD_SET_SMODE  = 0xa0, // sets mode of sector to read.
     CMD_SET_VOL    = 0xae,
@@ -124,6 +124,14 @@ typedef struct mcd_t {
     uint8_t  cur_sense;
 
     uint8_t  temp_buf[0x10000];
+
+    struct
+    {
+        uint8_t att0;
+        uint8_t att1;
+        uint8_t att2;
+        uint8_t att3;
+    } cdrom_vols;
 
     cdrom_t *cdrom_dev;
 } mcd_t;
@@ -206,6 +214,11 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->data          = 0;
     dev->smode         = 1;
     dev->cur_control   = 0x0c;
+
+    dev->cdrom_vols.att0 = 255;
+    dev->cdrom_vols.att1 = 0;
+    dev->cdrom_vols.att2 = 255;
+    dev->cdrom_vols.att3 = 0;
     cdrom_stop(dev->cdrom_dev);
 }
 
@@ -423,6 +436,22 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         dev->cmdbuf[2]    = 0;
                         dev->cmdbuf_count = 3;
                         break;
+                    case CMD_SET_VOL:
+                        switch (dev->cmdrd_count) {
+                            case 3:
+                                dev->cdrom_vols.att0 = val;
+                                break;
+                            case 2:
+                                dev->cdrom_vols.att1 = val;
+                                break;
+                            case 1:
+                                dev->cdrom_vols.att2 = val;
+                                break;
+                            case 0:
+                                dev->cdrom_vols.att3 = val;
+                                break;
+                        }
+                        break;
                     case CMD_CONFIG:
                         switch (dev->cmdrd_count) {
                             case 0:
@@ -477,7 +506,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                     dev->cur_sense = abs(read_res);
                                     pclog("Read error: %d\n", dev->cur_sense);
                                 }
-                                dev->cmdbuf[0] = (read_res < 0) ? (STAT_ERROR | STAT_CMD_CHECK | STAT_SPIN | STAT_READY) : (STAT_SPIN | STAT_READY);
+                                dev->cmdbuf[0] = (read_res < 0) ? (STAT_ERROR | STAT_CMD_CHECK | dev->stat) : (STAT_SPIN | STAT_READY | dev->stat);
                                 break;
                             case 1:
                                 dev->readcount |= (val << 8);
@@ -514,6 +543,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     dev->cmdbuf[1]    = dev->cur_sense;
                     dev->cmdbuf_count = 2;
                     break;
+                case CMD_SET_VOL:
+                    dev->cmdrd_count = 4;
+                    break;
                 case CMD_DISC_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
                         mitsumi_read_multisess(dev, &dev->cmdbuf[1]);
@@ -521,7 +553,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         dev->readcount    = 0;
                     } else {
                         dev->cmdbuf_count = 1;
-                        dev->cmdbuf[0]    = STAT_CMD_CHECK;
+                        dev->cmdbuf[0]    = STAT_CMD_CHECK | dev->stat;
                     }
                     break;
                 case CMD_GET_INFO:
@@ -532,8 +564,15 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         dev->readcount = 0;
                     } else {
                         dev->cmdbuf_count = 1;
-                        dev->cmdbuf[0]    = STAT_CMD_CHECK;
+                        dev->cmdbuf[0]    = STAT_CMD_CHECK | dev->stat;
                     }
+                    break;
+                case CMD_GET_VOL:
+                    dev->cmdbuf_count = 5;
+                    dev->cmdbuf[1]    = dev->cdrom_vols.att0;
+                    dev->cmdbuf[2]    = dev->cdrom_vols.att1;
+                    dev->cmdbuf[3]    = dev->cdrom_vols.att2;
+                    dev->cmdbuf[4]    = dev->cdrom_vols.att3;
                     break;
                 case CMD_GET_Q:
                     if (mitsumi_cdrom_is_ready(dev)) {
@@ -615,6 +654,32 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+uint32_t
+mitsumi_get_volume(void *priv, int channel)
+{
+    mcd_t   *dev      = (mcd_t *) priv;
+
+    switch (channel & 3) {
+        case 0:
+            return dev->cdrom_vols.att0;
+        case 1:
+            return dev->cdrom_vols.att2;
+        case 2:
+            return dev->cdrom_vols.att1;
+        case 3:
+            return dev->cdrom_vols.att3;
+    }
+    return dev->cdrom_vols.att0;
+}
+
+uint32_t
+mitsumi_get_channel(void *priv, int channel)
+{
+    mcd_t   *dev      = (mcd_t *) priv;
+
+    return channel == 0 ? (!!(dev->cdrom_vols.att0) | (!!(dev->cdrom_vols.att1) << 1)) : (!!(dev->cdrom_vols.att2) | (!!(dev->cdrom_vols.att3) << 1));
+}
+
 static void *
 mitsumi_cdrom_init(UNUSED(const device_t *info))
 {
@@ -630,7 +695,9 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     if (!dev->cdrom_dev)
         return NULL;
 
-    dev->cdrom_dev->priv = &dev;
+    dev->cdrom_dev->priv        = &dev;
+    dev->cdrom_dev->get_volume  = mitsumi_get_volume;
+    dev->cdrom_dev->get_channel = mitsumi_get_channel;
 
     uint16_t base = device_get_config_hex16("base");
     dev->irq  = device_get_config_int("irq");
