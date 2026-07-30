@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-15 21:21+0000\n"
+"PO-Revision-Date: 2026-07-30 06:08+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -1244,7 +1244,7 @@ msgid "Use regular expressions in search box"
 msgstr "在搜尋欄中使用正規表示式"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "刪除虛擬機至回收筒"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -2944,19 +2944,19 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "初始化 Vulkan 渲染器失敗。"
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Vulkan 1.3 執行體創建失敗。"
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "未發現支援 Vulkan 的實體設備。"
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "未發現 librashader。著色器將無法使用。"
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "失去 Vulkan 裝置。"
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "遺失 Vulkan 描繪面。"
 
 msgid "GLSL Error"
 msgstr "GLSL 錯誤"
@@ -2980,7 +2980,7 @@ msgid "Shader Configuration"
 msgstr "著色器組態"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "新增"
@@ -3290,7 +3290,7 @@ msgstr "無法開啟映像 \"%s\": %1 遺失，此為存取 Daemon Tools MDS v2 
 "映像之必要檔案。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
-msgstr ""
+msgstr "無法載入圖像 \"%s\": %1 遺失，此為支援 Aaru 格式圖像所必需。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 映像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
