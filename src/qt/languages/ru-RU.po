@@ -2950,6 +2950,9 @@ msgstr "Не удалось инициализировать рендерер Vu
 msgid "Failed to create Vulkan 1.3 instance."
 msgstr "Не удалось создать экземпляр Vulkan 1.3."
 
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
 msgid "No Vulkan-capable physical devices found."
 msgstr "Не найдены физические устройства, поддерживающие Vulkan."
 

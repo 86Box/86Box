@@ -2945,6 +2945,9 @@ msgstr "Не вдалося ініціалізувати рендеринг Vulk
 msgid "Failed to create Vulkan 1.3 instance."
 msgstr ""
 
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
 msgid "No Vulkan-capable physical devices found."
 msgstr ""
 

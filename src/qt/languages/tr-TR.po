@@ -2991,6 +2991,9 @@ msgstr "Vulkan derleyicisi başlatılamadı."
 msgid "Failed to create Vulkan 1.3 instance."
 msgstr "Vulkan 1.3 instance'ı oluşturulamadı."
 
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
 msgid "No Vulkan-capable physical devices found."
 msgstr "Vulkan uyumlu fiziksel cihaz bulunamadı."
 
