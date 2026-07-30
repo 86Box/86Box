@@ -74,7 +74,7 @@ jobs:
           path: build/artifacts/**
 
   release-build:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
     name: "AppImage ${{ matrix.arch }}"
     runs-on: ${{ matrix.runner }}
     strategy:

@@ -1182,6 +1182,18 @@ else
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
+	# The main build links against the distro RtMidi library, while the custom
+	# RtMidi build above is used for packaging other than its ABI. Copy the
+	# exact runtime SONAME used by the executable into the AppImage.
+	rtmidi_runtime=$(dpkg-query -L "librtmidi6:$arch_deb" | grep -E '/librtmidi\.so\.6\.[0-9.]+$' | head -1)
+	if [ -z "$rtmidi_runtime" ]
+	then
+		echo [!] Could not find the distro RtMidi runtime library
+		exit 99
+	fi
+	cp -p "$rtmidi_runtime" archive_tmp/usr/lib/
+	ln -sf "$(basename "$rtmidi_runtime")" archive_tmp/usr/lib/librtmidi.so.6
+
 	# Build FluidSynth without sound systems to remove the dependencies on libjack
 	# and other sound system libraries. We don't output audio through FluidSynth.
 	prefix="$cache_dir/fluidsynth-2.5.3"
