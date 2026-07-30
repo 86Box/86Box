@@ -53,6 +53,7 @@ enum {
     CMD_GET_INFO   = 0x10,
     CMD_DISC_INFO  = 0x11,
     CMD_GET_Q      = 0x20,
+    CMD_REQ_SENSE  = 0x30,
     CMD_GET_STAT   = 0x40,
     CMD_SET_MODE   = 0x50,
     CMD_SOFT_RESET = 0x60,
@@ -120,6 +121,7 @@ typedef struct mcd_t {
     int      newstat;
 
     uint8_t  cur_control;
+    uint8_t  cur_sense;
 
     uint8_t  temp_buf[0x10000];
 
@@ -169,6 +171,7 @@ mitsumi_print_cmd(mcd_t* dev, uint8_t command) {
         CASE(CMD_GET_INFO)
         CASE(CMD_DISC_INFO)
         CASE(CMD_GET_Q)
+        CASE(CMD_REQ_SENSE)
         CASE(CMD_GET_STAT)
         CASE(CMD_SET_MODE)
         CASE(CMD_SOFT_RESET)
@@ -277,10 +280,13 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     cdrom_stop(dev->cdrom_dev);
     cdrom_seek(dev->cdrom_dev, MSFtoLBA((dev->readmsf >> 16) & 0xff, (dev->readmsf >> 8) & 0xff, dev->readmsf & 0xff) - 150, 0);
     dev->cur_toc_track = INT32_MIN;
-    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, 0, (dev->mode & 0x80) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
+    if (dev->cdrom_dev->seek_pos > dev->cdrom_dev->cdrom_capacity) {
+        return -2;
+    }
+    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 3 : 2, (dev->mode & 0x80) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
     pclog("Mitsumi read sector: Read sector @ %u, ret = %d, readlen = %u, blocklen = %u\n", dev->cdrom_dev->seek_pos, ret, dev->readbuflen, dev->dmalen + 1);
     if (ret <= 0)
-        return -1;
+        return ret == 0 ? -1 : -3;
     dev->readmsf   = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
     dev->buf_count = dev->dmalen + 1;
     dev->buf_idx   = 0;
@@ -463,7 +469,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                     } while ((read_res = mitsumi_cdrom_read_sector(dev, 0)) > 0);
                                 }
                                 dev->cmdbuf_count = 1;
-                                dev->cmdbuf[0]    = (read_res < 0) ? STAT_CMD_CHECK : (STAT_SPIN | STAT_READY);
+                                if (read_res < 0) {
+                                    dev->cur_sense = abs(read_res);
+                                    pclog("Read error: %d\n", dev->cur_sense);
+                                }
+                                dev->cmdbuf[0] = (read_res < 0) ? (STAT_ERROR | STAT_CMD_CHECK | STAT_SPIN | STAT_READY) : (STAT_SPIN | STAT_READY);
                                 break;
                             case 1:
                                 dev->readcount |= (val << 8);
@@ -496,6 +506,10 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             dev->cmdbuf[0]    = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
             dev->data         = 0;
             switch (val) {
+                case CMD_REQ_SENSE:
+                    dev->cmdbuf[1]    = dev->cur_sense;
+                    dev->cmdbuf_count = 2;
+                    break;
                 case CMD_DISC_INFO:
                     if (mitsumi_cdrom_is_ready(dev)) {
                         mitsumi_read_multisess(dev, &dev->cmdbuf[1]);
