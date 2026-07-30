@@ -353,7 +353,7 @@ scsi_cdrom_get_volume(void *priv, const int channel)
     uint32_t ret = 255;
 
     if (dev != NULL)
-        ret = dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE][channel ? 11 : 9];
+        ret = dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE][(channel & 1) ? 11 : 9];
 
     return ret;
 }
