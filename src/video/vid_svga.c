@@ -979,7 +979,7 @@ svga_recalctimings(svga_t *svga)
         const uint32_t hd = svga->hdisp;
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
 
-        const uint32_t non_blanked = (svga->hblankstart - svga->hblank_sub) * svga->dots_per_clock;
+        const uint32_t non_blanked = (svga->hblankstart + 1 - svga->hblank_sub) * svga->dots_per_clock;
         svga->hdisp = MIN(svga->hdisp, non_blanked);
 
         svga->left_overscan = svga->x_add = (int) ((uint32_t) svga->htotal - adj_dot - hadj - 1) * svga->dots_per_clock;
