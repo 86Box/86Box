@@ -36,6 +36,7 @@
 #include <86box/snd_ac97.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
+#include <86box/vid_mcga.h>
 #include <86box/plat_unused.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -3018,6 +3019,54 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Type 8525-004, original 8 MHz 8086 color model with integrated MCGA. */
+    {
+        .name              = "[8086] IBM PS/2 model 25 (color)",
+        .internal_name     = "ibmps2_m25",
+        .type              = MACHINE_TYPE_8086,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ps2_m25_init,
+        .p1_handler        = machine_ps2_isa_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8086,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 8000000,
+            .max_bus     = 8000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC | MACHINE_BUS_PS2,
+        .flags     = MACHINE_VIDEO,
+        .ram       = {
+            .min  = 512,
+            .max  = 640,
+            .step = 128
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_ps2_m25_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ps2_m25_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &mcga_device,
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "" }

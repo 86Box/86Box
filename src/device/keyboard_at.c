@@ -33,6 +33,7 @@
 
 #define FLAG_ENABLED 0x10  /* dev is enabled for use */
 #define FLAG_CTRLDAT 0x08  /* ctrl or data mode */
+#define FLAG_PRESERVE_SET 0x0100
 
 /* The ABNT2 keyboard ID's and scan codes have been confirmed by RichardG. */
 const uint8_t id_bytes[24][4] = { { 0x00, 0x00, 0x00, 0x00 },    /* XT 83-key */
@@ -5666,6 +5667,18 @@ keyboard_at_clear_data(void *priv)
     dev->flags &= ~FLAG_CTRLDAT;
 }
 
+void
+keyboard_at_set_scancode_set_persistent(uint8_t persistent)
+{
+    if (SavedKbd == NULL)
+        return;
+
+    if (persistent)
+        SavedKbd->flags |= FLAG_PRESERVE_SET;
+    else
+        SavedKbd->flags &= ~FLAG_PRESERVE_SET;
+}
+
 static void
 keyboard_at_set_defaults(atkbc_dev_t *dev)
 {
@@ -5874,8 +5887,10 @@ keyboard_at_write(void *priv)
                 keyboard_set3_all_repeat = 0;
                 memset(keyboard_set3_flags, 0, 512);
 
-                keyboard_mode = 0x02;
-                keyboard_at_set_scancode_set(dev);
+                if (!(dev->flags & FLAG_PRESERVE_SET)) {
+                    keyboard_mode = 0x02;
+                    keyboard_at_set_scancode_set(dev);
+                }
                 break;
 
             case 0xf7: /* set all keys to repeat */

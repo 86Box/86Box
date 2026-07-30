@@ -91,6 +91,7 @@ add_library(vid OBJECT
 
     # (Real IBM) VGA 
     vid_vga.c
+    vid_mcga.c
 
     # Super VGA core
     vid_svga.c
