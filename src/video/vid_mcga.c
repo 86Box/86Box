@@ -25,6 +25,7 @@
 #include <86box/pic.h>
 #include <86box/plat_unused.h>
 #include <86box/timer.h>
+#include <86box/pit.h>
 #include <86box/video.h>
 #include <86box/vid_mcga.h>
 
@@ -115,32 +116,67 @@ mcga_mode(const mcga_t *dev)
 }
 
 static int
-mcga_width(const mcga_t *dev)
+mcga_is_double_width(const mcga_t *dev, UNUSED(int always))
 {
     const int mode = mcga_mode(dev);
 
-    if ((mode == MCGA_MODE_11) || (mode == MCGA_MODE_CGA6) ||
+    if ((mode == MCGA_MODE_CGA6) || (mode == MCGA_MODE_11) ||
         ((mode == MCGA_MODE_TEXT) && (dev->cga_mode & MCGA_CGA_80COL)))
-        return 640;
-    return 320;
+        return 0;
+
+    return 1;
+}
+
+void
+mcga_recalctimings(mcga_t *dev)
+{
+    double disptime;
+    double _dispontime;
+    double _dispofftime;
+    double mcga_const   = (double) ((dev->crtc[0x10] & 0x10) ? VGACONST1 : CGACONST);
+
+    disptime      = (double) ((dev->crtc[0x00] + 2) << 4);
+    _dispontime   = (double) ((dev->crtc[0x01] + 1) << 4);
+    if (_dispontime >= disptime)
+        _dispontime = disptime - 2;
+
+    _dispofftime       = disptime - _dispontime;
+    _dispontime        = _dispontime * mcga_const;
+    _dispofftime       = _dispofftime * mcga_const;
+    dev->disp_on_time  = (uint64_t) (int64_t) (_dispontime);
+    dev->disp_off_time = (uint64_t) (int64_t) (_dispofftime);
+}
+
+static int
+mcga_width(const mcga_t *dev)
+{
+#ifdef NO_STRETCH
+    if (mcga_is_double_width(dev, 0))
+        return (dev->crtc[0x01] + 1) * 8;
+
+    return (dev->crtc[0x01] + 1) * 16;
+#else
+    return (dev->crtc[0x01] + 1) * 16;
+#endif
 }
 
 static int
 mcga_height(const mcga_t *dev)
 {
-    return (mcga_mode(dev) == MCGA_MODE_11) ? 480 : 400;
+    return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x06]) + 1;
 }
 
 static int
 mcga_total_lines(const mcga_t *dev)
 {
-    return (mcga_mode(dev) == MCGA_MODE_11) ? 525 : 449;
+    return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x04]) + 17;
 }
 
 static int
 mcga_vsync_start(const mcga_t *dev)
 {
-    return (mcga_mode(dev) == MCGA_MODE_11) ? 490 : 412;
+    /* No, no + 1 here, or else Rockford's splash screen animation breaks. */
+    return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x07]);
 }
 
 static int
@@ -447,10 +483,13 @@ mcga_io_write(uint16_t addr, uint8_t val, void *priv)
                     dev->crtc[dev->crtcreg] = val;
                     break;
             }
+
+            mcga_recalctimings(dev);
             break;
 
         case 0x03d8:
             dev->cga_mode = val & 0x3f;
+            mcga_recalctimings(dev);
             break;
 
         case 0x03d9:
@@ -459,6 +498,7 @@ mcga_io_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x03dd:
             dev->ext_mode = val & 0x84;
+            mcga_recalctimings(dev);
             break;
 
         default:
@@ -483,9 +523,22 @@ mcga_cga4_color(const mcga_t *dev, uint8_t pixel)
 static void
 mcga_render_text(mcga_t *dev, int y)
 {
+#ifdef FIXED_DIMENSIONS
     const int cols       = (dev->cga_mode & MCGA_CGA_80COL) ? 80 : 40;
     const int glyph_line = y & 0x0f;
     const int row        = y >> 4;
+#else
+    int cols             = mcga_width(dev);
+    if (mcga_is_double_width(dev, 0))
+        cols /= 16;
+    else
+        cols /= 8;
+
+    const int height = (dev->crtc[0x09] + 1) << 1;
+
+    const int glyph_line = y % height;
+    const int row        = y / height;
+#endif
     const uint16_t start = ((dev->crtc[0x0c] << 8) | dev->crtc[0x0d]) & 0x3fff;
     const uint16_t cursor = ((dev->crtc[0x0e] << 8) | dev->crtc[0x0f]) & 0x3fff;
 
@@ -516,9 +569,16 @@ mcga_render_text(mcga_t *dev, int y)
         if (cursor_on)
             bits = 0xff;
 
-        for (int bit = 0; bit < 8; bit++)
-            buffer32->line[y][(column * 8) + bit] =
-                dev->palette[(bits & (0x80 >> bit)) ? fg : bg];
+        /* Double-width. */
+        if (mcga_is_double_width(dev, 0))
+            for (int bit = 0; bit < 8; bit++)
+                buffer32->line[y][(column * 16) + (bit << 1)] =
+                buffer32->line[y][(column * 16) + (bit << 1) + 1] =
+                    dev->palette[(bits & (0x80 >> bit)) ? fg : bg];
+        else
+            for (int bit = 0; bit < 8; bit++)
+                buffer32->line[y][(column * 8) + bit] =
+                    dev->palette[(bits & (0x80 >> bit)) ? fg : bg];
     }
 }
 
@@ -530,13 +590,24 @@ mcga_render_cga4(mcga_t *dev, int y)
     const uint32_t row = start + ((source_y & 1) * 0x2000) +
                          ((source_y >> 1) * 80);
 
+    /* Double-width. */
     for (int byte = 0; byte < 80; byte++) {
         uint8_t data = dev->vram[0x8000 + ((row + byte) & 0x7fff)];
-        for (int pixel = 0; pixel < 4; pixel++) {
-            const uint8_t color = mcga_cga4_color(dev, data >> 6);
-            buffer32->line[y][(byte * 4) + pixel] = dev->palette[color];
-            data <<= 2;
-        }
+        if (mcga_is_double_width(dev, 0))
+            for (int pixel = 0; pixel < 8; pixel += 2) {
+                const uint8_t color = mcga_cga4_color(dev, data >> 6);
+                buffer32->line[y][(byte * 8) + pixel] =
+                buffer32->line[y][(byte * 8) + pixel + 1] =
+                    dev->palette[color];
+                data <<= 2;
+            }
+        else
+            for (int pixel = 0; pixel < 4; pixel++) {
+                const uint8_t color = mcga_cga4_color(dev, data >> 6);
+                buffer32->line[y][(byte * 4) + pixel] =
+                    dev->palette[color];
+                data <<= 2;
+            }
     }
 }
 
@@ -579,8 +650,14 @@ mcga_render_mode13(mcga_t *dev, int y)
     const uint16_t start = ((dev->crtc[0x0c] << 8) | dev->crtc[0x0d]) << 1;
     const uint32_t row = start + (source_y * 320);
 
-    for (int x = 0; x < 320; x++)
-        buffer32->line[y][x] = dev->palette[dev->vram[(row + x) & 0xffff]];
+    /* Double-width. */
+    if (mcga_is_double_width(dev, 0))
+        for (int x = 0; x < 640; x += 2)
+            buffer32->line[y][x] = buffer32->line[y][x + 1] =
+                dev->palette[dev->vram[(row + (x >> 1)) & 0xffff]];
+    else
+        for (int x = 0; x < 320; x++)
+            buffer32->line[y][x] = dev->palette[dev->vram[(row + (x >> 1)) & 0xffff]];
 }
 
 static void
