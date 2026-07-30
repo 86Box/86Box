@@ -2939,6 +2939,9 @@ msgstr "Falha ao inicializar o renderizador Vulkan."
 msgid "Failed to create Vulkan 1.3 instance."
 msgstr "Falha ao criar instância Vulkan 1.3."
 
+msgid "No usable Vulkan physical devices found."
+msgstr "Nenhum dispositivo Vulkan utilizável encontrado."
+
 msgid "No Vulkan-capable physical devices found."
 msgstr "Nenhum dispositivo físico compatível com Vulkan foi encontrado."
 

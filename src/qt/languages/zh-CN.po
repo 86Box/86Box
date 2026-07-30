@@ -2937,6 +2937,9 @@ msgstr "Vulkan 渲染器初始化失败。"
 msgid "Failed to create Vulkan 1.3 instance."
 msgstr "无法创建 Vulkan 1.3 实例。"
 
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
 msgid "No Vulkan-capable physical devices found."
 msgstr "未找到支持 Vulkan 的物理设备。"
 
