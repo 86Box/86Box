@@ -669,7 +669,8 @@ mitsumi_get_channel(void *priv, int channel)
 {
     mcd_t   *dev      = (mcd_t *) priv;
 
-    return channel == 0 ? (!!(dev->cdrom_vols.att0) | (!!(dev->cdrom_vols.att1) << 1)) : (!!(dev->cdrom_vols.att2) | (!!(dev->cdrom_vols.att3) << 1));
+    return (channel == 0) ? ((!!(dev->cdrom_vols.att0)) | ((!!(dev->cdrom_vols.att1)) << 1)) :
+                            ((!!(dev->cdrom_vols.att2)) | ((!!(dev->cdrom_vols.att3)) << 1));
 }
 
 static void *
