@@ -445,8 +445,9 @@ mke_read_multisess(mke_t *mke)
 
     dev->ops->get_raw_track_info(dev->local, &num, mke->temp_buf);
 
+    memset(b, 0x00, 6);
     if (num > 0) {
-        int trk = - 1;
+        int trk = -1;
 
         for (int i = 0; i < num; i++) {
             if (trti[i].point == 0xa2) {
@@ -484,7 +485,6 @@ mke_read_multisess(mke_t *mke)
         mke_log("mke_read_multisess: 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X 0x%02X\n",
                 b[0], b[1], b[2], b[3], b[4], b[5]);
     } else {
-        memset(b, 0x00, 6);
         fifo8_push_all(&mke->info_fifo, b, 6);
     }
 }
