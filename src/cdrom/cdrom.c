@@ -2321,16 +2321,6 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
     buf[8] = 0x00;
 }
 
-int compare_points(const void* a, const void* b)
-{
-    const raw_track_info_t* arg1 = (const raw_track_info_t*)a;
-    const raw_track_info_t* arg2 = (const raw_track_info_t*)b;
-
-    if (arg1->point < arg2->point) return -1;
-    if (arg1->point > arg2->point) return 1;
-    return 0;
-}
-
 int
 cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 {
@@ -2359,16 +2349,10 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 
     if (curtoctrk < 0)
         curtoctrk = 0;
-    
-    if (curtoctrk > num)
-        curtoctrk = 0;
-
-    // Mitsumi encodes points in BCD format, always.
-    qsort(rti, num, sizeof(raw_track_info_t), compare_points);
 
     buf[0] = (t[curtoctrk].adr_ctl >> 4) | ((t[curtoctrk].adr_ctl & 0xf) << 4);
     buf[1] = 0;
-    buf[2] = bin2bcd(t[curtoctrk].point);
+    buf[2] = (t[curtoctrk].point > 99)? t[curtoctrk].point : bin2bcd(t[curtoctrk].point);
     buf[3] = bin2bcd(t[curtoctrk].m);
     buf[4] = bin2bcd(t[curtoctrk].s);
     buf[5] = bin2bcd(t[curtoctrk].f);
@@ -2379,9 +2363,8 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 
     curtoctrk++;
 
-    if (t[curtoctrk].point > 99) {
+    if (curtoctrk >= num)
         curtoctrk = 0;
-    }
 
     return curtoctrk;
 }

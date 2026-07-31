@@ -153,6 +153,7 @@ static const struct cdrom_drive_types_s {
     { "CREATIVE", "CD2422E",          "MC10", "",          "creative_2422",  BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  2 } },
     { "CREATIVE", "CD3621E",          "ZC10", "",          "creative_3621",  BUS_TYPE_IDE,  0, 36, 36, 0, 0, {  4,  2,  2,  2 } },
     { "CREATIVE", "CD5220E",          "2.02", "",          "creative_5220",  BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
+    { "CREATIVEDVD-ROM", "DVD2240E",  "1.7A", "",          "creative_d2240", BUS_TYPE_IDE,  0, 20, 36, 0, 1, {  4,  2,  2,  4 } }, /* The "CREATIVEDVD-ROM" name is used by the real drive, not a mistake */
     { "ECS",      "300ESD",           "V200", "",          "ecs_300",        BUS_TYPE_IDE,  0,  3, 36, 0, 0, {  2, -1, -1, -1 } }, /* Firmware revision not yet confirmed */
     { "ECS",      "600ESD",           "V300", "",          "ecs_600",        BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  3, -1, -1, -1 } },
     { "GOLDSTAR", "CRD-8160B",        "3.14", "",          "goldstar",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  1, -1 } },
