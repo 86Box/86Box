@@ -1,3 +1,65 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Gravis UltraSound emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          win2kgamer
+ *
+ *          Copyright 2010-2020 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright      2026 win2kgamer
+ */
+
+/*
+ * Known issues:
+ * - MegaEM will sometimes hang when playing audio (this is known to
+ *   occur in Hoyle Classic Card games when speech plays and in the
+ *   TIE Fighter setup utility when playing music). This is due to
+ *   the DMA Terminal Count IRQ status bit not being cleared by the
+ *   program. The documented method of clearing this bit is to
+ *   read the DMA Control register (index 41h) but there may be an
+ *   unknown mechanism that automatically clears this bit that MegaEM
+ *   relies on.
+ * - SBOS does not play audio: This is due to the Adlib/SB control bits
+ *   being cleared when SBOS attempts to clear pending IRQs by writing
+ *   zeroes to the DMA Control and Timer Control (index 45h) registers.
+ * - If the above control bit issue is hacked around any attempt to play
+ *   back digital SB audio results in a large section of the GUS sample
+ *   RAM being played back instead of just the SB sample. This appears
+ *   to be due to undocumented behavior of the voice start address
+ *   register. SBOS appears to zero out the start address but expect
+ *   playback to still start at a higher address?
+ * - Gravis UltraSound Extreme is misdetected as a GUS Classic by the
+ *   Windows 3.1 drviers due the the currently used card ID of 70h.
+ *   The Win95 drivers for this card include a version of Ultramix
+ *   that appears to exepect the current ID and writes SBPro-style
+ *   mixer index/data values to the GUS mixer ports.
+ */
+
+/*
+ * TODO:
+ * - Verify the proper card ID for the Gravis UltraSound Extreme. The
+ *   ViperMAX ID is known and documented in the source code from Utopia
+ *   Sound Division.
+ * - Find any alternate methods real GUS cards use to clear the DMA TC
+ *   IRQ status bit.
+ * - Find out the proper behavior of the GUS Adlib/SB control bits (this shares
+ *   a register index with the Timer Control but likely has some undocumented
+ *   behavior that is not yet emulated).
+ * - Find any info on possible undocumented behavior of the voice start address
+ *   register and sample playback.
+ * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
+ *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
+ *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
+ */
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

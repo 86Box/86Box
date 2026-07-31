@@ -112,6 +112,7 @@ typedef struct mcd_t {
     uint8_t  conf;
     uint8_t  enable_irq;
     uint8_t  enable_dma;
+    uint8_t  early_status;
     uint16_t dmalen;
     uint32_t readmsf;
     uint32_t readcount;
@@ -335,7 +336,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
             if (!dev->cmdbuf_count || !dev->newstat)
                 ret |= FLAG_NOSTAT;
             if (!(ret & FLAG_NODATA) && !(ret & FLAG_NOSTAT))
-                ret |= FLAG_NOSTAT;
+                ret |= dev->early_status ? FLAG_NODATA : FLAG_NOSTAT;
 
             pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK | 1);
             return ret | FLAG_UNK | 1;
@@ -499,7 +500,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 dev->readcount |= (val << 8);
                                 break;
                             case 2:
-                                dev->readcount = (val << 16);
+                                dev->readcount    = ((val & 0x0f) << 16);
+                                dev->early_status = ((val & 0xf0) == 0xf0);
                                 break;
                             case 5:
                                 dev->readmsf = 0;
