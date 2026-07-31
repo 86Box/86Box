@@ -38,6 +38,7 @@ add_library(dev OBJECT
     isarom.c
     isartc.c
     isapnp.c
+    kbc_3270pc.c
     kbc_at.c
     kbc_at_dev.c
     kbc_ps2_m25.c
