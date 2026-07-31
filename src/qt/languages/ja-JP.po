@@ -2918,6 +2918,9 @@ msgstr "ハードリセットを行う前に確認を求めます"
 msgid "Ask for confirmation before quitting"
 msgstr "終了する前に確認を求めます"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "オプション"
 

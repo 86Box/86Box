@@ -2930,6 +2930,9 @@ msgstr "Запитувати підтвердження перед холодн�
 msgid "Ask for confirmation before quitting"
 msgstr "Запитувати підтвердження перед виходом"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Параметри"
 

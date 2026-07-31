@@ -2976,6 +2976,9 @@ msgstr "Chiedi conferma prima di riavviare"
 msgid "Ask for confirmation before quitting"
 msgstr "Chiedi conferma prima di uscire"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opzioni"
 

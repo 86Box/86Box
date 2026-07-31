@@ -2934,6 +2934,9 @@ msgstr "Vprašaj za potrditev pred ponovnim zagonom"
 msgid "Ask for confirmation before quitting"
 msgstr "Vprašaj za potrditev pred izhodom"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Možnosti"
 

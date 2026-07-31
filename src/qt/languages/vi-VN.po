@@ -2918,6 +2918,9 @@ msgstr "Hỏi xác nhận trước khi buộc khởi động lại"
 msgid "Ask for confirmation before quitting"
 msgstr "Hỏi xác nhận trước khi thoát"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Tùy chọn"
 

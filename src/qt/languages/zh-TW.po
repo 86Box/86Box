@@ -2931,6 +2931,9 @@ msgstr "硬體重設前要求確認"
 msgid "Ask for confirmation before quitting"
 msgstr "退出前請先確認"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "選項"
 

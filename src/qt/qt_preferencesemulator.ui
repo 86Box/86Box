@@ -123,6 +123,13 @@
       </widget>
      </item>
      <item row="7" column="0" colspan="2">
+      <widget class="QCheckBox" name="checkBoxCHDPrecache">
+       <property name="text">
+        <string>Precache CHD files into memory</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0" colspan="2">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
           <widget class="QGroupBox" name="groupBox">
@@ -148,29 +155,6 @@
            <widget class="QRadioButton" name="radioButtonDark">
             <property name="text">
                <string>Dark</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-          <widget class="QGroupBox" name="groupBoxCHD">
-         <property name="title">
-          <string>CHD precache</string>
-         </property>
-         <layout class="QVBoxLayout" name="verticalLayoutCHD">
-          <item>
-           <widget class="QRadioButton" name="radioButtonCHDNone">
-            <property name="text">
-             <string>None</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="radioButtonCHDFileOnly">
-            <property name="text">
-             <string>File-only</string>
             </property>
            </widget>
           </item>

@@ -2956,6 +2956,9 @@ msgstr "Ερώτηση επιβεβαίωσης πριν από την ολικ�
 msgid "Ask for confirmation before quitting"
 msgstr "Ερώτηση επιβεβαίωσης κατά την έξοδο"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Επιλογές"
 

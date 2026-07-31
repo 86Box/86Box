@@ -2935,6 +2935,9 @@ msgstr "Запрашивать подтверждение перед холод�
 msgid "Ask for confirmation before quitting"
 msgstr "Запрашивать подтверждение перед выходом"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Параметры"
 

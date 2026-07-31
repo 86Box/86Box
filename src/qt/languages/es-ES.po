@@ -2923,6 +2923,9 @@ msgstr "Pedir confirmación antes del hard reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Pedir confirmación antes de salir"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opciones"
 

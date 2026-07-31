@@ -2922,6 +2922,9 @@ msgstr "Demana confirmació abans de la reiniciació completa"
 msgid "Ask for confirmation before quitting"
 msgstr "Demana confirmació abans de sortir"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opcions"
 

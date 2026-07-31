@@ -2924,6 +2924,9 @@ msgstr "Perguntar antes de reinicialização completa"
 msgid "Ask for confirmation before quitting"
 msgstr "Perguntar antes de sair"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opções"
 

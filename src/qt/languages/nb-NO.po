@@ -2923,6 +2923,9 @@ msgstr "Be om bekreftelse før hard reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Be om bekreftelse før avslutning"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Alternativer"
 

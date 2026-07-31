@@ -2922,6 +2922,9 @@ msgstr "硬重置前要求用户确认"
 msgid "Ask for confirmation before quitting"
 msgstr "退出前要求用户确认"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "选项"
 
