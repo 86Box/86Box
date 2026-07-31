@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-30 15:53+0000\n"
+"PO-Revision-Date: 2026-07-31 15:40+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -2957,7 +2957,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "Ερώτηση επιβεβαίωσης κατά την έξοδο"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "Προφόρτωση αρχείων CHD στη μνήμη"
 
 msgid "Options"
 msgstr "Επιλογές"
