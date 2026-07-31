@@ -385,7 +385,7 @@ chd_image_read_sector_dvd(const void *local, UNUSED(uint8_t *buffer), UNUSED(uin
         if (hunk_to_use != ioctl->cur_hunk) {
             chd_error res = chd_read(ioctl->img_file, (uint32_t) hunk_to_use, ioctl->hunk_bytes);
             if (res != CHDERR_NONE) {
-                pclog("Failed to read hunk %lld\n", hunk_to_use);
+                pclog("Failed to read hunk %" PRId64 "\n", hunk_to_use);
                 return 0;
             }
             ioctl->cur_hunk = hunk_to_use;
@@ -492,7 +492,7 @@ chd_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_
             if (hunk_to_use != ioctl->cur_hunk) {
                 chd_error res = chd_read(ioctl->img_file, (uint32_t)hunk_to_use, ioctl->hunk_bytes);
                 if (res != CHDERR_NONE) {
-                    pclog("Failed to read hunk %lld\n", hunk_to_use);
+                pclog("Failed to read hunk %" PRId64 "\n", hunk_to_use);
                     return 0;
                 }
                 ioctl->cur_hunk = hunk_to_use;
@@ -803,13 +803,13 @@ precache_start:
                 {
                     img->uncompressed_chd_sectors = calloc(img->header->totalhunks, img->header->hunkbytes);
                     if (!img->uncompressed_chd_sectors) {
-                        warning("Failed to allocate %llu bytes for CHD decompression!\n", (uint64_t)img->header->totalhunks * (uint64_t)img->header->hunkbytes);
+                        warning("Failed to allocate %" PRIu64 " bytes for CHD decompression!\n", (uint64_t) img->header->totalhunks * (uint64_t) img->header->hunkbytes);
                         break;
                     }
                     img->uncompressed_length = (uint64_t)img->header->totalhunks * (uint64_t)img->header->hunkbytes;
                     for (uint64_t i = 0; i < img->header->totalhunks; i++) {
                         if (chd_read(img->img_file, i, img->uncompressed_chd_sectors + i * img->header->hunkbytes) != CHDERR_NONE) {
-                            warning("Failed to read hunk %llu for CHD decompression!\n", (long long unsigned)i);
+                            warning("Failed to read hunk %" PRIu64 " for CHD decompression!\n", i);
                             free(img->uncompressed_chd_sectors);
                             img->uncompressed_chd_sectors = NULL;
                             img->uncompressed_length = 0;
