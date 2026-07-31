@@ -810,23 +810,19 @@ pc3270_render_text(pc3270_t *dev)
         if (ul && (scanline == underline)) {
             for (int n = 0; n < 9; n++)
                 p[(x * 9) + n] = fg;
-            rowbits = 0x1ff;
         }
 
         if ((ma == dev->cursaddr) && dev->cursen && cursblink && (scanline >= curstop) && (scanline <= cursbot)) {
-            for (int n = 0; n < 9; n++)
-                p[(x * 9) + n] = fg;
-            rowbits = 0x1ff;
-        }
+            /* The cursor is OR'd into the video output on the way to the
+               monitor, so it lights up even on a cell whose own colours would
+               leave it invisible.  The self-test at C000:068E relies on this:
+               it enables the cursor over a blank screen and requires the
+               diagnostic readback to see video, which never happens if the
+               cursor is painted in the cell's foreground colour. */
+            uint32_t cur = (fg == bg) ? dev->pal[7] : fg;
 
-        /* The self-test's diagnostic readback latches every colour that
-           actually reaches the screen, so it has to see both halves of the
-           cell -- sampling a fixed pixel column would miss thin glyphs. */
-        if (dev->reg189 & 0x20) {
-            if (rowbits)
-                pc3270_diag(dev, fg);
-            if (rowbits != 0x1ff)
-                pc3270_diag(dev, bg);
+            for (int n = 0; n < 9; n++)
+                p[(x * 9) + n] = cur;
         }
     }
 }
@@ -1052,6 +1048,18 @@ pc3270_poll(void *priv)
             dev->lastline = dev->displine;
 
             dev->render(dev);
+
+            /* The diagnostic readback latches whatever actually reached the
+               raster, so it has to sample the rendered scanline -- the APA
+               self-test at C000:0647 runs in a graphics mode, and only the
+               text renderer knows anything about foreground/background. */
+            if (dev->reg189 & 0x20) {
+                const uint32_t *p     = (const uint32_t *) buffer32->line[dev->displine];
+                int             width = dev->cols * 9;
+
+                for (int x = 0; x < width; x++)
+                    pc3270_diag(dev, p[x]);
+            }
 
             if (dev->displine == 0)
                 dev->status |= STAT_LINEZERO;

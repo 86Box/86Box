@@ -2928,6 +2928,9 @@ msgstr "Vyžadovať potvrdenie pred resetovaním"
 msgid "Ask for confirmation before quitting"
 msgstr "Vyžadovať potvrdenie pred ukončením"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Možnosti"
 

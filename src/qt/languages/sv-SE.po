@@ -2922,6 +2922,9 @@ msgstr "Bekräfta innan hård omstart"
 msgid "Ask for confirmation before quitting"
 msgstr "Bekräfta innan avslut"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Alternativ"
 

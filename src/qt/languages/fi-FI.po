@@ -2926,6 +2926,9 @@ msgstr "Kysy varmistusta ennen uudelleenkäynnistystä"
 msgid "Ask for confirmation before quitting"
 msgstr "Kysy varmistusta ennen lopettamista"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Asetukset"
 

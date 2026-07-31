@@ -187,6 +187,7 @@ extern kbc_at_port_t     *kbc_at_ports[2];
 extern const device_t kbc_pc_device;
 extern const device_t kbc_pc82_device;
 extern const device_t kbc_pravetz_device;
+extern const device_t kbc_3270pc_device;
 extern const device_t kbc_xt_device;
 extern const device_t kbc_xt86_device;
 extern const device_t kbc_xt_compaq_device;

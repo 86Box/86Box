@@ -1809,7 +1809,7 @@ cdrom_audio_track_search_pioneer(cdrom_t *dev, const uint32_t pos, const uint8_t
 {
     uint8_t  ret  = 0;
 
-    if (dev->cd_status &= CD_STATUS_HAS_AUDIO) {
+    if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
         const int f    = bcd2bin((pos >> 24) & 0xff);
         const int s    = bcd2bin((pos >> 16) & 0xff);
         const int m    = bcd2bin((pos >> 8) & 0xff);

@@ -2984,6 +2984,9 @@ msgstr "강제 초기화 전에 확인 요청"
 msgid "Ask for confirmation before quitting"
 msgstr "종료 전 확인 요청"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "옵션"
 

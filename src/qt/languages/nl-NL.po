@@ -2917,6 +2917,9 @@ msgstr "Vraag om bevestiging voor een harde reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Vraag om bevestiging voor afsluiten"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opties"
 

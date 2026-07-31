@@ -66,6 +66,7 @@ enum {
     CMD_GET_VER    = 0xdc,
     CMD_STOP       = 0xf0,
     CMD_EJECT      = 0xf6,
+    CMD_CLOSE      = 0xf8,
     CMD_LOCK       = 0xfe
 };
 enum {
@@ -522,7 +523,10 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             dev->cmdbuf_idx   = 0;
             dev->cmdrd_count  = 0;
             dev->cmdbuf_count = 1;
-            dev->cmdbuf[0]    = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+            dev->stat         = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+            dev->cmdbuf[0]    = dev->stat;
+            if (dev->cdrom_dev->cd_status == CD_STATUS_PLAYING)
+                dev->stat |= STAT_PLAY_CDDA;
             dev->data         = 0;
             switch (val) {
                 case CMD_REQ_SENSE:
@@ -603,6 +607,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     dev->cmdbuf[2]    = 0x10;
                     dev->cmdbuf_count = 3;
                     break;
+                case CMD_CLOSE:
+                    break;
                 case CMD_EJECT:
                     cdrom_stop(dev->cdrom_dev);
                     cdrom_eject(0);
@@ -663,7 +669,8 @@ mitsumi_get_channel(void *priv, int channel)
 {
     mcd_t   *dev      = (mcd_t *) priv;
 
-    return channel == 0 ? (!!(dev->cdrom_vols.att0) | (!!(dev->cdrom_vols.att1) << 1)) : (!!(dev->cdrom_vols.att2) | (!!(dev->cdrom_vols.att3) << 1));
+    return (channel == 0) ? ((!!(dev->cdrom_vols.att0)) | ((!!(dev->cdrom_vols.att1)) << 1)) :
+                            ((!!(dev->cdrom_vols.att2)) | ((!!(dev->cdrom_vols.att3)) << 1));
 }
 
 static void *

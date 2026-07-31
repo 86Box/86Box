@@ -169,14 +169,20 @@ mcga_height(const mcga_t *dev)
 static int
 mcga_total_lines(const mcga_t *dev)
 {
-    return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x04]) + 17;
+    /*
+       The calculation gives me a total of 449 lines for 70 Hz.
+       Total + adjust configured by the BIOS gives me 445 lines.
+       This indicates that 4 lines need to be added.
+     */
+    return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x04]) +
+        dev->crtc[0x05] + 4;
 }
 
 static int
 mcga_vsync_start(const mcga_t *dev)
 {
-    /* No, no + 1 here, or else Rockford's splash screen animation breaks. */
-    return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x07]);
+    /* Actually, + 1 is correct once you take vertical total adjust into account. */
+    return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x07]) + 1;
 }
 
 static int
