@@ -308,6 +308,20 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 }
 
 static uint8_t
+mitsumi_cdrom_get_flags(mcd_t* dev)
+{
+    uint8_t ret = 0;
+    if (!dev->buf_count || !dev->data || dev->enable_dma)
+        ret |= FLAG_NODATA;
+    if (!dev->cmdbuf_count || !dev->newstat)
+        ret |= FLAG_NOSTAT;
+    if (!(ret & FLAG_NODATA) && !(ret & FLAG_NOSTAT))
+        ret |= dev->early_status ? FLAG_NODATA : FLAG_NOSTAT;
+
+    return ret | FLAG_UNK | 1;
+}
+
+static uint8_t
 mitsumi_cdrom_in(uint16_t port, void *priv)
 {
     mcd_t  *dev = (mcd_t *) priv;
@@ -315,16 +329,22 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
 
     switch (port & 3) {
         case 0:
-            if (dev->buf_count) {
+            if (dev->buf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NODATA)) {
                 ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
                 dev->buf_idx++;
                 dev->buf_count--;
                 if (!dev->buf_count)
                     mitsumi_cdrom_read_sector(dev, 0);
 
+                if (!dev->buf_count && dev->early_status) {
+                    dev->cmdbuf[0] = STAT_SPIN | STAT_READY | dev->stat;
+                    dev->cmdbuf_idx = 0;
+                    dev->cmdbuf_count = 1;
+                }
+
                 //pclog("Read port 0 data\n");
                 return ret;
-            } else if (dev->cmdbuf_count) {
+            } else if (dev->cmdbuf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NOSTAT)) {
                 dev->cmdbuf_count--;
                 pclog("Read port 0: cmdres = %02x\n", dev->cmdbuf[dev->cmdbuf_idx]);
                 return dev->cmdbuf[dev->cmdbuf_idx++];
@@ -333,15 +353,10 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
         case 1:
             ret = 0;
             picintc(1 << dev->irq);
-            if (!dev->buf_count || !dev->data || dev->enable_dma)
-                ret |= FLAG_NODATA;
-            if (!dev->cmdbuf_count || !dev->newstat)
-                ret |= FLAG_NOSTAT;
-            if (!(ret & FLAG_NODATA) && !(ret & FLAG_NOSTAT))
-                ret |= dev->early_status ? FLAG_NODATA : FLAG_NOSTAT;
+            ret = mitsumi_cdrom_get_flags(dev);
 
-            pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK | 1);
-            return ret | FLAG_UNK | 1;
+            pclog("Read port 1: ret = %02x\n", ret);
+            return ret;
         case 2:
             return 0xFF;
         case 3:
