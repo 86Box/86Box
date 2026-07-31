@@ -1716,7 +1716,7 @@ azt_init(const device_t *info)
             azt2316a->cur_wss_enabled = 0;
 
         // these are not present on the EEPROM
-        azt2316a->cur_dma     = device_get_config_int("sb_dma8");
+        azt2316a->cur_dma     = 1;
         azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
         azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
         azt2316a->cur_mode    = 0;
@@ -2162,22 +2162,6 @@ static const device_config_t azt1605_config[] = {
             { .description = "0x240",              .value = 0x240 },
             { .description = "Use EEPROM setting", .value =     0 },
             { .description = ""                                   }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "sb_dma8",
-        .description    = "SB low DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
         },
         .bios           = { { 0 } }
     },
