@@ -361,8 +361,9 @@ mitsumi_read_multisess(mcd_t* mcd, uint8_t* b)
 
     dev->ops->get_raw_track_info(dev->local, &num, mcd->temp_buf);
 
+    memset(b, 0x00, 4);
     if (num > 0) {
-        int trk = - 1;
+        int trk = -1;
 
         for (int i = 0; i < num; i++) {
             if (trti[i].point == 0xa2) {
@@ -386,15 +387,14 @@ mitsumi_read_multisess(mcd_t* mcd, uint8_t* b)
             }
         }
 
-        if ((first_sess > 0) && (last_sess < 0) && (trk != -1)) {
-            b[0] = (first_sess == last_sess) ? 0x00 : 0x01;
+        if ((first_sess > 0) && (last_sess < 0) && (first_sess != last_sess) && (trk != -1)) {
+            b[0] = 0x01;
             b[1] = bin2bcd(trti[trk].pm);
             b[2] = bin2bcd(trti[trk].ps);
             b[3] = bin2bcd(trti[trk].pf);
         }
-    } else {
-        memset(b, 0x00, 4);
     }
+    pclog("mitsumi_read_multisess: 0x%02X 0x%02X 0x%02X 0x%02X\n", b[0], b[1], b[2], b[3]);
 }
 
 static void
