@@ -297,7 +297,9 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
             // Skip the main header.
             dev->buf_idx += 16;
         }
-    }
+    } else if (dev->buf_count > 2048)
+        dev->buf_count = 2048;
+
     dev->data      = 1;
     dev->readcount--;
     if ((dev->enable_irq & IRQ_DATAREADY) && first)
@@ -478,6 +480,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
+                                if (!dev->readcount && dev->early_status)
+                                    dev->readcount = 1;
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
                                 if (dev->enable_dma && read_res > 0) {
                                     do {
