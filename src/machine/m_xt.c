@@ -627,12 +627,16 @@ machine_ibmxt_init(const machine_t *model)
  * display adapter and its option ROMs.  So there is nothing to do here beyond
  * the ordinary XT init plus the card itself.
  *
- * The 3270 keyboard adapter at ports 0x1B0-0x1B7 is deliberately not emulated.
- * A 5271 works with an ordinary XT keyboard, reporting a non-fatal 302 at
- * POST; a partial implementation is far worse than none, because the adapter
- * ROM's handshake loop at CA0CE spins forever if port 0x1B2 answers with bit 5
- * set but bits 6-7 clear.  Leaving the range undecoded reads as open bus and
- * takes the ROM cleanly down its "no 3270 keyboard" path.
+ * The keyboard adapter at ports 0x1B0-0x1B7 is kbc_3270pc_device.  A real 5271
+ * always has that card fitted -- it carries the option ROM the display adapter
+ * maps -- so the ROM never tests for its absence, and leaving the range
+ * undecoded used to read back 0xFF, which satisfies every ready/present bit it
+ * polls and then fails the data compares.
+ *
+ * POST 0302 still appears and is authentic: Elliott records that a 5271 with an
+ * ordinary XT keyboard reports it at every boot, and the 122-key 3270 keyboard
+ * is not emulated.  2801 likewise -- there is no Host Connect card.  Both are
+ * non-fatal; F1 resumes.
  */
 int
 machine_xt_ibm3270pc_init(const machine_t *model)
@@ -658,6 +662,9 @@ machine_xt_ibm3270pc_init(const machine_t *model)
     machine_xt_common_init(model, 0);
 
     device_add(&ibm3270pc_vid_device);
+    /* After machine_xt_common_init(), so the system PIT exists and PITCONST is
+       settled before the adapter's own 8254 is added. */
+    device_add(&kbc_3270pc_device);
 
     return ret;
 }
