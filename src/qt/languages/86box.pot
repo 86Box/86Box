@@ -2906,6 +2906,9 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr ""
 

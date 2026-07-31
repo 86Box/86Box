@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:42+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-07-31 15:39+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
@@ -2940,6 +2940,9 @@ msgstr "Demander confirmation avant hard reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Demander confirmation avant de quitter"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Options"
 
@@ -2992,7 +2995,7 @@ msgid "Shader Configuration"
 msgstr "Configuration du shader"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU :"
 
 msgid "Add"
 msgstr "Ajouter"

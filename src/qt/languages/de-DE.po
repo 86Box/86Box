@@ -2922,6 +2922,9 @@ msgstr "Vor dem Kaltstart um Bestätigung bitten"
 msgid "Ask for confirmation before quitting"
 msgstr "Vor dem Beenden um Bestätigung bitten"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Optionen"
 

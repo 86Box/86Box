@@ -790,6 +790,7 @@ chd_image_open(cdrom_t *dev, const char *path)
 precache_start:
         switch (chd_precache_level) {
             case 0:
+            default:
                 break;
             case 1:
                 {
@@ -799,7 +800,6 @@ precache_start:
                     break;
                 }
             case 2:
-            default:
                 {
                     img->uncompressed_chd_sectors = calloc(img->header->totalhunks, img->header->hunkbytes);
                     if (!img->uncompressed_chd_sectors) {

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-29 10:19+0000\n"
+"PO-Revision-Date: 2026-07-31 15:40+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -2935,6 +2935,9 @@ msgstr "Запрашивать подтверждение перед холод�
 msgid "Ask for confirmation before quitting"
 msgstr "Запрашивать подтверждение перед выходом"
 
+msgid "Precache CHD files into memory"
+msgstr "Загружать файлы CHD в память"
+
 msgid "Options"
 msgstr "Параметры"
 
@@ -2951,7 +2954,7 @@ msgid "Failed to create Vulkan 1.3 instance."
 msgstr "Не удалось создать экземпляр Vulkan 1.3."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Не найдены пригодные к использованию физические устройства Vulkan."
 
 msgid "No Vulkan-capable physical devices found."
 msgstr "Не найдены физические устройства, поддерживающие Vulkan."
