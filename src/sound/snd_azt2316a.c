@@ -1639,8 +1639,8 @@ azt_init(const device_t *info)
             fatal("AZT2316A: invalid mpu401 irq in config word %08X\n", azt2316a->config_word);
 
         /* these are not present on the EEPROM */
-        azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
-        azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
+        azt2316a->cur_wss_irq = 10;
+        azt2316a->cur_wss_dma = 0;
         azt2316a->cur_mode    = 0;
     } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         azt2316a->config_word = read_eeprom[12] + (read_eeprom[13] << 8) + (read_eeprom[14] << 16);
@@ -1717,8 +1717,8 @@ azt_init(const device_t *info)
 
         // these are not present on the EEPROM
         azt2316a->cur_dma     = 1;
-        azt2316a->cur_wss_irq = device_get_config_int("wss_irq");
-        azt2316a->cur_wss_dma = device_get_config_int("wss_dma");
+        azt2316a->cur_wss_irq = 10;
+        azt2316a->cur_wss_dma = 0;
         azt2316a->cur_mode    = 0;
     } else if (azt2316a->type == SB_SUBTYPE_CLONE_AZTPR16_0X09) {
         azt2316a->config_word = read_eeprom[32] + (read_eeprom[33] << 8) + (read_eeprom[34] << 16) + (read_eeprom[35] << 24);
@@ -2166,38 +2166,6 @@ static const device_config_t azt1605_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "wss_irq",
-        .description    = "WSS IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 10,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 11", .value = 11 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = ""                    }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_dma",
-        .description    = "WSS DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -2268,38 +2236,6 @@ static const device_config_t azt2316a_config[] = {
         .bios           = { { 0 } }
     },
     {
-        .name           = "wss_irq",
-        .description    = "WSS IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 10,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 11", .value = 11 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = ""                    }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_dma",
-        .description    = "WSS DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
-        },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "opl",
         .description    = "Enable OPL",
         .type           = CONFIG_BINARY,
@@ -2351,38 +2287,6 @@ static const device_config_t azt2316r_config[] = {
             { .description = "0x240",              .value = 0x240 },
             { .description = "Use EEPROM setting", .value =     0 },
             { .description = ""                                   }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_irq",
-        .description    = "WSS IRQ",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 10,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "IRQ 11", .value = 11 },
-            { .description = "IRQ 10", .value = 10 },
-            { .description = "IRQ 7",  .value =  7 },
-            { .description = ""                    }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "wss_dma",
-        .description    = "WSS DMA",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "DMA 0", .value = 0 },
-            { .description = "DMA 1", .value = 1 },
-            { .description = "DMA 3", .value = 3 },
-            { .description = ""                  }
         },
         .bios           = { { 0 } }
     },
