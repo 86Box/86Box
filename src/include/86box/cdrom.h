@@ -199,6 +199,10 @@ static const struct cdrom_drive_types_s {
     { "LITEON",  "CD-ROM LTR48125S",  "1S07", "LTR48125S", "liteon_48125s",  BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  2 } },
     { "LITEON",  "CD-ROM LTN526D",    "YSR5", "LTN526D",   "liteon_526d",    BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  2 } }, /* Confirmed to be 52x, was the basis for deducing the other one's speed. */
     { "LITEON",  "CD-ROM LTD166",     "9S14", "LTD166",    "liteon_166d",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVD+RW LDW-401S",  "ES0G", "",          "liteon_401s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVDRW SOHW-812S",  "US0A", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVDRW SOHW-1633S", "BS0G", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVD SOHD-167T",    "9S13", "",          "liteon_167t",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
     { "MAD DOG",  "LIGHTNING 56X",    "1.0 ", "",          "maddog_56x",     BUS_TYPE_IDE,  0, 56, 36, 0, 0, {  4,  2,  2,  4 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "MAD DOG",  "ENTERTAINER 16X",  "1.0 ", "",          "maddog_16x",     BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "MATSHITA", "CR-571",           "1.0e", "",          "matshita_571",   BUS_TYPE_IDE,  0,  2, 36, 0, 0, {  0, -1, -1, -1 } },
