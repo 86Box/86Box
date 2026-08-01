@@ -857,9 +857,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                 }
                 break;
-            } else if (gus->type == GUS_EXTREME) {
-                ess_mixer_write(gus->ess->ess_dsp_addr + 4, val, gus->ess);
-                break;
             }
             fallthrough;
         case 0x706:
@@ -883,8 +880,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                       ad1848_write, NULL, NULL, &gus->ad1848);
                     }
                 }
-            } else if (gus->type == GUS_EXTREME)
-                ess_mixer_write(gus->ess->ess_dsp_addr + 5, val, gus->ess);
+            }
             break;
 
         default:
@@ -1093,7 +1089,7 @@ gus_read(uint16_t addr, void *priv)
             else if (gus->type == GUS_VIPERMAX)
                 val = 0x50; /* Synergy Vipermax */
             else if (gus->type == GUS_EXTREME)
-                val = 0x70; /* GUS Extreme */
+                val = 0x50; /* GUS Extreme */
             else
                 val = 0xff; /* Pre 3.7 - no mixer */
             break;
