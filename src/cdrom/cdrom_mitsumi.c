@@ -339,7 +339,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                     mitsumi_cdrom_read_sector(dev, 0);
                 }
 
-                pclog("Read port 0 data\n");
+                //pclog("Read port 0 data\n");
                 return ret;
             } else if (dev->cmdbuf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NOSTAT)) {
                 dev->cmdbuf_count--;
