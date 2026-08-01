@@ -812,17 +812,17 @@ EOF
 		echo [-] Not installing dependencies again
 	fi
 
-	if dpkg -s rustc-web
-	then
-		sudo apt-get purge -y rustc-web cargo-web
-		rm -rf "$HOME/.cargo/bin"
-	fi
-	if [ ! -e "$HOME/.cargo/bin" ]
-	then
-		curl -sSf https://sh.rustup.rs | sh -s -- -y
-	fi
-	cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
-	export PATH="$HOME/.cargo/bin/:$PATH"
+	# if dpkg -s rustc-web
+	# then
+		# sudo apt-get purge -y rustc-web cargo-web
+		# rm -rf "$HOME/.cargo/bin"
+	# fi
+	# if [ ! -e "$HOME/.cargo/bin" ]
+	# then
+		# curl -sSf https://sh.rustup.rs | sh -s -- -y
+	# fi
+	# cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
+	# export PATH="$HOME/.cargo/bin/:$PATH"
 fi
 
 # Point CMake to the toolchain file.
