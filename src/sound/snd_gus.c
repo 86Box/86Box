@@ -27,15 +27,6 @@
  *   read the DMA Control register (index 41h) but there may be an
  *   unknown mechanism that automatically clears this bit that MegaEM
  *   relies on.
- * - SBOS does not play audio: This is due to the Adlib/SB control bits
- *   being cleared when SBOS attempts to clear pending IRQs by writing
- *   zeroes to the DMA Control and Timer Control (index 45h) registers.
- * - If the above control bit issue is hacked around any attempt to play
- *   back digital SB audio results in a large section of the GUS sample
- *   RAM being played back instead of just the SB sample. This appears
- *   to be due to undocumented behavior of the voice start address
- *   register. SBOS appears to zero out the start address but expect
- *   playback to still start at a higher address?
  * - Gravis UltraSound Extreme is misdetected as a GUS Classic by the
  *   Windows 3.1 drviers due the the currently used card ID of 70h.
  *   The Win95 drivers for this card include a version of Ultramix
@@ -50,11 +41,6 @@
  *   Sound Division.
  * - Find any alternate methods real GUS cards use to clear the DMA TC
  *   IRQ status bit.
- * - Find out the proper behavior of the GUS Adlib/SB control bits (this shares
- *   a register index with the Timer Control but likely has some undocumented
- *   behavior that is not yet emulated).
- * - Find any info on possible undocumented behavior of the voice start address
- *   register and sample playback.
  * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
  *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
  *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
