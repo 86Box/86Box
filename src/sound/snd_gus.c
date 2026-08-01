@@ -31,18 +31,10 @@
  *   rely on undocumented hardware behavior. This manifests as silent
  *   digital audio in MegaEM 3.03 and as an IRQ conflict error on MegaEM
  *   3.04 and later.
- * - Gravis UltraSound Extreme is misdetected as a GUS Classic by the
- *   Windows 3.1 drviers due the the currently used card ID of 70h.
- *   The Win95 drivers for this card include a version of Ultramix
- *   that appears to exepect the current ID and writes SBPro-style
- *   mixer index/data values to the GUS mixer ports.
  */
 
 /*
  * TODO:
- * - Verify the proper card ID for the Gravis UltraSound Extreme. The
- *   ViperMAX ID is known and documented in the source code from Utopia
- *   Sound Division.
  * - Find any alternate methods real GUS cards use to clear the DMA TC
  *   IRQ status bit.
  * - Find the undocumented hardware behavior MegaEM 3.x relies on for emulating
