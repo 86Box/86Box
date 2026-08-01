@@ -34,8 +34,9 @@ AppDir:
     exec: !ENV 'usr/local/bin/${project}'
     exec_args: $@
   after_runtime: |
-      mkdir -p "./archive_tmp/runtime/compat/lib64"
-    ln -sf ../usr/lib64/ld-linux-x86-64.so.2 "./archive_tmp/runtime/compat/lib64/ld-linux-x86-64.so.2"  apt:
+    mkdir -p "./archive_tmp/runtime/compat/lib64"
+    ln -sf ../usr/lib64/ld-linux-x86-64.so.2 "./archive_tmp/runtime/compat/lib64/ld-linux-x86-64.so.2"
+  apt:
     arch: !ENV '${arch_deb}'
     sources:
     - sourceline: 'deb http://deb.debian.org/debian trixie main'
