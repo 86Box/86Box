@@ -718,7 +718,7 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     dev->irq  = device_get_config_int("irq");
     dev->dma  = device_get_config_int("dma");
 
-    io_sethandler(base, 3,
+    io_sethandler(base, 4,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
     mitsumi_cdrom_reset(dev);
