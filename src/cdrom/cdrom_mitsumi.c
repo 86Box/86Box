@@ -270,6 +270,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
             dev->drvmode = DRV_MODE_READ;
     }
 
+    pclog("IRQSET = 0x%X\n", dev->enable_irq);
     if ((dev->enable_irq & IRQ_DATACOMP) && !first) {
         picint(1 << dev->irq);
     }
@@ -333,16 +334,12 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret = (dev->buf_idx < ((dev->mode & 0x80) ? RAW_SECTOR_SIZE : 2048)) ? dev->buf[dev->buf_idx] : 0;
                 dev->buf_idx++;
                 dev->buf_count--;
-                if (!dev->buf_count)
+                if (!dev->buf_count) {
+                    pclog("buf_idx = %d\n", dev->buf_idx);
                     mitsumi_cdrom_read_sector(dev, 0);
-
-                if (!dev->buf_count && dev->early_status) {
-                    dev->cmdbuf[0] = STAT_SPIN | STAT_READY | dev->stat;
-                    dev->cmdbuf_idx = 0;
-                    dev->cmdbuf_count = 1;
                 }
 
-                //pclog("Read port 0 data\n");
+                pclog("Read port 0 data\n");
                 return ret;
             } else if (dev->cmdbuf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NOSTAT)) {
                 dev->cmdbuf_count--;
@@ -355,7 +352,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
             picintc(1 << dev->irq);
             ret = mitsumi_cdrom_get_flags(dev);
 
-            pclog("Read port 1: ret = %02x\n", ret);
+            //pclog("Read port 1: ret = %02x\n", ret);
             return ret;
         case 2:
             return 0xFF;
@@ -420,6 +417,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 {
     mcd_t   *dev      = (mcd_t *) priv;
     int      read_res = -1;
+    int      do_fix   = 0;
 
     pclog("Mitsumi CD-ROM OUT=%03x, val=%02x\n", port, val);
     switch (port & 3) {
@@ -495,9 +493,15 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
-                                if (!dev->readcount && dev->early_status)
+                                do_fix = 0;
+                                if (!dev->readcount && dev->early_status) {
                                     dev->readcount = 1;
+                                    do_fix = 1;
+                                }
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
+                                if (read_res > 0 && do_fix) {
+                                    dev->buf_count++;
+                                }
                                 if (dev->enable_dma && read_res > 0) {
                                     do {
                                         while (dev->buf_count) {
@@ -521,6 +525,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                             case 2:
                                 dev->readcount    = ((val & 0x0f) << 16);
                                 dev->early_status = ((val & 0xf0) == 0xf0);
+                                if (dev->early_status)
+                                    pclog("Early Status Read\n");
                                 break;
                             case 5:
                                 dev->readmsf = 0;
