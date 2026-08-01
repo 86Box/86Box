@@ -19,7 +19,7 @@
 
 /*
  * Known issues:
- * - MegaEM will sometimes hang when playing audio (this is known to
+ * - MegaEM 2.x will sometimes hang when playing audio (this is known to
  *   occur in Hoyle Classic Card games when speech plays and in the
  *   TIE Fighter setup utility when playing music). This is due to
  *   the DMA Terminal Count IRQ status bit not being cleared by the
@@ -27,6 +27,10 @@
  *   read the DMA Control register (index 41h) but there may be an
  *   unknown mechanism that automatically clears this bit that MegaEM
  *   relies on.
+ * - MegaEM 3.x has nonfunctional SoundBlaster emulation and appears to
+ *   rely on undocumented hardware behavior. This manifests as silent
+ *   digital audio in MegaEM 3.03 and as an IRQ conflict error on MegaEM
+ *   3.04 and later.
  * - Gravis UltraSound Extreme is misdetected as a GUS Classic by the
  *   Windows 3.1 drviers due the the currently used card ID of 70h.
  *   The Win95 drivers for this card include a version of Ultramix
@@ -41,6 +45,8 @@
  *   Sound Division.
  * - Find any alternate methods real GUS cards use to clear the DMA TC
  *   IRQ status bit.
+ * - Find the undocumented hardware behavior MegaEM 3.x relies on for emulating
+ *   a SoundBlaster.
  * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
  *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
  *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
