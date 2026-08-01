@@ -352,7 +352,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
             picintc(1 << dev->irq);
             ret = mitsumi_cdrom_get_flags(dev);
 
-            //pclog("Read port 1: ret = %02x\n", ret);
+            pclog("Read port 1: ret = %02x\n", ret);
             return ret;
         case 2:
             return 0xFF;
@@ -496,7 +496,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 do_fix = 0;
                                 if (!dev->readcount && dev->early_status) {
                                     dev->readcount = 1;
-                                    do_fix = 1;
+                                    do_fix = 0;
                                 }
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
                                 if (read_res > 0 && do_fix) {
