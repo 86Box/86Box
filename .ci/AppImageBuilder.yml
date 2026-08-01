@@ -48,6 +48,7 @@ AppDir:
     - libfreetype6
     - libgomp1
     - libgs9
+    - libjack-jackd2-0 # required by the distro RtMidi runtime, which is built with JACK support
     - libpng16-16
     - libqt5core5a # if QT:BOOL=ON
     - libqt5gui5 # if QT:BOOL=ON
