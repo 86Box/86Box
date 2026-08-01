@@ -783,6 +783,11 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                 gameport_remap(gus->gameport, 0x0);
                             else if ((val & 0x4) && !(gus->jumper & 0x4))
                                 gameport_remap(gus->gameport, 0x201);
+                        } else if ((gus->type == GUS_EXTREME) || (gus->type == GUS_VIPERMAX)) {
+                            if (!(val & 0x4) && (gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x0);
+                            else if ((val & 0x4) && !(gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x201);
                         }
 
                         gus->jumper = val;
@@ -1855,9 +1860,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     mpu401_init(gus->ess->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&gus->ess->dsp, gus->ess->mpu);
 
-    gus->ess->gameport      = gameport_add(&gameport_200_device);
-    gus->ess->gameport_addr = 0x200;
-
     gus->ess->ess_readseq_state = 0;
     gus->ess->ess_dsp_addr      = 0;
     ess_rsk_reset(gus->ess);
@@ -1900,6 +1902,9 @@ gus_extreme_init(UNUSED(const device_t *info))
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
     sound_add_handler(gus_extreme_get_buffer, gus);
+
+    gus->gameport = gameport_add(&gameport_pnp_1io_device);
+    gameport_remap(gus->gameport, 0x201);
 
     /* GUS Extreme base I/O relocation is done via ES1688 GPO and joystick port writes */
     io_sethandler(0x227, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
