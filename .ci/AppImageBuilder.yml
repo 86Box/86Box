@@ -49,7 +49,6 @@ AppDir:
     - libgomp1
     - libgs9
     - libpng16-16
-    - librtmidi6
     - libqt5core5a # if QT:BOOL=ON
     - libqt5gui5 # if QT:BOOL=ON
     - libqt5widgets5 # if QT:BOOL=ON
