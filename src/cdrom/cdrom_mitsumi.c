@@ -537,15 +537,16 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         break;
                 }
                 if (!dev->cmdrd_count)
-                    dev->stat = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+                    dev->stat = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0) | STAT_SPIN) : 0;
                 return;
             }
             dev->cmd          = val;
             dev->cmdbuf_idx   = 0;
             dev->cmdrd_count  = 0;
             dev->cmdbuf_count = 1;
-            dev->stat         = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0)) : 0;
+            dev->stat         = mitsumi_cdrom_is_ready(dev) ? (STAT_READY | (dev->change ? STAT_CHANGE : 0) | STAT_SPIN) : 0;
             dev->cmdbuf[0]    = dev->stat;
+            dev->change       = 0;
             if (dev->cdrom_dev->cd_status == CD_STATUS_PLAYING)
                 dev->stat |= STAT_PLAY_CDDA;
             dev->data         = 0;
