@@ -790,24 +790,18 @@ tape_finish_parameters(void)
             break;
 
         case QIC_SELECT_RATE:
-            /*
-               The one argument selects either a data rate or a tape format.
-               Whatever the drive cannot do has to be refused rather than
-               quietly ignored: a host that asks for something and gets no
-               complaint will read the configuration back, find nothing
-               changed, and conclude the drive cannot reach the capacity it
-               wants.
-             */
+            if (tape.param[0] >= 6) {
+                /* Reverse-engineered from an actual ROM: the drive actually
+                   reports error 8 for any rate code >= 6, which is technically
+                   against the spec.
+                */
+                tape_set_error(QIC_ERROR_ILLEGAL_IN_REPORT, tape.param_cmd);
+                break;
+            }
             switch (tape.param[0]) {
                 case QIC_RATE_500:
                 case QIC_RATE_1000:
                     tape.rate_code = tape.param[0];
-                    break;
-
-                case QIC_FORMAT_QIC40:
-                case QIC_FORMAT_QIC80:
-                    /* Only consulted when the host goes on to format. */
-                    tape.format_code = tape.param[0];
                     break;
 
                 default:
@@ -2312,6 +2306,11 @@ fdd_tape_init(void)
        latched for good.
      */
     tape.status &= ~QIC_STATUS_NEW_CARTRIDGE;
+
+    /*
+       To investigate: do we need to initialize the drive with a power-on reset error?
+    tape_set_init_error(QIC_ERROR_POWER_ON_RESET);
+    */
 }
 
 void
