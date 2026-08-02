@@ -2104,7 +2104,7 @@ sb_read(uint16_t addr, void *priv)
                     if (dsp->wb_full || (dsp->busy_count & 2))
                         dsp->wb_full = timer_is_enabled(&dsp->wb_timer);
 
-                    const uint8_t busy_flag   = dsp->wb_full ? 0x80 : 0x00;
+                    const uint8_t busy_flag   = (dsp->wb_full || (dsp->busy_count & 2)) ? 0x80 : 0x00;
                     const uint8_t data_rdy    = (dsp->sb_read_rp == dsp->sb_read_wp) ? 0x00 : 0x40;
                     const uint8_t fifo_full   = 0; /* Unimplemented */
                     const uint8_t fifo_empty  = 0; /* (this is for the 256-byte extended mode FIFO, */
