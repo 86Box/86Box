@@ -1080,10 +1080,11 @@ tape_command(uint8_t command)
             return;
 
         case QIC_REPORT_DRIVE_CONFIG: {
-            /* The only rate the drive will accept is the only one it can
-               ever be running at, so the selected rate is the live one. */
-            tape_start_report((tape.rate_code << QIC_CONFIG_RATE_SHIFT) |
-                              QIC_CONFIG_80, 8);
+            uint8_t config = (tape.rate_code << QIC_CONFIG_RATE_SHIFT) | QIC_CONFIG_80;
+            if (tape_has_cartridge())
+                config |= QIC_CONFIG_LONG;
+
+            tape_start_report(config, 8);
             return;
         }
 
