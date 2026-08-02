@@ -302,7 +302,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 
     dev->data      = 1;
     dev->readcount--;
-    if ((dev->enable_irq & IRQ_DATAREADY) && first)
+    if ((dev->enable_irq & IRQ_DATAREADY) && first && !dev->early_status)
         picint(1 << dev->irq);
     return 1;
 }
