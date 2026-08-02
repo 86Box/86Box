@@ -1953,6 +1953,10 @@ gdbstub_close(void)
     int               socket;
     while (client) {
         socket         = client->socket;
+        if (client->waiting_stop) {
+            FAST_RESPONSE("W00");
+            gdbstub_client_respond(client);
+        }
         client->socket = -1;
         close(socket);
         client = client->next;
