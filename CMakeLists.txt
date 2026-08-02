@@ -179,6 +179,13 @@ if(WIN32 AND GDBSTUB)
     set(CMAKE_WIN32_EXECUTABLE OFF CACHE BOOL "Build a Windows GUI executable" FORCE)
 endif()
 
+if(GDBSTUB)
+    if(NOT (ARCH STREQUAL "arm64"))
+        set(NEW_DYNAREC OFF CACHE BOOL "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
+    endif()
+    set(DYNAREC OFF CACHE BOOL "Dynamic Recompiler" FORCE)
+endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
     SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-z,wxneeded")
 endif()
