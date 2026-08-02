@@ -546,7 +546,10 @@ then
 							echo "> Symlink: $line => WARNING: different targets"
 
 							# Attempt to lipo the diverging destinations in case they're libraries.
-							if lipo -create -output "$link_path" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+							if [ -L "archive_tmp_universal/$merge_src.app/$line" ] &&
+							   [ -L "archive_tmp_universal/$arch_universal.app/$line" ] &&
+							   [ "$(dirname "$link_dest")" = . -a "$(dirname "$other_link_dest")" = . ] &&
+							   lipo -create -output "$link_path" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
 							then
 								echo ">> Merged: [$merge_src] $link_dest"
 								echo ">> With: [$arch_universal] $other_link_dest"
@@ -557,7 +560,7 @@ then
 									ln -s "$dest" "$link_path.tmp"
 									real_dest="$(readlink -f "$link_path.tmp")"
 									rm -f "$real_dest" "$link_path.tmp"
-									ln -s "$link_path" "$real_dest"
+									ln -s "$(basename "$link_path")" "$real_dest"
 								done
 								continue
 							else
@@ -588,7 +591,12 @@ then
 		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
 
 		# Sign final app bundle.
-		arch -"$(uname -m)" codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name"
+		if ! arch -"$(uname -m)" codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name" ||
+		   ! codesign --verify --deep --strict --verbose=2 "$app_bundle_name"
+		then
+			echo [!] App bundle signing or verification failed
+			exit 8
+		fi
 
 		# Create zip.
 		echo [-] Creating artifact archive
