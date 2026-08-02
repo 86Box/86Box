@@ -37,6 +37,7 @@ typedef struct {
 
     void     *kbc;
     void     *mcga;
+    void     *hdc;
     fdc_t    *fdc;
     serial_t *uart;
     lpt_t    *lpt;
@@ -157,7 +158,18 @@ ps2_m25_set_control(ps2_m25_t *dev, uint8_t val)
 {
     const uint8_t old = dev->port_65;
 
+    /*
+       Bit 0 = Fixed disk;
+       Bit 1 = LPT;
+       Bit 2 = MCGA;
+       Bit 3 = FDC;
+       Bit 4 = UART;
+       Bit 7 = LPT directionality.
+     */
     dev->port_65 = val & 0x9f;
+
+    if ((dev->hdc != NULL) && ((old ^ dev->port_65) & 0x01))
+        ps1_hdc_handler(dev->hdc, val & 0x01);
 
     if ((old ^ dev->port_65) & 0x10) {
         if (dev->port_65 & 0x10)
@@ -231,7 +243,7 @@ ps2_m25_read(uint16_t port, void *priv)
 
         case 0x0062:
             return (ppispeakon ? 0x20 : 0x00) |
-                   0x04 |
+                   ((dev->hdc == NULL) ? 0x04 : 0x00) |
                    (hasfpu ? 0x02 : 0x00);
 
         case 0x0065:
@@ -602,6 +614,10 @@ machine_ps2_m25_init(const machine_t *model)
 
     if (fdc_current[0] == FDC_INTERNAL)
         dev->fdc = device_add(&fdc_ps2_device);
+
+    /* Enable the builtin HDC. */
+    if (hdc_current[0] == HDC_INTERNAL)
+        dev->hdc = device_add(&ps1_hdc_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         dev->mcga = device_add(&mcga_device);

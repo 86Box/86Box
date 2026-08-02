@@ -111,7 +111,8 @@ enum {
     STATE_SDATA,
     STATE_SDONE,
     STATE_FINIT,
-    STATE_FDONE
+    STATE_FDONE,
+    STATE_WDMA
 };
 
 /* Command values. These deviate from the XTA ones. */
@@ -624,14 +625,24 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
             if (dev->buf_len & 1)
                 dev->buf_len++; /* must be even */
 
-                /* Enable for PIO or DMA, as needed. */
-#if NOT_USED
-            if (dev->ctrl & ACR_DMA_EN)
-                timer_advance_u64(&dev->timer, HDC_TIME);
-            else
-#endif
-                dev->status |= ASR_DATA_REQ;
+            /* Enable for PIO or DMA, as needed. */
+            if (dev->ctrl & ACR_DMA_EN) {
+                dma_set_drq(dev->dma, 1);
+                dev->state   = STATE_WDMA;
+            }
+
+            dev->status |= ASR_DATA_REQ;
             break;
+
+        case STATE_WDMA:
+            if (dma_channel_readable(dev->dma))
+                dev->state   = STATE_RDATA;
+            else {
+                /* Waiting for DMA to start. */
+                ps1_hdc_log("Format: DMA channel not yet readable...\n");
+            }
+            timer_advance_u64(&dev->timer, HDC_TIME);
+            return;
 
         case STATE_RDATA:
             /* Perform DMA. */
@@ -646,6 +657,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
                 dev->buf_ptr[dev->buf_idx] = (val & 0xff);
                 dev->buf_idx++;
             }
+            dma_set_drq(dev->dma, 0);
             dev->state = STATE_RDONE;
             timer_advance_u64(&dev->timer, HDC_TIME);
             break;
@@ -700,6 +712,9 @@ do_fmt:
                 intr = 1;
                 break;
             }
+
+            if (dev->ctrl & ACR_DMA_EN)
+                dma_set_drq(dev->dma, 0);
 
             /* De-activate the status icon. */
             ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
@@ -765,6 +780,7 @@ hdc_callback(void *priv)
         ps1_hdc_log("XTA reset.\n");
         dev->ssb.valid = 0;
         dev->reset = 0;
+        dma_set_drq(dev->dma, 0);
         do_finish(dev);
         return;
     }
@@ -837,6 +853,8 @@ do_send:
                         if (dev->ctrl & ACR_DMA_EN) {
                             /* DMA enabled. */
                             dev->buf_ptr = dev->sector_buf;
+                            dev->state   = STATE_WDMA;
+                            dma_set_drq(dev->dma, 1);
                             timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                         } else {
                             /* No DMA, do PIO. */
@@ -850,6 +868,16 @@ do_send:
                         }
                     }
                     break;
+
+                case STATE_WDMA:
+                    if (dma_channel_writable(dev->dma))
+                        dev->state   = STATE_SDATA;
+                    else {
+                        /* Waiting for DMA to start. */
+                        ps1_hdc_log("Read sectors: DMA channel not yet writable...\n");
+                    }
+                    timer_advance_u64(&dev->timer, HDC_TIME);
+                    return;
 
                 case STATE_SDATA:
                     if (!ccb->no_data) {
@@ -872,6 +900,7 @@ do_send:
                         }
                     }
                     dev->state = STATE_SDONE;
+                    dma_set_drq(dev->dma, 0);
                     timer_advance_u64(&dev->timer, HDC_TIME);
                     break;
 
@@ -881,7 +910,9 @@ do_send:
                         /* De-activate the status icon. */
                         ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
 
-                        if (!(dev->ctrl & ACR_DMA_EN))
+                        if (dev->ctrl & ACR_DMA_EN)
+                            dma_set_drq(dev->dma, 0);
+                        else
                             dev->status &= ~(ASR_DATA_REQ | ASR_DIR);
                         dev->ssb.cmd_syndrome = 0xD4;
                         dev->ssb.seek_end = 1;
@@ -1023,6 +1054,8 @@ do_recv:
                         if (dev->ctrl & ACR_DMA_EN) {
                             /* DMA enabled. */
                             dev->buf_ptr = dev->sector_buf;
+                            dev->state   = STATE_WDMA;
+                            dma_set_drq(dev->dma, 1);
                             timer_advance_u64(&dev->timer, HDC_SECTOR_TIME);
                         } else {
                             /* No DMA, do PIO. */
@@ -1031,6 +1064,16 @@ do_recv:
                         }
                     }
                     break;
+
+                case STATE_WDMA:
+                    if (dma_channel_readable(dev->dma))
+                        dev->state   = STATE_RDATA;
+                    else {
+                        /* Waiting for DMA to start. */
+                        ps1_hdc_log("Write sectors: DMA channel not yet readable...\n");
+                    }
+                    timer_advance_u64(&dev->timer, HDC_TIME);
+                    return;
 
                 case STATE_RDATA:
                     if (!ccb->no_data) {
@@ -1080,7 +1123,9 @@ do_recv:
                         /* De-activate the status icon. */
                         ui_sb_update_icon_write(SB_HDD | HDD_BUS_XTA, 0);
 
-                        if (!(dev->ctrl & ACR_DMA_EN))
+                        if (dev->ctrl & ACR_DMA_EN)
+                            dma_set_drq(dev->dma, 0);
+                        else
                             dev->status &= ~ASR_DATA_REQ;
                         dev->ssb.cmd_syndrome = 0xD4;
                         dev->ssb.seek_end = 1;
@@ -1179,7 +1224,8 @@ hdc_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     /* TRM: tell system board we are alive. */
-    *dev->reg_91 |= 0x01;
+    if (is286)
+        *dev->reg_91 |= 0x01;
 
     switch (port & 7) {
         case 0: /* DATA register */
@@ -1231,7 +1277,8 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
     ps1_hdc_log("[%04X:%08X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
 
     /* TRM: tell system board we are alive. */
-    *dev->reg_91 |= 0x01;
+    if (is286)
+        *dev->reg_91 |= 0x01;
 
     switch (port & 7) {
         case 0: /* DATA register */
@@ -1342,6 +1389,16 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+void
+ps1_hdc_handler(void *priv, const int set)
+{
+    hdc_t   *dev = (hdc_t *) priv;
+
+    ps1_hdc_log("%sabling the fixed disk controller...\n", set ? "En" : "Dis");
+    io_handler(set, dev->base, 5,
+               hdc_read, NULL, NULL, hdc_write, NULL, NULL, dev);
+}
+
 static void *
 ps1_hdc_init(UNUSED(const device_t *info))
 {
@@ -1354,7 +1411,7 @@ ps1_hdc_init(UNUSED(const device_t *info))
 
     /* Set up controller parameters for PS/1 2011. */
     dev->base = 0x0320;
-    dev->irq  = 14;
+    dev->irq  = is286 ? 14 : 5;
     dev->dma  = 3;
 
     ps1_hdc_log("HDC: initializing (I/O=%04X, IRQ=%d, DMA=%d)\n",

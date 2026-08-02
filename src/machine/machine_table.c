@@ -3045,7 +3045,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC | MACHINE_BUS_PS2,
-        .flags     = MACHINE_VIDEO,
+        .flags     = MACHINE_XTA | MACHINE_VIDEO,
         .ram       = {
             .min  = 512,
             .max  = 640,
