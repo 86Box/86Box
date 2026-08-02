@@ -606,11 +606,15 @@ addwritelookup(uint32_t virt, uint32_t phys)
         writelookup2[writelookup[writelnext]] = LOOKUP_INV;
     }
 
+    /* A page holds code not only when a block starts in it (block) but also
+       when a block crossing a page boundary ends in it (block_2). Writes to
+       such a page must take the tracked page_lookup path, or self-modifying
+       code in the second page never invalidates the spanning block. */
 #ifdef USE_NEW_DYNAREC
 #    ifdef USE_DYNAREC
-    if (pages[phys >> 12].block || (phys & ~0xfff) == recomp_page) {
+    if (pages[phys >> 12].block || pages[phys >> 12].block_2 || (phys & ~0xfff) == recomp_page) {
 #    else
-    if (pages[phys >> 12].block) {
+    if (pages[phys >> 12].block || pages[phys >> 12].block_2) {
 #    endif
 #else
 #    ifdef USE_DYNAREC
