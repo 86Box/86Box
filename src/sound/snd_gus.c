@@ -252,6 +252,8 @@ typedef struct gus_t {
     uint8_t  gus_reloc_latch;
     uint8_t  gus_reloc_state;
 
+    uint16_t cur_codec_addr;
+
     void *   log; /* New logging system */
 } gus_t;
 
@@ -866,12 +868,15 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     val |= 0x20;
                 gus->max_ctrl = (val >> 6) & 1;
                 if (val & 0x40) {
-                    if ((val & 0xF) != ((addr >> 4) & 0xF)) {
-                        csioport = 0x30c | ((addr >> 4) & 0xf);
+                    if ((val & 0xF) != ((gus->cur_codec_addr >> 4) & 0xF)) {
+                        csioport = 0x30c | (gus->cur_codec_addr & 0xf0);
+                        gus_log(gus->log, "Removing handler for codec on addr %04X\n", csioport);
                         io_removehandler(csioport, 4,
                                          ad1848_read, NULL, NULL,
                                          ad1848_write, NULL, NULL, &gus->ad1848);
                         csioport = 0x30c | ((val & 0xf) << 4);
+                        gus->cur_codec_addr = csioport;
+                        gus_log(gus->log, "Setting handler for codec on addr %04X\n", csioport);
                         io_sethandler(csioport, 4,
                                       ad1848_read, NULL, NULL,
                                       ad1848_write, NULL, NULL, &gus->ad1848);
@@ -1795,6 +1800,7 @@ gus_init(UNUSED(const device_t *info))
         ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
         ad1848_setirq(&gus->ad1848, 5);
         ad1848_setdma(&gus->ad1848, 3);
+        gus->cur_codec_addr = gus->base + 0x10C;
         io_sethandler(0x10C + gus->base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
