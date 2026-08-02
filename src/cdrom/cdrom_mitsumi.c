@@ -270,7 +270,6 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
             dev->drvmode = DRV_MODE_READ;
     }
 
-    pclog("IRQSET = 0x%X\n", dev->enable_irq);
     if ((dev->enable_irq & IRQ_DATACOMP) && !first) {
         picint(1 << dev->irq);
     }
@@ -417,7 +416,6 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 {
     mcd_t   *dev      = (mcd_t *) priv;
     int      read_res = -1;
-    int      do_fix   = 0;
 
     pclog("Mitsumi CD-ROM OUT=%03x, val=%02x\n", port, val);
     switch (port & 3) {
@@ -493,15 +491,10 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
-                                do_fix = 0;
                                 if (!dev->readcount && dev->early_status) {
-                                    dev->readcount = 1;
-                                    do_fix = 0;
+                                    dev->readcount = 0xFFFFFFFF; // keep fetching sectors indefinitely.
                                 }
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
-                                if (read_res > 0 && do_fix) {
-                                    dev->buf_count++;
-                                }
                                 if (dev->enable_dma && read_res > 0) {
                                     do {
                                         while (dev->buf_count) {
