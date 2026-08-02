@@ -48,6 +48,24 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF)
 find_package(Threads REQUIRED)
 find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets Network OpenGL Gui REQUIRED)
 find_package(Qt${QT_MAJOR}LinguistTools REQUIRED NO_CMAKE_FIND_ROOT_PATH)
+
+if(APPLE AND MOLTENVK)
+    include(CheckCXXSourceCompiles)
+    set(CMAKE_REQUIRED_LIBRARIES Qt${QT_MAJOR}::Gui)
+    unset(QT_HAS_VULKAN CACHE)
+    check_cxx_source_compiles("#include <QtGui/qtguiglobal.h>
+#if !QT_CONFIG(vulkan)
+#error Qt was built without Vulkan support
+#endif
+int main() { return 0; }
+" QT_HAS_VULKAN)
+    unset(CMAKE_REQUIRED_LIBRARIES)
+
+    if(NOT QT_HAS_VULKAN)
+        message(FATAL_ERROR "MOLTENVK requires Qt to be built with Vulkan support (QT_CONFIG(vulkan)). Rebuild Qt with Vulkan enabled or configure with -DMOLTENVK=OFF.")
+    endif()
+endif()
+
 if(USE_QT6)
     set(QT_NO_PRIVATE_MODULE_WARNING ON)
     find_package(Qt6 COMPONENTS GuiPrivate)
