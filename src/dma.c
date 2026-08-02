@@ -1875,6 +1875,7 @@ dma_advance(dma_t *dma_c)
 
 
 static int dma_channel_readable_legacy(int channel);
+static int dma_channel_writable_legacy(int channel);
 static int dma_channel_read_only_legacy(int channel);
 static int dma_channel_advance_legacy(int channel);
 static int dma_channel_read_legacy(int channel);
@@ -1949,6 +1950,20 @@ dma_channel_readable(int channel)
     return (type == 0x08) || (type == 0x00);
 }
 
+int
+dma_channel_writable(int channel)
+{
+    int type;
+
+    if (!dma_xt8237_active())
+        return dma_channel_writable_legacy(channel);
+
+    if (!dma_xt8237_can_service(channel))
+        return 0;
+
+    type = dma[channel].mode & 0x0c;
+    return (type == 0x04) || (type == 0x00);
+}
 
 /* Execute the channel-0 address-only refresh transfer at physical DACK0. */
 static void
@@ -2188,6 +2203,30 @@ dma_channel_readable_legacy(int channel)
     if ((dma_m & (1 << channel)) && !dma_req_is_soft)
         ret = 0;
     if ((dma_c->mode & 0xC) != 8)
+        ret = 0;
+
+    return ret;
+}
+
+int
+dma_channel_writable_legacy(int channel)
+{
+    dma_t   *dma_c = &dma[channel];
+    int      ret = 1;
+
+    if (channel < 4) {
+        if (dma_command[0] & 0x04)
+            ret = 0;
+    } else {
+        if (dma_command[1] & 0x04)
+            ret = 0;
+    }
+
+    if (!(dma_e & (1 << channel)))
+        ret = 0;
+    if ((dma_m & (1 << channel)) && !dma_req_is_soft)
+        ret = 0;
+    if ((dma_c->mode & 0xC) != 4)
         ret = 0;
 
     return ret;

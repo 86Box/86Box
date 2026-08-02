@@ -19,7 +19,7 @@
 
 /*
  * Known issues:
- * - MegaEM will sometimes hang when playing audio (this is known to
+ * - MegaEM 2.x will sometimes hang when playing audio (this is known to
  *   occur in Hoyle Classic Card games when speech plays and in the
  *   TIE Fighter setup utility when playing music). This is due to
  *   the DMA Terminal Count IRQ status bit not being cleared by the
@@ -27,20 +27,18 @@
  *   read the DMA Control register (index 41h) but there may be an
  *   unknown mechanism that automatically clears this bit that MegaEM
  *   relies on.
- * - Gravis UltraSound Extreme is misdetected as a GUS Classic by the
- *   Windows 3.1 drviers due the the currently used card ID of 70h.
- *   The Win95 drivers for this card include a version of Ultramix
- *   that appears to exepect the current ID and writes SBPro-style
- *   mixer index/data values to the GUS mixer ports.
+ * - MegaEM 3.x has nonfunctional SoundBlaster emulation and appears to
+ *   rely on undocumented hardware behavior. This manifests as silent
+ *   digital audio in MegaEM 3.03 and as an IRQ conflict error on MegaEM
+ *   3.04 and later.
  */
 
 /*
  * TODO:
- * - Verify the proper card ID for the Gravis UltraSound Extreme. The
- *   ViperMAX ID is known and documented in the source code from Utopia
- *   Sound Division.
  * - Find any alternate methods real GUS cards use to clear the DMA TC
  *   IRQ status bit.
+ * - Find the undocumented hardware behavior MegaEM 3.x relies on for emulating
+ *   a SoundBlaster.
  * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
  *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
  *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
@@ -777,6 +775,11 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                 gameport_remap(gus->gameport, 0x0);
                             else if ((val & 0x4) && !(gus->jumper & 0x4))
                                 gameport_remap(gus->gameport, 0x201);
+                        } else if ((gus->type == GUS_EXTREME) || (gus->type == GUS_VIPERMAX)) {
+                            if (!(val & 0x4) && (gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x0);
+                            else if ((val & 0x4) && !(gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x201);
                         }
 
                         gus->jumper = val;
@@ -851,9 +854,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                 }
                 break;
-            } else if (gus->type == GUS_EXTREME) {
-                ess_mixer_write(gus->ess->ess_dsp_addr + 4, val, gus->ess);
-                break;
             }
             fallthrough;
         case 0x706:
@@ -877,8 +877,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                       ad1848_write, NULL, NULL, &gus->ad1848);
                     }
                 }
-            } else if (gus->type == GUS_EXTREME)
-                ess_mixer_write(gus->ess->ess_dsp_addr + 5, val, gus->ess);
+            }
             break;
 
         default:
@@ -1087,7 +1086,7 @@ gus_read(uint16_t addr, void *priv)
             else if (gus->type == GUS_VIPERMAX)
                 val = 0x50; /* Synergy Vipermax */
             else if (gus->type == GUS_EXTREME)
-                val = 0x70; /* GUS Extreme */
+                val = 0x50; /* GUS Extreme */
             else
                 val = 0xff; /* Pre 3.7 - no mixer */
             break;
@@ -1853,9 +1852,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     mpu401_init(gus->ess->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&gus->ess->dsp, gus->ess->mpu);
 
-    gus->ess->gameport      = gameport_add(&gameport_200_device);
-    gus->ess->gameport_addr = 0x200;
-
     gus->ess->ess_readseq_state = 0;
     gus->ess->ess_dsp_addr      = 0;
     ess_rsk_reset(gus->ess);
@@ -1898,6 +1894,9 @@ gus_extreme_init(UNUSED(const device_t *info))
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
     sound_add_handler(gus_extreme_get_buffer, gus);
+
+    gus->gameport = gameport_add(&gameport_pnp_1io_device);
+    gameport_remap(gus->gameport, 0x201);
 
     /* GUS Extreme base I/O relocation is done via ES1688 GPO and joystick port writes */
     io_sethandler(0x227, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
@@ -2171,7 +2170,7 @@ static const device_config_t gus_vipermax_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 2,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
