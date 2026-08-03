@@ -62,7 +62,7 @@ void
 codegen_init(void)
 {
     codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 1);
-    codeblock_hash = calloc(1, HASH_SIZE * sizeof(codeblock_t *));
+    codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0);
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
 

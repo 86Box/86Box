@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
 
 #include <windows.h>
 
@@ -223,6 +225,28 @@ plat_get_block_device_size(UNUSED(const char *path))
 void *
 plat_mmap(size_t size, uint8_t executable)
 {
+    static bool priv_tried = false;
+    if (!priv_tried) {
+        priv_tried = true;
+        HANDLE tok;
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tok)) {
+            TOKEN_PRIVILEGES tp;
+            memset((void*)&tp, 0, sizeof(TOKEN_PRIVILEGES));
+            tp.PrivilegeCount   = 1;
+            if (LookupPrivilegeValueW(NULL, L"SeLockMemoryPrivilege", &tp.Privileges[0].Luid)) {
+                tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+                AdjustTokenPrivileges(tok, FALSE, &tp, 0, NULL, NULL);
+            }
+            CloseHandle(tok);
+        }
+    }
+    size_t lp = GetLargePageMinimum();
+    if (lp) {
+        size_t rounded = (size + lp - 1) & ~(lp - 1);
+        void* p = VirtualAlloc(NULL, rounded, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+        if (p)
+            return p;
+    }
     return VirtualAlloc(NULL, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
 }
 
