@@ -394,6 +394,10 @@ mcga_io_write(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0x03c6:
+            /*
+             * Type 8525 latches this register, but IBM documents that PEL
+             * mask operations are not supported; do not apply it to pixels.
+             */
             dev->dac_mask = val;
             break;
 
