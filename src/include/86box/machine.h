@@ -1491,7 +1491,7 @@ extern const device_t  ps1_hdc_device;
 extern const device_t  ps2_m25_device;
 extern const device_t  ps2_m30_286_device;
 #endif
-extern int             machine_ps2_m25_init(const machine_t *);
+extern int             machine_ps2_8086_init(const machine_t *);
 extern int             machine_ps2_m30_286_init(const machine_t *);
 
 /* m_ps2_mca.c */

@@ -5,6 +5,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include "cpu.h"
+
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/dma.h>
@@ -13,6 +14,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/isartc.h>
 #include <86box/nmi.h>
 #include <86box/nvr.h>
 #include <86box/keyboard.h>
@@ -549,7 +551,7 @@ machine_ps2_isa_p1_handler(void)
 }
 
 int
-machine_ps2_m25_init(const machine_t *model)
+machine_ps2_8086_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn[2];
@@ -624,6 +626,9 @@ machine_ps2_m25_init(const machine_t *model)
 
     /* All integrated chip selects and the parallel output drivers power up on. */
     dev->port_65 = 0x9f;
+
+    if (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0)
+        device_add(&ibmps2m30_rtc_device);
 
     return ret;
 }
