@@ -1905,7 +1905,7 @@ gdbstub_init(void)
 #endif
 
     /* Bind GDB server socket. */
-    int                port      = 12345;
+    int                port      = gdbstub_port;
     struct sockaddr_in bind_addr = {
         .sin_family = AF_INET,
         .sin_addr   = { .s_addr = INADDR_ANY },

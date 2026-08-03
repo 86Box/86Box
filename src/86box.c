@@ -232,6 +232,8 @@ int      color_scheme = 0;                                        /* (C) Color s
 int      fdd_sounds_enabled = 1;                                  /* (C) Floppy drive sounds enabled */
 int      is_new_808x = 0;                                         /* (C) Use the new 808x code. */
 
+int      gdbstub_port = 12345;                                    /* (C) The GDB stub port. */
+
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
 
