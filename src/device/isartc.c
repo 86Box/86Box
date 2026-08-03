@@ -90,6 +90,7 @@
 #define ISARTC_MPLUS2   5
 #define ISARTC_RTC58167 6
 #define ISARTC_MM58167  10
+#define ISARTC_PS2M30   11
 
 #define ISARTC_ROM_MM58167_1 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B.ROM"  /* Generic 58167, AST or EV-170 */
 #define ISARTC_ROM_MM58167_2 "roms/rtc/glatick/GLaTICK_0.8.8_NS_86B2.ROM" /* PII-147 */
@@ -103,6 +104,7 @@ typedef struct rtcdev_t {
     uint8_t flags;        /* various flags */
 #define FLAG_YEAR80  0x01 /* YEAR byte is base-80 */
 #define FLAG_YEARBCD 0x02 /* YEAR byte is in BCD */
+#define FLAG_PS2     0x04 /* IBM PS/2 Model 30-8086 I/O mapping */
 
     int8_t   irq; /* configured IRQ channel */
     int8_t   base_addrsz;
@@ -404,9 +406,9 @@ mm67_reset(nvr_t *nvr)
 static uint8_t
 mm67_read(uint16_t port, void *priv)
 {
-    rtcdev_t *dev = (rtcdev_t *) priv;
-    const int reg = port - dev->base_addr;
-    uint8_t   ret;
+    rtcdev_t *     dev = (rtcdev_t *) priv;
+    const uint16_t reg = (port - dev->base_addr) & 0x001f;
+    uint8_t        ret;
 
     /* This chip is directly mapped on I/O. */
     cycles -= ISA_CYCLES(4);
@@ -448,8 +450,8 @@ mm67_read(uint16_t port, void *priv)
 static void
 mm67_write(uint16_t port, uint8_t val, void *priv)
 {
-    rtcdev_t *dev = (rtcdev_t *) priv;
-    int       reg = port - dev->base_addr;
+    rtcdev_t *     dev = (rtcdev_t *) priv;
+    const uint16_t reg = (port - dev->base_addr) & 0x001f;
 
 #if ISARTC_DEBUG
     isartc_log("ISARTC: write(%04x, %02x)\n", port - dev->base_addr, val);
@@ -525,12 +527,13 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
-/* Multitech PC-500/PC-500+ onboard RTC 58167 device disigned to use I/O port
- * base+0 as register index and base+1 as register data read/write window,
- * according to the official RTC utilities SDATE.EXE, STIME.EXE, and TODAY.EXE
- *
- * the RTC utilities check the RTC millisecond counter first to deteminate the
- * presence of the RTC 58167 IC, so here implement the bogus_msec to fool them 
+/*
+   Multitech PC-500/PC-500+ onboard RTC 58167 device designed to use I/O port
+   base+0 as register index and base+1 as register data read/write window,
+   according to the official RTC utilities SDATE.EXE, STIME.EXE, and TODAY.EXE.
+
+   The RTC utilities check the RTC millisecond counter first to determinate the
+   presence of the RTC 58167 IC, so here implement the bogus_msec to fool them.
  */
 static uint8_t rtc58167_index = 0x00;
 
@@ -639,6 +642,19 @@ isartc_init(const device_t *info)
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
             break;
 
+        case ISARTC_PS2M30: /* IBM PS/2 Model 30-8086 */
+            dev->flags |= (FLAG_YEAR80 | FLAG_PS2);
+            dev->base_addr   = 0x00a0;
+            dev->base_addrsz = 32;
+            dev->irq         = 1;
+            dev->f_rd        = mm67_read;
+            dev->f_wr        = mm67_write;
+            dev->nvr.reset   = mm67_reset;
+            dev->nvr.start   = mm67_start;
+            dev->nvr.tick    = mm67_tick;
+            dev->year        = -1; /* no year, STANDARD */
+            break;
+
         case ISARTC_DTK: /* DTK PII-147 Hexa I/O Plus */
             dev->flags |= FLAG_YEARBCD;
             dev->base_addr   = device_get_config_hex16("base");
@@ -703,8 +719,12 @@ isartc_init(const device_t *info)
     isartc_log(")\n");
 
     /* Set up an I/O port handler. */
-    io_sethandler(dev->base_addr, dev->base_addrsz,
-                  dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+    if ((dev->flags) & FLAG_PS2)
+        io_sethandler(dev->base_addr - 0x0010, dev->base_addrsz,
+                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+    else
+        io_sethandler(dev->base_addr, dev->base_addrsz,
+                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
     /* Hook into the NVR backend. */
     dev->nvr.fn  = (char *) info->internal_name;
@@ -1032,6 +1052,20 @@ const device_t rtc58167_device = {
     .internal_name = "rtc58167_xt_rtc",
     .flags         = DEVICE_ISA,
     .local         = ISARTC_RTC58167,
+    .init          = isartc_init,
+    .close         = isartc_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ibmps2m30_rtc_device = {
+    .name          = "MM58167 RTC (IBM PS/2 model 30)",
+    .internal_name = "rtc58167_ps2_rtc",
+    .flags         = DEVICE_ISA,
+    .local         = ISARTC_PS2M30,
     .init          = isartc_init,
     .close         = isartc_close,
     .reset         = NULL,

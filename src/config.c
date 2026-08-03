@@ -394,6 +394,8 @@ load_general(void)
         strncpy(uuid, p, sizeof(uuid) - 1);
     else
         strncpy(uuid, "", sizeof(uuid) - 1);
+
+    gdbstub_port = ini_section_get_int(cat, "gdbstub_port", 12345);
 }
 
 /* Load monitor section. */
@@ -2756,6 +2758,8 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
+        gdbstub_port          = 12345;
+
         config_log("VM config file not present or invalid!\n");
     } else {
         load_general();                 /* General */
@@ -3119,10 +3123,15 @@ save_general(void)
     else
         ini_section_delete_var(cat, "emu_build_num");
 
-  if (strnlen(uuid, sizeof(uuid) - 1) > 0)
+    if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
     else
         ini_section_delete_var(cat, "uuid");
+
+    if (gdbstub_port != 12345)
+        ini_section_delete_var(cat, "gdbstub_port");
+    else
+        ini_section_set_int(cat, "gdbstub_port", gdbstub_port);
 
     ini_delete_section_if_empty(config, cat);
 }

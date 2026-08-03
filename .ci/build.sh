@@ -831,6 +831,8 @@ EOF
 	# fi
 	# cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
 	# export PATH="$HOME/.cargo/bin/:$PATH"
+
+  cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 fi
 
 # Point CMake to the toolchain file.

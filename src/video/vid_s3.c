@@ -4813,9 +4813,11 @@ s3_recalctimings(svga_t *svga)
         (s3->chip == S3_VISION864) || (s3->chip == S3_VISION868) ||
         (s3->chip == S3_VISION968)))
         svga->hoverride = 1;
-    else
+    else {
         svga->hoverride = 0;
-
+        if (((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64)) && enhanced_8bpp_modes)
+            svga->hoverride = 1;
+    }
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;
     else if (svga->render == svga_render_2bpp_highres)
