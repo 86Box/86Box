@@ -833,7 +833,6 @@ EOF
 	# export PATH="$HOME/.cargo/bin/:$PATH"
 
   cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
-  cmake_flags_extra="$cmake_flags_extra -D USE_QT6_BELOW10=ON"
 fi
 
 # Point CMake to the toolchain file.
