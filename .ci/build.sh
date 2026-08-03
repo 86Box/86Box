@@ -847,6 +847,8 @@ case $arch in
 	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
+cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
+
 # Add git hash.
 git_hash=$(git rev-parse --short HEAD 2> /dev/null)
 if [ "$CI" = "true" ]
