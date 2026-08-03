@@ -831,6 +831,8 @@ EOF
 	# fi
 	# cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
 	# export PATH="$HOME/.cargo/bin/:$PATH"
+
+  cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 fi
 
 # Point CMake to the toolchain file.
@@ -846,8 +848,6 @@ case $arch in
 	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64 -D NEW_DYNAREC=ON";;
 	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
-
-cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 
 # Add git hash.
 git_hash=$(git rev-parse --short HEAD 2> /dev/null)
