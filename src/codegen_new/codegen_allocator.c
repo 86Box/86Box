@@ -89,7 +89,11 @@ int codegen_allocator_usage = 0;
 void
 codegen_allocator_init(void)
 {
-    mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1);
+    uint8_t large = 0;
+    mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1, &large);
+
+    if (large)
+        pclog("Allocated %llu bytes of large pages of recompiled code memory\n", MEM_BLOCK_NR * MEM_BLOCK_SIZE);
 
     for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
         mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;
