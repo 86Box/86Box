@@ -2733,6 +2733,7 @@ void
 mem_reset(void)
 {
     size_t m;
+    uint8_t large_mem = 0;
 
     memset(page_ff, 0xff, sizeof(page_ff));
 
@@ -2764,12 +2765,14 @@ mem_reset(void)
 
     ram_size = m;
     /* Allocate 16 extra bytes of RAM to mitigate some dynarec recompiler memory access quirks. */
-    ram      = (uint8_t *) plat_mmap(ram_size + 16, 0); /* allocate and clear the RAM block */
+    ram      = (uint8_t *) plat_mmap(ram_size + 16, 0, &large_mem); /* allocate and clear the RAM block */
     if (ram == NULL) {
         fatal("Failed to allocate RAM block. Make sure you have enough RAM available.\n");
         return;
     }
-    memset(ram, 0x00, ram_size + 16);
+
+    if (large_mem)
+        pclog("Allocated %.02lf megabytes of large pages for RAM\n", ram_size / (double)(1024 * 1024));
 
     /*
      * Allocate the page table based on how much RAM we have.
