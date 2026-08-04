@@ -294,7 +294,7 @@ codegen_backend_init(void)
     if (large_block)
         pclog("Allocated %llu bytes of large pages for codeblock pointers\n", BLOCK_SIZE * sizeof(codeblock_t));
     if (large_hash)
-        pclog("Allocated %llu bytes of large pages for codeblock hashes\n", HASH_SIZE * sizeof(codeblock_t));
+        pclog("Allocated %llu bytes of large pages for codeblock hashes\n", HASH_SIZE * sizeof(codeblock_t *));
 
     for (int c = 0; c < BLOCK_SIZE; c++) {
         codeblock[c].valid = 0;
