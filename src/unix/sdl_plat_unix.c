@@ -359,8 +359,10 @@ plat_get_block_device_size(const char *path)
  */
 
 void *
-plat_mmap(size_t size, uint8_t executable)
+plat_mmap(size_t size, uint8_t executable, uint8_t* large)
 {
+    if (large)
+        *large = 0;
 #    if defined __APPLE__ && defined MAP_JIT
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
 #    elif defined(PROT_MPROTECT)
@@ -368,8 +370,11 @@ plat_mmap(size_t size, uint8_t executable)
 #    else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #       ifdef MADV_HUGEPAGE
-    if (ret)
-        (void)madvise(ret, size, MADV_HUGEPAGE);
+    if (ret && ret != MAP_FAILED) {
+        if (large) {
+            *large = !madvise(ret, size, MADV_HUGEPAGE);
+        }
+    }
 #       endif
 #    endif
     return (ret == MAP_FAILED) ? NULL : ret;
