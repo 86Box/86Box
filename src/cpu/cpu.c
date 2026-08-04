@@ -781,6 +781,7 @@ cpu_set(void)
     cpu_cyrix_alignment = 0;
     cpu_cpurst_on_sr    = 0;
     cpu_CR4_mask        = 0;
+    cpu_features        = 0;
 
     switch (cpu_s->cpu_type) {
         case CPU_8088:

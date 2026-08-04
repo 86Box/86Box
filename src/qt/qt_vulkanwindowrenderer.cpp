@@ -343,16 +343,16 @@ VulkanWindowRenderer::recreateSwapchain()
         return;
     VkSurfaceCapabilitiesKHR surfaceCaps;
     if (fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) {
-        fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, instance.surfaceForWindow(this), &surfaceCaps);
+        fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR(phys_device, window_surface, &surfaceCaps);
     } else {
         throw vulkan_init_error("Failed to get surface capabilities");
     }
 
     uint32_t format_count = 0;
 
-    fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, nullptr);
+    fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, window_surface, &format_count, nullptr);
     std::vector<VkSurfaceFormatKHR> surface_formats(format_count);
-    fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, instance.surfaceForWindow(this), &format_count, surface_formats.data());
+    fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, window_surface, &format_count, surface_formats.data());
 #if defined __unix__ && !defined __HAIKU__
     bool passthrough_found = false;
 
@@ -379,7 +379,7 @@ VulkanWindowRenderer::recreateSwapchain()
 
     VkSwapchainCreateInfoKHR swapchain_creation = { };
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    swapchain_creation.surface                  = instance.surfaceForWindow(this);
+    swapchain_creation.surface                  = window_surface;
     swapchain_creation.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     swapchain_creation.presentMode              = video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
     swapchain_creation.imageFormat              = VK_FORMAT_B8G8R8A8_UNORM;

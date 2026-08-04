@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-31 01:54+0000\n"
+"PO-Revision-Date: 2026-08-03 18:03+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -2932,7 +2932,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "退出前請先確認"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "預快取 CHD 檔於記憶體中"
 
 msgid "Options"
 msgstr "選項"

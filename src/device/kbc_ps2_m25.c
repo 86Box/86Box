@@ -25,6 +25,7 @@
 #include <86box/io.h>
 #include <86box/keyboard.h>
 #include <86box/machine.h>
+#include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/plat_unused.h>
 #include <86box/timer.h>
@@ -218,6 +219,11 @@ ps2_m25_kbc_write(uint16_t addr, uint8_t val, void *priv)
             dev->port_69 = val;
             break;
 
+        case 0x00a0:
+            /* Bit 7 is the documented global NMI enable. */
+            nmi_mask = val & 0x80;
+            break;
+
         default:
             break;
     }
@@ -282,6 +288,8 @@ ps2_m25_kbc_reset(void *priv)
         picintc(dev->diagnostic_irqs);
     dev->diagnostic_irqs = 0;
     dev->irq_source = 0;
+    /* The system-board NMI latch powers up enabled. */
+    nmi_mask = 0x80;
     memset(dev->tx_ready, 0x00, sizeof(dev->tx_ready));
     memset(dev->rx_data, 0x00, sizeof(dev->rx_data));
     picintc(1 << 1);
