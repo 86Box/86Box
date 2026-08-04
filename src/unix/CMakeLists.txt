@@ -40,13 +40,15 @@ else()
 endif()
 
 if (NOT CPPTHREADS)
-    if(WIN32)
+    if (NOT WIN32)
+        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    endif()
+    find_package(Threads REQUIRED)
+    target_link_libraries(86Box Threads::Threads)
+
+    if (WIN32)
         target_sources(plat PRIVATE ../qt/win_thread.c)
     else()
-        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-        find_package(Threads REQUIRED)
-        target_link_libraries(86Box Threads::Threads)
-
         target_sources(plat PRIVATE unix_thread.c)
     endif()
 endif()
@@ -125,4 +127,23 @@ target_link_libraries(plat ${CMAKE_DL_LIBS})
 
 if(APPLE)
     target_sources(plat PRIVATE macOSXGlue.m)
+endif()
+
+if(WIN32)
+    enable_language(RC)
+    target_sources(86Box PUBLIC ../qt/86Box-qt.rc)
+
+    # CMake 3.22 messed this up for clang/clang++
+    # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
+    if(MSVC OR (NOT MINGW AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.22))
+        # MSVC linker adds its own manifest to the executable, which fails if
+        # we include ours in 86Box.rc. We therefore need to pass the manifest
+        # directly as as a source file, so the linker can use that instead.
+        set_property(SOURCE ../qt/86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
+        target_sources(86Box PRIVATE ../qt/86Box.manifest)
+    endif()
+
+    if (MINGW)
+        add_compile_definitions(NTDDI_VERSION=0x06010000)
+    endif()
 endif()

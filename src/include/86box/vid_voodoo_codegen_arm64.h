@@ -4634,7 +4634,7 @@ voodoo_codegen_init(voodoo_t *voodoo)
     voodoo_arm64_data_t *voodoo_arm64_data;
     uint32_t             slot;
 
-    voodoo->codegen_data = plat_mmap(sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4, 0);
+    voodoo->codegen_data = plat_mmap(sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4, 0, NULL);
     if (!voodoo->codegen_data) {
         fatal("ARM64 JIT: failed to allocate codegen metadata buffer\n");
     }
@@ -4642,7 +4642,7 @@ voodoo_codegen_init(voodoo_t *voodoo)
     memset(voodoo_arm64_data, 0, sizeof(voodoo_arm64_data_t) * BLOCK_NUM * 4);
 
     for (slot = 0; slot < (uint32_t) (BLOCK_NUM * 4); slot++) {
-        voodoo_arm64_data[slot].code_block = plat_mmap(BLOCK_SIZE, 1);
+        voodoo_arm64_data[slot].code_block = plat_mmap(BLOCK_SIZE, 1, NULL);
         if (!voodoo_arm64_data[slot].code_block) {
             while (slot > 0) {
                 slot--;

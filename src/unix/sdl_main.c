@@ -541,6 +541,8 @@ main(int argc, char **argv)
                             }
 
                             keyboard_input(event.key.state == SDL_PRESSED, xtkey);
+                            if ((keyboard_get_shift() & 0x11) && keyboard_recv_ui(0x14f) && mouse_capture)
+                                plat_mouse_capture(0);
                             break;
                         }
                     case SDL_WINDOWEVENT:

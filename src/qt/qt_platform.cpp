@@ -618,8 +618,10 @@ plat_remove(char *path)
 }
 
 void *
-plat_mmap(size_t size, uint8_t executable)
+plat_mmap(size_t size, uint8_t executable, uint8_t* large)
 {
+    if (large)
+        *large = 0;
 #if defined Q_OS_WINDOWS
     static bool priv_tried = false;
     if (!priv_tried) {
@@ -639,8 +641,11 @@ plat_mmap(size_t size, uint8_t executable)
     if (lp) {
         const size_t rounded = (size + lp - 1) & ~(lp - 1);
         void* p = VirtualAlloc(nullptr, rounded, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
-        if (p)
+        if (p) {
+            if (large)
+                *large = 1;
             return p;
+        }
     }
     return VirtualAlloc(NULL, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
 #elif defined Q_OS_UNIX
@@ -653,8 +658,11 @@ plat_mmap(size_t size, uint8_t executable)
 #    else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #       ifdef MADV_HUGEPAGE
-    if (ret)
-        (void)madvise(ret, size, MADV_HUGEPAGE);
+    if (ret && ret != MAP_FAILED) {
+        if (large) {
+            *large = !madvise(ret, size, MADV_HUGEPAGE);
+        }
+    }
 #       endif
 #    endif
     return (ret == MAP_FAILED) ? nullptr : ret;

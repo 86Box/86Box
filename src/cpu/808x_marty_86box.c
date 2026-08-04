@@ -4583,20 +4583,22 @@ m808x_arch_ip(void)
 bool
 m808x_86box_should_use(void)
 {
-    static int cached = -1;
+    /* static int cached = -1;
 
     if (cached < 0) {
         const char *legacy = getenv("86BOX_LEGACY_808X");
         cached = (legacy && *legacy && strcmp(legacy, "0") != 0) ? 0 : 1;
     }
 
-    return cached != 0 && !is186 && !is_nec;
+    return cached != 0 && !is186 && !is_nec; */
+
+    return 0;
 }
 
 bool
 m808x_86box_active(void)
 {
-    return m808x_initialized && m808x_86box_should_use();
+    return 0 /*m808x_initialized && m808x_86box_should_use()*/;
 }
 
 static void

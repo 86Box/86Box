@@ -61,8 +61,13 @@ static int      last_ssegs;
 void
 codegen_init(void)
 {
-    codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 1);
-    codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0);
+    uint8_t large_block = 0, large_hash = 0;
+    codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 1, &large_block);
+    codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0, &large_hash);
+    if (large_block)
+        pclog("Allocated %llu bytes of large pages for codeblocks\n", BLOCK_SIZE * sizeof(codeblock_t));
+    if (large_hash)
+        pclog("Allocated %llu bytes of large pages for codeblock hashes\n", HASH_SIZE * sizeof(codeblock_t *));
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
 
