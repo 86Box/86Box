@@ -36,10 +36,12 @@ typedef struct {
     uint8_t port_61;
     uint8_t port_65;
     uint8_t ram_control;
+    uint8_t port_a1;
 
     void     *kbc;
     void     *mcga;
     void     *hdc;
+    void     *rtc;
     fdc_t    *fdc;
     serial_t *uart;
     lpt_t    *lpt;
@@ -260,6 +262,31 @@ ps2_m25_read(uint16_t port, void *priv)
 }
 
 static void
+ps2_m30_a1_write(uint16_t port, uint8_t val, void *priv)
+{
+    ps2_m25_t *dev = (ps2_m25_t *) priv;
+
+    /* The PS/2 Model 30 has a feature where its chipset (called the
+     * gate array in Mod. 25/30 parlance) can mask IRQ1 from the RTC;
+     * if bit 0 of port 0A1h is 1, the IRQ is masked. The Mod. 25 doesn't
+     * have an RTC this feature effectively is irrelevant. */
+    dev->port_a1 = val & 0x01;
+}
+
+static uint8_t
+ps2_m30_a1_read(uint16_t port, void *priv)
+{
+    ps2_m25_t *dev = (ps2_m25_t *) priv;
+
+    /* Bit 0 mirrors the RTC IRQ1 mask written via ps2_m30_a1_write.
+     * We kept this out of ps2_m25_read since it doesn't exist on the
+     * Model 25, although we haven't actually check this on real hardware;
+     * it might have this port writeable and readable with no actual
+     * function. Who knows. */
+    return dev->port_a1 | 0xfe;
+}
+
+static void
 ps2_write(uint16_t port, uint8_t val, void *priv)
 {
     ps2_isa_t *ps2 = (ps2_isa_t *) priv;
@@ -414,6 +441,79 @@ const device_t ps2_m25_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ps2_m25_config
+};
+
+static const device_config_t ps2_m30_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ibmps2_m30_rev0",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Revision 0 (68X1687/68X1627, 09/02/86; slashed 0 font)",
+                .internal_name = "ibmps2_m30_rev0",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmps2_m30/68X1687.BIN",
+                                   "roms/machines/ibmps2_m30/68X1627.BIN", "" }
+            },
+            {
+                .name          = "Revision 1 (61X8938/61X8937, 12/12/86)",
+                .internal_name = "ibmps2_m30_rev1",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmps2_m30/61X8938.BIN",
+                                   "roms/machines/ibmps2_m30/61X8937.BIN", "" }
+            },
+            {
+                .name          = "Revision 2 (61X8940/61X8939, 02/05/87)",
+                .internal_name = "ibmps2_m30_rev2",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmps2_m30/61X8940.BIN",
+                                   "roms/machines/ibmps2_m30/61X8939.BIN", "" }
+            },
+            {
+                .name          = "Revision 4 (33F4498/33F4499, 01/31/89)",
+                .internal_name = "ibmps2_m30_rev4",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmps2_m30/33F4498.BIN",
+                                   "roms/machines/ibmps2_m30/33F4499.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ps2_m30_device = {
+    .name          = "IBM PS/2 model 30 (8086)",
+    .internal_name = "ibmps2_m30",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ps2_m30_config
 };
 
 static const device_config_t ps2_m30_286_config[] = {
@@ -627,8 +727,16 @@ machine_ps2_8086_init(const machine_t *model)
     /* All integrated chip selects and the parallel output drivers power up on. */
     dev->port_65 = 0x9f;
 
-    if (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0)
-        device_add(&ibmps2m30_rtc_device);
+    if (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0) {
+        /* PS/2 Mod. 30 has an MM58167 RTC with some quirks. Its alarm
+         * is wired to IRQ1 and can be masked off by the gate away (the
+         * chipset). */
+        dev->rtc = device_add(&ibmps2m30_rtc_device);
+        ibmps2m30_rtc_inform(dev->rtc, &dev->port_a1);
+        io_sethandler(0x00a1, 1,
+                      ps2_m30_a1_read, NULL, NULL,
+                      ps2_m30_a1_write, NULL, NULL, dev);
+    }
 
     return ret;
 }
