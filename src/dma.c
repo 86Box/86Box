@@ -98,7 +98,7 @@ static int dma_xt8237_mem_to_mem(void);
 static int
 dma_xt8237_active(void)
 {
-    return !dma_at && !dma_advanced && !dma_ps2.is_ps2;
+    return 0 /*!dma_at && !dma_advanced && !dma_ps2.is_ps2*/;
 }
 
 static uint8_t
