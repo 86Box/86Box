@@ -49,6 +49,7 @@ AppDir:
     - libedit2 # if (CLI:BOOL=ON|QT:BOOL=OFF)
     - libevdev2 # if QT:BOOL=ON
     - libfreetype6
+    - libsdl3-0
     - libopenal1
     - libgomp1
     - libgs10

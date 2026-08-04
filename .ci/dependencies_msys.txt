@@ -4,7 +4,7 @@ gcc
 pkgconf
 openal
 freetype
-SDL2
+SDL3
 zlib
 libpng
 rtmidi

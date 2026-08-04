@@ -1,4 +1,4 @@
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -28,7 +28,7 @@ ui_msgbox_header(int flags, char *header, char *message)
             header = EMU_NAME;
     }
 
-    msgbtn.buttonid = 1;
+    msgbtn.buttonID = 1;
     msgbtn.text     = "OK";
     msgbtn.flags    = 0;
     memset(&msgdata, 0, sizeof(SDL_MessageBoxData));
