@@ -718,8 +718,8 @@ tx_command(eepro100_t *s)
             /* Extended Flexible TCB. */
             for (; tbd_count < 2; tbd_count++) {
                 tx_buffer_address = ldl_le_pci_dma(s, tbd_address);
-                tx_buffer_size    = lduw_le_pci_dma(s, tbd_address + 4);
-                tx_buffer_el      = lduw_le_pci_dma(s, tbd_address + 6);
+                tx_buffer_el      = lduw_le_pci_dma(s, tbd_address + 4);
+                tx_buffer_size    = tx_buffer_el & 0x7fff;
                 tbd_address += 8;
                 i8255x_log("TBD (extended flexible mode): buffer address 0x%08x, size 0x%04x\n",
                            tx_buffer_address, tx_buffer_size);
@@ -727,7 +727,7 @@ tx_command(eepro100_t *s)
                     tx_buffer_size = sizeof(buf) - size;
                 dma_bm_read(tx_buffer_address, &buf[size], tx_buffer_size, 1);
                 size += tx_buffer_size;
-                if (tx_buffer_el & 1) {
+                if (tx_buffer_el & 0x8000) {
                     break;
                 }
             }
@@ -735,8 +735,8 @@ tx_command(eepro100_t *s)
         tbd_address = tbd_array;
         for (; tbd_count < s->tx.tbd_count; tbd_count++) {
             tx_buffer_address = ldl_le_pci_dma(s, tbd_address);
-            tx_buffer_size    = lduw_le_pci_dma(s, tbd_address + 4);
-            tx_buffer_el      = lduw_le_pci_dma(s, tbd_address + 6);
+            tx_buffer_el      = lduw_le_pci_dma(s, tbd_address + 4);
+            tx_buffer_size    = tx_buffer_el & 0x7fff;
             tbd_address += 8;
             i8255x_log("TBD (flexible mode): buffer address 0x%08x, size 0x%04x\n",
                        tx_buffer_address, tx_buffer_size);
@@ -744,7 +744,7 @@ tx_command(eepro100_t *s)
                 tx_buffer_size = sizeof(buf) - size;
             dma_bm_read(tx_buffer_address, &buf[size], tx_buffer_size, 1);
             size += tx_buffer_size;
-            if (tx_buffer_el & 1) {
+            if (tx_buffer_el & 0x8000) {
                 break;
             }
         }
@@ -1957,6 +1957,20 @@ eepro100_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
     eepro100_t *s = (eepro100_t *) priv;
 
     switch (addr) {
+        case 0x04:
+        case 0x2c:
+        case 0x2d:
+        case 0x2e:
+        case 0x2f:
+        case 0x3c:
+        case 0x34:
+            i8255x_log("cfg R %02X = %02X\n", addr, s->pci_conf[addr & 0xFF]);
+            break;
+        default:
+            break;
+    }
+
+    switch (addr) {
         default:
             return s->pci_conf[addr & 0xFF];
         case 0x00:
@@ -1991,6 +2005,12 @@ eepro100_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return 0;
         case 0x1a:
             return s->pci_conf[addr & 0xFF] & 0xfe;
+        case 0x1b:
+            return s->pci_conf[addr & 0xFF];
+        case 0x1c ... 0x27:
+            return 0;   /* BARs 3-5 do not exist on the 8255x */
+        case 0x30 ... 0x33:
+            return 0;   /* No expansion ROM */
         case 0x2c:
             return s->pci_conf[0x2c];
         case 0x2d:
@@ -2013,6 +2033,8 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
 {
     eepro100_t *s = (eepro100_t *) priv;
 
+    i8255x_log("cfg W %02X=%02X (cmd=%02X)\n", addr, val, s->pci_conf[0x04]);
+
     switch (addr) {
         case 0x04:
             io_removehandler(s->io_base, PCI_IO_SIZE,
@@ -2027,6 +2049,8 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
                               eepro100_io_readb, eepro100_io_readw, eepro100_io_readl,
                               eepro100_io_writeb, eepro100_io_writew, eepro100_io_writel,
                               priv);
+            i8255x_log("cmd: IO=%d base=%04X -> %s\n", !!(val & PCI_COMMAND_IO), s->io_base,
+                       ((val & PCI_COMMAND_IO) && s->io_base) ? "handler SET" : "handler NOT set");
             if ((val & PCI_COMMAND_MEM) && s->bar_mem.size && s->mem_base)
                 mem_mapping_enable(&s->bar_mem);
             if ((val & PCI_COMMAND_MEM) && s->bar_flash.size && s->flash_base)
@@ -2050,12 +2074,8 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             s->mem_base = (s->pci_conf[0x13] << 24) | (s->pci_conf[0x12] << 16) |
                           (s->pci_conf[0x11] << 8) | (s->pci_conf[0x10] & 0xf0);
             s->mem_base &= 0xfffff000;
-            if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
-                if (s->mem_base != 0) {
-                    mem_mapping_set_addr(&s->bar_mem, s->mem_base, PCI_MEM_SIZE);
-                    mem_mapping_enable(&s->bar_mem);
-                }
-            }
+            if (s->mem_base != 0)
+                mem_mapping_set_addr(&s->bar_mem, s->mem_base, PCI_MEM_SIZE);
             break;
         case 0x14:
         case 0x15:
@@ -2076,7 +2096,12 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
                                   eepro100_io_readb, eepro100_io_readw, eepro100_io_readl,
                                   eepro100_io_writeb, eepro100_io_writew, eepro100_io_writel,
                                   priv);
+                    i8255x_log("io handler SET at %04X\n", s->io_base);
+                } else {
+                    i8255x_log("io handler SKIPPED (base=0)\n");
                 }
+            } else {
+                i8255x_log("io handler SKIPPED (cmd IO=0)\n");
             }
             break;
         case 0x18:
@@ -2088,19 +2113,17 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             s->flash_base = (s->pci_conf[0x1b] << 24) | (s->pci_conf[0x1a] << 16) |
                             (s->pci_conf[0x19] << 8) | s->pci_conf[0x18];
             s->flash_base &= 0xfffe0000;
-            if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
-                if (s->flash_base != 0) {
-                    mem_mapping_set_addr(&s->bar_flash, s->flash_base, PCI_FLASH_SIZE);
-                    mem_mapping_enable(&s->bar_flash);
-                }
-            }
+            if (s->flash_base != 0)
+                mem_mapping_set_addr(&s->bar_flash, s->flash_base, PCI_FLASH_SIZE);
             break;
         case 0x2c:
         case 0x2d:
         case 0x2e:
         case 0x2f:
-            s->pci_conf[addr & 0xFF] = val;
-            break;
+            break;   /* Subsystem ID registers are read-only */
+        case 0x1c ... 0x27:
+        case 0x30 ... 0x33:
+            break;   /* Non-existent BARs and expansion ROM */
         case 0x3c:
             s->pci_conf[addr & 0xFF] = val;
             break;
