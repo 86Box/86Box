@@ -89,11 +89,11 @@ jobs:
           - arch: x86_64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
             slug: "-x86_64"
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
           - arch: arm64
             toolchain: ./cmake/flags-gcc-aarch64.cmake
             slug: -arm64
-            runner: ubuntu-22.04-arm
+            runner: ubuntu-24.04-arm
         exclude:
           - dynarec:
               new: off
