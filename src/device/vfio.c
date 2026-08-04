@@ -2336,7 +2336,7 @@ vfio_region_init(vfio_device_t *dev, struct vfio_region_info *reg, vfio_region_t
         region->bar_id = 0xff;
 
         /* Allocate ROM shadow area. */
-        region->mmap_base = region->mmap_precalc = plat_mmap(region->size, 0);
+        region->mmap_base = region->mmap_precalc = plat_mmap(region->size, 0, NULL);
         if (region->mmap_base == ((void *) -1)) {
             pclog("VFIO %s: ROM mmap(%" PRIu64 ") failed\n", dev->name, region->size);
             region->mmap_base = NULL;
