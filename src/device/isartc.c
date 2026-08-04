@@ -435,7 +435,6 @@ m30_subsec_timer(void *priv)
 static void
 m30_time_get(nvr_t *nvr, struct tm *tm)
 {
-    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
     const uint8_t  *regs = nvr->regs;
 
     tm->tm_sec  = RTC_DCB(regs[MM67_SEC]);
@@ -454,7 +453,6 @@ m30_time_get(nvr_t *nvr, struct tm *tm)
 static void
 m30_time_set(nvr_t *nvr, struct tm *tm)
 {
-    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
     uint8_t  *regs = nvr->regs;
 
     regs[MM67_SEC]  = RTC_BCD(tm->tm_sec);
