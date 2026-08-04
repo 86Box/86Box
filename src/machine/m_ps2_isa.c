@@ -224,7 +224,7 @@ ps2_m25_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x006b:
-            /* Bit 7 is a parity-failure status bit, not RAM control. */
+            /* Bit 7 is the read-only parity-check bank pointer. */
             dev->ram_control = val & 0x7f;
             ps2_m25_update_ram(dev);
             break;
@@ -571,11 +571,11 @@ machine_ps2_8086_init(const machine_t *model)
 
     machine_common_init(model);
     /*
-     * Unlike an XT, the Model 25 has no global NMI mask at port A0h. Its
-     * system-board NMI sources are masked individually by port 61h, so keep
-     * the CPU NMI input enabled and leave A0h to the I/O-support gate array.
+     * Port A0h bit 7 is the global NMI enable. The latch powers up enabled;
+     * IBM's system-board diagnostic relies on that reset state when it
+     * exercises the diagnostic NMI path through ports 69h and 63h.
      */
-    nmi_mask = 1;
+    nmi_mask = 0x80;
 
     dev = (ps2_m25_t *) calloc(1, sizeof(ps2_m25_t));
 
@@ -619,7 +619,7 @@ machine_ps2_8086_init(const machine_t *model)
 
     /* Enable the builtin HDC. */
     if (hdc_current[0] == HDC_INTERNAL)
-        dev->hdc = device_add(&ps1_hdc_device);
+        dev->hdc = device_add(&ps2_m25_hdc_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         dev->mcga = device_add(&mcga_device);
