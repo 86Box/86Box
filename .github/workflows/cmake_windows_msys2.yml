@@ -107,7 +107,7 @@ jobs:
             gcc:p
             pkgconf:p
             freetype:p
-            SDL3:p
+            sdl3:p
             zlib:p
             libpng:p
             openal:p
