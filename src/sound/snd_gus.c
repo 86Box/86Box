@@ -19,14 +19,6 @@
 
 /*
  * Known issues:
- * - MegaEM 2.x will sometimes hang when playing audio (this is known to
- *   occur in Hoyle Classic Card games when speech plays and in the
- *   TIE Fighter setup utility when playing music). This is due to
- *   the DMA Terminal Count IRQ status bit not being cleared by the
- *   program. The documented method of clearing this bit is to
- *   read the DMA Control register (index 41h) but there may be an
- *   unknown mechanism that automatically clears this bit that MegaEM
- *   relies on.
  * - MegaEM 3.x has nonfunctional SoundBlaster emulation and appears to
  *   rely on undocumented hardware behavior. This manifests as silent
  *   digital audio in MegaEM 3.03 and as an IRQ conflict error on MegaEM
@@ -35,8 +27,6 @@
 
 /*
  * TODO:
- * - Find any alternate methods real GUS cards use to clear the DMA TC
- *   IRQ status bit.
  * - Find the undocumented hardware behavior MegaEM 3.x relies on for emulating
  *   a SoundBlaster.
  * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
@@ -253,6 +243,7 @@ typedef struct gus_t {
     uint8_t  gus_reloc_state;
 
     uint16_t cur_codec_addr;
+    uint8_t  dmaover;
 
     void *   log; /* New logging system */
 } gus_t;
@@ -588,8 +579,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                 gus->dmaaddr++;
                                 gus->dmaaddr &= 0xfffff;
                                 c++;
-                                if (dma_result & DMA_OVER)
+                                if (dma_result & DMA_OVER) {
+                                    gus->dmaover = 1;
                                     break;
+                                }
                             }
                             gus->dmactrl = val & ~0x40;
                             gus->irqnext = 1;
@@ -620,13 +613,20 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                 gus->dmaaddr++;
                                 gus->dmaaddr &= 0xfffff;
                                 c++;
-                                if (d & DMA_OVER)
+                                if (d & DMA_OVER) {
+                                    gus->dmaover = 1;
                                     break;
+                                }
                             }
                             gus->dmactrl = val & ~0x40;
+                            if (gus->dmaover) {
+                                gus->dmaover = 0;
+                                gus->dmactrl &= 0xfe;
+                            }
                             gus->irqnext = 1;
                         }
-                    }
+                    } else
+                        gus->dmactrl = val & ~0x40;
                     break;
 
                 case 0x42: /*DMA address low*/
@@ -933,6 +933,9 @@ gus_read(uint16_t addr, void *priv)
             /* Handling for undocumented NMI status bit, needed by SBOS */
             if (((gus->ad_status & 0x18) && (gus->sb_ctrl & 0x20)) || ((gus->ad_status & 0x01) && (gus->sb_ctrl & 0x02)))
                 val |= 0x10;
+            /* DMA Terminal Count bit is inhibited if DMA Control bit 5 is cleared */
+            if (!(gus->dmactrl & 0x20))
+                val &= 0x7f;
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
             return val;
 
