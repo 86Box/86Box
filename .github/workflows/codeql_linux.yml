@@ -35,7 +35,7 @@ jobs:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
 
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
 
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
