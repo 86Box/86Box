@@ -1325,6 +1325,10 @@ extern int             machine_at_como_init(const machine_t *);
 /* i440BX */
 extern int             machine_at_bf6_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern const device_t  be6ii_device;
+#endif
+extern int             machine_at_be6ii_init(const machine_t *);
+#ifdef EMU_DEVICE_H
 extern const device_t  bx6_device;
 #endif
 extern int             machine_at_bx6_init(const machine_t *);
