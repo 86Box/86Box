@@ -20,6 +20,7 @@
  *
  *            Everex EV-170 (using NatSemi MM58167 chip)
  *            DTK PII-147 Hexa I/O Plus (using UMC 82C8167 chip)
+ *            PS/2 Model 30 (using NatSemi MM58167)
  *
  *          and more will follow as time permits.
  *
@@ -116,7 +117,9 @@ typedef struct rtcdev_t {
     uint8_t (*f_rd)(uint16_t, void *);
     int8_t    year; /* register for YEAR value */
     int8_t    century; /* register for CENTURY value */
-    char      pad[2];
+    uint8_t  *irq_mask; /* PS/2 Model 30's gate-array IRQ1 mask at port A1h */
+    pc_timer_t subsec_timer; /* PS/2 Model 30's millisecond-resolution counter */
+    uint8_t  subsec_count;   /* PS/2 Model 30's number of phases (usually 150us) per msec */
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
@@ -296,7 +299,8 @@ mm67_tick(nvr_t *nvr)
     /* Raise the IRQ if needed (and if we have one..) */
     if (f != 0) {
         regs[MM67_ISTAT] = f;
-        if (nvr->irq != -1)
+        /* PS/2 Model 30's gate array masks RTC IRQ1 with bit 0 of port A1h (1 = masked). */
+        if ((nvr->irq != -1) && ((dev->irq_mask == NULL) || !(*dev->irq_mask & 0x01)))
             picint(1 << nvr->irq);
     }
 }
@@ -390,6 +394,132 @@ mm67_start(nvr_t *nvr)
     }
 }
 
+/* PS/2 Model 30 (8086) has a quirky subsecond timer that the BIOS relies
+ * on. (Code is around F000:F970 in the 68X16[27]7 9/2/86 Rev. 0 BIOS.)
+ *
+ * The Int 15h AH=86h delay function implements a busywait by resetting the
+ * the RTC's sub-second counters; it writes to MM67_RSTCTR at 0B2h and then
+ * polls the high nibble of MM67MSEC (register 0) in a tight loop. Each time
+ * the nibble changes, approx. 1ms has passed. This is not what advances
+ * the seconds counter which is a separate hook. This delay is used for
+ * things like waiting on the floppy to settle.
+ *
+ * The status register's bit 0 ("clock operating") is kept set here;
+ * reads of the status register consume the flag (see mm67_read). This
+ * timer re-arms it much faster than the BIOS's busywaiting window, so
+ * every status poll should terminate promptly. However, this delay is not
+ * always exactly 1ms. The hardware's internal tick is 150 microseconds
+ * and it counts it down 7 times, which is 1.05 milliseconds. */
+static void
+m30_subsec_timer(void *priv)
+{
+    rtcdev_t *dev = (rtcdev_t *) priv;
+
+    dev->nvr.regs[MM67_STATUS] = 0x01;
+    if (++dev->subsec_count >= 7) { /* 7 x 150 us = 1.05 ms */
+        dev->nvr.regs[MM67_MSEC] = (dev->nvr.regs[MM67_MSEC] + 1) % 100;
+        dev->subsec_count        = 0;
+    }
+
+    timer_advance_u64(&dev->subsec_timer, 150ULL * TIMER_USEC);
+}
+
+/* PS/2 Model 30 (8086) time handling: it stores the year as plain BCD in the
+ * alarm centiseconds register, 9, and a single century bit in bit 0 of the
+ * alarm day-of-month register,  14: set for 1900s, clear for 2000s. The
+ * remaining bits of register 14 and the other alarm registers hold the
+ * configuration and checksum data maintained by the BIOS, so only bit 0
+ * may be touched. The built-in BIOS has problems with Y2K rollover which
+ * IBM advised fixing by installing CMOSCLK.SYS for DOS 4.00+; we do not
+ * attempt to fix this problems here. */
+static void
+m30_time_get(nvr_t *nvr, struct tm *tm)
+{
+    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    const uint8_t  *regs = nvr->regs;
+
+    tm->tm_sec  = RTC_DCB(regs[MM67_SEC]);
+    tm->tm_min  = RTC_DCB(regs[MM67_MIN]);
+    tm->tm_hour = RTC_DCB(regs[MM67_HOUR]);
+    tm->tm_wday = (RTC_DCB(regs[MM67_DOW]) - 1);
+    tm->tm_mday = RTC_DCB(regs[MM67_DOM]);
+    tm->tm_mon  = (RTC_DCB(regs[MM67_MON]) - 1);
+
+    /* Year is BCD; century bit set means 19xx. */
+    tm->tm_year = RTC_DCB(regs[MM67_AL_HUNTEN]);
+    if (!(regs[MM67_AL_DOM] & 0x01))
+        tm->tm_year += 100;
+}
+
+static void
+m30_time_set(nvr_t *nvr, struct tm *tm)
+{
+    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    uint8_t  *regs = nvr->regs;
+
+    regs[MM67_SEC]  = RTC_BCD(tm->tm_sec);
+    regs[MM67_MIN]  = RTC_BCD(tm->tm_min);
+    regs[MM67_HOUR] = RTC_BCD(tm->tm_hour);
+    regs[MM67_DOW]  = RTC_BCD(tm->tm_wday + 1);
+    regs[MM67_DOM]  = RTC_BCD(tm->tm_mday);
+    regs[MM67_MON]  = RTC_BCD(tm->tm_mon + 1);
+
+    /* Year in BCD; century bit set for 1900s, clear for 2000s. */
+    regs[MM67_AL_HUNTEN] = RTC_BCD(tm->tm_year % 100);
+    regs[MM67_AL_DOM]    = (regs[MM67_AL_DOM] & ~0x01) |
+                           ((tm->tm_year < 100) ? 0x01 : 0x00);
+
+    /* Record the month of the last RTC maintenance (register 8 high
+     * nibble and register 13 low nibble, don't-care-encoded as the BIOS
+     * writes them at F000:5D60). The POST year rollover check bumps the
+     * year when the day-of-month is earlier than the recorded month, so
+     * a freshly synchronized clock must carry the current month or the
+     * very first Int 1Ah call after boot advances the year. */
+    uint8_t maint_mon = (uint8_t)(tm->tm_mon + 1);
+    regs[MM67_AL_MSEC] = (regs[MM67_AL_MSEC] & 0x0f) | 0xc0 |
+                         ((maint_mon & 0x0c) << 2);
+    regs[MM67_AL_DOW]  = (regs[MM67_AL_DOW] & 0x0f) | 0xc0 |
+                         (maint_mon & 0x03);
+
+    /* Update the IBM configuration checksum: The BIOS's NVR validity
+     * check (F000:5C30) sums the nibbles of register 8's high nibble,
+     * registers 9 through 0Ch (both nibbles) and the low nibbles of
+     * registers 0Dh and 0Eh, truncates to six bits, and compares
+     * against the stored value XOR 15h. The stored three two-bit
+     * pieces are carried in the high nibble of 0Eh and both nibbles
+     * of 0Fh (encoded as don't-care nibbles 0Ch through 0Fh, which
+     * decode to the raw two-bit values) ... or at least I think
+     * that's what it does. */
+    uint8_t sum = (regs[MM67_AL_MSEC] >> 4) & 0x0f;
+    for (unsigned i = MM67_AL_HUNTEN; i <= MM67_AL_HOUR; i++)
+        sum += (regs[i] & 0x0f) + ((regs[i] >> 4) & 0x0f);
+    sum += regs[MM67_AL_DOW] & 0x0f;
+    sum += regs[MM67_AL_DOM] & 0x0f;
+    sum  = (sum ^ 0x15) & 0x3f;
+
+    regs[MM67_AL_DOM] = (regs[MM67_AL_DOM] & 0x0f) |
+                        ((0x0c | ((sum >> 4) & 0x03)) << 4);
+    regs[MM67_AL_MON] = ((0x0c | ((sum >> 2) & 0x03)) << 4) |
+                        (0x0c | (sum & 0x03));
+
+    /* The battery-backed registers changed so ask for a save. */
+    nvr_dosave = 1;
+}
+
+static void
+m30_start(nvr_t *nvr)
+{
+    struct tm tm;
+
+    if (time_sync) {
+        nvr_time_get(&tm);
+        m30_time_set(nvr, &tm);
+    } else {
+        m30_time_get(nvr, &tm);
+        nvr_time_set(&tm);
+    }
+}
+
 /* Reset the RTC counters to a sane state. */
 static void
 mm67_reset(nvr_t *nvr)
@@ -416,6 +546,21 @@ mm67_read(uint16_t port, void *priv)
     switch (reg) {
         default:
             ret = dev->nvr.regs[reg];
+            break;
+
+        case MM67_STATUS: /* STATUS (RO) */
+            /* Bit 0 is the "clock operating" flag on the Model 30. The
+             * BIOS requires it set when sampled (F000:5C17), and its
+             * wait loops (Int 15h AH=86h, the Int 1Ah read paths) spin
+             * until it clears. The sub-second timer keeps it set; a
+             * read consumes the flag (returns it set on the first read,
+             * clear on the next) so every one of those loops terminates
+             * on its first or second iteration. If you don't do this,
+             * the system hangs the first time it waits on the floppy to
+             * settle. */
+            ret = dev->nvr.regs[reg] & 0x01;
+            if (dev->board == ISARTC_PS2M30)
+                dev->nvr.regs[reg] = 0x00; /* consume the flag */
             break;
 
         case MM67_ISTAT: /* IRQ status (RO) */
@@ -515,14 +660,17 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_AL_MSEC:
             dev->nvr.regs[reg] = val & 0xf0;
+            nvr_dosave = 1;
             break;
 
         case MM67_AL_DOW:
             dev->nvr.regs[reg] = val & 0x0f;
+            nvr_dosave = 1;
             break;
 
         default:
             dev->nvr.regs[reg] = val;
+            nvr_dosave = 1;
             break;
     }
 }
@@ -642,17 +790,28 @@ isartc_init(const device_t *info)
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
             break;
 
-        case ISARTC_PS2M30: /* IBM PS/2 Model 30-8086 */
-            dev->flags |= (FLAG_YEAR80 | FLAG_PS2);
+        case ISARTC_PS2M30: /* Support for the 8086 based IBM PS/2 Model 30 */
+            /* The Model 30 maps the 32 MM58167 registers into two I/O
+             * windows: E0-EF hold registers 0-15 (counters and alarm RAM),
+             * while B0-BF hold registers 16-31 (control and status). */
+            dev->flags |= (FLAG_YEARBCD | FLAG_PS2);
             dev->base_addr   = 0x00a0;
-            dev->base_addrsz = 32;
+            dev->base_addrsz = 16;
             dev->irq         = 1;
             dev->f_rd        = mm67_read;
             dev->f_wr        = mm67_write;
             dev->nvr.reset   = mm67_reset;
-            dev->nvr.start   = mm67_start;
+            dev->nvr.start   = m30_start;
+            /* The once-per-second NVR hook advances the seconds counter;
+             * the dedicated sub-second timer only ticks register 0 (the
+             * hundredths register) on a millisecond cadence for the BIOS's
+             * Int 15h AH=86h wait loop. */
             dev->nvr.tick    = mm67_tick;
-            dev->year        = -1; /* no year, STANDARD */
+            /* The Mod. 30 stores the year in the alarm centiseconds
+             * register 9 and the century in bit 0 of the alarm
+             * day-of-month register 14. */
+            dev->year        = MM67_AL_HUNTEN;
+            dev->century     = MM67_AL_DOM;
             break;
 
         case ISARTC_DTK: /* DTK PII-147 Hexa I/O Plus */
@@ -719,10 +878,15 @@ isartc_init(const device_t *info)
     isartc_log(")\n");
 
     /* Set up an I/O port handler. */
-    if ((dev->flags) & FLAG_PS2)
-        io_sethandler(dev->base_addr - 0x0010, dev->base_addrsz,
+    if ((dev->flags) & FLAG_PS2) {
+        /* The Model 30 splits the 32 MM58167 registers across two I/O
+         * windows: B0-BF (registers 16-31) and E0-EF (registers 0-15).
+         * Both are decoded with a base of A0h and a 5-bit mask. */
+        io_sethandler(0x00b0, 16,
                       dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
-    else
+        io_sethandler(0x00e0, 16,
+                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+    } else
         io_sethandler(dev->base_addr, dev->base_addrsz,
                       dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
@@ -731,6 +895,10 @@ isartc_init(const device_t *info)
     dev->nvr.irq = dev->irq;
     if (!is_at)
         nvr_init(&dev->nvr);
+
+    /* The Model 30 needs 10 ms hundredths-counter granularity. */
+    if (dev->board == ISARTC_PS2M30)
+        timer_add(&dev->subsec_timer, m30_subsec_timer, dev, 1);
 
     /* Let them know our device instance. */
     return ((void *) dev);
@@ -742,8 +910,18 @@ isartc_close(void *priv)
 {
     rtcdev_t *dev = (rtcdev_t *) priv;
 
-    io_removehandler(dev->base_addr, dev->base_addrsz,
-                     dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+    /* Mirror the same logic the initialisation code uses for the Mod. 30. */
+    if (dev->board == ISARTC_PS2M30)
+        timer_disable(&dev->subsec_timer);
+
+    if ((dev->flags) & FLAG_PS2) {
+        io_removehandler(0x00b0, 16,
+                         dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+        io_removehandler(0x00e0, 16,
+                         dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
+    } else
+        io_removehandler(dev->base_addr, dev->base_addrsz,
+                         dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
     free(dev);
 }
@@ -1074,6 +1252,14 @@ const device_t ibmps2m30_rtc_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+void
+ibmps2m30_rtc_inform(void *priv, uint8_t *a1_mask)
+{
+    rtcdev_t *dev = (rtcdev_t *) priv;
+
+    dev->irq_mask = a1_mask;
+}
 
 typedef struct rp5c01a_t
 {
