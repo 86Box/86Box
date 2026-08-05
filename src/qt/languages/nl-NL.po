@@ -66,11 +66,14 @@ msgstr "Re&nderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "&Afmetingen opgeven…"
@@ -453,6 +456,9 @@ msgstr "XGA-graphics"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Toetsenbord:"
 
@@ -690,6 +696,9 @@ msgstr "Controleer BPB"
 msgid "CD-ROM drives"
 msgstr "CD-ROM-stations"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "MO-schijven"
 
@@ -840,11 +849,35 @@ msgstr "Seriële poorten"
 msgid "Serial ports:"
 msgstr "Seriële poorten:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Parallelle poorten"
 
 msgid "Parallel ports:"
 msgstr "Parallelle poorten:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Opslagcontrollers"
@@ -1208,6 +1241,9 @@ msgstr "Openen van geselecteerd configuratiebestand voor lezen niet mogelijk: %1
 msgid "Use regular expressions in search box"
 msgstr "Gebruik reguliere expressies in zoekveld"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n machine is nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
@@ -1381,8 +1417,11 @@ msgstr "Gedwongen beëindiging van een virtuele machine kan dataverlies veroorza
 msgid "&Delete"
 msgstr "&Verwijderen"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Weet je zeker dat je de virtuele machine \"%1\" en al haar bestanden wil verwijderen? Deze actie kan niet ongedaan gemaakt worden!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Weet je zeker dat je de virtuele machine \"%1\" en al haar bestanden wil verwijderen?"
+
+msgid "This action cannot be undone!"
+msgstr "Deze actie kan niet ongedaan gemaakt worden!"
 
 msgid "Show &config file"
 msgstr "Toon &configuratiebestand"
@@ -1681,8 +1720,11 @@ msgstr "Langzaam"
 msgid "Fast"
 msgstr "Snel"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Autopauze bij focusverlies"
+msgid "Auto-pause on focus loss"
+msgstr "Autopauze bij focusverlies"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox wordt niet langer ondersteund"
@@ -2274,6 +2316,9 @@ msgstr "Hoge DMA"
 
 msgid "Control PC speaker"
 msgstr "Bestuur pc-luidspreker"
+
+msgid "Control MIDI volume"
+msgstr ""
 
 msgid "Memory size"
 msgstr "Geheugengrootte"
@@ -2872,6 +2917,9 @@ msgstr "Vraag om bevestiging voor een harde reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Vraag om bevestiging voor afsluiten"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opties"
 
@@ -2883,6 +2931,24 @@ msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Initialisatie van de Vulkan-renderer is mislukt."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "GLSL-fout"
@@ -2904,6 +2970,9 @@ msgstr "Shaderbeheer"
 
 msgid "Shader Configuration"
 msgstr "Shaderconfiguratie"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Toevoegen"
@@ -2970,6 +3039,12 @@ msgstr "Pauzeren omschakelen"
 
 msgid "Toggle mute"
 msgstr "Geluiddemping omschakelen"
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "Tekstbestanden"
@@ -3132,6 +3207,9 @@ msgstr "Exporteren…"
 msgid "Export EDID"
 msgstr "EDID exporteren"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "Het EDID-bestand \"%s\" is te groot."
 
@@ -3199,6 +3277,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "De image „%s“ kan niet worden geladen: het bestand „%1“ ontbreekt, dat nodig "
 "is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3342,3 +3423,6 @@ msgstr "932 (Japans)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditioneel Chinees)"
+
+msgid "Sample rate:"
+msgstr ""

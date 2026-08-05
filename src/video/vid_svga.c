@@ -779,15 +779,21 @@ svga_recalctimings(svga_t *svga)
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
-            if (svga->seqregs[1] & 8)
+            if (svga->seqregs[1] & 8) {
                 svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
-            else
+                svga->dots_per_clock = (svga->seqregs[1] & 1) ? 16 : 18;
+            } else {
                 svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+                svga->dots_per_clock = (svga->seqregs[1] & 1) ? 8 : 9;
+            }
         } else {
-            if (svga->seqregs[1] & 8)
+            if (svga->seqregs[1] & 8) {
                 svga->hdisp *= 16;
-            else
+                svga->dots_per_clock = 16;
+            } else {
                 svga->hdisp *= 8;
+                svga->dots_per_clock = 8;
+            }
         }
 
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
@@ -933,6 +939,8 @@ svga_recalctimings(svga_t *svga)
         svga->y_add = (svga->monitor->mon_overscan_y >> 1);
         svga->left_overscan = svga->x_add = (svga->monitor->mon_overscan_x >> 1);
 
+        svga->hblank_sub = 0;
+
         svga->htotal &= 0x7fff;
     } else {
         const uint32_t hadj    = (svga->htotal & 0x8000) ? 0x100 : 0;
@@ -970,6 +978,9 @@ svga_recalctimings(svga_t *svga)
 
         const uint32_t hd = svga->hdisp;
         svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+
+        const uint32_t non_blanked = (svga->hblankstart + 1 - svga->hblank_sub) * svga->dots_per_clock;
+        svga->hdisp = MIN(svga->hdisp, non_blanked);
 
         svga->left_overscan = svga->x_add = (int) ((uint32_t) svga->htotal - adj_dot - hadj - 1) * svga->dots_per_clock;
         svga->monitor->mon_overscan_x = (int) ((uint32_t) svga->x_add + ((uint32_t) svga->hblankstart * (uint32_t) svga->dots_per_clock) - hd + (uint32_t) svga->dots_per_clock);
@@ -1613,7 +1624,7 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            if ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank) {
+            if (svga->hoverride || ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank)) {
                 svga->scrollcache = 0;
                 svga->half_pixel  = 0;
 
@@ -1823,12 +1834,12 @@ static __inline void
 svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
 {
     svga_t *svga       = (svga_t *) priv;
-    int     writemask2 = svga->writemask;
+    uint8_t writemask2 = svga->writemask;
     int     reset_wm   = 0;
     latch_t vall;
     uint8_t wm         = svga->writemask;
     uint8_t count;
-    uint8_t i;
+    uint8_t i, orig_i;
 
     if (svga->adv_flags & FLAG_ADDR_BY8)
         writemask2 = svga->seqregs[2];
@@ -1852,10 +1863,10 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     else if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
         addr <<= 3;
     else if (((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) && (svga->writemode < 4)) {
-        writemask2 = 1 << (addr & 3);
+        writemask2 &= 1 << (addr & 3);
         addr &= ~3;
     } else if (svga->chain4 && (svga->writemode < 4)) {
-        writemask2 = 1 << (addr & 3);
+        writemask2 &= 1 << (addr & 3);
         if (!linear)
             addr &= ~3;
         addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
@@ -1865,6 +1876,9 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
         addr <<= 2;
     } else
         addr <<= 2;
+
+    if (!writemask2 && svga->writemode < 4)
+        return;
 
     addr &= svga->decode_mask;
 
@@ -1883,6 +1897,18 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     count = 4;
     if (svga->adv_flags & FLAG_LATCH8)
         count = 8;
+    else
+        writemask2 &= ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) ? 0xf0 : 0x0f;
+
+#if __has_builtin(__builtin_clzg) && __has_builtin(__builtin_ctzg)
+    i = ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) ? __builtin_clzg(writemask2) : __builtin_ctzg(writemask2);
+    count = 8 - (((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) ? (__builtin_ctzg(writemask2)) : (__builtin_clzg(writemask2)));
+#else
+    i = ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) ? (__builtin_clz(writemask2) - 24) : __builtin_ctz(writemask2);
+    count = 8 - (((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) ? (__builtin_ctz(writemask2)) : (__builtin_clz(writemask2) - 24));
+#endif
+
+    orig_i = i;
 
     /* Undocumented Cirrus Logic behavior: The datasheet says that, with EXT_WRITE and FLAG_ADDR_BY8, the write mask only
        changes meaning in write modes 4 and 5, as well as write mode 1. In reality, however, all other write modes are also
@@ -1891,7 +1917,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
         case 0:
             val = ((val >> (svga->gdcreg[3] & 7)) | (val << (8 - (svga->gdcreg[3] & 7))));
             if ((svga->gdcreg[8] == 0xff) && !(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
-                for (i = 0; i < count; i++) {
+                for (; i < count; i++) {
                     if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                         if (writemask2 & (0x80 >> i))
                             svga->vram[addr | i] = val;
@@ -1902,7 +1928,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
                 }
                 return;
             } else {
-                for (i = 0; i < count; i++) {
+                for (; i < count; i++) {
                     if (svga->gdcreg[1] & (1 << i))
                         vall.b[i] = !!(svga->gdcreg[0] & (1 << i)) * 0xff;
                     else
@@ -1911,7 +1937,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             break;
         case 1:
-            for (i = 0; i < count; i++) {
+            for (; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = svga->latch.b[i];
@@ -1922,11 +1948,11 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             return;
         case 2:
-            for (i = 0; i < count; i++)
+            for (; i < count; i++)
                 vall.b[i] = !!(val & (1 << i)) * 0xff;
 
             if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
-                for (i = 0; i < count; i++) {
+                for (i = orig_i; i < count; i++) {
                     if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                         if (writemask2 & (0x80 >> i))
                             svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
@@ -1956,7 +1982,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
 
     switch (svga->gdcreg[3] & 0x18) {
         case 0x00: /* Set */
-            for (i = 0; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
@@ -1967,7 +1993,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             break;
         case 0x08: /* AND */
-            for (i = 0; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] | ~svga->gdcreg[8]) & svga->latch.b[i];
@@ -1978,7 +2004,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             break;
         case 0x10: /* OR */
-            for (i = 0; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | svga->latch.b[i];
@@ -1989,7 +2015,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             }
             break;
         case 0x18: /* XOR */
-            for (i = 0; i < count; i++) {
+            for (i = orig_i; i < count; i++) {
                 if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
                     if (writemask2 & (0x80 >> i))
                         svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) ^ svga->latch.b[i];

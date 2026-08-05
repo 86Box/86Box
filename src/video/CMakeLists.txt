@@ -75,6 +75,7 @@ add_library(vid OBJECT
     vid_hercules_incolor.c
 
     # Other early CGA-era cards
+    vid_3270pc.c
     vid_genius.c
     vid_sigma.c
 
@@ -90,6 +91,7 @@ add_library(vid OBJECT
 
     # (Real IBM) VGA 
     vid_vga.c
+    vid_mcga.c
 
     # Super VGA core
     vid_svga.c
@@ -106,6 +108,7 @@ add_library(vid OBJECT
     vid_ati28800.c
     vid_ati_mach8.c
     vid_ati_mach64.c
+    vid_ati_mach64_accel.c
 
     # Chips & Technologies
     vid_chips_69000.c
@@ -144,7 +147,6 @@ add_library(vid OBJECT
 
     # Generic
     vid_bochs_vbe.c
-
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")

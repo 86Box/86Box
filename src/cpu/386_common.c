@@ -1939,9 +1939,7 @@ sysenter(UNUSED(uint32_t fetchdat))
     cpu_state.eflags &= ~(RF_FLAG | VM_FLAG);
     cpu_state.flags &= ~I_FLAG;
 
-#ifndef USE_NEW_DYNAREC
     oldcs = CS;
-#endif
     cpu_state.oldpc = cpu_state.pc;
     ESP             = msr.sysenter_esp;
     cpu_state.pc    = msr.sysenter_eip;
@@ -2025,9 +2023,7 @@ sysexit(UNUSED(uint32_t fetchdat))
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
-#ifndef USE_NEW_DYNAREC
     oldcs = CS;
-#endif
     cpu_state.oldpc = cpu_state.pc;
     ESP             = ECX;
     cpu_state.pc    = EDX;
@@ -2085,9 +2081,7 @@ syscall_op(UNUSED(uint32_t fetchdat))
     cpu_state.eflags &= ~VM_FLAG;
     cpu_state.flags &= ~I_FLAG;
 
-#ifndef USE_NEW_DYNAREC
     oldcs = CS;
-#endif
     cpu_state.oldpc = cpu_state.pc;
     ECX             = cpu_state.pc;
 
@@ -2145,9 +2139,7 @@ sysret(UNUSED(uint32_t fetchdat))
        there is a pending interrupt, following the STI logic */
     cpu_end_block_after_ins = 2;
 
-#ifndef USE_NEW_DYNAREC
     oldcs = CS;
-#endif
     cpu_state.oldpc = cpu_state.pc;
     cpu_state.pc    = ECX;
 

@@ -198,22 +198,27 @@ Preferences::save()
     emulator->save();
     input->save();
     key_bindings->save();
+
+    main_window->updateMouseStrings();
 }
 
 void
 Preferences::accept()
 {
-    auto size               = main_window->centralWidget()->size();
+    int lang_changed = emulator->changed();
 
     save();
     config_save_global();
-    QTimer::singleShot(200, [size] () {
-        main_window->centralWidget()->setFixedSize(size);
-        QApplication::processEvents();
-        if (vid_resize == 1) {
-            main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-        }
-    });
+    if (!video_fullscreen && lang_changed) {
+        auto size = main_window->centralWidget()->size();
+        QTimer::singleShot(200, [size] () {
+            main_window->centralWidget()->setFixedSize(size);
+            QApplication::processEvents();
+            if (vid_resize == 1) {
+                main_window->centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+            }
+        });
+    }
     QDialog::accept();
 }
 

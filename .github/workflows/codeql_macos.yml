@@ -94,13 +94,15 @@ jobs:
       - name: Install dependencies
         run: >-
           brew install
-          sdl2
+          sdl3
           rtmidi
           openal-soft
           fluidsynth
           libslirp
           vde
           libserialport
+          vulkan-headers
+          zstd
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

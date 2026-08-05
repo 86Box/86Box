@@ -66,11 +66,14 @@ msgstr "Re&nderare"
 msgid "&Qt (Software)"
 msgstr "&Qt (Mjukvara)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Ange &mått…"
@@ -453,6 +456,9 @@ msgstr "XGA-grafik"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 bildskärmsadapter"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Tangentbord:"
 
@@ -690,6 +696,9 @@ msgstr "Kontrollera BPB"
 msgid "CD-ROM drives"
 msgstr "CD-ROM-enheter"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "MO-enheter"
 
@@ -840,11 +849,35 @@ msgstr "Serieportar"
 msgid "Serial ports:"
 msgstr "Serieportar:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Parallelportar"
 
 msgid "Parallel ports:"
 msgstr "Parallelportar:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Styrenheter för lagring"
@@ -1208,6 +1241,9 @@ msgstr "Kunde inte läsa den valda konfigurationsfilen: %1"
 msgid "Use regular expressions in search box"
 msgstr "Använd vanliga uttryck i sökfältet"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n maskin är aktiva. Är du säker på att du vill avsluta VM-hanteraren ändå?"
@@ -1381,8 +1417,11 @@ msgstr "Att döda en virtuell maskin kan orsaka dataförlust. Gör detta endast 
 msgid "&Delete"
 msgstr "&Ta bort"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Vill du verkligen ta bort virtuella maskinen \"%1\" och alla dess filer? Denna handling kan inte ångras!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Vill du verkligen ta bort virtuella maskinen \"%1\" och alla dess filer?"
+
+msgid "This action cannot be undone!"
+msgstr "Denna handling kan inte ångras!"
 
 msgid "Show &config file"
 msgstr "Visa &konfigurationsfil"
@@ -1686,8 +1725,11 @@ msgstr "Långsam"
 msgid "Fast"
 msgstr "Snabb"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Pausa automatiskt när fokus tappas"
+msgid "Auto-pause on focus loss"
+msgstr "Pausa automatiskt när fokus tappas"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox stöds inte längre"
@@ -2279,6 +2321,9 @@ msgstr "Hög DMA"
 
 msgid "Control PC speaker"
 msgstr "Styr PC-speaker"
+
+msgid "Control MIDI volume"
+msgstr ""
 
 msgid "Memory size"
 msgstr "Minnesstorlek"
@@ -2877,6 +2922,9 @@ msgstr "Bekräfta innan hård omstart"
 msgid "Ask for confirmation before quitting"
 msgstr "Bekräfta innan avslut"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Alternativ"
 
@@ -2888,6 +2936,24 @@ msgstr "Modell:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Kunde inte initialisera Vulkan-renderaren."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "GLSL-fel"
@@ -2909,6 +2975,9 @@ msgstr "Shader-hanterare"
 
 msgid "Shader Configuration"
 msgstr "Shader-inställningar"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Lägg till"
@@ -2975,6 +3044,12 @@ msgstr "Pausa"
 
 msgid "Toggle mute"
 msgstr "Tysta"
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "Textfiler"
@@ -3137,6 +3212,9 @@ msgstr "Exportera…"
 msgid "Export EDID"
 msgstr "Exportera EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID-filen \"%s\" är för stor."
 
@@ -3204,6 +3282,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Avbildning \"%s\" kunde ej laddas: %1 saknas, vilket krävs för stöd för "
 "Daemon Tools MDS v2 och MDX-avbildningar."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3347,3 +3428,6 @@ msgstr "932 (Japansk)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditionell kinesiska)"
+
+msgid "Sample rate:"
+msgstr ""

@@ -60,10 +60,13 @@ msgstr ""
 msgid "&Qt (Software)"
 msgstr ""
 
-msgid "Open&GL (3.0 Core)"
+msgid "Open&GL"
 msgstr ""
 
-msgid "&VNC"
+msgid "&Vulkan"
+msgstr ""
+
+msgid "V&NC"
 msgstr ""
 
 msgid "Specify &dimensions…"
@@ -447,6 +450,9 @@ msgstr ""
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr ""
 
+msgid "Voodoo:"
+msgstr ""
+
 msgid "Keyboard:"
 msgstr ""
 
@@ -684,6 +690,9 @@ msgstr ""
 msgid "CD-ROM drives"
 msgstr ""
 
+msgid "CD-ROM:"
+msgstr ""
+
 msgid "MO drives"
 msgstr ""
 
@@ -834,10 +843,34 @@ msgstr ""
 msgid "Serial ports:"
 msgstr ""
 
+msgid "COM1:"
+msgstr ""
+
+msgid "COM2:"
+msgstr ""
+
+msgid "COM3:"
+msgstr ""
+
+msgid "COM4:"
+msgstr ""
+
 msgid "Parallel ports"
 msgstr ""
 
 msgid "Parallel ports:"
+msgstr ""
+
+msgid "LPT1:"
+msgstr ""
+
+msgid "LPT2:"
+msgstr ""
+
+msgid "LPT3:"
+msgstr ""
+
+msgid "LPT4:"
 msgstr ""
 
 msgid "Storage controllers"
@@ -1198,6 +1231,9 @@ msgstr ""
 msgid "Use regular expressions in search box"
 msgstr ""
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] ""
@@ -1370,7 +1406,10 @@ msgstr ""
 msgid "&Delete"
 msgstr ""
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr ""
+
+msgid "This action cannot be undone!"
 msgstr ""
 
 msgid "Show &config file"
@@ -1670,7 +1709,10 @@ msgstr ""
 msgid "Fast"
 msgstr ""
 
-msgid "&Auto-pause on focus loss"
+msgid "Auto-pause on focus loss"
+msgstr ""
+
+msgid "Auto-pause on dialog boxes"
 msgstr ""
 
 msgid "WinBox is no longer supported"
@@ -2262,6 +2304,9 @@ msgid "High DMA"
 msgstr ""
 
 msgid "Control PC speaker"
+msgstr ""
+
+msgid "Control MIDI volume"
 msgstr ""
 
 msgid "Memory size"
@@ -2861,6 +2906,9 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr ""
 
@@ -2871,6 +2919,24 @@ msgid "Model:"
 msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
 msgstr ""
 
 msgid "GLSL Error"
@@ -2892,6 +2958,9 @@ msgid "Shader Manager"
 msgstr ""
 
 msgid "Shader Configuration"
+msgstr ""
+
+msgid "GPU:"
 msgstr ""
 
 msgid "Add"
@@ -2958,6 +3027,12 @@ msgid "Toggle pause"
 msgstr ""
 
 msgid "Toggle mute"
+msgstr ""
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
 msgstr ""
 
 msgid "Text files"
@@ -3120,6 +3195,9 @@ msgstr ""
 msgid "Export EDID"
 msgstr ""
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr ""
 
@@ -3184,6 +3262,9 @@ msgid "Unable to load CD-ROM image \"%s\"."
 msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
@@ -3325,4 +3406,7 @@ msgid "932 (Japanese)"
 msgstr ""
 
 msgid "938 (Traditional Chinese)"
+msgstr ""
+
+msgid "Sample rate:"
 msgstr ""

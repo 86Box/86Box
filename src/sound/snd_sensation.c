@@ -1165,7 +1165,7 @@ sensation_init(UNUSED(const device_t *info))
     dev->sensation_mma_enable[0] = 0;
     dev->sensation_mma_fifo_start[0] = dev->sensation_mma_fifo_end[0] = 0;
 
-    fm_driver_get_ex(FM_YMF262, &dev->opl, 1);
+    fm_driver_get_ex(FM_YMF262, &dev->opl, 3);
 
     timer_add(&dev->sensation_mma_timer_count, sensation_mma_timer_poll, dev, 1);
     timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 1);

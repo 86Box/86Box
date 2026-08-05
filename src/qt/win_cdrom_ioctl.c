@@ -14,7 +14,9 @@
  *          Copyright 2023 TheCollector1995.
  *          Copyright 2023 Miran Grca.
  */
+#ifndef UNICODE
 #define UNICODE
+#endif
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #undef BITMAP
@@ -235,10 +237,8 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
 
                 ioctl->blocks_num++;
             }
-        } else if (status > 0)
-           /* Announce that we've had a failure. */
-           status = 0;
-    } else if (status != 0) {
+        }
+    } else {
         ioctl->blocks_num = (((cur_full_toc->Length[0] << 8) |
                               cur_full_toc->Length[1]) - 2) / 11;
         memcpy(ioctl->cur_rti, cur_full_toc->Descriptors, ioctl->blocks_num * 11);
@@ -379,25 +379,6 @@ ioctl_get_raw_track_info(const void *local, int *num, uint8_t *rti)
 }
 
 static int
-ioctl_is_track_pre(const void *local, const uint32_t sector)
-{
-    const ioctl_t          *ioctl   = (const ioctl_t *) local;
-    const raw_track_info_t *rti     = (const raw_track_info_t *) ioctl->cur_rti;
-    int                     ret     = 0;
-
-    if (ioctl->has_audio && !ioctl->is_dvd) {
-        const int track   = ioctl_get_track(ioctl, sector);
-        const int control = rti[track].adr_ctl;
-
-        ret     = control & 0x01;
-
-        ioctl_log(ioctl->log, "ioctl_is_track_pre(%08X, %02X): %i\n", sector, track, ret);
-    }
-
-    return ret;
-}
-
-static int
 ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
 {
     typedef struct SCSI_PASS_THROUGH_DIRECT_BUF {
@@ -483,6 +464,56 @@ ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
             buffer[sc_offs + 8] = bin2bcd(s);
             buffer[sc_offs + 9] = bin2bcd(f);
         }
+    } else if (ioctl->dev->audio_read) {
+        RAW_READ_INFO in;
+        int           track;
+
+        req.spt.DataTransferLength    = 0;
+        ret                           = 0;
+
+        if (lba == 0xffffffff) {
+            lba                           = ioctl->dev->seek_pos;
+            track                         = ioctl_get_track(ioctl, lba);
+
+            if (track != -1) {
+                req.spt.DataTransferLength    = len;
+                ret                           = 1;
+            }
+        } else {
+            len                           = RAW_SECTOR_SIZE;
+            track                         = ioctl_get_track(ioctl, lba);
+
+            in.DiskOffset.LowPart  = lba * COOKED_SECTOR_SIZE;
+            in.DiskOffset.HighPart = 0;
+            in.SectorCount         = 1;
+            in.TrackMode           = CDDA;
+
+            ret = DeviceIoControl(ioctl->handle, IOCTL_CDROM_RAW_READ,
+                          &in, sizeof(in),
+                        buffer, RAW_SECTOR_SIZE,
+                                  &req.spt.DataTransferLength, NULL);
+        }
+
+        if (ret && (req.spt.DataTransferLength >= len) && (track != -1)) {
+            const raw_track_info_t *ct    = &(rti[track]);
+            const uint32_t          start = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
+
+            /* Construct Q. */
+            buffer[sc_offs + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
+            buffer[sc_offs + 1] = bin2bcd(ct->point);
+            buffer[sc_offs + 2] = 1;
+            FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
+            buffer[sc_offs + 3] = bin2bcd(m);
+            buffer[sc_offs + 4] = bin2bcd(s);
+            buffer[sc_offs + 5] = bin2bcd(f);
+            FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+            buffer[sc_offs + 7] = bin2bcd(m);
+            buffer[sc_offs + 8] = bin2bcd(s);
+            buffer[sc_offs + 9] = bin2bcd(f);
+        }
+
+        if (!ret)
+            memset(buffer, 0x00, 2352);
     } else {
         memset(&req, 0x00, sizeof(SCSI_PASS_THROUGH_DIRECT_BUF));
         req.spt.Length                = sizeof(SCSI_PASS_THROUGH_DIRECT);
@@ -532,7 +563,7 @@ ioctl_read_sector(const void *local, uint8_t *buffer, uint32_t const sector)
     if (req.spt.SenseInfoLength >= 16) {
         uint8_t *cdb = (uint8_t *) req.SenseBuf;
         if ((cdb[2] == 0x03) && (cdb[12] == 0x11))
-            /* Treat this as an error to corectly indicate CIRC error to the guest. */
+            /* Treat this as an error to correctly indicate CIRC error to the guest. */
             ret = 0;
         ioctl_log(ioctl->log, "Host sense: %02X %02X %02X %02X %02X %02X %02X %02X\n",
                   cdb[0], cdb[1], cdb[ 2], cdb[ 3], cdb[ 4], cdb[ 5], cdb[ 6], cdb[ 7]);
@@ -734,7 +765,7 @@ ioctl_is_empty(const void *local)
     req.spt.Cdb[10]                = 0x00;
     req.spt.Cdb[11]                = 0x00;
 
-    DWORD length                   = sizeof(SCSI_PASS_THROUGH_DIRECT_BUF);
+    const DWORD length             = sizeof(SCSI_PASS_THROUGH_DIRECT_BUF);
 
 #ifdef ENABLE_IOCTL_LOG
     uint8_t *cdb = (uint8_t *) req.spt.Cdb;
@@ -744,10 +775,12 @@ ioctl_is_empty(const void *local)
               cdb[6], cdb[7], cdb[8], cdb[9], cdb[10], cdb[11]);
 #endif
 
-    int ret = DeviceIoControl(ioctl->handle, IOCTL_SCSI_PASS_THROUGH_DIRECT,
-                              &req, length,
-                              &req, length,
-                              &unused, NULL);
+    int ret;
+
+    (void) DeviceIoControl(ioctl->handle, IOCTL_SCSI_PASS_THROUGH_DIRECT,
+                           &req, length,
+                           &req, length,
+                           &unused, NULL);
 
     ioctl_log(ioctl->log, "ioctl_read_dvd_structure(): ret = %d, "
               "req.spt.DataTransferLength = %lu\n",
@@ -756,7 +789,7 @@ ioctl_is_empty(const void *local)
               req.spt.SenseInfoOffset);
 
     if (req.spt.SenseInfoLength >= 16) {
-        uint8_t *sb = (uint8_t *) req.SenseBuf;
+        const uint8_t *sb = (const uint8_t *) req.SenseBuf;
         /* Return sense to the host as is. */
         ret = ((sb[2] == SENSE_NOT_READY) && (sb[12] == ASC_MEDIUM_NOT_PRESENT));
         ioctl_log(ioctl->log, "Host sense: %02X %02X %02X %02X %02X %02X %02X %02X\n",
@@ -806,7 +839,6 @@ ioctl_load(const void *local)
 static const cdrom_ops_t ioctl_ops = {
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
-    ioctl_is_track_pre,
     ioctl_read_sector,
     ioctl_get_track_type,
     ioctl_get_last_block,

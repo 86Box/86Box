@@ -1155,15 +1155,6 @@ static const uint8_t mt[16] = {
 };
 
 /*
- * This is used during the envelope generation to apply KSL to the envelope by
- * determining how much to shift right the keyscale attenuation value before
- * adding it to the envelope level.
- */
-static const uint8_t kslshift[4] = {
-	8, 1, 2, 0
-};
-
-/*
  * This encodes which emulation mode channels are the secondary channel in a
  * 4-op channel pair (where the entry is non-negative), and which is the
  * corresponding primary channel for that secondary channel.
@@ -1204,8 +1195,8 @@ ESFM_envelope_wavegen(uint3 waveform, int16 phase, uint10 envelope)
 }
 
 /* ------------------------------------------------------------------------- */
-static void
-ESFM_envelope_calc(esfm_slot *slot)
+static __attribute__((always_inline)) inline void
+ESFM_envelope_calc_inner(esfm_slot *slot, const bool native)
 {
 	uint8 nonzero;
 	uint8 rate;
@@ -1221,8 +1212,64 @@ ESFM_envelope_calc(esfm_slot *slot)
 	bool key_on;
 	bool key_on_signal;
 
+	/*
+	 * Fast path for key off + envelope released + delay logic quiescent.
+	 * In this state the full algorithm would only recompute eg_output and
+	 * leave all other envelope state unchanged.
+	 */
+	if (slot->in.eg_position == 0x1ff
+		&& slot->in.eg_state == EG_RELEASE
+		&& native
+		&& !*slot->in.key_on
+		&& !slot->in.key_on_gate
+		&& !slot->in.eg_delay_run
+		&& !slot->in.phase_reset
+		&& !(slot->in.eg_delay_transitioned_10 && !slot->in.eg_delay_transitioned_10_gate)
+		&& !(slot->in.eg_delay_transitioned_01 && !slot->in.eg_delay_transitioned_01_gate))
+	{
+		uint16 eg_output = 0x1ff + slot->eg_tl_ksl;
+		if (slot->tremolo_en)
+		{
+			eg_output += slot->chip->tremolo >> ((!slot->tremolo_deep << 1) + 2);
+		}
+		slot->in.eg_output = eg_output;
+		return;
+	}
+
+	/*
+	 * Fast path for note in sustain. The full algorithm would only
+	 * recompute eg_output, tick the delay counter, and apply the
+	 * envelope_off clamp.
+	 */
+	if (slot->in.eg_state == EG_SUSTAIN
+		&& slot->env_sustaining
+		&& native
+		&& *slot->in.key_on
+		&& slot->in.key_on_gate
+		&& slot->in.eg_delay_counter >= slot->in.eg_delay_counter_compare
+		&& !(slot->in.eg_delay_transitioned_10 && !slot->in.eg_delay_transitioned_10_gate)
+		&& !(slot->in.eg_delay_transitioned_01 && !slot->in.eg_delay_transitioned_01_gate))
+	{
+		uint16 eg_output = slot->in.eg_position + slot->eg_tl_ksl;
+		if (slot->tremolo_en)
+		{
+			eg_output += slot->chip->tremolo >> ((!slot->tremolo_deep << 1) + 2);
+		}
+		slot->in.eg_output = eg_output;
+		if (slot->in.eg_delay_run && slot->in.eg_delay_counter < 32768)
+		{
+			slot->in.eg_delay_counter++;
+		}
+		slot->in.phase_reset = 0;
+		if ((slot->in.eg_position & 0x1f8) == 0x1f8)
+		{
+			slot->in.eg_position = 0x1ff;
+		}
+		return;
+	}
+
 	key_on = *slot->in.key_on;
-	if (!slot->chip->native_mode)
+	if (!native)
 	{
 		int pair_primary_idx = emu_4op_secondary_to_primary[slot->channel->channel_idx];
 		if (pair_primary_idx >= 0)
@@ -1240,12 +1287,11 @@ ESFM_envelope_calc(esfm_slot *slot)
 		}
 	}
 
-	slot->in.eg_output = slot->in.eg_position + (slot->t_level << 2)
-		+ (slot->in.eg_ksl_offset >> kslshift[slot->ksl]);
+	slot->in.eg_output = slot->in.eg_position + slot->eg_tl_ksl;
 	if (slot->tremolo_en)
 	{
 		uint8 tremolo;
-		if (slot->chip->native_mode)
+		if (native)
 		{
 			tremolo = slot->channel->chip->tremolo >> ((!slot->tremolo_deep << 1) + 2);
 		}
@@ -1301,7 +1347,7 @@ ESFM_envelope_calc(esfm_slot *slot)
 		}
 	}
 	
-	if (key_on && ((slot->in.eg_delay_counter >= slot->in.eg_delay_counter_compare) || !slot->chip->native_mode))
+	if (key_on && ((slot->in.eg_delay_counter >= slot->in.eg_delay_counter_compare) || !native))
 	{
 		key_on_signal = 1;
 	} else {
@@ -1311,7 +1357,7 @@ ESFM_envelope_calc(esfm_slot *slot)
 	if (key_on && slot->in.eg_state == EG_RELEASE)
 	{
 
-		if ((slot->in.eg_delay_counter >= slot->in.eg_delay_counter_compare) || !slot->chip->native_mode)
+		if ((slot->in.eg_delay_counter >= slot->in.eg_delay_counter_compare) || !native)
 		{
 			reset = 1;
 			reg_rate = slot->attack_rate;
@@ -1344,7 +1390,7 @@ ESFM_envelope_calc(esfm_slot *slot)
 	}
 	slot->in.key_on_gate = key_on;
 	slot->in.phase_reset = reset;
-	ks = slot->in.keyscale >> ((!slot->ksr) << 1);
+	ks = slot->eg_ks;
 	nonzero = (reg_rate != 0);
 	rate = ks + (reg_rate << 2);
 	rate_hi = rate >> 2;
@@ -1452,11 +1498,80 @@ ESFM_envelope_calc(esfm_slot *slot)
 
 /* ------------------------------------------------------------------------- */
 static void
+ESFM_envelope_calc(esfm_slot *slot)
+{
+	ESFM_envelope_calc_inner(slot, 1);
+}
+
+/* ------------------------------------------------------------------------- */
+static void
+ESFM_envelope_calc_emu(esfm_slot *slot)
+{
+	ESFM_envelope_calc_inner(slot, 0);
+}
+
+/*
+ * LFSR jump tables. Noise LFSR advances once per slot (72x per sample), but is
+ * only read by slot-3 noise modes in native mode, or the rhythm slots in OPL
+ * emu mode. When nothing can read it, a precomputed 72-step jump can replace
+ * the 72 single steps. The step function is linear over GF(2) so it decomposes
+ * into table lookups.
+ */
+static uint32_t lfsr_jump72_lo[256];
+static uint32_t lfsr_jump72_mid[256];
+static uint32_t lfsr_jump72_hi[128];
+static int lfsr_jump72_ready = 0;
+
+static inline uint32_t
+ESFM_lfsr_step(uint32_t noise)
+{
+	uint32_t n_bit = ((noise >> 14) ^ noise) & 0x01;
+	return (noise >> 1) | (n_bit << 22);
+}
+
+void
+ESFM_lfsr_jump_init(void)
+{
+	int v, k;
+	if (lfsr_jump72_ready)
+	{
+		return;
+	}
+	for (v = 0; v < 256; v++)
+	{
+		uint32_t lo = (uint32_t)v, mid = (uint32_t)v << 8, hi = (uint32_t)(v & 0x7f) << 16;
+		for (k = 0; k < 72; k++)
+		{
+			lo = ESFM_lfsr_step(lo);
+			mid = ESFM_lfsr_step(mid);
+			hi = ESFM_lfsr_step(hi);
+		}
+		lfsr_jump72_lo[v] = lo;
+		lfsr_jump72_mid[v] = mid;
+		if (v < 128)
+		{
+			lfsr_jump72_hi[v] = hi;
+		}
+	}
+	lfsr_jump72_ready = 1;
+}
+
+static inline uint32_t
+ESFM_lfsr_jump72(uint32_t noise)
+{
+	return lfsr_jump72_lo[noise & 0xff]
+		^ lfsr_jump72_mid[(noise >> 8) & 0xff]
+		^ lfsr_jump72_hi[noise >> 16];
+}
+
+/* ------------------------------------------------------------------------- */
+static void
 ESFM_phase_generate(esfm_slot *slot)
 {
 	esfm_chip *chip;
 	uint10 f_num;
 	uint32 basefreq;
+	uint32 phase_inc;
 	bool rm_xor, n_bit;
 	uint23 noise;
 	uint10 phase;
@@ -1486,16 +1601,27 @@ ESFM_phase_generate(esfm_slot *slot)
 			range = -range;
 		}
 		f_num += range;
+		basefreq = (f_num << slot->block) >> 1;
+		phase_inc = (basefreq * mt[slot->mult]) >> 1;
 	}
-	basefreq = (f_num << slot->block) >> 1;
+	else
+	{
+		phase_inc = slot->pg_inc;
+	}
 	phase = (uint10)(slot->in.phase_acc >> 9);
 	if (slot->in.phase_reset)
 	{
 		slot->in.phase_acc = 0;
 	}
-	slot->in.phase_acc += (basefreq * mt[slot->mult]) >> 1;
+	slot->in.phase_acc += phase_inc;
 	slot->in.phase_acc &= (1 << 19) - 1;
 	slot->in.phase_out = phase;
+	if (chip->lfsr_batch)
+	{
+		/* No slot can read the LFSR this sample; ESFM_generate advances it
+		 * in one 72-step jump instead. */
+		return;
+	}
 	/* Noise mode (rhythm) sounds */
 	noise = chip->lfsr;
 	if (slot->slot_idx == 3 && slot->rhy_noise)
@@ -1693,7 +1819,18 @@ ESFM_slot3_noise3_mod_input_calc(esfm_slot *slot)
 static void
 ESFM_slot_generate(esfm_slot *slot)
 {
-	int16 phase = slot->in.phase_out;
+	int16 phase;
+	if (slot->in.eg_output >= 0x180)
+	{
+		/*
+		 * exprom's maximum entry is 0xff4 (< 2^12); an envelope of 0x180 or
+		 * higher shifts every exprom lookup right by at least 12 bits, so
+		 * the slot output is exactly zero for any phase.
+		 */
+		slot->in.output = 0;
+		return;
+	}
+	phase = slot->in.phase_out;
 	if (slot->mod_in_level)
 	{
 		if (slot->slot_idx == 3 && slot->rhy_noise == 3)
@@ -1719,7 +1856,14 @@ static void
 ESFM_slot_generate_emu(esfm_slot *slot)
 {
 	const esfm_chip *chip = slot->chip;
-	uint3 waveform = slot->waveform & (chip->emu_newmode != 0 ? 0x07 : 0x03);
+	uint3 waveform;
+	if (slot->in.eg_output >= 0x180)
+	{
+		/* See ESFM_slot_generate: the slot output is exactly zero. */
+		slot->in.output = 0;
+		return;
+	}
+	waveform = slot->waveform & (chip->emu_newmode != 0 ? 0x07 : 0x03);
 	bool rhythm_slot_double_volume = (slot->chip->emu_rhy_mode_flags & 0x20) != 0
 		&& slot->channel->channel_idx >= 6 && slot->channel->channel_idx < 9;
 	int16 phase = slot->in.phase_out;
@@ -1740,263 +1884,139 @@ ESFM_slot_generate_emu(esfm_slot *slot)
 	}
 }
 
-/* ------------------------------------------------------------------------- */
-#pragma GCC diagnostic ignored "-Wunused-variable"
-#pragma GCC diagnostic ignored "-Wunknown-pragmas"
-#pragma clang diagnostic ignored "-Wunused-variable"
-#pragma clang diagnostic ignored "-Wunknown-pragmas"
+/*
+ * Number of feedback chains processed in lockstep. Since per-chain work is a
+ * serialization through dependent loads, interleaving several independent
+ * channels pipelines better.
+ */
+#define ESFM_FB_LANES 4
+
 static void
 ESFM_process_feedback(esfm_chip *chip)
 {
-	int channel_idx;
+	const uint16_t *wf_base[18 + ESFM_FB_LANES - 1];
+	uint32_t phase_acc[18 + ESFM_FB_LANES - 1];
+	uint32_t phase_offset[18 + ESFM_FB_LANES - 1];
+	uint16_t eg3[18 + ESFM_FB_LANES - 1];
+	uint8_t mod_in_shift[18 + ESFM_FB_LANES - 1];
+	esfm_slot *act[18];
+	int total = 0;
+	int channel_idx, base, lane;
 
 	for (channel_idx = 0; channel_idx < 18; channel_idx++)
 	{
 		esfm_slot *slot = &chip->channels[channel_idx].slots[0];
-		uint32 basefreq, phase_offset;
-		uint3 block;
-		uint10 f_num;
-		int32_t wave_out, wave_last;
-		int32_t phase_feedback;
-		uint32_t iter_counter;
 		uint3 waveform;
-		uint3 mod_in_shift;
-		uint32_t phase, phase_acc;
-		uint10 eg_output;
 
-		if (slot->mod_in_level && (chip->native_mode || (slot->in.mod_input == &slot->in.feedback_buf)))
+		if (!(slot->mod_in_level
+			&& (chip->native_mode || (slot->in.mod_input == &slot->in.feedback_buf))))
 		{
+			continue;
+		}
+		if (slot->in.eg_output >= 0x180)
+		{
+			/*
+			 * See ESFM_slot_generate: every wave_out in the feedback loop
+			 * is exactly zero, so the resulting phase feedback is zero too.
+			 */
+			slot->in.feedback_buf = 0;
+			continue;
+		}
+		if (chip->native_mode)
+		{
+			waveform = slot->waveform;
+		}
+		else
+		{
+			waveform = slot->waveform & (0x03 | (0x02 << (chip->emu_newmode != 0)));
+		}
+		act[total] = slot;
+		wf_base[total] = &logsinrom[(uint16)waveform << 10];
+		phase_offset[total] = slot->pg_inc;
+		phase_acc[total] = (uint32_t)(slot->in.phase_acc - slot->pg_inc * 28);
+		eg3[total] = slot->in.eg_output << 3;
+		mod_in_shift[total] = 7 - slot->mod_in_level;
+		total++;
+	}
+
+	/*
+	 * Pad to a multiple of ESFM_FB_LANES with copies of the first chain; the
+	 * padded lanes' results are discarded. This looks crazy but it's right.
+	 */
+	for (lane = total; lane % ESFM_FB_LANES != 0; lane++)
+	{
+		wf_base[lane] = wf_base[0];
+		phase_offset[lane] = phase_offset[0];
+		phase_acc[lane] = phase_acc[0];
+		eg3[lane] = eg3[0];
+		mod_in_shift[lane] = mod_in_shift[0];
+	}
+
+	for (base = 0; base < total; base += ESFM_FB_LANES)
+	{
+/*
+ * One feedback chain step. Equivalent to
+ * ESFM_envelope_wavegen(waveform, phase, eg_output) plus the surrounding
+ * feedback bookkeeping.
+ */
+#define ESFM_FB_LANE_DECL(k) \
+	const uint16_t *wf##k = wf_base[base + (k)]; \
+	const uint32_t off##k = phase_offset[base + (k)]; \
+	const uint32_t e##k = eg3[base + (k)]; \
+	const int ms##k = mod_in_shift[base + (k)]; \
+	uint32_t pa##k = phase_acc[base + (k)]; \
+	int32_t out##k = 0, last##k = 0, pfb##k = 0
+
+#define ESFM_FB_LANE_STEP(k) do { \
+	uint32_t phase_, lookup_, level_; \
+	int32_t o_; \
+	pfb##k = (out##k + last##k) >> 2; \
+	last##k = out##k; \
+	phase_ = (uint32_t)(pfb##k >> ms##k) + (pa##k >> 9); \
+	lookup_ = wf##k[phase_ & 0x3ff]; \
+	level_ = (lookup_ & 0x1fff) + e##k; \
+	if (level_ > 0x1fff) \
+	{ \
+		level_ = 0x1fff; \
+	} \
+	o_ = exprom[level_ & 0xff] >> (level_ >> 8); \
+	if (lookup_ & 0x8000) \
+	{ \
+		o_ = -o_; \
+	} \
+	out##k = o_; \
+	pa##k += off##k; \
+} while (0)
+
+		ESFM_FB_LANE_DECL(0);
+		ESFM_FB_LANE_DECL(1);
+		ESFM_FB_LANE_DECL(2);
+		ESFM_FB_LANE_DECL(3);
+		int32_t pfb[ESFM_FB_LANES];
+		int iter;
+
+		for (iter = 0; iter < 29; iter++)
+		{
+			ESFM_FB_LANE_STEP(0);
+			ESFM_FB_LANE_STEP(1);
+			ESFM_FB_LANE_STEP(2);
+			ESFM_FB_LANE_STEP(3);
+		}
+
+		pfb[0] = pfb0;
+		pfb[1] = pfb1;
+		pfb[2] = pfb2;
+		pfb[3] = pfb3;
+		for (lane = 0; lane < ESFM_FB_LANES && base + lane < total; lane++)
+		{
+			esfm_slot *slot = act[base + lane];
 			if (chip->native_mode)
 			{
-				waveform = slot->waveform;
+				slot->in.feedback_buf = pfb[lane];
 			}
 			else
 			{
-				waveform = slot->waveform & (0x03 | (0x02 << (chip->emu_newmode != 0)));
-			}
-			f_num = slot->f_num;
-			block = slot->block;
-			basefreq = (f_num << block) >> 1;
-			phase_offset = (basefreq * mt[slot->mult]) >> 1;
-			mod_in_shift = 7 - slot->mod_in_level;
-			phase_acc = (uint32_t)(slot->in.phase_acc - phase_offset * 28);
-			eg_output = slot->in.eg_output;
-
-			// ASM optimizaions!
-#if defined(__GNUC__) && defined(__x86_64__) && !defined(_ESFMU_DISABLE_ASM_OPTIMIZATIONS)
-			asm (
-				"movzbq  %[wave], %%r8               \n\t"
-				"shll    $11, %%r8d                  \n\t"
-				"leaq    %[sinrom], %%rax            \n\t"
-				"addq    %%rax, %%r8                 \n\t"
-				"leaq    %[exprom], %%r9             \n\t"
-				"movzwl  %[eg_out], %%r10d           \n\t"
-				"shll    $3, %%r10d                  \n\t"
-				"xorl    %%r11d, %%r11d              \n\t"
-				"movl    %%r11d, %[out]              \n\t"
-				"movl    $29, %%edx                  \n"
-				"1:                                  \n\t"
-				// phase_feedback = (wave_out + wave_last) >> 2;
-				"movl    %[out], %[p_fb]             \n\t"
-				"addl    %%r11d, %[p_fb]             \n\t"
-				"sarl    $2, %[p_fb]                 \n\t"
-				// wave_last = wave_out
-				"movl    %[out], %%r11d              \n\t"
-				// phase = phase_feedback >> mod_in_shift;
-				"movl    %[p_fb], %%eax              \n\t"
-				"movb    %[mod_in], %%cl             \n\t"
-				"sarl    %%cl, %%eax                 \n\t"
-				// phase += phase_acc >> 9;
-				"movl    %[p_acc], %%ebx             \n\t"
-				"sarl    $9, %%ebx                   \n\t"
-				"addl    %%ebx, %%eax                \n\t"
-				// lookup = logsinrom[(waveform << 10) | (phase & 0x3ff)];
-				"andq    $0x3ff, %%rax               \n\t"
-				"movzwl  (%%r8, %%rax, 2), %%ebx     \n\t"
-				"movl    %%ebx, %%eax                \n\t"
-				// level = (lookup & 0x1fff) + (envelope << 3);
-				"movl    $0x1fff, %%ecx              \n\t"
-				"andl    %%ecx, %%eax                \n\t"
-				"addl    %%r10d, %%eax               \n\t"
-				// if (level > 0x1fff) level = 0x1fff;
-				"cmpl    %%ecx, %%eax                \n\t"
-				"cmoval  %%ecx, %%eax                \n\t"
-				// wave_out = exprom[level & 0xff] >> (level >> 8);
-				"movb    %%ah, %%cl                  \n\t"
-				"movzbl  %%al, %%eax                 \n\t"
-				"movzwl  (%%r9, %%rax, 2), %[out]    \n\t"
-				"shrl    %%cl, %[out]                \n\t"
-				// if (lookup & 0x8000) wave_out = -wave_out;
-				// in other words, lookup is negative
-				"movl    %[out], %%ecx               \n\t"
-				"negl    %%ecx                       \n\t"
-				"testw   %%bx, %%bx                  \n\t"
-				"cmovsl  %%ecx, %[out]               \n\t"
-				// phase_acc += phase_offset
-				"addl    %[p_off], %[p_acc]          \n\t"
-				// loop
-				"decl    %%edx                       \n\t"
-				"jne     1b                          \n\t"
-				: [p_fb]   "=&r" (phase_feedback),
-				  [p_acc]  "+r"  (phase_acc),
-				  [out]    "=&r" (wave_out)
-				: [p_off]  "r"   (phase_offset),
-				  [mod_in] "r"   (mod_in_shift),
-				  [wave]   "g"   (waveform),
-				  [eg_out] "g"   (eg_output),
-				  [sinrom] "m"   (logsinrom),
-				  [exprom] "m"   (exprom)
-				: "cc", "ax", "bx", "cx", "dx", "r8", "r9", "r10", "r11"
-			);
-#elif defined(__GNUC__) && defined(__i386__) && !defined(_ESFMU_DISABLE_ASM_OPTIMIZATIONS)
-			size_t logsinrom_addr = (size_t)logsinrom;
-			size_t exprom_addr = (size_t)exprom;
-
-			asm (
-				"movzbl  %b[wave], %%eax             \n\t"
-				"shll    $11, %%eax                  \n\t"
-				"movl    %[sinrom], %%edi            \n\t"
-				"addl    %%eax, %%edi                \n\t"
-				"shlw    $3, %[eg_out]               \n\t"
-				"xorl    %[out], %[out]              \n\t"
-				"movl    %[out], %[last]             \n\t"
-				"movl    $29, %[i]                   \n"
-				"1:                                  \n\t"
-				// phase_feedback = (wave_out + wave_last) >> 2;
-				"movl    %[out], %%eax               \n\t"
-				"addl    %[last], %%eax              \n\t"
-				"sarl    $2, %%eax                   \n\t"
-				"movl    %%eax, %[p_fb]              \n\t"
-				// wave_last = wave_out
-				"movl    %[out], %[last]             \n\t"
-				// phase = phase_feedback >> mod_in_shift;
-				"movb    %[mod_in], %%cl             \n\t"
-				"sarl    %%cl, %%eax                 \n\t"
-				// phase += phase_acc >> 9;
-				"movl    %[p_acc], %%ebx             \n\t"
-				"shrl    $9, %%ebx                   \n\t"
-				"addl    %%ebx, %%eax                \n\t"
-				// lookup = logsinrom[(waveform << 10) | (phase & 0x3ff)];
-				"andl    $0x3ff, %%eax               \n\t"
-				"movzwl  (%%edi, %%eax, 2), %%ebx    \n\t"
-				"movl    %%ebx, %%eax                \n\t"
-				// level = (lookup & 0x1fff) + (envelope << 3);
-				"movl    $0x1fff, %%ecx              \n\t"
-				"andl    %%ecx, %%eax                \n\t"
-				"addw    %[eg_out], %%ax             \n\t"
-				// if (level > 0x1fff) level = 0x1fff;
-				"cmpl    %%ecx, %%eax                \n\t"
-				"cmoval  %%ecx, %%eax                \n\t"
-				// wave_out = exprom[level & 0xff] >> (level >> 8);
-				"movb    %%ah, %%cl                  \n\t"
-				"movzbl  %%al, %%eax                 \n\t"
-				"movl    %[exprom], %[out]           \n\t"
-				"movzwl  (%[out], %%eax, 2), %[out]  \n\t"
-				"shrl    %%cl, %[out]                \n\t"
-				// if (lookup & 0x8000) wave_out = -wave_out;
-				// in other words, lookup is negative
-				"movl    %[out], %%ecx               \n\t"
-				"negl    %%ecx                       \n\t"
-				"testw   %%bx, %%bx                  \n\t"
-				"cmovsl  %%ecx, %[out]               \n\t"
-				// phase_acc += phase_offset
-				"addl    %[p_off], %[p_acc]          \n\t"
-				// loop
-				"decl    %[i]                        \n\t"
-				"jne     1b                          \n\t"
-				: [p_fb]   "=&m" (phase_feedback),
-				  [p_acc]  "+r"  (phase_acc),
-				  [out]    "=&r" (wave_out),
-				  [last]   "=&m" (wave_last),
-				  [eg_out] "+m"  (eg_output)
-				: [p_off]  "m"   (phase_offset),
-				  [mod_in] "m"   (mod_in_shift),
-				  [wave]   "m"   (waveform),
-				  [sinrom] "m"   (logsinrom_addr),
-				  [exprom] "m"   (exprom_addr),
-				  [i]      "m"   (iter_counter)
-				: "cc", "ax", "bx", "cx", "di"
-			);
-#elif defined(__GNUC__) && defined(__arm__) && !defined(_ESFMU_DISABLE_ASM_OPTIMIZATIONS)
-			asm (
-				"movs    r3, #0                     \n\t"
-				"movs    %[out], #0                 \n\t"
-				"ldr     r8, =0x1fff                \n\t"
-				"movs    r2, #29                    \n"
-				"1:                                 \n\t"
-				// phase_feedback = (wave_out + wave_last) >> 2;
-				"adds    %[p_fb], %[out], r3        \n\t"
-				"asrs    %[p_fb], %[p_fb], #2       \n\t"
-				// wave_last = wave_out
-				"mov     r3, %[out]                 \n\t"
-				// phase = phase_feedback >> mod_in_shift;
-				"asr     r0, %[p_fb], %[mod_in]     \n\t"
-				// phase += phase_acc >> 9;
-				"add     r0, r0, %[p_acc], asr #9   \n\t"
-				// lookup = logsinrom[(waveform << 10) | (phase & 0x3ff)];
-				"lsls    r0, r0, #22                \n\t"
-				"lsrs    r0, r0, #21                \n\t"
-				"ldrsh   r1, [%[sinrom], r0]        \n\t"
-				// level = (lookup & 0x1fff) + (envelope << 3);
-				"and     r0, r8, r1                 \n\t"
-				"add     r0, r0, %[eg_out], lsl #3  \n\t"
-				// if (level > 0x1fff) level = 0x1fff;
-				"cmp     r0, r8                     \n\t"
-				"it      hi                         \n\t"
-				"movhi   r0, r8                     \n\t"
-				// wave_out = exprom[level & 0xff] >> (level >> 8);
-				"lsrs    %[out], r0, #8             \n\t"
-				"ands    r0, r0, #255               \n\t"
-				"lsls    r0, r0, #1                 \n\t"
-				"ldrh    r0, [%[exprom], r0]        \n\t"
-				"lsr     %[out], r0, %[out]         \n\t"
-				// if (lookup & 0x8000) wave_out = -wave_out;
-				// in other words, lookup is negative
-				"tst     r1, r1                     \n\t"
-				"it      mi                         \n\t"
-				"negmi   %[out], %[out]             \n\t"
-				// phase_acc += phase_offset
-				"adds    %[p_acc], %[p_acc], %[p_off]\n\t"
-				// loop
-				"subs    r2, r2, #1                 \n\t"
-				"bne     1b                         \n\t"
-				: [p_fb]   "=&r" (phase_feedback),
-				  [p_acc]  "+r"  (phase_acc),
-				  [out]    "=&r" (wave_out)
-				: [p_off]  "r"   (phase_offset),
-				  [mod_in] "r"   (mod_in_shift),
-				  [eg_out] "r"   (eg_output),
-				  [sinrom] "r"   (logsinrom + waveform * 1024),
-				  [exprom] "r"   (exprom)
-				: "cc", "r0", "r1", "r2", "r3", "r8"
-			);
-#else
-			wave_out = 0;
-			wave_last = 0;
-			for (iter_counter = 0; iter_counter < 29; iter_counter++)
-			{
-				phase_feedback = (wave_out + wave_last) >> 2;
-				wave_last = wave_out;
-				phase = phase_feedback >> mod_in_shift;
-				phase += phase_acc >> 9;
-				wave_out = ESFM_envelope_wavegen(waveform, phase, eg_output);
-				phase_acc += phase_offset;
-			}
-#endif
-
-			// TODO: Figure out - is this how the ESFM chip does it, like the
-			// patent literally says? (it's really hacky...)
-			//   slot->in.output = wave_out;
-
-			// This would be the more canonical way to do it, reusing the rest of
-			// the synthesis pipeline to finish the calculation:
-			if (chip->native_mode)
-			{
-				slot->in.feedback_buf = phase_feedback;
-			}
-			else
-			{
-				slot->in.feedback_buf = phase_feedback >> (7 - slot->mod_in_level);
+				slot->in.feedback_buf = pfb[lane] >> mod_in_shift[base + lane];
 			}
 		}
 	}
@@ -2032,7 +2052,7 @@ ESFM_process_channel_emu(esfm_channel *channel)
 	for (slot_idx = 0; slot_idx < 2; slot_idx++)
 	{
 		esfm_slot *slot = &channel->slots[slot_idx];
-		ESFM_envelope_calc(slot);
+		ESFM_envelope_calc_emu(slot);
 		ESFM_phase_generate_emu(slot);
 		if(slot_idx > 0)
 		{
@@ -2045,11 +2065,11 @@ ESFM_process_channel_emu(esfm_channel *channel)
 }
 
 /* ------------------------------------------------------------------------- */
-static int16_t
+int16_t
 ESFM_clip_sample(int32 sample)
 {
-	// TODO: Supposedly, the real ESFM chip actually overflows rather than
-	// clipping. Verify that.
+	// This properly clips the sample no matter its amplitude, matching earlier
+	// ESFM revisions.
 	if (sample > 32767)
 	{
 		sample = 32767;
@@ -2057,6 +2077,27 @@ ESFM_clip_sample(int32 sample)
 	else if (sample < -32768)
 	{
 		sample = -32768;
+	}
+	return (int16_t)sample;
+}
+
+/* ------------------------------------------------------------------------- */
+int16_t
+ESFM_overflow_clip_sample(int32 sample)
+{
+	// This emulates the clipping overflow behavior on later ESFM revisions.
+	// See esfm_revisions_e_ for more info.
+	if (sample & 0x8000)
+	{
+		sample = 32767;
+	}
+	else if (sample < 0 && !(sample & 0x8000))
+	{
+		sample = -32768;
+	}
+	else
+	{
+		sample &= 0xFFFF;
 	}
 	return (int16_t)sample;
 }
@@ -2071,7 +2112,11 @@ ESFM_update_timers(esfm_chip *chip)
 	// Tremolo
 	if ((chip->global_timer & 0x3f) == 0x3f)
 	{
-		chip->tremolo_pos = (chip->tremolo_pos + 1) % 210;
+		chip->tremolo_pos++;
+		if (chip->tremolo_pos == 210)
+		{
+			chip->tremolo_pos = 0;
+		}
 		if (chip->tremolo_pos < 105)
 		{
 			chip->tremolo = chip->tremolo_pos;
@@ -2094,11 +2139,16 @@ ESFM_update_timers(esfm_chip *chip)
 	chip->eg_clocks = 0;
 	if (chip->eg_timer)
 	{
+#if defined(__GNUC__) || defined(__clang__)
+		/* eg_timer is a nonzero 36-bit value here, so ctzll < 36 */
+		uint8 shift = (uint8)__builtin_ctzll(chip->eg_timer);
+#else
 		uint8 shift = 0;
 		while (shift < 36 && ((chip->eg_timer >> shift) & 1) == 0)
 		{
 			shift++;
 		}
+#endif
 
 		if (shift <= 12)
 		{
@@ -2181,6 +2231,15 @@ ESFM_update_write_buffer(esfm_chip *chip)
 	bool note_off_written[20];
 	bool bassdrum_written = false;
 	int i;
+
+	/* Fast path: no buffered write due this sample */
+	write_buf = &chip->write_buf[chip->write_buf_start];
+	if (!write_buf->valid || write_buf->timestamp > chip->write_buf_timestamp)
+	{
+		chip->write_buf_timestamp++;
+		return;
+	}
+
 	for (i = 0; i < 20; i++)
 	{
 		note_off_written[i] = false;
@@ -2237,6 +2296,7 @@ ESFM_generate(esfm_chip *chip, int32_t *buf)
 {
 	int channel_idx;
 
+	chip->lfsr_batch = chip->native_mode && chip->rhy_noise_slot3_count == 0;
 	chip->output_accm[0] = chip->output_accm[1] = 0;
 	for (channel_idx = 0; channel_idx < 18; channel_idx++)
 	{
@@ -2249,6 +2309,10 @@ ESFM_generate(esfm_chip *chip, int32_t *buf)
 		{
 			ESFM_process_channel_emu(channel);
 		}
+	}
+	if (chip->lfsr_batch)
+	{
+		chip->lfsr = ESFM_lfsr_jump72(chip->lfsr);
 	}
 	ESFM_process_feedback(chip);
 	for (channel_idx = 0; channel_idx < 18; channel_idx++)
@@ -2266,8 +2330,18 @@ ESFM_generate(esfm_chip *chip, int32_t *buf)
 		chip->output_accm[1] += channel->output[1];
 	}
 
-	buf[0] = chip->output_accm[0];
-	buf[1] = chip->output_accm[1];
+	if (chip->rev >= ESFM_REV_ES1869_ES19XX_ESSSOLO)
+	{
+		// Emulate overflow bug from later revisions
+		buf[0] = ESFM_overflow_clip_sample(chip->output_accm[0]);
+		buf[1] = ESFM_overflow_clip_sample(chip->output_accm[1]);
+	}
+	else
+	{
+		// Clip the sample properly as in older revisions
+		buf[0] = ESFM_clip_sample(chip->output_accm[0]);
+		buf[1] = ESFM_clip_sample(chip->output_accm[1]);
+	}
 
 	ESFM_update_timers(chip);
 	ESFM_update_write_buffer(chip);
@@ -2320,8 +2394,8 @@ ESFM_generate_stream(esfm_chip *chip, int16_t *sndptr, uint32_t num_samples)
 	for (i = 0; i < num_samples; i++)
 	{
 		ESFM_generate(chip, buf);
-		sndptr[0] = ESFM_clip_sample(buf[0]);
-		sndptr[1] = ESFM_clip_sample(buf[1]);
+		sndptr[0] = buf[0];
+		sndptr[1] = buf[1];
 		sndptr += 2;
 	}
 }

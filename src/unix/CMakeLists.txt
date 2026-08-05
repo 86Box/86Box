@@ -40,29 +40,30 @@ else()
 endif()
 
 if (NOT CPPTHREADS)
-    if(WIN32)
+    if (NOT WIN32)
+        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+    endif()
+    find_package(Threads REQUIRED)
+    target_link_libraries(86Box Threads::Threads)
+
+    if (WIN32)
         target_sources(plat PRIVATE ../qt/win_thread.c)
     else()
-        set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-        find_package(Threads REQUIRED)
-        target_link_libraries(86Box Threads::Threads)
-
         target_sources(plat PRIVATE unix_thread.c)
     endif()
 endif()
 
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
-if(STATIC_BUILD AND TARGET SDL2::SDL2-static)
-    target_link_libraries(86Box SDL2::SDL2-static)
-elseif(TARGET SDL2::SDL2)
-    target_link_libraries(86Box SDL2::SDL2)
+find_package(SDL3 REQUIRED)
+include_directories(${SDL3_INCLUDE_DIRS})
+if(STATIC_BUILD AND TARGET SDL3::SDL3-static)
+    target_link_libraries(86Box SDL3::SDL3-static)
+elseif(TARGET SDL3::SDL3)
+    target_link_libraries(86Box SDL3::SDL3)
 else()
-    target_link_libraries(86Box ${SDL2_LIBRARIES})
+    target_link_libraries(86Box ${SDL3_LIBRARIES})
 endif()
 
 option(USE_SDL_SHADER "Build SDL GLES2 shader pipeline" OFF)
-option(USE_IMGUI      "Use ImGui-based OSD"             OFF)
 
 add_library(ui OBJECT
     sdl_render.c
@@ -87,30 +88,25 @@ if(USE_SDL_SHADER)
     target_include_directories(ui PRIVATE ${GLESV2_INCLUDE_DIR})
 endif()
 
-if(USE_IMGUI)
-    target_compile_definitions(ui PRIVATE USE_IMGUI)
-    target_sources(ui PRIVATE sdl_osd.cpp)
+target_sources(ui PRIVATE sdl_osd.cpp)
 
-    add_library(imgui OBJECT
-        imgui/imgui.cpp
-        imgui/imgui_draw.cpp
-        imgui/imgui_tables.cpp
-        imgui/imgui_widgets.cpp
-        imgui/imgui_impl_sdl2.cpp
-    )
+# Build the SDL ImGui backend separately so AUTOMOC skips it.
+set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
+add_library(osd_backend OBJECT
+    ${OSD_DIR}/imgui/imgui_impl_sdl3.cpp
+)
 
-    if(USE_SDL_SHADER)
-        target_sources(imgui PRIVATE imgui/imgui_impl_opengl3.cpp)
-        target_compile_definitions(imgui PRIVATE IMGUI_IMPL_OPENGL_ES2)
-    else()
-        target_sources(imgui PRIVATE imgui/imgui_impl_sdlrenderer2.cpp)
-    endif()
-
-    target_include_directories(ui PRIVATE imgui)
-    target_link_libraries(86Box imgui)
+if(USE_SDL_SHADER)
+    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp)
+    target_compile_definitions(osd_backend PRIVATE IMGUI_IMPL_OPENGL_ES2)
 else()
-    target_sources(ui PRIVATE sdl_osd_old.c)
+    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_sdlrenderer3.cpp)
 endif()
+
+target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
+target_link_libraries(86Box osd_backend)
+
+target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_sources(plat PRIVATE linux_cdrom_ioctl.c)
@@ -131,4 +127,23 @@ target_link_libraries(plat ${CMAKE_DL_LIBS})
 
 if(APPLE)
     target_sources(plat PRIVATE macOSXGlue.m)
+endif()
+
+if(WIN32)
+    enable_language(RC)
+    target_sources(86Box PUBLIC ../qt/86Box-qt.rc)
+
+    # CMake 3.22 messed this up for clang/clang++
+    # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
+    if(MSVC OR (NOT MINGW AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.22))
+        # MSVC linker adds its own manifest to the executable, which fails if
+        # we include ours in 86Box.rc. We therefore need to pass the manifest
+        # directly as as a source file, so the linker can use that instead.
+        set_property(SOURCE ../qt/86Box-qt.rc DIRECTORY .. PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
+        target_sources(86Box PRIVATE ../qt/86Box.manifest)
+    endif()
+
+    if (MINGW)
+        add_compile_definitions(NTDDI_VERSION=0x06010000)
+    endif()
 endif()

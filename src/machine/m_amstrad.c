@@ -177,7 +177,27 @@ static uint8_t crtc_mask[32]   = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static video_timings_t timing_pc1512 = { VIDEO_BUS, 0, 0, 0, 0, 0, 0 }; /*PC1512 video code handles waitstates itself*/
+static unsigned
+pc1512_video_wait_states(uint32_t address, int write, unsigned size,
+                         uint64_t cpu_cycle, void *priv)
+{
+    (void) write;
+    (void) size;
+    (void) cpu_cycle;
+    (void) priv;
+
+    if ((address < 0xb8000u) || (address > 0xbffffu))
+        return 0;
+
+    /* The technical reference specifies 12 to 46 clocks.  Match the existing
+     * PC1512 device model, which currently uses the 12-clock minimum. */
+    return 12;
+}
+
+static video_timings_t timing_pc1512 = {
+    .type        = VIDEO_BUS,
+    .wait_states = pc1512_video_wait_states
+};
 static video_timings_t timing_pc1640 = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
 static video_timings_t timing_pc200  = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
 

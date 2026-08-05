@@ -144,6 +144,13 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="deleteToTrashCheckBox">
+     <property name="text">
+      <string>Delete virtual machines to Recycle Bin</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBoxColorScheme">
      <property name="title">
       <string>Color scheme</string>
@@ -206,6 +213,10 @@
   <tabstop>rememberSizePositionCheckBox</tabstop>
   <tabstop>updateCheckBox</tabstop>
   <tabstop>regexSearchCheckBox</tabstop>
+  <tabstop>deleteToTrashCheckBox</tabstop>
+  <tabstop>radioButtonSystem</tabstop>
+  <tabstop>radioButtonLight</tabstop>
+  <tabstop>radioButtonDark</tabstop>
  </tabstops>
  <resources/>
  <connections>

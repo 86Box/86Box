@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:09+0000\n"
+"PO-Revision-Date: 2026-07-31 15:40+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -66,11 +66,14 @@ msgstr "&Απεικονιστής"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Ορισμός &διαστάσεων…"
@@ -453,6 +456,9 @@ msgstr "Γραφικά XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Προσαρμογέας Γραφικών IBM PS/55"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Πληκτρολόγιο:"
 
@@ -690,6 +696,9 @@ msgstr "Έλεγχος BPB"
 msgid "CD-ROM drives"
 msgstr "Οδηγοί CD-ROM"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "Οδηγοί MO"
 
@@ -840,11 +849,35 @@ msgstr "Σειριακές θύρες"
 msgid "Serial ports:"
 msgstr "Σειριακές θύρες:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Παράλληλες θύρες"
 
 msgid "Parallel ports:"
 msgstr "Παράλληλες θύρες:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Ελεγκτές αποθήκευσης"
@@ -1219,6 +1252,9 @@ msgstr "Αδυναμία ανοίγματος επιλεγμένου αρχεί�
 msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Διαγραφή εικονικών μηχανών στον Κάδο Ανακύκλωσης"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n μηχανή είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
@@ -1392,10 +1428,11 @@ msgstr "Ο εξαναγκαστικός τέρματισμός της εικον
 msgid "&Delete"
 msgstr "&Διαγραφή"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
-"Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα "
-"αρχεία της; Αυτή η ενέργεια είναι ανεπανόρθωτη!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα αρχεία της;"
+
+msgid "This action cannot be undone!"
+msgstr "Αυτή η ενέργεια είναι ανεπανόρθωτη!"
 
 msgid "Show &config file"
 msgstr "Εμφάνιση αρχείου &προσαρμογής"
@@ -1700,8 +1737,11 @@ msgstr "Αργό"
 msgid "Fast"
 msgstr "Γρήγορο"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Αυτόματο-πάγωμα σε απώλεια εστίασης"
+msgid "Auto-pause on focus loss"
+msgstr "Αυτόματο-πάγωμα σε απώλεια εστίασης"
+
+msgid "Auto-pause on dialog boxes"
+msgstr "Αυτόματη παύση στα παράθυρα διαλόγου"
 
 msgid "WinBox is no longer supported"
 msgstr "Το WinBox δεν υποστηρίζεται πλέον"
@@ -2315,6 +2355,9 @@ msgstr "Υψηλό DMA"
 msgid "Control PC speaker"
 msgstr "Έλεγχος ηχείου PC"
 
+msgid "Control MIDI volume"
+msgstr "Έλεγχος έντασης MIDI"
+
 msgid "Memory size"
 msgstr "Μέγεθος μνήμης"
 
@@ -2913,6 +2956,9 @@ msgstr "Ερώτηση επιβεβαίωσης πριν από την ολικ�
 msgid "Ask for confirmation before quitting"
 msgstr "Ερώτηση επιβεβαίωσης κατά την έξοδο"
 
+msgid "Precache CHD files into memory"
+msgstr "Προφόρτωση αρχείων CHD στη μνήμη"
+
 msgid "Options"
 msgstr "Επιλογές"
 
@@ -2924,6 +2970,24 @@ msgstr "Μοντέλο:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Αποτυχία αρχικοποίησης απεικονιστή Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Αποτυχία δημιουργίας στιγμιότυπου Vulkan 1.3."
+
+msgid "No usable Vulkan physical devices found."
+msgstr "Δεν βρέθηκαν φυσικές συσκευές Vulkan που μπορούν να χρησιμοποιηθούν."
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Δεν βρέθηκαν φυσικές συσκευές με δυνατότητα Vulkan."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "Το librashader δεν βρέθηκε. Τα shaders δεν θα είναι διαθέσιμα."
+
+msgid "Vulkan device lost."
+msgstr "H συσκευή Vulkan χάθηκε."
+
+msgid "Vulkan surface lost."
+msgstr "Η επιφάνεια Vulkan χάθηκε."
 
 msgid "GLSL Error"
 msgstr "Σφάλμα GLSL"
@@ -2951,6 +3015,9 @@ msgstr "Διαχειριστής Σκίασης"
 
 msgid "Shader Configuration"
 msgstr "Διαμόρφωση Σκίασης"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Προσθήκη"
@@ -3017,6 +3084,12 @@ msgstr "Εναλλαγή παύσης"
 
 msgid "Toggle mute"
 msgstr "Εναλλαγή σίγασης"
+
+msgid "Toggle on-screen display"
+msgstr "Ενεργοποίηση απεικόνισης στην οθόνη"
+
+msgid "Toggle &on-screen display"
+msgstr "Ενεργοποίηση &απεικόνισης στην οθόνη"
 
 msgid "Text files"
 msgstr "Αρχεία κειμένου"
@@ -3195,6 +3268,9 @@ msgstr "Εξαγωγή…"
 msgid "Export EDID"
 msgstr "Εξαγωγή EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr "Το αρχείο EDID \"%s\" δεν είναι έγκυρο."
+
 msgid "EDID file \"%s\" is too large."
 msgstr "Το αρχείο EDID \"%s\" είναι πολύ μεγάλο."
 
@@ -3262,6 +3338,11 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Αδυναμία φόρτωσης της εικόνας \"%s\": Το %1 λείπει, το οποίο απαιτείται για "
 "την υποστήριξη εικόνων MDS v2 και MDX του Daemon Tools."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Αδυναμία φόρτωσης της εικόνας \"%s\": Λείπει το %1, το οποίο απαιτείται για "
+"την υποστήριξη εικόνων σε μορφή Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3405,3 +3486,6 @@ msgstr "932 (Ιαπωνικά)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (Παραδοσιακά Κινέζικα)"
+
+msgid "Sample rate:"
+msgstr "Ρυθμός δειγματοληψίας:"

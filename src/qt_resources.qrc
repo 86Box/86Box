@@ -84,6 +84,8 @@
         <file>qt/icons/num_lock_on.ico</file>
         <file>qt/icons/scroll_lock_off.ico</file>
         <file>qt/icons/scroll_lock_on.ico</file>
+        <file>qt/icons/jaz.ico</file>
+        <file>qt/icons/jaz_image.ico</file>
     </qresource>
     <qresource prefix="/menuicons">
         <file>qt/icons/acpi_shutdown.ico</file>
@@ -194,6 +196,5 @@
         <file alias="toshiba_t1000.png">qt/assets/systemicons/toshiba_t1000.png</file>
         <file alias="toshiba_t1200.png">qt/assets/systemicons/toshiba_t1200.png</file>
         <file alias="toshiba_t1200_hdd.png">qt/assets/systemicons/toshiba_t1200_hdd.png</file>
-
     </qresource>
 </RCC>

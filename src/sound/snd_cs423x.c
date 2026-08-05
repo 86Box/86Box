@@ -630,7 +630,7 @@ cs423x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     cs423x_t       *dev = (cs423x_t *) priv;
 
-    /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
+    /* Output audio from the WSS codec. */
     ad1848_update(&dev->ad1848);
 
     /* Don't output anything if the analog section or DAC is powered down. */
@@ -649,7 +649,7 @@ cs423x_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
 
-    /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
+    /* Output audio from the OPL if we're in charge of it. */
     if (dev->opl_wss) {
         const int32_t *opl_buf = dev->sb->opl.update(dev->sb->opl.priv);
 

@@ -290,7 +290,7 @@ machine_at_pcm5330_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,          1, 2, 3, 4);
 
     device_add(&stpc_serial_device);
-    device_add_params(&w83977_device, (void *) (W83977F | W83977_370 | W83977_AMI));
+    device_add_params(&w83977_device, (void *) (W83977F | W83977_370 | W83977_AMI | W83977_UART_FORCE_SEC));
     device_add(&stpc_atlas_device);
     device_add(&sst_flash_29ee020_device);
 

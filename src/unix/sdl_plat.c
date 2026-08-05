@@ -1,4 +1,4 @@
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -20,6 +20,8 @@
 #include <86box/ui.h>
 #include <86box/version.h>
 #include "cpu.h"
+
+#include "sdl_render.h"
 
 /*
  * File system manipulation
@@ -91,12 +93,6 @@ char *
 plat_get_string(int i)
 {
     switch (i) {
-        case STRING_MOUSE_CAPTURE:
-            return "Click to capture mouse";
-        case STRING_MOUSE_RELEASE:
-            return "Press CTRL-END to release mouse";
-        case STRING_MOUSE_RELEASE_MMB:
-            return "Press CTRL-END or middle button to release mouse";
         case STRING_PCAP_ERROR_NO_DEVICES:
             return "No PCap devices found. Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case STRING_PCAP_ERROR_INVALID_DEVICE:
@@ -117,6 +113,8 @@ plat_get_string(int i)
             return "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.";
         case STRING_ESCP_ERROR:
             return "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.";
+        case STRING_EDID_READ_ERROR:
+            return "EDID file \"%s\" is invalid.";
         case STRING_EDID_TOO_LARGE:
             return "EDID file \"%s\" is too large.";
         case STRING_CDROM_OPEN_ISO_ERROR:
@@ -129,6 +127,8 @@ plat_get_string(int i)
             return "Unable to load CD-ROM image \"%s\".";
         case STRING_CDROM_LOAD_MDSX_ERROR:
             return "Unable to load image \"%s\": mdsx.so is missing, which is required for Daemon Tools MDS v2 and MDX image support.";
+        case STRING_CDROM_LOAD_AARU_ERROR:
+            return "Unable to load image \"%s\": libaaruformat.so is missing, which is required for Aaru format image support.";
         case STRING_CDROM_DVD_IN_CD_DRIVE:
             return "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.";
         case STRING_CHARDEV_CONNECT_ERROR:
@@ -266,7 +266,7 @@ path_get_dirname(char *dest, const char *path)
 void
 plat_get_exe_name(char *s, int size)
 {
-    char *basepath = SDL_GetBasePath();
+    const char *basepath = SDL_GetBasePath();
 
     snprintf(s, size, "%s%s", basepath, basepath[strlen(basepath) - 1] == '/' ? EMU_NAME : "/" EMU_NAME);
 }

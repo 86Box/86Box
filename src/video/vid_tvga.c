@@ -502,7 +502,7 @@ static const device_config_t tvga8900_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "tvga8900dr",
         .default_int    = 0,
@@ -590,7 +590,7 @@ static const device_config_t tvga9000b_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "tvga9000b",
         .default_int    = 0,

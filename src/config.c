@@ -64,6 +64,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
+#include <86box/fdd_tape.h>
 #include <86box/fdd_audio.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
@@ -93,16 +94,18 @@
 
 #ifndef USE_SDL_UI
 /* Deliberate to not make the 86box.h header kitchen-sink. */
-#include <86box/qt-glsl.h>
+#include <86box/qt_glsl.h>
 extern char gl3_shader_file[MAX_USER_SHADERS][512];
+extern char vk_shader_file[20][512];
 #endif
 
-static int   cx;
-static int   cy;
-static int   cw;
-static int   ch;
-static ini_t config;
-static ini_t global;
+static int      cx;
+static int      cy;
+static int      cw;
+static int      ch;
+static ini_t    config;
+static ini_t    global;
+static mutex_t *config_mutex = NULL;
 
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
@@ -142,12 +145,17 @@ load_global_emulator(void)
 
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
 
+    do_auto_pause        = ini_section_get_int(cat, "do_auto_pause", 0);
+    do_auto_dialog_pause = ini_section_get_int(cat, "do_auto_dialog_pause", 0);
+
     confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
     color_scheme  = ini_section_get_int(cat, "color_scheme", 0);
 
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
+
+    chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
 
     p = ini_section_get_string(cat, "vmm_path", NULL);
     if (p != NULL) {
@@ -360,6 +368,7 @@ load_general(void)
 
     enable_discord = !!ini_section_get_int(cat, "enable_discord", 0);
 
+    video_vk_device = ini_section_get_int(cat, "video_vk_device", 0);
     video_framerate = ini_section_get_int(cat, "video_gl_framerate", -1);
     video_vsync     = ini_section_get_int(cat, "video_gl_vsync", 0);
 
@@ -377,7 +386,6 @@ load_general(void)
         ini_section_delete_var(cat, "window_coordinates");
     }
 
-    do_auto_pause = ini_section_get_int(cat, "do_auto_pause", 0);
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
     fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
@@ -386,6 +394,8 @@ load_general(void)
         strncpy(uuid, p, sizeof(uuid) - 1);
     else
         strncpy(uuid, "", sizeof(uuid) - 1);
+
+    gdbstub_port = ini_section_get_int(cat, "gdbstub_port", 12345);
 }
 
 /* Load monitor section. */
@@ -955,6 +965,10 @@ load_sound(void)
     p = ini_section_get_string(cat, "sound_output_device", "");
     strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
     sound_output_device[sizeof(sound_output_device) - 1] = '\0';
+
+    sound_sample_rate = ini_section_get_int(cat, "sound_sample_rate", FREQ_48000);
+    if (sound_sample_rate != FREQ_44100 && sound_sample_rate != FREQ_48000)
+        sound_sample_rate = FREQ_48000;
 }
 
 /* Load "Network" section. */
@@ -1431,6 +1445,25 @@ load_storage_controllers(void)
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
+
+    fdd_tape_enabled = !!ini_section_get_int(cat, "floppy_tape_enabled", 0);
+
+    fdd_tape_unit = ini_section_get_int(cat, "floppy_tape_unit", 1);
+    if ((fdd_tape_unit < 0) || (fdd_tape_unit >= FDD_NUM))
+        fdd_tape_unit = 1;
+
+    memset(fdd_tape_fn, 0x00, sizeof(fdd_tape_fn));
+    p = ini_section_get_string(cat, "floppy_tape_file", "");
+    if ((p != NULL) && (p[0] != 0x00)) {
+        if (load_image_file(fdd_tape_fn, p, NULL))
+            fatal("Configuration: Length of floppy_tape_file is more than %i\n",
+                  MAX_IMAGE_PATH_LEN - 1);
+    }
+
+    if (!fdd_tape_enabled) {
+        ini_section_delete_var(cat, "floppy_tape_unit");
+        ini_section_delete_var(cat, "floppy_tape_file");
+    }
 
     if (machine_has_bus(machine, MACHINE_BUS_CASSETTE))
         cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
@@ -2536,6 +2569,48 @@ load_gl3_shaders(void)
         }
     }
 }
+/* Load Vulkan renderer options. */
+static void
+load_vk_shaders(void)
+{
+    ini_section_t cat = ini_find_section(config, "VK Shaders");
+    char         *p;
+    char          temp[512];
+    int           i = 0, shaders = 0;
+    memset(temp, 0, sizeof(temp));
+    memset(vk_shader_file, 0, sizeof(vk_shader_file));
+
+    shaders = ini_section_get_int(cat, "shaders", 0);
+    if (shaders > MAX_USER_SHADERS)
+        shaders = MAX_USER_SHADERS;
+
+    if (shaders == 0) {
+        ini_section_t general = ini_find_section(config, "General");
+        if (general) {
+            p = ini_section_get_string(general, "video_vk_shader", NULL);
+            if (p) {
+                if (strlen(p) > 511)
+                    fatal("Configuration: Length of video_vk_shader is more than 511\n");
+                else
+                    strncpy(vk_shader_file[0], p, 511);
+                ini_delete_var(config, general, "video_vk_shader");
+                return;
+            }
+        }
+    }
+
+    for (i = 0; i < shaders; i++) {
+        temp[0] = 0;
+        snprintf(temp, 512, "shader%d", i);
+        p = ini_section_get_string(cat, temp, "");
+        if (p[0]) {
+            strncpy(vk_shader_file[i], p, 512);
+        } else {
+            vk_shader_file[i][0] = 0;
+            break;
+        }
+    }
+}
 #endif
 
 /* Load "Keybinds" section. */
@@ -2622,6 +2697,7 @@ config_load(void)
         machine              = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale            = 1;
         do_auto_pause        = 0;
+        do_auto_dialog_pause = 0;
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
@@ -2669,6 +2745,10 @@ config_load(void)
         for (i = 0; i < ISAMEM_MAX; i++)
             isamem_type[i] = 0;
 
+        fdd_tape_enabled = 0;
+        fdd_tape_unit    = 1;
+        memset(fdd_tape_fn, 0x00, sizeof(fdd_tape_fn));
+
         cassette_enable = 1;
         memset(cassette_fname, 0x00, sizeof(cassette_fname));
         memcpy(cassette_mode, "load", strlen("load") + 1);
@@ -2677,6 +2757,8 @@ config_load(void)
         cassette_append       = 0;
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
+
+        gdbstub_port          = 12345;
 
         config_log("VM config file not present or invalid!\n");
     } else {
@@ -2697,6 +2779,7 @@ config_load(void)
         load_other_peripherals();       /* Other peripherals */
 #ifndef USE_SDL_UI
         load_gl3_shaders();             /* GL3 Shaders */
+        load_vk_shaders();              /* VK Shaders */
 #endif
         if (!kb_loaded)
             load_keybinds();            /* Load shortcut keybinds */
@@ -2720,6 +2803,11 @@ config_load(void)
 
         config_log("VM config loaded.\n\n");
     }
+
+    /* Protecet concurrent config_save() calls from the emulation
+       thread and UI thread. */
+    if (config_mutex == NULL)
+        config_mutex = thread_create_mutex();
 
     /* Mark the configuration as changed. */
     config_changed = 1;
@@ -2750,6 +2838,16 @@ save_global_emulator(void)
     else
         ini_section_delete_var(cat, "open_dir_usr_path");
 
+    if (do_auto_pause)
+        ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
+    else
+        ini_section_delete_var(cat, "do_auto_pause");
+
+    if (do_auto_dialog_pause)
+        ini_section_set_int(cat, "do_auto_dialog_pause", do_auto_dialog_pause);
+    else
+        ini_section_delete_var(cat, "do_auto_dialog_pause");
+
     if (confirm_reset != 1)
         ini_section_set_int(cat, "confirm_reset", confirm_reset);
     else
@@ -2764,6 +2862,12 @@ save_global_emulator(void)
         ini_section_set_int(cat, "confirm_save", confirm_save);
     else
         ini_section_delete_var(cat, "confirm_save");
+
+
+    if (chd_precache_level)
+        ini_section_set_int(cat, "chd_precache_level", chd_precache_level);
+    else
+        ini_section_delete_var(cat, "chd_precache_level");
 
     if (vmm_disabled != 0)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
@@ -2974,6 +3078,11 @@ save_general(void)
     else
         ini_section_delete_var(cat, "enable_discord");
 
+    if (video_vk_device != 0)
+        ini_section_set_int(cat, "video_vk_device", video_vk_device);
+    else
+        ini_section_delete_var(cat, "video_vk_device");
+
     if (video_framerate != -1)
         ini_section_set_int(cat, "video_gl_framerate", video_framerate);
     else
@@ -2982,11 +3091,6 @@ save_general(void)
         ini_section_set_int(cat, "video_gl_vsync", video_vsync);
     else
         ini_section_delete_var(cat, "video_gl_vsync");
-
-    if (do_auto_pause)
-        ini_section_set_int(cat, "do_auto_pause", do_auto_pause);
-    else
-        ini_section_delete_var(cat, "do_auto_pause");
 
     if (video_gl_input_scale != 1.0) {
         ini_section_set_double(cat, "video_gl_input_scale", video_gl_input_scale);
@@ -3019,10 +3123,15 @@ save_general(void)
     else
         ini_section_delete_var(cat, "emu_build_num");
 
-  if (strnlen(uuid, sizeof(uuid) - 1) > 0)
+    if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
     else
         ini_section_delete_var(cat, "uuid");
+
+    if (gdbstub_port != 12345)
+        ini_section_delete_var(cat, "gdbstub_port");
+    else
+        ini_section_set_int(cat, "gdbstub_port", gdbstub_port);
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -3360,6 +3469,11 @@ save_sound(void)
     else
         ini_section_set_string(cat, "sound_output_device", sound_output_device);
 
+    if (sound_sample_rate == FREQ_48000)
+        ini_section_delete_var(cat, "sound_sample_rate");
+    else
+        ini_section_set_int(cat, "sound_sample_rate", sound_sample_rate);
+
     ini_delete_section_if_empty(config, cat);
 }
 
@@ -3669,6 +3783,20 @@ save_storage_controllers(void)
         ini_section_set_string(cat, "cdrom_interface",
                                cdrom_interface_get_internal_name(cdrom_interface_current));
 
+    if (fdd_tape_enabled == 0) {
+        ini_section_delete_var(cat, "floppy_tape_enabled");
+        ini_section_delete_var(cat, "floppy_tape_unit");
+        ini_section_delete_var(cat, "floppy_tape_file");
+    } else {
+        ini_section_set_int(cat, "floppy_tape_enabled", fdd_tape_enabled);
+        ini_section_set_int(cat, "floppy_tape_unit", fdd_tape_unit);
+
+        if (strlen(fdd_tape_fn) == 0)
+            ini_section_delete_var(cat, "floppy_tape_file");
+        else
+            save_image_file(cat, "floppy_tape_file", fdd_tape_fn);
+    }
+
     if (cassette_enable == 0)
         ini_section_delete_var(cat, "cassette_enabled");
     else
@@ -3831,6 +3959,38 @@ save_gl3_shaders(void)
             temp[0] = 0;
             snprintf(temp, 512, "shader%d", i);
             ini_section_set_string(cat, temp, gl3_shader_file[i]);
+        }
+    }
+
+    ini_delete_section_if_empty(config, cat);
+}
+
+/* Save "VK Shaders" section. */
+static void
+save_vk_shaders(void)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "VK Shaders");
+    char          temp[512];
+    int shaders = 0, i = 0;
+
+    for (i = 0; i < MAX_USER_SHADERS; i++) {
+        if (vk_shader_file[i][0] == 0) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d", i);
+            ini_section_delete_var(cat, temp);
+            break;
+        }
+        shaders++;
+    }
+
+    ini_section_set_int(cat, "shaders", shaders);
+    if (shaders == 0) {
+        ini_section_delete_var(cat, "shaders");
+    } else {
+        for (i = 0; i < shaders; i++) {
+            temp[0] = 0;
+            snprintf(temp, 512, "shader%d", i);
+            ini_section_set_string(cat, temp, vk_shader_file[i]);
         }
     }
 
@@ -4277,6 +4437,9 @@ config_save_global(void)
 void
 config_save(void)
 {
+    if (config_mutex)
+        thread_wait_mutex(config_mutex);
+
     save_general();                 /* General */
     for (uint8_t i = 0; i < MONITORS_NUM; i++)
         save_monitor(i);            /* Monitors */
@@ -4294,11 +4457,15 @@ config_save(void)
     save_other_peripherals();       /* Other peripherals */
 #ifndef USE_SDL_UI
     save_gl3_shaders();             /* GL3 Shaders */
+    save_vk_shaders();              /* GL3 Shaders */
 #endif
 
     ini_write(config, cfg_path);
 
     config_save_global();
+
+    if (config_mutex)
+        thread_release_mutex(config_mutex);
 }
 
 ini_t

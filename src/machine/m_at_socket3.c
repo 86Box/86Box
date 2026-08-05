@@ -48,6 +48,33 @@
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
 
+/* ACC 2168 */
+int
+machine_at_pb430_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pb430/PB430-Dump-2.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&acc3221_device);
+    device_add(&acc2168_device);
+
+    device_add(&phoenix_486_jumper_pb430_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+
 /* ALi M1429G */
 int
 machine_at_atc1762_init(const machine_t *model)
@@ -519,6 +546,28 @@ machine_at_tg486g_init(const machine_t *model)
     }
     mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
     mem_mapping_set_exec(&bios_mapping, rom);
+
+    return ret;
+}
+
+int
+machine_at_vs486f3vl_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vs486f3vl/vega-vs486f-3vl-060692.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sl82c461_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }

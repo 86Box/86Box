@@ -26,7 +26,7 @@ override_dh_auto_test:
 
 override_dh_auto_install:
 	dh_auto_install --buildsystem cmake+ninja
-	for i in 48x48 64x64 72x72 96x96 128x128 192x192 256x256 512x512 ; do \
+	for i in 16x16 20x20 24x24 32x32 40x40 48x48 64x64 72x72 128x128 256x256; do \
 		install -Dm644 src/unix/assets/$$i/net.86box.86Box.png -t debian/86box/usr/share/icons/hicolor/$$i/apps ; \
 	done
 	mkdir debian/86box/usr/share/applications

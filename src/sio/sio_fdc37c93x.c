@@ -1797,10 +1797,12 @@ fdc37c93x_reset(void *priv)
         nvr_bank_set(0, 0, dev->nvr);
         nvr_bank_set(1, 0xff, dev->nvr);
 
-        nvr_lock_set(0x80, 0x20, 0, dev->nvr);
-        nvr_lock_set(0xa0, 0x20, 0, dev->nvr);
-        nvr_lock_set(0xc0, 0x20, 0, dev->nvr);
-        nvr_lock_set(0xe0, 0x20, 0, dev->nvr);
+        if (!dump_missing) {
+            nvr_lock_set(0x80, 0x20, 0, dev->nvr);
+            nvr_lock_set(0xa0, 0x20, 0, dev->nvr);
+            nvr_lock_set(0xc0, 0x20, 0, dev->nvr);
+            nvr_lock_set(0xe0, 0x20, 0, dev->nvr);
+        }
     }
 
     fdc37c93x_kbc_handler(dev);

@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <wchar.h>
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #ifdef _WIN32
 #    include <windows.h>
@@ -36,8 +36,8 @@ int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
 extern char     sdl_win_title[512];
-SDL_mutex      *blitmtx;
-SDL_threadID    eventthread;
+SDL_Mutex      *blitmtx;
+SDL_ThreadID    eventthread;
 int      exit_event         = 0;
 int      fullscreen_pending = 0;
 
@@ -173,7 +173,7 @@ main_thread(UNUSED(void *param))
     int      drawits;
     int      frames;
 
-    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
+    SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_HIGH);
     framecountx = 0;
     // title_update = 1;
     old_time = SDL_GetTicks();
@@ -236,7 +236,6 @@ do_start(void)
     is_quit = 0;
 
     /* Initialize the high-precision timer. */
-    SDL_InitSubSystem(SDL_INIT_TIMER);
     timer_freq = SDL_GetPerformanceFrequency();
 
     /* Start the emulator, really. */
@@ -246,7 +245,7 @@ do_start(void)
 void
 do_stop(void)
 {
-    if (SDL_ThreadID() != eventthread) {
+    if (SDL_GetCurrentThreadID() != eventthread) {
         exit_event = 1;
         return;
     }
@@ -255,7 +254,7 @@ do_stop(void)
         video_blit_complete();
     }
 
-    while (SDL_TryLockMutex(blitmtx) == SDL_MUTEX_TIMEDOUT) {
+    while (!SDL_TryLockMutex(blitmtx)) {
         if (blitreq) {
             blitreq = 0;
             video_blit_complete();
@@ -281,12 +280,12 @@ typedef struct mouseinputdata {
     int mousebuttons;
 } mouseinputdata;
 
-SDL_mutex *mousemutex;
+SDL_Mutex *mousemutex;
 int        real_sdl_w;
 int        real_sdl_h;
 
 uint32_t
-timer_onesec(uint32_t interval, UNUSED(void *param))
+timer_onesec(UNUSED(void *param), SDL_TimerID timerID, uint32_t interval)
 {
     pc_onesec();
     return interval;
@@ -312,7 +311,7 @@ main(int argc, char **argv)
 
     for (uint8_t i = 1; i < GFXCARD_MAX; i++)
         gfxcard[i]  = 0;
-    eventthread = SDL_ThreadID();
+    eventthread = SDL_GetCurrentThreadID();
     blitmtx     = SDL_CreateMutex();
     if (!blitmtx) {
         fprintf(stderr, "Failed to create blit mutex: %s", SDL_GetError());
@@ -356,13 +355,13 @@ main(int argc, char **argv)
                 // route almost everything to the OSD
                 switch (event.type)
                 {
-                    case SDL_QUIT:
+                    case SDL_EVENT_QUIT:
                     {
                         exit_event = 1;
                         break;
                     }
-                    case SDL_RENDER_DEVICE_RESET:
-                    case SDL_RENDER_TARGETS_RESET:
+                    case SDL_EVENT_RENDER_DEVICE_RESET:
+                    case SDL_EVENT_RENDER_TARGETS_RESET:
                     {
                         extern void sdl_reinit_texture(void);
 
@@ -370,18 +369,13 @@ main(int argc, char **argv)
                         sdl_reinit_texture();
                         break;
                     }
-                    case SDL_WINDOWEVENT:
-                    {
-                        switch (event.window.event) {
-                            case SDL_WINDOWEVENT_ENTER:
-                                mouse_inside = 1;
-                                break;
-                            case SDL_WINDOWEVENT_LEAVE:
-                                mouse_inside = 0;
-                                break;
-                        }
+                    case SDL_EVENT_WINDOW_MOUSE_ENTER:
+                        mouse_inside = 1;
                         break;
-                    }
+                    case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+                        mouse_inside = 0;
+                        break;
+                    
                     default:
                     {
                         // route everything else
@@ -401,10 +395,10 @@ main(int argc, char **argv)
             {
                 switch (event.type)
                 {
-                    case SDL_QUIT:
+                    case SDL_EVENT_QUIT:
                         exit_event = 1;
                         break;
-                    case SDL_MOUSEWHEEL:
+                    case SDL_EVENT_MOUSE_WHEEL:
                         {
                             if (mouse_capture || video_fullscreen) {
                                 if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED) {
@@ -417,7 +411,7 @@ main(int argc, char **argv)
                             }
                             break;
                         }
-                    case SDL_MOUSEMOTION:
+                    case SDL_EVENT_MOUSE_MOTION:
                         {
                             if (mouse_capture || video_fullscreen) {
                                 SDL_LockMutex(mousemutex);
@@ -427,17 +421,17 @@ main(int argc, char **argv)
                             break;
                         }
                     /* Touch events */
-                    case SDL_FINGERDOWN:
+                    case SDL_EVENT_FINGER_DOWN:
                         {
                             // Trap these but ignore them for now
                             break;
                         }
-                    case SDL_FINGERUP:
+                    case SDL_EVENT_FINGER_UP:
                         {
                             // Trap these but ignore them for now
                             break;
                         }
-                    case SDL_FINGERMOTION:
+                    case SDL_EVENT_FINGER_MOTION:
                         {
                             // See SDL_TouchFingerEvent
                             if (mouse_capture || video_fullscreen) {
@@ -453,12 +447,12 @@ main(int argc, char **argv)
                             break;
                         }
 
-                    case SDL_MOUSEBUTTONDOWN:
-                    case SDL_MOUSEBUTTONUP:
+                    case SDL_EVENT_MOUSE_BUTTON_DOWN:
+                    case SDL_EVENT_MOUSE_BUTTON_UP:
                         {
                             if ((event.button.button == SDL_BUTTON_LEFT)
                                 && !(mouse_capture || video_fullscreen)
-                                && event.button.state == SDL_RELEASED
+                                && !event.button.down
                                 && mouse_inside) {
                                 plat_mouse_capture(1);
                                 break;
@@ -490,7 +484,7 @@ main(int argc, char **argv)
                                         printf("Unknown mouse button %d\n", event.button.button);
                                 }
                                 SDL_LockMutex(mousemutex);
-                                if (event.button.state == SDL_PRESSED)
+                                if (event.button.down)
                                     mouse_set_buttons_ex(mouse_get_buttons_ex() | buttonmask);
                                 else
                                     mouse_set_buttons_ex(mouse_get_buttons_ex() & ~buttonmask);
@@ -498,27 +492,27 @@ main(int argc, char **argv)
                             }
                             break;
                         }
-                    case SDL_RENDER_DEVICE_RESET:
-                    case SDL_RENDER_TARGETS_RESET:
+                    case SDL_EVENT_RENDER_DEVICE_RESET:
+                    case SDL_EVENT_RENDER_TARGETS_RESET:
                         {
                             extern void sdl_reinit_texture(void);
 
                             sdl_reinit_texture();
                             break;
                         }
-                    case SDL_KEYDOWN:
-                    case SDL_KEYUP:
+                    case SDL_EVENT_KEY_DOWN:
+                    case SDL_EVENT_KEY_UP:
                         {
                             uint16_t xtkey = 0;
 
-                            if (event.key.keysym.scancode == osd_open_first_key)
+                            if (event.key.scancode == osd_open_first_key)
                             {
-                                if (event.type == SDL_KEYDOWN)
+                                if (event.type == SDL_EVENT_KEY_DOWN)
                                     osd_first_key_pressed = 1;
                                 else
                                     osd_first_key_pressed = 0;
                             }
-                            else if (osd_first_key_pressed && event.type == SDL_KEYDOWN && event.key.keysym.scancode == osd_open_second_key)
+                            else if (osd_first_key_pressed && event.type == SDL_EVENT_KEY_DOWN && event.key.scancode == osd_open_second_key)
                             {
                                 // open OSD!
                                 flag_osd_open = osd_open(event);
@@ -534,27 +528,23 @@ main(int argc, char **argv)
                                 osd_first_key_pressed = 0;
                             }
 
-                            switch (event.key.keysym.scancode) {
+                            switch (event.key.scancode) {
                                 default:
-                                    xtkey = sdl_to_xt[event.key.keysym.scancode];
+                                    xtkey = sdl_to_xt[event.key.scancode];
                                     break;
                             }
 
-                            keyboard_input(event.key.state == SDL_PRESSED, xtkey);
+                            keyboard_input(event.key.down, xtkey);
+                            if ((keyboard_get_shift() & 0x11) && keyboard_recv_ui(0x14f) && mouse_capture)
+                                plat_mouse_capture(0);
                             break;
                         }
-                    case SDL_WINDOWEVENT:
-                        {
-                            switch (event.window.event) {
-                                case SDL_WINDOWEVENT_ENTER:
-                                    mouse_inside = 1;
-                                    break;
-                                case SDL_WINDOWEVENT_LEAVE:
-                                    mouse_inside = 0;
-                                    break;
-                            }
-                            break;
-                        }
+                    case SDL_EVENT_WINDOW_MOUSE_ENTER:
+                        mouse_inside = 1;
+                        break;
+                    case SDL_EVENT_WINDOW_MOUSE_LEAVE:
+                        mouse_inside = 0;
+                        break;
                     default:
                     {
                         // printf("Unhandled SDL event: %d\n", event.type);
@@ -570,7 +560,6 @@ check_flags:
             sdl_blit(params.x, params.y, params.w, params.h);
         }
         if (title_set) {
-            extern void ui_window_title_real(void);
             ui_window_title_real();
         }
         if (video_fullscreen && keyboard_isfsexit()) {

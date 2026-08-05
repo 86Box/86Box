@@ -25,12 +25,10 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
-#include <stdatomic.h>
 #include <unistd.h>
 #include <math.h>
 
@@ -53,12 +51,10 @@
 #ifdef USE_DYNAREC
 #    include "codegen_public.h"
 #endif
-#include "x86_ops.h"
 #include <86box/io.h>
 #include <86box/rom.h>
 #include <86box/dma.h>
 #include <86box/pci.h>
-#include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/pit.h>
@@ -79,7 +75,6 @@
 #include <86box/gameport.h>
 #include <86box/fdd.h>
 #include <86box/fdd_audio.h>
-#include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdd.h>
 #include <86box/hdd_audio.h>
@@ -93,20 +88,18 @@
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
 #include <86box/scsi_disk.h>
-#include <86box/cdrom_image.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
-#include <86box/snd_speaker.h>
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/plat_dir.h>
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/machine_status.h>
-#include <86box/apm.h>
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
 #include <86box/vfio.h>
@@ -149,6 +142,7 @@ uint64_t instru_run_ms                          = 0;
 #endif
 int      clear_flash                            = 0;
 int      auto_paused                            = 0;
+int      auto_dialog_paused                     = 0;
 
 /* Configuration values. */
 int      window_remember;
@@ -169,6 +163,7 @@ int      force_43                               = 0;              /* (C) video *
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
+int      video_vk_device                        = 0;              /* (C) video */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
@@ -180,6 +175,7 @@ int      isartc_type                            = 0;              /* (C) enable 
 int      gfxcard[GFXCARD_MAX]                   = { 0, 0 };       /* (C) graphics/video card */
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                         = 1;              /* (C) sound uses FP values */
+int      sound_sample_rate                      = FREQ_48000;     /* (C) sound output sample rate */
 int      voodoo_enabled                         = 0;              /* (C) video option */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
@@ -195,6 +191,7 @@ int      time_sync                              = 0;              /* (C) enable 
 int      confirm_reset                          = 1;              /* (G) enable reset confirmation */
 int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
 int      confirm_save                           = 1;              /* (G) enable save confirmation */
+int      chd_precache_level                     = 0;              /* (G) CHD precache level */
 int      enable_discord                         = 0;              /* (C) enable Discord integration */
 int      pit_mode                               = -1;             /* (C) force setting PIT mode */
 int      fm_driver                              = 0;              /* (C) select FM sound driver */
@@ -202,8 +199,9 @@ int      open_dir_usr_path                      = 0;              /* (G) default
                                                                          of usr_path */
 int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings
                                                                          also apply when maximized. */
-int      do_auto_pause                          = 0;              /* (C) Auto-pause the emulator on focus
+int      do_auto_pause                          = 0;              /* (G) Auto-pause the emulator on focus
                                                                          loss */
+int      do_auto_dialog_pause                   = 0;              /* (G) Auto-pause the emulator on dialog boxes */
 int      force_constant_mouse                   = 0;              /* (C) Force constant updating of the mouse */
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
 int      test_mode                              = 0;              /* (C) Test mode */
@@ -232,6 +230,9 @@ double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 
 int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
 int      color_scheme = 0;                                        /* (C) Color scheme of UI (Windows-only) */
 int      fdd_sounds_enabled = 1;                                  /* (C) Floppy drive sounds enabled */
+int      is_new_808x = 0;                                         /* (C) Use the new 808x code. */
+
+int      gdbstub_port = 12345;                                    /* (C) The GDB stub port. */
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
@@ -291,12 +292,12 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
     {
         .name="hard_reset",
         .desc="Hard reset",
-        .seq="Ctrl+Alt+F12"
+        .seq="Ctrl+Shift+F12"
     },
     {
         .name="pause",
         .desc="Toggle pause",
-        .seq="Ctrl+Alt+F1"
+        .seq="Ctrl+Alt+P"
     },
     {
         .name="mute",
@@ -307,6 +308,17 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .name="force_interpretation",
         .desc="Force interpretation",
         .seq="Ctrl+Alt+I"
+    },
+    {
+        .name="toggle_osd",
+        .desc="Toggle on-screen display",
+        .seq="Ctrl+Alt+O"
+    }
+,
+    {
+        .name="exit",
+        .desc="Exit",
+        .seq=""
     }
 };
 
@@ -315,15 +327,12 @@ int  start_vmm = 1;
 
 /* Statistics. */
 extern int mmuflush;
-extern int readlnum;
-extern int writelnum;
 
 /* emulator % */
 int fps;
 int framecount;
 static uint32_t fps_sample_elapsed_ms = 1000;
 
-extern int CPUID;
 extern int output;
 int        atfullspeed;
 
@@ -351,8 +360,6 @@ int efscrnsz_y = SCREEN_RES_Y;
 #endif
 
 __thread int is_cpu_thread = 0;
-
-static char mouse_msg[3][200];
 
 static ATOMIC_INT do_pause_ack = 0;
 static ATOMIC_INT pause_ack = 0;
@@ -660,15 +667,40 @@ pc_log(const char *fmt, ...)
 #    define pc_log(fmt, ...)
 #endif
 
+const char *
+plat_dir_get_path(plat_dir_t *context)
+{
+    if (context->path[context->path_dir_len])
+        return context->path;
+    if (plat_dir_is_special_entry(plat_dir_get_name(context)))
+        return context->path;
+    const size_t len = context->path_dir_len + strlen(plat_dir_get_name(context)) + 2;
+    if (len > context->path_len) {
+        char *new_path = (char *) realloc(context->path, len);
+        if (new_path == NULL) {
+            fatal("new_path == NULL");
+            return NULL;
+        } else {
+            context->path     = new_path;
+            context->path_len = len;
+        }
+    }
+    snprintf(&context->path[context->path_dir_len], context->path_len - context->path_dir_len,
+#ifdef _WIN32
+        "\\"
+#else
+        "/"
+#endif
+        "%s", plat_dir_get_name(context));
+    return context->path;
+}
+
 static void
 delete_nvr_file(uint8_t flash)
 {
-    char *fn = NULL;
-    int c;
-
     /* Set up the NVR file's name. */
-    c       = strlen(machine_get_nvr_name()) + 5;
-    fn      = (char *) calloc(1, c + 1);
+    const  size_t c = strlen(machine_get_nvr_name()) + 5;
+    char  *fn       = (char *) calloc(1, c + 1);
 
     if (fn == NULL)
         fatal("Error allocating memory for the removal of the %s file\n",
@@ -791,10 +823,6 @@ pc_init(int argc, char *argv[])
     time_t           now;
     int              c;
     int              lvmp = 0;
-#ifdef _WIN32
-    uint32_t *uid;
-    uint32_t *shwnd;
-#endif
     int lang_init = 0;
 
     /* Grab the executable's full path. */
@@ -926,10 +954,10 @@ usage:
                 free(temp2);
                 goto usage;
             }
-            if (drive > 0x40)
-                drive = (drive & 0x1f) - 1;
-            else
-                drive = drive & 0x1f;
+            const char old_drive = drive;
+            drive = (char) (drive & 0x1f);
+            if (old_drive > 0x40)
+                drive--;
             if (drive < 0)
                 drive = 0;
             if (drive >= FDD_NUM)
@@ -979,9 +1007,9 @@ usage:
             if ((c + 1) == argc)
                 goto usage;
 
-            uid   = (uint32_t *) &unique_id;
-            shwnd = (uint32_t *) &source_hwnd;
-            sscanf(argv[++c], "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
+            argv[++c][16] = '\0';
+            source_hwnd   = strtoull(&(argv[c][17]), NULL, 16);
+            unique_id     = strtoull(&(argv[c][0]), NULL, 16);
 #endif
         } else if (!strcasecmp(argv[c], "--lang") || !strcasecmp(argv[c], "-G")) {
             // This function is currently unimplemented for *nix but has placeholders.
@@ -1304,12 +1332,12 @@ usage:
         pclog("# Configuration file: %s\n#\n\n", cfg_path);
         pclog("# Userfiles path: %s\n", usr_path);
 
-        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
-            pclog("# ROM path: %s\n", rom_path->path);
+        for (rom_path_t *cur_rom_path = &rom_paths; cur_rom_path != NULL; cur_rom_path = cur_rom_path->next) {
+            pclog("# ROM path: %s\n", cur_rom_path->path);
         }
 
-        for (rom_path_t *asset_path = &asset_paths; asset_path != NULL; asset_path = asset_path->next) {
-            pclog("# Asset path: %s\n", asset_path->path);
+        for (rom_path_t *cur_asset_path = &asset_paths; cur_asset_path != NULL; cur_asset_path = cur_asset_path->next) {
+            pclog("# Asset path: %s\n", cur_asset_path->path);
         }
 
         /*
@@ -1357,8 +1385,6 @@ usage:
     if (lang_init)
         lang_id = lang_init;
 
-    gdbstub_init();
-
     /* All good! */
     return 1;
 }
@@ -1366,10 +1392,12 @@ usage:
 void
 pc_speed_changed(void)
 {
-    if (cpu_s->cpu_type >= CPU_286)
-        pit_set_clock(cpu_s->rspeed);
-    else
-        pit_set_clock((uint32_t) 14318184.0);
+    if (cpu_s != NULL) {
+        if (cpu_s->cpu_type >= CPU_286)
+            pit_set_clock(cpu_s->rspeed);
+        else
+            pit_set_clock((uint32_t) 14318184.0);
+    }
 }
 
 void
@@ -1391,9 +1419,7 @@ pc_init_roms(void)
     char    tempc[512];
 
     if (dump_missing) {
-        dump_missing = 0;
-
-        c = m = 0;
+        c = 0;
         while (machine_get_internal_name_ex(c) != NULL) {
             m = machine_available(c);
             if (!m)
@@ -1401,7 +1427,7 @@ pc_init_roms(void)
             c++;
         }
 
-        c = m = 0;
+        c = 0;
         while (video_get_internal_name(c) != NULL) {
             memset(tempc, 0, sizeof(tempc));
             device_get_name(video_card_getdevice(c), 0, tempc);
@@ -1412,6 +1438,8 @@ pc_init_roms(void)
                 pclog("Missing video card: %s\n", tempc);
             c++;
         }
+
+        dump_missing = 0;
     }
 
     pc_log("Scanning for ROM images:\n");
@@ -1670,6 +1698,8 @@ pc_reset_hard_close(void)
     nvr_close();
 
     mouse_close();
+    
+    sound_close();
 
     device_close_all();
 
@@ -1745,7 +1775,6 @@ pc_reset_hard_init(void)
     machine_init();
 
     /* Reset some basic devices. */
-    speaker_init();
     shadowbios = 0;
 
     /*
@@ -1853,6 +1882,9 @@ pc_reset_hard_init(void)
        the IDE controllers present are not some form of PCI. */
     ide_drives_set_shadow();
 
+    /* Make sure to disable any sound timers with no handlers. */
+    sound_recalc_timers();
+
     /* Reset the CPU module. */
     resetx86();
     dma_reset();
@@ -1870,44 +1902,10 @@ pc_reset_hard_init(void)
     cycles_main = 0;
 #endif
 
-    update_mouse_msg();
-
     if (test_mode)
         pc_test_mode_entry_point();
 
     ui_hard_reset_completed();
-}
-
-void
-update_mouse_msg(void)
-{
-#ifdef USE_SDL_UI
-    char  cpufamily[128];
-    char *cp;
-
-    if (!cpu_override)
-        strncpy(cpufamily, cpu_f->name, sizeof(cpufamily) - 1);
-    else
-        snprintf(cpufamily, sizeof(cpufamily), "[U] %s", cpu_f->name);
-
-    cp = strchr(cpufamily, '(');
-    if (cp) /* remove parentheses */
-        *(cp - 1) = '\0';
-    snprintf(mouse_msg[0], sizeof(mouse_msg[0]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
-             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
-             plat_get_string(STRING_MOUSE_CAPTURE));
-    snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
-             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
-             (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
-    snprintf(mouse_msg[2], sizeof(mouse_msg[2]), "%s v%s - %%i%%%% - %s - %s/%s",
-             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name);
-#else
-    snprintf(mouse_msg[0], sizeof(mouse_msg[0]), "%%i%%%% - %s",
-             plat_get_string(STRING_MOUSE_CAPTURE));
-    snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%%i%%%% - %s",
-             (mouse_get_buttons() > 2) ? plat_get_string(STRING_MOUSE_RELEASE) : plat_get_string(STRING_MOUSE_RELEASE_MMB));
-    strncpy(mouse_msg[2], "%i%%", sizeof(mouse_msg[2]));
-#endif
 }
 
 void
@@ -1951,6 +1949,8 @@ pc_close(UNUSED(thread_t *ptr))
 
     video_close();
 
+    sound_close();
+
     device_close_all();
 
     scsi_device_close_all();
@@ -1979,10 +1979,9 @@ pc_close(UNUSED(thread_t *ptr))
 
 #ifdef __APPLE__
 static void
-_ui_window_title(void *s)
+_ui_emu_status(void *s)
 {
-    ui_window_title((char *) s);
-    free(s);
+    ui_emu_status(*((int *) s));
 }
 #endif
 
@@ -1998,9 +1997,6 @@ ack_pause(void)
 void
 pc_run(void)
 {
-    int  mouse_msg_idx;
-    char temp[200];
-
     /* Trigger a hard reset if one is pending. */
     if (hard_reset_pending) {
         hard_reset_pending = 0;
@@ -2034,12 +2030,14 @@ pc_run(void)
     }
 
     if (title_update) {
+#ifdef __APPLE__
+        static
+#endif
         int      speed_percent;
         int      target_fps;
         uint32_t elapsed_ms;
         int64_t  numerator;
 
-        mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
         target_fps    = force_10ms ? 100 : 1000;
         elapsed_ms    = fps_sample_elapsed_ms ? fps_sample_elapsed_ms : 1;
 
@@ -2057,12 +2055,11 @@ pc_run(void)
         speed_percent = (int) ((numerator + ((int64_t) elapsed_ms * target_fps / 2)) /
                                ((int64_t) elapsed_ms * target_fps));
 
-        snprintf(temp, sizeof(temp), mouse_msg[mouse_msg_idx], speed_percent);
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */
-        dispatch_async_f(dispatch_get_main_queue(), strdup((const char *) temp), _ui_window_title);
+        dispatch_async_f(dispatch_get_main_queue(), &speed_percent, _ui_emu_status);
 #else
-        ui_window_title(temp);
+        ui_emu_status(speed_percent);
 #endif
         title_update = 0;
     }
@@ -2122,7 +2119,6 @@ set_screen_size_monitor(int x, int y, int monitor_index)
         dx  = (double) x;
         dtx = (double) temp_overscan_x;
 
-        dy  = (double) y;
         dty = (double) temp_overscan_y;
 
         /* Account for possible overscan. */
@@ -2133,13 +2129,12 @@ set_screen_size_monitor(int x, int y, int monitor_index)
             /* MDA/Hercules */
             dy = (dx / 4.0) * 3.0;
         } else {
-            if (enable_overscan) {
+            if (enable_overscan)
                 /* EGA/(S)VGA with overscan */
                 dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-            } else {
+            else
                 /* EGA/(S)VGA without overscan */
                 dy = (dx / 4.0) * 3.0;
-            }
         }
         monitors[monitor_index].mon_unscaled_size_y = (int) dy;
     } else

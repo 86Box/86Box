@@ -2,7 +2,7 @@ cmake
 pkgconfig
 ninja
 freetype
-libsdl2
+SDL3
 libpng
 openal-soft
 rtmidi
@@ -16,3 +16,8 @@ libslirp
 vde2
 libsndfile
 libserialport
+rust
+rust-src
+cargo
+cargo-c
+zstd

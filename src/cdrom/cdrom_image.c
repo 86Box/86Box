@@ -37,6 +37,7 @@
 #include <86box/nvr.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
@@ -58,6 +59,16 @@
 
 static char temp_keyword[1024];
 static char temp_file[260]     = { 0 };
+
+#pragma pack(push, 1)
+struct sbi_replacement_ent
+{
+  uint8_t m, s, f; // all in BCD.
+  uint8_t type;
+  uint8_t q[10]; // Q-subchannel data.
+};
+typedef struct sbi_replacement_ent sbi_replacement_ent;
+#pragma pack(pop)
 
 #define INDEX_SPECIAL -2 /* Track A0h onwards. */
 #define INDEX_NONE    -1 /* Empty block. */
@@ -129,6 +140,9 @@ typedef struct cd_image_t {
     track_t      *tracks;
     uint32_t     *bad_sectors;
     dstruct_t     dstruct;
+
+    sbi_replacement_ent* sector_subs;
+    uint64_t sector_subs_size;
 } cd_image_t;
 
 typedef enum
@@ -1897,6 +1911,48 @@ image_load_cue(cd_image_t *img, const char *cuefile)
         warning(plat_get_string(STRING_CDROM_OPEN_CUE_ERROR), cuefile);
 #endif
 
+    if (success) {
+        char ident[4] = { 0, 0, 0, 0 };
+        // Look for .SBI sidecar files.
+        char* sbifile = strdup(cuefile);
+        sbifile[strlen(sbifile) - 3] = 's';
+        sbifile[strlen(sbifile) - 2] = 'b';
+        sbifile[strlen(sbifile) - 1] = 'i';
+
+        FILE* sbi_handle = plat_fopen(sbifile, "rb");
+
+        if (sbi_handle == NULL) {
+            sbifile[strlen(sbifile) - 3] = 'S';
+            sbifile[strlen(sbifile) - 2] = 'B';
+            sbifile[strlen(sbifile) - 1] = 'I';
+
+            sbi_handle = plat_fopen(sbifile, "rb");
+        }
+
+        if (sbi_handle != NULL) {
+            (void)fread(ident, 1, 4, sbi_handle);
+            if (!memcmp(ident, "SBI", 4)) {
+                /* Null character is implicit. */
+                fseek(sbi_handle, 0, SEEK_END);
+                long len = ftell(sbi_handle);
+                fseek(sbi_handle, 4, SEEK_SET);
+                if (!((len - 4) % sizeof(sbi_replacement_ent))) {
+                    img->sector_subs = (sbi_replacement_ent*)calloc(1, len - 4);
+                    if (!fread(img->sector_subs, 1, len - 4, sbi_handle)) {
+                        free(img->sector_subs);
+                        img->sector_subs = NULL;
+                    } else
+                        img->sector_subs_size = (len - 4) / sizeof(sbi_replacement_ent);
+                }
+            }
+        }
+
+        if (sbi_handle != NULL)
+            fclose(sbi_handle);
+
+        free(sbifile);
+    }
+
     return success;
 }
 
@@ -2772,25 +2828,6 @@ image_get_raw_track_info(const void *local, int *num, uint8_t *buffer)
 }
 
 static int
-image_is_track_pre(const void *local, const uint32_t sector)
-{
-    const cd_image_t *img   = (const cd_image_t *) local;
-    int               ret   = 0;
-
-    if (img->has_audio) {
-        const int track = image_get_track(img, sector);
-
-        if (track >= 0) {
-            const track_t *trk = &(img->tracks[track]);
-
-            ret = !!(trk->attr & 0x01);
-        }
-    }
-
-    return ret;
-}
-
-static int
 image_read_sector(const void *local, uint8_t *buffer,
                   const uint32_t sector)
 {
@@ -2840,7 +2877,7 @@ image_read_sector(const void *local, uint8_t *buffer,
                 /* Construct the header. */
                 memset(buffer + 1, 0xff, 10);
                 buffer += 12;
-                FRAMES_TO_MSF(sector + 150, &m, &s, &f);
+                FRAMES_TO_MSF(lba + 150, &m, &s, &f);
                 /* These have to be BCD. */
                 buffer[0] = bin2bcd(m & 0xff);
                 buffer[1] = bin2bcd(s & 0xff);
@@ -2870,6 +2907,9 @@ image_read_sector(const void *local, uint8_t *buffer,
                 if ((trk->mode == 2) && (trk->form == 1)) {
                     crc = cdrom_crc32(0xffffffff, &(buf[16]), 2056) ^ 0xffffffff;
                     memcpy(&(buf[2072]), &crc, 4);
+                } else if ((trk->mode == 2) && (trk->form == 2)) {
+                    crc = cdrom_crc32(0xffffffff, &(buf[16]), 2332) ^ 0xffffffff;
+                    memcpy(&(buf[2348]), &crc, 4);
                 } else {
                     crc = cdrom_crc32(0xffffffff, buf, 2064) ^ 0xffffffff;
                     memcpy(&(buf[2064]), &crc, 4);
@@ -2877,11 +2917,13 @@ image_read_sector(const void *local, uint8_t *buffer,
 
                 int m2f1 = (trk->mode == 2) && (trk->form == 1);
 
-                /* Compute ECC P code. */
-                cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
+                if ((trk->mode == 1) || m2f1) {
+                    /* Compute ECC P code. */
+                    cdrom_compute_ecc_block(dev, &(buf[2076]), &(buf[12]), 86, 24, 2, 86, m2f1);
 
-                /* Compute ECC Q code. */
-                cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
+                    /* Compute ECC Q code. */
+                    cdrom_compute_ecc_block(dev, &(buf[2248]), &(buf[12]), 52, 43, 86, 88, m2f1);
+                }
             }
 
             if ((ret > 0) && ((idx->type < INDEX_NORMAL) || (trk->subch_type != 0x08))) {
@@ -2910,12 +2952,33 @@ image_read_sector(const void *local, uint8_t *buffer,
                     q[7] = bin2bcd(m & 0xff);
                     q[8] = bin2bcd(s & 0xff);
                     q[9] = bin2bcd(f & 0xff);
+
+                    *(uint16_t*)(&q[10]) = bswap16(cdrom_crc16(0xffff, q, 10));
                 }
 
                 /* Construct raw subchannel data from Q only. */
                 for (int i = 0; i < 12; i++)
                      for (int j = 0; j < 8; j++)
                           buffer[2352 + (i << 3) + j] = ((q[i] >> (7 - j)) & 0x01) << 6;
+            }
+        }
+
+        if (img->sector_subs) {
+            uint8_t deinterleaved_subch[96] = {};
+            FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+            cdrom_deinterleave_subch(deinterleaved_subch, &buffer[2352]);
+
+            for (int i = 0; i < img->sector_subs_size; i++) {
+                if (img->sector_subs[i].m == bin2bcd(m)
+                && img->sector_subs[i].s == bin2bcd(s)
+                && img->sector_subs[i].f == bin2bcd(f)
+                && img->sector_subs[i].type == 0x01) {
+                    memcpy(&deinterleaved_subch[12], img->sector_subs[i].q, 10);
+
+                    *(uint16_t*)(&deinterleaved_subch[12 + 10]) = bswap16(cdrom_crc16(0xffff, img->sector_subs[i].q, 10) ^ 0x8001);
+                    cdrom_interleave_subch(&buffer[2352], deinterleaved_subch);
+                    break;
+                }
             }
         }
     }
@@ -2983,15 +3046,15 @@ image_read_dvd_structure(const void *local, const uint8_t layer, const uint8_t f
 
     if ((img->has_dstruct > 0) && ((layer + 1) > img->has_dstruct)) {
         switch (format) {
-            case 0x00:
+            case 0x00: /* Physical Format Information (PFI). */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f0, 2048);
                 ret = 2048 + 2;
                 break;
-            case 0x01:
+            case 0x01: /* DVD copyright information */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f1, 4);
                 ret = 4 + 2;
                 break;
-            case 0x04:
+            case 0x04: /* DVD disc manufacturing information. */
                 memcpy(buffer + 4, img->dstruct.layers[layer].f4, 2048);
                 ret = 2048 + 2;
                 break;
@@ -3045,7 +3108,6 @@ image_close(void *local)
 static const cdrom_ops_t image_ops = {
     image_get_track_info,
     image_get_raw_track_info,
-    image_is_track_pre,
     image_read_sector,
     image_get_track_type,
     image_get_last_block,

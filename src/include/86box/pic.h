@@ -52,6 +52,7 @@ typedef struct pic {
     uint8_t     pad;
     uint32_t    lines[8];
     uint32_t    at;
+    uint32_t    zenith;
     struct pic *slaves[8];
 } pic_t;
 
@@ -73,6 +74,7 @@ extern void pic_set_shadow(int sh);
 extern int  pic_get_pci_flag(void);
 extern void pic_set_pci_flag(int pci);
 extern void pic_set_pci(void);
+extern void pic_set_vector_override(uint8_t irq, int vector);
 extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
 extern void pic_init(void);

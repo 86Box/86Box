@@ -67,11 +67,14 @@ msgstr "レンダラー(&N)"
 msgid "&Qt (Software)"
 msgstr "Qt (ソフトウェア)(&Q)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 Core)(&G)"
+msgid "Open&GL"
+msgstr "OpenGL(&G)"
 
-msgid "&VNC"
-msgstr "VNC(&V)"
+msgid "&Vulkan"
+msgstr "Vulkan(&V)"
+
+msgid "V&NC"
+msgstr "VNC(&N)"
 
 msgid "Specify &dimensions…"
 msgstr "ディメンションを指定(&D)…"
@@ -454,6 +457,9 @@ msgstr "XGAグラフィック"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55ディスプレイアダプターグラフィックス"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "キーボード:"
 
@@ -691,6 +697,9 @@ msgstr "BPBチェック"
 msgid "CD-ROM drives"
 msgstr "CD-ROMドライブ"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "光磁気ドライブ"
 
@@ -841,11 +850,35 @@ msgstr "シリアルポート"
 msgid "Serial ports:"
 msgstr "シリアルポート:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "パラレルポート"
 
 msgid "Parallel ports:"
 msgstr "パラレルポート:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "ストレージコントローラ"
@@ -1205,6 +1238,9 @@ msgstr "選択した設定ファイルを読み込むことができませんで
 msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
@@ -1377,8 +1413,11 @@ msgstr "仮想マシンを強制終了すると、データが失われる可能
 msgid "&Delete"
 msgstr "削除(&D)"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？ この操作は元に戻せません！"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？"
+
+msgid "This action cannot be undone!"
+msgstr "この操作は元に戻せません！"
 
 msgid "Show &config file"
 msgstr "設定ファイルを表示する(&C)"
@@ -1682,8 +1721,11 @@ msgstr "遅い"
 msgid "Fast"
 msgstr "速い"
 
-msgid "&Auto-pause on focus loss"
-msgstr "フォーカスが奪われると自動停止(&A)"
+msgid "Auto-pause on focus loss"
+msgstr "フォーカスが奪われると自動停止"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBoxはサポート終了"
@@ -2275,6 +2317,9 @@ msgstr "ハイDMA"
 
 msgid "Control PC speaker"
 msgstr "コントロールPCスピーカー"
+
+msgid "Control MIDI volume"
+msgstr ""
 
 msgid "Memory size"
 msgstr "メモリーサイズ"
@@ -2873,6 +2918,9 @@ msgstr "ハードリセットを行う前に確認を求めます"
 msgid "Ask for confirmation before quitting"
 msgstr "終了する前に確認を求めます"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "オプション"
 
@@ -2884,6 +2932,24 @@ msgstr "モデル:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkanレンダラーの初期化に失敗しました。"
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "GLSLエラー"
@@ -2905,6 +2971,9 @@ msgstr "シェーダーマネージャー"
 
 msgid "Shader Configuration"
 msgstr "シェーダー設定"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "追加"
@@ -2971,6 +3040,12 @@ msgstr "一時停止を切り替える"
 
 msgid "Toggle mute"
 msgstr "ミュートを切り替える"
+
+msgid "Toggle on-screen display"
+msgstr ""
+
+msgid "Toggle &on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "テキストファイル"
@@ -3132,6 +3207,9 @@ msgstr "エクスポート…"
 msgid "Export EDID"
 msgstr "EDIDのエクスポート"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr ""
+
 msgid "EDID file \"%s\" is too large."
 msgstr "EDIDファイル「%s」が大きすぎます。"
 
@@ -3199,6 +3277,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "画像「%s」を読み込めません：Daemon Tools MDS v2 および MDX "
 "イメージのサポートに必要な %1 が見つかりません。"
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVDイメージ「%s」は、DVDメディアに対応していないドライブに挿入されたため、無"
@@ -3341,3 +3422,6 @@ msgstr "932 (日本語)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体字中国語)"
+
+msgid "Sample rate:"
+msgstr ""

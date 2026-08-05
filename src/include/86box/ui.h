@@ -48,7 +48,7 @@ extern int ui_msgbox_header(int flags, char *header, char *message);
 #define SB_SOUND      0x90
 #define SB_TEXT       0xA0
 
-extern char *ui_window_title(char *s);
+extern void  ui_emu_status(int speed_percent);
 extern void  ui_hard_reset_completed(void);
 extern void  ui_init_monitor(int monitor_index);
 extern void  ui_deinit_monitor(int monitor_index);

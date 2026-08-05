@@ -35,7 +35,7 @@ jobs:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
 
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
@@ -70,14 +70,12 @@ jobs:
             qt: off
             qt6: off
             sdl_shader: on
-            imgui: off
             slug: -SDL
             static: on
           - name: Qt 5 GUI
             qt: on
             qt6: off
             sdl_shader: off
-            imgui: off
             slug: -Qt5
             packages: >-
               qtbase5-dev
@@ -109,7 +107,7 @@ jobs:
           ninja-build
           libfreetype-dev
           libgles2-mesa-dev
-          libsdl2-dev
+          libsdl3-dev
           libpng-dev
           libc6-dev
           librtmidi-dev
@@ -118,6 +116,7 @@ jobs:
           libfluidsynth-dev
           libvdeplug-dev
           libserialport-dev
+          libzstd-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -142,7 +141,6 @@ jobs:
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
           -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
-          -D USE_IMGUI=${{ matrix.ui.imgui }}
 
       - name: Build
         run: |

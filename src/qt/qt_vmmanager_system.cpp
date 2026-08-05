@@ -164,7 +164,12 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
         progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
         QApplication::processEvents();
         QString filename = dir_iterator.next();
-        QString root_cfg = QString("%1%2").arg(search_directory, config_file_name);
+        char *sd = search_directory.toUtf8().data();
+        QString root_cfg;
+        if ((sd[strlen(sd) - 1] == '/') || (sd[strlen(sd) - 1] == '\\'))
+            root_cfg = QString("%1%2").arg(search_directory, config_file_name);
+        else
+            root_cfg = QString("%1/%2").arg(search_directory, config_file_name);
         if (filename.compare(root_cfg, Qt::CaseInsensitive) != 0)
             matches.append(filename);
     }
@@ -745,7 +750,10 @@ VMManagerSystem::setupVars()
                 cdrom_speed = "8";
 
             if ((cdrom_bus != "NONE") && (cdrom_type != -1)) {
-                cdrom_speed = QString("%1x ").arg(cdrom_speed);
+                if (cdrom_speed.toInt() > 72)
+                    cdrom_speed = QString("%1 ").arg(tr("Turbo"));
+                else
+                    cdrom_speed = QString("%1x ").arg(cdrom_speed);
                 cdrom_bus   = QString(" (%1)").arg(cdrom_bus);
                 cdromDevices.append(QString("%1%2 %3 %4%5").arg(cdrom_speed, cdrom_drive_types[cdrom_type].vendor, cdrom_drive_types[cdrom_type].model, cdrom_drive_types[cdrom_type].revision, cdrom_bus));
             }
@@ -1217,8 +1225,9 @@ VMManagerSystem::processStatusToString(VMManagerSystem::ProcessStatus status)
         case VMManagerSystem::ProcessStatus::Paused:
             return tr("Paused");
         case VMManagerSystem::ProcessStatus::PausedWaiting:
-        case VMManagerSystem::ProcessStatus::RunningWaiting:
             return QString("%1 (%2)").arg(tr("Paused"), tr("Waiting"));
+        case VMManagerSystem::ProcessStatus::RunningWaiting:
+            return QString("%1 (%2)").arg(tr("Running"), tr("Waiting"));
         default:
             return tr("Unknown Status");
     }

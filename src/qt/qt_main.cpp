@@ -86,6 +86,8 @@ extern "C" {
 #include "qt_vmmanager_clientsocket.hpp"
 #include "qt_vmmanager_mainwindow.hpp"
 
+#include "qt_osd.hpp"
+
 // Void Cast
 #define VC(x) const_cast<wchar_t *>(x)
 
@@ -209,9 +211,14 @@ win_keyboard_handle(uint32_t scancode, int up, int e0, int e1)
     }
 }
 
+extern int         main_window_blocked;
+
 static LRESULT CALLBACK
 emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+    if (is_quit)
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+
     LPKBDLLHOOKSTRUCT lpKdhs = (LPKBDLLHOOKSTRUCT) lParam;
     /* Checks if CTRL was pressed. */
     BOOL bCtrlDown      = GetAsyncKeyState(VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
@@ -226,7 +233,7 @@ emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
             is_over_window                = is_over_window || ((secondaryRenderer != nullptr) && (GetForegroundWindow() == ((HWND) secondaryRenderer->winId())));
         }
 
-    bool skip = ((nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture));
+    bool skip = (main_window_blocked || (nCode < 0) || (nCode != HC_ACTION) || !is_over_window || (kbd_req_capture && !mouse_capture)) || qt_osd_is_visible();
 
     if (skip)
         return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -572,13 +579,15 @@ main(int argc, char *argv[])
     if (!util::isWindowsLightTheme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
 
-        if (!f.exists()) {
+        if (!f.exists())
             printf("Unable to set stylesheet, file not found\n");
-        } else {
-            f.open(QFile::ReadOnly | QFile::Text);
-            QTextStream ts(&f);
-            qApp->setStyleSheet(ts.readAll());
-            wasDarkTheme = true;
+        else {
+            if (f.open(QFile::ReadOnly | QFile::Text)) {
+                QTextStream ts(&f);
+                qApp->setStyleSheet(ts.readAll());
+                wasDarkTheme = true;
+            } else
+                printf("Unable to set stylesheet, unable to open file\n");
         }
         QPalette palette(qApp->palette());
         palette.setColor(QPalette::Link, Qt::white);
@@ -906,6 +915,7 @@ main(int argc, char *argv[])
         NewDarkMode = util::isWindowsLightTheme();
 #endif
         pc_reset_hard_init();
+        main_window->updateMouseStrings();
 
         /* Set the PAUSE mode depending on the renderer. */
 #ifdef USE_VNC
@@ -927,4 +937,15 @@ main(int argc, char *argv[])
 
     socket.close();
     return ret;
+}
+
+void
+plat_clean_up(void)
+{
+#ifdef Q_OS_WINDOWS
+    if (llhook) {
+        UnhookWindowsHookEx(llhook);
+        llhook = nullptr;
+    }
+#endif
 }

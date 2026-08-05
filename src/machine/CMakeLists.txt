@@ -20,6 +20,7 @@ add_library(mch OBJECT
     machine_table.c
     m_xt.c
     m_xt_t1000.c
+    m_xt_jukost.c
     m_xt_xi8088.c
     m_pcjr.c
     m_amstrad.c

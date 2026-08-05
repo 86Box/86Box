@@ -211,6 +211,9 @@ extern const device_t w83877_device;
 
 #define W83977_KBC           0x000f0
 
+#define W83977_UART_FORCE_SEC 0x01000000
+#define W83977_LPT_FORCE_SEC  0x02000000
+
 extern const device_t w83977_device;
 
 #endif /*EMU_SIO_H*/

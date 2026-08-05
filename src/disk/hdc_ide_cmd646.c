@@ -676,13 +676,10 @@ cmd646_init(const device_t *info)
 
     dev->local = info->local;
 
-    device_add(&ide_pci_2ch_device);
-
     if (info->local & 0x80000) {
         first = 2;
         device_add(&ide_pci_ter_qua_2ch_device);
-    } else
-        device_add(&ide_pci_2ch_device);
+    }
 
     if (info->local & CMD64X_ONBOARD)
         pci_add_card(PCI_ADD_IDE, cmd646_pci_read, cmd646_pci_write, dev, &dev->pci_slot);

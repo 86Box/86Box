@@ -1,5 +1,6 @@
 // Based off ROBOPLAY's OPL4 MID player code, with some fixes and modifications to make it work well.
 
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdbool.h>
@@ -270,7 +271,7 @@ static const uint8_t g_volume_table[128] = {
 };
 
 #define BUFFER_SEGMENTS 10
-#define RENDER_RATE     (48000 / 100)
+#define RENDER_RATE     100
 
 typedef struct opl4_midi {
     fm_drv_t          opl4;
@@ -278,7 +279,6 @@ typedef struct opl4_midi {
     VOICE_DATA        voice_data[24];
     int16_t           buffer[(48000 / 100) * 2 * BUFFER_SEGMENTS];
     float             buffer_float[(48000 / 100) * 2 * BUFFER_SEGMENTS];
-    uint32_t          midi_pos;
     bool              on;
     atomic_bool       gen_in_progress;
     thread_t         *thread;
@@ -565,7 +565,6 @@ opl4_midi_thread(UNUSED(void *arg))
 
     int32_t buffer[RENDER_RATE * 2];
 
-    extern void givealbuffer_midi(void *buf, uint32_t size);
     while (opl4_midi->on) {
         thread_wait_event(opl4_midi->wait_event, -1);
         thread_reset_event(opl4_midi->wait_event);
@@ -578,6 +577,16 @@ opl4_midi_thread(UNUSED(void *arg))
             for (i = 0; i < (buf_size / 2); i++) {
                 opl4_midi->buffer_float[(i + buf_pos) * 2]       = buffer[i * 2] / 32768.0;
                 opl4_midi->buffer_float[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] / 32768.0;
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    double dl = (double) opl4_midi->buffer_float[(i + buf_pos) * 2];
+                    double dr = (double) opl4_midi->buffer_float[((i + buf_pos) * 2) + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    opl4_midi->buffer_float[(i + buf_pos) * 2] = (float) dl;
+                    opl4_midi->buffer_float[((i + buf_pos) * 2) + 1] = (float) dr;
+                }
             }
             buf_pos += buf_size / 2;
             if (buf_pos >= (buf_size_segments / 2)) {
@@ -588,6 +597,16 @@ opl4_midi_thread(UNUSED(void *arg))
             for (i = 0; i < (buf_size / 2); i++) {
                 opl4_midi->buffer[(i + buf_pos) * 2]       = buffer[i * 2] & 0xFFFF;       /* Outputs are clamped beforehand. */
                 opl4_midi->buffer[((i + buf_pos) * 2) + 1] = buffer[(i * 2) + 1] & 0xFFFF; /* Outputs are clamped beforehand. */
+
+                /* Apply sound card MIDI volume and filters */
+                if (filter_midi != NULL) {
+                    double dl = (double) opl4_midi->buffer[(i + buf_pos) * 2];
+                    double dr = (double) opl4_midi->buffer[((i + buf_pos) * 2) + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    opl4_midi->buffer[(i + buf_pos) * 2] = (int16_t) round(dl);
+                    opl4_midi->buffer[((i + buf_pos) * 2) + 1] = (int16_t) round(dr);
+                }
             }
             buf_pos += buf_size / 2;
             if (buf_pos >= (buf_size_segments / 2)) {
@@ -602,11 +621,8 @@ static void
 opl4_midi_poll(void)
 {
     opl4_midi_t *opl4_midi = opl4_midi_cur;
-    opl4_midi->midi_pos++;
-    if (opl4_midi->midi_pos == RENDER_RATE) {
-        opl4_midi->midi_pos = 0;
-        thread_set_event(opl4_midi->wait_event);
-    }
+
+    thread_set_event(opl4_midi->wait_event);
 }
 
 void
@@ -667,7 +683,7 @@ opl4_init(UNUSED(const device_t *info))
 
     opl4_midi_cur = calloc(1, sizeof(opl4_midi_t));
 
-    fm_driver_get(FM_YMF278B, &opl4_midi_cur->opl4);
+    fm_driver_get_cs(FM_YMF278B, &opl4_midi_cur->opl4);
 
     opl4_midi_cur->opl4.write(0x38A, 0x05, opl4_midi_cur->opl4.priv);
     opl4_midi_cur->opl4.write(0x389, 0x3, opl4_midi_cur->opl4.priv);

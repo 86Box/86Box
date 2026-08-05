@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -24,7 +25,6 @@
 #define CM32LN_CTRL_ROM   "roms/sound/cm32ln/CM32LN_CONTROL.ROM"
 #define CM32LN_PCM_ROM    "roms/sound/cm32ln/CM32LN_PCM.ROM"
 
-extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
 static mt32emu_report_handler_version get_mt32_report_handler_version(mt32emu_report_handler_i i);
@@ -162,7 +162,6 @@ static uint32_t samplerate   = 44100;
 static int      buf_size     = 0;
 static float   *buffer       = NULL;
 static int16_t *buffer_int16 = NULL;
-static int      midi_pos     = 0;
 
 static mt32emu_report_handler_version
 get_mt32_report_handler_version(UNUSED(mt32emu_report_handler_i i))
@@ -201,11 +200,7 @@ mt32_stream_int16(int16_t *stream, int len)
 void
 mt32_poll(void)
 {
-    midi_pos++;
-    if (midi_pos == SOUND_FREQ / RENDER_RATE) {
-        midi_pos = 0;
-        thread_set_event(event);
-    }
+    thread_set_event(event);
 }
 
 static void
@@ -226,7 +221,21 @@ mt32_thread(UNUSED(void *param))
             buf = (float *) ((uint8_t *) buffer + buf_pos);
             memset(buf, 0, bsize);
             mt32_stream(buf, bsize / (2 * sizeof(float)));
+
+            /* Apply sound card MIDI volume and filters */
+            if (filter_midi != NULL) {
+                for (int i = 0; i < (bsize / sizeof(float)); i += 2) {
+                    double dl = (double) buf[i];
+                    double dr = (double) buf[i + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    buf[i] = (float) dl;
+                    buf[i + 1] = (float) dr;
+                }
+            }
+
             buf_pos += bsize;
+
             if (buf_pos >= buf_size) {
                 givealbuffer_midi(buffer, buf_size / sizeof(float));
                 buf_pos = 0;
@@ -235,7 +244,21 @@ mt32_thread(UNUSED(void *param))
             buf16 = (int16_t *) ((uint8_t *) buffer_int16 + buf_pos);
             memset(buf16, 0, bsize);
             mt32_stream_int16(buf16, bsize / (2 * sizeof(int16_t)));
+
+            /* Apply sound card MIDI volume and filters */
+            if (filter_midi != NULL) {
+                for (int i = 0; i < (bsize / sizeof(int16_t)); i += 2) {
+                    double dl = (double) buf16[i];
+                    double dr = (double) buf16[i + 1];
+                    filter_midi(0, &dl, filter_midi_p);
+                    filter_midi(1, &dr, filter_midi_p);
+                    buf16[i] = (int16_t) round(dl);
+                    buf16[i + 1] = (int16_t) round(dr);
+                }
+            }
+
             buf_pos += bsize;
+
             if (buf_pos >= buf_size) {
                 givealbuffer_midi(buffer_int16, buf_size / sizeof(int16_t));
                 buf_pos = 0;

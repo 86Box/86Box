@@ -20,6 +20,7 @@ add_library(snd OBJECT
     snd_opl.c
     snd_opl2_nuked.c
     snd_opl3_nuked.c
+    snd_cqm_nuked.c
     snd_opl_ymfm.cpp
     snd_resid.cpp
     midi.c
@@ -222,14 +223,23 @@ if(SOFTMODEM)
 endif()
 
 find_package(PkgConfig)
-pkg_check_modules(SERIALPORT libserialport)
+if(APPLE)
+    pkg_check_modules(SERIALPORT IMPORTED_TARGET libserialport)
+else()
+    pkg_check_modules(SERIALPORT libserialport)
+endif()
 
 if(SERIALPORT_FOUND OR DEFINED LIBSERIALPORT_ROOT)
     add_compile_definitions(USE_LIBSERIALPORT=1)
 
     if(APPLE)
-        include_directories(${LIBSERIALPORT_ROOT}/include)
-        target_link_libraries(86Box ${LIBSERIALPORT_ROOT}/lib/libserialport.dylib)
+        if(DEFINED LIBSERIALPORT_ROOT)
+            include_directories(${LIBSERIALPORT_ROOT}/include)
+            target_link_libraries(86Box "${LIBSERIALPORT_ROOT}/lib/libserialport.dylib")
+        else()
+            target_link_libraries(snd PRIVATE PkgConfig::SERIALPORT)
+            target_link_libraries(86Box PkgConfig::SERIALPORT)
+        endif()
     elseif(WIN32)
         include_directories(${SERIALPORT_INCLUDE_DIRS})
         target_link_libraries(86Box ${SERIALPORT_LIBRARIES} SetupAPI)

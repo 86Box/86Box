@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-06-07 22:01+0000\n"
+"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -67,11 +67,14 @@ msgstr "Re&nderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (programowy)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Określ wymiary…"
@@ -89,7 +92,7 @@ msgid "&1x"
 msgstr "&1x"
 
 msgid "1.&5x"
-msgstr "1.&5x"
+msgstr "1,&5x"
 
 msgid "&2x"
 msgstr "&2x"
@@ -454,6 +457,9 @@ msgstr "Grafika XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Karta graficzna IBM PS/55"
 
+msgid "Voodoo:"
+msgstr "Voodoo:"
+
 msgid "Keyboard:"
 msgstr "Klawiatura:"
 
@@ -691,6 +697,9 @@ msgstr "Sprawdzaj BPB"
 msgid "CD-ROM drives"
 msgstr "Napędy CD-ROM"
 
+msgid "CD-ROM:"
+msgstr "CD-ROM:"
+
 msgid "MO drives"
 msgstr "Napędy MO"
 
@@ -841,11 +850,35 @@ msgstr "Porty szeregowe"
 msgid "Serial ports:"
 msgstr "Porty szeregowe:"
 
+msgid "COM1:"
+msgstr "COM1:"
+
+msgid "COM2:"
+msgstr "COM2:"
+
+msgid "COM3:"
+msgstr "COM3:"
+
+msgid "COM4:"
+msgstr "COM4:"
+
 msgid "Parallel ports"
 msgstr "Porty równoległe"
 
 msgid "Parallel ports:"
 msgstr "Porty równoległe:"
+
+msgid "LPT1:"
+msgstr "LPT1:"
+
+msgid "LPT2:"
+msgstr "LPT2:"
+
+msgid "LPT3:"
+msgstr "LPT3:"
+
+msgid "LPT4:"
+msgstr "LPT4:"
 
 msgid "Storage controllers"
 msgstr "Kontrolery pamięci masowej"
@@ -1213,6 +1246,9 @@ msgstr "Nie udało się otworzyć wybranego pliku konfiguracyjnego do odczytu: %
 msgid "Use regular expressions in search box"
 msgstr "Użyj wyrażeń regularnych w polu wyszukiwania"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n maszyna jest obecnie aktywna. Czy mimo to chcesz wyjść z menedżera maszyn wirtualnych?"
@@ -1387,8 +1423,11 @@ msgstr "Zabicie maszyny wirtualnej może spowodować utratę danych. Zrób to ty
 msgid "&Delete"
 msgstr "&Usuń"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Czy na pewno chcesz usunąć maszynę wirtualną „%1” i jej wszystkie pliki? Tej operacji nie można cofnąć!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Czy na pewno chcesz usunąć maszynę wirtualną „%1” i jej wszystkie pliki?"
+
+msgid "This action cannot be undone!"
+msgstr "Tej operacji nie można cofnąć!"
 
 msgid "Show &config file"
 msgstr "&Pokaż plik konfiguracyjny"
@@ -1692,8 +1731,11 @@ msgstr "Powolny"
 msgid "Fast"
 msgstr "Szybki"
 
-msgid "&Auto-pause on focus loss"
-msgstr "&Automatyczna pauza po utracie fokusu"
+msgid "Auto-pause on focus loss"
+msgstr "Automatyczna pauza po utracie fokusu"
+
+msgid "Auto-pause on dialog boxes"
+msgstr ""
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox nie jest już wspierany"
@@ -2285,6 +2327,9 @@ msgstr "Wysokie DMA"
 
 msgid "Control PC speaker"
 msgstr "Kontroluj PC speaker"
+
+msgid "Control MIDI volume"
+msgstr "Kontroluj głośność MIDI"
 
 msgid "Memory size"
 msgstr "Rozmiar pamięci"
@@ -2883,6 +2928,9 @@ msgstr "Pytaj o potwierdzenie przed twardym resetem"
 msgid "Ask for confirmation before quitting"
 msgstr "Pytaj o potwierdzenie przed wyjściem"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opcje"
 
@@ -2894,6 +2942,24 @@ msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nie udało się zainicjować renderera Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "Błąd GLSL"
@@ -2915,6 +2981,9 @@ msgstr "Menedżer shaderów"
 
 msgid "Shader Configuration"
 msgstr "Konfiguracja shadera"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Dodaj"
@@ -2981,6 +3050,12 @@ msgstr "Przełącz pauzę"
 
 msgid "Toggle mute"
 msgstr "Przełącz wyciszenie"
+
+msgid "Toggle on-screen display"
+msgstr "Przełącz menu ekranowe"
+
+msgid "Toggle &on-screen display"
+msgstr ""
 
 msgid "Text files"
 msgstr "Pliki tekstowe"
@@ -3144,6 +3219,9 @@ msgstr "Eksportuj…"
 msgid "Export EDID"
 msgstr "Eksportuj EDID"
 
+msgid "EDID file \"%s\" is invalid."
+msgstr "Nieprawidłowy plik EDID „%s”."
+
 msgid "EDID file \"%s\" is too large."
 msgstr "Plik EDID „%s” jest zbyt duży."
 
@@ -3211,6 +3289,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Nie udało się wczytać obrazu „%s”: brakuje %1, potrzebnego do obsługi "
 "obrazów Daemon Tools MDS v2 i MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3354,3 +3435,6 @@ msgstr "932 (japoński)"
 
 msgid "938 (Traditional Chinese)"
 msgstr "938 (chiński uproszczony)"
+
+msgid "Sample rate:"
+msgstr "Częstotliwość próbkowania:"

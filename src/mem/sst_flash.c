@@ -554,7 +554,7 @@ sst_init(const device_t *info)
     sst_add_mappings(dev);
 
     fp = nvr_fopen(flash_path, "rb");
-    if (fp) {
+    if (!dump_missing && (fp != NULL)) {
         if (fread(&(dev->array[0x00000]), 1, dev->size, fp) != dev->size)
             pclog("Less than %i bytes read from the SST Flash ROM file\n", dev->size);
         fclose(fp);
@@ -575,7 +575,7 @@ sst_close(void *priv)
 
     if (dev->dirty) {
         fp = nvr_fopen(flash_path, "wb");
-        if (fp != NULL) {
+        if (!dump_missing && (fp != NULL)) {
             fwrite(&(dev->array[0x00000]), dev->size, 1, fp);
             fclose(fp);
         }

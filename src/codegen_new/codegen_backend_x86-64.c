@@ -5,6 +5,7 @@
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
+#    include <86box/plat.h>
 
 #    include "codegen.h"
 #    include "codegen_allocator.h"
@@ -126,7 +127,7 @@ build_load_routine(codeblock_t *block, int size, int is_float)
     host_x86_PUSH(block, REG_RAX);
     host_x86_PUSH(block, REG_RDX);
 #    if _WIN64
-    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x20);
+    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x28);
     // host_x86_MOV32_REG_REG(block, REG_ECX, uop->imm_data);
 #    else
     /* Align RSP to 16: entry RSP%16=8 (after CALL from JIT block), two PUSHes
@@ -152,7 +153,7 @@ build_load_routine(codeblock_t *block, int size, int is_float)
         host_x86_MOVQ_XREG_REG(block, REG_XMM_TEMP, REG_RAX);
     }
 #    if _WIN64
-    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x20);
+    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x28);
 #    else
     host_x86_ADD64_REG_IMM(block, REG_RSP, 0x8);
 #    endif
@@ -292,9 +293,16 @@ codegen_backend_init(void)
 {
     codeblock_t *block;
     int          c;
+    uint8_t      large_block = 0;
+    uint8_t      large_hash = 0;
 
-    codeblock      = calloc(BLOCK_SIZE, sizeof(codeblock_t));
-    codeblock_hash = calloc(HASH_SIZE, sizeof(codeblock_t *));
+    codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 0, &large_block);
+    codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0, &large_hash);
+
+    if (large_block)
+        pclog("Allocated %llu bytes of large pages for codeblock pointers\n", BLOCK_SIZE * sizeof(codeblock_t));
+    if (large_hash)
+        pclog("Allocated %llu bytes of large pages for codeblock hashes\n", HASH_SIZE * sizeof(codeblock_t *));
 
     for (c = 0; c < BLOCK_SIZE; c++)
         codeblock[c].valid = 0;

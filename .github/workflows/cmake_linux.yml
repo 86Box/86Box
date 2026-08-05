@@ -56,14 +56,12 @@ jobs:
             qt: off
             qt6: off
             sdl_shader: on
-            imgui: off
             slug: -SDL
             static: on
           - name: Qt 5 GUI
             qt: on
             qt6: off
             sdl_shader: off
-            imgui: off
             slug: -Qt5
             packages: >-
               qtbase5-dev
@@ -76,7 +74,6 @@ jobs:
             qt: on
             qt6: on
             sdl_shader: off
-            imgui: off
             slug: -Qt6
             packages: >-
               qt6-base-dev
@@ -92,11 +89,11 @@ jobs:
           - arch: x86_64
             toolchain: ./cmake/flags-gcc-x86_64.cmake
             slug: "-x86_64"
-            runner: ubuntu-22.04
+            runner: ubuntu-26.04
           - arch: arm64
             toolchain: ./cmake/flags-gcc-aarch64.cmake
             slug: -arm64
-            runner: ubuntu-22.04-arm
+            runner: ubuntu-26.04-arm
         exclude:
           - dynarec:
               new: off
@@ -111,7 +108,7 @@ jobs:
           ninja-build
           libfreetype-dev
           libgles2-mesa-dev
-          libsdl2-dev
+          libsdl3-dev
           libpng-dev
           libc6-dev
           librtmidi-dev
@@ -120,6 +117,7 @@ jobs:
           libfluidsynth-dev
           libvdeplug-dev
           libserialport-dev
+          libzstd-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -135,7 +133,6 @@ jobs:
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
           -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
-          -D USE_IMGUI=${{ matrix.ui.imgui }}
 
       - name: Build
         run: |

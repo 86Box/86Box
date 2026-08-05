@@ -189,8 +189,14 @@ net_switch_add_hostaddr(net_switch_t *netswitch, net_switch_sockaddr_t *addr, ne
            all copies of the datagram get reflected back to us and to other instances on the
            same host. Disabling IP_MULTICAST_LOOP on all but one transmit socket can mitigate
            that, but not on Windows where that option applies to the receive socket, so we
-           instead disable loopback on all multicast sockets and use a broadcast for loopback. */
-        if ((flags & (IFF_MULTICAST | IFF_LOOPBACK)) == IFF_MULTICAST) {
+           disable it on all sockets and handle loopback ourselves by either broadcasting
+           (not supported on BSDs including macOS) or multicasting on the loopback interface. */
+#if defined(_WIN32) || defined(__linux__)
+        if ((flags & (IFF_MULTICAST | IFF_LOOPBACK)) == IFF_MULTICAST)
+#else
+        if (flags & IFF_MULTICAST)
+#endif
+        {
             /* Set multicast interface for the transmit socket. */
             if (setsockopt(hostaddr->socket_tx, IPPROTO_IP, IP_MULTICAST_IF, (char *) &hostaddr->addr.sin.sin_addr.s_addr, sizeof(hostaddr->addr.sin.sin_addr.s_addr)) < 0) {
                 netswitch_log("Network Switch: could not configure multicast on interface %s\n", buf);
@@ -210,9 +216,11 @@ net_switch_add_hostaddr(net_switch_t *netswitch, net_switch_sockaddr_t *addr, ne
             /* Destination address is multicast to our group. */
             hostaddr->addr_tx.sin.sin_addr.s_addr = mreq.imr_multiaddr.s_addr;
 
-            /* Disable multicast loopback on non-Windows platforms. (no harm on Windows) */
-            int val = 0;
-            setsockopt(hostaddr->socket_tx, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &val, sizeof(val));
+            /* Disable multicast loopback for on non-Windows platforms, except on loopback interfaces where it is required. (no harm on Windows) */
+            if (!(flags & IFF_LOOPBACK)) {
+                int val = 0;
+                setsockopt(hostaddr->socket_tx, IPPROTO_IP, IP_MULTICAST_LOOP, (char *) &val, sizeof(val));
+            }
 
             netswitch_log("Network Switch: added multicast interface %s", buf);
         } else {

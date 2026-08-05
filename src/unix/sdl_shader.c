@@ -5,10 +5,13 @@
  */
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <86box/ini.h>
+#include <86box/config.h>
 
 #include "sdl_shader.h"
 
@@ -23,13 +26,6 @@ static int           use_bgra;
 static uint8_t      *packed_pixels;
 static size_t        packed_pixels_size;
 
-/* FBO for OSD compositing */
-static GLuint osd_fbo;
-static int    osd_fbo_inited;
-
-/* Last blit viewport (for mouse coordinate mapping) */
-static int last_dst_x, last_dst_y, last_dst_w, last_dst_h;
-
 /* Uniform locations */
 static GLint u_mvp, u_frame_dir, u_frame_cnt;
 static GLint u_out_size, u_tex_size, u_in_size, u_sampler;
@@ -37,7 +33,7 @@ static GLint u_out_size, u_tex_size, u_in_size, u_sampler;
 /* Attribute locations */
 static GLint a_vtx, a_tc;
 
-extern void osd_present(int fb_w, int fb_h);
+extern void osd_present(int output_w, int output_h);
 
 static char *
 read_text_file(const char *path)
@@ -103,6 +99,18 @@ resolve_glslp(const char *glslp_path)
 
     free(content);
     return result;
+}
+
+static const char *
+path_basename(const char *path)
+{
+    const char *slash;
+
+    if (!path)
+        return "";
+
+    slash = strrchr(path, '/');
+    return slash ? (slash + 1) : path;
 }
 
 static GLuint
@@ -278,6 +286,45 @@ apply_glslp_overrides(GLuint program, const char *glslp_path)
     free(content);
 }
 
+/* Reuse the Qt preset override sections for SDL shader parameters. */
+static void
+apply_config_overrides(GLuint program, const char *shader_name, const char *source)
+{
+    char        section[512];
+    const char *p = source;
+
+    if (!shader_name || !shader_name[0] || !source)
+        return;
+
+    snprintf(section, sizeof(section), "GL3 Shaders - %s", shader_name);
+
+    while ((p = strstr(p, "#pragma parameter")) != NULL) {
+        p += 17; /* strlen("#pragma parameter") */
+        while (*p == ' ' || *p == '\t')
+            p++;
+
+        const char *ns = p;
+        while (*p && *p != ' ' && *p != '\t' && *p != '\n')
+            p++;
+
+        size_t nlen = (size_t) (p - ns);
+        if (nlen == 0 || nlen >= 128)
+            continue;
+
+        char name[128];
+        memcpy(name, ns, nlen);
+        name[nlen] = '\0';
+
+        GLint loc = glGetUniformLocation(program, name);
+        if (loc < 0)
+            continue;
+
+        float current = 0.0f;
+        glGetUniformfv(program, loc, &current);
+        glUniform1f(loc, (float) config_get_double(section, name, current));
+    }
+}
+
 int
 sdl_shader_init(SDL_Window *win, const char *shader_path)
 {
@@ -301,26 +348,23 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
     }
     free(glsl_path);
 
-    SDL_DisplayMode dm;
-    int disp_idx = SDL_GetWindowDisplayIndex(win);
-    if (disp_idx < 0)
-        disp_idx = 0;
+    const SDL_DisplayMode* dm;
+    SDL_DisplayID disp_idx = SDL_GetDisplayForWindow(win);
 
-    if (SDL_GetDesktopDisplayMode(disp_idx, &dm) == 0 && dm.w > 0 && dm.h > 0) {
-        SDL_DisplayMode cur_dm;
+    if ((dm = SDL_GetDesktopDisplayMode(disp_idx)) && dm->w > 0 && dm->h > 0) {
+        const SDL_DisplayMode* cur_dm;
         Uint32 flags = SDL_GetWindowFlags(win);
-        int is_fullscreen_desktop = ((flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP);
+        int is_fullscreen_desktop = !SDL_GetWindowFullscreenMode(win);
         int need_set_mode = 1;
         int need_set_fs = ((flags & SDL_WINDOW_FULLSCREEN) == 0) || is_fullscreen_desktop;
 
-        if (SDL_GetWindowDisplayMode(win, &cur_dm) == 0 && cur_dm.w == dm.w && cur_dm.h == dm.h)
+        if ((cur_dm = SDL_GetWindowFullscreenMode(win)) && cur_dm->w == dm->w && cur_dm->h == dm->h)
             need_set_mode = 0;
 
         if (need_set_mode)
-            SDL_SetWindowDisplayMode(win, &dm);
+            SDL_SetWindowFullscreenMode(win, dm);
         if (need_set_fs)
             SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
-
     }
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
@@ -347,7 +391,7 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
         if (vs) glDeleteShader(vs);
         if (fs) glDeleteShader(fs);
         free(source);
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }
@@ -357,17 +401,19 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
     glDeleteShader(fs);
     if (!prog) {
         free(source);
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }
 
     glUseProgram(prog);
     set_parameter_defaults(prog, source);
-    free(source);
 
     if (ext && strcmp(ext, ".glslp") == 0)
         apply_glslp_overrides(prog, shader_path);
+
+    apply_config_overrides(prog, path_basename(shader_path), source);
+    free(source);
 
     a_vtx = glGetAttribLocation(prog, "VertexCoord");
     a_tc  = glGetAttribLocation(prog, "TexCoord");
@@ -440,20 +486,8 @@ sdl_shader_blit(SDL_Window *win, const void *pixels,
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, src_w, src_h,
                     fmt, GL_UNSIGNED_BYTE, packed_pixels);
 
-    /* Composite OSD into fb_tex via FBO at emulator resolution
-       so the shader (CRT etc.) applies to the OSD. */
-    sdl_shader_begin_osd(src_w, src_h);
-    osd_present(src_w, src_h);
-    sdl_shader_end_osd();
-
     int win_w, win_h;
-    SDL_GL_GetDrawableSize(win, &win_w, &win_h);
-
-    /* Store blit viewport for OSD mouse coordinate mapping. */
-    last_dst_x = dst_x;
-    last_dst_y = dst_y;
-    last_dst_w = dst_w;
-    last_dst_h = dst_h;
+    SDL_GetWindowSizeInPixels(win, &win_w, &win_h);
 
     glViewport(0, 0, win_w, win_h);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -499,6 +533,10 @@ sdl_shader_blit(SDL_Window *win, const void *pixels,
     if (a_vtx >= 0) glDisableVertexAttribArray(a_vtx);
     if (a_tc >= 0) glDisableVertexAttribArray(a_tc);
 
+    /* Draw the OSD crisp on top of the shaded image, in the default
+       framebuffer at full window resolution. */
+    osd_present(dst_w, dst_h);
+
     SDL_GL_SwapWindow(win);
 }
 
@@ -512,11 +550,6 @@ sdl_shader_close(void)
         glDeleteTextures(1, &fb_tex);
         fb_tex = 0;
     }
-    if (osd_fbo) {
-        glDeleteFramebuffers(1, &osd_fbo);
-        osd_fbo = 0;
-        osd_fbo_inited = 0;
-    }
     if (vbo) {
         glDeleteBuffers(1, &vbo);
         vbo = 0;
@@ -526,7 +559,7 @@ sdl_shader_close(void)
         prog = 0;
     }
     if (gl_ctx) {
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
     }
     if (packed_pixels) {
@@ -544,165 +577,10 @@ sdl_shader_active(void)
     return is_active;
 }
 
-/* ------------------------------------------------------------------ */
-/*  FBO for OSD compositing                                            */
-/* ------------------------------------------------------------------ */
-void
-sdl_shader_begin_osd(int src_w, int src_h)
-{
-    if (!is_active || !fb_tex)
-        return;
-
-    if (!osd_fbo_inited) {
-        glGenFramebuffers(1, &osd_fbo);
-        osd_fbo_inited = 1;
-    }
-
-    glBindFramebuffer(GL_FRAMEBUFFER, osd_fbo);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-                           GL_TEXTURE_2D, fb_tex, 0);
-    glViewport(0, 0, src_w, src_h);
-
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-}
-
-void
-sdl_shader_end_osd(void)
-{
-    glDisable(GL_BLEND);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-}
-
-/* ------------------------------------------------------------------ */
-/*  Software-rendered OSD overlay (used by old OSD, non-IMGUI)         */
-/* ------------------------------------------------------------------ */
-static GLuint ovl_prog;
-static GLuint ovl_tex;
-static GLuint ovl_vbo;
-static int    ovl_a_vtx = -1;
-static int    ovl_a_tc  = -1;
-static int    ovl_u_sampler = -1;
-static int    ovl_inited;
-
-static int
-ovl_init(void)
-{
-    if (ovl_inited)
-        return 1;
-
-    static const char *ovl_vs =
-        "attribute vec4 VertexCoord;\n"
-        "attribute vec4 TexCoord;\n"
-        "varying vec2 v_tc;\n"
-        "void main() {\n"
-        "    gl_Position = VertexCoord;\n"
-        "    v_tc = TexCoord.xy;\n"
-        "}\n";
-    static const char *ovl_fs =
-        "precision mediump float;\n"
-        "varying vec2 v_tc;\n"
-        "uniform sampler2D Texture;\n"
-        "void main() {\n"
-        "    gl_FragColor = texture2D(Texture, v_tc);\n"
-        "}\n";
-
-    GLuint vs = compile_shader(GL_VERTEX_SHADER, ovl_vs, "");
-    GLuint fs = compile_shader(GL_FRAGMENT_SHADER, ovl_fs, "");
-    if (!vs || !fs) {
-        if (vs) glDeleteShader(vs);
-        if (fs) glDeleteShader(fs);
-        return 0;
-    }
-    ovl_prog = link_program(vs, fs);
-    glDeleteShader(vs);
-    glDeleteShader(fs);
-    if (!ovl_prog)
-        return 0;
-
-    ovl_a_vtx     = glGetAttribLocation(ovl_prog, "VertexCoord");
-    ovl_a_tc      = glGetAttribLocation(ovl_prog, "TexCoord");
-    ovl_u_sampler = glGetUniformLocation(ovl_prog, "Texture");
-
-    /* Fullscreen quad: position + texcoord.
-       FBO is later flipped by the main blit, so use direct SDL orientation
-       (V=0 at top, V=1 at bottom). */
-    static const float verts[] = {
-        -1.0f, -1.0f, 0, 1,  0.0f, 0.0f, 0, 0,
-         1.0f, -1.0f, 0, 1,  1.0f, 0.0f, 0, 0,
-        -1.0f,  1.0f, 0, 1,  0.0f, 1.0f, 0, 0,
-         1.0f,  1.0f, 0, 1,  1.0f, 1.0f, 0, 0,
-    };
-    glGenBuffers(1, &ovl_vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, ovl_vbo);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(verts), verts, GL_STATIC_DRAW);
-
-    glGenTextures(1, &ovl_tex);
-    glBindTexture(GL_TEXTURE_2D, ovl_tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    ovl_inited = 1;
-    return 1;
-}
-
-void
-sdl_shader_draw_overlay(const void *rgba, int w, int h)
-{
-    if (!is_active || !rgba || w <= 0 || h <= 0)
-        return;
-    if (!ovl_init())
-        return;
-
-    /* Save current program so main shader isn't disturbed. */
-    GLint prev_prog;
-    glGetIntegerv(GL_CURRENT_PROGRAM, &prev_prog);
-
-    glUseProgram(ovl_prog);
-
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, ovl_tex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0,
-                 GL_RGBA, GL_UNSIGNED_BYTE, rgba);
-
-    if (ovl_u_sampler >= 0)
-        glUniform1i(ovl_u_sampler, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, ovl_vbo);
-    if (ovl_a_vtx >= 0) {
-        glEnableVertexAttribArray(ovl_a_vtx);
-        glVertexAttribPointer(ovl_a_vtx, 4, GL_FLOAT, GL_FALSE,
-                              8 * sizeof(float), (void *) 0);
-    }
-    if (ovl_a_tc >= 0) {
-        glEnableVertexAttribArray(ovl_a_tc);
-        glVertexAttribPointer(ovl_a_tc, 4, GL_FLOAT, GL_FALSE,
-                              8 * sizeof(float), (void *) (4 * sizeof(float)));
-    }
-
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    if (ovl_a_vtx >= 0) glDisableVertexAttribArray(ovl_a_vtx);
-    if (ovl_a_tc >= 0)  glDisableVertexAttribArray(ovl_a_tc);
-
-    glUseProgram(prev_prog);
-}
-
 SDL_GLContext
 sdl_shader_get_context(void)
 {
     return gl_ctx;
-}
-
-void
-sdl_shader_get_viewport(int *dst_x, int *dst_y, int *dst_w, int *dst_h)
-{
-    if (dst_x) *dst_x = last_dst_x;
-    if (dst_y) *dst_y = last_dst_y;
-    if (dst_w) *dst_w = last_dst_w;
-    if (dst_h) *dst_h = last_dst_h;
 }
 
 /* ------------------------------------------------------------------ */
@@ -747,7 +625,7 @@ sdl_shader_init_passthrough(SDL_Window *win)
     if (!vs || !fs) {
         if (vs) glDeleteShader(vs);
         if (fs) glDeleteShader(fs);
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }
@@ -756,7 +634,7 @@ sdl_shader_init_passthrough(SDL_Window *win)
     glDeleteShader(vs);
     glDeleteShader(fs);
     if (!prog) {
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }

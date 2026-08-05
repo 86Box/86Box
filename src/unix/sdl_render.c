@@ -1,10 +1,11 @@
-#include <SDL.h>
-#include <SDL_messagebox.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_messagebox.h>
 
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <math.h>
 #include <sys/param.h>
 /* This #undef is needed because a SDL include header redefines HAVE_STDARG_H. */
 #undef HAVE_STDARG_H
@@ -14,6 +15,7 @@
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 #include <86box/ui.h>
 #include <86box/version.h>
 #include <86box/ini.h>
@@ -22,6 +24,7 @@
 #include "sdl_render.h"
 #include "sdl_osd.h"
 #include "sdl_shader.h"
+#include "cpu.h"
 
 #define RENDERER_FULL_SCREEN 1
 #define RENDERER_HARDWARE    2
@@ -40,7 +43,6 @@ SDL_Window         *sdl_win     = NULL;
 SDL_Renderer       *sdl_render  = NULL;
 #ifndef USE_SDL_SHADER_PIPELINE
 static SDL_Texture *sdl_tex     = NULL;
-static SDL_Texture *sdl_osd_tex = NULL;
 #endif
 int                 sdl_w       = SCREEN_RES_X;
 int                 sdl_h       = SCREEN_RES_Y;
@@ -53,13 +55,15 @@ static int          cur_wy      = 0;
 static int          cur_ww      = 0;
 static int          cur_wh      = 0;
 static volatile int sdl_enabled = 1;
-SDL_mutex          *sdl_mutex   = NULL;
+SDL_Mutex          *sdl_mutex   = NULL;
 int                 mouse_capture;
 int                 title_set         = 0;
 int                 resize_pending    = 0;
 int                 resize_w          = 0;
 int                 resize_h          = 0;
 static void        *pixeldata         = NULL;
+static char         mouse_msg[3][300];
+
 
 void sdl_reinit_texture(void);
 
@@ -81,9 +85,9 @@ static void
 sdl_get_output_size(int *w, int *h)
 {
 #ifdef USE_SDL_SHADER_PIPELINE
-    SDL_GL_GetDrawableSize(sdl_win, w, h);
+    SDL_GetWindowSizeInPixels(sdl_win, w, h);
 #else
-    if (sdl_render && SDL_GetRendererOutputSize(sdl_render, w, h) == 0)
+    if (sdl_render && SDL_GetCurrentRenderOutputSize(sdl_render, w, h))
         return;
     SDL_GetWindowSize(sdl_win, w, h);
 #endif
@@ -203,9 +207,9 @@ sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
 void ui_window_title_real(void);
 
 void
-sdl_real_blit(SDL_Rect *r_src)
+sdl_real_blit(SDL_FRect *r_src)
 {
-    SDL_Rect r_dst;
+    SDL_FRect r_dst;
     int      winx;
     int      winy;
 
@@ -215,7 +219,16 @@ sdl_real_blit(SDL_Rect *r_src)
     r_dst.x = r_dst.y = 0;
 
     if (sdl_fs) {
-        sdl_stretch(&r_dst.w, &r_dst.h, &r_dst.x, &r_dst.y);
+        SDL_Rect r_dsti;
+        r_dsti.x = r_dst.x;
+        r_dsti.y = r_dst.y;
+        r_dsti.w = r_dst.w;
+        r_dsti.h = r_dst.h;
+        sdl_stretch(&r_dsti.w, &r_dsti.h, &r_dsti.x, &r_dsti.y);
+        r_dst.x = r_dsti.x;
+        r_dst.y = r_dsti.y;
+        r_dst.w = r_dsti.w;
+        r_dst.h = r_dsti.h;
     } else {
         r_dst.w *= ((float) winx / (float) r_dst.w);
         r_dst.h *= ((float) winy / (float) r_dst.h);
@@ -225,28 +238,20 @@ sdl_real_blit(SDL_Rect *r_src)
     sdl_shader_blit(sdl_win, pixeldata, r_src->w, r_src->h,
                     r_dst.x, r_dst.y, r_dst.w, r_dst.h);
 #else
-    SDL_Rect src_rect = { 0, 0, r_src->w, r_src->h };
+    SDL_FRect src_rect = { 0, 0, r_src->w, r_src->h };
+    SDL_Rect src_recti = { 0, 0, r_src->w, r_src->h };
 
-    if (sdl_render == NULL || sdl_tex == NULL || sdl_osd_tex == NULL)
+    if (sdl_render == NULL || sdl_tex == NULL)
         return;
 
-    if (SDL_UpdateTexture(sdl_tex, &src_rect, pixeldata, 2048 * (int) sizeof(uint32_t)) < 0)
+    if (!SDL_UpdateTexture(sdl_tex, &src_recti, pixeldata, 2048 * (int) sizeof(uint32_t)))
         return;
 
     SDL_SetRenderDrawColor(sdl_render, 0, 0, 0, 255);
     SDL_RenderClear(sdl_render);
-    SDL_RenderCopy(sdl_render, sdl_tex, &src_rect, &r_dst);
+    SDL_RenderTexture(sdl_render, sdl_tex, &src_rect, &r_dst);
 
-    osd_present(r_src->w, r_src->h);
-
-    if (osd_is_visible()) {
-        SDL_Surface *osd_surface = osd_get_surface();
-
-        if (osd_surface && osd_surface->w == r_src->w && osd_surface->h == r_src->h) {
-            if (SDL_UpdateTexture(sdl_osd_tex, &src_rect, osd_surface->pixels, osd_surface->pitch) == 0)
-                SDL_RenderCopy(sdl_render, sdl_osd_tex, &src_rect, &r_dst);
-        }
-    }
+    osd_present(r_dst.w, r_dst.h);
 
     SDL_RenderPresent(sdl_render);
 #endif
@@ -255,7 +260,7 @@ sdl_real_blit(SDL_Rect *r_src)
 void
 sdl_blit(int x, int y, int w, int h)
 {
-    SDL_Rect r_src;
+    SDL_FRect r_src;
 
     if (sdl_blit_invalid(x, y, w, h)) {
         r_src.x = x;
@@ -306,10 +311,6 @@ sdl_destroy_texture(void)
 #ifdef USE_SDL_SHADER_PIPELINE
     sdl_shader_close();
 #else
-    if (sdl_osd_tex != NULL) {
-        SDL_DestroyTexture(sdl_osd_tex);
-        sdl_osd_tex = NULL;
-    }
     if (sdl_tex != NULL) {
         SDL_DestroyTexture(sdl_tex);
         sdl_tex = NULL;
@@ -373,15 +374,6 @@ sdl_enable(int enable)
 static void
 sdl_select_best_hw_driver(void)
 {
-    SDL_RendererInfo renderInfo;
-
-    for (int i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
-        SDL_GetRenderDriverInfo(i, &renderInfo);
-        if (renderInfo.flags & SDL_RENDERER_ACCELERATED) {
-            SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderInfo.name);
-            return;
-        }
-    }
 }
 
 void
@@ -391,34 +383,25 @@ sdl_reinit_texture(void)
     if (pixeldata == NULL)
         return;
 
-#ifdef USE_IMGUI
     osd_deinit();
-#endif
 
     sdl_destroy_texture();
 
-    sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
-    if (sdl_render == NULL) {
-        SDL_SetHint(SDL_HINT_RENDER_DRIVER, "");
-        sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
-    }
+    sdl_render = SDL_CreateRenderer(sdl_win, NULL);
+
     if (sdl_render == NULL)
         return;
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
                                 SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
-    sdl_osd_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ABGR8888,
-                                    SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
-    if (sdl_tex == NULL || sdl_osd_tex == NULL) {
+    if (sdl_tex == NULL) {
         sdl_destroy_texture();
         return;
     }
 
-    SDL_SetTextureBlendMode(sdl_osd_tex, SDL_BLENDMODE_BLEND);
+    SDL_SetTextureScaleMode(sdl_tex, video_filter_method ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
 
-#ifdef USE_IMGUI
     osd_init();
-#endif
 #endif
 }
 
@@ -426,13 +409,10 @@ void
 sdl_set_fs(int fs)
 {
     SDL_LockMutex(sdl_mutex);
-#ifdef USE_SDL_SHADER_PIPELINE
-    SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN : 0);
-#else
-    SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-#endif
+    SDL_SetWindowFullscreen(sdl_win, fs);
+
     if (fs) {
-        SDL_SetRelativeMouseMode(SDL_TRUE);
+        SDL_SetWindowRelativeMouseMode(sdl_win, true);
         mouse_capture = 1;
     }
 
@@ -487,7 +467,7 @@ sdl_reload(void)
     if (sdl_flags & RENDERER_HARDWARE) {
         SDL_LockMutex(sdl_mutex);
 
-        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
+//        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
         sdl_reinit_texture();
 
         SDL_UnlockMutex(sdl_mutex);
@@ -503,7 +483,7 @@ plat_vidapi(UNUSED(const char *api))
 static int
 sdl_init_common(int flags)
 {
-    SDL_version ver;
+    int ver;
     Uint32      window_flags = (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0);
 
 #ifdef USE_SDL_SHADER_PIPELINE
@@ -511,11 +491,11 @@ sdl_init_common(int flags)
 #endif
 
     /* Get and log the version of the DLL we are using. */
-    SDL_GetVersion(&ver);
-    fprintf(stderr, "SDL: version %d.%d.%d\n", ver.major, ver.minor, ver.patch);
+    ver = SDL_GetVersion();
+    fprintf(stderr, "SDL: version %d.%d.%d\n", SDL_VERSIONNUM_MAJOR(ver), SDL_VERSIONNUM_MINOR(ver), SDL_VERSIONNUM_MICRO(ver));
 
     /* Initialize the SDL system. */
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (!SDL_Init(SDL_INIT_VIDEO)) {
         fprintf(stderr, "SDL: initialization failed (%s)\n", SDL_GetError());
         return (0);
     }
@@ -527,14 +507,14 @@ sdl_init_common(int flags)
     if (flags & RENDERER_HARDWARE) {
 #ifdef USE_SDL_SHADER_PIPELINE
         if (flags & RENDERER_OPENGL) {
-            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "OpenGL");
+            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
         } else
 #endif
             sdl_select_best_hw_driver();
     }
 
     sdl_mutex = SDL_CreateMutex();
-    sdl_win   = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, window_flags);
+    sdl_win   = SDL_CreateWindow("86Box", scrnsz_x, scrnsz_y, window_flags);
     sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1)) {
         if (vid_resize & 2)
@@ -545,6 +525,8 @@ sdl_init_common(int flags)
     if ((vid_resize < 2) && window_remember) {
         SDL_SetWindowSize(sdl_win, window_w, window_h);
     }
+
+    SDL_SetWindowPosition(sdl_win, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED);
 
 #ifdef USE_SDL_SHADER_PIPELINE
     {
@@ -601,8 +583,8 @@ void
 plat_mouse_capture(int on)
 {
     SDL_LockMutex(sdl_mutex);
-    SDL_SetRelativeMouseMode((SDL_bool) on);
-    SDL_ShowCursor((SDL_bool) !on);
+    SDL_SetWindowRelativeMouseMode(sdl_win, on);
+
     mouse_capture = on;
     SDL_UnlockMutex(sdl_mutex);
 }
@@ -617,8 +599,32 @@ plat_resize(int w, int h, UNUSED(int monitor_index))
     SDL_UnlockMutex(sdl_mutex);
 }
 
+void
+update_mouse_msg(void)
+{
+    char  cpufamily[128];
+    char *cp;
+
+    if (!cpu_override)
+        strncpy(cpufamily, cpu_f->name, sizeof(cpufamily) - 1);
+    else
+        snprintf(cpufamily, sizeof(cpufamily), "[U] %s", cpu_f->name);
+
+    cp = strchr(cpufamily, '(');
+    if (cp) /* remove parentheses */
+        *(cp - 1) = '\0';
+    snprintf(mouse_msg[0], sizeof(mouse_msg[0]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
+             "Click to capture mouse");
+    snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
+             (mouse_get_buttons() > 2) ? "Press CTRL-END to release mouse" : "Press CTRL-END or middle button to release mouse");
+    snprintf(mouse_msg[2], sizeof(mouse_msg[2]), "%s v%s - %%i%%%% - %s - %s/%s",
+             EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name);
+}
+
 char    sdl_win_title[512] = EMU_NAME;
-SDL_mutex *titlemtx           = NULL;
+SDL_Mutex *titlemtx           = NULL;
 
 void
 ui_window_title_real(void)
@@ -626,7 +632,7 @@ ui_window_title_real(void)
     SDL_SetWindowTitle(sdl_win, sdl_win_title);
     title_set = 0;
 }
-extern SDL_threadID eventthread;
+extern SDL_ThreadID eventthread;
 
 /* Only activate threading path on macOS, otherwise it will softlock Xorg.
    Wayland doesn't seem to have this issue. */
@@ -636,7 +642,7 @@ ui_window_title(char *str)
     if (!str)
         return sdl_win_title;
 #ifdef __APPLE__
-    if (eventthread == SDL_ThreadID())
+    if (eventthread == SDL_GetCurrentThreadID())
 #endif
     {
         memset(sdl_win_title, 0, sizeof(sdl_win_title));
@@ -650,6 +656,15 @@ ui_window_title(char *str)
     title_set = 1;
 #endif
     return str;
+}
+
+void
+ui_emu_status(int speed_percent)
+{
+    int mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
+    char temp[200];
+    snprintf(temp, sizeof(temp), mouse_msg[mouse_msg_idx], speed_percent);
+    ui_window_title(temp);
 }
 
 void

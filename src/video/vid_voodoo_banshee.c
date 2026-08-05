@@ -51,7 +51,9 @@
 #include <86box/vid_voodoo_texture.h>
 
 #define ROM_BANSHEE                 "roms/video/voodoo/Pci_sg.rom"
+#define ROM_BANSHEE_AGP             "roms/video/voodoo/Agp_sg.rom"
 #define ROM_CREATIVE_BANSHEE        "roms/video/voodoo/BlasterPCI.rom"
+#define ROM_CREATIVE_BANSHEE_AGP    "roms/video/voodoo/BlasterAGP.rom"
 #define ROM_QUANTUM3D_RAVEN         "roms/video/voodoo/RVPD0224.rom"
 #define ROM_VOODOO3_1000            "roms/video/voodoo/1k11sg.rom"
 #define ROM_VOODOO3_2000            "roms/video/voodoo/2k11sd.rom"
@@ -3626,6 +3628,16 @@ banshee_bios_init(const device_t *info)
 }
 
 static void *
+banshee_bios_agp_init(const device_t *info)
+{
+    uint32_t local = device_get_bios_local(info, device_get_config_bios("bios"));
+
+    return banshee_init_common(info, device_get_bios_file(info, device_get_config_bios("bios"), 0),
+                               (uint8_t) ((local >> 8) & 0xff), (uint8_t) (local & 0xff),
+                               VOODOO_BANSHEE, 1, 1);
+}
+
+static void *
 v3_1000_init(const device_t *info)
 {
     return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 0, 0);
@@ -3846,7 +3858,7 @@ static const device_config_t voodoo_sgram_config[] = {
 static const device_config_t voodoo_banshee_pci_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "voodoo_banshee_pci",
         .default_int    = 0,
@@ -3977,6 +3989,140 @@ static const device_config_t voodoo_banshee_pci_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t voodoo_banshee_agp_config[] = {
+    {
+        .name           = "bios",
+        .description    = "Variant",
+        .type           = CONFIG_BIOS,
+        .default_string = "voodoo_banshee_agp",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .bios           = {
+            {
+                .name          = "3Dfx Voodoo Banshee",
+                .internal_name = "voodoo_banshee_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_BANSHEE | 0x100,
+                .size          = 32768,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | 16,
+                .files         = { ROM_BANSHEE_AGP, "" }
+            },
+            {
+                .name          = "Creative 3D Blaster Banshee",
+                .internal_name = "ctl3d_banshee_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_BANSHEE,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_CREATIVE_BANSHEE_AGP, "" }
+            },
+            {
+                .name          = "Quantum3D Raven",
+                .internal_name = "q3d_raven_agp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = TYPE_QUANTUM3D_RAVEN,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_QUANTUM3D_RAVEN, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 16,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "8 MB", .value =  8 },
+            { .description = "16 MB", .value = 16 },
+            { .description = ""                   }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bilinear",
+        .description    = "Bilinear filtering",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "chromakey",
+        .description    = "Video chroma-keying",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dithersub",
+        .description    = "Dither subtraction",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dacfilter",
+        .description    = "Screen Filter",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    #ifndef NO_CODEGEN
+    {
+        .name           = "recompiler",
+        .description    = "Dynamic Recompiler",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    #endif
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t voodoo_nomem_config[] = {
     {
         .name           = "bilinear",
@@ -4057,7 +4203,7 @@ static const device_config_t voodoo_nomem_config[] = {
 static const device_config_t voodoo_3_3500_agp_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "voodoo3_3500_si_agp",
         .default_int    = 0,
@@ -4211,6 +4357,20 @@ const device_t voodoo_banshee_pci_device = {
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     .config        = voodoo_banshee_pci_config
+};
+
+const device_t voodoo_banshee_agp_device = {
+    .name          = "3dfx Voodoo Banshee",
+    .internal_name = "voodoo_banshee_agp",
+    .flags         = DEVICE_AGP | DEVICE_BIOS_ALIAS,
+    .local         = 0,
+    .init          = banshee_bios_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    .config        = voodoo_banshee_agp_config
 };
 
 const device_t voodoo_3_1000_device = {

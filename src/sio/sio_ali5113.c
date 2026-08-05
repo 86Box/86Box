@@ -310,8 +310,6 @@ ali5113_init(const device_t *info)
                   ali5113_read, NULL, NULL,
                   ali5113_write, NULL, NULL, dev);
 
-    device_add_params(&kbc_at_device, (void *) KBC_VEN_ALI);
-
     return dev;
 }
 

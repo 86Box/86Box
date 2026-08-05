@@ -147,12 +147,17 @@ extern int drive_empty[FDD_NUM];
 #define SECTOR_FIRST -2
 #define SECTOR_NEXT  -1
 
+typedef uint8_t d86f_format_id_t[4];
+
 typedef struct d86f_handler_t {
     uint16_t (*disk_flags)(int drive);
     uint16_t (*side_flags)(int drive);
     void (*writeback)(int drive);
     void (*set_sector)(int drive, int side, uint8_t c, uint8_t h,
                        uint8_t r, uint8_t n);
+    int (*format_track)(int drive, int side,
+                        const d86f_format_id_t *ids, uint16_t count,
+                        uint8_t fill);
     uint8_t (*read_data)(int drive, int side, uint16_t pos);
     void (*write_data)(int drive, int side, uint16_t pos,
                        uint8_t data);

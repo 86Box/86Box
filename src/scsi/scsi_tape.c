@@ -284,7 +284,10 @@ tape_load(const tape_t *dev, const char *fn, const int skip_insert)
             ((tape_t *) dev)->eot        = 0;
             ((tape_t *) dev)->num_blocks = 0;
 
-            strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
+            if (dev->drv->image_path != (fn - offs)) {
+                const int len = MIN(strlen(fn - offs), (strlen(dev->drv->image_path) - 1));
+                strncpy(dev->drv->image_path, fn - offs, len);
+            }
         }
     }
 
@@ -1381,6 +1384,8 @@ tape_reset(scsi_common_t *sc)
 static void
 tape_request_sense(tape_t *dev, uint8_t *buffer, const uint8_t alloc_length, const int desc)
 {
+    tape_log(dev->log, "Request sense allocated length: %i\n", alloc_length);
+
     if (alloc_length != 0) {
         memset(buffer, 0x00, alloc_length);
         if (desc) {
@@ -1429,15 +1434,13 @@ tape_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_le
 static void
 tape_set_buf_len(const tape_t *dev, int32_t *BufLen, int32_t *src_len)
 {
-    if (dev->drv->bus_type == TAPE_BUS_SCSI) {
-        if (*BufLen == -1)
-            *BufLen = *src_len;
-        else {
-            *BufLen  = MIN(*src_len, *BufLen);
-            *src_len = *BufLen;
-        }
-        tape_log(dev->log, "Actual transfer length: %i\n", *BufLen);
+    if (*BufLen == -1)
+        *BufLen = *src_len;
+    else {
+        *BufLen  = MIN(*src_len, *BufLen);
+        *src_len = *BufLen;
     }
+    tape_log(dev->log, "Actual transfer length: %i\n", *BufLen);
 }
 
 static void
@@ -1459,7 +1462,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
     char          device_identify[9] = { '8', '6', 'B', '_', 'T', 'P', '0', '0', 0 };
     const uint8_t scsi_bus           = (dev->drv->scsi_device_id >> 4) & 0x0f;
     const uint8_t scsi_id            = dev->drv->scsi_device_id & 0x0f;
-    int32_t       blen               = 0;
+    int32_t       blen               = 65536;
     int32_t       count              = 0;
     int           idx                = 0;
     int32_t       len;

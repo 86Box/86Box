@@ -768,7 +768,7 @@ ati28800_force_redraw(void *priv)
 static const device_config_t ati28800_5_config[] = {
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "Variant",
         .type           = CONFIG_BIOS,
         .default_string = "ati28800",
         .default_int    = 0,

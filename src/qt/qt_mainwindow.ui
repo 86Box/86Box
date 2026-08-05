@@ -75,10 +75,10 @@
     <addaction name="separator"/>
     <addaction name="actionUpdate_mouse_every_CPU_frame"/>
     <addaction name="separator"/>
-    <addaction name="actionAuto_pause"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionFullscreen"/>
+    <addaction name="actionToggle_OSD"/>
     <addaction name="separator"/>
     <addaction name="actionFast_forward"/>
     <addaction name="actionForce_interpretation"/>
@@ -134,7 +134,7 @@
       <string>Re&amp;nderer</string>
      </property>
      <addaction name="actionSoftware_Renderer"/>
-     <addaction name="actionOpenGL_3_0_Core"/>
+     <addaction name="actionOpenGL"/>
      <addaction name="actionVulkan"/>
      <addaction name="actionVNC"/>
     </widget>
@@ -302,14 +302,6 @@
     <string>&amp;Update mouse every CPU frame</string>
    </property>
   </action>
-  <action name="actionAuto_pause">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>&amp;Auto-pause on focus loss</string>
-   </property>
-  </action>
   <action name="actionKeyboard_requires_capture">
    <property name="checkable">
     <bool>true</bool>
@@ -397,6 +389,11 @@
   <action name="actionFullscreen">
    <property name="text">
     <string>&amp;Fullscreen</string>
+   </property>
+  </action>
+  <action name="actionToggle_OSD">
+   <property name="text">
+    <string>Toggle &amp;on-screen display</string>
    </property>
   </action>
   <action name="actionSoftware_Renderer">
@@ -681,12 +678,12 @@
     <string>Sound &amp;gain…</string>
    </property>
   </action>
-  <action name="actionOpenGL_3_0_Core">
+  <action name="actionOpenGL">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Open&amp;GL (3.0 Core)</string>
+    <string>Open&amp;GL</string>
    </property>
    <property name="vid_api" stdset="0">
     <number>1</number>
@@ -793,7 +790,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;VNC</string>
+    <string>V&amp;NC</string>
    </property>
    <property name="vid_api" stdset="0">
     <number>3</number>

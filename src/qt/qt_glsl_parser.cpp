@@ -14,7 +14,7 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/ini.h>
 #include <86box/config.h>
-#include <86box/qt-glslp-parser.h>
+#include <86box/qt_glslp_parser.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 

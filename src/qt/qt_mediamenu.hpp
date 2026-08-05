@@ -67,6 +67,7 @@ public:
     void moReload(int index, int slot);
     void moUpdateMenu(int i);
 
+    void tapeNewImage(int i);
     void tapeSelectImage(int i, bool wp);
     void tapeMount(int i, const QString &filename, bool wp);
     void tapeEject(int i);

@@ -210,7 +210,10 @@ mo_load(const mo_t *dev, const char *fn, const int skip_insert)
                     log_fatal(dev->log, "mo_load(): Error seeking to the beginning of "
                               "the file\n");
 
-                strncpy(dev->drv->image_path, fn - offs, sizeof(dev->drv->image_path) - 1);
+                if (dev->drv->image_path != (fn - offs)) {
+                    const int len = MIN(strlen(fn - offs), (strlen(dev->drv->image_path) - 1));
+                    strncpy(dev->drv->image_path, fn - offs, len);
+                }
 
                 ret = 1;
             } else
@@ -1203,15 +1206,13 @@ mo_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_leng
 static void
 mo_set_buf_len(const mo_t *dev, int32_t *BufLen, int32_t *src_len)
 {
-    if (dev->drv->bus_type == MO_BUS_SCSI) {
-        if (*BufLen == -1)
-            *BufLen = *src_len;
-        else {
-            *BufLen  = MIN(*src_len, *BufLen);
-            *src_len = *BufLen;
-        }
-        mo_log(dev->log, "Actual transfer length: %i\n", *BufLen);
+    if (*BufLen == -1)
+        *BufLen = *src_len;
+    else {
+        *BufLen  = MIN(*src_len, *BufLen);
+        *src_len = *BufLen;
     }
+    mo_log(dev->log, "Actual transfer length: %i\n", *BufLen);
 }
 
 static void
@@ -1220,7 +1221,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
     mo_t *        dev                = (mo_t *) sc;
     char          device_identify[9] = { '8', '6', 'B', '_', 'M', 'O', '0', '0', 0 };
     uint32_t      previous_pos       = 0;
-    int32_t       blen               = 0;
+    int32_t       blen               = 65536;
     const uint8_t scsi_bus           = (dev->drv->scsi_device_id >> 4) & 0x0f;
     const uint8_t scsi_id            = dev->drv->scsi_device_id & 0x0f;
     int           pos                = 0;
@@ -2196,11 +2197,11 @@ mo_hard_reset(void)
 
             mo_log(dev->log, "MO hard_reset drive=%d\n", c);
 
-            if (dev->tf == NULL)
-                continue;
-
             dev->id  = c;
             dev->drv = &mo_drives[c];
+
+            if (dev->tf == NULL)
+                continue;
 
             mo_init(dev);
 

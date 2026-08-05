@@ -107,7 +107,7 @@ jobs:
             gcc:p
             pkgconf:p
             freetype:p
-            SDL2:p
+            sdl3:p
             zlib:p
             libpng:p
             openal:p
@@ -117,6 +117,7 @@ jobs:
             libserialport:p
             ${{ matrix.ui.packages }}
             llvm-openmp:p
+            zstd:p
 
       - name: Checkout repository
         uses: actions/checkout@v4

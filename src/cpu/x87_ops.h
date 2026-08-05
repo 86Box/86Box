@@ -158,7 +158,12 @@ x87_pop(void)
 #ifdef USE_NEW_DYNAREC
     cpu_state.TOP++;
 #else
-    cpu_state.tag[cpu_state.TOP & 7] |= TAG_UINT64;
+    /* Old-dynarec "empty" is packed tag 3 (see FINIT's 0x0303... and the dynarec's
+       FP_POP, which writes 3). The previous `|= TAG_UINT64` left the vacated slot
+       tagged as a live 64-bit integer (x87_gettag maps TAG_UINT64 -> non-empty 2),
+       diverging from the dynarec and causing FXSAVE to serialize a stale MM.q with
+       the 0x5555 sentinel. Mark it empty like FP_POP/FINIT do. */
+    cpu_state.tag[cpu_state.TOP & 7] = 3;
     cpu_state.TOP = (cpu_state.TOP + 1) & 7;
 #endif
     return t;
@@ -334,13 +339,17 @@ x87_ld_frstor(int reg)
     cpu_state.MM[reg].q  = readmemq(easeg, cpu_state.eaaddr);
     cpu_state.MM_w4[reg] = readmemw(easeg, cpu_state.eaaddr + 8);
 
+    /* The 0x5555 pseudo-exponent is written by x87_st_fsave ONLY for a
+       TAG_UINT64 (FILD'd int64) register, and no legitimate float or MMX save
+       produces it (x87_st80 caps finite doubles near 0x43FF, NaN/Inf use 0x7fff,
+       x87_stmmx writes 0xffff). So the sentinel alone is a reliable marker.
+       Gating on it directly makes FXRSTOR round-trip the exact integer the same
+       way FNSAVE/FRSTOR does; the previous `tag == 2` condition depended on a
+       correctly-reconstructed abridged tag, which FXRSTOR cannot guarantee. */
+    if (cpu_state.MM_w4[reg] == 0x5555) {
 #ifdef USE_NEW_DYNAREC
-    if ((cpu_state.MM_w4[reg] == 0x5555) && (cpu_state.tag[reg] & TAG_UINT64))
+        cpu_state.tag[reg] = TAG_VALID | TAG_UINT64;
 #else
-    if ((cpu_state.MM_w4[reg] == 0x5555) && (cpu_state.tag[reg] == 2))
-#endif
-    {
-#ifndef USE_NEW_DYNAREC
         cpu_state.tag[reg] = TAG_UINT64;
 #endif
         cpu_state.ST[reg] = (double) cpu_state.MM[reg].q;

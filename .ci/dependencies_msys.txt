@@ -4,7 +4,7 @@ gcc
 pkgconf
 openal
 freetype
-SDL2
+sdl3
 zlib
 libpng
 rtmidi
@@ -16,3 +16,8 @@ vulkan-headers
 libsndfile
 libserialport
 make
+rust
+rust-src
+cargo-c
+corrosion
+zstd

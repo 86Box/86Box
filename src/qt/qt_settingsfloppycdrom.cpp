@@ -92,7 +92,10 @@ setCDROMSpeed(QAbstractItemModel *model, const QModelIndex &idx, uint8_t speed)
     if (!speed)
         speed = 8;
     auto i = idx.siblingAtColumn(1);
-    model->setData(i, QString("%1x").arg(speed));
+    if (speed > 72)
+        model->setData(i, QObject::tr("Turbo"));
+    else
+        model->setData(i, QString("%1x").arg(speed));
     model->setData(i, speed, Qt::UserRole);
 }
 
@@ -141,7 +144,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     }
 
     model = new QStandardItemModel(0, 3, this);
-    ui->tableViewFloppy->setModel(model);
+    ui->treeViewFloppy->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Type"));
     model->setHeaderData(1, Qt::Horizontal, tr("Turbo"));
     model->setHeaderData(2, Qt::Horizontal, tr("Check BPB"));
@@ -149,7 +152,6 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     model->insertRows(0, FDD_NUM);
     /* Floppy drives category */
     for (int i = 0; i < FDD_NUM; i++) {
-        ui->tableViewFloppy->setRowHeight(i, 25);
         auto idx  = model->index(i, 0);
         int  type = fdd_get_type(i);
         setFloppyType(model, idx, type);
@@ -163,10 +165,10 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 #endif
     }
 
-    ui->tableViewFloppy->resizeColumnsToContents();
-    ui->tableViewFloppy->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    for (int i = 0; i < model->columnCount(); i++)
+        ui->treeViewFloppy->resizeColumnToContents(i);
 
-    connect(ui->tableViewFloppy->selectionModel(), &QItemSelectionModel::currentRowChanged,
+    connect(ui->treeViewFloppy->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onFloppyRowChanged);
 
 #ifndef DISABLE_FDD_AUDIO
@@ -188,7 +190,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 #endif
 
     // Set initial selection and trigger the row changed event to update controls
-    ui->tableViewFloppy->setCurrentIndex(model->index(0, 0));
+    ui->treeViewFloppy->setCurrentIndex(model->index(0, 0));
     // Manually trigger the row changed event to ensure audio selection is updated
     onFloppyRowChanged(model->index(0, 0));
 
@@ -200,15 +202,15 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     model = ui->comboBoxSpeed->model();
     for (int i = 0; i < 72; i++)
         Models::AddEntry(model, QString("%1x").arg(i + 1), i + 1);
+    Models::AddEntry(model, tr("Turbo"), 99);
 
     model = new QStandardItemModel(0, 3, this);
-    ui->tableViewCDROM->setModel(model);
+    ui->treeViewCDROM->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
     model->setHeaderData(1, Qt::Horizontal, tr("Speed"));
     model->setHeaderData(2, Qt::Horizontal, tr("Type"));
     model->insertRows(0, CDROM_NUM);
     for (int i = 0; i < CDROM_NUM; i++) {
-        ui->tableViewCDROM->setRowHeight(i, 25);
         auto idx  = model->index(i, 0);
         int  type = cdrom_get_type(i);
         setCDROMBus(model, idx, cdrom[i].bus_type, type, cdrom[i].res);
@@ -228,15 +230,15 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
             Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, 0);
         inc[i] = cdrom[i].no_check;
     }
-    ui->tableViewCDROM->resizeColumnsToContents();
-    ui->tableViewCDROM->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Stretch);
+    for (int i = 0; i < model->columnCount(); i++)
+        ui->treeViewCDROM->resizeColumnToContents(i);
 
-    connect(ui->tableViewCDROM->selectionModel(), &QItemSelectionModel::currentRowChanged,
+    connect(ui->treeViewCDROM->selectionModel(), &QItemSelectionModel::currentRowChanged,
             this, &SettingsFloppyCDROM::onCDROMRowChanged);
-    ui->tableViewCDROM->setCurrentIndex(model->index(0, 0));
+    ui->treeViewCDROM->setCurrentIndex(model->index(0, 0));
 
     uint8_t bus_type = ui->comboBoxBus->currentData().toUInt();
-    int     cdromIdx = ui->tableViewCDROM->selectionModel()->currentIndex().data().toInt();
+    int     cdromIdx = ui->treeViewCDROM->selectionModel()->currentIndex().data().toInt();
 
     auto *modelType  = ui->comboBoxCDROMType->model();
     int   removeRows = modelType->rowCount();
@@ -276,7 +278,7 @@ SettingsFloppyCDROM::changed()
     int has_changed  = 0;
     int soft_changed = 0;
 
-    auto *model = ui->tableViewFloppy->model();
+    auto *model = ui->treeViewFloppy->model();
     for (int i = 0; i < FDD_NUM; i++) {
         has_changed  |= (fdd_get_type(i)          != model->index(i, 0).data(Qt::UserRole).toInt());
         has_changed  |= (fdd_get_turbo(i)         != (model->index(i, 1).data() == tr("On") ? 1 : 0));
@@ -287,7 +289,7 @@ SettingsFloppyCDROM::changed()
     }
 
     /* Removable devices category */
-    model = ui->tableViewCDROM->model();
+    model = ui->treeViewCDROM->model();
     for (int i = 0; i < CDROM_NUM; i++) {
         has_changed  |= (cdrom[i].bus_type        != model->index(i, 0).data(Qt::UserRole).toUInt());
         has_changed  |= (cdrom[i].res             != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
@@ -314,7 +316,7 @@ SettingsFloppyCDROM::save(int soft)
         return;
     }
 
-    auto *model = ui->tableViewFloppy->model();
+    auto *model = ui->treeViewFloppy->model();
     for (int i = 0; i < FDD_NUM; i++) {
         fdd_set_type(i, model->index(i, 0).data(Qt::UserRole).toInt());
         fdd_set_turbo(i, model->index(i, 1).data() == tr("On") ? 1 : 0);
@@ -325,7 +327,7 @@ SettingsFloppyCDROM::save(int soft)
     }
 
     /* Removable devices category */
-    model = ui->tableViewCDROM->model();
+    model = ui->treeViewCDROM->model();
     for (int i = 0; i < CDROM_NUM; i++) {
         cdrom[i].priv        = NULL;
         cdrom[i].ops         = NULL;
@@ -473,30 +475,31 @@ SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current)
 void
 SettingsFloppyCDROM::on_checkBoxTurboTimings_stateChanged(int arg1)
 {
-    auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ? tr("On") : tr("Off"));
+    auto idx = ui->treeViewFloppy->selectionModel()->currentIndex();
+    ui->treeViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ? tr("On") : tr("Off"));
 }
 
 void
 SettingsFloppyCDROM::on_checkBoxCheckBPB_stateChanged(int arg1)
 {
-    auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ? tr("On") : tr("Off"));
+    auto idx = ui->treeViewFloppy->selectionModel()->currentIndex();
+    ui->treeViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ? tr("On") : tr("Off"));
 }
 
 void
 SettingsFloppyCDROM::on_checkBoxErrorCheck_stateChanged(int arg1)
 {
-    auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
+    auto idx = ui->treeViewFloppy->selectionModel()->currentIndex();
     inc[idx.row()] = (arg1 != Qt::Checked);
 }
 
 void
 SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 {
-    auto currentIndex = ui->tableViewFloppy->selectionModel()->currentIndex();
+    auto currentIndex = ui->treeViewFloppy->selectionModel()->currentIndex();
     auto typeIndex    = currentIndex.siblingAtColumn(0);
-    setFloppyType(ui->tableViewFloppy->model(), typeIndex, index);
+    setFloppyType(ui->treeViewFloppy->model(), typeIndex, index);
+    ui->treeViewFloppy->resizeColumnToContents(0);
 
     // Trigger row changed to rebuild audio profile list
     onFloppyRowChanged(currentIndex);
@@ -505,7 +508,7 @@ SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 void
 SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 {
-    auto    idx  = ui->tableViewFloppy->selectionModel()->currentIndex();
+    auto    idx  = ui->treeViewFloppy->selectionModel()->currentIndex();
     int     prof = ui->comboBoxFloppyAudio->currentData().toInt();
 
 #ifndef DISABLE_FDD_AUDIO
@@ -542,18 +545,19 @@ SettingsFloppyCDROM::on_comboBoxBus_currentIndexChanged(int index)
 void
 SettingsFloppyCDROM::on_comboBoxSpeed_activated(int index)
 {
-    auto idx = ui->tableViewCDROM->selectionModel()->currentIndex();
-    setCDROMSpeed(ui->tableViewCDROM->model(), idx.siblingAtColumn(1), index + 1);
+    auto idx = ui->treeViewCDROM->selectionModel()->currentIndex();
+    setCDROMSpeed(ui->treeViewCDROM->model(), idx.siblingAtColumn(1), index + 1);
+    ui->treeViewCDROM->resizeColumnToContents(1);
 }
 
 void
 SettingsFloppyCDROM::on_comboBoxBus_activated(int)
 {
-    auto    i        = ui->tableViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
+    auto    i        = ui->treeViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
     uint8_t bus_type = ui->comboBoxBus->currentData().toUInt();
-    int     cdromIdx = ui->tableViewCDROM->selectionModel()->currentIndex().data().toInt();
+    int     cdromIdx = ui->treeViewCDROM->selectionModel()->currentIndex().data().toInt();
 
-    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
     if (bus_type == CDROM_BUS_MKE)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_mke_channel());
     else if (bus_type == CDROM_BUS_ATAPI)
@@ -563,11 +567,11 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     else if (bus_type == CDROM_BUS_MITSUMI)
         ui->comboBoxChannel->setCurrentIndex(0);
 
-    setCDROMBus(ui->tableViewCDROM->model(),
-                ui->tableViewCDROM->selectionModel()->currentIndex(),
+    setCDROMBus(ui->treeViewCDROM->model(),
+                ui->treeViewCDROM->selectionModel()->currentIndex(),
                 bus_type, cdrom[cdromIdx].type,
                 ui->comboBoxChannel->currentData().toUInt());
-    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
 
     auto *modelType  = ui->comboBoxCDROMType->model();
     int   removeRows = modelType->rowCount();
@@ -592,8 +596,8 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     ui->comboBoxCDROMType->setCurrentIndex(-1);
     ui->comboBoxCDROMType->setCurrentIndex(selectedTypeRow);
 
-    setCDROMType(ui->tableViewCDROM->model(),
-                 ui->tableViewCDROM->selectionModel()->currentIndex(),
+    setCDROMType(ui->treeViewCDROM->model(),
+                 ui->treeViewCDROM->selectionModel()->currentIndex(),
                  ui->comboBoxCDROMType->currentData().toUInt());
 
     int speed = cdrom_get_speed(ui->comboBoxCDROMType->currentData().toUInt());
@@ -606,9 +610,11 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
             speed = 0;
     }
     ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
-    setCDROMSpeed(ui->tableViewCDROM->model(),
-                  ui->tableViewCDROM->selectionModel()->currentIndex(),
+    setCDROMSpeed(ui->treeViewCDROM->model(),
+                  ui->treeViewCDROM->selectionModel()->currentIndex(),
                   speed);
+    for (int i = 0; i < ui->treeViewCDROM->model()->columnCount(); i++)
+        ui->treeViewCDROM->resizeColumnToContents(i);
     ui->checkBoxErrorCheck->setEnabled(bus_type != CDROM_BUS_DISABLED);
     emit cdromChannelChanged();
 }
@@ -626,14 +632,15 @@ SettingsFloppyCDROM::enableCurrentlySelectedChannel()
 void
 SettingsFloppyCDROM::on_comboBoxChannel_activated(int)
 {
-    auto i = ui->tableViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
+    auto i = ui->treeViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
     int type = ui->comboBoxCDROMType->currentData().toUInt();
-    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
-    setCDROMBus(ui->tableViewCDROM->model(),
-                ui->tableViewCDROM->selectionModel()->currentIndex(),
+    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    setCDROMBus(ui->treeViewCDROM->model(),
+                ui->treeViewCDROM->selectionModel()->currentIndex(),
                 ui->comboBoxBus->currentData().toUInt(), type,
                 ui->comboBoxChannel->currentData().toUInt());
-    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    ui->treeViewCDROM->resizeColumnToContents(0);
+    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
     emit cdromChannelChanged();
 }
 
@@ -642,11 +649,10 @@ SettingsFloppyCDROM::on_comboBoxCDROMType_activated(int)
 {
     int type = ui->comboBoxCDROMType->currentData().toUInt();
 
-    setCDROMType(ui->tableViewCDROM->model(),
-                 ui->tableViewCDROM->selectionModel()->currentIndex(),
+    setCDROMType(ui->treeViewCDROM->model(),
+                 ui->treeViewCDROM->selectionModel()->currentIndex(),
                  type);
-    ui->tableViewCDROM->resizeColumnsToContents();
-    ui->tableViewCDROM->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    ui->treeViewCDROM->resizeColumnToContents(2);
 
     int speed = cdrom_get_speed(type);
     if (speed == -1) {
@@ -656,11 +662,11 @@ SettingsFloppyCDROM::on_comboBoxCDROMType_activated(int)
         ui->comboBoxSpeed->setEnabled(false);
     ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
 
-    auto idx = ui->tableViewCDROM->selectionModel()->currentIndex();
-    setCDROMSpeed(ui->tableViewCDROM->model(), idx.siblingAtColumn(1), speed);
+    auto idx = ui->treeViewCDROM->selectionModel()->currentIndex();
+    setCDROMSpeed(ui->treeViewCDROM->model(), idx.siblingAtColumn(1), speed);
 
-    setCDROMBus(ui->tableViewCDROM->model(),
-                ui->tableViewCDROM->selectionModel()->currentIndex(),
+    setCDROMBus(ui->treeViewCDROM->model(),
+                ui->treeViewCDROM->selectionModel()->currentIndex(),
                 ui->comboBoxBus->currentData().toUInt(), type,
                 ui->comboBoxChannel->currentData().toUInt());
 }

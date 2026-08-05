@@ -161,7 +161,16 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     if (!stricmp(mousedata.mouse_type, "xinput2")) {
         extern void xinput2_init();
         extern void xinput2_exit();
+        extern void xinput2_set_grab_widget(QWidget *widget);
+        extern void xinput2_mouse_capture(QWindow *window);
+        extern void xinput2_mouse_uncapture();
         xinput2_init();
+        if (monitor_index == 0) {
+            setAttribute(Qt::WA_NativeWindow, true);
+            xinput2_set_grab_widget(this);
+        }
+        this->mouse_capture_func = xinput2_mouse_capture;
+        this->mouse_uncapture_func = xinput2_mouse_uncapture;
         this->mouse_exit_func = xinput2_exit;
     }
 #endif
@@ -442,9 +451,6 @@ RendererStack::createRenderer(Renderer renderer)
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, QString(), tr("Failed to initialize Vulkan renderer.") % QStringLiteral("\n") % tr("Falling back to software rendering."), QMessageBox::Ok);
-                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-                    msgBox->show();
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });

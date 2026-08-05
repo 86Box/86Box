@@ -40,7 +40,7 @@
 #include "qt_renderercommon.hpp"
 
 extern "C" {
-#include <86box/qt-glslp-parser.h>
+#include <86box/qt_glslp_parser.h>
 }
 
 struct render_data {
@@ -85,6 +85,8 @@ private:
     std::array<std::unique_ptr<uint8_t>, 2> imagebufs;
 
     QTimer *renderTimer;
+    QTimer *osdRenderTimer;
+    bool was_osd_visible = false;
 
     QString glslVersion = "";
 
@@ -134,6 +136,7 @@ private:
     void delete_shader(struct glsl_shader *glsl);
     void delete_glsl(glsl_t *glsl);
     void read_shader_config();
+    QRect sceneRenderRect() const;
 
     void render_pass(struct render_data *data);
 

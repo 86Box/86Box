@@ -466,9 +466,11 @@ SettingsNetwork::on_pushButtonConf1_clicked()
 {
     int   netCard = ui->comboBoxNIC1->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
-    if (netCard == NET_INTERNAL)
+    if (netCard == NET_INTERNAL) {
         device = machine_get_net_device(machineId);
-    net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
+        net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device);
+    } else
+        net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
