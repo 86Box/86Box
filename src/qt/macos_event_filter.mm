@@ -1,6 +1,7 @@
 // #include "86box/plat.h"
 #include "cocoa_mouse.hpp"
 #import <AppKit/AppKit.h>
+#import <Cocoa/Cocoa.h>
 extern "C" {
 #include <86box/86box.h>
 #include <86box/keyboard.h>
@@ -88,4 +89,29 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
         }
     }
     return false;
+}
+
+static bool         pause_entered = true;
+static id<NSObject> process_activity = nil;
+
+void enter_pause(void)
+{
+    if (pause_entered)
+        return;
+    
+    [[NSProcessInfo processInfo] endActivity: process_activity];
+    process_activity = nil;
+    pause_entered = true;
+}
+
+void exit_pause(void)
+{
+    if (!pause_entered)
+        return;
+
+    // NSActivityUserInteractive is a bitwise OR of NSActivityUserInitiated and NSActivityLatencyCritical.
+    // However, allow the system to sleep if needed by using NSActivityUserInitiatedAllowingIdleSystemSleep instead of NSActivityUserInitiated.
+    // And allow the system to terminate it as needed.
+    process_activity = [[NSProcessInfo processInfo] beginActivityWithOptions: ((NSActivityUserInitiatedAllowingIdleSystemSleep &~ (NSActivitySuddenTerminationDisabled | NSActivityAutomaticTerminationDisabled)) | NSActivityLatencyCritical) reason:@"Unpaused."];
+    pause_entered = false;
 }

@@ -74,6 +74,7 @@ static const struct {
     { &char_file_com_device },
     { &char_stdio_com_device },
     { &char_loopback_com_device },
+    { &char_fujinet_com_device },
 
     { 0 }
     // clang-format on
