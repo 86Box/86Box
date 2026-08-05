@@ -584,10 +584,7 @@ plat_mouse_capture(int on)
 {
     SDL_LockMutex(sdl_mutex);
     SDL_SetWindowRelativeMouseMode(sdl_win, on);
-    if (on)
-        SDL_ShowCursor();
-    else
-        SDL_HideCursor();
+
     mouse_capture = on;
     SDL_UnlockMutex(sdl_mutex);
 }
