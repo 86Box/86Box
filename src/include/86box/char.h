@@ -158,5 +158,6 @@ extern const device_t char_file_lpt_device;
 extern const device_t char_stdio_com_device;
 extern const device_t char_loopback_com_device;
 extern const device_t char_loopback_lpt_device;
+extern const device_t char_fujinet_com_device;
 
 #endif /*EMU_CHAR_H*/
