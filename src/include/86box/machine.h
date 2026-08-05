@@ -1245,6 +1245,10 @@ extern int             machine_at_5aa_init(const machine_t *);
 extern const device_t  g5x_device;
 #endif
 extern int             machine_at_g5x_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ms5169_device;
+#endif
+extern int             machine_at_ms5169_init(const machine_t *);
 
 /* VIA MVP3 */
 extern int             machine_at_ax59pro_init(const machine_t *);
