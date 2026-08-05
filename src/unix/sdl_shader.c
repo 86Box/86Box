@@ -354,8 +354,9 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
     if ((dm = SDL_GetDesktopDisplayMode(disp_idx)) && dm->w > 0 && dm->h > 0) {
         const SDL_DisplayMode* cur_dm;
         Uint32 flags = SDL_GetWindowFlags(win);
+        int is_fullscreen_desktop = !SDL_GetWindowFullscreenMode(win);
         int need_set_mode = 1;
-        int need_set_fs = ((flags & SDL_WINDOW_FULLSCREEN) == 0);
+        int need_set_fs = ((flags & SDL_WINDOW_FULLSCREEN) == 0) || is_fullscreen_desktop;
 
         if ((cur_dm = SDL_GetWindowFullscreenMode(win)) && cur_dm->w == dm->w && cur_dm->h == dm->h)
             need_set_mode = 0;
