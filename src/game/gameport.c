@@ -261,7 +261,7 @@ static void
 gameport_time(joystick_instance_t *joystick, int nr, int axis)
 {
     if (axis == AXIS_NOT_PRESENT) {
-#if !defined(_WIN32) && !_defined(__APPLE__)
+#if !defined(_WIN32) && !defined(__APPLE__)
         joystick->state &= ~(1 << nr);
 #endif
         timer_disable(&joystick->axis[nr].timer);
@@ -307,7 +307,7 @@ gameport_read(UNUSED(uint16_t addr), void *priv)
         return 0xff;
 
     /* Merge axis state with button state. */
-#if defined(_WIN32) || _defined(__APPLE__)
+#if defined(_WIN32) || defined(__APPLE__)
     uint8_t ret = joystick->state | joystick->intf->read(joystick->dat);
 #else
     uint8_t       buttons = joystick->intf->read(joystick->dat);
