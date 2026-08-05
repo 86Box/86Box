@@ -353,9 +353,9 @@ ccd_image_open(cdrom_t *dev, const char *path)
     img_path[strlen(img_path) - 3] = 's';
     img->sub_file = plat_fopen(img_path, "rb");
     if (!img->sub_file) {
-        img_path[strlen(img_path) - 1] = 'b';
-        img_path[strlen(img_path) - 2] = 'u';
-        img_path[strlen(img_path) - 3] = 'b';
+        img_path[strlen(img_path) - 1] = 'B';
+        img_path[strlen(img_path) - 2] = 'U';
+        img_path[strlen(img_path) - 3] = 'S';
         img->sub_file = plat_fopen(img_path, "rb");
     }
 
