@@ -53,14 +53,14 @@ if (NOT CPPTHREADS)
     endif()
 endif()
 
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
-if(STATIC_BUILD AND TARGET SDL2::SDL2-static)
-    target_link_libraries(86Box SDL2::SDL2-static)
-elseif(TARGET SDL2::SDL2)
-    target_link_libraries(86Box SDL2::SDL2)
+find_package(SDL3 REQUIRED)
+include_directories(${SDL3_INCLUDE_DIRS})
+if(STATIC_BUILD AND TARGET SDL3::SDL3-static)
+    target_link_libraries(86Box SDL3::SDL3-static)
+elseif(TARGET SDL3::SDL3)
+    target_link_libraries(86Box SDL3::SDL3)
 else()
-    target_link_libraries(86Box ${SDL2_LIBRARIES})
+    target_link_libraries(86Box ${SDL3_LIBRARIES})
 endif()
 
 option(USE_SDL_SHADER "Build SDL GLES2 shader pipeline" OFF)
@@ -93,14 +93,14 @@ target_sources(ui PRIVATE sdl_osd.cpp)
 # Build the SDL ImGui backend separately so AUTOMOC skips it.
 set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
 add_library(osd_backend OBJECT
-    ${OSD_DIR}/imgui/imgui_impl_sdl2.cpp
+    ${OSD_DIR}/imgui/imgui_impl_sdl3.cpp
 )
 
 if(USE_SDL_SHADER)
     target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp)
     target_compile_definitions(osd_backend PRIVATE IMGUI_IMPL_OPENGL_ES2)
 else()
-    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_sdlrenderer2.cpp)
+    target_sources(osd_backend PRIVATE ${OSD_DIR}/imgui/imgui_impl_sdlrenderer3.cpp)
 endif()
 
 target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
