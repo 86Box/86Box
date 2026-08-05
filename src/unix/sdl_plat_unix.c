@@ -30,7 +30,7 @@
 #    include "macOSXGlue.h"
 #endif
 
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include <86box/86box.h>
 #include <86box/mem.h>
