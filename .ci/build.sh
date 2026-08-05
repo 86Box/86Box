@@ -546,7 +546,10 @@ then
 							echo "> Symlink: $line => WARNING: different targets"
 
 							# Attempt to lipo the diverging destinations in case they're libraries.
-							if lipo -create -output "$link_path" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
+							if [ -L "archive_tmp_universal/$merge_src.app/$line" ] &&
+							   [ -L "archive_tmp_universal/$arch_universal.app/$line" ] &&
+							   [ "$(dirname "$link_dest")" = . -a "$(dirname "$other_link_dest")" = . ] &&
+							   lipo -create -output "$link_path" "archive_tmp_universal/$merge_src.app/$line" "archive_tmp_universal/$arch_universal.app/$line" 2> /dev/null
 							then
 								echo ">> Merged: [$merge_src] $link_dest"
 								echo ">> With: [$arch_universal] $other_link_dest"
@@ -557,7 +560,7 @@ then
 									ln -s "$dest" "$link_path.tmp"
 									real_dest="$(readlink -f "$link_path.tmp")"
 									rm -f "$real_dest" "$link_path.tmp"
-									ln -s "$link_path" "$real_dest"
+									ln -s "$(basename "$link_path")" "$real_dest"
 								done
 								continue
 							else
@@ -588,7 +591,12 @@ then
 		mv "archive_tmp_universal/$merge_src.app" "$app_bundle_name"
 
 		# Sign final app bundle.
-		arch -"$(uname -m)" codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name"
+		if ! arch -"$(uname -m)" codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "$app_bundle_name" ||
+		   ! codesign --verify --deep --strict --verbose=2 "$app_bundle_name"
+		then
+			echo [!] App bundle signing or verification failed
+			exit 8
+		fi
 
 		# Create zip.
 		echo [-] Creating artifact archive
@@ -708,14 +716,7 @@ else
 		x86_64)	arch_deb="amd64";;
 		*)	arch_deb="$arch";;
 	esac
-        grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
-
-	# Giant hack because Debian Bullseye ships with ancient headers.
-	cd src/include
-	git clone --depth 1 https://github.com/KhronosGroup/vulkan-headers.git || exit 99
-	ln -sf vulkan-headers/include/vulkan vulkan
-	ln -sf vulkan-headers/include/vk_video vk_video
-	cd ../../
+        grep -q " trixie " /etc/apt/sources.list.d/debian.sources || echo [!] WARNING: System not running the expected Debian version
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools curl"
@@ -819,17 +820,19 @@ EOF
 		echo [-] Not installing dependencies again
 	fi
 
-	if dpkg -s rustc-web
-	then
-		sudo apt-get purge -y rustc-web cargo-web
-		rm -rf "$HOME/.cargo/bin"
-	fi
-	if [ ! -e "$HOME/.cargo/bin" ]
-	then
-		curl -sSf https://sh.rustup.rs | sh -s -- -y
-	fi
-	cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
-	export PATH="$HOME/.cargo/bin/:$PATH"
+	# if dpkg -s rustc-web
+	# then
+		# sudo apt-get purge -y rustc-web cargo-web
+		# rm -rf "$HOME/.cargo/bin"
+	# fi
+	# if [ ! -e "$HOME/.cargo/bin" ]
+	# then
+		# curl -sSf https://sh.rustup.rs | sh -s -- -y
+	# fi
+	# cmake_flags_extra="$cmake_flags_extra -D Rust_RUSTUP_INSTALL_MISSING_TARGET=ON"
+	# export PATH="$HOME/.cargo/bin/:$PATH"
+
+  cmake_flags_extra="$cmake_flags_extra -D USE_QT6=ON"
 fi
 
 # Point CMake to the toolchain file.
@@ -1143,25 +1146,6 @@ then
 else
 	cwd_root="$(pwd)"
 
-	# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
-	# workaround until a newer version of openal-soft trickles down to Debian repos.
-	# Newer versions require C++20 which our current environment doesn't support.
-	prefix="$cache_dir/openal-soft-1.23.1"
-	if [ ! -d "$prefix" ]
-	then
-		rm -rf "$cache_dir/openal-soft-"* # remove old versions
-		wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.23.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
-	fi
-
-	# Patches to build with the old PipeWire version in Debian.
-	sed -i -e 's/>=0.3.23//' "$prefix/CMakeLists.txt"
-	sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
-
-	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
-	cmake --build "$prefix_build" -j$(nproc) || exit 99
-	cmake --install "$prefix_build" || exit 99
-
 	# Build SDL2 with video systems (and dependencies) only if the SDL interface is used.
 	sdl_ui=OFF
 	grep -qiE "^QT:BOOL=ON" build/CMakeCache.txt || sdl_ui=ON
@@ -1169,11 +1153,11 @@ else
 	# Build rtmidi without JACK support to remove the dependency on libjack, as
 	# the Debian libjack is very likely to be incompatible with the system jackd.
 	# Newer versions are ABI incompatible and require newer CMake.
-	prefix="$cache_dir/rtmidi-4.0.0"
+	prefix="$cache_dir/rtmidi-6.0.0"
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/rtmidi-"* # remove old versions
-		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/4.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/6.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb"
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99

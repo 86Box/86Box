@@ -3535,7 +3535,7 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 void
 voodoo_codegen_init(voodoo_t *voodoo)
 {
-    voodoo->codegen_data = plat_mmap(sizeof(voodoo_x86_data_t) * BLOCK_NUM * 4, 1);
+    voodoo->codegen_data = plat_mmap(sizeof(voodoo_x86_data_t) * BLOCK_NUM * 4, 1, NULL);
 
     for (uint16_t c = 0; c < 256; c++) {
         int d[4];

@@ -946,15 +946,13 @@ scsi_disk_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer,
 static void
 scsi_disk_set_buf_len(const scsi_disk_t *dev, int32_t *BufLen, int32_t *src_len)
 {
-    if (dev->drv->bus_type == HDD_BUS_SCSI) {
-        if (*BufLen == -1)
-            *BufLen = *src_len;
-        else {
-            *BufLen  = MIN(*src_len, *BufLen);
-            *src_len = *BufLen;
-        }
-        scsi_disk_log(dev->log, "Actual transfer length: %i\n", *BufLen);
+    if (*BufLen == -1)
+        *BufLen = *src_len;
+    else {
+        *BufLen  = MIN(*src_len, *BufLen);
+        *src_len = *BufLen;
     }
+    scsi_disk_log(dev->log, "Actual transfer length: %i\n", *BufLen);
 }
 
 static void
@@ -967,7 +965,7 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
     const uint32_t last_sector            = hdd_image_get_last_sector(dev->id);
     const uint8_t  scsi_bus               = (dev->drv->scsi_id >> 4) & 0x0f;
     const uint8_t  scsi_id                = dev->drv->scsi_id & 0x0f;
-    int32_t        blen                   = 0;
+    int32_t        blen                   = 65536;
     int            pos                    = 0;
     int            idx                    = 0;
     int            block_desc;

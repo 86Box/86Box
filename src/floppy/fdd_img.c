@@ -58,6 +58,8 @@ typedef struct img_t {
     uint16_t track_flags;
     uint8_t  sector_pos_side[256][256];
     uint16_t sector_pos[256][256];
+    uint16_t formatted_sector_count[256][2];
+    d86f_format_id_t formatted_sector_ids[256][2][256];
     uint8_t  current_sector_pos_side;
     uint16_t current_sector_pos;
     uint8_t *disk_data;
@@ -85,6 +87,8 @@ static uint8_t   fdf_suppress_final_byte = 0; /* This is hard-coded to 0 -
                                                * images, change this to 1
                                                * and recompile.
                                                */
+
+static void img_seek(int drive, int track);
 
 
 const uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
@@ -502,6 +506,47 @@ format_conditions(int drive)
     return temp;
 }
 
+static int
+format_track(int drive, int side, const d86f_format_id_t *ids,
+             uint16_t count, uint8_t fill)
+{
+    img_t   *dev = img[drive];
+    int      ssize;
+    uint8_t  seen[256][256] = { 0 };
+
+    if ((dev == NULL) || (side < 0) || (side >= dev->sides) ||
+        (dev->track < 0) || (dev->track >= 256) ||
+        (count != dev->sectors))
+        return 0;
+
+    /*
+     * A raw sector dump has nowhere to store CHRN fields.  Keep a faithful
+     * in-memory layout while the image is mounted, and persist the sector
+     * contents.  Reject layouts the fixed-size backing store cannot represent
+     * instead of reporting a format that did not actually occur.
+     */
+    for (uint16_t sector = 0; sector < count; sector++) {
+        const uint8_t h = ids[sector][1];
+        const uint8_t r = ids[sector][2];
+
+        if ((ids[sector][3] != dev->sector_size) || seen[h][r])
+            return 0;
+        seen[h][r] = 1;
+    }
+
+    ssize = 128 << dev->sector_size;
+    memcpy(dev->formatted_sector_ids[dev->track][side], ids,
+           count * sizeof(d86f_format_id_t));
+    dev->formatted_sector_count[dev->track][side] = count;
+
+    for (uint16_t sector = 0; sector < count; sector++)
+        memset(&dev->track_data[side][sector * ssize], fill, ssize);
+
+    write_back(drive);
+    img_seek(drive, dev->track);
+    return 1;
+}
+
 static void
 img_seek(int drive, int track)
 {
@@ -572,6 +617,8 @@ img_seek(int drive, int track)
 
     d86f_destroy_linked_lists(drive, 0);
     d86f_destroy_linked_lists(drive, 1);
+    memset(dev->sector_pos_side, 0, sizeof(dev->sector_pos_side));
+    memset(dev->sector_pos, 0, sizeof(dev->sector_pos));
 
     if (track > dev->tracks) {
         d86f_zero_track(drive);
@@ -580,10 +627,19 @@ img_seek(int drive, int track)
 
     if (!dev->xdf_type || dev->is_cqm) {
         for (side = 0; side < dev->sides; side++) {
+            const uint16_t formatted_count =
+                ((track >= 0) && (track < 256))
+                    ? dev->formatted_sector_count[track][side]
+                    : 0;
+
             current_pos = d86f_prepare_pretrack(drive, side, 0);
 
             for (sector = 0; sector < dev->sectors; sector++) {
-                if (dev->is_cqm) {
+                if (formatted_count == dev->sectors) {
+                    memcpy(id, dev->formatted_sector_ids[track][side][sector],
+                           sizeof(d86f_format_id_t));
+                    sr = id[2];
+                } else if (dev->is_cqm) {
                     if (dev->interleave)
                         sr = interleave(sector, dev->skew, dev->sectors);
                     else {
@@ -598,13 +654,20 @@ img_seek(int drive, int track)
                     else
                         sr = dev->dmf ? (dmf_r[sector]) : (sector + 1);
                 }
-                id[0]                          = track;
-                id[1]                          = side;
-                id[2]                          = sr;
-                id[3]                          = dev->sector_size;
-                dev->sector_pos_side[side][sr] = side;
-                dev->sector_pos[side][sr]      = (sr - 1) * ssize;
-                current_pos                    = d86f_prepare_sector(drive, side, current_pos, id, &dev->track_data[side][(sr - 1) * ssize], ssize, dev->gap2_size, dev->gap3_size, 0);
+                if (formatted_count != dev->sectors) {
+                    id[0] = track;
+                    id[1] = side;
+                    id[2] = sr;
+                    id[3] = dev->sector_size;
+                }
+
+                buf_pos = ((formatted_count == dev->sectors) ? sector : (sr - 1)) * ssize;
+                dev->sector_pos_side[id[1]][id[2]] = side;
+                dev->sector_pos[id[1]][id[2]]      = buf_pos;
+                current_pos = d86f_prepare_sector(
+                    drive, side, current_pos, id,
+                    &dev->track_data[side][buf_pos], ssize,
+                    dev->gap2_size, dev->gap3_size, 0);
 
                 if (sector == 0)
                     d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
@@ -1275,6 +1338,7 @@ jump_if_fdf:
     d86f_handler[drive].side_flags        = side_flags;
     d86f_handler[drive].writeback         = write_back;
     d86f_handler[drive].set_sector        = set_sector;
+    d86f_handler[drive].format_track      = format_track;
     d86f_handler[drive].read_data         = poll_read_data;
     d86f_handler[drive].write_data        = poll_write_data;
     d86f_handler[drive].format_conditions = format_conditions;
@@ -1395,6 +1459,7 @@ img_load_raw_device(int drive, const char *device_path)
         .side_flags        = side_flags,
         .writeback         = write_back,
         .set_sector        = set_sector,
+        .format_track      = format_track,
         .read_data         = poll_read_data,
         .write_data        = poll_write_data,
         .format_conditions = format_conditions,

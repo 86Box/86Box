@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-16 17:51+0000\n"
-"Last-Translator: Hisuzu <185547947+sentogahara@users.noreply.github.com>\n"
+"PO-Revision-Date: 2026-07-29 14:45+0000\n"
+"Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
 "MIME-Version: 1.0\n"
@@ -66,11 +66,14 @@ msgstr "Derley&ici"
 msgid "&Qt (Software)"
 msgstr "&Qt (Yazılım bazlı)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenG&L (Sürüm 3.0)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Pencere &boyutunu belirle…"
@@ -1258,6 +1261,9 @@ msgstr "Seçili yapılandırma dosyası okunmak için açılamıyor: %1"
 msgid "Use regular expressions in search box"
 msgstr "Arama kutusunda düzenli ifadeler kullan"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Sanal makineleri Geri Dönüşüm Kutusu'na gönder"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n makine şu anda aktif. Yine de sanal makine yöneticisinden çıkmak istediğinize emin misiniz?"
@@ -1435,10 +1441,11 @@ msgstr ""
 msgid "&Delete"
 msgstr "&Sil"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
-"Gerçekten \"%1\" sanal makinesini tüm dosyalarıyla birlikte silmek istiyor "
-"musunuz? Bu işlem geri alınamaz!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Gerçekten \"%1\" sanal makinesini tüm dosyalarıyla birlikte silmek istiyor musunuz?"
+
+msgid "This action cannot be undone!"
+msgstr "Bu işlem geri alınamaz!"
 
 msgid "Show &config file"
 msgstr "Yap&ılandırma dosyasını göster"
@@ -2968,6 +2975,9 @@ msgstr "Yeniden başlamaya zorlamadan önce onay için sor"
 msgid "Ask for confirmation before quitting"
 msgstr "Çıkış yapmadan once onay için sor"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Seçenekler"
 
@@ -2979,6 +2989,25 @@ msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan derleyicisi başlatılamadı."
+
+#, fuzzy
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Vulkan 1.3 instance'ı oluşturulamadı."
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Vulkan uyumlu fiziksel cihaz bulunamadı."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "librashader bulunamadı. Gölgelendiriciler kullanılamayacak."
+
+msgid "Vulkan device lost."
+msgstr "Vulkan cihazı kayboldu."
+
+msgid "Vulkan surface lost."
+msgstr "Vulkan yüzeyi kayboldu."
 
 msgid "GLSL Error"
 msgstr "GLSL Hatası"
@@ -3003,6 +3032,9 @@ msgstr "Gölgelendirici Yöneticisi"
 
 msgid "Shader Configuration"
 msgstr "Gölgelendirici Seçenekleri"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Ekle"
@@ -3074,7 +3106,7 @@ msgid "Toggle on-screen display"
 msgstr "Ekran üstü göstergeyi ayarla"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Ekran üstü &göstergeyi ayarla"
 
 msgid "Text files"
 msgstr "Metin dosyaları"
@@ -3312,6 +3344,11 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "\"%s\" görüntüsü yüklenemiyor: Daemon Tools MDS v2 ve MDX görüntü desteği "
 "için gerekli olan %1 mevcut değil."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Görüntü \"%s\" yüklenemiyor: Aaru biçimi görüntüsü desteği için gerekli olan "
+"%1 bulunamıyor."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

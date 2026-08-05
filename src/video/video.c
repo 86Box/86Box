@@ -775,7 +775,7 @@ destroy_bitmap(bitmap_t *b)
 bitmap_t *
 create_bitmap(int x, int y)
 {
-    bitmap_t *b = calloc(sizeof(bitmap_t), (y * sizeof(uint32_t *)));
+    bitmap_t *b = calloc(1, sizeof(bitmap_t));
 
     b->dat = calloc((size_t) x * y, 4);
     for (int c = 0; c < y; c++)

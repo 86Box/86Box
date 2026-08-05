@@ -1809,7 +1809,7 @@ cdrom_audio_track_search_pioneer(cdrom_t *dev, const uint32_t pos, const uint8_t
 {
     uint8_t  ret  = 0;
 
-    if (dev->cd_status &= CD_STATUS_HAS_AUDIO) {
+    if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
         const int f    = bcd2bin((pos >> 24) & 0xff);
         const int s    = bcd2bin((pos >> 16) & 0xff);
         const int m    = bcd2bin((pos >> 8) & 0xff);
@@ -2321,11 +2321,52 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
     buf[8] = 0x00;
 }
 
-/* TODO: Actually implement this properly. */
-void
-cdrom_get_q(UNUSED(cdrom_t *dev), uint8_t *buf, UNUSED(int *curtoctrk), UNUSED(uint8_t mode))
+int
+cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 {
-    memset(buf, 0x00, 10);
+    int               num = 0;
+    uint8_t           rti[65536]  = { 0 };
+    raw_track_info_t *t        = (raw_track_info_t *) rti;
+
+    if (!mode) {    
+        const subchannel_t *subc = &dev->cached_subc;
+        cdrom_get_subchannel(dev, dev->seek_pos, 0);
+
+        buf[0] = subc->attr;
+        buf[1] = subc->track;
+        buf[2] = subc->index;
+        buf[3] = subc->rel_m;
+        buf[4] = subc->rel_s;
+        buf[5] = subc->rel_f;
+        buf[6] = 0;
+        buf[7] = subc->abs_m;
+        buf[8] = subc->abs_s;
+        buf[9] = subc->abs_f;
+        return curtoctrk;
+    }
+
+    dev->ops->get_raw_track_info(dev->local, &num, rti);
+
+    if (curtoctrk < 0)
+        curtoctrk = 0;
+
+    buf[0] = (t[curtoctrk].adr_ctl >> 4) | ((t[curtoctrk].adr_ctl & 0xf) << 4);
+    buf[1] = 0;
+    buf[2] = (t[curtoctrk].point > 99)? t[curtoctrk].point : bin2bcd(t[curtoctrk].point);
+    buf[3] = bin2bcd(t[curtoctrk].m);
+    buf[4] = bin2bcd(t[curtoctrk].s);
+    buf[5] = bin2bcd(t[curtoctrk].f);
+    buf[6] = bin2bcd(t[curtoctrk].zero);
+    buf[7] = bin2bcd(t[curtoctrk].pm);
+    buf[8] = bin2bcd(t[curtoctrk].ps);
+    buf[9] = bin2bcd(t[curtoctrk].pf);
+
+    curtoctrk++;
+
+    if (curtoctrk >= num)
+        curtoctrk = 0;
+
+    return curtoctrk;
 }
 
 uint8_t
@@ -2631,7 +2672,21 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
                       "type from an image\n");
             return 0;
         } else {
-            if ((cdrom_sector_type > 1) && audio &&
+            if (cdrom_sector_flags & CD_SECTOR_FLAG_SCRAMBLED) {
+                ret = read_data(dev, lba, 0);
+                if (ret > 0 && !audio) {
+                    for (int i = 0; i < 2352; i++) {
+                        dev->raw_buffer[dev->cur_buf][i] ^= cdrom_scramble_table[i];
+                    }
+                }
+
+                if ((cdrom_sector_flags & 0xff) == 0 && ((cdrom_sector_flags >> 8) & 7)) {
+                    dev->cdrom_sector_size = 0;
+                } else {
+                    memcpy(temp_b, dev->raw_buffer[dev->cur_buf], 2352);
+                    dev->cdrom_sector_size = 2352;
+                }
+            } else if ((cdrom_sector_type > 1) && audio &&
                 (dev->cd_status & CD_STATUS_HAS_AUDIO)) {
                 cdrom_log(dev->log, "[%s] Attempting to read a data sector "
                           "from an audio track\n",

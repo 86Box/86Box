@@ -651,9 +651,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                 case 0x0c00:
                     cgate32 = (type & 0x0800);
                     cgate16 = !cgate32;
-#ifndef USE_NEW_DYNAREC
                     oldcs = CS;
-#endif
                     cpu_state.oldpc = cpu_state.pc;
                     if (DPL < CPL) {
                         x86gpf("loadcsjmp(): Call gate DPL < CPL", seg & 0xfffc);
@@ -972,9 +970,7 @@ loadcscall(uint16_t seg)
                     x86seg_log("Callgate %08X\n", cpu_state.pc);
                     cgate32 = (type & 0x0800);
                     cgate16 = !cgate32;
-#ifndef USE_NEW_DYNAREC
                     oldcs = CS;
-#endif
                     count = segdat[2] & 0x001f;
                     if (DPL < CPL) {
                         x86gpf("loadcscall(): ex DPL < CPL", seg & 0xfffc);

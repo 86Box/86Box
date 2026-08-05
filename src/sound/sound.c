@@ -174,7 +174,6 @@ static const SOUND_CARD sound_cards[] = {
     { &azt1605_device               },
     { &azt2316a_device              },
     { &azt2316r_device              },
-    { &azt2320_device               },
     { &sb_goldfinch_device          },
     { &cs4232_device                },
     { &cs4235_device                },
@@ -192,6 +191,8 @@ static const SOUND_CARD sound_cards[] = {
     { &gus_v37_device               },
     { &gus_max_device               },
     { &gus_ace_device               },
+    { &gus_extreme_device           },
+    { &azt2320_device               },
     { &mirosound_pcm10_device       },
     { &opti_82c930_device           },
     { &opti_82c931_device           },
@@ -213,6 +214,7 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_vibra16cl_device          },
     { &sb_vibra16s_device           },
     { &sb_vibra16xv_device          },
+    { &gus_vipermax_device          },
     { &wss_device                   },
     { &ymf701_device                },
     { &ymf718_device                },
@@ -333,8 +335,10 @@ sound_cd_thread(UNUSED(void *param))
 {
     int16_t  temp_buffer[2];
     int      channel_select[2];
-    double   audio_vol_l;
-    double   audio_vol_r;
+    double   audio_vol_ll;
+    double   audio_vol_rr;
+    double   audio_vol_lr;
+    double   audio_vol_rl;
     double   cd_buffer_temp[2] = { 0.0, 0.0 };
 
     thread_set_event(sound_cd_start_event);
@@ -363,11 +367,15 @@ sound_cd_thread(UNUSED(void *param))
 
             if (ret) {
                 if (cdrom[i].get_volume) {
-                    audio_vol_l = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 0)];
-                    audio_vol_r = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 1)];
+                    audio_vol_ll = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 0)];
+                    audio_vol_rr = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 1)];
+                    audio_vol_lr = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 2)];
+                    audio_vol_rl = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 3)];
                 } else {
-                    audio_vol_l = cd_audio_volume_lut[255];
-                    audio_vol_r = cd_audio_volume_lut[255];
+                    audio_vol_ll = cd_audio_volume_lut[255];
+                    audio_vol_rr = cd_audio_volume_lut[255];
+                    audio_vol_lr = cd_audio_volume_lut[255];
+                    audio_vol_rl = cd_audio_volume_lut[255];
                 }
 
                 if (cdrom[i].get_channel) {
@@ -383,28 +391,24 @@ sound_cd_thread(UNUSED(void *param))
                     /* Apply ATAPI channel select */
                     cd_buffer_temp[0] = cd_buffer_temp[1] = 0.0;
 
-                    if ((audio_vol_l != 0.0) && (channel_select[0] != 0)) {
+                    if (((audio_vol_ll + audio_vol_lr) != 0.0) && (channel_select[0] != 0)) {
+                        /* Multiply Port 0 by the volumes in the process */
                         if (channel_select[0] & 1)
                             /* Channel 0 => Port 0 */
-                            cd_buffer_temp[0] += ((double) cd_buffer[i][c]);
+                            cd_buffer_temp[0] += ((double) cd_buffer[i][c]) * audio_vol_ll;
                         if (channel_select[0] & 2)
                             /* Channel 1 => Port 0 */
-                            cd_buffer_temp[0] += ((double) cd_buffer[i][c + 1]);
-
-                        /* Multiply Port 0 by Port 0 volume */
-                        cd_buffer_temp[0] *= audio_vol_l;
+                            cd_buffer_temp[0] += ((double) cd_buffer[i][c + 1]) * audio_vol_lr;
                     }
 
-                    if ((audio_vol_r != 0.0) && (channel_select[1] != 0)) {
+                    if (((audio_vol_rl + audio_vol_rr) != 0.0) && (channel_select[1] != 0)) {
+                        /* Multiply Port 1 by the volumes in the process */
                         if (channel_select[1] & 1)
                             /* Channel 0 => Port 1 */
-                            cd_buffer_temp[1] += ((double) cd_buffer[i][c]);
+                            cd_buffer_temp[1] += ((double) cd_buffer[i][c]) * audio_vol_rl;
                         if (channel_select[1] & 2)
                             /* Channel 1 => Port 1 */
-                            cd_buffer_temp[1] += ((double) cd_buffer[i][c + 1]);
-
-                        /* Multiply Port 1 by Port 1 volume */
-                        cd_buffer_temp[1] *= audio_vol_r;
+                            cd_buffer_temp[1] += ((double) cd_buffer[i][c + 1]) * audio_vol_rr;
                     }
 
                     /* Apply sound card CD volume and filters */

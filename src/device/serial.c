@@ -623,6 +623,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 dev->char_port.chardev.control((dev->mctrl & 0x03) | (val & 0x40), dev->char_port.chardev.priv);
             break;
         case 4:
+            old = dev->mctrl;
             if ((val & 2) && !(dev->mctrl & 2)) {
                 if (dev->sd && dev->sd->rcr_callback) {
                     serial_log("RTS toggle callback\n");
@@ -631,8 +632,6 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
             }
             if (!(val & 8) && (dev->mctrl & 8))
                 serial_do_irq(dev, 0);
-            if ((val ^ dev->mctrl) & 0x10)
-                serial_reset_fifo(dev);
             if (dev->sd && dev->sd->dtr_callback && (val ^ dev->mctrl) & 1)
                 dev->sd->dtr_callback(dev, val & 1, dev->sd->priv);
             if (((dev->mctrl ^ val) & 0x03) && dev->char_port.chardev.control)
@@ -642,6 +641,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 new_msr = (val & 0x0c) << 4;
                 new_msr |= (val & 0x02) ? 0x10 : 0;
                 new_msr |= (val & 0x01) ? 0x20 : 0;
+                new_msr |= dev->msr & 0x0f;
 
                 if ((dev->msr ^ new_msr) & 0x10)
                     new_msr |= 0x01;
@@ -658,10 +658,30 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                     dev->int_status |= SERIAL_INT_MSR;
                     serial_update_ints(dev);
                 }
+            } else if (old & 0x10) {
+                /*
+                 * Leaving diagnostic loopback reconnects the MSR condition
+                 * bits to the external modem-status inputs.  The transition
+                 * also latches DCTS, DDSR, TERI, and DDCD exactly as an 8250
+                 * input transition would.
+                 */
+                new_msr = (dev->msr_set & 0xf0) | (dev->msr & 0x0f);
 
-                /* TODO: Why reset the FIFO's here?! */
-                fifo_reset(dev->xmit_fifo);
-                fifo_reset(dev->rcvr_fifo);
+                if ((dev->msr ^ new_msr) & 0x10)
+                    new_msr |= 0x01;
+                if ((dev->msr ^ new_msr) & 0x20)
+                    new_msr |= 0x02;
+                if ((dev->msr & 0x40) && !(new_msr & 0x40))
+                    new_msr |= 0x04;
+                if ((dev->msr ^ new_msr) & 0x80)
+                    new_msr |= 0x08;
+
+                dev->msr = new_msr;
+
+                if (dev->msr & 0x0f) {
+                    dev->int_status |= SERIAL_INT_MSR;
+                    serial_update_ints(dev);
+                }
             }
             break;
         case 5:
@@ -684,6 +704,8 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
             dev->msr = (dev->msr & 0xf0) | (val & 0x0f);
             if (dev->msr & 0x0f)
                 dev->int_status |= SERIAL_INT_MSR;
+            else
+                dev->int_status &= ~SERIAL_INT_MSR;
             serial_update_ints(dev);
             break;
         case 7:

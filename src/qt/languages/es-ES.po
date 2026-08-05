@@ -66,11 +66,14 @@ msgstr "Re&nderizador"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "E&specificar dimensiones…"
@@ -1238,6 +1241,9 @@ msgstr "No fúe posible abrir el archivo de configuración seleccionado para lee
 msgid "Use regular expressions in search box"
 msgstr "Utilizar expresiones regulares en la caja de búsqueda"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n máquina es activa en este momento. ¿Está seguro de que quiere salir del administrador de MV?"
@@ -1411,8 +1417,11 @@ msgstr "Terminar forzadamente a la máquina virtual puede cusar la pérdida de d
 msgid "&Delete"
 msgstr "&Borrar"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "¿De verdad quiere borrar la máquina virtual \"%1\" y todos sus archivos? ¡Esta acción no se puede deshacer!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "¿De verdad quiere borrar la máquina virtual \"%1\" y todos sus archivos?"
+
+msgid "This action cannot be undone!"
+msgstr "¡Esta acción no se puede deshacer!"
 
 msgid "Show &config file"
 msgstr "Mostrar archivo de &configuración"
@@ -2914,6 +2923,9 @@ msgstr "Pedir confirmación antes del hard reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Pedir confirmación antes de salir"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Opciones"
 
@@ -2925,6 +2937,24 @@ msgstr "Modelo:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Error al inicializar el renderizador Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "Error de GLSL"
@@ -2946,6 +2976,9 @@ msgstr "Administrador de shaders"
 
 msgid "Shader Configuration"
 msgstr "Configuración de shaders"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Añadir"
@@ -3250,6 +3283,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "No fué posible cargar a la imagen \"%s\": Falta el %1, necesario para "
 "admitir imagenes Daemon Tools MDS v2 y MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""

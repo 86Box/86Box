@@ -33,6 +33,8 @@
 #define CD_STATUS_HAS_AUDIO         0xc
 #define CD_STATUS_MASK              0x1f
 
+#define CD_SECTOR_FLAG_SCRAMBLED    0x80000000
+
 /* Medium changed flag. */
 #define CD_STATUS_TRANSITION     0x40
 #define CD_STATUS_MEDIUM_CHANGED 0x80
@@ -151,6 +153,7 @@ static const struct cdrom_drive_types_s {
     { "CREATIVE", "CD2422E",          "MC10", "",          "creative_2422",  BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  2 } },
     { "CREATIVE", "CD3621E",          "ZC10", "",          "creative_3621",  BUS_TYPE_IDE,  0, 36, 36, 0, 0, {  4,  2,  2,  2 } },
     { "CREATIVE", "CD5220E",          "2.02", "",          "creative_5220",  BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  4 } },
+    { "CREATIVEDVD-ROM", "DVD2240E",  "1.7A", "",          "creative_d2240", BUS_TYPE_IDE,  0, 20, 36, 0, 1, {  4,  2,  2,  4 } }, /* The "CREATIVEDVD-ROM" name is used by the real drive, not a mistake */
     { "ECS",      "300ESD",           "V200", "",          "ecs_300",        BUS_TYPE_IDE,  0,  3, 36, 0, 0, {  2, -1, -1, -1 } }, /* Firmware revision not yet confirmed */
     { "ECS",      "600ESD",           "V300", "",          "ecs_600",        BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  3, -1, -1, -1 } },
     { "GOLDSTAR", "CRD-8160B",        "3.14", "",          "goldstar",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  1, -1 } },
@@ -196,6 +199,10 @@ static const struct cdrom_drive_types_s {
     { "LITEON",  "CD-ROM LTR48125S",  "1S07", "LTR48125S", "liteon_48125s",  BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  2 } },
     { "LITEON",  "CD-ROM LTN526D",    "YSR5", "LTN526D",   "liteon_526d",    BUS_TYPE_IDE,  0, 52, 36, 0, 0, {  4,  2,  2,  2 } }, /* Confirmed to be 52x, was the basis for deducing the other one's speed. */
     { "LITEON",  "CD-ROM LTD166",     "9S14", "LTD166",    "liteon_166d",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVD+RW LDW-401S",  "ES0G", "",          "liteon_401s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVDRW SOHW-812S",  "US0A", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVDRW SOHW-1633S", "BS0G", "",          "liteon_812s",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
+    { "LITE-ON", " DVD SOHD-167T",    "9S13", "",          "liteon_167t",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } },
     { "MAD DOG",  "LIGHTNING 56X",    "1.0 ", "",          "maddog_56x",     BUS_TYPE_IDE,  0, 56, 36, 0, 0, {  4,  2,  2,  4 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "MAD DOG",  "ENTERTAINER 16X",  "1.0 ", "",          "maddog_16x",     BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } }, /* TODO: to find the real dump of this CD-ROM model. */
     { "MATSHITA", "CR-571",           "1.0e", "",          "matshita_571",   BUS_TYPE_IDE,  0,  2, 36, 0, 0, {  0, -1, -1, -1 } },
@@ -511,7 +518,7 @@ typedef struct cdrom {
 
 extern cdrom_t cdrom[CDROM_NUM];
 
-#define MSFtoLBA(m, s, f)  ((((m * 60) + s) * 75) + f)
+#define MSFtoLBA(m, s, f)  (((((m) * 60) + (s)) * 75) + (f))
 
 static __inline int
 bin2bcd(int x)
@@ -579,7 +586,7 @@ extern int             cdrom_read_toc_sony(const cdrom_t *dev, uint8_t *b, const
                                            const int msf, const int max_len);
 #ifdef USE_CDROM_MITSUMI
 extern void            cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf);
-extern void            cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode);
+extern int             cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode);
 extern uint8_t         cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len);
 #endif
 extern uint8_t         cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,

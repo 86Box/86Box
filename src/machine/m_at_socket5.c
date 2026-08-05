@@ -1216,7 +1216,7 @@ machine_at_ms5109_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 3, 2, 4);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
-    device_add(&sis_550x_85c503_device);
+    device_add(&sis_85c50x_device);
     device_add(&ide_w83769f_pci_device);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));

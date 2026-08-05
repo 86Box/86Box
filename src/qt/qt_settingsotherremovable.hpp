@@ -63,6 +63,7 @@ private:
     QIcon rdisk_disabled_icon;
     QIcon rdisk_icon;
     QIcon zip_icon;
+    QIcon jaz_icon;
     QIcon tape_disabled_icon;
     QIcon tape_icon;
 

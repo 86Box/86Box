@@ -432,6 +432,9 @@ extern const device_t gd5480_pci_device;
 /* IBM CGA */
 extern const device_t cga_device;
 
+/* IBM 3270 PC Display Adapter */
+extern const device_t ibm3270pc_vid_device;
+
 /* Pravetz CGA */
 extern const device_t cga_pravetz_device;
 

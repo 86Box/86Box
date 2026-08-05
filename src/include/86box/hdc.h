@@ -133,6 +133,8 @@ extern const device_t *hdc_get_device(int hdc);
 extern int             hdc_get_flags(int hdc);
 extern int             hdc_available(int hdc);
 
+extern void            ps1_hdc_handler(void *priv, int set);
+
 extern void xta_handler(void *priv, int set);
 
 #endif /*EMU_HDC_H*/
