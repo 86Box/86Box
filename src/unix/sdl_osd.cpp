@@ -4,14 +4,14 @@
 #endif
 #include <algorithm>
 #include <cmath>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 
 #include "imgui.h"
-#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdl3.h"
 #ifdef USE_SDL_SHADER_PIPELINE
 #include "imgui_impl_opengl3.h"
 #else
-#include "imgui_impl_sdlrenderer2.h"
+#include "imgui_impl_sdlrenderer3.h"
 #endif
 
 /* SDL header redefines HAVE_STDARG_H. */
@@ -74,22 +74,22 @@ static bool osd_backend_init(void)
 
     SDL_GL_MakeCurrent(sdl_win, ctx);
 
-    if (!ImGui_ImplSDL2_InitForOpenGL(sdl_win, ctx))
+    if (!ImGui_ImplSDL3_InitForOpenGL(sdl_win, ctx))
         return false;
 
     if (!ImGui_ImplOpenGL3_Init("#version 100")) {
-        ImGui_ImplSDL2_Shutdown();
+        ImGui_ImplSDL3_Shutdown();
         return false;
     }
 #else
     if (sdl_render == nullptr)
         return false;
 
-    if (!ImGui_ImplSDL2_InitForSDLRenderer(sdl_win, sdl_render))
+    if (!ImGui_ImplSDL3_InitForSDLRenderer(sdl_win, sdl_render))
         return false;
 
-    if (!ImGui_ImplSDLRenderer2_Init(sdl_render)) {
-        ImGui_ImplSDL2_Shutdown();
+    if (!ImGui_ImplSDLRenderer3_Init(sdl_render)) {
+        ImGui_ImplSDL3_Shutdown();
         return false;
     }
 #endif
@@ -102,9 +102,9 @@ static void osd_backend_shutdown(void)
 #ifdef USE_SDL_SHADER_PIPELINE
     ImGui_ImplOpenGL3_Shutdown();
 #else
-    ImGui_ImplSDLRenderer2_Shutdown();
+    ImGui_ImplSDLRenderer3_Shutdown();
 #endif
-    ImGui_ImplSDL2_Shutdown();
+    ImGui_ImplSDL3_Shutdown();
 }
 
 /* ------------------------------------------------------------------ */
@@ -207,9 +207,9 @@ int osd_handle(SDL_Event event)
         return 0;
 
     /* Handle ESC manually so keyboard navigation stays predictable. */
-    if ((event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
-        && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
-        if (event.type == SDL_KEYUP) {
+    if ((event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP)
+        && event.key.scancode == SDL_SCANCODE_ESCAPE) {
+        if (event.type == SDL_EVENT_KEY_UP) {
             if (osd_core_escape())
                 return 0; /* close OSD entirely */
         }
@@ -221,7 +221,7 @@ int osd_handle(SDL_Event event)
         return 0;
     }
 
-    ImGui_ImplSDL2_ProcessEvent(&event);
+    ImGui_ImplSDL3_ProcessEvent(&event);
     return 1; /* keep open */
 }
 
@@ -250,7 +250,7 @@ void osd_present(int output_w, int output_h)
     osd_set_scale(osd_core_layout_scale_for_output(win_w, win_h));
 
     ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     if (!osd_core_build_ui())
         pending_close = true;
@@ -262,13 +262,13 @@ void osd_present(int output_w, int output_h)
 
     osd_set_scale(osd_core_layout_scale_for_output(output_w, output_h));
 
-    ImGui_ImplSDLRenderer2_NewFrame();
-    ImGui_ImplSDL2_NewFrame();
+    ImGui_ImplSDLRenderer3_NewFrame();
+    ImGui_ImplSDL3_NewFrame();
     ImGui::NewFrame();
     if (!osd_core_build_ui())
         pending_close = true;
     ImGui::Render();
-    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_render);
+    ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), sdl_render);
 #endif
 }
 

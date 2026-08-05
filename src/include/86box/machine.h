@@ -1325,6 +1325,10 @@ extern int             machine_at_como_init(const machine_t *);
 /* i440BX */
 extern int             machine_at_bf6_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern const device_t  be6ii_device;
+#endif
+extern int             machine_at_be6ii_init(const machine_t *);
+#ifdef EMU_DEVICE_H
 extern const device_t  bx6_device;
 #endif
 extern int             machine_at_bx6_init(const machine_t *);
@@ -1494,6 +1498,7 @@ extern const device_t  ps2_m25_hdc_device;
 /* m_ps2_isa.c */
 #ifdef EMU_DEVICE_H
 extern const device_t  ps2_m25_device;
+extern const device_t  ps2_m30_device;
 extern const device_t  ps2_m30_286_device;
 #endif
 extern int             machine_ps2_8086_init(const machine_t *);

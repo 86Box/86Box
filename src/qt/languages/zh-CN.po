@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-30 18:13+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-08-05 08:40+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -2923,7 +2923,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "退出前要求用户确认"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "将CHD文件预取到内存"
 
 msgid "Options"
 msgstr "选项"
