@@ -5,7 +5,7 @@
  */
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-#include <SDL.h>
+#include <SDL3/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -348,23 +348,21 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
     }
     free(glsl_path);
 
-    SDL_DisplayMode dm;
-    int disp_idx = SDL_GetWindowDisplayIndex(win);
-    if (disp_idx < 0)
-        disp_idx = 0;
+    const SDL_DisplayMode* dm;
+    SDL_DisplayID disp_idx = SDL_GetDisplayForWindow(win);
 
-    if (SDL_GetDesktopDisplayMode(disp_idx, &dm) == 0 && dm.w > 0 && dm.h > 0) {
-        SDL_DisplayMode cur_dm;
+    if ((dm = SDL_GetDesktopDisplayMode(disp_idx)) && dm->w > 0 && dm->h > 0) {
+        const SDL_DisplayMode* cur_dm;
         Uint32 flags = SDL_GetWindowFlags(win);
-        int is_fullscreen_desktop = ((flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP);
+        int is_fullscreen_desktop = !SDL_GetWindowFullscreenMode(win);
         int need_set_mode = 1;
         int need_set_fs = ((flags & SDL_WINDOW_FULLSCREEN) == 0) || is_fullscreen_desktop;
 
-        if (SDL_GetWindowDisplayMode(win, &cur_dm) == 0 && cur_dm.w == dm.w && cur_dm.h == dm.h)
+        if ((cur_dm = SDL_GetWindowFullscreenMode(win)) && cur_dm->w == dm->w && cur_dm->h == dm->h)
             need_set_mode = 0;
 
         if (need_set_mode)
-            SDL_SetWindowDisplayMode(win, &dm);
+            SDL_SetWindowFullscreenMode(win, dm);
         if (need_set_fs)
             SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
     }
@@ -393,7 +391,7 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
         if (vs) glDeleteShader(vs);
         if (fs) glDeleteShader(fs);
         free(source);
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }
@@ -403,7 +401,7 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
     glDeleteShader(fs);
     if (!prog) {
         free(source);
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }
@@ -489,7 +487,7 @@ sdl_shader_blit(SDL_Window *win, const void *pixels,
                     fmt, GL_UNSIGNED_BYTE, packed_pixels);
 
     int win_w, win_h;
-    SDL_GL_GetDrawableSize(win, &win_w, &win_h);
+    SDL_GetWindowSizeInPixels(win, &win_w, &win_h);
 
     glViewport(0, 0, win_w, win_h);
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -561,7 +559,7 @@ sdl_shader_close(void)
         prog = 0;
     }
     if (gl_ctx) {
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
     }
     if (packed_pixels) {
@@ -627,7 +625,7 @@ sdl_shader_init_passthrough(SDL_Window *win)
     if (!vs || !fs) {
         if (vs) glDeleteShader(vs);
         if (fs) glDeleteShader(fs);
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }
@@ -636,7 +634,7 @@ sdl_shader_init_passthrough(SDL_Window *win)
     glDeleteShader(vs);
     glDeleteShader(fs);
     if (!prog) {
-        SDL_GL_DeleteContext(gl_ctx);
+        SDL_GL_DestroyContext(gl_ctx);
         gl_ctx = NULL;
         return 0;
     }

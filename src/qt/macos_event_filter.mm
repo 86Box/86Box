@@ -1,4 +1,3 @@
-#include <SDL.h>
 // #include "86box/plat.h"
 #include "cocoa_mouse.hpp"
 #import <AppKit/AppKit.h>

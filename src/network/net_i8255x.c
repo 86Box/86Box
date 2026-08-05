@@ -334,7 +334,7 @@ static const e100_device_info_t eepro100_devices[] = {
         .desc = "Intel i82559C Ethernet",
         .device = i82559C,
         .device_id = 0x1229,
-        .revision = 0x0c,
+        .revision = 0x08,
         .subsystem_vendor_id = 0x8086,
         .subsystem_id = 0x0040,
         .stats_size = 80,
@@ -827,7 +827,10 @@ action_command(eepro100_t *s)
             break;
         case CmdTx:
             if (bit_nc) {
-                i8255x_log("CmdTx: NC = 0\n");
+                i8255x_log("CmdTx: NC = 1\n");
+                /* 0: CRC and Source Address are inserted by the controller.
+                   1: CRC and Source Address are not inserted by the controller
+                   and are assumed to come from memory. */
                 ok_status = 0;
                 break;
             }
@@ -1919,6 +1922,7 @@ e100_pci_reset(eepro100_t *s, e100_device_info_t *info)
         /* TODO: check TCO Statistical Counters bit. Documentation not clear. */
         if (s->configuration[6] & BIT(2)) {
             /* TCO statistical counters. */
+            s->stats_size = 96;
         } else {
             if (s->configuration[6] & BIT(5)) {
                 /* No extended statistical counters, i82557 compatible. */

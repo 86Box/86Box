@@ -35,7 +35,7 @@ jobs:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
 
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-26.04
 
     env:
       BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
@@ -107,7 +107,7 @@ jobs:
           ninja-build
           libfreetype-dev
           libgles2-mesa-dev
-          libsdl2-dev
+          libsdl3-dev
           libpng-dev
           libc6-dev
           librtmidi-dev
