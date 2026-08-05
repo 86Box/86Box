@@ -356,6 +356,9 @@ typedef struct aic7890_t {
     bool          seq_dma_done;     /* status/message byte transferred (DMADONE) */
     uint8_t       seq_msg;          /* MESSAGE IN byte (0x00 = command complete) */
     bool          seq_busfree;      /* target released the bus */
+    uint32_t      probe_buf_addr;    /* BIOS scan data buffer (from descriptor) */
+    uint32_t      probe_buf_len;     /* BIOS scan data buffer length */
+    bool          probe_real_cmd;    /* scan executed the real CDB (vs TUR stand-in) */
 
     uint16_t      eeprom_default[256];
     nmc93cxx_eeprom_t *eeprom;
@@ -911,12 +914,18 @@ aic7890_create_eeprom_config(uint16_t *config)
                | CFCTRL_A | CFEXTEND | CFBOOTCD;
     config[17] = CFAUTOTERM | CFULTRAEN | CFSPARITY | CFRESETB | CFSEAUTOTERM;
     config[18] = AIC7890_HOST_ID;
-    config[19] = 16;
+    config[19] = 16;   /* CFMAXTARG only, no explicit boot target */
     config[30] = CFSIGNATURE2;
 
+    /*
+     * The Adaptec SCSI BIOS validates the EEPROM checksum as the sum of
+     * all 32 words being zero, so store the negated sum rather than the
+     * positive checksum; with the wrong convention the BIOS treats the
+     * config as invalid and never installs ("SCSI BIOS Not installed!").
+     */
     for (int i = 0; i < 31; i++)
         checksum += config[i];
-    config[31] = checksum & 0xffff;
+    config[31] = (0 - (checksum & 0xffff)) & 0xffff;
 }
 
 static void
@@ -1852,36 +1861,114 @@ aic7890_seq_probe_command(aic7890_t *dev)
     int cdb_len = scb[0x02];
     scsi_device_t *sd;
 
+    /* The BIOS stores the target in the SCB's first byte (SCSIID field). */
+    if (target == 0 && (scb[0] & 0xf0) != 0)
+        target = scb[0] >> 4;
+
     if (cdb_len == 0 || cdb_len > 16)
         cdb_len = 12;
-    memcpy(cdb, scb, cdb_len);
-    memset(cdb, 0, sizeof(cdb));   /* XXX HADDR DMA not modelled: use clean TUR */
-
 
     aic7890_log(1,
-                "AIC7890: scan2 probe target=%u scbptr=%02x len=%d cdb=%02x %02x %02x %02x %02x %02x\n",
-                target, dev->regs[REG_SCBPTR], cdb_len,
-                cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5]);
-    aic7890_log(1,
-                "AIC7890: scan2 probe sindex=%02x dindex=%02x haddr=%02x%02x%02x%02x scb=%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
-                dev->regs[REG_SINDEX], dev->regs[REG_DINDEX],
-                dev->regs[0x8b], dev->regs[0x8a], dev->regs[0x89], dev->regs[0x88],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][0],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][1],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][2],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][3],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][4],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][5],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][6],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][7],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][8],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][9],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][10],
-                dev->scb_ram[dev->regs[REG_SCBPTR]][11]);
+                "AIC7890: scan2 probe pc=%03x target=%u scbptr=%02x len=%d\n",
+                dev->seq_pc, target, dev->regs[REG_SCBPTR], cdb_len);
+
+    /*
+     * The BIOS's scan SCB holds the addresses of a DMA descriptor and of
+     * the command itself in low memory: scb[4..7] points to a descriptor
+     * { host_buffer, length } and scb[8..11] points to the CDB.  Fetch the
+     * real CDB from there instead of masking everything into a TUR.
+     *
+     * When scb[0x02] is 0 the SCB has not been set up for a real command
+     * yet: the microcode fires its selection/TUR probe before the BIOS
+     * writes the CDB length, so a raw read of scb[4..11] would pick up
+     * stale pointers and a garbage CDB from low memory.  Fall back to a
+     * clean TUR stand-in in that case.
+     */
+    memset(cdb, 0, sizeof(cdb));
+    {
+        uint32_t cdb_addr = (uint32_t) scb[8] | ((uint32_t) scb[9] << 8)
+                          | ((uint32_t) scb[10] << 16) | ((uint32_t) scb[11] << 24);
+        uint32_t desc_addr = (uint32_t) scb[4] | ((uint32_t) scb[5] << 8)
+                           | ((uint32_t) scb[6] << 16) | ((uint32_t) scb[7] << 24);
+        uint8_t desc[8];
+        uint8_t mem[48];
+
+        aic7890_log(1, "AIC7890: probe ptrs scb=%u scsiid=%02x desc=%08x cdbptr=%08x\n",
+                    dev->regs[REG_SCBPTR], dev->regs[REG_SCSIID], desc_addr, cdb_addr);
+        {
+            uint8_t *scb2 = dev->scb_ram[0];
+            uint8_t *scb3 = dev->scb_ram[1];
+            uint8_t *scb4 = dev->scb_ram[2];
+            aic7890_log(1, "AIC7890: scb0 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x | scb1 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x | scb2 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                        scb2[0], scb2[1], scb2[2], scb2[3], scb2[4], scb2[5],
+                        scb2[6], scb2[7], scb2[8], scb2[9], scb2[10], scb2[11],
+                        scb3[0], scb3[1], scb3[2], scb3[3], scb3[4], scb3[5],
+                        scb3[6], scb3[7], scb3[8], scb3[9], scb3[10], scb3[11],
+                        scb4[0], scb4[1], scb4[2], scb4[3], scb4[4], scb4[5],
+                        scb4[6], scb4[7], scb4[8], scb4[9], scb4[10], scb4[11]);
+        }
+        {
+            uint8_t low[64];
+            dma_bm_read(0x0000, low, sizeof(low), 1);
+            aic7890_log(1, "AIC7890: mem@0000 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                        low[0], low[1], low[2], low[3], low[4], low[5], low[6], low[7],
+                        low[8], low[9], low[10], low[11], low[12], low[13], low[14], low[15],
+                        low[16], low[17], low[18], low[19], low[20], low[21], low[22], low[23],
+                        low[24], low[25], low[26], low[27], low[28], low[29], low[30], low[31]);
+        }
+        dma_bm_read(cdb_addr & ~0x0f, mem, sizeof(mem), 1);
+        aic7890_log(1, "AIC7890: probe mem@%08x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                    cdb_addr & ~0x0f, mem[0], mem[1], mem[2], mem[3], mem[4], mem[5],
+                    mem[6], mem[7], mem[8], mem[9], mem[10], mem[11], mem[12], mem[13],
+                    mem[14], mem[15], mem[16], mem[17], mem[18], mem[19], mem[20], mem[21],
+                    mem[22], mem[23], mem[24], mem[25], mem[26], mem[27], mem[28], mem[29],
+                    mem[30], mem[31], mem[32], mem[33], mem[34], mem[35], mem[36], mem[37],
+                    mem[38], mem[39], mem[40], mem[41], mem[42], mem[43], mem[44], mem[45],
+                    mem[46], mem[47]);
+
+        if (scb[0x02] != 0 && cdb_addr != 0) {
+            /* The BIOS's scan CDBs are up to 10 bytes (READ TOC, MODE SENSE 10);
+               fetch the full buffer, scb[0x02] is not a reliable length. */
+            dma_bm_read(cdb_addr, cdb, sizeof(cdb), 1);
+            dma_bm_read(desc_addr, desc, sizeof(desc), 1);
+            dev->probe_buf_addr = (uint32_t) desc[0] | ((uint32_t) desc[1] << 8)
+                                | ((uint32_t) desc[2] << 16) | ((uint32_t) desc[3] << 24);
+            dev->probe_buf_len = (uint32_t) desc[4] | ((uint32_t) desc[5] << 8)
+                               | ((uint32_t) desc[6] << 16) | ((uint32_t) desc[7] << 24);
+            /*
+             * Execute the real command when it produces data the BIOS
+             * needs (INQUIRY, MODE SENSE, READ TOC, ...).  Only the TUR
+             * is replaced by a clean stand-in so not-ready targets do not
+             * drive the microcode into its retry path.
+             */
+            dev->probe_real_cmd = (cdb[0] != 0x00);
+            if (!dev->probe_real_cmd)
+                memset(cdb, 0, sizeof(cdb));   /* clean TUR stand-in */
+        } else {
+            memset(cdb, 0, sizeof(cdb));   /* clean TUR stand-in */
+            dev->probe_buf_addr = 0;
+            dev->probe_buf_len = 0;
+            dev->probe_real_cmd = false;
+        }
+    }
 
     if (target >= SCSI_ID_MAX || dev->scsi_bus >= SCSI_BUS_MAX
         || !scsi_device_present(&scsi_devices[dev->scsi_bus][target])) {
+        /*
+         * Target absent: answer an INQUIRY with the "logical unit not
+         * present" qualifier so the BIOS skips this ID instead of listing
+         * it as a present-but-nameless device.
+         */
+        if (cdb[0] == 0x12 && dev->probe_buf_addr != 0) {
+            uint8_t resp[36];
+
+            memset(resp, 0, sizeof(resp));
+            resp[0] = 0x7f;                 /* qualifier 3, no device type */
+            resp[4] = 0;                    /* additional length */
+            dma_bm_write(dev->probe_buf_addr, resp, AIC_MIN(sizeof(resp), dev->probe_buf_len), 1);
+        }
         dev->seq_status = 0;
+        scb[8] = 0;               /* status packet: GOOD */
         dev->seq_cmd_done = true;
         return;
     }
@@ -1892,6 +1979,52 @@ aic7890_seq_probe_command(aic7890_t *dev)
     if (sd->type == SCSI_REMOVABLE_CDROM && sd->sc != NULL)
         ((scsi_cdrom_t *) sd->sc)->unit_attention = 0;   /* clear UA after boot reset */
     scsi_device_command_phase0(sd, cdb);
+
+    aic7890_log(1,
+                "AIC7890: probe exec tgt=%u cdb=%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x st=%02x ph=%02x blen=%d buf=%08x/%u real=%u scbid=%02x ptr=%02x\n",
+                target, cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6],
+                cdb[7], cdb[8], cdb[9], cdb[10], cdb[11], sd->status, sd->phase,
+                (int) sd->buffer_length, dev->probe_buf_addr, dev->probe_buf_len,
+                dev->probe_real_cmd, dev->regs[REG_SCSIID], dev->regs[REG_SCBPTR]);
+    aic7890_log(1, "AIC7890: probe scb %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                scb[0], scb[1], scb[2], scb[3], scb[4], scb[5], scb[6], scb[7],
+                scb[8], scb[9], scb[10], scb[11], scb[12], scb[13], scb[14], scb[15],
+                scb[16], scb[17], scb[18], scb[19], scb[20], scb[21], scb[22], scb[23],
+                scb[24], scb[25], scb[26], scb[27], scb[28], scb[29], scb[30], scb[31]);
+
+    /*
+     * Deliver the response data straight into the BIOS's buffer.  Read it
+     * after phase0 (before phase1, which stops/frees the device buffers)
+     * and keep the interpreter completion clean so the scan microcode
+     * terminates; the BIOS reads the data from the buffer it gave us.
+     */
+    if (dev->probe_real_cmd && sd->sc != NULL && sd->phase != SCSI_PHASE_STATUS
+        && sd->buffer_length > 0 && sd->buffer_length < 4096
+        && sd->sc->temp_buffer != NULL) {
+        uint32_t count = AIC_MIN((uint32_t) sd->buffer_length, dev->probe_buf_len);
+
+        if (count > 0 && dev->probe_buf_addr != 0)
+            dma_bm_write(dev->probe_buf_addr, sd->sc->temp_buffer, count, 1);
+        aic7890_log(1, "AIC7890: scan2 probe data written addr=%08x len=%u cdb=%02x\n",
+                    dev->probe_buf_addr, count, cdb[0]);
+        if (cdb[0] == 0x28) {
+            uint8_t *b = sd->sc->temp_buffer;
+            aic7890_log(1, "AIC7890: READ data %02x %02x %02x %02x %02x %02x %02x %02x ... %02x %02x\n",
+                        b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+                        count >= 512 ? b[510] : 0, count >= 512 ? b[511] : 0);
+            if (count >= 512)
+                aic7890_log(1, "AIC7890: MBR part %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            b[0x1be], b[0x1bf], b[0x1c0], b[0x1c1], b[0x1c2], b[0x1c3], b[0x1c4], b[0x1c5],
+                            b[0x1c6], b[0x1c7], b[0x1c8], b[0x1c9], b[0x1ca], b[0x1cb], b[0x1cc], b[0x1cd]);
+        }
+        if (cdb[0] == 0x43) {
+            uint8_t *b = sd->sc->temp_buffer;
+            aic7890_log(1, "AIC7890: TOC data %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                        b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+                        b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]);
+        }
+    }
+
     if (sd->phase != SCSI_PHASE_STATUS && sd->buffer_length > 0)
         scsi_device_command_phase1(sd);
     scsi_device_identify(sd, SCSI_LUN_USE_CDB);
@@ -1901,21 +2034,28 @@ aic7890_seq_probe_command(aic7890_t *dev)
     dev->seq_data = NULL;
     dev->seq_data_len = 0;
     dev->seq_data_pos = 0;
-    if (sd->sc != NULL && sd->buffer_length > 0 && sd->buffer_length < 4096) {
-        dev->seq_data = sd->sc->temp_buffer;
-        dev->seq_data_len = sd->buffer_length;
-        dev->seq_data_pos = 0;
-        dev->seq_has_data = true;
-    }
+    /*
+     * The BIOS re-reads the scan SCB from the register window after the
+     * command; the aic7xxx status packet reuses bytes 0-8 of the SCB, so
+     * store the completion state (residual datacnt, SG list null, SCSI
+     * status) so the BIOS sees the command as GOOD instead of stale
+     * descriptor/CDB-pointer data.
+     */
+    scb[0] = 0;                        /* residual data count */
+    scb[1] = 0;
+    scb[2] = 0;
+    scb[3] = 0;
+    scb[4] = (uint8_t) SG_LIST_NULL;   /* residual SG pointer: no S/G list */
+    scb[5] = 0;
+    scb[6] = 0;
+    scb[7] = 0;
+    scb[8] = dev->seq_status;
+    /*
+     * The response data was delivered straight into the BIOS's buffer
+     * above; keep the interpreter data path disabled (seq_has_data stays
+     * false) so the scan microcode completes without a data phase.
+     */
     dev->seq_cmd_done = true;
-    aic7890_log(1,
-                "AIC7890: scan2 probe result status=%02x data_len=%d phase=%d ua=%d cdst=%d sense[2]=%02x\n",
-                dev->seq_status, dev->seq_data_len, sd->phase,
-                sd->type == SCSI_REMOVABLE_CDROM && sd->sc != NULL
-                    ? ((scsi_cdrom_t *) sd->sc)->unit_attention : -1,
-                sd->type == SCSI_REMOVABLE_CDROM && sd->sc != NULL
-                    ? ((scsi_cdrom_t *) sd->sc)->drv->cd_status : -1,
-                sd->sc != NULL ? sd->sc->sense[2] : 0xff);
 }
 
 static uint32_t
@@ -2445,6 +2585,13 @@ aic7890_emulate_sequencer_run(aic7890_t *dev)
                         "AIC7890: scan2 interpret complete pc=%03x intstat=%02x steps=%llu\n",
                         dev->seq_pc, dev->regs[REG_INTSTAT],
                         (unsigned long long) dev->seq_steps);
+            {
+                uint8_t *scba = dev->scb_ram[dev->regs[REG_SCBPTR]];
+                aic7890_log(1, "AIC7890: post-scb %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            scba[0], scba[1], scba[2], scba[3], scba[4], scba[5],
+                            scba[6], scba[7], scba[8], scba[9], scba[10], scba[11],
+                            scba[12], scba[13], scba[14], scba[15]);
+            }
         }
     }
 
@@ -2508,8 +2655,17 @@ aic7890_countdown_callback(void *priv)
      */
     scb[0x10] = 0x00;
     scb[0x11] = 0xff;
-    if (reset_pulse)
+    if (reset_pulse) {
         dev->regs[REG_SCSISEQ] &= ~SCSISEQ_SCSIRSTO;
+        /*
+         * The reset pulse ended: the SCSI bus is now free.  The BIOS polls
+         * SSTAT1/BUSFREE after arming each post-reset countdown and only
+         * proceeds with the scan once it sees the bus free; without this
+         * the scan spins forever in the countdown loop (seen when the SCSI
+         * CD-ROM has no media).
+         */
+        dev->regs[REG_CLRSINT1_SSTAT1] |= SSTAT1_BUSFREE;
+    }
     dev->regs[REG_INTSTAT] |= INTSTAT_SEQINT;
     dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
     aic7890_log(1,

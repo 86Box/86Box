@@ -77,7 +77,8 @@ const uint8_t scsi_disk_command_flags[0x100] = {
 };
 
 uint64_t scsi_disk_mode_sense_page_flags = (GPMODEP_FORMAT_DEVICE_PAGE | GPMODEP_RIGID_DISK_PAGE |
-                                            GPMODEP_UNK_VENDOR_PAGE | GPMODEP_ALL_PAGES);
+                                            GPMODEP_CACHING_PAGE | GPMODEP_UNK_VENDOR_PAGE |
+                                            GPMODEP_ALL_PAGES);
 
 static const mode_sense_pages_t scsi_disk_mode_sense_pages_default = {
     { [0x03] = { GPMODE_FORMAT_DEVICE_PAGE,           0x16, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
@@ -86,6 +87,8 @@ static const mode_sense_pages_t scsi_disk_mode_sense_pages_default = {
       [0x04] = { GPMODE_RIGID_DISK_PAGE,              0x16, 0x00, 0x10, 0x00, 0x40, 0x00, 0x00,
                   0x00,                               0x00, 0x00, 0x00, 0x00, 0xc8, 0xff, 0xff,
                   0xff,                               0x00, 0x00, 0x00, 0x15, 0x18, 0x00, 0x00 },
+      [0x08] = { GPMODE_CACHING_PAGE,                 0x0a, 0x04, 0x00, 0xff, 0xff, 0x00, 0x00,
+                 0xff,                               0xff, 0xff, 0xff                         },
       [0x30] = { GPMODE_UNK_VENDOR_PAGE | 0x80,       0x16, '8' , '6' , 'B' , 'o' , 'x' , ' ' ,
                   ' ' ,                               ' ' , ' ' , ' ' , ' ' , ' ' , ' ' , ' ' ,
                   ' ' ,                               ' ' , ' ' , ' ' , ' ' , ' ' , ' ' , ' '  } }
