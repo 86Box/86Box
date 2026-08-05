@@ -23,8 +23,11 @@
 #include <86box/pci.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
+#include <86box/cdrom.h>
+#include <86box/scsi_cdrom.h>
 #include <86box/scsi_aic7890.h>
 #include <86box/nmc93cxx.h>
+#include <86box/timer.h>
 #include <86box/plat_unused.h>
 
 #define AIC7890_LOCAL_ONBOARD       0x00000001
@@ -53,10 +56,13 @@
 #define REG_SCSISIGI          0x03
 #define REG_SCSIRATE          0x04
 #define REG_SCSIID            0x05
+#define REG_SCSIDATL          0x06
+#define REG_SCSIDATH          0x07
 #define REG_CLRSINT0_SSTAT0   0x0b
 #define REG_CLRSINT1_SSTAT1   0x0c
 #define REG_SSTAT2            0x0d
 #define REG_SSTAT3            0x0e
+#define REG_SCSIBUSL          0x12
 #define REG_SCSIID_ULTRA2     0x0f
 #define REG_SIMODE0           0x10
 #define REG_SIMODE1           0x11
@@ -97,6 +103,7 @@
 #define REG_SCB_BASE          0xa0
 #define REG_CCHADDR           0xe0
 #define REG_CCHCNT            0xe8
+#define REG_CCSGCTL           0xeb
 #define REG_CCSCBRAM          0xec
 #define REG_CCSCBADDR         0xed
 #define REG_CCSCBCTL          0xee
@@ -171,6 +178,8 @@
 #define SSTAT0_SELINGO        0x10
 #define SSTAT0_SELDO          0x40
 #define SSTAT0_SELDI          0x20
+#define SSTAT0_SWRAP          0x08
+#define SSTAT0_SDONE          0x04
 #define SSTAT0_SPIORDY        0x02
 #define SSTAT0_DMADONE        0x01
 #define SSTAT1_SELTO          0x80
@@ -254,6 +263,14 @@
 #define CFWIDEB               0x0020
 #define CFSYNCHISULTRA        0x0040
 #define CFINCBIOS             0x0200
+#define CFSUPREM              0x0001
+#define CFSUPREMB             0x0002
+#define CFBIOSEN              0x0004
+#define CFBIOS_BUSSCAN        0x0008
+#define CFSM2DRV              0x0010
+#define CFCTRL_A              0x0020
+#define CFEXTEND              0x0080
+#define CFBOOTCD              0x0800
 #define CFULTRAEN             0x0002
 #define CFSPARITY             0x0010
 #define CFRESETB              0x0040
@@ -294,7 +311,6 @@ typedef struct aic7890_t {
     uint32_t      seqram_reads;
     uint32_t      seqram_write_hash;
     uint32_t      seqram_read_hash;
-    uint32_t      seq_idle_pauses;
     uint8_t       trace_last_read[AIC7890_REG_WINDOW];
     uint32_t      trace_same_reads[AIC7890_REG_WINDOW];
     bool          trace_read_valid[AIC7890_REG_WINDOW];
@@ -304,6 +320,42 @@ typedef struct aic7890_t {
     uint16_t      io_base;
     bool          io_enabled;
     mem_mapping_t mmio_mapping;
+
+    pc_timer_t    countdown_timer;
+    uint32_t      countdown_remaining;
+    bool          countdown_active;
+
+    pc_timer_t    scan_init_timer;
+    uint32_t      scan_init_remaining;
+    bool          scan_init_active;
+    uint32_t      scan_init_hash;   /* seqram hash for the init interrupt */
+
+    pc_timer_t    scan2_timer;
+    uint32_t      scan2_remaining;
+    bool          scan2_active;
+
+    /* Sequencer microcode interpreter state (scan-start at SEQADDR 0x0002). */
+    uint16_t      seq_pc;
+    uint16_t      seq_stack[4];
+    int           seq_sp;
+    uint64_t      seq_steps;
+    bool          seq_active;
+
+    /* Minimal SCSI bus model for the scan-start probe. */
+    uint8_t       seq_phase;        /* phase to present (SCSISIGI bits 7-5) */
+    bool          seq_req_pending;  /* target has asserted REQ */
+    bool          seq_cmd_done;     /* command has been handed to the device */
+    int           seq_stage;        /* probe phase progression stage */
+    uint8_t       seq_cmd[16];      /* command bytes collected from PIO/DMA */
+    int           seq_cmd_len;
+    uint8_t       seq_status;       /* device status byte */
+    bool          seq_has_data;
+    uint8_t      *seq_data;
+    int           seq_data_len;
+    int           seq_data_pos;
+    bool          seq_dma_done;     /* status/message byte transferred (DMADONE) */
+    uint8_t       seq_msg;          /* MESSAGE IN byte (0x00 = command complete) */
+    bool          seq_busfree;      /* target released the bus */
 
     uint16_t      eeprom_default[256];
     nmc93cxx_eeprom_t *eeprom;
@@ -319,6 +371,72 @@ static void    aic7890_pci_write(int func, int addr, int len, uint8_t val, void 
 #define AIC7890_TRACE_HASH_INIT 2166136261U
 
 static int aic7890_do_log = -1;
+
+static uint64_t aic7890_scan_init_us = 0;
+static int      aic7890_scan_init_int = 0;
+static int      aic7890_scan_init_pause_setting = -1;
+static int      aic7890_scan2_init_int = 0;
+static uint32_t aic7890_countdown_cap = 0;
+
+static uint64_t
+aic7890_scan_init_delay(void)
+{
+    if (aic7890_scan_init_us == 0) {
+        const char *env = getenv("AIC7890_SCAN_US");
+
+        aic7890_scan_init_us = (env != NULL && env[0] != '\0')
+                             ? strtoul(env, NULL, 10) : 1;
+    }
+    return aic7890_scan_init_us;
+}
+
+static int
+aic7890_scan_init_interrupt(void)
+{
+    if (aic7890_scan_init_int == 0) {
+        const char *env = getenv("AIC7890_SCAN_INT");
+
+        aic7890_scan_init_int = (env != NULL && env[0] != '\0')
+                              ? (int) strtoul(env, NULL, 0) : INTSTAT_SEQINT;
+    }
+    return aic7890_scan_init_int;
+}
+
+static int
+aic7890_scan_init_pause(void)
+{
+    if (aic7890_scan_init_pause_setting < 0) {
+        const char *env = getenv("AIC7890_SCAN_PAUSE");
+
+        aic7890_scan_init_pause_setting = (env != NULL && env[0] != '\0')
+                                        ? atoi(env) : 1;
+    }
+    return aic7890_scan_init_pause_setting;
+}
+
+static uint32_t
+aic7890_countdown_cap_us(void)
+{
+    if (aic7890_countdown_cap == 0) {
+        const char *env = getenv("AIC7890_CDN_US");
+
+        aic7890_countdown_cap = (env != NULL && env[0] != '\0')
+                              ? (uint32_t) strtoul(env, NULL, 10) : 500;
+    }
+    return aic7890_countdown_cap;
+}
+
+static int
+aic7890_scan2_interrupt(void)
+{
+    if (aic7890_scan2_init_int == 0) {
+        const char *env = getenv("AIC7890_SCAN2_INT");
+
+        if (env != NULL && env[0] != '\0')
+            aic7890_scan2_init_int = (int) strtoul(env, NULL, 0);
+    }
+    return aic7890_scan2_init_int;
+}
 
 static int
 aic7890_log_level(void)
@@ -763,7 +881,16 @@ aic7890_reset_regs(aic7890_t *dev)
     dev->seqram_reads = 0;
     dev->seqram_write_hash = AIC7890_TRACE_HASH_INIT;
     dev->seqram_read_hash = AIC7890_TRACE_HASH_INIT;
-    dev->seq_idle_pauses = 0;
+    dev->countdown_active = false;
+    timer_disable(&dev->countdown_timer);
+    dev->scan_init_active = false;
+    dev->scan_init_hash = AIC7890_TRACE_HASH_INIT;
+    timer_disable(&dev->scan_init_timer);
+    dev->scan2_active = false;
+    timer_disable(&dev->scan2_timer);
+    dev->seq_active = false;
+    dev->seq_sp = 0;
+    dev->seq_steps = 0;
     memset(dev->trace_read_valid, 0, sizeof(dev->trace_read_valid));
     memset(dev->trace_same_reads, 0, sizeof(dev->trace_same_reads));
     dev->trace_irq_valid = false;
@@ -780,7 +907,8 @@ aic7890_create_eeprom_config(uint16_t *config)
     for (int i = 0; i < 16; i++)
         config[i] = CFXFER | CFSYNCH | CFDISC | CFWIDEB | CFSYNCHISULTRA | CFINCBIOS;
 
-    config[16] = 0x0000;
+    config[16] = CFSUPREM | CFSUPREMB | CFBIOSEN | CFBIOS_BUSSCAN | CFSM2DRV
+               | CFCTRL_A | CFEXTEND | CFBOOTCD;
     config[17] = CFAUTOTERM | CFULTRAEN | CFSPARITY | CFRESETB | CFSEAUTOTERM;
     config[18] = AIC7890_HOST_ID;
     config[19] = 16;
@@ -1016,7 +1144,16 @@ aic7890_scsi_bus_reset(aic7890_t *dev, bool external)
     dev->qin_count = 0;
     dev->qout_head = dev->qout_tail = 0;
     dev->qout_count = 0;
-    dev->seq_idle_pauses = 0;
+    dev->countdown_active = false;
+    timer_disable(&dev->countdown_timer);
+    dev->scan_init_active = false;
+    dev->scan_init_hash = AIC7890_TRACE_HASH_INIT;
+    timer_disable(&dev->scan_init_timer);
+    dev->scan2_active = false;
+    timer_disable(&dev->scan2_timer);
+    dev->seq_active = false;
+    dev->seq_sp = 0;
+    dev->seq_steps = 0;
     dev->win_last_inquiry_target = SCB_LIST_NULL;
     dev->regs[REG_WAITING_SCBH] = SCB_LIST_NULL;
     dev->regs[REG_CLRSINT0_SSTAT0] = 0;
@@ -1640,6 +1777,586 @@ aic7890_has_pending_work(const aic7890_t *dev)
         || (shared_addr != 0 && dev->sns_qoff != dev->hns_qoff);
 }
 
+/* ------------------------------------------------------------------ */
+/* AIC-7890 sequencer microcode interpreter.                           */
+/*                                                                     */
+/* The BIOS downloads a 24-bit-encoded program into the sequencer RAM  */
+/* and starts it at SEQADDR 0x0002 (scan-start).  The emulator cannot  */
+/* rely on the host driver's shared-queue SCB path here, so we decode   */
+/* and execute the microcode directly.  Only the scan-start path needs  */
+/* to be followed far enough to complete the BIOS probe; the engine is  */
+/* written generally so future phases can reuse it.                     */
+/* ------------------------------------------------------------------ */
+
+#define REG_ACCUM              0x64
+#define REG_SINDEX             0x65
+#define REG_DINDEX             0x66
+#define REG_ALLONES            0x69
+#define REG_ALLZEROS           0x6a
+#define REG_FLAGS              0x6b
+#define REG_SINDIR             0x6c
+#define REG_DINDIR             0x6d
+#define REG_STACK              0x6f
+
+#define SEQ_FLAG_ZERO          0x02
+#define SEQ_FLAG_CARRY         0x01
+
+#define SEQ_OP_OR              0x0
+#define SEQ_OP_AND             0x1
+#define SEQ_OP_XOR             0x2
+#define SEQ_OP_ADD             0x3
+#define SEQ_OP_ADC             0x4
+#define SEQ_OP_ROL             0x5
+#define SEQ_OP_BMOV            0x6
+#define SEQ_OP_MVI16           0x7
+#define SEQ_OP_JMP             0x8
+#define SEQ_OP_JC              0x9
+#define SEQ_OP_JNC             0xa
+#define SEQ_OP_CALL            0xb
+#define SEQ_OP_JNE             0xc
+#define SEQ_OP_JNZ             0xd
+#define SEQ_OP_JE              0xe
+#define SEQ_OP_JZ              0xf
+
+/* 16-bit and far operations: opcode_ext byte selects the variant. */
+#define SEQ_OPEXT_OR16         0x80
+#define SEQ_OPEXT_AND16        0x81
+#define SEQ_OPEXT_XOR16        0x82
+#define SEQ_OPEXT_ADD16        0x83
+#define SEQ_OPEXT_ADC16        0x84
+#define SEQ_OPEXT_JNE16        0x88
+#define SEQ_OPEXT_JNZ16        0x89
+#define SEQ_OPEXT_JZ16         0x8b
+#define SEQ_OPEXT_JE16         0x8c
+#define SEQ_OPEXT_JMP16        0x90
+#define SEQ_OPEXT_JC16         0x91
+#define SEQ_OPEXT_JNC16        0x92
+#define SEQ_OPEXT_CALL16       0x93
+
+#define SEQ_SEQCTL_FASTMODE    0x80
+#define SEQ_SEQCTL_FASTMODE2   0x40
+#define SEQ_SEQCTL_RESET       0x20
+#define SEQ_SEQCTL_LOADRAM     0x10
+#define SEQ_SEQCTL_PAUSEDIS    0x08
+#define SEQ_SEQCTL_STEP        0x04
+
+#define SEQ_MAX_STEPS          200000
+
+/* Execute the scan-start probe command against the selected target. */
+static void
+aic7890_seq_probe_command(aic7890_t *dev)
+{
+    uint8_t *scb = dev->scb_ram[dev->regs[REG_SCBPTR]];
+    uint8_t target = (dev->regs[REG_SCSIID] >> 4) & 0x0f;
+    uint8_t cdb[16];
+    int cdb_len = scb[0x02];
+    scsi_device_t *sd;
+
+    if (cdb_len == 0 || cdb_len > 16)
+        cdb_len = 12;
+    memcpy(cdb, scb, cdb_len);
+    memset(cdb, 0, sizeof(cdb));   /* XXX HADDR DMA not modelled: use clean TUR */
+
+
+    aic7890_log(1,
+                "AIC7890: scan2 probe target=%u scbptr=%02x len=%d cdb=%02x %02x %02x %02x %02x %02x\n",
+                target, dev->regs[REG_SCBPTR], cdb_len,
+                cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5]);
+    aic7890_log(1,
+                "AIC7890: scan2 probe sindex=%02x dindex=%02x haddr=%02x%02x%02x%02x scb=%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                dev->regs[REG_SINDEX], dev->regs[REG_DINDEX],
+                dev->regs[0x8b], dev->regs[0x8a], dev->regs[0x89], dev->regs[0x88],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][0],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][1],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][2],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][3],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][4],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][5],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][6],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][7],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][8],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][9],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][10],
+                dev->scb_ram[dev->regs[REG_SCBPTR]][11]);
+
+    if (target >= SCSI_ID_MAX || dev->scsi_bus >= SCSI_BUS_MAX
+        || !scsi_device_present(&scsi_devices[dev->scsi_bus][target])) {
+        dev->seq_status = 0;
+        dev->seq_cmd_done = true;
+        return;
+    }
+
+    sd = &scsi_devices[dev->scsi_bus][target];
+    sd->buffer_length = -1;
+    scsi_device_identify(sd, 0);
+    if (sd->type == SCSI_REMOVABLE_CDROM && sd->sc != NULL)
+        ((scsi_cdrom_t *) sd->sc)->unit_attention = 0;   /* clear UA after boot reset */
+    scsi_device_command_phase0(sd, cdb);
+    if (sd->phase != SCSI_PHASE_STATUS && sd->buffer_length > 0)
+        scsi_device_command_phase1(sd);
+    scsi_device_identify(sd, SCSI_LUN_USE_CDB);
+
+    dev->seq_status = sd->status;
+    dev->seq_has_data = false;
+    dev->seq_data = NULL;
+    dev->seq_data_len = 0;
+    dev->seq_data_pos = 0;
+    if (sd->sc != NULL && sd->buffer_length > 0 && sd->buffer_length < 4096) {
+        dev->seq_data = sd->sc->temp_buffer;
+        dev->seq_data_len = sd->buffer_length;
+        dev->seq_data_pos = 0;
+        dev->seq_has_data = true;
+    }
+    dev->seq_cmd_done = true;
+    aic7890_log(1,
+                "AIC7890: scan2 probe result status=%02x data_len=%d phase=%d ua=%d cdst=%d sense[2]=%02x\n",
+                dev->seq_status, dev->seq_data_len, sd->phase,
+                sd->type == SCSI_REMOVABLE_CDROM && sd->sc != NULL
+                    ? ((scsi_cdrom_t *) sd->sc)->unit_attention : -1,
+                sd->type == SCSI_REMOVABLE_CDROM && sd->sc != NULL
+                    ? ((scsi_cdrom_t *) sd->sc)->drv->cd_status : -1,
+                sd->sc != NULL ? sd->sc->sense[2] : 0xff);
+}
+
+static uint32_t
+aic7890_seq_word(const aic7890_t *dev, uint16_t pc)
+{
+    uint32_t pos = ((uint32_t) pc & 0x3ff) * 4;
+
+    if (pos + 3 >= AIC7890_SEQRAM_SIZE)
+        return 0;
+    return (uint32_t) dev->seqram[pos]
+         | ((uint32_t) dev->seqram[pos + 1] << 8)
+         | ((uint32_t) dev->seqram[pos + 2] << 16)
+         | ((uint32_t) dev->seqram[pos + 3] << 24);
+}
+
+static uint8_t
+aic7890_seq_flag_carry(const aic7890_t *dev)
+{
+    return dev->regs[REG_FLAGS] & SEQ_FLAG_CARRY;
+}
+
+static void
+aic7890_seq_set_flags(aic7890_t *dev, bool zero, bool carry)
+{
+    uint8_t f = dev->regs[REG_FLAGS] & ~(SEQ_FLAG_ZERO | SEQ_FLAG_CARRY);
+
+    if (zero)
+        f |= SEQ_FLAG_ZERO;
+    if (carry)
+        f |= SEQ_FLAG_CARRY;
+    dev->regs[REG_FLAGS] = f;
+}
+
+static uint8_t
+aic7890_seq_effective_addr(const aic7890_t *dev, uint16_t field, bool is_dest)
+{
+    uint16_t base = is_dest ? dev->regs[REG_DINDEX] : dev->regs[REG_SINDEX];
+
+    if (field & 0x100)
+        return (uint8_t) ((base + (field & 0xff)) & 0xff);
+    return (uint8_t) (field & 0xff);
+}
+
+static uint8_t
+aic7890_seq_reg_read(aic7890_t *dev, uint8_t addr, int depth)
+{
+    if (depth > 8)
+        return 0;
+
+    switch (addr) {
+        case REG_ALLONES:
+            return 0xff;
+        case REG_ALLZEROS:
+            return 0x00;
+        case REG_SINDIR:
+            return aic7890_seq_reg_read(dev, dev->regs[REG_SINDEX], depth + 1);
+        default:
+            break;
+    }
+
+    if (addr == REG_CLRSINT1_SSTAT1) {
+        uint8_t ret = dev->regs[addr];
+
+        if (dev->seq_busfree)
+            ret |= SSTAT1_BUSFREE;
+        if (dev->seq_req_pending) {
+            ret |= SSTAT1_REQINIT;
+            /*
+             * The wait-for-REQ routine is entered by CALL from several
+             * places; the return address on the stack tells us which
+             * phase the target should be presenting now.
+             */
+            if (dev->seq_cmd_done && dev->seq_sp > 0) {
+                uint16_t retaddr = dev->seq_stack[dev->seq_sp - 1];
+
+                if (retaddr == 0x166 || retaddr == 0x66) {
+                    if (dev->seq_has_data && dev->seq_data_pos < dev->seq_data_len)
+                        dev->seq_phase = 0x40;   /* DATA IN */
+                    else
+                        dev->seq_phase = 0xc0;   /* STATUS */
+                } else if (retaddr == 0xaf) {
+                    dev->seq_phase = 0xe0;       /* MESSAGE OUT */
+                }
+            }
+        }
+        return ret;
+    }
+    if (addr == REG_CLRSINT0_SSTAT0) {
+        uint8_t ret = dev->regs[addr];
+
+        if (dev->seq_cmd_done)
+            ret |= SSTAT0_SDONE;
+        if (dev->seq_dma_done)
+            ret |= SSTAT0_DMADONE;
+        return ret;
+    }
+    if (addr == REG_SCSISIGI) {
+        aic7890_log(2, "AIC7890: SCSISIGI read phase=%02x\n", dev->seq_phase);
+        return dev->seq_phase | 0x01;   /* include BSY */
+    }
+    if (addr == REG_SCSIDATL)
+        return dev->seq_status;
+    if (addr == REG_CCSGCTL)
+        return dev->regs[addr] | 0x80;  /* CCSG transfer done */
+    if (addr == REG_SCSIBUSL) {
+        if (dev->seq_has_data && dev->seq_data_pos < dev->seq_data_len)
+            return dev->seq_data[dev->seq_data_pos++];
+        dev->regs[REG_CLRSINT1_SSTAT1] |= SSTAT1_BUSFREE;   /* target released the bus */
+        return 0x00;                     /* command-complete message */
+    }
+
+    if (addr >= REG_SCB_BASE && addr < (REG_SCB_BASE + AIC7890_SCB_SIZE))
+        return dev->scb_ram[dev->regs[REG_SCBPTR]][addr - REG_SCB_BASE];
+
+    return dev->regs[addr];
+}
+
+static void
+aic7890_seq_reg_write(aic7890_t *dev, uint8_t addr, uint8_t val)
+{
+    if (addr == REG_ALLZEROS)      /* NONE destination */
+        return;
+    if (addr == REG_DINDIR) {
+        aic7890_seq_reg_write(dev, dev->regs[REG_DINDEX], val);
+        return;
+    }
+
+    if (addr == REG_DFCNTRL) {
+        dev->regs[addr] = val;
+        if (val & 0x20) {   /* SCSIEN: a SCSI DMA was started */
+            if (!dev->seq_cmd_done && (dev->seq_phase & 0x80)) {
+                aic7890_seq_probe_command(dev);
+            } else if (dev->seq_cmd_done) {
+                /* status / message byte transfer: complete it immediately */
+                dev->seq_dma_done = true;
+            }
+        }
+        return;
+    }
+
+    if (addr == REG_CCSGCTL) {
+        dev->regs[addr] = val;
+        /* CCSG DMA: copy the device response data into the SCB. */
+        if (dev->seq_cmd_done && dev->seq_dma_done) {
+            dev->seq_dma_done = false;
+            if (dev->seq_phase == 0xc0) {          /* STATUS byte consumed */
+                dev->seq_phase = 0xe0;             /* MESSAGE IN next */
+                dev->seq_req_pending = true;
+            } else if (dev->seq_phase == 0xe0) {   /* MESSAGE IN byte consumed */
+                dev->seq_phase = 0;                /* BUSFREE */
+                dev->seq_req_pending = false;
+                dev->seq_busfree = true;
+            }
+        }
+        if (dev->seq_has_data && dev->seq_data_len > 0) {
+            uint8_t *scb = dev->scb_ram[dev->regs[REG_SCBPTR]];
+            int n = AIC_MIN(8, dev->seq_data_len - dev->seq_data_pos);
+
+            for (int i = 0; i < n; i++)
+                scb[0x18 + i] = dev->seq_data[dev->seq_data_pos + i];
+            dev->seq_data_pos += n;
+            if (dev->seq_data_pos >= dev->seq_data_len) {
+                dev->seq_has_data = false;
+                dev->seq_phase = 0xc0;      /* STATUS follows */
+                dev->seq_req_pending = true;
+            }
+        }
+        return;
+    }
+
+    if (addr == REG_QOUTFIFO) {
+        dev->regs[addr] = val;
+        aic7890_qout_push(dev, val);
+        return;
+    }
+
+    if (addr >= REG_SCB_BASE && addr < (REG_SCB_BASE + AIC7890_SCB_SIZE)) {
+        dev->scb_ram[dev->regs[REG_SCBPTR]][addr - REG_SCB_BASE] = val;
+        return;
+    }
+
+    dev->regs[addr] = val;
+}
+
+static uint8_t
+aic7890_seq_field_read(aic7890_t *dev, uint16_t field)
+{
+    return aic7890_seq_reg_read(dev, aic7890_seq_effective_addr(dev, field, false), 0);
+}
+
+static void
+aic7890_seq_field_write(aic7890_t *dev, uint16_t field, uint8_t val)
+{
+    aic7890_seq_reg_write(dev, aic7890_seq_effective_addr(dev, field, true), val);
+}
+
+static void
+aic7890_seq_jump(aic7890_t *dev, uint16_t addr)
+{
+    dev->seq_pc = addr & 0x3ff;
+}
+
+static void
+aic7890_seq_call(aic7890_t *dev, uint16_t addr)
+{
+    if (dev->seq_sp < 4)
+        dev->seq_stack[dev->seq_sp++] = (dev->seq_pc + 1) & 0x3ff;
+    else
+        aic7890_log(2, "AIC7890: CALL STACK FULL at %03x sp=%d\n", dev->seq_pc, dev->seq_sp);
+    aic7890_seq_jump(dev, addr);
+}
+
+static bool
+aic7890_seq_ret(aic7890_t *dev)
+{
+    if (dev->seq_sp <= 0)
+        return false;
+    dev->seq_pc = dev->seq_stack[--dev->seq_sp];
+    return true;
+}
+
+/* Decode and execute a single microcode word; advance seq_pc. */
+static bool
+aic7890_seq_step(aic7890_t *dev)
+{
+    uint32_t w = aic7890_seq_word(dev, dev->seq_pc);
+    uint16_t cur_pc = dev->seq_pc;
+    uint16_t opcode = (w >> 27) & 0xf;
+    bool ret = !!(w & (1u << 26));
+    uint8_t imm = w & 0xff;
+    uint16_t source = (w >> 8) & 0x1ff;
+    uint16_t dest = (w >> 17) & 0x1ff;
+    uint16_t addr = (w >> 17) & 0x3ff;
+    uint16_t next = (dev->seq_pc + 1) & 0x3ff;
+    bool taken = false;
+    uint8_t sv, dv, rv;
+
+    switch (opcode) {
+        case SEQ_OP_OR:
+            sv = aic7890_seq_field_read(dev, source);
+            rv = sv | imm;
+            aic7890_seq_field_write(dev, dest, rv);
+            aic7890_seq_set_flags(dev, rv == 0, aic7890_seq_flag_carry(dev));
+            break;
+        case SEQ_OP_AND:
+            sv = aic7890_seq_field_read(dev, source);
+            rv = sv & imm;
+            aic7890_seq_field_write(dev, dest, rv);
+            aic7890_seq_set_flags(dev, rv == 0, aic7890_seq_flag_carry(dev));
+            break;
+        case SEQ_OP_XOR:
+            sv = aic7890_seq_field_read(dev, source);
+            rv = sv ^ imm;
+            aic7890_seq_field_write(dev, dest, rv);
+            aic7890_seq_set_flags(dev, rv == 0, aic7890_seq_flag_carry(dev));
+            break;
+        case SEQ_OP_ADD: {
+            int res = aic7890_seq_field_read(dev, source) + imm;
+            aic7890_seq_field_write(dev, dest, res & 0xff);
+            aic7890_seq_set_flags(dev, (res & 0xff) == 0, res > 0xff);
+            break;
+        }
+        case SEQ_OP_ADC: {
+            int res = aic7890_seq_field_read(dev, source) + imm
+                    + (aic7890_seq_flag_carry(dev) ? 1 : 0);
+            aic7890_seq_field_write(dev, dest, res & 0xff);
+            aic7890_seq_set_flags(dev, (res & 0xff) == 0, res > 0xff);
+            break;
+        }
+        case SEQ_OP_ROL: {
+            uint8_t sc = imm;
+            uint8_t carry = aic7890_seq_flag_carry(dev) ? 1 : 0;
+
+            sv = aic7890_seq_field_read(dev, source);
+            if (sc == 0xf0) {
+                carry = sv >> 7;
+                rv = 0;
+            } else if (sc == 0xf8) {
+                carry = sv & 1;
+                rv = 0;
+            } else if (sc & 0x08) {
+                int n = (sc >> 4) & 0xf;
+                if (n == 0) {            /* ROR */
+                    n = 8 - (sc & 7);
+                    if (n == 0)
+                        n = 8;
+                    rv = (sv >> n) | (sv << (8 - n));
+                    carry = sv & 1;
+                } else {                 /* SHR */
+                    rv = (uint8_t) (sv >> n);
+                    carry = (sv >> (n - 1)) & 1;
+                }
+            } else {                     /* ROL / SHL */
+                int n = sc & 7;
+                if (n == 0)
+                    n = 8;
+                rv = (uint8_t) ((sv << n) | (sv >> (8 - n)));
+                carry = (sv >> (8 - n)) & 1;
+            }
+            aic7890_seq_field_write(dev, dest, rv);
+            aic7890_seq_set_flags(dev, rv == 0, carry != 0);
+            break;
+        }
+        case SEQ_OP_BMOV: {
+            int count = imm ? imm : 1;
+            uint8_t ea_src = aic7890_seq_effective_addr(dev, source, false);
+            uint8_t ea_dst = aic7890_seq_effective_addr(dev, dest, true);
+
+            if (cur_pc == 0x176 || cur_pc == 0x17a)
+                aic7890_log(2, "AIC7890: BMOV %03x pc=%03x src=%03x dst=%03x cnt=%d scb3=%02x\n",
+                            dev->seq_pc, cur_pc, ea_src, ea_dst, count,
+                            dev->scb_ram[dev->regs[REG_SCBPTR]][3]);
+            for (int i = 0; i < count; i++) {
+                uint8_t v = aic7890_seq_reg_read(dev, (uint8_t) (ea_src + i), 0);
+                aic7890_seq_reg_write(dev, (uint8_t) (ea_dst + i), v);
+                rv = v;
+            }
+            aic7890_seq_set_flags(dev, rv == 0, aic7890_seq_flag_carry(dev));
+            break;
+        }
+        case SEQ_OP_MVI16: {
+            uint16_t sv16 = (uint16_t) aic7890_seq_field_read(dev, source);
+            sv16 |= (uint16_t) aic7890_seq_field_read(dev, source + 1) << 8;
+            aic7890_seq_field_write(dev, dest, sv16 & 0xff);
+            aic7890_seq_field_write(dev, dest + 1, (sv16 >> 8) & 0xff);
+            aic7890_seq_set_flags(dev, sv16 == 0, aic7890_seq_flag_carry(dev));
+            break;
+        }
+        case SEQ_OP_JMP:
+        case SEQ_OP_JC:
+        case SEQ_OP_JNC:
+        case SEQ_OP_CALL:
+        case SEQ_OP_JNE:
+        case SEQ_OP_JNZ:
+        case SEQ_OP_JE:
+        case SEQ_OP_JZ: {
+            switch (opcode) {
+                case SEQ_OP_JMP:
+                    taken = true;
+                    break;
+                case SEQ_OP_CALL:
+                    aic7890_seq_call(dev, addr);
+                    taken = true;
+                    break;
+                case SEQ_OP_JC:
+                    taken = aic7890_seq_flag_carry(dev) != 0;
+                    break;
+                case SEQ_OP_JNC:
+                    taken = aic7890_seq_flag_carry(dev) == 0;
+                    break;
+                case SEQ_OP_JNE:
+                    taken = aic7890_seq_field_read(dev, source) != imm;
+                    break;
+                case SEQ_OP_JE:
+                    taken = aic7890_seq_field_read(dev, source) == imm;
+                    break;
+                case SEQ_OP_JNZ:
+                    taken = (aic7890_seq_field_read(dev, source) & imm) != 0;
+                    break;
+                case SEQ_OP_JZ:
+                    taken = (aic7890_seq_field_read(dev, source) & imm) == 0;
+                    if (cur_pc == 0x08c)
+                        aic7890_log(2, "AIC7890: JZ 08c src=%03x val=%02x imm=%02x\n",
+                                    source, aic7890_seq_field_read(dev, source), imm);
+                    break;
+                default:
+                    break;
+            }
+            if (taken && opcode != SEQ_OP_CALL)
+                aic7890_seq_jump(dev, addr);
+            break;
+        }
+        default:
+            break;
+    }
+
+    if (opcode == SEQ_OP_CALL)
+        ;                                /* pc already set by call */
+    else if (opcode >= SEQ_OP_JMP && opcode <= SEQ_OP_JZ) {
+        if (!taken)
+            dev->seq_pc = next;
+    } else {
+        dev->seq_pc = next;
+    }
+
+    if (ret) {
+        if (!aic7890_seq_ret(dev))
+            dev->seq_pc = next;
+    }
+
+    dev->seq_steps++;
+    if (aic7890_log_level() >= 2) {
+        aic7890_log(2,
+                    "AIC7890: seq %03x op=%x src=%03x dst=%03x imm=%02x addr=%03x take=%u sp=%d\n",
+                    cur_pc, opcode, source, dest, imm, addr, taken, dev->seq_sp);
+    }
+    return true;
+}
+
+/* Run the interpreter from the current seq_pc for up to max_steps
+ * instructions.  Returns true if the microcode reached a state where the
+ * host expects it to pause (an interrupt was raised). */
+static uint32_t
+aic7890_seq_max_steps(void)
+{
+    const char *env = getenv("AIC7890_SEQ_STEPS");
+
+    if (env != NULL && env[0] != '\0') {
+        uint32_t v = (uint32_t) strtoul(env, NULL, 10);
+
+        if (v > 0)
+            return v;
+    }
+    return SEQ_MAX_STEPS;
+}
+
+static bool
+aic7890_seq_run(aic7890_t *dev, uint32_t max_steps)
+{
+    uint32_t steps = 0;
+
+    if (!dev->seq_active)
+        return false;
+    if (dev->seqram_writes == 0)
+        return false;
+
+    while (steps < max_steps && !(dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)
+           && !(dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)) {
+        aic7890_seq_step(dev);
+        steps++;
+        if (dev->seq_pc >= 0x300)
+            break;
+    }
+
+    dev->seq_steps += steps;
+    if (aic7890_log_level() >= 1)
+        aic7890_log(1, "AIC7890: seq run pc=%03x steps=%u intstat=%02x\n",
+                    dev->seq_pc, steps, dev->regs[REG_INTSTAT]);
+    return true;
+}
+
 static void
 aic7890_emulate_sequencer_run(aic7890_t *dev)
 {
@@ -1651,26 +2368,225 @@ aic7890_emulate_sequencer_run(aic7890_t *dev)
     aic7890_process_pending(dev);
 
     reset_pulse = !!(dev->regs[REG_SCSISEQ] & SCSISEQ_SCSIRSTO);
+    if (aic7890_seqaddr(dev) == 0x0000
+        && !(dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
+        && !aic7890_has_pending_work(dev)) {
+        uint64_t us = dev->scan_init_active ? dev->scan_init_remaining
+                                            : aic7890_scan_init_delay();
+
+        /*
+         * The BIOS starts the downloaded microcode at address 0x0000
+         * (reset vector) to initialize the SCSI bus after a reset.  We do
+         * not execute the microcode, but the microcode's init path ends by
+         * raising an interrupt shortly after it starts, so arm a short
+         * timer that reproduces that interrupt.  Require a loaded program
+         * so the earlier power-on unpauses (empty RAM) stay silent.
+         */
+        if (!dev->scan_init_active && dev->seqram_writes == 0)
+            return;
+        /*
+         * The init interrupt is only expected once per microcode program.
+         * The OS driver re-starts the sequencer at 0x0000 repeatedly while
+         * scanning, so only re-fire when a (re)loaded program changes.
+         */
+        if (dev->scan_init_hash != AIC7890_TRACE_HASH_INIT
+            && dev->scan_init_hash == dev->seqram_write_hash)
+            return;
+        dev->scan_init_hash = dev->seqram_write_hash;
+        dev->scan_init_active = true;
+        timer_set_delay_u64(&dev->scan_init_timer, us * TIMER_USEC);
+        aic7890_log(1,
+                    "AIC7890: sequencer scan init armed %lluus tsc=%llu ts=%llu seqaddr=%04x reset=%u\n",
+                    (unsigned long long) us, (unsigned long long) tsc,
+                    (unsigned long long) dev->scan_init_timer.ts_integer,
+                    aic7890_seqaddr(dev), reset_pulse);
+    }
+
+    if (aic7890_seqaddr(dev) == 0x0002
+        && !(dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
+        && !aic7890_has_pending_work(dev)) {
+        /*
+         * The BIOS pre-loads SCB tag 2 with the b0/b1 selection-timeout
+         * delay counts and starts the downloaded microcode at address
+         * 0x0002 (scan-start entry).  Execute the microcode directly.
+         */
+        if (dev->seqram_writes == 0)
+            return;
+        dev->seq_pc = aic7890_seqaddr(dev);
+        dev->seq_active = true;
+        /* Fresh scan2 attempt: re-run the probe from the COMMAND phase. */
+        dev->seq_cmd_done = false;
+        dev->seq_stage = 0;
+        dev->seq_phase = 0x80;      /* COMMAND */
+        dev->seq_req_pending = true;
+        dev->seq_data_pos = 0;
+        dev->seq_has_data = false;
+        dev->seq_dma_done = false;
+        dev->seq_busfree = false;
+        dev->seq_sp = 0;            /* return stack cleared by sequencer re-arm */
+        if (aic7890_log_level() >= 1 && dev->seq_steps == 0) {
+            for (int i = 0; i < 0x210; i++) {
+                uint32_t w = aic7890_seq_word(dev, (uint16_t) i);
+                uint32_t pos = (uint32_t) i * 4;
+
+                if (w == 0)
+                    continue;
+                aic7890_log(1, "AIC7890: seqram dump %03x le=%08x\n",
+                            i, w);
+            }
+        }
+        aic7890_log(1,
+                    "AIC7890: sequencer scan2 interpret start pc=%03x reset=%u\n",
+                    dev->seq_pc, reset_pulse);
+        aic7890_seq_run(dev, aic7890_seq_max_steps());
+        if (dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND) {
+            dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
+            aic7890_log(1,
+                        "AIC7890: scan2 interpret complete pc=%03x intstat=%02x steps=%llu\n",
+                        dev->seq_pc, dev->regs[REG_INTSTAT],
+                        (unsigned long long) dev->seq_steps);
+        }
+    }
+
     if (aic7890_seqaddr(dev) == 0x0004
         && !(dev->regs[REG_HCNTRL] & HCNTRL_INTEN)
         && !(dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
         && !aic7890_has_pending_work(dev)) {
-        dev->seq_idle_pauses++;
+        uint64_t us;
+
         /*
-         * The onboard BIOS asserts SCSIRSTO and waits for the sequencer
-         * to report idle again.  Since we do not execute the downloaded
-         * sequencer, complete that reset pulse with the synthetic SEQINT.
+         * The downloaded microcode at the idle address runs a countdown
+         * delay (decrementing SCB bytes 0x10/0x11, the BIOS's b0/b1 delay
+         * counts) and then raises SEQINT, which pauses the sequencer.
+         * We do not execute the microcode, so arm a timer for the same
+         * countdown.  The countdown is paused whenever the host re-pauses
+         * the sequencer and resumes where it left off, so the BIOS's
+         * re-pause/retry loop still lets it complete.
          */
-        if (reset_pulse)
-            dev->regs[REG_SCSISEQ] &= ~SCSISEQ_SCSIRSTO;
-        dev->regs[REG_INTSTAT] |= INTSTAT_SEQINT;
-        dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
+        if (dev->countdown_active) {
+            us = dev->countdown_remaining;
+        } else {
+            uint8_t *scb = dev->scb_ram[dev->regs[REG_SCBPTR]];
+            uint32_t b0 = scb[0x10];
+            uint32_t b1 = scb[0x11];
+            uint32_t outer = (b1 == 0xff) ? 256 : ((b1 + 1) & 0xff);
+            uint32_t iters = ((b0 == 0) ? 256 : b0) + (outer - 1) * 256;
+
+            us = ((uint64_t) iters * 100) / 1000 + 1;
+            if (us > aic7890_countdown_cap_us())
+                us = aic7890_countdown_cap_us();
+            dev->countdown_active = true;
+        }
+        timer_set_delay_u64(&dev->countdown_timer, us * TIMER_USEC);
         aic7890_log(1,
-                    "AIC7890: sequencer idle self-pause %u seqaddr=%04x reset=%u intstat=%02x\n",
-                    dev->seq_idle_pauses, aic7890_seqaddr(dev),
-                    reset_pulse, dev->regs[REG_INTSTAT]);
-        aic7890_update_irq(dev);
+                    "AIC7890: sequencer idle countdown armed %lluus seqaddr=%04x reset=%u\n",
+                    (unsigned long long) us, aic7890_seqaddr(dev), reset_pulse);
     }
+}
+
+static void
+aic7890_countdown_callback(void *priv)
+{
+    aic7890_t *dev = priv;
+    uint8_t *scb;
+    bool reset_pulse;
+
+    if (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)
+        return;
+    if (dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
+        return;
+
+    scb = dev->scb_ram[dev->regs[REG_SCBPTR]];
+    reset_pulse = !!(dev->regs[REG_SCSISEQ] & SCSISEQ_SCSIRSTO);
+    dev->countdown_active = false;
+
+    /*
+     * The countdown completed: the delay-loop's SCB bytes end at 0x00/0xff
+     * (the BIOS reads them back to verify the sequencer ran), SCSIRSTO is
+     * cleared by the sequencer's reset handler, and SEQINT is raised which
+     * pauses the sequencer.
+     */
+    scb[0x10] = 0x00;
+    scb[0x11] = 0xff;
+    if (reset_pulse)
+        dev->regs[REG_SCSISEQ] &= ~SCSISEQ_SCSIRSTO;
+    dev->regs[REG_INTSTAT] |= INTSTAT_SEQINT;
+    dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
+    aic7890_log(1,
+                "AIC7890: sequencer idle countdown complete seqaddr=%04x reset=%u intstat=%02x\n",
+                aic7890_seqaddr(dev), reset_pulse, dev->regs[REG_INTSTAT]);
+    aic7890_update_irq(dev);
+}
+
+static void
+aic7890_scan_init_callback(void *priv)
+{
+    aic7890_t *dev = priv;
+
+    if (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)
+        return;
+    if (dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
+        return;
+
+    dev->scan_init_active = false;
+
+    /*
+     * The scan-init microcode at address 0x0000 finishes its setup and
+     * raises an interrupt, which pauses the sequencer.  Reproduce that
+     * interrupt here.
+     */
+    dev->regs[REG_INTSTAT] |= aic7890_scan_init_interrupt();
+    if (aic7890_scan_init_pause())
+        dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
+    aic7890_log(1,
+                "AIC7890: sequencer scan init complete seqaddr=%04x intstat=%02x tsc=%llu\n",
+                aic7890_seqaddr(dev), dev->regs[REG_INTSTAT],
+                (unsigned long long) tsc);
+    aic7890_update_irq(dev);
+}
+
+static void
+aic7890_scan2_callback(void *priv)
+{
+    aic7890_t *dev = priv;
+    uint8_t target;
+    bool present;
+
+    if (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)
+        return;
+    if (dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
+        return;
+
+    dev->scan2_active = false;
+
+    /*
+     * The scan-start countdown finished: mark the SCB tag 2 delay bytes
+     * as completed (b0 -> 0x00, b1 -> 0xff) and report the selection
+     * result.  The BIOS enabled SCSI interrupts (SIMODE) and waits for
+     * the countdown wrap (target responded) or SELTO (target absent).
+     */
+    dev->scb_ram[2][0x10] = 0x00;
+    dev->scb_ram[2][0x11] = 0xff;
+
+    target = (dev->regs[REG_SCSIID] >> 4) & 0x0f;
+    present = dev->scsi_bus < SCSI_BUS_MAX && target < SCSI_ID_MAX
+           && scsi_device_present(&scsi_devices[dev->scsi_bus][target]);
+    if (aic7890_scan2_interrupt() != 0) {
+        dev->regs[REG_INTSTAT] |= (uint8_t) aic7890_scan2_interrupt();
+    } else if (present) {
+        dev->regs[REG_CLRSINT0_SSTAT0] |= SSTAT0_SWRAP | SSTAT0_SELDO;
+        dev->regs[REG_INTSTAT] |= INTSTAT_SCSIINT;
+    } else {
+        dev->regs[REG_CLRSINT1_SSTAT1] |= SSTAT1_SELTO;
+        dev->regs[REG_INTSTAT] |= INTSTAT_SCSIINT;
+    }
+    dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
+    aic7890_log(1,
+                "AIC7890: scan2 selection complete target=%u present=%u intstat=%02x sstat0=%02x sstat1=%02x\n",
+                target, present, dev->regs[REG_INTSTAT],
+                dev->regs[REG_CLRSINT0_SSTAT0],
+                dev->regs[REG_CLRSINT1_SSTAT1]);
+    aic7890_update_irq(dev);
 }
 
 static uint8_t
@@ -1859,7 +2775,7 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
         case REG_CLRSINT0_SSTAT0:
             dev->regs[reg] &= ~(val & (CLRSINT0_CLRSELDO | CLRSINT0_CLRSELDI
                                       | CLRSINT0_CLRSELINGO | CLRSINT0_CLRSPIORDY
-                                      | SSTAT0_DMADONE));
+                                      | SSTAT0_SWRAP | SSTAT0_DMADONE));
             return;
 
         case REG_CLRSINT1_SSTAT1:
@@ -1912,7 +2828,16 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
         case REG_SEQADDR1:
             dev->regs[reg] = (reg == REG_SEQADDR1) ? (val & SEQADDR1_MASK) : val;
             dev->seqram_byte = 0;
-            return;
+            /*
+              * Rewriting the sequencer PC restarts the downloaded microcode,
+              * so any in-progress idle countdown or scan init starts over on
+              * the next unpause.
+              */
+             dev->countdown_active = false;
+             timer_disable(&dev->countdown_timer);
+             dev->scan_init_active = false;
+             timer_disable(&dev->scan_init_timer);
+             return;
 
         case REG_SEQCTL:
         {
@@ -1957,9 +2882,19 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
                             dev->seqram_writes, dev->seqram_write_hash,
                             dev->seqram_reads, dev->seqram_read_hash,
                             dev->regs[REG_SEQADDR1], dev->regs[REG_SEQADDR0]);
-            else if (!(old_hcntrl & HCNTRL_PAUSE) && (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE))
+            else if (!(old_hcntrl & HCNTRL_PAUSE) && (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)) {
                 aic7890_log(1, "AIC7890: sequencer paused hcntrl=%02x\n",
                             dev->regs[REG_HCNTRL]);
+                if (timer_is_enabled(&dev->countdown_timer))
+                    dev->countdown_remaining = timer_get_remaining_us(&dev->countdown_timer);
+                timer_disable(&dev->countdown_timer);
+                if (timer_is_enabled(&dev->scan_init_timer))
+                    dev->scan_init_remaining = timer_get_remaining_us(&dev->scan_init_timer);
+                timer_disable(&dev->scan_init_timer);
+                if (timer_is_enabled(&dev->scan2_timer))
+                    dev->scan2_remaining = timer_get_remaining_us(&dev->scan2_timer);
+                timer_disable(&dev->scan2_timer);
+            }
             aic7890_update_irq(dev);
             if (!(dev->regs[REG_HCNTRL] & HCNTRL_PAUSE))
                 aic7890_emulate_sequencer_run(dev);
@@ -1972,7 +2907,7 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
             if (val & CLRINT_CLRSCSIINT)
                 dev->regs[REG_INTSTAT] &= ~INTSTAT_SCSIINT;
             if (val & CLRINT_CLRSEQINT)
-                dev->regs[REG_INTSTAT] &= ~INTSTAT_SEQINT;
+                dev->regs[REG_INTSTAT] &= ~(INTSTAT_SEQINT | 0xf0);
             if (val & CLRINT_CLRBRKADRINT)
                 dev->regs[REG_INTSTAT] &= ~INTSTAT_BRKADRINT;
             aic7890_log(1, "AIC7890: clear interrupt val=%02x intstat=%02x\n",
@@ -2369,6 +3304,10 @@ aic7890_init(const device_t *info)
 
     aic7890_init_pci(dev);
     aic7890_reset_regs(dev);
+
+    timer_add(&dev->countdown_timer, aic7890_countdown_callback, dev, 0);
+    timer_add(&dev->scan_init_timer, aic7890_scan_init_callback, dev, 0);
+    timer_add(&dev->scan2_timer, aic7890_scan2_callback, dev, 0);
 
     mem_mapping_add(&dev->mmio_mapping, 0, 0,
                     aic7890_mmio_readb, aic7890_mmio_readw, aic7890_mmio_readl,
