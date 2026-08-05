@@ -65,6 +65,7 @@ AppDir:
     - libx11-6 # if QT:BOOL=ON
     - libx11-xcb1 # if QT:BOOL=ON
     - libxcb1 # if QT:BOOL=ON
+    - libxcb-cursor0 # if QT:BOOL=ON
     - libxcb-render0 # if QT:BOOL=ON
     - libxcb-shape0 # if QT:BOOL=ON
     - libxcb-shm0 # if QT:BOOL=ON
