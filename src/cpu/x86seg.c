@@ -1091,7 +1091,7 @@ loadcscall(uint16_t seg)
                                 writememw(0, addr + 4, segdat2[2] | 0x100); /* Set accessed bit */
                                 cpl_override = 0;
 
-                                CS = seg2;
+                                CS = (seg2 & ~3) | DPL;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
                                     flushmmucache_nopc();
@@ -1208,7 +1208,7 @@ loadcscall(uint16_t seg)
                         case 0x1d00:
                         case 0x1e00:
                         case 0x1f00: /* Conforming */
-                            CS = seg2;
+                            CS = (seg2 & ~3) | CPL;
                             do_seg_load(&cpu_state.seg_cs, segdat);
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_nopc();
