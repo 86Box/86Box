@@ -169,9 +169,6 @@ endif()
 if(WIN32 AND NOT QT)
     # Force console subsystem when building the SDL frontend
     set(CMAKE_WIN32_EXECUTABLE OFF CACHE BOOL "Build a Windows GUI executable" FORCE)
-
-    # FluidSynth pulls in SDL3 - disable for now
-    set(FLUIDSYNTH OFF CACHE BOOL "FluidSynth" FORCE)
 endif()
 
 if(WIN32 AND GDBSTUB)
