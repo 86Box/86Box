@@ -1716,6 +1716,8 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 if (!session_found)
                     break;
             }
+            free(rtis);
+            free(rtis_sorted);
         }
         return 1 + !has_audio;
     }
