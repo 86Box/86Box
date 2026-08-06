@@ -290,12 +290,12 @@ codegen_backend_init(void)
     uint8_t      large_hash = 0;
 
     codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 0, &large_block);
-    codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0, &large_hash);
+    codeblock_hash = plat_mmap(HASH_SIZE * CODEBLOCK_HASH_WAYS * sizeof(uint16_t), 0, &large_hash);
 
     if (large_block)
         pclog("Allocated %" PRIu64 " bytes of large pages for codeblock pointers\n", (uint64_t) (BLOCK_SIZE * sizeof(codeblock_t)));
     if (large_hash)
-        pclog("Allocated %" PRIu64 " bytes of large pages for codeblock hashes\n", (uint64_t) (HASH_SIZE * sizeof(codeblock_t *)));
+        pclog("Allocated %" PRIu64 " bytes of large pages for codeblock hashes\n", HASH_SIZE * CODEBLOCK_HASH_WAYS * sizeof(uint16_t));
 
     for (int c = 0; c < BLOCK_SIZE; c++) {
         codeblock[c].valid = 0;
