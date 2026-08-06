@@ -120,6 +120,7 @@ typedef struct rtcdev_t {
     uint8_t  *irq_mask; /* PS/2 Model 30's gate-array IRQ1 mask at port A1h */
     pc_timer_t subsec_timer; /* PS/2 Model 30's millisecond-resolution counter */
     uint8_t  subsec_count;   /* PS/2 Model 30's number of phases (usually 150us) per msec */
+    int      msec_count;
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
@@ -417,7 +418,8 @@ m30_subsec_timer(void *priv)
 
     dev->nvr.regs[MM67_STATUS] = 0x01;
     if (++dev->subsec_count >= 7) { /* 7 x 150 us = 1.05 ms */
-        dev->nvr.regs[MM67_MSEC] = (dev->nvr.regs[MM67_MSEC] + 1) % 100;
+        dev->msec_count = (dev->msec_count + 1) % 1000;
+        dev->nvr.regs[MM67_MSEC] = ((dev->msec_count % 10) << 4);
         dev->subsec_count        = 0;
     }
 
@@ -666,6 +668,13 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
             nvr_dosave = 1;
             break;
 
+        case MM67_MSEC:
+        case MM67_HUNTEN:
+            dev->nvr.regs[reg] = val;
+            dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) + (dev->nvr.regs[MM67_HUNTEN] * 10);
+            nvr_dosave = 1;
+            break;
+
         default:
             dev->nvr.regs[reg] = val;
             nvr_dosave = 1;
@@ -895,8 +904,10 @@ isartc_init(const device_t *info)
         nvr_init(&dev->nvr);
 
     /* The Model 30 needs 10 ms hundredths-counter granularity. */
-    if (dev->board == ISARTC_PS2M30)
+    if (dev->board == ISARTC_PS2M30) {
+        dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) + (dev->nvr.regs[MM67_HUNTEN] * 10);
         timer_add(&dev->subsec_timer, m30_subsec_timer, dev, 1);
+    }
 
     /* Let them know our device instance. */
     return ((void *) dev);
