@@ -5876,7 +5876,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL, /* no working driver yet for the real card's 3Com 3C509B NIC */
+        .net_device               = NULL,
         .aliases                  = { "" }
     },
     /* ISA slots available because an official IBM expansion for that existed. */
