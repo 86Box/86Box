@@ -18,7 +18,7 @@
 #define EMU_CHAR_H
 
 #ifdef _WIN32
-#    define CHAR_FD_VALID(fd) ((fd) && ((fd) != INVALID_HANDLE_VALUE))
+#    define CHAR_FD_VALID(fd) (((void *) (fd) != NULL) && ((void *) (fd) != (void *) INVALID_HANDLE_VALUE))
 #else
 #    define CHAR_FD_VALID(fd) ((fd) >= 0)
 #endif
