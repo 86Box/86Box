@@ -24,15 +24,20 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_vga.h>
+#include "cpu.h"
 
 video_timings_t        timing_vga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 static video_timings_t timing_ps1_svga_isa = { .type = VIDEO_ISA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 static video_timings_t timing_ps1_svga_mca = { .type = VIDEO_MCA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
+
+extern void    vga_disable(void *p);
+extern void    vga_enable(void *p);
 
 void
 vga_out(uint16_t addr, uint8_t val, void *priv)
@@ -45,6 +50,18 @@ vga_out(uint16_t addr, uint8_t val, void *priv)
         addr ^= 0x60;
 
     switch (addr) {
+        case 0x102:
+            old = vga->port_102;
+
+            vga->port_102 = val;
+
+            if ((old ^ val) & 0x01) {
+                vga_disable(priv);
+
+                if ((val & 0x01) && (vga->ctl & 0x0008))
+                    vga_enable(priv);
+            }
+            return;
         case 0x3D4:
             svga->crtcreg = val & 0x3f;
             return;
@@ -76,6 +93,22 @@ vga_out(uint16_t addr, uint8_t val, void *priv)
     svga_out(addr, val, svga);
 }
 
+void
+vga_outw(uint16_t addr, uint16_t val, void *priv)
+{
+    vga_t *        vga = (vga_t *) priv;
+    const uint16_t old = vga->ctl;
+
+    vga->ctl = val;
+
+    if ((old ^ val) & 0x0008) {
+        vga_disable(priv);
+
+        if ((vga->port_102 & 0x01) && (val & 0x0008))
+            vga_enable(priv);
+    }
+}
+
 uint8_t
 vga_in(uint16_t addr, void *priv)
 {
@@ -87,6 +120,9 @@ vga_in(uint16_t addr, void *priv)
         addr ^= 0x60;
 
     switch (addr) {
+        case 0x102:
+            temp = vga->port_102;
+            break;
         case 0x3D4:
             temp = svga->crtcreg;
             break;
@@ -100,23 +136,35 @@ vga_in(uint16_t addr, void *priv)
             temp = svga_in(addr, svga);
             break;
     }
+
     return temp;
 }
 
-void vga_disable(void* p)
+uint16_t
+vga_inw(uint16_t addr, void *priv)
 {
-    vga_t* vga = (vga_t*)p;
-    svga_t* svga = &vga->svga;
+    vga_t *  vga = (vga_t *) priv;
+    uint16_t ret = vga->ctl;
+
+    return ret;
+}
+
+void
+vga_disable(void *p)
+{
+    vga_t * vga  = (vga_t *) p;
+    svga_t *svga = &vga->svga;
 
     io_removehandler(0x03a0, 0x0040, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
     mem_mapping_disable(&svga->mapping);
     svga->vga_enabled = 0;
 }
 
-void vga_enable(void* p)
+void
+vga_enable(void *p)
 {
-    vga_t* vga = (vga_t*)p;
-    svga_t* svga = &vga->svga;
+    vga_t * vga  = (vga_t *) p;
+    svga_t *svga = &vga->svga;
 
     io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
     if (!(svga->miscout & 1))
@@ -161,7 +209,15 @@ vga_standalone_init(const device_t *info)
     vga_init(info, vga, 0);
 
     io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
- 
+
+    if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
+        (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0)) {
+        io_sethandler(0x0102, 0x0001, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+        io_sethandler(0x46e8, 0x0001, NULL, vga_inw, NULL, NULL, vga_outw, NULL, vga);
+
+        vga_disable(vga);
+    }
+
     return vga;
 }
 

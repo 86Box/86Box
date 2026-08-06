@@ -319,6 +319,7 @@ static const struct cdrom_drive_types_s {
     { "PIONEER",  "CD-ROM DRM-604X",  "2403", "",          "pioneer_604x",   BUS_TYPE_SCSI, 2,  4, 47, 0, 0, { -1, -1, -1, -1 } }, /* NOTE: The real thing is a CD changer drive! */
     { "PIONEER",  "CD-ROM DR-U124X",  "4021", "",          "pioneer_u124x",  BUS_TYPE_SCSI, 2,  4, 47, 0, 0, { -1, -1, -1, -1 } }, /* Another (updated?) variant of DRM-604X */
     { "PIONEER",  "CD-ROM DR-U16S",   "0066", "",          "pioneer_u16s",   BUS_TYPE_SCSI, 2, 36, 47, 0, 0, { -1, -1, -1, -1 } },
+    { "PIONEER",  "DVD-ROM DVD-305S", "1.00", "",          "pioneer_305s",   BUS_TYPE_SCSI, 2, 40, 47, 0, 1, { -1, -1, -1, -1 } },
     { "PLEXTOR",  "CD-ROM PX-43CH",   "0204", "",          "plextor_43ch",   BUS_TYPE_SCSI, 2,  4, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
     { "PLEXTOR",  "CD-ROM PX-83CS",   "1.01", "",          "plextor_83cs",   BUS_TYPE_SCSI, 2,  8, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
     { "PLEXTOR",  "CD-ROM PX-12CS",   "1.04", "",          "plextor_12cs",   BUS_TYPE_SCSI, 2, 12, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */

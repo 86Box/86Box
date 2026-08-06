@@ -141,6 +141,7 @@ option(DISCORD      "Discord Rich Presence support"                             
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 option(QT           "Use the Qt-based user interface"                            ON)
+option(SDL2         "Use SDL2 instead of SDL3"                                   OFF)
 
 if((ARCH STREQUAL "arm64"))
     set(NEW_DYNAREC ON)
@@ -169,9 +170,6 @@ endif()
 if(WIN32 AND NOT QT)
     # Force console subsystem when building the SDL frontend
     set(CMAKE_WIN32_EXECUTABLE OFF CACHE BOOL "Build a Windows GUI executable" FORCE)
-
-    # FluidSynth pulls in SDL3 - disable for now
-    set(FLUIDSYNTH OFF CACHE BOOL "FluidSynth" FORCE)
 endif()
 
 if(WIN32 AND GDBSTUB)

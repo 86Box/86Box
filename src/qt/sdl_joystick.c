@@ -16,7 +16,19 @@
  *          Copyright 2021 Joakim L. Gilje.
  *          Copyright 2021-2025 Jasmine Iwanek.
  */
+#ifdef USE_SDL2_LIB
+#include <SDL.h>
+#define SDL_GetNumJoystickHats SDL_JoystickNumHats
+#define SDL_GetNumJoystickButtons SDL_JoystickNumButtons
+#define SDL_GetNumJoystickAxes SDL_JoystickNumAxes
+#define SDL_CloseJoystick SDL_JoystickClose
+#define SDL_UpdateJoysticks SDL_JoystickUpdate
+#define SDL_GetJoystickAxis SDL_JoystickGetAxis
+#define SDL_GetJoystickButton SDL_JoystickGetButton
+#define SDL_GetJoystickHat SDL_JoystickGetHat
+#else
 #include <SDL3/SDL.h>
+#endif
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -57,16 +69,27 @@ joystick_init(void)
 #endif
         return;
 
+#ifdef USE_SDL2_LIB
+    joysticks_present = SDL_NumJoysticks();
+#else
     joysticks_present = 0;
 
     SDL_JoystickID* ids = SDL_GetJoysticks(&joysticks_present);
-
+#endif
     memset(sdl_joy, 0, sizeof(sdl_joy));
     for (int js = 0; js < joysticks_present; js++) {
+#ifdef USE_SDL2_LIB
+        sdl_joy[js] = SDL_JoystickOpen(js);
+#else
         sdl_joy[js] = SDL_OpenJoystick(ids[js]);
+#endif
 
         if (sdl_joy[js]) {
+#ifdef USE_SDL2_LIB
+            strncpy(plat_joystick_state[js].name, SDL_JoystickNameForIndex(js), 64);
+#else
             strncpy(plat_joystick_state[js].name, SDL_GetJoystickNameForID(ids[js]), 64);
+#endif
             plat_joystick_state[js].nr_axes    = MIN(SDL_GetNumJoystickAxes(sdl_joy[js]), MAX_JOY_AXES);
             plat_joystick_state[js].nr_buttons = MIN(SDL_GetNumJoystickButtons(sdl_joy[js]), MAX_JOY_BUTTONS);
             plat_joystick_state[js].nr_povs    = MIN(SDL_GetNumJoystickHats(sdl_joy[js]), MAX_JOY_POVS);

@@ -1,4 +1,8 @@
+#ifdef USE_SDL2_LIB
+#include <SDL.h>
+#else
 #include <SDL3/SDL.h>
+#endif
 
 #include <stdlib.h>
 #include <string.h>
