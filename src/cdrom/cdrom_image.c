@@ -3165,6 +3165,12 @@ image_read_sector(const void *local, uint8_t *buffer,
                      for (int j = 0; j < 8; j++)
                           buffer[2352 + (i << 3) + j] = ((q[i] >> (7 - j)) & 0x01) << 6;
             }
+
+            if (img->data_tracks_scrambled && (trk->attr & 0x4)) {
+                for (int i = 0; i < 2352; i++) {
+                    buffer[i] ^= cdrom_scramble_table[i];
+                }
+            }
         }
 
         if (img->sector_subs) {
