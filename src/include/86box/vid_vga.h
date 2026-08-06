@@ -20,9 +20,12 @@
 #define VIDEO_VGA_H
 
 typedef struct vga_t {
-    svga_t svga;
+    uint8_t  port_102;
+    uint16_t ctl;
 
-    rom_t  bios_rom;
+    svga_t   svga;
+
+    rom_t    bios_rom;
 } vga_t;
 
 extern void    vga_out(uint16_t addr, uint8_t val, void *priv);

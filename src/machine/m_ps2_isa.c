@@ -248,7 +248,7 @@ ps2_m25_read(uint16_t port, void *priv)
         case 0x0062:
             return (ppispeakon ? 0x20 : 0x00) |
                    ((dev->hdc == NULL) ? 0x04 : 0x00) |
-                   (hasfpu ? 0x02 : 0x00);
+                   (hasfpu ? 0x02 : 0x00) | 0x01;
 
         case 0x0065:
             return dev->port_65;
@@ -721,7 +721,9 @@ machine_ps2_8086_init(const machine_t *model)
     if (hdc_current[0] == HDC_INTERNAL)
         dev->hdc = device_add(&ps2_m25_hdc_device);
 
-    if (gfxcard[0] == VID_INTERNAL)
+    if ((gfxcard[0] == VID_INTERNAL) ||
+        ((gfxcard[0] >= VID_INTERNAL) &&
+         (strcmp(video_get_internal_name(gfxcard[0]), "vga") == 0)))
         dev->mcga = device_add(&mcga_device);
 
     /* All integrated chip selects and the parallel output drivers power up on. */
