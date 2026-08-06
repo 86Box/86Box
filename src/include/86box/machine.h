@@ -1554,6 +1554,10 @@ extern int             machine_ibmpc82_init(const machine_t *);
 extern const device_t  ibmxt_device;
 #endif
 extern int             machine_ibmxt_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ibmxt_inboard386_device;
+#endif
+extern int             machine_ibmxt_inboard386_init(const machine_t *);
 extern int             machine_xt_ibm3270pc_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ibmxt86_device;

@@ -112,6 +112,7 @@ void dma_set_params(uint8_t advanced, uint32_t mask);
 void dma_set_mask(uint32_t mask);
 
 void dma_set_at(uint8_t at);
+void dma_set_force_xt(int enable);
 
 void dma_ext_mode_init(void);
 void dma_high_page_init(void);
