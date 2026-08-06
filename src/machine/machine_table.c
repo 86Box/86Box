@@ -12,9 +12,9 @@
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2016-2026 Miran Grca.
  *          Copyright 2017-2025 Fred N. van Kempen.
- *          Copyright 2025      Jasmine Iwanek.
+ *          Copyright 2025-2026 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -7432,7 +7432,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL, /* no working driver yet for the real card's 3Com 3C509B NIC */
+        .net_device               = NULL,
         .aliases                  = { "" }
     },
     /* Uses Compaq KBC firmware. */
