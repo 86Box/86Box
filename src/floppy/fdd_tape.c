@@ -6,9 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of a QIC-117 "floppy tape" drive, modelled after a
- *          Colorado QIC-80 drive ("Colorado 250", implying 120MB tapes,
- *          up to 250MB compressed).
+ *          Emulation of a QIC-117 "floppy tape" drive, namely a drive that
+ *          accepts a QIC-80 or QIC-80XL cartridge.
  *
  *          These drives share the floppy ribbon cable with the regular
  *          floppy drives and occupy one of the four drive select lines.
@@ -89,6 +88,7 @@ enum {
     QIC_CALIBRATE_TAPE_LENGTH  = 36,
     QIC_REPORT_FORMAT_SEGMENTS = 37,
     QIC_SET_FORMAT_SEGMENTS    = 38,
+    QIC_CONNER_CMD_40          = 40,
     QIC_PHANTOM_SELECT         = 46,
     QIC_PHANTOM_DESELECT       = 47,
     QIC_EXT_SELECT_RATE        = 50,
@@ -175,18 +175,34 @@ enum {
 #define QIC_IGNORE_ABOVE             QIC_REPORT_VENDOR_ID
 
 /*
-   Vendor ID and ROM version, pulled from a real Colorado 120 drive.
+   Vendor ID and ROM version.
+   0x5 = Conner
+   0x47 = Colorado
+
+   Emulating a Conner drive seems to be more compatible across various
+   host software, whereas emulating a Colorado drive makes the host
+   software dive deeper into Colorado-specific diagnostics that have not
+   yet been reverse-engineered.
  */
-#define QIC_VENDOR_ID                0x0047
+#define QIC_VENDOR_ID                0x5
 #define QIC_ROM_VERSION              0x58
 
-/* Manufacturer-specific signature handed back by command 37 while in
-   diagnostic mode (observed on a real Colorado 120 drive). */
+/* Colorado-specific signature handed back by command 37 while in
+   diagnostic mode (observed on a real Colorado 250 drive). */
 #define QIC_CMS_SIGNATURE            0xa5
 
-/* Manufacturer-specific signature handed back by command 9 while in
-   diagnostic mode (observed on a real Colorado 120 drive). */
+/* Colorado-specific signature handed back by command 9 while in
+   diagnostic mode. */
 #define QIC_CMS_DIAG_STATUS          0x4
+
+/* Conner-specific signature handed back by command 40 while in
+   diagnostic mode, to determine the drive model. Possible values
+   seem to be:
+   0x1 - Conner 120 (QIC-40)
+   0x4 - Conner 250 (QIC-80)
+   0x100 - Conner 700 (QIC-3010)
+   */
+#define QIC_CONNER_DIAG_STATUS       0x4
 
 /* The head parks at cylinder 0 while idle, so TRACK 0 doubles as the
    result line. Bits are handed back one at a time, framed by a leading
@@ -842,6 +858,7 @@ tape_command_defined(uint8_t command)
         case QIC_PHANTOM_DESELECT:
         case QIC_EXT_SELECT_RATE:
         case QIC_EXT_REPORT_DRIVE_CONFIG:
+        case QIC_CONNER_CMD_40:
             return 1;
 
         default:
@@ -1100,6 +1117,15 @@ tape_command(uint8_t command)
                 tape_start_report(QIC_CMS_SIGNATURE, 8);
             else
                 tape_start_report(QIC_ROM_VERSION, 8);
+            return;
+
+        case QIC_CONNER_CMD_40:
+            /*
+               This is a Conner-specific diagnostic command that expects a 16-bit
+               response that the host software uses to determine the drive model.
+            */
+            if (tape.diag_mode == 1)
+                tape_start_report(QIC_CONNER_DIAG_STATUS, 16);
             return;
 
         case QIC_REPORT_VENDOR_ID:
@@ -2308,10 +2334,9 @@ fdd_tape_init(void)
      */
     tape.status &= ~QIC_STATUS_NEW_CARTRIDGE;
 
-    /*
-       To investigate: do we need to initialize the drive with a power-on reset error?
+    /* Initialize the drive with a power-on-reset error, which must be
+       cleared by the host software before proceeding. */
     tape_set_init_error(QIC_ERROR_POWER_ON_RESET);
-    */
 }
 
 void
