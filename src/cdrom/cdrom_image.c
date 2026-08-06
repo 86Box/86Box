@@ -1537,25 +1537,25 @@ static int compare_points(const void* a, const void* b)
 static int
 image_load_ccd(cd_image_t *img, const char *ccdfile)
 {
-    track_t       *ct = NULL;
-    track_index_t *ci = NULL;
-    track_file_t  *tf = NULL;
-    raw_track_info_t* rtis = NULL;
-    raw_track_info_t* rtis_sorted = NULL;
-    char* img_path = strdup(ccdfile);
-    uint8_t        session = 1;
-    int            has_audio = 0;
-    int error = 0;
+    track_t          *ct          = NULL;
+    track_index_t    *ci          = NULL;
+    track_file_t     *tf          = NULL;
+    raw_track_info_t *rtis        = NULL;
+    raw_track_info_t *rtis_sorted = NULL;
+    char             *img_path    = strdup(ccdfile);
+    uint8_t           session     = 1;
+    int               has_audio   = 0;
+    int               error       = 0;
 
     img_path[strlen(img_path) - 1] = 'g';
     img_path[strlen(img_path) - 2] = 'm';
     img_path[strlen(img_path) - 3] = 'i';
-    tf = bin_init(0, img_path, &error);
+    tf                             = bin_init(0, img_path, &error);
     if (error) {
         img_path[strlen(img_path) - 1] = 'G';
         img_path[strlen(img_path) - 2] = 'M';
         img_path[strlen(img_path) - 3] = 'I';
-        tf = bin_init(0, img_path, &error);
+        tf                             = bin_init(0, img_path, &error);
     }
 
     if (error) {
@@ -1566,17 +1566,17 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
     img_path[strlen(img_path) - 1] = 'b';
     img_path[strlen(img_path) - 2] = 'u';
     img_path[strlen(img_path) - 3] = 's';
-    img->subs_file = plat_fopen(img_path, "rb");
+    img->subs_file                 = plat_fopen(img_path, "rb");
     if (!img->subs_file) {
         img_path[strlen(img_path) - 1] = 'B';
         img_path[strlen(img_path) - 2] = 'U';
         img_path[strlen(img_path) - 3] = 'S';
-        img->subs_file = plat_fopen(img_path, "rb");
+        img->subs_file                 = plat_fopen(img_path, "rb");
     }
 
     uint64_t length = bin_get_length(tf);
     fseeko64(tf->fp, 0, SEEK_SET);
-    uint64_t length_sect = length / (uint64_t)2352;
+    uint64_t length_sect = length / (uint64_t) 2352;
 
     if (img->subs_file) {
         fseek(img->subs_file, 0, SEEK_END);
@@ -1591,11 +1591,11 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
     ini_t ccd_ini = ini_read(ccdfile);
     if (ccd_ini) {
         img->data_tracks_scrambled = !!ini_get_uint(ccd_ini, "CloneCD", "DataTracksScrambled", 0);
-        ini_section_t sec = ini_find_section(ccd_ini, "Disc");
+        ini_section_t sec          = ini_find_section(ccd_ini, "Disc");
         if (sec) {
             uint32_t toc_entries = ini_section_get_uint(sec, "TocEntries", 0);
-            rtis = calloc(sizeof(raw_track_info_t), toc_entries);
-            rtis_sorted = calloc(sizeof(raw_track_info_t), toc_entries); // for length calculation.
+            rtis                 = calloc(sizeof(raw_track_info_t), toc_entries);
+            rtis_sorted          = calloc(sizeof(raw_track_info_t), toc_entries); // for length calculation.
             // We just parse the TOC entries here to generate a full TOC.
 
             for (uint32_t i = 0; i < toc_entries; i++) {
@@ -1603,25 +1603,25 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 snprintf(sec_name, sizeof(sec_name) - 1, "Entry %d", i);
                 sec = ini_find_section(ccd_ini, sec_name);
                 if (sec) {
-                    raw_track_info_t* rti = rtis + i;
-                    rti->session = ini_section_get_uint(sec, "Session", 1);
+                    raw_track_info_t *rti = rtis + i;
+                    rti->session          = ini_section_get_uint(sec, "Session", 1);
 
                     rti->adr_ctl = ini_section_get_uint(sec, "ADR", 1) << 4;
                     rti->adr_ctl |= ini_section_get_uint(sec, "Control", 1) & 0xf;
 
-                    rti->tno = 0;
+                    rti->tno   = 0;
                     rti->point = ini_section_get_uint(sec, "Point", 0);
-                    rti->m = ini_section_get_uint(sec, "AMin", 0);
-                    rti->s = ini_section_get_uint(sec, "ASec", 0);
-                    rti->f = ini_section_get_uint(sec, "AFrame", 0);
-                    rti->zero = ini_section_get_uint(sec, "Zero", 0);
-                    rti->pm = ini_section_get_uint(sec, "PMin", 0);
-                    rti->ps = ini_section_get_uint(sec, "PSec", 0);
-                    rti->pf = ini_section_get_uint(sec, "PFrame", 0);
+                    rti->m     = ini_section_get_uint(sec, "AMin", 0);
+                    rti->s     = ini_section_get_uint(sec, "ASec", 0);
+                    rti->f     = ini_section_get_uint(sec, "AFrame", 0);
+                    rti->zero  = ini_section_get_uint(sec, "Zero", 0);
+                    rti->pm    = ini_section_get_uint(sec, "PMin", 0);
+                    rti->ps    = ini_section_get_uint(sec, "PSec", 0);
+                    rti->pf    = ini_section_get_uint(sec, "PFrame", 0);
                 }
             }
 
-            memcpy(rtis_sorted, rtis, (uint64_t)toc_entries * sizeof(raw_track_info_t));
+            memcpy(rtis_sorted, rtis, (uint64_t) toc_entries * sizeof(raw_track_info_t));
             qsort(rtis_sorted, toc_entries, sizeof(raw_track_info_t), compare_points);
 
             // Step 1: Insert all CloneCD tracks.
@@ -1629,36 +1629,36 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 image_insert_track(img, rtis[i].session, rtis[i].point);
                 track_t *current_track = &img->tracks[img->tracks_num - 1];
 
-                current_track->attr = rtis[i].adr_ctl;
-                current_track->tno  = 0;
-                current_track->extra[0] = rtis[i].m;
-                current_track->extra[1] = rtis[i].s;
-                current_track->extra[2] = rtis[i].f;
-                current_track->extra[3] = rtis[i].zero;
+                current_track->attr        = rtis[i].adr_ctl;
+                current_track->tno         = 0;
+                current_track->extra[0]    = rtis[i].m;
+                current_track->extra[1]    = rtis[i].s;
+                current_track->extra[2]    = rtis[i].f;
+                current_track->extra[3]    = rtis[i].zero;
                 current_track->sector_size = RAW_SECTOR_SIZE;
-                current_track->mode = 1;
-                current_track->form = 1;
-                current_track->subch_type = 0x08;
-                current_track->skip = 0x00;
-                current_track->max_index = 1;
+                current_track->mode        = 1;
+                current_track->form        = 1;
+                current_track->subch_type  = 0x08;
+                current_track->skip        = 0x00;
+                current_track->max_index   = 1;
 
                 has_audio = has_audio || (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4));
 
-                current_track->idx[0].file = NULL;
+                current_track->idx[0].file        = NULL;
                 current_track->idx[0].file_length = 0;
-                current_track->idx[0].file_start = 0;
-                current_track->idx[0].skip = 0;
-                current_track->idx[0].length = 0;
-                current_track->idx[0].start = 0;
-                current_track->idx[0].type = INDEX_NONE;
+                current_track->idx[0].file_start  = 0;
+                current_track->idx[0].skip        = 0;
+                current_track->idx[0].length      = 0;
+                current_track->idx[0].start       = 0;
+                current_track->idx[0].type        = INDEX_NONE;
 
-                current_track->idx[1].file = tf;
+                current_track->idx[1].file        = tf;
                 current_track->idx[1].file_length = 0;
-                current_track->idx[1].file_start = ((current_track->point > 99) ? 0 : MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf) - 150);
-                current_track->idx[1].skip = 0;
-                current_track->idx[1].length = 0;
-                current_track->idx[1].start = MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf);
-                current_track->idx[1].type = (current_track->point > 99) ? INDEX_SPECIAL : INDEX_NORMAL;
+                current_track->idx[1].file_start  = ((current_track->point > 99) ? 0 : MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf) - 150);
+                current_track->idx[1].skip        = 0;
+                current_track->idx[1].length      = 0;
+                current_track->idx[1].start       = MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf);
+                current_track->idx[1].type        = (current_track->point > 99) ? INDEX_SPECIAL : INDEX_NORMAL;
             }
 
             // Step 2: Calculate track lengths.
@@ -1671,7 +1671,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 } else {
                     track_length = MSFtoLBA(rtis_sorted[i + 1].m, rtis_sorted[i + 1].s, rtis_sorted[i + 1].f) - MSFtoLBA(rtis_sorted[i].m, rtis_sorted[i].s, rtis_sorted[i].f);
                 }
-                track_t* target_track = NULL;
+                track_t *target_track = NULL;
                 for (int j = 0; j < img->tracks_num; j++) {
                     target_track = &img->tracks[j];
                     if (target_track->point == rtis_sorted[i].point) {
@@ -1686,16 +1686,16 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 int session_found = 0;
                 for (int j = 0; j < img->tracks_num; j++) {
                     if (img->tracks[j].session == i && img->tracks[j].point < 99) {
-                        session_found = 1;
+                        session_found         = 1;
                         img->tracks[j].idx[0] = img->tracks[j].idx[1];
 
                         img->tracks[j].idx[0].start -= 150;
                         img->tracks[j].idx[0].length = 150;
                         if (j == 1) {
-                            img->tracks[j].idx[0].file = NULL;
+                            img->tracks[j].idx[0].file        = NULL;
                             img->tracks[j].idx[0].file_length = 0;
-                            img->tracks[j].idx[0].file_start = 0;
-                            img->tracks[j].idx[0].type = INDEX_ZERO;
+                            img->tracks[j].idx[0].file_start  = 0;
+                            img->tracks[j].idx[0].type        = INDEX_ZERO;
                         } else {
                             img->tracks[j].idx[0].file_length = 150;
                             img->tracks[j].idx[0].file_start -= 150;
