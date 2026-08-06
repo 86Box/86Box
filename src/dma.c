@@ -95,10 +95,26 @@ static void dma_xt_refresh_reconcile(void);
 
 static int dma_xt8237_mem_to_mem(void);
 
+/* Persistent override for machines where the usual is286-driven AT/XT DMA
+   detection is wrong: a genuine single-8237 XT board paired with a 286-or-
+   higher accelerator CPU (e.g. the Intel Inboard 386/PC on a stock 5150/
+   5160). Set once via dma_set_force_xt() by the owning device at init time;
+   every other machine's behavior is completely unchanged (dma_xt8237_active()
+   still always returns 0, as before, when this is left at its default). */
+static int dma_force_xt = 0;
+
+void
+dma_set_force_xt(int enable)
+{
+    dma_force_xt = enable;
+}
+
 static int
 dma_xt8237_active(void)
 {
-    return 0 /*!dma_at && !dma_advanced && !dma_ps2.is_ps2*/;
+    if (dma_force_xt)
+        return !dma_advanced && !dma_ps2.is_ps2;
+    return 0;
 }
 
 static uint8_t

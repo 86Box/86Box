@@ -385,6 +385,69 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* IBM XT (1982) with an Intel Inboard 386/PC accelerator card fitted in place of the
+       stock 8088 - same real BIOS ROM chips, same base XT platform, plus the Inboard's own
+       wait-state/A20/ROM-shadow hardware (inboard386.c). No real 8042 keyboard controller or
+       second/slave 8259 PIC exists on this hardware - it's a genuine XT platform underneath,
+       just with a 386-class CPU bolted on via a daughtercard. */
+    {
+        .name              = "[386SX] IBM XT (1982) w/ Intel Inboard 386/PC",
+        .internal_name     = "ibmxt_inboard386",
+        .type              = MACHINE_TYPE_386SX,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_ibmxt_inboard386_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            /* The Inboard's own CPU socket accepts any 386SX-pinout-compatible upgrade chip
+               of the era (PGA132 and pin-compatible packages), not one specific part - OR
+               together every compatible family so a user with a different chip on their card
+               (stock 386SX, Cyrix 486DLC/486SLC, IBM 386SLC/486SLC, etc.) can select their own
+               from the normal CPU dropdown instead of being locked to one. */
+            .package     = CPU_PKG_386SX | CPU_PKG_386DX | CPU_PKG_386SLC_IBM | CPU_PKG_486SLC
+                          | CPU_PKG_486SLC_IBM | CPU_PKG_486BL | CPU_PKG_486DLC,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            /* The real card ships exactly three discrete configurations, not a continuous
+               range: 1MB base alone, 1MB+2MB piggyback (3MB), or 1MB+4MB piggyback (5MB) -
+               the piggyback board is either the 2MB or the 4MB part, never both at once.
+               step=2048 with min=1024/max=5120 lands exactly on {1024, 3072, 5120}, the three
+               real options, without needing a separate discrete-value list. */
+            .min  = 1024,
+            .max  = 5120,
+            .step = 2048
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_xt_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ibmxt_inboard386_device,
+        .kbd_device               = &keyboard_pc_xt_device,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL, /* no working driver yet for the real card's 3Com 3C509B NIC */
+        .aliases                  = { "" }
+    },
     /* The IBM 3270 PC is an XT planar carrying the 3270 display adapter and
        keyboard controller cards.  The adapter provides its own video BIOS, so
        the planar video switches must read as neither MDA nor CGA -- the card
