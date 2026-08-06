@@ -3193,7 +3193,7 @@ image_read_sector(const void *local, uint8_t *buffer,
         }
 
         if (img->subs_file) {
-            if (!fseek(img->subs_file, sector * 96, SEEK_SET)) {
+            if (!fseek(img->subs_file, lba * 96, SEEK_SET)) {
                 uint8_t deinterleaved_subch[96] = { };
                 if (fread(deinterleaved_subch, 1, 96, img->subs_file))
                     cdrom_interleave_subch(&buffer[2352], deinterleaved_subch);
