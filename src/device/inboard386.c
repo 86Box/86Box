@@ -67,6 +67,7 @@ typedef struct inboard386_t {
                                            since our mapping stays enabled unconditionally now. */
 } inboard386_t;
 
+#ifdef USE_WAITSTATES
 static const uint8_t inboard_xt_waitstates[16] = {
     /* Indexed by (speed & 0x1E) >> 1, i.e. the 4-waitstate-step field.
        Confirmed from real hardware / INBRDPC.SYS disassembly (see
@@ -74,6 +75,7 @@ static const uint8_t inboard_xt_waitstates[16] = {
        0=Level1(30WS) .. 0xF=Level16(0WS) in steps of 2. */
     30, 28, 26, 24, 22, 20, 18, 16, 14, 12, 10, 8, 6, 4, 2, 0
 };
+#endif
 
 static const uint8_t inboard_at_waitstates[4] = {
     /* AT variant: measured against real BIOS ROM DMA test validation,
