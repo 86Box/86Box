@@ -42,6 +42,8 @@
 #include <86box/video.h>
 #include <86box/plat_unused.h>
 
+extern int    dma_xt8237_active(void);
+
 #ifdef NEW_PIT
 pit_intf_t pit_devs[2];
 
@@ -389,8 +391,12 @@ pit_irq0_timer_ps2(int new_out, int old_out, UNUSED(void *priv))
 void
 pit_refresh_timer_xt(int new_out, int old_out, UNUSED(void *priv))
 {
-    if (new_out && !old_out)
-        dma_xt_refresh_request();
+    if (new_out && !old_out) {
+        if (dma_xt8237_active())
+            dma_xt_refresh_request();
+        else
+            dma_channel_read(0);
+    }
 }
 
 
@@ -1483,8 +1489,12 @@ pit_irq0_timer_ps2(int new_out, int old_out, UNUSED(void *priv))
 void
 pit_refresh_timer_xt(int new_out, int old_out, UNUSED(void *priv))
 {
-    if (new_out && !old_out)
-        dma_channel_read(0);
+    if (new_out && !old_out) {
+        if (dma_xt8237_active())
+            dma_xt_refresh_request();
+        else
+            dma_channel_read(0);
+    }
 }
 
 void

@@ -109,7 +109,7 @@ dma_set_force_xt(int enable)
     dma_force_xt = enable;
 }
 
-static int
+int
 dma_xt8237_active(void)
 {
     if (dma_force_xt)
