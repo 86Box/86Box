@@ -827,12 +827,6 @@ tape_finish_parameters(void)
             break;
 
         case QIC_EXT_SELECT_RATE:
-
-            if (tape.diag_mode == 1) {
-                tape_start_report(0x34, 8);
-                return;
-            }
-
             /* The extended form only names rates beyond this drive's reach. */
             tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
             break;
@@ -1320,7 +1314,7 @@ tape_command(uint8_t command)
                 break;
             }
 
-            /*
+            /* in case we need to send back an error in this case:
             if (tape.format_mode == 0) {
                 tape_set_error(QIC_ERROR_ILLEGAL_IN_PRIMARY, command);
                 break;
