@@ -251,10 +251,10 @@ static const device_config_t char_fujinet_config[] = {
     {
         .name        = "port",
         .description = "Port",
-        .type        = CONFIG_INT,
+        .type        = CONFIG_SPINNER,
         .default_int = FUJINET_DEFAULT_PORT,
         .file_filter = NULL,
-        .spinner     = { .min = 1, .max = 65535, .step = 1 },
+        .spinner     = { .min = 1, .max = 32767, .step = 1 },
         .selection   = { { 0 } },
         .bios        = { { 0 } }
     },
