@@ -615,8 +615,10 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case MM67_RSTCTR:
-            if (val == 0xff)
+            if (val == 0xff) {
                 mm67_reset(&dev->nvr);
+                dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) + (dev->nvr.regs[MM67_HUNTEN] * 10);
+            }
             break;
 
         case MM67_RSTRAM:
