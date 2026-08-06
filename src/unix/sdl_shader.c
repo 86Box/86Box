@@ -5,7 +5,13 @@
  */
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#ifdef USE_SDL2_LIB
+#include <SDL.h>
+#define SDL_GetWindowSizeInPixels SDL_GL_GetDrawableSize
+#define SDL_GL_DestroyContext SDL_GL_DeleteContext
+#else
 #include <SDL3/SDL.h>
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -347,7 +353,28 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
         return 0;
     }
     free(glsl_path);
+#ifdef USE_SDL2_LIB
+    SDL_DisplayMode dm;
+    int disp_idx = SDL_GetWindowDisplayIndex(win);
+    if (disp_idx < 0)
+        disp_idx = 0;
 
+    if (SDL_GetDesktopDisplayMode(disp_idx, &dm) == 0 && dm.w > 0 && dm.h > 0) {
+        SDL_DisplayMode cur_dm;
+        Uint32 flags = SDL_GetWindowFlags(win);
+        int is_fullscreen_desktop = ((flags & SDL_WINDOW_FULLSCREEN_DESKTOP) == SDL_WINDOW_FULLSCREEN_DESKTOP);
+        int need_set_mode = 1;
+        int need_set_fs = ((flags & SDL_WINDOW_FULLSCREEN) == 0) || is_fullscreen_desktop;
+
+        if (SDL_GetWindowDisplayMode(win, &cur_dm) == 0 && cur_dm.w == dm.w && cur_dm.h == dm.h)
+            need_set_mode = 0;
+
+        if (need_set_mode)
+            SDL_SetWindowDisplayMode(win, &dm);
+        if (need_set_fs)
+            SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
+    }
+#else
     const SDL_DisplayMode* dm;
     SDL_DisplayID disp_idx = SDL_GetDisplayForWindow(win);
 
@@ -366,6 +393,7 @@ sdl_shader_init(SDL_Window *win, const char *shader_path)
         if (need_set_fs)
             SDL_SetWindowFullscreen(win, SDL_WINDOW_FULLSCREEN);
     }
+#endif
 
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
