@@ -141,6 +141,7 @@ option(DISCORD      "Discord Rich Presence support"                             
 option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"               OFF)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 option(QT           "Use the Qt-based user interface"                            ON)
+option(SDL2         "Use SDL2 instead of SDL3"                                   OFF)
 
 if((ARCH STREQUAL "arm64"))
     set(NEW_DYNAREC ON)

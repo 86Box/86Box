@@ -4,14 +4,26 @@
 #endif
 #include <algorithm>
 #include <cmath>
+#ifdef USE_SDL2_LIB
+#include <SDL.h>
+#else
 #include <SDL3/SDL.h>
+#endif
 
 #include "imgui.h"
+#ifdef USE_SDL2_LIB
+#include "imgui_impl_sdl2.h"
+#else
 #include "imgui_impl_sdl3.h"
+#endif
 #ifdef USE_SDL_SHADER_PIPELINE
 #include "imgui_impl_opengl3.h"
 #else
+#ifdef USE_SDL2_LIB
+#include "imgui_impl_sdlrenderer2.h"
+#else
 #include "imgui_impl_sdlrenderer3.h"
+#endif
 #endif
 
 /* SDL header redefines HAVE_STDARG_H. */
@@ -74,24 +86,41 @@ static bool osd_backend_init(void)
 
     SDL_GL_MakeCurrent(sdl_win, ctx);
 
+#ifdef USE_SDL2_LIB
+    if (!ImGui_ImplSDL2_InitForOpenGL(sdl_win, ctx))
+#else
     if (!ImGui_ImplSDL3_InitForOpenGL(sdl_win, ctx))
+#endif
         return false;
 
     if (!ImGui_ImplOpenGL3_Init("#version 100")) {
+#ifdef USE_SDL2_LIB
+        ImGui_ImplSDL2_Shutdown();
+#else
         ImGui_ImplSDL3_Shutdown();
+#endif
         return false;
     }
 #else
     if (sdl_render == nullptr)
         return false;
-
+#ifdef USE_SDL2_LIB
+    if (!ImGui_ImplSDL2_InitForSDLRenderer(sdl_win, sdl_render))
+#else
     if (!ImGui_ImplSDL3_InitForSDLRenderer(sdl_win, sdl_render))
+#endif
         return false;
-
+#ifdef USE_SDL2_LIB
+    if (!ImGui_ImplSDLRenderer2_Init(sdl_render)) {
+        ImGui_ImplSDL2_Shutdown();
+        return false;
+    }
+#else
     if (!ImGui_ImplSDLRenderer3_Init(sdl_render)) {
         ImGui_ImplSDL3_Shutdown();
         return false;
     }
+#endif
 #endif
 
     return true;
@@ -102,9 +131,17 @@ static void osd_backend_shutdown(void)
 #ifdef USE_SDL_SHADER_PIPELINE
     ImGui_ImplOpenGL3_Shutdown();
 #else
+#ifdef USE_SDL2_LIB
+    ImGui_ImplSDLRenderer2_Shutdown();
+#else
     ImGui_ImplSDLRenderer3_Shutdown();
 #endif
+#endif
+#ifdef USE_SDL2_LIB
+    ImGui_ImplSDL2_Shutdown();
+#else
     ImGui_ImplSDL3_Shutdown();
+#endif
 }
 
 /* ------------------------------------------------------------------ */
@@ -207,9 +244,15 @@ int osd_handle(SDL_Event event)
         return 0;
 
     /* Handle ESC manually so keyboard navigation stays predictable. */
-    if ((event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP)
+#ifdef USE_SDL2_LIB
+    if ((event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+        && event.key.keysym.scancode == SDL_SCANCODE_ESCAPE) {
+        if (event.type == SDL_KEYUP) {
+#else
+    if ((event.type == SDL_EVENT_KEY_DOWN  || event.type == SDL_EVENT_KEY_UP)
         && event.key.scancode == SDL_SCANCODE_ESCAPE) {
         if (event.type == SDL_EVENT_KEY_UP) {
+#endif
             if (osd_core_escape())
                 return 0; /* close OSD entirely */
         }
@@ -221,7 +264,11 @@ int osd_handle(SDL_Event event)
         return 0;
     }
 
+#ifdef USE_SDL2_LIB
+    ImGui_ImplSDL2_ProcessEvent(&event);
+#else
     ImGui_ImplSDL3_ProcessEvent(&event);
+#endif
     return 1; /* keep open */
 }
 
@@ -250,7 +297,11 @@ void osd_present(int output_w, int output_h)
     osd_set_scale(osd_core_layout_scale_for_output(win_w, win_h));
 
     ImGui_ImplOpenGL3_NewFrame();
+#ifdef USE_SDL2_LIB
+    ImGui_ImplSDL2_NewFrame();
+#else
     ImGui_ImplSDL3_NewFrame();
+#endif
     ImGui::NewFrame();
     if (!osd_core_build_ui())
         pending_close = true;
@@ -262,13 +313,22 @@ void osd_present(int output_w, int output_h)
 
     osd_set_scale(osd_core_layout_scale_for_output(output_w, output_h));
 
+#ifdef USE_SDL2_LIB
+    ImGui_ImplSDLRenderer2_NewFrame();
+    ImGui_ImplSDL2_NewFrame();
+#else
     ImGui_ImplSDLRenderer3_NewFrame();
     ImGui_ImplSDL3_NewFrame();
+#endif
     ImGui::NewFrame();
     if (!osd_core_build_ui())
         pending_close = true;
     ImGui::Render();
+#ifdef USE_SDL2_LIB
+    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_render);
+#else
     ImGui_ImplSDLRenderer3_RenderDrawData(ImGui::GetDrawData(), sdl_render);
+#endif
 #endif
 }
 

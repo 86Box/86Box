@@ -163,7 +163,7 @@ opLOOP_w(uint32_t fetchdat)
 {
     int8_t offset = (int8_t) getbytef();
     CX--;
-    CLOCK_CYCLES((is486) ? 7 : 11);
+    CLOCK_CYCLES(((is486) ? 7 : 11) + reg_op_waitstates);
     PREFETCH_RUN(11, 2, -1, 0, 0, 0, 0, 0);
     if (CX) {
         cpu_state.pc += offset;
@@ -180,7 +180,7 @@ opLOOP_l(uint32_t fetchdat)
 {
     int8_t offset = (int8_t) getbytef();
     ECX--;
-    CLOCK_CYCLES((is486) ? 7 : 11);
+    CLOCK_CYCLES(((is486) ? 7 : 11) + reg_op_waitstates);
     PREFETCH_RUN(11, 2, -1, 0, 0, 0, 0, 0);
     if (ECX) {
         cpu_state.pc += offset;

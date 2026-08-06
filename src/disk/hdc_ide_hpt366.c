@@ -156,20 +156,17 @@ hpt366_bm_read(uint16_t port, uint8_t val, void *priv)
 static void
 hpt366_bios_handler(hpt366_t *dev)
 {
+#ifdef NOT_ON_BOARD
     uint32_t addr = (dev->regs[0][0x30] | (dev->regs[0][0x31] << 8) |
                      (dev->regs[0][0x32] << 16) | (dev->regs[0][0x33] << 24));
 
-    addr &= 0xffff8001;
-    dev->regs[0][0x30] = addr & 0xff;
-    dev->regs[0][0x31] = (addr >> 8) & 0xff;
-    dev->regs[0][0x32] = (addr >> 16) & 0xff;
-    dev->regs[0][0x33] = (addr >> 24) & 0xff;
     dev->rom_addr       = addr & 0xffff8000;
 
     if (hdc_onboard_enabled && (dev->regs[0][0x04] & 0x02) && (addr & 0x01))
         mem_mapping_set_addr(&dev->bios_rom.mapping, dev->rom_addr, HPT366_BIOS_SIZE);
     else
         mem_mapping_disable(&dev->bios_rom.mapping);
+#endif
 }
 
 static void
@@ -255,10 +252,23 @@ hpt366_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             dev->regs[func][addr] = val;
             hpt366_bm_handler(dev, func);
             break;
+        case 0x28 ... 0x2b:
+        case 0x2c ... 0x2f:
         case 0x3c:
             dev->regs[func][addr] = val;
             break;
-        case 0x30 ... 0x33:
+        case 0x30:
+            if (!func) {
+                dev->regs[0][addr] = val & 0x01;
+                hpt366_bios_handler(dev);
+            }
+        case 0x32:
+            if (!func) {
+                dev->regs[0][addr] = val & 0xfe;
+                hpt366_bios_handler(dev);
+            }
+            break;
+        case 0x33:
             if (!func) {
                 dev->regs[0][addr] = val;
                 hpt366_bios_handler(dev);
@@ -382,9 +392,11 @@ hpt366_init(UNUSED(const device_t *info))
     sff_set_ven_handlers(dev->bm[0], NULL, hpt366_bm_read, &dev->func[0]);
     sff_set_ven_handlers(dev->bm[1], NULL, hpt366_bm_read, &dev->func[1]);
 
+#ifdef NOT_ON_BOARD
     rom_init(&dev->bios_rom, HPT366_BIOS_FILE,
              0x000d0000, HPT366_BIOS_SIZE, HPT366_BIOS_SIZE - 1, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&dev->bios_rom.mapping);
+#endif
 
     ide_set_bus_master(2, hpt366_bus_master_dma_0, hpt366_set_irq_0, dev);
     ide_set_bus_master(3, hpt366_bus_master_dma_1, hpt366_set_irq_1, dev);
