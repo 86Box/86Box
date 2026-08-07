@@ -2080,8 +2080,11 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             s->mem_base = (s->pci_conf[0x13] << 24) | (s->pci_conf[0x12] << 16) |
                           (s->pci_conf[0x11] << 8) | (s->pci_conf[0x10] & 0xf0);
             s->mem_base &= 0xfffff000;
-            if (s->mem_base != 0)
+            if (s->mem_base != 0) {
                 mem_mapping_set_addr(&s->bar_mem, s->mem_base, PCI_MEM_SIZE);
+                if (!(s->pci_conf[0x04] & PCI_COMMAND_MEM))
+                    mem_mapping_disable(&s->bar_mem);
+            }
             break;
         case 0x14:
         case 0x15:
@@ -2119,8 +2122,11 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             s->flash_base = (s->pci_conf[0x1b] << 24) | (s->pci_conf[0x1a] << 16) |
                             (s->pci_conf[0x19] << 8) | s->pci_conf[0x18];
             s->flash_base &= 0xfffe0000;
-            if (s->flash_base != 0)
+            if (s->flash_base != 0) {
                 mem_mapping_set_addr(&s->bar_flash, s->flash_base, PCI_FLASH_SIZE);
+                if (!(s->pci_conf[0x04] & PCI_COMMAND_MEM))
+                    mem_mapping_disable(&s->bar_flash);
+            }
             break;
         case 0x2c:
         case 0x2d:
