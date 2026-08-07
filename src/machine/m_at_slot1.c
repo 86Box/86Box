@@ -1026,6 +1026,111 @@ machine_at_be6ii_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t be6ii_12_config[] = {
+    {
+        .name = "bios", .description = "BIOS Version", .type = CONFIG_BIOS,
+        .default_string = "be6ii12_71",
+        .bios = {
+            { .name = "Award Modular BIOS v6.00PG - Revision 71", .internal_name = "be6ii12_71",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_12/Bep_71.bin", "" } },
+            { .name = "Award Modular BIOS v6.00PG - Revision RP", .internal_name = "be6ii12_rp",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_12/BEP_RP.BIN", "" } },
+            { .name = "Award Modular BIOS v6.00PG - Revision UJ", .internal_name = "be6ii12_uj",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_12/BEP_UJ.BIN", "" } },
+            { .name = "Award Modular BIOS v6.00PG - Revision XV", .internal_name = "be6ii12_xv",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_12/BEP_XV.BIN", "" } },
+            { .name = "Award Modular BIOS v6.00PG - Revision ZX", .internal_name = "be6ii12_zx",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_12/bep_zx.BIN", "" } },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+const device_t be6ii_12_device = {
+    .name = "ABIT AB-BE6-II revision 1.2", .internal_name = "be6ii_12", .config = be6ii_12_config
+};
+
+static const device_config_t be6ii_20_config[] = {
+    {
+        .name = "bios", .description = "BIOS Version", .type = CONFIG_BIOS,
+        .default_string = "be6ii20_xk",
+        .bios = {
+            { .name = "Award Modular BIOS v6.00PG - Revision XK", .internal_name = "be6ii20_xk",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_20/BER_XK.BIN", "" } },
+            { .name = "Award Modular BIOS v6.00PG - Revision UK", .internal_name = "be6ii20_uk",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_20/BER_UK.BIN", "" } },
+            { .name = "Award Modular BIOS v6.00PG - Revision VI", .internal_name = "be6ii20_vi",
+              .bios_type = BIOS_NORMAL, .files_no = 1, .size = 262144,
+              .files = { "roms/machines/be6ii_20/BER_VI.BIN", "" } },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+const device_t be6ii_20_device = {
+    .name = "ABIT AB-BE6-II revision 2.0", .internal_name = "be6ii_20", .config = be6ii_20_config
+};
+
+static int
+machine_at_be6ii_hpt370_init(const machine_t *model, const device_t *controller)
+{
+    int ret;
+    const char *fn;
+
+    if (!device_available(model->device))
+        return 0;
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_IDE,         3, 4, 1, 2);    /* Not IDE */
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);    /* Not IDE */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);    /* Not IDE */
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);    /* Not IDE */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440bx_device);
+    device_add(&piix4e_device);
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    device_add(controller);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    device_add(&w83782d_device);
+    hwm_values.temperatures[2] = 0;
+    return ret;
+}
+
+int
+machine_at_be6ii_12_init(const machine_t *model)
+{
+    return machine_at_be6ii_hpt370_init(model, &ide_hpt370_ter_qua_onboard_device);
+}
+
+int
+machine_at_be6ii_20_init(const machine_t *model)
+{
+    return machine_at_be6ii_hpt370_init(model, &ide_hpt370_20_ter_qua_onboard_device);
+}
+
 static const device_config_t bx6_config[] = {
     // clang-format off
     {

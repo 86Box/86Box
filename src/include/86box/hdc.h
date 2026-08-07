@@ -84,6 +84,8 @@ extern const device_t ide_cmd648_ter_qua_device;                /* CMD PCI-648 (
 extern const device_t ide_cmd648_ter_qua_onboard_device;        /* CMD PCI-648 (Tertiary and quaternary channels, on-board) */
 extern const device_t ide_cmd649_ter_qua_device;                /* CMD PCI-649 (Tertiary and quaternary channels) */
 extern const device_t ide_hpt366_ter_qua_onboard_device;        /* HighPoint HPT366 (Tertiary and quaternary channels, on-board) */
+extern const device_t ide_hpt370_ter_qua_onboard_device;        /* HighPoint HPT370 (Tertiary and quaternary channels, on-board) */
+extern const device_t ide_hpt370_20_ter_qua_onboard_device;     /* HighPoint HPT370 (Tertiary and quaternary channels, on-board, 64K ROM BAR) */
 
 extern const device_t ide_pc87410_device;                       /* National Semiconductor PC87410 PCI */
 

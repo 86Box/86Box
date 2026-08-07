@@ -18,6 +18,8 @@
 add_library(utils OBJECT
 
     # Core
+    award_lh5.c
+    lhasa/lh5_decoder.c
     cJSON.c
     crc.c
     crc32.c

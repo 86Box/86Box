@@ -34,6 +34,8 @@ add_library(hdd OBJECT
     hdc_ide_cmd640.c
     hdc_ide_cmd646.c
     hdc_ide_hpt366.c
+    hdc_ide_hpt370.c
+    hdc_ide_hpt370_20.c
     hdc_ide_pc87410.c
     hdc_ide_rz1000.c
     hdc_ide_sff8038i.c
