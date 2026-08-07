@@ -1537,15 +1537,10 @@ static int compare_points(const void* a, const void* b)
 static int
 image_load_ccd(cd_image_t *img, const char *ccdfile)
 {
-    track_t          *ct               = NULL;
-    track_index_t    *ci               = NULL;
     track_file_t     *tf               = NULL;
     raw_track_info_t *rtis             = NULL;
     raw_track_info_t *rtis_sorted      = NULL;
     char             *img_path         = strdup(ccdfile);
-    uint8_t           session          = 1;
-    uint64_t          sess_starts[256] = { 0 };
-    int               has_audio        = 0;
     int               error            = 0;
 
     img_path[strlen(img_path) - 1] = 'g';
