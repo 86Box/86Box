@@ -23,6 +23,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/debug_snapshot.h>
 #include <86box/io.h>
 #include <86box/timer.h>
 #include "cpu.h"
@@ -391,6 +392,7 @@ inb(uint16_t port)
 #endif
 
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    io_trace_record(0, port, 1, ret);
 
     return ret;
 }
@@ -448,6 +450,7 @@ outb(uint16_t port, uint8_t val)
     }
 
     io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    io_trace_record(1, port, 1, val);
 
     return;
 }
@@ -528,6 +531,7 @@ inw(uint16_t port)
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    io_trace_record(0, port, 2, ret);
 
     return ret;
 }
@@ -600,6 +604,7 @@ outw(uint16_t port, uint16_t val)
     }
 
     io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    io_trace_record(1, port, 2, val);
 
     return;
 }
@@ -712,6 +717,7 @@ inl(uint16_t port)
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    io_trace_record(0, port, 4, ret);
 
     return ret;
 }
@@ -801,6 +807,7 @@ outl(uint16_t port, uint32_t val)
     }
 
     io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    io_trace_record(1, port, 4, val);
 
     return;
 }
