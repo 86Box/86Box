@@ -1704,6 +1704,8 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 for (int j = 0; j < img->tracks_num; j++) {
                     if (img->tracks[j].session == i && img->tracks[j].point < 99) {
                         session_found         = 1;
+                        if (img->tracks[j].idx[0].file)
+                            break;
                         img->tracks[j].idx[0] = img->tracks[j].idx[1];
 
                         img->tracks[j].idx[0].start -= 150;
