@@ -1537,15 +1537,16 @@ static int compare_points(const void* a, const void* b)
 static int
 image_load_ccd(cd_image_t *img, const char *ccdfile)
 {
-    track_t          *ct          = NULL;
-    track_index_t    *ci          = NULL;
-    track_file_t     *tf          = NULL;
-    raw_track_info_t *rtis        = NULL;
-    raw_track_info_t *rtis_sorted = NULL;
-    char             *img_path    = strdup(ccdfile);
-    uint8_t           session     = 1;
-    int               has_audio   = 0;
-    int               error       = 0;
+    track_t          *ct               = NULL;
+    track_index_t    *ci               = NULL;
+    track_file_t     *tf               = NULL;
+    raw_track_info_t *rtis             = NULL;
+    raw_track_info_t *rtis_sorted      = NULL;
+    char             *img_path         = strdup(ccdfile);
+    uint8_t           session          = 1;
+    uint64_t          sess_starts[256] = { 0 };
+    int               has_audio        = 0;
+    int               error            = 0;
 
     img_path[strlen(img_path) - 1] = 'g';
     img_path[strlen(img_path) - 2] = 'm';
@@ -1628,6 +1629,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
             for (uint32_t i = 0; i < toc_entries; i++) {
                 image_insert_track(img, rtis[i].session, rtis[i].point);
                 track_t *current_track = &img->tracks[img->tracks_num - 1];
+                char sect_name[256] = { };
 
                 current_track->attr        = rtis[i].adr_ctl;
                 current_track->tno         = 0;
@@ -1642,7 +1644,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 current_track->skip        = 0x00;
                 current_track->max_index   = 1;
 
-                has_audio = has_audio || (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4));
+                img->has_audio = img->has_audio || (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4));
 
                 current_track->idx[0].file        = NULL;
                 current_track->idx[0].file_length = 0;
@@ -1659,6 +1661,21 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 current_track->idx[1].length      = 0;
                 current_track->idx[1].start       = MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf);
                 current_track->idx[1].type        = (current_track->point > 99) ? INDEX_SPECIAL : INDEX_NORMAL;
+
+                snprintf(sect_name, sizeof(sect_name) - 1, "TRACK %d", current_track->point);
+
+                ini_section_t section = ini_find_section(ccd_ini, sect_name);
+
+                if (section) {
+                    if (ini_has_entry(section, "INDEX 0")) {
+                        uint64_t lba_idx0                 = ini_section_get_uint(section, "INDEX 0", 0);
+                        current_track->idx[0].file        = tf;
+                        current_track->idx[0].start       = lba_idx0 + 150;
+                        current_track->idx[0].file_start  = lba_idx0;
+                        current_track->idx[0].file_length = current_track->idx[0].length = ABS((int64_t)(current_track->idx[1].start - current_track->idx[0].start));
+                        current_track->idx[0].type        = INDEX_NORMAL;
+                    }
+                }
             }
 
             // Step 2: Calculate track lengths.
@@ -1697,8 +1714,8 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                             img->tracks[j].idx[0].file_start  = 0;
                             img->tracks[j].idx[0].type        = INDEX_ZERO;
                         } else {
-                            img->tracks[j].idx[0].file_length = 150;
-                            img->tracks[j].idx[0].file_start -= 150;
+                            img->tracks[j].idx[0].file_length = img->tracks[j].idx[0].length;
+                            img->tracks[j].idx[0].file_start -= img->tracks[j].idx[0].start - 150;
 
                             // Reduce the track length of the preceding session track.
                             uint8_t prev_point = img->tracks[j].point - 1;
@@ -1719,7 +1736,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
             free(rtis);
             free(rtis_sorted);
         }
-        return 1 + !has_audio;
+        return 1;
     }
     return 0;
 }
@@ -3359,11 +3376,6 @@ image_open(cdrom_t *dev, const char *path)
 
         if (is_ccd) {
             ret = image_load_ccd(img, path);
-
-            if (ret >= 2)
-                img->has_audio = 0;
-            else if (ret)
-                img->has_audio = 1;
 
             if (ret >= 1)
                 img->is_dvd = 2;
