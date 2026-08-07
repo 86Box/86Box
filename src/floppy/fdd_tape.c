@@ -183,18 +183,18 @@ enum {
  */
 #define QIC_VENDOR_ID_CONNER         0x014e
 #define QIC_VENDOR_ID_CONNER_OLD     0x5
-#define QIC_VENDOR_ID_CMS            0x0047
+#define QIC_VENDOR_ID_COLORADO       0x0047
 
 #define QIC_ROM_VERSION_CONNER       0x2
-#define QIC_ROM_VERSION_CMS          0x58
+#define QIC_ROM_VERSION_COLORADO     0x58
 
 /* Colorado-specific signature handed back by command 9 while in
    diagnostic mode (observed on a real Colorado 250 drive). */
-#define QIC_CMS_SIGNATURE            0xa5
+#define QIC_COLORADO_SIGNATURE       0xa5
 
 /* Colorado-specific signature handed back by command 37 while in
    diagnostic mode. */
-#define QIC_CMS_DIAG_STATUS          0x4
+#define QIC_COLORADO_DIAG_STATUS     0x4
 
 /* Conner-specific signature handed back by command 40 while in
    diagnostic mode, to determine the drive model. */
@@ -803,11 +803,12 @@ tape_finish_parameters(void)
 
         case QIC_SELECT_RATE:
             if (tape.param[0] >= 6) {
-                /* Reverse-engineered from an actual ROM: the drive actually
+                /* If we want to emulate a Colorado drive: the drive actually
                    reports error 8 for any rate code >= 6, which is technically
                    against the spec.
+                   tape_set_error(QIC_ERROR_ILLEGAL_IN_REPORT, tape.param_cmd);
                 */
-                tape_set_error(QIC_ERROR_ILLEGAL_IN_REPORT, tape.param_cmd);
+                tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
                 break;
             }
             switch (tape.param[0]) {
@@ -1098,7 +1099,7 @@ tape_command(uint8_t command)
         case QIC_REPORT_ROM_VERSION:
             if (tape.diag_mode == 1) {
                 /* Colorado-specific response when in diagnostic mode. */
-                tape_start_report(QIC_CMS_SIGNATURE, 8);
+                tape_start_report(QIC_COLORADO_SIGNATURE, 8);
             } else {
                 tape_start_report(QIC_ROM_VERSION_CONNER, 8);
             }
@@ -1126,7 +1127,7 @@ tape_command(uint8_t command)
         case QIC_REPORT_FORMAT_SEGMENTS:
             if (tape.diag_mode) {
                 /* Colorado-specific response when in diagnostic mode. */
-                tape_start_report(QIC_CMS_DIAG_STATUS, 8);
+                tape_start_report(QIC_COLORADO_DIAG_STATUS, 8);
                 return;
             }
 
