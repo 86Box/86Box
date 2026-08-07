@@ -95,6 +95,8 @@ i8255x_log(const char *fmt, ...)
 #define  CU_CMD_BASE    0x0060  /* Load CU base address. */
 #define  CU_DUMPSTATS   0x0070  /* Dump and reset statistical counters. */
 #define  CU_SRESUME     0x00a0  /* CU static resume. */
+#define  CU_HPQ_START   0x0030  /* CU start on high priority queue. */
+#define  CU_HPQ_RESUME  0x00b0  /* CU resume on high priority queue. */
 
 #define  RU_NOP         0x0000
 #define  RX_START       0x0001
@@ -245,6 +247,7 @@ typedef struct {
     /* (cu_base + cu_offset) address the next command block in the command block list. */
     uint32_t cu_base;           /* CU base address */
     uint32_t cu_offset;         /* CU address offset */
+    uint32_t cu_offset_hpq;     /* CU address offset (high priority queue) */
     /* (ru_base + ru_offset) address the RFD in the Receive Frame Area. */
     uint32_t ru_base;           /* RU base address */
     uint32_t ru_offset;         /* RU address offset */
@@ -773,7 +776,7 @@ set_multicast_list(eepro100_t *s)
 }
 
 static void
-action_command(eepro100_t *s)
+action_command(eepro100_t *s, uint32_t *cu_offset)
 {
     /* The loop below won't stop if it gets special handcrafted data.
        Therefore we limit the number of iterations. */
@@ -785,7 +788,7 @@ action_command(eepro100_t *s)
         bool bit_i;
         bool bit_nc;
         uint16_t ok_status = STATUS_OK;
-        s->cb_address = s->cu_base + s->cu_offset;
+        s->cb_address = s->cu_base + *cu_offset;
         read_cb(s);
         bit_el = ((s->tx.command & COMMAND_EL) != 0);
         bit_s = ((s->tx.command & COMMAND_S) != 0);
@@ -798,7 +801,7 @@ action_command(eepro100_t *s)
             break;
         }
 
-        s->cu_offset = s->tx.link;
+        *cu_offset = s->tx.link;
         i8255x_log("val=(cu start), status=0x%04x, command=0x%04x, link=0x%08x\n",
                    s->tx.status, s->tx.command, s->tx.link);
         switch (s->tx.command & COMMAND_CMD) {
@@ -893,7 +896,27 @@ eepro100_cu_command(eepro100_t *s, uint8_t val)
         }
         set_cu_state(s, cu_active);
         s->cu_offset = e100_read_reg4(s, SCBPointer);
-        action_command(s);
+        action_command(s, &s->cu_offset);
+        break;
+    case CU_HPQ_START:
+        cu_state = get_cu_state(s);
+        if (cu_state != cu_idle && cu_state != cu_suspended) {
+            i8255x_log("unexpected CU state is %u (HPQ start)\n", cu_state);
+        }
+        set_cu_state(s, cu_hqp_active);
+        s->cu_offset_hpq = e100_read_reg4(s, SCBPointer);
+        i8255x_log("HPQ start at 0x%08x\n", s->cu_offset_hpq);
+        action_command(s, &s->cu_offset_hpq);
+        break;
+    case CU_HPQ_RESUME:
+        if (get_cu_state(s) != cu_hqp_active && get_cu_state(s) != cu_suspended) {
+            i8255x_log("bad CU HPQ resume from CU state %u\n", get_cu_state(s));
+        }
+        if (get_cu_state(s) == cu_suspended) {
+            i8255x_log("CU HPQ resuming\n");
+            set_cu_state(s, cu_hqp_active);
+            action_command(s, &s->cu_offset_hpq);
+        }
         break;
     case CU_RESUME:
         if (get_cu_state(s) != cu_suspended) {
@@ -905,7 +928,7 @@ eepro100_cu_command(eepro100_t *s, uint8_t val)
         if (get_cu_state(s) == cu_suspended) {
             i8255x_log("CU resuming\n");
             set_cu_state(s, cu_active);
-            action_command(s);
+            action_command(s, &s->cu_offset);
         }
         break;
     case CU_STATSADDR:
@@ -1918,27 +1941,6 @@ e100_pci_reset(eepro100_t *s, e100_device_info_t *info)
     /* Standard statistical counters. */
     s->configuration[6] |= BIT(5);
 
-    if (s->stats_size == 80) {
-        /* TODO: check TCO Statistical Counters bit. Documentation not clear. */
-        if (s->configuration[6] & BIT(2)) {
-            /* TCO statistical counters. */
-            s->stats_size = 96;
-        } else {
-            if (s->configuration[6] & BIT(5)) {
-                /* No extended statistical counters, i82557 compatible. */
-                s->stats_size = 64;
-            } else {
-                /* i82558 compatible. */
-                s->stats_size = 76;
-            }
-        }
-    } else {
-        if (s->configuration[6] & BIT(5)) {
-            /* No extended statistical counters. */
-            s->stats_size = 64;
-        }
-    }
-
     if (info->power_management) {
         /* Power Management Capabilities */
         int cfg_offset = 0xdc;
@@ -2078,8 +2080,11 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             s->mem_base = (s->pci_conf[0x13] << 24) | (s->pci_conf[0x12] << 16) |
                           (s->pci_conf[0x11] << 8) | (s->pci_conf[0x10] & 0xf0);
             s->mem_base &= 0xfffff000;
-            if (s->mem_base != 0)
+            if (s->mem_base != 0) {
                 mem_mapping_set_addr(&s->bar_mem, s->mem_base, PCI_MEM_SIZE);
+                if (!(s->pci_conf[0x04] & PCI_COMMAND_MEM))
+                    mem_mapping_disable(&s->bar_mem);
+            }
             break;
         case 0x14:
         case 0x15:
@@ -2117,8 +2122,11 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             s->flash_base = (s->pci_conf[0x1b] << 24) | (s->pci_conf[0x1a] << 16) |
                             (s->pci_conf[0x19] << 8) | s->pci_conf[0x18];
             s->flash_base &= 0xfffe0000;
-            if (s->flash_base != 0)
+            if (s->flash_base != 0) {
                 mem_mapping_set_addr(&s->bar_flash, s->flash_base, PCI_FLASH_SIZE);
+                if (!(s->pci_conf[0x04] & PCI_COMMAND_MEM))
+                    mem_mapping_disable(&s->bar_flash);
+            }
             break;
         case 0x2c:
         case 0x2d:

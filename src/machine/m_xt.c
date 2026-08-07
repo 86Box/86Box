@@ -37,6 +37,7 @@
 #include <86box/serial.h>
 #include <86box/sio.h>
 #include <86box/ibm_5161.h>
+#include <86box/inboard386.h>
 #include <86box/io.h>
 #include <86box/isartc.h>
 #include <86box/keyboard.h>
@@ -615,6 +616,93 @@ machine_ibmxt_init(const machine_t *model)
 
     if (enable_5161)
         device_add(&ibm_5161_device);
+
+    return ret;
+}
+
+/* IBM XT (1982) with an Intel Inboard 386/PC accelerator card fitted in place of the stock
+   8088 - same real BIOS ROM chips, same base XT platform, plus the Inboard's own wait-state/
+   A20/ROM-shadow hardware. */
+const device_t ibmxt_inboard386_device = {
+    .name          = "IBM XT (1982) w/ Intel Inboard 386/PC",
+    .internal_name = "ibmxt_inboard386",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmxt_config /* Same real ROM chips - reuse the exact same BIOS selection. */
+};
+
+int
+machine_ibmxt_inboard386_init(const machine_t *model)
+{
+    int         ret = 0;
+    uint8_t     enable_5161;
+    uint8_t     enable_basic;
+    const char *fn;
+    const char *bios_sel;
+    uint16_t    offset = 0;
+    uint32_t    local  = 0;
+
+    /* No ROMs available. */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    enable_5161  = machine_get_config_int("enable_5161");
+    enable_basic = machine_get_config_int("enable_basic");
+    bios_sel     = device_get_config_bios("bios");
+    fn           = device_get_bios_file(model->device, bios_sel, 0);
+    local        = device_get_bios_local(model->device, bios_sel);
+
+    if (local == 0) // Offset for stock roms
+        offset = 0x6000;
+    ret = bios_load_linear(fn, 0x000fe000, 65536, offset);
+
+    if (enable_basic && ret) {
+        if (local == 0) { // needed for stock roms
+            fn = device_get_bios_file(model->device, bios_sel, 0);
+            (void) bios_load_aux_linear(fn, 0x000f8000, 24576, 0);
+        }
+        fn = device_get_bios_file(model->device, bios_sel, 1);
+        /* On the real machine, the BASIC is repeated. */
+        (void) bios_load_aux_linear(fn, 0x000f0000, 8192, 0);
+        (void) bios_load_aux_linear(fn, 0x000f2000, 8192, 0);
+        (void) bios_load_aux_linear(fn, 0x000f4000, 8192, 0);
+        (void) bios_load_aux_linear(fn, 0x000f6000, 8192, 0);
+    }
+
+    /* The later (1986-dated) ROM revisions use two equal-sized 32KB chips that are BOTH
+       genuine, required system BIOS content - unlike the earlier 1982 ROM set above, where
+       the second file (5000027, 8KB) really is optional Cassette BASIC, correctly gated
+       behind enable_basic like every other ibmxt-family machine. Those 1986 ROMs' own POST
+       does a full 64KB checksum-to-zero self-test over F0000-FFFFF, and hangs if the second
+       chip is never loaded (bios_load_linear above only ever fills the *tail* of the buffer
+       per its own "prepare 64k rom, load N-byte bios at the end" semantics). Load files[1]
+       unconditionally, as real BIOS content rather than repeated BASIC, only for these two
+       entries. */
+    if (ret && ((strcmp(bios_sel, "ibm5160_050986") == 0) || (strcmp(bios_sel, "ibm5160_011086") == 0))) {
+        fn = device_get_bios_file(model->device, bios_sel, 1);
+        (void) bios_load_aux_linear(fn, 0x000f0000, 32768, 0);
+    }
+
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    device_add(&kbc_xt_device);
+
+    machine_xt_common_init(model, 0);
+
+    if (enable_5161)
+        device_add(&ibm_5161_device);
+
+    device_add(&inboard386_xt_device); /* The Inboard 386/PC accelerator card itself. */
 
     return ret;
 }

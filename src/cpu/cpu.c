@@ -175,6 +175,23 @@ int cpu_prefetch_width;
 int cpu_mem_prefetch_cycles;
 int cpu_rom_prefetch_cycles;
 int cpu_waitstates;
+int io_waitstates; /* Extra cycles added to IN/OUT instruction timing (x86_ops_io.h) -
+                       cpu_waitstates only ever throttles memory bus cycles; this covers
+                       I/O port cycles, which real ISA-bus hardware paces at a fixed bus
+                       clock independent of an accelerator CPU's own speed. Set by
+                       devices like inboard386.c that need to compensate for a fast CPU
+                       core executing I/O-bound timing loops (BIOS self-tests etc.)
+                       written assuming genuine 8088-class per-instruction throughput. */
+int reg_op_waitstates; /* Extra cycles added to pure register/branch instruction timing
+                           (currently just LOOP, x86_ops_jump.h) - covers the case where a
+                           period BIOS/driver delay or self-test loop is built entirely from
+                           register-only instructions (no memory or I/O access at all), so
+                           neither cpu_waitstates nor io_waitstates apply. A 386+-class core
+                           executes these natively far faster per cycle than an 8088 even at
+                           a matched clock, so a pure LOOP-based delay calibrated for genuine
+                           8088 timing finishes far too quickly on an accelerated CPU unless
+                           this is compensated too. Set by inboard386.c the same way as
+                           io_waitstates. */
 int cpu_cache_int_enabled;
 int cpu_cache_ext_enabled;
 int cpu_flush_pending;

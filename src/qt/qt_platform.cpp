@@ -129,6 +129,11 @@ private:
     int   s;
 };
 
+#ifdef Q_OS_MACOS
+extern void exit_pause(void);
+extern void enter_pause(void);
+#endif
+
 extern "C" {
 #ifdef Q_OS_WINDOWS
 #    include <86box/win.h>
@@ -759,7 +764,7 @@ plat_pause(int p)
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) || defined(Q_OS_MACOS)
     if (p)
         enter_pause();
     else

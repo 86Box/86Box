@@ -100,11 +100,17 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int  qt_nvr_save(void);
+#ifndef Q_OS_MACOS
 extern void exit_pause(void);
+#endif
 
 bool cpu_thread_running = false;
 bool fast_forward = false;
 }
+
+#ifdef Q_OS_MACOS
+extern void exit_pause(void);
+#endif
 
 #include <locale.h>
 
@@ -758,6 +764,10 @@ main(int argc, char *argv[])
 
 #ifdef DISCORD
     discord_load();
+#endif
+
+#ifdef Q_OS_MACOS
+    exit_pause();
 #endif
 
 #ifdef Q_OS_WINDOWS

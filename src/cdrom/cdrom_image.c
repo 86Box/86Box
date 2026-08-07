@@ -38,6 +38,7 @@
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/bswap.h>
+#include <86box/ini.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
@@ -135,6 +136,7 @@ typedef struct cd_image_t {
     int           is_dvd;
     int           has_audio;
     int           has_dstruct;
+    int           data_tracks_scrambled;
     int32_t       tracks_num;
     uint32_t      bad_sectors_num;
     track_t      *tracks;
@@ -143,6 +145,8 @@ typedef struct cd_image_t {
 
     sbi_replacement_ent* sector_subs;
     uint64_t sector_subs_size;
+
+    FILE *subs_file;
 } cd_image_t;
 
 typedef enum
@@ -1518,6 +1522,220 @@ image_load_iso(cd_image_t *img, const char *filename)
     }
 
     return success;
+}
+
+static int compare_points(const void* a, const void* b)
+{
+    int arg1 = ((raw_track_info_t*)a)->point;
+    int arg2 = ((raw_track_info_t*)b)->point;
+
+    if (arg1 < arg2) return -1;
+    if (arg1 > arg2) return 1;
+    return 0;
+}
+
+static int
+image_load_ccd(cd_image_t *img, const char *ccdfile)
+{
+    track_file_t     *tf               = NULL;
+    raw_track_info_t *rtis             = NULL;
+    raw_track_info_t *rtis_sorted      = NULL;
+    char             *img_path         = strdup(ccdfile);
+    int               error            = 0;
+
+    img_path[strlen(img_path) - 1] = 'g';
+    img_path[strlen(img_path) - 2] = 'm';
+    img_path[strlen(img_path) - 3] = 'i';
+    tf                             = bin_init(0, img_path, &error);
+    if (error) {
+        img_path[strlen(img_path) - 1] = 'G';
+        img_path[strlen(img_path) - 2] = 'M';
+        img_path[strlen(img_path) - 3] = 'I';
+        tf                             = bin_init(0, img_path, &error);
+    }
+
+    if (error) {
+        free(img_path);
+        return 0;
+    }
+
+    img_path[strlen(img_path) - 1] = 'b';
+    img_path[strlen(img_path) - 2] = 'u';
+    img_path[strlen(img_path) - 3] = 's';
+    img->subs_file                 = plat_fopen(img_path, "rb");
+    if (!img->subs_file) {
+        img_path[strlen(img_path) - 1] = 'B';
+        img_path[strlen(img_path) - 2] = 'U';
+        img_path[strlen(img_path) - 3] = 'S';
+        img->subs_file                 = plat_fopen(img_path, "rb");
+    }
+
+    uint64_t length = bin_get_length(tf);
+    fseeko64(tf->fp, 0, SEEK_SET);
+    uint64_t length_sect = length / (uint64_t) 2352;
+
+    if (img->subs_file) {
+        fseek(img->subs_file, 0, SEEK_END);
+        long sub_size = ftell(img->subs_file) / 96;
+        fseek(img->subs_file, 0, SEEK_SET);
+        if (!sub_size) {
+            fclose(img->subs_file);
+            img->subs_file = NULL;
+        }
+    }
+
+    ini_t ccd_ini = ini_read(ccdfile);
+    if (ccd_ini) {
+        img->data_tracks_scrambled = !!ini_get_uint(ccd_ini, "CloneCD", "DataTracksScrambled", 0);
+        ini_section_t sec          = ini_find_section(ccd_ini, "Disc");
+        if (sec) {
+            uint32_t toc_entries = ini_section_get_uint(sec, "TocEntries", 0);
+            rtis                 = calloc(sizeof(raw_track_info_t), toc_entries);
+            rtis_sorted          = calloc(sizeof(raw_track_info_t), toc_entries); // for length calculation.
+            // We just parse the TOC entries here to generate a full TOC.
+
+            for (uint32_t i = 0; i < toc_entries; i++) {
+                char sec_name[256] = { 0 };
+                snprintf(sec_name, sizeof(sec_name) - 1, "Entry %d", i);
+                sec = ini_find_section(ccd_ini, sec_name);
+                if (sec) {
+                    raw_track_info_t *rti = rtis + i;
+                    rti->session          = ini_section_get_uint(sec, "Session", 1);
+
+                    rti->adr_ctl = ini_section_get_uint(sec, "ADR", 1) << 4;
+                    rti->adr_ctl |= ini_section_get_uint(sec, "Control", 1) & 0xf;
+
+                    rti->tno   = 0;
+                    rti->point = ini_section_get_uint(sec, "Point", 0);
+                    rti->m     = ini_section_get_uint(sec, "AMin", 0);
+                    rti->s     = ini_section_get_uint(sec, "ASec", 0);
+                    rti->f     = ini_section_get_uint(sec, "AFrame", 0);
+                    rti->zero  = ini_section_get_uint(sec, "Zero", 0);
+                    rti->pm    = ini_section_get_uint(sec, "PMin", 0);
+                    rti->ps    = ini_section_get_uint(sec, "PSec", 0);
+                    rti->pf    = ini_section_get_uint(sec, "PFrame", 0);
+                }
+            }
+
+            memcpy(rtis_sorted, rtis, (uint64_t) toc_entries * sizeof(raw_track_info_t));
+            qsort(rtis_sorted, toc_entries, sizeof(raw_track_info_t), compare_points);
+
+            // Step 1: Insert all CloneCD tracks.
+            for (uint32_t i = 0; i < toc_entries; i++) {
+                image_insert_track(img, rtis[i].session, rtis[i].point);
+                track_t *current_track = &img->tracks[img->tracks_num - 1];
+                char sect_name[256] = { };
+
+                current_track->attr        = rtis[i].adr_ctl;
+                current_track->tno         = 0;
+                current_track->extra[0]    = rtis[i].m;
+                current_track->extra[1]    = rtis[i].s;
+                current_track->extra[2]    = rtis[i].f;
+                current_track->extra[3]    = rtis[i].zero;
+                current_track->sector_size = RAW_SECTOR_SIZE;
+                current_track->mode        = (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4)) ? 0 : 1;
+                current_track->form        = 1;
+                current_track->subch_type  = 0x00;
+                current_track->skip        = 0x00;
+                current_track->max_index   = 1;
+
+                img->has_audio = img->has_audio || (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4));
+
+                current_track->idx[0].file        = NULL;
+                current_track->idx[0].file_length = 0;
+                current_track->idx[0].file_start  = 0;
+                current_track->idx[0].skip        = 0;
+                current_track->idx[0].length      = 0;
+                current_track->idx[0].start       = 0;
+                current_track->idx[0].type        = INDEX_NONE;
+
+                current_track->idx[1].file        = tf;
+                current_track->idx[1].file_length = 0;
+                current_track->idx[1].file_start  = ((current_track->point > 99) ? 0 : (MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf) - 150));
+                current_track->idx[1].skip        = 0;
+                current_track->idx[1].length      = 0;
+                current_track->idx[1].start       = MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf);
+                current_track->idx[1].type        = (current_track->point > 99) ? INDEX_SPECIAL : INDEX_NORMAL;
+
+                snprintf(sect_name, sizeof(sect_name) - 1, "TRACK %d", current_track->point);
+
+                ini_section_t section = ini_find_section(ccd_ini, sect_name);
+
+                if (section) {
+                    if (ini_has_entry(section, "INDEX 0")) {
+                        uint64_t lba_idx0                 = ini_section_get_uint(section, "INDEX 0", 0);
+                        current_track->idx[0].file        = tf;
+                        current_track->idx[0].start       = lba_idx0 + 150;
+                        current_track->idx[0].file_start  = lba_idx0;
+                        current_track->idx[0].file_length = current_track->idx[0].length = ABS((int64_t)(current_track->idx[1].start - current_track->idx[0].start));
+                        current_track->idx[0].type        = INDEX_NORMAL;
+                    }
+                }
+            }
+
+            // Step 2: Calculate track lengths.
+            for (uint32_t i = 0; i < toc_entries; i++) {
+                if (rtis_sorted[i].point > 99)
+                    break;
+                uint64_t track_length = 0;
+                if ((i + 1 >= toc_entries) || rtis_sorted[i + 1].point > 99) {
+                    track_length = length_sect - MSFtoLBA(rtis_sorted[i].pm, rtis_sorted[i].ps, rtis_sorted[i].pf);
+                } else {
+                    track_length = MSFtoLBA(rtis_sorted[i + 1].pm, rtis_sorted[i + 1].ps, rtis_sorted[i + 1].pf) - MSFtoLBA(rtis_sorted[i].pm, rtis_sorted[i].ps, rtis_sorted[i].pf);
+                }
+                track_t *target_track = NULL;
+                for (int j = 0; j < img->tracks_num; j++) {
+                    target_track = &img->tracks[j];
+                    if (target_track->point == rtis_sorted[i].point) {
+                        target_track->idx[1].length = target_track->idx[1].file_length = track_length;
+                        break;
+                    }
+                }
+            }
+
+            // Step 3: Generate pregap indices.
+            for (int i = 1;; i++) {
+                int session_found = 0;
+                for (int j = 0; j < img->tracks_num; j++) {
+                    if (img->tracks[j].session == i && img->tracks[j].point < 99) {
+                        session_found         = 1;
+                        if (img->tracks[j].idx[0].file)
+                            break;
+                        img->tracks[j].idx[0] = img->tracks[j].idx[1];
+
+                        img->tracks[j].idx[0].start -= 150;
+                        img->tracks[j].idx[0].length = 150;
+                        if (j == 1) {
+                            img->tracks[j].idx[0].file        = NULL;
+                            img->tracks[j].idx[0].file_length = 0;
+                            img->tracks[j].idx[0].file_start  = 0;
+                            img->tracks[j].idx[0].type        = INDEX_ZERO;
+                        } else {
+                            img->tracks[j].idx[0].file_length = img->tracks[j].idx[0].length;
+                            img->tracks[j].idx[0].file_start -= img->tracks[j].idx[0].start - 150;
+
+                            // Reduce the track length of the preceding session track.
+                            uint8_t prev_point = img->tracks[j].point - 1;
+                            for (int k = 0; k < img->tracks_num; k++) {
+                                if (img->tracks[k].point == prev_point) {
+                                    img->tracks[k].idx[1].file_length -= 150;
+                                    img->tracks[k].idx[1].length -= 150;
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                }
+                if (!session_found)
+                    break;
+            }
+            free(rtis);
+            free(rtis_sorted);
+        }
+        return 1;
+    }
+    return 0;
 }
 
 static int
@@ -2961,6 +3179,12 @@ image_read_sector(const void *local, uint8_t *buffer,
                      for (int j = 0; j < 8; j++)
                           buffer[2352 + (i << 3) + j] = ((q[i] >> (7 - j)) & 0x01) << 6;
             }
+
+            if (img->data_tracks_scrambled && (trk->attr & 0x4)) {
+                for (int i = 0; i < 2352; i++) {
+                    buffer[i] ^= cdrom_scramble_table[i];
+                }
+            }
         }
 
         if (img->sector_subs) {
@@ -2979,6 +3203,14 @@ image_read_sector(const void *local, uint8_t *buffer,
                     cdrom_interleave_subch(&buffer[2352], deinterleaved_subch);
                     break;
                 }
+            }
+        }
+
+        if (img->subs_file) {
+            if (!fseek(img->subs_file, lba * 96, SEEK_SET)) {
+                uint8_t deinterleaved_subch[96] = { };
+                if (fread(deinterleaved_subch, 1, 96, img->subs_file))
+                    cdrom_interleave_subch(&buffer[2352], deinterleaved_subch);
             }
         }
     }
@@ -3128,6 +3360,7 @@ image_open(cdrom_t *dev, const char *path)
 
     if (img != NULL) {
         int       ret;
+        const int is_ccd  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CCD"));
         const int is_cue  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CUE"));
         const int is_mds  = ((ext == 4) && (!stricmp(path + strlen(path) - ext + 1, "MDS") ||
                                             !stricmp(path + strlen(path) - ext + 1, "MDX")));
@@ -3138,7 +3371,12 @@ image_open(cdrom_t *dev, const char *path)
 
         img->dev          = dev;
 
-        if (is_mds) {
+        if (is_ccd) {
+            ret = image_load_ccd(img, path);
+
+            if (ret >= 1)
+                img->is_dvd = 2;
+        } else if (is_mds) {
             ret = image_load_mds(img, path);
 
             if (ret >= 2)
