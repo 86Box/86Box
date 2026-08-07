@@ -1656,7 +1656,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
 
                 current_track->idx[1].file        = tf;
                 current_track->idx[1].file_length = 0;
-                current_track->idx[1].file_start  = ((current_track->point > 99) ? 0 : MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf) - 150);
+                current_track->idx[1].file_start  = ((current_track->point > 99) ? 0 : (MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf) - 150));
                 current_track->idx[1].skip        = 0;
                 current_track->idx[1].length      = 0;
                 current_track->idx[1].start       = MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf);
