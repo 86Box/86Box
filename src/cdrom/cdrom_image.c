@@ -1684,9 +1684,9 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                     break;
                 uint64_t track_length = 0;
                 if ((i + 1 >= toc_entries) || rtis_sorted[i + 1].point > 99) {
-                    track_length = length_sect - MSFtoLBA(rtis_sorted[i].m, rtis_sorted[i].s, rtis_sorted[i].f);
+                    track_length = length_sect - MSFtoLBA(rtis_sorted[i].pm, rtis_sorted[i].ps, rtis_sorted[i].pf);
                 } else {
-                    track_length = MSFtoLBA(rtis_sorted[i + 1].m, rtis_sorted[i + 1].s, rtis_sorted[i + 1].f) - MSFtoLBA(rtis_sorted[i].m, rtis_sorted[i].s, rtis_sorted[i].f);
+                    track_length = MSFtoLBA(rtis_sorted[i + 1].pm, rtis_sorted[i + 1].ps, rtis_sorted[i + 1].pf) - MSFtoLBA(rtis_sorted[i].pm, rtis_sorted[i].ps, rtis_sorted[i].pf);
                 }
                 track_t *target_track = NULL;
                 for (int j = 0; j < img->tracks_num; j++) {
