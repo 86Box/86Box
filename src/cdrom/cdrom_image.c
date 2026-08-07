@@ -1638,7 +1638,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 current_track->extra[2]    = rtis[i].f;
                 current_track->extra[3]    = rtis[i].zero;
                 current_track->sector_size = RAW_SECTOR_SIZE;
-                current_track->mode        = 1;
+                current_track->mode        = (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4)) ? 0 : 1;
                 current_track->form        = 1;
                 current_track->subch_type  = 0x08;
                 current_track->skip        = 0x00;
