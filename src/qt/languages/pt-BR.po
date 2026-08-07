@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-31 15:40+0000\n"
+"PO-Revision-Date: 2026-08-07 11:38+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -1785,7 +1785,7 @@ msgid "&Pen"
 msgstr "C&aneta"
 
 msgid "&Host CD/DVD Drive (%1)"
-msgstr "&Unidade de CD/DVD do anfitrião (%1)"
+msgstr "&Unidade de CD/DVD do hospedeiro (%1)"
 
 msgid "&Connected"
 msgstr "&Conectado"
@@ -1797,7 +1797,7 @@ msgid "Create…"
 msgstr "Criar…"
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "Unidade de CD/DVD do anfitrião (%1)"
+msgstr "Unidade de CD/DVD do hospedeiro (%1)"
 
 msgid "Unknown Bus"
 msgstr "Barramento desconhecido"
@@ -2241,7 +2241,7 @@ msgid "Serial Number"
 msgstr "Número de série"
 
 msgid "Host ID"
-msgstr "ID do anfitrião"
+msgstr "ID do hospedeiro"
 
 msgid "FDC Address"
 msgstr "Endereço da FDC"
@@ -2772,7 +2772,7 @@ msgid "Serial Passthrough"
 msgstr "Passagem de porta serial"
 
 msgid "Host serial device"
-msgstr "Dispositivo serial host"
+msgstr "Dispositivo serial no hospedeiro"
 
 msgid "Named Pipe"
 msgstr "Pipe nomeado"
@@ -3075,7 +3075,7 @@ msgid "Hub Mode"
 msgstr "Modo Hub"
 
 msgid "Hostname:"
-msgstr "Nome do anfitrião:"
+msgstr "Nome do hospedeiro:"
 
 msgid "ISA RAM:"
 msgstr "RAM ISA:"
