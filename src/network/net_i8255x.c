@@ -2385,7 +2385,7 @@ static const device_config_t i8255xp_config[] = {
 // clang-format on
 
 const device_t i82557_device = {
-    .name          = "Intel PRO/100",
+    .name          = "Intel EtherExpress PRO/100B",
     .internal_name = "i82557",
     .flags         = DEVICE_PCI,
     .local         = 0xff,

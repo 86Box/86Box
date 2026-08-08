@@ -7379,7 +7379,7 @@ const machine_t machines[] = {
        second/slave 8259 PIC exists on this hardware - it's a genuine XT platform underneath,
        just with a 386-class CPU bolted on via a daughtercard. */
     {
-        .name              = "[386DX] IBM XT (1982) w/ Intel Inboard 386/PC",
+        .name              = "[386DX] IBM XT (Inboard 386/PC)",
         .internal_name     = "ibmxt_inboard386",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -7389,10 +7389,10 @@ const machine_t machines[] = {
         .available_flag    = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
         .cpu               = {
-            /* The Inboard's own CPU socket accepts any 386SX-pinout-compatible upgrade chip
+            /* The Inboard's own CPU socket accepts any 386DX-pinout-compatible upgrade chip
                of the era (PGA132 and pin-compatible packages), not one specific part - OR
                together every compatible family so a user with a different chip on their card
-               (stock 386SX, Cyrix 486DLC/486SLC, IBM 386SLC/486SLC, etc.) can select their own
+               (stock 386DX, Cyrix 486DLC, IBM 486BL, etc.) can select their own
                from the normal CPU dropdown instead of being locked to one. */
             .package     = CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_486DLC,
             .block       = CPU_BLOCK_NONE,
@@ -22259,55 +22259,6 @@ const machine_t machines[] = {
 
     /* 440BX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
-       firmware. */
-    {
-        .name              = "[i440BX] ABIT AB-BF6",
-        .internal_name     = "bf6",
-        .type              = MACHINE_TYPE_SLOT1,
-        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
-        .init              = machine_at_bf6_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SLOT1,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 66666667,
-            .max_bus     = 133333333,
-            .min_voltage = 1800,
-            .max_voltage = 3500,
-            .min_multi   = 1.5,
-            .max_multi   = 8.0
-        },
-        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
-        .ram       = {
-            .min  = 8192,
-            .max  = 786432,
-            .step = 8192
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "" }
-    },
-    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware and an on-board HighPoint HPT366 IDE controller. */
     {
         .name              = "[i440BX] ABIT AB-BE6-II",
@@ -22349,6 +22300,55 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &be6ii_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
+        .name              = "[i440BX] ABIT AB-BF6",
+        .internal_name     = "bf6",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_bf6_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 66666667,
+            .max_bus     = 133333333,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 786432,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,

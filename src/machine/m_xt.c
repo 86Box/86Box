@@ -624,7 +624,7 @@ machine_ibmxt_init(const machine_t *model)
    8088 - same real BIOS ROM chips, same base XT platform, plus the Inboard's own wait-state/
    A20/ROM-shadow hardware. */
 const device_t ibmxt_inboard386_device = {
-    .name          = "IBM XT (1982) w/ Intel Inboard 386/PC",
+    .name          = "IBM XT (Inboard 386/PC)",
     .internal_name = "ibmxt_inboard386",
     .flags         = 0,
     .local         = 0,
