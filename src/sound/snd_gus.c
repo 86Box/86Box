@@ -738,6 +738,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x389:
+        case 0x209:
             if ((gus->tctrl & GUS_TIMER_CTRL_AUTO) || gus->adcommand != 4) {
                 gus->ad_data = val;
                 gus->ad_status |= 0x01;
