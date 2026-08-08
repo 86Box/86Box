@@ -192,6 +192,7 @@ typedef struct gus_t {
     uint8_t  type;
 
     int      irq;
+    int      irq2;
     int      dma;
     int      irq_midi;
     int      dma2;
@@ -734,6 +735,13 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                             ad1848_setirq(&gus->ad1848, gus->irq);
 
                         gus->sb_nmi = val & 0x80;
+
+                        /* Store the second IRQ even when in combine IRQs mode: while MIDI won't use it MegaEM 3.x does */
+                        gus->irq2 = gus_midi_irqs[(val >> 3) & 7];
+
+                        gus_log(gus->log, "GUS IRQ changed: New IRQ1 = %i, New IRQ2 = %i, NMI %sabled\n", gus->irq, gus->irq2, gus->sb_nmi ? "En" : "Dis");
+                        gus_log(gus->log, "GUS IRQ register val = %02X, Shared IRQ %sabled\n", val, (val & 0x40) ? "En" : "Dis");
+
                     } else {
                         gus->dma = gus_dmas[val & 7];
 
@@ -745,8 +753,17 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         } else
                             gus->dma2 = gus_dmas[(val >> 3) & 7];
 
+                        gus_log(gus->log, "GUS DMA changed: New DMA1 = %i, New DMA2 = %i\n", gus->dma, gus->dma2);
+                        gus_log(gus->log, "GUS DMA register val = %02X\n", val);
+
                         if (gus->type == GUS_MAX)
                             ad1848_setdma(&gus->ad1848, gus->dma2);
+
+                        /* Bit 7 of this register fires/clears the secondary IRQ when in combine IRQs mode */
+                        if (val & 0x80)
+                            picint(1 << gus->irq2);
+                        else
+                            picintc(1 << gus->irq2);
                     }
                     break;
                 case 1:
