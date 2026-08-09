@@ -1845,7 +1845,12 @@ pit_set_clock(uint32_t clock)
                 break;
 
             case 8000000:
-                cpuclock = 24000000.0;
+                if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
+                    (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0)) {
+                    cpuclock = 48000000.0;
+                    xt_cpu_multi = 6ULL;
+                } else
+                    cpuclock = 24000000.0;
                 break;
             case 9545456:
                 cpuclock = 28636368.0;
@@ -1887,7 +1892,7 @@ pit_set_clock(uint32_t clock)
             PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
         }
 
-        if (cpuclock == 24000000.0)
+        if ((cpuclock == 24000000.0) || (cpuclock == 48000000.0))
             ISACONST     = (uint64_t) ((cpuclock / 14318184.0) * (double) (1ULL << 32));
         else
             ISACONST = (1ULL << 32ULL);
