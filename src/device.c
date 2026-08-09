@@ -226,7 +226,6 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "ATI 28800-6 (ATI VGA Wonder 1024D XL Plus)", .new = "ATI 28800-6" },
         { .old = "DEC DE-500A Fast Ethernet (DECchip 21143 \"Tulip\")", .new = "DECchip 21143 \"Tulip\"" },
         { .old = "DEC DE-435 EtherWorks Turbo (DECchip 21040 \"Tulip\")", .new = "DECchip 21040 \"Tulip\"" },
-        { .old = "Intel PRO/100", .new = "Intel EtherExpress PRO/100B" },
         { .old = "SMC EtherPower II 9432 (SMC 83C170 \"EPIC/100\")", .new = "SMC 83C170 \"EPIC/100\"" },
         { .old = "Aztech Sound Galaxy Pro 16 II (AZT2316R)", .new = "Aztech Sound Galaxy Pro 16 II" },
         { .old = "Aztech Sound Galaxy Pro 16 AB (Washington)", .new = "Aztech Sound Galaxy Pro 16 AB" },
