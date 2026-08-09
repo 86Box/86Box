@@ -196,6 +196,44 @@ sb_log(const char *fmt, ...)
 #    define sb_log(fmt, ...)
 #endif
 
+double low_fir_ess_dac2_coef[SB16_NCoef];
+
+static __inline double
+sinc(double x)
+{
+    return sin(M_PI * x) / (M_PI * x);
+}
+
+static void
+recalc_ess_dac2_filter(const int playback_freq)
+{
+    /* Cutoff frequency = playback / 2 */
+    int          n;
+    // const double fC = ((double) playback_freq) / (double) FREQ_96000;
+    const double fC = ((double) playback_freq) / (double) (sound_sample_rate << 1);
+
+    for (n = 0; n < SB16_NCoef; n++) {
+        /* Blackman window */
+        const double w = 0.42 - (0.5 * cos((2.0 * n * M_PI) / (double) (SB16_NCoef - 1))) +
+                     (0.08 * cos((4.0 * n * M_PI) / (double) (SB16_NCoef - 1)));
+        /* Sinc filter */
+        const double h = sinc(2.0 * fC * ((double) n - ((double) (SB16_NCoef - 1) / 2.0)));
+
+        /* Create windowed-sinc filter */
+        low_fir_ess_dac2_coef[n] = w * h;
+    }
+
+    low_fir_ess_dac2_coef[(SB16_NCoef - 1) / 2] = 1.0;
+
+    double gain = 0.0;
+    for (n = 0; n < SB16_NCoef; n++)
+        gain += low_fir_ess_dac2_coef[n];
+
+    /* Normalise filter, to produce unity gain */
+    for (n = 0; n < SB16_NCoef; n++)
+        low_fir_ess_dac2_coef[n] /= gain;
+}
+
 /* SB 1, 1.5, MCV, and 2 do not have a mixer, so signal is hardwired. */
 static void
 sb_get_buffer_sb2(int32_t *buffer, uint16_t len, void *priv)
@@ -819,8 +857,8 @@ sb_get_buffer_ess_dac2(int32_t *buffer, uint16_t len, void *priv)
     for (int c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
-        out_l += (ess->ess_dac2_buffer[c] * mixer->dac2_l) / 3.0;
-        out_r += (ess->ess_dac2_buffer[c + 1] * mixer->dac2_r) / 3.0;
+        out_l += (low_fir_ess_dac2(0, (double) ess->ess_dac2_buffer[c]) * mixer->dac2_l) / 3.0;
+        out_r += (low_fir_ess_dac2(1, (double) ess->ess_dac2_buffer[c + 1]) * mixer->dac2_r) / 3.0;
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
         buffer[c] += (int32_t) out_l;
@@ -2033,8 +2071,15 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
                 case 0x72: /* DAC 2 Filter Clock Divider */
-                    if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1888)
+                    if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1888) {
                         mixer->regs[mixer->index] = val;
+                        sb_log("ESS DAC2 filter reg write, val = %02X\n", val);
+                        const double dac2_freq = (7160000.0 / (256.0 - ((double) val))) * 41.0;
+                        const int    temp      = (int) dac2_freq;
+                        if (ess->ess_dac2_freq != temp)
+                            recalc_ess_dac2_filter(temp);
+                        ess->ess_dac2_freq = temp;
+                    }
                     break;
                 case 0x74: /* DAC 2 DMA Reload Counter low byte */
                     if (ess->dsp.sb_subtype >= SB_SUBTYPE_ESS_ES1888) {
@@ -5834,6 +5879,9 @@ ess_1x88_onboard_init(const device_t *info)
             ess->ess_dac2_dma = 5;
         }
         ess->dsp.es188x_irq_mode = 0;
+        /* Initialize ESS filter to 8 kHz. This will be recalculated when a set frequency command is
+           sent. */
+        recalc_ess_dac2_filter(8000 * 2);
     }
 
     /* Calculate 6-bit attenuation values for ES1788+ master volume control */
@@ -5949,6 +5997,9 @@ ess_186x_init(const device_t *info)
     ess->ess_dac2_irq = 0; /* Use shared IRQ */
     ess->ess_dac2_dma = ISAPNP_DMA_DISABLED;
     ess->dsp.es188x_irq_mode = 1;
+    /* Initialize ESS filter to 8 kHz. This will be recalculated when a set frequency command is
+       sent. */
+    recalc_ess_dac2_filter(8000 * 2);
 
     /* Init read-only control registers */
     ess->es186x_ctrl_iregs[0x20] = 0x59;
