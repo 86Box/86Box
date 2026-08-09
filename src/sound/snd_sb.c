@@ -2038,7 +2038,7 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                                     break;
                             }
                         ess->midi_addr = mpu401_base_addr;
-                        io_sethandler(addr, 0x0002,
+                        io_sethandler(ess->midi_addr, 0x0002,
                                       ess_fm_midi_read, NULL, NULL,
                                       ess_fm_midi_write, NULL, NULL,
                                       ess);
