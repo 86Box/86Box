@@ -247,10 +247,6 @@ mcga_translate_address(const mcga_t *dev, uint32_t addr)
     return UINT32_MAX;
 }
 
-void
-mcga_waitstates(UNUSED(void *priv))
-{
-
 static uint8_t
 mcga_mem_read(uint32_t addr, void *priv)
 {
