@@ -366,7 +366,7 @@ compaq_plasma_poll(void *priv)
                             chr_addr |= 0x1000;
 
                         /* character underline active and 7th row of pixels in character height being drawn */
-                        if (underline) {
+                        if (underline && (scanline == 7)) {
                             /* for each pixel in character width */
                             for (c = 0; c < 8; c++)
                                 buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
@@ -388,7 +388,12 @@ compaq_plasma_poll(void *priv)
                                 g = ((cols[0] >> 8) & 0xff) >> 1;
                                 r = ((cols[0] >> 16) & 0xff) >> 1;
                                 cols[0] = b | (g << 8) | (r << 16);
-                                if (drawcursor) {
+                                /* character underline active and 7th row of pixels in character height being drawn */
+                                if (underline && (scanline == 7)) {
+                                    /* for each pixel in character width */
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
+                                } else if (drawcursor) {
                                     black_half = black;
                                     amber_half = amber;
                                     uint8_t bB = (black & 0xff) >> 1;
@@ -406,7 +411,12 @@ compaq_plasma_poll(void *priv)
                                         buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                                 }
                             } else if ((self->port_23c6 >> 5) == 2) {
-                                if (drawcursor) {
+                                /* character underline active and 7th row of pixels in character height being drawn */
+                                if (underline && (scanline == 7)) {
+                                    /* for each pixel in character width */
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
+                                } else if (drawcursor) {
                                     for (c = 0; c < 8; c++)
                                         buffer32->line[self->cga.displine][(x << 3) + c] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1] ^ (amber ^ black);
                                 } else {
@@ -508,7 +518,11 @@ compaq_plasma_poll(void *priv)
                                 g = ((cols[0] >> 8) & 0xff) >> 1;
                                 r = ((cols[0] >> 16) & 0xff) >> 1;
                                 cols[0] = b | (g << 8) | (r << 16);
-                                if (drawcursor) {
+                                if (underline && (scanline == 7)) {
+                                    /* for each pixel in character width */
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = mdaattr[attr][blink][1];
+                                } else if (drawcursor) {
                                     black_half = black;
                                     amber_half = amber;
                                     uint8_t bB = (black & 0xff) >> 1;
@@ -526,7 +540,11 @@ compaq_plasma_poll(void *priv)
                                         buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 1 : 0];
                                 }
                             } else if ((self->port_23c6 >> 5) == 2) {
-                                if (drawcursor) {
+                                if (underline && (scanline == 7)) {
+                                    /* for each pixel in character width */
+                                    for (c = 0; c < 8; c++)
+                                        buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = mdaattr[attr][blink][1];
+                                } else if (drawcursor) {
                                     for (c = 0; c < 8; c++)
                                         buffer32->line[self->cga.displine][(x << 4) + (c << 1)] = buffer32->line[self->cga.displine][(x << 4) + (c << 1) + 1] = cols[(self->font_ram[chr_addr] & (1 << (c ^ 7))) ? 0 : 1] ^ (amber ^ black);
                                 } else {
