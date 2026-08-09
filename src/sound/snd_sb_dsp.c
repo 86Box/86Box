@@ -1776,8 +1776,14 @@ sb_exec_command(sb_dsp_t *dsp)
                    0x03 0x01 (Sound Blaster Pro compatibility) confirmed by both the
                    ES1888 datasheet and the probing of the real ES688 and ES1688 cards.
                  */
-                sb_add_data(dsp, 0x3);
-                sb_add_data(dsp, 0x1);
+                /* Some ES1688 ISA cards have a jumper to set DSP version 2.01 */
+                if (dsp->ess_dsp_v2_mode == 1) {
+                    sb_add_data(dsp, 0x2);
+                    sb_add_data(dsp, 0x1);
+                } else {
+                    sb_add_data(dsp, 0x3);
+                    sb_add_data(dsp, 0x1);
+                }
                 break;
             }
             if (IS_AZTECH(dsp)) {
