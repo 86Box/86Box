@@ -5455,7 +5455,7 @@ ess_x688_init(UNUSED(const device_t *info))
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
-    if ((ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) && (device_get_config_int("dspver") == 1))
+    if (device_get_config_int("dspver") == 1)
         ess->dsp.ess_dsp_v2_mode = 1;
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
@@ -7729,6 +7729,21 @@ static const device_config_t ess_688_config[] = {
             { .description = "0x168, IRQ 9",  .value = 0x9168 },
             { .description = "0x168, IRQ 10", .value = 0xa168 },
             { .description = ""                               }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dspver",
+        .description    = "DSP Version",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "3.01",  .value =  0 },
+            { .description = "2.01",  .value =  1 },
+            { .description = ""                   }
         },
         .bios           = { { 0 } }
     },
