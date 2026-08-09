@@ -1925,7 +1925,7 @@ gus_extreme_init(UNUSED(const device_t *info))
     ess_mixer_reset(gus->ess);
 
     gus->ess->mixer_enabled = 1;
-    gus->ess->mixer_ess.regs[0x40] = 0x0a;
+    gus->ess->mixer_ess.regs[0x40] = 0x02;
     sound_add_handler(sb_get_buffer_ess, gus->ess);
     music_add_handler(sb_get_music_buffer_ess, gus->ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);

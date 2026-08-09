@@ -191,6 +191,9 @@ typedef struct sb_dsp_t {
     uint8_t   espcm_table_index;       /* used for ESPCM_3 */
     uint8_t   espcm_last_value;        /* used for ESPCM_3 */
 
+    /* ESS ES1688 switchable DSP version */
+    uint8_t   ess_dsp_v2_mode;
+
     /* OPL3-SA switchable DSP version */
     uint8_t   opl3sa_dsp_ver;
 

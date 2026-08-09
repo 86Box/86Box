@@ -5455,6 +5455,9 @@ ess_x688_init(UNUSED(const device_t *info))
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
+    if ((ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) && (device_get_config_int("dspver") == 1))
+        ess->dsp.ess_dsp_v2_mode = 1;
+
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     io_sethandler(addr, 0x0004,
                   ess->opl.read, NULL, NULL,
@@ -5491,7 +5494,7 @@ ess_x688_init(UNUSED(const device_t *info))
                   ess);
 
     ess->mixer_enabled = 1;
-    ess->mixer_ess.regs[0x40] = 0x0a;
+    ess->mixer_ess.regs[0x40] = 0x02;
     io_sethandler(addr + 4, 0x0002,
                   ess_mixer_read, NULL, NULL,
                   ess_mixer_write, NULL, NULL,
@@ -5738,7 +5741,7 @@ ess_1x88_onboard_init(const device_t *info)
     /* ES1788/1888/1887 starts in a disabled state */
 
     ess->mixer_enabled = 1;
-    ess->mixer_ess.regs[0x40] = 0x0a;
+    ess->mixer_ess.regs[0x40] = 0x02;
     sound_add_handler(sb_get_buffer_ess, ess);
     music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
@@ -7820,6 +7823,21 @@ static const device_config_t ess_1688_config[] = {
             { .description = "0x168, IRQ 9",  .value = 0x9168 },
             { .description = "0x168, IRQ 10", .value = 0xa168 },
             { .description = ""                               }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dspver",
+        .description    = "DSP Version",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "3.01",  .value =  0 },
+            { .description = "2.01",  .value =  1 },
+            { .description = ""                   }
         },
         .bios           = { { 0 } }
     },
