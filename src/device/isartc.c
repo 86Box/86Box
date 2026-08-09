@@ -62,6 +62,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
