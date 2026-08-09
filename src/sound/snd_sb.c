@@ -5491,7 +5491,7 @@ ess_x688_init(UNUSED(const device_t *info))
                   ess);
 
     ess->mixer_enabled = 1;
-    ess->mixer_ess.regs[0x40] = 0x0a;
+    ess->mixer_ess.regs[0x40] = 0x02;
     io_sethandler(addr + 4, 0x0002,
                   ess_mixer_read, NULL, NULL,
                   ess_mixer_write, NULL, NULL,
@@ -5738,7 +5738,7 @@ ess_1x88_onboard_init(const device_t *info)
     /* ES1788/1888/1887 starts in a disabled state */
 
     ess->mixer_enabled = 1;
-    ess->mixer_ess.regs[0x40] = 0x0a;
+    ess->mixer_ess.regs[0x40] = 0x02;
     sound_add_handler(sb_get_buffer_ess, ess);
     music_add_handler(sb_get_music_buffer_ess, ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
