@@ -2402,7 +2402,8 @@ const device_t i82557_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = i82557_config
+    .config        = i82557_config,
+    .alias         = "Intel EtherExpress PRO/100B"
 };
 
 const device_t i82558_device = {
