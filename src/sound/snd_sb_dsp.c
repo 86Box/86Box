@@ -882,6 +882,8 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
     if (legacy) {
         t |= 0x80;
     }
+    if (dsp->sb_irqnum != 0)
+        t |= 0x10;
     switch (dsp->sb_irqnum) {
         default:
             break;
@@ -951,7 +953,9 @@ sb_dsp_setirq(sb_dsp_t *dsp, int irq)
     if (IS_ESS(dsp)) {
         sb_ess_update_irq_drq_readback_regs(dsp, true);
 
-        ESSreg(0xB1) = (ESSreg(0xB1) & 0xEF) | 0x10;
+        ESSreg(0xB1) = (ESSreg(0xB1) & 0xEF);
+        if (dsp->sb_irqnum != 0)
+            ESSreg(0xB1) |= 0x10;
     }
 }
 
