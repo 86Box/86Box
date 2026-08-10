@@ -247,33 +247,9 @@ mcga_translate_address(const mcga_t *dev, uint32_t addr)
     return UINT32_MAX;
 }
 
-void
-mcga_waitstates(UNUSED(void *priv))
-{
-    /*
-     * NOCONA_CGA_WAIT_PHASE_808X_UPDATE_V1
-     *
-     * The Marty-derived CPU has already selected the physical CGA slot in T2
-     * and emitted the corresponding Tw clocks before invoking this callback.
-     * Charging the legacy countdown here would double the delay and, more
-     * importantly, would put VRAM/snow side effects back on the wrong edge.
-     */
-    static const uint8_t legacy_waits[16] = {
-        3, 4, 5, 6, 7, 8, 4, 5,
-        6, 7, 8, 4, 5, 6, 7, 8
-    };
-
-    if (m808x_86box_active())
-        return;
-
-    cycles -= legacy_waits[cycles & 0x0f];
-}
-
 static uint8_t
 mcga_mem_read(uint32_t addr, void *priv)
 {
-    mcga_waitstates(priv);
-
     const mcga_t *dev = (mcga_t *) priv;
     const uint32_t offset = mcga_translate_address(dev, addr);
 
@@ -300,8 +276,6 @@ mcga_mem_write(uint32_t addr, uint8_t val, void *priv)
 
     if (offset < MCGA_VRAM_SIZE)
         dev->vram[offset] = val;
-
-    mcga_waitstates(dev);
 }
 
 static void

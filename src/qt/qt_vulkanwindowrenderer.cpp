@@ -1676,6 +1676,8 @@ VulkanWindowRenderer::event(QEvent *event)
             case QEvent::MouseButtonPress:
             case QEvent::MouseMove:
             case QEvent::MouseButtonRelease: {
+                if (!isInitialized)
+                    return true;
                 auto *me = static_cast<QMouseEvent *>(event);
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
                 const QPointF pos = me->position();
@@ -1690,6 +1692,8 @@ VulkanWindowRenderer::event(QEvent *event)
                 return true;
             }
             case QEvent::Wheel: {
+                if (!isInitialized)
+                    return true;
                 auto *we = static_cast<QWheelEvent *>(event);
                 qt_osd_mouse_wheel((float) we->angleDelta().x() / 120.0f,
                                    (float) we->angleDelta().y() / 120.0f);
@@ -1700,6 +1704,7 @@ VulkanWindowRenderer::event(QEvent *event)
         }
     }
 
+process:
     bool res = false;
     if (!eventDelegate(event, res))
         return QWindow::event(event);

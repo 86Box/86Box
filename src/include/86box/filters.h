@@ -422,6 +422,33 @@ low_fir_sb16(int i, double NewSample)
     return out;
 }
 
+extern double low_fir_ess_dac2_coef[SB16_NCoef];
+
+static inline double
+low_fir_ess_dac2(int i, double NewSample)
+{
+    static double x[2][SB16_NCoef + 1]; // input samples
+    static int    pos    = 0;
+    double        out    = 0.0;
+    int           n;
+
+    /* Calculate the new output */
+    x[i][pos] = NewSample;
+
+    for (n = 0; n < ((SB16_NCoef + 1) - pos) && n < SB16_NCoef; n++)
+        out += low_fir_ess_dac2_coef[n] * x[i][n + pos];
+    for (; n < SB16_NCoef; n++)
+        out += low_fir_ess_dac2_coef[n] * x[i][(n + pos) - (SB16_NCoef + 1)];
+
+    if (i == 1) {
+        pos++;
+        if (pos > SB16_NCoef)
+            pos = 0;
+    }
+
+    return out;
+}
+
 extern double low_fir_pas16_coef[SB16_NCoef];
 
 static inline double
