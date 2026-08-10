@@ -825,6 +825,9 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     , renderTimer(new QTimer(this))
     , osdRenderTimer(new QTimer(this))
 {
+    // Force a cleanup of ImGui OSD.
+    qt_osd_shutdown();
+
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
     connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
         if (video_framerate == -1 && dopause && qt_osd_is_visible())
