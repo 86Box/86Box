@@ -3442,20 +3442,3 @@ msgstr "938 (Chinês tradicional)"
 msgid "Sample rate:"
 msgstr "Taxa de amostragem:"
 
-msgid "Floppy tape drive"
-msgstr "Drive de fita por disquete"
-
-msgid "Floppy tape drive (QIC-117)"
-msgstr "Drive de fita por disquete (QIC-117)"
-
-msgid "Attaches a Colorado 250 tape drive to the floppy disk controller's cable."
-msgstr "Conecta um drive de fita Colorado 250 ao cabo do controlador de drive de disquete."
-
-msgid "Drive select:"
-msgstr "Seleção de drive:"
-
-msgid "The drive select line the tape drive answers to. Any floppy drive configured on the same line is disconnected."
-msgstr "A linha do drive que o drive de fita responde. Qualquer drive de disquete configurado na mesma linha será desconectado."
-
-msgid "Tape image:"
-msgstr "Imagem de fita:"

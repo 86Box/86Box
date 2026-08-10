@@ -3444,21 +3444,3 @@ msgstr "938 (klasická čínština)"
 
 msgid "Sample rate:"
 msgstr ""
-
-msgid "Floppy tape drive"
-msgstr ""
-
-msgid "Floppy tape drive (QIC-117)"
-msgstr ""
-
-msgid "Attaches a Colorado 250 tape drive to the floppy disk controller's cable."
-msgstr ""
-
-msgid "Drive select:"
-msgstr ""
-
-msgid "The drive select line the tape drive answers to. Any floppy drive configured on the same line is disconnected."
-msgstr ""
-
-msgid "Tape image:"
-msgstr ""
