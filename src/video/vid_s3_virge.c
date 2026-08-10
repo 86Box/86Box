@@ -807,7 +807,8 @@ s3_virge_in(uint16_t addr, void *priv)
                     ret = virge->virge_rev;
                     break;
                 case 0x30:
-                    ret = ((svga->crtc[0x38] & 0xcc) != 0x48) ? 0xFF : virge->virge_id;
+                    ret = (((svga->crtc[0x38] & 0xcc) == 0x48) ||
+                           ((svga->crtc[0x39] & 0xe0) == 0xa0)) ? virge->virge_id : 0xff; /*Chip ID*/
                     break; /*Chip ID*/
                 case 0x31:
                     ret = (svga->crtc[0x31] & 0xcf) | ((virge->ma_ext & 3) << 4);

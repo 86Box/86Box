@@ -3604,7 +3604,9 @@ s3_in(uint16_t addr, void *priv)
                     }
                     break;
                 case 0x30:
-                    return ((svga->crtc[0x38] & 0xcc) != 0x48) ? 0xFF : s3->id; /*Chip ID*/
+                    temp = (((svga->crtc[0x38] & 0xcc) == 0x48) ||
+                            ((svga->crtc[0x39] & 0xe0) == 0xa0)) ? s3->id : 0xff; /*Chip ID*/
+                    return temp;
                 case 0x31:
                     return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
                 case 0x35:
