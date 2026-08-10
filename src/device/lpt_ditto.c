@@ -43,12 +43,17 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/lpt.h>
+#include <86box/fdd_tape.h>
 #include <86box/plat.h>
 
-/* For logging the BackPack wire protocol into the emulator log. */
-#if 0
-#    define ENABLE_LPT_DITTO_LOG 1
-#endif
+/*
+   For logging the BackPack wire protocol into the emulator log. Leave
+   this on while the drive is being brought up against real host
+   software: run 86Box with -L <file> and the whole conversation with the
+   port lands in it, which is the only way to see what a driver actually
+   does rather than what it was expected to do.
+ */
+#define ENABLE_LPT_DITTO_LOG 1
 
 /*
    Bits of the parallel port's own registers, at their literal values in
@@ -82,6 +87,19 @@
 /* Only the top five bits of the status register belong to the device -
    the parallel port makes the low three up for itself. */
 #define LPT_STAT_MASK     0xf8
+
+/*
+   What the status lines read as when the bridge is not driving them.
+
+   This matters more than it looks. Until the host has knocked, the pod
+   leaves the lines alone and the host reads the idle state of the port
+   itself - the same thing 86Box hands back for a port with nothing on
+   it at all. Answering all zeroes instead says every line is asserted at
+   once: busy, out of paper, off line and faulted. A host that looks at
+   the port before it tries to talk can reasonably decide from that that
+   there is nothing here worth talking to, and never knock at all.
+ */
+#define LPT_STAT_IDLE     0xd8
 
 /*
    Transfer protocols the bridge can be programmed for. The ordering is
@@ -150,6 +168,10 @@ enum {
 #define BP_IRQ_HARDEN  0x18 /* additionally drive ACK, raising a real IRQ */
 #define BP_IRQ_MASK    0x18
 
+/* Register 0x34, the ECC coprocessor. */
+#define BP_ECC_GEN   0x80 /* work the parity out when writing */
+#define BP_ECC_CHECK 0x40 /* only say whether it is right when reading */
+
 /* Register 0x24 only programs the protocol if this follows the bits. */
 #define BP_PROTO_MAGIC 0xa4
 
@@ -182,8 +204,9 @@ enum {
 #define FDC_ST0_READY_CHANGE 0xc0
 
 /* ST1. */
-#define FDC_ST1_MISSING_AM 0x01
-#define FDC_ST1_NO_DATA    0x04
+#define FDC_ST1_MISSING_AM   0x01
+#define FDC_ST1_WRITE_PROTECT 0x02
+#define FDC_ST1_NO_DATA      0x04
 
 /*
    ST3. Bit 4 is nominally "the head is at track zero", but on a QIC-117
@@ -220,7 +243,19 @@ enum {
 #define QIC_REPORT_ERROR_CODE           7
 #define QIC_REPORT_DRIVE_CONFIGURATION  8
 #define QIC_REPORT_ROM_VERSION          9
+#define QIC_PAUSE                       3
+#define QIC_MICRO_STEP_PAUSE            4
+#define QIC_ALTERNATE_TIMEOUT           5
+#define QIC_SOFT_SELECT                 23
+#define QIC_SOFT_DESELECT               24
+#define QIC_LOGICAL_FORWARD             10
+#define QIC_PHYSICAL_REVERSE            11
+#define QIC_PHYSICAL_FORWARD            12
 #define QIC_SEEK_HEAD_TO_TRACK          13
+#define QIC_SEEK_LOAD_POINT             14
+#define QIC_WRITE_REFERENCE_BURST       16
+#define QIC_STOP_TAPE                   18
+#define QIC_CALIBRATE_TAPE_LENGTH       36
 #define QIC_ENTER_FORMAT_MODE           15
 #define QIC_ENTER_VERIFY_MODE           17
 #define QIC_SKIP_REVERSE                25
@@ -273,12 +308,40 @@ enum {
 #define QIC_ERROR_POWER_ON_RESET            26
 #define QIC_ERROR_RATE_SELECTION            31
 
-/* Operating modes, tracked so the host's mode commands mean something. */
-enum {
-    QIC_MODE_PRIMARY = 0,
-    QIC_MODE_FORMAT,
-    QIC_MODE_VERIFY
-};
+/*
+   The operating mode byte. Commands carry an interlock mask that is
+   tested against it, so that a command which makes no sense in the mode
+   the drive is in is refused rather than half done.
+ */
+#define QIC_MODE_HIGH_SPEED  0x01
+#define QIC_MODE_NON_INTR    0x02
+#define QIC_MODE_FORMAT      0x04
+#define QIC_MODE_VERIFY      0x08
+#define QIC_MODE_PRIMARY     0x10
+#define QIC_MODE_DIAG_FAILED 0x80
+
+/* The three mode commands are exclusive: each clears the other two. */
+#define QIC_MODE_EXCLUSIVE (QIC_MODE_FORMAT | QIC_MODE_VERIFY | QIC_MODE_PRIMARY)
+
+/* Command attribute flags, the third byte of each record. */
+#define QIC_ATTR_IMMEDIATE 0x20 /* runs at once, ahead of any queue */
+#define QIC_ATTR_RESERVED  0x40 /* not a command at all */
+#define QIC_ATTR_MOTION    0x80 /* sets the tape going */
+#define QIC_ATTR_MODE_MASK 0x1f /* the rest interlock against the mode byte */
+
+/* More of the error codes this firmware raises. */
+#define QIC_ERROR_NOT_READY             1
+#define QIC_ERROR_NO_CARTRIDGE          2
+#define QIC_ERROR_WRITE_PROTECT         5
+#define QIC_ERROR_ILLEGAL_IN_PRIMARY    14
+#define QIC_ERROR_ILLEGAL_IN_FORMAT     15
+#define QIC_ERROR_ILLEGAL_IN_VERIFY     16
+#define QIC_ERROR_NOT_REFERENCED        19
+#define QIC_ERROR_DIAGNOSTIC_FAILED     20
+#define QIC_ERROR_DURING_NON_INTR       30
+#define QIC_ERROR_ILLEGAL_IN_HIGH_SPEED 32
+#define QIC_ERROR_PENDING_ERROR         12
+#define QIC_ERROR_NEW_CARTRIDGE         13
 
 /*
    What this drive says it is. The vendor identifier is the one ftape's
@@ -287,6 +350,20 @@ enum {
  */
 #define DITTO_VENDOR_ID  0x8885
 #define DITTO_ROM_VERSION 0x41
+
+/* Segments per track, until the host says otherwise when it formats. */
+#define DITTO_SEGMENTS_PER_TRACK 150
+
+/*
+   How long a wind is modelled to take. These need not match the real
+   mechanism - they need only keep the drive not ready for long enough
+   that the host sees it go busy and come back, which is the transition
+   its completion checks wait on.
+ */
+#define DITTO_WIND_PER_SEG_US 3000ULL
+#define DITTO_WIND_MIN_US     60000ULL
+#define DITTO_WIND_FULL_US    750000ULL
+#define DITTO_HEAD_SEEK_US    60000ULL
 
 /* The buffer is 128 KB and its address register wraps at that boundary. */
 #define DITTO_BUFFER_SIZE 0x20000
@@ -299,6 +376,7 @@ typedef struct ditto_t {
 
     /* Configuration. */
     int     max_proto;  /* fastest protocol the bridge will admit to */
+    uint8_t unit;       /* address this pod answers a knock at */
     char    image_fn[1024];
     int     readonly;
 
@@ -309,9 +387,8 @@ typedef struct ditto_t {
     int     proto;      /* protocol the bridge is programmed for */
     uint8_t proto_bits;
 
-    int     knock_armed; /* the host has begun the connect sequence */
     int     knock;       /* SELECT edges seen since it began */
-    int     connect_resp; /* status reads still owed the connect response */
+    int     ident;        /* answering the post-knock address probe */
     int     latching;     /* an out-of-band register write is under way */
     int     latch_commits; /* bytes it has committed so far */
 
@@ -327,6 +404,7 @@ typedef struct ditto_t {
     uint8_t rd_val;     /* byte being shifted out */
     int     rd_high;    /* the low nibble has gone, the high one is next */
     uint8_t rd_out;     /* status bits presenting the current nibble */
+    uint8_t last_status; /* last value handed back, to quieten poll loops */
 
     /* Layer 2: the register file. */
     uint8_t  reg[256];
@@ -379,10 +457,26 @@ typedef struct ditto_t {
     uint8_t  qic_ext_rate;  /* the selected rate, in Mbit/s */
     uint8_t  qic_format_code;
     uint8_t  qic_partition;
-    uint8_t  qic_mode;
+    uint8_t  qic_mode_flags;
+    int      qic_track;    /* logical tape track the head sits on */
+    int      qic_segment;  /* absolute segment under the head */
+    int      qic_reverse;  /* this track is laid down back to front */
+    int      qic_running;  /* tape is streaming past the head */
+    int      qic_busy;     /* a wind is under way */
+    pc_timer_t busy_timer;
     uint16_t qic_vendor_id;
     uint16_t qic_format_segments;
+
+    /* The cartridge. */
+    FILE    *fp;
+    uint32_t image_size;
     int      image_loaded;
+    int      segs_per_cyl;
+    int      segs_per_head;
+
+    /* The ECC coprocessor. */
+    uint8_t  ecc_mul[256];
+    int      ecc_error;
 
     /* Command and parameter decoding. */
     int      qic_params_left;
@@ -531,6 +625,328 @@ ditto_update_irq(ditto_t *dev, int test_poke)
 }
 
 /* --------------------------------------------------------------------- */
+/* The ECC coprocessor                                                   */
+/* --------------------------------------------------------------------- */
+
+/*
+   The bridge carries the QIC-80 Reed-Solomon coprocessor, which works
+   down the columns of a segment: the three ECC sectors at the end hold,
+   for each byte position, the parity of that byte across every data
+   sector.
+
+   Generating them here rather than leaving the sectors blank is what
+   keeps a cartridge written through this drive readable by anything
+   else - including the same image mounted on the floppy-cable drive,
+   whose host computes and checks these bytes itself.
+
+   The arithmetic is over GF(256) with x^8 + x^7 + x^2 + x + 1, and the
+   only multiplication needed is by the constant r^105, which is 0xc0.
+ */
+#define DITTO_ECC_POLY    0x187
+#define DITTO_ECC_FACTOR  0xc0
+
+static void
+ditto_ecc_build_table(uint8_t *tab)
+{
+    uint16_t v = DITTO_ECC_FACTOR;
+
+    tab[0] = 0x00;
+
+    /* The powers of two, by repeated doubling in the field ... */
+    for (unsigned int bit = 1; bit < 0x100; bit <<= 1) {
+        tab[bit] = (uint8_t) v;
+        v <<= 1;
+        if (v & 0x100)
+            v ^= DITTO_ECC_POLY;
+    }
+
+    /* ... and everything else follows, the map being linear. */
+    for (unsigned int i = 3; i < 0x100; i++) {
+        const unsigned int low = i & (~i + 1);
+
+        if (i != low)
+            tab[i] = tab[low] ^ tab[i ^ low];
+    }
+}
+
+/*
+   Works out the three parity sectors for nblocks of data. The recurrence
+   runs down each byte column in turn, holding three running values:
+
+     p0 = p1 + r^105 * (m - p0)
+     p1 = p2 + r^105 * (m - p0)
+     p2 =               m - p0
+
+   with addition being exclusive or, as it is throughout the field.
+ */
+static void
+ditto_ecc_parity(const ditto_t *dev, uint32_t addr, int nblocks, uint8_t *parity)
+{
+    for (int col = 0; col < FDD_TAPE_SECTOR_SIZE; col++) {
+        uint8_t p0 = 0;
+        uint8_t p1 = 0;
+        uint8_t p2 = 0;
+
+        for (int i = 0; i < nblocks; i++) {
+            const uint32_t off = (addr + (uint32_t) i * FDD_TAPE_SECTOR_SIZE +
+                                  (uint32_t) col) & DITTO_BUFFER_MASK;
+            const uint8_t  t1  = dev->buffer[off] ^ p0;
+            const uint8_t  t2  = dev->ecc_mul[t1];
+
+            p0 = t2 ^ p1;
+            p1 = t2 ^ p2;
+            p2 = t1;
+        }
+
+        parity[col]                              = p0;
+        parity[FDD_TAPE_SECTOR_SIZE + col]       = p1;
+        parity[(2 * FDD_TAPE_SECTOR_SIZE) + col] = p2;
+    }
+}
+
+/* Splits the region register 0x34 was programmed with into its parts. */
+static int
+ditto_ecc_region(const ditto_t *dev, uint32_t *addr, int *blocks)
+{
+    *addr   = (uint32_t) dev->ecc_ctrl[1] << 10;
+    *blocks = (dev->ecc_ctrl[0] & 0x3f) + 1;
+
+    /* Three of the blocks are the parity, so there must be data as well. */
+    return (*blocks > FDD_TAPE_ECC_SECTORS);
+}
+
+static void
+ditto_ecc_generate(ditto_t *dev)
+{
+    uint8_t  parity[3 * FDD_TAPE_SECTOR_SIZE];
+    uint32_t addr;
+    int      blocks;
+
+    if (!ditto_ecc_region(dev, &addr, &blocks))
+        return;
+
+    ditto_ecc_parity(dev, addr, blocks - FDD_TAPE_ECC_SECTORS, parity);
+
+    for (int i = 0; i < (3 * FDD_TAPE_SECTOR_SIZE); i++) {
+        const uint32_t off = (addr +
+                              ((uint32_t) (blocks - FDD_TAPE_ECC_SECTORS) *
+                               FDD_TAPE_SECTOR_SIZE) + (uint32_t) i) &
+                             DITTO_BUFFER_MASK;
+
+        dev->buffer[off] = parity[i];
+    }
+
+    dev->ecc_error = 0;
+
+    ditto_log("Ditto: ECC generated over %i blocks at %05X\n", blocks, addr);
+}
+
+static void
+ditto_ecc_check(ditto_t *dev)
+{
+    uint8_t  parity[3 * FDD_TAPE_SECTOR_SIZE];
+    uint32_t addr;
+    int      blocks;
+
+    dev->ecc_error = 0;
+
+    if (!ditto_ecc_region(dev, &addr, &blocks))
+        return;
+
+    ditto_ecc_parity(dev, addr, blocks - FDD_TAPE_ECC_SECTORS, parity);
+
+    /*
+       A systematic code, so the data is good exactly when the parity we
+       work out matches the parity that came off the tape. The host only
+       needs to be told whether to bother correcting - this coprocessor
+       was never able to do that part itself.
+     */
+    for (int i = 0; i < (3 * FDD_TAPE_SECTOR_SIZE); i++) {
+        const uint32_t off = (addr +
+                              ((uint32_t) (blocks - FDD_TAPE_ECC_SECTORS) *
+                               FDD_TAPE_SECTOR_SIZE) + (uint32_t) i) &
+                             DITTO_BUFFER_MASK;
+
+        if (dev->buffer[off] != parity[i]) {
+            dev->ecc_error = 1;
+            ditto_log("Ditto: ECC error at %05X\n", addr);
+            return;
+        }
+    }
+}
+
+/* --------------------------------------------------------------------- */
+/* The cartridge                                                         */
+/* --------------------------------------------------------------------- */
+
+static void
+ditto_image_close(ditto_t *dev)
+{
+    if (dev->fp != NULL) {
+        fclose(dev->fp);
+        dev->fp = NULL;
+    }
+
+    dev->image_size   = 0;
+    dev->image_loaded = 0;
+}
+
+/*
+   Works out how the cartridge maps segments onto the addresses the
+   controller uses. A formatted cartridge states its own mapping in its
+   header segment; a blank one has none to state, so the defaults have to
+   match what the host will lay down.
+ */
+static void
+ditto_read_geometry(ditto_t *dev)
+{
+    uint8_t hdr[FDD_TAPE_SECTOR_SIZE];
+
+    dev->segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
+    dev->segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
+
+    if (dev->fp == NULL)
+        return;
+
+    if (fseek(dev->fp, 0, SEEK_SET) != 0)
+        return;
+    if (fread(hdr, 1, sizeof(hdr), dev->fp) != sizeof(hdr))
+        return;
+
+    /* Header segment signature, little endian 0xaa55aa55. */
+    if ((hdr[0] != 0x55) || (hdr[1] != 0xaa) || (hdr[2] != 0x55) || (hdr[3] != 0xaa))
+        return;
+
+    if ((hdr[29] < FDD_TAPE_SECTORS_PER_SEG) || (hdr[28] < 1))
+        return;
+
+    dev->segs_per_cyl  = hdr[29] / FDD_TAPE_SECTORS_PER_SEG;
+    dev->segs_per_head = (hdr[28] + 1) * dev->segs_per_cyl;
+
+    ditto_log("Ditto: geometry from header - %i segments/cylinder, "
+              "%i segments/head\n", dev->segs_per_cyl, dev->segs_per_head);
+}
+
+static void
+ditto_image_load(ditto_t *dev, const char *fn)
+{
+    FILE *fp;
+
+    ditto_image_close(dev);
+
+    if ((fn == NULL) || (fn[0] == 0x00))
+        return;
+
+    /* The configuration marks write-protected images with a wp:// prefix. */
+    if (strstr(fn, "wp://") == fn) {
+        fn += 5;
+        dev->readonly = 1;
+    }
+
+    fp = dev->readonly ? NULL : plat_fopen((char *) fn, "rb+");
+    if (fp == NULL) {
+        fp = plat_fopen((char *) fn, "rb");
+        if (fp != NULL)
+            dev->readonly = 1;
+    }
+
+    /* A cartridge that is not there yet is a blank one. */
+    if (fp == NULL) {
+        if (dev->readonly)
+            return;
+
+        fp = plat_fopen((char *) fn, "wb+");
+        if (fp == NULL) {
+            ditto_log("Ditto: unable to open image %s\n", fn);
+            return;
+        }
+    }
+
+    if (fseek(fp, 0, SEEK_END) == 0)
+        dev->image_size = (uint32_t) ftell(fp);
+
+    dev->fp           = fp;
+    dev->image_loaded = 1;
+
+    ditto_read_geometry(dev);
+
+    ditto_log("Ditto: loaded %s (%u bytes%s)\n", fn, dev->image_size,
+              dev->readonly ? ", read-only" : "");
+}
+
+/* Anything past the end of the image is unwritten tape, and reads blank. */
+static void
+ditto_image_read(ditto_t *dev, uint32_t offset, uint8_t *buf, uint32_t len)
+{
+    size_t got = 0;
+
+    memset(buf, 0x00, len);
+
+    if ((dev->fp == NULL) || (offset >= dev->image_size))
+        return;
+
+    if (fseek(dev->fp, (long) offset, SEEK_SET) != 0)
+        return;
+
+    got = fread(buf, 1, len, dev->fp);
+    if (got < len)
+        memset(buf + got, 0x00, len - got);
+}
+
+static int
+ditto_image_write(ditto_t *dev, uint32_t offset, const uint8_t *buf, uint32_t len)
+{
+    if ((dev->fp == NULL) || dev->readonly)
+        return 0;
+
+    if (fseek(dev->fp, (long) offset, SEEK_SET) != 0)
+        return 0;
+
+    if (fwrite(buf, 1, len, dev->fp) != len)
+        return 0;
+
+    fflush(dev->fp);
+
+    if ((offset + len) > dev->image_size)
+        dev->image_size = offset + len;
+
+    return 1;
+}
+
+/*
+   Turns one of the controller's C/H/R addresses into an offset into the
+   cartridge. The head field is not a physical head here - it is just the
+   high digits of the segment number, and runs well past the two a floppy
+   would have.
+ */
+static int
+ditto_sector_offset(const ditto_t *dev, int cyl, int head, int sector,
+                    uint32_t *offset)
+{
+    int      segment;
+    int      sector_in_segment;
+    uint64_t off;
+
+    if ((sector < 1) || (sector > (dev->segs_per_cyl * FDD_TAPE_SECTORS_PER_SEG)))
+        return 0;
+    if ((cyl < 0) || (cyl > FDD_TAPE_MAX_TRACK) || (head < 0) || (head > 0xff))
+        return 0;
+
+    segment = (head * dev->segs_per_head) + (cyl * dev->segs_per_cyl) +
+              ((sector - 1) / FDD_TAPE_SECTORS_PER_SEG);
+    sector_in_segment = (sector - 1) % FDD_TAPE_SECTORS_PER_SEG;
+
+    off = ((uint64_t) segment * FDD_TAPE_SEGMENT_SIZE) +
+          ((uint64_t) sector_in_segment * FDD_TAPE_SECTOR_SIZE);
+    if (off > UINT32_MAX)
+        return 0;
+
+    *offset = (uint32_t) off;
+
+    return 1;
+}
+
+/* --------------------------------------------------------------------- */
 /* Layer 4: the QIC-117 drive                                            */
 /* --------------------------------------------------------------------- */
 
@@ -538,6 +954,83 @@ static int
 ditto_qic_answer(const ditto_t *dev)
 {
     return dev->qic_ack;
+}
+
+/*
+   Every command is checked against a three byte record before it runs:
+   which status bits matter, what they have to be, and what the command
+   conflicts with. These are the tables the drive's own firmware carries,
+   and they agree byte for byte with the ones in the host driver - which
+   is the strongest evidence available that both were read correctly.
+ */
+typedef struct qic_attr_t {
+    uint8_t mask;  /* status bits this command cares about */
+    uint8_t state; /* what those bits have to be */
+    uint8_t flags;
+} qic_attr_t;
+
+/* Commands 1 to 38. */
+static const qic_attr_t qic_attr_normal[] = {
+    { 0x00, 0x00, 0x20 }, /*  1 soft reset                 */
+    { 0x00, 0x00, 0x20 }, /*  2 report next bit            */
+    { 0x36, 0x24, 0x86 }, /*  3 pause                      */
+    { 0x36, 0x24, 0x86 }, /*  4 micro step pause           */
+    { 0x00, 0x00, 0x20 }, /*  5 alternate command timeout  */
+    { 0x00, 0x00, 0x20 }, /*  6 report drive status        */
+    { 0x01, 0x01, 0x00 }, /*  7 report error code          */
+    { 0x00, 0x00, 0x20 }, /*  8 report drive configuration */
+    { 0x00, 0x00, 0x20 }, /*  9 report ROM version         */
+    { 0x37, 0x25, 0x80 }, /* 10 logical forward            */
+    { 0x17, 0x05, 0x80 }, /* 11 physical reverse           */
+    { 0x17, 0x05, 0x80 }, /* 12 physical forward           */
+    { 0x37, 0x25, 0x80 }, /* 13 seek head to track         */
+    { 0x17, 0x05, 0x80 }, /* 14 seek load point            */
+    { 0x1f, 0x05, 0x00 }, /* 15 enter format mode          */
+    { 0x1f, 0x05, 0x98 }, /* 16 write reference burst      */
+    { 0x37, 0x25, 0x00 }, /* 17 enter verify mode          */
+    { 0x00, 0x00, 0x82 }, /* 18 stop tape                  */
+    { 0x00, 0x00, 0x40 }, /* 19 reserved                   */
+    { 0x00, 0x00, 0x40 }, /* 20 reserved                   */
+    { 0x02, 0x00, 0x87 }, /* 21 micro step head up         */
+    { 0x02, 0x00, 0x87 }, /* 22 micro step head down       */
+    { 0x00, 0x00, 0x20 }, /* 23 soft select                */
+    { 0x00, 0x00, 0x20 }, /* 24 soft deselect              */
+    { 0x36, 0x24, 0x86 }, /* 25 skip segments reverse      */
+    { 0x36, 0x24, 0x86 }, /* 26 skip segments forward      */
+    { 0x03, 0x01, 0x00 }, /* 27 select rate or format      */
+    { 0x01, 0x01, 0x00 }, /* 28 enter diagnostic 1         */
+    { 0x1f, 0x05, 0x00 }, /* 29 enter diagnostic 2         */
+    { 0x00, 0x00, 0x20 }, /* 30 enter primary mode         */
+    { 0x00, 0x00, 0x40 }, /* 31 vendor unique              */
+    { 0x00, 0x00, 0x20 }, /* 32 report vendor ID           */
+    { 0x04, 0x04, 0x20 }, /* 33 report tape status         */
+    { 0x36, 0x24, 0x86 }, /* 34 skip extended reverse      */
+    { 0x36, 0x24, 0x86 }, /* 35 skip extended forward      */
+    { 0x17, 0x05, 0x80 }, /* 36 calibrate tape length      */
+    { 0x17, 0x05, 0x00 }, /* 37 report format segments     */
+    { 0x17, 0x05, 0x00 }  /* 38 set format segments        */
+};
+
+/* Commands 50 to 56. */
+static const qic_attr_t qic_attr_extended[] = {
+    { 0x03, 0x01, 0x00 }, /* 50 extended select rate       */
+    { 0x00, 0x00, 0x20 }, /* 51 ext report drive config    */
+    { 0x00, 0x00, 0x00 }, /* 52 load/unload                */
+    { 0x01, 0x01, 0x00 }, /* 53 toggle lock                */
+    { 0x00, 0x00, 0x20 }, /* 54 loader partition status    */
+    { 0x17, 0x05, 0x82 }, /* 55 seek to partition          */
+    { 0x17, 0x05, 0x8c }  /* 56 vendor identity switch     */
+};
+
+static const qic_attr_t *
+qic_attr(int cmd)
+{
+    if ((cmd >= 1) && (cmd <= 38))
+        return &qic_attr_normal[cmd - 1];
+    if ((cmd >= 50) && (cmd <= 56))
+        return &qic_attr_extended[cmd - 50];
+
+    return NULL;
 }
 
 static void
@@ -606,6 +1099,206 @@ qic_report_next_bit(ditto_t *dev)
         dev->report_shift = 0x01; /* the stop bit */
 }
 
+/* How many segments a tape track holds. The host tells the drive this
+   when it formats; until then, take the usual figure. */
+static int
+qic_segments_per_track(const ditto_t *dev)
+{
+    return dev->qic_format_segments ? dev->qic_format_segments
+                                    : DITTO_SEGMENTS_PER_TRACK;
+}
+
+static int
+qic_track_start(const ditto_t *dev)
+{
+    return dev->qic_track * qic_segments_per_track(dev);
+}
+
+/*
+   Recomputes the bits of the status byte that follow from where the head
+   is and what the drive is doing.
+ */
+static void
+qic_update_status(ditto_t *dev)
+{
+    int offset;
+
+    dev->qic_status &= (uint8_t) ~(QIC_STATUS_CARTRIDGE_PRESENT |
+                                   QIC_STATUS_WRITE_PROTECT |
+                                   QIC_STATUS_REFERENCED |
+                                   QIC_STATUS_AT_BOT | QIC_STATUS_AT_EOT);
+
+    /*
+       Ready means nothing is in progress, and a cartridge in motion
+       counts: the host starts a pass and waits for ready to come back as
+       the sign that it finished. A drive that claims to be idle the
+       moment it was asked to move is taken to have failed outright.
+     */
+    if (dev->qic_running || dev->qic_busy || (dev->qic_params_left > 0))
+        dev->qic_status &= (uint8_t) ~QIC_STATUS_READY;
+    else
+        dev->qic_status |= QIC_STATUS_READY;
+
+    if (!dev->image_loaded)
+        return;
+
+    dev->qic_status |= QIC_STATUS_CARTRIDGE_PRESENT;
+
+    if (dev->readonly)
+        dev->qic_status |= QIC_STATUS_WRITE_PROTECT;
+
+    /* A cartridge with anything on it has a reference burst, which the
+       host reads as "formatted". A blank one is offered for formatting. */
+    if (dev->image_size > 0)
+        dev->qic_status |= QIC_STATUS_REFERENCED;
+
+    /*
+       Beginning and end of tape are physical places, and only the even
+       tracks run in segment order from one to the other - an odd track is
+       laid down back to front, so its first segment sits at the far end.
+     */
+    offset = dev->qic_segment - qic_track_start(dev);
+
+    if (offset <= 0)
+        dev->qic_status |= dev->qic_reverse ? QIC_STATUS_AT_EOT
+                                            : QIC_STATUS_AT_BOT;
+    else if (offset >= (qic_segments_per_track(dev) - 1))
+        dev->qic_status |= dev->qic_reverse ? QIC_STATUS_AT_BOT
+                                            : QIC_STATUS_AT_EOT;
+}
+
+/* Holds the drive not ready for as long as a wind would take. */
+static void
+qic_busy_done(void *priv)
+{
+    ditto_t *dev = (ditto_t *) priv;
+
+    dev->qic_busy    = 0;
+    dev->qic_running = 0;
+    qic_update_status(dev);
+
+    ditto_log("Ditto: wind complete, drive ready\n");
+}
+
+static void
+qic_begin_busy(ditto_t *dev, uint64_t us)
+{
+    if (us == 0)
+        return;
+
+    dev->qic_busy = 1;
+    qic_update_status(dev);
+
+    timer_set_delay_u64(&dev->busy_timer, us * TIMER_USEC);
+
+    ditto_log("Ditto: busy for %llu us\n", (unsigned long long) us);
+}
+
+/* Moves the head to a segment, and stays busy for as long as getting
+   there would have taken. */
+static void
+qic_seek_segment(ditto_t *dev, int segment)
+{
+    const int start = qic_track_start(dev);
+    const int end   = start + qic_segments_per_track(dev) - 1;
+    int       dist;
+    uint64_t  us;
+
+    if (segment < start)
+        segment = start;
+    if (segment > end)
+        segment = end;
+
+    dist = segment - dev->qic_segment;
+    if (dist < 0)
+        dist = -dist;
+
+    dev->qic_segment = segment;
+    qic_update_status(dev);
+
+    if (dist == 0)
+        return;
+
+    us = (uint64_t) dist * DITTO_WIND_PER_SEG_US;
+    if (us < DITTO_WIND_MIN_US)
+        us = DITTO_WIND_MIN_US;
+    if (us > DITTO_WIND_FULL_US)
+        us = DITTO_WIND_FULL_US;
+
+    qic_begin_busy(dev, us);
+}
+
+/*
+   Checks a command against its attribute record. Returns zero if it may
+   run; otherwise it has already latched the error that says why not.
+ */
+static int
+qic_check_command(ditto_t *dev, int cmd)
+{
+    const qic_attr_t *attr = qic_attr(cmd);
+    uint8_t           diff;
+    uint8_t           conflict;
+
+    if (attr == NULL) {
+        qic_set_error(dev, QIC_ERROR_UNDEFINED_COMMAND, (uint8_t) cmd);
+        return -1;
+    }
+
+    if (attr->flags & QIC_ATTR_RESERVED) {
+        qic_set_error(dev, QIC_ERROR_UNDEFINED_COMMAND, (uint8_t) cmd);
+        return -1;
+    }
+
+    qic_update_status(dev);
+
+    /*
+       The lowest status bit that is not what the command needs picks the
+       error, so the host is told the first thing standing in its way
+       rather than the last.
+     */
+    diff = (uint8_t) ((dev->qic_status & attr->mask) ^ attr->state);
+    if (diff != 0) {
+        uint8_t err;
+
+        if (diff & QIC_STATUS_READY)
+            err = QIC_ERROR_NOT_READY;
+        else if (diff & QIC_STATUS_ERROR)
+            err = QIC_ERROR_PENDING_ERROR;
+        else if (diff & QIC_STATUS_CARTRIDGE_PRESENT)
+            err = QIC_ERROR_NO_CARTRIDGE;
+        else if (diff & QIC_STATUS_WRITE_PROTECT)
+            err = QIC_ERROR_WRITE_PROTECT;
+        else if (diff & QIC_STATUS_NEW_CARTRIDGE)
+            err = QIC_ERROR_NEW_CARTRIDGE;
+        else
+            err = QIC_ERROR_NOT_REFERENCED;
+
+        qic_set_error(dev, err, (uint8_t) cmd);
+        return -1;
+    }
+
+    conflict = (uint8_t) (attr->flags & QIC_ATTR_MODE_MASK & dev->qic_mode_flags);
+    if (conflict != 0) {
+        uint8_t err;
+
+        if (conflict & QIC_MODE_HIGH_SPEED)
+            err = QIC_ERROR_ILLEGAL_IN_HIGH_SPEED;
+        else if (conflict & QIC_MODE_NON_INTR)
+            err = QIC_ERROR_DURING_NON_INTR;
+        else if (conflict & QIC_MODE_FORMAT)
+            err = QIC_ERROR_ILLEGAL_IN_FORMAT;
+        else if (conflict & QIC_MODE_VERIFY)
+            err = QIC_ERROR_ILLEGAL_IN_VERIFY;
+        else
+            err = QIC_ERROR_ILLEGAL_IN_PRIMARY;
+
+        qic_set_error(dev, err, (uint8_t) cmd);
+        return -1;
+    }
+
+    return 0;
+}
+
 /* The drive status byte, as command 6 reports it. */
 static uint8_t
 qic_drive_status(const ditto_t *dev)
@@ -635,16 +1328,46 @@ static int
 qic_param_count(int cmd)
 {
     switch (cmd) {
-        case QIC_SEEK_HEAD_TO_TRACK:
+        /*
+           The disassembly of this firmware was read as wanting two
+           parameters for the head seek as well. It does not: both the
+           standard and every host driver send one, and a drive that sat
+           waiting for a second would swallow the next command whole.
+         */
         case QIC_ENTER_DIAGNOSTIC_2:
             return 2;
 
+        /*
+           Counts wider than a nibble arrive as several of them, low one
+           first (table 2b). Taking only the first leaves the rest to be
+           read as commands, which is not a quiet kind of wrong: a host
+           setting the format size sent three, and the two left over ran
+           as a physical wind and a pause, so the rate selection that
+           came next was refused for a drive that was not ready. That is
+           what stopped the Windows driver dead while the DOS one, which
+           never sets the format size, went on working.
+         */
+        case QIC_SET_FORMAT_SEGMENTS:
+            return 3;
+
+        /*
+           The skip counts are wider than a nibble too, and fdd_tape.c
+           reads them as two and three. Left at one here on purpose:
+           unlike the format size, the traces do not settle it - decoded
+           either way, some of the bursts carry values too large to be
+           nibbles, which means the reconstruction is not to be trusted
+           there. The DOS host drives these ten times a session and
+           works as they stand, so they wait for evidence rather than
+           being changed to match.
+         */
         case QIC_SKIP_REVERSE:
         case QIC_SKIP_FORWARD:
-        case QIC_SELECT_RATE:
         case QIC_SKIP_EXTENDED_REVERSE:
         case QIC_SKIP_EXTENDED_FORWARD:
-        case QIC_SET_FORMAT_SEGMENTS:
+        case QIC_ALTERNATE_TIMEOUT:
+        case QIC_SEEK_HEAD_TO_TRACK:
+        case QIC_SOFT_SELECT:
+        case QIC_SELECT_RATE:
         case QIC_EXT_SELECT_RATE:
         case QIC_SEEK_TO_PARTITION:
             return 1;
@@ -656,11 +1379,31 @@ qic_param_count(int cmd)
     return 0;
 }
 
+/* Reassembles a multi-nibble parameter, which arrives low nibble first. */
+static int
+qic_param_value(const ditto_t *dev, int cmd)
+{
+    const int count = qic_param_count(cmd);
+    int       value = 0;
+
+    for (int i = count - 1; i >= 0; i--)
+        value = (value << 4) | (dev->qic_param[i] & 0x0f);
+
+    return value;
+}
+
 /* Runs a command that has all the parameters it needs. */
 static void
 qic_run_command(ditto_t *dev, int cmd)
 {
     dev->qic_last_cmd = (uint8_t) cmd;
+
+    /*
+       Soft reset is the way out of a latched error, so it is the one
+       command that has to go through whatever state the drive is in.
+     */
+    if ((cmd != QIC_SOFT_RESET) && (qic_check_command(dev, cmd) < 0))
+        return;
 
     switch (cmd) {
         case QIC_SOFT_RESET:
@@ -669,6 +1412,8 @@ qic_run_command(ditto_t *dev, int cmd)
                reset the host must read out before it will be believed.
              */
             dev->qic_status     = QIC_STATUS_READY;
+            dev->qic_mode_flags = QIC_MODE_PRIMARY;
+            dev->qic_running    = 0;
             dev->report_pending = 0;
             dev->qic_ack        = 0;
             if (dev->image_loaded)
@@ -720,15 +1465,105 @@ qic_run_command(ditto_t *dev, int cmd)
             break;
 
         case QIC_ENTER_PRIMARY_MODE:
-            dev->qic_mode = QIC_MODE_PRIMARY;
-            break;
-
         case QIC_ENTER_FORMAT_MODE:
-            dev->qic_mode = QIC_MODE_FORMAT;
+        case QIC_ENTER_VERIFY_MODE:
+            /* The three are exclusive: entering one leaves the others. */
+            dev->qic_mode_flags &= (uint8_t) ~QIC_MODE_EXCLUSIVE;
+            if (cmd == QIC_ENTER_FORMAT_MODE)
+                dev->qic_mode_flags |= QIC_MODE_FORMAT;
+            else if (cmd == QIC_ENTER_VERIFY_MODE)
+                dev->qic_mode_flags |= QIC_MODE_VERIFY;
+            else
+                dev->qic_mode_flags |= QIC_MODE_PRIMARY;
             break;
 
-        case QIC_ENTER_VERIFY_MODE:
-            dev->qic_mode = QIC_MODE_VERIFY;
+        case QIC_SEEK_LOAD_POINT:
+            /*
+               Winds to the load point: the first segment of the track,
+               which on an odd track is at the far physical end.
+             */
+            dev->qic_running = 0;
+            qic_seek_segment(dev, qic_track_start(dev));
+            break;
+
+        case QIC_LOGICAL_FORWARD:
+            /* Sets the tape streaming forward under the head. */
+            dev->qic_running = 1;
+            qic_update_status(dev);
+            break;
+
+        case QIC_PHYSICAL_REVERSE:
+        case QIC_PHYSICAL_FORWARD:
+            /*
+               A high speed wind to one physical end. Which end of the
+               track that is depends on which way the track runs.
+             */
+            dev->qic_running = 0;
+            if ((cmd == QIC_PHYSICAL_REVERSE) != (dev->qic_reverse != 0))
+                qic_seek_segment(dev, qic_track_start(dev));
+            else
+                qic_seek_segment(dev, qic_track_start(dev) +
+                                      qic_segments_per_track(dev) - 1);
+            break;
+
+        case QIC_STOP_TAPE:
+        case QIC_PAUSE:
+        case QIC_MICRO_STEP_PAUSE:
+            /*
+               Stopping means stopping: a wind already under way is
+               halted where it stands and the drive answers ready again
+               straight away, rather than seeing the wind out. A host
+               that stops a wind and is still told the drive is busy
+               gets its next command refused for the wrong reason.
+             */
+            dev->qic_running = 0;
+            if (dev->qic_busy) {
+                timer_disable(&dev->busy_timer);
+                dev->qic_busy = 0;
+            }
+            qic_update_status(dev);
+            break;
+
+        case QIC_SEEK_HEAD_TO_TRACK:
+            /*
+               A lateral move rather than a wind, so it settles quickly
+               whatever track it starts from. Odd tracks run backwards.
+             */
+            dev->qic_track   = dev->qic_param[0];
+            dev->qic_reverse = dev->qic_track & 1;
+            dev->qic_running = 0;
+            dev->qic_segment = qic_track_start(dev);
+            qic_begin_busy(dev, DITTO_HEAD_SEEK_US);
+            break;
+
+        case QIC_SKIP_REVERSE:
+        case QIC_SKIP_FORWARD:
+        case QIC_SKIP_EXTENDED_REVERSE:
+        case QIC_SKIP_EXTENDED_FORWARD: {
+            const int back  = (cmd == QIC_SKIP_REVERSE) ||
+                              (cmd == QIC_SKIP_EXTENDED_REVERSE);
+            const int scale = ((cmd == QIC_SKIP_EXTENDED_REVERSE) ||
+                               (cmd == QIC_SKIP_EXTENDED_FORWARD)) ? 32 : 1;
+            const int count = (qic_param_value(dev, cmd) + 1) * scale;
+
+            dev->qic_running = 0;
+            qic_seek_segment(dev, dev->qic_segment + (back ? -count : count));
+            break;
+        }
+
+        case QIC_WRITE_REFERENCE_BURST:
+            /*
+               Laying the reference burst down is a whole tape operation
+               and takes the longest of any command in the set.
+             */
+            dev->qic_running = 0;
+            dev->qic_segment = qic_track_start(dev);
+            qic_begin_busy(dev, DITTO_WIND_FULL_US);
+            break;
+
+        case QIC_CALIBRATE_TAPE_LENGTH:
+            dev->qic_running = 0;
+            qic_begin_busy(dev, DITTO_WIND_FULL_US);
             break;
 
         case QIC_SELECT_RATE:
@@ -781,7 +1616,20 @@ qic_run_command(ditto_t *dev, int cmd)
             break;
 
         case QIC_SET_FORMAT_SEGMENTS:
-            dev->qic_format_segments = dev->qic_param[0];
+            /* Three nibbles, low first, for a count of up to 4095. */
+            dev->qic_format_segments = (uint16_t) qic_param_value(dev, cmd);
+            break;
+
+        /*
+           Drive selection off the command channel rather than the
+           floppy controller's own select lines, for a drive sharing a
+           cable with something else. There is nothing to arbitrate
+           here, so the address is accepted and nothing moves - but the
+           commands have to be answered, because a host that is refused
+           takes it as the drive not being the one it is looking for.
+         */
+        case QIC_SOFT_SELECT:
+        case QIC_SOFT_DESELECT:
             break;
 
         default:
@@ -793,6 +1641,8 @@ qic_run_command(ditto_t *dev, int cmd)
             ditto_log("Ditto: QIC-117 command %i not implemented yet\n", cmd);
             break;
     }
+
+    qic_update_status(dev);
 }
 
 /*
@@ -994,6 +1844,146 @@ fdc_data_result(ditto_t *dev, uint8_t st0, uint8_t st1, uint8_t st2)
     fdc_begin_result(dev, 7);
 }
 
+/*
+   A data transfer between the cartridge and the bridge's buffer.
+
+   There is no host DMA controller anywhere in this - the bridge has its
+   own 128 KB of memory and the controller moves sectors straight into
+   it, at the address the host programmed as if it were a DMA base. The
+   host collects the data afterwards, over the wire, at its own pace. So
+   a transfer needs no clocking here at all: it is a copy, and then an
+   interrupt.
+ */
+static void
+fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
+{
+    const int cyl   = dev->fdc_cmd[2];
+    const int head  = dev->fdc_cmd[3];
+    const int first = dev->fdc_cmd[4];
+    const int last  = dev->fdc_cmd[6];
+    uint32_t  addr  = dev->dma_addr & DITTO_BUFFER_MASK;
+    uint32_t  left  = dev->dma_count + 1;
+    uint8_t   sec[FDD_TAPE_SECTOR_SIZE];
+    int       sector;
+    uint32_t  offset;
+
+    if (writing && (dev->readonly || (dev->fp == NULL))) {
+        fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
+                        FDC_ST1_WRITE_PROTECT, 0x00);
+        fdc_raise_irq(dev);
+        return;
+    }
+
+    if (!dev->image_loaded) {
+        fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
+                        FDC_ST1_MISSING_AM | FDC_ST1_NO_DATA, 0x00);
+        fdc_raise_irq(dev);
+        return;
+    }
+
+    for (sector = first; sector <= last; sector++) {
+        if (left < FDD_TAPE_SECTOR_SIZE)
+            break;
+
+        if (!ditto_sector_offset(dev, cyl, head, sector, &offset)) {
+            ditto_log("Ditto: C %i H %i R %i is not on this cartridge\n",
+                      cyl, head, sector);
+            fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
+                            FDC_ST1_NO_DATA, 0x00);
+            fdc_raise_irq(dev);
+            return;
+        }
+
+        if (writing) {
+            for (int i = 0; i < FDD_TAPE_SECTOR_SIZE; i++)
+                sec[i] = dev->buffer[(addr + (uint32_t) i) & DITTO_BUFFER_MASK];
+
+            if (!ditto_image_write(dev, offset, sec, sizeof(sec))) {
+                fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
+                                FDC_ST1_WRITE_PROTECT, 0x00);
+                fdc_raise_irq(dev);
+                return;
+            }
+        } else {
+            ditto_image_read(dev, offset, sec, sizeof(sec));
+
+            for (int i = 0; i < FDD_TAPE_SECTOR_SIZE; i++)
+                dev->buffer[(addr + (uint32_t) i) & DITTO_BUFFER_MASK] = sec[i];
+        }
+
+        addr += FDD_TAPE_SECTOR_SIZE;
+        left -= FDD_TAPE_SECTOR_SIZE;
+    }
+
+    /*
+       A normal end leaves the address one past the last sector moved,
+       which is how the host works out how much actually went across.
+     */
+    dev->fdc_res[0] = unit;
+    dev->fdc_res[1] = 0x00;
+    dev->fdc_res[2] = 0x00;
+    dev->fdc_res[3] = (uint8_t) cyl;
+    dev->fdc_res[4] = (uint8_t) head;
+    dev->fdc_res[5] = (uint8_t) sector;
+    dev->fdc_res[6] = dev->fdc_cmd[5];
+    fdc_begin_result(dev, 7);
+
+    fdc_raise_irq(dev);
+}
+
+/*
+   Formatting. The buffer holds four bytes of sector address for each
+   sector to be laid down, and every one of them gets written out full of
+   the filler byte.
+ */
+static void
+fdc_format(ditto_t *dev, uint8_t unit)
+{
+    const int count  = dev->fdc_cmd[3];
+    const uint8_t fill = dev->fdc_cmd[5];
+    uint32_t  addr   = dev->dma_addr & DITTO_BUFFER_MASK;
+    uint8_t   sec[FDD_TAPE_SECTOR_SIZE];
+    uint32_t  offset;
+
+    if (dev->readonly || (dev->fp == NULL)) {
+        fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
+                        FDC_ST1_WRITE_PROTECT, 0x00);
+        fdc_raise_irq(dev);
+        return;
+    }
+
+    memset(sec, fill, sizeof(sec));
+
+    for (int i = 0; i < count; i++) {
+        const int cyl    = dev->buffer[(addr + 0) & DITTO_BUFFER_MASK];
+        const int head   = dev->buffer[(addr + 1) & DITTO_BUFFER_MASK];
+        const int sector = dev->buffer[(addr + 2) & DITTO_BUFFER_MASK];
+
+        addr += 4;
+
+        if (!ditto_sector_offset(dev, cyl, head, sector, &offset))
+            continue;
+
+        if (!ditto_image_write(dev, offset, sec, sizeof(sec))) {
+            fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
+                            FDC_ST1_WRITE_PROTECT, 0x00);
+            fdc_raise_irq(dev);
+            return;
+        }
+    }
+
+    dev->fdc_res[0] = unit;
+    dev->fdc_res[1] = 0x00;
+    dev->fdc_res[2] = 0x00;
+    dev->fdc_res[3] = 0x00;
+    dev->fdc_res[4] = 0x00;
+    dev->fdc_res[5] = 0x00;
+    dev->fdc_res[6] = dev->fdc_cmd[2];
+    fdc_begin_result(dev, 7);
+
+    fdc_raise_irq(dev);
+}
+
 static void
 fdc_execute(ditto_t *dev)
 {
@@ -1115,20 +2105,26 @@ fdc_execute(ditto_t *dev)
 
         default:
             switch (cmd & 0x1f) {
-                case 0x02:
-                case 0x05: case 0x09:
                 case 0x06: case 0x0c:
+                    fdc_transfer(dev, unit, 0);
+                    break;
+
+                case 0x05: case 0x09:
+                    fdc_transfer(dev, unit, 1);
+                    break;
+
+                case 0x0d:
+                    fdc_format(dev, unit);
+                    break;
+
+                case 0x02:
                 case 0x11: case 0x16:
                 case 0x0a:
-                case 0x0d:
                     /*
-                       The data commands. Moving the data between the
-                       cartridge and the bridge's buffer is milestone 8;
-                       until then they end the only honest way they can,
-                       which is by reporting that there was nothing there
-                       to read or write.
+                       Read a whole track, compare, and read an address.
+                       Nothing the host does on this drive needs them.
                      */
-                    ditto_log("Ditto: FDC data command %02X, no medium yet\n", cmd);
+                    ditto_log("Ditto: FDC command %02X not implemented\n", cmd);
                     fdc_data_result(dev,
                                     (uint8_t) (FDC_ST0_ABNORMAL | unit),
                                     FDC_ST1_MISSING_AM | FDC_ST1_NO_DATA,
@@ -1328,6 +2324,8 @@ backpack_read_reg(ditto_t *dev, int reg)
             ret = BP_STAT_ALWAYS;
             if (dev->irq_pending && (dev->irq_ctrl & BP_IRQ_SOFTEN))
                 ret |= BP_STAT_IRQ;
+            if (dev->ecc_error)
+                ret |= BP_STAT_ECC_ERROR;
             break;
 
         case BP_REG_IRQ:
@@ -1338,13 +2336,19 @@ backpack_read_reg(ditto_t *dev, int reg)
 
         case BP_REG_TEST:
             /*
-               The protocol self test. The host seeds this register and
-               then reads it several hundred times over, insisting that
-               every read comes back one higher than the last - that is
-               how it satisfies itself that the wire protocol and its
-               timing are sound.
+               The protocol self test. Writing this register restarts the
+               count, whatever value is written, and every read hands
+               back the next number: 1, 2, 3 and so on. Hosts read it
+               back dozens or hundreds of times to satisfy themselves
+               that the wire protocol and its timing are sound.
+
+               The absolute values matter. One host only checks that each
+               read is one more than the last and would be content with
+               any starting point, but another writes 0x7f and then
+               requires exactly 1 through 16 - so the count cannot begin
+               from whatever was written.
              */
-            ret = dev->test_ctr++;
+            ret = ++dev->test_ctr;
             break;
 
         case BP_REG_CRC:
@@ -1362,10 +2366,11 @@ backpack_read_reg(ditto_t *dev, int reg)
                them, which is all the host ever needs of them.
              */
             ret = dev->reg[reg & 0xff];
-            ditto_log("Ditto: read of unhandled register %02X[%i] -> %02X\n",
-                      reg, idx, ret);
+            ditto_log("Ditto: ?? read of unhandled register %02X\n", reg);
             break;
     }
+
+    ditto_log("Ditto:    RR %02X[%i] -> %02X\n", reg, idx, ret);
 
     return ret;
 }
@@ -1387,6 +2392,8 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
     const int idx = dev->xfer_idx++;
 
     dev->reg[reg & 0xff] = val;
+
+    ditto_log("Ditto:    WR %02X[%i] <- %02X\n", reg, idx, val);
 
     if ((reg >= BP_REG_FDC) && (reg < (BP_REG_FDC + FDC_REG_COUNT))) {
         fdc_write_reg(dev, reg - BP_REG_FDC, val);
@@ -1438,7 +2445,8 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
             break;
 
         case BP_REG_TEST:
-            dev->test_ctr = val;
+            /* Any write restarts the count; the value itself is ignored. */
+            dev->test_ctr = 0;
             break;
 
         case BP_REG_PROTO:
@@ -1472,8 +2480,18 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
             break;
 
         case BP_REG_ECC:
+            /*
+               Two bytes: what to do and how big the region is, then
+               where it starts. The second one sets it going.
+             */
             if (idx < 2)
                 dev->ecc_ctrl[idx] = val;
+            if (idx == 1) {
+                if (dev->ecc_ctrl[0] & BP_ECC_GEN)
+                    ditto_ecc_generate(dev);
+                else if (dev->ecc_ctrl[0] & BP_ECC_CHECK)
+                    ditto_ecc_check(dev);
+            }
             break;
 
         case BP_REG_MEMORY:
@@ -1488,8 +2506,7 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
             break;
 
         default:
-            ditto_log("Ditto: write of unhandled register %02X[%i] <- %02X\n",
-                      reg, idx, val);
+            ditto_log("Ditto: ?? write of unhandled register %02X\n", reg);
             break;
     }
 }
@@ -1511,12 +2528,49 @@ ditto_encode_nibble(uint8_t val)
     return (uint8_t) (((val & 0x07) << 3) | ((val & 0x08) << 4));
 }
 
+static uint8_t
+ditto_connect_response(const ditto_t *dev)
+{
+    return (uint8_t) ((dev->proto >= DITTO_PROTO_EPP8)
+                          ? (LPT_STAT_ACK | LPT_STAT_BUSY)
+                          : LPT_STAT_ACK);
+}
+
+/*
+   The pod's answer to the address probe that follows every knock: its
+   own unit number, in the three status bits the host can see, and the
+   complement of it when AUTOFD is low.
+
+   Both halves are needed. The host reads the status twice with AUTOFD
+   toggled between, and requires the two readings to be complements of
+   one another across those three bits - a line stuck high or low, or a
+   port with nothing on it, cannot produce that. Only then does it look
+   at the reading itself and check it names the unit it knocked for.
+
+   The address rides alongside the protocol family answer rather than
+   replacing it, because the other host driver reads the same status at
+   the same moment and wants only that. The two fit: one looks at ACK
+   and BUSY and ignores the address bits, the other looks at the address
+   bits and reads BUSY as which framing to use. Unit zero - the only one
+   a single pod on a chain is ever asked for - leaves both readings
+   exactly what the first driver already expected.
+ */
+static uint8_t
+ditto_ident_response(const ditto_t *dev)
+{
+    const uint8_t id = (dev->ctrl & LPT_CTRL_AUTOFD)
+                           ? dev->unit
+                           : (uint8_t) ~dev->unit;
+
+    return (uint8_t) (ditto_connect_response(dev) | ((id & 0x07) << 3));
+}
+
 static void
 ditto_connect(ditto_t *dev)
 {
     dev->connected   = 1;
-    dev->knock_armed = 0;
     dev->knock       = 0;
+    dev->ident       = 1;
     dev->rd_high     = 0;
     dev->rd_out      = 0x00;
 
@@ -1534,14 +2588,8 @@ ditto_connect(ditto_t *dev)
     /* Connecting takes the interrupt line down; the host polls instead. */
     ditto_update_irq(dev, 0);
 
-    /*
-       The host now reads the status register to find out which family of
-       protocols the bridge is currently programmed for, and refuses to
-       go on until it agrees with its own idea. ACK alone means a non-EPP
-       mode, ACK together with BUSY means EPP. It reads the answer once,
-       between two toggles of AUTOFD.
-     */
-    dev->connect_resp = 2;
+    /* The bridge answers with which family of protocols it is set for. */
+    dev->rd_out = ditto_connect_response(dev);
 
     ditto_log("Ditto: connected in %s mode\n", ditto_proto_name[dev->proto]);
 }
@@ -1553,9 +2601,9 @@ ditto_disconnect(ditto_t *dev)
         return;
 
     dev->connected    = 0;
-    dev->knock_armed  = 0;
+
     dev->knock        = 0;
-    dev->connect_resp = 0;
+    dev->ident        = 0;
     dev->latching     = 0;
     dev->rd_out       = 0x00;
     dev->mem_burst    = 0;
@@ -1660,13 +2708,51 @@ ditto_epp_request_read(uint8_t is_addr, void *priv)
         lpt_write_to_dat(dev->lpt, val);
 }
 
+/*
+   A one line summary of where the conversation has got to, appended to
+   every traced access. Reading a trace of a driver that will not talk to
+   us, the question is always the same: did it knock, did the knock take,
+   and which register did it think it was addressing.
+ */
+static const char *
+ditto_state(const ditto_t *dev)
+{
+    static char buf[64];
+
+    snprintf(buf, sizeof(buf), "%s reg=%02X knock=%d%s",
+             dev->connected ? "CONN" : "----", dev->cur_reg, dev->knock,
+             dev->latching ? " latch" : "");
+
+    return buf;
+}
+
 static void
 ditto_write_data(uint8_t val, void *priv)
 {
     ditto_t      *dev = (ditto_t *) priv;
     const uint8_t old = dev->dat;
 
+    ditto_log("Ditto: W0 %02X            [%s]\n", val, ditto_state(dev));
+
     dev->dat = val;
+
+    /*
+       Putting an address on the data lines is what starts a knock, so
+       any toggles counted before it were not part of one.
+
+       Without this the setup write that precedes the address gets
+       counted whenever it happens to move SELECT - which it does from
+       most starting states - and the knock then completes an edge early,
+       on the wrong half of the toggle. The link comes up, and the very
+       next edge is read as the host finishing with us instead of as the
+       first half of the address probe.
+
+       Counting from a data write is safe in a way that arming on one is
+       not: the port calls us for every write, whether or not the value
+       changed, so a host that writes an address equal to what was
+       already there still starts a knock here.
+     */
+    dev->knock = 0;
 
     /*
        Streaming into the buffer, a byte is committed by whichever of the
@@ -1705,8 +2791,12 @@ ditto_write_ctrl(uint8_t val, void *priv)
 {
     ditto_t      *dev   = (ditto_t *) priv;
     const uint8_t old   = dev->ctrl;
-    const uint8_t chg   = (uint8_t) ((old ^ val) & LPT_CTRL_LINES);
-    const uint8_t lines = (uint8_t) (val & LPT_CTRL_LINES);
+    const uint8_t chg       = (uint8_t) ((old ^ val) & LPT_CTRL_LINES);
+    const uint8_t lines     = (uint8_t) (val & LPT_CTRL_LINES);
+    const uint8_t old_lines = (uint8_t) (old & LPT_CTRL_LINES);
+
+
+    ditto_log("Ditto: W2 %02X (was %02X)  [%s]\n", val, old, ditto_state(dev));
 
     dev->ctrl = val;
 
@@ -1761,52 +2851,97 @@ ditto_write_ctrl(uint8_t val, void *priv)
     }
 
     /*
-       The connect knock. An absolute write of INIT on its own is the
-       host squaring up, and the three SELECT edges that follow latch the
-       link up. The count guards against re-arming part way through: the
-       second of those three edges also lands on INIT alone, and reading
-       that as a fresh start would leave the bridge one edge short.
+       Letting go: the host drops INIT leaving AUTOFD alone, and then
+       raises INIT and SELECT together. It is that pair of steps taken in
+       order that ends the link - neither half means anything by itself.
+
+       Both halves look ordinary on their own, which is the trap. SELECT
+       rising cannot be the signal: one host driver never touches SELECT
+       once the link is up, but another toggles it throughout as a matter
+       of course, and reading that as a disconnect drops the link within
+       a few writes of every connect. Nor can the AUTOFD-alone state be
+       the signal: the first driver's nibble reads pass through it twice
+       for every byte they fetch. Only the transition between them is
+       unambiguous, and neither driver makes it by accident.
      */
-    if (!dev->connected && (lines == LPT_CTRL_INIT) && (dev->knock == 0)) {
-        dev->knock_armed = 1;
-        dev->saved_ctrl  = old;
-        dev->saved_dat   = dev->dat;
+    if (dev->connected && (old_lines == LPT_CTRL_AUTOFD) &&
+        (lines & LPT_CTRL_SELECT)) {
+        ditto_disconnect(dev);
         return;
     }
 
-    if (chg & LPT_CTRL_SELECT) {
-        /*
-           Once the link is up the host drives nothing but STROBE,
-           AUTOFD, INIT and DIRECTION - SELECT is left alone for as long
-           as the conversation lasts. So SELECT rising is the host
-           letting go: it ends both the ordinary disconnect, which raises
-           it together with INIT, and the state machine reset that
-           follows a protocol query.
+    /*
+       The address probe that closes the knock. The host has the link but
+       has not accepted it yet: it toggles AUTOFD once and reads the
+       status either side of the toggle, and the pod answers with its own
+       address and then the complement of it. Toggling SELECT afterwards
+       is the host satisfied, and ordinary register traffic begins.
 
-           This has to be a signal the host cannot give by accident, and
-           a plain value match is not one: the control register passes
-           through AUTOFD-alone in the ordinary course of addressing
-           registers, so reading that as a disconnect drops the link in
-           the middle of a transfer.
-         */
-        if (dev->connected) {
-            if (lines & LPT_CTRL_SELECT)
-                ditto_disconnect(dev);
-        } else if (dev->knock_armed && (++dev->knock >= 3))
-            ditto_connect(dev);
+       Nothing else may look at these two AUTOFD edges. Once the link is
+       up an AUTOFD edge means "latch the register number off the data
+       lines", and the data lines are still carrying the unit number from
+       the knock - so without this the probe silently addresses register
+       zero and the host reads a nibble of it where it expected an
+       address, twice, and concludes the port is empty. That is precisely
+       what both host drivers were doing: connecting, finding no pod, and
+       giving up without ever touching a register.
+     */
+    if (dev->ident) {
+        if (chg & LPT_CTRL_SELECT)
+            dev->ident = 0;
+        return;
+    }
+
+    /*
+       The connect knock: three toggles of SELECT while the other three
+       lines hold INIT and nothing else, with the unit address sitting on
+       the data lines.
+
+       What makes an edge count is the state of the other lines, not some
+       earlier write that "armed" it. A host is entitled to arrive in the
+       knocking state without writing anything - if the control register
+       already holds INIT then its write of INIT moves nothing, and there
+       is no event for an arming rule to catch, so it misses the knock
+       altogether. Reading it as a level also throws out the stray
+       counts: everything either host does between knocks passes through
+       states that are not this one, and each of those clears the count.
+     */
+    if ((lines & ~LPT_CTRL_SELECT) != LPT_CTRL_INIT)
+        dev->knock = 0;
+    else if (chg & LPT_CTRL_SELECT) {
+        if (++dev->knock >= 3) {
+            dev->knock = 0;
+
+            /*
+               The knock is addressed. The host puts a unit number on the
+               data lines just before the toggles, and only the pod that
+               answers to it may take the link - these things chain, so
+               several may be listening.
+
+               Answering to every address looks harmless and is not. The
+               host decides a unit is present by the status changing
+               between a reading taken before the knock and one taken
+               after, so a pod that answers to all of them presents the
+               same thing both times and is found at none of them. That
+               is exactly what happened: 260 knocks, every one accepted,
+               every unit reported empty.
+
+               A knock for somebody else changes nothing here, which is
+               what leaves the reading before and after identical and
+               tells the host that address is empty.
+             */
+            if (dev->dat == dev->unit)
+                ditto_connect(dev);
+            else
+                ditto_log("Ditto: knock for unit %02X, not ours (%02X)\n",
+                          dev->dat, dev->unit);
+        }
 
         return;
     }
 
     if (!dev->connected)
         return;
-
-    /* The connect response is read out between two toggles of AUTOFD. */
-    if (dev->connect_resp > 0) {
-        if (chg & LPT_CTRL_AUTOFD)
-            dev->connect_resp--;
-        return;
-    }
 
     /*
        With the link up, three edges carry everything: AUTOFD latches the
@@ -1828,6 +2963,17 @@ ditto_write_ctrl(uint8_t val, void *priv)
         dev->xfer_idx  = 0;
         dev->rd_high   = 0;
         dev->mem_burst = 0;
+
+        /*
+           Addressing a register also puts the bridge's own answer back
+           on the status lines. That is what the host reads straight
+           after a connect - and it has to be a level the bridge holds,
+           not a one-shot: a host that reads the status without clocking
+           anything, as one does thousands of times over while it waits,
+           must keep seeing the same answer rather than have it expire
+           under it.
+         */
+        dev->rd_out = ditto_connect_response(dev);
         return;
     }
 
@@ -1839,22 +2985,49 @@ ditto_write_ctrl(uint8_t val, void *priv)
     }
 }
 
+/*
+   The host reading the data lines. The bridge only drives them in byte
+   and EPP modes, so there is usually nothing to do here beyond noting
+   that it happened - but that half of the conversation is invisible
+   otherwise, and a driver that reads data where it was expected to read
+   status looks, from this side, like a driver doing nothing at all.
+ */
+static void
+ditto_read_data(void *priv)
+{
+    const ditto_t *dev = (const ditto_t *) priv;
+
+    ditto_log("Ditto: R0 (dir %s)      [%s]\n",
+              (dev->ctrl & LPT_CTRL_DIR) ? "in" : "out", ditto_state(dev));
+}
+
 static uint8_t
 ditto_read_status(void *priv)
 {
-    const ditto_t *dev = (const ditto_t *) priv;
-    uint8_t        ret;
+    ditto_t *dev = (ditto_t *) priv;
+    uint8_t  ret;
 
-    if (dev->connect_resp > 0)
-        ret = (dev->proto >= DITTO_PROTO_EPP8) ? (LPT_STAT_ACK | LPT_STAT_BUSY)
-                                               : LPT_STAT_ACK;
+    if (dev->connected && dev->ident)
+        ret = ditto_ident_response(dev);
     else if (dev->connected)
         ret = dev->rd_out;
     else
         /* Not connected: the bridge leaves the status lines alone. */
-        ret = 0x00;
+        ret = LPT_STAT_IDLE;
 
-    return ret & LPT_STAT_MASK;
+    ret &= LPT_STAT_MASK;
+
+    /*
+       Status reads while idle are how a host spins waiting for something,
+       so only trace them when the answer changes - otherwise a poll loop
+       buries everything else.
+     */
+    if ((ret != dev->last_status) || dev->connected) {
+        ditto_log("Ditto: R1 -> %02X          [%s]\n", ret, ditto_state(dev));
+        dev->last_status = ret;
+    }
+
+    return ret;
 }
 
 /* --------------------------------------------------------------------- */
@@ -1875,6 +3048,7 @@ ditto_init(UNUSED(const device_t *info))
         dev->max_proto = DITTO_PROTO_SPP;
 
     dev->readonly = device_get_config_int("writeprot");
+    dev->unit     = (uint8_t) device_get_config_int("unit");
 
     fn = device_get_config_string("image");
     if (fn != NULL)
@@ -1894,6 +3068,9 @@ ditto_init(UNUSED(const device_t *info))
     /* The controller comes up out of reset, as the host expects to find it. */
     dev->fdc_dor = FDC_DOR_RESET_NOT;
 
+    ditto_ecc_build_table(dev->ecc_mul);
+    ditto_image_load(dev, dev->image_fn);
+
     /*
        The drive's identity, and the state it powers up in. A cartridge
        that was already in the drive is not a new one, but the power on
@@ -1904,8 +3081,10 @@ ditto_init(UNUSED(const device_t *info))
     dev->qic_config      = QIC_CONFIG_80 | QIC_CONFIG_LONG;
     dev->qic_tape_status = QIC_TAPE_QIC3020 | QIC_TAPE_FLEX | QIC_TAPE_WIDE;
     dev->qic_ext_rate    = 2;
-    dev->qic_mode        = QIC_MODE_PRIMARY;
+    dev->qic_mode_flags  = QIC_MODE_PRIMARY;
     dev->qic_status      = QIC_STATUS_READY;
+
+    timer_add(&dev->busy_timer, qic_busy_done, dev, 0);
     if (dev->image_loaded)
         dev->qic_status |= QIC_STATUS_CARTRIDGE_PRESENT;
     if (dev->readonly)
@@ -1923,6 +3102,8 @@ ditto_init(UNUSED(const device_t *info))
         return NULL;
     }
 
+    lpt_set_read_data(device_get_instance() - 1, ditto_read_data);
+
     ditto_log("Ditto: attached, protocol ceiling %s, image \"%s\"%s\n",
               ditto_proto_name[dev->max_proto], dev->image_fn,
               dev->readonly ? " (write protected)" : "");
@@ -1935,6 +3116,8 @@ ditto_close(void *priv)
 {
     ditto_t *dev = (ditto_t *) priv;
 
+    timer_disable(&dev->busy_timer);
+    ditto_image_close(dev);
     free(dev->buffer);
     free(dev);
 }
@@ -1951,6 +3134,24 @@ static const device_config_t ditto_config[] = {
         .default_int    = 0,
         .file_filter    = DITTO_IMAGE_FILTER,
         .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        /*
+           Which address this pod answers a knock at. These chain, so the
+           host puts a unit number on the data lines and only the one it
+           names may reply. Zero unless the drive's own jumpers say
+           otherwise, and the host works through the rest looking for
+           anything else on the cable.
+         */
+        .name           = "unit",
+        .description    = "Unit address",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { .min = 0, .max = 7, .step = 1 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },

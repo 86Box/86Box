@@ -385,11 +385,19 @@ lpt_attach_ex(int     port,
     lpt_devs[port].strobe           = strobe;
     lpt_devs[port].read_status      = read_status;
     lpt_devs[port].read_ctrl        = read_ctrl;
+    lpt_devs[port].read_data        = NULL;
     lpt_devs[port].epp_write_data   = epp_write_data;
     lpt_devs[port].epp_request_read = epp_request_read;
     lpt_devs[port].priv             = priv;
 
     return lpt_ports[port].lpt;
+}
+
+void
+lpt_set_read_data(int port, void (*read_data)(void *priv))
+{
+    if ((port >= 0) && (port < PARALLEL_MAX))
+        lpt_devs[port].read_data = read_data;
 }
 
 void
@@ -843,6 +851,8 @@ lpt_read(const uint16_t port, void *priv)
                     ret = (lpt_get_ctrl_raw(dev) & 0x20) ? dev->in_dat : dev->dat;
             } else {
                 /* DTR */
+                if (dev->dt && dev->dt->read_data && dev->dt->priv)
+                    dev->dt->read_data(dev->dt->priv);
                 ret = (lpt_get_ctrl_raw(dev) & 0x20) ? dev->in_dat : dev->dat;
             }
             break;
