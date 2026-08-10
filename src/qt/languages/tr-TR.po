@@ -843,6 +843,9 @@ msgstr "Ağ"
 msgid "Ports (COM & LPT)"
 msgstr "Bağlantı noktaları (COM & LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Bağlantı noktaları"
 
@@ -2293,6 +2296,9 @@ msgstr "Seri Numarası"
 
 msgid "Host ID"
 msgstr "Ana sistem kimliği"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "FDC Adresi"

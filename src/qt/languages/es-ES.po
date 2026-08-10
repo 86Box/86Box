@@ -840,6 +840,9 @@ msgstr "Red"
 msgid "Ports (COM & LPT)"
 msgstr "Puertos (COM y LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Puertos"
 
@@ -2241,6 +2244,9 @@ msgstr "Número de serie"
 
 msgid "Host ID"
 msgstr "ID de anfitrión"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Dirección del FDC"

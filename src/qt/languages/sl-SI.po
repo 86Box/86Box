@@ -842,6 +842,9 @@ msgstr "Omrežje"
 msgid "Ports (COM & LPT)"
 msgstr "Vrata (COM & LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Vrata"
 
@@ -2252,6 +2255,9 @@ msgstr "Serijska številka"
 
 msgid "Host ID"
 msgstr "ID gostitelja"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Naslov FDC"
