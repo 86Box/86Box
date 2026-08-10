@@ -1704,7 +1704,6 @@ VulkanWindowRenderer::event(QEvent *event)
         }
     }
 
-process:
     bool res = false;
     if (!eventDelegate(event, res))
         return QWindow::event(event);
