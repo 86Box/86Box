@@ -153,6 +153,8 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     , renderTimer(new QTimer(this))
     , osdRenderTimer(new QTimer(this))
 {
+    // Force a cleanup of ImGui OSD.
+    qt_osd_shutdown();
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
     connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
         if (video_framerate == -1 && dopause && qt_osd_is_visible())
@@ -1495,6 +1497,30 @@ VulkanWindowRenderer::initialize()
 
                 imagePitch = layout.rowPitch;
                 mappedPtr  = (uint8_t *) allocatedInfo.pMappedData + layout.offset;
+                init_info = {};
+                init_info.ApiVersion = VK_VERSION_1_0;
+                init_info.Instance = instance.vkInstance();
+                init_info.PhysicalDevice = phys_device;
+                init_info.Device = logi_device;
+                init_info.QueueFamily = gfx_queue;
+                init_info.Queue = gfx_queue_o;
+
+                init_info.DescriptorPoolSize = 16;
+                init_info.MinImageCount = 2;
+                init_info.ImageCount = 64;
+
+                init_info.PipelineInfoMain.RenderPass = 0;
+                init_info.PipelineInfoMain.Subpass = 0;
+                init_info.UseDynamicRendering = 1;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo = {};
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pNext = nullptr;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorAttachmentFormat;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.viewMask = 0;
+
+                qt_osd_start_vulkan(vk_function_ret_callback, &instance, &init_info);
+
                 isInitialized = true;
                 isFinalized = false;
                 recreateSwapchain();
@@ -1573,30 +1599,6 @@ VulkanWindowRenderer::initialize()
 #ifndef LIBRASHADER_STATIC
 skip_shaders:
 #endif
-                init_info = {};
-                init_info.ApiVersion = VK_VERSION_1_0;
-                init_info.Instance = instance.vkInstance();
-                init_info.PhysicalDevice = phys_device;
-                init_info.Device = logi_device;
-                init_info.QueueFamily = gfx_queue;
-                init_info.Queue = gfx_queue_o;
-
-                init_info.DescriptorPoolSize = 16;
-                init_info.MinImageCount = 2;
-                init_info.ImageCount = 64;
-
-                init_info.PipelineInfoMain.RenderPass = 0;
-                init_info.PipelineInfoMain.Subpass = 0;
-                init_info.UseDynamicRendering = 1;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo = {};
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pNext = nullptr;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorAttachmentFormat;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.viewMask = 0;
-
-                qt_osd_start_vulkan(vk_function_ret_callback, &instance, &init_info);
-
                 if (video_framerate != -1) {
                     renderTimer->setTimerType(Qt::PreciseTimer);
                     renderTimer->start(ceilf(1000.f / (float) video_framerate));
@@ -1656,7 +1658,7 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
     QWindow::resizeEvent(event);
     onResize(width(), height());
 
-    if (isInitialized) {
+    if (isInitialized && !isFinalized) {
         try {
             recreateSwapchain();
             if (video_framerate == -1)
@@ -1737,7 +1739,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
             main_window->reloadAllRenderers();
         }
     }
-    if (isExposed() && video_framerate == -1) {
+    if (isExposed() && video_framerate == -1 && !isFinalized) {
         // requestUpdate();
         render();
     }

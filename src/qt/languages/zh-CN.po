@@ -841,6 +841,9 @@ msgstr "网络"
 msgid "Ports (COM & LPT)"
 msgstr "端口 (COM 和 LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "端口"
 
@@ -2240,6 +2243,9 @@ msgstr "序列号"
 
 msgid "Host ID"
 msgstr "主机 ID"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "FDC 地址"

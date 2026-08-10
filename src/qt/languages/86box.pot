@@ -834,6 +834,9 @@ msgstr ""
 msgid "Ports (COM & LPT)"
 msgstr ""
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr ""
 
@@ -2223,6 +2226,9 @@ msgid "Serial Number"
 msgstr ""
 
 msgid "Host ID"
+msgstr ""
+
+msgid "Host"
 msgstr ""
 
 msgid "FDC Address"

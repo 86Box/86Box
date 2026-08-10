@@ -840,6 +840,9 @@ msgstr "Δίκτυο"
 msgid "Ports (COM & LPT)"
 msgstr "Θύρες (COM & LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Θύρες"
 
@@ -2273,6 +2276,9 @@ msgstr "Σειριακός Αριθμός"
 
 msgid "Host ID"
 msgstr "ID οικοδεσπότη"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Διεύθυνση FDC"

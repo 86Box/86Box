@@ -841,6 +841,9 @@ msgstr "Rede"
 msgid "Ports (COM & LPT)"
 msgstr "Portas (COM & LPT)"
 
+msgid "Port"
+msgstr "Porta"
+
 msgid "Ports"
 msgstr "Portas"
 
@@ -2243,6 +2246,9 @@ msgstr "Número de série"
 msgid "Host ID"
 msgstr "ID do hospedeiro"
 
+msgid "Host"
+msgstr "Hospedeiro"
+
 msgid "FDC Address"
 msgstr "Endereço da FDC"
 
@@ -3435,3 +3441,4 @@ msgstr "938 (Chinês tradicional)"
 
 msgid "Sample rate:"
 msgstr "Taxa de amostragem:"
+
