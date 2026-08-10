@@ -191,7 +191,10 @@ typedef struct ditto_t {
     uint8_t  deferred_proto_bits; /* register 0x24, applied on next connect */
     int      deferred_valid;
     uint16_t crc;         /* register 0x22 */
-    uint32_t mem_addr;    /* register 0x28 */
+    uint32_t mem_addr;    /* register 0x28, and the FIFO's own pointer */
+    uint8_t *buffer;      /* the 128 KB the FIFO reads and writes */
+    int      mem_write_armed; /* register 0x04 bit 7 */
+    int      mem_burst;   /* a burst write into the buffer has been primed */
     uint32_t dma_addr;    /* register 0x2c */
     uint32_t dma_count;   /* register 0x30, held as written - one less */
     uint8_t  ecc_ctrl[2]; /* register 0x34 */
@@ -240,6 +243,72 @@ ditto_decode_proto_bits(uint8_t bits)
 /* --------------------------------------------------------------------- */
 /* Layer 2: the BackPack register file                                   */
 /* --------------------------------------------------------------------- */
+
+/*
+   CRC-16-CCITT, polynomial 0x1021, seeded with all ones and shifting
+   left - the bridge multiplies by x towards the high end, so this is the
+   MSB-first form. Every byte that passes through the buffer FIFO goes
+   through here, in either direction.
+ */
+static uint16_t
+ditto_crc_byte(uint16_t crc, uint8_t val)
+{
+    crc ^= (uint16_t) val << 8;
+
+    for (uint8_t i = 0; i < 8; i++)
+        crc = (crc & 0x8000) ? (uint16_t) ((crc << 1) ^ 0x1021)
+                             : (uint16_t) (crc << 1);
+
+    return crc;
+}
+
+/*
+   The buffer FIFO. One address register serves both directions and both
+   advance it, wrapping at the top of the 128 KB.
+
+   Reading here is also how the host runs a "check" pass: it frames one
+   exactly as it frames a read and simply throws the nibbles away, so
+   from this side the two are the same operation - the pointer moves and
+   the CRC turns over either way, which is precisely what the check is
+   for.
+ */
+static uint8_t
+ditto_mem_read_byte(ditto_t *dev)
+{
+    const uint8_t ret = dev->buffer[dev->mem_addr & DITTO_BUFFER_MASK];
+
+    dev->mem_addr = (dev->mem_addr + 1) & DITTO_BUFFER_MASK;
+    dev->crc      = ditto_crc_byte(dev->crc, ret);
+
+    return ret;
+}
+
+/*
+   Whether the data lines are currently being streamed into the buffer.
+
+   This is a level, not an edge: the host arms the write in register
+   0x04, addresses the FIFO, and raises STROBE - but STROBE is usually
+   already up, left there by the very register write that armed it, so
+   there is no edge to catch. What ends the burst is STROBE going back
+   down, which the host does before addressing anything else. Without
+   that the two data writes that address the next register would be
+   taken for buffer data.
+ */
+static int
+ditto_mem_burst_active(const ditto_t *dev)
+{
+    return dev->connected && (dev->cur_reg == BP_REG_MEMORY) &&
+           dev->mem_write_armed && (dev->ctrl & LPT_CTRL_STROBE);
+}
+
+static void
+ditto_mem_write_byte(ditto_t *dev, uint8_t val)
+{
+    dev->buffer[dev->mem_addr & DITTO_BUFFER_MASK] = val;
+
+    dev->mem_addr = (dev->mem_addr + 1) & DITTO_BUFFER_MASK;
+    dev->crc      = ditto_crc_byte(dev->crc, val);
+}
 
 /*
    Raises or drops the interrupt the bridge presents to the host.
@@ -313,6 +382,10 @@ backpack_read_reg(ditto_t *dev, int reg)
                              : (uint8_t) (dev->crc >> 8);
             break;
 
+        case BP_REG_MEMORY:
+            ret = ditto_mem_read_byte(dev);
+            break;
+
         default:
             /*
                The write-only registers read back what was last put in
@@ -352,8 +425,9 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
                the connection in progress - unlike register 0x24, which
                is remembered for the next one.
              */
-            dev->proto_bits = val;
-            dev->proto      = ditto_decode_proto_bits(val);
+            dev->proto_bits      = val;
+            dev->proto           = ditto_decode_proto_bits(val);
+            dev->mem_write_armed = !!(val & BP_CTRL_MEM_WRITE);
 
             /*
                The host works out which interrupt line the bridge is on
@@ -425,6 +499,11 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
         case BP_REG_ECC:
             if (idx < 2)
                 dev->ecc_ctrl[idx] = val;
+            break;
+
+        case BP_REG_MEMORY:
+            /* An INIT toggle is the host committing the data lines. */
+            ditto_mem_write_byte(dev, val);
             break;
 
         /* Stored and read back, but of no consequence to us. */
@@ -546,9 +625,31 @@ ditto_advance_read(ditto_t *dev)
 static void
 ditto_write_data(uint8_t val, void *priv)
 {
-    ditto_t *dev = (ditto_t *) priv;
+    ditto_t      *dev = (ditto_t *) priv;
+    const uint8_t old = dev->dat;
 
     dev->dat = val;
+
+    /*
+       Streaming into the buffer, a byte is committed by whichever of the
+       two things the host does to signal it: a toggle of INIT, or a
+       change of the data lines. The host picks between them because it
+       cannot put the same value on the lines twice and have the bridge
+       notice - so a byte equal to the one before it is sent as a bare
+       INIT toggle with no data write at all.
+
+       That is why the two paths both have to commit. Sampling the data
+       lines only on toggles quietly swallows runs of repeated bytes;
+       committing on every data write instead duplicates the first byte,
+       since the write that opens the burst is only loading the lines for
+       the toggle that follows it.
+     */
+    if (!ditto_mem_burst_active(dev))
+        dev->mem_burst = 0;
+    else if (!dev->mem_burst)
+        dev->mem_burst = 1; /* the write that primes the lines */
+    else if (val != old)
+        ditto_mem_write_byte(dev, val);
 
     /*
        The bridge only drives the data lines during a PS/2 or EPP read.
@@ -656,10 +757,21 @@ ditto_write_ctrl(uint8_t val, void *priv)
        register number off the data lines, and INIT clocks a byte - into
        the bridge when STROBE is set, out of it when STROBE is clear.
      */
+    /*
+       STROBE dropping closes a burst write into the buffer, so that the
+       next one has to prime its lines afresh. Only the implicit,
+       data-change half of the commit rule is gated this way: an INIT
+       toggle is the host committing a byte outright, and is honoured
+       whenever the FIFO is the addressed register.
+     */
+    if ((chg & LPT_CTRL_STROBE) && !(val & LPT_CTRL_STROBE))
+        dev->mem_burst = 0;
+
     if (chg & LPT_CTRL_AUTOFD) {
-        dev->cur_reg  = dev->dat;
-        dev->xfer_idx = 0;
-        dev->rd_high  = 0;
+        dev->cur_reg   = dev->dat;
+        dev->xfer_idx  = 0;
+        dev->rd_high   = 0;
+        dev->mem_burst = 0;
         return;
     }
 
@@ -712,14 +824,22 @@ ditto_init(UNUSED(const device_t *info))
     if (fn != NULL)
         strncpy(dev->image_fn, fn, sizeof(dev->image_fn) - 1);
 
+    dev->buffer = calloc(1, DITTO_BUFFER_SIZE);
+    if (dev->buffer == NULL) {
+        free(dev);
+        return NULL;
+    }
+
     /* The bridge powers up in SPP, the one mode every port can manage. */
     dev->proto      = DITTO_PROTO_SPP;
     dev->proto_bits = DITTO_PROTO_BITS_SPP | DITTO_PROTO_BITS_FIXED;
+    dev->crc        = DITTO_CRC_INIT;
 
     dev->lpt = lpt_attach(ditto_write_data, ditto_write_ctrl, NULL,
                           ditto_read_status, NULL, NULL, NULL, dev);
     if (dev->lpt == NULL) {
         /* Another device already has this port. */
+        free(dev->buffer);
         free(dev);
         return NULL;
     }
@@ -736,6 +856,7 @@ ditto_close(void *priv)
 {
     ditto_t *dev = (ditto_t *) priv;
 
+    free(dev->buffer);
     free(dev);
 }
 
