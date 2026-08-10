@@ -840,6 +840,9 @@ msgstr "Xarxa"
 msgid "Ports (COM & LPT)"
 msgstr "Ports (COM i LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Ports"
 
@@ -2240,6 +2243,9 @@ msgstr "Número de sèrie"
 
 msgid "Host ID"
 msgstr "ID de l'amfitrió"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Adreça del FDC"

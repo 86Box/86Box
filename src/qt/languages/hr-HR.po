@@ -842,6 +842,9 @@ msgstr "Mreža"
 msgid "Ports (COM & LPT)"
 msgstr "Vrata (COM & LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Vrata"
 
@@ -2247,6 +2250,9 @@ msgstr "Serijski broj"
 
 msgid "Host ID"
 msgstr "ID nositelja"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Adresa FDC-a"

@@ -840,6 +840,9 @@ msgstr "Netzwerk"
 msgid "Ports (COM & LPT)"
 msgstr "Anschlüsse (COM + LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Anschlüsse"
 
@@ -2240,6 +2243,9 @@ msgstr "Seriennummer"
 
 msgid "Host ID"
 msgstr "Host-ID"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "FDC-Adresse"

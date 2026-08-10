@@ -840,6 +840,9 @@ msgstr "Sieť"
 msgid "Ports (COM & LPT)"
 msgstr "COM a LPT porty"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Porty"
 
@@ -2246,6 +2249,9 @@ msgstr "Sériové číslo"
 
 msgid "Host ID"
 msgstr "ID hostiteľa"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Adresa FDC"

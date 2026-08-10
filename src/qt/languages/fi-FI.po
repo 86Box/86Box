@@ -840,6 +840,9 @@ msgstr "Verkko"
 msgid "Ports (COM & LPT)"
 msgstr "Portit (COM & LPT)"
 
+msgid "Port"
+msgstr ""
+
 msgid "Ports"
 msgstr "Portit"
 
@@ -2244,6 +2247,9 @@ msgstr "Sarjanumero"
 
 msgid "Host ID"
 msgstr "Isännän ID"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "FDC-osoite"
