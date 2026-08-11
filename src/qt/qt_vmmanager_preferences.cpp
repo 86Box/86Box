@@ -100,7 +100,7 @@ VMManagerPreferences::~VMManagerPreferences()
 void
 VMManagerPreferences::chooseDirectoryLocation()
 {
-    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), ui->systemDirectory->text());
+    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), ui->systemDirectory->text(), QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
     if (!directory.isEmpty())
         ui->systemDirectory->setText(QDir::toNativeSeparators(directory));
 }

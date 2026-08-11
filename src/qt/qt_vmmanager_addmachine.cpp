@@ -265,7 +265,7 @@ NameAndLocationPage::nextId() const
 void
 NameAndLocationPage::chooseDirectoryLocation()
 {
-    const auto directory = QFileDialog::getExistingDirectory(this, "Choose directory", QDir(vmm_path).path());
+    const auto directory = QFileDialog::getExistingDirectory(this, "Choose directory", QDir(vmm_path).path(), QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
     systemLocation->setText(QDir::toNativeSeparators(directory));
     emit completeChanged();
 }
