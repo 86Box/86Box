@@ -115,7 +115,6 @@ ensure_context(void)
 
     ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
     platform_io.Platform_SetClipboardTextFn = [](ImGuiContext *ctx, const char *text) {
-        pclog("Setting text: %s\n", text);
         QApplication::clipboard()->setText(QString::fromUtf8(text));
     };
     platform_io.Platform_GetClipboardTextFn = [](ImGuiContext *ctx) -> const char* {
