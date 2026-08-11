@@ -568,7 +568,8 @@ extern int             cdrom_audio_callback(cdrom_t *dev, int16_t *output, const
 extern uint8_t         cdrom_audio_play(cdrom_t *dev, const uint32_t pos, const uint32_t len, const int ismsf);
 extern uint8_t         cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
                                                 const int type, const uint8_t playbit);
-extern uint8_t         cdrom_audio_track_search_pioneer(cdrom_t *dev, const uint32_t pos, const uint8_t playbit);
+extern uint8_t         cdrom_audio_track_search_pioneer(cdrom_t *dev, const uint32_t pos,
+                                                const int type, const uint8_t playbit);
 extern uint8_t         cdrom_audio_play_pioneer(cdrom_t *dev, const uint32_t pos);
 extern uint8_t         cdrom_audio_play_toshiba(cdrom_t *dev, const uint32_t pos, const int type);
 extern uint8_t         cdrom_audio_scan(cdrom_t *dev, const uint32_t pos);
@@ -591,6 +592,10 @@ extern int             cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, ui
 extern uint8_t         cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len);
 #endif
 extern uint8_t         cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
+                                                const uint8_t track, const int type);
+extern uint8_t         cdrom_read_toc_nec(cdrom_t *dev, uint8_t *b,
+                                                const uint8_t track, const int type, const int len);
+extern uint8_t         cdrom_read_toc_pioneer(cdrom_t *dev, uint8_t *b,
                                                 const uint8_t track, const int type);
 extern int             cdrom_is_track_audio(cdrom_t *dev, const int sector, const int ismsf,
                                             int cdrom_sector_type, const uint8_t vendor_type);
