@@ -153,6 +153,8 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
     , renderTimer(new QTimer(this))
     , osdRenderTimer(new QTimer(this))
 {
+    // Force a cleanup of ImGui OSD.
+    qt_osd_shutdown();
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
     connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
         if (video_framerate == -1 && dopause && qt_osd_is_visible())
@@ -349,6 +351,7 @@ VulkanWindowRenderer::recreateSwapchain()
     }
 
     uint32_t format_count = 0;
+    uint32_t present_type_count = 0;
 
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, window_surface, &format_count, nullptr);
     std::vector<VkSurfaceFormatKHR> surface_formats(format_count);
@@ -377,11 +380,22 @@ VulkanWindowRenderer::recreateSwapchain()
         curExtent.height = 480;
     }
 
+    bool present_mode_found = false;
+    fn_vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, window_surface, &present_type_count, nullptr);
+    std::vector<VkPresentModeKHR> present_modes(present_type_count);
+    fn_vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, window_surface, &present_type_count, present_modes.data());
+    for (auto& cur_present_mode : present_modes) {
+        if (cur_present_mode == (video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR)) {
+            present_mode_found = true;
+            break;
+        }
+    }
+
     VkSwapchainCreateInfoKHR swapchain_creation = { };
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchain_creation.surface                  = window_surface;
     swapchain_creation.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchain_creation.presentMode              = video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+    swapchain_creation.presentMode              = !present_mode_found ? present_modes[0] : (video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
     swapchain_creation.imageFormat              = VK_FORMAT_B8G8R8A8_UNORM;
 #if defined __unix__ && !defined __HAIKU__
     // We don't want trouble on Wayland at all.
@@ -1415,6 +1429,7 @@ VulkanWindowRenderer::initialize()
                 }
                 fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
                 fn_vkGetPhysicalDeviceSurfaceFormatsKHR = (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceFormatsKHR");
+                fn_vkGetPhysicalDeviceSurfacePresentModesKHR = (PFN_vkGetPhysicalDeviceSurfacePresentModesKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfacePresentModesKHR");
 
                 instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, gfx_queue, 0, &gfx_queue_o);
                 m_devFuncs = instance.deviceFunctions(logi_device);
@@ -1495,6 +1510,30 @@ VulkanWindowRenderer::initialize()
 
                 imagePitch = layout.rowPitch;
                 mappedPtr  = (uint8_t *) allocatedInfo.pMappedData + layout.offset;
+                init_info = {};
+                init_info.ApiVersion = VK_VERSION_1_0;
+                init_info.Instance = instance.vkInstance();
+                init_info.PhysicalDevice = phys_device;
+                init_info.Device = logi_device;
+                init_info.QueueFamily = gfx_queue;
+                init_info.Queue = gfx_queue_o;
+
+                init_info.DescriptorPoolSize = 16;
+                init_info.MinImageCount = 2;
+                init_info.ImageCount = 64;
+
+                init_info.PipelineInfoMain.RenderPass = 0;
+                init_info.PipelineInfoMain.Subpass = 0;
+                init_info.UseDynamicRendering = 1;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo = {};
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pNext = nullptr;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorAttachmentFormat;
+                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.viewMask = 0;
+
+                qt_osd_start_vulkan(vk_function_ret_callback, &instance, &init_info);
+
                 isInitialized = true;
                 isFinalized = false;
                 recreateSwapchain();
@@ -1573,30 +1612,6 @@ VulkanWindowRenderer::initialize()
 #ifndef LIBRASHADER_STATIC
 skip_shaders:
 #endif
-                init_info = {};
-                init_info.ApiVersion = VK_VERSION_1_0;
-                init_info.Instance = instance.vkInstance();
-                init_info.PhysicalDevice = phys_device;
-                init_info.Device = logi_device;
-                init_info.QueueFamily = gfx_queue;
-                init_info.Queue = gfx_queue_o;
-
-                init_info.DescriptorPoolSize = 16;
-                init_info.MinImageCount = 2;
-                init_info.ImageCount = 64;
-
-                init_info.PipelineInfoMain.RenderPass = 0;
-                init_info.PipelineInfoMain.Subpass = 0;
-                init_info.UseDynamicRendering = 1;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo = {};
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pNext = nullptr;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.colorAttachmentCount = 1;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.pColorAttachmentFormats = &colorAttachmentFormat;
-                init_info.PipelineInfoMain.PipelineRenderingCreateInfo.viewMask = 0;
-
-                qt_osd_start_vulkan(vk_function_ret_callback, &instance, &init_info);
-
                 if (video_framerate != -1) {
                     renderTimer->setTimerType(Qt::PreciseTimer);
                     renderTimer->start(ceilf(1000.f / (float) video_framerate));
@@ -1656,7 +1671,7 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
     QWindow::resizeEvent(event);
     onResize(width(), height());
 
-    if (isInitialized) {
+    if (isInitialized && !isFinalized) {
         try {
             recreateSwapchain();
             if (video_framerate == -1)
@@ -1704,7 +1719,6 @@ VulkanWindowRenderer::event(QEvent *event)
         }
     }
 
-process:
     bool res = false;
     if (!eventDelegate(event, res))
         return QWindow::event(event);
@@ -1738,7 +1752,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
             main_window->reloadAllRenderers();
         }
     }
-    if (isExposed() && video_framerate == -1) {
+    if (isExposed() && video_framerate == -1 && !isFinalized) {
         // requestUpdate();
         render();
     }

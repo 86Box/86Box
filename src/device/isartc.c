@@ -608,8 +608,7 @@ mm67_read(uint16_t port, void *priv)
              * the system hangs the first time it waits on the floppy to
              * settle. */
             ret = dev->nvr.regs[reg] & 0x01;
-            if (dev->board == ISARTC_PS2M30)
-                dev->nvr.regs[reg] = 0x00; /* consume the flag */
+            dev->nvr.regs[reg] = 0x00; /* consume the flag */
             break;
 
         case MM67_ISTAT: /* IRQ status (RO) */
