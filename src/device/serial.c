@@ -246,6 +246,27 @@ write_fifo(serial_t *dev, uint8_t dat)
     dev->out_new = (uint16_t) dat;
 }
 
+static void
+serial_receive_loopback_break(serial_t *dev)
+{
+    /* In diagnostic loopback the transmitter feeds the receiver internally.
+       Asserting Break therefore receives a zero character with the parity,
+       framing, and break-error indications set. */
+    if (dev->fifo_enabled)
+        fifo_write_evt(0x00, dev->rcvr_fifo);
+    else {
+        if (dev->lsr & 0x01)
+            dev->lsr |= 0x02;
+        dev->dat = 0x00;
+        dev->lsr |= 0x01;
+        dev->int_status |= SERIAL_INT_RECEIVE;
+    }
+
+    dev->lsr |= 0x1c;
+    dev->int_status |= SERIAL_INT_LSR;
+    serial_update_ints(dev);
+}
+
 void
 serial_write_fifo(serial_t *dev, uint8_t dat)
 {
@@ -503,6 +524,12 @@ serial_set_type(serial_t *dev, uint8_t type)
 }
 
 void
+serial_set_card_selected_feedback(serial_t *dev, uint8_t *reg_91)
+{
+    dev->reg_91 = reg_91;
+}
+
+void
 serial_write(uint16_t addr, uint8_t val, void *priv)
 {
     serial_t *dev = (serial_t *) priv;
@@ -510,6 +537,9 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t   old;
 
     serial_log("UART: [%04X:%08X] Write %02X to port %02X\n", CS, cpu_state.pc, val, addr);
+
+    if (dev->reg_91 != NULL)
+        *dev->reg_91 |= 0x01;
 
     cycles -= ISA_CYCLES(8);
 
@@ -619,6 +649,8 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 if (dev->sd && dev->sd->lcr_callback)
                     dev->sd->lcr_callback(dev, dev->sd->priv, dev->lcr);
             }
+            if (!(old & 0x40) && (val & 0x40) && (dev->mctrl & 0x10))
+                serial_receive_loopback_break(dev);
             if (((old ^ val) & 0x40) && dev->char_port.chardev.control)
                 dev->char_port.chardev.control((dev->mctrl & 0x03) | (val & 0x40), dev->char_port.chardev.priv);
             break;
@@ -722,6 +754,9 @@ serial_read(uint16_t addr, void *priv)
 {
     serial_t *dev = (serial_t *) priv;
     uint8_t   ret = 0;
+
+    if (dev->reg_91 != NULL)
+        *dev->reg_91 |= 0x01;
 
     cycles -= ISA_CYCLES(8);
 
