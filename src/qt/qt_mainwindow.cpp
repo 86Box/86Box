@@ -1609,7 +1609,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
                 return true;
             }
 
-            if (qt_osd_key(ke->key(), ke->modifiers(), down, ke->isAutoRepeat())) {
+            if (qt_osd_key(ke->key(), ke->modifiers(), down, ke->isAutoRepeat(), ke->text().toUtf8().data())) {
                 event->accept();
                 return true;
             }
