@@ -351,6 +351,7 @@ VulkanWindowRenderer::recreateSwapchain()
     }
 
     uint32_t format_count = 0;
+    uint32_t present_type_count = 0;
 
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, window_surface, &format_count, nullptr);
     std::vector<VkSurfaceFormatKHR> surface_formats(format_count);
@@ -379,11 +380,22 @@ VulkanWindowRenderer::recreateSwapchain()
         curExtent.height = 480;
     }
 
+    bool present_mode_found = false;
+    fn_vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, window_surface, &present_type_count, nullptr);
+    std::vector<VkPresentModeKHR> present_modes(present_type_count);
+    fn_vkGetPhysicalDeviceSurfacePresentModesKHR(phys_device, window_surface, &present_type_count, present_modes.data());
+    for (auto& cur_present_mode : present_modes) {
+        if (cur_present_mode == (video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR)) {
+            present_mode_found = true;
+            break;
+        }
+    }
+
     VkSwapchainCreateInfoKHR swapchain_creation = { };
     swapchain_creation.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     swapchain_creation.surface                  = window_surface;
     swapchain_creation.compositeAlpha           = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    swapchain_creation.presentMode              = video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR;
+    swapchain_creation.presentMode              = !present_mode_found ? present_modes[0] : (video_vsync ? VK_PRESENT_MODE_FIFO_KHR : VK_PRESENT_MODE_IMMEDIATE_KHR);
     swapchain_creation.imageFormat              = VK_FORMAT_B8G8R8A8_UNORM;
 #if defined __unix__ && !defined __HAIKU__
     // We don't want trouble on Wayland at all.
@@ -1417,6 +1429,7 @@ VulkanWindowRenderer::initialize()
                 }
                 fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = (PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
                 fn_vkGetPhysicalDeviceSurfaceFormatsKHR = (PFN_vkGetPhysicalDeviceSurfaceFormatsKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfaceFormatsKHR");
+                fn_vkGetPhysicalDeviceSurfacePresentModesKHR = (PFN_vkGetPhysicalDeviceSurfacePresentModesKHR) instance.getInstanceProcAddr("vkGetPhysicalDeviceSurfacePresentModesKHR");
 
                 instance.deviceFunctions(logi_device)->vkGetDeviceQueue(logi_device, gfx_queue, 0, &gfx_queue_o);
                 m_devFuncs = instance.deviceFunctions(logi_device);
