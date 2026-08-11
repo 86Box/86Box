@@ -654,8 +654,13 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
 
     if (dir > 1)
         filename = QString::asprintf(R"(ioctl://%s)", arg.toUtf8().data());
-    else if (dir == 1)
-        filename = QFileDialog::getExistingDirectory(parentWidget, QString(), getMediaOpenDirectory(), QFileDialog::ShowDirsOnly | QFileDialog::DontUseNativeDialog);
+    else if (dir == 1) {
+        QFileDialog::Options options = QFileDialog::ShowDirsOnly;
+#ifdef Q_OS_LINUX
+        options |= QFileDialog::DontUseNativeDialog;
+#endif
+        filename = QFileDialog::getExistingDirectory(parentWidget, QString(), getMediaOpenDirectory(), options);
+    }
     else {
         filename = QFileDialog::getOpenFileName(parentWidget, QString(),
                                                 getMediaOpenDirectory(),
