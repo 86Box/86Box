@@ -1072,6 +1072,9 @@ machine_at_brio80xx_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
 
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
     device_add(&i430vx_device);
     device_add(&piix3_device);
     device_add_params(&fdc37c93x_device, (void *) (FDC37XXX5 | FDC37C93X_NORMAL | FDC37XXXX_370));
