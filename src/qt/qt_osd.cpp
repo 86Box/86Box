@@ -17,6 +17,9 @@
 #include <QImage>
 #include <QKeyEvent>
 #include <QMetaObject>
+#include <QApplication>
+#include <QDesktopServices>
+#include <QClipboard>
 
 #include "imgui.h"
 #include "imgui_impl_opengl3.h"
@@ -49,6 +52,8 @@ bool                 g_mouse_was_captured = false;
 int                  g_font_pixel_size = 0;
 Clock::time_point    g_last_frame;
 QImage               g_software_surface;
+
+static QByteArray clipboard_data;
 
 ImGui_ImplVulkan_InitInfo vk_init_info;
 
@@ -107,6 +112,18 @@ ensure_context(void)
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     io.IniFilename  = nullptr; /* don't save layout */
+
+    ImGuiPlatformIO& platform_io = ImGui::GetPlatformIO();
+    platform_io.Platform_SetClipboardTextFn = [](ImGuiContext *ctx, const char *text) {
+        pclog("Setting text: %s\n", text);
+        QApplication::clipboard()->setText(QString::fromUtf8(text));
+    };
+    platform_io.Platform_GetClipboardTextFn = [](ImGuiContext *ctx) -> const char* {
+        clipboard_data = QApplication::clipboard()->text().toUtf8();
+        return clipboard_data.size() ? clipboard_data.data() : nullptr;
+    };
+    platform_io.Platform_SetImeDataFn = nullptr;
+    platform_io.Platform_OpenInShellFn = [](ImGuiContext*, const char* url) { return QDesktopServices::openUrl(QUrl(url)); };
 
     osd_core_set_layout_scale(1.0f);
     osd_core_setup_style();
@@ -169,22 +186,113 @@ ImGuiKey
 qt_key_to_imgui(int key)
 {
     switch (key) {
-        case Qt::Key_Tab:       return ImGuiKey_Tab;
-        case Qt::Key_Left:      return ImGuiKey_LeftArrow;
-        case Qt::Key_Right:     return ImGuiKey_RightArrow;
-        case Qt::Key_Up:        return ImGuiKey_UpArrow;
-        case Qt::Key_Down:      return ImGuiKey_DownArrow;
-        case Qt::Key_PageUp:    return ImGuiKey_PageUp;
-        case Qt::Key_PageDown:  return ImGuiKey_PageDown;
-        case Qt::Key_Home:      return ImGuiKey_Home;
-        case Qt::Key_End:       return ImGuiKey_End;
-        case Qt::Key_Insert:    return ImGuiKey_Insert;
-        case Qt::Key_Delete:    return ImGuiKey_Delete;
-        case Qt::Key_Backspace: return ImGuiKey_Backspace;
-        case Qt::Key_Space:     return ImGuiKey_Space;
-        case Qt::Key_Return:    return ImGuiKey_Enter;
-        case Qt::Key_Enter:     return ImGuiKey_KeypadEnter;
-        default:                return ImGuiKey_None;
+        case Qt::Key_Tab:
+            return ImGuiKey_Tab;
+        case Qt::Key_Left:
+            return ImGuiKey_LeftArrow;
+        case Qt::Key_Right:
+            return ImGuiKey_RightArrow;
+        case Qt::Key_Up:
+            return ImGuiKey_UpArrow;
+        case Qt::Key_Down:
+            return ImGuiKey_DownArrow;
+        case Qt::Key_PageUp:
+            return ImGuiKey_PageUp;
+        case Qt::Key_PageDown:
+            return ImGuiKey_PageDown;
+        case Qt::Key_Home:
+            return ImGuiKey_Home;
+        case Qt::Key_End:
+            return ImGuiKey_End;
+        case Qt::Key_Insert:
+            return ImGuiKey_Insert;
+        case Qt::Key_Delete:
+            return ImGuiKey_Delete;
+        case Qt::Key_Backspace:
+            return ImGuiKey_Backspace;
+        case Qt::Key_Space:
+            return ImGuiKey_Space;
+        case Qt::Key_Return:
+            return ImGuiKey_Enter;
+
+        case Qt::Key_0:
+            return ImGuiKey_0;
+        case Qt::Key_1:
+            return ImGuiKey_1;
+        case Qt::Key_2:
+            return ImGuiKey_2;
+        case Qt::Key_3:
+            return ImGuiKey_3;
+        case Qt::Key_4:
+            return ImGuiKey_4;
+        case Qt::Key_5:
+            return ImGuiKey_5;
+        case Qt::Key_6:
+            return ImGuiKey_6;
+        case Qt::Key_7:
+            return ImGuiKey_7;
+        case Qt::Key_8:
+            return ImGuiKey_8;
+        case Qt::Key_9:
+            return ImGuiKey_9;
+        case Qt::Key_A:
+            return ImGuiKey_A;
+        case Qt::Key_B:
+            return ImGuiKey_B;
+        case Qt::Key_C:
+            return ImGuiKey_C;
+        case Qt::Key_D:
+            return ImGuiKey_D;
+        case Qt::Key_E:
+            return ImGuiKey_E;
+        case Qt::Key_F:
+            return ImGuiKey_F;
+
+        case Qt::Key_G:
+            return ImGuiKey_G;
+        case Qt::Key_H:
+            return ImGuiKey_H;
+        case Qt::Key_I:
+            return ImGuiKey_I;
+        case Qt::Key_J:
+            return ImGuiKey_J;
+        case Qt::Key_K:
+            return ImGuiKey_K;
+        case Qt::Key_L:
+            return ImGuiKey_L;
+
+        case Qt::Key_M:
+            return ImGuiKey_M;
+        case Qt::Key_N:
+            return ImGuiKey_N;
+        case Qt::Key_O:
+            return ImGuiKey_O;
+        case Qt::Key_P:
+            return ImGuiKey_P;
+        case Qt::Key_Q:
+            return ImGuiKey_Q;
+        case Qt::Key_R:
+            return ImGuiKey_R;
+
+        case Qt::Key_S:
+            return ImGuiKey_S;
+        case Qt::Key_T:
+            return ImGuiKey_T;
+        case Qt::Key_U:
+            return ImGuiKey_U;
+        case Qt::Key_V:
+            return ImGuiKey_V;
+        case Qt::Key_W:
+            return ImGuiKey_W;
+        case Qt::Key_X:
+            return ImGuiKey_X;
+        case Qt::Key_Y:
+            return ImGuiKey_Y;
+        case Qt::Key_Z:
+            return ImGuiKey_Z;
+
+        default:
+            return ImGuiKey_None;
     }
 }
 
@@ -369,7 +477,7 @@ qt_osd_render_software(int logical_w, int logical_h, float dpr)
 }
 
 bool
-qt_osd_key(int qt_key, int qt_modifiers, bool down, bool repeat)
+qt_osd_key(int qt_key, int qt_modifiers, bool down, bool repeat, char* utf8text)
 {
     if (!g_visible)
         return false;
@@ -382,8 +490,11 @@ qt_osd_key(int qt_key, int qt_modifiers, bool down, bool repeat)
     }
 
     ImGuiKey ik = qt_key_to_imgui(qt_key);
-    if (ik != ImGuiKey_None)
+    if (ik != ImGuiKey_None) {
         ImGui::GetIO().AddKeyEvent(ik, down);
+    }
+    if (down)
+        ImGui::GetIO().AddInputCharactersUTF8(utf8text);
 
     return true; /* swallow all input while the OSD is open */
 }
