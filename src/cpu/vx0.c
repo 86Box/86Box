@@ -344,9 +344,6 @@ static bool cpu_md_write_disable = 1;
 static void
 set_if(int cond)
 {
-    if (cond && !(cpu_state.flags & I_FLAG))
-        noint = 1;
-
     cpu_state.flags = (cpu_state.flags & ~I_FLAG) | (cond ? I_FLAG : 0);
 }
 
@@ -4432,6 +4429,9 @@ execute_instruction(void)
 
         case 0xfa: /* CLISTI */
         case 0xfb:
+            if ((opcode & 1) && !(cpu_state.flags & I_FLAG))
+                noint = 1;
+
             set_if(opcode & 1);
             break;
 
