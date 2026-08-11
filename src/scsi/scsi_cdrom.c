@@ -2669,7 +2669,7 @@ scsi_cdrom_command_pioneer(void *sc, const uint8_t *cdb, int32_t *BufLen)
             scsi_cdrom_buf_alloc(dev, 65536);
 
             ret = cdrom_read_toc_pioneer(dev->drv, dev->buffer, cdb[5], (cdb[9] >> 6) & 0x03);
-            len = MIN(len, max_len);
+            len = max_len;
 
             if (ret) {
                 scsi_cdrom_cache_toc(dev);
