@@ -101,6 +101,17 @@ extern void mca_write(const uint16_t port, const uint8_t val);
 extern uint8_t mca_feedb(void);
 
 /**
+ * @brief Latches Card Selected Feedback after an adapter responds to an
+ * I/O or memory cycle.
+ */
+extern void mca_feedback_set(void);
+
+/**
+ * @brief Returns and clears the latched Card Selected Feedback state.
+ */
+extern uint8_t mca_feedback_read(void);
+
+/**
  * @brief Returns the number of physical slots initialized on the bus.
  *
  * @return uint8_t Number of slots.

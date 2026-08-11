@@ -1778,6 +1778,14 @@ checkio(uint32_t port, int mask)
     }
 
     t += (port >> 3UL);
+
+    /* The 80386 truncates the I/O bitmap byte offset to 16 bits.  In
+       particular, an I/O map base of FFFFh wraps accesses to low TSS
+       offsets.  IBM's 386 planar diagnostics explicitly exercise this
+       behavior.  Later CPUs use the full intermediate offset. */
+    if ((cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_386DX))
+        t &= 0xffff;
+
     mask <<= (port & 7);
     if (UNLIKELY(mask & 0xff00)) {
         if (LIKELY(t < tr.limit))
