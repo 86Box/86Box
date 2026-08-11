@@ -47,11 +47,23 @@
 #include <86box/plat.h>
 
 /*
-   For logging the BackPack wire protocol into the emulator log. Leave
-   this on while the drive is being brought up against real host
-   software: run 86Box with -L <file> and the whole conversation with the
-   port lands in it, which is the only way to see what a driver actually
-   does rather than what it was expected to do.
+   For logging the BackPack wire protocol into the emulator log. Turn it
+   on while working out what a driver does: run 86Box with -L <file> and
+   the whole conversation with the port lands in it, which is the only
+   way to see what a host actually does rather than what it was expected
+   to do.
+
+   It is not as expensive as it looks. A line costs an 8 KB allocation, a
+   copy and a flushed write, which is worth avoiding when the host is
+   moving data - during a bulk transfer it spends about forty port
+   accesses on every byte, and the trace becomes most of what the
+   emulator is doing. But when the host is waiting rather than
+   transferring, there is almost nothing to log: a format segment is
+   around 570 port accesses spread over seconds, where the trace costs a
+   couple of percent and is worth every bit of it.
+
+   Judge it by port accesses per second, not by how slow the emulator
+   feels - those are the same number only when the host is busy.
  */
 #define ENABLE_LPT_DITTO_LOG 1
 
@@ -332,6 +344,7 @@ enum {
 /* More of the error codes this firmware raises. */
 #define QIC_ERROR_NOT_READY             1
 #define QIC_ERROR_NO_CARTRIDGE          2
+#define QIC_ERROR_ILLEGAL_SEEK_TRACK    7
 #define QIC_ERROR_WRITE_PROTECT         5
 #define QIC_ERROR_ILLEGAL_IN_PRIMARY    14
 #define QIC_ERROR_ILLEGAL_IN_FORMAT     15
@@ -344,15 +357,53 @@ enum {
 #define QIC_ERROR_NEW_CARTRIDGE         13
 
 /*
-   What this drive says it is. The vendor identifier is the one ftape's
-   table names "Iomega DITTO MAX", and is the single value the host keys
-   its model-specific behaviour off.
+   What this drive says it is. Every host reads this once, with Report
+   Vendor ID, and keys its model-specific behaviour off it. The low six
+   bits are the model and the rest is a make code, so all 0x888x values
+   are Iomega: 0 is the Ditto 800, 3 the Ditto 2GB, 5 the Ditto Max.
+
+   0x8883 - Ditto 2GB - rather than 0x8885 because the Max is the newer
+   drive and the older one is the more widely understood. Note that
+   ftape marks *both* with FT_CANT_FORMAT, its flag for drives that
+   cannot format a cartridge - its changelog says they enter format mode
+   and write garbage, the cartridges having been sold pre-formatted. If
+   a host refuses to format for us, the two identities worth trying next
+   are 0x8886, the "Iomega MerKat Formatter" that carries the Ditto Max
+   extensions *without* that flag, and 0x014e, the Conner C250MQ that
+   fdd_tape.c reports and that DOS QBACKUP is known to format against.
  */
-#define DITTO_VENDOR_ID  0x8885
+#define DITTO_VENDOR_ID  0x8883
 #define DITTO_ROM_VERSION 0x41
 
-/* Segments per track, until the host says otherwise when it formats. */
-#define DITTO_SEGMENTS_PER_TRACK 150
+/*
+   Cartridge capacity, chosen rather than guessed.
+
+   The size of a tape is not something a drive works out - the mechanism
+   fixes how many tracks the head can reach, and the cartridge fixes how
+   much tape runs past it, and between them they settle everything else.
+   Reading it back off the image instead means a blank cartridge has no
+   size at all until something formats it, and an image written by one
+   host quietly changes the drive's idea of its own geometry when it is
+   loaded into another. So it is configured, and the image is checked
+   against it rather than consulted for it.
+
+   The names are the capacities these cartridges were sold under, which
+   assume the 2:1 the drive's own compression was rated at - a "2 GB"
+   Ditto cartridge holds a gigabyte of actual bytes. Each segment
+   carries 29 sectors of data and 3 of ECC, so a gigabyte of data is
+   36144 segments of 32 KB on the tape.
+
+   Track count stays put across all three: it is a property of the head,
+   and the same drive reads all of these. Only the length of tape
+   changes, which is what the host reads back out of the segments per
+   track - ftape turns exactly that figure into a tape length, at 1940
+   segments per 1000 feet for this family of drives.
+ */
+#define DITTO_TRACKS 72
+
+#define DITTO_CAPACITY_2GB 2
+#define DITTO_CAPACITY_3GB 3
+#define DITTO_CAPACITY_5GB 5
 
 /*
    How long a wind is modelled to take. These need not match the real
@@ -376,6 +427,7 @@ typedef struct ditto_t {
 
     /* Configuration. */
     int     max_proto;  /* fastest protocol the bridge will admit to */
+    int     capacity;   /* cartridge the drive is loaded with, in GB */
     uint8_t unit;       /* address this pod answers a knock at */
     char    image_fn[1024];
     int     readonly;
@@ -464,6 +516,8 @@ typedef struct ditto_t {
     int      qic_running;  /* tape is streaming past the head */
     int      qic_busy;     /* a wind is under way */
     pc_timer_t busy_timer;
+    pc_timer_t motion_timer; /* the cartridge running past the head */
+    int        run_off;      /* segments of slack pulled past the end */
     uint16_t qic_vendor_id;
     uint16_t qic_format_segments;
 
@@ -473,6 +527,15 @@ typedef struct ditto_t {
     int      image_loaded;
     int      segs_per_cyl;
     int      segs_per_head;
+    int      tape_tracks;   /* tracks the head can reach */
+    int      tape_spt;      /* segments on each of them */
+
+    int      image_dirty;   /* written but not yet flushed to disk */
+    uint32_t last_port_ms;  /* when the host last touched the port */
+    uint8_t  dat_out;       /* last byte we put on the data lines */
+
+    /* Counted for the format-rate summary, not used by the emulation. */
+    uint64_t port_ops;
 
     /* The ECC coprocessor. */
     uint8_t  ecc_mul[256];
@@ -511,7 +574,57 @@ static const char *ditto_proto_name[] = {
 };
 #else
 #    define ditto_log(fmt, ...)
+static const char *ditto_proto_name[] = {
+    "SPP 4-bit", "PS/2 8-bit", "EPP-8", "EPP-16", "EPP-32"
+};
 #endif
+
+/*
+   How long the host has to go quiet before it counts as being away
+   rather than just between operations.
+ */
+#define DITTO_IDLE_MS 20
+
+/*
+   A handful of lines a session, on whatever the trace is set to. The
+   wire trace costs a formatted line and a flushed write per port access,
+   which is forty of them for every byte that reaches the tape - fine for
+   reading the protocol, useless for asking why something is slow,
+   because turning it on is most of the answer. This says where the time
+   goes without disturbing it.
+ */
+static void
+ditto_stat(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    pclog_ex(fmt, ap);
+    va_end(ap);
+}
+
+/*
+   Marks the places where the host stops talking to us. A wire trace says
+   what was asked for but not when, and a wait spread over a few hundred
+   accesses is invisible in it - the operation before a ten second pause
+   looks exactly like the operation before a ten microsecond one. This
+   names the pause, so the line above it is the thing being waited on.
+
+   Not gated on the trace: it is two integer operations per port access
+   and it is the one measurement that has to survive the trace being off.
+ */
+static void
+ditto_note_idle(ditto_t *dev)
+{
+    const uint32_t now = plat_get_ticks();
+
+    if ((dev->last_port_ms != 0) &&
+        ((now - dev->last_port_ms) >= DITTO_IDLE_MS))
+        ditto_stat("Ditto: --- host away %u ms ---\n",
+                   now - dev->last_port_ms);
+
+    dev->last_port_ms = now;
+}
 
 /*
    Turns the protocol bits the host writes to control register 0x04 (and,
@@ -617,8 +730,22 @@ ditto_update_irq(ditto_t *dev, int test_poke)
     if (dev->lpt == NULL)
         return;
 
+    /*
+       Being connected is not a reason to hold the interrupt back. The
+       thought was that ACK cannot be an interrupt while the same lines
+       are carrying a transfer - but the host does not let go between
+       operations. It connects once and stays connected for thousands of
+       commands, so a link-gated interrupt is one that never fires.
+
+       That cost ten seconds a segment while formatting: the host issued
+       a format, waited on an interrupt that could not arrive, gave up on
+       its own timeout, and only then polled and found the interrupt had
+       been pending the whole time. Whether it wants one at all is
+       already answered by the mode it programmed - SOFTEN to read the
+       flag out of a register, HARDEN to be told.
+     */
     if (dev->irq_pending &&
-        (test_poke || (!dev->connected && ((dev->irq_ctrl & BP_IRQ_MASK) == BP_IRQ_HARDEN))))
+        (test_poke || ((dev->irq_ctrl & BP_IRQ_MASK) == BP_IRQ_HARDEN)))
         lpt_irq(dev->lpt, 1);
     else
         lpt_irq(dev->lpt, 0);
@@ -783,48 +910,96 @@ static void
 ditto_image_close(ditto_t *dev)
 {
     if (dev->fp != NULL) {
-        fclose(dev->fp);
+        fclose(dev->fp); /* flushes whatever the last segment left */
         dev->fp = NULL;
     }
+
+    dev->image_dirty  = 0;
 
     dev->image_size   = 0;
     dev->image_loaded = 0;
 }
 
+/* Segments on a cartridge of each capacity, per track. */
+static int
+ditto_segments_per_track(int capacity)
+{
+    switch (capacity) {
+        case DITTO_CAPACITY_2GB:
+            return 502;
+
+        case DITTO_CAPACITY_3GB:
+            return 753;
+
+        default:
+        case DITTO_CAPACITY_5GB:
+            return 1256;
+    }
+}
+
+/* Bytes of data a whole cartridge of this geometry holds. */
+static uint64_t
+ditto_tape_capacity(const ditto_t *dev)
+{
+    const uint64_t segments = (uint64_t) dev->tape_tracks * dev->tape_spt;
+
+    return segments * (FDD_TAPE_SECTORS_PER_SEG - FDD_TAPE_ECC_SECTORS) *
+           FDD_TAPE_SECTOR_SIZE;
+}
+
+/* Every byte the image holds once the ECC sectors are counted in too. */
+static uint64_t
+ditto_image_extent(const ditto_t *dev)
+{
+    return (uint64_t) dev->tape_tracks * dev->tape_spt * FDD_TAPE_SEGMENT_SIZE;
+}
+
 /*
-   Works out how the cartridge maps segments onto the addresses the
-   controller uses. A formatted cartridge states its own mapping in its
-   header segment; a blank one has none to state, so the defaults have to
-   match what the host will lay down.
+   Settles the cartridge geometry from the configured capacity, and says
+   what it worked out. Segments per cylinder and per head are the grid
+   the host lays over the tape to address it through a floppy
+   controller, not anything the tape itself decides, so they stay at the
+   figures every host driver uses.
  */
 static void
-ditto_read_geometry(ditto_t *dev)
+ditto_set_geometry(ditto_t *dev)
 {
-    uint8_t hdr[FDD_TAPE_SECTOR_SIZE];
-
     dev->segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
     dev->segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
+    dev->tape_tracks   = DITTO_TRACKS;
+    dev->tape_spt      = ditto_segments_per_track(dev->capacity);
 
-    if (dev->fp == NULL)
+    ditto_log("Ditto: %i GB cartridge - %i tracks of %i segments, "
+              "%llu bytes of data in a %llu byte image\n",
+              dev->capacity, dev->tape_tracks, dev->tape_spt,
+              (unsigned long long) ditto_tape_capacity(dev),
+              (unsigned long long) ditto_image_extent(dev));
+}
+
+/*
+   Checks that a loaded image is the size the configured capacity calls
+   for. A shorter one is not refused - a cartridge is allowed to be
+   blank, and one that is part written is how an image grows as the host
+   fills it - but a mismatch is worth saying out loud, because the usual
+   cause is an image made for a different capacity being loaded under
+   this one, and every segment address past the end of it will fail.
+ */
+static void
+ditto_check_image(const ditto_t *dev)
+{
+    const uint64_t want = ditto_image_extent(dev);
+
+    if (!dev->image_loaded || (dev->image_size == 0))
         return;
 
-    if (fseek(dev->fp, 0, SEEK_SET) != 0)
-        return;
-    if (fread(hdr, 1, sizeof(hdr), dev->fp) != sizeof(hdr))
+    if (dev->image_size == want)
         return;
 
-    /* Header segment signature, little endian 0xaa55aa55. */
-    if ((hdr[0] != 0x55) || (hdr[1] != 0xaa) || (hdr[2] != 0x55) || (hdr[3] != 0xaa))
-        return;
-
-    if ((hdr[29] < FDD_TAPE_SECTORS_PER_SEG) || (hdr[28] < 1))
-        return;
-
-    dev->segs_per_cyl  = hdr[29] / FDD_TAPE_SECTORS_PER_SEG;
-    dev->segs_per_head = (hdr[28] + 1) * dev->segs_per_cyl;
-
-    ditto_log("Ditto: geometry from header - %i segments/cylinder, "
-              "%i segments/head\n", dev->segs_per_cyl, dev->segs_per_head);
+    ditto_log("Ditto: image is %u bytes, a %i GB cartridge is %llu - "
+              "%s\n", dev->image_size, dev->capacity,
+              (unsigned long long) want,
+              (dev->image_size < want) ? "the tape reads as part written"
+                                       : "the excess is unreachable");
 }
 
 static void
@@ -868,7 +1043,7 @@ ditto_image_load(ditto_t *dev, const char *fn)
     dev->fp           = fp;
     dev->image_loaded = 1;
 
-    ditto_read_geometry(dev);
+    ditto_check_image(dev);
 
     ditto_log("Ditto: loaded %s (%u bytes%s)\n", fn, dev->image_size,
               dev->readonly ? ", read-only" : "");
@@ -905,12 +1080,31 @@ ditto_image_write(ditto_t *dev, uint32_t offset, const uint8_t *buf, uint32_t le
     if (fwrite(buf, 1, len, dev->fp) != len)
         return 0;
 
-    fflush(dev->fp);
+    /*
+       Not flushed here. A format writes the cartridge a sector at a
+       time, so flushing each one turns one segment into thirty-two
+       forced writes, and a whole cartridge into nearly three million of
+       them. The callers flush once they have finished a segment
+       instead, which keeps what is on disk no more than a segment
+       behind what the host thinks it wrote.
+     */
+    dev->image_dirty = 1;
 
     if ((offset + len) > dev->image_size)
         dev->image_size = offset + len;
 
     return 1;
+}
+
+/* Puts a finished segment on disk. Cheap when nothing was written. */
+static void
+ditto_image_sync(ditto_t *dev)
+{
+    if ((dev->fp == NULL) || !dev->image_dirty)
+        return;
+
+    fflush(dev->fp);
+    dev->image_dirty = 0;
 }
 
 /*
@@ -1099,13 +1293,18 @@ qic_report_next_bit(ditto_t *dev)
         dev->report_shift = 0x01; /* the stop bit */
 }
 
-/* How many segments a tape track holds. The host tells the drive this
-   when it formats; until then, take the usual figure. */
+/*
+   How many segments a tape track holds. The cartridge settles this, but
+   a host laying down a format states the figure it is writing to and is
+   taken at its word for as long as that format lasts - refusing would
+   make the drive unable to be formatted to anything but its own idea of
+   itself, which is not how the mechanism behaves.
+ */
 static int
 qic_segments_per_track(const ditto_t *dev)
 {
     return dev->qic_format_segments ? dev->qic_format_segments
-                                    : DITTO_SEGMENTS_PER_TRACK;
+                                    : dev->tape_spt;
 }
 
 static int
@@ -1178,6 +1377,71 @@ qic_busy_done(void *priv)
     qic_update_status(dev);
 
     ditto_log("Ditto: wind complete, drive ready\n");
+}
+
+/* Stops the cartridge wherever it has got to, and lets the drive answer
+   ready again. */
+static void
+qic_stop_motion(ditto_t *dev)
+{
+    timer_disable(&dev->motion_timer);
+
+    dev->qic_running = 0;
+    dev->run_off     = 0;
+    qic_update_status(dev);
+}
+
+/*
+   Runs the cartridge past the head, a segment at a time.
+
+   The pass has to end by itself, because the host does not stop it: it
+   starts the tape, writes or reads what it wants, and then waits for
+   ready to come back as the sign that the pass is over. So the tape runs
+   to the end of the track and stops there.
+
+   It stops a segment late, on purpose. The host polls the status a few
+   milliseconds after handing over the last segment of a track and has to
+   find the drive still busy - a drive that went idle the instant the last
+   segment went by would be claiming the pass was over while the host was
+   still working on it, which QBACKUP's format reads as a failure outright
+   rather than as an early finish.
+ */
+static void
+qic_motion_tick(void *priv)
+{
+    ditto_t  *dev = (ditto_t *) priv;
+    const int end = qic_track_start(dev) + qic_segments_per_track(dev) - 1;
+
+    if (!dev->qic_running) {
+        qic_stop_motion(dev);
+        return;
+    }
+
+    timer_advance_u64(&dev->motion_timer, DITTO_WIND_PER_SEG_US * TIMER_USEC);
+
+    if (dev->qic_segment < end) {
+        dev->qic_segment++;
+        dev->run_off = 0;
+        qic_update_status(dev);
+        return;
+    }
+
+    /* The track has run out; carry on into the slack, then come to rest. */
+    if (++dev->run_off >= 1) {
+        ditto_log("Ditto: end of track %i, stopping\n", dev->qic_track);
+        qic_stop_motion(dev);
+    }
+}
+
+/* Sets the cartridge streaming under the head. */
+static void
+qic_start_motion(ditto_t *dev)
+{
+    dev->qic_running = 1;
+    dev->run_off     = 0;
+    qic_update_status(dev);
+
+    timer_set_delay_u64(&dev->motion_timer, DITTO_WIND_PER_SEG_US * TIMER_USEC);
 }
 
 static void
@@ -1257,6 +1521,19 @@ qic_check_command(ditto_t *dev, int cmd)
        rather than the last.
      */
     diff = (uint8_t) ((dev->qic_status & attr->mask) ^ attr->state);
+
+    /*
+       Except that a referenced cartridge cannot be asked for in Format
+       mode. Outside it, the drive needs the load point burst to know
+       where the segments lie and refuses to stream tape without one -
+       but in Format mode that burst is the thing being written, so
+       requiring it first means a blank cartridge can never become a
+       formatted one.
+     */
+    if ((dev->qic_mode_flags & QIC_MODE_FORMAT) &&
+        (diff & QIC_STATUS_REFERENCED))
+        diff &= (uint8_t) ~QIC_STATUS_REFERENCED;
+
     if (diff != 0) {
         uint8_t err;
 
@@ -1313,14 +1590,26 @@ qic_drive_status(const ditto_t *dev)
 }
 
 /*
-   The drive configuration byte. The rate field is deliberately masked
-   out of it - this drive reports its rate through the extended command
-   instead, and a host that knows the model asks there.
+   The drive configuration byte, rate field and all.
+
+   It used to be masked out, on the reasoning that this drive reports its
+   rate through the extended command and a host that knows the model asks
+   there. That left every read of this register saying rate code zero -
+   the slowest the field can name - however fast the host had just set
+   the drive to run. A host that works out how long an operation should
+   take from the rate the drive claims will wait far longer than it needs
+   to, and this one waits ten seconds for every segment it formats,
+   deterministically, with the port interrupt switched off so nothing can
+   cut the wait short.
+
+   fdd_tape.c reports the rate here, and there is no reason this drive
+   should be the one that hides it: whatever the extended command is for,
+   it is not a reason to answer this one wrongly.
  */
 static uint8_t
 qic_drive_config(const ditto_t *dev)
 {
-    return (uint8_t) (dev->qic_config & ~QIC_CONFIG_RATE_MASK);
+    return dev->qic_config;
 }
 
 /* How many parameters a command expects after it. */
@@ -1397,6 +1686,14 @@ static void
 qic_run_command(ditto_t *dev, int cmd)
 {
     dev->qic_last_cmd = (uint8_t) cmd;
+
+    /*
+       Only errors and finished reports were ever logged, which leaves
+       every command that works invisible - and it is the ones that work
+       that a host waits on.
+     */
+    ditto_log("Ditto: QIC-117 command %i (params %i)\n", cmd,
+              qic_param_count(cmd));
 
     /*
        Soft reset is the way out of a latched error, so it is the one
@@ -1482,14 +1779,18 @@ qic_run_command(ditto_t *dev, int cmd)
                Winds to the load point: the first segment of the track,
                which on an odd track is at the far physical end.
              */
-            dev->qic_running = 0;
+            qic_stop_motion(dev);
             qic_seek_segment(dev, qic_track_start(dev));
             break;
 
         case QIC_LOGICAL_FORWARD:
-            /* Sets the tape streaming forward under the head. */
-            dev->qic_running = 1;
-            qic_update_status(dev);
+            /*
+               Sets the cartridge streaming forward under the head. It
+               runs to the end of the track and stops there by itself -
+               the host never stops it, it just waits for ready to come
+               back as the sign that the pass is over.
+             */
+            qic_start_motion(dev);
             break;
 
         case QIC_PHYSICAL_REVERSE:
@@ -1498,7 +1799,7 @@ qic_run_command(ditto_t *dev, int cmd)
                A high speed wind to one physical end. Which end of the
                track that is depends on which way the track runs.
              */
-            dev->qic_running = 0;
+            qic_stop_motion(dev);
             if ((cmd == QIC_PHYSICAL_REVERSE) != (dev->qic_reverse != 0))
                 qic_seek_segment(dev, qic_track_start(dev));
             else
@@ -1516,7 +1817,7 @@ qic_run_command(ditto_t *dev, int cmd)
                that stops a wind and is still told the drive is busy
                gets its next command refused for the wrong reason.
              */
-            dev->qic_running = 0;
+            qic_stop_motion(dev);
             if (dev->qic_busy) {
                 timer_disable(&dev->busy_timer);
                 dev->qic_busy = 0;
@@ -1528,10 +1829,18 @@ qic_run_command(ditto_t *dev, int cmd)
             /*
                A lateral move rather than a wind, so it settles quickly
                whatever track it starts from. Odd tracks run backwards.
+
+               How far the head reaches is fixed by the mechanism, so a
+               track beyond the cartridge is refused and the head stays
+               where it is rather than addressing tape that is not there.
              */
+            if (dev->qic_param[0] >= dev->tape_tracks) {
+                qic_set_error(dev, QIC_ERROR_ILLEGAL_SEEK_TRACK, (uint8_t) cmd);
+                break;
+            }
             dev->qic_track   = dev->qic_param[0];
             dev->qic_reverse = dev->qic_track & 1;
-            dev->qic_running = 0;
+            qic_stop_motion(dev);
             dev->qic_segment = qic_track_start(dev);
             qic_begin_busy(dev, DITTO_HEAD_SEEK_US);
             break;
@@ -1546,7 +1855,7 @@ qic_run_command(ditto_t *dev, int cmd)
                                (cmd == QIC_SKIP_EXTENDED_FORWARD)) ? 32 : 1;
             const int count = (qic_param_value(dev, cmd) + 1) * scale;
 
-            dev->qic_running = 0;
+            qic_stop_motion(dev);
             qic_seek_segment(dev, dev->qic_segment + (back ? -count : count));
             break;
         }
@@ -1555,24 +1864,66 @@ qic_run_command(ditto_t *dev, int cmd)
             /*
                Laying the reference burst down is a whole tape operation
                and takes the longest of any command in the set.
+
+               It is also the thing that makes a blank cartridge
+               referenced - that burst at the load point is what the
+               drive later finds to know where the segments lie, and
+               until it exists the cartridge reads as unformatted. A
+               drive that winds the tape and records nothing leaves the
+               status unchanged afterwards, so a host that writes the
+               burst and checks for it writes it again, and then gives
+               up: that is the unrecoverable error preformatting.
+
+               Any nonzero extent will do, the tape being referenced by
+               its first byte rather than its length; the real segments
+               arrive as the format writes them.
              */
-            dev->qic_running = 0;
+            qic_stop_motion(dev);
             dev->qic_segment = qic_track_start(dev);
+            if (dev->image_size == 0)
+                dev->image_size = 1;
             qic_begin_busy(dev, DITTO_WIND_FULL_US);
             break;
 
         case QIC_CALIBRATE_TAPE_LENGTH:
-            dev->qic_running = 0;
+            /*
+               Calibrating is the drive running the cartridge end to end
+               to find out how much tape there is. What it comes back
+               with is the segments per track, and that is the answer
+               Report Format Segments gives from here on - before a
+               calibration it has nothing to report and says zero.
+               Winding without recording anything leaves it saying zero
+               afterwards too, which a host reads as a cartridge with no
+               capacity: it is what made Ditto Tools call a perfectly
+               good tape unwriteable.
+             */
+            dev->qic_running         = 0;
+            dev->qic_format_segments = (uint16_t) dev->tape_spt;
             qic_begin_busy(dev, DITTO_WIND_FULL_US);
             break;
 
         case QIC_SELECT_RATE:
             /*
-               The plain rate selection only knows the two slow rates.
-               Everything else it is offered is a format selector, and a
-               value that is neither is refused.
+               The plain rate selection knows the three rates this drive
+               can run at. Everything else it is offered is a format
+               selector, and a value that is neither is refused.
+
+               The codes are not in any order that reads sensibly: 1 is
+               2 Mbit/s, 2 is 500 kbit/s and 3 is 1 Mbit/s, which is why
+               the slow one looks out of place sitting between the two
+               fast ones. Leaving 500 out is not a small omission - it
+               is the rate a host drops to for the format pass, so a
+               drive that refuses it takes the error at the moment
+               formatting begins and never lays a segment down.
              */
             switch (dev->qic_param[0]) {
+                case 2:
+                    dev->qic_config   = (uint8_t) ((dev->qic_config & ~QIC_CONFIG_RATE_MASK) |
+                                                   (QIC_CONFIG_RATE_500 << QIC_CONFIG_RATE_SHIFT));
+                    /* Reported in whole Mbit/s, and this is under one. */
+                    dev->qic_ext_rate = 0;
+                    break;
+
                 case 1:
                     dev->qic_config   = (uint8_t) ((dev->qic_config & ~QIC_CONFIG_RATE_MASK) |
                                                    (QIC_CONFIG_RATE_2000 << QIC_CONFIG_RATE_SHIFT));
@@ -1915,6 +2266,8 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
         left -= FDD_TAPE_SECTOR_SIZE;
     }
 
+    ditto_image_sync(dev);
+
     /*
        A normal end leaves the address one past the last sector moved,
        which is how the host works out how much actually went across.
@@ -1944,6 +2297,10 @@ fdc_format(ditto_t *dev, uint8_t unit)
     uint32_t  addr   = dev->dma_addr & DITTO_BUFFER_MASK;
     uint8_t   sec[FDD_TAPE_SECTOR_SIZE];
     uint32_t  offset;
+    const uint32_t started      = plat_get_ticks();
+    const uint64_t ops_at_start = dev->port_ops;
+    int       wrote   = 0;
+    int       skipped = 0;
 
     if (dev->readonly || (dev->fp == NULL)) {
         fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
@@ -1961,8 +2318,10 @@ fdc_format(ditto_t *dev, uint8_t unit)
 
         addr += 4;
 
-        if (!ditto_sector_offset(dev, cyl, head, sector, &offset))
+        if (!ditto_sector_offset(dev, cyl, head, sector, &offset)) {
+            skipped++;
             continue;
+        }
 
         if (!ditto_image_write(dev, offset, sec, sizeof(sec))) {
             fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
@@ -1970,6 +2329,73 @@ fdc_format(ditto_t *dev, uint8_t unit)
             fdc_raise_irq(dev);
             return;
         }
+        wrote++;
+    }
+
+    ditto_image_sync(dev);
+
+    /*
+       A format writes its segment far faster than tape runs, so the head
+       is carried along by the writing rather than by the free running
+       clock - left to itself the cartridge would reach the end of the
+       track long before the host had finished laying it down, stop, and
+       report the pass over while the host was still working.
+
+       The drive stays in motion throughout: the host polls the status
+       just after handing over the last segment of a track and has to
+       find it busy there. Coming to rest is the end-of-track case in
+       qic_motion_tick, which the last segment of the track reaches here.
+     */
+    if (dev->qic_running) {
+        const int end = qic_track_start(dev) + qic_segments_per_track(dev) - 1;
+
+        if (dev->qic_segment < end) {
+            dev->qic_segment++;
+            dev->run_off = 0;
+            qic_update_status(dev);
+        }
+
+        /*
+           Re-armed from now, never stopped here. The pass has to outlast
+           the writing by a segment: the host polls the status a few
+           milliseconds after handing over the last segment of a track
+           and has to find the drive still busy, then waits for ready.
+           Coming to rest on the same call that wrote the last segment
+           would answer ready to that poll, which QBACKUP's format driver
+           reads as the pass having failed rather than finished. Letting
+           the clock stop it a segment-time later is what leaves the
+           window open.
+         */
+        timer_disable(&dev->motion_timer);
+        timer_set_delay_u64(&dev->motion_timer,
+                            DITTO_WIND_PER_SEG_US * TIMER_USEC);
+    }
+
+    /*
+       A once-per-format summary, cheap enough to leave on: it says where
+       the wall clock is going without a line per port access. "gap" is
+       the time the host spent between one format finishing and the next
+       arriving - its own work, not ours - against "io", the time this
+       call spent putting sectors in the image.
+     */
+    {
+        static uint32_t last_end        = 0;
+        static uint64_t ops_at_last_end = 0;
+        static uint32_t formats         = 0;
+        const  uint32_t now             = plat_get_ticks();
+
+        if ((++formats % 16) == 0)
+            ditto_stat("Ditto: format %u - %d sectors, %d skipped, %u ms "
+                       "writing; then %u ms before the next, over which the "
+                       "host did %llu port ops, last QIC command %d, "
+                       "last 765 command %02X\n",
+                       formats, wrote, skipped, now - started,
+                       last_end ? (started - last_end) : 0,
+                       (unsigned long long) (ops_at_start - ops_at_last_end),
+                       dev->qic_last_cmd, dev->fdc_cmd[0]);
+
+        last_end        = plat_get_ticks();
+        ops_at_last_end = dev->port_ops;
     }
 
     dev->fdc_res[0] = unit;
@@ -2641,6 +3067,7 @@ ditto_advance_read(ditto_t *dev)
         ditto_log("Ditto: read refused in %s mode\n", ditto_proto_name[dev->proto]);
         dev->rd_out  = ditto_encode_nibble(0x0f);
         dev->rd_high = !dev->rd_high;
+        dev->dat_out = 0xff;
         if (dev->lpt != NULL)
             lpt_write_to_dat(dev->lpt, 0xff);
         return;
@@ -2652,8 +3079,9 @@ ditto_advance_read(ditto_t *dev)
        nibble. The host has already turned the port around.
      */
     if (dev->proto == DITTO_PROTO_PS2) {
-        val         = backpack_read_reg(dev, dev->cur_reg);
-        dev->rd_out = 0x00;
+        val          = backpack_read_reg(dev, dev->cur_reg);
+        dev->rd_out  = 0x00;
+        dev->dat_out = val;
         if (dev->lpt != NULL)
             lpt_write_to_dat(dev->lpt, val);
         return;
@@ -2704,6 +3132,7 @@ ditto_epp_request_read(uint8_t is_addr, void *priv)
     if (!is_addr && ditto_proto_usable(dev) && (dev->proto >= DITTO_PROTO_EPP8))
         val = backpack_read_reg(dev, dev->cur_reg);
 
+    dev->dat_out = val;
     if (dev->lpt != NULL)
         lpt_write_to_dat(dev->lpt, val);
 }
@@ -2731,6 +3160,9 @@ ditto_write_data(uint8_t val, void *priv)
 {
     ditto_t      *dev = (ditto_t *) priv;
     const uint8_t old = dev->dat;
+
+    dev->port_ops++;
+    ditto_note_idle(dev);
 
     ditto_log("Ditto: W0 %02X            [%s]\n", val, ditto_state(dev));
 
@@ -2794,6 +3226,9 @@ ditto_write_ctrl(uint8_t val, void *priv)
     const uint8_t chg       = (uint8_t) ((old ^ val) & LPT_CTRL_LINES);
     const uint8_t lines     = (uint8_t) (val & LPT_CTRL_LINES);
     const uint8_t old_lines = (uint8_t) (old & LPT_CTRL_LINES);
+
+    dev->port_ops++;
+    ditto_note_idle(dev);
 
 
     ditto_log("Ditto: W2 %02X (was %02X)  [%s]\n", val, old, ditto_state(dev));
@@ -2995,9 +3430,12 @@ ditto_write_ctrl(uint8_t val, void *priv)
 static void
 ditto_read_data(void *priv)
 {
-    const ditto_t *dev = (const ditto_t *) priv;
+    ditto_t *dev = (ditto_t *) priv;
 
-    ditto_log("Ditto: R0 (dir %s)      [%s]\n",
+    dev->port_ops++;
+    ditto_note_idle(dev);
+
+    ditto_log("Ditto: R0 -> %02X (dir %s)  [%s]\n", dev->dat_out,
               (dev->ctrl & LPT_CTRL_DIR) ? "in" : "out", ditto_state(dev));
 }
 
@@ -3006,6 +3444,9 @@ ditto_read_status(void *priv)
 {
     ditto_t *dev = (ditto_t *) priv;
     uint8_t  ret;
+
+    dev->port_ops++;
+    ditto_note_idle(dev);
 
     if (dev->connected && dev->ident)
         ret = ditto_ident_response(dev);
@@ -3050,6 +3491,16 @@ ditto_init(UNUSED(const device_t *info))
     dev->readonly = device_get_config_int("writeprot");
     dev->unit     = (uint8_t) device_get_config_int("unit");
 
+    dev->capacity = device_get_config_int("capacity");
+    if ((dev->capacity != DITTO_CAPACITY_2GB) &&
+        (dev->capacity != DITTO_CAPACITY_3GB) &&
+        (dev->capacity != DITTO_CAPACITY_5GB))
+        dev->capacity = DITTO_CAPACITY_5GB;
+
+    /* The geometry has to be settled before an image is measured
+       against it. */
+    ditto_set_geometry(dev);
+
     fn = device_get_config_string("image");
     if (fn != NULL)
         strncpy(dev->image_fn, fn, sizeof(dev->image_fn) - 1);
@@ -3078,13 +3529,17 @@ ditto_init(UNUSED(const device_t *info))
        else - that is how the host learns it has been reset.
      */
     dev->qic_vendor_id   = DITTO_VENDOR_ID;
-    dev->qic_config      = QIC_CONFIG_80 | QIC_CONFIG_LONG;
+    /* Powers up at the slow rate, as fdd_tape.c's drive does, until the
+       host selects one. */
+    dev->qic_config      = (uint8_t) (QIC_CONFIG_80 | QIC_CONFIG_LONG |
+                                      (QIC_CONFIG_RATE_500 << QIC_CONFIG_RATE_SHIFT));
     dev->qic_tape_status = QIC_TAPE_QIC3020 | QIC_TAPE_FLEX | QIC_TAPE_WIDE;
     dev->qic_ext_rate    = 2;
     dev->qic_mode_flags  = QIC_MODE_PRIMARY;
     dev->qic_status      = QIC_STATUS_READY;
 
     timer_add(&dev->busy_timer, qic_busy_done, dev, 0);
+    timer_add(&dev->motion_timer, qic_motion_tick, dev, 0);
     if (dev->image_loaded)
         dev->qic_status |= QIC_STATUS_CARTRIDGE_PRESENT;
     if (dev->readonly)
@@ -3156,6 +3611,29 @@ static const device_config_t ditto_config[] = {
         .bios           = { { 0 } }
     },
     {
+        /*
+           Which cartridge is in the drive, named the way these were
+           sold - at the 2:1 the drive's compression was rated at, so a
+           "2 GB" cartridge holds a gigabyte of actual data. This settles
+           the tape geometry outright rather than it being guessed from
+           whatever image happens to be loaded.
+         */
+        .name           = "capacity",
+        .description    = "Cartridge capacity",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DITTO_CAPACITY_2GB,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 GB", .value = DITTO_CAPACITY_2GB },
+            { .description = "3 GB", .value = DITTO_CAPACITY_3GB },
+            { .description = "5 GB", .value = DITTO_CAPACITY_5GB },
+            { .description = ""                                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "writeprot",
         .description    = "Write protect cartridge",
         .type           = CONFIG_BINARY,
@@ -3193,7 +3671,7 @@ static const device_config_t ditto_config[] = {
 // clang-format on
 
 const device_t lpt_ditto_device = {
-    .name          = "Iomega Ditto Drive",
+    .name          = "Iomega Ditto 2GB",
     .internal_name = "ditto",
     .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
