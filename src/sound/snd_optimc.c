@@ -62,7 +62,8 @@ optimc_log(void *priv, const char *fmt, ...)
 #    define optimc_log(fmt, ...)
 #endif
 
-static int optimc_wss_dma[4] = { 0, 0, 1, 3 };
+static int optimc_wss_dma[4]  = { 0, 0, 1, 3 };
+static int optimc_wss_dma2[4] = { 1, 1, 0, 0 };
 static int optimc_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 };
 static int opti930_wss_irq[8] = { 0, 7, 9, 10, 11, 5, 0, 0 };
 static double opti930_vols_5bits[32];
@@ -224,6 +225,15 @@ optimc_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
         ad1848_setirq(&optimc->ad1848, optimc_wss_irq[(val >> 3) & 7]);
     else
         ad1848_setirq(&optimc->ad1848, opti930_wss_irq[(val >> 3) & 7]);
+
+    /* OPTi 929/93x supports full-duplex mode */
+    if (val & 0x04) {
+        optimc_log(optimc->log, "OPTi WSS: Full-duplex mode enabled\n");
+        ad1848_setdma2(&optimc->ad1848, optimc_wss_dma2[val & 3]);
+    } else {
+        optimc_log(optimc->log, "OPTi WSS: Full-duplex mode disabled\n");
+        ad1848_setdma2(&optimc->ad1848, 4);
+    }
 }
 
 static void
@@ -411,6 +421,15 @@ opti930_reg_write(uint16_t addr, uint8_t val, void *priv)
                     /* The OPTi 82c930 driver on the NEC Ready preloads requires this to function properly */
                     ad1848_setdma(&optimc->ad1848, optimc_wss_dma[val & 3]);
                     ad1848_setirq(&optimc->ad1848, opti930_wss_irq[(val >> 3) & 7]);
+
+                    /* OPTi 929/93x supports full-duplex mode */
+                    if (val & 0x04) {
+                        optimc_log(optimc->log, "OPTi WSS: Full-duplex mode enabled\n");
+                        ad1848_setdma2(&optimc->ad1848, optimc_wss_dma2[val & 3]);
+                    } else {
+                        optimc_log(optimc->log, "OPTi WSS: Full-duplex mode disabled\n");
+                        ad1848_setdma2(&optimc->ad1848, 4);
+                    }
                 }
                 break;
             case 3: /* MC4 */
@@ -941,6 +960,7 @@ opti931_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             sb_dsp_setirq(&optimc->sb->dsp, 0);
 
             ad1848_setdma(&optimc->ad1848, 0);
+            ad1848_setdma2(&optimc->ad1848, 0);
             sb_dsp_setdma8(&optimc->sb->dsp, 0);
 
             if (config->activate) {
@@ -981,6 +1001,10 @@ opti931_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
                     sb_dsp_setdma8(&optimc->sb->dsp, optimc->cur_dma);
                     ad1848_setdma(&optimc->ad1848, optimc->cur_wss_dma);
                     optimc_log(optimc->log, "Updated WSS Playback/SB DMA to %04X\n", optimc->cur_dma);
+                }
+                if (config->dma[1].dma != ISAPNP_DMA_DISABLED) {
+                    ad1848_setdma2(&optimc->ad1848, config->dma[1].dma);
+                    optimc_log(optimc->log, "Updated WSS Capture DMA to %04X\n", config->dma[1].dma);
                 }
             }
             break;
