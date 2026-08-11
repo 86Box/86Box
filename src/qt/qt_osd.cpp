@@ -490,9 +490,10 @@ qt_osd_key(int qt_key, int qt_modifiers, bool down, bool repeat, char* utf8text)
     }
 
     ImGuiKey ik = qt_key_to_imgui(qt_key);
-    if (ik != ImGuiKey_None) {
+
+    if (ik != ImGuiKey_None)
         ImGui::GetIO().AddKeyEvent(ik, down);
-    }
+    
     if (down)
         ImGui::GetIO().AddInputCharactersUTF8(utf8text);
 
