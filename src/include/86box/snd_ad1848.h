@@ -48,6 +48,7 @@ typedef struct ad1848_t {
     uint8_t opti930_mode2;
 
     int     count;
+    int     rec_count;
     uint8_t trd;
     uint8_t mce;
     uint8_t wten : 1;
@@ -63,8 +64,10 @@ typedef struct ad1848_t {
     uint8_t wave_vol_mask;
 
     uint8_t enable : 1;
+    uint8_t rec_enable : 1;
     uint8_t irq    : 4;
     uint8_t dma    : 3;
+    uint8_t dma2   : 3;
     int     adpcm_predictor[2];
     int16_t adpcm_step_index[2];
     int     freq;
@@ -75,6 +78,7 @@ typedef struct ad1848_t {
     uint32_t dma_data;
 
     pc_timer_t timer_count;
+    pc_timer_t rec_timer_count;
     uint64_t   timer_latch;
 
     pc_timer_t cs4231a_irq_timer;
@@ -89,6 +93,7 @@ typedef struct ad1848_t {
 
 extern void ad1848_setirq(ad1848_t *ad1848, int irq);
 extern void ad1848_setdma(ad1848_t *ad1848, int dma);
+extern void ad1848_setdma2(ad1848_t *ad1848, int dma);
 extern void ad1848_updatevolmask(ad1848_t *ad1848);
 
 extern uint8_t ad1848_read(uint16_t addr, void *priv);
