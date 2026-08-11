@@ -432,6 +432,7 @@ ymf71x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
             sb_dsp_setirq(&ymf71x->sb->dsp, 0);
 
             ad1848_setdma(&ymf71x->ad1848, 0);
+            ad1848_setdma2(&ymf71x->ad1848, 0);
             sb_dsp_setdma8(&ymf71x->sb->dsp, 0);
 
             if (config->activate) {
@@ -510,7 +511,11 @@ ymf71x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
                     if (ymf71x->regs[0x06] & 0x01) {
                         ad1848_setdma(&ymf71x->ad1848, config->dma[0].dma);
                         ymf71x->cur_wss_dma = config->dma[0].dma;
-                        ymf71x_log(ymf71x->log, "Setting WSS DMA to DMA-A (%04X)\n", ymf71x->cur_wss_dma);
+                        ymf71x_log(ymf71x->log, "Setting WSS playback DMA to DMA-A (%04X)\n", ymf71x->cur_wss_dma);
+                    }
+                    if (ymf71x->regs[0x06] & 0x02) {
+                        ad1848_setdma2(&ymf71x->ad1848, config->dma[0].dma);
+                        ymf71x_log(ymf71x->log, "Setting WSS capture DMA to DMA-A (%04X)\n", config->dma[0].dma);
                     }
                     if (ymf71x->regs[0x06] & 0x04) {
                         sb_dsp_setdma8(&ymf71x->sb->dsp, config->dma[0].dma);
@@ -523,7 +528,11 @@ ymf71x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
                     if (ymf71x->regs[0x06] & 0x10) {
                         ad1848_setdma(&ymf71x->ad1848, config->dma[1].dma);
                         ymf71x->cur_wss_dma = config->dma[1].dma;
-                        ymf71x_log(ymf71x->log, "Setting WSS DMA to DMA-B (%04X)\n", ymf71x->cur_wss_dma);
+                        ymf71x_log(ymf71x->log, "Setting WSS playback DMA to DMA-B (%04X)\n", ymf71x->cur_wss_dma);
+                    }
+                    if (ymf71x->regs[0x06] & 0x20) {
+                        ad1848_setdma2(&ymf71x->ad1848, config->dma[1].dma);
+                        ymf71x_log(ymf71x->log, "Setting WSS capture DMA to DMA-B (%04X)\n", config->dma[1].dma);
                     }
                     if (ymf71x->regs[0x06] & 0x40) {
                         sb_dsp_setdma8(&ymf71x->sb->dsp, config->dma[1].dma);

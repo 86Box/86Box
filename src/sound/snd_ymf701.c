@@ -57,8 +57,9 @@ ymf701_log(void *priv, const char *fmt, ...)
 #    define ymf701_log(fmt, ...)
 #endif
 
-static int ymf701_wss_dma[4] = { 0, 0, 1, 3 };
-static int ymf701_wss_irq[8] = { 0, 7, 9, 10, 11, 0, 0, 0 };
+static int ymf701_wss_dma[4]  = { 0, 0, 1, 3 };
+static int ymf701_wss_dma2[4] = { 1, 1, 0, 0 };
+static int ymf701_wss_irq[8]  = { 0, 7, 9, 10, 11, 0, 0, 0 };
 
 typedef struct ymf701_t {
     uint8_t type;
@@ -140,6 +141,15 @@ ymf701_wss_write(uint16_t addr, uint8_t val, void *priv)
             ad1848_setirq(&ymf701->ad1848, ymf701_wss_irq[(val >> 3) & 7]);
             ymf701_log(ymf701->log, "Set IRQ to %02X\n", ymf701->cur_wss_irq);
             ymf701_log(ymf701->log, "Set DMA to %02X\n", ymf701->cur_wss_dma);
+
+            /* YMF701 supports full-duplex mode */
+            if (val & 0x04) {
+                ymf701_log(ymf701->log, "WSS: Full-duplex mode enabled\n");
+                ad1848_setdma2(&ymf701->ad1848, ymf701_wss_dma2[val & 3]);
+            } else {
+                ymf701_log(ymf701->log, "WSS: Full-duplex mode disabled\n");
+                ad1848_setdma2(&ymf701->ad1848, 4);
+            }
             break;
         default:
             break;
