@@ -24,9 +24,26 @@
  *               pulses that controller emits - the same command set the
  *               cable-attached drive in fdd_tape.c speaks.
  *
- *          This file implements layers 1 to 3. Only layer 1 and the
- *          plumbing of layer 2 are present so far; see the milestone
- *          notes on backpack_read_reg().
+ *          All four are implemented here. Iomega's own Windows 95 tape
+ *          software drives it end to end - format, backup and restore -
+ *          as does DOS QBACKUP.
+ *
+ *          Three things about the host are worth knowing before changing
+ *          anything, because each of them broke a whole operation and
+ *          none of them is guessable from the specifications:
+ *
+ *            - a controller reset empties the QIC-117 command channel.
+ *              The channel is a count of step pulses measured from the
+ *              cylinder the controller believes it is on, and the reset
+ *              moves that belief to zero, so the host starts its next
+ *              command from a standing start (see fdc_write_reg);
+ *            - the skip counts are a fixed number of nibbles, two for
+ *              the plain skips and three for the extended ones, whatever
+ *              the distance (see qic_param_count);
+ *            - a transfer has to take as long as the tape it covers
+ *              takes to pass the head. Finishing it the instant the last
+ *              command byte lands reads to the host as a refusal (see
+ *              fdc_begin_exec).
  *
  * Authors: Dmitry Brant, <me@dmitrybrant.com>
  *
@@ -53,19 +70,19 @@
    way to see what a host actually does rather than what it was expected
    to do.
 
-   It is not as expensive as it looks. A line costs an 8 KB allocation, a
-   copy and a flushed write, which is worth avoiding when the host is
-   moving data - during a bulk transfer it spends about forty port
-   accesses on every byte, and the trace becomes most of what the
-   emulator is doing. But when the host is waiting rather than
-   transferring, there is almost nothing to log: a format segment is
-   around 570 port accesses spread over seconds, where the trace costs a
-   couple of percent and is worth every bit of it.
+   It is cheaper than it looks and the arithmetic is worth writing down,
+   because guessing at it wasted a lot of time here. A line costs a
+   little under two microseconds - an allocation, a copy and a flushed
+   write. The host moves a byte in about two and a half port accesses, so
+   a backup at its fastest logs a few thousand lines a second and the
+   trace costs on the order of one percent. Judge it by lines per second,
+   not by how slow the emulator feels; those are only the same number
+   when the host is busy.
 
-   Judge it by port accesses per second, not by how slow the emulator
-   feels - those are the same number only when the host is busy.
+   What it does cost is disk: a whole backup is several hundred megabytes
+   of trace.
  */
-#define ENABLE_LPT_DITTO_LOG 1
+#define ENABLE_LPT_DITTO_LOG 0
 
 /*
    Bits of the parallel port's own registers, at their literal values in
@@ -445,9 +462,6 @@ typedef struct ditto_t {
     int     latching;     /* an out-of-band register write is under way */
     int     latch_commits; /* bytes it has committed so far */
 
-    uint8_t saved_ctrl;
-    uint8_t saved_dat;
-
     /* Layer 1: the byte being handed back to the host. */
     int     cur_reg;    /* register the host has addressed */
     int     xfer_idx;   /* bytes moved since that register was addressed -
@@ -498,6 +512,8 @@ typedef struct ditto_t {
     int      fdc_poll;   /* drive-poll results a reset still owes */
 
     /* Layer 4: the drive itself. */
+    /* Kept for the conformance harness, which checks the step decoding
+       by counting trains rather than by their effect. */
     int      qic_pulses;    /* length of the last pulse train */
     int      qic_trains;    /* how many trains have arrived */
     int      qic_ack;       /* state of the answer line */
@@ -508,6 +524,8 @@ typedef struct ditto_t {
     uint8_t  qic_config;
     uint8_t  qic_tape_status;
     uint8_t  qic_ext_rate;  /* the selected rate, in Mbit/s */
+    /* Recorded when the host selects one, but nothing here is paced by
+       it - the geometry comes from the cartridge setting instead. */
     uint8_t  qic_format_code;
     uint8_t  qic_partition;
     uint8_t  qic_mode_flags;
@@ -540,7 +558,6 @@ typedef struct ditto_t {
     uint8_t  dat_out;       /* last byte we put on the data lines */
 
     /* Counted for the format-rate summary, not used by the emulation. */
-    uint64_t port_ops;
 
     /* The ECC coprocessor. */
     uint8_t  ecc_mul[256];
@@ -615,13 +632,21 @@ ditto_stat(const char *fmt, ...)
    looks exactly like the operation before a ten microsecond one. This
    names the pause, so the line above it is the thing being waited on.
 
-   Not gated on the trace: it is two integer operations per port access
-   and it is the one measurement that has to survive the trace being off.
+   It is how the ten second wait after every transfer was pinned to the
+   command that caused it.
+
+   Trace-gated, so it costs a clock read per port access only when the
+   trace is on. It earned its keep on its own while the host was still
+   stalling; it is not worth a call on the hot path now that it is not.
  */
+#ifdef ENABLE_LPT_DITTO_LOG
 static void
 ditto_note_idle(ditto_t *dev)
 {
     const uint32_t now = plat_get_ticks();
+
+    if (!lpt_ditto_do_log)
+        return;
 
     if ((dev->last_port_ms != 0) &&
         ((now - dev->last_port_ms) >= DITTO_IDLE_MS))
@@ -630,6 +655,9 @@ ditto_note_idle(ditto_t *dev)
 
     dev->last_port_ms = now;
 }
+#else
+#    define ditto_note_idle(dev)
+#endif
 
 /*
    Turns the protocol bits the host writes to control register 0x04 (and,
@@ -2031,13 +2059,27 @@ qic_run_command(ditto_t *dev, int cmd)
         case QIC_SOFT_DESELECT:
             break;
 
+        /*
+           How long the drive may take over a command before the host
+           gives up on it. Nothing here is paced by that - the timings
+           come from the tape - so it is taken and forgotten. The Windows
+           host sends it a dozen or more times a session, so leaving it
+           to the default arm below only filled the trace with claims
+           that it was unimplemented.
+         */
+        case QIC_ALTERNATE_TIMEOUT:
+            break;
+
         default:
             /*
-               Everything that moves tape belongs to the next milestone.
-               Refusing them outright would be worse than accepting them
-               quietly: the host would latch an error and stop.
+               Whatever is left is a command the set has but this drive
+               does not model. Accept it quietly rather than refusing: a
+               host that is refused latches the error and stops. Codes
+               that are not in the set at all never reach here -
+               qic_check_command() has already turned them away with
+               "undefined command".
              */
-            ditto_log("Ditto: QIC-117 command %i not implemented yet\n", cmd);
+            ditto_log("Ditto: QIC-117 command %i accepted and ignored\n", cmd);
             break;
     }
 
@@ -2516,8 +2558,6 @@ fdc_format(ditto_t *dev, uint8_t unit)
     uint32_t  addr   = dev->dma_addr & DITTO_BUFFER_MASK;
     uint8_t   sec[FDD_TAPE_SECTOR_SIZE];
     uint32_t  offset;
-    const uint32_t started      = plat_get_ticks();
-    const uint64_t ops_at_start = dev->port_ops;
     int       wrote   = 0;
     int       skipped = 0;
 
@@ -2591,32 +2631,8 @@ fdc_format(ditto_t *dev, uint8_t unit)
                             qic_stream_period_us(dev) * TIMER_USEC);
     }
 
-    /*
-       A once-per-format summary, cheap enough to leave on: it says where
-       the wall clock is going without a line per port access. "gap" is
-       the time the host spent between one format finishing and the next
-       arriving - its own work, not ours - against "io", the time this
-       call spent putting sectors in the image.
-     */
-    {
-        static uint32_t last_end        = 0;
-        static uint64_t ops_at_last_end = 0;
-        static uint32_t formats         = 0;
-        const  uint32_t now             = plat_get_ticks();
-
-        if ((++formats % 16) == 0)
-            ditto_stat("Ditto: format %u - %d sectors, %d skipped, %u ms "
-                       "writing; then %u ms before the next, over which the "
-                       "host did %llu port ops, last QIC command %d, "
-                       "last 765 command %02X\n",
-                       formats, wrote, skipped, now - started,
-                       last_end ? (started - last_end) : 0,
-                       (unsigned long long) (ops_at_start - ops_at_last_end),
-                       dev->qic_last_cmd, dev->fdc_cmd[0]);
-
-        last_end        = plat_get_ticks();
-        ops_at_last_end = dev->port_ops;
-    }
+    ditto_log("Ditto: formatted %i sectors, %i not on this cartridge\n",
+              wrote, skipped);
 
     dev->fdc_res[0] = unit;
     dev->fdc_res[1] = 0x00;
@@ -3457,7 +3473,6 @@ ditto_write_data(uint8_t val, void *priv)
     ditto_t      *dev = (ditto_t *) priv;
     const uint8_t old = dev->dat;
 
-    dev->port_ops++;
     ditto_note_idle(dev);
 
     ditto_log("Ditto: W0 %02X            [%s]\n", val, ditto_state(dev));
@@ -3523,7 +3538,6 @@ ditto_write_ctrl(uint8_t val, void *priv)
     const uint8_t lines     = (uint8_t) (val & LPT_CTRL_LINES);
     const uint8_t old_lines = (uint8_t) (old & LPT_CTRL_LINES);
 
-    dev->port_ops++;
     ditto_note_idle(dev);
 
 
@@ -3728,7 +3742,6 @@ ditto_read_data(void *priv)
 {
     ditto_t *dev = (ditto_t *) priv;
 
-    dev->port_ops++;
     ditto_note_idle(dev);
 
     ditto_log("Ditto: R0 -> %02X (dir %s)  [%s]\n", dev->dat_out,
@@ -3741,7 +3754,6 @@ ditto_read_status(void *priv)
     ditto_t *dev = (ditto_t *) priv;
     uint8_t  ret;
 
-    dev->port_ops++;
     ditto_note_idle(dev);
 
     if (dev->connected && dev->ident)
