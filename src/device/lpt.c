@@ -1030,6 +1030,19 @@ lpt_set_ecp(lpt_t *dev, const uint8_t ecp)
         dev->ecp = ecp;
 }
 
+/* Whether the port will actually carry EPP cycles to its device. A device
+   can be programmed into an EPP transfer mode by its host and still never
+   see a single base+3/base+4 access, because lpt_port_setup() only maps
+   those addresses when the super I/O has EPP switched on - so the two
+   have to be distinguishable when a transfer mode turns out to be dead. */
+int
+lpt_port_offers_epp(void *priv)
+{
+    const lpt_t *dev = (const lpt_t *) priv;
+
+    return (dev == NULL) ? 0 : lpt_is_epp(dev);
+}
+
 void
 lpt_set_epp(lpt_t *dev, const uint8_t epp)
 {

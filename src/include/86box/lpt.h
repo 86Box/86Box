@@ -125,6 +125,7 @@ extern void                lpt_write_to_fifo(void *priv, uint8_t val);
 /* Drives the data lines back at the host, for devices that answer reads on
    base+0 (PS/2 8-bit mode) or on the EPP data/address registers. */
 extern void                lpt_write_to_dat(void *priv, uint8_t val);
+extern int                 lpt_port_offers_epp(void *priv);
 
 extern uint8_t             lpt_read(uint16_t port, void *priv);
 

@@ -239,6 +239,7 @@ enum {
 enum {
     FDC_PHASE_IDLE = 0,
     FDC_PHASE_COMMAND,
+    FDC_PHASE_EXEC,
     FDC_PHASE_RESULT
 };
 
@@ -512,11 +513,14 @@ typedef struct ditto_t {
     uint8_t  qic_mode_flags;
     int      qic_track;    /* logical tape track the head sits on */
     int      qic_segment;  /* absolute segment under the head */
+    int      qic_sector;   /* and how far into it, for READ ID */
     int      qic_reverse;  /* this track is laid down back to front */
     int      qic_running;  /* tape is streaming past the head */
     int      qic_busy;     /* a wind is under way */
     pc_timer_t busy_timer;
     pc_timer_t motion_timer; /* the cartridge running past the head */
+    pc_timer_t xfer_timer;   /* the tape passing under the head, mid transfer */
+    int        xfer_res_len; /* result bytes waiting for it to finish */
     int        run_off;      /* segments of slack pulled past the end */
     uint16_t qic_vendor_id;
     uint16_t qic_format_segments;
@@ -531,6 +535,7 @@ typedef struct ditto_t {
     int      tape_spt;      /* segments on each of them */
 
     int      image_dirty;   /* written but not yet flushed to disk */
+    int      epp_warned;    /* the EPP-vs-port mismatch has been reported */
     uint32_t last_port_ms;  /* when the host last touched the port */
     uint8_t  dat_out;       /* last byte we put on the data lines */
 
@@ -1379,6 +1384,33 @@ qic_busy_done(void *priv)
     ditto_log("Ditto: wind complete, drive ready\n");
 }
 
+/*
+   How long a segment takes to pass the head while the tape is streaming.
+
+   This is the data rate, not a wind: the tape is being written or read as
+   it goes, so it runs at exactly the speed the bits are moving. Winding
+   is the fast case and keeps its own constants.
+
+   Getting this wrong is not a matter of pacing. A host writes a segment,
+   does its own housekeeping, writes the next, and expects the tape it is
+   writing to still be under the head; the drive reaching the end of the
+   track early reports end of tape, and the host takes that as the pass
+   being over and the backup failing. At the wind rate a whole 502 segment
+   track goes by in a second and a half, so the tape ran out from under
+   the host after a few hundred kilobytes. At 500 kbit/s the same track
+   takes four and a half minutes, which is what the cartridge really does.
+ */
+static uint64_t
+qic_stream_period_us(const ditto_t *dev)
+{
+    /* Indexed by the drive configuration's rate field, as ftape reads it. */
+    static const unsigned int kbit[4] = { 250, 2000, 500, 1000 };
+    const unsigned int rate =
+        kbit[(dev->qic_config >> QIC_CONFIG_RATE_SHIFT) & 0x03];
+
+    return ((uint64_t) FDD_TAPE_SEGMENT_SIZE * 8 * 1000) / rate;
+}
+
 /* Stops the cartridge wherever it has got to, and lets the drive answer
    ready again. */
 static void
@@ -1417,10 +1449,11 @@ qic_motion_tick(void *priv)
         return;
     }
 
-    timer_advance_u64(&dev->motion_timer, DITTO_WIND_PER_SEG_US * TIMER_USEC);
+    timer_advance_u64(&dev->motion_timer, qic_stream_period_us(dev) * TIMER_USEC);
 
     if (dev->qic_segment < end) {
         dev->qic_segment++;
+        dev->qic_sector = 0;
         dev->run_off = 0;
         qic_update_status(dev);
         return;
@@ -1441,7 +1474,7 @@ qic_start_motion(ditto_t *dev)
     dev->run_off     = 0;
     qic_update_status(dev);
 
-    timer_set_delay_u64(&dev->motion_timer, DITTO_WIND_PER_SEG_US * TIMER_USEC);
+    timer_set_delay_u64(&dev->motion_timer, qic_stream_period_us(dev) * TIMER_USEC);
 }
 
 static void
@@ -1478,6 +1511,7 @@ qic_seek_segment(ditto_t *dev, int segment)
         dist = -dist;
 
     dev->qic_segment = segment;
+    dev->qic_sector = 0;
     qic_update_status(dev);
 
     if (dist == 0)
@@ -1636,23 +1670,30 @@ qic_param_count(int cmd)
            what stopped the Windows driver dead while the DOS one, which
            never sets the format size, went on working.
          */
+        /*
+           The skip counts are the same shape, and ftape settles the width
+           for both: ftape_skip_segments() picks its nibble count as
+           "count > 255 ? 3 : 2" and then sends exactly that many, so the
+           plain skips always carry two and the extended ones always three,
+           whatever the distance.
+
+           Reading only the first nibble left the second to be taken for a
+           command, and near the end of a backup - where the host makes one
+           long skip to reach the directory - the high nibble is 12, which
+           reads as seek load point. That arrives while the short skip we
+           did instead is still running, so it is refused for a drive that
+           is not ready, and the host gives up with an unrecoverable error
+           at the same segment every time.
+         */
+        case QIC_SKIP_EXTENDED_REVERSE:
+        case QIC_SKIP_EXTENDED_FORWARD:
         case QIC_SET_FORMAT_SEGMENTS:
             return 3;
 
-        /*
-           The skip counts are wider than a nibble too, and fdd_tape.c
-           reads them as two and three. Left at one here on purpose:
-           unlike the format size, the traces do not settle it - decoded
-           either way, some of the bursts carry values too large to be
-           nibbles, which means the reconstruction is not to be trusted
-           there. The DOS host drives these ten times a session and
-           works as they stand, so they wait for evidence rather than
-           being changed to match.
-         */
         case QIC_SKIP_REVERSE:
         case QIC_SKIP_FORWARD:
-        case QIC_SKIP_EXTENDED_REVERSE:
-        case QIC_SKIP_EXTENDED_FORWARD:
+            return 2;
+
         case QIC_ALTERNATE_TIMEOUT:
         case QIC_SEEK_HEAD_TO_TRACK:
         case QIC_SOFT_SELECT:
@@ -1842,6 +1883,7 @@ qic_run_command(ditto_t *dev, int cmd)
             dev->qic_reverse = dev->qic_track & 1;
             qic_stop_motion(dev);
             dev->qic_segment = qic_track_start(dev);
+            dev->qic_sector = 0;
             qic_begin_busy(dev, DITTO_HEAD_SEEK_US);
             break;
 
@@ -1849,11 +1891,16 @@ qic_run_command(ditto_t *dev, int cmd)
         case QIC_SKIP_FORWARD:
         case QIC_SKIP_EXTENDED_REVERSE:
         case QIC_SKIP_EXTENDED_FORWARD: {
-            const int back  = (cmd == QIC_SKIP_REVERSE) ||
-                              (cmd == QIC_SKIP_EXTENDED_REVERSE);
-            const int scale = ((cmd == QIC_SKIP_EXTENDED_REVERSE) ||
-                               (cmd == QIC_SKIP_EXTENDED_FORWARD)) ? 32 : 1;
-            const int count = (qic_param_value(dev, cmd) + 1) * scale;
+            const int back = (cmd == QIC_SKIP_REVERSE) ||
+                             (cmd == QIC_SKIP_EXTENDED_REVERSE);
+            /*
+               The extended forms are not a coarser step, only a wider
+               count: three nibbles instead of two, reaching 4096 gaps
+               rather than 256. Scaling them was a stand-in for the third
+               nibble that was not being read, and now that it is, it
+               would multiply every long skip by 32.
+             */
+            const int count = qic_param_value(dev, cmd) + 1;
 
             qic_stop_motion(dev);
             qic_seek_segment(dev, dev->qic_segment + (back ? -count : count));
@@ -1880,6 +1927,7 @@ qic_run_command(ditto_t *dev, int cmd)
              */
             qic_stop_motion(dev);
             dev->qic_segment = qic_track_start(dev);
+            dev->qic_sector = 0;
             if (dev->image_size == 0)
                 dev->image_size = 1;
             qic_begin_busy(dev, DITTO_WIND_FULL_US);
@@ -2180,6 +2228,57 @@ fdc_begin_result(ditto_t *dev, int len)
     dev->fdc_phase   = (len > 0) ? FDC_PHASE_RESULT : FDC_PHASE_IDLE;
 }
 
+/* The tape has finished going past the head: hand over the result. */
+static void
+fdc_xfer_done(void *priv)
+{
+    ditto_t *dev = (ditto_t *) priv;
+
+    timer_disable(&dev->xfer_timer);
+
+    if (dev->fdc_phase != FDC_PHASE_EXEC)
+        return;
+
+    fdc_begin_result(dev, dev->xfer_res_len);
+    fdc_raise_irq(dev);
+}
+
+/*
+   A transfer takes as long as the tape it covers takes to pass the head.
+   The bytes have already been moved - the bridge buffers them, so there
+   is nothing to clock out - but the controller has to look busy for that
+   long, because the host's whole idea of a transfer is built around it.
+
+   Finishing instantly is not a harmless shortcut. The host writes the
+   command, finds the result waiting before the tape could possibly have
+   moved, and reads that as a refusal.
+ */
+static void
+fdc_begin_exec(ditto_t *dev, int sectors, int res_len)
+{
+    uint64_t us;
+
+    dev->xfer_res_len = res_len;
+    dev->fdc_res_pos  = 0;
+    dev->fdc_res_len  = 0;
+
+    if (sectors <= 0) {
+        fdc_begin_result(dev, res_len);
+        fdc_raise_irq(dev);
+        return;
+    }
+
+    dev->fdc_phase = FDC_PHASE_EXEC;
+
+    us = (qic_stream_period_us(dev) * (uint64_t) sectors) /
+         FDD_TAPE_SECTORS_PER_SEG;
+    if (us < 1)
+        us = 1;
+
+    timer_disable(&dev->xfer_timer);
+    timer_set_delay_u64(&dev->xfer_timer, us * TIMER_USEC);
+}
+
 /* Fills in the seven bytes a data command ends with. */
 static void
 fdc_data_result(ditto_t *dev, uint8_t st0, uint8_t st1, uint8_t st2)
@@ -2232,11 +2331,31 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
         return;
     }
 
-    for (sector = first; sector <= last; sector++) {
-        if (left < FDD_TAPE_SECTOR_SIZE)
-            break;
+    /*
+       What ends a transfer is the DMA count running out, not the last
+       sector number. EOT stops it too if the count is generous enough to
+       reach it, and running off the end of the cylinder stops it in the
+       same way - but the count comes first, because that is the terminal
+       count a controller of this family is wired to obey.
 
+       Treating EOT as the only limit made a whole class of command move
+       nothing at all and report that it had. This host issues every read
+       and every write twice: once addressed properly, and then - after
+       waiting on the first, giving up and restarting the controller -
+       again with EOT set one below the first sector, which is its way of
+       saying "as much as the count allows". Fifty-three of the writes in
+       a single backup take that form. On a write it went unnoticed,
+       because the first attempt had already put the data down; on a read
+       it handed back a buffer of whatever was in it before, which the
+       host read as having run off the end of the volume.
+     */
+    for (sector = first; left >= FDD_TAPE_SECTOR_SIZE; sector++) {
         if (!ditto_sector_offset(dev, cyl, head, sector, &offset)) {
+            /* Off the end of the cylinder is where the tape ran out, not
+               a bad address - unless it was the address we were given. */
+            if (sector != first)
+                break;
+
             ditto_log("Ditto: C %i H %i R %i is not on this cartridge\n",
                       cyl, head, sector);
             fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
@@ -2262,9 +2381,42 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
                 dev->buffer[(addr + (uint32_t) i) & DITTO_BUFFER_MASK] = sec[i];
         }
 
+        /*
+           The head is wherever the data is. Moving it with the transfer
+           rather than leaving it to the free running clock is what keeps
+           the drive's idea of its position and the host's in step: the
+           clock advances a segment every few milliseconds whether or not
+           anything is being written, so a host that writes a segment,
+           polls, writes the next and so on would watch the head run away
+           from it and reach the end of the track within a second - which
+           it reads as the pass being over after a few hundred kilobytes.
+         */
+        dev->qic_segment = (head * dev->segs_per_head) +
+                           (cyl * dev->segs_per_cyl) +
+                           ((sector - 1) / FDD_TAPE_SECTORS_PER_SEG);
+        dev->qic_sector  = (sector - 1) % FDD_TAPE_SECTORS_PER_SEG;
+
         addr += FDD_TAPE_SECTOR_SIZE;
         left -= FDD_TAPE_SECTOR_SIZE;
+
+        if (sector == last) {
+            sector++;
+            break;
+        }
     }
+
+    /*
+       Let the clock carry on from where the transfer left the head, so a
+       pass that the host stops feeding still runs out and ends, but one
+       it keeps feeding is paced by the writing rather than by the timer.
+     */
+    if (dev->qic_running) {
+        timer_disable(&dev->motion_timer);
+        timer_set_delay_u64(&dev->motion_timer,
+                            qic_stream_period_us(dev) * TIMER_USEC);
+    }
+
+    qic_update_status(dev);
 
     ditto_image_sync(dev);
 
@@ -2279,9 +2431,8 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
     dev->fdc_res[4] = (uint8_t) head;
     dev->fdc_res[5] = (uint8_t) sector;
     dev->fdc_res[6] = dev->fdc_cmd[5];
-    fdc_begin_result(dev, 7);
 
-    fdc_raise_irq(dev);
+    fdc_begin_exec(dev, sector - first, 7);
 }
 
 /*
@@ -2289,6 +2440,74 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
    sector to be laid down, and every one of them gets written out full of
    the filler byte.
  */
+/*
+   READ ID: hands back the address of the sector under the head, which is
+   how the host works out where on the tape it is.
+
+   Refusing it is not a small gap. The host driver reads an ID to locate
+   the head and keeps the C/H/R it gets back as the origin for its seek
+   arithmetic, so a drive that will not answer leaves it with no idea
+   where anything is - which it reports as the drive having been given an
+   invalid command, because that is what it was told.
+
+   A stopped tape answers with its real position rather than a fixed zero,
+   for the same reason: a host told the head sits at segment 0 wherever it
+   really is computes every later seek from the wrong place.
+ */
+static void
+fdc_read_id(ditto_t *dev, uint8_t unit)
+{
+    int segment;
+    int cyl;
+    int head;
+    int sector;
+
+    if (!dev->image_loaded) {
+        fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
+                        FDC_ST1_MISSING_AM | FDC_ST1_NO_DATA, 0x00);
+        fdc_raise_irq(dev);
+        return;
+    }
+
+    segment = dev->qic_segment;
+    head    = segment / dev->segs_per_head;
+    cyl     = (segment % dev->segs_per_head) / dev->segs_per_cyl;
+    sector  = ((segment % dev->segs_per_cyl) * FDD_TAPE_SECTORS_PER_SEG) +
+              dev->qic_sector + 1;
+
+    ditto_log("Ditto: read ID -> segment %i (c=%i h=%i r=%i)%s\n",
+              segment, cyl, head, sector, dev->qic_running ? "" : " [stopped]");
+
+    dev->fdc_res[0] = unit;
+    dev->fdc_res[1] = 0x00;
+    dev->fdc_res[2] = 0x00;
+    dev->fdc_res[3] = (uint8_t) cyl;
+    dev->fdc_res[4] = (uint8_t) head;
+    dev->fdc_res[5] = (uint8_t) sector;
+    dev->fdc_res[6] = 3; /* 1024 bytes to a sector */
+    fdc_begin_result(dev, 7);
+
+    /*
+       A search is clocked by the host, not by us: reading an ID carries
+       the head on one sector, so a host reading IDs to find a segment
+       walks forward a sector per read and stops exactly on its target
+       rather than overshooting between polls. Only while the tape is
+       actually moving - a stopped cartridge stays where it was put.
+     */
+    if (dev->qic_running) {
+        const int end = qic_track_start(dev) + qic_segments_per_track(dev) - 1;
+
+        if (++dev->qic_sector >= FDD_TAPE_SECTORS_PER_SEG) {
+            dev->qic_sector = 0;
+            if (dev->qic_segment < end)
+                dev->qic_segment++;
+        }
+        qic_update_status(dev);
+    }
+
+    fdc_raise_irq(dev);
+}
+
 static void
 fdc_format(ditto_t *dev, uint8_t unit)
 {
@@ -2351,6 +2570,7 @@ fdc_format(ditto_t *dev, uint8_t unit)
 
         if (dev->qic_segment < end) {
             dev->qic_segment++;
+            dev->qic_sector = 0;
             dev->run_off = 0;
             qic_update_status(dev);
         }
@@ -2368,7 +2588,7 @@ fdc_format(ditto_t *dev, uint8_t unit)
          */
         timer_disable(&dev->motion_timer);
         timer_set_delay_u64(&dev->motion_timer,
-                            DITTO_WIND_PER_SEG_US * TIMER_USEC);
+                            qic_stream_period_us(dev) * TIMER_USEC);
     }
 
     /*
@@ -2543,12 +2763,15 @@ fdc_execute(ditto_t *dev)
                     fdc_format(dev, unit);
                     break;
 
+                case 0x0a:
+                    fdc_read_id(dev, unit);
+                    break;
+
                 case 0x02:
                 case 0x11: case 0x16:
-                case 0x0a:
                     /*
-                       Read a whole track, compare, and read an address.
-                       Nothing the host does on this drive needs them.
+                       Read a whole track and compare. Nothing the host
+                       does on this drive needs them.
                      */
                     ditto_log("Ditto: FDC command %02X not implemented\n", cmd);
                     fdc_data_result(dev,
@@ -2583,6 +2806,22 @@ fdc_read_msr(const ditto_t *dev)
             ret |= FDC_MSR_CB;
             break;
 
+        case FDC_PHASE_EXEC:
+            /*
+               Mid transfer the controller is busy and has nothing to say:
+               command byte register busy, but no request for service,
+               because in DMA mode the bytes go past the host entirely.
+
+               Showing the result phase here instead - which is what
+               finishing a transfer the instant the last command byte
+               lands amounts to - reads to this host as the command
+               having been thrown straight back at it. It polls the
+               status forty times, restarts the controller and tries
+               again, on every single transfer in both directions.
+             */
+            ret = FDC_MSR_CB;
+            break;
+
         case FDC_PHASE_RESULT:
             ret |= FDC_MSR_CB | FDC_MSR_DIO;
             break;
@@ -2609,6 +2848,15 @@ fdc_read_reg(ditto_t *dev, int reg)
                 ditto_log("Ditto: FDC data read outside a result phase\n");
                 break;
             }
+
+            /*
+               Reading the first result byte is what takes the interrupt
+               down on a controller of this family - only seek and reset
+               interrupts wait to be sensed. Leaving it up meant every
+               later "is there anything outstanding?" answered yes.
+             */
+            if (dev->fdc_res_pos == 0)
+                fdc_clear_irq(dev);
 
             ret = dev->fdc_res[dev->fdc_res_pos++];
             if (dev->fdc_res_pos >= dev->fdc_res_len) {
@@ -2655,7 +2903,33 @@ fdc_write_reg(ditto_t *dev, int reg, uint8_t val)
                 dev->fdc_phase   = FDC_PHASE_IDLE;
                 dev->fdc_cmd_pos = dev->fdc_cmd_len = 0;
                 dev->fdc_res_pos = dev->fdc_res_len = 0;
+                timer_disable(&dev->xfer_timer);
+                dev->xfer_res_len = 0;
                 fdc_clear_irq(dev);
+
+                /*
+                   Anything half said down the command channel is dropped
+                   with it. The channel is a count of step pulses measured
+                   from where the controller believes the head is, and the
+                   reset moves that belief to cylinder zero - so the host
+                   starts its next sentence from a standing start and
+                   expects to be heard from the beginning.
+
+                   Leaving a parameter or a report outstanding here is not
+                   a quiet kind of wrong. The host re-initialises the
+                   controller in the middle of a backup, roughly once per
+                   pair of segments, and follows every reset with a soft
+                   select; a drive still owed a skip count reads that
+                   select as the count instead, winds two dozen segments
+                   off target, and then reads the select's own parameter
+                   as a command - which is command 20, which does not
+                   exist, which the host reports as the drive having been
+                   given an invalid command and gives up.
+                 */
+                dev->report_pending  = 0;
+                dev->qic_ack         = 0;
+                dev->qic_params_left = 0;
+                dev->qic_params_got  = 0;
             } else if (!(dev->fdc_dor & FDC_DOR_RESET_NOT) && (val & FDC_DOR_RESET_NOT)) {
                 dev->fdc_pcn  = 0;
                 dev->fdc_poll = FDC_POLL_DRIVES;
@@ -3018,6 +3292,22 @@ ditto_connect(ditto_t *dev)
     dev->rd_out = ditto_connect_response(dev);
 
     ditto_log("Ditto: connected in %s mode\n", ditto_proto_name[dev->proto]);
+
+    /*
+       A transfer mode the port cannot carry is worth saying out loud
+       once. The host can program the bridge into EPP and never issue a
+       single EPP cycle to it, because the super I/O maps base+3 and
+       base+4 only when it has EPP switched on - so the mode looks live
+       from here while nothing whatsoever reaches us through it, and the
+       host quietly falls back after its protocol self test reads all
+       ones. Said once per session rather than per connect: the host
+       connects tens of thousands of times.
+     */
+    if ((dev->proto >= DITTO_PROTO_EPP8) && !dev->epp_warned) {
+        dev->epp_warned = 1;
+        ditto_stat("Ditto: EPP selected; the port %s carry EPP cycles\n",
+                   lpt_port_offers_epp(dev->lpt) ? "does" : "DOES NOT");
+    }
 }
 
 static void
@@ -3115,12 +3405,15 @@ ditto_epp_write_data(uint8_t is_addr, uint8_t val, void *priv)
     }
 
     if (is_addr) {
+        ditto_log("Ditto: W3 %02X (EPP address)\n", val);
         dev->cur_reg   = val;
         dev->xfer_idx  = 0;
         dev->rd_high   = 0;
         dev->mem_burst = 0;
-    } else
+    } else {
+        ditto_log("Ditto: W4 %02X (EPP data)\n", val);
         backpack_write_reg(dev, dev->cur_reg, val);
+    }
 }
 
 static void
@@ -3128,6 +3421,9 @@ ditto_epp_request_read(uint8_t is_addr, void *priv)
 {
     ditto_t *dev = (ditto_t *) priv;
     uint8_t  val = 0xff;
+
+    ditto_log("Ditto: R%d (EPP %s)\n", is_addr ? 3 : 4,
+              is_addr ? "address" : "data");
 
     if (!is_addr && ditto_proto_usable(dev) && (dev->proto >= DITTO_PROTO_EPP8))
         val = backpack_read_reg(dev, dev->cur_reg);
@@ -3540,6 +3836,7 @@ ditto_init(UNUSED(const device_t *info))
 
     timer_add(&dev->busy_timer, qic_busy_done, dev, 0);
     timer_add(&dev->motion_timer, qic_motion_tick, dev, 0);
+    timer_add(&dev->xfer_timer, fdc_xfer_done, dev, 0);
     if (dev->image_loaded)
         dev->qic_status |= QIC_STATUS_CARTRIDGE_PRESENT;
     if (dev->readonly)
