@@ -845,29 +845,6 @@ fdd_hole(int drive)
         return 0;
 }
 
-int
-fdd_index(int drive)
-{
-    uint32_t index_pos;
-    uint32_t pulse_pos;
-    uint32_t raw_size;
-    int      side;
-
-    if ((drive < 0) || (drive >= FDD_NUM) || !motoron[drive] || drive_empty[drive] ||
-        !d86f_handler[drive].index_hole_pos || !d86f_handler[drive].get_raw_size)
-        return 0;
-
-    side     = fdd_get_head(drive);
-    raw_size = d86f_get_raw_size(drive, side);
-    if (!raw_size)
-        return 0;
-    index_pos = d86f_handler[drive].index_hole_pos(drive, side);
-    pulse_pos = (d86f_get_track_pos(drive) + raw_size - index_pos) % raw_size;
-
-    /* A typical index pulse is active for about 4 ms of a 200 ms revolution. */
-    return pulse_pos < (raw_size / 50);
-}
-
 static __inline uint64_t
 fdd_byteperiod(int drive)
 {

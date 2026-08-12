@@ -152,33 +152,6 @@ enum {
     ESDI_IS_INTEGRATED
 };
 
-static uint8_t
-esdi_bios_read(uint32_t addr, void *priv)
-{
-    esdi_t *dev = (esdi_t *) priv;
-
-    mca_feedback_set();
-    return rom_read(addr, &dev->bios_rom);
-}
-
-static uint16_t
-esdi_bios_readw(uint32_t addr, void *priv)
-{
-    esdi_t *dev = (esdi_t *) priv;
-
-    mca_feedback_set();
-    return rom_readw(addr, &dev->bios_rom);
-}
-
-static uint32_t
-esdi_bios_readl(uint32_t addr, void *priv)
-{
-    esdi_t *dev = (esdi_t *) priv;
-
-    mca_feedback_set();
-    return rom_readl(addr, &dev->bios_rom);
-}
-
 #define STATUS_DMA_ENA             (1 << 7)
 #define STATUS_IRQ_PENDING         (1 << 6)
 #define STATUS_CMD_IN_PROGRESS     (1 << 5)
@@ -918,51 +891,16 @@ esdi_callback(void *priv)
             break;
 
         case 0x12:
-            if (dev->cmd_dev != ATTN_DEVICE_0 &&
-                dev->cmd_dev != ATTN_DEVICE_1 &&
-                dev->cmd_dev != ATTN_HOST_ADAPTER) {
-                cmd_unsupported(dev);
-                return;
-            }
+            ESDI_ADAPTER_ONLY();
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->status_len     = 5;
-            dev->status_data[0] = 0x12 | STATUS_LEN(5) | dev->cmd_dev;
+            dev->status_len     = 2;
+            dev->status_data[0] = 0x12 | STATUS_LEN(5) | STATUS_DEVICE_HOST_ADAPTER;
             dev->status_data[1] = 0;
-            dev->status_data[2] = 0;
-            dev->status_data[3] = 0;
-            dev->status_data[4] = 0;
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
-            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
-            dev->irq_in_progress = 1;
-            set_irq(dev);
-            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
-            break;
-
-        case 0x14:
-            if (dev->cmd_dev != ATTN_DEVICE_0 &&
-                dev->cmd_dev != ATTN_DEVICE_1 &&
-                dev->cmd_dev != ATTN_HOST_ADAPTER) {
-                cmd_unsupported(dev);
-                return;
-            }
-            if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
-                fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
-
-            /* Return the status block from the preceding command.  The
-               command's word count remains encoded in its first word even
-               after the status interface has been drained. */
-            dev->status_len = dev->status_data[0] >> 8;
-            dev->status_pos = 0;
-            if (!dev->status_len) {
-                cmd_unsupported(dev);
-                return;
-            }
-
-            dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
-            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+            dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
             dev->irq_in_progress = 1;
             set_irq(dev);
             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
@@ -1023,8 +961,7 @@ esdi_callback(void *priv)
             break;
 
         default:
-            cmd_unsupported(dev);
-            break;
+            fatal("BAD COMMAND %02x %i\n", dev->command, dev->cmd_dev);
     }
 }
 
@@ -1033,8 +970,6 @@ esdi_read(uint16_t port, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
     uint8_t ret = 0x00;
-
-    mca_feedback_set();
 
     switch (port & 7) {
         case 2: /*Basic status register*/
@@ -1060,8 +995,6 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
     uint8_t old;
-
-    mca_feedback_set();
 
     esdi_mca_log("ESDI: wr(%04x, %02x)\n", port & 7, val);
 
@@ -1176,8 +1109,6 @@ esdi_readw(uint16_t port, void *priv)
     esdi_t  *dev = (esdi_t *) priv;
     uint16_t ret = 0xffff;
 
-    mca_feedback_set();
-
     switch (port & 7) {
         case 0: /*Status Interface Register*/
             if (dev->status_pos >= dev->status_len) {
@@ -1203,8 +1134,6 @@ static void
 esdi_writew(uint16_t port, uint16_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
-
-    mca_feedback_set();
 
     esdi_mca_log("ESDI: wrw(%04x, %04x)\n", port & 7, val);
 
@@ -1430,13 +1359,6 @@ esdi_init(UNUSED(const device_t *info))
         rom_init_interleaved(&dev->bios_rom,
             BIOS_FILE_H, BIOS_FILE_L,
             0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
-        mem_mapping_set_handler(&dev->bios_rom.mapping,
-            esdi_bios_read, esdi_bios_readw, esdi_bios_readl,
-            NULL, NULL, NULL);
-        mem_mapping_set_p(&dev->bios_rom.mapping, dev);
-        /* Card Selected Feedback is a side effect of every adapter-ROM read,
-           so reads must not bypass the handler through the direct ROM path. */
-        mem_mapping_set_exec(&dev->bios_rom.mapping, NULL);
         mem_mapping_disable(&dev->bios_rom.mapping);
     }
 

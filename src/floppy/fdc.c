@@ -1509,8 +1509,9 @@ fdc_read(uint16_t addr, void *priv)
                 if (fdc->flags & FDC_FLAG_PS2) {
                     drive = real_drive(fdc, fdc->dor & 3);
                     ret   = 0x00;
-                    if (fdd_index(drive))             /* INDEX */
-                        ret |= 0x04;
+                    /* TODO:
+                            Bit 2: INDEX (best return always 0 as it goes by very fast)
+                    */
                     if (fdc->seek_dir)                 /* nDIRECTION */
                         ret |= 0x01;
                     if (writeprot[drive])              /* WRITEPROT */
@@ -1528,8 +1529,9 @@ fdc_read(uint16_t addr, void *priv)
                 } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
                     drive = real_drive(fdc, fdc->dor & 3);
                     ret   = 0x04;
-                    if (fdd_index(drive))             /* nINDEX */
-                        ret &= ~0x04;
+                    /* TODO:
+                            Bit 2: nINDEX (best return always 1 as it goes by very fast)
+                    */
                     if (!fdc->seek_dir)                /* DIRECTION */
                         ret |= 0x01;
                     if (!writeprot[drive])             /* nWRITEPROT */
