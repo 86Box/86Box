@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
@@ -290,24 +291,16 @@ cga_render(cga_t *cga, int line)
     int      col;
 
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
+    bool     overlay_flag          = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag);
 
-    if (((cga->cgamode & highres_graphics_flag) == highres_graphics_flag)) {
-        for (column = 0; column < 8; ++column) {
-            buffer32->line[line][column] = 0;
-            if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 3) + 8] = 0;
-            else
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 4) + 8] = 0;
-        }
-    } else {
-        for (column = 0; column < 8; ++column) {
-            buffer32->line[line][column] = (cga->cgacol & 15) + 16;
-            if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 3) + 8] = (cga->cgacol & 15) + 16;
-            else
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 4) + 8] = (cga->cgacol & 15) + 16;
-        }
+    for (column = 0; column < 8; ++column) {
+        buffer32->line[line][column] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
+        if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
+            buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 8) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
+        else
+            buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 16) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
     }
+
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) { /* 80-column text */
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
             if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
@@ -323,17 +316,12 @@ cga_render(cga_t *cga, int line)
                     cols[1] = cols[0];
             } else
                 cols[0] = (attr >> 4) + 16;
-            if (drawcursor) {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 3) + column + 8]
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ 15;
-                }
-            } else {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 3) + column + 8]
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0];
-                }
+
+            for (column = 0; column < 8; column++) {
+                buffer32->line[line][(x * 8) + column + 8]
+                    = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0);
             }
+
             cga->memaddr++;
         }
     } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
@@ -351,22 +339,16 @@ cga_render(cga_t *cga, int line)
                     cols[1] = cols[0];
             } else
                 cols[0] = (attr >> 4) + 16;
-            cga->memaddr++;
-            if (drawcursor) {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 4) + (column << 1) + 8]
-                        = buffer32->line[line][(x << 4) + (column << 1) + 9]
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ 15;
-                }
-            } else {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 4) + (column << 1) + 8]
-                        = buffer32->line[line][(x << 4) + (column << 1) + 9] 
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0];
-                }
+
+            for (column = 0; column < 8; column++) {
+                buffer32->line[line][(x * 16) + (column << 1) + 8]
+                    = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
+                    = (cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0));
             }
+
+            cga->memaddr++;
         }
-    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) { /* not hi-res (but graphics) => 4-color mode */
+    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) { /* not hi-res (but graphics) => 4-color mode (2bpp) */
         cols[0] = (cga->cgacol & 15) | 16;
         col     = (cga->cgacol & 16) ? 24 : 16;
         if (cga->cgamode & CGA_MODE_FLAG_BW) {
@@ -388,15 +370,15 @@ cga_render(cga_t *cga, int line)
                       cga->vram[((cga->memaddr << 1) & 0x1fff) + ((cga->scanline & 1) * 0x2000) + 1];
             else
                 dat = 0;
-            cga->memaddr++;
             for (column = 0; column < 8; column++) {
-                buffer32->line[line][(x << 4) + (column << 1) + 8]
-                    = buffer32->line[line][(x << 4) + (column << 1) + 9]
+                buffer32->line[line][(x * 16) + (column << 1) + 8]
+                    = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = cols[dat >> 14];
                 dat <<= 2;
             }
+            cga->memaddr++;
         }
-    } else { /* 2-color hi-res graphics mode */
+    } else { /* 2-color hi-res graphics mode (1bpp) */
         cols[0] = 0;
         cols[1] = (cga->cgacol & 15) + 16;
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
@@ -405,11 +387,11 @@ cga_render(cga_t *cga, int line)
                       cga->vram[((cga->memaddr << 1) & 0x1fff) + ((cga->scanline & 1) * 0x2000) + 1];
             else
                 dat = 0;
-            cga->memaddr++;
             for (column = 0; column < 16; column++) {
-                buffer32->line[line][(x << 4) + column + 8] = cols[dat >> 15];
+                buffer32->line[line][(x * 16) + column + 8] = cols[dat >> 15];
                 dat <<= 1;
             }
+            cga->memaddr++;
         }
     }
 }
@@ -422,9 +404,9 @@ cga_render_blank(cga_t *cga, int line)
     int col = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 15) + 16;
 
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] << 3) + 16, col);
+        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 8) + 16, col);
     else
-        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] << 4) + 16, col);
+        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 16) + 16, col);
 }
 
 static void
@@ -435,12 +417,12 @@ cga_render_process(cga_t *cga, int line)
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-        x = (cga->crtc[CGA_CRTC_HDISP] << 3) + 16;
+        x = (cga->crtc[CGA_CRTC_HDISP] * 8) + 16;
     else
-        x = (cga->crtc[CGA_CRTC_HDISP] << 4) + 16;
+        x = (cga->crtc[CGA_CRTC_HDISP] * 16) + 16;
 
     if (cga->composite) {
-        border = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 15);
+        border = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 0b1111);
 
         Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[line]);
     } else
@@ -801,9 +783,9 @@ cga_poll(void *priv)
                 cga->vsynctime = 16;
                 if (cga->crtc[CGA_CRTC_VSYNC]) {
                     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-                        x = (cga->crtc[CGA_CRTC_HDISP] << 3) + 16;
+                        x = (cga->crtc[CGA_CRTC_HDISP] * 8) + 16;
                     else
-                        x = (cga->crtc[CGA_CRTC_HDISP] << 4) + 16;
+                        x = (cga->crtc[CGA_CRTC_HDISP] * 16) + 16;
                     cga->lastline++;
 
                     xs_temp = x;
@@ -866,13 +848,13 @@ cga_poll(void *priv)
             }
         } else {
             cga->scanline++;
-            cga->scanline &= 31;
+            cga->scanline &= 0b11111;
             cga->memaddr = cga->memaddr_backup;
         }
         if (cga->cgadispon)
             cga->cgastat &= ~1;
-        if (cga->scanline == (cga->crtc[CGA_CRTC_CURSOR_START] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
-            cga->scanline == ((cga->crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
+        if (cga->scanline == (cga->crtc[CGA_CRTC_CURSOR_START] & 0b11111) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
+            cga->scanline == ((cga->crtc[CGA_CRTC_CURSOR_START] & 0b11111) >> 1)))
             cga->cursorvisible = 1;
         if (cga->cgadispon && (cga->cgamode & CGA_MODE_FLAG_HIGHRES)) {
             for (x = 0; x < (cga->crtc[CGA_CRTC_HDISP] << 1); x++)
