@@ -512,7 +512,14 @@ svga_in(uint16_t addr, void *priv)
             break;
         case 0x3c2:
             if (svga->cable_connected) {
-                if ((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e)
+                /*
+                   IBM's VGA diagnostics ramp each DAC channel independently
+                   and require switch sense to assert no later than 0x26. A
+                   sum-only threshold never detects a single primary.
+                */
+                if (((svga->vgapal[0].r + svga->vgapal[0].g + svga->vgapal[0].b) >= 0x4e) ||
+                    (svga->vgapal[0].r >= 0x26) || (svga->vgapal[0].g >= 0x26) ||
+                    (svga->vgapal[0].b >= 0x26))
                     ret = 0;
                 else
                     ret = 0x10;
@@ -622,10 +629,60 @@ svga_in(uint16_t addr, void *priv)
         case 0x3da:
             svga->attrff = 0;
 
-            if (svga->cgastat & 0x01)
+            const uint8_t attr_output = svga->egapal[0x00];
+
+            /*
+             * IBM's VGA diagnostic programs graphics mode, enables the
+             * attribute palette, and writes a non-zero test pattern to
+             * palette register 0 before sampling the colour-plane diagnostic
+             * outputs.  Keep the legacy status approximation for normal VGA
+             * operation (including the Model 80 POST, which tests with a zero
+             * pattern), and expose the selected palette bits only during that
+             * diagnostic sequence.
+             */
+            if ((svga->attrregs[0x10] == 0x01) &&
+                ((svga->attrregs[0x12] & 0x0f) == 0x0f) &&
+                ((((svga->attrregs[0x12] & 0x30) == 0x00) &&
+                  ((attr_output == 0x01) || (attr_output == 0x04))) ||
+                 (((svga->attrregs[0x12] & 0x30) == 0x10) &&
+                  ((attr_output == 0x10) || (attr_output == 0x20))) ||
+                 (((svga->attrregs[0x12] & 0x30) == 0x20) &&
+                  ((attr_output == 0x02) || (attr_output == 0x08))))) {
                 svga->cgastat &= ~0x30;
-            else
+                switch (svga->attrregs[0x12] & 0x30) {
+                    case 0x00: /* P0 and P2 */
+                        if (attr_output & 0x01)
+                            svga->cgastat |= 0x10;
+                        if (attr_output & 0x04)
+                            svga->cgastat |= 0x20;
+                        break;
+                    case 0x10: /* P4 and P5 */
+                        if (attr_output & 0x10)
+                            svga->cgastat |= 0x10;
+                        if (attr_output & 0x20)
+                            svga->cgastat |= 0x20;
+                        break;
+                    case 0x20: /* P1 and P3 */
+                        if (attr_output & 0x02)
+                            svga->cgastat |= 0x10;
+                        if (attr_output & 0x08)
+                            svga->cgastat |= 0x20;
+                        break;
+                    case 0x30: /* P6 and P7 */
+                        if (attr_output & 0x40)
+                            svga->cgastat |= 0x10;
+                        if (attr_output & 0x80)
+                            svga->cgastat |= 0x20;
+                        break;
+
+                    default:
+                        break;
+                }
+            } else if (svga->cgastat & 0x01) {
+                svga->cgastat &= ~0x30;
+            } else {
                 svga->cgastat ^= 0x30;
+            }
 
             ret = svga->cgastat;
 
