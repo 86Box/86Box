@@ -303,6 +303,30 @@ cga_is_in_lightpen(cga_t *cga, int x, int y)
     return (int)abs_x == x && (int)abs_y == y;
 }
 
+static float
+cga_sample_luma(bitmap_t* target_buffer, uint32_t x, uint32_t y)
+{
+    const float R_COEFF    = 0.3;
+    const float G_COEFF    = 0.4;
+    const float B_COEFF    = 0.7;
+    float total_luma       = 0.0;
+
+    for (int ky = -2; ky <= 2; ky++) {
+        for (int kx = -2; kx <= 2; kx++) {
+            uint32_t xx = (((int)x) + kx) & 2047;
+            uint32_t yy = (((int)y) + ky) & 2047;
+
+            float r = ((target_buffer->line[yy][xx] >> 16) & 0xFF) / 255.0;
+            float g = ((target_buffer->line[yy][xx] >> 8) & 0xFF) / 255.0;
+            float b = (target_buffer->line[yy][xx] & 0xFF) / 255.0;
+
+            total_luma += (r * R_COEFF) + (g * G_COEFF) + (b * B_COEFF);
+        }
+    }
+
+    return total_luma / 25.0;
+}
+
 static void
 cga_render(cga_t *cga, int line)
 {
@@ -385,6 +409,7 @@ cga_render(cga_t *cga, int line)
                 }
             }
 
+            is_under_cursor = 0;
             cga->memaddr++;
         }
     } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) { /* not hi-res (but graphics) => 4-color mode (2bpp) */
@@ -420,6 +445,7 @@ cga_render(cga_t *cga, int line)
                 }
                 dat <<= 2;
             }
+            is_under_cursor = 0;
             cga->memaddr++;
         }
     } else { /* 2-color hi-res graphics mode (1bpp) */
@@ -441,6 +467,7 @@ cga_render(cga_t *cga, int line)
                     buffer32->line[line][(x * 16) + column + 8] ^= 0b1111;
                 }
             }
+            is_under_cursor = 0;
             cga->memaddr++;
         }
     }

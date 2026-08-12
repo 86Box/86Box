@@ -114,6 +114,9 @@ typedef struct cga_t {
     int rgb_type;
     int double_type;
 
+    uint32_t lp_latch_found_l;
+    uint32_t lp_latch_found_h;
+
     uint8_t monitor_used;
 } cga_t;
 
