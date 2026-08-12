@@ -55,6 +55,10 @@
 #    define BLOCK_INVALID    0
 #endif
 
+#define EXT_CACHE_LINE_SHIFT 4
+#define EXT_CACHE_LINE_SIZE  (1u << EXT_CACHE_LINE_SHIFT)
+#define EXT_CACHE_MAX_CACHEABLE (128u << 20)
+
 mem_mapping_t ram_low_mapping;       /* 0..640K mapping */
 mem_mapping_t ram_mid_mapping;       /* 640..1024K mapping */
 mem_mapping_t ram_mid_mapping2;      /* 640..1024K mapping, second part, for SiS 471 in relocate mode  */
@@ -128,6 +132,248 @@ uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
 
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
+
+static uint32_t *ext_cache_tags       = NULL;
+static uint8_t  *ext_cache_dirty      = NULL;
+static uint32_t  ext_cache_lines      = 0;
+static uint32_t  ext_cache_line_mask  = 0;
+static uint32_t  ext_cache_size_kb    = 0;
+static uint32_t  ext_cacheable_bytes  = 0;
+static uint8_t   ext_cache_tag_bits   = 8;
+static int       ext_cache_write_back = 0;
+static int       ext_cache_always_dirty = 0;
+static int       ext_cache_sizing      = 0;
+static int       ext_cache_configured = 0;
+static int       ext_cache_enabled    = 0;
+
+static void
+mem_extcache_clear_tags(void)
+{
+    if (ext_cache_tags && ext_cache_lines)
+        memset(ext_cache_tags, 0xff, ext_cache_lines * sizeof(uint32_t));
+    if (ext_cache_dirty && ext_cache_lines)
+        memset(ext_cache_dirty, 0x00, ext_cache_lines * sizeof(uint8_t));
+}
+
+static void
+mem_extcache_recalc_cacheable(void)
+{
+    uint64_t bytes;
+
+    if (!ext_cache_size_kb) {
+        ext_cacheable_bytes = 0;
+        return;
+    }
+
+    bytes = ((uint64_t) ext_cache_size_kb << 10) << ext_cache_tag_bits;
+    if (bytes > EXT_CACHE_MAX_CACHEABLE)
+        bytes = EXT_CACHE_MAX_CACHEABLE;
+
+    ext_cacheable_bytes = (uint32_t) bytes;
+}
+
+void
+mem_extcache_configure(uint32_t size_kb)
+{
+    uint32_t lines;
+
+    free(ext_cache_tags);
+    free(ext_cache_dirty);
+    ext_cache_tags         = NULL;
+    ext_cache_dirty        = NULL;
+    ext_cache_lines        = 0;
+    ext_cache_line_mask    = 0;
+    ext_cache_size_kb      = 0;
+    ext_cacheable_bytes    = 0;
+    ext_cache_tag_bits     = 8;
+    ext_cache_write_back   = 0;
+    ext_cache_always_dirty = 0;
+    ext_cache_sizing       = 0;
+    ext_cache_configured   = 0;
+    ext_cache_enabled      = 0;
+
+    if (!size_kb) {
+        flushmmucache();
+        return;
+    }
+
+    lines = (size_kb * 1024u) / EXT_CACHE_LINE_SIZE;
+    if (!lines || (lines & (lines - 1)))
+        return;
+
+    ext_cache_tags  = (uint32_t *) malloc(lines * sizeof(uint32_t));
+    ext_cache_dirty = (uint8_t *) calloc(lines, sizeof(uint8_t));
+    if (!ext_cache_tags || !ext_cache_dirty) {
+        free(ext_cache_tags);
+        free(ext_cache_dirty);
+        ext_cache_tags  = NULL;
+        ext_cache_dirty = NULL;
+        return;
+    }
+
+    ext_cache_lines      = lines;
+    ext_cache_line_mask  = lines - 1;
+    ext_cache_size_kb    = size_kb;
+    ext_cache_configured = 1;
+    mem_extcache_recalc_cacheable();
+    mem_extcache_clear_tags();
+    flushmmucache();
+}
+
+void
+mem_extcache_set_policy(int write_back, int tag_bits, int always_dirty)
+{
+    if (!ext_cache_configured)
+        return;
+
+    if (tag_bits != 7)
+        tag_bits = 8;
+
+    write_back  = !!write_back;
+    always_dirty = !!always_dirty && write_back;
+
+    if ((write_back != ext_cache_write_back) ||
+        (tag_bits != ext_cache_tag_bits) ||
+        (always_dirty != ext_cache_always_dirty)) {
+        ext_cache_write_back   = write_back;
+        ext_cache_tag_bits     = (uint8_t) tag_bits;
+        ext_cache_always_dirty = always_dirty;
+        mem_extcache_recalc_cacheable();
+        mem_extcache_clear_tags();
+        flushmmucache();
+    }
+}
+
+void
+mem_extcache_set_sizing(int enabled)
+{
+    if (!ext_cache_configured)
+        return;
+
+    enabled = !!enabled;
+    if (enabled != ext_cache_sizing) {
+        ext_cache_sizing = enabled;
+
+        /* Current Level2 emulation does not store cache-line payload data,
+         * only TAG/ALTER state and timing.  Discard that synthetic state at
+         * either edge of sizing mode so the BIOS's sizing traffic cannot
+         * leave stale normal-operation tags behind. */
+        mem_extcache_clear_tags();
+        flushmmucache();
+    }
+}
+
+void
+mem_extcache_enable(int enabled)
+{
+    enabled = !!enabled && ext_cache_configured;
+
+    if (enabled != ext_cache_enabled) {
+        ext_cache_enabled = enabled;
+        mem_extcache_clear_tags();
+        flushmmucache();
+    }
+}
+
+void
+mem_extcache_reset(void)
+{
+    mem_extcache_clear_tags();
+}
+
+int
+mem_extcache_active(void)
+{
+    return ext_cache_configured && ext_cache_enabled;
+}
+
+static inline void
+mem_extcache_add_main_memory_penalty(int write)
+{
+    int mem_cycles;
+    int cache_cycles;
+    int penalty;
+
+    mem_cycles   = write ? cpu_s->mem_write_cycles : cpu_s->mem_read_cycles;
+    cache_cycles = write ? cpu_s->cache_write_cycles : cpu_s->cache_read_cycles;
+    penalty      = mem_cycles - cache_cycles;
+
+    if (penalty > 0)
+        cycles -= penalty;
+}
+
+static inline void
+mem_extcache_add_dirty_writeback_penalty(void)
+{
+    if (cpu_s->mem_write_cycles > 0)
+        cycles -= cpu_s->mem_write_cycles * (EXT_CACHE_LINE_SIZE / sizeof(uint32_t));
+}
+
+static inline void
+mem_extcache_access_line(uint32_t addr, int write)
+{
+    uint32_t line;
+    uint32_t index;
+    uint32_t tag;
+    int      hit;
+
+    if (!mem_extcache_active() || !cpu_cache_ext_enabled || !cpu_s)
+        return;
+
+    /* Register 57h bit 0 (Cache Sizing Enable) forces an L2 hit regardless
+     * of TAG comparison.  The BIOS uses this during cache sizing/init.
+     * Since RAM remains the data source in this timing-only model, the
+     * observable effect here is deliberately limited to hit timing. */
+    if (ext_cache_sizing)
+        return;
+
+    if (addr >= ext_cacheable_bytes) {
+        mem_extcache_add_main_memory_penalty(write);
+        return;
+    }
+
+    line  = addr >> EXT_CACHE_LINE_SHIFT;
+    index = line & ext_cache_line_mask;
+    tag   = line / ext_cache_lines;
+    hit   = (ext_cache_tags[index] == tag);
+
+    if (write) {
+        if (hit) {
+            if (ext_cache_write_back)
+                ext_cache_dirty[index] = 1;
+            return;
+        }
+
+        mem_extcache_add_main_memory_penalty(1);
+        return;
+    }
+
+    if (hit)
+        return;
+
+    if (ext_cache_write_back && (ext_cache_tags[index] != UINT32_MAX) &&
+        (ext_cache_always_dirty || ext_cache_dirty[index]))
+        mem_extcache_add_dirty_writeback_penalty();
+
+    ext_cache_tags[index]  = tag;
+    ext_cache_dirty[index] = 0;
+    mem_extcache_add_main_memory_penalty(0);
+}
+
+void
+mem_extcache_access(uint32_t addr, uint32_t size, int write)
+{
+    uint32_t last;
+
+    if (!size || !mem_extcache_active())
+        return;
+
+    mem_extcache_access_line(addr, write);
+
+    last = addr + size - 1;
+    if ((last >> EXT_CACHE_LINE_SHIFT) != (addr >> EXT_CACHE_LINE_SHIFT))
+        mem_extcache_access_line(last, write);
+}
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
 static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
 static uint8_t       _mem_wp[MEM_MAPPINGS_NO];
@@ -1770,6 +2016,7 @@ mem_write_phys(void *src, uint32_t addr, int transfer_size)
 uint8_t
 mem_read_ram(uint32_t addr, UNUSED(void *priv))
 {
+    mem_extcache_access(addr, 1, 0);
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
         mem_log("Read  B       %02X from %08X\n", ram[addr], addr);
@@ -1778,7 +2025,7 @@ mem_read_ram(uint32_t addr, UNUSED(void *priv))
     if (is_pcjr)
         pcjr_waitstates(NULL);
 
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
 
     return ram[addr];
@@ -1787,12 +2034,13 @@ mem_read_ram(uint32_t addr, UNUSED(void *priv))
 uint16_t
 mem_read_ramw(uint32_t addr, UNUSED(void *priv))
 {
+    mem_extcache_access(addr, 2, 0);
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
         mem_log("Read  W     %04X from %08X\n", *(uint16_t *) &ram[addr], addr);
 #endif
 
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
 
     return *(uint16_t *) &ram[addr];
@@ -1801,12 +2049,13 @@ mem_read_ramw(uint32_t addr, UNUSED(void *priv))
 uint32_t
 mem_read_raml(uint32_t addr, UNUSED(void *priv))
 {
+    mem_extcache_access(addr, 4, 0);
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
         mem_log("Read  L %08X from %08X\n", *(uint32_t *) &ram[addr], addr);
 #endif
 
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
 
     return *(uint32_t *) &ram[addr];
@@ -1847,6 +2096,7 @@ page_remove_from_evict_list(page_t *page)
 void
 mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 {
+    mem_extcache_access(addr, 1, 1);
     if (page == NULL)
         return;
 
@@ -1872,6 +2122,7 @@ mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 void
 mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
 {
+    mem_extcache_access(addr, 2, 1);
     if (page == NULL)
         return;
 
@@ -1907,6 +2158,7 @@ mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
 void
 mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
 {
+    mem_extcache_access(addr, 4, 1);
     if (page == NULL)
         return;
 
@@ -1939,6 +2191,7 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
 void
 mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 {
+    mem_extcache_access(addr, 1, 1);
     if (page == NULL)
         return;
 
@@ -1956,6 +2209,7 @@ mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 void
 mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
 {
+    mem_extcache_access(addr, 2, 1);
     if (page == NULL)
         return;
 
@@ -1975,6 +2229,7 @@ mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
 void
 mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
 {
+    mem_extcache_access(addr, 4, 1);
     if (page == NULL)
         return;
 
@@ -1995,6 +2250,8 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
 void
 mem_write_ram(uint32_t addr, uint8_t val, UNUSED(void *priv))
 {
+    if (!cpu_use_exec)
+        mem_extcache_access(addr, 1, 1);
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
         mem_log("Write B       %02X to   %08X\n", val, addr);
@@ -2003,7 +2260,8 @@ mem_write_ram(uint32_t addr, uint8_t val, UNUSED(void *priv))
         pcjr_waitstates(NULL);
 
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_ramb_page(addr, val, &pages[addr >> 12]);
     } else
         ram[addr] = val;
@@ -2012,12 +2270,15 @@ mem_write_ram(uint32_t addr, uint8_t val, UNUSED(void *priv))
 void
 mem_write_ramw(uint32_t addr, uint16_t val, UNUSED(void *priv))
 {
+    if (!cpu_use_exec)
+        mem_extcache_access(addr, 2, 1);
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
         mem_log("Write W     %04X to   %08X\n", val, addr);
 #endif
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_ramw_page(addr, val, &pages[addr >> 12]);
     } else
         *(uint16_t *) &ram[addr] = val;
@@ -2026,12 +2287,15 @@ mem_write_ramw(uint32_t addr, uint16_t val, UNUSED(void *priv))
 void
 mem_write_raml(uint32_t addr, uint32_t val, UNUSED(void *priv))
 {
+    if (!cpu_use_exec)
+        mem_extcache_access(addr, 4, 1);
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
         mem_log("Write L %08X to   %08X\n", val, addr);
 #endif
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_raml_page(addr, val, &pages[addr >> 12]);
     } else
         *(uint32_t *) &ram[addr] = val;
@@ -2041,7 +2305,7 @@ static uint8_t
 mem_read_remapped(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
     return ram[addr];
 }
@@ -2050,7 +2314,7 @@ static uint16_t
 mem_read_remappedw(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
     return *(uint16_t *) &ram[addr];
 }
@@ -2059,7 +2323,7 @@ static uint32_t
 mem_read_remappedl(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
     return *(uint32_t *) &ram[addr];
 }
@@ -2068,7 +2332,7 @@ static uint8_t
 mem_read_remapped2(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xD0000 + (addr - remap_start_addr2);
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
     return ram[addr];
 }
@@ -2077,7 +2341,7 @@ static uint16_t
 mem_read_remappedw2(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xD0000 + (addr - remap_start_addr2);
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
     return *(uint16_t *) &ram[addr];
 }
@@ -2086,7 +2350,7 @@ static uint32_t
 mem_read_remappedl2(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xD0000 + (addr - remap_start_addr2);
-    if (cpu_use_exec)
+    if (cpu_use_exec && !mem_extcache_active())
         addreadlookup(mem_logical_addr, addr);
     return *(uint32_t *) &ram[addr];
 }
@@ -2097,7 +2361,8 @@ mem_write_remapped(uint32_t addr, uint8_t val, UNUSED(void *priv))
     uint32_t oldaddr = addr;
     addr             = 0xA0000 + (addr - remap_start_addr);
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
     } else
         ram[addr] = val;
@@ -2109,7 +2374,8 @@ mem_write_remappedw(uint32_t addr, uint16_t val, UNUSED(void *priv))
     uint32_t oldaddr = addr;
     addr             = 0xA0000 + (addr - remap_start_addr);
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint16_t *) &ram[addr] = val;
@@ -2121,7 +2387,8 @@ mem_write_remappedl(uint32_t addr, uint32_t val, UNUSED(void *priv))
     uint32_t oldaddr = addr;
     addr             = 0xA0000 + (addr - remap_start_addr);
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint32_t *) &ram[addr] = val;
@@ -2133,7 +2400,8 @@ mem_write_remapped2(uint32_t addr, uint8_t val, UNUSED(void *priv))
     uint32_t oldaddr = addr;
     addr             = 0xD0000 + (addr - remap_start_addr2);
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
     } else
         ram[addr] = val;
@@ -2145,7 +2413,8 @@ mem_write_remappedw2(uint32_t addr, uint16_t val, UNUSED(void *priv))
     uint32_t oldaddr = addr;
     addr             = 0xD0000 + (addr - remap_start_addr2);
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint16_t *) &ram[addr] = val;
@@ -2157,7 +2426,8 @@ mem_write_remappedl2(uint32_t addr, uint32_t val, UNUSED(void *priv))
     uint32_t oldaddr = addr;
     addr             = 0xD0000 + (addr - remap_start_addr2);
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        if (!mem_extcache_active())
+            addwritelookup(mem_logical_addr, addr);
         mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint32_t *) &ram[addr] = val;

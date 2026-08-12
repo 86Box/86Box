@@ -424,6 +424,13 @@ extern void     mem_write_ramw(uint32_t addr, uint16_t val, void *priv);
 extern void     mem_write_raml(uint32_t addr, uint32_t val, void *priv);
 
 extern int mem_addr_is_ram(uint32_t addr);
+extern void mem_extcache_configure(uint32_t size_kb);
+extern void mem_extcache_enable(int enabled);
+extern void mem_extcache_set_policy(int write_back, int tag_bits, int always_dirty);
+extern void mem_extcache_set_sizing(int enabled);
+extern void mem_extcache_reset(void);
+extern int  mem_extcache_active(void);
+extern void mem_extcache_access(uint32_t addr, uint32_t size, int write);
 
 extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 

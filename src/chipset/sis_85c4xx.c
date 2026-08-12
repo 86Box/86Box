@@ -57,7 +57,8 @@ typedef struct sis_85c4xx_t {
     uint8_t       force_flush;
     uint8_t       shadowed;
     uint8_t       smram_enabled;
-    uint8_t       pad;
+    uint8_t       force_cache_size;
+    uint8_t       cache_size_code;
     uint8_t       regs[39];
     uint8_t       scratch[2];
     uint32_t      mem_state[8];
@@ -313,6 +314,8 @@ sis_85c471_read_ram(uint32_t addr, void *priv)
 
     addr = (rel + dev->phys_base);
 
+    mem_extcache_access(addr, 1, 0);
+
     if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
         ret = ram[addr];
 
@@ -332,6 +335,8 @@ sis_85c471_read_ramw(uint32_t addr, void *priv)
     rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
+
+    mem_extcache_access(addr, 2, 0);
 
     if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
         ret = *(uint16_t *) &(ram[addr]);
@@ -353,6 +358,8 @@ sis_85c471_read_raml(uint32_t addr, void *priv)
 
     addr = (rel + dev->phys_base);
 
+    mem_extcache_access(addr, 4, 0);
+
     if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
         ret = *(uint32_t *) &(ram[addr]);
 
@@ -372,6 +379,8 @@ sis_85c471_write_ram(uint32_t addr, uint8_t val, void *priv)
 
     addr = (rel + dev->phys_base);
 
+    mem_extcache_access(addr, 1, 1);
+
     if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
         ram[addr] = val;
 }
@@ -389,6 +398,8 @@ sis_85c471_write_ramw(uint32_t addr, uint16_t val, void *priv)
 
     addr = (rel + dev->phys_base);
 
+    mem_extcache_access(addr, 2, 1);
+
     if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
         *(uint16_t *) &(ram[addr]) = val;
 }
@@ -405,6 +416,8 @@ sis_85c471_write_raml(uint32_t addr, uint32_t val, void *priv)
     rel = row | col | dw;
 
     addr = (rel + dev->phys_base);
+
+    mem_extcache_access(addr, 4, 1);
 
     if ((addr < (mem_size << 10)) && (rel < dev->phys_size))
         *(uint32_t *) &(ram[addr]) = val;
@@ -571,6 +584,32 @@ sis_85c471_banks_recalc(sis_85c4xx_t *dev)
 }
 
 static void
+sis_85c471_update_extcache_model(sis_85c4xx_t *dev)
+{
+    int write_back;
+    int tag_bits;
+    int always_dirty;
+    int alter_mode;
+
+    if (!dev->is_471 || !dev->force_cache_size)
+        return;
+
+    /* Register 50h bit 3 selects external L2 WT/WB.
+     *
+     * In WB mode Register 72h bits 2:1 describe the ALT/dirty wiring:
+     *   00/01 = separate alter bit, 8 TAG bits
+     *   10    = no alter bit (always dirty), 8 TAG bits
+     *   11    = combined 7 TAG + 1 alter bit
+     */
+    write_back = !!(dev->regs[0x00] & 0x08);
+    alter_mode = (dev->regs[0x22] >> 1) & 0x03;
+    tag_bits = (write_back && (alter_mode == 3)) ? 7 : 8;
+    always_dirty = write_back && (alter_mode == 2);
+
+    mem_extcache_set_policy(write_back, tag_bits, always_dirty);
+}
+
+static void
 sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 {
     sis_85c4xx_t *dev       = (sis_85c4xx_t *) priv;
@@ -585,6 +624,11 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x23:
             if ((dev->cur_reg >= dev->reg_base) && (dev->cur_reg <= dev->reg_last)) {
+                /* On boards which explicitly specify the fitted external cache,
+                 * force SiS 85C471 register 51h bits 6:4 to that size. */
+                if (dev->is_471 && dev->force_cache_size && (rel_reg == 0x01))
+                    val = (val & 0x8f) | ((dev->cache_size_code & 0x07) << 4);
+
                 valxor = val ^ dev->regs[rel_reg];
 
                 if (!dev->is_471 && (rel_reg == 0x00))
@@ -594,11 +638,24 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 
                 switch (rel_reg) {
                     case 0x00:
+                        if (dev->is_471 && (valxor & 0x08))
+                            sis_85c471_update_extcache_model(dev);
                         break;
 
                     case 0x01:
                         cpu_cache_ext_enabled = ((val & 0x84) == 0x84);
+                        if (dev->force_cache_size)
+                            mem_extcache_enable(cpu_cache_ext_enabled);
                         cpu_update_waitstates();
+                        break;
+
+                    case 0x07:
+                        /* SiS 85C471 register 57h bit 0: Cache Sizing Enable.
+                         * 0 = normal TAG comparison, 1 = force cache hit.
+						 * This is only usable if the external-cache emulation
+						 * is enabled for the machine (AH4T currently). */
+                        if (dev->is_471 && dev->force_cache_size && (valxor & 0x01))
+                            mem_extcache_set_sizing(val & 0x01);
                         break;
 
                     case 0x02:
@@ -693,10 +750,14 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                         break;
 
                     case 0x22:
-                        if (dev->is_471 && (valxor & 0x01)) {
-                            port_92_remove(dev->port_92);
-                            if (val & 0x01)
-                                port_92_add(dev->port_92);
+                        if (dev->is_471) {
+                            if (valxor & 0x06)
+                                sis_85c471_update_extcache_model(dev);
+                            if (valxor & 0x01) {
+                                port_92_remove(dev->port_92);
+                                if (val & 0x01)
+                                    port_92_add(dev->port_92);
+                            }
                         }
                         break;
                     default:
@@ -757,6 +818,12 @@ sis_85c4xx_reset(void *priv)
     int            mem_size_mb = mem_size >> 10;
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
+
+    if (dev->force_cache_size) {
+        mem_extcache_set_sizing(0);
+        mem_extcache_enable(0);
+        mem_extcache_reset();
+    }
 
     if ((cpu_s != NULL) && (cpu_s->rspeed < 25000000))
         dev->regs[0x08] = 0x80;
@@ -851,6 +918,9 @@ sis_85c4xx_close(void *priv)
     if (dev->is_471)
         smram_del(dev->smram);
 
+    if (dev->force_cache_size)
+        mem_extcache_configure(0);
+
     free(dev);
 }
 
@@ -859,7 +929,12 @@ sis_85c4xx_init(const device_t *info)
 {
     sis_85c4xx_t *dev = (sis_85c4xx_t *) calloc(1, sizeof(sis_85c4xx_t));
 
-    dev->is_471 = (info->local >> 8) & 0xff;
+    dev->is_471          = (info->local >> 8) & 0xff;
+    dev->cache_size_code = (info->local >> 16) & 0x07;
+    dev->force_cache_size = (info->local >> 24) & 0x01;
+
+    if (dev->force_cache_size)
+        mem_extcache_configure(1u << (dev->cache_size_code + 5));
 
     dev->reg_base = info->local & 0xff;
 
