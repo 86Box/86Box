@@ -150,6 +150,7 @@ extern "C" {
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/config.h>
+#include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 #include <86box/ui.h>
 #ifdef DISCORD
@@ -799,6 +800,7 @@ plat_power_off(void)
     plat_mouse_capture(0);
     plat_clean_up();
     confirm_exit_cmdl = 0;
+    ide_wait_for_async_reads();
     hdd_image_sync_all();
     nvr_save();
 
