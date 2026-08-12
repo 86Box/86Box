@@ -113,6 +113,8 @@ typedef struct cga_t {
     int snow_enabled;
     int rgb_type;
     int double_type;
+
+    uint8_t monitor_used;
 } cga_t;
 
 extern void    cga_init(cga_t *cga);
