@@ -78,7 +78,6 @@ static struct ps2_t {
     uint8_t sys_ctrl_port_a;
     uint8_t subaddr_lo;
     uint8_t subaddr_hi;
-    uint8_t planar_feedback;
 
     uint8_t memory_bank[8];
 
@@ -836,8 +835,17 @@ ps2_mca_read(const uint16_t port, UNUSED(void *priv))
 
     switch (port) {
         case 0x91:
-            temp = ps2.planar_feedback | mca_feedback_read();
-            ps2.planar_feedback = 0;
+#if 0
+            fatal("Read 91 setup=%02x adapter=%02x\n", ps2.setup, ps2.adapter_setup);
+#endif
+            if (!(ps2.setup & PS2_SETUP_IO))
+                temp = 0x00;
+            else if (!(ps2.setup & PS2_SETUP_VGA))
+                temp = 0x00;
+            else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
+                temp = 0x00;
+            else
+                temp = !mca_feedb();
             temp |= 0xfe;
             break;
         case 0x94:
@@ -1636,7 +1644,6 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
-    serial_set_card_selected_feedback(ps2.uart, &ps2.planar_feedback);
 
     ps2.lpt = device_add_inst(&lpt_port_device, 1);
     lpt_set_ext(ps2.lpt, 1);

@@ -36,7 +36,6 @@ typedef struct mca_slot_s {
 static mca_slot_t mca_slots[MCA_MAX_CARDS];
 static uint8_t    mca_index;
 static uint8_t    mca_nr_cards;
-static uint8_t    mca_feedback_latch;
 
 #define ENABLE_MCA_LOG 1
 #if ENABLE_MCA_LOG
@@ -62,9 +61,8 @@ mca_init(const uint8_t nr_cards)
 {
     memset(mca_slots, 0, sizeof(mca_slots));
 
-    mca_index          = 0;
-    mca_nr_cards       = nr_cards;
-    mca_feedback_latch = 0;
+    mca_index    = 0;
+    mca_nr_cards = nr_cards;
 }
 
 void
@@ -116,25 +114,8 @@ mca_feedb(void)
 }
 
 void
-mca_feedback_set(void)
-{
-    mca_feedback_latch = 1;
-}
-
-uint8_t
-mca_feedback_read(void)
-{
-    const uint8_t ret = mca_feedback_latch;
-
-    mca_feedback_latch = 0;
-    return ret;
-}
-
-void
 mca_reset(void)
 {
-    mca_feedback_latch = 0;
-
     for (uint8_t slot = 0; slot < MCA_MAX_CARDS; slot++) {
         if (mca_slots[slot].reset)
             mca_slots[slot].reset(mca_slots[slot].priv);
