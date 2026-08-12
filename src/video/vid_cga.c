@@ -31,6 +31,7 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/mouse.h>
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
@@ -277,6 +278,31 @@ cga_recalctimings(cga_t *cga)
     cga->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
+static bool
+cga_is_in_lightpen(cga_t *cga, int x, int y)
+{
+    double abs_x = 0.0;
+    double abs_y = 0.0;
+
+    mouse_get_abs_coords(&abs_x, &abs_y);
+
+    abs_x *= monitors[0].mon_unscaled_size_x - 1;
+    abs_y *= monitors[0].mon_unscaled_size_y - 1;
+    x -= 8;
+    y -= cga->double_type ? cga->firstline * 2 : cga->firstline;
+    
+    if (enable_overscan) {
+        x += 8;
+        y += cga->double_type ? 8 : 4;
+    }
+
+    if (!cga->double_type) {
+        abs_y /= 2;
+    }
+
+    return (int)abs_x == x && (int)abs_y == y;
+}
+
 static void
 cga_render(cga_t *cga, int line)
 {
@@ -292,6 +318,7 @@ cga_render(cga_t *cga, int line)
 
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
     bool     overlay_flag          = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag);
+    bool     is_under_cursor       = false;
 
     for (column = 0; column < 8; ++column) {
         buffer32->line[line][column] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
@@ -320,8 +347,14 @@ cga_render(cga_t *cga, int line)
             for (column = 0; column < 8; column++) {
                 buffer32->line[line][(x * 8) + column + 8]
                     = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0);
+                
+                is_under_cursor = is_under_cursor || cga_is_in_lightpen(cga, (x * 8) + column + 8, line);
+                if (is_under_cursor) {
+                    buffer32->line[line][(x * 8) + column + 8] ^= 0b1111;
+                }
             }
 
+            is_under_cursor = 0;
             cga->memaddr++;
         }
     } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
@@ -344,6 +377,12 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][(x * 16) + (column << 1) + 8]
                     = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = (cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0));
+
+                is_under_cursor = is_under_cursor || (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line));
+                if (is_under_cursor) {
+                    buffer32->line[line][(x * 16) + (column << 1) + 8] ^= 0b1111;
+                    buffer32->line[line][(x * 16) + (column << 1) + 8 + 1] ^= 0b1111;
+                }
             }
 
             cga->memaddr++;
@@ -374,6 +413,11 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][(x * 16) + (column << 1) + 8]
                     = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = cols[dat >> 14];
+                is_under_cursor = is_under_cursor || (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line));
+                if (is_under_cursor) {
+                    buffer32->line[line][(x * 16) + (column << 1) + 8] ^= 0b1111;
+                    buffer32->line[line][(x * 16) + (column << 1) + 8 + 1] ^= 0b1111;
+                }
                 dat <<= 2;
             }
             cga->memaddr++;
@@ -390,6 +434,12 @@ cga_render(cga_t *cga, int line)
             for (column = 0; column < 16; column++) {
                 buffer32->line[line][(x * 16) + column + 8] = cols[dat >> 15];
                 dat <<= 1;
+
+                is_under_cursor = is_under_cursor || (cga_is_in_lightpen(cga, (x * 16) + column + 8, line));
+
+                if (is_under_cursor) {
+                    buffer32->line[line][(x * 16) + column + 8] ^= 0b1111;
+                }
             }
             cga->memaddr++;
         }
@@ -913,6 +963,8 @@ cga_standalone_init(UNUSED(const device_t *info))
     }
 
     monitors[monitor_index_global].mon_composite = !!cga->composite;
+
+    mouse_input_mode = 2;
 
     return cga;
 }
