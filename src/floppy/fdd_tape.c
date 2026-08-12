@@ -48,119 +48,25 @@
 #include <86box/fdd.h>
 #include <86box/fdd_tape.h>
 #include <86box/fdc.h>
+#include <86box/tape_qic117.h>
 
-/* QIC-117 rev. J command set. Only the ones the drive acts on are named. */
+/*
+   Codes this drive gives a meaning of its own, on top of the shared set in
+   tape_qic117.h. 31 and 40 are vendor unique; MAX_COMMAND is this drive's
+   own bound on what it will look at rather than a command.
+ */
 enum {
-    QIC_NO_COMMAND             = 0,
-    QIC_RESET                  = 1,
-    QIC_REPORT_NEXT_BIT        = 2,
-    QIC_PAUSE                  = 3,
-    QIC_MICRO_STEP_PAUSE       = 4,
-    QIC_ALTERNATE_TIMEOUT      = 5,
-    QIC_REPORT_DRIVE_STATUS    = 6,
-    QIC_REPORT_ERROR_CODE      = 7,
-    QIC_REPORT_DRIVE_CONFIG    = 8,
-    QIC_REPORT_ROM_VERSION     = 9,
-    QIC_LOGICAL_FORWARD        = 10,
-    QIC_PHYSICAL_REVERSE       = 11,
-    QIC_PHYSICAL_FORWARD       = 12,
-    QIC_SEEK_HEAD_TO_TRACK     = 13,
-    QIC_SEEK_LOAD_POINT        = 14,
-    QIC_ENTER_FORMAT_MODE      = 15,
-    QIC_WRITE_REFERENCE_BURST  = 16,
-    QIC_ENTER_VERIFY_MODE      = 17,
-    QIC_STOP_TAPE              = 18,
-    QIC_MICRO_STEP_HEAD_UP     = 21,
-    QIC_MICRO_STEP_HEAD_DOWN   = 22,
-    QIC_SOFT_SELECT            = 23,
-    QIC_SOFT_DESELECT          = 24,
-    QIC_SKIP_REVERSE           = 25,
-    QIC_SKIP_FORWARD           = 26,
-    QIC_SELECT_RATE            = 27,
-    QIC_ENTER_DIAGNOSTIC_1     = 28,
-    QIC_ENTER_DIAGNOSTIC_2     = 29,
-    QIC_ENTER_PRIMARY_MODE     = 30,
-    QIC_CMS_COMMAND_31         = 31,
-    QIC_REPORT_VENDOR_ID       = 32,
-    QIC_REPORT_TAPE_STATUS     = 33,
-    QIC_SKIP_EXTENDED_REVERSE  = 34,
-    QIC_SKIP_EXTENDED_FORWARD  = 35,
-    QIC_CALIBRATE_TAPE_LENGTH  = 36,
-    QIC_REPORT_FORMAT_SEGMENTS = 37,
-    QIC_SET_FORMAT_SEGMENTS    = 38,
-    QIC_CONNER_CMD_40          = 40,
-    QIC_PHANTOM_SELECT         = 46,
-    QIC_PHANTOM_DESELECT       = 47,
-    QIC_EXT_SELECT_RATE        = 50,
-    QIC_EXT_REPORT_DRIVE_CONFIG = 51,
-    QIC_MAX_COMMAND            = 55
+    QIC_NO_COMMAND     = 0,
+    QIC_CMS_COMMAND_31 = 31,
+    QIC_CONNER_CMD_40  = 40,
+    QIC_MAX_COMMAND    = 55
 };
 
-/* Drive status bits, as returned by QIC_REPORT_DRIVE_STATUS. */
-#define QIC_STATUS_READY             0x01
-#define QIC_STATUS_ERROR             0x02
-#define QIC_STATUS_CARTRIDGE_PRESENT 0x04
-#define QIC_STATUS_WRITE_PROTECT     0x08
-#define QIC_STATUS_NEW_CARTRIDGE     0x10
-#define QIC_STATUS_REFERENCED        0x20
-#define QIC_STATUS_AT_BOT            0x40
-#define QIC_STATUS_AT_EOT            0x80
 
-/* Drive configuration bits, as returned by QIC_REPORT_DRIVE_CONFIG. */
-#define QIC_CONFIG_RATE_SHIFT        3
-#define QIC_CONFIG_LONG              0x40
-#define QIC_CONFIG_80                0x80
 
-/*
-   Rate codes, as they appear in bits 4-3 of the drive configuration and as
-   the argument to Select Rate. A QIC-80 drive runs at 500 Kbps by default, so
-   that is what it reports and calibrates to; the transfer clock
-   (tape_byte_period()) follows whichever the host actually programs into the
-   controller.
- */
-#define QIC_RATE_250                 0
-#define QIC_RATE_2000                1
-#define QIC_RATE_500                 2
-#define QIC_RATE_1000                3
 
-/*
-   Arguments to Select Rate above the rate codes name a tape format instead,
-   as (Tape Format * 4) + Increment, where increment 1 is standard quarter
-   inch media and 3 is 8 mm wide tape.
- */
-#define QIC_FORMAT_QIC40             ((1 << 2) | 1)
-#define QIC_FORMAT_QIC80             ((2 << 2) | 1)
-#define QIC_FORMAT_QIC3020           ((3 << 2) | 1)
-#define QIC_FORMAT_QIC3010           ((4 << 2) | 1)
 
-/* Tape status bits, as returned by QIC_REPORT_TAPE_STATUS. */
-#define QIC_TAPE_QIC40               0x01
-#define QIC_TAPE_QIC80               0x02
-#define QIC_TAPE_QIC3020             0x03
-#define QIC_TAPE_QIC3010             0x04
-#define QIC_TAPE_205FT               0x10
-#define QIC_TAPE_307FT               0x20
-#define QIC_TAPE_VAR_LEN_550         0x30
-#define QIC_TAPE_1100FT              0x40
-#define QIC_TAPE_VAR_LEN_900         0x60
-#define QIC_TAPE_WIDE                0x80
 
-/* Error codes, from the QIC-117 rev. J error code list (3.5). */
-#define QIC_ERROR_NONE               0
-#define QIC_ERROR_NOT_READY          1
-#define QIC_ERROR_NO_CARTRIDGE       2
-#define QIC_ERROR_WRITE_PROTECTED    5
-#define QIC_ERROR_UNDEFINED_COMMAND  6
-#define QIC_ERROR_ILLEGAL_SEEK_TRACK 7
-#define QIC_ERROR_ILLEGAL_IN_REPORT  8
-#define QIC_ERROR_ILLEGAL_DIAG_ENTRY 9
-#define QIC_ERROR_NEW_CARTRIDGE      13
-#define QIC_ERROR_ILLEGAL_IN_PRIMARY 14
-#define QIC_ERROR_ILLEGAL_IN_FORMAT  15
-#define QIC_ERROR_NOT_REFERENCED     19
-#define QIC_ERROR_POWER_ON_RESET     26
-#define QIC_ERROR_SOFT_RESET         27
-#define QIC_ERROR_RATE_SELECTION     31
 
 /* The error code list (3.5) divides errors into classes: initialization
    errors overwrite any pending code, while every other class leaves an
@@ -857,32 +763,25 @@ tape_command_defined(uint8_t command)
     }
 }
 
-/* How many parameters a command expects, if any. */
+
+/*
+   Parameter widths are shared (tape_qic117.h); this drive answers for the
+   one command the shared table leaves to it. Phantom select carries the
+   drive number, which only means anything on a cable with more than one
+   drive on it.
+
+   The shared table also names widths for commands this drive does not
+   have, seek to partition among them. Those never arrive here: an
+   undefined code at or above Report Vendor ID is ignored outright in
+   tape_command() long before the parameters are counted.
+ */
 static int
 tape_command_params(uint8_t command)
 {
-    switch (command) {
-        case QIC_SKIP_EXTENDED_FORWARD:
-        case QIC_SKIP_EXTENDED_REVERSE:
-        case QIC_SET_FORMAT_SEGMENTS:
-            /* Three nibbles, low first, for a value up to 4095 (table 2b). */
-            return 3;
+    if (command == QIC_PHANTOM_SELECT)
+        return 1;
 
-        case QIC_SKIP_FORWARD:
-        case QIC_SKIP_REVERSE:
-            return 2;
-
-        case QIC_ALTERNATE_TIMEOUT:
-        case QIC_SEEK_HEAD_TO_TRACK:
-        case QIC_SOFT_SELECT:
-        case QIC_SELECT_RATE:
-        case QIC_PHANTOM_SELECT:
-        case QIC_EXT_SELECT_RATE:
-            return 1;
-
-        default:
-            return 0;
-    }
+    return qic117_command_params(command);
 }
 
 #ifdef ENABLE_FDD_TAPE_LOG

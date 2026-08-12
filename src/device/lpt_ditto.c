@@ -39,7 +39,8 @@
  *              command from a standing start (see fdc_write_reg);
  *            - the skip counts are a fixed number of nibbles, two for
  *              the plain skips and three for the extended ones, whatever
- *              the distance (see qic_param_count);
+ *              the distance (see qic117_command_params in
+ *              tape_qic117.h);
  *            - a transfer has to take as long as the tape it covers
  *              takes to pass the head. Finishing it the instant the last
  *              command byte lands reads to the host as a refusal (see
@@ -62,6 +63,7 @@
 #include <86box/lpt.h>
 #include <86box/fdd_tape.h>
 #include <86box/plat.h>
+#include <86box/tape_qic117.h>
 
 /*
    For logging the BackPack wire protocol into the emulator log. Turn it
@@ -267,76 +269,13 @@ enum {
    time on the answer line.
  */
 #define QIC_NO_COMMAND                  0
-#define QIC_SOFT_RESET                  1
-#define QIC_REPORT_NEXT_BIT             2
-#define QIC_REPORT_DRIVE_STATUS         6
-#define QIC_REPORT_ERROR_CODE           7
-#define QIC_REPORT_DRIVE_CONFIGURATION  8
-#define QIC_REPORT_ROM_VERSION          9
-#define QIC_PAUSE                       3
-#define QIC_MICRO_STEP_PAUSE            4
-#define QIC_ALTERNATE_TIMEOUT           5
-#define QIC_SOFT_SELECT                 23
-#define QIC_SOFT_DESELECT               24
-#define QIC_LOGICAL_FORWARD             10
-#define QIC_PHYSICAL_REVERSE            11
-#define QIC_PHYSICAL_FORWARD            12
-#define QIC_SEEK_HEAD_TO_TRACK          13
-#define QIC_SEEK_LOAD_POINT             14
-#define QIC_WRITE_REFERENCE_BURST       16
-#define QIC_STOP_TAPE                   18
-#define QIC_CALIBRATE_TAPE_LENGTH       36
-#define QIC_ENTER_FORMAT_MODE           15
-#define QIC_ENTER_VERIFY_MODE           17
-#define QIC_SKIP_REVERSE                25
-#define QIC_SKIP_FORWARD                26
-#define QIC_SELECT_RATE                 27
-#define QIC_ENTER_DIAGNOSTIC_2          29
-#define QIC_ENTER_PRIMARY_MODE          30
-#define QIC_REPORT_VENDOR_ID            32
-#define QIC_REPORT_TAPE_STATUS          33
-#define QIC_SKIP_EXTENDED_REVERSE       34
-#define QIC_SKIP_EXTENDED_FORWARD       35
-#define QIC_REPORT_FORMAT_SEGMENTS      37
-#define QIC_SET_FORMAT_SEGMENTS         38
-#define QIC_EXT_SELECT_RATE             50
-#define QIC_EXT_REPORT_DRIVE_CONFIG     51
-#define QIC_LOADER_PARTITION_STATUS     54
-#define QIC_SEEK_TO_PARTITION           55
 
 /* This firmware refuses anything past the extended set outright. */
 #define QIC_LAST_COMMAND                56
 
-/* Drive status, as command 6 reports it. */
-#define QIC_STATUS_READY             0x01
-#define QIC_STATUS_ERROR             0x02
-#define QIC_STATUS_CARTRIDGE_PRESENT 0x04
-#define QIC_STATUS_WRITE_PROTECT     0x08
-#define QIC_STATUS_NEW_CARTRIDGE     0x10
-#define QIC_STATUS_REFERENCED        0x20
-#define QIC_STATUS_AT_BOT            0x40
-#define QIC_STATUS_AT_EOT            0x80
 
-/* Drive configuration, as command 8 reports it. */
-#define QIC_CONFIG_RATE_MASK  0x18
-#define QIC_CONFIG_RATE_SHIFT 3
-#define QIC_CONFIG_RATE_500   2
-#define QIC_CONFIG_RATE_1000  3
-#define QIC_CONFIG_RATE_2000  1
-#define QIC_CONFIG_LONG       0x40
-#define QIC_CONFIG_80         0x80
 
-/* Tape status, as command 33 reports it. */
-#define QIC_TAPE_QIC3020 0x03
-#define QIC_TAPE_QIC3010 0x04
-#define QIC_TAPE_FLEX    0x60
-#define QIC_TAPE_WIDE    0x80
 
-/* Error codes this firmware raises. */
-#define QIC_ERROR_UNDEFINED_COMMAND         6
-#define QIC_ERROR_ILLEGAL_COMMAND_IN_REPORT 8
-#define QIC_ERROR_POWER_ON_RESET            26
-#define QIC_ERROR_RATE_SELECTION            31
 
 /*
    The operating mode byte. Commands carry an interlock mask that is
@@ -353,26 +292,6 @@ enum {
 /* The three mode commands are exclusive: each clears the other two. */
 #define QIC_MODE_EXCLUSIVE (QIC_MODE_FORMAT | QIC_MODE_VERIFY | QIC_MODE_PRIMARY)
 
-/* Command attribute flags, the third byte of each record. */
-#define QIC_ATTR_IMMEDIATE 0x20 /* runs at once, ahead of any queue */
-#define QIC_ATTR_RESERVED  0x40 /* not a command at all */
-#define QIC_ATTR_MOTION    0x80 /* sets the tape going */
-#define QIC_ATTR_MODE_MASK 0x1f /* the rest interlock against the mode byte */
-
-/* More of the error codes this firmware raises. */
-#define QIC_ERROR_NOT_READY             1
-#define QIC_ERROR_NO_CARTRIDGE          2
-#define QIC_ERROR_ILLEGAL_SEEK_TRACK    7
-#define QIC_ERROR_WRITE_PROTECT         5
-#define QIC_ERROR_ILLEGAL_IN_PRIMARY    14
-#define QIC_ERROR_ILLEGAL_IN_FORMAT     15
-#define QIC_ERROR_ILLEGAL_IN_VERIFY     16
-#define QIC_ERROR_NOT_REFERENCED        19
-#define QIC_ERROR_DIAGNOSTIC_FAILED     20
-#define QIC_ERROR_DURING_NON_INTR       30
-#define QIC_ERROR_ILLEGAL_IN_HIGH_SPEED 32
-#define QIC_ERROR_PENDING_ERROR         12
-#define QIC_ERROR_NEW_CARTRIDGE         13
 
 /*
    What this drive says it is. Every host reads this once, with Report
@@ -394,7 +313,7 @@ enum {
 #define DITTO_ROM_VERSION 0x41
 
 /*
-   Cartridge capacity, chosen rather than guessed.
+   The cartridge, chosen rather than guessed.
 
    The size of a tape is not something a drive works out - the mechanism
    fixes how many tracks the head can reach, and the cartridge fixes how
@@ -405,23 +324,140 @@ enum {
    loaded into another. So it is configured, and the image is checked
    against it rather than consulted for it.
 
-   The names are the capacities these cartridges were sold under, which
-   assume the 2:1 the drive's own compression was rated at - a "2 GB"
-   Ditto cartridge holds a gigabyte of actual bytes. Each segment
-   carries 29 sectors of data and 3 of ECC, so a gigabyte of data is
-   36144 segments of 32 KB on the tape.
+   This drive takes a wide range of media - a Ditto 2GB will read a
+   QIC-80 cartridge - so the setting names a cartridge rather than a
+   capacity. What it does NOT change is the drive: the vendor ID and the
+   configuration byte say Ditto 2GB whatever is loaded, because that is
+   what the mechanism is. Only the geometry and what Report Tape Status
+   says about the media follow the setting. Hosts pick the highest format
+   common to drive and media, which is what makes that the right way
+   round.
 
-   Track count stays put across all three: it is a property of the head,
-   and the same drive reads all of these. Only the length of tape
-   changes, which is what the host reads back out of the segments per
-   track - ftape turns exactly that figure into a tape length, at 1940
-   segments per 1000 feet for this family of drives.
+   Config values are never reused or renumbered: a saved machine stores
+   the number, so changing one silently repoints an existing VM at a
+   different geometry. The first three are the capacities the Ditto's own
+   cartridges were sold under, at the 2:1 its compression was rated at -
+   a "2 GB" cartridge holds a gigabyte of actual bytes.
  */
-#define DITTO_TRACKS 72
-
 #define DITTO_CAPACITY_2GB 2
 #define DITTO_CAPACITY_3GB 3
 #define DITTO_CAPACITY_5GB 5
+
+#define DITTO_CART_QIC80_205  10
+#define DITTO_CART_QIC80_307  11
+#define DITTO_CART_QIC80_425  12
+#define DITTO_CART_QIC80_1100 13
+#define DITTO_CART_QIC3010    14
+#define DITTO_CART_QIC3020    15
+#define DITTO_CART_TR1        16
+#define DITTO_CART_TR2        17
+#define DITTO_CART_TR3        18
+
+/*
+   Format codes for the QIC-113 header segment (ftape-header-segment.h).
+   Not the same thing as the QIC-117 format codes in tape_qic117.h, which
+   are an argument to Select Rate: these are what a cartridge says about
+   itself, and ftape reads this byte to decide how long the tape is.
+
+   Nothing here writes a header segment - the host does that - but the
+   image generator in docs/mkdittotape.py does, and it reads these from
+   this table so that a cartridge it makes describes itself the way this
+   drive would expect.
+ */
+#define FT_FMT_NORMAL 2 /* QIC-80 post rev. B, 205 or 307.5 ft */
+#define FT_FMT_1100FT 3
+#define FT_FMT_VAR    4 /* QIC-80 post rev. B, variable length */
+#define FT_FMT_425FT  5
+/*
+   Variable length, and over 65535 segments a tape - which is the part
+   that matters: a header in this format states its segment numbers in
+   four bytes each, at their own offsets, because the ordinary two byte
+   fields cannot hold them. A cartridge this long written any other way
+   describes itself with a truncated last segment.
+ */
+#define FT_FMT_BIG    6
+
+typedef struct ditto_cartridge_t {
+    const char *name;        /* as the settings dialog offers it */
+    int         value;       /* config value; never reused or renumbered */
+    int         tracks;
+    int         spt;         /* segments on each track */
+    uint8_t     tape_status; /* what command 33 says: format, length, wide */
+    uint8_t     format_code; /* what a header segment written here says */
+} ditto_cartridge_t;
+
+/*
+   The cartridges, declared once and expanded twice: into the table the
+   drive works from, and into the list the settings dialog offers. Two
+   copies of a list like this drift, and here a drift would offer the
+   user a cartridge the drive does not have and silently give them the
+   default instead.
+
+   Where the numbers come from, because a plausible-looking constant is
+   how this drive has gone wrong before. Three tiers:
+
+   Tier one, agreed by two or more sources - the QIC-80 family. ftape's
+   own fallbacks (ftape-read.c), the Colorado 250 firmware's internal
+   geometry table, and the QIC-117 rev. J calibration override table all
+   give the same segments per track, and fdd_tape.c already carries
+   28 x 150 for the same reason.
+
+   Tier two, from Iomega's own driver and cross-checked - QIC-3010 and
+   QIC-3020. QBWQ117.DLL carries a geometry table whose capacities are in
+   decimal megabytes; read that way, QIC-3010 comes out at 255.8 MB and
+   QIC-3020 at 502.1 MB, which are the figures the standard names them by
+   ("QIC-3010-MC (255 MB)"). Both work out to about 295 feet against
+   ftape's unrelated density constants, which is as much agreement as two
+   independent sources can give.
+
+   Tier three, DERIVED and evidenced nowhere - the Travan rows. What is
+   evidenced is only the naming: ftape reads TR-n as the wide bit plus a
+   QIC standard, so TR-1 is wide QIC-80, TR-2 wide QIC-3010 and TR-3 wide
+   QIC-3020, and the status bytes below are exact. The segment counts are
+   worked back from ftape's density figures (488, 730 and 1430 segments
+   per 1000 feet) at the published tape length, with the track count
+   picked to land near the published capacity. Treat them as a starting
+   point: if a real cartridge's header segment disagrees, it wins.
+ */
+#define DITTO_ST_DITTO (QIC_TAPE_QIC3020 | QIC_TAPE_FLEX | QIC_TAPE_WIDE)
+
+#define DITTO_CARTRIDGE_LIST                                                   \
+    /* The Ditto's own, unchanged from when these were the only three. */      \
+    X("Ditto 2 GB",  DITTO_CAPACITY_2GB, 72,  502, DITTO_ST_DITTO, FT_FMT_VAR) \
+    X("Ditto 3 GB",  DITTO_CAPACITY_3GB, 72,  753, DITTO_ST_DITTO, FT_FMT_VAR) \
+    /* Over 65535 segments a tape, so its header has to be the wide             variant - see FT_FMT_BIG. */                                            X("Ditto 5 GB",  DITTO_CAPACITY_5GB, 72, 1256, DITTO_ST_DITTO, FT_FMT_BIG)\
+    /* Tier one. */                                                            \
+    X("QIC-80, DC-2080 (205 ft)",   DITTO_CART_QIC80_205,  28, 100,            \
+      QIC_TAPE_QIC80 | QIC_TAPE_205FT,         FT_FMT_NORMAL)                  \
+    X("QIC-80, DC-2120 (307.5 ft)", DITTO_CART_QIC80_307,  28, 150,            \
+      QIC_TAPE_QIC80 | QIC_TAPE_307FT,         FT_FMT_NORMAL)                  \
+    X("QIC-80, 425 ft",             DITTO_CART_QIC80_425,  28, 207,            \
+      QIC_TAPE_QIC80 | QIC_TAPE_205FT,         FT_FMT_425FT)                   \
+    X("QIC-80, 1100 ft",            DITTO_CART_QIC80_1100, 28, 537,            \
+      QIC_TAPE_QIC80 | QIC_TAPE_1100FT,        FT_FMT_1100FT)                  \
+    /* Tier two. */                                                            \
+    X("QIC-3010 (255 MB)",          DITTO_CART_QIC3010,    40, 215,            \
+      QIC_TAPE_QIC3010 | QIC_TAPE_VAR_LEN_550, FT_FMT_BIG)                     \
+    X("QIC-3020 (500 MB)",          DITTO_CART_QIC3020,    40, 422,            \
+      QIC_TAPE_QIC3020 | QIC_TAPE_VAR_LEN_550, FT_FMT_BIG)                     \
+    /* Tier three - derived, see above. */                                     \
+    X("Travan TR-1 (400 MB)",       DITTO_CART_TR1,        36, 366,            \
+      QIC_TAPE_QIC80 | QIC_TAPE_FLEX | QIC_TAPE_WIDE,   FT_FMT_VAR)            \
+    X("Travan TR-2 (800 MB)",       DITTO_CART_TR2,        40, 540,            \
+      QIC_TAPE_QIC3010 | QIC_TAPE_FLEX | QIC_TAPE_WIDE, FT_FMT_BIG)            \
+    X("Travan TR-3 (1.6 GB)",       DITTO_CART_TR3,        40, 1060,           \
+      QIC_TAPE_QIC3020 | QIC_TAPE_FLEX | QIC_TAPE_WIDE, FT_FMT_BIG)
+
+static const ditto_cartridge_t ditto_cartridges[] = {
+#define X(nm, val, trk, sgs, stat, fmt) { nm, val, trk, sgs, stat, fmt },
+    DITTO_CARTRIDGE_LIST
+#undef X
+};
+
+#define DITTO_CARTRIDGES (sizeof(ditto_cartridges) / sizeof(ditto_cartridges[0]))
+
+/* The cartridge a machine with nothing configured comes up with. */
+#define DITTO_CAPACITY_DEFAULT DITTO_CAPACITY_2GB
 
 /*
    How long a wind is modelled to take. These need not match the real
@@ -953,21 +989,23 @@ ditto_image_close(ditto_t *dev)
     dev->image_loaded = 0;
 }
 
-/* Segments on a cartridge of each capacity, per track. */
-static int
-ditto_segments_per_track(int capacity)
+/*
+   The cartridge a configured value names, or the default if it names
+   none - which is what an older machine saved with a setting that has
+   since gone, or a hand-edited configuration file, will hand us.
+ */
+static const ditto_cartridge_t *
+ditto_cartridge(int value)
 {
-    switch (capacity) {
-        case DITTO_CAPACITY_2GB:
-            return 502;
+    for (size_t i = 0; i < DITTO_CARTRIDGES; i++)
+        if (ditto_cartridges[i].value == value)
+            return &ditto_cartridges[i];
 
-        case DITTO_CAPACITY_3GB:
-            return 753;
+    for (size_t i = 0; i < DITTO_CARTRIDGES; i++)
+        if (ditto_cartridges[i].value == DITTO_CAPACITY_DEFAULT)
+            return &ditto_cartridges[i];
 
-        default:
-        case DITTO_CAPACITY_5GB:
-            return 1256;
-    }
+    return &ditto_cartridges[0];
 }
 
 /* Bytes of data a whole cartridge of this geometry holds. */
@@ -988,34 +1026,58 @@ ditto_image_extent(const ditto_t *dev)
 }
 
 /*
-   Settles the cartridge geometry from the configured capacity, and says
-   what it worked out. Segments per cylinder and per head are the grid
-   the host lays over the tape to address it through a floppy
-   controller, not anything the tape itself decides, so they stay at the
-   figures every host driver uses.
+   Settles everything the loaded cartridge decides: how much tape there
+   is, and what the drive says about it when asked.
+
+   Segments per cylinder and per head are not among them. They are the
+   grid the host lays over the tape to address it through a floppy
+   controller, not anything the tape decides, so they stay at the figures
+   every host driver uses for this class of drive. That is also why
+   QIC-40 is not offered here - it packs 255 cylinders to a head rather
+   than 150, so the grid would have to move with it.
  */
 static void
 ditto_set_geometry(ditto_t *dev)
 {
+    const ditto_cartridge_t *cart = ditto_cartridge(dev->capacity);
+
     dev->segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
     dev->segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
-    dev->tape_tracks   = DITTO_TRACKS;
-    dev->tape_spt      = ditto_segments_per_track(dev->capacity);
+    dev->tape_tracks   = cart->tracks;
+    dev->tape_spt      = cart->spt;
+    dev->qic_tape_status = cart->tape_status;
 
-    ditto_log("Ditto: %i GB cartridge - %i tracks of %i segments, "
+    /*
+       The extra length bit is the drive saying the cartridge is a long
+       one, so it follows the cartridge rather than sitting on whatever
+       the drive powered up with. Everything else in the configuration
+       byte is the mechanism, and does not move.
+     */
+    if ((cart->tape_status & QIC_TAPE_LEN_MASK) > QIC_TAPE_205FT)
+        dev->qic_config |= QIC_CONFIG_LONG;
+    else
+        dev->qic_config &= (uint8_t) ~QIC_CONFIG_LONG;
+
+    ditto_log("Ditto: %s - %i tracks of %i segments, tape status %02X, "
               "%llu bytes of data in a %llu byte image\n",
-              dev->capacity, dev->tape_tracks, dev->tape_spt,
+              cart->name, dev->tape_tracks, dev->tape_spt,
+              dev->qic_tape_status,
               (unsigned long long) ditto_tape_capacity(dev),
               (unsigned long long) ditto_image_extent(dev));
 }
 
 /*
-   Checks that a loaded image is the size the configured capacity calls
+   Checks that a loaded image is the size the configured cartridge calls
    for. A shorter one is not refused - a cartridge is allowed to be
    blank, and one that is part written is how an image grows as the host
    fills it - but a mismatch is worth saying out loud, because the usual
-   cause is an image made for a different capacity being loaded under
+   cause is an image made for a different cartridge being loaded under
    this one, and every segment address past the end of it will fail.
+
+   Said through ditto_stat() rather than the trace, so that it is there
+   when the trace is not. With a dozen cartridges to choose between,
+   loading an image against the wrong one is the easy mistake to make,
+   and it is not one the host reports in any legible way.
  */
 static void
 ditto_check_image(const ditto_t *dev)
@@ -1028,11 +1090,11 @@ ditto_check_image(const ditto_t *dev)
     if (dev->image_size == want)
         return;
 
-    ditto_log("Ditto: image is %u bytes, a %i GB cartridge is %llu - "
-              "%s\n", dev->image_size, dev->capacity,
-              (unsigned long long) want,
-              (dev->image_size < want) ? "the tape reads as part written"
-                                       : "the excess is unreachable");
+    ditto_stat("Ditto: image is %u bytes, a %s cartridge is %llu - %s\n",
+               dev->image_size, ditto_cartridge(dev->capacity)->name,
+               (unsigned long long) want,
+               (dev->image_size < want) ? "the tape reads as part written"
+                                        : "the excess is unreachable");
 }
 
 static void
@@ -1190,6 +1252,12 @@ ditto_qic_answer(const ditto_t *dev)
    and they agree byte for byte with the ones in the host driver - which
    is the strongest evidence available that both were read correctly.
  */
+/* Command attribute flags, the third byte of each record. */
+#define QIC_ATTR_IMMEDIATE 0x20 /* runs at once, ahead of any queue */
+#define QIC_ATTR_RESERVED  0x40 /* not a command at all */
+#define QIC_ATTR_MOTION    0x80 /* sets the tape going */
+#define QIC_ATTR_MODE_MASK 0x1f /* the rest interlock against the mode byte */
+
 typedef struct qic_attr_t {
     uint8_t mask;  /* status bits this command cares about */
     uint8_t state; /* what those bits have to be */
@@ -1606,7 +1674,7 @@ qic_check_command(ditto_t *dev, int cmd)
         else if (diff & QIC_STATUS_CARTRIDGE_PRESENT)
             err = QIC_ERROR_NO_CARTRIDGE;
         else if (diff & QIC_STATUS_WRITE_PROTECT)
-            err = QIC_ERROR_WRITE_PROTECT;
+            err = QIC_ERROR_WRITE_PROTECTED;
         else if (diff & QIC_STATUS_NEW_CARTRIDGE)
             err = QIC_ERROR_NEW_CARTRIDGE;
         else
@@ -1674,67 +1742,22 @@ qic_drive_config(const ditto_t *dev)
     return dev->qic_config;
 }
 
-/* How many parameters a command expects after it. */
+
+/*
+   Parameter widths are shared (tape_qic117.h); this drive answers for the
+   one command the shared table leaves to it. The disassembly of this
+   firmware was read as wanting two parameters for enter diagnostic 2.
+   Nothing has ever sent it, so the reading is carried here rather than
+   imposed on the drive on the floppy cable, which has always assumed
+   none.
+ */
 static int
 qic_param_count(int cmd)
 {
-    switch (cmd) {
-        /*
-           The disassembly of this firmware was read as wanting two
-           parameters for the head seek as well. It does not: both the
-           standard and every host driver send one, and a drive that sat
-           waiting for a second would swallow the next command whole.
-         */
-        case QIC_ENTER_DIAGNOSTIC_2:
-            return 2;
+    if (cmd == QIC_ENTER_DIAGNOSTIC_2)
+        return 2;
 
-        /*
-           Counts wider than a nibble arrive as several of them, low one
-           first (table 2b). Taking only the first leaves the rest to be
-           read as commands, which is not a quiet kind of wrong: a host
-           setting the format size sent three, and the two left over ran
-           as a physical wind and a pause, so the rate selection that
-           came next was refused for a drive that was not ready. That is
-           what stopped the Windows driver dead while the DOS one, which
-           never sets the format size, went on working.
-         */
-        /*
-           The skip counts are the same shape, and ftape settles the width
-           for both: ftape_skip_segments() picks its nibble count as
-           "count > 255 ? 3 : 2" and then sends exactly that many, so the
-           plain skips always carry two and the extended ones always three,
-           whatever the distance.
-
-           Reading only the first nibble left the second to be taken for a
-           command, and near the end of a backup - where the host makes one
-           long skip to reach the directory - the high nibble is 12, which
-           reads as seek load point. That arrives while the short skip we
-           did instead is still running, so it is refused for a drive that
-           is not ready, and the host gives up with an unrecoverable error
-           at the same segment every time.
-         */
-        case QIC_SKIP_EXTENDED_REVERSE:
-        case QIC_SKIP_EXTENDED_FORWARD:
-        case QIC_SET_FORMAT_SEGMENTS:
-            return 3;
-
-        case QIC_SKIP_REVERSE:
-        case QIC_SKIP_FORWARD:
-            return 2;
-
-        case QIC_ALTERNATE_TIMEOUT:
-        case QIC_SEEK_HEAD_TO_TRACK:
-        case QIC_SOFT_SELECT:
-        case QIC_SELECT_RATE:
-        case QIC_EXT_SELECT_RATE:
-        case QIC_SEEK_TO_PARTITION:
-            return 1;
-
-        default:
-            break;
-    }
-
-    return 0;
+    return qic117_command_params(cmd);
 }
 
 /* Reassembles a multi-nibble parameter, which arrives low nibble first. */
@@ -1768,11 +1791,11 @@ qic_run_command(ditto_t *dev, int cmd)
        Soft reset is the way out of a latched error, so it is the one
        command that has to go through whatever state the drive is in.
      */
-    if ((cmd != QIC_SOFT_RESET) && (qic_check_command(dev, cmd) < 0))
+    if ((cmd != QIC_RESET) && (qic_check_command(dev, cmd) < 0))
         return;
 
     switch (cmd) {
-        case QIC_SOFT_RESET:
+        case QIC_RESET:
             /*
                Back to how the drive came up, which includes the power on
                reset the host must read out before it will be believed.
@@ -1810,7 +1833,7 @@ qic_run_command(ditto_t *dev, int cmd)
             dev->qic_error_cmd = 0;
             break;
 
-        case QIC_REPORT_DRIVE_CONFIGURATION:
+        case QIC_REPORT_DRIVE_CONFIG:
             qic_report_arm(dev, qic_drive_config(dev), 8);
             break;
 
@@ -1995,20 +2018,20 @@ qic_run_command(ditto_t *dev, int cmd)
             switch (dev->qic_param[0]) {
                 case 2:
                     dev->qic_config   = (uint8_t) ((dev->qic_config & ~QIC_CONFIG_RATE_MASK) |
-                                                   (QIC_CONFIG_RATE_500 << QIC_CONFIG_RATE_SHIFT));
+                                                   (QIC_RATE_500 << QIC_CONFIG_RATE_SHIFT));
                     /* Reported in whole Mbit/s, and this is under one. */
                     dev->qic_ext_rate = 0;
                     break;
 
                 case 1:
                     dev->qic_config   = (uint8_t) ((dev->qic_config & ~QIC_CONFIG_RATE_MASK) |
-                                                   (QIC_CONFIG_RATE_2000 << QIC_CONFIG_RATE_SHIFT));
+                                                   (QIC_RATE_2000 << QIC_CONFIG_RATE_SHIFT));
                     dev->qic_ext_rate = 2;
                     break;
 
                 case 3:
                     dev->qic_config   = (uint8_t) ((dev->qic_config & ~QIC_CONFIG_RATE_MASK) |
-                                                   (QIC_CONFIG_RATE_1000 << QIC_CONFIG_RATE_SHIFT));
+                                                   (QIC_RATE_1000 << QIC_CONFIG_RATE_SHIFT));
                     dev->qic_ext_rate = 1;
                     break;
 
@@ -2114,7 +2137,7 @@ ditto_qic_step(ditto_t *dev, int steps)
 
         dev->report_pending = 0;
         dev->qic_ack        = 0;
-        qic_set_error(dev, QIC_ERROR_ILLEGAL_COMMAND_IN_REPORT, (uint8_t) steps);
+        qic_set_error(dev, QIC_ERROR_ILLEGAL_IN_REPORT, (uint8_t) steps);
         return;
     }
 
@@ -3799,11 +3822,20 @@ ditto_init(UNUSED(const device_t *info))
     dev->readonly = device_get_config_int("writeprot");
     dev->unit     = (uint8_t) device_get_config_int("unit");
 
-    dev->capacity = device_get_config_int("capacity");
-    if ((dev->capacity != DITTO_CAPACITY_2GB) &&
-        (dev->capacity != DITTO_CAPACITY_3GB) &&
-        (dev->capacity != DITTO_CAPACITY_5GB))
-        dev->capacity = DITTO_CAPACITY_5GB;
+    /*
+       The drive's own identity, which the cartridge does not change: a
+       Ditto 2GB reading a QIC-80 tape is still a Ditto 2GB, and a host
+       settles on the highest format the two have in common. It powers up
+       at the slow rate, as fdd_tape.c's drive does, until the host
+       selects one. Set before the geometry, because that is what fills
+       in the parts of this the cartridge does decide.
+     */
+    dev->qic_vendor_id  = DITTO_VENDOR_ID;
+    dev->qic_config     = (uint8_t) (QIC_CONFIG_80 |
+                                     (QIC_RATE_500 << QIC_CONFIG_RATE_SHIFT));
+    dev->qic_ext_rate   = 2;
+
+    dev->capacity = ditto_cartridge(device_get_config_int("capacity"))->value;
 
     /* The geometry has to be settled before an image is measured
        against it. */
@@ -3831,20 +3863,14 @@ ditto_init(UNUSED(const device_t *info))
     ditto_image_load(dev, dev->image_fn);
 
     /*
-       The drive's identity, and the state it powers up in. A cartridge
-       that was already in the drive is not a new one, but the power on
-       reset itself has to be read out before the drive will do anything
-       else - that is how the host learns it has been reset.
+       The state the drive powers up in. Its identity, and everything the
+       cartridge settles, are already in place above. A cartridge that was
+       already in the drive is not a new one, but the power on reset
+       itself has to be read out before the drive will do anything else -
+       that is how the host learns it has been reset.
      */
-    dev->qic_vendor_id   = DITTO_VENDOR_ID;
-    /* Powers up at the slow rate, as fdd_tape.c's drive does, until the
-       host selects one. */
-    dev->qic_config      = (uint8_t) (QIC_CONFIG_80 | QIC_CONFIG_LONG |
-                                      (QIC_CONFIG_RATE_500 << QIC_CONFIG_RATE_SHIFT));
-    dev->qic_tape_status = QIC_TAPE_QIC3020 | QIC_TAPE_FLEX | QIC_TAPE_WIDE;
-    dev->qic_ext_rate    = 2;
-    dev->qic_mode_flags  = QIC_MODE_PRIMARY;
-    dev->qic_status      = QIC_STATUS_READY;
+    dev->qic_mode_flags = QIC_MODE_PRIMARY;
+    dev->qic_status     = QIC_STATUS_READY;
 
     timer_add(&dev->busy_timer, qic_busy_done, dev, 0);
     timer_add(&dev->motion_timer, qic_motion_tick, dev, 0);
@@ -3921,24 +3947,33 @@ static const device_config_t ditto_config[] = {
     },
     {
         /*
-           Which cartridge is in the drive, named the way these were
-           sold - at the 2:1 the drive's compression was rated at, so a
-           "2 GB" cartridge holds a gigabyte of actual data. This settles
-           the tape geometry outright rather than it being guessed from
-           whatever image happens to be loaded.
+           Which cartridge is in the drive. This settles the tape geometry
+           outright rather than it being guessed from whatever image
+           happens to be loaded, and it settles what Report Tape Status
+           says about the media. It does not change the drive: that is a
+           Ditto 2GB whatever is loaded into it.
+
+           The list is the one in DITTO_CARTRIDGE_LIST, expanded here so
+           that the dialog cannot come to offer something the drive does
+           not have. The key is still called "capacity" and the first
+           three still have their original values, so a machine saved
+           before the rest existed comes up with the cartridge it had.
          */
         .name           = "capacity",
-        .description    = "Cartridge capacity",
+        .description    = "Cartridge",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = DITTO_CAPACITY_2GB,
+        .default_int    = DITTO_CAPACITY_DEFAULT,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "2 GB", .value = DITTO_CAPACITY_2GB },
-            { .description = "3 GB", .value = DITTO_CAPACITY_3GB },
-            { .description = "5 GB", .value = DITTO_CAPACITY_5GB },
-            { .description = ""                                  }
+/* The parameters may not be named after the members they
+   initialise: a designator is a plain token, so a parameter
+   called "value" would be substituted into ".value" itself. */
+#define X(nm, val, trk, sgs, stat, fmt) { .description = nm, .value = val },
+            DITTO_CARTRIDGE_LIST
+#undef X
+            { .description = "" }
         },
         .bios           = { { 0 } }
     },
