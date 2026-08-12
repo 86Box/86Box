@@ -428,7 +428,7 @@ static const device_config_t colorplus_config[] = {
 };
 
 const device_t colorplus_device = {
-    .name          = "Colorplus",
+    .name          = "Plantronics Colorplus",
     .internal_name = "plantronics",
     .flags         = DEVICE_ISA,
     .local         = 0,
