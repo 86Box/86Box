@@ -1,5 +1,6 @@
 #if defined __amd64__ || defined _M_X64
 
+#    include <inttypes.h>
 #    include <stdarg.h>
 #    include <stdio.h>
 #    include <string.h>
@@ -65,9 +66,9 @@ codegen_init(void)
     codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 1, &large_block);
     codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0, &large_hash);
     if (large_block)
-        pclog("Allocated %llu bytes of large pages for codeblocks\n", BLOCK_SIZE * sizeof(codeblock_t));
+        pclog("Allocated %" PRIu64 " bytes of large pages for codeblocks\n", (uint64_t) (BLOCK_SIZE * sizeof(codeblock_t)));
     if (large_hash)
-        pclog("Allocated %llu bytes of large pages for codeblock hashes\n", HASH_SIZE * sizeof(codeblock_t *));
+        pclog("Allocated %" PRIu64 " bytes of large pages for codeblock hashes\n", (uint64_t) (HASH_SIZE * sizeof(codeblock_t *)));
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
 

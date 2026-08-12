@@ -3269,6 +3269,8 @@ execx86_instruction(void)
                 break;
             case 0xfa ... 0xfb:    /* CLISTI */
                 wait_cycs(1, 0);
+                if ((opcode & 1) && !(cpu_state.flags & I_FLAG))
+                    noint = 1;
                 set_if(opcode & 1);
                 break;
             case 0xfc ... 0xfd:    /* CLDSTD */
