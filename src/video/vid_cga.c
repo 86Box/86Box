@@ -11,10 +11,14 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          W. M. Martinez, <anikom15@outlook.com>
+ *          Daniel Balsom
+ *          Cacodemon345
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2023      W. M. Martinez
+ *          Copyright 2022-2026 Daniel Balsom
+ *          Copyright 2026      Cacodemon345
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -71,15 +75,17 @@ static uint8_t interp_lut[2][256][256];
 
 static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
+static bool cga_lightpen_enabled = false;
+
 void cga_recalctimings(cga_t *cga);
 
 static void
-cga_update_latch(cga_t *cga)
+cga_update_latch(cga_t *cga, uint16_t memaddr)
 {
-    uint32_t lp_latch = cga->displine * cga->crtc[CGA_CRTC_HDISP];
+    uint32_t lp_latch = memaddr & DEVICE_VRAM_MASK;
 
-    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_HIGH] = (lp_latch >> 8) & 0x3f;
-    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_LOW] = lp_latch & 0xff;
+    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_HIGH] = (lp_latch >> 8) & 0xFF;
+    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_LOW] = lp_latch & 0xFF;
 }
 
 void
@@ -141,7 +147,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
         case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
-                cga_update_latch(cga);
+                cga_update_latch(cga, cga->displine * cga->crtc[CGA_CRTC_HDISP]);
             }
             return;
 
@@ -167,7 +173,7 @@ cga_in(uint16_t addr, void *priv)
             ret = cga->crtc[cga->crtcreg];
             break;
         case CGA_REGISTER_STATUS:
-            ret = cga->cgastat;
+            ret = cga->cgastat | (cga->lp_strobe ? 0b010 : 0) | ((!cga_lightpen_enabled || !mouse_get_buttons_ex()) ? 0b100 : 0);
             break;
         case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)
@@ -176,7 +182,7 @@ cga_in(uint16_t addr, void *priv)
         case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
-                cga_update_latch(cga);
+                cga_update_latch(cga, cga->displine * cga->crtc[CGA_CRTC_HDISP]);
             }
             break;
 
@@ -342,7 +348,6 @@ cga_render(cga_t *cga, int line)
 
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
     bool     overlay_flag          = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag);
-    bool     is_under_cursor       = false;
 
     for (column = 0; column < 8; ++column) {
         buffer32->line[line][column] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
@@ -372,13 +377,15 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][(x * 8) + column + 8]
                     = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0);
                 
-                is_under_cursor = is_under_cursor || cga_is_in_lightpen(cga, (x * 8) + column + 8, line);
-                if (is_under_cursor) {
-                    buffer32->line[line][(x * 8) + column + 8] ^= 0b1111;
+                if (!cga->lp_latch_found && cga_is_in_lightpen(cga, (x * 8) + column + 8, line)) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 8) + column + 8;
+                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
+                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found   = true;
                 }
             }
 
-            is_under_cursor = 0;
             cga->memaddr++;
         }
     } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
@@ -402,14 +409,16 @@ cga_render(cga_t *cga, int line)
                     = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = (cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0));
 
-                is_under_cursor = is_under_cursor || (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line));
-                if (is_under_cursor) {
-                    buffer32->line[line][(x * 16) + (column << 1) + 8] ^= 0b1111;
-                    buffer32->line[line][(x * 16) + (column << 1) + 8 + 1] ^= 0b1111;
+                
+                if (!cga->lp_latch_found && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 16) + (column << 1) + 8;
+                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
+                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found   = true;
                 }
             }
 
-            is_under_cursor = 0;
             cga->memaddr++;
         }
     } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) { /* not hi-res (but graphics) => 4-color mode (2bpp) */
@@ -438,14 +447,17 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][(x * 16) + (column << 1) + 8]
                     = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = cols[dat >> 14];
-                is_under_cursor = is_under_cursor || (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line));
-                if (is_under_cursor) {
-                    buffer32->line[line][(x * 16) + (column << 1) + 8] ^= 0b1111;
-                    buffer32->line[line][(x * 16) + (column << 1) + 8 + 1] ^= 0b1111;
+
+                if (!cga->lp_latch_found && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 16) + (column << 1) + 8;
+                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
+                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found   = true;
                 }
+
                 dat <<= 2;
             }
-            is_under_cursor = 0;
             cga->memaddr++;
         }
     } else { /* 2-color hi-res graphics mode (1bpp) */
@@ -461,13 +473,14 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][(x * 16) + column + 8] = cols[dat >> 15];
                 dat <<= 1;
 
-                is_under_cursor = is_under_cursor || (cga_is_in_lightpen(cga, (x * 16) + column + 8, line));
-
-                if (is_under_cursor) {
-                    buffer32->line[line][(x * 16) + column + 8] ^= 0b1111;
+                if (!cga->lp_latch_found && cga_is_in_lightpen(cga, (x * 16) + column + 8, line)) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 16) + column + 8;
+                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
+                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found   = true;
                 }
             }
-            is_under_cursor = 0;
             cga->memaddr++;
         }
     }
@@ -898,9 +911,16 @@ cga_poll(void *priv)
                         }
 
                         cga_do_blit(xsize, cga->firstline, cga->lastline, cga->double_type);
+
+                        // The palette conversion has been performed, sample the lightpen position now.
+                        if (cga->lp_latch_found && cga_sample_luma(buffer32, cga->lp_latch_found_x, cga->lp_latch_found_y) >= 0.25) {
+                            cga->lp_strobe = 1;
+                            cga_update_latch(cga, (cga->lp_latch_found_h << 8) | cga->lp_latch_found_l);
+                        }
                     }
 
                     frames++;
+                    cga->lp_latch_found = false;
 
                     video_res_x = xsize;
                     video_res_y = ysize;
@@ -991,8 +1011,6 @@ cga_standalone_init(UNUSED(const device_t *info))
 
     monitors[monitor_index_global].mon_composite = !!cga->composite;
     cga->monitor_used                            = monitor_index_global;
-
-    mouse_input_mode = 2;
 
     return cga;
 }
@@ -1155,4 +1173,58 @@ const device_t cga_pravetz_device = {
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config
+};
+
+
+// Light pen
+void *
+cga_lightpen_init(UNUSED(const device_t *info))
+{
+    mouse_input_mode = device_get_config_int("crosshair") + 1;
+    mouse_set_buttons(2);
+    // All polling is done by the CGA.
+    mouse_set_poll(NULL, (void*)1);
+    mouse_set_poll_ex(NULL);
+    cga_lightpen_enabled = true;
+    
+    return (void*)1;
+}
+
+void
+cga_lightpen_close(void* priv)
+{
+    cga_lightpen_enabled = false;
+    (void)priv;
+}
+
+
+static const device_config_t cga_lightpen_config[] = {
+  // clang-format off
+    {
+        .name           = "crosshair",
+        .description    = "Show Crosshair",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+const device_t mouse_cga_lightpen_device = {
+    .name          = "CGA lightpen",
+    .internal_name = "cga_lightpen",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = cga_lightpen_init,
+    .close         = cga_lightpen_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = cga_lightpen_config
 };
