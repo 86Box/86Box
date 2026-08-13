@@ -40,6 +40,7 @@ extern "C" {
 #include "ui_qt_settingsdisplay.h"
 #include "qt_util.hpp"
 #include "qt_defs.hpp"
+#include "qt_settingsinput.hpp"
 
 SettingsDisplay::SettingsDisplay(QWidget *parent)
     : QWidget(parent)
@@ -392,6 +393,15 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
             ui->checkBoxVoodoo->setChecked(voodoo_enabled);
         }
     }
+
+    if (Settings::settings->input)
+        Settings::settings->input->onCurrentMachineChanged(machineId);
+}
+
+bool
+SettingsDisplay::isLightPenUsable()
+{
+    return !strcmp(video_get_internal_name(ui->comboBoxVideo->currentData().toInt()), "cga") || !strcmp(video_get_internal_name(ui->comboBoxVideoSecondary->currentData().toInt()), "cga");
 }
 
 void

@@ -18,6 +18,7 @@
  */
 #ifndef VIDEO_CGA_H
 #define VIDEO_CGA_H
+#include <stdbool.h>
 
 // Mode flags for the CGA.
 // Set by writing to 3D8
@@ -113,6 +114,13 @@ typedef struct cga_t {
     int snow_enabled;
     int rgb_type;
     int double_type;
+
+    uint32_t lp_latch_found_memaddr;
+    int      lp_latch_found_x; // in buffer32 coords.
+    int      lp_latch_found_y;
+    bool     lp_latch_found;
+
+    uint8_t monitor_used;
 } cga_t;
 
 extern void    cga_init(cga_t *cga);

@@ -47,6 +47,10 @@ private:
     int                kbd_config_changed   = 0;
     int                mouse_config_changed = 0;
 
+    int                keyboardType = 0;
+    int                mouseType = 0;
+    int                joystickType = 0;
+
     int                machineId = 0;
 
     SettingsCompleter   *scKeyboard;

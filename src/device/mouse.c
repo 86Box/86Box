@@ -109,6 +109,7 @@ static mouse_t mouse_devices[] = {
     { &mouse_wacom_artpad_device       },
 #endif
     { &mouse_mtouch_device             },
+    { &mouse_cga_lightpen_device       },
     { NULL                             }
     // clang-format on
 };

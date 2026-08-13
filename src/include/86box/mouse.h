@@ -81,6 +81,7 @@ extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
 #    endif
 extern const device_t mouse_mtouch_device;
+extern const device_t mouse_cga_lightpen_device;
 #endif
 
 extern void            mouse_clear_x(void);
