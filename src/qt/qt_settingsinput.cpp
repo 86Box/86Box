@@ -63,6 +63,10 @@ SettingsInput::SettingsInput(QWidget *parent)
              memcpy(&(org_joystick_state[i][j]), &(joystick_state[i][j]), sizeof(joystick_state_t));
     }
 
+    keyboardType = keyboard_type;
+    mouseType    = mouse_type;
+    joystickType = joystick_type[0];
+
     onCurrentMachineChanged(machine);
 }
 
@@ -144,6 +148,9 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 {
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
+    auto curKeyboardType = keyboardType;
+    auto curMouseType = mouseType;
+    auto curJoystickType = joystickType;
 
     scKeyboard->removeRows();
     scMouse->removeRows();
@@ -178,7 +185,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
         scKeyboard->addDevice(nullptr, name);
 
-        if (i == keyboard_type)
+        if (i == curKeyboardType)
             selectedRow = row - removeRows;
 
         c++;
@@ -217,7 +224,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
         scMouse->addDevice(nullptr, name);
 
-        if (i == mouse_type)
+        if (i == curMouseType)
             selectedRow = row - removeRows;
     }
     mouseModel->removeRows(0, removeRows);
@@ -233,7 +240,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
     while (joyName) {
         int row = Models::AddEntry(joystickModel, tr(joyName).toUtf8().data(), i);
         scJoystick0->addDevice(nullptr, tr(joyName));
-        if (i == joystick_type[0])
+        if (i == curJoystickType)
             selectedRow = row - removeRows;
 
         ++i;
@@ -250,6 +257,7 @@ SettingsInput::on_comboBoxKeyboard_currentIndexChanged(int index)
         return;
     int keyboardId = ui->comboBoxKeyboard->currentData().toInt();
     ui->pushButtonConfigureKeyboard->setEnabled(keyboard_has_config(keyboardId) > 0);
+    keyboardType = keyboardId;
 }
 
 void
@@ -259,6 +267,7 @@ SettingsInput::on_comboBoxMouse_currentIndexChanged(int index)
         return;
     int mouseId = ui->comboBoxMouse->currentData().toInt();
     ui->pushButtonConfigureMouse->setEnabled(mouse_has_config(mouseId) > 0);
+    mouseType = mouseId;
 }
 
 void
@@ -272,6 +281,7 @@ SettingsInput::on_comboBoxJoystick0_currentIndexChanged(int index)
 
         btn->setEnabled(joystick_get_max_joysticks(joystickId) > i);
     }
+    joystickType = joystickId;
 }
 
 void
