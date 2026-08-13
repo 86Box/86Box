@@ -783,6 +783,14 @@ load_input_devices(void)
     else
         mouse_type = 0;
 
+    p = ini_section_get_string(cat, "tablet_type", NULL);
+    if (p != NULL)
+        tablet_type = tablet_get_from_internal_name(p);
+    else
+        tablet_type = 0;
+
+    mouse_input_mode_initial = ini_section_get_int(cat, "mouse_input_mode_initial", 1);
+
     uint8_t joy_insn = 0;
     p = ini_section_get_string(cat, "joystick_type", NULL);
     if (p != NULL) {
@@ -3325,6 +3333,8 @@ save_input_devices(void)
 
     ini_section_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
+    ini_section_set_string(cat, "tablet_type", tablet_get_internal_name(tablet_type));
+
     uint8_t joy_insn = 0;
     if (!joystick_type[joy_insn]) {
         ini_section_delete_var(cat, "joystick_type");
@@ -3388,6 +3398,11 @@ save_input_devices(void)
         ini_section_set_int(cat, "tablet_tool_type", tablet_tool_type);
     else
         ini_section_delete_var(cat, "tablet_tool_type");
+
+    if (mouse_input_mode_initial != 1)
+        ini_section_set_int(cat, "mouse_input_mode_initial", mouse_input_mode_initial);
+    else
+        ini_section_delete_var(cat, "mouse_input_mode_initial");
 
     ini_delete_section_if_empty(config, cat);
 }

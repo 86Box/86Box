@@ -1187,7 +1187,7 @@ cga_lightpen_init(UNUSED(const device_t *info))
     mouse_set_buttons(2);
     // All polling is done by the CGA.
     mouse_set_poll(NULL, (void*)1);
-    mouse_set_poll_ex(NULL);
+    mouse_set_poll_ex(NULL, NULL);
     cga_luma_threshold = device_get_config_int("luma_thresh") / 100.;
     cga_lightpen_enabled = true;
     
