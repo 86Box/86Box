@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-07-29 10:19+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-08-13 12:39+0000\n"
+"Last-Translator: wavz217 <wavz217@tuta.io>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it-IT\n"
 "MIME-Version: 1.0\n"
@@ -849,7 +849,7 @@ msgid "Ports (COM & LPT)"
 msgstr "Porte (COM e LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "Porta"
 
 msgid "Ports"
 msgstr "Porte"
@@ -1277,7 +1277,7 @@ msgid "Use regular expressions in search box"
 msgstr "Utilizza espressioni regolari nella casella di ricerca"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Usa il cestino per eliminare le macchine virtuali"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1770,7 +1770,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Pausa automatica se in secondo piano"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Pausa automatica nelle finestre di dialogo"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox non è più supportato"
@@ -2299,7 +2299,7 @@ msgid "Host ID"
 msgstr "ID host"
 
 msgid "Host"
-msgstr ""
+msgstr "Host"
 
 msgid "FDC Address"
 msgstr "Indirizzo FDC"
@@ -2383,7 +2383,7 @@ msgid "Control PC speaker"
 msgstr "Controlla l'altoparlante del PC"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Controlla il volume MIDI"
 
 msgid "Memory size"
 msgstr "Dimensione della memoria"
@@ -2983,7 +2983,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "Chiedi conferma prima di uscire"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "Precarica i file CHD in memoria"
 
 msgid "Options"
 msgstr "Opzioni"
@@ -2998,22 +2998,22 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Impossibile inizializzare il renderizzatore Vulkan."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Impossibile creare l'istanza di Vulkan 1.3."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Non sono stati rilevati dispositivi fisici Vulkan utilizzabili."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Non sono stati trovati dispositivi fisici compatibili con Vulkan."
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "librashader non trovato. Gli shader non saranno disponibili."
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Dispositivo Vulkan disconnesso."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Superficie Vulkan disconnessa."
 
 msgid "GLSL Error"
 msgstr "Errore GLSL"
@@ -3118,7 +3118,7 @@ msgid "Toggle mute"
 msgstr "Attiva/disattiva audio"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Attiva/disattiva on-screen display."
 
 msgid "Toggle &on-screen display"
 msgstr ""
