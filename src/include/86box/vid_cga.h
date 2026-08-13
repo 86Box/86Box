@@ -115,8 +115,7 @@ typedef struct cga_t {
     int rgb_type;
     int double_type;
 
-    uint32_t lp_latch_found_l;
-    uint32_t lp_latch_found_h;
+    uint32_t lp_latch_found_memaddr;
     int      lp_latch_found_x; // in buffer32 coords.
     int      lp_latch_found_y;
     bool     lp_latch_found;

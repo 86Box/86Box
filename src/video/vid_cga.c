@@ -76,6 +76,7 @@ static uint8_t interp_lut[2][256][256];
 static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 static bool cga_lightpen_enabled = false;
+static float cga_luma_threshold = 0.125;
 
 void cga_recalctimings(cga_t *cga);
 
@@ -290,6 +291,12 @@ cga_is_in_lightpen(cga_t *cga, int x, int y)
     double abs_x = 0.0;
     double abs_y = 0.0;
 
+    if (!mouse_tablet_in_proximity)
+        return false;
+
+    if ((mouse_tablet_in_proximity - 1) != cga->monitor_used)
+        return false;
+
     mouse_get_abs_coords(&abs_x, &abs_y);
 
     abs_x *= monitors[cga->monitor_used].mon_unscaled_size_x - 1;
@@ -377,11 +384,10 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][(x * 8) + column + 8]
                     = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0);
                 
-                if (!cga->lp_latch_found && cga_is_in_lightpen(cga, (x * 8) + column + 8, line)) {
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && cga_is_in_lightpen(cga, (x * 8) + column + 8, line)) {
                     cga->lp_latch_found_y = line;
                     cga->lp_latch_found_x = (x * 8) + column + 8;
-                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
-                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
                     cga->lp_latch_found   = true;
                 }
             }
@@ -410,11 +416,10 @@ cga_render(cga_t *cga, int line)
                     = (cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0));
 
                 
-                if (!cga->lp_latch_found && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
                     cga->lp_latch_found_y = line;
                     cga->lp_latch_found_x = (x * 16) + (column << 1) + 8;
-                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
-                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
                     cga->lp_latch_found   = true;
                 }
             }
@@ -448,11 +453,10 @@ cga_render(cga_t *cga, int line)
                     = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = cols[dat >> 14];
 
-                if (!cga->lp_latch_found && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
                     cga->lp_latch_found_y = line;
                     cga->lp_latch_found_x = (x * 16) + (column << 1) + 8;
-                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
-                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
                     cga->lp_latch_found   = true;
                 }
 
@@ -473,11 +477,10 @@ cga_render(cga_t *cga, int line)
                 buffer32->line[line][(x * 16) + column + 8] = cols[dat >> 15];
                 dat <<= 1;
 
-                if (!cga->lp_latch_found && cga_is_in_lightpen(cga, (x * 16) + column + 8, line)) {
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && cga_is_in_lightpen(cga, (x * 16) + column + 8, line)) {
                     cga->lp_latch_found_y = line;
                     cga->lp_latch_found_x = (x * 16) + column + 8;
-                    cga->lp_latch_found_l = cga->memaddr & 0xFF;
-                    cga->lp_latch_found_h = (cga->memaddr >> 8) & 0xFF;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
                     cga->lp_latch_found   = true;
                 }
             }
@@ -913,9 +916,9 @@ cga_poll(void *priv)
                         cga_do_blit(xsize, cga->firstline, cga->lastline, cga->double_type);
 
                         // The palette conversion has been performed, sample the lightpen position now.
-                        if (cga->lp_latch_found && cga_sample_luma(buffer32, cga->lp_latch_found_x, cga->lp_latch_found_y) >= 0.25) {
+                        if (cga_lightpen_enabled && mouse_tablet_in_proximity > 0 && cga->lp_latch_found && cga_sample_luma(buffer32, cga->lp_latch_found_x, cga->lp_latch_found_y) >= cga_luma_threshold) {
                             cga->lp_strobe = 1;
-                            cga_update_latch(cga, (cga->lp_latch_found_h << 8) | cga->lp_latch_found_l);
+                            cga_update_latch(cga, cga->lp_latch_found_memaddr);
                         }
                     }
 
@@ -1185,6 +1188,7 @@ cga_lightpen_init(UNUSED(const device_t *info))
     // All polling is done by the CGA.
     mouse_set_poll(NULL, (void*)1);
     mouse_set_poll_ex(NULL);
+    cga_luma_threshold = device_get_config_int("luma_thresh") / 100.;
     cga_lightpen_enabled = true;
     
     return (void*)1;
@@ -1208,6 +1212,17 @@ static const device_config_t cga_lightpen_config[] = {
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "luma_thresh",
+        .description    = "Luminance threshold (%)",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 12,
+        .file_filter    = NULL,
+        .spinner        = { .min = 0, .max = 100, .step = 1 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
