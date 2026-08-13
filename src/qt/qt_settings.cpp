@@ -153,6 +153,8 @@ Settings::Settings(QWidget *parent)
     auto *model = new SettingsModel(this);
     ui->listView->setModel(model);
 
+    Settings::settings = this;
+
     Harddrives::busTrackClass = new SettingsBusTracking;
     machine                   = new SettingsMachine(this);
     display                   = new SettingsDisplay(this);
@@ -239,8 +241,6 @@ Settings::Settings(QWidget *parent)
             });
 
     ui->listView->setCurrentIndex(model->index(0, 0));
-
-    Settings::settings = this;
 }
 
 Settings::~Settings()

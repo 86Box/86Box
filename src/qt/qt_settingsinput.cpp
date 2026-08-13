@@ -38,6 +38,8 @@ extern "C" {
 #include "qt_joystickconfiguration.hpp"
 #include "qt_defs.hpp"
 
+#include "qt_settingsdisplay.hpp"
+
 extern MainWindow *main_window;
 
 joystick_state_t      org_joystick_state[GAMEPORT_MAX][MAX_JOYSTICKS];
@@ -155,12 +157,13 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
     int c           = 0;
     int has_int_kbd = !!machine_has_flags(machineId, MACHINE_KEYBOARD);
+    int has_cga_pen = !!Settings::settings->display->isLightPenUsable();
 
     for (int i = 0; i < keyboard_get_ndev(); ++i) {
         const auto *dev  = keyboard_get_device(i);
         int         ikbd = (i == KEYBOARD_TYPE_INTERNAL);
 
-        int pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") && machines[machineId].init == machine_xt_pc5086_init);
+        bool pc5086_filter = (strstr(keyboard_get_internal_name(i), "ps") && machines[machineId].init == machine_xt_pc5086_init);
 
         if ((ikbd != has_int_kbd) || !device_is_valid(dev, machineId) || pc5086_filter)
             continue;
@@ -199,6 +202,9 @@ SettingsInput::onCurrentMachineChanged(int machineId)
             continue;
 
         if (device_is_valid(dev, machineId) == 0)
+            continue;
+
+        if (!has_cga_pen && !strcmp(dev->internal_name, "cga_lightpen"))
             continue;
 
         QString name = DeviceConfig::DeviceName(dev, mouse_get_internal_name(i), 0);
