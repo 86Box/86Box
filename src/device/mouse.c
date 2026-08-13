@@ -819,7 +819,8 @@ mouse_reset(void)
     /* Clear local data. */
     mouse_clear_coords();
     mouse_clear_buttons();
-    mouse_input_mode = 0;
+    mouse_input_mode = mouse_input_mode_initial;
+    tablet_reset();
 
     if (mouse_priv != NULL)
         return; /* Mouse already initialized. */
@@ -828,8 +829,11 @@ mouse_reset(void)
               mouse_type, mouse_devices[mouse_type].device->name);
 
     /* If no mouse configured, we're done. */
-    if (mouse_type == 0)
+    if (mouse_type == 0) {
+        if (mouse_input_mode == 0)
+            mouse_input_mode = 1;
         return;
+    }
 
     timer_add(&mouse_timer, mouse_timer_poll, NULL, 0);
 
@@ -838,6 +842,11 @@ mouse_reset(void)
 
     if ((mouse_type > 1) && (mouse_devices[mouse_type].device != NULL))
         mouse_priv = device_add(mouse_devices[mouse_type].device);
+
+    if (!tablet_type) {
+        if (mouse_input_mode > 0)
+            mouse_input_mode = 0;
+    }
 }
 
 void
