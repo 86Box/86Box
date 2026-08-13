@@ -164,7 +164,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
 
     int c           = 0;
     int has_int_kbd = !!machine_has_flags(machineId, MACHINE_KEYBOARD);
-    int has_cga_pen = !!Settings::settings->display->isLightPenUsable();
+    int has_cga_pen = Settings::settings && Settings::settings->display && !!Settings::settings->display->isLightPenUsable();
 
     for (int i = 0; i < keyboard_get_ndev(); ++i) {
         const auto *dev  = keyboard_get_device(i);
@@ -211,7 +211,7 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         if (device_is_valid(dev, machineId) == 0)
             continue;
 
-        if (!has_cga_pen && !strcmp(dev->internal_name, "cga_lightpen"))
+        if (!has_cga_pen && !strcmp(mouse_get_internal_name(i), "cga_lightpen"))
             continue;
 
         QString name = DeviceConfig::DeviceName(dev, mouse_get_internal_name(i), 0);

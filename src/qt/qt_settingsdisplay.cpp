@@ -401,6 +401,9 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 bool
 SettingsDisplay::isLightPenUsable()
 {
+    if (ui->comboBoxVideo->currentIndex() < 0)
+        return false;
+
     return !strcmp(video_get_internal_name(ui->comboBoxVideo->currentData().toInt()), "cga") || !strcmp(video_get_internal_name(ui->comboBoxVideoSecondary->currentData().toInt()), "cga");
 }
 
