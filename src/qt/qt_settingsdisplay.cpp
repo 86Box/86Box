@@ -394,7 +394,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         }
     }
 
-    if (Settings::settings->input)
+    if (Settings::settings->input != nullptr)
         Settings::settings->input->onCurrentMachineChanged(machineId);
 }
 

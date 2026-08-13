@@ -157,6 +157,7 @@ Settings::Settings(QWidget *parent)
 
     Harddrives::busTrackClass = new SettingsBusTracking;
     machine                   = new SettingsMachine(this);
+    input                     = nullptr;
     display                   = new SettingsDisplay(this);
     input                     = new SettingsInput(this);
     sound                     = new SettingsSound(this);
