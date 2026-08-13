@@ -137,6 +137,7 @@ static uint32_t *ext_cache_tags       = NULL;
 static uint8_t  *ext_cache_dirty      = NULL;
 static uint32_t  ext_cache_lines      = 0;
 static uint32_t  ext_cache_line_mask  = 0;
+static uint8_t   ext_cache_index_shift = 0;
 static uint32_t  ext_cache_size_kb    = 0;
 static uint32_t  ext_cacheable_bytes  = 0;
 static uint8_t   ext_cache_tag_bits   = 8;
@@ -183,6 +184,7 @@ mem_extcache_configure(uint32_t size_kb)
     ext_cache_dirty        = NULL;
     ext_cache_lines        = 0;
     ext_cache_line_mask    = 0;
+    ext_cache_index_shift  = 0;
     ext_cache_size_kb      = 0;
     ext_cacheable_bytes    = 0;
     ext_cache_tag_bits     = 8;
@@ -213,6 +215,11 @@ mem_extcache_configure(uint32_t size_kb)
 
     ext_cache_lines      = lines;
     ext_cache_line_mask  = lines - 1;
+	#if defined(__GNUC__) || defined(__clang__)
+		ext_cache_index_shift = (uint8_t) __builtin_ctz(lines);
+	#else
+		for (ext_cache_index_shift = 0; (1u << ext_cache_index_shift) < lines; ext_cache_index_shift++) {}
+	#endif
     ext_cache_size_kb    = size_kb;
     ext_cache_configured = 1;
     mem_extcache_recalc_cacheable();
@@ -317,7 +324,7 @@ mem_extcache_access_line(uint32_t addr, int write)
     uint32_t tag;
     int      hit;
 
-    if (!mem_extcache_active() || !cpu_cache_ext_enabled || !cpu_s)
+    if (!cpu_cache_ext_enabled || !cpu_s)
         return;
 
     /* Register 57h bit 0 (Cache Sizing Enable) forces an L2 hit regardless
@@ -334,7 +341,7 @@ mem_extcache_access_line(uint32_t addr, int write)
 
     line  = addr >> EXT_CACHE_LINE_SHIFT;
     index = line & ext_cache_line_mask;
-    tag   = line / ext_cache_lines;
+    tag   = line >> ext_cache_index_shift;
     hit   = (ext_cache_tags[index] == tag);
 
     if (write) {
