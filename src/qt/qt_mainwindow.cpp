@@ -369,9 +369,9 @@ MainWindow::MainWindow(QWidget *parent)
                 if (mouse_input_mode > 0)
                     mouse_input_mode = 0;
             }
-
-            ui->menuSelect_Input_Device->setEnabled(mouse_type || tablet_type);    
         }
+
+        ui->menuSelect_Input_Device->menuAction()->setVisible(tablet_type);
 
         if (mouse_input_mode >= 1 && QApplication::overrideCursor())
             while (QApplication::overrideCursor())
