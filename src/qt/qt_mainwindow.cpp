@@ -353,6 +353,9 @@ MainWindow::MainWindow(QWidget *parent)
         int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
+        ui->actionMouse->setEnabled(true);
+        ui->actionTablet->setEnabled(true);
+        ui->actionTablet_Crosshair->setEnabled(true);
         if (!mouse_both_enabled()) {
             if (!mouse_type) {
                 ui->actionMouse->setDisabled(true);
