@@ -141,7 +141,7 @@ static int (*mouse_poll_ex)(void *priv) = NULL;
 static double          sample_rate = 200.0;
 static double          sample_rate_tablet = 200.0;
 
-int mouse_input_mode_initial = 1;
+int mouse_input_mode_initial = 0;
 
 #ifdef ENABLE_MOUSE_LOG
 int mouse_do_log = ENABLE_MOUSE_LOG;

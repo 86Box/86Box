@@ -789,7 +789,7 @@ load_input_devices(void)
     else
         tablet_type = 0;
 
-    mouse_input_mode_initial = ini_section_get_int(cat, "mouse_input_mode_initial", 1);
+    mouse_input_mode_initial = ini_section_get_int(cat, "mouse_input_mode_initial", 0);
 
     uint8_t joy_insn = 0;
     p = ini_section_get_string(cat, "joystick_type", NULL);
