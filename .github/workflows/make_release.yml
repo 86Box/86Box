@@ -100,7 +100,7 @@ jobs:
           TAG_VAL=${{needs.cut-release.outputs.new_tag}}
           echo "TAG_VAL=${TAG_VAL}"
           gh release list --repo ExAv2/86Box
-          gh release upload "${TAG_VAL}" ${{ github.WORKSPACE }}/ci-artifacts/ExAv2*/86Box.exe  --repo ExAv2/86Box --clobber
+          gh release upload "${TAG_VAL}" ${{ github.WORKSPACE }}/ci-artifacts/86Box*/86Box.exe  --repo ExAv2/86Box --clobber
 
       - name: Publish Release
         env:
