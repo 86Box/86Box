@@ -68,21 +68,20 @@
      <addaction name="actionPen"/>
      <addaction name="actionCursor_Puck"/>
     </widget>
-    <widget class="QMenu" name="menuSelect_Input_Device">
+    <widget class="QMenu" name="menuInput_device">
      <property name="title">
-      <string>Input Device</string>
+      <string>Input device</string>
      </property>
      <addaction name="actionMouse"/>
      <addaction name="actionTablet"/>
      <addaction name="actionTablet_Crosshair"/>
     </widget>
-    <addaction name="menuTablet_tool"/>
-    <addaction name="menuSelect_Input_Device"/>
-    <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="separator"/>
     <addaction name="actionUpdate_mouse_every_CPU_frame"/>
+    <addaction name="menuInput_device"/>
+    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
