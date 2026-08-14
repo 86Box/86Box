@@ -557,7 +557,7 @@ VulkanWindowRenderer::~VulkanWindowRenderer()
 void
 VulkanWindowRenderer::finalize()
 {
-    if (isFinalized)
+    if (isFinalized || !isInitialized)
         return;
 
     /* Mark all buffers as in use */
@@ -1731,6 +1731,8 @@ void
 VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 {
     auto origSource = source;
+    if (!isInitialized || isFinalized)
+        return;
     if (w == 0)
         w = 256;
     if (h == 0)
