@@ -627,6 +627,10 @@ RendererStack::event(QEvent *event)
                 mouse_x_abs = 1;
             if (mouse_y_abs > 1)
                 mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif
@@ -659,6 +663,10 @@ RendererStack::event(QEvent *event)
 
             if (mouse_x_abs > 1) mouse_x_abs = 1;
             if (mouse_y_abs > 1) mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif
