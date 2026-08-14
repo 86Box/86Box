@@ -157,7 +157,6 @@ struct shared_vk_renderer_res
 
 struct shared_vk_renderer_res vk_resources;
 
-static int vk_res_refcnt_inst = 0;
 static int vk_res_refcnt_dev = 0;
 
 VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
@@ -178,7 +177,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
         was_osd_visible = qt_osd_is_visible();
     });
     parentWidget = parent;
-    if (!vk_res_refcnt_inst) {
+    if (!vk_resources.vk_instance) {
         vk_resources.vk_instance.reset(new QVulkanInstance);
         vk_resources.vk_instance->setApiVersion(QVersionNumber(1, 3));
         if (vk_resources.vk_instance->supportedExtensions().contains("VK_KHR_get_physical_device_properties2")) {
@@ -190,7 +189,6 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
             throw vulkan_init_error(tr("Failed to create Vulkan 1.3 instance."));
         }
     }
-    vk_res_refcnt_inst++;
     setSurfaceType(QSurface::VulkanSurface);
     setVulkanInstance(vk_resources.vk_instance.get());
     buf_usage = std::vector<std::atomic_flag>(1);
@@ -608,13 +606,6 @@ clean_up_rest:
         vk_resources.logi_device = nullptr;
         vk_resources.phys_device = nullptr;
     }
-    vk_res_refcnt_inst--;
-    if (vk_res_refcnt_inst <= 0) 
-        vk_resources.vk_instance.reset();
-    
-    if (vk_res_refcnt_inst < 0)
-        vk_res_refcnt_inst = 0;
-    
     if (vk_res_refcnt_dev < 0)
         vk_res_refcnt_dev = 0;
 
