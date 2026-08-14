@@ -947,6 +947,16 @@ exec386_dynarec(int32_t cycs)
 }
 #endif
 
+int
+is_dynarec_active(void)
+{
+#ifndef USE_DYNAREC
+    return false;
+#else
+    return cpu_exec == exec386_dynarec && cpu_use_dynarec && !(cpu_force_interpreter || cpu_override_dynarec || (!CACHE_ON()));
+#endif
+}
+
 void
 exec386(int32_t cycs)
 {

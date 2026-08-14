@@ -95,6 +95,7 @@
     <addaction name="actionCtrl_Alt_Del"/>
     <addaction name="separator"/>
     <addaction name="actionCtrl_Alt_Esc"/>
+    <addaction name="actionNon_maskable_interrupt"/>
     <addaction name="separator"/>
     <addaction name="actionACPI_Shutdown"/>
     <addaction name="actionExit"/>
@@ -360,6 +361,14 @@
    </property>
    <property name="toolTip">
     <string>Press Ctrl+Alt+Esc</string>
+   </property>
+  </action>
+  <action name="actionNon_maskable_interrupt">
+   <property name="text">
+    <string>&amp;Non-maskable interrupt</string>
+   </property>
+   <property name="toolTip">
+    <string>Non-maskable interrupt</string>
    </property>
   </action>
   <action name="actionPause">

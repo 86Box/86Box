@@ -448,6 +448,13 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs        = rendererWindow->getBuffers();
                     switchInProgress = false;
                     emit rendererChanged();
+                    if (m_monitor_index != 0 && show_second_monitors)
+                        this->show();
+
+                    QTimer::singleShot(1000, [this] {
+                        if (m_monitor_index != 0 && show_second_monitors)
+                            this->show();
+                    });
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */

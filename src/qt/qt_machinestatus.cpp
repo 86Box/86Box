@@ -41,6 +41,8 @@ extern "C" {
 #include <86box/config.h>
 
 extern volatile int fdcinited;
+extern bool         fast_forward;
+extern int          is_dynarec_active(void);
 };
 
 #include <QIcon>
@@ -117,6 +119,7 @@ struct Pixmaps {
     PixmapSetActive      hd;
     PixmapSetEmptyActive net;
     PixmapSetDisabled    sound;
+    PixmapSetDisabled    dynarec;
 };
 
 struct StateActive {
@@ -349,6 +352,8 @@ struct MachineStatus::States {
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
         pixmaps.net.load(QIcon(":/settings/qt/icons/network.ico"));
         pixmaps.sound.load(QIcon(":/settings/qt/icons/sound.ico"));
+        pixmaps.dynarec.normal                          = QIcon(":/menuicons/qt/icons/recompiler.ico").pixmap(pixmap_size);
+        pixmaps.dynarec.disabled                        = QIcon(":/menuicons/qt/icons/interpreter.ico").pixmap(pixmap_size);
 
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;
@@ -386,6 +391,7 @@ struct MachineStatus::States {
     std::array<StateActive, HDD_BUS_USB>       hdds;
     std::array<StateEmptyActive, NET_CARD_MAX> net;
     std::unique_ptr<ClickableLabel>            sound;
+    std::unique_ptr<QLabel>                    dynarec;
     std::unique_ptr<QLabel>                    text;
 };
 
@@ -597,6 +603,13 @@ MachineStatus::refreshIcons()
         d->cassette.setPlay(!cassette->save);
     }
 
+    /* Same for sound mute status. */
+    if (d->sound)
+        d->sound->setPixmap((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
+
+    if (d->dynarec)
+        d->dynarec->setPixmap(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
+
     /* Check if icons should show activity. */
     if (!update_icons)
         return;
@@ -734,6 +747,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
         sbar->removeWidget(d->net[i].label.get());
     }
+    sbar->removeWidget(d->dynarec.get());
     sbar->removeWidget(d->sound.get());
 
     if (cassette_enable) {
@@ -1024,7 +1038,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
 
     d->sound = std::make_unique<ClickableLabel>();
-    d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
+    d->sound->setPixmap((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 
     connect(d->sound.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
         this->soundMenu->popup(pos - QPoint(0, this->soundMenu->sizeHint().height()));
@@ -1032,6 +1046,12 @@ MachineStatus::refresh(QStatusBar *sbar)
 
     d->sound->setToolTip(tr("Sound"));
     sbar->addWidget(d->sound.get());
+
+    d->dynarec = std::make_unique<QLabel>();
+    d->dynarec->setPixmap(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
+    d->dynarec->setToolTip(tr("Dynamic recompiler"));
+    sbar->addWidget(d->dynarec.get());
+
     d->text = std::make_unique<QLabel>();
     sbar->addWidget(d->text.get());
 
@@ -1044,7 +1064,7 @@ void
 MachineStatus::updateSoundIcon()
 {
     if (d->sound)
-        d->sound->setPixmap(sound_muted ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
+        d->sound->setPixmap((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 }
 
 void

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-06 20:32+0000\n"
+"PO-Revision-Date: 2026-08-14 17:43+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -848,7 +848,7 @@ msgid "Ports (COM & LPT)"
 msgstr "포트 (COM & LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "포트"
 
 msgid "Ports"
 msgstr "포트"
@@ -2305,7 +2305,7 @@ msgid "Host ID"
 msgstr "호스트 ID"
 
 msgid "Host"
-msgstr ""
+msgstr "호스트"
 
 msgid "FDC Address"
 msgstr "FDC 주소"
