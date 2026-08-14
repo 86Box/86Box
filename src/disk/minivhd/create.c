@@ -430,10 +430,12 @@ create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_byte
      * tp the file. Both absolute and relative paths are written
      * */
     if (par_vhdm != NULL) {
+#ifndef NDEBUG
         uint64_t curr_pos = (uint64_t)mvhd_ftello64(fp);
 
         /* Double check my sums... */
         assert(curr_pos == par_loc_offset);
+#endif
 
         /* Fill the space required for location data with zero */
         uint8_t empty_sect[MVHD_SECTOR_SIZE] = {0};
