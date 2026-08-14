@@ -310,6 +310,11 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
         .seq="Ctrl+Alt+I"
     },
     {
+        .name="nmi",
+        .desc="Non-maskable interrupt",
+        .seq=""
+    },
+    {
         .name="toggle_osd",
         .desc="Toggle on-screen display",
         .seq="Ctrl+Alt+O"
