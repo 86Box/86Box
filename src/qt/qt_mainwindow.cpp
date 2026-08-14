@@ -352,6 +352,17 @@ MainWindow::MainWindow(QWidget *parent)
         int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
         int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+
+        if (!mouse_both_enabled()) {
+            if (!mouse_type)
+                ui->actionMouse->setDisabled(true);
+
+            if (!tablet_type) {
+                ui->actionTablet->setDisabled(true);
+                ui->actionTablet_Crosshair->setDisabled(true);
+            }
+        }
+
         if (mouse_input_mode >= 1 && QApplication::overrideCursor())
             while (QApplication::overrideCursor())
                 QApplication::restoreOverrideCursor();
@@ -749,6 +760,24 @@ MainWindow::MainWindow(QWidget *parent)
             ui->actionFullScreen_int43->setChecked(true);
             break;
     }
+
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionMouse);
+    actGroup->addAction(ui->actionTablet);
+    actGroup->addAction(ui->actionTablet_Crosshair);
+    actGroup->setExclusive(true);
+
+    connect(actGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        while (QApplication::overrideCursor())
+            QApplication::restoreOverrideCursor();
+        if (action == ui->actionMouse)
+            mouse_input_mode = 0;
+        if (action == ui->actionTablet)
+            mouse_input_mode = 1;
+        if (action == ui->actionTablet_Crosshair)
+            mouse_input_mode = 2;
+    });
+
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionFullScreen_stretch);
     actGroup->addAction(ui->actionFullScreen_43);

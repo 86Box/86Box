@@ -68,7 +68,16 @@
      <addaction name="actionPen"/>
      <addaction name="actionCursor_Puck"/>
     </widget>
+    <widget class="QMenu" name="menuSelect_Input_Device">
+     <property name="title">
+      <string>Select Input Device</string>
+     </property>
+     <addaction name="actionMouse"/>
+     <addaction name="actionTablet"/>
+     <addaction name="actionTablet_Crosshair"/>
+    </widget>
     <addaction name="menuTablet_tool"/>
+    <addaction name="menuSelect_Input_Device"/>
     <addaction name="separator"/>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
@@ -976,6 +985,21 @@
    </property>
    <property name="toolTip">
     <string>Fast forward</string>
+   </property>
+  </action>
+  <action name="actionMouse">
+   <property name="text">
+    <string>Mouse</string>
+   </property>
+  </action>
+  <action name="actionTablet">
+   <property name="text">
+    <string>Tablet</string>
+   </property>
+  </action>
+  <action name="actionTablet_Crosshair">
+   <property name="text">
+    <string>Tablet (Crosshair)</string>
    </property>
   </action>
  </widget>
