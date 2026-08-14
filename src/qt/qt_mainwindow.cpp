@@ -354,12 +354,17 @@ MainWindow::MainWindow(QWidget *parent)
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
         if (!mouse_both_enabled()) {
-            if (!mouse_type)
+            if (!mouse_type) {
                 ui->actionMouse->setDisabled(true);
+                if (mouse_input_mode == 0)
+                    mouse_input_mode = 1;
+            }
 
             if (!tablet_type) {
                 ui->actionTablet->setDisabled(true);
                 ui->actionTablet_Crosshair->setDisabled(true);
+                if (mouse_input_mode > 0)
+                    mouse_input_mode = 0;
             }
         }
 
@@ -785,12 +790,16 @@ MainWindow::MainWindow(QWidget *parent)
             mouse_input_mode = 2;
     });
 
-    if (mouse_input_mode_initial == 0)
+    auto orig_mouse_input_mode_initial = mouse_input_mode_initial;
+
+    if (orig_mouse_input_mode_initial == 0)
         ui->actionMouse->setChecked(1);
-    if (mouse_input_mode_initial == 1)
+    if (orig_mouse_input_mode_initial == 1)
         ui->actionTablet->setChecked(1);
-    if (mouse_input_mode_initial == 2)
+    if (orig_mouse_input_mode_initial == 2)
         ui->actionTablet_Crosshair->setChecked(1);
+
+    mouse_input_mode_initial = orig_mouse_input_mode_initial;
 
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionFullScreen_stretch);
