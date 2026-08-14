@@ -186,6 +186,7 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
             vk_resources.vk_instance->setExtensions(list);
         }
         if (!vk_resources.vk_instance->create()) {
+            vk_resources.vk_instance.reset();
             throw vulkan_init_error(tr("Failed to create Vulkan 1.3 instance."));
         }
     }
