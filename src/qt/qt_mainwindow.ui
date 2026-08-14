@@ -70,7 +70,7 @@
     </widget>
     <widget class="QMenu" name="menuSelect_Input_Device">
      <property name="title">
-      <string>Select Input Device</string>
+      <string>Input Device</string>
      </property>
      <addaction name="actionMouse"/>
      <addaction name="actionTablet"/>

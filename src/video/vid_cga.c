@@ -1202,17 +1202,6 @@ cga_lightpen_close(void* priv)
 static const device_config_t cga_lightpen_config[] = {
   // clang-format off
     {
-        .name           = "crosshair",
-        .description    = "Show Crosshair",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "luma_thresh",
         .description    = "Luminance threshold (%)",
         .type           = CONFIG_SPINNER,
