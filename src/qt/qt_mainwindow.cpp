@@ -381,6 +381,13 @@ MainWindow::MainWindow(QWidget *parent)
         }
 
         ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
+
+        if (mouse_input_mode == 0)
+            ui->actionMouse->setChecked(1);
+        if (mouse_input_mode == 1)
+            ui->actionTablet->setChecked(1);
+        if (mouse_input_mode == 2)
+            ui->actionTablet_Crosshair->setChecked(1);
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
@@ -777,6 +784,13 @@ MainWindow::MainWindow(QWidget *parent)
         if (action == ui->actionTablet_Crosshair)
             mouse_input_mode = 2;
     });
+
+    if (mouse_input_mode_initial == 0)
+        ui->actionMouse->setChecked(1);
+    if (mouse_input_mode_initial == 1)
+        ui->actionTablet->setChecked(1);
+    if (mouse_input_mode_initial == 2)
+        ui->actionTablet_Crosshair->setChecked(1);
 
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionFullScreen_stretch);
@@ -2618,6 +2632,30 @@ void
 MainWindow::on_actionCursor_Puck_triggered()
 {
     tablet_tool_type = 0;
+    config_save();
+}
+
+void
+MainWindow::on_actionMouse_triggered()
+{
+    mouse_input_mode = 0;
+    mouse_input_mode_initial = 0;
+    config_save();
+}
+
+void
+MainWindow::on_actionTablet_triggered()
+{
+    mouse_input_mode = 1;
+    mouse_input_mode_initial = 1;
+    config_save();
+}
+
+void
+MainWindow::on_actionTablet_Crosshair_triggered()
+{
+    mouse_input_mode = 2;
+    mouse_input_mode_initial = 2;
     config_save();
 }
 

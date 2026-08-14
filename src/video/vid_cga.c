@@ -174,7 +174,7 @@ cga_in(uint16_t addr, void *priv)
             ret = cga->crtc[cga->crtcreg];
             break;
         case CGA_REGISTER_STATUS:
-            ret = cga->cgastat | (cga->lp_strobe ? 0b010 : 0) | ((!cga_lightpen_enabled || !mouse_get_buttons_ex()) ? 0b100 : 0);
+            ret = cga->cgastat | (cga->lp_strobe ? 0b010 : 0) | ((!cga_lightpen_enabled || !tablet_get_buttons_ex()) ? 0b100 : 0);
             break;
         case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)

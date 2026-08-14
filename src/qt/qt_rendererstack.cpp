@@ -346,7 +346,7 @@ RendererStack::enterEvent(QEvent *event)
     mousedata.mouse_tablet_in_proximity = m_monitor_index + 1;
 
     if (mouse_input_mode == 1)
-        QApplication::setOverrideCursor(Qt::BlankCursor);
+        QApplication::setOverrideCursor((tablet_get_device(tablet_type) && !memcmp(tablet_get_device(tablet_type)->internal_name, "wacom", 5)) ? Qt::BlankCursor : Qt::ArrowCursor);
     else if (mouse_input_mode == 2)
         QApplication::setOverrideCursor(Qt::CrossCursor);
 }

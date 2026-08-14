@@ -991,15 +991,24 @@
    <property name="text">
     <string>Mouse</string>
    </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
   </action>
   <action name="actionTablet">
    <property name="text">
     <string>Tablet</string>
    </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
   </action>
   <action name="actionTablet_Crosshair">
    <property name="text">
     <string>Tablet (Crosshair)</string>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
    </property>
   </action>
  </widget>
