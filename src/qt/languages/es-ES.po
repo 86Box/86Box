@@ -1790,7 +1790,7 @@ msgid "&Host CD/DVD Drive (%1)"
 msgstr "&Unidad de CD/DVD anfitriona (%1)"
 
 msgid "&Connected"
-msgstr "&Conectrado"
+msgstr "&Conectado"
 
 msgid "Clear image &history"
 msgstr "Eliminar &historia de imágenes"
