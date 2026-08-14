@@ -8,43 +8,25 @@
  *
  *          Iomega Ditto Max parallel port tape drive.
  *
- *          The Ditto Max is an ordinary QIC-117 floppy interface tape
- *          drive with a MicroSolutions "BackPack" parallel port bridge
- *          (a 50772D ASIC) bolted in front of it. Four protocol layers
- *          sit between the host's LPT registers and the tape:
+ *          An ordinary QIC-117 floppy interface tape drive with a
+ *          MicroSolutions "BackPack" parallel port bridge (a 50772D
+ *          ASIC) in front of it. Four layers sit between the host's LPT
+ *          registers and the tape:
  *
- *            1. the BackPack wire protocol, spoken over the LPT port in
- *               one of SPP nibble, PS/2 byte or EPP mode;
- *            2. the BackPack register file at 0x00..0xff, holding the
- *               128 KB buffer, its CRC-16 and ECC engines, and the IRQ
- *               control;
- *            3. an NEC 765 style floppy controller, whose registers the
- *               bridge exposes at 0x40..0x47 of that register file;
+ *            1. the BackPack wire protocol, in SPP nibble, PS/2 byte or
+ *               EPP mode;
+ *            2. the BackPack register file at 0x00..0xff - the 128 KB
+ *               buffer, the CRC-16 and ECC engines, the IRQ control;
+ *            3. an NEC 765 style controller at 0x40..0x47 of it;
  *            4. the QIC-117 command set, commanded by counting the step
- *               pulses that controller emits - the same command set the
- *               cable-attached drive in fdd_tape.c speaks.
+ *               pulses that controller emits.
  *
- *          All four are implemented here. Iomega's own Windows 95 tape
- *          software drives it end to end - format, backup and restore -
- *          as does DOS QBACKUP.
- *
- *          Three things about the host are worth knowing before changing
- *          anything, because each of them broke a whole operation and
- *          none of them is guessable from the specifications:
- *
- *            - a controller reset empties the QIC-117 command channel.
- *              The channel is a count of step pulses measured from the
- *              cylinder the controller believes it is on, and the reset
- *              moves that belief to zero, so the host starts its next
- *              command from a standing start (see fdc_write_reg);
- *            - the skip counts are a fixed number of nibbles, two for
- *              the plain skips and three for the extended ones, whatever
- *              the distance (see qic117_command_params in
- *              tape_qic117.h);
- *            - a transfer has to take as long as the tape it covers
- *              takes to pass the head. Finishing it the instant the last
- *              command byte lands reads to the host as a refusal (see
- *              fdc_begin_exec).
+ *          docs/lpt-ditto.md is the reference for all of it: what each
+ *          layer does, and the host behaviours that are not guessable
+ *          from any specification - a controller reset empties the
+ *          QIC-117 command channel, skip counts are a fixed number of
+ *          nibbles, a transfer has to take as long as the tape it
+ *          covers. Each of those broke a whole operation.
  *
  * Authors: Dmitry Brant, <me@dmitrybrant.com>
  *
@@ -66,31 +48,15 @@
 #include <86box/tape_qic117.h>
 
 /*
-   For logging the BackPack wire protocol into the emulator log. Turn it
-   on while working out what a driver does: run 86Box with -L <file> and
-   the whole conversation with the port lands in it, which is the only
-   way to see what a host actually does rather than what it was expected
-   to do.
-
-   It is cheaper than it looks and the arithmetic is worth writing down,
-   because guessing at it wasted a lot of time here. A line costs a
-   little under two microseconds - an allocation, a copy and a flushed
-   write. The host moves a byte in about two and a half port accesses, so
-   a backup at its fastest logs a few thousand lines a second and the
-   trace costs on the order of one percent. Judge it by lines per second,
-   not by how slow the emulator feels; those are only the same number
-   when the host is busy.
-
-   What it does cost is disk: a whole backup is several hundred megabytes
-   of trace.
+   The whole conversation with the port, into the emulator log
+   (86Box -L <file>). About one percent of the wall clock and a few
+   hundred megabytes a backup - see docs/lpt-ditto.md.
  */
 #define ENABLE_LPT_DITTO_LOG 0
 
 /*
-   Bits of the parallel port's own registers, at their literal values in
-   the ISA register - the inversion of nStrobe, nAutoFd and nSelectIn at
-   the connector applies on top of these, and both ends of the link work
-   in terms of the register rather than the wire.
+   Port register bits at their literal values; the inversion at the
+   connector applies on top, and both ends work in terms of the register.
  */
 #define LPT_CTRL_STROBE   0x01
 #define LPT_CTRL_AUTOFD   0x02
@@ -100,12 +66,8 @@
 #define LPT_CTRL_DIR      0x20
 
 /*
-   The four bits that actually reach the connector. INTEN and DIRECTION
-   never leave the port, and bits 6 and 7 do not exist at all - but the
-   host reads the control register back in the middle of an EPP write and
-   keeps the result as its shadow, and 86Box hands back 0xc0 in those
-   bits. Every control write it makes from then on carries them, so the
-   bridge has to look past them.
+   The four bits that reach the connector. Compare against them masked:
+   the host keeps 0xc0 in its control shadow and writes it back to us.
  */
 #define LPT_CTRL_LINES    0x0f
 
@@ -120,23 +82,15 @@
 #define LPT_STAT_MASK     0xf8
 
 /*
-   What the status lines read as when the bridge is not driving them.
-
-   This matters more than it looks. Until the host has knocked, the pod
-   leaves the lines alone and the host reads the idle state of the port
-   itself - the same thing 86Box hands back for a port with nothing on
-   it at all. Answering all zeroes instead says every line is asserted at
-   once: busy, out of paper, off line and faulted. A host that looks at
-   the port before it tries to talk can reasonably decide from that that
-   there is nothing here worth talking to, and never knock at all.
+   What the status lines read as before the pod drives them. Not zero:
+   that reads as every line asserted at once, and a host that looks at
+   the port before knocking decides there is nothing here.
  */
 #define LPT_STAT_IDLE     0xd8
 
 /*
-   Transfer protocols the bridge can be programmed for. The ordering is
-   the host driver's: anything below EPP-8 is addressed and transferred
-   through the SPP registers, everything from EPP-8 up through the EPP
-   address and data registers at base+3 and base+4.
+   Transfer protocols, in the host driver's order: below EPP-8 everything
+   goes through the SPP registers, above it through base+3 and base+4.
  */
 enum {
     DITTO_PROTO_SPP = 0,
@@ -147,9 +101,9 @@ enum {
 };
 
 /*
-   Protocol bits, as written to the bridge's control register 0x04 (and,
-   deferred to the next connect, to register 0x24). The two low bits are
-   always set by the host driver and their meaning is unknown.
+   Protocol bits for control register 0x04, and for 0x24 deferred to the
+   next connect. The two low bits are always set and their meaning is
+   unknown.
  */
 #define DITTO_PROTO_BITS_SPP  0x00
 #define DITTO_PROTO_BITS_PS2  0x10
@@ -240,9 +194,8 @@ enum {
 #define FDC_ST1_NO_DATA      0x04
 
 /*
-   ST3. Bit 4 is nominally "the head is at track zero", but on a QIC-117
-   drive it is the answer line the drive shifts its replies out on - see
-   the report machinery in layer 4.
+   ST3. Bit 4 is nominally track zero; here it is the answer line the
+   drive shifts its replies out on.
  */
 #define FDC_ST3_TWO_SIDE 0x08
 #define FDC_ST3_TRACK_0  0x10
@@ -263,24 +216,18 @@ enum {
 };
 
 /*
-   Layer 4: the QIC-117 command set, as this drive's firmware implements
-   it. Commands arrive as that many step pulses, parameters as the value
-   plus two, and everything the drive says back goes out one bit at a
-   time on the answer line.
+   Layer 4: the QIC-117 command set. Commands arrive as that many step
+   pulses, parameters as the value plus two, and replies go out one bit
+   at a time on the answer line.
  */
 #define QIC_NO_COMMAND                  0
 
 /* This firmware refuses anything past the extended set outright. */
 #define QIC_LAST_COMMAND                56
 
-
-
-
-
 /*
-   The operating mode byte. Commands carry an interlock mask that is
-   tested against it, so that a command which makes no sense in the mode
-   the drive is in is refused rather than half done.
+   The operating mode byte. Every command carries an interlock mask that
+   is tested against it.
  */
 #define QIC_MODE_HIGH_SPEED  0x01
 #define QIC_MODE_NON_INTR    0x02
@@ -294,50 +241,21 @@ enum {
 
 
 /*
-   What this drive says it is. Every host reads this once, with Report
-   Vendor ID, and keys its model-specific behaviour off it. The low six
-   bits are the model and the rest is a make code, so all 0x888x values
-   are Iomega: 0 is the Ditto 800, 3 the Ditto 2GB, 5 the Ditto Max.
-
-   0x8883 - Ditto 2GB - rather than 0x8885 because the Max is the newer
-   drive and the older one is the more widely understood. Note that
-   ftape marks *both* with FT_CANT_FORMAT, its flag for drives that
-   cannot format a cartridge - its changelog says they enter format mode
-   and write garbage, the cartridges having been sold pre-formatted. If
-   a host refuses to format for us, the two identities worth trying next
-   are 0x8886, the "Iomega MerKat Formatter" that carries the Ditto Max
-   extensions *without* that flag, and 0x014e, the Conner C250MQ that
-   fdd_tape.c reports and that DOS QBACKUP is known to format against.
+   What this drive says it is; every host keys its model-specific
+   behaviour off it. The low six bits are the model, the rest a make
+   code, so all 0x888x are Iomega. If a host refuses to format,
+   docs/lpt-ditto.md names the two identities worth trying next.
  */
 #define DITTO_VENDOR_ID  0x8883
 #define DITTO_ROM_VERSION 0x41
 
 /*
-   The cartridge, chosen rather than guessed.
-
-   The size of a tape is not something a drive works out - the mechanism
-   fixes how many tracks the head can reach, and the cartridge fixes how
-   much tape runs past it, and between them they settle everything else.
-   Reading it back off the image instead means a blank cartridge has no
-   size at all until something formats it, and an image written by one
-   host quietly changes the drive's idea of its own geometry when it is
-   loaded into another. So it is configured, and the image is checked
-   against it rather than consulted for it.
-
-   This drive takes a wide range of media - a Ditto 2GB will read a
-   QIC-80 cartridge - so the setting names a cartridge rather than a
-   capacity. What it does NOT change is the drive: the vendor ID and the
-   configuration byte say Ditto 2GB whatever is loaded, because that is
-   what the mechanism is. Only the geometry and what Report Tape Status
-   says about the media follow the setting. Hosts pick the highest format
-   common to drive and media, which is what makes that the right way
-   round.
+   The cartridge, configured rather than read back off the image, and the
+   image checked against it. The setting names a cartridge, never the
+   drive - a Ditto 2GB reading a QIC-80 tape is still a Ditto 2GB.
 
    Config values are never reused or renumbered: a saved machine stores
-   the number, so changing one silently repoints an existing VM at a
-   different geometry. The first three are the capacities the Ditto's own
-   cartridges were sold under, at the 2:1 its compression was rated at -
-   a "2 GB" cartridge holds a gigabyte of actual bytes.
+   the number. See docs/lpt-ditto.md.
  */
 #define DITTO_CAPACITY_2GB 2
 #define DITTO_CAPACITY_3GB 3
@@ -354,26 +272,18 @@ enum {
 #define DITTO_CART_TR3        18
 
 /*
-   Format codes for the QIC-113 header segment (ftape-header-segment.h).
-   Not the same thing as the QIC-117 format codes in tape_qic117.h, which
-   are an argument to Select Rate: these are what a cartridge says about
-   itself, and ftape reads this byte to decide how long the tape is.
-
-   Nothing here writes a header segment - the host does that - but the
-   image generator in docs/mkdittotape.py does, and it reads these from
-   this table so that a cartridge it makes describes itself the way this
-   drive would expect.
+   Format codes for the QIC-113 header segment (ftape-header-segment.h),
+   not the QIC-117 ones in tape_qic117.h. Nothing here writes a header -
+   the host does - but docs/mkdittotape.py reads these from this table.
  */
 #define FT_FMT_NORMAL 2 /* QIC-80 post rev. B, 205 or 307.5 ft */
 #define FT_FMT_1100FT 3
 #define FT_FMT_VAR    4 /* QIC-80 post rev. B, variable length */
 #define FT_FMT_425FT  5
 /*
-   Variable length, and over 65535 segments a tape - which is the part
-   that matters: a header in this format states its segment numbers in
-   four bytes each, at their own offsets, because the ordinary two byte
-   fields cannot hold them. A cartridge this long written any other way
-   describes itself with a truncated last segment.
+   Variable length, and over 65535 segments a tape: a header in this
+   format states its segment numbers in four bytes each, at their own
+   offsets. Written any other way it describes itself truncated.
  */
 #define FT_FMT_BIG    6
 
@@ -388,36 +298,12 @@ typedef struct ditto_cartridge_t {
 
 /*
    The cartridges, declared once and expanded twice: into the table the
-   drive works from, and into the list the settings dialog offers. Two
-   copies of a list like this drift, and here a drift would offer the
-   user a cartridge the drive does not have and silently give them the
-   default instead.
+   drive works from, and into the list the settings dialog offers.
 
-   Where the numbers come from, because a plausible-looking constant is
-   how this drive has gone wrong before. Three tiers:
-
-   Tier one, agreed by two or more sources - the QIC-80 family. ftape's
-   own fallbacks (ftape-read.c), the Colorado 250 firmware's internal
-   geometry table, and the QIC-117 rev. J calibration override table all
-   give the same segments per track, and fdd_tape.c already carries
-   28 x 150 for the same reason.
-
-   Tier two, from Iomega's own driver and cross-checked - QIC-3010 and
-   QIC-3020. QBWQ117.DLL carries a geometry table whose capacities are in
-   decimal megabytes; read that way, QIC-3010 comes out at 255.8 MB and
-   QIC-3020 at 502.1 MB, which are the figures the standard names them by
-   ("QIC-3010-MC (255 MB)"). Both work out to about 295 feet against
-   ftape's unrelated density constants, which is as much agreement as two
-   independent sources can give.
-
-   Tier three, DERIVED and evidenced nowhere - the Travan rows. What is
-   evidenced is only the naming: ftape reads TR-n as the wide bit plus a
-   QIC standard, so TR-1 is wide QIC-80, TR-2 wide QIC-3010 and TR-3 wide
-   QIC-3020, and the status bytes below are exact. The segment counts are
-   worked back from ftape's density figures (488, 730 and 1430 segments
-   per 1000 feet) at the published tape length, with the track count
-   picked to land near the published capacity. Treat them as a starting
-   point: if a real cartridge's header segment disagrees, it wins.
+   The geometry is evidenced to three different degrees - the QIC-80
+   family from several agreeing sources, QIC-3010 and QIC-3020 from
+   Iomega's own driver, and the Travan rows DERIVED and evidenced
+   nowhere. docs/lpt-ditto.md says which is which and why it matters.
  */
 #define DITTO_ST_DITTO (QIC_TAPE_QIC3020 | QIC_TAPE_FLEX | QIC_TAPE_WIDE)
 
@@ -425,7 +311,7 @@ typedef struct ditto_cartridge_t {
     /* The Ditto's own, unchanged from when these were the only three. */      \
     X("Ditto 2 GB",  DITTO_CAPACITY_2GB, 72,  502, DITTO_ST_DITTO, FT_FMT_VAR) \
     X("Ditto 3 GB",  DITTO_CAPACITY_3GB, 72,  753, DITTO_ST_DITTO, FT_FMT_VAR) \
-    /* Over 65535 segments a tape, so its header has to be the wide             variant - see FT_FMT_BIG. */                                            X("Ditto 5 GB",  DITTO_CAPACITY_5GB, 72, 1256, DITTO_ST_DITTO, FT_FMT_BIG)\
+    X("Ditto 5 GB",  DITTO_CAPACITY_5GB, 72, 1256, DITTO_ST_DITTO, FT_FMT_BIG) \
     /* Tier one. */                                                            \
     X("QIC-80, DC-2080 (205 ft)",   DITTO_CART_QIC80_205,  28, 100,            \
       QIC_TAPE_QIC80 | QIC_TAPE_205FT,         FT_FMT_NORMAL)                  \
@@ -460,10 +346,8 @@ static const ditto_cartridge_t ditto_cartridges[] = {
 #define DITTO_CAPACITY_DEFAULT DITTO_CAPACITY_2GB
 
 /*
-   How long a wind is modelled to take. These need not match the real
-   mechanism - they need only keep the drive not ready for long enough
-   that the host sees it go busy and come back, which is the transition
-   its completion checks wait on.
+   Modelled wind times. They need not match the mechanism - only keep the
+   drive not ready long enough that the host sees busy and then ready.
  */
 #define DITTO_WIND_PER_SEG_US 3000ULL
 #define DITTO_WIND_MIN_US     60000ULL
@@ -644,36 +528,8 @@ static const char *ditto_proto_name[] = {
 #define DITTO_IDLE_MS 20
 
 /*
-   A handful of lines a session, on whatever the trace is set to. The
-   wire trace costs a formatted line and a flushed write per port access,
-   which is forty of them for every byte that reaches the tape - fine for
-   reading the protocol, useless for asking why something is slow,
-   because turning it on is most of the answer. This says where the time
-   goes without disturbing it.
- */
-static void
-ditto_stat(const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    pclog_ex(fmt, ap);
-    va_end(ap);
-}
-
-/*
-   Marks the places where the host stops talking to us. A wire trace says
-   what was asked for but not when, and a wait spread over a few hundred
-   accesses is invisible in it - the operation before a ten second pause
-   looks exactly like the operation before a ten microsecond one. This
-   names the pause, so the line above it is the thing being waited on.
-
-   It is how the ten second wait after every transfer was pinned to the
-   command that caused it.
-
-   Trace-gated, so it costs a clock read per port access only when the
-   trace is on. It earned its keep on its own while the host was still
-   stalling; it is not worth a call on the hot path now that it is not.
+   Marks where the host stopped talking, which a wire trace does not
+   otherwise show. Trace-gated: it costs a clock read per port access.
  */
 #ifdef ENABLE_LPT_DITTO_LOG
 static void
@@ -686,8 +542,8 @@ ditto_note_idle(ditto_t *dev)
 
     if ((dev->last_port_ms != 0) &&
         ((now - dev->last_port_ms) >= DITTO_IDLE_MS))
-        ditto_stat("Ditto: --- host away %u ms ---\n",
-                   now - dev->last_port_ms);
+        ditto_log("Ditto: --- host away %u ms ---\n",
+                  now - dev->last_port_ms);
 
     dev->last_port_ms = now;
 }
@@ -719,10 +575,8 @@ ditto_decode_proto_bits(uint8_t bits)
 /* --------------------------------------------------------------------- */
 
 /*
-   CRC-16-CCITT, polynomial 0x1021, seeded with all ones and shifting
-   left - the bridge multiplies by x towards the high end, so this is the
-   MSB-first form. Every byte that passes through the buffer FIFO goes
-   through here, in either direction.
+   CRC-16-CCITT, polynomial 0x1021, seeded all ones, MSB first. Every
+   byte through the buffer FIFO passes through it, either direction.
  */
 static uint16_t
 ditto_crc_byte(uint16_t crc, uint8_t val)
@@ -738,13 +592,8 @@ ditto_crc_byte(uint16_t crc, uint8_t val)
 
 /*
    The buffer FIFO. One address register serves both directions and both
-   advance it, wrapping at the top of the 128 KB.
-
-   Reading here is also how the host runs a "check" pass: it frames one
-   exactly as it frames a read and simply throws the nibbles away, so
-   from this side the two are the same operation - the pointer moves and
-   the CRC turns over either way, which is precisely what the check is
-   for.
+   advance it, wrapping at 128 KB. A host "check" pass is framed exactly
+   as a read with the nibbles thrown away, so this serves both.
  */
 static uint8_t
 ditto_mem_read_byte(ditto_t *dev)
@@ -758,15 +607,9 @@ ditto_mem_read_byte(ditto_t *dev)
 }
 
 /*
-   Whether the data lines are currently being streamed into the buffer.
-
-   This is a level, not an edge: the host arms the write in register
-   0x04, addresses the FIFO, and raises STROBE - but STROBE is usually
-   already up, left there by the very register write that armed it, so
-   there is no edge to catch. What ends the burst is STROBE going back
-   down, which the host does before addressing anything else. Without
-   that the two data writes that address the next register would be
-   taken for buffer data.
+   Whether the data lines are being streamed into the buffer. A level,
+   not an edge - STROBE is already up, left by the write that armed it.
+   STROBE dropping ends the burst; see docs/lpt-ditto.md.
  */
 static int
 ditto_mem_burst_active(const ditto_t *dev)
@@ -786,12 +629,6 @@ ditto_mem_write_byte(ditto_t *dev, uint8_t val)
 
 /*
    Raises or drops the interrupt the bridge presents to the host.
-
-   The bridge does not interrupt while the host is connected - the host
-   polls register 0x00 instead - so the ACK line is only driven once the
-   host has let go, and then only if it has asked for a hard interrupt.
-   The one exception is the test interrupt the register 0x06 poke arms,
-   which is a diagnostic and fires where it is asked to.
  */
 static void
 ditto_update_irq(ditto_t *dev, int test_poke)
@@ -800,18 +637,10 @@ ditto_update_irq(ditto_t *dev, int test_poke)
         return;
 
     /*
-       Being connected is not a reason to hold the interrupt back. The
-       thought was that ACK cannot be an interrupt while the same lines
-       are carrying a transfer - but the host does not let go between
-       operations. It connects once and stays connected for thousands of
-       commands, so a link-gated interrupt is one that never fires.
-
-       That cost ten seconds a segment while formatting: the host issued
-       a format, waited on an interrupt that could not arrive, gave up on
-       its own timeout, and only then polled and found the interrupt had
-       been pending the whole time. Whether it wants one at all is
-       already answered by the mode it programmed - SOFTEN to read the
-       flag out of a register, HARDEN to be told.
+       Not gated on the link. The host connects once and stays connected for
+       thousands of commands, so a link-gated interrupt never fires - which
+       cost ten seconds a segment while formatting. Whether it wants one is
+       already answered by SOFTEN versus HARDEN.
      */
     if (dev->irq_pending &&
         (test_poke || ((dev->irq_ctrl & BP_IRQ_MASK) == BP_IRQ_HARDEN)))
@@ -825,18 +654,13 @@ ditto_update_irq(ditto_t *dev, int test_poke)
 /* --------------------------------------------------------------------- */
 
 /*
-   The bridge carries the QIC-80 Reed-Solomon coprocessor, which works
-   down the columns of a segment: the three ECC sectors at the end hold,
-   for each byte position, the parity of that byte across every data
-   sector.
+   The QIC-80 Reed-Solomon coprocessor, working down the columns of a
+   segment: the three ECC sectors hold, for each byte position, the
+   parity of that byte across every data sector. GF(256) with
+   x^8 + x^7 + x^2 + x + 1, and the only multiply needed is by r^105.
 
-   Generating them here rather than leaving the sectors blank is what
-   keeps a cartridge written through this drive readable by anything
-   else - including the same image mounted on the floppy-cable drive,
-   whose host computes and checks these bytes itself.
-
-   The arithmetic is over GF(256) with x^8 + x^7 + x^2 + x + 1, and the
-   only multiplication needed is by the constant r^105, which is 0xc0.
+   Generating them is what keeps a cartridge written here readable
+   elsewhere, including on the floppy-cable drive.
  */
 #define DITTO_ECC_POLY    0x187
 #define DITTO_ECC_FACTOR  0xc0
@@ -866,14 +690,13 @@ ditto_ecc_build_table(uint8_t *tab)
 }
 
 /*
-   Works out the three parity sectors for nblocks of data. The recurrence
-   runs down each byte column in turn, holding three running values:
+   The three parity sectors for nblocks of data. Down each byte column:
 
      p0 = p1 + r^105 * (m - p0)
      p1 = p2 + r^105 * (m - p0)
      p2 =               m - p0
 
-   with addition being exclusive or, as it is throughout the field.
+   with addition being exclusive or, as throughout the field.
  */
 static void
 ditto_ecc_parity(const ditto_t *dev, uint32_t addr, int nblocks, uint8_t *parity)
@@ -952,10 +775,8 @@ ditto_ecc_check(ditto_t *dev)
     ditto_ecc_parity(dev, addr, blocks - FDD_TAPE_ECC_SECTORS, parity);
 
     /*
-       A systematic code, so the data is good exactly when the parity we
-       work out matches the parity that came off the tape. The host only
-       needs to be told whether to bother correcting - this coprocessor
-       was never able to do that part itself.
+       A systematic code: the data is good exactly when the parity matches.
+       The host is only told whether to bother correcting.
      */
     for (int i = 0; i < (3 * FDD_TAPE_SECTOR_SIZE); i++) {
         const uint32_t off = (addr +
@@ -991,8 +812,7 @@ ditto_image_close(ditto_t *dev)
 
 /*
    The cartridge a configured value names, or the default if it names
-   none - which is what an older machine saved with a setting that has
-   since gone, or a hand-edited configuration file, will hand us.
+   none - an older machine, or a hand-edited configuration file.
  */
 static const ditto_cartridge_t *
 ditto_cartridge(int value)
@@ -1026,15 +846,9 @@ ditto_image_extent(const ditto_t *dev)
 }
 
 /*
-   Settles everything the loaded cartridge decides: how much tape there
-   is, and what the drive says about it when asked.
-
-   Segments per cylinder and per head are not among them. They are the
-   grid the host lays over the tape to address it through a floppy
-   controller, not anything the tape decides, so they stay at the figures
-   every host driver uses for this class of drive. That is also why
-   QIC-40 is not offered here - it packs 255 cylinders to a head rather
-   than 150, so the grid would have to move with it.
+   Settles what the cartridge decides: how much tape there is and what
+   the drive says about it. Not the C/H/R grid - that is the host's, not
+   the tape's, which is also why QIC-40 is not offered here.
  */
 static void
 ditto_set_geometry(ditto_t *dev)
@@ -1048,10 +862,8 @@ ditto_set_geometry(ditto_t *dev)
     dev->qic_tape_status = cart->tape_status;
 
     /*
-       The extra length bit is the drive saying the cartridge is a long
-       one, so it follows the cartridge rather than sitting on whatever
-       the drive powered up with. Everything else in the configuration
-       byte is the mechanism, and does not move.
+       The extra length bit is a property of the media, so it follows the
+       cartridge. The rest of the byte is the mechanism and does not move.
      */
     if ((cart->tape_status & QIC_TAPE_LEN_MASK) > QIC_TAPE_205FT)
         dev->qic_config |= QIC_CONFIG_LONG;
@@ -1067,17 +879,9 @@ ditto_set_geometry(ditto_t *dev)
 }
 
 /*
-   Checks that a loaded image is the size the configured cartridge calls
-   for. A shorter one is not refused - a cartridge is allowed to be
-   blank, and one that is part written is how an image grows as the host
-   fills it - but a mismatch is worth saying out loud, because the usual
-   cause is an image made for a different cartridge being loaded under
-   this one, and every segment address past the end of it will fail.
-
-   Said through ditto_stat() rather than the trace, so that it is there
-   when the trace is not. With a dozen cartridges to choose between,
-   loading an image against the wrong one is the easy mistake to make,
-   and it is not one the host reports in any legible way.
+   Warns when a loaded image is not the size the cartridge calls for. Not
+   refused - a blank or part-written cartridge is legitimate - but said
+   out loud, because the usual cause is an image made for another one.
  */
 static void
 ditto_check_image(const ditto_t *dev)
@@ -1090,11 +894,11 @@ ditto_check_image(const ditto_t *dev)
     if (dev->image_size == want)
         return;
 
-    ditto_stat("Ditto: image is %u bytes, a %s cartridge is %llu - %s\n",
-               dev->image_size, ditto_cartridge(dev->capacity)->name,
-               (unsigned long long) want,
-               (dev->image_size < want) ? "the tape reads as part written"
-                                        : "the excess is unreachable");
+    ditto_log("Ditto: image is %u bytes, a %s cartridge is %llu - %s\n",
+              dev->image_size, ditto_cartridge(dev->capacity)->name,
+              (unsigned long long) want,
+              (dev->image_size < want) ? "the tape reads as part written"
+                                       : "the excess is unreachable");
 }
 
 static void
@@ -1176,12 +980,9 @@ ditto_image_write(ditto_t *dev, uint32_t offset, const uint8_t *buf, uint32_t le
         return 0;
 
     /*
-       Not flushed here. A format writes the cartridge a sector at a
-       time, so flushing each one turns one segment into thirty-two
-       forced writes, and a whole cartridge into nearly three million of
-       them. The callers flush once they have finished a segment
-       instead, which keeps what is on disk no more than a segment
-       behind what the host thinks it wrote.
+       Not flushed here: a format writes a sector at a time, so flushing each
+       would make three million forced writes of a cartridge. The callers
+       flush once a segment instead.
      */
     dev->image_dirty = 1;
 
@@ -1203,10 +1004,8 @@ ditto_image_sync(ditto_t *dev)
 }
 
 /*
-   Turns one of the controller's C/H/R addresses into an offset into the
-   cartridge. The head field is not a physical head here - it is just the
-   high digits of the segment number, and runs well past the two a floppy
-   would have.
+   C/H/R to an offset into the cartridge. The head field is not a
+   physical head - it is the high digits of the segment number.
  */
 static int
 ditto_sector_offset(const ditto_t *dev, int cyl, int head, int sector,
@@ -1246,11 +1045,10 @@ ditto_qic_answer(const ditto_t *dev)
 }
 
 /*
-   Every command is checked against a three byte record before it runs:
-   which status bits matter, what they have to be, and what the command
-   conflicts with. These are the tables the drive's own firmware carries,
-   and they agree byte for byte with the ones in the host driver - which
-   is the strongest evidence available that both were read correctly.
+   Every command is checked against a three byte record: which status
+   bits matter, what they have to be, and what it conflicts with. These
+   are the drive firmware's own tables, and they agree byte for byte
+   with the host driver's.
  */
 /* Command attribute flags, the third byte of each record. */
 #define QIC_ATTR_IMMEDIATE 0x20 /* runs at once, ahead of any queue */
@@ -1343,9 +1141,9 @@ qic_set_error(ditto_t *dev, uint8_t error, uint8_t command)
 }
 
 /*
-   Arms a report. The drive raises the answer line as an acknowledge, and
-   the host - which has been polling ST3 waiting for exactly that - then
-   clocks the payload out of it a bit at a time.
+   Arms a report. The answer line rises as an acknowledge, which the host
+   has been polling ST3 for; it then clocks the payload out a bit at a
+   time.
  */
 static void
 qic_report_arm(ditto_t *dev, uint16_t value, int len)
@@ -1364,11 +1162,10 @@ qic_report_arm(ditto_t *dev, uint16_t value, int len)
 }
 
 /*
-   Hands over the next bit. The payload goes out least significant bit
-   first, a sixteen bit report as two bytes with the low one first, and
-   the whole thing closes with a one - which is how the host tells a
-   finished report from a drive that has stopped answering. One further
-   request after that puts the line back down.
+   The next bit. Least significant first, a 16 bit report as two bytes
+   low one first, closing with a one so the host can tell a finished
+   report from a drive that stopped answering. One more request drops
+   the line.
  */
 static void
 qic_report_next_bit(ditto_t *dev)
@@ -1395,11 +1192,8 @@ qic_report_next_bit(ditto_t *dev)
 }
 
 /*
-   How many segments a tape track holds. The cartridge settles this, but
-   a host laying down a format states the figure it is writing to and is
-   taken at its word for as long as that format lasts - refusing would
-   make the drive unable to be formatted to anything but its own idea of
-   itself, which is not how the mechanism behaves.
+   How many segments a track holds. The cartridge settles it, but a host
+   laying down a format states its own figure and is taken at its word.
  */
 static int
 qic_segments_per_track(const ditto_t *dev)
@@ -1429,10 +1223,8 @@ qic_update_status(ditto_t *dev)
                                    QIC_STATUS_AT_BOT | QIC_STATUS_AT_EOT);
 
     /*
-       Ready means nothing is in progress, and a cartridge in motion
-       counts: the host starts a pass and waits for ready to come back as
-       the sign that it finished. A drive that claims to be idle the
-       moment it was asked to move is taken to have failed outright.
+       Ready means nothing is in progress, and a cartridge in motion counts:
+       the host waits for ready as the sign a pass finished.
      */
     if (dev->qic_running || dev->qic_busy || (dev->qic_params_left > 0))
         dev->qic_status &= (uint8_t) ~QIC_STATUS_READY;
@@ -1453,9 +1245,8 @@ qic_update_status(ditto_t *dev)
         dev->qic_status |= QIC_STATUS_REFERENCED;
 
     /*
-       Beginning and end of tape are physical places, and only the even
-       tracks run in segment order from one to the other - an odd track is
-       laid down back to front, so its first segment sits at the far end.
+       Beginning and end of tape are physical places, and odd tracks are laid
+       down back to front, so their first segment sits at the far end.
      */
     offset = dev->qic_segment - qic_track_start(dev);
 
@@ -1481,20 +1272,10 @@ qic_busy_done(void *priv)
 }
 
 /*
-   How long a segment takes to pass the head while the tape is streaming.
-
-   This is the data rate, not a wind: the tape is being written or read as
-   it goes, so it runs at exactly the speed the bits are moving. Winding
-   is the fast case and keeps its own constants.
-
-   Getting this wrong is not a matter of pacing. A host writes a segment,
-   does its own housekeeping, writes the next, and expects the tape it is
-   writing to still be under the head; the drive reaching the end of the
-   track early reports end of tape, and the host takes that as the pass
-   being over and the backup failing. At the wind rate a whole 502 segment
-   track goes by in a second and a half, so the tape ran out from under
-   the host after a few hundred kilobytes. At 500 kbit/s the same track
-   takes four and a half minutes, which is what the cartridge really does.
+   How long a segment takes to pass the head while streaming: the data
+   rate, not a wind. At the wind rate a 502 segment track goes by in a
+   second and a half and the tape runs out from under the host; at
+   500 kbit/s it takes four and a half minutes, which is the truth.
  */
 static uint64_t
 qic_stream_period_us(const ditto_t *dev)
@@ -1520,19 +1301,10 @@ qic_stop_motion(ditto_t *dev)
 }
 
 /*
-   Runs the cartridge past the head, a segment at a time.
-
-   The pass has to end by itself, because the host does not stop it: it
-   starts the tape, writes or reads what it wants, and then waits for
-   ready to come back as the sign that the pass is over. So the tape runs
-   to the end of the track and stops there.
-
-   It stops a segment late, on purpose. The host polls the status a few
-   milliseconds after handing over the last segment of a track and has to
-   find the drive still busy - a drive that went idle the instant the last
-   segment went by would be claiming the pass was over while the host was
-   still working on it, which QBACKUP's format reads as a failure outright
-   rather than as an early finish.
+   Runs the cartridge past the head a segment at a time. The pass has to
+   end by itself - the host never stops it, it waits for ready - so the
+   tape runs to the end of the track and stops a segment late, which is
+   the window QBACKUP's format polls in. See docs/lpt-ditto.md.
  */
 static void
 qic_motion_tick(void *priv)
@@ -1646,19 +1418,15 @@ qic_check_command(ditto_t *dev, int cmd)
     qic_update_status(dev);
 
     /*
-       The lowest status bit that is not what the command needs picks the
-       error, so the host is told the first thing standing in its way
-       rather than the last.
+       The lowest status bit that is wrong picks the error, so the host is
+       told the first thing in its way rather than the last.
      */
     diff = (uint8_t) ((dev->qic_status & attr->mask) ^ attr->state);
 
     /*
-       Except that a referenced cartridge cannot be asked for in Format
-       mode. Outside it, the drive needs the load point burst to know
-       where the segments lie and refuses to stream tape without one -
-       but in Format mode that burst is the thing being written, so
-       requiring it first means a blank cartridge can never become a
-       formatted one.
+       Except in Format mode, where the reference burst is the thing being
+       written: requiring it first means a blank cartridge could never
+       become a formatted one.
      */
     if ((dev->qic_mode_flags & QIC_MODE_FORMAT) &&
         (diff & QIC_STATUS_REFERENCED))
@@ -1720,21 +1488,11 @@ qic_drive_status(const ditto_t *dev)
 }
 
 /*
-   The drive configuration byte, rate field and all.
-
-   It used to be masked out, on the reasoning that this drive reports its
-   rate through the extended command and a host that knows the model asks
-   there. That left every read of this register saying rate code zero -
-   the slowest the field can name - however fast the host had just set
-   the drive to run. A host that works out how long an operation should
-   take from the rate the drive claims will wait far longer than it needs
-   to, and this one waits ten seconds for every segment it formats,
-   deterministically, with the port interrupt switched off so nothing can
-   cut the wait short.
-
-   fdd_tape.c reports the rate here, and there is no reason this drive
-   should be the one that hides it: whatever the extended command is for,
-   it is not a reason to answer this one wrongly.
+   The drive configuration byte, rate field and all. Masking the rate out
+   made every read say rate code zero however fast the drive was set to
+   run, and a host that sizes its timeouts from that waits ten seconds a
+   segment. The extended command reports whole Mbit/s; that is not a
+   reason to answer this one wrongly.
  */
 static uint8_t
 qic_drive_config(const ditto_t *dev)
@@ -1744,12 +1502,9 @@ qic_drive_config(const ditto_t *dev)
 
 
 /*
-   Parameter widths are shared (tape_qic117.h); this drive answers for the
-   one command the shared table leaves to it. The disassembly of this
-   firmware was read as wanting two parameters for enter diagnostic 2.
-   Nothing has ever sent it, so the reading is carried here rather than
-   imposed on the drive on the floppy cable, which has always assumed
-   none.
+   Parameter widths are shared (tape_qic117.h). This drive answers for
+   the one command left to it: its firmware was read as wanting two
+   parameters for enter diagnostic 2, and nothing has ever sent it.
  */
 static int
 qic_param_count(int cmd)
@@ -1780,9 +1535,8 @@ qic_run_command(ditto_t *dev, int cmd)
     dev->qic_last_cmd = (uint8_t) cmd;
 
     /*
-       Only errors and finished reports were ever logged, which leaves
-       every command that works invisible - and it is the ones that work
-       that a host waits on.
+       Commands that work are traced too - it is the ones that work that a
+       host waits on.
      */
     ditto_log("Ditto: QIC-117 command %i (params %i)\n", cmd,
               qic_param_count(cmd));
@@ -1821,8 +1575,7 @@ qic_run_command(ditto_t *dev, int cmd)
         case QIC_REPORT_ERROR_CODE:
             /*
                Sixteen bits: the code, then the command that provoked it.
-               Reading it is what clears the error - and the new cartridge
-               flag with it.
+               Reading it clears the error, and the new cartridge flag with it.
              */
             qic_report_arm(dev,
                            (uint16_t) (dev->qic_error |
@@ -1877,10 +1630,9 @@ qic_run_command(ditto_t *dev, int cmd)
 
         case QIC_LOGICAL_FORWARD:
             /*
-               Sets the cartridge streaming forward under the head. It
-               runs to the end of the track and stops there by itself -
-               the host never stops it, it just waits for ready to come
-               back as the sign that the pass is over.
+               Streams forward. The pass runs to the end of the track and stops
+               there by itself; the host waits for ready rather than stopping
+               it.
              */
             qic_start_motion(dev);
             break;
@@ -1903,11 +1655,9 @@ qic_run_command(ditto_t *dev, int cmd)
         case QIC_PAUSE:
         case QIC_MICRO_STEP_PAUSE:
             /*
-               Stopping means stopping: a wind already under way is
-               halted where it stands and the drive answers ready again
-               straight away, rather than seeing the wind out. A host
-               that stops a wind and is still told the drive is busy
-               gets its next command refused for the wrong reason.
+               Stopping means stopping: a wind under way is halted where it
+               stands and ready comes back at once, or the next command is
+               refused for the wrong reason.
              */
             qic_stop_motion(dev);
             if (dev->qic_busy) {
@@ -1919,12 +1669,9 @@ qic_run_command(ditto_t *dev, int cmd)
 
         case QIC_SEEK_HEAD_TO_TRACK:
             /*
-               A lateral move rather than a wind, so it settles quickly
-               whatever track it starts from. Odd tracks run backwards.
-
-               How far the head reaches is fixed by the mechanism, so a
-               track beyond the cartridge is refused and the head stays
-               where it is rather than addressing tape that is not there.
+               A lateral move rather than a wind, so it settles quickly. Odd
+               tracks run backwards, and a track beyond the cartridge is
+               refused rather than addressing tape that is not there.
              */
             if (dev->qic_param[0] >= dev->tape_tracks) {
                 qic_set_error(dev, QIC_ERROR_ILLEGAL_SEEK_TRACK, (uint8_t) cmd);
@@ -1945,11 +1692,9 @@ qic_run_command(ditto_t *dev, int cmd)
             const int back = (cmd == QIC_SKIP_REVERSE) ||
                              (cmd == QIC_SKIP_EXTENDED_REVERSE);
             /*
-               The extended forms are not a coarser step, only a wider
-               count: three nibbles instead of two, reaching 4096 gaps
-               rather than 256. Scaling them was a stand-in for the third
-               nibble that was not being read, and now that it is, it
-               would multiply every long skip by 32.
+               The extended forms are a wider count, not a coarser step: three
+               nibbles rather than two. Scaling them stood in for the third
+               nibble.
              */
             const int count = qic_param_value(dev, cmd) + 1;
 
@@ -1960,21 +1705,12 @@ qic_run_command(ditto_t *dev, int cmd)
 
         case QIC_WRITE_REFERENCE_BURST:
             /*
-               Laying the reference burst down is a whole tape operation
-               and takes the longest of any command in the set.
-
-               It is also the thing that makes a blank cartridge
-               referenced - that burst at the load point is what the
-               drive later finds to know where the segments lie, and
-               until it exists the cartridge reads as unformatted. A
-               drive that winds the tape and records nothing leaves the
-               status unchanged afterwards, so a host that writes the
-               burst and checks for it writes it again, and then gives
-               up: that is the unrecoverable error preformatting.
-
-               Any nonzero extent will do, the tape being referenced by
-               its first byte rather than its length; the real segments
-               arrive as the format writes them.
+               The longest operation in the set, and the thing that makes a
+               blank cartridge referenced - which is what a host reads as
+               formatted. A drive that winds and records nothing leaves the
+               status unchanged, so the host writes the burst, checks, writes
+               it again and gives up: the unrecoverable error preformatting.
+               Any nonzero extent will do.
              */
             qic_stop_motion(dev);
             dev->qic_segment = qic_track_start(dev);
@@ -1986,15 +1722,11 @@ qic_run_command(ditto_t *dev, int cmd)
 
         case QIC_CALIBRATE_TAPE_LENGTH:
             /*
-               Calibrating is the drive running the cartridge end to end
-               to find out how much tape there is. What it comes back
-               with is the segments per track, and that is the answer
-               Report Format Segments gives from here on - before a
-               calibration it has nothing to report and says zero.
-               Winding without recording anything leaves it saying zero
-               afterwards too, which a host reads as a cartridge with no
-               capacity: it is what made Ditto Tools call a perfectly
-               good tape unwriteable.
+               Calibrating is the drive measuring how much tape there is, and
+               what it comes back with is the segments per track - the answer
+               Report Format Segments gives from here on, zero before.
+               Reporting zero afterwards is what made Ditto Tools call a good
+               tape unwriteable.
              */
             dev->qic_running         = 0;
             dev->qic_format_segments = (uint16_t) dev->tape_spt;
@@ -2003,17 +1735,10 @@ qic_run_command(ditto_t *dev, int cmd)
 
         case QIC_SELECT_RATE:
             /*
-               The plain rate selection knows the three rates this drive
-               can run at. Everything else it is offered is a format
-               selector, and a value that is neither is refused.
-
-               The codes are not in any order that reads sensibly: 1 is
-               2 Mbit/s, 2 is 500 kbit/s and 3 is 1 Mbit/s, which is why
-               the slow one looks out of place sitting between the two
-               fast ones. Leaving 500 out is not a small omission - it
-               is the rate a host drops to for the format pass, so a
-               drive that refuses it takes the error at the moment
-               formatting begins and never lays a segment down.
+               Rate codes are not in a sensible order: 1 is 2 Mbit/s, 2 is 500
+               kbit/s and 3 is 1 Mbit/s. Leaving 500 out is not a small
+               omission - it is the rate a host drops to for the format pass.
+               Anything above the rate codes is a format selector.
              */
             switch (dev->qic_param[0]) {
                 case 2:
@@ -2054,9 +1779,8 @@ qic_run_command(ditto_t *dev, int cmd)
 
         case QIC_EXT_REPORT_DRIVE_CONFIG:
             /*
-               The reason this drive needs the extended command set at
-               all: the rate it is running at, in Mbit/s, which the plain
-               configuration report masks away.
+               Why this drive needs the extended set at all: the rate in whole
+               Mbit/s, which the plain configuration byte cannot express.
              */
             qic_report_arm(dev, dev->qic_ext_rate, 8);
             break;
@@ -2071,36 +1795,27 @@ qic_run_command(ditto_t *dev, int cmd)
             break;
 
         /*
-           Drive selection off the command channel rather than the
-           floppy controller's own select lines, for a drive sharing a
-           cable with something else. There is nothing to arbitrate
-           here, so the address is accepted and nothing moves - but the
-           commands have to be answered, because a host that is refused
-           takes it as the drive not being the one it is looking for.
+           Drive selection off the command channel, for a drive sharing a
+           cable. Nothing to arbitrate here, but a host that is refused takes
+           it as this not being the drive it wants.
          */
         case QIC_SOFT_SELECT:
         case QIC_SOFT_DESELECT:
             break;
 
         /*
-           How long the drive may take over a command before the host
-           gives up on it. Nothing here is paced by that - the timings
-           come from the tape - so it is taken and forgotten. The Windows
-           host sends it a dozen or more times a session, so leaving it
-           to the default arm below only filled the trace with claims
-           that it was unimplemented.
+           Taken and forgotten: nothing here is paced by it, the timings come
+           from the tape.
          */
         case QIC_ALTERNATE_TIMEOUT:
             break;
 
         default:
             /*
-               Whatever is left is a command the set has but this drive
-               does not model. Accept it quietly rather than refusing: a
-               host that is refused latches the error and stops. Codes
-               that are not in the set at all never reach here -
-               qic_check_command() has already turned them away with
-               "undefined command".
+               A command the set has but this drive does not model. Accepted
+               quietly: a host that is refused latches the error and stops.
+               Codes outside the set never reach here - qic_check_command()
+               turned them away.
              */
             ditto_log("Ditto: QIC-117 command %i accepted and ignored\n", cmd);
             break;
@@ -2110,10 +1825,8 @@ qic_run_command(ditto_t *dev, int cmd)
 }
 
 /*
-   A pulse train has arrived. Unlike a drive on the floppy cable, this one
-   is handed each train whole - the bridge's own controller generates the
-   pulses, so there is no gap for the host to interleave anything into and
-   nothing to time out waiting for.
+   A pulse train, handed over whole: the bridge generates the pulses
+   itself, so there is no gap for the host to interleave anything into.
  */
 static void
 ditto_qic_step(ditto_t *dev, int steps)
@@ -2125,9 +1838,8 @@ ditto_qic_step(ditto_t *dev, int steps)
     dev->qic_trains++;
 
     /*
-       While a report is being clocked out, the only thing the drive will
-       hear is a request for the next bit. Anything else is the host
-       losing its place, and says so.
+       Mid report the drive hears only a request for the next bit. Anything
+       else is the host losing its place, and says so.
      */
     if (dev->report_pending) {
         if (steps == QIC_REPORT_NEXT_BIT) {
@@ -2142,9 +1854,8 @@ ditto_qic_step(ditto_t *dev, int steps)
     }
 
     /*
-       Parameters arrive biased by two, so that a parameter of zero
-       cannot be mistaken for the empty pulse train that means nothing at
-       all was sent.
+       Parameters arrive biased by two, so zero cannot be mistaken for the
+       empty train that means nothing was sent.
      */
     if (dev->qic_params_left > 0) {
         if (steps < 2) {
@@ -2212,12 +1923,8 @@ fdc_clear_irq(ditto_t *dev)
 
 /*
    How many bytes a command takes. The read and write family carry MT,
-   MFM and SK in their top bits so they have to be masked, but the rest
-   are whole opcodes - and some of them differ only in those same top
-   bits, LOCK and UNLOCK being the pair that matters here.
-
-   A command that is not listed is not one this controller has, and gets
-   the invalid-command answer.
+   MFM and SK in their top bits and must be masked; the rest are whole
+   opcodes, some differing only in those bits (LOCK and UNLOCK).
  */
 static int
 fdc_cmd_length(uint8_t cmd)
@@ -2271,10 +1978,8 @@ fdc_read_st3(const ditto_t *dev)
     ret |= (uint8_t) (dev->fdc_cmd[1] & 0x03);
 
     /*
-       The drive answers a QIC-117 report on this line rather than
-       telling the controller where its head is. Everything the host
-       ever reads back out of the drive comes through here, one bit at
-       a time.
+       The drive answers a QIC-117 report on this line. Everything the host
+       reads back out of the drive comes through here, a bit at a time.
      */
     if (ditto_qic_answer(dev))
         ret |= FDC_ST3_TRACK_0;
@@ -2310,13 +2015,9 @@ fdc_xfer_done(void *priv)
 
 /*
    A transfer takes as long as the tape it covers takes to pass the head.
-   The bytes have already been moved - the bridge buffers them, so there
-   is nothing to clock out - but the controller has to look busy for that
-   long, because the host's whole idea of a transfer is built around it.
-
-   Finishing instantly is not a harmless shortcut. The host writes the
-   command, finds the result waiting before the tape could possibly have
-   moved, and reads that as a refusal.
+   The bytes have already moved - the bridge buffers them - but finishing
+   the instant the last command byte lands reads to the host as a
+   refusal. See docs/lpt-ditto.md.
  */
 static void
 fdc_begin_exec(ditto_t *dev, int sectors, int res_len)
@@ -2360,14 +2061,10 @@ fdc_data_result(ditto_t *dev, uint8_t st0, uint8_t st1, uint8_t st2)
 }
 
 /*
-   A data transfer between the cartridge and the bridge's buffer.
-
-   There is no host DMA controller anywhere in this - the bridge has its
-   own 128 KB of memory and the controller moves sectors straight into
-   it, at the address the host programmed as if it were a DMA base. The
-   host collects the data afterwards, over the wire, at its own pace. So
-   a transfer needs no clocking here at all: it is a copy, and then an
-   interrupt.
+   A data transfer between the cartridge and the bridge's buffer. No host
+   DMA controller is involved: the bridge has its own 128 KB and the
+   controller copies sectors into it at the programmed base, and the host
+   collects them over the wire afterwards.
  */
 static void
 fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
@@ -2397,22 +2094,11 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
     }
 
     /*
-       What ends a transfer is the DMA count running out, not the last
-       sector number. EOT stops it too if the count is generous enough to
-       reach it, and running off the end of the cylinder stops it in the
-       same way - but the count comes first, because that is the terminal
-       count a controller of this family is wired to obey.
-
-       Treating EOT as the only limit made a whole class of command move
-       nothing at all and report that it had. This host issues every read
-       and every write twice: once addressed properly, and then - after
-       waiting on the first, giving up and restarting the controller -
-       again with EOT set one below the first sector, which is its way of
-       saying "as much as the count allows". Fifty-three of the writes in
-       a single backup take that form. On a write it went unnoticed,
-       because the first attempt had already put the data down; on a read
-       it handed back a buffer of whatever was in it before, which the
-       host read as having run off the end of the volume.
+       What ends a transfer is the DMA count, not the last sector number.
+       This host issues every read and every write twice, the retry carrying
+       EOT one below the first sector as its way of saying "as much as the
+       count allows". Reading EOT as the only limit made those move nothing
+       and report success. See docs/lpt-ditto.md.
      */
     for (sector = first; left >= FDD_TAPE_SECTOR_SIZE; sector++) {
         if (!ditto_sector_offset(dev, cyl, head, sector, &offset)) {
@@ -2447,14 +2133,9 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
         }
 
         /*
-           The head is wherever the data is. Moving it with the transfer
-           rather than leaving it to the free running clock is what keeps
-           the drive's idea of its position and the host's in step: the
-           clock advances a segment every few milliseconds whether or not
-           anything is being written, so a host that writes a segment,
-           polls, writes the next and so on would watch the head run away
-           from it and reach the end of the track within a second - which
-           it reads as the pass being over after a few hundred kilobytes.
+           The head is wherever the data is. Left to the free running clock it
+           runs away from a host that writes a segment, polls, writes the next
+           - reaching the end of the track within a second.
          */
         dev->qic_segment = (head * dev->segs_per_head) +
                            (cyl * dev->segs_per_cyl) +
@@ -2471,9 +2152,9 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
     }
 
     /*
-       Let the clock carry on from where the transfer left the head, so a
-       pass that the host stops feeding still runs out and ends, but one
-       it keeps feeding is paced by the writing rather than by the timer.
+       Carry on from where the transfer left the head, so a pass the host
+       stops feeding still ends, but one it keeps feeding is paced by the
+       writing.
      */
     if (dev->qic_running) {
         timer_disable(&dev->motion_timer);
@@ -2501,23 +2182,13 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
 }
 
 /*
-   Formatting. The buffer holds four bytes of sector address for each
-   sector to be laid down, and every one of them gets written out full of
-   the filler byte.
+   Formatting. The buffer holds four bytes of sector address per sector,
+   and every one is written out full of the filler byte.
  */
 /*
-   READ ID: hands back the address of the sector under the head, which is
-   how the host works out where on the tape it is.
-
-   Refusing it is not a small gap. The host driver reads an ID to locate
-   the head and keeps the C/H/R it gets back as the origin for its seek
-   arithmetic, so a drive that will not answer leaves it with no idea
-   where anything is - which it reports as the drive having been given an
-   invalid command, because that is what it was told.
-
-   A stopped tape answers with its real position rather than a fixed zero,
-   for the same reason: a host told the head sits at segment 0 wherever it
-   really is computes every later seek from the wrong place.
+   READ ID: where the head is. The host keeps the C/H/R as the origin for
+   its seek arithmetic, so refusing it - or answering a fixed zero for a
+   stopped tape - leaves it computing every later seek from nowhere.
  */
 static void
 fdc_read_id(ditto_t *dev, uint8_t unit)
@@ -2553,11 +2224,9 @@ fdc_read_id(ditto_t *dev, uint8_t unit)
     fdc_begin_result(dev, 7);
 
     /*
-       A search is clocked by the host, not by us: reading an ID carries
-       the head on one sector, so a host reading IDs to find a segment
-       walks forward a sector per read and stops exactly on its target
-       rather than overshooting between polls. Only while the tape is
-       actually moving - a stopped cartridge stays where it was put.
+       A search is clocked by the host: each read carries the head on one
+       sector, so it walks to its target rather than overshooting between
+       polls. Only while the tape is moving.
      */
     if (dev->qic_running) {
         const int end = qic_track_start(dev) + qic_segments_per_track(dev) - 1;
@@ -2617,16 +2286,9 @@ fdc_format(ditto_t *dev, uint8_t unit)
     ditto_image_sync(dev);
 
     /*
-       A format writes its segment far faster than tape runs, so the head
-       is carried along by the writing rather than by the free running
-       clock - left to itself the cartridge would reach the end of the
-       track long before the host had finished laying it down, stop, and
-       report the pass over while the host was still working.
-
-       The drive stays in motion throughout: the host polls the status
-       just after handing over the last segment of a track and has to
-       find it busy there. Coming to rest is the end-of-track case in
-       qic_motion_tick, which the last segment of the track reaches here.
+       A format writes far faster than tape runs, so the head is carried by
+       the writing rather than the clock, and the drive stays in motion
+       throughout.
      */
     if (dev->qic_running) {
         const int end = qic_track_start(dev) + qic_segments_per_track(dev) - 1;
@@ -2639,15 +2301,10 @@ fdc_format(ditto_t *dev, uint8_t unit)
         }
 
         /*
-           Re-armed from now, never stopped here. The pass has to outlast
-           the writing by a segment: the host polls the status a few
-           milliseconds after handing over the last segment of a track
-           and has to find the drive still busy, then waits for ready.
-           Coming to rest on the same call that wrote the last segment
-           would answer ready to that poll, which QBACKUP's format driver
-           reads as the pass having failed rather than finished. Letting
-           the clock stop it a segment-time later is what leaves the
-           window open.
+           Re-armed, never stopped here. The host polls a few milliseconds
+           after the last segment of a track and has to find the drive still
+           busy; coming to rest on the same call reads to QBACKUP as a failed
+           format.
          */
         timer_disable(&dev->motion_timer);
         timer_set_delay_u64(&dev->motion_timer,
@@ -2690,11 +2347,9 @@ fdc_execute(ditto_t *dev)
 
         case 0x07: /* RECALIBRATE */
             /*
-               A real controller would step until the drive raised TRACK
-               0, but on this bus that line is the answer line and the
-               steps would be read as a command. So take the head home
-               on paper only. The host does the same: it reads the new
-               cylinder back out of the interrupt status.
+               On paper only: on this bus TRACK 0 is the answer line and the
+               steps would be read as a command. The host reads the new
+               cylinder back out of the interrupt status, as we do.
              */
             ditto_log("Ditto: FDC recalibrate, no pulses sent\n");
             dev->fdc_pcn = 0;
@@ -2742,15 +2397,11 @@ fdc_execute(ditto_t *dev)
 
         case 0x0f: /* SEEK */
             /*
-               This is the QIC-117 command channel. A seek of N cylinders
-               steps the drive N times, and the drive counts the pulses
-               to work out what it has been asked to do - so the distance
-               is the message, and where the head ends up is beside the
-               point.
-
-               Nothing here models the time the pulses take: the bridge
-               generates them itself, out of the host's sight, so there
-               is no train for the host to interleave anything with.
+               The QIC-117 command channel: a seek of N cylinders steps the
+               drive N times and the drive counts the pulses, so the distance
+               is the message and where the head ends up is beside the point.
+               The bridge makes the pulses itself, so there is no train to
+               model.
              */
             steps = (int) dev->fdc_cmd[2] - (int) dev->fdc_pcn;
             if (steps < 0)
@@ -2847,16 +2498,11 @@ fdc_read_msr(const ditto_t *dev)
 
         case FDC_PHASE_EXEC:
             /*
-               Mid transfer the controller is busy and has nothing to say:
-               command byte register busy, but no request for service,
-               because in DMA mode the bytes go past the host entirely.
-
-               Showing the result phase here instead - which is what
-               finishing a transfer the instant the last command byte
-               lands amounts to - reads to this host as the command
-               having been thrown straight back at it. It polls the
-               status forty times, restarts the controller and tries
-               again, on every single transfer in both directions.
+               Mid transfer: busy, but no request for service, because in DMA
+               mode the bytes go past the host entirely. Showing the result
+               phase here - which is what finishing instantly amounts to -
+               reads as the command having been thrown back, and costs a reset
+               and a retry every time.
              */
             ret = FDC_MSR_CB;
             break;
@@ -2889,10 +2535,8 @@ fdc_read_reg(ditto_t *dev, int reg)
             }
 
             /*
-               Reading the first result byte is what takes the interrupt
-               down on a controller of this family - only seek and reset
-               interrupts wait to be sensed. Leaving it up meant every
-               later "is there anything outstanding?" answered yes.
+               Reading the first result byte takes the interrupt down; only
+               seek and reset interrupts wait to be sensed.
              */
             if (dev->fdc_res_pos == 0)
                 fdc_clear_irq(dev);
@@ -2934,9 +2578,8 @@ fdc_write_reg(ditto_t *dev, int reg, uint8_t val)
     switch (reg) {
         case FDC_REG_DOR:
             /*
-               Taking the reset line down and back up restarts the
-               controller, which then reports a ready change for each of
-               the four drive slots before it will do anything else.
+               Down and back up restarts the controller, which then reports a
+               ready change for each of the four drive slots.
              */
             if ((dev->fdc_dor & FDC_DOR_RESET_NOT) && !(val & FDC_DOR_RESET_NOT)) {
                 dev->fdc_phase   = FDC_PHASE_IDLE;
@@ -2947,23 +2590,14 @@ fdc_write_reg(ditto_t *dev, int reg, uint8_t val)
                 fdc_clear_irq(dev);
 
                 /*
-                   Anything half said down the command channel is dropped
-                   with it. The channel is a count of step pulses measured
-                   from where the controller believes the head is, and the
-                   reset moves that belief to cylinder zero - so the host
-                   starts its next sentence from a standing start and
-                   expects to be heard from the beginning.
-
-                   Leaving a parameter or a report outstanding here is not
-                   a quiet kind of wrong. The host re-initialises the
-                   controller in the middle of a backup, roughly once per
-                   pair of segments, and follows every reset with a soft
-                   select; a drive still owed a skip count reads that
-                   select as the count instead, winds two dozen segments
-                   off target, and then reads the select's own parameter
-                   as a command - which is command 20, which does not
-                   exist, which the host reports as the drive having been
-                   given an invalid command and gives up.
+                   Anything half said down the command channel goes with it:
+                   the channel counts step pulses from where the controller
+                   believes the head is, and the reset moves that to zero, so
+                   the host starts afresh and expects to be heard from the
+                   beginning. The host resets about once per pair of segments
+                   and follows every reset with a soft select - which a drive
+                   still owed a skip count reads as the count. See
+                   docs/lpt-ditto.md.
                  */
                 dev->report_pending  = 0;
                 dev->qic_ack         = 0;
@@ -3001,9 +2635,7 @@ fdc_write_reg(ditto_t *dev, int reg, uint8_t val)
                 len = fdc_cmd_length(val);
                 if (len < 0) {
                     /*
-                       An opcode this controller does not have. It
-                       answers with the single byte the host recognises
-                       as "I do not know that one".
+                       An opcode this controller does not have.
                      */
                     dev->fdc_cmd[0]  = val;
                     dev->fdc_res[0]  = FDC_ST0_INVALID;
@@ -3035,14 +2667,10 @@ fdc_write_reg(ditto_t *dev, int reg, uint8_t val)
 /* --------------------------------------------------------------------- */
 
 /*
-   Reads one byte from the addressed register. Consecutive reads without
+   One byte from the addressed register. Consecutive reads without
    re-addressing keep coming from the same register, which is how the
-   host streams the buffer out of 0xa0, walks a multi-byte register such
-   as the CRC at 0x22, and tests the protocol against the counter in
-   0x13. The index of the byte within such a run is xfer_idx.
-
-   Milestones 4 onwards fill in the 128 KB buffer and its CRC engine, and
-   the 765 window at 0x40.
+   host streams the buffer out of 0xa0, walks the CRC at 0x22 and tests
+   the protocol against the counter at 0x13. xfer_idx is the index.
  */
 static uint8_t
 backpack_read_reg(ditto_t *dev, int reg)
@@ -3056,9 +2684,8 @@ backpack_read_reg(ditto_t *dev, int reg)
     switch (reg) {
         case BP_REG_STAT:
             /*
-               Bit 4 always reads back set. Pending interrupts only show
-               here once the host has enabled the soft indication - that
-               is what makes its polling during a transfer work.
+               Bit 4 always reads set. Pending interrupts show here only once
+               the host has enabled the soft indication.
              */
             ret = BP_STAT_ALWAYS;
             if (dev->irq_pending && (dev->irq_ctrl & BP_IRQ_SOFTEN))
@@ -3075,17 +2702,11 @@ backpack_read_reg(ditto_t *dev, int reg)
 
         case BP_REG_TEST:
             /*
-               The protocol self test. Writing this register restarts the
-               count, whatever value is written, and every read hands
-               back the next number: 1, 2, 3 and so on. Hosts read it
-               back dozens or hundreds of times to satisfy themselves
-               that the wire protocol and its timing are sound.
-
-               The absolute values matter. One host only checks that each
-               read is one more than the last and would be content with
-               any starting point, but another writes 0x7f and then
-               requires exactly 1 through 16 - so the count cannot begin
-               from whatever was written.
+               The protocol self test: writing restarts the count, whatever
+               value is written, and every read hands back the next number. The
+               absolute values matter - one host writes 0x7f and then requires
+               exactly 1 through 16, so the count cannot begin from what was
+               written.
              */
             ret = ++dev->test_ctr;
             break;
@@ -3142,18 +2763,17 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
     switch (reg) {
         case BP_REG_CTRL:
             /*
-               The transfer mode written here takes effect at once, for
-               the connection in progress - unlike register 0x24, which
-               is remembered for the next one.
+               Takes effect at once, for the connection in progress - unlike
+               register 0x24, which is remembered for the next one.
              */
             dev->proto_bits      = val;
             dev->proto           = ditto_decode_proto_bits(val);
             dev->mem_write_armed = !!(val & BP_CTRL_MEM_WRITE);
 
             /*
-               The host works out which interrupt line the bridge is on
-               by poking register 0x06 and then writing here. Nobody
-               knows why this is what raises the interrupt, but it is.
+               The host finds which interrupt line the bridge is on by poking
+               0x06 and then writing here. Nobody knows why this is what raises
+               it.
              */
             if (dev->irq_arm) {
                 dev->irq_pending = 1;
@@ -3190,11 +2810,9 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
 
         case BP_REG_PROTO:
             /*
-               Two bytes: the protocol bits, then a magic 0xa4 that has
-               to be there for the program to take. Detection writes the
-               same register with a different second byte and expects
-               nothing to come of it, so the magic is what tells a real
-               protocol switch from that.
+               Two bytes: the protocol bits, then a magic 0xa4 without which
+               the program does not take. Detection writes the same register
+               with a different second byte and expects nothing to come of it.
              */
             if (idx == 0) {
                 dev->deferred_proto_bits = val;
@@ -3255,11 +2873,9 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
 /* --------------------------------------------------------------------- */
 
 /*
-   Spreads a nibble across the five status bits the device owns, in the
-   arrangement the host's reassembly expects: value bits 0 to 2 land in
-   status bits 3 to 5, and value bit 3 in status bit 7. Status bit 6 -
-   ACK - is deliberately left clear, so that a nibble can never be
-   mistaken for the connect response.
+   A nibble across the five status bits we own: value bits 0-2 into
+   status 3-5, bit 3 into status 7. ACK is left clear, so a nibble can
+   never be mistaken for the connect response.
  */
 static uint8_t
 ditto_encode_nibble(uint8_t val)
@@ -3276,23 +2892,12 @@ ditto_connect_response(const ditto_t *dev)
 }
 
 /*
-   The pod's answer to the address probe that follows every knock: its
-   own unit number, in the three status bits the host can see, and the
-   complement of it when AUTOFD is low.
-
-   Both halves are needed. The host reads the status twice with AUTOFD
-   toggled between, and requires the two readings to be complements of
-   one another across those three bits - a line stuck high or low, or a
-   port with nothing on it, cannot produce that. Only then does it look
-   at the reading itself and check it names the unit it knocked for.
-
-   The address rides alongside the protocol family answer rather than
-   replacing it, because the other host driver reads the same status at
-   the same moment and wants only that. The two fit: one looks at ACK
-   and BUSY and ignores the address bits, the other looks at the address
-   bits and reads BUSY as which framing to use. Unit zero - the only one
-   a single pod on a chain is ever asked for - leaves both readings
-   exactly what the first driver already expected.
+   The address probe that follows every knock: our unit number, and the
+   complement of it when AUTOFD is low. The host requires the two
+   readings to be complements - an empty port cannot do that - and only
+   then checks the number. It rides alongside the protocol answer
+   because the other host driver reads the same status and wants only
+   that. See docs/lpt-ditto.md.
  */
 static uint8_t
 ditto_ident_response(const ditto_t *dev)
@@ -3314,9 +2919,8 @@ ditto_connect(ditto_t *dev)
     dev->rd_out      = 0x00;
 
     /*
-       A protocol programmed into register 0x24 is remembered rather than
-       acted on, and comes into force here - which is why the host always
-       disconnects and reconnects around a protocol switch.
+       A protocol programmed into 0x24 comes into force here, which is why
+       the host disconnects and reconnects around a switch.
      */
     if (dev->deferred_valid) {
         dev->proto_bits     = dev->deferred_proto_bits;
@@ -3333,19 +2937,14 @@ ditto_connect(ditto_t *dev)
     ditto_log("Ditto: connected in %s mode\n", ditto_proto_name[dev->proto]);
 
     /*
-       A transfer mode the port cannot carry is worth saying out loud
-       once. The host can program the bridge into EPP and never issue a
-       single EPP cycle to it, because the super I/O maps base+3 and
-       base+4 only when it has EPP switched on - so the mode looks live
-       from here while nothing whatsoever reaches us through it, and the
-       host quietly falls back after its protocol self test reads all
-       ones. Said once per session rather than per connect: the host
-       connects tens of thousands of times.
+       A mode the port cannot carry, said once a session. The host can
+       program EPP and never issue a cycle, because the super I/O maps
+       base+3 and base+4 only when it has EPP switched on.
      */
     if ((dev->proto >= DITTO_PROTO_EPP8) && !dev->epp_warned) {
         dev->epp_warned = 1;
-        ditto_stat("Ditto: EPP selected; the port %s carry EPP cycles\n",
-                   lpt_port_offers_epp(dev->lpt) ? "does" : "DOES NOT");
+        ditto_log("Ditto: EPP selected; the port %s carry EPP cycles\n",
+                  lpt_port_offers_epp(dev->lpt) ? "does" : "DOES NOT");
     }
 }
 
@@ -3370,16 +2969,13 @@ ditto_disconnect(ditto_t *dev)
 }
 
 /*
-   Hands the next nibble of the addressed register to the host. Every
-   second toggle starts a fresh byte, so a host that keeps toggling
-   streams the register out without re-addressing it.
+   The next nibble of the addressed register. Every second toggle starts
+   a fresh byte, so a host that keeps toggling streams the register out.
  */
 /*
-   Whether the bridge will talk in the mode it is currently programmed
-   for. A mode held back by the configured ceiling answers with all ones
-   instead, which is enough to break the host's protocol self test - and
-   that is exactly how the host is meant to find out and settle on a
-   slower mode it can rely on.
+   Whether the bridge will talk in the mode it is programmed for. Held
+   back by the ceiling it answers all ones, which breaks the host's self
+   test - which is how it is meant to find out and settle on less.
  */
 static int
 ditto_proto_usable(const ditto_t *dev)
@@ -3403,9 +2999,8 @@ ditto_advance_read(ditto_t *dev)
     }
 
     /*
-       In byte mode the bridge drives the data lines instead of the four
-       status bits, so a whole byte comes back per toggle rather than a
-       nibble. The host has already turned the port around.
+       In byte mode the bridge drives the data lines rather than the status
+       bits, so a whole byte comes back per toggle.
      */
     if (dev->proto == DITTO_PROTO_PS2) {
         val          = backpack_read_reg(dev, dev->cur_reg);
@@ -3427,10 +3022,9 @@ ditto_advance_read(ditto_t *dev)
 }
 
 /*
-   EPP mode moves the addressing and the data off the control lines
-   altogether and onto the port's own EPP address and data registers, so
-   none of the toggling above applies. A wide EPP read arrives here as
-   consecutive byte reads, which is what the bridge would see too.
+   EPP moves addressing and data onto the port's own registers, so none
+   of the toggling above applies. A wide read arrives as consecutive
+   byte reads, which is what the bridge would see too.
  */
 static void
 ditto_epp_write_data(uint8_t is_addr, uint8_t val, void *priv)
@@ -3473,10 +3067,8 @@ ditto_epp_request_read(uint8_t is_addr, void *priv)
 }
 
 /*
-   A one line summary of where the conversation has got to, appended to
-   every traced access. Reading a trace of a driver that will not talk to
-   us, the question is always the same: did it knock, did the knock take,
-   and which register did it think it was addressing.
+   Where the conversation has got to, appended to every traced access:
+   did it knock, did the knock take, which register did it address.
  */
 static const char *
 ditto_state(const ditto_t *dev)
@@ -3503,36 +3095,18 @@ ditto_write_data(uint8_t val, void *priv)
     dev->dat = val;
 
     /*
-       Putting an address on the data lines is what starts a knock, so
-       any toggles counted before it were not part of one.
-
-       Without this the setup write that precedes the address gets
-       counted whenever it happens to move SELECT - which it does from
-       most starting states - and the knock then completes an edge early,
-       on the wrong half of the toggle. The link comes up, and the very
-       next edge is read as the host finishing with us instead of as the
-       first half of the address probe.
-
-       Counting from a data write is safe in a way that arming on one is
-       not: the port calls us for every write, whether or not the value
-       changed, so a host that writes an address equal to what was
-       already there still starts a knock here.
+       An address on the data lines starts a knock, so toggles counted before
+       it were not part of one. Counting from a data write is safe where
+       arming on one is not: the port calls us for every write, changed or
+       not. Without this the knock completes an edge early.
      */
     dev->knock = 0;
 
     /*
-       Streaming into the buffer, a byte is committed by whichever of the
-       two things the host does to signal it: a toggle of INIT, or a
-       change of the data lines. The host picks between them because it
-       cannot put the same value on the lines twice and have the bridge
-       notice - so a byte equal to the one before it is sent as a bare
-       INIT toggle with no data write at all.
-
-       That is why the two paths both have to commit. Sampling the data
-       lines only on toggles quietly swallows runs of repeated bytes;
-       committing on every data write instead duplicates the first byte,
-       since the write that opens the burst is only loading the lines for
-       the toggle that follows it.
+       Mid burst a byte commits on either an INIT toggle or a change of the
+       data lines - the host uses the toggle alone to send a byte equal to
+       the one before. Both paths must commit: on toggles only swallows
+       repeats, on writes only duplicates the first byte.
      */
     if (!ditto_mem_burst_active(dev))
         dev->mem_burst = 0;
@@ -3542,11 +3116,10 @@ ditto_write_data(uint8_t val, void *priv)
         ditto_mem_write_byte(dev, val);
 
     /*
-       The bridge only drives the data lines during a PS/2 or EPP read.
-       The rest of the time the host reads its own latch back, so keep
-       the port's input register tracking what was last written - without
-       this a host probing for a bidirectional port sees zeroes and draws
-       the wrong conclusion about what the port can do.
+       The bridge drives the data lines only during a PS/2 or EPP read;
+       otherwise the host reads its own latch back, so keep the port's input
+       register tracking what was written or it sees zeroes and misjudges
+       what the port can do.
      */
     if (dev->lpt != NULL)
         lpt_write_to_dat(dev->lpt, val);
@@ -3573,25 +3146,13 @@ ditto_write_ctrl(uint8_t val, void *priv)
         return;
 
     /*
-       An out-of-band register write, addressed off the data lines while
-       SELECT is raised. The host uses it for two quite different things
-       and they turn out to be the same mechanism:
-
-         - forcing a protocol when the two ends disagree about the
-           current one, which it does by writing the protocol bits to
-           control register 0x04 this way rather than the ordinary way;
-         - reaching register 0x13 in EPP mode to seed the protocol self
-           test, where the ordinary EPP addressing is what is in doubt.
-
-       Raising SELECT latches the register number that is on the data
-       lines; each toggle of AUTOFD afterwards commits whatever is on
-       them now; and STROBE dropping ends it, leaving that register
-       addressed so the reads that follow come from it.
-
-       An EPP disconnect opens the very same way but never commits
-       anything, so a close with nothing committed is the host leaving
-       rather than writing. All of this has to be tested before anything
-       else looks at SELECT.
+       An out-of-band register write, addressed off the data lines with
+       SELECT raised. The host forces a protocol and seeds the EPP self test
+       this way, and they are one mechanism: SELECT latches the register
+       number, each AUTOFD toggle commits the data lines, STROBE dropping
+       ends it and leaves that register addressed. An EPP disconnect opens
+       identically but commits nothing. Test this before anything else looks
+       at SELECT.
      */
     if (dev->latching) {
         if (chg & LPT_CTRL_AUTOFD) {
@@ -3619,18 +3180,11 @@ ditto_write_ctrl(uint8_t val, void *priv)
     }
 
     /*
-       Letting go: the host drops INIT leaving AUTOFD alone, and then
-       raises INIT and SELECT together. It is that pair of steps taken in
-       order that ends the link - neither half means anything by itself.
-
-       Both halves look ordinary on their own, which is the trap. SELECT
-       rising cannot be the signal: one host driver never touches SELECT
-       once the link is up, but another toggles it throughout as a matter
-       of course, and reading that as a disconnect drops the link within
-       a few writes of every connect. Nor can the AUTOFD-alone state be
-       the signal: the first driver's nibble reads pass through it twice
-       for every byte they fetch. Only the transition between them is
-       unambiguous, and neither driver makes it by accident.
+       Letting go: INIT dropped leaving AUTOFD alone, then INIT and SELECT
+       raised together. Only the pair in that order ends the link - one
+       driver toggles SELECT constantly, and the other's nibble reads pass
+       through AUTOFD-alone twice a byte, so neither half means anything on
+       its own.
      */
     if (dev->connected && (old_lines == LPT_CTRL_AUTOFD) &&
         (lines & LPT_CTRL_SELECT)) {
@@ -3639,20 +3193,11 @@ ditto_write_ctrl(uint8_t val, void *priv)
     }
 
     /*
-       The address probe that closes the knock. The host has the link but
-       has not accepted it yet: it toggles AUTOFD once and reads the
-       status either side of the toggle, and the pod answers with its own
-       address and then the complement of it. Toggling SELECT afterwards
-       is the host satisfied, and ordinary register traffic begins.
-
-       Nothing else may look at these two AUTOFD edges. Once the link is
-       up an AUTOFD edge means "latch the register number off the data
-       lines", and the data lines are still carrying the unit number from
-       the knock - so without this the probe silently addresses register
-       zero and the host reads a nibble of it where it expected an
-       address, twice, and concludes the port is empty. That is precisely
-       what both host drivers were doing: connecting, finding no pod, and
-       giving up without ever touching a register.
+       The address probe that closes the knock. Nothing else may look at
+       these two AUTOFD edges: once the link is up an AUTOFD edge latches a
+       register number off the data lines, which still carry the unit number
+       - so without this the probe addresses register zero and the host
+       reads a nibble where it expected an address, and gives up.
      */
     if (dev->ident) {
         if (chg & LPT_CTRL_SELECT)
@@ -3661,18 +3206,11 @@ ditto_write_ctrl(uint8_t val, void *priv)
     }
 
     /*
-       The connect knock: three toggles of SELECT while the other three
-       lines hold INIT and nothing else, with the unit address sitting on
-       the data lines.
-
-       What makes an edge count is the state of the other lines, not some
-       earlier write that "armed" it. A host is entitled to arrive in the
-       knocking state without writing anything - if the control register
-       already holds INIT then its write of INIT moves nothing, and there
-       is no event for an arming rule to catch, so it misses the knock
-       altogether. Reading it as a level also throws out the stray
-       counts: everything either host does between knocks passes through
-       states that are not this one, and each of those clears the count.
+       The connect knock: three toggles of SELECT while the other lines hold
+       INIT alone, with the unit address on the data lines. What makes an
+       edge count is the state of the other lines, not an earlier write that
+       armed it - a host may arrive in the knocking state without writing
+       anything at all. As a level it also throws out stray counts.
      */
     if ((lines & ~LPT_CTRL_SELECT) != LPT_CTRL_INIT)
         dev->knock = 0;
@@ -3681,22 +3219,11 @@ ditto_write_ctrl(uint8_t val, void *priv)
             dev->knock = 0;
 
             /*
-               The knock is addressed. The host puts a unit number on the
-               data lines just before the toggles, and only the pod that
-               answers to it may take the link - these things chain, so
-               several may be listening.
-
-               Answering to every address looks harmless and is not. The
-               host decides a unit is present by the status changing
-               between a reading taken before the knock and one taken
-               after, so a pod that answers to all of them presents the
-               same thing both times and is found at none of them. That
-               is exactly what happened: 260 knocks, every one accepted,
-               every unit reported empty.
-
-               A knock for somebody else changes nothing here, which is
-               what leaves the reading before and after identical and
-               tells the host that address is empty.
+               The knock is addressed: these chain, so only the pod named on
+               the data lines may take the link. Answering to every address is
+               not harmless - the host decides a unit is present by the status
+               changing across the knock, so a pod that answers everywhere is
+               found nowhere.
              */
             if (dev->dat == dev->unit)
                 ditto_connect(dev);
@@ -3712,16 +3239,14 @@ ditto_write_ctrl(uint8_t val, void *priv)
         return;
 
     /*
-       With the link up, three edges carry everything: AUTOFD latches the
-       register number off the data lines, and INIT clocks a byte - into
-       the bridge when STROBE is set, out of it when STROBE is clear.
+       With the link up three edges carry everything: AUTOFD latches the
+       register number, and INIT clocks a byte - in when STROBE is set, out
+       when it is clear.
      */
     /*
-       STROBE dropping closes a burst write into the buffer, so that the
-       next one has to prime its lines afresh. Only the implicit,
-       data-change half of the commit rule is gated this way: an INIT
-       toggle is the host committing a byte outright, and is honoured
-       whenever the FIFO is the addressed register.
+       STROBE dropping closes a burst write. Only the implicit, data-change
+       half of the commit rule is gated this way; an INIT toggle is the host
+       committing outright.
      */
     if ((chg & LPT_CTRL_STROBE) && !(lines & LPT_CTRL_STROBE))
         dev->mem_burst = 0;
@@ -3733,13 +3258,9 @@ ditto_write_ctrl(uint8_t val, void *priv)
         dev->mem_burst = 0;
 
         /*
-           Addressing a register also puts the bridge's own answer back
-           on the status lines. That is what the host reads straight
-           after a connect - and it has to be a level the bridge holds,
-           not a one-shot: a host that reads the status without clocking
-           anything, as one does thousands of times over while it waits,
-           must keep seeing the same answer rather than have it expire
-           under it.
+           Addressing a register also puts the connect answer back on the
+           status lines, and it has to be a level we hold: a host that reads
+           the status without clocking anything must keep seeing it.
          */
         dev->rd_out = ditto_connect_response(dev);
         return;
@@ -3754,11 +3275,8 @@ ditto_write_ctrl(uint8_t val, void *priv)
 }
 
 /*
-   The host reading the data lines. The bridge only drives them in byte
-   and EPP modes, so there is usually nothing to do here beyond noting
-   that it happened - but that half of the conversation is invisible
-   otherwise, and a driver that reads data where it was expected to read
-   status looks, from this side, like a driver doing nothing at all.
+   The host reading the data lines. Usually nothing to do beyond noting
+   it - but that half of the conversation is invisible otherwise.
  */
 static void
 ditto_read_data(void *priv)
@@ -3790,9 +3308,8 @@ ditto_read_status(void *priv)
     ret &= LPT_STAT_MASK;
 
     /*
-       Status reads while idle are how a host spins waiting for something,
-       so only trace them when the answer changes - otherwise a poll loop
-       buries everything else.
+       Idle status reads are how a host spins, so trace them only when the
+       answer changes.
      */
     if ((ret != dev->last_status) || dev->connected) {
         ditto_log("Ditto: R1 -> %02X          [%s]\n", ret, ditto_state(dev));
@@ -3823,12 +3340,9 @@ ditto_init(UNUSED(const device_t *info))
     dev->unit     = (uint8_t) device_get_config_int("unit");
 
     /*
-       The drive's own identity, which the cartridge does not change: a
-       Ditto 2GB reading a QIC-80 tape is still a Ditto 2GB, and a host
-       settles on the highest format the two have in common. It powers up
-       at the slow rate, as fdd_tape.c's drive does, until the host
-       selects one. Set before the geometry, because that is what fills
-       in the parts of this the cartridge does decide.
+       The drive's own identity, which the cartridge does not change. Powers
+       up at the slow rate until the host selects one. Set before the
+       geometry, which fills in the parts the cartridge does decide.
      */
     dev->qic_vendor_id  = DITTO_VENDOR_ID;
     dev->qic_config     = (uint8_t) (QIC_CONFIG_80 |
@@ -3863,11 +3377,9 @@ ditto_init(UNUSED(const device_t *info))
     ditto_image_load(dev, dev->image_fn);
 
     /*
-       The state the drive powers up in. Its identity, and everything the
-       cartridge settles, are already in place above. A cartridge that was
-       already in the drive is not a new one, but the power on reset
-       itself has to be read out before the drive will do anything else -
-       that is how the host learns it has been reset.
+       The state the drive powers up in. A cartridge already in the drive is
+       not a new one, but the power on reset has to be read out before the
+       drive will do anything else.
      */
     dev->qic_mode_flags = QIC_MODE_PRIMARY;
     dev->qic_status     = QIC_STATUS_READY;
@@ -3929,11 +3441,8 @@ static const device_config_t ditto_config[] = {
     },
     {
         /*
-           Which address this pod answers a knock at. These chain, so the
-           host puts a unit number on the data lines and only the one it
-           names may reply. Zero unless the drive's own jumpers say
-           otherwise, and the host works through the rest looking for
-           anything else on the cable.
+           Which address this pod answers a knock at. These chain, so the host
+           names one on the data lines and only that pod may reply.
          */
         .name           = "unit",
         .description    = "Unit address",
@@ -3947,17 +3456,11 @@ static const device_config_t ditto_config[] = {
     },
     {
         /*
-           Which cartridge is in the drive. This settles the tape geometry
-           outright rather than it being guessed from whatever image
-           happens to be loaded, and it settles what Report Tape Status
-           says about the media. It does not change the drive: that is a
-           Ditto 2GB whatever is loaded into it.
-
-           The list is the one in DITTO_CARTRIDGE_LIST, expanded here so
-           that the dialog cannot come to offer something the drive does
-           not have. The key is still called "capacity" and the first
-           three still have their original values, so a machine saved
-           before the rest existed comes up with the cartridge it had.
+           Which cartridge is in the drive: the geometry, and what Report Tape
+           Status says about the media. Not the drive itself. The list is
+           DITTO_CARTRIDGE_LIST expanded, so the dialog cannot offer something
+           the drive does not have, and the first three keep their original
+           values so a machine saved before the rest comes up unchanged.
          */
         .name           = "capacity",
         .description    = "Cartridge",
@@ -3990,10 +3493,8 @@ static const device_config_t ditto_config[] = {
     },
     {
         /*
-           A ceiling, not a choice: the host probes upwards from SPP and
-           keeps the fastest mode that works, so this only caps how far
-           it gets. Lower it to make a trace readable, or to work around
-           a port whose faster modes misbehave.
+           A ceiling, not a choice: the host probes upward from SPP and keeps
+           the fastest mode that works. Lower it to make a trace readable.
          */
         .name           = "protocol",
         .description    = "Maximum transfer protocol",
