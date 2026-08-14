@@ -174,7 +174,7 @@ cga_in(uint16_t addr, void *priv)
             ret = cga->crtc[cga->crtcreg];
             break;
         case CGA_REGISTER_STATUS:
-            ret = cga->cgastat | (cga->lp_strobe ? 0b010 : 0) | ((!cga_lightpen_enabled || !mouse_get_buttons_ex()) ? 0b100 : 0);
+            ret = cga->cgastat | (cga->lp_strobe ? 0b010 : 0) | ((!cga_lightpen_enabled || !tablet_get_buttons_ex()) ? 0b100 : 0);
             break;
         case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)
@@ -1183,11 +1183,8 @@ const device_t cga_pravetz_device = {
 void *
 cga_lightpen_init(UNUSED(const device_t *info))
 {
-    mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
-    // All polling is done by the CGA.
-    mouse_set_poll(NULL, (void*)1);
-    mouse_set_poll_ex(NULL);
+    mouse_set_poll_ex(NULL, NULL);
     cga_luma_threshold = device_get_config_int("luma_thresh") / 100.;
     cga_lightpen_enabled = true;
     
@@ -1204,17 +1201,6 @@ cga_lightpen_close(void* priv)
 
 static const device_config_t cga_lightpen_config[] = {
   // clang-format off
-    {
-        .name           = "crosshair",
-        .description    = "Show Crosshair",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     {
         .name           = "luma_thresh",
         .description    = "Luminance threshold (%)",

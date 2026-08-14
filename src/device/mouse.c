@@ -45,6 +45,7 @@ typedef struct mouse_t {
 } mouse_t;
 
 int mouse_type = 0;
+int tablet_type = 0;
 int mouse_input_mode;
 int mouse_timed = 1;
 int mouse_tablet_in_proximity = 0;
@@ -56,6 +57,7 @@ double mouse_y_abs;
 double mouse_sensitivity = 1.0;
 
 pc_timer_t mouse_timer; /* mouse event timer */
+pc_timer_t tablet_timer; /* tablet event timer */
 
 static const device_t mouse_none_device = {
     .name          = "None",
@@ -104,14 +106,19 @@ static mouse_t mouse_devices[] = {
 #ifdef USE_STANDALONE_QUICKPORT
     { &mouse_upc_standalone_device     },
 #endif
-#ifdef USE_WACOM
-    { &mouse_wacom_device              },
-    { &mouse_wacom_artpad_device       },
-#endif
-    { &mouse_mtouch_device             },
-    { &mouse_cga_lightpen_device       },
     { NULL                             }
     // clang-format on
+};
+
+static mouse_t tablet_devices[] = {
+    { &mouse_none_device                },
+#ifdef USE_WACOM
+    { &mouse_wacom_tablet_device        },
+    { &mouse_wacom_artpad_tablet_device },
+#endif
+    { &mouse_mtouch_device              },
+    { &mouse_cga_lightpen_device        },
+    { NULL                              }
 };
 
 static ATOMIC_DOUBLE   mouse_x;
@@ -119,17 +126,22 @@ static ATOMIC_DOUBLE   mouse_y;
 static ATOMIC_INT      mouse_z;
 static ATOMIC_INT      mouse_w;
 static ATOMIC_INT      mouse_buttons;
+static ATOMIC_INT      tablet_buttons;
 
 static int             mouse_delta_b;
 static int             mouse_old_b;
 
 static void           *mouse_priv;
+static void           *mouse_ex_priv;
 static int             mouse_nbut;
 static int             mouse_raw;
 static int (*mouse_dev_poll)(void *priv);
-static void (*mouse_poll_ex)(void) = NULL;
+static int (*mouse_poll_ex)(void *priv) = NULL;
 
 static double          sample_rate = 200.0;
+static double          sample_rate_tablet = 200.0;
+
+int mouse_input_mode_initial = 0;
 
 #ifdef ENABLE_MOUSE_LOG
 int mouse_do_log = ENABLE_MOUSE_LOG;
@@ -148,6 +160,28 @@ mouse_log(const char *fmt, ...)
 #else
 #    define mouse_log(fmt, ...)
 #endif
+
+int
+mouse_both_enabled(void)
+{
+    return mouse_type && tablet_type;
+}
+
+void
+tablet_process(void)
+{
+    if ((mouse_input_mode >= 1) && mouse_poll_ex)
+        mouse_poll_ex(mouse_ex_priv);
+}
+
+void
+mouse_process(void)
+{
+    if ((mouse_input_mode >= 1) && mouse_poll_ex && !mouse_both_enabled())
+        mouse_poll_ex(mouse_ex_priv);
+    else if ((mouse_input_mode == 0) && (mouse_dev_poll != NULL))
+        mouse_dev_poll(mouse_priv);
+}
 
 void
 mouse_clear_x(void)
@@ -361,22 +395,6 @@ mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
 }
 
 int
-mouse_wheel_moved(void)
-{
-    int ret = !!(ATOMIC_LOAD(mouse_z));
-
-    return ret;
-}
-
-int
-mouse_hwheel_moved(void)
-{
-    int ret = !!(ATOMIC_LOAD(mouse_w));
-
-    return ret;
-}
-
-int
 mouse_moved(void)
 {
     int moved_x = !!((int) floor(ABSD(mouse_scale_coord_x(ATOMIC_LOAD(mouse_x), 1))));
@@ -424,6 +442,21 @@ mouse_timer_poll(UNUSED(void *priv))
 #endif
         if (mouse_timed)
             mouse_process();
+#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    }
+#endif
+}
+
+static void
+tablet_timer_poll(UNUSED(void *priv))
+{
+    /* Poll at the specified sample rate. */
+    timer_on_auto(&tablet_timer, 1000000.0 / sample_rate_tablet);
+
+#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    if (gdbstub_step == GDBSTUB_EXEC) {
+#endif
+        tablet_process();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     }
 #endif
@@ -579,13 +612,20 @@ mouse_subtract_w(int *delta_w, int min, int max, int invert)
 void
 mouse_set_buttons_ex(int b)
 {
-    ATOMIC_STORE(mouse_buttons, b);
+    ATOMIC_STORE(*(mouse_input_mode >= 1 ? &tablet_buttons : &mouse_buttons), b);
+    ATOMIC_STORE(*(mouse_input_mode >= 1 ? &mouse_buttons : &tablet_buttons), 0);
 }
 
 int
 mouse_get_buttons_ex(void)
 {
     return ATOMIC_LOAD(mouse_buttons);
+}
+
+int
+tablet_get_buttons_ex(void)
+{
+    return ATOMIC_LOAD(tablet_buttons);
 }
 
 void
@@ -601,6 +641,15 @@ mouse_set_sample_rate(double new_rate)
 }
 
 void
+tablet_set_sample_rate(double new_rate)
+{
+    timer_stop(&tablet_timer);
+
+    sample_rate_tablet = new_rate;
+    timer_on_auto(&tablet_timer, 1000000.0 / sample_rate_tablet);
+}
+
+void
 mouse_update_sample_rate(void)
 {
     mouse_set_sample_rate(sample_rate);
@@ -610,7 +659,9 @@ mouse_update_sample_rate(void)
 void
 mouse_set_buttons(int buttons)
 {
-    mouse_nbut = buttons;
+    // Make this an union of minimum required buttons.
+    if (mouse_nbut < buttons)
+        mouse_nbut = buttons;
 }
 
 void
@@ -621,18 +672,10 @@ mouse_get_abs_coords(double *x_abs, double *y_abs)
 }
 
 void
-mouse_process(void)
-{
-    if ((mouse_input_mode >= 1) && mouse_poll_ex)
-        mouse_poll_ex();
-    else if ((mouse_input_mode == 0) && (mouse_dev_poll != NULL))
-        mouse_dev_poll(mouse_priv);
-}
-
-void
-mouse_set_poll_ex(void (*poll_ex)(void))
+mouse_set_poll_ex(int (*poll_ex)(void*), void *arg)
 {
     mouse_poll_ex = poll_ex;
+    mouse_ex_priv = arg;
 }
 
 void
@@ -640,12 +683,6 @@ mouse_set_poll(int (*func)(void *), void *arg)
 {
     mouse_dev_poll = func;
     mouse_priv     = arg;
-}
-
-const char *
-mouse_get_name(int mouse)
-{
-    return (mouse_devices[mouse].device->name);
 }
 
 const char *
@@ -683,6 +720,41 @@ mouse_get_device(int mouse)
     return (mouse_devices[mouse].device);
 }
 
+const char *
+tablet_get_internal_name(int tablet)
+{
+    return device_get_internal_name(tablet_devices[tablet].device);
+}
+
+int
+tablet_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (tablet_devices[c].device != NULL) {
+        if (!strcmp((char *) tablet_devices[c].device->internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+int
+tablet_has_config(int tablet)
+{
+    if (tablet_devices[tablet].device == NULL)
+        return 0;
+
+    return (tablet_devices[tablet].device->config ? 1 : 0);
+}
+
+const device_t *
+tablet_get_device(int tablet)
+{
+    return (tablet_devices[tablet].device);
+}
+
 int
 mouse_get_buttons(void)
 {
@@ -696,29 +768,73 @@ mouse_get_ndev(void)
     return ((sizeof(mouse_devices) / sizeof(mouse_t)) - 1);
 }
 
+int
+tablet_get_ndev(void)
+{
+    return ((sizeof(tablet_devices) / sizeof(mouse_t)) - 1);
+}
+
 void
 mouse_set_raw(int raw)
 {
     mouse_raw = raw;
 }
 
+static void
+tablet_reset(void)
+{
+    if (mouse_ex_priv != NULL)
+        return; /* Tablet already initialized. */
+
+    mouse_log("TABLET: reset(type=%d, '%s')\n",
+              tablet_type, tablet_devices[tablet_type].device->name);
+
+    /* If no mouse configured, we're done. */
+    if (tablet_type == 0)
+        return;
+
+    timer_add(&tablet_timer, tablet_timer_poll, NULL, 0);
+
+    /* Poll at 100 Hz. */
+    tablet_set_sample_rate(100.0);
+
+    if ((tablet_type > 0) && (tablet_devices[tablet_type].device != NULL))
+        mouse_ex_priv = device_add(tablet_devices[tablet_type].device);
+
+    if (!mouse_both_enabled()) {
+        mouse_dev_poll = mouse_poll_ex;
+        mouse_priv = mouse_ex_priv;
+
+        timer_stop(&tablet_timer);
+
+        timer_add(&mouse_timer, mouse_timer_poll, NULL, 0);
+
+        /* Poll at 100 Hz, the default of a PS/2 mouse. */
+        mouse_set_sample_rate(100.0);
+    }
+}
+
 void
 mouse_reset(void)
 {
+    /* Clear local data. */
+    mouse_clear_coords();
+    mouse_clear_buttons();
+    mouse_input_mode = mouse_input_mode_initial;
+    tablet_reset();
+
     if (mouse_priv != NULL)
         return; /* Mouse already initialized. */
 
     mouse_log("MOUSE: reset(type=%d, '%s')\n",
               mouse_type, mouse_devices[mouse_type].device->name);
 
-    /* Clear local data. */
-    mouse_clear_coords();
-    mouse_clear_buttons();
-    mouse_input_mode      = 0;
-
     /* If no mouse configured, we're done. */
-    if (mouse_type == 0)
+    if (mouse_type == 0) {
+        if (mouse_input_mode == 0 && tablet_type)
+            mouse_input_mode = 1;
         return;
+    }
 
     timer_add(&mouse_timer, mouse_timer_poll, NULL, 0);
 
@@ -727,16 +843,26 @@ mouse_reset(void)
 
     if ((mouse_type > 1) && (mouse_devices[mouse_type].device != NULL))
         mouse_priv = device_add(mouse_devices[mouse_type].device);
+
+    if (!tablet_type) {
+        if (mouse_input_mode > 0)
+            mouse_input_mode = 0;
+    }
 }
 
 void
 mouse_close(void)
 {
     mouse_priv     = NULL;
+    mouse_ex_priv  = NULL;
     mouse_nbut     = 0;
     mouse_dev_poll = NULL;
+    mouse_poll_ex  = NULL;
 
-    timer_stop(&mouse_timer);
+    if (mouse_type)
+        timer_stop(&mouse_timer);
+    if (tablet_type)
+        timer_stop(&tablet_timer);
 }
 
 /* Initialize the mouse module. */
