@@ -219,9 +219,6 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         if (device_is_valid(dev, machineId) == 0)
             continue;
 
-        if (!has_cga_pen && !strcmp(mouse_get_internal_name(i), "cga_lightpen"))
-            continue;
-
         QString name = DeviceConfig::DeviceName(dev, mouse_get_internal_name(i), 0);
         int     row  = mouseModel->rowCount();
         mouseModel->insertRow(row);
@@ -253,6 +250,9 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         int     row  = tabletModel->rowCount();
         tabletModel->insertRow(row);
         auto idx = tabletModel->index(row, 0);
+
+        if (!has_cga_pen && !strcmp(tablet_get_internal_name(i), "cga_lightpen"))
+            continue;
 
         tabletModel->setData(idx, name, Qt::DisplayRole);
         tabletModel->setData(idx, i, Qt::UserRole);

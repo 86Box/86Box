@@ -118,6 +118,7 @@ static mouse_t tablet_devices[] = {
 #endif
     { &mouse_mtouch_device              },
     { &mouse_cga_lightpen_device        },
+    { NULL                              }
 };
 
 static ATOMIC_DOUBLE   mouse_x;
