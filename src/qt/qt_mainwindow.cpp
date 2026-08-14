@@ -2591,8 +2591,9 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
                                                monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
                                                monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
             }
-            secondaryRenderer->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+            secondaryRenderer->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+            secondaryRenderer->show();
         }
     } else {
         for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {

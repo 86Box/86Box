@@ -64,8 +64,6 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
 
 private:
-    QVulkanInstance instance;
-
     uint8_t* mappedPtr = nullptr;
     uint32_t imagePitch = 0;
 
