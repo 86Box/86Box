@@ -154,6 +154,9 @@ protected:
 
 private slots:
     void on_actionPen_triggered();
+    void on_actionMouse_triggered();
+    void on_actionTablet_triggered();
+    void on_actionTablet_Crosshair_triggered();
 
 private slots:
     void on_actionCursor_Puck_triggered();
