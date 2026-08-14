@@ -783,6 +783,10 @@ load_input_devices(void)
     else
         mouse_type = 0;
 
+    // Migration.
+    if (tablet_get_from_internal_name(p) && mouse_type == 0)
+        ini_section_set_string(cat, "tablet_type", tablet_get_from_internal_name(p));
+
     p = ini_section_get_string(cat, "tablet_type", NULL);
     if (p != NULL)
         tablet_type = tablet_get_from_internal_name(p);
