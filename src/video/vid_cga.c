@@ -1183,10 +1183,7 @@ const device_t cga_pravetz_device = {
 void *
 cga_lightpen_init(UNUSED(const device_t *info))
 {
-    mouse_input_mode = device_get_config_int("crosshair") + 1;
     mouse_set_buttons(2);
-    // All polling is done by the CGA.
-    mouse_set_poll(NULL, (void*)1);
     mouse_set_poll_ex(NULL, NULL);
     cga_luma_threshold = device_get_config_int("luma_thresh") / 100.;
     cga_lightpen_enabled = true;
