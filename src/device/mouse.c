@@ -831,7 +831,7 @@ mouse_reset(void)
 
     /* If no mouse configured, we're done. */
     if (mouse_type == 0) {
-        if (mouse_input_mode == 0)
+        if (mouse_input_mode == 0 && tablet_type)
             mouse_input_mode = 1;
         return;
     }

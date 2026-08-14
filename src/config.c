@@ -3403,7 +3403,7 @@ save_input_devices(void)
     else
         ini_section_delete_var(cat, "tablet_tool_type");
 
-    if (mouse_input_mode_initial != 1)
+    if (mouse_input_mode_initial != 0)
         ini_section_set_int(cat, "mouse_input_mode_initial", mouse_input_mode_initial);
     else
         ini_section_delete_var(cat, "mouse_input_mode_initial");
