@@ -424,7 +424,7 @@ msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Använd 486-programtolk för 286- och 386-processorer"
 
 msgid "Dynamic Recompiler"
-msgstr "Dynamisk Omkompilator"
+msgstr "Dynamisk omkompilator"
 
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"

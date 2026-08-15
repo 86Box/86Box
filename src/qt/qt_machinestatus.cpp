@@ -1049,7 +1049,7 @@ MachineStatus::refresh(QStatusBar *sbar)
 
     d->dynarec = std::make_unique<QLabel>();
     d->dynarec->setPixmap(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
-    d->dynarec->setToolTip(tr("Dynamic Recompiler"));
+    d->dynarec->setToolTip(tr("Dynamic recompiler"));
     sbar->addWidget(d->dynarec.get());
 
     d->text = std::make_unique<QLabel>();
