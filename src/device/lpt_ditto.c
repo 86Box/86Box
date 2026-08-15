@@ -6,11 +6,14 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Iomega Ditto parallel port tape drive.
+ *          This emulates an Iomega Ditto parallel port tape drive, which is
+ *          internally an ordinary QIC-117 floppy interface tape drive that
+ *          communicates over the parallel port using the "BackPack" protocol
+ *          from MicroSolutions.
  *
- *          An ordinary QIC-117 floppy interface tape drive with a
- *          MicroSolutions "BackPack" parallel port bridge (a 50772D
- *          ASIC) in front of it.
+ *          Recommended to be used with the Ditto Tools software for Windows
+ *          95/98, although will likely work with other tools from the period
+ *          that support a parallel port tape drive.
  *
  * Authors: Dmitry Brant, <me@dmitrybrant.com>
  *
@@ -3288,12 +3291,10 @@ ditto_init(UNUSED(const device_t *info))
     if (dev == NULL)
         return NULL;
 
-    dev->max_proto = device_get_config_int("protocol");
-    if ((dev->max_proto < DITTO_PROTO_SPP) || (dev->max_proto > DITTO_PROTO_EPP32))
-        dev->max_proto = DITTO_PROTO_SPP;
+    dev->unit     = 0;
+    dev->max_proto = DITTO_PROTO_EPP8;
 
     dev->readonly = device_get_config_int("writeprot");
-    dev->unit     = (uint8_t) device_get_config_int("unit");
 
     /*
        The drive's own identity, which the cartridge does not change. Powers
@@ -3422,45 +3423,14 @@ static const device_config_t ditto_config[] = {
         .bios           = { { 0 } }
     },
     {
-        /*
-           Which address this pod answers a knock at. These chain, so the host
-           names one on the data lines and only that pod may reply.
-         */
-        .name           = "unit",
-        .description    = "Unit address",
-        .type           = CONFIG_SPINNER,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { .min = 0, .max = 7, .step = 1 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "writeprot",
-        .description    = "Write protect cartridge",
+        .description    = "Write protect",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "protocol",
-        .description    = "Maximum transfer protocol",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = DITTO_PROTO_EPP8,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "EPP",          .value = DITTO_PROTO_EPP8  },
-            { .description = "PS/2 (8-bit)", .value = DITTO_PROTO_PS2   },
-            { .description = "SPP (4-bit)",  .value = DITTO_PROTO_SPP   },
-            { .description = ""                                         }
-        },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

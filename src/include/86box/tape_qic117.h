@@ -6,28 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          QIC-117: the parts of the command set that belong to the bus
- *          rather than to any one drive.
- *
- *          Two drives here speak it - the cable-attached Colorado Jumbo
- *          in floppy/fdd_tape.c and the parallel-port Iomega Ditto behind
- *          a BackPack bridge in device/lpt_ditto.c - and until now they
- *          had a copy each. The copies drifted, which is not a
- *          theoretical worry: they came to disagree about how many
- *          nibbles a skip count carries, and the one that was wrong read
- *          the second nibble as a command and stopped every backup at the
- *          same segment. Command numbering, the bits a drive reports and
- *          the width of each command's parameters are properties of the
- *          bus, so they live here where they cannot drift again.
- *
- *          What deliberately does NOT live here is anything a drive gets
- *          to decide: which of these commands it implements, what it does
- *          with one, its identity, its geometry, and how it is wired to
- *          the host. The two engines differ in all of those - one is fed
- *          by 86Box's floppy controller a sector at a time, the other has
- *          a controller of its own inside the bridge and moves whole
- *          segments - and merging those would trade a duplication that is
- *          now visible for a shared path that would not be.
+ *          QIC-117: common command set and definitions for floppy tape
+ *          drives and related components.
  *
  * Authors: Dmitry Brant, <me@dmitrybrant.com>
  *
@@ -37,53 +17,51 @@
 #define TAPE_QIC117_H
 
 /*
-   The command set. A command is sent as that many step pulses, so these
-   numbers are the wire protocol rather than an enumeration of it. The
-   gaps are codes the standard reserves or leaves to the vendor; what a
-   drive makes of those is its own business and is defined with the drive.
+   The command set, with each command being that many step pulses on the FDC.
  */
 enum {
-    QIC_RESET                       =  1,  /* soft reset */
-    QIC_REPORT_NEXT_BIT             =  2,  /* report next bit */
-    QIC_PAUSE                       =  3,  /* pause */
-    QIC_MICRO_STEP_PAUSE            =  4,  /* micro step pause */
-    QIC_ALTERNATE_TIMEOUT           =  5,  /* alternate command timeout */
-    QIC_REPORT_DRIVE_STATUS         =  6,  /* report drive status */
-    QIC_REPORT_ERROR_CODE           =  7,  /* report error code */
-    QIC_REPORT_DRIVE_CONFIG         =  8,  /* report drive configuration */
-    QIC_REPORT_ROM_VERSION          =  9,  /* report ROM version */
-    QIC_LOGICAL_FORWARD             = 10,  /* logical forward */
-    QIC_PHYSICAL_REVERSE            = 11,  /* physical reverse */
-    QIC_PHYSICAL_FORWARD            = 12,  /* physical forward */
-    QIC_SEEK_HEAD_TO_TRACK          = 13,  /* seek head to track */
-    QIC_SEEK_LOAD_POINT             = 14,  /* seek load point */
-    QIC_ENTER_FORMAT_MODE           = 15,  /* enter format mode */
-    QIC_WRITE_REFERENCE_BURST       = 16,  /* write reference burst */
-    QIC_ENTER_VERIFY_MODE           = 17,  /* enter verify mode */
-    QIC_STOP_TAPE                   = 18,  /* stop tape */
-    QIC_MICRO_STEP_HEAD_UP          = 21,  /* micro step head up */
-    QIC_MICRO_STEP_HEAD_DOWN        = 22,  /* micro step head down */
-    QIC_SOFT_SELECT                 = 23,  /* soft select */
-    QIC_SOFT_DESELECT               = 24,  /* soft deselect */
-    QIC_SKIP_REVERSE                = 25,  /* skip segments reverse */
-    QIC_SKIP_FORWARD                = 26,  /* skip segments forward */
-    QIC_SELECT_RATE                 = 27,  /* select rate or format */
-    QIC_ENTER_DIAGNOSTIC_1          = 28,  /* enter diagnostic 1 */
-    QIC_ENTER_DIAGNOSTIC_2          = 29,  /* enter diagnostic 2 */
-    QIC_ENTER_PRIMARY_MODE          = 30,  /* enter primary mode */
-    QIC_REPORT_VENDOR_ID            = 32,  /* report vendor ID */
-    QIC_REPORT_TAPE_STATUS          = 33,  /* report tape status */
-    QIC_SKIP_EXTENDED_REVERSE       = 34,  /* skip extended reverse */
-    QIC_SKIP_EXTENDED_FORWARD       = 35,  /* skip extended forward */
-    QIC_CALIBRATE_TAPE_LENGTH       = 36,  /* calibrate tape length */
-    QIC_REPORT_FORMAT_SEGMENTS      = 37,  /* report format segments */
-    QIC_SET_FORMAT_SEGMENTS         = 38,  /* set format segments */
-    QIC_PHANTOM_SELECT              = 46,  /* phantom select */
-    QIC_PHANTOM_DESELECT            = 47,  /* phantom deselect */
-    QIC_EXT_SELECT_RATE             = 50,  /* extended select rate */
-    QIC_EXT_REPORT_DRIVE_CONFIG     = 51,  /* extended report drive config */
-    QIC_LOADER_PARTITION_STATUS     = 54,  /* loader partition status */
-    QIC_SEEK_TO_PARTITION           = 55   /* seek to partition */
+    QIC_NO_COMMAND                  =  0,
+    QIC_RESET                       =  1,
+    QIC_REPORT_NEXT_BIT             =  2,
+    QIC_PAUSE                       =  3,
+    QIC_MICRO_STEP_PAUSE            =  4,
+    QIC_ALTERNATE_TIMEOUT           =  5,
+    QIC_REPORT_DRIVE_STATUS         =  6,
+    QIC_REPORT_ERROR_CODE           =  7,
+    QIC_REPORT_DRIVE_CONFIG         =  8,
+    QIC_REPORT_ROM_VERSION          =  9,
+    QIC_LOGICAL_FORWARD             = 10,
+    QIC_PHYSICAL_REVERSE            = 11,
+    QIC_PHYSICAL_FORWARD            = 12,
+    QIC_SEEK_HEAD_TO_TRACK          = 13,
+    QIC_SEEK_LOAD_POINT             = 14,
+    QIC_ENTER_FORMAT_MODE           = 15,
+    QIC_WRITE_REFERENCE_BURST       = 16,
+    QIC_ENTER_VERIFY_MODE           = 17,
+    QIC_STOP_TAPE                   = 18,
+    QIC_MICRO_STEP_HEAD_UP          = 21,
+    QIC_MICRO_STEP_HEAD_DOWN        = 22,
+    QIC_SOFT_SELECT                 = 23,
+    QIC_SOFT_DESELECT               = 24,
+    QIC_SKIP_REVERSE                = 25,
+    QIC_SKIP_FORWARD                = 26,
+    QIC_SELECT_RATE                 = 27,
+    QIC_ENTER_DIAGNOSTIC_1          = 28,
+    QIC_ENTER_DIAGNOSTIC_2          = 29,
+    QIC_ENTER_PRIMARY_MODE          = 30,
+    QIC_REPORT_VENDOR_ID            = 32,
+    QIC_REPORT_TAPE_STATUS          = 33,
+    QIC_SKIP_EXTENDED_REVERSE       = 34,
+    QIC_SKIP_EXTENDED_FORWARD       = 35,
+    QIC_CALIBRATE_TAPE_LENGTH       = 36,
+    QIC_REPORT_FORMAT_SEGMENTS      = 37,
+    QIC_SET_FORMAT_SEGMENTS         = 38,
+    QIC_PHANTOM_SELECT              = 46,
+    QIC_PHANTOM_DESELECT            = 47,
+    QIC_EXT_SELECT_RATE             = 50,
+    QIC_EXT_REPORT_DRIVE_CONFIG     = 51,
+    QIC_LOADER_PARTITION_STATUS     = 54,
+    QIC_SEEK_TO_PARTITION           = 55
 };
 
 /* Drive status, as reported by command 6. */

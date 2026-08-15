@@ -56,17 +56,10 @@
    own bound on what it will look at rather than a command.
  */
 enum {
-    QIC_NO_COMMAND     = 0,
     QIC_CMS_COMMAND_31 = 31,
     QIC_CONNER_CMD_40  = 40,
     QIC_MAX_COMMAND    = 55
 };
-
-
-
-
-
-
 
 /* The error code list (3.5) divides errors into classes: initialization
    errors overwrite any pending code, while every other class leaves an
