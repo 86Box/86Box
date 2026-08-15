@@ -1482,6 +1482,8 @@ svga_poll(void *priv)
                 svga->lastline = svga->displine;
         }
 
+        
+
         svga->displine++;
         if (svga->interlace)
             svga->displine++;
@@ -1492,6 +1494,7 @@ svga_poll(void *priv)
             svga->displine = 0;
     } else {
         timer_advance_u64(&svga->timer, svga->dispontime);
+        video_lightpen_hsync();
 
         if (svga->adv_flags & FLAG_PANNING_ATI) {
             if (svga->panning_blank) {
@@ -1669,6 +1672,8 @@ svga_poll(void *priv)
 
             if (svga->vsync_callback)
                 svga->vsync_callback(svga);
+
+            video_lightpen_vsync();
 
             svga->start_retrace_latch = svga->crtc[0x4];
         }

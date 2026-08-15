@@ -378,6 +378,12 @@ vid_table_log(const char *fmt, ...)
 
 static pc_timer_t framerate_timer;
 
+void* lightpen_priv = NULL;
+
+void (*lightpen_hsync_callback)(void*) = NULL;
+void (*lightpen_vsync_callback)(void*) = NULL;
+void (*lightpen_check_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used) = NULL;
+
 void
 video_update_framerates(void* priv)
 {
@@ -401,6 +407,32 @@ video_reset_close(void)
     monitor_index_global = 0;
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
     was_reset = 0;
+
+    lightpen_priv = NULL;
+    lightpen_hsync_callback = NULL;
+    lightpen_vsync_callback = NULL;
+}
+
+void
+video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*))
+{
+    lightpen_priv = priv;
+    lightpen_hsync_callback = lightpen_hsync;
+    lightpen_vsync_callback = lightpen_vsync;
+}
+
+void
+video_lightpen_hsync(void)
+{
+    if (lightpen_hsync_callback)
+        lightpen_hsync_callback(lightpen_priv);
+}
+
+void
+video_lightpen_vsync(void)
+{
+    if (lightpen_vsync_callback)
+        lightpen_vsync_callback(lightpen_priv);
 }
 
 static void
