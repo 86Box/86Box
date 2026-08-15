@@ -67,7 +67,7 @@ void pxl380_lightpen_check_trigger_strobe(void* priv, int x_offset, int y, int x
     mouse_get_abs_coords(&abs_x, &abs_y);
 
     abs_x *= monitors[monitor_used].mon_unscaled_size_x - 1;
-    abs_y *= monitors[monitor_used].mon_efscrnsz_y - 1;
+    abs_y *= monitors[monitor_used].mon_unscaled_size_y - 1;
 
     int x = abs_x + x_offset;
     float sampled_luma = pxl380_sample_luma(monitors[monitor_used].target_buffer, x, y);
@@ -82,7 +82,7 @@ void pxl380_lightpen_check_trigger_strobe(void* priv, int x_offset, int y, int x
     }
 
     // Checking for x makes no sense.
-    if (sampled_luma >= 0.125 && y == abs_y && !(pxl380->status & 0x8)) {
+    if (sampled_luma >= 0.125 && y == (int)abs_y) {
         double factor = 48000000. / pix_clock;
         int latch_val = (x_offset_from_hsync + real_x) * factor;
 
@@ -165,7 +165,7 @@ pxl380_read(uint16_t addr, void* priv)
             break;
     }
 
-    pclog("[PXL-380] RET 0x%02X (PORT %d)\n", ret, addr & 7);
+    //pclog("[PXL-380] RET 0x%02X (PORT %d)\n", ret, addr & 7);
     return ret;
 }
 
@@ -173,7 +173,7 @@ void
 pxl380_write(uint16_t addr, uint8_t val, void* priv)
 {
     pxl380_t* pxl380 = priv;
-    pclog("[PXL-380] WRITE 0x%02X (VAL 0x%02X)\n", addr, val);
+    //pclog("[PXL-380] WRITE 0x%02X (VAL 0x%02X)\n", addr, val);
     switch (addr & 7) {
         case 4:
         {
