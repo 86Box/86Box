@@ -458,6 +458,9 @@ msgstr "Grafika XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Grafika prikazovalnika IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -473,13 +476,19 @@ msgstr "Miška:"
 msgid "Mouse"
 msgstr "Miška"
 
+msgid "&Mouse"
+msgstr "&Miška"
+
 msgid "Tablet:"
 msgstr ""
 
 msgid "Tablet"
 msgstr ""
 
-msgid "Tablet (Crosshair)"
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -842,7 +851,7 @@ msgstr "Zaslon"
 msgid "Input devices"
 msgstr "Vhodne naprave"
 
-msgid "Input device"
+msgid "Input &device"
 msgstr ""
 
 msgid "Sound"

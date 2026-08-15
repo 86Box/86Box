@@ -458,6 +458,9 @@ msgstr "Scheda grafica XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Scheda grafica IBM PS/55 Display Adapter"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -473,13 +476,19 @@ msgstr "Mouse:"
 msgid "Mouse"
 msgstr "Mouse"
 
+msgid "&Mouse"
+msgstr "&Mouse"
+
 msgid "Tablet:"
 msgstr ""
 
 msgid "Tablet"
 msgstr ""
 
-msgid "Tablet (Crosshair)"
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -848,7 +857,7 @@ msgstr "Schermo"
 msgid "Input devices"
 msgstr "Dispositivi di ingresso"
 
-msgid "Input device"
+msgid "Input &device"
 msgstr ""
 
 msgid "Sound"

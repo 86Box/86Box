@@ -450,6 +450,9 @@ msgstr ""
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr ""
 
+msgid "SCSI:"
+msgstr ""
+
 msgid "Voodoo:"
 msgstr ""
 
@@ -465,13 +468,19 @@ msgstr ""
 msgid "Mouse"
 msgstr ""
 
+msgid "&Mouse"
+msgstr ""
+
 msgid "Tablet:"
 msgstr ""
 
 msgid "Tablet"
 msgstr ""
 
-msgid "Tablet (Crosshair)"
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -834,7 +843,7 @@ msgstr ""
 msgid "Input devices"
 msgstr ""
 
-msgid "Input device"
+msgid "Input &device"
 msgstr ""
 
 msgid "Sound"

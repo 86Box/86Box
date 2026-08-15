@@ -458,6 +458,9 @@ msgstr "Прискорювач XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -473,13 +476,19 @@ msgstr "Миша:"
 msgid "Mouse"
 msgstr "Миша"
 
+msgid "&Mouse"
+msgstr "&Миша"
+
 msgid "Tablet:"
 msgstr ""
 
 msgid "Tablet"
 msgstr ""
 
-msgid "Tablet (Crosshair)"
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -842,7 +851,7 @@ msgstr "Дисплей"
 msgid "Input devices"
 msgstr "Пристрій введення"
 
-msgid "Input device"
+msgid "Input &device"
 msgstr ""
 
 msgid "Sound"
