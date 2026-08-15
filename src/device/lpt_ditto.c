@@ -6,27 +6,11 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Iomega Ditto Max parallel port tape drive.
+ *          Iomega Ditto parallel port tape drive.
  *
  *          An ordinary QIC-117 floppy interface tape drive with a
  *          MicroSolutions "BackPack" parallel port bridge (a 50772D
- *          ASIC) in front of it. Four layers sit between the host's LPT
- *          registers and the tape:
- *
- *            1. the BackPack wire protocol, in SPP nibble, PS/2 byte or
- *               EPP mode;
- *            2. the BackPack register file at 0x00..0xff - the 128 KB
- *               buffer, the CRC-16 and ECC engines, the IRQ control;
- *            3. an NEC 765 style controller at 0x40..0x47 of it;
- *            4. the QIC-117 command set, commanded by counting the step
- *               pulses that controller emits.
- *
- *          docs/lpt-ditto.md is the reference for all of it: what each
- *          layer does, and the host behaviours that are not guessable
- *          from any specification - a controller reset empties the
- *          QIC-117 command channel, skip counts are a fixed number of
- *          nibbles, a transfer has to take as long as the tape it
- *          covers. Each of those broke a whole operation.
+ *          ASIC) in front of it.
  *
  * Authors: Dmitry Brant, <me@dmitrybrant.com>
  *
@@ -48,11 +32,11 @@
 #include <86box/tape_qic117.h>
 
 /*
-   The whole conversation with the port, into the emulator log
-   (86Box -L <file>). About one percent of the wall clock and a few
-   hundred megabytes a backup - see docs/lpt-ditto.md.
+   Whether debug logging is enabled.
  */
-#define ENABLE_LPT_DITTO_LOG 0
+#if 0
+#define ENABLE_LPT_DITTO_LOG 1
+#endif
 
 /*
    Port register bits at their literal values; the inversion at the
@@ -242,9 +226,10 @@ enum {
 
 /*
    What this drive says it is; every host keys its model-specific
-   behaviour off it. The low six bits are the model, the rest a make
-   code, so all 0x888x are Iomega. If a host refuses to format,
-   docs/lpt-ditto.md names the two identities worth trying next.
+   behavior off it. The low six bits are the model, the rest a make
+   code, so all 0x888x are Iomega.
+   - Ditto 2GB: 0x8883
+   - Ditto Max: 0x8885
  */
 #define DITTO_VENDOR_ID  0x8883
 #define DITTO_ROM_VERSION 0x41
@@ -253,9 +238,6 @@ enum {
    The cartridge, configured rather than read back off the image, and the
    image checked against it. The setting names a cartridge, never the
    drive - a Ditto 2GB reading a QIC-80 tape is still a Ditto 2GB.
-
-   Config values are never reused or renumbered: a saved machine stores
-   the number. See docs/lpt-ditto.md.
  */
 #define DITTO_CAPACITY_2GB 2
 #define DITTO_CAPACITY_3GB 3
@@ -273,8 +255,7 @@ enum {
 
 /*
    Format codes for the QIC-113 header segment (ftape-header-segment.h),
-   not the QIC-117 ones in tape_qic117.h. Nothing here writes a header -
-   the host does - but docs/mkdittotape.py reads these from this table.
+   not the QIC-117 ones in tape_qic117.h.
  */
 #define FT_FMT_NORMAL 2 /* QIC-80 post rev. B, 205 or 307.5 ft */
 #define FT_FMT_1100FT 3
@@ -303,7 +284,7 @@ typedef struct ditto_cartridge_t {
    The geometry is evidenced to three different degrees - the QIC-80
    family from several agreeing sources, QIC-3010 and QIC-3020 from
    Iomega's own driver, and the Travan rows DERIVED and evidenced
-   nowhere. docs/lpt-ditto.md says which is which and why it matters.
+   nowhere.
  */
 #define DITTO_ST_DITTO (QIC_TAPE_QIC3020 | QIC_TAPE_FLEX | QIC_TAPE_WIDE)
 
@@ -497,48 +478,27 @@ typedef struct ditto_t {
     uint8_t  report_hi;
 } ditto_t;
 
-#ifdef ENABLE_LPT_DITTO_LOG
-int lpt_ditto_do_log = ENABLE_LPT_DITTO_LOG;
-
-static void
-ditto_log(const char *fmt, ...)
-{
-    va_list ap;
-
-    if (lpt_ditto_do_log) {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
-}
-static const char *ditto_proto_name[] = {
-    "SPP 4-bit", "PS/2 8-bit", "EPP-8", "EPP-16", "EPP-32"
-};
-#else
-#    define ditto_log(fmt, ...)
-static const char *ditto_proto_name[] = {
-    "SPP 4-bit", "PS/2 8-bit", "EPP-8", "EPP-16", "EPP-32"
-};
-#endif
-
 /*
    How long the host has to go quiet before it counts as being away
    rather than just between operations.
  */
 #define DITTO_IDLE_MS 20
 
-/*
-   Marks where the host stopped talking, which a wire trace does not
-   otherwise show. Trace-gated: it costs a clock read per port access.
- */
 #ifdef ENABLE_LPT_DITTO_LOG
+
+static void
+ditto_log(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    pclog_ex(fmt, ap);
+    va_end(ap);
+}
+
 static void
 ditto_note_idle(ditto_t *dev)
 {
     const uint32_t now = plat_get_ticks();
-
-    if (!lpt_ditto_do_log)
-        return;
 
     if ((dev->last_port_ms != 0) &&
         ((now - dev->last_port_ms) >= DITTO_IDLE_MS))
@@ -548,8 +508,13 @@ ditto_note_idle(ditto_t *dev)
     dev->last_port_ms = now;
 }
 #else
-#    define ditto_note_idle(dev)
+#define ditto_log(fmt, ...)
+#define ditto_note_idle(dev)
 #endif
+
+static const char *ditto_proto_name[] = {
+    "SPP 4-bit", "PS/2 8-bit", "EPP-8", "EPP-16", "EPP-32"
+};
 
 /*
    Turns the protocol bits the host writes to control register 0x04 (and,
@@ -609,7 +574,7 @@ ditto_mem_read_byte(ditto_t *dev)
 /*
    Whether the data lines are being streamed into the buffer. A level,
    not an edge - STROBE is already up, left by the write that armed it.
-   STROBE dropping ends the burst; see docs/lpt-ditto.md.
+   STROBE dropping ends the burst.
  */
 static int
 ditto_mem_burst_active(const ditto_t *dev)
@@ -658,9 +623,6 @@ ditto_update_irq(ditto_t *dev, int test_poke)
    segment: the three ECC sectors hold, for each byte position, the
    parity of that byte across every data sector. GF(256) with
    x^8 + x^7 + x^2 + x + 1, and the only multiply needed is by r^105.
-
-   Generating them is what keeps a cartridge written here readable
-   elsewhere, including on the floppy-cable drive.
  */
 #define DITTO_ECC_POLY    0x187
 #define DITTO_ECC_FACTOR  0xc0
@@ -810,10 +772,6 @@ ditto_image_close(ditto_t *dev)
     dev->image_loaded = 0;
 }
 
-/*
-   The cartridge a configured value names, or the default if it names
-   none - an older machine, or a hand-edited configuration file.
- */
 static const ditto_cartridge_t *
 ditto_cartridge(int value)
 {
@@ -879,9 +837,7 @@ ditto_set_geometry(ditto_t *dev)
 }
 
 /*
-   Warns when a loaded image is not the size the cartridge calls for. Not
-   refused - a blank or part-written cartridge is legitimate - but said
-   out loud, because the usual cause is an image made for another one.
+   Warns when a loaded image is not the size the cartridge calls for.
  */
 static void
 ditto_check_image(const ditto_t *dev)
@@ -992,7 +948,6 @@ ditto_image_write(ditto_t *dev, uint32_t offset, const uint8_t *buf, uint32_t le
     return 1;
 }
 
-/* Puts a finished segment on disk. Cheap when nothing was written. */
 static void
 ditto_image_sync(ditto_t *dev)
 {
@@ -1304,7 +1259,7 @@ qic_stop_motion(ditto_t *dev)
    Runs the cartridge past the head a segment at a time. The pass has to
    end by itself - the host never stops it, it waits for ready - so the
    tape runs to the end of the track and stops a segment late, which is
-   the window QBACKUP's format polls in. See docs/lpt-ditto.md.
+   the window that the host software's format polls in.
  */
 static void
 qic_motion_tick(void *priv)
@@ -2017,7 +1972,7 @@ fdc_xfer_done(void *priv)
    A transfer takes as long as the tape it covers takes to pass the head.
    The bytes have already moved - the bridge buffers them - but finishing
    the instant the last command byte lands reads to the host as a
-   refusal. See docs/lpt-ditto.md.
+   refusal.
  */
 static void
 fdc_begin_exec(ditto_t *dev, int sectors, int res_len)
@@ -2098,7 +2053,7 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
        This host issues every read and every write twice, the retry carrying
        EOT one below the first sector as its way of saying "as much as the
        count allows". Reading EOT as the only limit made those move nothing
-       and report success. See docs/lpt-ditto.md.
+       and report success.
      */
     for (sector = first; left >= FDD_TAPE_SECTOR_SIZE; sector++) {
         if (!ditto_sector_offset(dev, cyl, head, sector, &offset)) {
@@ -2596,8 +2551,7 @@ fdc_write_reg(ditto_t *dev, int reg, uint8_t val)
                    the host starts afresh and expects to be heard from the
                    beginning. The host resets about once per pair of segments
                    and follows every reset with a soft select - which a drive
-                   still owed a skip count reads as the count. See
-                   docs/lpt-ditto.md.
+                   still owed a skip count reads as the count.
                  */
                 dev->report_pending  = 0;
                 dev->qic_ack         = 0;
@@ -2897,7 +2851,7 @@ ditto_connect_response(const ditto_t *dev)
    readings to be complements - an empty port cannot do that - and only
    then checks the number. It rides alongside the protocol answer
    because the other host driver reads the same status and wants only
-   that. See docs/lpt-ditto.md.
+   that.
  */
 static uint8_t
 ditto_ident_response(const ditto_t *dev)
