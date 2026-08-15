@@ -117,15 +117,15 @@ pxl380_read(uint16_t addr, void* priv)
     pxl380_t* pxl380 = priv;
     switch (addr & 7) {
         case 0:
-            return ~(pxl380->status | ((tablet_get_buttons_ex() & 3) << 1));
+            return ~(pxl380->status | ((tablet_get_buttons_ex() & 3) << 1)) & 0xf;
         case 1:
             return ((pxl380->timer1_cnt_latch >> 8) & 0xf) | (((pxl380->timer0_cnt_latch >> 8) & 0xf) << 4);
         case 2:
-            return pxl380->timer0_cnt_latch & 0xff;
+            return pxl380->timer1_cnt_latch & 0xff;
         case 3:
             return pxl380->timer0_cnt_latch & 0xff;
         default:
-            return 0xFF;
+            return 0x00;
     }
 
     return 0xFF;
