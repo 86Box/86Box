@@ -423,7 +423,7 @@ msgstr "Aktiverad (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Använd 486-programtolk för 286- och 386-processorer"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamisk omkompilator"
 
 msgid "CPU frame size"

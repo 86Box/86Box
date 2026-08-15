@@ -423,8 +423,8 @@ msgstr "Etkin (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286 ve 386 işlemcilerde 486 yorumlayıcısını kullan"
 
-msgid "Dynamic Recompiler"
-msgstr "Dinamik Derleyici"
+msgid "Dynamic recompiler"
+msgstr "Dinamik derleyici"
 
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"

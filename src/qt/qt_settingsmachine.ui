@@ -481,7 +481,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Dynamic Recompiler</string>
+           <string>Dynamic recompiler</string>
           </property>
          </widget>
         </item>

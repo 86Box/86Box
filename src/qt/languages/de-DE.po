@@ -423,8 +423,8 @@ msgstr "Eingeschaltet (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Verwende den 486-Interpreter für 286- und 386-Prozessoren"
 
-msgid "Dynamic Recompiler"
-msgstr "Dynamischer Recompiler"
+msgid "Dynamic recompiler"
+msgstr "Dynamischer recompiler"
 
 msgid "CPU frame size"
 msgstr "CPU-Framegröße"
