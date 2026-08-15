@@ -138,7 +138,7 @@ pxl380_read(uint16_t addr, void* priv)
             break;
     }
 
-    pclog("[PXL-380] RET 0x%02X\n", ret);
+    pclog("[PXL-380] RET 0x%02X (PORT %d)\n", ret, addr & 7);
     return 0xFF;
 }
 
