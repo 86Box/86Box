@@ -424,7 +424,7 @@ msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Použít interpreter 486 pro procesory 286 a 386"
 
 msgid "Dynamic Recompiler"
-msgstr "Dynamický překladač"
+msgstr "Dynamický Překladač"
 
 msgid "CPU frame size"
 msgstr "Velikost CPU rámců"

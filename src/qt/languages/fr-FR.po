@@ -424,7 +424,7 @@ msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Employer l'interprète 486 pour les processeurs 286 et 386"
 
 msgid "Dynamic Recompiler"
-msgstr "Recompilateur dynamique"
+msgstr "Recompilateur Dynamique"
 
 msgid "CPU frame size"
 msgstr "Taille du bloc de processeur"
