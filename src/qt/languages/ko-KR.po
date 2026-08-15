@@ -456,6 +456,9 @@ msgstr "XGA 그래픽"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 디스플레이 어댑터 그래픽스"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "마우스:"
 
 msgid "Mouse"
 msgstr "마우스"
+
+msgid "&Mouse"
+msgstr "마우스(&M)"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "조이스틱:"
@@ -837,6 +855,9 @@ msgstr "디스플레이"
 
 msgid "Input devices"
 msgstr "입력 장치"
+
+msgid "Input &device"
+msgstr ""
 
 msgid "Sound"
 msgstr "사운드"
@@ -3326,6 +3347,12 @@ msgstr "빠른 전진(&F)"
 msgid "Fast forward"
 msgstr "빠른 전진"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "시스템 디렉터리를 변경하려면 실행 중인 모든 머신을 중지하십시오."
 
@@ -3506,3 +3533,9 @@ msgstr "938 (중국어 번체)"
 
 msgid "Sample rate:"
 msgstr "샘플링 주파수:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

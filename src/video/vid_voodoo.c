@@ -1716,7 +1716,7 @@ static const device_config_t voodoo_config[] = {
 #ifndef NO_CODEGEN
     {
         .name           = "recompiler",
-        .description    = "Dynamic Recompiler",
+        .description    = "Dynamic recompiler",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,

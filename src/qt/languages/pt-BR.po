@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-07 11:38+0000\n"
+"PO-Revision-Date: 2026-08-15 17:18+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -457,6 +457,9 @@ msgstr "Gráficos XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Gráficos do Adaptador de Vídeo IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -471,6 +474,21 @@ msgstr "Mouse:"
 
 msgid "Mouse"
 msgstr "Mouse"
+
+msgid "&Mouse"
+msgstr "&Mouse"
+
+msgid "Tablet:"
+msgstr "Tablet:"
+
+msgid "Tablet"
+msgstr "Tablet"
+
+msgid "&Tablet"
+msgstr "&Tablet"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Tablet (&Cruz)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -831,6 +849,9 @@ msgstr "Vídeo"
 
 msgid "Input devices"
 msgstr "Dispositivos de entrada"
+
+msgid "Input &device"
+msgstr "D&ispositivo de entrada"
 
 msgid "Sound"
 msgstr "Som"
@@ -3259,6 +3280,12 @@ msgstr "&Avançar rapidamente"
 msgid "Fast forward"
 msgstr "Avançar rapidamente"
 
+msgid "&Non-maskable interrupt"
+msgstr "Interrupção &não-mascarável"
+
+msgid "Non-maskable interrupt"
+msgstr "Interrupção não-mascarável"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Para alterar o diretório do sistema, pare todas as máquinas em funcionamento."
 
@@ -3442,3 +3469,9 @@ msgstr "938 (Chinês tradicional)"
 msgid "Sample rate:"
 msgstr "Taxa de amostragem:"
 
+
+msgid "CGA lightpen"
+msgstr "Caneta óptica CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Limiar de luminância (%)"

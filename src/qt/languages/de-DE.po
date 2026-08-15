@@ -456,6 +456,9 @@ msgstr "XGA-Grafik"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Grafik-Adapter"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Maus:"
 
 msgid "Mouse"
 msgstr "Maus"
+
+msgid "&Mouse"
+msgstr "&Maus"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -830,6 +848,9 @@ msgstr "Anzeige"
 
 msgid "Input devices"
 msgstr "Eingabegeräte"
+
+msgid "Input &device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Ton"
@@ -3257,6 +3278,12 @@ msgstr "&Schnellvorlauf"
 msgid "Fast forward"
 msgstr "Schnellvorlauf"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Um das Systemverzeichnis zu ändern, stoppen Sie alle laufenden Maschinen."
 
@@ -3437,4 +3464,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditionelles Chinesisch)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

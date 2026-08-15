@@ -456,6 +456,9 @@ msgstr "Povolit grafický adaptér XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Povolit grafický adaptér IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Myš:"
 
 msgid "Mouse"
 msgstr "Myš"
+
+msgid "&Mouse"
+msgstr "&Myš"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -830,6 +848,9 @@ msgstr "Obraz"
 
 msgid "Input devices"
 msgstr "Vstupní zařízení"
+
+msgid "Input &device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Zvuk"
@@ -3300,6 +3321,12 @@ msgstr "&Zrychlit"
 msgid "Fast forward"
 msgstr "Zrychlit"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
 
@@ -3480,3 +3507,9 @@ msgstr "938 (klasická čínština)"
 
 msgid "Sample rate:"
 msgstr "Vzorkovací frekvence:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

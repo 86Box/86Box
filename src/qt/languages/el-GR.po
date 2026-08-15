@@ -456,6 +456,9 @@ msgstr "Γραφικά XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Προσαρμογέας Γραφικών IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Ποντίκι:"
 
 msgid "Mouse"
 msgstr "Ποντίκι"
+
+msgid "&Mouse"
+msgstr "&Ποντίκι"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -830,6 +848,9 @@ msgstr "Οθόνη"
 
 msgid "Input devices"
 msgstr "Συσκευές εισόδου"
+
+msgid "Input &device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Ήχος"
@@ -3313,6 +3334,12 @@ msgstr "&Γρήγορα μπροστά"
 msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές σε λειτουργία."
 
@@ -3495,3 +3522,9 @@ msgstr "938 (Παραδοσιακά Κινέζικα)"
 
 msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""
