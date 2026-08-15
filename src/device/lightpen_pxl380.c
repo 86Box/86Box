@@ -123,7 +123,7 @@ pxl380_read(uint16_t addr, void* priv)
     uint8_t   ret = 0x00;
     switch (addr & 7) {
         case 0:
-            ret = ~(pxl380->status | ((tablet_get_buttons_ex() & 3) << 1)) & 0xf;
+            ret = ~(pxl380->status | ((tablet_get_buttons_ex() & 3) << 1));
             break;
         case 1:
             ret = ((pxl380->timer1_cnt_latch >> 8) & 0xf) | (((pxl380->timer0_cnt_latch >> 8) & 0xf) << 4);
@@ -166,7 +166,7 @@ pxl380_read(uint16_t addr, void* priv)
     }
 
     pclog("[PXL-380] RET 0x%02X (PORT %d)\n", ret, addr & 7);
-    return 0xFF;
+    return ret;
 }
 
 void
