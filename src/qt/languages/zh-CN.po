@@ -472,6 +472,15 @@ msgstr "鼠标:"
 msgid "Mouse"
 msgstr "鼠标"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "操纵杆:"
 
@@ -831,6 +840,9 @@ msgstr "显示"
 
 msgid "Input devices"
 msgstr "输入设备"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "声音"

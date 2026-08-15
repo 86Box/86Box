@@ -472,6 +472,15 @@ msgstr "Mus:"
 msgid "Mouse"
 msgstr "Mus"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Styrespak:"
 
@@ -831,6 +840,9 @@ msgstr "Skjerm"
 
 msgid "Input devices"
 msgstr "Inndataenheter"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Lyd"

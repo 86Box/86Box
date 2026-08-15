@@ -473,6 +473,15 @@ msgstr "Miška:"
 msgid "Mouse"
 msgstr "Miška"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Igralna palica:"
 
@@ -832,6 +841,9 @@ msgstr "Zaslon"
 
 msgid "Input devices"
 msgstr "Vhodne naprave"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Zvok"

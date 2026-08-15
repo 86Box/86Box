@@ -471,6 +471,15 @@ msgstr "Hiiri:"
 msgid "Mouse"
 msgstr "Hiiri"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Peliohjain:"
 
@@ -830,6 +839,9 @@ msgstr "Näyttö"
 
 msgid "Input devices"
 msgstr "Syöttölaitteet"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Ääni"

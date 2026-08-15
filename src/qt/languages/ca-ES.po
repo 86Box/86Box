@@ -471,6 +471,15 @@ msgstr "Ratolí:"
 msgid "Mouse"
 msgstr "Ratolí"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Comandament:"
 
@@ -830,6 +839,9 @@ msgstr "Pantalla"
 
 msgid "Input devices"
 msgstr "Dispositius de entrada"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "So"

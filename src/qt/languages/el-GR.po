@@ -471,6 +471,15 @@ msgstr "Ποντίκι:"
 msgid "Mouse"
 msgstr "Ποντίκι"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Joystick:"
 
@@ -830,6 +839,9 @@ msgstr "Οθόνη"
 
 msgid "Input devices"
 msgstr "Συσκευές εισόδου"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Ήχος"

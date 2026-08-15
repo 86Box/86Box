@@ -472,6 +472,15 @@ msgstr "マウス:"
 msgid "Mouse"
 msgstr "マウス"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "ジョイスティック:"
 
@@ -831,6 +840,9 @@ msgstr "ディスプレイ"
 
 msgid "Input devices"
 msgstr "入力デバイス"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "サウンド"

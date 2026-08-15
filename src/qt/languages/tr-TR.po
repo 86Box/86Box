@@ -471,6 +471,15 @@ msgstr "Fare:"
 msgid "Mouse"
 msgstr "Fare"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Oyun Kolu:"
 
@@ -833,6 +842,9 @@ msgstr "Görüntü"
 
 msgid "Input devices"
 msgstr "Giriş cihazları"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Ses"

@@ -471,6 +471,15 @@ msgstr "Ratón:"
 msgid "Mouse"
 msgstr "Ratón"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Mando:"
 
@@ -830,6 +839,9 @@ msgstr "Vídeo"
 
 msgid "Input devices"
 msgstr "Dispositivos de entrada"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Sonido"

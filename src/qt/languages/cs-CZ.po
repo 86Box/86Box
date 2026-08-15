@@ -471,6 +471,15 @@ msgstr "Myš:"
 msgid "Mouse"
 msgstr "Myš"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Joystick:"
 
@@ -830,6 +839,9 @@ msgstr "Obraz"
 
 msgid "Input devices"
 msgstr "Vstupní zařízení"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Zvuk"
