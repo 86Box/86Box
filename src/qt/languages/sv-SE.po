@@ -3257,6 +3257,12 @@ msgstr "&Spola fram"
 msgid "Fast forward"
 msgstr "Spola fram"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "ör att ändra systemkatalogen, stoppa alla maskiner som är körs."
 
@@ -3436,4 +3442,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditionell kinesiska)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

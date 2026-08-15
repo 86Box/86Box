@@ -3264,6 +3264,12 @@ msgstr "&Rýchly posun dopredu"
 msgid "Fast forward"
 msgstr "Rýchly posun dopredu"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Ak chcete zmeniť systémový adresár, zastavte všetky bežiace stroje."
 
@@ -3443,4 +3449,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (klasická čínština)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

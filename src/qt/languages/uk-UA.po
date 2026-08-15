@@ -3266,6 +3266,12 @@ msgstr "&Перемотай вперед"
 msgid "Fast forward"
 msgstr "Перемотай вперед"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Щоб змінити системний каталог, зупиніть усі машини, що працюють."
 
@@ -3445,4 +3451,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (китайська, традиційне письмо)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

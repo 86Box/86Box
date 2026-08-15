@@ -3319,6 +3319,12 @@ msgstr "&İleri sar"
 msgid "Fast forward"
 msgstr "İleri sar"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Sistem dizinini değiştirmek için çalışan tüm makineleri durdurun."
 
@@ -3501,3 +3507,9 @@ msgstr "938 (Geleneksel Çince)"
 
 msgid "Sample rate:"
 msgstr "Örnekleme hızı:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

@@ -3265,6 +3265,12 @@ msgstr "&Brzo naprijed"
 msgid "Fast forward"
 msgstr "Brzo naprijed"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Za promjenu sustavskog direktorija zaustavite sve pokrenute strojeve."
 
@@ -3444,4 +3450,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (tradicionalni kineski)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

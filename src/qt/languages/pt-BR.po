@@ -3259,6 +3259,12 @@ msgstr "&Avançar rapidamente"
 msgid "Fast forward"
 msgstr "Avançar rapidamente"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Para alterar o diretório do sistema, pare todas as máquinas em funcionamento."
 
@@ -3442,3 +3448,9 @@ msgstr "938 (Chinês tradicional)"
 msgid "Sample rate:"
 msgstr "Taxa de amostragem:"
 
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

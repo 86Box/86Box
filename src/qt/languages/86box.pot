@@ -3240,6 +3240,12 @@ msgstr ""
 msgid "Fast forward"
 msgstr ""
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr ""
 
@@ -3415,4 +3421,10 @@ msgid "938 (Traditional Chinese)"
 msgstr ""
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

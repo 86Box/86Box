@@ -3313,6 +3313,12 @@ msgstr "&Γρήγορα μπροστά"
 msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές σε λειτουργία."
 
@@ -3495,3 +3501,9 @@ msgstr "938 (Παραδοσιακά Κινέζικα)"
 
 msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""
