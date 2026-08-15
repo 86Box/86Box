@@ -472,13 +472,19 @@ msgstr "鼠标:"
 msgid "Mouse"
 msgstr "鼠标"
 
+msgid "&Mouse"
+msgstr "鼠标(&M)"
+
 msgid "Tablet:"
 msgstr ""
 
 msgid "Tablet"
 msgstr ""
 
-msgid "Tablet (Crosshair)"
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -841,7 +847,7 @@ msgstr "显示"
 msgid "Input devices"
 msgstr "输入设备"
 
-msgid "Input device"
+msgid "Input &device"
 msgstr ""
 
 msgid "Sound"

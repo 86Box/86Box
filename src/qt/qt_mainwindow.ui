@@ -70,7 +70,7 @@
     </widget>
     <widget class="QMenu" name="menuInput_device">
      <property name="title">
-      <string>Input device</string>
+      <string>Input &amp;device</string>
      </property>
      <addaction name="actionMouse"/>
      <addaction name="actionTablet"/>
@@ -997,7 +997,7 @@
   </action>
   <action name="actionMouse">
    <property name="text">
-    <string>Mouse</string>
+    <string>&amp;Mouse</string>
    </property>
    <property name="checkable">
     <bool>true</bool>
@@ -1005,7 +1005,7 @@
   </action>
   <action name="actionTablet">
    <property name="text">
-    <string>Tablet</string>
+    <string>&amp;Tablet</string>
    </property>
    <property name="checkable">
     <bool>true</bool>
@@ -1013,7 +1013,7 @@
   </action>
   <action name="actionTablet_Crosshair">
    <property name="text">
-    <string>Tablet (Crosshair)</string>
+    <string>Tablet (&amp;Crosshair)</string>
    </property>
    <property name="checkable">
     <bool>true</bool>

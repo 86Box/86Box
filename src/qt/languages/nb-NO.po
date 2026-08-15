@@ -472,13 +472,19 @@ msgstr "Mus:"
 msgid "Mouse"
 msgstr "Mus"
 
+msgid "&Mouse"
+msgstr "&Mus"
+
 msgid "Tablet:"
 msgstr ""
 
 msgid "Tablet"
 msgstr ""
 
-msgid "Tablet (Crosshair)"
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -841,7 +847,7 @@ msgstr "Skjerm"
 msgid "Input devices"
 msgstr "Inndataenheter"
 
-msgid "Input device"
+msgid "Input &device"
 msgstr ""
 
 msgid "Sound"

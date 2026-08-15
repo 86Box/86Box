@@ -472,13 +472,19 @@ msgstr "Chuột:"
 msgid "Mouse"
 msgstr "Chuột"
 
+msgid "&Mouse"
+msgstr "&Chuột"
+
 msgid "Tablet:"
 msgstr ""
 
 msgid "Tablet"
 msgstr ""
 
-msgid "Tablet (Crosshair)"
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -841,7 +847,7 @@ msgstr "Hiển thị"
 msgid "Input devices"
 msgstr "Thiết bị nhập"
 
-msgid "Input device"
+msgid "Input &device"
 msgstr ""
 
 msgid "Sound"
