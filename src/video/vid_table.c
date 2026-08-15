@@ -407,10 +407,6 @@ video_reset_close(void)
     monitor_index_global = 0;
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
     was_reset = 0;
-
-    lightpen_priv = NULL;
-    lightpen_hsync_callback = NULL;
-    lightpen_vsync_callback = NULL;
 }
 
 void
