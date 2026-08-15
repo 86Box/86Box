@@ -424,7 +424,7 @@ msgstr "有効(UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286および386プロセッサには486インタプリタを使用する"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "動的再コンパイル"
 
 msgid "CPU frame size"

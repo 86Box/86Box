@@ -423,7 +423,7 @@ msgstr "Zapnuta (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Použít interpreter 486 pro procesory 286 a 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamický překladač"
 
 msgid "CPU frame size"
