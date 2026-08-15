@@ -486,6 +486,10 @@ typedef struct ditto_t {
 
 #ifdef ENABLE_LPT_DITTO_LOG
 
+static const char *ditto_proto_name[] = {
+    "SPP 4-bit", "PS/2 8-bit", "EPP-8", "EPP-16", "EPP-32"
+};
+
 static void
 ditto_log(const char *fmt, ...)
 {
@@ -507,14 +511,36 @@ ditto_note_idle(ditto_t *dev)
 
     dev->last_port_ms = now;
 }
+
+/* Bytes of data a whole cartridge of this geometry holds. */
+static uint64_t
+ditto_tape_capacity(const ditto_t *dev)
+{
+    const uint64_t segments = (uint64_t) dev->tape_tracks * dev->tape_spt;
+
+    return segments * (FDD_TAPE_SECTORS_PER_SEG - FDD_TAPE_ECC_SECTORS) *
+           FDD_TAPE_SECTOR_SIZE;
+}
+
+/*
+   Where the conversation has got to, appended to every traced access:
+   did it knock, did the knock take, which register did it address.
+ */
+static const char *
+ditto_state(const ditto_t *dev)
+{
+    static char buf[64];
+
+    snprintf(buf, sizeof(buf), "%s reg=%02X knock=%d%s",
+             dev->connected ? "CONN" : "----", dev->cur_reg, dev->knock,
+             dev->latching ? " latch" : "");
+
+    return buf;
+}
 #else
 #define ditto_log(fmt, ...)
 #define ditto_note_idle(dev)
 #endif
-
-static const char *ditto_proto_name[] = {
-    "SPP 4-bit", "PS/2 8-bit", "EPP-8", "EPP-16", "EPP-32"
-};
 
 /*
    Turns the protocol bits the host writes to control register 0x04 (and,
@@ -784,16 +810,6 @@ ditto_cartridge(int value)
             return &ditto_cartridges[i];
 
     return &ditto_cartridges[0];
-}
-
-/* Bytes of data a whole cartridge of this geometry holds. */
-static uint64_t
-ditto_tape_capacity(const ditto_t *dev)
-{
-    const uint64_t segments = (uint64_t) dev->tape_tracks * dev->tape_spt;
-
-    return segments * (FDD_TAPE_SECTORS_PER_SEG - FDD_TAPE_ECC_SECTORS) *
-           FDD_TAPE_SECTOR_SIZE;
 }
 
 /* Every byte the image holds once the ECC sectors are counted in too. */
@@ -2205,8 +2221,8 @@ fdc_format(ditto_t *dev, uint8_t unit)
     uint32_t  addr   = dev->dma_addr & DITTO_BUFFER_MASK;
     uint8_t   sec[FDD_TAPE_SECTOR_SIZE];
     uint32_t  offset;
-    int       wrote   = 0;
-    int       skipped = 0;
+    UNUSED(int wrote)   = 0;
+    UNUSED(int skipped) = 0;
 
     if (dev->readonly || (dev->fp == NULL)) {
         fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
@@ -3020,22 +3036,6 @@ ditto_epp_request_read(uint8_t is_addr, void *priv)
         lpt_write_to_dat(dev->lpt, val);
 }
 
-/*
-   Where the conversation has got to, appended to every traced access:
-   did it knock, did the knock take, which register did it address.
- */
-static const char *
-ditto_state(const ditto_t *dev)
-{
-    static char buf[64];
-
-    snprintf(buf, sizeof(buf), "%s reg=%02X knock=%d%s",
-             dev->connected ? "CONN" : "----", dev->cur_reg, dev->knock,
-             dev->latching ? " latch" : "");
-
-    return buf;
-}
-
 static void
 ditto_write_data(uint8_t val, void *priv)
 {
@@ -3181,9 +3181,10 @@ ditto_write_ctrl(uint8_t val, void *priv)
              */
             if (dev->dat == dev->unit)
                 ditto_connect(dev);
-            else
+            else {
                 ditto_log("Ditto: knock for unit %02X, not ours (%02X)\n",
                           dev->dat, dev->unit);
+            }
         }
 
         return;
@@ -3235,7 +3236,8 @@ ditto_write_ctrl(uint8_t val, void *priv)
 static void
 ditto_read_data(void *priv)
 {
-    ditto_t *dev = (ditto_t *) priv;
+    /* Only the trace reads it, and that compiles out. */
+    UNUSED(ditto_t *dev) = (ditto_t *) priv;
 
     ditto_note_idle(dev);
 
@@ -3395,21 +3397,6 @@ static const device_config_t ditto_config[] = {
     },
     {
         /*
-           Which address this pod answers a knock at. These chain, so the host
-           names one on the data lines and only that pod may reply.
-         */
-        .name           = "unit",
-        .description    = "Unit address",
-        .type           = CONFIG_SPINNER,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { .min = 0, .max = 7, .step = 1 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        /*
            Which cartridge is in the drive: the geometry, and what Report Tape
            Status says about the media. Not the drive itself. The list is
            DITTO_CARTRIDGE_LIST expanded, so the dialog cannot offer something
@@ -3417,7 +3404,7 @@ static const device_config_t ditto_config[] = {
            values so a machine saved before the rest comes up unchanged.
          */
         .name           = "capacity",
-        .description    = "Cartridge",
+        .description    = "Cartridge capacity",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = DITTO_CAPACITY_DEFAULT,
@@ -3435,6 +3422,21 @@ static const device_config_t ditto_config[] = {
         .bios           = { { 0 } }
     },
     {
+        /*
+           Which address this pod answers a knock at. These chain, so the host
+           names one on the data lines and only that pod may reply.
+         */
+        .name           = "unit",
+        .description    = "Unit address",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { .min = 0, .max = 7, .step = 1 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "writeprot",
         .description    = "Write protect cartridge",
         .type           = CONFIG_BINARY,
@@ -3446,10 +3448,6 @@ static const device_config_t ditto_config[] = {
         .bios           = { { 0 } }
     },
     {
-        /*
-           A ceiling, not a choice: the host probes upward from SPP and keeps
-           the fastest mode that works. Lower it to make a trace readable.
-         */
         .name           = "protocol",
         .description    = "Maximum transfer protocol",
         .type           = CONFIG_SELECTION,
@@ -3470,7 +3468,7 @@ static const device_config_t ditto_config[] = {
 // clang-format on
 
 const device_t lpt_ditto_device = {
-    .name          = "Iomega Ditto 2GB",
+    .name          = "Iomega Ditto drive",
     .internal_name = "ditto",
     .flags         = DEVICE_LPT | DEVICE_HOTPLUG,
     .local         = 0,
