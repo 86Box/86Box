@@ -118,6 +118,7 @@ static mouse_t tablet_devices[] = {
 #endif
     { &mouse_mtouch_device              },
     { &mouse_cga_lightpen_device        },
+    { &mouse_pxl_380_device             },
     { NULL                              }
 };
 

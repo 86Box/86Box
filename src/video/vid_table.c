@@ -382,7 +382,7 @@ void* lightpen_priv = NULL;
 
 void (*lightpen_hsync_callback)(void*) = NULL;
 void (*lightpen_vsync_callback)(void*) = NULL;
-void (*lightpen_check_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used) = NULL;
+void (*lightpen_check_trigger_strobe)(void* priv, int x_offset, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used) = NULL;
 
 void
 video_update_framerates(void* priv)
@@ -414,11 +414,12 @@ video_reset_close(void)
 }
 
 void
-video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*))
+video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used))
 {
     lightpen_priv = priv;
     lightpen_hsync_callback = lightpen_hsync;
     lightpen_vsync_callback = lightpen_vsync;
+    lightpen_check_trigger_strobe = lightpen_trigger_strobe;
 }
 
 void
@@ -433,6 +434,13 @@ video_lightpen_vsync(void)
 {
     if (lightpen_vsync_callback)
         lightpen_vsync_callback(lightpen_priv);
+}
+
+void
+video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used)
+{
+    if (lightpen_check_trigger_strobe)
+        lightpen_check_trigger_strobe(lightpen_priv, x_offset, y, x_offset_from_hsync, firstline, pix_clock, monitor_used);
 }
 
 static void

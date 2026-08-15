@@ -1482,7 +1482,11 @@ svga_poll(void *priv)
                 svga->lastline = svga->displine;
         }
 
-        
+        {
+            uint32_t hsyncstart = svga->crtc[4] + ((svga->crtc[5] >> 5) & 3);
+            uint32_t hsyncend = hsyncstart + (svga->crtc[5] & 0x1f) + 1;
+            video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, (svga->htotal - hsyncend) * svga->char_width, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
+        }
 
         svga->displine++;
         if (svga->interlace)
