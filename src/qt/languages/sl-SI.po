@@ -425,7 +425,7 @@ msgstr "Omogočeno (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Uporabi interpreter za 486 tudi za procesorje 286 in 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dinamični prevajalnik"
 
 msgid "CPU frame size"
@@ -841,6 +841,9 @@ msgstr "Omrežje"
 
 msgid "Ports (COM & LPT)"
 msgstr "Vrata (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Vrata"
@@ -2252,6 +2255,9 @@ msgstr "Serijska številka"
 
 msgid "Host ID"
 msgstr "ID gostitelja"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Naslov FDC"

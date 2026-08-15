@@ -423,8 +423,8 @@ msgstr "Ενεργό (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Χρησιμοποιήστε τον διερμηνέα 486 για επεξεργαστές 286 και 386"
 
-msgid "Dynamic Recompiler"
-msgstr "Δυναμικός Αναμεταγλωττιστής"
+msgid "Dynamic recompiler"
+msgstr "Δυναμικός αναμεταγλωττιστής"
 
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
@@ -839,6 +839,9 @@ msgstr "Δίκτυο"
 
 msgid "Ports (COM & LPT)"
 msgstr "Θύρες (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Θύρες"
@@ -2273,6 +2276,9 @@ msgstr "Σειριακός Αριθμός"
 
 msgid "Host ID"
 msgstr "ID οικοδεσπότη"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Διεύθυνση FDC"

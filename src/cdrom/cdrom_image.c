@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <wchar.h>
 #include <zlib.h>
@@ -1618,12 +1619,19 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
             }
 
             memcpy(rtis_sorted, rtis, (uint64_t) toc_entries * sizeof(raw_track_info_t));
+            for (uint32_t i = 0; i < toc_entries; i++) {
+                if ((rtis_sorted[i].adr_ctl >> 4) == 0x5) {
+                    // Make sure these appear last.
+                    rtis_sorted[i].point |= 0xF0;
+                }
+            }
             qsort(rtis_sorted, toc_entries, sizeof(raw_track_info_t), compare_points);
 
             // Step 1: Insert all CloneCD tracks.
             for (uint32_t i = 0; i < toc_entries; i++) {
                 image_insert_track(img, rtis[i].session, rtis[i].point);
                 track_t *current_track = &img->tracks[img->tracks_num - 1];
+                bool     special_track = (rtis[i].point > 99) || ((rtis[i].adr_ctl >> 4) == 0x5);
                 char sect_name[256] = { };
 
                 current_track->attr        = rtis[i].adr_ctl;
@@ -1633,13 +1641,13 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 current_track->extra[2]    = rtis[i].f;
                 current_track->extra[3]    = rtis[i].zero;
                 current_track->sector_size = RAW_SECTOR_SIZE;
-                current_track->mode        = (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4)) ? 0 : 1;
+                current_track->mode        = (!special_track && !(rtis[i].adr_ctl & 0x4)) ? 0 : 1;
                 current_track->form        = 1;
                 current_track->subch_type  = 0x00;
                 current_track->skip        = 0x00;
                 current_track->max_index   = 1;
 
-                img->has_audio = img->has_audio || (rtis[i].point < 99 && !(rtis[i].adr_ctl & 0x4));
+                img->has_audio = img->has_audio || (!special_track && !(rtis[i].adr_ctl & 0x4));
 
                 current_track->idx[0].file        = NULL;
                 current_track->idx[0].file_length = 0;
@@ -1651,11 +1659,11 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
 
                 current_track->idx[1].file        = tf;
                 current_track->idx[1].file_length = 0;
-                current_track->idx[1].file_start  = ((current_track->point > 99) ? 0 : (MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf) - 150));
+                current_track->idx[1].file_start  = (special_track ? 0 : (MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf) - 150));
                 current_track->idx[1].skip        = 0;
                 current_track->idx[1].length      = 0;
                 current_track->idx[1].start       = MSFtoLBA(rtis[i].pm, rtis[i].ps, rtis[i].pf);
-                current_track->idx[1].type        = (current_track->point > 99) ? INDEX_SPECIAL : INDEX_NORMAL;
+                current_track->idx[1].type        = special_track ? INDEX_SPECIAL : INDEX_NORMAL;
 
                 snprintf(sect_name, sizeof(sect_name) - 1, "TRACK %d", current_track->point);
 

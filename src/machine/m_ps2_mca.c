@@ -78,6 +78,7 @@ static struct ps2_t {
     uint8_t sys_ctrl_port_a;
     uint8_t subaddr_lo;
     uint8_t subaddr_hi;
+    uint8_t planar_feedback;
 
     uint8_t memory_bank[8];
 
@@ -699,11 +700,18 @@ model_70_type3_write(uint16_t port, uint8_t val)
             break;
         case 0x103:
             if (ps2.planar_id == 0xfff9)
-                ps2.option[1] = (ps2.option[1] & 0x0f) | (val & 0xf0);
+                ps2.option[1] = (ps2.option[1] & 0x7f) | (val & 0x80);
             break;
         case 0x104:
-            if (ps2.planar_id == 0xfff9)
-                ps2.option[2] = val;
+            if (ps2.planar_id == 0xfff9) {
+                uint8_t old = ps2.option[2];
+                /* Only bit 0 (E0000 hole) is writable; bits 1-7 are fixed
+                value (memory refresh speed, CPU type) and must be preserved
+                to avoid POST error 225 with IBM KDOS 3.31 on warm reboot. */
+                ps2.option[2] = (ps2.option[2] & 0xfe) | (val & 0x01);
+                if ((old ^ ps2.option[2]) & 0x01)
+                    mem_encoding_update();
+            }
             break;
         case 0x105:
             ps2.option[3] = val;
@@ -835,17 +843,8 @@ ps2_mca_read(const uint16_t port, UNUSED(void *priv))
 
     switch (port) {
         case 0x91:
-#if 0
-            fatal("Read 91 setup=%02x adapter=%02x\n", ps2.setup, ps2.adapter_setup);
-#endif
-            if (!(ps2.setup & PS2_SETUP_IO))
-                temp = 0x00;
-            else if (!(ps2.setup & PS2_SETUP_VGA))
-                temp = 0x00;
-            else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
-                temp = 0x00;
-            else
-                temp = !mca_feedb();
+            temp = ps2.planar_feedback | mca_feedback_read();
+            ps2.planar_feedback = 0;
             temp |= 0xfe;
             break;
         case 0x94:
@@ -1482,7 +1481,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
             ps2.option[2] = 0x01;
             break;
         case 4:
-            ps2.option[1] = 0xaa;
+            ps2.option[1] = 0x86;
             ps2.option[2] = 0x01;
             break;
         case 6:
@@ -1491,13 +1490,19 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
             break;
         case 8:
         default:
-            ps2.option[1] = 0xca;
+            ps2.option[1] = 0x8a;
             ps2.option[2] = 0x02;
             break;
     }
 
     if (is_type4)
         ps2.option[2] |= 0x04; /*486 CPU*/
+
+    if (ps2.planar_id == 0xfff9) {
+        /* Disable/Enable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
+        ps2.option[2] &= ~0x01;
+        ps2.has_e0000_hole = 1;
+    }
 
     mem_mapping_add(&ps2.split_mapping,
                     (mem_size + 256) * 1024,
@@ -1527,23 +1532,12 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
 
-    if (ps2.planar_id == 0xfff9) {
-        if (mem_size > 4096) {
-            /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-            if (mem_size > 12288) {
-                ps2_mca_mem_d071_init(4);
-            } else {
-                ps2_mca_mem_fffc_init(4);
-            }
-        }
-    } else {
-        if (mem_size > 8192) {
-            /* Only 8 MB supported on planar, create a memory expansion card for the rest */
-            if (mem_size > 16384)
-                ps2_mca_mem_d071_init(8);
-            else {
-                ps2_mca_mem_fffc_init(8);
-            }
+    if (mem_size > 8192) {
+        /* Only 8 MB supported on planar, create a memory expansion card for the rest */
+        if (mem_size > 16384)
+            ps2_mca_mem_d071_init(8);
+        else {
+            ps2_mca_mem_fffc_init(8);
         }
     }
 
@@ -1644,6 +1638,7 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
+    serial_set_card_selected_feedback(ps2.uart, &ps2.planar_feedback);
 
     ps2.lpt = device_add_inst(&lpt_port_device, 1);
     lpt_set_ext(ps2.lpt, 1);
@@ -1657,7 +1652,7 @@ static const device_config_t ps2_model_50_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "ibmps2_m50",
+        .default_string = "ibmps2_m50z",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },

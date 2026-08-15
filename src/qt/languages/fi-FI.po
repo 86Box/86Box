@@ -423,7 +423,7 @@ msgstr "Käytössä (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Käytä 486-tulkintaa 286- ja 386-prosessoreille"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynaaminen uudelleenkääntäjä"
 
 msgid "CPU frame size"
@@ -839,6 +839,9 @@ msgstr "Verkko"
 
 msgid "Ports (COM & LPT)"
 msgstr "Portit (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Portit"
@@ -2244,6 +2247,9 @@ msgstr "Sarjanumero"
 
 msgid "Host ID"
 msgstr "Isännän ID"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "FDC-osoite"

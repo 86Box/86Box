@@ -425,7 +425,7 @@ msgstr "Увімкнути (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Використовувати інтерпретатор 486 для процесорів 286 і 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Динамічний рекомпілятор"
 
 msgid "CPU frame size"
@@ -841,6 +841,9 @@ msgstr "Мережа"
 
 msgid "Ports (COM & LPT)"
 msgstr "Порти (COM и LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Порти"
@@ -2248,6 +2251,9 @@ msgstr "Серійний номер"
 
 msgid "Host ID"
 msgstr "Ідентифікатор хоста"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Адреса FDC"

@@ -882,6 +882,8 @@ sb_ess_update_irq_drq_readback_regs(sb_dsp_t *dsp, bool legacy)
     if (legacy) {
         t |= 0x80;
     }
+    if (dsp->sb_irqnum != 0)
+        t |= 0x10;
     switch (dsp->sb_irqnum) {
         default:
             break;
@@ -951,7 +953,9 @@ sb_dsp_setirq(sb_dsp_t *dsp, int irq)
     if (IS_ESS(dsp)) {
         sb_ess_update_irq_drq_readback_regs(dsp, true);
 
-        ESSreg(0xB1) = (ESSreg(0xB1) & 0xEF) | 0x10;
+        ESSreg(0xB1) = (ESSreg(0xB1) & 0xEF);
+        if (dsp->sb_irqnum != 0)
+            ESSreg(0xB1) |= 0x10;
     }
 }
 
@@ -1772,8 +1776,14 @@ sb_exec_command(sb_dsp_t *dsp)
                    0x03 0x01 (Sound Blaster Pro compatibility) confirmed by both the
                    ES1888 datasheet and the probing of the real ES688 and ES1688 cards.
                  */
-                sb_add_data(dsp, 0x3);
-                sb_add_data(dsp, 0x1);
+                /* Some ES688/1688 ISA cards have a jumper to set DSP version 2.01 */
+                if (dsp->ess_dsp_v2_mode == 1) {
+                    sb_add_data(dsp, 0x2);
+                    sb_add_data(dsp, 0x1);
+                } else {
+                    sb_add_data(dsp, 0x3);
+                    sb_add_data(dsp, 0x1);
+                }
                 break;
             }
             if (IS_AZTECH(dsp)) {

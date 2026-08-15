@@ -2693,7 +2693,7 @@ const cpu_family_t cpu_families[] = {
     {
         .package       = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330,
         .manufacturer  = "Intel",
-        .name          = "Pentium OverDrive",
+        .name          = "Pentium OverDrive (P24T)",
         .internal_name = "pentium_p24t",
         .cpus          = (const CPU[]) {
             {
@@ -3680,7 +3680,7 @@ const cpu_family_t cpu_families[] = {
     {
         .package       = CPU_PKG_SOCKET4,
         .manufacturer  = "Intel",
-        .name          = "Pentium OverDrive",
+        .name          = "Pentium OverDrive (P54C 5V)",
         .internal_name = "pentium_p54c_od5v",
         .cpus          = (const CPU[]) {
             {
@@ -4107,7 +4107,7 @@ const cpu_family_t cpu_families[] = {
     {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "Intel",
-        .name          = "Pentium OverDrive",
+        .name          = "Pentium OverDrive (P54C 3.3V)",
         .internal_name = "pentium_p54c_od3v",
         .cpus          = (const CPU[]) {
             {

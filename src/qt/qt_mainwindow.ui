@@ -68,12 +68,20 @@
      <addaction name="actionPen"/>
      <addaction name="actionCursor_Puck"/>
     </widget>
-    <addaction name="menuTablet_tool"/>
-    <addaction name="separator"/>
+    <widget class="QMenu" name="menuInput_device">
+     <property name="title">
+      <string>Input device</string>
+     </property>
+     <addaction name="actionMouse"/>
+     <addaction name="actionTablet"/>
+     <addaction name="actionTablet_Crosshair"/>
+    </widget>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="separator"/>
     <addaction name="actionUpdate_mouse_every_CPU_frame"/>
+    <addaction name="menuInput_device"/>
+    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionPause"/>
     <addaction name="separator"/>
@@ -87,6 +95,7 @@
     <addaction name="actionCtrl_Alt_Del"/>
     <addaction name="separator"/>
     <addaction name="actionCtrl_Alt_Esc"/>
+    <addaction name="actionNon_maskable_interrupt"/>
     <addaction name="separator"/>
     <addaction name="actionACPI_Shutdown"/>
     <addaction name="actionExit"/>
@@ -352,6 +361,14 @@
    </property>
    <property name="toolTip">
     <string>Press Ctrl+Alt+Esc</string>
+   </property>
+  </action>
+  <action name="actionNon_maskable_interrupt">
+   <property name="text">
+    <string>&amp;Non-maskable interrupt</string>
+   </property>
+   <property name="toolTip">
+    <string>Non-maskable interrupt</string>
    </property>
   </action>
   <action name="actionPause">
@@ -976,6 +993,30 @@
    </property>
    <property name="toolTip">
     <string>Fast forward</string>
+   </property>
+  </action>
+  <action name="actionMouse">
+   <property name="text">
+    <string>Mouse</string>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionTablet">
+   <property name="text">
+    <string>Tablet</string>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionTablet_Crosshair">
+   <property name="text">
+    <string>Tablet (Crosshair)</string>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
    </property>
   </action>
  </widget>

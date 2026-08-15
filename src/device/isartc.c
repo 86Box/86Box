@@ -67,7 +67,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
-#include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -78,8 +77,6 @@
 #include <86box/mem.h>
 #include <86box/nvr.h>
 #include <86box/rom.h>
-#include <86box/ui.h>
-#include <86box/plat.h>
 #include <86box/pic.h>
 #include <86box/isartc.h>
 
@@ -118,9 +115,9 @@ typedef struct rtcdev_t {
     int8_t    year; /* register for YEAR value */
     int8_t    century; /* register for CENTURY value */
     uint8_t  *irq_mask; /* PS/2 Model 30's gate-array IRQ1 mask at port A1h */
-    pc_timer_t subsec_timer; /* PS/2 Model 30's millisecond-resolution counter */
-    uint8_t  subsec_count;   /* PS/2 Model 30's number of phases (usually 150us) per msec */
-    int      msec_count;
+    pc_timer_t msec_timer; /* The Millisecond-resolution counter */
+    pc_timer_t rollover_timer; /* The 150 us rollover timer */
+    int        msec_count;
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
@@ -189,7 +186,17 @@ isartc_log(const char *fmt, ...)
 static int8_t
 mm67_chkalrm(nvr_t *nvr, int8_t addr)
 {
-    return ((nvr->regs[addr - MM67_AL_SEC + MM67_SEC] == nvr->regs[addr]) || ((nvr->regs[addr] & MM67_AL_DONTCARE) == MM67_AL_DONTCARE));
+    int ret = 1;
+
+    if ((addr != MM67_AL_MSEC) && ((nvr->regs[addr] & 0x0c) != 0x0c))
+        ret = !((nvr->regs[addr & 0x07] ^ nvr->regs[addr]) & 0x0f);
+
+    if (addr != MM67_AL_DOW) {
+        if ((nvr->regs[addr] & 0xc0) != 0xc0)
+            ret = ret && !((nvr->regs[addr & 0x07] ^ nvr->regs[addr]) & 0xf0);
+    }
+
+    return (int8_t) ret;
 }
 
 /*
@@ -203,25 +210,27 @@ mm67_chkalrm(nvr_t *nvr, int8_t addr)
  * BCD to decimal vv going on.
  */
 static void
-mm67_tick(nvr_t *nvr)
+mm67_tick(nvr_t *nvr, const int f_tenth, const int minute)
 {
-    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
-    uint8_t        *regs = nvr->regs;
-    int             mon;
-    int             year;
-    int             f = 0;
+    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    uint8_t  *regs = nvr->regs;
+    int       mon;
+    int       year;
+    int       f    = f_tenth;
 
-    /* Update and set interrupt if needed. */
-    regs[MM67_SEC] = RTC_BCDINC(nvr->regs[MM67_SEC], 1);
-    if (regs[MM67_ICTRL] & MM67INT_SEC)
-        f = MM67INT_SEC;
+    if (!minute) {
+        /* Update and set interrupt if needed. */
+        regs[MM67_SEC] = RTC_BCDINC(nvr->regs[MM67_SEC], 1);
+        if (regs[MM67_ICTRL] & MM67INT_SEC)
+            f = MM67INT_SEC;
+    }
 
     /* Roll over? */
-    if (regs[MM67_SEC] >= RTC_BCD(60)) {
+    if (minute || (regs[MM67_SEC] >= RTC_BCD(60))) {
         /* Update and set interrupt if needed. */
         regs[MM67_SEC] = RTC_BCD(0);
         regs[MM67_MIN] = RTC_BCDINC(regs[MM67_MIN], 1);
-        if (regs[MM67_ICTRL] & MM67INT_MIN)
+        if (!minute && (regs[MM67_ICTRL] & MM67INT_MIN))
             f = MM67INT_MIN;
 
         /* Roll over? */
@@ -229,7 +238,7 @@ mm67_tick(nvr_t *nvr)
             /* Update and set interrupt if needed. */
             regs[MM67_MIN]  = RTC_BCD(0);
             regs[MM67_HOUR] = RTC_BCDINC(regs[MM67_HOUR], 1);
-            if (regs[MM67_ICTRL] & MM67INT_HOUR)
+            if (!minute && (regs[MM67_ICTRL] & MM67INT_HOUR))
                 f = MM67INT_HOUR;
 
             /* Roll over? */
@@ -237,14 +246,14 @@ mm67_tick(nvr_t *nvr)
                 /* Update and set interrupt if needed. */
                 regs[MM67_HOUR] = RTC_BCD(0);
                 regs[MM67_DOW]  = RTC_BCDINC(regs[MM67_DOW], 1);
-                if (regs[MM67_ICTRL] & MM67INT_DAY)
+                if (!minute && (regs[MM67_ICTRL] & MM67INT_DAY))
                     f = MM67INT_DAY;
 
                 /* Roll over? */
                 if (regs[MM67_DOW] > RTC_BCD(7)) {
                     /* Update and set interrupt if needed. */
                     regs[MM67_DOW] = RTC_BCD(1);
-                    if (regs[MM67_ICTRL] & MM67INT_WEEK)
+                    if (!minute && (regs[MM67_ICTRL] & MM67INT_WEEK))
                         f = MM67INT_WEEK;
                 }
 
@@ -265,7 +274,7 @@ mm67_tick(nvr_t *nvr)
                     /* Update and set interrupt if needed. */
                     regs[MM67_DOM] = RTC_BCD(1);
                     regs[MM67_MON] = RTC_BCDINC(regs[MM67_MON], 1);
-                    if (regs[MM67_ICTRL] & MM67INT_MON)
+                    if (!minute && (regs[MM67_ICTRL] & MM67INT_MON))
                         f = MM67INT_MON;
 
                     /* Roll over? */
@@ -288,21 +297,23 @@ mm67_tick(nvr_t *nvr)
         }
     }
 
-    /* Check for programmed alarm interrupt. */
-    if (regs[MM67_ICTRL] & MM67INT_COMPARE) {
-        year = 1;
-        for (mon = MM67_AL_SEC; mon <= MM67_AL_MON; mon++)
-            if (mon != dev->year)
-                year &= mm67_chkalrm(nvr, mon);
-        f = year ? MM67INT_COMPARE : 0x00;
-    }
+    if (!minute) {
+        /* Check for programmed alarm interrupt. */
+        if (regs[MM67_ICTRL] & MM67INT_COMPARE) {
+            year = 1;
+            for (mon = MM67_AL_MSEC; mon <= MM67_AL_MON; mon++)
+                if (mon != dev->year)
+                    year &= mm67_chkalrm(nvr, (int8_t) mon);
+            f = year ? MM67INT_COMPARE : 0x00;
+        }
 
-    /* Raise the IRQ if needed (and if we have one..) */
-    if (f != 0) {
-        regs[MM67_ISTAT] = f;
-        /* PS/2 Model 30's gate array masks RTC IRQ1 with bit 0 of port A1h (1 = masked). */
-        if ((nvr->irq != -1) && ((dev->irq_mask == NULL) || !(*dev->irq_mask & 0x01)))
-            picint(1 << nvr->irq);
+        /* Raise the IRQ if needed (and if we have one..) */
+        if (f != 0) {
+            regs[MM67_ISTAT] = f;
+            /* PS/2 Model 30's gate array masks RTC IRQ1 with bit 0 of port A1h (1 = masked). */
+            if ((nvr->irq != -1) && ((dev->irq_mask == NULL) || !(*dev->irq_mask & 0x01)))
+                picint(1 << nvr->irq);
+        }
     }
 }
 
@@ -412,18 +423,55 @@ mm67_start(nvr_t *nvr)
  * always exactly 1ms. The hardware's internal tick is 150 microseconds
  * and it counts it down 7 times, which is 1.05 milliseconds. */
 static void
-m30_subsec_timer(void *priv)
+mm67_msec_timer(void *priv)
 {
     rtcdev_t *dev = (rtcdev_t *) priv;
 
-    dev->nvr.regs[MM67_STATUS] = 0x01;
-    if (++dev->subsec_count >= 7) { /* 7 x 150 us = 1.05 ms */
-        dev->msec_count = (dev->msec_count + 1) % 1000;
-        dev->nvr.regs[MM67_MSEC] = ((dev->msec_count % 10) << 4);
-        dev->subsec_count        = 0;
+    dev->msec_count = (dev->msec_count + 1) % 1000;
+
+    int       f   = 0;
+    int       t   = 0;
+    const int msc = dev->msec_count;
+
+    dev->nvr.regs[MM67_MSEC]   = ((msc % 10) << 4);
+    dev->nvr.regs[MM67_HUNTEN] = RTC_BCD(msc / 10);
+
+    if ((msc % 10) == 0) {
+        if (((msc % 100) == 0) && (dev->nvr.regs[MM67_ICTRL] & MM67INT_TENTH))
+            f = MM67INT_TENTH;
+
+        if (msc == 0)
+            t = 1;
     }
 
-    timer_advance_u64(&dev->subsec_timer, 150ULL * TIMER_USEC);
+    if (t)
+        mm67_tick(&dev->nvr, f, 0);
+    else {
+        /* Check for programmed alarm interrupt. */
+        if (dev->nvr.regs[MM67_ICTRL] & MM67INT_COMPARE) {
+            int a = 1;
+
+            for (int i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
+                if (i != dev->year)
+                    a &= mm67_chkalrm(&dev->nvr, (int8_t) i);
+
+            f = a ? MM67INT_COMPARE : 0x00;
+        }
+
+        /* Raise the IRQ if needed (and if we have one..) */
+        if (f != 0) {
+            dev->nvr.regs[MM67_ISTAT] = f;
+            /* PS/2 Model 30's gate array masks RTC IRQ1 with bit 0 of port A1h (1 = masked). */
+            if ((dev->nvr.irq != -1) && ((dev->irq_mask == NULL) || !(*dev->irq_mask & 0x01)))
+                picint(1 << dev->nvr.irq);
+        }
+    }
+
+    dev->nvr.regs[MM67_STATUS] = 0x01;
+
+    timer_advance_u64(&dev->msec_timer, 1000 * TIMER_USEC);
+
+    timer_set_delay_u64(&dev->rollover_timer, 150 * TIMER_USEC);
 }
 
 /* PS/2 Model 30 (8086) time handling: it stores the year as plain BCD in the
@@ -530,6 +578,7 @@ mm67_reset(nvr_t *nvr)
     nvr->regs[MM67_DOW] = RTC_BCD(1);
     nvr->regs[MM67_DOM] = RTC_BCD(1);
     nvr->regs[MM67_MON] = RTC_BCD(1);
+    nvr->regs[MM67_STATUS] = 0x00;
 }
 
 /* Handle a READ operation from one of our registers. */
@@ -559,8 +608,7 @@ mm67_read(uint16_t port, void *priv)
              * the system hangs the first time it waits on the floppy to
              * settle. */
             ret = dev->nvr.regs[reg] & 0x01;
-            if (dev->board == ISARTC_PS2M30)
-                dev->nvr.regs[reg] = 0x00; /* consume the flag */
+            dev->nvr.regs[reg] = 0x00; /* consume the flag */
             break;
 
         case MM67_ISTAT: /* IRQ status (RO) */
@@ -584,8 +632,11 @@ mm67_read(uint16_t port, void *priv)
             break;
     }
 
+    if ((reg <= MM67_MON) && timer_is_enabled(&dev->rollover_timer))
+        dev->nvr.regs[MM67_STATUS] = 0x01;
+
 #if ISARTC_DEBUG
-    isartc_log("ISARTC: read(%04x) = %02x\n", port - dev->base_addr, ret);
+    isartc_log("[%04X:%08X] ISARTC: read(%04x) = %02x\n", CS, cpu_state.pc, (port - dev->base_addr) & 0x001f, ret);
 #endif
 
     return ret;
@@ -595,11 +646,12 @@ mm67_read(uint16_t port, void *priv)
 static void
 mm67_write(uint16_t port, uint8_t val, void *priv)
 {
-    rtcdev_t *     dev = (rtcdev_t *) priv;
-    const uint16_t reg = (port - dev->base_addr) & 0x001f;
+    rtcdev_t *     dev      = (rtcdev_t *) priv;
+    const uint16_t reg      = (port - dev->base_addr) & 0x001f;
+    uint8_t        masks[8] = { 0xf0, 0xff, 0x7f, 0x7f, 0x3f, 0x07, 0x3f, 0x1f };
 
 #if ISARTC_DEBUG
-    isartc_log("ISARTC: write(%04x, %02x)\n", port - dev->base_addr, val);
+    isartc_log("[%04X:%08X] ISARTC: write(%04x, %02x)\n", CS, cpu_state.pc, (port - dev->base_addr) & 0x001f, val);
 #endif
 
     /* This chip is directly mapped on I/O. */
@@ -617,7 +669,8 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
         case MM67_RSTCTR:
             if (val == 0xff) {
                 mm67_reset(&dev->nvr);
-                dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) + (dev->nvr.regs[MM67_HUNTEN] * 10);
+                dev->msec_count = 0;
+                nvr_dosave = 1;
             }
             break;
 
@@ -625,23 +678,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
             if (val == 0xff) {
                 for (uint8_t i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
                     dev->nvr.regs[i] = RTC_BCD(0);
-                dev->nvr.regs[MM67_DOW] = RTC_BCD(1);
-                dev->nvr.regs[MM67_DOM] = RTC_BCD(1);
-                dev->nvr.regs[MM67_MON] = RTC_BCD(1);
-                if (dev->year != -1) {
-                    val = (dev->flags & FLAG_YEAR80) ? 0 : 80;
-                    if (dev->flags & FLAG_YEARBCD)
-                        dev->nvr.regs[dev->year] = RTC_BCD(val);
-                    else
-                        dev->nvr.regs[dev->year] = val;
-
-                    if ((dev->century != -1) && !(dev->flags & FLAG_YEAR80)) {
-                        if (dev->flags & FLAG_YEARBCD)
-                            dev->nvr.regs[dev->century] = RTC_BCD(19);
-                        else
-                            dev->nvr.regs[dev->century] = (1900 + val) / 100;
-                    }
-                }
+                nvr_dosave = 1;
             }
             break;
 
@@ -650,14 +687,19 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_GOCMD:
             isartc_log("RTC: write gocmd=%02x\n", val);
+
+            if (RTC_DCB(dev->nvr.regs[MM67_SEC]) > 39)
+                mm67_tick(&dev->nvr, 0, 1);
+            dev->nvr.regs[MM67_SEC] = RTC_BCD(0);
+            dev->nvr.regs[MM67_HUNTEN] = RTC_BCD(0);
+            dev->nvr.regs[MM67_MSEC] = RTC_BCD(0);
+            dev->msec_count = 0;
+            nvr_dosave = 1;
             break;
 
         case MM67_STBYIRQ:
-            isartc_log("RTC: write stby=%02x\n", val);
-            break;
-
         case MM67_TEST:
-            isartc_log("RTC: write test=%02x\n", val);
+            isartc_log("RTC: write %s=%02x\n", (reg == MM67_STBYIRQ) ? "stby" : "test", val);
             break;
 
         case MM67_AL_MSEC:
@@ -672,8 +714,14 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_MSEC:
         case MM67_HUNTEN:
-            dev->nvr.regs[reg] = val;
-            dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) + (dev->nvr.regs[MM67_HUNTEN] * 10);
+            dev->nvr.regs[reg] = val & masks[reg];
+            dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) +
+                              (RTC_DCB(dev->nvr.regs[MM67_HUNTEN]) * 10);
+            nvr_dosave = 1;
+            break;
+
+        case MM67_SEC ... MM67_DOM:
+            dev->nvr.regs[reg] = val & masks[reg];
             nvr_dosave = 1;
             break;
 
@@ -691,6 +739,9 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
    The RTC utilities check the RTC millisecond counter first to determinate the
    presence of the RTC 58167 IC, so here implement the bogus_msec to fool them.
+
+   Note by OBattler: This has been rectified by actually implementing the 1 kHz
+   milisecond-resolution counter.
  */
 static uint8_t rtc58167_index = 0x00;
 
@@ -698,7 +749,6 @@ static uint8_t
 rtc58167_read(uint16_t port, void *priv)
 {
     uint8_t ret = 0xff;
-    uint16_t bogus_msec = (uint16_t)((tsc * 1000) / cpu_s->rspeed);
 
     switch (port)
     {
@@ -709,20 +759,7 @@ rtc58167_read(uint16_t port, void *priv)
 
         case 0x2c1:
         case 0x301:
-            switch (rtc58167_index)
-            {
-                case MM67_MSEC:
-                    ret = (uint8_t)(bogus_msec % 10) << 4;
-                    break;
-
-                case MM67_HUNTEN:
-                    ret = RTC_BCD((uint8_t)((bogus_msec / 10) % 100));
-                    break;
-
-                default:
-                    ret = mm67_read(((port - 1) + rtc58167_index), priv);
-                    break;
-            }
+            ret = mm67_read(((port - 1) + rtc58167_index), priv);
             break;
 
         default:
@@ -790,12 +827,12 @@ isartc_init(const device_t *info)
             dev->flags |= FLAG_YEAR80;
             dev->base_addr   = device_get_config_hex16("base");
             dev->base_addrsz = 32;
-            dev->irq         = device_get_config_int("irq");
+            dev->irq         = (int8_t) device_get_config_int("irq");
             dev->f_rd        = mm67_read;
             dev->f_wr        = mm67_write;
             dev->nvr.reset   = mm67_reset;
             dev->nvr.start   = mm67_start;
-            dev->nvr.tick    = mm67_tick;
+            dev->nvr.tick    = NULL;
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
             break;
 
@@ -815,7 +852,7 @@ isartc_init(const device_t *info)
              * the dedicated sub-second timer only ticks register 0 (the
              * hundredths register) on a millisecond cadence for the BIOS's
              * Int 15h AH=86h wait loop. */
-            dev->nvr.tick    = mm67_tick;
+            dev->nvr.tick    = NULL;
             /* The Mod. 30 stores the year in the alarm centiseconds
              * register 9 and the century in bit 0 of the alarm
              * day-of-month register 14. */
@@ -831,7 +868,7 @@ isartc_init(const device_t *info)
             dev->f_wr        = mm67_write;
             dev->nvr.reset   = mm67_reset;
             dev->nvr.start   = mm67_start;
-            dev->nvr.tick    = mm67_tick;
+            dev->nvr.tick    = NULL;
             dev->year        = MM67_AL_HUNTEN; /* year, NON STANDARD */
             break;
 
@@ -841,12 +878,12 @@ isartc_init(const device_t *info)
             dev->flags |= FLAG_YEAR80;
             dev->base_addr   = 0x02c0;
             dev->base_addrsz = 32;
-            dev->irq         = device_get_config_int("irq");
+            dev->irq         = (int8_t) device_get_config_int("irq");
             dev->f_rd        = mm67_read;
             dev->f_wr        = mm67_write;
             dev->nvr.reset   = mm67_reset;
             dev->nvr.start   = mm67_start;
-            dev->nvr.tick    = mm67_tick;
+            dev->nvr.tick    = NULL;
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
             break;
 
@@ -858,7 +895,7 @@ isartc_init(const device_t *info)
             dev->f_wr        = mm67_write;
             dev->nvr.reset   = mm67_reset;
             dev->nvr.start   = mm67_start;
-            dev->nvr.tick    = mm67_tick;
+            dev->nvr.tick    = NULL;
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
             break;
 
@@ -866,12 +903,12 @@ isartc_init(const device_t *info)
             dev->flags |= FLAG_YEARBCD;
             dev->base_addr   = machine_get_config_int("rtc_port");
             dev->base_addrsz = 8;
-            dev->irq         = machine_get_config_int("rtc_irq");
+            dev->irq         = (int8_t) machine_get_config_int("rtc_irq");
             dev->f_rd        = rtc58167_read;
             dev->f_wr        = rtc58167_write;
             dev->nvr.reset   = mm67_reset;
             dev->nvr.start   = mm67_start;
-            dev->nvr.tick    = mm67_tick;
+            dev->nvr.tick    = NULL;
             dev->year        = MM67_AL_HUNTEN;  /* year,    NON STANDARD */
             dev->century     = MM67_AL_SEC;     /* century, NON STANDARD */
             break;
@@ -882,8 +919,9 @@ isartc_init(const device_t *info)
 
     /* Say hello! */
     isartc_log("ISARTC: %s (I/O=%04XH", info->name, dev->base_addr);
-    if (dev->irq != -1)
-        isartc_log(", IRQ%i", dev->irq);
+    if (dev->irq != -1) {
+        isartc_log(", IRQ%i", (int) dev->irq);
+    }
     isartc_log(")\n");
 
     /* Set up an I/O port handler. */
@@ -905,11 +943,12 @@ isartc_init(const device_t *info)
     if (!is_at)
         nvr_init(&dev->nvr);
 
-    /* The Model 30 needs 10 ms hundredths-counter granularity. */
-    if (dev->board == ISARTC_PS2M30) {
-        dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) + (dev->nvr.regs[MM67_HUNTEN] * 10);
-        timer_add(&dev->subsec_timer, m30_subsec_timer, dev, 1);
-    }
+    dev->msec_count = (dev->nvr.regs[MM67_MSEC] >> 4) +
+                      (RTC_DCB(dev->nvr.regs[MM67_HUNTEN]) * 10);
+    timer_add(&dev->msec_timer, mm67_msec_timer, dev, 0);
+    timer_set_delay_u64(&dev->msec_timer, 1000 * TIMER_USEC);
+
+    timer_add(&dev->rollover_timer, NULL, dev, 0);
 
     /* Let them know our device instance. */
     return ((void *) dev);
@@ -922,8 +961,11 @@ isartc_close(void *priv)
     rtcdev_t *dev = (rtcdev_t *) priv;
 
     /* Mirror the same logic the initialisation code uses for the Mod. 30. */
-    if (dev->board == ISARTC_PS2M30)
-        timer_disable(&dev->subsec_timer);
+    if (timer_is_enabled(&dev->msec_timer))
+        timer_disable(&dev->msec_timer);
+
+    if (timer_is_enabled(&dev->rollover_timer))
+        timer_disable(&dev->rollover_timer);
 
     if ((dev->flags) & FLAG_PS2) {
         io_removehandler(0x00b0, 16,
@@ -1289,7 +1331,6 @@ typedef struct tm intclk_t;
  */
 enum RTC_REGS {
     RTC_SECOND1 = 0,			/* BCD */
-    RTC_CLOCK_OUT = RTC_SECOND1,	/* Bank 1 */
     RTC_SECOND10,
     RTC_ADJUST = RTC_SECOND10,		/* Bank 1 */
     RTC_MINUTE1,			/* BCD */

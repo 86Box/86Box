@@ -692,6 +692,13 @@ tx_command(eepro100_t *s)
     uint8_t buf[2600];
     uint16_t size = 0;
     uint32_t tbd_address = s->cb_address + 0x10;
+    /* Simplified mode: the frame data immediately follows the TxCB.
+     * The extended TxCB (i82558/i82559 and later) is 32 bytes long and
+     * holds two inline TBDs, so the data starts at offset 0x20 instead
+     * of 0x10 as with the standard 16-byte TxCB. */
+    uint32_t simplified_address = tbd_address;
+    if (s->has_extended_tcb_support && !(s->configuration[6] & BIT(4)))
+        simplified_address = s->cb_address + 0x20;
     i8255x_log("transmit, TBD array address 0x%08x, TCB byte count 0x%04x, TBD count %u\n",
                tbd_array, tcb_bytes, s->tx.tbd_count);
 
@@ -704,8 +711,8 @@ tx_command(eepro100_t *s)
     }
     while (size < tcb_bytes) {
         i8255x_log("TBD (simplified mode): buffer address 0x%08x, size 0x%04x\n",
-                   tbd_address, tcb_bytes);
-        dma_bm_read(tbd_address, &buf[size], tcb_bytes, 1);
+                   simplified_address, tcb_bytes);
+        dma_bm_read(simplified_address, &buf[size], tcb_bytes, 1);
         size += tcb_bytes;
     }
     if (tbd_array == 0xffffffff) {
@@ -2395,7 +2402,8 @@ const device_t i82557_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = i82557_config
+    .config        = i82557_config,
+    .alias         = "Intel EtherExpress PRO/100B"
 };
 
 const device_t i82558_device = {

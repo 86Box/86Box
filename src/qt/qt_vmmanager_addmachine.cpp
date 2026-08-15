@@ -265,9 +265,15 @@ NameAndLocationPage::nextId() const
 void
 NameAndLocationPage::chooseDirectoryLocation()
 {
-    const auto directory = QFileDialog::getExistingDirectory(this, "Choose directory", QDir(vmm_path).path());
-    systemLocation->setText(QDir::toNativeSeparators(directory));
-    emit completeChanged();
+    QFileDialog::Options options = QFileDialog::ShowDirsOnly;
+#ifdef Q_OS_LINUX
+    options |= QFileDialog::DontUseNativeDialog;
+#endif
+    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), QDir(vmm_path).path(), options);
+    if (!directory.isEmpty()) {
+        systemLocation->setText(QDir::toNativeSeparators(directory));
+        emit completeChanged();
+    }
 }
 #endif
 bool

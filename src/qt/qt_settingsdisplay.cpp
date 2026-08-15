@@ -40,6 +40,7 @@ extern "C" {
 #include "ui_qt_settingsdisplay.h"
 #include "qt_util.hpp"
 #include "qt_defs.hpp"
+#include "qt_settingsinput.hpp"
 
 SettingsDisplay::SettingsDisplay(QWidget *parent)
     : QWidget(parent)
@@ -346,8 +347,14 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
         int primaryFlags   = video_card_get_flags(videoCard[0]);
         int secondaryFlags = video_card_get_flags(c);
+
+        const device_t *primary_dev = video_card_getdevice(videoCard[0]);
+        const bool primary_is_agp   = primary_dev && (primary_dev->flags & DEVICE_AGP);
+        const bool secondary_is_agp = video_dev   && (video_dev->flags   & DEVICE_AGP);
+
         if (video_card_available(c)
             && device_is_valid(video_dev, machineId)
+            && !(primary_is_agp && secondary_is_agp)
             && !((secondaryFlags == primaryFlags) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
             && !(((primaryFlags == VIDEO_FLAG_TYPE_8514) || (primaryFlags == VIDEO_FLAG_TYPE_XGA)) && (secondaryFlags != VIDEO_FLAG_TYPE_MDA) && (secondaryFlags != VIDEO_FLAG_TYPE_SECONDARY))
             && !((primaryFlags != VIDEO_FLAG_TYPE_MDA) && (primaryFlags != VIDEO_FLAG_TYPE_SECONDARY) && ((secondaryFlags == VIDEO_FLAG_TYPE_8514) || (secondaryFlags == VIDEO_FLAG_TYPE_XGA)))) {
@@ -386,6 +393,18 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
             ui->checkBoxVoodoo->setChecked(voodoo_enabled);
         }
     }
+
+    if (Settings::settings->input != nullptr)
+        Settings::settings->input->onCurrentMachineChanged(machineId);
+}
+
+bool
+SettingsDisplay::isLightPenUsable()
+{
+    if (ui->comboBoxVideo->currentIndex() < 0)
+        return false;
+
+    return !strcmp(video_get_internal_name(ui->comboBoxVideo->currentData().toInt()), "cga") || !strcmp(video_get_internal_name(ui->comboBoxVideoSecondary->currentData().toInt()), "cga");
 }
 
 void

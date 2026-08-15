@@ -241,9 +241,16 @@ fetch_and_bus(int c, int bus)
         /* Finish the current fetch, if any. */
         cycles -= ((4 - (biu_cycles & 3)) & 3);
         pfq_add((4 - (biu_cycles & 3)) & 3, 1);
+
+        int ref_cycs = 4;
+
+        if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
+             (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0))
+            ref_cycs = 9;
+
         /* Add 4 memory access cycles. */
-        cycles -= 4;
-        pfq_add(4, 0);
+        cycles -= ref_cycs;
+        pfq_add(ref_cycs, 0);
 
         refresh--;
     }
@@ -300,19 +307,27 @@ resub_cycles(int old_cycles)
 static void
 cpu_io(int bits, int out, uint16_t port)
 {
+    int cycs = 4;
+
+    if (is_mazovia)
+        cycs = 5;
+    else if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
+             (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0))
+        cycs = 8;
+
     if (is_new_biu)
         cpu_io_vx0(bits, out, port);
     else {
         int old_cycles = cycles;
 
         if (out) {
-            wait_cycs(is_mazovia ? 5 : 4, 1);
+            wait_cycs(cycs, 1);
             if (bits == 16) {
                 if (is8086 && !(port & 1)) {
                     old_cycles = cycles;
                     outw(port, AX);
                 } else {
-                    wait_cycs(is_mazovia ? 5 : 4, 1);
+                    wait_cycs(cycs, 1);
                     old_cycles = cycles;
                     outb(port++, AL);
                     outb(port, AH);
@@ -322,13 +337,13 @@ cpu_io(int bits, int out, uint16_t port)
                 outb(port, AL);
             }
         } else {
-            wait_cycs(is_mazovia ? 5 : 4, 1);
+            wait_cycs(cycs, 1);
             if (bits == 16) {
                 if (is8086 && !(port & 1)) {
                     old_cycles = cycles;
                     AX         = inw(port);
                 } else {
-                    wait_cycs(is_mazovia ? 5 : 4, 1);
+                    wait_cycs(cycs, 1);
                     old_cycles = cycles;
                     AL         = inb(port++);
                     AH         = inb(port);
@@ -3254,6 +3269,8 @@ execx86_instruction(void)
                 break;
             case 0xfa ... 0xfb:    /* CLISTI */
                 wait_cycs(1, 0);
+                if ((opcode & 1) && !(cpu_state.flags & I_FLAG))
+                    noint = 1;
                 set_if(opcode & 1);
                 break;
             case 0xfc ... 0xfd:    /* CLDSTD */

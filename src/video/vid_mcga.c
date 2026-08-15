@@ -28,6 +28,8 @@
 #include <86box/pit.h>
 #include <86box/video.h>
 #include <86box/vid_mcga.h>
+#include "cpu.h"
+#include "808x_marty_86box.h"
 
 #define MCGA_VRAM_SIZE      0x10000
 #define MCGA_FONT_RAM_SIZE  0x02000

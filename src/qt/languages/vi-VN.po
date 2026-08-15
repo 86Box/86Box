@@ -424,8 +424,8 @@ msgstr "Bật (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Sử dụng trình thông dịch 486 cho các bộ xử lý 286 và 386"
 
-msgid "Dynamic Recompiler"
-msgstr "Bộ tái biên dịch động (Dynamic Recompiler)"
+msgid "Dynamic recompiler"
+msgstr "Bộ tái biên dịch động (Dynamic recompiler)"
 
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
@@ -840,6 +840,9 @@ msgstr "Nối mạng"
 
 msgid "Ports (COM & LPT)"
 msgstr "Cổng (COM và LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Cổng"
@@ -2236,6 +2239,9 @@ msgstr "Số seri"
 
 msgid "Host ID"
 msgstr "ID máy chủ"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Địa chỉ FDC"

@@ -424,7 +424,7 @@ msgstr "Ativada (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Utilizar o interpetador 486 para os processadores 286 e 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Recompilador dinâmico"
 
 msgid "CPU frame size"
@@ -840,6 +840,9 @@ msgstr "Rede"
 
 msgid "Ports (COM & LPT)"
 msgstr "Portas (COM e LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Portas"
@@ -2243,6 +2246,9 @@ msgstr "Número de série"
 
 msgid "Host ID"
 msgstr "ID do anfitrião"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "Endereço da FDC"

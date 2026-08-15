@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-06 20:32+0000\n"
+"PO-Revision-Date: 2026-08-14 17:43+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -423,7 +423,7 @@ msgstr "사용 (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286/386 프로세서에 486 인터프리터 사용"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "동적 리컴파일러"
 
 msgid "CPU frame size"
@@ -846,6 +846,9 @@ msgstr "네트워크"
 
 msgid "Ports (COM & LPT)"
 msgstr "포트 (COM & LPT)"
+
+msgid "Port"
+msgstr "포트"
 
 msgid "Ports"
 msgstr "포트"
@@ -2300,6 +2303,9 @@ msgstr "일련 번호"
 
 msgid "Host ID"
 msgstr "호스트 ID"
+
+msgid "Host"
+msgstr "호스트"
 
 msgid "FDC Address"
 msgstr "FDC 주소"

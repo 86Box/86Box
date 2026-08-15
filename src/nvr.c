@@ -100,10 +100,14 @@ nvr_is_leap(int year)
 int
 nvr_get_days(int month, int year)
 {
-    if (month != 2)
-        return (days_in_month[month - 1]);
+    int ret;
 
-    return (nvr_is_leap(year) ? 29 : 28);
+    if (month == 2)
+        ret = (nvr_is_leap(year) ? 29 : 28);
+    else
+        ret = (int) (days_in_month[month - 1]);
+
+    return ret;
 }
 
 /* One more second has passed, update the internal clock. */

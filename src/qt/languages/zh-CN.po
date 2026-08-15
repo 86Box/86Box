@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-05 08:40+0000\n"
-"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
+"PO-Revision-Date: 2026-08-11 07:15+0000\n"
+"Last-Translator: Canadew <chun-awa@outlook.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -424,7 +424,7 @@ msgstr "启用 (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "为286及386处理器应用486解释器"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "动态重编译器"
 
 msgid "CPU frame size"
@@ -840,6 +840,9 @@ msgstr "网络"
 
 msgid "Ports (COM & LPT)"
 msgstr "端口 (COM 和 LPT)"
+
+msgid "Port"
+msgstr "端口"
 
 msgid "Ports"
 msgstr "端口"
@@ -2240,6 +2243,9 @@ msgstr "序列号"
 
 msgid "Host ID"
 msgstr "主机 ID"
+
+msgid "Host"
+msgstr "主机"
 
 msgid "FDC Address"
 msgstr "FDC 地址"

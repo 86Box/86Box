@@ -107,6 +107,7 @@ typedef struct video_timings_t {
     void                  *wait_states_priv;
 } video_timings_t;
 
+// All bitmaps (including buffer32 and target_buffer) follow the 0xXXRRGGBB format, DWORD-wise.
 typedef struct bitmap_t {
     int       w;
     int       h;

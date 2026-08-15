@@ -18,17 +18,7 @@
  */
 
 /*
- * Known issues:
- * - MegaEM 3.x has nonfunctional SoundBlaster emulation and appears to
- *   rely on undocumented hardware behavior. This manifests as silent
- *   digital audio in MegaEM 3.03 and as an IRQ conflict error on MegaEM
- *   3.04 and later.
- */
-
-/*
  * TODO:
- * - Find the undocumented hardware behavior MegaEM 3.x relies on for emulating
- *   a SoundBlaster.
  * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
  *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
  *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
@@ -192,6 +182,7 @@ typedef struct gus_t {
     uint8_t  type;
 
     int      irq;
+    int      irq2;
     int      dma;
     int      irq_midi;
     int      dma2;
@@ -244,6 +235,14 @@ typedef struct gus_t {
 
     uint16_t cur_codec_addr;
     uint8_t  dmaover;
+
+    /* GUS ADC stub */
+    uint8_t    adc_srate;
+    uint8_t    adc_ctrl;
+    uint16_t   adc_freq;
+    uint8_t    adc_irq;
+    double     inputlatch;
+    pc_timer_t sample_timer;
 
     void *   log; /* New logging system */
 } gus_t;
@@ -300,6 +299,8 @@ gus_update_int_status(gus_t *gus)
         irq_pending = 1; /*Timer 2 interrupt pending*/
     if ((gus->irqstatus & 0x80) && (gus->dmactrl & 0x20))
         irq_pending = 1; /*DMA TC interrupt pending*/
+    if ((gus->irqstatus & 0x80) && (gus->adc_ctrl & 0x20))
+        irq_pending = 1; /*ADC DMA TC interrupt pending*/
 
     midi_irq_pending = gus->midi_status & MIDI_INT_MASTER;
 
@@ -352,6 +353,40 @@ gus_midi_update_int_status(gus_t *gus)
         gus->irqstatus &= ~GUS_INT_MIDI_RECEIVE;
 
     gus_update_int_status(gus);
+}
+
+void
+gus_input_poll(void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+    int dma_result;
+
+    timer_advance_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
+
+    if (gus->adc_ctrl & 0x01) {
+        if (gus->adc_ctrl & 0x02) {
+            if (gus->adc_ctrl & 0x04)
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
+            else {
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+            }
+        } else {
+            if (gus->adc_ctrl & 0x04)
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
+            else
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+        }
+        if (dma_result & DMA_OVER) {
+            gus->adc_ctrl &= 0xfe;
+            gus->irqstatus |= 0x80;
+            gus->adc_irq = 1;
+            gus_log(gus->log, "ADC DMA complete, firing IRQ\n");
+            timer_disable(&gus->sample_timer);
+        }
+    } else {
+        timer_disable(&gus->sample_timer);
+    }
 }
 
 void
@@ -661,6 +696,25 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     gus->t2on          = 1;
                     break;
 
+                case 0x48: /*ADC Sample Rate*/
+                    gus->adc_srate  = val;
+                    gus->adc_freq   = 617400 / gus->adc_srate; /* (9878400 / (freq * 16) - 2 */
+                    double temp     = 1000000.0 / gus->adc_freq;
+                    if (gus->adc_freq < 4000)
+                        gus->adc_freq = 4000;
+                    if (gus->adc_freq > 44100)
+                        gus->adc_freq = 44100;
+                    gus->inputlatch = ((double) TIMER_USEC * temp);
+                    gus_log(gus->log, "GUS ADC samplerate set to %i, val = %02X\n", gus->adc_freq, gus->adc_srate);
+                    break;
+                case 0x49: /*ADC Sample Control*/
+                    /* This is the ADC equivalent of index 41h DMA Control and is relied on by MegaEM 3.x */
+                    gus->adc_ctrl = val;
+                    if (val & 1)
+                        timer_set_delay_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
+                    gus_log(gus->log, "GUS DMA Control write! new val = %02X\n", val);
+                    break;
+
                 case 0x4B: /*Joystick trim DAC*/
                     gus->joy_trim = val;
                     break;
@@ -684,6 +738,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x389:
+        case 0x209:
             if ((gus->tctrl & GUS_TIMER_CTRL_AUTO) || gus->adcommand != 4) {
                 gus->ad_data = val;
                 gus->ad_status |= 0x01;
@@ -734,6 +789,13 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                             ad1848_setirq(&gus->ad1848, gus->irq);
 
                         gus->sb_nmi = val & 0x80;
+
+                        /* Store the second IRQ even when in combine IRQs mode: while MIDI won't use it MegaEM 3.x does */
+                        gus->irq2 = gus_midi_irqs[(val >> 3) & 7];
+
+                        gus_log(gus->log, "GUS IRQ changed: New IRQ1 = %i, New IRQ2 = %i, NMI %sabled\n", gus->irq, gus->irq2, gus->sb_nmi ? "En" : "Dis");
+                        gus_log(gus->log, "GUS IRQ register val = %02X, Shared IRQ %sabled\n", val, (val & 0x40) ? "En" : "Dis");
+
                     } else {
                         gus->dma = gus_dmas[val & 7];
 
@@ -745,8 +807,20 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         } else
                             gus->dma2 = gus_dmas[(val >> 3) & 7];
 
-                        if (gus->type == GUS_MAX)
+                        gus_log(gus->log, "GUS DMA changed: New DMA1 = %i, New DMA2 = %i\n", gus->dma, gus->dma2);
+                        gus_log(gus->log, "GUS DMA register val = %02X\n", val);
+
+                        if (gus->type == GUS_MAX) {
                             ad1848_setdma(&gus->ad1848, gus->dma2);
+                            if (gus->dma2 != gus->dma)
+                                ad1848_setdma2(&gus->ad1848, gus->dma);
+                        }
+
+                        /* Bit 7 of this register fires/clears the secondary IRQ when in combine IRQs mode */
+                        if (val & 0x80)
+                            picint(1 << gus->irq2);
+                        else
+                            picintc(1 << gus->irq2);
                     }
                     break;
                 case 1:
@@ -933,8 +1007,11 @@ gus_read(uint16_t addr, void *priv)
             /* Handling for undocumented NMI status bit, needed by SBOS */
             if (((gus->ad_status & 0x18) && (gus->sb_ctrl & 0x20)) || ((gus->ad_status & 0x01) && (gus->sb_ctrl & 0x02)))
                 val |= 0x10;
+            /* Ensure the DMA TC bit *is* set if the ADC caused an IRQ */
+            if (gus->adc_irq)
+                val |= 0x80;
             /* DMA Terminal Count bit is inhibited if DMA Control bit 5 is cleared */
-            if (!(gus->dmactrl & 0x20))
+            if ((!(gus->dmactrl & 0x20)) && (!(gus->adc_ctrl & 0x20)))
                 val &= 0x7f;
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
             return val;
@@ -1052,9 +1129,12 @@ gus_read(uint16_t addr, void *priv)
                 case 0x45: /*Timer control*/
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->tctrl);
                     return gus->tctrl;
-                case 0x49: /*Sampling control*/
-                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, 0);
-                    return 0;
+                case 0x49: /*ADC Sampling control*/
+                    val = gus->adc_ctrl | (((gus->irqstatus & 0x80) || gus->adc_irq) ? 0x40 : 0);
+                    gus->irqstatus &= ~0x80;
+                    gus->adc_irq = 0;
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
+                    return val;
 
                 case 0x4B: /*Joystick trim DAC*/
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->joy_trim);
@@ -1811,6 +1891,7 @@ gus_init(UNUSED(const device_t *info))
     timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
+    timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
 
     sound_add_handler(gus_get_buffer, gus);
 
@@ -1847,7 +1928,7 @@ gus_extreme_init(UNUSED(const device_t *info))
     ess_mixer_reset(gus->ess);
 
     gus->ess->mixer_enabled = 1;
-    gus->ess->mixer_ess.regs[0x40] = 0x0a;
+    gus->ess->mixer_ess.regs[0x40] = 0x02;
     sound_add_handler(sb_get_buffer_ess, gus->ess);
     music_add_handler(sb_get_music_buffer_ess, gus->ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);

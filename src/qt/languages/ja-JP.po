@@ -424,7 +424,7 @@ msgstr "有効(UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286および386プロセッサには486インタプリタを使用する"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "動的再コンパイル"
 
 msgid "CPU frame size"
@@ -840,6 +840,9 @@ msgstr "ネットワーク"
 
 msgid "Ports (COM & LPT)"
 msgstr "ポート (COM/LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "ポート"
@@ -2236,6 +2239,9 @@ msgstr "シリアル番号"
 
 msgid "Host ID"
 msgstr "ホストID"
+
+msgid "Host"
+msgstr ""
 
 msgid "FDC Address"
 msgstr "FDCアドレス"
