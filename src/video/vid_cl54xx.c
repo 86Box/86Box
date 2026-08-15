@@ -749,8 +749,9 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 o                                   = svga->attrregs[svga->attraddr & 31];
-                if ((svga->attraddr & 31) <= 0x14)
-                    svga->attrregs[svga->attraddr & 31] = val;
+                if ((svga->attraddr & 31) > 0x14)
+                    val = o;
+                svga->attrregs[svga->attraddr & 31] = val;
                 if (svga->attraddr < 16)
                     svga->fullchange = changeframecount;
                 if (svga->attraddr == 0x10 || svga->attraddr == 0x14 || svga->attraddr < 0x10) {
