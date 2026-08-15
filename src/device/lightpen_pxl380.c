@@ -1,5 +1,10 @@
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
+#include <wchar.h>
+#define HAVE_STDARG_H
 
 #include <86box/86box.h>
 #include <86box/video.h>
@@ -115,19 +120,25 @@ uint8_t
 pxl380_read(uint16_t addr, void* priv)
 {
     pxl380_t* pxl380 = priv;
+    uint8_t   ret = 0x00;
     switch (addr & 7) {
         case 0:
-            return ~(pxl380->status | ((tablet_get_buttons_ex() & 3) << 1)) & 0xf;
+            ret = ~(pxl380->status | ((tablet_get_buttons_ex() & 3) << 1)) & 0xf;
+            break;
         case 1:
-            return ((pxl380->timer1_cnt_latch >> 8) & 0xf) | (((pxl380->timer0_cnt_latch >> 8) & 0xf) << 4);
+            ret = ((pxl380->timer1_cnt_latch >> 8) & 0xf) | (((pxl380->timer0_cnt_latch >> 8) & 0xf) << 4);
+            break;
         case 2:
-            return pxl380->timer1_cnt_latch & 0xff;
+            ret = pxl380->timer1_cnt_latch & 0xff;
+            break;
         case 3:
-            return pxl380->timer0_cnt_latch & 0xff;
+            ret = pxl380->timer0_cnt_latch & 0xff;
+            break;
         default:
-            return 0x00;
+            break;
     }
 
+    pclog("[PXL-380] RET 0x%02X\n", ret);
     return 0xFF;
 }
 
@@ -135,6 +146,7 @@ void
 pxl380_write(uint16_t addr, uint8_t val, void* priv)
 {
     pxl380_t* pxl380 = priv;
+    pclog("[PXL-380] WRITE 0x%02X (VAL 0x%02X)\n", addr, val);
     switch (addr & 7) {
         case 4:
         {
