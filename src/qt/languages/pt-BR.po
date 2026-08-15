@@ -3260,10 +3260,10 @@ msgid "Fast forward"
 msgstr "Avançar rapidamente"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "Interrupção &Não-mascarável"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Interrupção Não-mascarável"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Para alterar o diretório do sistema, pare todas as máquinas em funcionamento."
@@ -3450,7 +3450,7 @@ msgstr "Taxa de amostragem:"
 
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "Caneta óptica CGA"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Limiar de luminância (%)"
