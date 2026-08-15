@@ -378,7 +378,7 @@ time_set(nvr_t *nvr, struct tm *tm)
         nvr->regs[RTC_DOM]     = tm->tm_mday;
         nvr->regs[RTC_MONTH]   = (tm->tm_mon + 1);
         nvr->regs[RTC_YEAR]    = (year % 100);
-        if (local->cent != 0xFF)
+        if (local->cent != 0xff)
             nvr->regs[local->cent] = (year / 100);
 
         if (nvr->regs[RTC_REGB] & REGB_2412) {
@@ -398,6 +398,8 @@ time_set(nvr_t *nvr, struct tm *tm)
         nvr->regs[RTC_DOM]     = RTC_BCD(tm->tm_mday);
         nvr->regs[RTC_MONTH]   = RTC_BCD(tm->tm_mon + 1);
         nvr->regs[RTC_YEAR]    = RTC_BCD(year % 100);
+        if (local->cent != 0xFF)
+            nvr->regs[local->cent] = RTC_BCD(year / 100);
 
         if (nvr->regs[RTC_REGB] & REGB_2412) {
             /* NVR is in 24h mode. */
@@ -476,7 +478,10 @@ timer_update(void *priv)
            This is actually true for all the AT+ machines - the century byte
            is ordinary batter-backed RAM.
          */
+        const uint8_t old_cent = (local->cent == 0xff) ? 0x00 : nvr->regs[local->cent];
         time_set(nvr, &tm);
+        if (local->cent != 0xff)
+            nvr->regs[local->cent] = old_cent;
 
         /* Check for any alarms we need to handle. */
         if (check_alarm(nvr, RTC_SECONDS) && check_alarm(nvr, RTC_MINUTES) && check_alarm(nvr, RTC_HOURS) &&
