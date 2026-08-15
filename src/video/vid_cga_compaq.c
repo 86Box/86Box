@@ -60,6 +60,8 @@ compaq_cga_log(const char *fmt, ...)
 #    define compaq_cga_log(fmt, ...)
 #endif
 
+static video_timings_t timing_compaq_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
+
 static void
 compaq_cga_recalctimings(cga_t *dev)
 {
@@ -410,6 +412,8 @@ compaq_cga_init(const device_t *info)
     dev->snow_enabled   = device_get_config_int("snow_enabled");
 
     dev->vram           = calloc(1, 0x4000);
+
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_cga);
 
     cga_comp_init(dev->revision);
     timer_add(&dev->timer, compaq_cga_poll, dev, 1);
