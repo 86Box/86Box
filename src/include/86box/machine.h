@@ -918,7 +918,7 @@ extern int             machine_at_hot433a_init(const machine_t *);
 extern int             machine_at_g486vpa_init(const machine_t *);
 extern int             machine_at_486vipio2_init(const machine_t *);
 
-/* m_at_486_misc.c */
+/* m_at_stpc.c */
 /* STPC Client */
 extern int             machine_at_itoxstar_init(const machine_t *);
 
@@ -935,6 +935,9 @@ extern int             machine_at_pcm9340_init(const machine_t *);
 
 /* STPC Atlas */
 extern int             machine_at_pcm5330_init(const machine_t *);
+
+/* m_at_socket3_4.c */
+extern int             machine_at_pat45pv_init(const machine_t *);
 
 /* m_at_socket4.c */
 /* i430LX */

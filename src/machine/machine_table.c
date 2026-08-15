@@ -8604,7 +8604,7 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
 
-    /* 486 machines - Socket 1 */
+    /* Socket 168/1 machines */
     /* Has JetKey V5 KBC Firmware - we now have a photo of the board and its POST
        screen, so we can match JetKey V5 to 'F'. */
     {
@@ -9721,7 +9721,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* 486 machines - Socket 2 */
+    /* Socket 2 machines */
     /* 486 machines with just the ISA slot */
     /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
        command C7 (OR input byte with received data byte). */
@@ -10403,7 +10403,7 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
 
-    /* 486 machines - Socket 3 */
+    /* Socket 3 machines */
     /* 486 machines with just the ISA slot */
     /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
        command C7 (OR input byte with received data byte). */
@@ -11372,7 +11372,7 @@ const machine_t machines[] = {
         .aliases                  = { "VEGA MB-SYP243LV-V12", "" }
     },
 
-    /* 486 machines - Socket 3 PCI */
+    /* Socket 3 (PCI) machines */
     /* 486 machines which utilize the PCI bus */
     /* Machine with ALi M1429G chipset and M1435 southbridge */
     /* Has an AMIKEY-2 KBC which is type 'H'. */
@@ -13322,7 +13322,7 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
 
-    /* 486 machines - Miscellaneous */
+    /* STMicroelectronics STPC machines */
     /* 486 machines which utilize the PCI bus */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -13609,6 +13609,58 @@ const machine_t machines[] = {
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+
+    /* Socket 3/4 machines */
+    /* OPTi 571/572 */
+    /* The BIOS string reports AMIKEY-2 'H' KBC firmware, yet the actual board
+       seems to have an AMIKEY 'F' based on the only available picture  */
+    {
+        .name              = "[OPTi 571] TMC PAT45PV",
+        .internal_name     = "pat45pv",
+        .type              = MACHINE_TYPE_SOCKET3_4,
+        .chipset           = MACHINE_CHIPSET_OPTI_571,
+        .init              = machine_at_pat45pv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET4,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 33333333,
+            .max_bus     = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 2048,
+            .max  = 65536, /* neither DOS nor Windows recognizes more than this amount */
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
