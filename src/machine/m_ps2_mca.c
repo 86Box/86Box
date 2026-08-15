@@ -700,11 +700,18 @@ model_70_type3_write(uint16_t port, uint8_t val)
             break;
         case 0x103:
             if (ps2.planar_id == 0xfff9)
-                ps2.option[1] = (ps2.option[1] & 0x0f) | (val & 0xf0);
+                ps2.option[1] = (ps2.option[1] & 0x7f) | (val & 0x80);
             break;
         case 0x104:
-            if (ps2.planar_id == 0xfff9)
-                ps2.option[2] = val;
+            if (ps2.planar_id == 0xfff9) {
+                uint8_t old = ps2.option[2];
+                /* Only bit 0 (E0000 hole) is writable; bits 1-7 are fixed
+                value (memory refresh speed, CPU type) and must be preserved
+                to avoid POST error 225 with IBM KDOS 3.31 on warm reboot. */
+                ps2.option[2] = (ps2.option[2] & 0xfe) | (val & 0x01);
+                if ((old ^ ps2.option[2]) & 0x01)
+                    mem_encoding_update();
+            }
             break;
         case 0x105:
             ps2.option[3] = val;
@@ -1474,7 +1481,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
             ps2.option[2] = 0x01;
             break;
         case 4:
-            ps2.option[1] = 0xaa;
+            ps2.option[1] = 0x86;
             ps2.option[2] = 0x01;
             break;
         case 6:
@@ -1483,13 +1490,19 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
             break;
         case 8:
         default:
-            ps2.option[1] = 0xca;
+            ps2.option[1] = 0x8a;
             ps2.option[2] = 0x02;
             break;
     }
 
     if (is_type4)
         ps2.option[2] |= 0x04; /*486 CPU*/
+
+    if (ps2.planar_id == 0xfff9) {
+        /* Disable/Enable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
+        ps2.option[2] &= ~0x01;
+        ps2.has_e0000_hole = 1;
+    }
 
     mem_mapping_add(&ps2.split_mapping,
                     (mem_size + 256) * 1024,
@@ -1519,23 +1532,12 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
 
-    if (ps2.planar_id == 0xfff9) {
-        if (mem_size > 4096) {
-            /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-            if (mem_size > 12288) {
-                ps2_mca_mem_d071_init(4);
-            } else {
-                ps2_mca_mem_fffc_init(4);
-            }
-        }
-    } else {
-        if (mem_size > 8192) {
-            /* Only 8 MB supported on planar, create a memory expansion card for the rest */
-            if (mem_size > 16384)
-                ps2_mca_mem_d071_init(8);
-            else {
-                ps2_mca_mem_fffc_init(8);
-            }
+    if (mem_size > 8192) {
+        /* Only 8 MB supported on planar, create a memory expansion card for the rest */
+        if (mem_size > 16384)
+            ps2_mca_mem_d071_init(8);
+        else {
+            ps2_mca_mem_fffc_init(8);
         }
     }
 
@@ -1650,7 +1652,7 @@ static const device_config_t ps2_model_50_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "ibmps2_m50",
+        .default_string = "ibmps2_m50z",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },

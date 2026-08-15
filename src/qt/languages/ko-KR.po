@@ -423,7 +423,7 @@ msgstr "사용 (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286/386 프로세서에 486 인터프리터 사용"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "동적 리컴파일러"
 
 msgid "CPU frame size"

@@ -424,8 +424,8 @@ msgstr "Bật (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Sử dụng trình thông dịch 486 cho các bộ xử lý 286 và 386"
 
-msgid "Dynamic Recompiler"
-msgstr "Bộ tái biên dịch động (Dynamic Recompiler)"
+msgid "Dynamic recompiler"
+msgstr "Bộ tái biên dịch động (Dynamic recompiler)"
 
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
