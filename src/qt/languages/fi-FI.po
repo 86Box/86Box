@@ -423,7 +423,7 @@ msgstr "Käytössä (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Käytä 486-tulkintaa 286- ja 386-prosessoreille"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynaaminen uudelleenkääntäjä"
 
 msgid "CPU frame size"

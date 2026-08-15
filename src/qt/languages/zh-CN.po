@@ -424,7 +424,7 @@ msgstr "启用 (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "为286及386处理器应用486解释器"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "动态重编译器"
 
 msgid "CPU frame size"
