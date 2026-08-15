@@ -472,6 +472,15 @@ msgstr "Chuột:"
 msgid "Mouse"
 msgstr "Chuột"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Cần điều khiển:"
 
@@ -831,6 +840,9 @@ msgstr "Hiển thị"
 
 msgid "Input devices"
 msgstr "Thiết bị nhập"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Âm thanh"
@@ -3254,6 +3266,12 @@ msgstr "&Tăng tốc giả lập"
 msgid "Fast forward"
 msgstr "Tăng tốc giả lập"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Để thay đổi thư mục hệ thống, hãy tắt tất cả các máy đang chạy."
 
@@ -3434,3 +3452,9 @@ msgstr "938 (Trung phồn thể)"
 
 msgid "Sample rate:"
 msgstr "Tần số lấy mẫu:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

@@ -472,6 +472,15 @@ msgstr "滑鼠:"
 msgid "Mouse"
 msgstr "滑鼠"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "搖桿:"
 
@@ -836,6 +845,9 @@ msgstr "顯示"
 
 msgid "Input devices"
 msgstr "輸入裝置"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "聲音"
@@ -3270,6 +3282,12 @@ msgstr "快轉(&F)"
 msgid "Fast forward"
 msgstr "快轉"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "欲變更系統目錄，請先停止全部運行中的機器。"
 
@@ -3447,3 +3465,9 @@ msgstr "938 (正體中文)"
 
 msgid "Sample rate:"
 msgstr "取樣率:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

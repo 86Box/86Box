@@ -471,6 +471,15 @@ msgstr "Muis:"
 msgid "Mouse"
 msgstr "Muis"
 
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
+
 msgid "Joystick:"
 msgstr "Joystick:"
 
@@ -830,6 +839,9 @@ msgstr "Scherm"
 
 msgid "Input devices"
 msgstr "Invoerapparaten"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Geluid"
@@ -3252,6 +3264,12 @@ msgstr "&Snel vooruitspoelen"
 msgid "Fast forward"
 msgstr "Snel vooruitspoelen"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Om de systeemmap te wijzigen, moet u alle actieve machines stoppen."
 
@@ -3431,4 +3449,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditioneel Chinees)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""
