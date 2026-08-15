@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-06 20:32+0000\n"
+"PO-Revision-Date: 2026-08-14 17:43+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -423,7 +423,7 @@ msgstr "사용 (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286/386 프로세서에 486 인터프리터 사용"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "동적 리컴파일러"
 
 msgid "CPU frame size"
@@ -470,6 +470,15 @@ msgstr "마우스:"
 
 msgid "Mouse"
 msgstr "마우스"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "조이스틱:"
@@ -838,6 +847,9 @@ msgstr "디스플레이"
 msgid "Input devices"
 msgstr "입력 장치"
 
+msgid "Input device"
+msgstr ""
+
 msgid "Sound"
 msgstr "사운드"
 
@@ -848,7 +860,7 @@ msgid "Ports (COM & LPT)"
 msgstr "포트 (COM & LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "포트"
 
 msgid "Ports"
 msgstr "포트"
@@ -2305,7 +2317,7 @@ msgid "Host ID"
 msgstr "호스트 ID"
 
 msgid "Host"
-msgstr ""
+msgstr "호스트"
 
 msgid "FDC Address"
 msgstr "FDC 주소"
@@ -3326,6 +3338,12 @@ msgstr "빠른 전진(&F)"
 msgid "Fast forward"
 msgstr "빠른 전진"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "시스템 디렉터리를 변경하려면 실행 중인 모든 머신을 중지하십시오."
 
@@ -3506,3 +3524,9 @@ msgstr "938 (중국어 번체)"
 
 msgid "Sample rate:"
 msgstr "샘플링 주파수:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

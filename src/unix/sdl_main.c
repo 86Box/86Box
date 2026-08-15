@@ -198,6 +198,9 @@ main_thread(UNUSED(void *param))
     int      drawits;
     int      frames;
 
+    
+    is_cpu_thread = 1;
+
 #ifdef USE_SDL2_LIB
     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 #else

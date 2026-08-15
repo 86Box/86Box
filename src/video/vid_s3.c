@@ -4829,8 +4829,9 @@ s3_recalctimings(svga_t *svga)
 static void
 s3_trio64v_recalctimings(svga_t *svga)
 {
-    s3_t *s3            = (s3_t *) svga->priv;
-    int         clk_sel = (svga->miscout >> 2) & 3;
+    s3_t *s3                  = (s3_t *) svga->priv;
+    int   clk_sel             = (svga->miscout >> 2) & 3;
+    int   enhanced_8bpp_modes = 0;
 
     if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
@@ -5021,8 +5022,17 @@ s3_trio64v_recalctimings(svga_t *svga)
         svga->vram_display_mask = s3->vram_mask;
     }
 
+    enhanced_8bpp_modes = !!((svga->crtc[0x3a] & 0x10) && !svga->lowres);
+
     const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
     svga->hoverride = !is_vga_mode;
+
+    if (is_vga_mode) {
+        svga->hoverride = 0;
+        if (enhanced_8bpp_modes)
+            svga->hoverride = 1;
+    } else
+        svga->hoverride = 1;
 
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;

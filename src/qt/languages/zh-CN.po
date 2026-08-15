@@ -424,7 +424,7 @@ msgstr "启用 (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "为286及386处理器应用486解释器"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "动态重编译器"
 
 msgid "CPU frame size"
@@ -471,6 +471,15 @@ msgstr "鼠标:"
 
 msgid "Mouse"
 msgstr "鼠标"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "操纵杆:"
@@ -831,6 +840,9 @@ msgstr "显示"
 
 msgid "Input devices"
 msgstr "输入设备"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "声音"
@@ -3256,6 +3268,12 @@ msgstr "快进(&F)"
 msgid "Fast forward"
 msgstr "快进"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"
 
@@ -3433,3 +3451,9 @@ msgstr "938 (繁体中文)"
 
 msgid "Sample rate:"
 msgstr "采样率："
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

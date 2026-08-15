@@ -425,7 +425,7 @@ msgstr "Omogočeno (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Uporabi interpreter za 486 tudi za procesorje 286 in 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dinamični prevajalnik"
 
 msgid "CPU frame size"
@@ -472,6 +472,15 @@ msgstr "Miška:"
 
 msgid "Mouse"
 msgstr "Miška"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Igralna palica:"
@@ -832,6 +841,9 @@ msgstr "Zaslon"
 
 msgid "Input devices"
 msgstr "Vhodne naprave"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Zvok"
@@ -3271,6 +3283,12 @@ msgstr "&Hitro previj"
 msgid "Fast forward"
 msgstr "Hitro previj"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Da bi spremenili sistemski imenik, ustavite vse naprave, ki se izvajajo."
 
@@ -3450,4 +3468,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (tradicionalna kitajščina)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

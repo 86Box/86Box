@@ -730,6 +730,7 @@ extern void leave_smm(void);
 extern void exec386_2386(int32_t cycs);
 extern void exec386(int32_t cycs);
 extern void exec386_dynarec(int32_t cycs);
+extern int  is_dynarec_active(void);
 extern int  idivl(int32_t val);
 extern void resetmcr(void);
 extern void resetx86(void);

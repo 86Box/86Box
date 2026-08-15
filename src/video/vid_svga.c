@@ -240,6 +240,8 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 if ((svga->attraddr == 0x13) && (svga->attrregs[0x13] != val))
                     svga->fullchange = svga->monitor->mon_changeframecount;
                 o                                   = svga->attrregs[svga->attraddr & 0x1f];
+                if (((svga->attraddr & 0x1f) > 0x14) && !(svga->adv_flags & FLAG_EXT_AR))
+                    val = o;
                 svga->attrregs[svga->attraddr & 0x1f] = val;
                 if (svga->attraddr < 0x10)
                     svga->fullchange = svga->monitor->mon_changeframecount;

@@ -66,6 +66,9 @@ extern int qt_nvr_save(void);
 #    include <minitrace/minitrace.h>
 #endif
 
+/* to avoid including the entire cpu.h */
+extern void nmi_raise(void);
+
 extern bool cpu_thread_running;
 extern bool fast_forward;
 };
@@ -353,6 +356,9 @@ MainWindow::MainWindow(QWidget *parent)
         int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_JIS) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
         kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
 
+        ui->actionMouse->setEnabled(true);
+        ui->actionTablet->setEnabled(true);
+        ui->actionTablet_Crosshair->setEnabled(true);
         if (!mouse_both_enabled()) {
             if (!mouse_type) {
                 ui->actionMouse->setDisabled(true);
@@ -366,15 +372,15 @@ MainWindow::MainWindow(QWidget *parent)
                 if (mouse_input_mode > 0)
                     mouse_input_mode = 0;
             }
-
-            ui->menuSelect_Input_Device->setEnabled(mouse_type || tablet_type);    
         }
+
+        ui->menuInput_device->menuAction()->setVisible(tablet_type);
 
         if (mouse_input_mode >= 1 && QApplication::overrideCursor())
             while (QApplication::overrideCursor())
                 QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
-        ui->menuTablet_tool->menuAction()->setVisible(mouse_input_mode >= 1);
+        ui->menuTablet_tool->menuAction()->setVisible(tablet_type && tablet_is_lightpen(tablet_type));
 #else
         ui->menuTablet_tool->menuAction()->setVisible(false);
 #endif
@@ -1072,6 +1078,7 @@ MainWindow::updateShortcuts()
     ui->actionCopy_raw_screenshot->setShortcut(QKeySequence());
     ui->actionCtrl_Alt_Del->setShortcut(QKeySequence());
     ui->actionCtrl_Alt_Esc->setShortcut(QKeySequence());
+    ui->actionNon_maskable_interrupt->setShortcut(QKeySequence());
     ui->actionHard_Reset->setShortcut(QKeySequence());
     ui->actionFast_forward->setShortcut(QKeySequence());
     ui->actionFullscreen->setShortcut(QKeySequence());
@@ -1107,6 +1114,10 @@ MainWindow::updateShortcuts()
     accID = FindAccelerator("send_ctrl_alt_esc");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
     ui->actionCtrl_Alt_Esc->setShortcut(seq);
+
+    accID = FindAccelerator("nmi");
+    seq   = QKeySequence::fromString(acc_keys[accID].seq);
+    ui->actionNon_maskable_interrupt->setShortcut(seq);
 
     accID = FindAccelerator("hard_reset");
     seq   = QKeySequence::fromString(acc_keys[accID].seq);
@@ -1327,6 +1338,12 @@ void
 MainWindow::on_actionCtrl_Alt_Esc_triggered()
 {
     pc_send_cae();
+}
+
+void
+MainWindow::on_actionNon_maskable_interrupt_triggered()
+{
+    nmi_raise();
 }
 
 void
@@ -1728,6 +1745,10 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("send_ctrl_alt_esc")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("send_ctrl_alt_esc")) {
                 ui->actionCtrl_Alt_Esc->trigger();
+            }
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("nmi")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("nmi")) {
+                ui->actionNon_maskable_interrupt->trigger();
             }
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("pause")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("pause")) {
@@ -2588,8 +2609,9 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
                                                monitor_settings[monitor_index].mon_window_w > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_w,
                                                monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
             }
-            secondaryRenderer->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
             ui->stackedWidget->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+            secondaryRenderer->switchRenderer(static_cast<RendererStack::Renderer>(vid_api));
+            secondaryRenderer->show();
         }
     } else {
         for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {

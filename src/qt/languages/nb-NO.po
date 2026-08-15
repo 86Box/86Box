@@ -424,7 +424,7 @@ msgstr "Aktivert (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Bruk 486-tolken for 286- og 386-prosessorer"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamisk recompilator"
 
 msgid "CPU frame size"
@@ -471,6 +471,15 @@ msgstr "Mus:"
 
 msgid "Mouse"
 msgstr "Mus"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Styrespak:"
@@ -831,6 +840,9 @@ msgstr "Skjerm"
 
 msgid "Input devices"
 msgstr "Inndataenheter"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Lyd"
@@ -3258,6 +3270,12 @@ msgstr "&Spol fremover"
 msgid "Fast forward"
 msgstr "Spol fremover"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "For å endre systemkatalogen, stopp alle maskiner som er kjører."
 
@@ -3437,4 +3455,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Tradisjonell kinesisk)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

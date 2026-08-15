@@ -423,8 +423,8 @@ msgstr "Etkin (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286 ve 386 işlemcilerde 486 yorumlayıcısını kullan"
 
-msgid "Dynamic Recompiler"
-msgstr "Dinamik Derleyici"
+msgid "Dynamic recompiler"
+msgstr "Dinamik derleyici"
 
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
@@ -470,6 +470,15 @@ msgstr "Fare:"
 
 msgid "Mouse"
 msgstr "Fare"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Oyun Kolu:"
@@ -833,6 +842,9 @@ msgstr "Görüntü"
 
 msgid "Input devices"
 msgstr "Giriş cihazları"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Ses"
@@ -3319,6 +3331,12 @@ msgstr "&İleri sar"
 msgid "Fast forward"
 msgstr "İleri sar"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Sistem dizinini değiştirmek için çalışan tüm makineleri durdurun."
 
@@ -3501,3 +3519,9 @@ msgstr "938 (Geleneksel Çince)"
 
 msgid "Sample rate:"
 msgstr "Örnekleme hızı:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

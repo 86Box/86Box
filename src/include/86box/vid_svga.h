@@ -30,6 +30,7 @@
 #    define FLAG_NO_SHIFT3    1024 /* Needed for Bochs VBE. */
 #    define FLAG_PRECISETIME  2048 /* Needed for Copper demo if on dynarec. */
 #    define FLAG_PANNING_ATI  4096
+#    define FLAG_EXT_AR       8192
 struct monitor_t;
 
 typedef struct hwcursor_t {

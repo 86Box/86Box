@@ -423,7 +423,7 @@ msgstr "Activé (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Employer l'interprète 486 pour les processeurs 286 et 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Recompilateur dynamique"
 
 msgid "CPU frame size"
@@ -470,6 +470,15 @@ msgstr "Souris :"
 
 msgid "Mouse"
 msgstr "Souris"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Manette :"
@@ -834,6 +843,9 @@ msgstr "Affichage"
 
 msgid "Input devices"
 msgstr "Dispositifs d'entrée"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Son"
@@ -3275,6 +3287,12 @@ msgstr "&Avance rapide"
 msgid "Fast forward"
 msgstr "Avance rapide"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Pour modifier le répertoire système, arrêtez toutes les machines en cours d'exécution."
 
@@ -3455,4 +3473,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (chinois traditionnel)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

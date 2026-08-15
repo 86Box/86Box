@@ -424,7 +424,7 @@ msgstr "Включено (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Использовать интерпретатор 486 для процессоров 286 и 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Динамический рекомпилятор"
 
 msgid "CPU frame size"
@@ -471,6 +471,15 @@ msgstr "Мышь:"
 
 msgid "Mouse"
 msgstr "Мышь"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Джойстик:"
@@ -831,6 +840,9 @@ msgstr "Дисплей"
 
 msgid "Input devices"
 msgstr "Устройства ввода"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Звук"
@@ -3271,6 +3283,12 @@ msgstr "П&еремотка вперёд"
 msgid "Fast forward"
 msgstr "Перемотка вперёд"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Чтобы изменить системную папку, остановите все запущенные машины."
 
@@ -3451,3 +3469,9 @@ msgstr "938 (китайский, традиционное письмо)"
 
 msgid "Sample rate:"
 msgstr "Частота дискретизации:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

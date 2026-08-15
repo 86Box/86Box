@@ -425,7 +425,7 @@ msgstr "Увімкнути (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Використовувати інтерпретатор 486 для процесорів 286 і 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Динамічний рекомпілятор"
 
 msgid "CPU frame size"
@@ -472,6 +472,15 @@ msgstr "Миша:"
 
 msgid "Mouse"
 msgstr "Миша"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "Tablet (Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Джойстик:"
@@ -832,6 +841,9 @@ msgstr "Дисплей"
 
 msgid "Input devices"
 msgstr "Пристрій введення"
+
+msgid "Input device"
+msgstr ""
 
 msgid "Sound"
 msgstr "Звук"
@@ -3266,6 +3278,12 @@ msgstr "&Перемотай вперед"
 msgid "Fast forward"
 msgstr "Перемотай вперед"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Щоб змінити системний каталог, зупиніть усі машини, що працюють."
 
@@ -3445,4 +3463,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (китайська, традиційне письмо)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

@@ -389,6 +389,9 @@ qt_osd_set_layout_scale_hint(float scale)
 void
 qt_osd_shutdown(void)
 {
+    if (!g_ctx_ready)
+        return;
+
     if (g_vk_enabled && g_vk_ready) {
         ImGui_ImplVulkan_Shutdown();
         g_vk_ready = false;
@@ -414,6 +417,9 @@ void
 qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf)
 {
     /* OpenGL path for the GL renderer. */
+    if (cmd_buf && !g_vk_enabled)
+        return;
+
     ensure_context();
     ensure_gl();
     if (!g_gl_ready)
