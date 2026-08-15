@@ -456,6 +456,9 @@ msgstr "Povolit grafický adaptér XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Povolit grafický adaptér IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 

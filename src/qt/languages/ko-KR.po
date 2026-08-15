@@ -456,6 +456,9 @@ msgstr "XGA 그래픽"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 디스플레이 어댑터 그래픽스"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 

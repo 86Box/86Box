@@ -450,6 +450,9 @@ msgstr ""
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr ""
 
+msgid "SCSI:"
+msgstr ""
+
 msgid "Voodoo:"
 msgstr ""
 
