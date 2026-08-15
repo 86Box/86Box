@@ -398,8 +398,6 @@ time_set(nvr_t *nvr, struct tm *tm)
         nvr->regs[RTC_DOM]     = RTC_BCD(tm->tm_mday);
         nvr->regs[RTC_MONTH]   = RTC_BCD(tm->tm_mon + 1);
         nvr->regs[RTC_YEAR]    = RTC_BCD(year % 100);
-        if (local->cent != 0xFF)
-            nvr->regs[local->cent] = RTC_BCD(year / 100);
 
         if (nvr->regs[RTC_REGB] & REGB_2412) {
             /* NVR is in 24h mode. */
@@ -470,17 +468,15 @@ timer_update(void *priv)
         nvr_time_get(&tm);
 
         /*
-         * Update registers with the current time.  The PS/2 century byte is
-         * ordinary battery-backed RAM maintained by firmware, rather than a
-         * live RTC field.  Rewriting it every second also corrupts the Model
-         * 70/80 reference-disk NVRAM test while it exercises CMOS 0Eh-3Fh.
+           Update registers with the current time.  The PS/2 century byte is
+           ordinary battery-backed RAM maintained by firmware, rather than a
+           live RTC field.  Rewriting it every second also corrupts the Model
+           70/80 reference-disk NVRAM test while it exercises CMOS 0Eh-3Fh.
+
+           This is actually true for all the AT+ machines - the century byte
+           is ordinary batter-backed RAM.
          */
-        const uint8_t ps_century = (local->cent == RTC_CENTURY_PS)
-            ? nvr->regs[RTC_CENTURY_PS]
-            : 0;
         time_set(nvr, &tm);
-        if (local->cent == RTC_CENTURY_PS)
-            nvr->regs[RTC_CENTURY_PS] = ps_century;
 
         /* Check for any alarms we need to handle. */
         if (check_alarm(nvr, RTC_SECONDS) && check_alarm(nvr, RTC_MINUTES) && check_alarm(nvr, RTC_HOURS) &&
