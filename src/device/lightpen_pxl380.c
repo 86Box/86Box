@@ -134,6 +134,33 @@ pxl380_read(uint16_t addr, void* priv)
         case 3:
             ret = pxl380->timer0_cnt_latch & 0xff;
             break;
+        case 4:
+        {
+            pxl380->status &= ~0x8;
+            break;
+        }
+        case 5:
+        {
+            if (!(pxl380->status & 0x8)) {
+                pxl380->timer1_cnt_latch = pxl380->timer1_cnt_dummy & 0xfff;
+                pxl380->timer0_cnt_latch = pxl380->timer0_cnt & 0xfff;
+                pxl380->status |= 0x8;
+                if (pxl380->irq_enabled)
+                    picint(1 << pxl380->irq_num);
+            }
+            break;
+        }
+        case 6:
+        {
+            pxl380->irq_enabled = 0;
+            break;
+        }
+        case 7:
+        {
+            pxl380->irq_enabled = 1;
+            pxl380->status &= ~1;
+            break;
+        }
         default:
             break;
     }
