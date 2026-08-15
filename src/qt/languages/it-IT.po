@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-08-15 16:39+0200\n"
+"PO-Revision-Date: 2026-08-15 19:20+0200\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it_IT\n"
@@ -458,6 +458,9 @@ msgstr "Scheda grafica XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Scheda grafica IBM PS/55 Display Adapter"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -472,6 +475,21 @@ msgstr "Mouse:"
 
 msgid "Mouse"
 msgstr "Mouse"
+
+msgid "&Mouse"
+msgstr "&Mouse"
+
+msgid "Tablet:"
+msgstr "Tavoletta:"
+
+msgid "Tablet"
+msgstr "Tavoletta"
+
+msgid "&Tablet"
+msgstr "&Tavoletta"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Tavoletta (&cursore a croce)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -838,6 +856,9 @@ msgstr "Schermo"
 
 msgid "Input devices"
 msgstr "Dispositivi di ingresso"
+
+msgid "Input &device"
+msgstr "&Dispositivo di ingresso"
 
 msgid "Sound"
 msgstr "Audio"
@@ -2872,16 +2893,16 @@ msgid "Output file"
 msgstr "File di uscita"
 
 msgid "Append to file if it exists"
-msgstr "Appendere al file se esiste"
+msgstr "Aggiungi al file se esiste"
 
 msgid "Input file"
 msgstr "File di ingresso"
 
 msgid "Loop input file"
-msgstr "Ripetere il file di ingresso"
+msgstr "Ripeti file di ingresso"
 
 msgid "Require STROBE signal"
-msgstr "Richiede il segnale STROBE"
+msgstr "Richiedi segnale STROBE"
 
 msgid "Loopback Type"
 msgstr "Tipo di loopback"
@@ -3372,6 +3393,12 @@ msgstr "&Avanti veloce"
 msgid "Fast forward"
 msgstr "Avanti veloce"
 
+msgid "&Non-maskable interrupt"
+msgstr "Interruzione &non mascherabile"
+
+msgid "Non-maskable interrupt"
+msgstr "Interruzione non mascherabile"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Per modificare la directory di sistema, arrestare tutte le macchine in funzione."
 
@@ -3466,7 +3493,7 @@ msgid "Draft"
 msgstr "Bozza"
 
 msgid "(Near) Letter"
-msgstr "(Quasi) Lettera"
+msgstr "Tipografia"
 
 msgid "Auto LF"
 msgstr "Avanzamento automatico della riga"
@@ -3548,3 +3575,9 @@ msgstr "938 (cinese tradizionale)"
 
 msgid "Sample rate:"
 msgstr "Frequenza di campionamento:"
+
+msgid "CGA lightpen"
+msgstr "Penna ottica CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Soglia di luminanza (%)"
