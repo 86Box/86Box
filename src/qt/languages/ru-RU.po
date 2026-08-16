@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-10 21:47+0000\n"
+"PO-Revision-Date: 2026-08-16 00:00+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -479,16 +479,16 @@ msgid "&Mouse"
 msgstr "&Мышь"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Планшет:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Планшет"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Планшет"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Планшет (&отображать прицел)"
 
 msgid "Joystick:"
 msgstr "Джойстик:"
@@ -851,7 +851,7 @@ msgid "Input devices"
 msgstr "Устройства ввода"
 
 msgid "Input &device"
-msgstr ""
+msgstr "&Устройство ввода"
 
 msgid "Sound"
 msgstr "Звук"
@@ -3293,10 +3293,10 @@ msgid "Fast forward"
 msgstr "Перемотка вперёд"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "Немаскируемое прерывание (&NMI)"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Немаскируемое прерывание"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Чтобы изменить системную папку, остановите все запущенные машины."
@@ -3480,7 +3480,7 @@ msgid "Sample rate:"
 msgstr "Частота дискретизации:"
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "Световое перо CGA"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Порог яркости (%)"
