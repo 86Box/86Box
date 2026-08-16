@@ -283,6 +283,7 @@ typedef struct ibm8514_t {
     uint32_t vram_amount;
     int      vram_512k_8514;
     int      vendor_mode;
+    int      monitorid;
     int      _8514on;
     int      _8514crt;
     PALETTE  _8514pal;
