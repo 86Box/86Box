@@ -857,7 +857,7 @@ ps2_mca_read(const uint16_t port, UNUSED(void *priv))
             if (!(ps2.setup & PS2_SETUP_IO))
                 temp = ps2.planar_read(port);
             else if (!(ps2.setup & PS2_SETUP_VGA))
-                temp = 0xfd;
+                temp = (ps2.pos_vga & 1) ? 0xfd : 0xff;
             else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
                 temp = mca_read(port);
             else
@@ -867,7 +867,7 @@ ps2_mca_read(const uint16_t port, UNUSED(void *priv))
             if (!(ps2.setup & PS2_SETUP_IO))
                 temp = ps2.planar_read(port);
             else if (!(ps2.setup & PS2_SETUP_VGA))
-                temp = 0xef;
+                temp = (ps2.pos_vga & 1) ? 0xef : 0xff;
             else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
                 temp = mca_read(port);
             else
@@ -1019,17 +1019,35 @@ ps2_mca_write(const uint16_t port, uint8_t val, UNUSED(void *priv))
 }
 
 static void
+ps2_mca_vga_write(UNUSED(uint16_t addr), uint8_t val, UNUSED(void *priv))
+{
+    if (!ps2.mb_vga) {
+        return;
+    }
+
+    if (val & 0x01) {
+        if (!vga_isenabled(ps2.mb_vga))
+            vga_enable(ps2.mb_vga);
+    } else {
+        if (vga_isenabled(ps2.mb_vga))
+            vga_disable(ps2.mb_vga);
+    }
+}
+
+static void
 ps2_mca_board_common_init(void)
 {
     io_sethandler(0x0091, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
     io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
     io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
     io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
+    io_sethandler(0x03c3, 0x0001, NULL, NULL, NULL, ps2_mca_vga_write, NULL, NULL, NULL);
 
     device_add(&port_6x_ps2_device);
     device_add(&port_92_device);
 
     ps2.setup = 0xff;
+    ps2.pos_vga = 0x01;
 
     lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
 }

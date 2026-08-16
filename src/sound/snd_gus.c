@@ -1933,6 +1933,10 @@ gus_extreme_init(UNUSED(const device_t *info))
     music_add_handler(sb_get_music_buffer_ess, gus->ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);
 
+    /* Filter is always enabled on ES1688 */
+    gus->ess->mixer_ess.input_filter = 1;
+    gus->ess->mixer_ess.output_filter = 1;
+
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
 

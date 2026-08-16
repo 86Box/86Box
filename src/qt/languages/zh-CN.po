@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-11 07:15+0000\n"
-"Last-Translator: Canadew <chun-awa@outlook.com>\n"
+"PO-Revision-Date: 2026-08-16 07:25+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
 "Language: zh-CN\n"
@@ -851,7 +851,7 @@ msgid "Input devices"
 msgstr "输入设备"
 
 msgid "Input &device"
-msgstr ""
+msgstr "输入设备(&D)"
 
 msgid "Sound"
 msgstr "声音"
@@ -3278,10 +3278,10 @@ msgid "Fast forward"
 msgstr "快进"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "触发不可屏蔽中断(&N)"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "触发不可屏蔽中断"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "请在变更系统目录前关闭所有正在运行的虚拟机。"
@@ -3462,7 +3462,7 @@ msgid "Sample rate:"
 msgstr "采样率："
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "CGA光笔"
 
 msgid "Luminance threshold (%)"
 msgstr ""
