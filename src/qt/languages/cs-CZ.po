@@ -2739,6 +2739,18 @@ msgstr "Rozšířený barevný - normální režim (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Rozšířený barevný - rozšířený režim (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monochromatický)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, barevný)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monochromatický)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, barevný)"
+
 msgid "Green"
 msgstr "Zelený"
 

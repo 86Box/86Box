@@ -2715,6 +2715,18 @@ msgstr "Couleur améliorée - Mode normal (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Couleur améliorée - Mode amélioré (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monochrome)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, couleur)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monochrome)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, couleur)"
+
 msgid "Green"
 msgstr "Vert"
 

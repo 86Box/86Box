@@ -2697,6 +2697,18 @@ msgstr "增强色 - 正常模式 (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "增强色 - 增强模式 (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507（1024x768，彩色）"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514（1024x768，单色）"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503（640x480，彩色）"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13（640x480，单色）"
+
 msgid "Green"
 msgstr "绿色"
 
