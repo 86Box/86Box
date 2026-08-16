@@ -23,10 +23,6 @@ typedef struct lpt_device_s {
     void          (*strobe)(uint8_t old, uint8_t val,void *priv);
     uint8_t       (*read_status)(void *priv);
     uint8_t       (*read_ctrl)(void *priv);
-    /* Called when the guest reads the data register, so a device can see
-       that half of the conversation. The value it returns is ignored -
-       a device that drives the data lines does so via lpt_write_to_dat. */
-    void          (*read_data)(void *priv);
     void          (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv);
     void          (*epp_request_read)(uint8_t is_addr, void *priv);
 
@@ -122,10 +118,7 @@ extern void                lpt_write(uint16_t port, uint8_t val, void *priv);
 
 extern void                lpt_write_to_fifo(void *priv, uint8_t val);
 
-/* Drives the data lines back at the host, for devices that answer reads on
-   base+0 (PS/2 8-bit mode) or on the EPP data/address registers. */
 extern void                lpt_write_to_dat(void *priv, uint8_t val);
-extern int                 lpt_port_offers_epp(void *priv);
 
 extern uint8_t             lpt_read(uint16_t port, void *priv);
 
@@ -163,8 +156,6 @@ extern void *              lpt_attach_ex(int     port,
                                          void    (*epp_request_read)(uint8_t is_addr, void *priv),
                                          void    *priv);
 #define lpt_attach(...) lpt_attach_ex(device_get_instance() - 1, __VA_ARGS__)
-/* Optional: see data-register reads too. Call after lpt_attach_ex. */
-extern void                lpt_set_read_data(int port, void (*read_data)(void *priv));
 extern void                lpt_devices_close(int soft);
 extern void                lpt_devices_reset(void);
 

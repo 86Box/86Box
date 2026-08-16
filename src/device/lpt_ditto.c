@@ -3295,22 +3295,6 @@ ditto_write_ctrl(uint8_t val, void *priv)
     }
 }
 
-/*
-   The host reading the data lines. Usually nothing to do beyond noting
-   it - but that half of the conversation is invisible otherwise.
- */
-static void
-ditto_read_data(void *priv)
-{
-    /* Only the trace reads it, and that compiles out. */
-    UNUSED(ditto_t *dev) = (ditto_t *) priv;
-
-    ditto_note_idle(dev);
-
-    ditto_log("Ditto: R0 -> %02X (dir %s)  [%s]\n", dev->dat_out,
-              (dev->ctrl & LPT_CTRL_DIR) ? "in" : "out", ditto_state(dev));
-}
-
 static uint8_t
 ditto_read_status(void *priv)
 {
@@ -3425,8 +3409,6 @@ ditto_init(UNUSED(const device_t *info))
         free(dev);
         return NULL;
     }
-
-    lpt_set_read_data(device_get_instance() - 1, ditto_read_data);
 
     ditto_log("Ditto: attached as %s (vendor ID %04X, ROM %02X), protocol "
               "ceiling %s, image \"%s\"%s\n",
