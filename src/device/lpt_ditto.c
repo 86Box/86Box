@@ -227,15 +227,32 @@ enum {
 #define QIC_MODE_EXCLUSIVE (QIC_MODE_FORMAT | QIC_MODE_VERIFY | QIC_MODE_PRIMARY)
 
 
-/*
-   What this drive says it is; every host keys its model-specific
-   behavior off it. The low six bits are the model, the rest a make
-   code, so all 0x888x are Iomega.
-   - Ditto 2GB: 0x8883
-   - Ditto Max: 0x8885
- */
-#define DITTO_VENDOR_ID  0x8883
-#define DITTO_ROM_VERSION 0x41
+typedef struct ditto_model_t {
+    const char *name;        /* as the settings dialog offers it */
+    int         value;       /* config value; never reused or renumbered */
+    uint16_t    vendor_id;   /* what Report Vendor ID answers */
+    uint8_t     rom_version; /* what Report ROM Version answers */
+} ditto_model_t;
+
+#define DITTO_MODEL_DITTO_2GB 0
+#define DITTO_MODEL_DITTO_MAX 1
+#define DITTO_MODEL_QIC3020   2
+
+#define DITTO_MODEL_LIST                                                   \
+    X("Iomega Ditto 2GB", DITTO_MODEL_DITTO_2GB, 0x8883, 0x30)             \
+    X("Iomega Ditto Max", DITTO_MODEL_DITTO_MAX, 0x8885, 0x41)             \
+    X("Iomega QIC-3020",  DITTO_MODEL_QIC3020,   0x8881, 0x41)
+
+static const ditto_model_t ditto_models[] = {
+#define X(nm, val, vid, rom) { nm, val, vid, rom },
+    DITTO_MODEL_LIST
+#undef X
+};
+
+#define DITTO_MODELS (sizeof(ditto_models) / sizeof(ditto_models[0]))
+
+/* The drive a machine with nothing configured comes up as. */
+#define DITTO_MODEL_DEFAULT DITTO_MODEL_DITTO_2GB
 
 /*
    The cartridge, configured rather than read back off the image, and the
@@ -445,6 +462,7 @@ typedef struct ditto_t {
     int        xfer_res_len; /* result bytes waiting for it to finish */
     int        run_off;      /* segments of slack pulled past the end */
     uint16_t qic_vendor_id;
+    uint8_t  qic_rom_version;
     uint16_t qic_format_segments;
 
     /* The cartridge. */
@@ -799,6 +817,20 @@ ditto_image_close(ditto_t *dev)
 
     dev->image_size   = 0;
     dev->image_loaded = 0;
+}
+
+static const ditto_model_t *
+ditto_model(int value)
+{
+    for (size_t i = 0; i < DITTO_MODELS; i++)
+        if (ditto_models[i].value == value)
+            return &ditto_models[i];
+
+    for (size_t i = 0; i < DITTO_MODELS; i++)
+        if (ditto_models[i].value == DITTO_MODEL_DEFAULT)
+            return &ditto_models[i];
+
+    return &ditto_models[0];
 }
 
 static const ditto_cartridge_t *
@@ -1565,7 +1597,7 @@ qic_run_command(ditto_t *dev, int cmd)
             break;
 
         case QIC_REPORT_ROM_VERSION:
-            qic_report_arm(dev, DITTO_ROM_VERSION, 8);
+            qic_report_arm(dev, dev->qic_rom_version, 8);
             break;
 
         case QIC_REPORT_VENDOR_ID:
@@ -2651,8 +2683,17 @@ backpack_read_reg(ditto_t *dev, int reg)
     const int idx = dev->xfer_idx++;
     uint8_t   ret;
 
-    if ((reg >= BP_REG_FDC) && (reg < (BP_REG_FDC + FDC_REG_COUNT)))
-        return fdc_read_reg(dev, reg - BP_REG_FDC);
+    /*
+       Traced on the way out rather than returned straight, because what
+       the controller answers is half the conversation: the result bytes
+       of every command, and the replies to VERSION, DUMPREG and the
+       vendor probes a host uses to work out which 765 it is talking to.
+     */
+    if ((reg >= BP_REG_FDC) && (reg < (BP_REG_FDC + FDC_REG_COUNT))) {
+        ret = fdc_read_reg(dev, reg - BP_REG_FDC);
+        ditto_log("Ditto:    RR %02X[%i] -> %02X\n", reg, idx, ret);
+        return ret;
+    }
 
     switch (reg) {
         case BP_REG_STAT:
@@ -3285,8 +3326,9 @@ ditto_read_status(void *priv)
 static void *
 ditto_init(UNUSED(const device_t *info))
 {
-    ditto_t    *dev = calloc(1, sizeof(ditto_t));
-    const char *fn;
+    ditto_t            *dev = calloc(1, sizeof(ditto_t));
+    const ditto_model_t *model;
+    const char         *fn;
 
     if (dev == NULL)
         return NULL;
@@ -3301,10 +3343,13 @@ ditto_init(UNUSED(const device_t *info))
        up at the slow rate until the host selects one. Set before the
        geometry, which fills in the parts the cartridge does decide.
      */
-    dev->qic_vendor_id  = DITTO_VENDOR_ID;
-    dev->qic_config     = (uint8_t) (QIC_CONFIG_80 |
-                                     (QIC_RATE_500 << QIC_CONFIG_RATE_SHIFT));
-    dev->qic_ext_rate   = 2;
+    model = ditto_model(device_get_config_int("model"));
+
+    dev->qic_vendor_id   = model->vendor_id;
+    dev->qic_rom_version = model->rom_version;
+    dev->qic_config      = (uint8_t) (QIC_CONFIG_80 |
+                                      (QIC_RATE_500 << QIC_CONFIG_RATE_SHIFT));
+    dev->qic_ext_rate    = 2;
 
     dev->capacity = ditto_cartridge(device_get_config_int("capacity"))->value;
 
@@ -3385,6 +3430,30 @@ ditto_close(void *priv)
 #define DITTO_IMAGE_FILTER "Tape images (*.tap *.dat *.img)|*.tap,*.dat,*.img"
 
 static const device_config_t ditto_config[] = {
+    {
+        /*
+           Which drive this is: the vendor ID and ROM version, and nothing
+           else. Host software reads a great deal into those two numbers,
+           so the choice is worth having - see docs/lpt-ditto.md for what
+           each one buys.
+         */
+        .name           = "model",
+        .description    = "Drive model",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = DITTO_MODEL_DEFAULT,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+/* The parameters may not be named after the members they initialise;
+   see the cartridge list below. */
+#define X(nm, val, vid, rom) { .description = nm, .value = val },
+            DITTO_MODEL_LIST
+#undef X
+            { .description = "" }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "image",
         .description    = "Cartridge image",
