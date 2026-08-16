@@ -863,6 +863,7 @@ static void
 ditto_set_geometry(ditto_t *dev)
 {
     const ditto_cartridge_t *cart = ditto_cartridge(dev->capacity);
+    uint8_t                  rate;
 
     dev->segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
     dev->segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
@@ -878,6 +879,27 @@ ditto_set_geometry(ditto_t *dev)
         dev->qic_config |= QIC_CONFIG_LONG;
     else
         dev->qic_config &= (uint8_t) ~QIC_CONFIG_LONG;
+
+    /*
+       So does the rate the drive comes up at, before the host has selected
+       one: it names what the drive calibrates to, and that follows the
+       standard the cartridge is written to.
+     */
+    switch (cart->tape_status & QIC_TAPE_STD_MASK) {
+        case QIC_TAPE_QIC3010:
+        case QIC_TAPE_QIC3020:
+            rate              = QIC_RATE_1000;
+            dev->qic_ext_rate = 1;
+            break;
+
+        default:
+            rate              = QIC_RATE_500;
+            dev->qic_ext_rate = 0;
+            break;
+    }
+
+    dev->qic_config = (uint8_t) ((dev->qic_config & ~QIC_CONFIG_RATE_MASK) |
+                                 (rate << QIC_CONFIG_RATE_SHIFT));
 
     ditto_log("Ditto: %s - %i tracks of %i segments, tape status %02X, "
               "%llu bytes of data in a %llu byte image\n",
@@ -3339,17 +3361,15 @@ ditto_init(UNUSED(const device_t *info))
     dev->readonly = device_get_config_int("writeprot");
 
     /*
-       The drive's own identity, which the cartridge does not change. Powers
-       up at the slow rate until the host selects one. Set before the
-       geometry, which fills in the parts the cartridge does decide.
+       The drive's own identity, which the cartridge does not change. Set
+       before the geometry, which fills in the parts the cartridge does
+       decide - the extra length bit and the rate the drive comes up at.
      */
     model = ditto_model(device_get_config_int("model"));
 
     dev->qic_vendor_id   = model->vendor_id;
     dev->qic_rom_version = model->rom_version;
-    dev->qic_config      = (uint8_t) (QIC_CONFIG_80 |
-                                      (QIC_RATE_500 << QIC_CONFIG_RATE_SHIFT));
-    dev->qic_ext_rate    = 2;
+    dev->qic_config      = QIC_CONFIG_80;
 
     dev->capacity = ditto_cartridge(device_get_config_int("capacity"))->value;
 
@@ -3408,7 +3428,9 @@ ditto_init(UNUSED(const device_t *info))
 
     lpt_set_read_data(device_get_instance() - 1, ditto_read_data);
 
-    ditto_log("Ditto: attached, protocol ceiling %s, image \"%s\"%s\n",
+    ditto_log("Ditto: attached as %s (vendor ID %04X, ROM %02X), protocol "
+              "ceiling %s, image \"%s\"%s\n",
+              model->name, dev->qic_vendor_id, dev->qic_rom_version,
               ditto_proto_name[dev->max_proto], dev->image_fn,
               dev->readonly ? " (write protected)" : "");
 
