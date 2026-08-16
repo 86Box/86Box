@@ -2731,6 +2731,18 @@ msgstr "Ενισχυμένο Έγχρωμο - Κανονική Λειτουργ�
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένη Λειτουργία (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, Μονόχρωμο)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, Έγχρωμο)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, Μονόχρωμο)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, Έγχρωμο)"
+
 msgid "Green"
 msgstr "Πράσινο"
 
