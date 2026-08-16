@@ -50,6 +50,12 @@
 
 #define BIOS_MACH8_ROM_PATH  "roms/video/mach8/11301113140_4k.BIN"
 
+/* Subsystem Status Register (42E8h) MONITORID field (bits 4-6) */
+#define MONITORID_8507 1 /* 001: IBM 8507 (1024x768) Monochrome */
+#define MONITORID_8514 2 /* 010: IBM 8514 (1024x768) Color */
+#define MONITORID_8503 5 /* 101: IBM 8503 (640x480) Monochrome */
+#define MONITORID_8512 6 /* 110: IBM 8512/13 (640x480) Color */
+
 static void     ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv);
 static void     ibm8514_accel_outw(uint16_t port, uint16_t val, void *priv);
 static uint8_t  ibm8514_accel_inb(uint16_t port, void *priv);
@@ -1027,7 +1033,7 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
                         temp |= 0x800;
                 }
                 temp |= (dev->subsys_stat | (dev->vram_512k_8514 ? 0x00 : 0x80));
-                temp |= 0x20;
+                temp |= (dev->monitorid << 4);
             }
             break;
 
@@ -4166,6 +4172,7 @@ ibm8514_init(const device_t *info)
 
     dev->extensions = device_get_config_int("extensions");
     dev->bios_addr = device_get_config_hex20("bios_addr");
+    dev->monitorid = device_get_config_int("montype");
     if (dev->type & DEVICE_MCA)
         dev->bios_addr = 0xc6800;
 
@@ -4348,6 +4355,23 @@ static const device_config_t isa_ext8514_config[] = {
         },
         .bios           = { { 0 } }
     },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = MONITORID_8514,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM 8507 (1024x768, Monochrome)", .value = MONITORID_8507 },
+            { .description = "IBM 8514 (1024x768, Color)",      .value = MONITORID_8514 },
+            { .description = "IBM 8503 (640x480, Monochrome)",  .value = MONITORID_8503 },
+            { .description = "IBM 8512/13 (640x480, Color)",    .value = MONITORID_8512 },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
@@ -4380,6 +4404,23 @@ static const device_config_t mca_ext8514_config[] = {
             { .description = "IBM", .value = IBM },
             { .description = "ATI", .value = ATI },
             { .description = ""                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = MONITORID_8514,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM 8507 (1024x768, Monochrome)", .value = MONITORID_8507 },
+            { .description = "IBM 8514 (1024x768, Color)",      .value = MONITORID_8514 },
+            { .description = "IBM 8503 (640x480, Monochrome)",  .value = MONITORID_8503 },
+            { .description = "IBM 8512/13 (640x480, Color)",    .value = MONITORID_8512 },
+            { .description = ""                                                         }
         },
         .bios           = { { 0 } }
     },
