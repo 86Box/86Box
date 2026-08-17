@@ -3914,6 +3914,8 @@ ibm8514_poll(void *priv)
                 }
 
                 dev->displine++;
+                video_lightpen_check_trigger_strobe(svga->x_add, dev->displine, 0, dev->firstline, 1. / (svga->clock / (svga->clock_8514 * (double) (1ULL << 32))), svga->monitor_index);
+
                 if (dev->interlace)
                     dev->displine++;
                 if ((svga->cgastat & 8) && ((dev->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
@@ -3923,6 +3925,7 @@ ibm8514_poll(void *priv)
                     dev->displine = 0;
             } else {
                 timer_advance_u64(&svga->timer, dev->dispontime);
+                video_lightpen_hsync();
                 if (dev->dispon)
                     svga->cgastat &= ~1;
                 dev->hdisp_on = 0;
@@ -3992,6 +3995,7 @@ ibm8514_poll(void *priv)
 
                     dev->memaddr     = (dev->memaddr << 2);
                     dev->memaddr_backup = (dev->memaddr_backup << 2);
+                    video_lightpen_vsync();
                 }
                 if (dev->vc == dev->v_total) {
                     dev->vc       = 0;

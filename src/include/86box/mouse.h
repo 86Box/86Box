@@ -78,6 +78,7 @@ extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
 extern const device_t mouse_upc_device;
 extern const device_t mouse_upc_standalone_device;
+extern const device_t mouse_pxl_380_device;
 #    ifdef USE_WACOM
 extern const device_t mouse_wacom_tablet_device;
 extern const device_t mouse_wacom_artpad_tablet_device;

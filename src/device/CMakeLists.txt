@@ -68,6 +68,7 @@ add_library(dev OBJECT
     tulip_jumper.c
     unittester.c
     zenith_scratchpad.c
+    lightpen_pxl380.c
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
