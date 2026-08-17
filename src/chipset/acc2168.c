@@ -68,6 +68,91 @@ acc2168_shadow_recalc(acc2168_t *dev)
 }
 
 static void
+acc2168_write_reg(acc2168_t *dev, uint8_t reg, uint8_t val)
+{
+    switch (reg) {
+        case 0x00:
+            dev->regs[reg] = val;
+            break;
+
+        case 0x01:
+            dev->regs[reg] = val & 0xd3;
+            cpu_update_waitstates();
+            break;
+
+        case 0x02:
+            dev->regs[reg] = val & 0x7f;
+            acc2168_shadow_recalc(dev);
+            break;
+
+        case 0x03:
+            dev->regs[reg] = val & 0x1f;
+            break;
+
+        case 0x04:
+            dev->regs[reg] = val;
+            cpu_cache_ext_enabled = !!(val & 0x01);
+            cpu_update_waitstates();
+            break;
+
+        case 0x05:
+            dev->regs[reg] = val & 0xf3;
+            break;
+
+        case 0x06:
+        case 0x07:
+            dev->regs[reg] = val & 0x1f;
+            break;
+
+        case 0x08:
+            dev->regs[reg] = val & 0x0f;
+            break;
+
+        case 0x09:
+            dev->regs[reg] = val & 0x03;
+            break;
+
+        case 0x0a:
+        case 0x0b:
+        case 0x0c:
+        case 0x0d:
+        case 0x0e:
+        case 0x0f:
+        case 0x10:
+        case 0x11:
+            dev->regs[reg] = val;
+            break;
+
+        case 0x12:
+            dev->regs[reg] = val & 0xbb;
+            break;
+
+        case 0x18:
+            dev->regs[reg] = val & 0x77;
+            break;
+
+        case 0x19:
+            dev->regs[reg] = val & 0xfb;
+            break;
+
+        case 0x1a:
+            dev->regs[reg] = val;
+            cpu_cache_int_enabled = !(val & 0x40);
+            cpu_update_waitstates();
+            break;
+
+        case 0x1b:
+            dev->regs[reg] = val & 0xef;
+            break;
+
+        default:
+            /* ACC 2168 has way more registers which we haven't documented */
+            dev->regs[reg] = val;
+            break;
+    }
+}
+
+static void
 acc2168_write(uint16_t addr, uint8_t val, void *priv)
 {
     acc2168_t *dev = (acc2168_t *) priv;
@@ -76,88 +161,13 @@ acc2168_write(uint16_t addr, uint8_t val, void *priv)
         case 0xf2:
             dev->reg_idx = val;
             break;
+
         case 0xf3:
-            acc2168_log("ACC2168: dev->regs[%02x] = %02x\n", dev->reg_idx, val);
-            switch (dev->reg_idx) {
-                case 0x00:
-                    dev->regs[dev->reg_idx] = val;
-                    break;
-
-                case 0x01:
-                    dev->regs[dev->reg_idx] = val & 0xd3;
-                    cpu_update_waitstates();
-                    break;
-
-                case 0x02:
-                    dev->regs[dev->reg_idx] = val & 0x7f;
-                    acc2168_shadow_recalc(dev);
-                    break;
-
-                case 0x03:
-                    dev->regs[dev->reg_idx] = val & 0x1f;
-                    break;
-
-                case 0x04:
-                    dev->regs[dev->reg_idx] = val;
-                    cpu_cache_ext_enabled   = !!(val & 0x01);
-                    cpu_update_waitstates();
-                    break;
-
-                case 0x05:
-                    dev->regs[dev->reg_idx] = val & 0xf3;
-                    break;
-
-                case 0x06:
-                case 0x07:
-                    dev->regs[dev->reg_idx] = val & 0x1f;
-                    break;
-
-                case 0x08:
-                    dev->regs[dev->reg_idx] = val & 0x0f;
-                    break;
-
-                case 0x09:
-                    dev->regs[dev->reg_idx] = val & 0x03;
-                    break;
-
-                case 0x0a:
-                case 0x0b:
-                case 0x0c:
-                case 0x0d:
-                case 0x0e:
-                case 0x0f:
-                case 0x10:
-                case 0x11:
-                    dev->regs[dev->reg_idx] = val;
-                    break;
-
-                case 0x12:
-                    dev->regs[dev->reg_idx] = val & 0xbb;
-                    break;
-
-                case 0x18:
-                    dev->regs[dev->reg_idx] = val & 0x77;
-                    break;
-
-                case 0x19:
-                    dev->regs[dev->reg_idx] = val & 0xfb;
-                    break;
-
-                case 0x1a:
-                    dev->regs[dev->reg_idx] = val;
-                    cpu_cache_int_enabled   = !(val & 0x40);
-                    cpu_update_waitstates();
-                    break;
-
-                case 0x1b:
-                    dev->regs[dev->reg_idx] = val & 0xef;
-                    break;
-
-                default: /* ACC 2168 has way more registers which we haven't documented */
-                    dev->regs[dev->reg_idx] = val;
-                    break;
-            }
+            acc2168_log("ACC2168: dev->regs[%02x] = %02x\n",
+                        dev->reg_idx, val);
+            acc2168_write_reg(dev, dev->reg_idx, val);
             break;
+
         default:
             break;
     }
