@@ -214,6 +214,8 @@ typedef struct ibm8514_t {
     int      split;
     int      h_disp;
     int      h_total;
+    int      h_total_back;
+    int      vga_htotal;
     int      h_sync_start;
     int      h_sync_width;
     int      h_disp_time;
@@ -254,12 +256,11 @@ typedef struct ibm8514_t {
     int     vsyncwidth;
     int     vtotal;
     int     v_disp;
-    int     v_disp2;
     int     vdisp;
     int     vdisp2;
     int     disp_cntl;
     int     disp_change;
-    int     ext_mode_inc;
+    int     extended_mode;
     int     interlace;
     int     disp_cntl_interlace;
     int     disp_cntl_double_scan;

@@ -37,6 +37,7 @@ typedef struct mach_t {
     int pci_bus;
     int vlb_bus;
     int has_bios;
+    int bus_width_8bit;
 
     uint8_t regs[256];
     uint8_t pci_regs[256];
@@ -182,6 +183,8 @@ typedef struct mach_t {
 
     atomic_int force_busy;
     atomic_int fifo_test_idx;
+
+    uint16_t ctl;
 } mach_t;
 
 #endif /*VIDEO_ATI_MACH8_H*/

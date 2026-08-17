@@ -242,6 +242,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 o                                   = svga->attrregs[svga->attraddr & 0x1f];
                 if (((svga->attraddr & 0x1f) > 0x14) && !(svga->adv_flags & FLAG_EXT_AR))
                     val = o;
+
                 svga->attrregs[svga->attraddr & 0x1f] = val;
                 if (svga->attraddr < 0x10)
                     svga->fullchange = svga->monitor->mon_changeframecount;
@@ -1124,8 +1125,12 @@ svga_recalctimings(svga_t *svga)
 
     crtcconst = svga->clock * (double) svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on)
-            crtcconst8514 = svga->clock_8514 * 8;
+        if (dev->on) {
+            if (!ATI_MACH32)
+                crtcconst8514 = svga->clock_8514 * 8;
+            else
+                crtcconst = svga->clock * 8;
+        }
     }
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on)
@@ -1171,8 +1176,10 @@ svga_recalctimings(svga_t *svga)
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
-            disptime8514 = (double) (uint32_t) dev->h_total;
-            _dispontime8514 = (double) (uint32_t) dev->h_disp_time;
+            if (!ATI_MACH32) {
+                disptime8514 = (double) (uint32_t) dev->h_total;
+                _dispontime8514 = (double) (uint32_t) dev->h_disp_time;
+            }
         }
     }
 
@@ -1186,6 +1193,15 @@ svga_recalctimings(svga_t *svga)
     if (svga->seqregs[1] & 8) {
         disptime *= 2.0;
         _dispontime *= 2.0;
+
+        if (ibm8514_active && (svga->dev8514 != NULL)) {
+            if (dev->on) {
+                if (ATI_MACH32) {
+                    disptime /= 2.0;
+                    _dispontime /= 2.0;
+                }
+            }
+        }
     }
 
     _dispofftime = disptime - _dispontime;
@@ -1213,18 +1229,19 @@ svga_recalctimings(svga_t *svga)
 
         case 1: /*Plus 8514/A*/
             if (dev->on) {
-                _dispofftime8514 = disptime8514 - _dispontime8514;
-                svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
-                _dispontime8514 *= crtcconst8514;
-                _dispofftime8514 *= crtcconst8514;
+                if (!ATI_MACH32) {
+                    _dispofftime8514 = disptime8514 - _dispontime8514;
+                    svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
+                    _dispontime8514 *= crtcconst8514;
+                    _dispofftime8514 *= crtcconst8514;
 
-                dev->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
-                dev->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
-                if (dev->dispontime < TIMER_USEC)
-                    dev->dispontime = TIMER_USEC;
-                if (dev->dispofftime < TIMER_USEC)
-                    dev->dispofftime = TIMER_USEC;
-
+                    dev->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
+                    dev->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
+                    if (dev->dispontime < TIMER_USEC)
+                        dev->dispontime = TIMER_USEC;
+                    if (dev->dispofftime < TIMER_USEC)
+                        dev->dispofftime = TIMER_USEC;
+                }
                 ibm8514_set_poll(svga);
             } else
                 svga_set_poll(svga);
@@ -1250,17 +1267,20 @@ svga_recalctimings(svga_t *svga)
 
         case 3: /*Plus 8514/A and XGA*/
             if (dev->on) {
-                _dispofftime8514 = disptime8514 - _dispontime8514;
-                _dispontime8514 *= crtcconst8514;
-                _dispofftime8514 *= crtcconst8514;
+                if (!ATI_MACH32) {
+                    _dispofftime8514 = disptime8514 - _dispontime8514;
+                    _dispontime8514 *= crtcconst8514;
+                    _dispofftime8514 *= crtcconst8514;
 
-                dev->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
-                dev->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
-                if (dev->dispontime < TIMER_USEC)
-                    dev->dispontime = TIMER_USEC;
-                if (dev->dispofftime < TIMER_USEC)
-                    dev->dispofftime = TIMER_USEC;
+                    dev->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
+                    dev->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
+                    if (dev->dispontime < TIMER_USEC)
+                        dev->dispontime = TIMER_USEC;
+                    if (dev->dispofftime < TIMER_USEC)
+                        dev->dispofftime = TIMER_USEC;
 
+
+                }
                 ibm8514_set_poll(svga);
             } else if (xga->on) {
                 _dispofftime_xga = disptime_xga - _dispontime_xga;
@@ -1332,7 +1352,7 @@ svga_recalctimings(svga_t *svga)
                 svga->monitor->mon_interlace = !!svga->interlace;
                 break;
             case 1: /*Plus 8514/A*/
-                if (dev->on)
+                if (dev->on && !ATI_MACH32)
                     svga->monitor->mon_interlace = !!dev->interlace;
                 else
                     svga->monitor->mon_interlace = !!svga->interlace;
@@ -1344,7 +1364,7 @@ svga_recalctimings(svga_t *svga)
                     svga->monitor->mon_interlace = !!svga->interlace;
                 break;
             case 3: /*Plus 8514/A and XGA*/
-                if (dev->on)
+                if (dev->on && !ATI_MACH32)
                     svga->monitor->mon_interlace = !!dev->interlace;
                 else if (xga->on)
                     svga->monitor->mon_interlace = !!xga->interlace;
@@ -1483,17 +1503,8 @@ svga_poll(void *priv)
             if (svga->lastline < svga->displine)
                 svga->lastline = svga->displine;
         }
-#if 0
-        {
-            /* TODO: Revisit this after fixing HSync problems. */
 
-            uint32_t hsyncstart = svga->crtc[4] + ((svga->crtc[5] >> 5) & 3);
-            uint32_t hsyncend = hsyncstart + (svga->crtc[5] & 0x1f) + 1;
-            video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, (svga->htotal - hsyncend) * svga->char_width, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
-        }
-#endif
         video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, 0, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
-
         svga->displine++;
         if (svga->interlace)
             svga->displine++;
