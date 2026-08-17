@@ -1821,16 +1821,15 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             /* Reset */
             mixer->regs[0x0a] = mixer->regs[0x0c] = 0x00;
             mixer->regs[0x0e]                     = 0x00;
-            /* Changed default from -11dB to 0dB */
-            mixer->regs[0x04] = mixer->regs[0x22] = 0xee;
-            mixer->regs[0x26] = mixer->regs[0x28] = 0xee;
-            mixer->regs[0x2e]                     = 0x00;
+            mixer->regs[0x04] = mixer->regs[0x22] = 0x88;
+            mixer->regs[0x26]                     = 0x88;
+            mixer->regs[0x28] = mixer->regs[0x2e] = 0x00;
 
-            /* Initialize ESS regs
-             * Defaulting to 0dB instead of the standard -11dB. */
-            mixer->regs[0x14] = mixer->regs[0x32] = 0xff;
-            mixer->regs[0x36] = mixer->regs[0x38] = 0xff;
-            mixer->regs[0x3a]                     = 0x00;
+            /* Initialize ESS regs */
+            mixer->regs[0x1a]                     = 0x00;
+            mixer->regs[0x14] = mixer->regs[0x32] = 0x88;
+            mixer->regs[0x36]                     = 0x88;
+            mixer->regs[0x38] = mixer->regs[0x3a] = 0x00;
             mixer->regs[0x3c]                     = 0x05;
             mixer->regs[0x3e]                     = 0x00;
 
