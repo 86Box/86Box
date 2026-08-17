@@ -30,8 +30,6 @@
 #include <86box/device.h>
 #include <86box/io.h>
 
-
-#define TIMER_MASK 0xfff
 struct pxl380_t
 {
     uint16_t timer0_cnt;
@@ -85,7 +83,7 @@ void pxl380_lightpen_check_trigger_strobe(void* priv, int x_offset, int y, int x
     mouse_get_abs_coords(&abs_x, &abs_y);
 
     abs_x *= monitors[monitor_used].mon_unscaled_size_x - 1;
-    abs_y *= monitors[monitor_used].mon_unscaled_size_y - 1;
+    abs_y *= monitors[monitor_used].mon_efscrnsz_y - 1;
 
     int x = abs_x + (!enable_overscan ? x_offset : 0);
     float sampled_luma = pxl380_sample_luma(monitors[monitor_used].target_buffer, x, y);

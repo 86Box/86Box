@@ -300,7 +300,7 @@ cga_is_in_lightpen(cga_t *cga, int x, int y)
     mouse_get_abs_coords(&abs_x, &abs_y);
 
     abs_x *= monitors[cga->monitor_used].mon_unscaled_size_x - 1;
-    abs_y *= monitors[cga->monitor_used].mon_unscaled_size_y - 1;
+    abs_y *= monitors[cga->monitor_used].mon_efscrnsz_y - 1;
     x -= 8;
     y -= cga->double_type ? cga->firstline * 2 : cga->firstline;
     
