@@ -624,6 +624,7 @@ compaq_plasma_poll(void *priv)
                 }
             }
             self->cga.displine++;
+            video_lightpen_check_trigger_strobe(8, self->cga.displine * (self->cga.double_type ? 2 : 1), 0, self->cga.firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), self->cga.monitor_used);
             /* Hardcode a fixed refresh rate and VSYNC timing */
             if (self->cga.displine == 400) { /* Start of VSYNC */
                 self->cga.cgastat |= 8;
@@ -636,12 +637,14 @@ compaq_plasma_poll(void *priv)
             }
         } else {
             timer_advance_u64(&self->cga.timer, self->cga.dispontime);
+            video_lightpen_hsync();
             if (self->cga.cgadispon)
                 self->cga.cgastat &= ~1;
 
             self->cga.linepos = 0;
 
             if (self->cga.displine == 400) {
+                video_lightpen_vsync();
                 xsize = 640;
                 ysize = 400;
 

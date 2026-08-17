@@ -1627,13 +1627,17 @@ VulkanWindowRenderer::initialize()
 #ifndef LIBRASHADER_STATIC
                                 char* errmsg = nullptr;
                                 librashader_inst.error_write(err, &errmsg);
-                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + QStringLiteral("\n\n") + errmsg);
+                                auto msgBox = new QMessageBox(QMessageBox::Critical, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + QStringLiteral("\n\n") + errmsg, QMessageBox::Ok);
+                                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                                msgBox->show();
                                 librashader_inst.error_free_string(&errmsg);
                                 librashader_inst.error_free(&err);
 #else
                                 char* errmsg = nullptr;
                                 libra_error_write(err, &errmsg);
-                                QMessageBox::critical(main_window, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + QStringLiteral("\n\n") + errmsg);
+                                auto msgBox = new QMessageBox(QMessageBox::Critical, tr("Error"), QString::fromUtf8(vk_shader_file[j]) + QStringLiteral("\n\n") + errmsg, QMessageBox::Ok);
+                                msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                                msgBox->show();
                                 libra_error_free_string(&errmsg);
                                 libra_error_free(&err);
 #endif

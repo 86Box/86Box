@@ -1821,16 +1821,15 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
             /* Reset */
             mixer->regs[0x0a] = mixer->regs[0x0c] = 0x00;
             mixer->regs[0x0e]                     = 0x00;
-            /* Changed default from -11dB to 0dB */
-            mixer->regs[0x04] = mixer->regs[0x22] = 0xee;
-            mixer->regs[0x26] = mixer->regs[0x28] = 0xee;
-            mixer->regs[0x2e]                     = 0x00;
+            mixer->regs[0x04] = mixer->regs[0x22] = 0x88;
+            mixer->regs[0x26]                     = 0x88;
+            mixer->regs[0x28] = mixer->regs[0x2e] = 0x00;
 
-            /* Initialize ESS regs
-             * Defaulting to 0dB instead of the standard -11dB. */
-            mixer->regs[0x14] = mixer->regs[0x32] = 0xff;
-            mixer->regs[0x36] = mixer->regs[0x38] = 0xff;
-            mixer->regs[0x3a]                     = 0x00;
+            /* Initialize ESS regs */
+            mixer->regs[0x1a]                     = 0x00;
+            mixer->regs[0x14] = mixer->regs[0x32] = 0x88;
+            mixer->regs[0x36]                     = 0x88;
+            mixer->regs[0x38] = mixer->regs[0x3a] = 0x00;
             mixer->regs[0x3c]                     = 0x05;
             mixer->regs[0x3e]                     = 0x00;
 
@@ -1877,19 +1876,11 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                             mixer->input_selector = INPUT_MIC;
                             break;
                     }
-                    /* Filter is always enabled on ES1688 and later, per the datasheet these bits have no effect */
-                    /* TODO: Investigate ES688 behavior */
-                    if (ess->dsp.sb_subtype <= SB_SUBTYPE_ESS_ES688) {
-                        mixer->input_filter   = !(mixer->regs[0xC] & 0x20);
-                        mixer->in_filter_freq = ((mixer->regs[0xC] & 0x8) == 0) ? 3200 : 8800;
-                    }
+                    /* Filter is always enabled on ES688 and later, per the datasheets the filter control bits have no effect */
                     break;
 
                 case 0x0E:
-                    /* Filter is always enabled on ES1688 and later, per the datasheet this bit has no effect */
-                    /* TODO: Investigate ES688 behavior */
-                    if (ess->dsp.sb_subtype <= SB_SUBTYPE_ESS_ES688)
-                        mixer->output_filter = !(mixer->regs[0xE] & 0x20);
+                    /* Filter is always enabled on ES688 and later, per the datasheets the filter control bit has no effect */
                     mixer->stereo        = mixer->regs[0xE] & 2;
                     sb_dsp_set_stereo(&ess->dsp, val & 2);
                     break;
@@ -5510,11 +5501,9 @@ ess_x688_init(UNUSED(const device_t *info))
     if (device_get_config_int("dspver") == 1)
         ess->dsp.ess_dsp_v2_mode = 1;
 
-    /* Filters are always enabled on ES1688. TODO: What about ES688? */
-    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
-        ess->mixer_ess.input_filter = 1;
-        ess->mixer_ess.output_filter = 1;
-    }
+    /* Filters are always enabled on ES688/1688. */
+    ess->mixer_ess.input_filter = 1;
+    ess->mixer_ess.output_filter = 1;
 
     /* DSP I/O handler is activated in sb_dsp_setaddr */
     io_sethandler(addr, 0x0004,
@@ -5629,11 +5618,9 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
-    /* Filters are always enabled on ES1688. TODO: What about ES688? */
-    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
-        ess->mixer_ess.input_filter = 1;
-        ess->mixer_ess.output_filter = 1;
-    }
+    /* Filters are always enabled on ES688/1688. */
+    ess->mixer_ess.input_filter = 1;
+    ess->mixer_ess.output_filter = 1;
 
     ess->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_ess, ess);
@@ -5724,11 +5711,9 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     sb_dsp_setdma16_supported(&ess->dsp, 0);
     ess_mixer_reset(ess);
 
-    /* Filters are always enabled on ES1688. TODO: What about ES688? */
-    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1688) {
-        ess->mixer_ess.input_filter = 1;
-        ess->mixer_ess.output_filter = 1;
-    }
+    /* Filters are always enabled on ES688/1688. */
+    ess->mixer_ess.input_filter = 1;
+    ess->mixer_ess.output_filter = 1;
 
     ess->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_ess, ess);

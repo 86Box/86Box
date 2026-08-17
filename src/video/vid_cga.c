@@ -75,8 +75,8 @@ static uint8_t interp_lut[2][256][256];
 
 static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
-static bool cga_lightpen_enabled = false;
-static float cga_luma_threshold = 0.125;
+bool cga_lightpen_enabled = false;
+float cga_luma_threshold = 0.125;
 
 void cga_recalctimings(cga_t *cga);
 
@@ -285,7 +285,7 @@ cga_recalctimings(cga_t *cga)
     cga->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
-static bool
+bool
 cga_is_in_lightpen(cga_t *cga, int x, int y)
 {
     double abs_x = 0.0;
@@ -300,7 +300,7 @@ cga_is_in_lightpen(cga_t *cga, int x, int y)
     mouse_get_abs_coords(&abs_x, &abs_y);
 
     abs_x *= monitors[cga->monitor_used].mon_unscaled_size_x - 1;
-    abs_y *= monitors[cga->monitor_used].mon_unscaled_size_y - 1;
+    abs_y *= monitors[cga->monitor_used].mon_efscrnsz_y - 1;
     x -= 8;
     y -= cga->double_type ? cga->firstline * 2 : cga->firstline;
     
@@ -316,7 +316,7 @@ cga_is_in_lightpen(cga_t *cga, int x, int y)
     return (int)abs_x == x && (int)abs_y == y;
 }
 
-static float
+float
 cga_sample_luma(bitmap_t* target_buffer, uint32_t x, uint32_t y)
 {
     const float R_COEFF    = 0.3;
@@ -809,6 +809,8 @@ cga_poll(void *priv)
                 break;
         }
 
+        video_lightpen_check_trigger_strobe(8, cga->displine * (cga->double_type ? 2 : 1), 0, cga->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), cga->monitor_used);
+
         cga->scanline = scanline_old;
         if (cga->vc == cga->crtc[CGA_CRTC_VSYNC] && !cga->scanline)
             cga->cgastat |= 8;
@@ -817,6 +819,8 @@ cga_poll(void *priv)
             cga->displine = 0;
     } else {
         timer_advance_u64(&cga->timer, cga->dispontime);
+
+        video_lightpen_hsync();
         cga->linepos = 0;
         if (cga->vsynctime) {
             cga->vsynctime--;
@@ -921,6 +925,8 @@ cga_poll(void *priv)
                             cga_update_latch(cga, cga->lp_latch_found_memaddr);
                         }
                     }
+
+                    video_lightpen_vsync();
 
                     frames++;
                     cga->lp_latch_found = false;

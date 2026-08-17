@@ -1483,6 +1483,16 @@ svga_poll(void *priv)
             if (svga->lastline < svga->displine)
                 svga->lastline = svga->displine;
         }
+#if 0
+        {
+            /* TODO: Revisit this after fixing HSync problems. */
+
+            uint32_t hsyncstart = svga->crtc[4] + ((svga->crtc[5] >> 5) & 3);
+            uint32_t hsyncend = hsyncstart + (svga->crtc[5] & 0x1f) + 1;
+            video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, (svga->htotal - hsyncend) * svga->char_width, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
+        }
+#endif
+        video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, 0, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
 
         svga->displine++;
         if (svga->interlace)
@@ -1494,6 +1504,7 @@ svga_poll(void *priv)
             svga->displine = 0;
     } else {
         timer_advance_u64(&svga->timer, svga->dispontime);
+        video_lightpen_hsync();
 
         if (svga->adv_flags & FLAG_PANNING_ATI) {
             if (svga->panning_blank) {
@@ -1671,6 +1682,8 @@ svga_poll(void *priv)
 
             if (svga->vsync_callback)
                 svga->vsync_callback(svga);
+
+            video_lightpen_vsync();
 
             svga->start_retrace_latch = svga->crtc[0x4];
         }
