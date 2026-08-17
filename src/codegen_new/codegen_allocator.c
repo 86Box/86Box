@@ -86,9 +86,21 @@ static uint8_t    *mem_block_alloc = NULL;
 
 int codegen_allocator_usage = 0;
 
+/* Matches the per-arch direct-branch ranges the header comment above
+   documents (128MB on ARMv8, 2GB on x86) - same arch check already used
+   elsewhere in this codebase (cpu.h, 386_common.h). */
+#if defined(__aarch64__) || defined(_M_ARM64)
+#    define CODEGEN_ALLOCATOR_MAX_POOL_BYTES (128ull * 1024 * 1024)
+#else
+#    define CODEGEN_ALLOCATOR_MAX_POOL_BYTES (2ull * 1024 * 1024 * 1024)
+#endif
+
 void
 codegen_allocator_init(void)
 {
+    _Static_assert((uint64_t) MEM_BLOCK_NR * MEM_BLOCK_SIZE <= CODEGEN_ALLOCATOR_MAX_POOL_BYTES,
+                    "MEM_BLOCK_NR * MEM_BLOCK_SIZE exceeds this architecture's direct-branch range");
+
     uint8_t large = 0;
     mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1, &large);
 
