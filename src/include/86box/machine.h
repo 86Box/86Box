@@ -963,7 +963,14 @@ extern int             machine_at_revenge_init(const machine_t *);
 extern int             machine_at_m5pi_init(const machine_t *);
 extern int             machine_at_pb520r_init(const machine_t *);
 
+/* OPTi 571 */
+#ifdef EMU_DEVICE_H
+extern const device_t  pci58pl_device;
+#endif
+extern int             machine_at_pci58pl_init(const machine_t *);
+
 /* OPTi 597 */
+extern int             machine_at_pat58pv_init(const machine_t *);
 extern int             machine_at_excalibur_init(const machine_t *);
 extern int             machine_at_globalyst330_p5_init(const machine_t *);
 extern int             machine_at_p5vl_init(const machine_t *);
@@ -975,7 +982,7 @@ extern int             machine_at_p5sp4_init(const machine_t *);
 extern int             machine_at_ecs50x_init(const machine_t *);
 
 /* m_at_socket4_5.c */
-/* OPTi 597 */
+/* OPTi 571 */
 extern int             machine_at_pci56001_init(const machine_t *);
 
 /* VLSI SuperCore */
@@ -1016,8 +1023,13 @@ extern int             machine_at_powermatev_init(const machine_t *);
 extern int             machine_at_sjp54csr_init(const machine_t *);
 extern int             machine_at_hawk_init(const machine_t *);
 
-/* OPTi 597 */
+/* OPTi 547 */
 extern int             machine_at_ncselp90_init(const machine_t *);
+
+/* OPTi 571 */
+extern int             machine_at_pci54pl_init(const machine_t *);
+
+/* OPTi 597 */
 extern int             machine_at_hot543_init(const machine_t *);
 extern int             machine_at_pat54pv_init(const machine_t *);
 

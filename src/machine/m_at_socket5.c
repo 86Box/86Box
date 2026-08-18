@@ -939,7 +939,7 @@ machine_at_hawk_init(const machine_t *model)
     return ret;
 }
 
-/* OPTi 597 */
+/* OPTi 547 */
 int
 machine_at_ncselp90_init(const machine_t *model)
 {
@@ -966,6 +966,38 @@ machine_at_ncselp90_init(const machine_t *model)
     device_add(&ide_opti611_vlb_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
     device_add(&ide_vlb_2ch_device);
+
+    return ret;
+}
+
+/* OPTi 571 */
+int
+machine_at_pci54pl_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pci54pl/PCI58PL.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0,  0,  0,  0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1,  2,  3,  4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      5,  6,  7,  8);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      9,  10, 11, 12);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      13, 14, 15, 16);
+
+    device_add(&opti5x7_pci_device);
+    device_add(&opti822_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }
