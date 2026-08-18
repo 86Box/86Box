@@ -33,8 +33,8 @@ extern uint8_t vga_in(uint16_t addr, void *priv);
 
 extern void    vga_init(const device_t *info, vga_t *vga, int enabled);
 
-extern void    vga_disable(void* p);
-extern void    vga_enable(void* p);
+extern void    vga_disable(void* p, uint16_t port);
+extern void    vga_enable(void* p, uint16_t port);
 
 extern int     vga_isenabled(void* p);
 
