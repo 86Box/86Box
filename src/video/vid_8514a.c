@@ -122,11 +122,18 @@ CLAMP(int16_t in, int16_t min, int16_t max)
         temp |= (dev->vram[(dev->accel.dest + (cx) + (n + 1)) & dev->vram_mask] << 8);              \
     }                                                                                               \
 
-#define READ(addr, dat)                               \
-    if (dev->bpp)                                     \
-        dat = vram_w[(addr) & (dev->vram_mask >> 1)]; \
-    else                                              \
-        dat = (dev->vram[(addr) & (dev->vram_mask)]); \
+#define READ(addr, dat)                                         \
+    if (ATI_MACH32) {                                           \
+        if (dev->bpp)                                           \
+            dat = vga_vram_w[(addr) & (svga->vram_mask >> 1)];  \
+        else                                                    \
+            dat = (svga->vram[(addr) & (svga->vram_mask)]);     \
+    } else {                                                    \
+        if (dev->bpp)                                           \
+            dat = vram_w[(addr) & (dev->vram_mask >> 1)];       \
+        else                                                    \
+            dat = (dev->vram[(addr) & (dev->vram_mask)]);       \
+    }
 
 #define READ_HIGH(addr, dat)                            \
     dat |= (dev->vram[(addr) & (dev->vram_mask)] << 8);
@@ -244,13 +251,23 @@ CLAMP(int16_t in, int16_t min, int16_t max)
         }                                                                                              \
     }
 
-#define WRITE(addr, dat)                                                                                  \
-    if (dev->bpp) {                                                                                       \
-        vram_w[((addr)) & (dev->vram_mask >> 1)]                   = dat;                                 \
-        dev->changedvram[(((addr)) & (dev->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
-    } else {                                                                                              \
-        dev->vram[((addr)) & (dev->vram_mask)]                = dat;                                      \
-        dev->changedvram[(((addr)) & (dev->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;      \
+#define WRITE(addr, dat)                                                                                        \
+    if (ATI_MACH32) {                                                                                           \
+        if (dev->bpp) {                                                                                         \
+            vga_vram_w[((addr)) & (svga->vram_mask >> 1)]           = dat;                                      \
+            dev->changedvram[(((addr)) & (dev->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount;   \
+        } else {                                                                                                \
+            svga->vram[((addr)) & (svga->vram_mask)]                = dat;                                      \
+            svga->changedvram[(((addr)) & (svga->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;      \
+        }                                                                                                       \
+    } else {                                                                                                    \
+        if (dev->bpp) {                                                                                         \
+            vram_w[((addr)) & (dev->vram_mask >> 1)]                   = dat;                                   \
+            dev->changedvram[(((addr)) & (dev->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount;   \
+        } else {                                                                                                \
+            dev->vram[((addr)) & (dev->vram_mask)]                = dat;                                        \
+            dev->changedvram[(((addr)) & (dev->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;        \
+        }                                                                                                       \
     }
 
 int ibm8514_active = 0;
@@ -1100,6 +1117,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 {
     ibm8514_t *dev     = (ibm8514_t *) svga->dev8514;
     uint16_t  *vram_w  = (uint16_t *) dev->vram;
+    uint16_t  *vga_vram_w = (uint16_t *) svga->vram;
     uint16_t   src_dat = 0;
     uint16_t   dest_dat;
     uint16_t   old_dest_dat;
@@ -1308,7 +1326,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
     old_mix_dat = mix_dat;
 
-    ibm8514_log(dev->log,"CMD=%d, full=%04x, pixcntl=%d, filling=%02x, ssvdraw=%02x.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06, dev->accel.ssv_draw);
+    ibm8514_log(dev->log,"CMD=%d, full=%04x, pixcntl=%d, filling=%02x, ssvdraw=%02x, rw=%d.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06, dev->accel.ssv_draw, dev->accel.cmd & 0x01);
 
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
@@ -2126,6 +2144,9 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                                     if (dev->accel.cmd & 0x04) {
                                         dev->accel.output = 1;
                                         dev->accel.sx -= 2;
+                                    } else {
+                                        if (!(dev->accel.maj_axis_pcnt & 0x01))
+                                            dev->accel.output3 = 1;
                                     }
                                 }
 
@@ -3559,18 +3580,34 @@ ibm8514_render_blank(svga_t *svga)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
-    if ((dev->displine + svga->y_add) < 0)
-        return;
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
 
-    if (dev->firstline_draw == 2000)
-        dev->firstline_draw = dev->displine;
-    dev->lastline_draw = dev->displine;
+        if (svga->firstline_draw == 2000)
+            svga->firstline_draw = svga->displine;
 
-    uint32_t *line_ptr   = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
-    uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
+        svga->lastline_draw = svga->displine;
 
-    if (dev->h_disp > 0)
-        memset(line_ptr, 0, line_width);
+        uint32_t *line_ptr   = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
+
+        if (dev->h_disp > 0)
+            memset(line_ptr, 0, line_width);
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->firstline_draw == 2000)
+            dev->firstline_draw = dev->displine;
+        dev->lastline_draw = dev->displine;
+
+        uint32_t *line_ptr   = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+        uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
+
+        if (dev->h_disp > 0)
+            memset(line_ptr, 0, line_width);
+    }
 }
 
 void
@@ -3580,33 +3617,64 @@ ibm8514_render_8bpp(svga_t *svga)
     uint32_t  *p;
     uint32_t   dat;
 
-    if ((dev->displine + svga->y_add) < 0)
-        return;
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
 
-    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+        if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
-        if (dev->firstline_draw == 2000)
-            dev->firstline_draw = dev->displine;
-        dev->lastline_draw = dev->displine;
+            if (svga->firstline_draw == 2000)
+                svga->firstline_draw = svga->displine;
+            svga->lastline_draw = svga->displine;
 
-        for (int x = 0; x <= dev->h_disp; x += 8) {
-            dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
-            p[0] = dev->pallook[dat & dev->dac_mask & 0xff];
-            p[1] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
-            p[2] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
-            p[3] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+            for (int x = 0; x <= dev->h_disp; x += 8) {
+                dat  = *(uint32_t *) (&svga->vram[svga->memaddr & svga->vram_mask]);
+                p[0] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[1] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[2] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[3] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
 
-            dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + 4) & dev->vram_mask]);
-            p[4] = dev->pallook[dat & dev->dac_mask & 0xff];
-            p[5] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
-            p[6] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
-            p[7] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+                dat  = *(uint32_t *) (&svga->vram[(svga->memaddr + 4) & svga->vram_mask]);
+                p[4] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[5] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[6] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[7] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
 
-            dev->memaddr += 8;
-            p += 8;
+                svga->memaddr += 8;
+                p += 8;
+            }
+            svga->memaddr &= svga->vram_mask;
         }
-        dev->memaddr &= dev->vram_mask;
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 8) {
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
+                p[0] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[1] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[2] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[3] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + 4) & dev->vram_mask]);
+                p[4] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[5] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[6] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[7] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+
+                dev->memaddr += 8;
+                p += 8;
+            }
+            dev->memaddr &= dev->vram_mask;
+        }
     }
 }
 
@@ -3618,35 +3686,68 @@ ibm8514_render_15bpp(svga_t *svga)
     uint32_t  *p;
     uint32_t   dat;
 
-    if ((dev->displine + svga->y_add) < 0)
-        return;
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
 
-    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+        if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
-        if (dev->firstline_draw == 2000)
-            dev->firstline_draw = dev->displine;
-        dev->lastline_draw = dev->displine;
+            if (svga->firstline_draw == 2000)
+                svga->firstline_draw = svga->displine;
+            svga->lastline_draw = svga->displine;
 
-        for (x = 0; x <= dev->h_disp; x += 8) {
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1)) & dev->vram_mask]);
-            p[x]     = video_15to32[dat & 0xffff];
-            p[x + 1] = video_15to32[dat >> 16];
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1)) & svga->vram_mask]);
+                p[x]     = video_15to32[dat & 0xffff];
+                p[x + 1] = video_15to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 4) & dev->vram_mask]);
-            p[x + 2] = video_15to32[dat & 0xffff];
-            p[x + 3] = video_15to32[dat >> 16];
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 4) & svga->vram_mask]);
+                p[x + 2] = video_15to32[dat & 0xffff];
+                p[x + 3] = video_15to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 8) & dev->vram_mask]);
-            p[x + 4] = video_15to32[dat & 0xffff];
-            p[x + 5] = video_15to32[dat >> 16];
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 8) & svga->vram_mask]);
+                p[x + 4] = video_15to32[dat & 0xffff];
+                p[x + 5] = video_15to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 12) & dev->vram_mask]);
-            p[x + 6] = video_15to32[dat & 0xffff];
-            p[x + 7] = video_15to32[dat >> 16];
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 12) & svga->vram_mask]);
+                p[x + 6] = video_15to32[dat & 0xffff];
+                p[x + 7] = video_15to32[dat >> 16];
+            }
+            svga->memaddr += (x << 1);
+            svga->memaddr &= svga->vram_mask;
         }
-        dev->memaddr += (x << 1);
-        dev->memaddr &= dev->vram_mask;
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1)) & dev->vram_mask]);
+                p[x]     = video_15to32[dat & 0xffff];
+                p[x + 1] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 4) & dev->vram_mask]);
+                p[x + 2] = video_15to32[dat & 0xffff];
+                p[x + 3] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 8) & dev->vram_mask]);
+                p[x + 4] = video_15to32[dat & 0xffff];
+                p[x + 5] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 12) & dev->vram_mask]);
+                p[x + 6] = video_15to32[dat & 0xffff];
+                p[x + 7] = video_15to32[dat >> 16];
+            }
+            dev->memaddr += (x << 1);
+            dev->memaddr &= dev->vram_mask;
+        }
     }
 }
 
@@ -3658,35 +3759,68 @@ ibm8514_render_16bpp(svga_t *svga)
     uint32_t  *p;
     uint32_t   dat;
 
-    if ((dev->displine + svga->y_add) < 0)
-        return;
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
 
-    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+        if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
 
-        if (dev->firstline_draw == 2000)
-            dev->firstline_draw = dev->displine;
-        dev->lastline_draw = dev->displine;
+            if (svga->firstline_draw == 2000)
+                svga->firstline_draw = svga->displine;
+            svga->lastline_draw = svga->displine;
 
-        for (x = 0; x <= dev->h_disp; x += 8) {
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1)) & dev->vram_mask]);
-            p[x]     = video_16to32[dat & 0xffff];
-            p[x + 1] = video_16to32[dat >> 16];
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1)) & svga->vram_mask]);
+                p[x]     = video_16to32[dat & 0xffff];
+                p[x + 1] = video_16to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 4) & dev->vram_mask]);
-            p[x + 2] = video_16to32[dat & 0xffff];
-            p[x + 3] = video_16to32[dat >> 16];
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 4) & svga->vram_mask]);
+                p[x + 2] = video_16to32[dat & 0xffff];
+                p[x + 3] = video_16to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 8) & dev->vram_mask]);
-            p[x + 4] = video_16to32[dat & 0xffff];
-            p[x + 5] = video_16to32[dat >> 16];
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 8) & svga->vram_mask]);
+                p[x + 4] = video_16to32[dat & 0xffff];
+                p[x + 5] = video_16to32[dat >> 16];
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 12) & dev->vram_mask]);
-            p[x + 6] = video_16to32[dat & 0xffff];
-            p[x + 7] = video_16to32[dat >> 16];
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 12) & svga->vram_mask]);
+                p[x + 6] = video_16to32[dat & 0xffff];
+                p[x + 7] = video_16to32[dat >> 16];
+            }
+            svga->memaddr += (x << 1);
+            svga->memaddr &= svga->vram_mask;
         }
-        dev->memaddr += (x << 1);
-        dev->memaddr &= dev->vram_mask;
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1)) & dev->vram_mask]);
+                p[x]     = video_16to32[dat & 0xffff];
+                p[x + 1] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 4) & dev->vram_mask]);
+                p[x + 2] = video_16to32[dat & 0xffff];
+                p[x + 3] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 8) & dev->vram_mask]);
+                p[x + 4] = video_16to32[dat & 0xffff];
+                p[x + 5] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 12) & dev->vram_mask]);
+                p[x + 6] = video_16to32[dat & 0xffff];
+                p[x + 7] = video_16to32[dat >> 16];
+            }
+            dev->memaddr += (x << 1);
+            dev->memaddr &= dev->vram_mask;
+        }
     }
 }
 
@@ -3700,29 +3834,56 @@ ibm8514_render_24bpp(svga_t *svga)
     if ((dev->displine + svga->y_add) < 0)
         return;
 
-    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+    if (ATI_MACH32) {
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
 
-        if (dev->firstline_draw == 2000)
-            dev->firstline_draw = dev->displine;
-        dev->lastline_draw = dev->displine;
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
 
-        for (int x = 0; x <= dev->h_disp; x += 4) {
-            dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
-            p[x] = dat & 0xffffff;
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&svga->vram[dev->memaddr & svga->vram_mask]);
+                p[x] = dat & 0xffffff;
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
-            p[x + 1] = dat & 0xffffff;
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 3) & svga->vram_mask]);
+                p[x + 1] = dat & 0xffffff;
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
-            p[x + 2] = dat & 0xffffff;
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 6) & svga->vram_mask]);
+                p[x + 2] = dat & 0xffffff;
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
-            p[x + 3] = dat & 0xffffff;
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 9) & svga->vram_mask]);
+                p[x + 3] = dat & 0xffffff;
 
-            dev->memaddr += 12;
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= svga->vram_mask;
         }
-        dev->memaddr &= dev->vram_mask;
+    } else {
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
+                p[x] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
+                p[x + 1] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
+                p[x + 2] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
+                p[x + 3] = dat & 0xffffff;
+
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= dev->vram_mask;
+        }
     }
 }
 
@@ -3736,29 +3897,56 @@ ibm8514_render_BGR(svga_t *svga)
     if ((dev->displine + svga->y_add) < 0)
         return;
 
-    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+    if (ATI_MACH32) {
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
 
-        if (dev->firstline_draw == 2000)
-            dev->firstline_draw = dev->displine;
-        dev->lastline_draw = dev->displine;
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
 
-        for (int x = 0; x <= dev->h_disp; x += 4) {
-            dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
-            p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&svga->vram[dev->memaddr & svga->vram_mask]);
+                p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
-            p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 3) & svga->vram_mask]);
+                p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
-            p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 6) & svga->vram_mask]);
+                p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-            dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
-            p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 9) & svga->vram_mask]);
+                p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
-            dev->memaddr += 12;
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= svga->vram_mask;
         }
-        dev->memaddr &= dev->vram_mask;
+    } else {
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
+                p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
+                p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
+                p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
+                p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= dev->vram_mask;
+        }
     }
 }
 
@@ -3773,19 +3961,36 @@ ibm8514_render_ABGR8888(svga_t *svga)
     if ((dev->displine + svga->y_add) < 0)
         return;
 
-    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
-        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+    if (ATI_MACH32) {
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
 
-        if (dev->firstline_draw == 2000)
-            dev->firstline_draw = dev->displine;
-        dev->lastline_draw = dev->displine;
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
 
-        for (x = 0; x <= dev->h_disp; x++) {
-            dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
-            *p++ = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&svga->vram[(dev->memaddr + (x << 2)) & svga->vram_mask]);
+                *p++ = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= svga->vram_mask;
         }
-        dev->memaddr += (x * 4);
-        dev->memaddr &= dev->vram_mask;
+    } else {
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
+                *p++ = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= dev->vram_mask;
+        }
     }
 }
 
@@ -3800,33 +4005,61 @@ ibm8514_render_32bpp(svga_t *svga)
     if ((dev->displine + svga->y_add) < 0)
         return;
 
-    if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || dev->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
-        p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+    if (ATI_MACH32) {
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
 
-        if (dev->firstline_draw == 2000)
-            dev->firstline_draw = dev->displine;
-        dev->lastline_draw = dev->displine;
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
 
-        for (x = 0; x <= dev->h_disp; x++) {
-            dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
-            p[x] = dat & 0xffffff;
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&svga->vram[(dev->memaddr + (x << 2)) & svga->vram_mask]);
+                p[x] = dat & 0xffffff;
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= svga->vram_mask;
         }
-        dev->memaddr += (x * 4);
-        dev->memaddr &= dev->vram_mask;
+    } else {
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || dev->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
+                p[x] = dat & 0xffffff;
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= dev->vram_mask;
+        }
     }
 }
 
 static void
 ibm8514_render_overscan_left(ibm8514_t *dev, svga_t *svga)
 {
-    if ((dev->displine + svga->y_add) < 0)
-        return;
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
 
-    if (svga->scrblank || (dev->h_disp == 0))
-        return;
+        if (svga->scrblank || (svga->hdisp == 0))
+            return;
 
-    for (int i = 0; i < svga->x_add; i++)
-        buffer32->line[dev->displine + svga->y_add][i] = svga->overscan_color;
+        for (int i = 0; i < svga->x_add; i++)
+            buffer32->line[svga->displine + svga->y_add][i] = svga->overscan_color;
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->scrblank || (dev->h_disp == 0))
+            return;
+
+        for (int i = 0; i < svga->x_add; i++)
+            buffer32->line[dev->displine + svga->y_add][i] = svga->overscan_color;
+    }
 }
 
 static void
@@ -3834,15 +4067,27 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
 {
     int right;
 
-    if ((dev->displine + svga->y_add) < 0)
-        return;
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
 
-    if (svga->scrblank || (dev->h_disp == 0))
-        return;
+        if (svga->scrblank || (svga->hdisp == 0))
+            return;
 
-    right = (overscan_x >> 1);
-    for (int i = 0; i < right; i++)
-        buffer32->line[dev->displine + svga->y_add][svga->x_add + dev->h_disp + i] = svga->overscan_color;
+        right = (overscan_x >> 1);
+        for (int i = 0; i < right; i++)
+            buffer32->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp + i] = svga->overscan_color;
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->scrblank || (dev->h_disp == 0))
+            return;
+
+        right = (overscan_x >> 1);
+        for (int i = 0; i < right; i++)
+            buffer32->line[dev->displine + svga->y_add][svga->x_add + dev->h_disp + i] = svga->overscan_color;
+    }
 }
 
 void
@@ -3857,6 +4102,7 @@ ibm8514_poll(void *priv)
     svga_t *svga = (svga_t *)priv;
     ibm8514_t *dev = (ibm8514_t *)svga->dev8514;
     uint32_t x;
+    uint32_t blink_delay;
     int      wx;
     int      wy;
 
@@ -3865,7 +4111,209 @@ ibm8514_poll(void *priv)
         ibm8514_log(dev->log,"ON!\n");
         if (svga->override)
             svga_set_poll(svga);
-        else {
+        else if (ATI_MACH32) {
+            if (!svga->linepos) {
+                if (svga->displine == ((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) && svga->hwcursor_latch.ena) {
+                    svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - svga->hwcursor_latch.yoff;
+                    svga->hwcursor_oddeven = 0;
+                }
+
+                if (svga->displine == (((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) + 1) && svga->hwcursor_latch.ena && svga->interlace) {
+                    svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - (svga->hwcursor_latch.yoff + 1);
+                    svga->hwcursor_oddeven = 1;
+                }
+
+                timer_advance_u64(&svga->timer, svga->dispofftime);
+                svga->cgastat |= 1;
+                svga->linepos = 1;
+
+                if (svga->dispon) {
+                    svga->hdisp_on = 1;
+
+                    svga->memaddr &= svga->vram_display_mask;
+                    if (svga->firstline == 2000) {
+                        svga->firstline = svga->displine;
+                        video_wait_for_buffer_monitor(svga->monitor_index);
+                    }
+
+                    if (svga->hwcursor_on)
+                        svga->changedvram[svga->memaddr >> 12] = svga->changedvram[(svga->memaddr >> 12) + 1] = svga->interlace ? 3 : 2;
+
+                    svga->render8514(svga);
+
+                    svga->x_add = svga->left_overscan;
+                    ibm8514_render_overscan_left(dev, svga);
+                    ibm8514_render_overscan_right(dev, svga);
+                    svga->x_add = svga->left_overscan;
+
+                    if (svga->hwcursor_on) {
+                        if (svga->hwcursor_draw)
+                            svga->hwcursor_draw(svga, (svga->displine + svga->y_add + ((svga->hwcursor_latch.y >= 0) ? 0 : svga->hwcursor_latch.y)) & 2047);
+
+                        svga->hwcursor_on--;
+                        if (svga->hwcursor_on && svga->interlace)
+                            svga->hwcursor_on--;
+                    }
+
+                    if (svga->lastline < svga->displine)
+                        svga->lastline = svga->displine;
+                }
+
+                svga->displine++;
+                video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, 0, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
+                if (svga->interlace)
+                    svga->displine++;
+                if ((svga->cgastat & 8) && ((svga->displine & 15) == (svga->crtc[0x11] & 15)) && svga->vslines)
+                    svga->cgastat &= ~8;
+                svga->vslines++;
+                if (svga->displine > 2000)
+                    svga->displine = 0;
+            } else {
+                timer_advance_u64(&svga->timer, svga->dispontime);
+                video_lightpen_hsync();
+
+                if (svga->dispon)
+                    svga->cgastat &= ~1;
+                svga->hdisp_on = 0;
+
+                svga->linepos = 0;
+                if ((svga->scanline == (svga->crtc[11] & 31)) || (svga->scanline == svga->rowcount))
+                    svga->cursorvisible = 0;
+                if (svga->dispon) {
+                    /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll
+                       - S3 Trio64V2/DX: scanline == rowcount, wrapping 5-bit counter. */
+                    if (svga->linedbl && !svga->linecountff) {
+                        svga->linecountff = 1;
+                        svga->memaddr          = svga->memaddr_backup;
+                    } else if (svga->scanline == svga->rowcount) {
+                        svga->linecountff = 0;
+                        svga->scanline          = 0;
+
+                        svga->memaddr_backup += (svga->rowoffset << 3);
+                        if (svga->interlace)
+                            svga->memaddr_backup += (svga->rowoffset << 3);
+
+                        svga->memaddr_backup &= svga->vram_display_mask;
+                        svga->memaddr = svga->memaddr_backup;
+                    } else {
+                        svga->linecountff = 0;
+                        svga->scanline++;
+                        svga->scanline &= 0x1f;
+                        svga->memaddr = svga->memaddr_backup;
+                    }
+                }
+
+                svga->hsync_divisor ^= 1;
+
+                if (svga->hsync_divisor && (svga->crtc[0x17] & 4))
+                    return;
+
+                dev->vc++;
+                dev->vc &= 0xfff;
+
+                if (dev->vc == svga->split) {
+                    if (svga->interlace && svga->oddeven)
+                        svga->memaddr = svga->memaddr_backup = (svga->rowoffset << 1);
+                    else
+                        svga->memaddr = svga->memaddr_backup = 0;
+
+                    svga->memaddr     = (svga->memaddr << 2);
+                    svga->memaddr_backup = (svga->memaddr_backup << 2);
+
+                    svga->scanline = 0;
+                    if (svga->attrregs[0x10] & 0x20) {
+                        svga->scrollcache   = 0;
+                        svga->half_pixel    = 0;
+                        svga->x_add         = svga->left_overscan;
+                    }
+                }
+                if (dev->vc == svga->dispend) {
+                    dev->vblank_start(svga);
+                    svga->dispon = 0;
+                    blink_delay  = (svga->crtc[11] & 0x60) >> 5;
+                    if (svga->crtc[10] & 0x20)
+                        svga->cursoron = 0;
+                    else if (blink_delay == 2)
+                        svga->cursoron = ((svga->blink % 96) >= 48);
+                    else
+                        svga->cursoron = svga->blink & (16 + (16 * blink_delay));
+
+                    if (!(svga->blink & 15))
+                        svga->fullchange = 2;
+
+                    svga->blink = (svga->blink + 1) & 0x7f;
+
+                    for (x = 0; x < ((svga->vram_mask + 1) >> 12); x++) {
+                        if (svga->changedvram[x])
+                            svga->changedvram[x]--;
+                    }
+
+                    if (svga->fullchange)
+                        svga->fullchange--;
+                }
+                if (dev->vc == svga->vsyncstart) {
+                    svga->dispon = 0;
+                    svga->cgastat |= 8;
+                    x = svga->hdisp;
+
+                    if (svga->interlace && !svga->oddeven)
+                        svga->lastline++;
+                    if (svga->interlace && svga->oddeven)
+                        svga->firstline--;
+
+                    wx = x;
+                    wy = svga->lastline - svga->firstline;
+                    svga->vdisp = wy + 1;
+                    svga_doblit(wx, wy, svga);
+
+                    svga->firstline = 2000;
+                    svga->lastline  = 0;
+
+                    svga->firstline_draw = 2000;
+                    svga->lastline_draw  = 0;
+
+                    svga->oddeven ^= 1;
+
+                    svga->monitor->mon_changeframecount = svga->interlace ? 3 : 2;
+                    svga->vslines                       = 0;
+
+                    if (svga->interlace && svga->oddeven)
+                        svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + (svga->rowoffset << 1);
+                    else
+                        svga->memaddr = svga->memaddr_backup = svga->memaddr_latch;
+
+                    svga->cursoraddr     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
+                    svga->memaddr     = (svga->memaddr << 2);
+                    svga->memaddr_backup = (svga->memaddr_backup << 2);
+                    svga->cursoraddr     = (svga->cursoraddr << 2);
+
+                    if (svga->vsync_callback)
+                        svga->vsync_callback(svga);
+
+                    video_lightpen_vsync();
+
+                    svga->start_retrace_latch = svga->crtc[0x4];
+                }
+                if (dev->vc == svga->vtotal) {
+                    dev->vc       = 0;
+                    svga->scanline       = (svga->crtc[0x8] & 0x1f);
+                    svga->dispon   = 1;
+                    svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
+
+                    svga->scrollcache = 0;
+                    svga->half_pixel  = 0;
+
+                    svga->x_add = svga->left_overscan;
+
+                    svga->linecountff = 0;
+
+                    svga->hwcursor_on    = 0;
+                    svga->hwcursor_latch = svga->hwcursor;
+                }
+                if (svga->scanline == (svga->crtc[10] & 31))
+                    svga->cursorvisible = 1;
+            }
+        } else {
             if (!dev->linepos) {
                 if ((dev->displine == ((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y)) && dev->hwcursor_latch.ena) {
                     dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - dev->hwcursor_latch.yoff;
@@ -3904,6 +4352,7 @@ ibm8514_poll(void *priv)
                     if (dev->hwcursor_on) {
                         if (svga->hwcursor_draw)
                             svga->hwcursor_draw(svga, (dev->displine + svga->y_add + ((dev->hwcursor_latch.y >= 0) ? 0 : dev->hwcursor_latch.y)) & 2047);
+
                         dev->hwcursor_on--;
                         if (dev->hwcursor_on && dev->interlace)
                             dev->hwcursor_on--;
@@ -3915,7 +4364,6 @@ ibm8514_poll(void *priv)
 
                 dev->displine++;
                 video_lightpen_check_trigger_strobe(svga->x_add, dev->displine, 0, dev->firstline, 1. / (svga->clock / (svga->clock_8514 * (double) (1ULL << 32))), svga->monitor_index);
-
                 if (dev->interlace)
                     dev->displine++;
                 if ((svga->cgastat & 8) && ((dev->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
@@ -3926,6 +4374,7 @@ ibm8514_poll(void *priv)
             } else {
                 timer_advance_u64(&svga->timer, dev->dispontime);
                 video_lightpen_hsync();
+
                 if (dev->dispon)
                     svga->cgastat &= ~1;
                 dev->hdisp_on = 0;
@@ -3939,6 +4388,7 @@ ibm8514_poll(void *priv)
                             dev->memaddr_backup += (dev->rowoffset << 3);
 
                         dev->memaddr_backup &= dev->vram_mask;
+
                         dev->memaddr = dev->memaddr_backup;
                     } else {
                         dev->scanline++;
@@ -3995,6 +4445,7 @@ ibm8514_poll(void *priv)
 
                     dev->memaddr     = (dev->memaddr << 2);
                     dev->memaddr_backup = (dev->memaddr_backup << 2);
+
                     video_lightpen_vsync();
                 }
                 if (dev->vc == dev->v_total) {

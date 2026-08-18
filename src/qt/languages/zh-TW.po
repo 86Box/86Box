@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-11 05:09+0000\n"
+"PO-Revision-Date: 2026-08-17 19:26+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -479,16 +479,16 @@ msgid "&Mouse"
 msgstr "滑鼠(&M)"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "平板:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "平板"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "平板(&T)"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "平板 十字線(&C)"
 
 msgid "Joystick:"
 msgstr "搖桿:"
@@ -856,7 +856,7 @@ msgid "Input devices"
 msgstr "輸入裝置"
 
 msgid "Input &device"
-msgstr ""
+msgstr "輸入裝置(&D)"
 
 msgid "Sound"
 msgstr "聲音"
@@ -868,7 +868,7 @@ msgid "Ports (COM & LPT)"
 msgstr "連接埠 (COM 和 LPT)"
 
 msgid "Port"
-msgstr "英語 (美國)"
+msgstr "連接埠"
 
 msgid "Ports"
 msgstr "連接埠"
@@ -1244,7 +1244,7 @@ msgid "%1 total"
 msgstr "%1 總計"
 
 msgid "VMs: %1"
-msgstr "虛擬機器：%1"
+msgstr "虛擬機器: %1"
 
 msgid "System Directory:"
 msgstr "系統目錄:"
@@ -1377,7 +1377,7 @@ msgid "Directory %1 already exists"
 msgstr "目錄 %1 已經存在"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr "您不能在名稱中使用下列字元：%1"
+msgstr "您不能在名稱中使用下列字元: %1"
 
 msgid "Clone"
 msgstr "複製"
@@ -1784,7 +1784,7 @@ msgid "MCA devices"
 msgstr "MCA 裝置"
 
 msgid "List of MCA devices:"
-msgstr "MCA 裝置清單："
+msgstr "MCA 裝置清單:"
 
 msgid "&Tablet tool"
 msgstr "平板工具(&T)"
@@ -1832,7 +1832,7 @@ msgid "Null Driver"
 msgstr "空驅動器"
 
 msgid "NIC:"
-msgstr "網路介面控制器："
+msgstr "網路介面控制器:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "網路介面控制器 %1 (%2) %3"
@@ -1844,7 +1844,7 @@ msgid "Render behavior"
 msgstr "渲染行為"
 
 msgid "Use target framerate:"
-msgstr "使用目標影格速率："
+msgstr "使用目標影格速率:"
 
 msgid " fps"
 msgstr " fps"
@@ -2003,7 +2003,7 @@ msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 模擬"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr "Roland MT-32（新）模擬"
+msgstr "Roland MT-32 (新) 模擬"
 
 msgid "Roland CM-32L Emulation"
 msgstr "Roland CM-32L 模擬"
@@ -2198,7 +2198,7 @@ msgid "Reverb Level"
 msgstr "殘響位準"
 
 msgid "Interpolation Method"
-msgstr "插值方法"
+msgstr "插補法"
 
 msgid "Dynamic Sample Loading"
 msgstr "動態取樣載入"
@@ -2645,7 +2645,7 @@ msgid "New"
 msgstr "新"
 
 msgid "Color (generic)"
-msgstr "彩色（通用）"
+msgstr "彩色 (通用)"
 
 msgid "Green Monochrome"
 msgstr "綠色單色"
@@ -2657,16 +2657,16 @@ msgid "Gray Monochrome"
 msgstr "灰色單色"
 
 msgid "Color (no brown)"
-msgstr "彩色（無棕色）"
+msgstr "彩色 (無棕色)"
 
 msgid "Color (IBM 5153)"
-msgstr "彩色（IBM 5153）"
+msgstr "彩色 (IBM 5153)"
 
 msgid "Simple doubling"
 msgstr "簡單倍增"
 
 msgid "sRGB interpolation"
-msgstr "sRGB 插值"
+msgstr "sRGB 插補"
 
 msgid "Linear interpolation"
 msgstr "線性插補"
@@ -2684,13 +2684,13 @@ msgid "128 KB"
 msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr "單色 (5151/MDA)（白色）"
+msgstr "單色 (5151/MDA) (白色)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "單色 (5151/MDA)（綠色）"
+msgstr "單色 (5151/MDA) (綠色)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr "單色 (5151/MDA)（琥珀色）"
+msgstr "單色 (5151/MDA) (琥珀色)"
 
 msgid "Color 40x25 (5153/CGA)"
 msgstr "彩色 40x25 (5153/CGA)"
@@ -2762,7 +2762,7 @@ msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst (2 TMU)"
+msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
 
 msgid "8-bit"
 msgstr "8 位元"
@@ -2933,7 +2933,7 @@ msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A 相容品"
 
 msgid "Vendor"
-msgstr "製造商"
+msgstr "銷售商"
 
 msgid "30 Hz (JMP2 = 1)"
 msgstr "30 Hz (JMP2 = 1)"
@@ -2965,7 +2965,7 @@ msgid "Ask for confirmation before saving settings"
 msgstr "儲存設定前要求確認"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr "硬體重設前要求確認"
+msgstr "硬重設前要求確認"
 
 msgid "Ask for confirmation before quitting"
 msgstr "退出前請先確認"
@@ -3304,10 +3304,10 @@ msgid "Fast forward"
 msgstr "快轉"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "不可遮罩中斷(&N)"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "不可遮罩中斷"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "欲變更系統目錄，請先停止全部運行中的機器。"
@@ -3337,11 +3337,11 @@ msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "無法開啟光碟映像 \"%s\"。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr "無法開啟映像 \"%s\": %1 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
-"映像之必要檔案。"
+msgstr "無法開啟映像 \"%s\": 缺少 %1 ，此為存取 Daemon Tools MDS v2 及 MDX "
+"映像所必需。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
-msgstr "無法載入圖像 \"%s\": %1 遺失，此為支援 Aaru 格式圖像所必需。"
+msgstr "無法載入映像 \"%s\": 缺少 %1，此為支援 Aaru 格式圖像所必需。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 映像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
@@ -3404,7 +3404,7 @@ msgid "Draft"
 msgstr "草稿"
 
 msgid "(Near) Letter"
-msgstr "近信件 (NLQ)"
+msgstr "近信件品質 (NLQ)"
 
 msgid "Auto LF"
 msgstr "自動送行"
@@ -3488,7 +3488,7 @@ msgid "Sample rate:"
 msgstr "取樣率:"
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "CGA光筆"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "亮度閾值 (%)"

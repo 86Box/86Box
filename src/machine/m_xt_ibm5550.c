@@ -1700,6 +1700,17 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
         case 0x61: /* Keyboard Control Register (aka Port B) */
             kbd->pb = val;
 
+            if (val == 0x00) {
+                /* The IPL writes 0x00 to port B at the start of the keyboard
+                   test to disable the keyboard. Discard any leftover keydata
+                   (e.g. the tail of a Ctrl+Alt+Del scancode that the ROM did 
+                   not consume before reset) so the clock-poll that follows 
+                   sees an idle line. */
+                key_queue_start        = key_queue_end = 0;
+                kbd->kbd_readdata_step = 16;
+                kbd->want_irq          = 0;
+            }
+
             if ((val & 0x18) == 0x08) {
                 new_clock = !(val & 0x04);
                 /* Trigger kbd reset after the clk line is reset to a high level */

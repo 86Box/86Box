@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-31 15:40+0000\n"
+"PO-Revision-Date: 2026-08-18 02:45+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -478,16 +478,16 @@ msgid "&Mouse"
 msgstr "&Ποντίκι"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Ταμπλέτα:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Ταμπλέτα"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Ταμπλέτα"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Ταμπλέτα (&Σημάδι)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -850,7 +850,7 @@ msgid "Input devices"
 msgstr "Συσκευές εισόδου"
 
 msgid "Input &device"
-msgstr ""
+msgstr "&Συσκευή εισόδου"
 
 msgid "Sound"
 msgstr "Ήχος"
@@ -862,7 +862,7 @@ msgid "Ports (COM & LPT)"
 msgstr "Θύρες (COM & LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "Πόρτα"
 
 msgid "Ports"
 msgstr "Θύρες"
@@ -2299,7 +2299,7 @@ msgid "Host ID"
 msgstr "ID οικοδεσπότη"
 
 msgid "Host"
-msgstr ""
+msgstr "Οικοδεσπότης"
 
 msgid "FDC Address"
 msgstr "Διεύθυνση FDC"
@@ -3347,10 +3347,10 @@ msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "&Διακοπή χωρίς μάσκα"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Διακοπή χωρίς μάσκα"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές σε λειτουργία."
@@ -3536,7 +3536,7 @@ msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "Φωτογραφίδα CGA"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Όριο φωτεινότητας (%)"
