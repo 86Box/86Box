@@ -14261,7 +14261,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "AMI S75", "" }
     },
-    /* This probably has AMIKEY-2 'H' KBC */
+    /* This probably has AMIKEY 'F' KBC */
     {
         .name              = "[OPTi 597] TMC PAT58PV",
         .internal_name     = "pat58pv",
@@ -14293,12 +14293,12 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004800,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
+        .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
