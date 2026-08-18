@@ -30,7 +30,7 @@
 #    define FLAG_NO_SHIFT3    1024 /* Needed for Bochs VBE. */
 #    define FLAG_PRECISETIME  2048 /* Needed for Copper demo if on dynarec. */
 #    define FLAG_PANNING_ATI  4096
-#    define FLAG_EXT_AR       8192
+#    define FLAG_EXT_AR 8192
 struct monitor_t;
 
 typedef struct hwcursor_t {
@@ -96,6 +96,7 @@ typedef struct svga_t {
     int hdisp;
     int hdisp_old;
     int htotal;
+    int h_total;
     int hdisp_time;
     int rowoffset;
     int dispon;
@@ -244,6 +245,9 @@ typedef struct svga_t {
     /* The PS/55 POST BIOS has a special monitor detection for its internal VGA
        when the monitor is connected to the Display Adapter. */
     int cable_connected;
+
+    uint8_t genena;
+    uint8_t genvs;
 
     uint8_t  crtc[256];
     uint8_t  gdcreg[256];
