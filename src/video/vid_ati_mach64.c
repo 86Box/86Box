@@ -1253,12 +1253,12 @@ mach64_ext_inb(uint16_t port, void *priv)
                 if (port_high == 0x5a)
                     addr_or_value = 0xb8;    
 
-                if (port_low == 0xEF)
+                if ((port_low == 0xED) || (port_low == 0xEF))
                     ret = 0x00;
                 else if (port_low == 0xEC)                 
                     ret = mach64_ext_readb(0x400 | addr_or_value, priv);
                 else
-                    ret = mach64_ext_readb(0x400 | (addr_or_value + 1), priv);
+                    ret = mach64_ext_readb(0x400 | (addr_or_value + 2), priv);
                 break; 
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
@@ -1352,13 +1352,13 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
         switch (port_high)
         {
              case 0x56: // 56ec-56ef
-                if (port_low == 0xEF)
+                if ((port_low == 0xED) || (port_low == 0xEF))
                     break;
 
                 if (port_low == 0xEC)                 
                     mach64_ext_writeb(0x400 | 0xb4, val, priv);
                 else
-                    mach64_ext_writeb(0x400 | 0xb5, val, priv);
+                    mach64_ext_writeb(0x400 | 0xb6, val, priv);
                 break; 
             case 0x5a: // 5aec-5aef
                 if (port_low == 0xEF)
@@ -1367,7 +1367,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                 if (port_low == 0xEC)                 
                     mach64_ext_writeb(0x400 | 0xb8, val, priv);
                 else
-                    mach64_ext_writeb(0x400 | 0xb9, val, priv);
+                    mach64_ext_writeb(0x400 | 0xba, val, priv);
                 break; 
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
