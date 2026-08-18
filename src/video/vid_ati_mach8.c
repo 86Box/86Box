@@ -3441,31 +3441,6 @@ ati8514_recalctimings(svga_t *svga)
 }
 
 static void
-mach_disable(void *p)
-{
-    mach_t *mach  = (mach_t *) p;
-    svga_t *svga = &mach->svga;
-
-    io_removehandler(0x03a0, 0x0040, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-    mem_mapping_disable(&svga->mapping);
-    svga->vga_enabled = 0;
-}
-
-static void
-mach_enable(void *p)
-{
-    mach_t *mach  = (mach_t *) p;
-    svga_t *svga = &mach->svga;
-
-    io_sethandler(0x03c0, 0x0020, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-    if (!(svga->miscout & 1))
-        io_sethandler(0x03a0, 0x0020, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-
-    mem_mapping_enable(&svga->mapping);
-    svga->vga_enabled = 1;
-}
-
-static void
 mach8_recalctimings(svga_t *svga)
 {
     mach_t       *mach = (mach_t *) svga->priv;
