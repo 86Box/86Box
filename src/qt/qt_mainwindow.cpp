@@ -380,7 +380,7 @@ MainWindow::MainWindow(QWidget *parent)
             while (QApplication::overrideCursor())
                 QApplication::restoreOverrideCursor();
 #ifdef USE_WACOM
-        ui->menuTablet_tool->menuAction()->setVisible(tablet_type && tablet_is_lightpen(tablet_type));
+        ui->menuTablet_tool->menuAction()->setVisible(tablet_type && (strstr(tablet_get_internal_name(tablet_type), "wacom") != NULL));
 #else
         ui->menuTablet_tool->menuAction()->setVisible(false);
 #endif

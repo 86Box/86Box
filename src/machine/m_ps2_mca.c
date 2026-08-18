@@ -65,6 +65,8 @@
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/video.h>
+#include <86box/vid_8514a.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_vga.h>
 #include <86box/machine.h>
@@ -974,9 +976,9 @@ ps2_mca_write(const uint16_t port, uint8_t val, UNUSED(void *priv))
             else if (!(ps2.setup & PS2_SETUP_VGA)) {
                 if (ps2.mb_vga) {
                     if (vga_isenabled(ps2.mb_vga))
-                        vga_disable(ps2.mb_vga);
-                    if (val & 1)
-                        vga_enable(ps2.mb_vga);
+                        vga_disable(ps2.mb_vga, port);
+                    if (val & 0x01)
+                        vga_enable(ps2.mb_vga, port);
                 }
                 ps2.pos_vga = val;
             } else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
@@ -1018,19 +1020,42 @@ ps2_mca_write(const uint16_t port, uint8_t val, UNUSED(void *priv))
     }
 }
 
-static void
-ps2_mca_vga_write(UNUSED(uint16_t addr), uint8_t val, UNUSED(void *priv))
+static uint8_t
+ps2_mca_vga_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
-    if (!ps2.mb_vga) {
-        return;
+    vga_t *vga = ps2.mb_vga;
+    uint8_t ret = 0x01;
+
+    if (vga == NULL)
+        return ret;
+
+    svga_t *svga = &vga->svga;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t   *xga = (xga_t *) svga->xga;
+
+    if (xga_active && xga) {
+        if (xga->on)
+            ret = 0x00;
     }
+    if (ibm8514_active && dev) {
+        if (dev->on)
+            ret = 0x00;
+    }
+    return ret;
+}
+
+static void
+ps2_mca_vga_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
+{
+    if (!ps2.mb_vga)
+        return;
 
     if (val & 0x01) {
         if (!vga_isenabled(ps2.mb_vga))
-            vga_enable(ps2.mb_vga);
+            vga_enable(ps2.mb_vga, addr);
     } else {
         if (vga_isenabled(ps2.mb_vga))
-            vga_disable(ps2.mb_vga);
+            vga_disable(ps2.mb_vga, addr);
     }
 }
 
@@ -1041,7 +1066,7 @@ ps2_mca_board_common_init(void)
     io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
     io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
     io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
-    io_sethandler(0x03c3, 0x0001, NULL, NULL, NULL, ps2_mca_vga_write, NULL, NULL, NULL);
+    io_sethandler(0x03c3, 0x0001, ps2_mca_vga_read, NULL, NULL, ps2_mca_vga_write, NULL, NULL, NULL);
 
     device_add(&port_6x_ps2_device);
     device_add(&port_92_device);
@@ -1233,7 +1258,7 @@ ps2_mca_board_model_60_init(void)
     switch (mem_size / 1024) {
         case 0: /*256Kx2*/
             ps2.option[1] = 0xf0;
-            break;       
+            break;
         case 1: /*256Kx4*/
             ps2.option[1] = 0xf4;
             break;
@@ -1246,7 +1271,7 @@ ps2_mca_board_model_60_init(void)
             ps2.option[1] = 0xfc;
             break;
     }
-    
+
     /* Enable password function */
     ps2.option[1] |= 0x02;
 
@@ -1574,7 +1599,7 @@ ps2_mca_board_model_80_type2_init(void)
 
     ps2.mem_regs[1] = 2;
     /* Note: Based on the information on ardent-tool.com website,
-       IBM PS/2 model 80 type 2 supports 1/2/4 MB memory cards on 
+       IBM PS/2 model 80 type 2 supports 1/2/4 MB memory cards on
        real machines, so memory encodings should be set as is. */
     switch (mem_size / 1024) {
         case 1: /* empty + 1 MB card */

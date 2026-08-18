@@ -524,6 +524,7 @@ herculesplus_poll(void *priv)
                 x = dev->crtc[1] * cw;
 
             video_process_8(x, dev->displine);
+            video_lightpen_check_trigger_strobe(8, dev->displine, 0, dev->firstline, 1. / (HERCCONST / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
         }
         dev->scanline = scanline_old;
         if (dev->vc == dev->crtc[7] && !dev->scanline)
@@ -532,6 +533,7 @@ herculesplus_poll(void *priv)
         if (dev->displine >= 500)
             dev->displine = 0;
     } else {
+        video_lightpen_hsync();
         timer_advance_u64(&dev->timer, dev->dispontime);
         if (dev->dispon)
             dev->status &= ~1;
@@ -579,6 +581,7 @@ herculesplus_poll(void *priv)
                 dev->dispon    = 0;
                 dev->displine  = 0;
                 dev->vsynctime = 16;
+                video_lightpen_vsync();
                 if (dev->crtc[7]) {
                     if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH))
                         x = dev->crtc[1] << 4;

@@ -118,6 +118,7 @@ static mouse_t tablet_devices[] = {
 #endif
     { &mouse_mtouch_device              },
     { &mouse_cga_lightpen_device        },
+    { &mouse_pxl_380_device             },
     { NULL                              }
 };
 
@@ -165,12 +166,6 @@ int
 mouse_both_enabled(void)
 {
     return mouse_type && tablet_type;
-}
-
-int
-tablet_is_lightpen(int i)
-{
-    return strstr(tablet_get_internal_name(i), "lightpen") == NULL;
 }
 
 void
