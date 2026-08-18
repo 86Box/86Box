@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-16 07:25+0000\n"
+"PO-Revision-Date: 2026-08-18 07:22+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -2698,16 +2698,16 @@ msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "增强色 - 增强模式 (5154/ECD)"
 
 msgid "IBM 8507 (1024x768, Monochrome)"
-msgstr "IBM 8507（1024x768，彩色）"
+msgstr "IBM 8507（1024x768，单色）"
 
 msgid "IBM 8514 (1024x768, Color)"
-msgstr "IBM 8514（1024x768，单色）"
+msgstr "IBM 8514（1024x768，彩色）"
 
 msgid "IBM 8503 (640x480, Monochrome)"
-msgstr "IBM 8503（640x480，彩色）"
+msgstr "IBM 8503（640x480，单色）"
 
 msgid "IBM 8512/13 (640x480, Color)"
-msgstr "IBM 8512/13（640x480，单色）"
+msgstr "IBM 8512/13（640x480，彩色）"
 
 msgid "Green"
 msgstr "绿色"
