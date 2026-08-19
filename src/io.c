@@ -25,6 +25,7 @@
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
+#include <86box/machine.h>
 #include "cpu.h"
 #include "x86.h"
 #include <86box/m_amstrad.h>
@@ -381,7 +382,7 @@ inb(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found)
+    if (!found || (machines[machine].init == machine_xt_ibm5550_init))
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
@@ -524,7 +525,7 @@ inw(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found)
+    if (!found || (machines[machine].init == machine_xt_ibm5550_init))
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
@@ -708,7 +709,7 @@ inl(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found)
+    if (!found || (machines[machine].init == machine_xt_ibm5550_init))
         cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);

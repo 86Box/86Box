@@ -1901,6 +1901,8 @@ pit_set_clock(uint32_t clock)
 
     /* Delay for empty I/O ports. */
     io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
+    if (machines[machine].init == machine_xt_ibm5550_init)
+        io_delay = 8;
 
 #ifdef WRONG_MDACONST
     MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ULL << 32));
