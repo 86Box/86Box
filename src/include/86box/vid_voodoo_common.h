@@ -304,6 +304,11 @@ typedef struct voodoo_t {
     uint32_t fbiInit6;
     uint32_t fbiInit7; /*Voodoo 2*/
 
+    /*Voodoo 2 board ID straps, read back through fbiInit5 bits 8:5 and
+      fbiInit7 bit 0; read-only, independent of fbiInit writes. OEM drivers
+      (Diamond Monster 3D II = 8) gate on this.*/
+    uint32_t board_id;
+
     uint32_t initEnable;
 
     uint32_t lfbMode;

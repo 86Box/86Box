@@ -579,13 +579,13 @@ voodoo_readl(uint32_t addr, void *priv)
                 break;
 
             case SST_fbiInit5:
-                temp = voodoo->fbiInit5 & ~0x1ff;
+                temp = (voodoo->fbiInit5 & ~0x1ff) | ((voodoo->board_id & 0xf) << 5);
                 break;
             case SST_fbiInit6:
                 temp = voodoo->fbiInit6;
                 break;
             case SST_fbiInit7:
-                temp = voodoo->fbiInit7 & ~0xff;
+                temp = (voodoo->fbiInit7 & ~0xff) | ((voodoo->board_id >> 4) & 1);
                 break;
 
             case SST_cmdFifoBaseAddr:
@@ -1169,7 +1169,8 @@ voodoo_card_init(void)
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
 #endif
-    voodoo->type = device_get_config_int("type");
+    voodoo->type     = device_get_config_int("type");
+    voodoo->board_id = device_get_config_int("board_id");
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;
@@ -1620,6 +1621,21 @@ static const device_config_t voodoo_config[] = {
             { .description = "Obsidian SB50 + Amethyst (2 TMUs)", .value = VOODOO_SB50 },
             { .description = "3Dfx Voodoo 2",                     .value = VOODOO_2    },
             { .description = ""                                                        }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "board_id",
+        .description    = "Board model (Voodoo 2)",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "3Dfx reference board",   .value = 0 },
+            { .description = "Diamond Monster 3D II",  .value = 8 },
+            { .description = ""                                   }
         },
         .bios           = { { 0 } }
     },
