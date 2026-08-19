@@ -3135,6 +3135,16 @@ save_general(void)
     else
         ini_section_delete_var(cat, "emu_build_num");
 
+#ifdef USE_DYNAREC
+#   ifdef USE_NEW_DYNAREC
+    ini_section_set_string(cat, "emu_build_dynarec_type", "new");
+#   else
+    ini_section_set_string(cat, "emu_build_dynarec_type", "old");
+#   endif
+#else
+    ini_section_delete_var(cat, "emu_build_dynarec_type");
+#endif
+
     if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
     else
