@@ -22,6 +22,8 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define SHA3_BYTEORDER 1234
+
 /******************************************************************************
 ** The Hash Engine
 */
