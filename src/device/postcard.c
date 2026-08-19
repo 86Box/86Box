@@ -142,14 +142,19 @@ postcard_reset(void)
 static void
 postcard_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
-    if (postcard_written[port & POSTCARD_MASK] &&
-        (val == postcard_codes[port & POSTCARD_MASK]))
+    /* Index relative to the base port: unlike `port & POSTCARD_MASK`, this
+       also works for ports whose low bits are not zero (e.g. the IBM 5550
+       diagnostics on port A1h). */
+    uint8_t idx = port - postcard_port;
+
+    if (postcard_written[idx] &&
+        (val == postcard_codes[idx]))
         return;
 
-    postcard_prev_codes[port & POSTCARD_MASK] = postcard_codes[port & POSTCARD_MASK];
-    postcard_codes[port & POSTCARD_MASK]      = val;
-    if (postcard_written[port & POSTCARD_MASK] < 2)
-        postcard_written[port & POSTCARD_MASK]++;
+    postcard_prev_codes[idx] = postcard_codes[idx];
+    postcard_codes[idx]      = val;
+    if (postcard_written[idx] < 2)
+        postcard_written[idx]++;
 
     postcard_setui();
 }
