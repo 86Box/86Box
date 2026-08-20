@@ -137,6 +137,7 @@
 #    define OPCODE_FCMGE_V2S          (0x2e20e400)
 #    define OPCODE_FCMGT_V2S          (0x2ea0e400)
 #    define OPCODE_FCMP_D             (0x1e602000)
+#    define OPCODE_FCSEL_D            (0x1e600c00)
 #    define OPCODE_FCVT_D_S           (0x1e22c000)
 #    define OPCODE_FCVT_S_D           (0x1e624000)
 #    define OPCODE_FCVTMS_W_D         (0x1e700000)
@@ -920,6 +921,14 @@ void
 host_arm64_FCMP_D(codeblock_t *block, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_FCMP_D | Rn(src_n_reg) | Rm(src_m_reg));
+}
+
+/*FCSEL only copies the 64-bit pattern across, so this is also usable to select
+  between two integer values held in the low half of a vector register*/
+void
+host_arm64_FCSEL_D_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_FCSEL_D | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 
 void

@@ -968,6 +968,9 @@ codegen_CMOVNZ(codeblock_t *block, uop_t *uop)
         if (dest_reg != old_reg)
             host_arm64_MOV_REG(block, dest_reg, old_reg, 0);
         host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
+    } else if ((REG_IS_D(dest_size) && REG_IS_D(old_size) && REG_IS_D(src_size))
+               || (REG_IS_Q(dest_size) && REG_IS_Q(old_size) && REG_IS_Q(src_size))) {
+        host_arm64_FCSEL_D_EQ(block, dest_reg, old_reg, src_reg);
     } else
         fatal("CMOVNZ %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
 

@@ -1,3 +1,10 @@
+/*Condition generators shared with the x87 FCMOVcc ops. These leave 0 or 1 in
+  IREG_temp0, and may clobber IREG_temp1.*/
+void setcc_gen_B(ir_data_t *ir, int invert);
+void setcc_gen_E(ir_data_t *ir, int invert);
+void setcc_gen_BE(ir_data_t *ir, int invert);
+void setcc_gen_P(ir_data_t *ir, int invert);
+
 uint32_t ropSETO(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 uint32_t ropSETNO(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);
 uint32_t ropSETB(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc);

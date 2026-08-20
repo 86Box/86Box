@@ -100,6 +100,8 @@ void host_arm64_UMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_
 void host_arm64_FSUB_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 void host_arm64_FSUB_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
 
+void host_arm64_FCSEL_D_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg);
+
 void host_arm64_FCVT_D_S(codeblock_t *block, int dst_reg, int src_reg);
 void host_arm64_FCVT_S_D(codeblock_t *block, int dst_reg, int src_reg);
 

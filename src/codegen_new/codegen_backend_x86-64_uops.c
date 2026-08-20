@@ -1131,6 +1131,26 @@ codegen_CMOVNZ(codeblock_t *block, uop_t *uop)
             host_x86_MOV16_REG_REG(block, dest_reg, old_reg);
         host_x86_TEST32_REG(block, cond_reg, cond_reg);
         host_x86_CMOVNZ16_REG_REG(block, dest_reg, src_reg);
+    } else if ((REG_IS_D(dest_size) && REG_IS_D(old_size) && REG_IS_D(src_size))
+               || (REG_IS_Q(dest_size) && REG_IS_Q(old_size) && REG_IS_Q(src_size))) {
+        /*There is no SSE2 conditional move, so branch over the copy instead.
+          MOVQ leaves the flags alone, so the TEST can be hoisted above it.*/
+        uint32_t *branch_offset;
+
+        host_x86_TEST32_REG(block, cond_reg, cond_reg);
+        if (dest_reg == src_reg) {
+            /*The destination already holds the source, so restore the old
+              value when the condition is false instead*/
+            branch_offset = host_x86_JNZ_long(block);
+            if (dest_reg != old_reg)
+                host_x86_MOVQ_XREG_XREG(block, dest_reg, old_reg);
+        } else {
+            if (dest_reg != old_reg)
+                host_x86_MOVQ_XREG_XREG(block, dest_reg, old_reg);
+            branch_offset = host_x86_JZ_long(block);
+            host_x86_MOVQ_XREG_XREG(block, dest_reg, src_reg);
+        }
+        *branch_offset = (uint32_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 4;
     }
 #    ifdef RECOMPILER_DEBUG
     else

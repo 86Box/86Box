@@ -82,7 +82,7 @@ setcc_gen_O(ir_data_t *ir, int invert)
     }
 }
 
-static void
+void
 setcc_gen_B(ir_data_t *ir, int invert)
 {
     switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN) {
@@ -120,7 +120,7 @@ setcc_gen_B(ir_data_t *ir, int invert)
     }
 }
 
-static void
+void
 setcc_gen_E(ir_data_t *ir, int invert)
 {
     if (codegen_flags_changed && flags_res_valid()) {
@@ -137,7 +137,7 @@ setcc_gen_E(ir_data_t *ir, int invert)
     }
 }
 
-static void
+void
 setcc_gen_BE(ir_data_t *ir, int invert)
 {
     switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN) {
@@ -229,7 +229,7 @@ setcc_gen_S(ir_data_t *ir, int invert)
     }
 }
 
-static void
+void
 setcc_gen_P(ir_data_t *ir, int invert)
 {
     uop_CALL_FUNC_RESULT(ir, IREG_temp0, P_SET_01);
