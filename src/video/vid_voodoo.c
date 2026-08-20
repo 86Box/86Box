@@ -75,6 +75,34 @@ voodoo_log(const char *fmt, ...)
 #endif
 
 static int
+voodoo_get_board_id(void)
+{
+    const char *board_id = device_get_config_string("board_id");
+
+    if (board_id == NULL || board_id[0] == '\0')
+        return 0;
+
+    /*
+     * The board model is now represented as a BIOS-style device option.
+     * Accept the new internal names as well as the old numeric values so
+     * existing configuration files continue to work.
+     */
+    if (!strcmp(board_id, "diamond_monster_3d"))
+        return 4;
+
+    if (!strcmp(board_id, "diamond_monster_3d_ii"))
+        return 8;
+
+    if (!strcmp(board_id, "4"))
+        return 4;
+
+    if (!strcmp(board_id, "8"))
+        return 8;
+
+    return 0;
+}
+
+static int
 voodoo_env_is_disabled(const char *value)
 {
     /* Accept common "off" values for env overrides. */
@@ -1179,7 +1207,7 @@ voodoo_card_init(void)
      * the Voodoo generation.  The generic "type" setting is only
      * meaningful for the reference board.
      */
-    voodoo->board_id = device_get_config_int("board_id");
+    voodoo->board_id = voodoo_get_board_id();
     voodoo->type     = device_get_config_int("type");
 
     switch (voodoo->board_id) {
@@ -1751,7 +1779,7 @@ voodoo_init(UNUSED(const device_t *info))
     int memory_size;
 
     type        = device_get_config_int("type");
-    board_id   = device_get_config_int("board_id");
+    board_id   = voodoo_get_board_id();
     memory_size = device_get_config_int("memory_size");
 
     /*
@@ -1839,7 +1867,6 @@ voodoo_init(UNUSED(const device_t *info))
      * Store the final authoritative configuration.
      */
     device_set_config_int("type", type);
-    device_set_config_int("board_id", board_id);
     device_set_config_int("memory_size", memory_size);
 
     voodoo_set->nr_cards =
@@ -2105,29 +2132,45 @@ static const device_config_t voodoo_config[] = {
     {
         .name           = "board_id",
         .description    = "Board model",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
+        .type           = CONFIG_BIOS,
+        .default_string = "3dfx_reference",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = {
+        .selection      = { { 0 } },
+        .bios           = {
             {
-                .description = "3Dfx reference board",
-                .value = 0
+                .name          = "3Dfx reference board",
+                .internal_name = "3dfx_reference",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = -1,
+                .local         = 0,
+                .size          = 0,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 4 | (8 << 16)
             },
             {
-                .description = "Diamond Monster 3D",
-                .value = 4
+                .name          = "Diamond Monster 3D",
+                .internal_name = "diamond_monster_3d",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = -1,
+                .local         = 4,
+                .size          = 0,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 4 | (4 << 16)
             },
             {
-                .description = "Diamond Monster 3D II",
-                .value = 8
+                .name          = "Diamond Monster 3D II",
+                .internal_name = "diamond_monster_3d_ii",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = -1,
+                .local         = 8,
+                .size          = 0,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 8 | (12 << 16)
             },
             {
-                .description = ""
+                .name          = "",
+                .internal_name = ""
             }
-        },
-        .bios = { { 0 } }
+        }
     },
 
     {
