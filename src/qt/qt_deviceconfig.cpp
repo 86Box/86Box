@@ -253,7 +253,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     }
                     this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
-                    if (!strcmp(config->name, "memory")) {
+                    if (!strcmp(config->name, "memory") || !strcmp(config->name, "memory_size")) {
                         cbox_memory = cbox;
                         cfg_memory  = config;
                     }    
