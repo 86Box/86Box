@@ -262,6 +262,7 @@ static const ditto_model_t ditto_models[] = {
 #define DITTO_CAPACITY_2GB 2
 #define DITTO_CAPACITY_3GB 3
 #define DITTO_CAPACITY_5GB 5
+#define DITTO_CAPACITY_7GB 7
 
 #define DITTO_CART_QIC80_205  10
 #define DITTO_CART_QIC80_307  11
@@ -313,6 +314,7 @@ typedef struct ditto_cartridge_t {
     X("Ditto 2 GB",  DITTO_CAPACITY_2GB, 72,  502, DITTO_ST_DITTO, FT_FMT_VAR) \
     X("Ditto 3 GB",  DITTO_CAPACITY_3GB, 72,  753, DITTO_ST_DITTO, FT_FMT_VAR) \
     X("Ditto 5 GB",  DITTO_CAPACITY_5GB, 72, 1256, DITTO_ST_DITTO, FT_FMT_BIG) \
+    X("Ditto Max 7 GB",  DITTO_CAPACITY_7GB, 72, 1758, DITTO_ST_DITTO, FT_FMT_BIG) \
     /* Tier one. */                                                            \
     X("QIC-80, DC-2080 (205 ft)",   DITTO_CART_QIC80_205,  28, 100,            \
       QIC_TAPE_QIC80 | QIC_TAPE_205FT,         FT_FMT_NORMAL)                  \
