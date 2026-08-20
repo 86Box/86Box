@@ -18,6 +18,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/config.h>
+#include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
@@ -340,6 +341,7 @@ void
 plat_power_off(void)
 {
     confirm_exit_cmdl = 0;
+    ide_wait_for_async_reads();
     hdd_image_sync_all();
     nvr_save();
     config_save();
