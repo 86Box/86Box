@@ -1649,7 +1649,6 @@ static const device_config_t voodoo_config[] = {
         .selection      = {
             { .description = "2 MB", .value = 2 },
             { .description = "4 MB", .value = 4 },
-            { .description = "8 MB", .value = 8 },
             { .description = ""                 }
         },
         .bios           = { { 0 } }
