@@ -902,6 +902,7 @@ extern int             machine_at_ms4144_init(const machine_t *);
 extern int             machine_at_r418_init(const machine_t *);
 extern int             machine_at_4saw2_init(const machine_t *);
 extern int             machine_at_4dps_init(const machine_t *);
+extern int             machine_at_486f55_init(const machine_t *);
 
 /* UMC 8881 */
 extern int             machine_at_atc1415_init(const machine_t *);

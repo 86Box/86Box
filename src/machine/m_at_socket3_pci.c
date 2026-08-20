@@ -1005,6 +1005,31 @@ machine_at_acerp3_init(const machine_t *model)
 }
 
 int
+machine_at_486f55_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/486f55/55XS_G.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    machine_at_sis_85c496_common_init(model);
+    device_add(&sis_85c496_ls486e_device);
+
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
+
+    return ret;
+}
+
+int
 machine_at_486sp3c_init(const machine_t *model)
 {
     int ret;
