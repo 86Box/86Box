@@ -57,6 +57,9 @@ pxl380_sample_luma(bitmap_t* target_buffer, uint32_t x, uint32_t y)
     const float G_COEFF    = 0.4;
     const float B_COEFF    = 0.7;
     float total_luma       = 0.0;
+    
+    if (!mouse_tablet_in_proximity || mouse_input_mode == 0)
+        return 0.0; // simulate lightpen not being pointed at the screen.
 
     // Can't sample unrendered lines...
     for (int ky = -2; ky <= 0; ky++) {
@@ -79,6 +82,9 @@ void pxl380_lightpen_check_trigger_strobe(void* priv, int x_offset, int y, int x
 {
     pxl380_t* pxl380 = (pxl380_t*)priv;
     double abs_x, abs_y;
+
+    if (!mouse_tablet_in_proximity || mouse_input_mode == 0)
+        return;
 
     mouse_get_abs_coords(&abs_x, &abs_y);
 

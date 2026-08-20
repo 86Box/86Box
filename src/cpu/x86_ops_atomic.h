@@ -6,6 +6,7 @@ opCMPXCHG_b_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -27,6 +28,7 @@ opCMPXCHG_b_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr);
     temp = geteab();
     if (cpu_state.abrt)
         return 1;
@@ -49,6 +51,7 @@ opCMPXCHG_w_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1UL);
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -70,6 +73,7 @@ opCMPXCHG_w_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1UL);
     temp = geteaw();
     if (cpu_state.abrt)
         return 1;
@@ -92,6 +96,7 @@ opCMPXCHG_l_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
     temp = geteal();
     if (cpu_state.abrt)
         return 1;
@@ -113,6 +118,7 @@ opCMPXCHG_l_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
     temp = geteal();
     if (cpu_state.abrt)
         return 1;
@@ -138,6 +144,7 @@ opCMPXCHG8B_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
     temp    = geteal();
     temp_hi = readmeml(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
@@ -169,6 +176,7 @@ opCMPXCHG8B_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
+    CHECK_WRITE(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
     temp    = geteal();
     temp_hi = readmeml(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
