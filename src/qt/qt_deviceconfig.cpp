@@ -651,45 +651,113 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
     }
 }
 
+
 void
 DeviceConfig::on_comboIndexChanged(int index)
 {
     if ((cbox_memory != nullptr) && (cbox_bios != nullptr) &&
         (cfg_memory != nullptr)  && (cfg_bios != nullptr)) {
-        int      idx        = index; /* cbox_bios->currentData().toInt(); */
-        int      mem        = cbox_memory->currentData().toInt();
-        char *   bios_name  = const_cast<char *>(cfg_bios->bios[idx].internal_name);
-        uint64_t bios_flags = device_get_bios_flags(cfg_dev, bios_name);
-        uint16_t min_mem    = 0;
-        uint16_t max_mem    = 65535;
 
+        /*
+         * The index passed here is the BIOS combo-box index.
+         * Obtain the BIOS entry and its memory limits.
+         */
+        if (index < 0 || index >= bios_rows)
+            return;
+
+        const int mem = cbox_memory->currentData().toInt();
+
+        char *bios_name =
+            const_cast<char *>(cfg_bios->bios[index].internal_name);
+
+        uint64_t bios_flags = device_get_bios_flags(cfg_dev, bios_name);
+
+        uint16_t min_mem = 0;
+        uint16_t max_mem = 65535;
+
+        /*
+         * Apply BOTH minimum and maximum memory limits supplied
+         * by the BIOS definition.
+         *
+         * Example:
+         *
+         * BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 2 | (4 << 16)
+         *
+         * means:
+         *     minimum = 2
+         *     maximum = 4
+         *
+         * Therefore only memory selections from 2 through 4
+         * are allowed to remain in the combo box.
+         */
         if (bios_flags & BIOS_LIMIT_MIN_MEMORY)
-            min_mem = (bios_flags & 0xffff);
+            min_mem = (uint16_t) (bios_flags & 0xffff);
 
         if (bios_flags & BIOS_LIMIT_MAX_MEMORY)
-            max_mem = ((bios_flags >> 16) & 0xffff);
+            max_mem = (uint16_t) ((bios_flags >> 16) & 0xffff);
 
-        mem = MAX(mem, min_mem);    /* No less than minimum memory. */
-        mem = MIN(mem, max_mem);    /* No more than maximum memory. */
+        /*
+         * If the currently selected memory is outside the BIOS
+         * limits, force it to the nearest valid boundary.
+         */
+        int valid_mem = mem;
 
-        auto *model        = cbox_memory->model();
-        int   removeRows   = model->rowCount();
-        int   currentIndex = -1;
+        if (valid_mem < min_mem)
+            valid_mem = min_mem;
 
-        cbox_memory->setCurrentIndex(-1);
+        if (valid_mem > max_mem)
+            valid_mem = max_mem;
 
-        for (auto *sel = cfg_memory->selection; (sel != nullptr) && (sel->description != nullptr) &&
-                                                (strlen(sel->description) > 0); ++sel) {
-            if ((sel->value >= min_mem) && (sel->value <= max_mem)) {
-                int row = Models::AddEntry(model, tr(sel->description), sel->value);
+        /*
+         * Remove the existing memory entries.
+         */
+        auto *model = cbox_memory->model();
 
-                if (sel->value == mem)
-                    currentIndex = row - removeRows;
-            }
+        const int removeRows = model->rowCount();
+
+        cbox_memory->blockSignals(true);
+        cbox_memory->clear();
+
+        /*
+         * Rebuild the memory selection using BOTH limits.
+         */
+        int currentIndex = -1;
+
+        for (auto *sel = cfg_memory->selection;
+             (sel != nullptr) &&
+             (sel->description != nullptr) &&
+             (strlen(sel->description) > 0);
+             ++sel) {
+
+            /*
+             * This is the actual filtering:
+             *
+             *     reject anything below min_mem
+             *     reject anything above max_mem
+             *
+             * Only values inside the BIOS-defined range are shown.
+             */
+            if (sel->value < min_mem || sel->value > max_mem)
+                continue;
+
+            const int row =
+                Models::AddEntry(model,
+                                 tr(sel->description),
+                                 sel->value);
+
+            if (sel->value == valid_mem)
+                currentIndex = row;
         }
 
-        model->removeRows(0, removeRows);
+        /*
+         * If the previous value was invalid and the exact boundary
+         * does not exist in the selection list, choose the first
+         * available valid memory option.
+         */
+        if (currentIndex < 0 && model->rowCount() > 0)
+            currentIndex = 0;
 
         cbox_memory->setCurrentIndex(currentIndex);
+        cbox_memory->blockSignals(false);
     }
 }
