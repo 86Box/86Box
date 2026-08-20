@@ -1160,10 +1160,6 @@ voodoo_card_init(void)
     voodoo->bilinear_enabled  = device_get_config_int("bilinear");
     voodoo->dithersub_enabled = device_get_config_int("dithersub");
     voodoo->scrfilter         = device_get_config_int("dacfilter");
-    voodoo->texture_size      = device_get_config_int("texture_memory");
-    voodoo->texture_mask      = (voodoo->texture_size << 20) - 1;
-    voodoo->fb_size           = device_get_config_int("framebuffer_memory");
-    voodoo->fb_mask           = (voodoo->fb_size << 20) - 1;
     voodoo->render_threads    = device_get_config_int("render_threads");
     voodoo->odd_even_mask     = voodoo->render_threads - 1;
 #ifndef NO_CODEGEN
@@ -1171,6 +1167,42 @@ voodoo_card_init(void)
 #endif
     voodoo->type     = device_get_config_int("type");
     voodoo->board_id = device_get_config_int("board_id");
+
+    /* Diamond Monster 3D is Voodoo 1 only; Monster 3D II is Voodoo 2 only.
+     * Keep the board identity and Voodoo generation mutually consistent. */
+    if (voodoo->board_id == 4) {
+        voodoo->type = VOODOO_1;
+    } else if (voodoo->board_id == 8) {
+        voodoo->type = VOODOO_2;
+    }
+
+    /*
+     * Voodoo memory is fixed by the hardware configuration.
+     * Voodoo 1: 4 MB = 2+2, 6 MB = 2+4, 8 MB = 4+4.
+     * Voodoo 2: 8 MB = 4+2+2, 12 MB = 4+4+4.
+     */
+    {
+        int memory_size = device_get_config_int("memory_size");
+
+        if (voodoo->type == VOODOO_2) {
+            if (memory_size != 8 && memory_size != 12)
+                memory_size = 8;
+            voodoo->fb_size      = 4;
+            voodoo->texture_size = (memory_size == 12) ? 4 : 2;
+        } else if (voodoo->type == VOODOO_SB50) {
+            /* Preserve the existing SB50 configuration: 2 MB FBI + 2 MB per TMU. */
+            voodoo->fb_size      = 2;
+            voodoo->texture_size = 2;
+        } else {
+            if (memory_size != 4 && memory_size != 6 && memory_size != 8)
+                memory_size = 4;
+            voodoo->fb_size      = (memory_size == 8) ? 4 : 2;
+            voodoo->texture_size = (memory_size == 4) ? 2 : 4;
+        }
+
+        voodoo->texture_mask = (voodoo->texture_size << 20) - 1;
+        voodoo->fb_mask      = (voodoo->fb_size << 20) - 1;
+    }
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;
@@ -1332,16 +1364,21 @@ voodoo_2d3d_card_init(int type)
     voodoo->type      = type;
     voodoo->dual_tmus = (type == VOODOO_3) ? 1 : 0;
 
-    /*generate filter lookup tables*/
+    /* generate filter lookup tables */
     voodoo_generate_filter_v2(voodoo);
 
     for (c = 0; c < TEX_CACHE_MAX; c++) {
-        voodoo->texture_cache[0][c].data     = calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
-        voodoo->texture_cache[0][c].base     = -1; /*invalid*/
+        voodoo->texture_cache[0][c].data =
+            calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 +
+                       32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
+        voodoo->texture_cache[0][c].base     = -1; /* invalid */
         voodoo->texture_cache[0][c].refcount = 0;
+
         if (voodoo->dual_tmus) {
-            voodoo->texture_cache[1][c].data     = calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
-            voodoo->texture_cache[1][c].base     = -1; /*invalid*/
+            voodoo->texture_cache[1][c].data =
+                calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 +
+                           32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
+            voodoo->texture_cache[1][c].base     = -1; /* invalid */
             voodoo->texture_cache[1][c].refcount = 0;
         }
     }
@@ -1368,16 +1405,19 @@ voodoo_2d3d_card_init(int type)
     voodoo->fifo_thread              = thread_create(voodoo_fifo_thread, voodoo);
     voodoo->render_thread_run[0]     = 1;
     voodoo->render_thread[0]         = thread_create(voodoo_render_thread_1, voodoo);
+
     if (voodoo->render_threads >= 2) {
         voodoo->render_thread_run[1] = 1;
         voodoo->render_thread[1]     = thread_create(voodoo_render_thread_2, voodoo);
     }
+
     if (voodoo->render_threads == 4) {
         voodoo->render_thread_run[2] = 1;
         voodoo->render_thread[2]     = thread_create(voodoo_render_thread_3, voodoo);
         voodoo->render_thread_run[3] = 1;
         voodoo->render_thread[3]     = thread_create(voodoo_render_thread_4, voodoo);
     }
+
     voodoo->swap_mutex = thread_create_mutex();
     timer_add(&voodoo->wake_timer, voodoo_wake_timer, (void *) voodoo, 0);
 
@@ -1427,12 +1467,13 @@ voodoo_2d3d_card_init(int type)
         ai88[c].g = c & 0xff;
         ai88[c].b = c & 0xff;
     }
+
 #ifndef NO_CODEGEN
     voodoo_codegen_init(voodoo);
 #endif
 
-    voodoo->disp_buffer = 0;
-    voodoo->draw_buffer = 1;
+    voodoo->disp_buffer       = 0;
+    voodoo->draw_buffer       = 1;
     voodoo->queued_disp_buffer = voodoo->disp_buffer;
     voodoo->queued_draw_buffer = voodoo->draw_buffer;
     voodoo->queued_lfbMode     = voodoo->lfbMode;
@@ -1452,12 +1493,61 @@ voodoo_init(UNUSED(const device_t *info))
     voodoo_set_t *voodoo_set = calloc(1, sizeof(voodoo_set_t));
     uint32_t      tmuConfig  = 1;
     int           type;
+    int           board_id;
+    int           memory_size;
 
-    type = device_get_config_int("type");
+    type        = device_get_config_int("type");
+    board_id   = device_get_config_int("board_id");
+    memory_size = device_get_config_int("memory_size");
+
+    /*
+     * Enforce valid board/memory combinations.
+     *
+     * Voodoo 1:
+     *   Reference board / Diamond Monster 3D
+     *   4 MB / 6 MB / 8 MB
+     *
+     * Voodoo 2:
+     *   Reference board / Diamond Monster 3D II
+     *   8 MB / 12 MB
+     *
+     * SB50/Amethyst is deliberately left unchanged.
+     */
+    switch (type) {
+        case VOODOO_1:
+            if (board_id != 0 && board_id != 4)
+                board_id = 0;
+
+            if (memory_size != 4 && memory_size != 6 && memory_size != 8)
+                memory_size = 4;
+            break;
+
+        case VOODOO_2:
+            if (board_id != 0 && board_id != 8)
+                board_id = 0;
+
+            if (memory_size != 8 && memory_size != 12)
+                memory_size = 8;
+            break;
+
+        case VOODOO_SB50:
+            break;
+
+        default:
+            break;
+    }
+
+    /*
+     * Store the validated configuration back so that the rest of the
+     * Voodoo initialization code cannot see an invalid combination.
+     */
+    device_set_config_int("board_id", board_id);
+    device_set_config_int("memory_size", memory_size);
 
     voodoo_set->nr_cards        = device_get_config_int("sli") ? 2 : 1;
     voodoo_set->voodoos[0]      = voodoo_card_init();
     voodoo_set->voodoos[0]->set = voodoo_set;
+
     if (voodoo_set->nr_cards == 2) {
         voodoo_set->voodoos[1] = voodoo_card_init();
 
@@ -1479,12 +1569,14 @@ voodoo_init(UNUSED(const device_t *info))
             else
                 tmuConfig = 1;
             break;
+
         case VOODOO_SB50:
             if (voodoo_set->nr_cards == 2)
                 tmuConfig = 1 | (3 << 3) | (3 << 6) | (2 << 9);
             else
                 tmuConfig = 1 | (3 << 6);
             break;
+
         case VOODOO_2:
             tmuConfig = 1 | (3 << 6);
             break;
@@ -1494,10 +1586,24 @@ voodoo_init(UNUSED(const device_t *info))
     }
 
     voodoo_set->voodoos[0]->tmuConfig = tmuConfig;
+
     if (voodoo_set->nr_cards == 2)
         voodoo_set->voodoos[1]->tmuConfig = tmuConfig;
 
-    mem_mapping_add(&voodoo_set->snoop_mapping, 0, 0, NULL, voodoo_snoop_readw, voodoo_snoop_readl, NULL, voodoo_snoop_writew, voodoo_snoop_writel, NULL, MEM_MAPPING_EXTERNAL, voodoo_set);
+    mem_mapping_add(
+        &voodoo_set->snoop_mapping,
+        0,
+        0,
+        NULL,
+        voodoo_snoop_readw,
+        voodoo_snoop_readl,
+        NULL,
+        voodoo_snoop_writew,
+        voodoo_snoop_writel,
+        NULL,
+        MEM_MAPPING_EXTERNAL,
+        voodoo_set
+    );
 
     return voodoo_set;
 }
@@ -1508,14 +1614,17 @@ voodoo_card_close(voodoo_t *voodoo)
     voodoo->fifo_thread_run = 0;
     thread_set_event(voodoo->wake_fifo_thread);
     thread_wait(voodoo->fifo_thread);
+
     voodoo->render_thread_run[0] = 0;
     thread_set_event(voodoo->wake_render_thread[0]);
     thread_wait(voodoo->render_thread[0]);
+
     if (voodoo->render_threads >= 2) {
         voodoo->render_thread_run[1] = 0;
         thread_set_event(voodoo->wake_render_thread[1]);
         thread_wait(voodoo->render_thread[1]);
     }
+
     if (voodoo->render_threads == 4) {
         voodoo->render_thread_run[2] = 0;
         thread_set_event(voodoo->wake_render_thread[2]);
@@ -1524,6 +1633,7 @@ voodoo_card_close(voodoo_t *voodoo)
         thread_set_event(voodoo->wake_render_thread[3]);
         thread_wait(voodoo->render_thread[3]);
     }
+
     thread_destroy_event(voodoo->fifo_not_full_event);
     thread_destroy_event(voodoo->fifo_empty_event);
     thread_destroy_event(voodoo->wake_main_thread);
@@ -1578,15 +1688,20 @@ voodoo_card_close(voodoo_t *voodoo)
     for (uint8_t c = 0; c < TEX_CACHE_MAX; c++) {
         if (voodoo->dual_tmus)
             free(voodoo->texture_cache[1][c].data);
+
         free(voodoo->texture_cache[0][c].data);
     }
+
 #ifndef NO_CODEGEN
     voodoo_codegen_close(voodoo);
 #endif
+
     if (voodoo->type < VOODOO_BANSHEE && voodoo->fb_mem) {
         free(voodoo->fb_mem);
+
         if (voodoo->dual_tmus)
             free(voodoo->tex_mem[1]);
+
         free(voodoo->tex_mem[0]);
     }
 
@@ -1602,6 +1717,7 @@ voodoo_close(void *priv)
 
     if (voodoo_set->nr_cards == 2)
         voodoo_card_close(voodoo_set->voodoos[1]);
+
     voodoo_card_close(voodoo_set->voodoos[0]);
 
     free(voodoo_set);
@@ -1616,7 +1732,7 @@ static const device_config_t voodoo_config[] = {
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection = {
+        .selection      = {
             { .description = "3Dfx Voodoo Graphics",              .value = VOODOO_1    },
             { .description = "Obsidian SB50 + Amethyst (2 TMUs)", .value = VOODOO_SB50 },
             { .description = "3Dfx Voodoo 2",                     .value = VOODOO_2    },
@@ -1626,46 +1742,34 @@ static const device_config_t voodoo_config[] = {
     },
     {
         .name           = "board_id",
-        .description    = "Board model (Voodoo 2)",
+        .description    = "Board model",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "3Dfx reference board",   .value = 0 },
-            { .description = "Diamond Monster 3D II",  .value = 8 },
-            { .description = ""                                   }
+            { .description = "3Dfx reference board",  .value = 0 },
+            { .description = "Diamond Monster 3D",    .value = 4 },
+            { .description = "Diamond Monster 3D II", .value = 8 },
+            { .description = ""                                  }
         },
         .bios           = { { 0 } }
     },
     {
-        .name           = "framebuffer_memory",
-        .description    = "Framebuffer memory size",
+        .name           = "memory_size",
+        .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 2,
+        .default_int    = 4,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "texture_memory",
-        .description    = "Texture memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
+            { .description = "4 MB (2 MB framebuffer + 2 MB texture)",  .value = 4 },
+            { .description = "6 MB (2 MB framebuffer + 4 MB texture)",  .value = 6 },
+            { .description = "8 MB (4 MB framebuffer + 4 MB texture)",  .value = 8 },
+            { .description = "12 MB (4 MB framebuffer + 8 MB texture)", .value = 12 },
+            { .description = ""                                             }
         },
         .bios           = { { 0 } }
     },
