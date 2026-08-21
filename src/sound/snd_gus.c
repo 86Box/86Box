@@ -1058,6 +1058,11 @@ gus_read(uint16_t addr, void *priv)
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
                     return val;
 
+                case 0x4c: /*Reset*/
+                case 0xcc:
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->reset);
+                    return gus->reset;
+
                 case 0x00:
                 case 0x01:
                 case 0x02:
@@ -1139,6 +1144,11 @@ gus_read(uint16_t addr, void *priv)
                 case 0x4B: /*Joystick trim DAC*/
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->joy_trim);
                     return gus->joy_trim;
+
+                case 0x4c: /*Reset*/
+                case 0xcc:
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->reset);
+                    return gus->reset;
 
                 case 0x00:
                 case 0x01:
@@ -2264,7 +2274,7 @@ static const device_config_t gus_vipermax_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = 2,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
