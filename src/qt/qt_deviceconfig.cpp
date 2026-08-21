@@ -285,7 +285,6 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                         device_migrate_config_bios((const void *) config, device_context->name);
                         selected = config_get_string(device_context->name, const_cast<char *>(config->name),
                                                      const_cast<char *>(config->default_string));
-                        pclog("CONFIG_BIOS migrated: \"%s\"\n", selected.toUtf8().data());
                     }
 
                     q = 0;
