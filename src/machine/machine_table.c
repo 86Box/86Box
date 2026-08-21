@@ -14261,54 +14261,6 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "AMI S75", "" }
     },
-    /* This probably has AMIKEY 'F' KBC */
-    {
-        .name              = "[OPTi 597] TMC PAT58PV",
-        .internal_name     = "pat58pv",
-        .type              = MACHINE_TYPE_SOCKET4,
-        .chipset           = MACHINE_CHIPSET_OPTI_597,
-        .init              = machine_at_pat58pv_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET4,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 60000000,
-            .max_bus     = 66666667,
-            .min_voltage = 5000,
-            .max_voltage = 5000,
-            .min_multi   = MACHINE_MULTIPLIER_FIXED,
-            .max_multi   = MACHINE_MULTIPLIER_FIXED
-        },
-        .bus_flags = MACHINE_VLB,
-        .flags     = MACHINE_FLAGS_NONE,
-        .ram       = {
-            .min  = 2048,
-            .max  = 65536,
-            .step = 2048
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004600,
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "" }
-    },
 
     /* OPTi 596/597/822 */
     /* Has a VIA VT82C42N KBC with AMI 'F' firmware */
@@ -14385,6 +14337,54 @@ const machine_t machines[] = {
         .ram       = {
             .min  = 2048,
             .max  = 131072,
+            .step = 2048
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* This probably has AMIKEY 'F' KBC */
+    {
+        .name              = "[OPTi 597] TMC PAT58PV",
+        .internal_name     = "pat58pv",
+        .type              = MACHINE_TYPE_SOCKET4,
+        .chipset           = MACHINE_CHIPSET_OPTI_597,
+        .init              = machine_at_pat58pv_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET4,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 60000000,
+            .max_bus     = 66666667,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = MACHINE_MULTIPLIER_FIXED,
+            .max_multi   = MACHINE_MULTIPLIER_FIXED
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 2048,
+            .max  = 65536, /* neither DOS nor Windows recognizes more than this amount */
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -15566,7 +15566,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_PS2_KBC,
         .ram       = {
             .min  = 2048,
-            .max  = 65536, /* AMIBIOS revision 080893 cannot handle more than 64MB despite being detected as 128MB (the machine's maximum memory) */
+            .max  = 65536, /* neither DOS nor Windows recognizes more than this amount */
             .step = 2048
         },
         .nvrmask                  = 127,
