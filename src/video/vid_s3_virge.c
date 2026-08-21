@@ -6476,7 +6476,7 @@ static const device_config_t s3_virge_vx_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH3D_3000 | (988 << 16),
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 8),
                 .files         = { ROM_DIAMOND_STEALTH3D_3000, "" }
             },
             {

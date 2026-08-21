@@ -123,11 +123,15 @@ enumerateSerialDevices()
     return serialDevices;
 }
 
-QComboBox *cbox_memory = nullptr;
-QComboBox *cbox_bios   = nullptr;
+QComboBox *cbox_memory   = nullptr;
+QComboBox *cbox_memory_2 = nullptr;
 
-const _device_config_ *cfg_memory = nullptr;
-const _device_config_ *cfg_bios   = nullptr;
+QComboBox *cbox_bios     = nullptr;
+
+const _device_config_ *cfg_memory    = nullptr;
+const _device_config_ *cfg_memory_2  = nullptr;
+
+const _device_config_ *cfg_bios      = nullptr;
 
 int bios_rows = 0;
 
@@ -243,6 +247,7 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
                     int   currentIndex = -1;
+                    int   rows         = 0;
 
                     for (auto *sel = config->selection; (sel != nullptr) && (sel->description != nullptr) &&
                                                         (strlen(sel->description) > 0); ++sel) {
@@ -250,13 +255,21 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
 
                         if (sel->value == value)
                             currentIndex = row;
+
+                        rows++;
                     }
                     this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
                     cbox->setCurrentIndex(currentIndex);
-                    if (!strcmp(config->name, "memory")) {
-                        cbox_memory = cbox;
-                        cfg_memory  = config;
+                    if (rows < 2)
+                        cbox->setEnabled(false);
+                    if (!strcmp(config->name, "memory") || !strcmp(config->name, "framebuffer_memory")) {
+                        cbox_memory   = cbox;
+                        cfg_memory    = config;
                     }    
+                    if (!strcmp(config->name, "texture_memory")) {
+                        cbox_memory_2 = cbox;
+                        cfg_memory_2  = config;
+                    }
                     break;
                 }
             case CONFIG_BIOS:
@@ -267,6 +280,13 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     auto *model        = cbox->model();
                     int   currentIndex = -1;
                     int   rows         = 0;
+
+                    if ((selected != nullptr) && (selected.length() == 1)) {
+                        device_migrate_config_bios((const void *) config, device_context->name);
+                        selected = config_get_string(device_context->name, const_cast<char *>(config->name),
+                                                     const_cast<char *>(config->default_string));
+                        pclog("CONFIG_BIOS migrated: \"%s\"\n", selected.toUtf8().data());
+                    }
 
                     q = 0;
                     for (auto *bios = config->bios; (bios != nullptr) &&
@@ -437,13 +457,17 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
 
     cfg_dev = (device_t *) device;
 
-    cbox_memory  = nullptr;
-    cbox_bios    = nullptr;
+    cbox_memory   = nullptr;
+    cbox_memory_2 = nullptr;
 
-    cfg_memory   = nullptr;
-    cfg_bios     = nullptr;
+    cbox_bios     = nullptr;
 
-    bios_rows    = 0;
+    cfg_memory    = nullptr;
+    cfg_memory_2  = nullptr;
+
+    cfg_bios      = nullptr;
+
+    bios_rows     = 0;
 
     DeviceConfig dc(settings);
     dc.setWindowTitle(tr("%1 Device Configuration").arg(DeviceName(device, device->internal_name, -1)));
@@ -662,12 +686,13 @@ DeviceConfig::on_comboIndexChanged(int index)
         uint64_t bios_flags = device_get_bios_flags(cfg_dev, bios_name);
         uint16_t min_mem    = 0;
         uint16_t max_mem    = 65535;
+        int      rows       = 0;
 
         if (bios_flags & BIOS_LIMIT_MIN_MEMORY)
-            min_mem = (bios_flags & 0xffff);
+            min_mem = (bios_flags & 0xff);
 
         if (bios_flags & BIOS_LIMIT_MAX_MEMORY)
-            max_mem = ((bios_flags >> 16) & 0xffff);
+            max_mem = ((bios_flags >> 8) & 0xff);
 
         mem = MAX(mem, min_mem);    /* No less than minimum memory. */
         mem = MIN(mem, max_mem);    /* No more than maximum memory. */
@@ -685,11 +710,65 @@ DeviceConfig::on_comboIndexChanged(int index)
 
                 if (sel->value == mem)
                     currentIndex = row - removeRows;
+
+                rows++;
             }
         }
 
         model->removeRows(0, removeRows);
 
         cbox_memory->setCurrentIndex(currentIndex);
+
+        if (rows >= 2)
+            cbox_memory->setEnabled(true);
+        else
+            cbox_memory->setEnabled(false);
+    }
+
+    if ((cbox_memory_2 != nullptr) && (cbox_bios != nullptr) &&
+        (cfg_memory_2 != nullptr)  && (cfg_bios != nullptr)) {
+        int      idx        = index; /* cbox_bios->currentData().toInt(); */
+        int      mem        = cbox_memory_2->currentData().toInt();
+        char *   bios_name  = const_cast<char *>(cfg_bios->bios[idx].internal_name);
+        uint64_t bios_flags = device_get_bios_flags(cfg_dev, bios_name);
+        uint16_t min_mem    = 0;
+        uint16_t max_mem    = 65535;
+        int      rows       = 0;
+
+        if (bios_flags & BIOS_LIMIT_MIN_MEMORY_2)
+            min_mem = ((bios_flags >> 16) & 0xff);
+
+        if (bios_flags & BIOS_LIMIT_MAX_MEMORY_2)
+            max_mem = ((bios_flags >> 24) & 0xff);
+
+        mem = MAX(mem, min_mem);    /* No less than minimum memory. */
+        mem = MIN(mem, max_mem);    /* No more than maximum memory. */
+
+        auto *model        = cbox_memory_2->model();
+        int   removeRows   = model->rowCount();
+        int   currentIndex = -1;
+
+        cbox_memory_2->setCurrentIndex(-1);
+
+        for (auto *sel = cfg_memory_2->selection; (sel != nullptr) && (sel->description != nullptr) &&
+                                                (strlen(sel->description) > 0); ++sel) {
+            if ((sel->value >= min_mem) && (sel->value <= max_mem)) {
+                int row = Models::AddEntry(model, tr(sel->description), sel->value);
+
+                if (sel->value == mem)
+                    currentIndex = row - removeRows;
+
+                rows++;
+            }
+        }
+
+        model->removeRows(0, removeRows);
+
+        cbox_memory_2->setCurrentIndex(currentIndex);
+
+        if (rows >= 2)
+            cbox_memory_2->setEnabled(true);
+        else
+            cbox_memory_2->setEnabled(false);
     }
 }
