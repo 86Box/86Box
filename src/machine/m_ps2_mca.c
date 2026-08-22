@@ -701,19 +701,10 @@ model_70_type3_write(uint16_t port, uint8_t val)
             ps2.option[0] = val;
             break;
         case 0x103:
-            if (ps2.planar_id == 0xfff9)
-                ps2.option[1] = (ps2.option[1] & 0x7f) | (val & 0x80);
+            ps2.option[1] = (ps2.option[1] & 0xef) | (val & 0x10);
             break;
         case 0x104:
-            if (ps2.planar_id == 0xfff9) {
-                uint8_t old = ps2.option[2];
-                /* Only bit 0 (E0000 hole) is writable; bits 1-7 are fixed
-                value (memory refresh speed, CPU type) and must be preserved
-                to avoid POST error 225 with IBM KDOS 3.31 on warm reboot. */
-                ps2.option[2] = (ps2.option[2] & 0xfe) | (val & 0x01);
-                if ((old ^ ps2.option[2]) & 0x01)
-                    mem_encoding_update();
-            }
+            /* All bits should be preserved */
             break;
         case 0x105:
             ps2.option[3] = val;
@@ -762,10 +753,20 @@ model_80_write(uint16_t port, uint8_t val)
             ps2.option[0] = val;
             break;
         case 0x103:
-            ps2.option[1] = (ps2.option[1] & 0x6f) | (val & 0x90);
+            ps2.option[1] = (ps2.option[1] & 0x7f) | (val & 0x80);
             break;
         case 0x104:
-            ps2.option[2] = val;
+            if (ps2.planar_id == 0xfff9) {
+                uint8_t old = ps2.option[2];
+                /* Only bit 0 (E0000 hole) is writable; bits 1-7 are fixed
+                value (memory refresh speed, CPU type) and must be preserved
+                to avoid POST error 225 with IBM KDOS 3.31 on warm reboot. */
+                ps2.option[2] = (ps2.option[2] & 0xfe) | (val & 0x01);
+                if ((old ^ ps2.option[2]) & 0x01)
+                    mem_encoding_update();
+            } else {
+                ps2.option[2] = val;
+            }
             break;
         case 0x105:
             ps2.option[3] = val;
@@ -1666,8 +1667,8 @@ ps2_mca_board_model_80_type3_init(void)
     ps2.split_addr = mem_size * 1024;
     mca_init(8);
 
-    ps2.planar_read  = model_70_type3_read;
-    ps2.planar_write = model_70_type3_write;
+    ps2.planar_read  = model_80_read;
+    ps2.planar_write = model_80_write;
 
     device_add(&ps2_nvr_device);
 
