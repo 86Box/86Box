@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 22:34+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-08-22 18:13+0000\n"
+"Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
 "MIME-Version: 1.0\n"
@@ -16,7 +16,7 @@ msgid "&Action"
 msgstr "&Actie"
 
 msgid "&Keyboard requires capture"
-msgstr "&Keyboard vereist vastleggen"
+msgstr "&Toetsenbord vereist vastleggen"
 
 msgid "&Right CTRL is left ALT"
 msgstr "&Rechtse CTRL is linkse ALT"
@@ -421,7 +421,7 @@ msgid "Enabled (UTC)"
 msgstr "Ingeschakeld (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "Gebruik de 486-interpreter voor 286- en 386-processors"
+msgstr "Gebruik de 486-interpreter voor 286- en 386-processoren"
 
 msgid "Dynamic recompiler"
 msgstr "Dynamische recompiler"
@@ -478,16 +478,16 @@ msgid "&Mouse"
 msgstr "&Muis"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Tablet:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Tablet"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&Crosshair)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -526,7 +526,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI invoerapparaat:"
 
 msgid "MIDI Out:"
-msgstr "Midi uit:"
+msgstr "MIDI uit:"
 
 msgid "Standalone MPU-401"
 msgstr "Standalone MPU-401"
