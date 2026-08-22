@@ -469,7 +469,9 @@ VulkanWindowRenderer::recreateSwapchain()
 
     m_devFuncs->vkAllocateCommandBuffers(logi_device, &cmdbufferallocate, cmdBuffers.data());
 
-    qt_osd_vulkan_set_min_image(cmdBuffers.size());
+    if (qt_osd_is_visible())
+        qt_osd_vulkan_set_min_image(cmdBuffers.size());
+
     init_info.MinImageCount = cmdBuffers.size();
 
     for (uint32_t i = 0; i < swapchainImagesCount; i++) {
@@ -1014,7 +1016,7 @@ VulkanWindowRenderer::render()
     info.layerCount = 1;
     fn_vkCmdBeginRendering(cmdBufs, &info);
     
-    {
+    if (qt_osd_is_visible()) {
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
         qt_osd_render(width(), height(), devicePixelRatio(), (void*)cmdBufs);
     }
