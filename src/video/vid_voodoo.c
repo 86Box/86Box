@@ -1174,7 +1174,7 @@ voodoo_card_init(const device_t *info)
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
 #endif
-    voodoo->type = device_get_config_int("type");
+    voodoo->type = (int) device_get_bios_local(info, device_get_config_bios("type"));
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;
