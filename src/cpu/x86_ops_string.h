@@ -31,7 +31,7 @@ opMOVSB_a16(uint32_t fetchdat)
 {
     int ret = opMOVSB_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG) {
             SI--;
             if (ret < 2)
@@ -115,7 +115,7 @@ opMOVSW_a16(uint32_t fetchdat)
 {
     int ret = opMOVSW_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG) {
             SI -= 2;
             if (ret < 2)
@@ -276,7 +276,7 @@ opCMPSB_a16(uint32_t fetchdat)
 {
     int ret = opCMPSB_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG) {
             DI--;
             if (ret < 2)
@@ -369,7 +369,7 @@ opCMPSW_a16(uint32_t fetchdat)
 {
     int ret = opCMPSW_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG) {
             DI -= 2;
             if (ret < 2)
@@ -523,7 +523,7 @@ opSTOSB_a16(uint32_t fetchdat)
 {
     int ret = opSTOSB_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             DI--;
         else
@@ -568,7 +568,7 @@ opSTOSW_a16(uint32_t fetchdat)
 {
     int ret = opSTOSW_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             DI -= 2;
         else
@@ -650,7 +650,7 @@ opLODSB_a16(uint32_t fetchdat)
 {
     int ret = opLODSB_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             SI--;
         else
@@ -701,7 +701,7 @@ opLODSW_a16(uint32_t fetchdat)
 {
     int ret = opLODSW_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             SI -= 2;
         else
@@ -793,7 +793,7 @@ opSCASB_a16(uint32_t fetchdat)
 {
     int ret = opSCASB_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             DI--;
         else
@@ -844,7 +844,7 @@ opSCASW_a16(uint32_t fetchdat)
 {
     int ret = opSCASW_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             DI -= 2;
         else
@@ -943,7 +943,7 @@ opINSB_a16(uint32_t fetchdat)
 {
     int ret = opINSB_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             DI--;
         else
@@ -1008,7 +1008,7 @@ opINSW_a16(uint32_t fetchdat)
 {
     int ret = opINSW_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             DI -= 2;
         else
@@ -1126,7 +1126,7 @@ opOUTSB_a16(uint32_t fetchdat)
 {
     int ret = opOUTSB_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             SI--;
         else
@@ -1186,7 +1186,7 @@ opOUTSW_a16(uint32_t fetchdat)
 {
     int ret = opOUTSW_a16_ex(fetchdat);
 
-    if (is286 || (ret == 0)) {
+    if (!is386 || (ret == 0)) {
         if (cpu_state.flags & D_FLAG)
             SI -= 2;
         else
