@@ -111,6 +111,4 @@ extern uint8_t is_smint;
 extern uint16_t io_port;
 extern uint32_t io_val;
 
-extern int ops_done;
-
 #endif /*EMU_X86_H*/
