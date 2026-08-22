@@ -728,6 +728,10 @@ extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
 extern void exec386_2386(int32_t cycs);
+/* Intel Inboard 386/PC POST fix-ups - shared by both interpreter loops, and gated
+   on the card actually being present (inboard386.c). */
+extern int  inboard386_present;
+extern void inboard_post_fixups(void);
 extern void exec386(int32_t cycs);
 extern void exec386_dynarec(int32_t cycs);
 extern int  is_dynarec_active(void);
