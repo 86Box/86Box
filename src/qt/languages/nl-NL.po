@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-22 18:13+0000\n"
+"PO-Revision-Date: 2026-08-22 19:15+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -850,7 +850,7 @@ msgid "Input devices"
 msgstr "Invoerapparaten"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Invoer&apparaat"
 
 msgid "Sound"
 msgstr "Geluid"
@@ -862,7 +862,7 @@ msgid "Ports (COM & LPT)"
 msgstr "Poorten (COM & LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "Poort"
 
 msgid "Ports"
 msgstr "Poorten"
@@ -1266,7 +1266,7 @@ msgid "Use regular expressions in search box"
 msgstr "Gebruik reguliere expressies in zoekveld"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Verwijder virtuele machine naar Prullenbak"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1748,7 +1748,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Autopauze bij focusverlies"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Autopauze bij dialoogvenster"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox wordt niet langer ondersteund"
@@ -2261,7 +2261,7 @@ msgid "Host ID"
 msgstr "Host-ID"
 
 msgid "Host"
-msgstr ""
+msgstr "Host"
 
 msgid "FDC Address"
 msgstr "FDC Adres"
