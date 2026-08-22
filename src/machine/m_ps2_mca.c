@@ -1681,16 +1681,8 @@ ps2_mca_board_model_80_type3_init(void)
     ps2.mem_regs[1] = 2;
 
     switch (mem_size / 1024) {
-        case 2:
-            ps2.option[1] = 0xa6;
-            ps2.option[2] = 0x01;
-            break;
         case 4:
             ps2.option[1] = 0x86;
-            ps2.option[2] = 0x01;
-            break;
-        case 6:
-            ps2.option[1] = 0xca;
             ps2.option[2] = 0x01;
             break;
         case 8:
@@ -1777,7 +1769,11 @@ ps55_mca_board_model_50t_init(void)
 
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */
-        ps2_mca_mem_fffc_init(8);
+        if (mem_size > 16384)
+            ps2_mca_mem_d071_init(8);
+        else {
+            ps2_mca_mem_fffc_init(8);
+        }
     }
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -1833,9 +1829,14 @@ ps55_mca_board_model_50v_init(void)
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
 
-    /* Only 8 MB supported on planar, create a memory expansion card for the rest */
-    if (mem_size > 8192)
-        ps2_mca_mem_fffc_init(8);
+    if (mem_size > 8192) {
+        /* Only 8 MB supported on planar, create a memory expansion card for the rest */
+        if (mem_size > 16384)
+            ps2_mca_mem_d071_init(8);
+        else {
+            ps2_mca_mem_fffc_init(8);
+        }
+    }
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = (vga_t *) device_add(&ps1vga_mca_device);
