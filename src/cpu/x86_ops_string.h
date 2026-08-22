@@ -1237,7 +1237,7 @@ opOUTSL_a16(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 4);
 
     temp = readmeml_n(cpu_state.ea_seg->base, SI, addr64a);
-    outl(EDX, temp);
+    outl(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
         SI -= 4;
@@ -1262,7 +1262,7 @@ opOUTSL_a32(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 4);
 
     temp = readmeml_n(cpu_state.ea_seg->base, ESI, addr64a);
-    outl(EDX, temp);
+    outl(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
         ESI -= 4;
