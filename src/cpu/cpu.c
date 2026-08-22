@@ -134,6 +134,8 @@ const OpFn *x86_opcodes_de_a16;
 const OpFn *x86_opcodes_de_a32;
 const OpFn *x86_opcodes_df_a16;
 const OpFn *x86_opcodes_df_a32;
+const OpFn *x86_opcodes_REPE_286;
+const OpFn *x86_opcodes_REPNE_286;
 const OpFn *x86_opcodes_REPE;
 const OpFn *x86_opcodes_REPNE;
 const OpFn *x86_opcodes_3DNOW;
@@ -156,6 +158,8 @@ const OpFn *x86_2386_opcodes_de_a16;
 const OpFn *x86_2386_opcodes_de_a32;
 const OpFn *x86_2386_opcodes_df_a16;
 const OpFn *x86_2386_opcodes_df_a32;
+const OpFn *x86_2386_opcodes_REPE_286;
+const OpFn *x86_2386_opcodes_REPNE_286;
 const OpFn *x86_2386_opcodes_REPE;
 const OpFn *x86_2386_opcodes_REPNE;
 
@@ -616,15 +620,15 @@ cpu_set(void)
     x86_setopcodes(ops_386, ops_386_0f);
 #endif /* USE_DYNAREC */
     x86_setopcodes_2386(ops_2386_386, ops_2386_386_0f);
-    x86_opcodes_REPE       = ops_REPE;
-    x86_opcodes_REPNE      = ops_REPNE;
-    x86_2386_opcodes_REPE  = ops_2386_REPE;
-    x86_2386_opcodes_REPNE = ops_2386_REPNE;
-    x86_opcodes_3DNOW      = ops_3DNOW;
+    x86_opcodes_REPE           = ops_REPE;
+    x86_opcodes_REPNE          = ops_REPNE;
+    x86_2386_opcodes_REPE      = ops_2386_REPE;
+    x86_2386_opcodes_REPNE     = ops_2386_REPNE;
+    x86_opcodes_3DNOW          = ops_3DNOW;
 #ifdef USE_DYNAREC
-    x86_dynarec_opcodes_REPE  = dynarec_ops_REPE;
-    x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
-    x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOW;
+    x86_dynarec_opcodes_REPE   = dynarec_ops_REPE;
+    x86_dynarec_opcodes_REPNE  = dynarec_ops_REPNE;
+    x86_dynarec_opcodes_3DNOW  = dynarec_ops_3DNOW;
 #endif /* USE_DYNAREC */
 
     if (hasfpu) {
@@ -825,6 +829,11 @@ cpu_set(void)
             x86_setopcodes(ops_286, ops_286_0f);
 #endif /* USE_DYNAREC */
             x86_setopcodes_2386(ops_2386_286, ops_2386_286_0f);
+
+            x86_opcodes_REPE           = ops_REPE_286;
+            x86_opcodes_REPNE          = ops_REPNE_286;
+            x86_2386_opcodes_REPE      = ops_2386_REPE_286;
+            x86_2386_opcodes_REPNE     = ops_2386_REPNE_286;
 
             if (fpu_type == FPU_287) {
 #ifdef USE_DYNAREC
