@@ -665,6 +665,24 @@ codegen_FSQRT(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_FROUND_S(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
+        host_x86_CVTSD2SS_XREG_XREG(block, REG_XMM_TEMP, src_reg_a);
+        host_x86_CVTSS2SD_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
+    }
+#    ifdef RECOMPILER_DEBUG
+    else
+        fatal("codegen_FROUND_S %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+#    endif
+    return 0;
+}
+static int
 codegen_FTST(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -3149,6 +3167,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FSQRT &
         UOP_MASK]
     = codegen_FSQRT,
+    [UOP_FROUND_S &
+        UOP_MASK]
+    = codegen_FROUND_S,
     [UOP_FTST &
         UOP_MASK]
     = codegen_FTST,

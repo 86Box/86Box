@@ -428,6 +428,10 @@ typedef struct {
 #define CPU_STATUS_PMODE   (1 << 2)
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
+/* x87 precision control = 24-bit: the double-based FPU must round
+   ADD/SUB/MUL/DIV/SQRT results to single, so such blocks are compiled
+   with a round-to-single uop after each of those ops. */
+#define CPU_STATUS_FPU_PC24 (1 << 5)
 #ifdef USE_NEW_DYNAREC
 #    define CPU_STATUS_FLAGS 0xff
 #else

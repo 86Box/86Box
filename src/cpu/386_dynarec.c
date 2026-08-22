@@ -443,6 +443,11 @@ exec386_dynarec_dyn(void)
     {
         page_t *page = &pages[phys_addr >> 12];
 
+        if (cpu_state.npxc & 0x300)
+            cpu_cur_status &= ~CPU_STATUS_FPU_PC24;
+        else
+            cpu_cur_status |= CPU_STATUS_FPU_PC24;
+
         /* Block must match current CS, PC, code segment size,
            and physical address. The physical address check will
            also catch any page faults at this stage */
