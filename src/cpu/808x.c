@@ -1024,7 +1024,7 @@ pop(void)
 }
 
 static void
-access(int num, UNUSED(int bits))
+cpu_808x_access(int num, UNUSED(int bits))
 {
     switch (num) {
         case  0:
@@ -1153,11 +1153,11 @@ interrupt(uint16_t addr)
     addr <<= 2;
     cpu_state.eaaddr = addr;
     old_cs           = CS;
-    access(5, 16);
+    cpu_808x_access(5, 16);
     new_ip = readmemw(0, cpu_state.eaaddr);
     wait_cycs(1, 0);
     cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
-    access(6, 16);
+    cpu_808x_access(6, 16);
     new_cs      = readmemw(0, cpu_state.eaaddr);
     if (is_new_biu)
         biu_suspend_fetch();
@@ -1169,7 +1169,7 @@ interrupt(uint16_t addr)
     if (is_new_biu)
         wait_cycs(2, 0);
     else
-        access(39, 16);
+        cpu_808x_access(39, 16);
     tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
@@ -1178,20 +1178,20 @@ interrupt(uint16_t addr)
     if (is_new_biu)
         wait_cycs(4, 0);
     else
-        access(40, 16);
+        cpu_808x_access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
     load_cs(new_cs);
     if (is_new_biu)
         wait_cycs(3, 0);
     else
-        access(68, 16);
+        cpu_808x_access(68, 16);
     set_ip(new_ip);
     if (is_new_biu) {
         biu_queue_flush();
         wait_cycs(4, 0);
     } else
-        access(41, 16);
+        cpu_808x_access(41, 16);
     push(&old_ip);
 }
 
@@ -1204,30 +1204,30 @@ custom_nmi(void)
 
     cpu_state.eaaddr = 0x0002;
     old_cs           = CS;
-    access(5, 16);
+    cpu_808x_access(5, 16);
     (void) readmemw(0, cpu_state.eaaddr);
     new_ip = custom_nmi_vector & 0xffff;
     wait_cycs(1, 0);
     cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
-    access(6, 16);
+    cpu_808x_access(6, 16);
     (void) readmemw(0, cpu_state.eaaddr);
     new_cs      = custom_nmi_vector >> 16;
     prefetching = 0;
     pfq_clear();
     ovr_seg = NULL;
-    access(39, 16);
+    cpu_808x_access(39, 16);
     tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
     if (is_nec)
         cpu_state.flags |= MD_FLAG;
-    access(40, 16);
+    cpu_808x_access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
     load_cs(new_cs);
-    access(68, 16);
+    cpu_808x_access(68, 16);
     set_ip(new_ip);
-    access(41, 16);
+    cpu_808x_access(41, 16);
     push(&old_ip);
 }
 
@@ -1298,7 +1298,7 @@ rep_action(int bits)
     wait_cycs(2, 0);
     t = CX;
     if (irq_pending(0) && (repeating != 0)) {
-        access(71, bits);
+        cpu_808x_access(71, bits);
         pfq_clear();
         if (is_nec && (ovr_seg != NULL))
             set_ip(cpu_state.pc - 3);
@@ -1324,7 +1324,7 @@ static uint16_t
 jump(uint16_t delta)
 {
     uint16_t old_ip;
-    access(67, 8);
+    cpu_808x_access(67, 8);
     if (is_new_biu)
         biu_suspend_fetch();
     else
@@ -2113,7 +2113,7 @@ execx86_instruction(void)
                 do_mod_rm();
                 if (cpu_mod == 3)
                     wait_cycs(1, 0);
-                access(53, bits);
+                cpu_808x_access(53, bits);
                 cpu_data = get_ea();
                 cpu_src  = pfq_fetchb();
 
@@ -2193,7 +2193,7 @@ execx86_instruction(void)
                         wait_cycs(4, 0);
                     --cpu_src;
                 }
-                access(17, bits);
+                cpu_808x_access(17, bits);
                 set_ea(cpu_data);
                 handled = 1;
                 break;
@@ -2214,14 +2214,14 @@ execx86_instruction(void)
             case 0x0e:
             case 0x16:
             case 0x1e:             /* PUSH seg */
-                access(29, 16);
+                cpu_808x_access(29, 16);
                 push(&(_opseg[(opcode >> 3) & 0x03]->seg));
                 break;
             case 0x07:
             case 0x0f:
             case 0x17:
             case 0x1f:             /* POP seg */
-                access(22, 16);
+                cpu_808x_access(22, 16);
                 if (opcode == 0x0f) {
                     load_cs(pop());
                     pfq_pos = 0;
@@ -2251,7 +2251,7 @@ execx86_instruction(void)
              case 0x38 ... 0x3b:
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
-                access(46, bits);
+                cpu_808x_access(46, bits);
                 tempw      = get_ea();
                 cpu_alu_op = (opcode >> 3) & 7;
                 if ((opcode & 2) == 0) {
@@ -2267,7 +2267,7 @@ execx86_instruction(void)
                 alu_op(bits);
                 if (cpu_alu_op != 7) {
                     if ((opcode & 2) == 0) {
-                        access(10, bits);
+                        cpu_808x_access(10, bits);
                         set_ea(cpu_data);
                         if (cpu_mod == 3)
                             wait_cycs(1, 0);
@@ -2394,11 +2394,11 @@ execx86_instruction(void)
                 break;
 
             case 0x50 ... 0x57:    /* PUSH r16 */
-                access(30, 16);
+                cpu_808x_access(30, 16);
                 push(&(cpu_state.regs[opcode & 0x07].w));
                 break;
             case 0x58 ... 0x5f:    /* POP r16 */
-                access(23, 16);
+                cpu_808x_access(23, 16);
                 cpu_state.regs[opcode & 0x07].w = pop();
                 wait_cycs(1, 0);
                 break;
@@ -2435,7 +2435,7 @@ execx86_instruction(void)
             case 0x80 ... 0x83:    /* alu rm, imm */
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
-                access(47, bits);
+                cpu_808x_access(47, bits);
                 cpu_data = get_ea();
                 cpu_dest = cpu_data;
                 if (cpu_mod != 3)
@@ -2456,7 +2456,7 @@ execx86_instruction(void)
                 cpu_alu_op = (rmdat & 0x38) >> 3;
                 alu_op(bits);
                 if (cpu_alu_op != 7) {
-                    access(11, bits);
+                    cpu_808x_access(11, bits);
                     set_ea(cpu_data);
                 } else {
                     if (cpu_mod != 3)
@@ -2468,7 +2468,7 @@ execx86_instruction(void)
                 /* TEST rm, reg */
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
-                access(48, bits);
+                cpu_808x_access(48, bits);
                 cpu_data = get_ea();
                 test(bits, cpu_data, get_reg(cpu_reg));
                 if (cpu_mod == 3)
@@ -2479,12 +2479,12 @@ execx86_instruction(void)
                 /* XCHG rm, reg */
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
-                access(49, bits);
+                cpu_808x_access(49, bits);
                 cpu_data = get_ea();
                 cpu_src  = get_reg(cpu_reg);
                 set_reg(cpu_reg, cpu_data);
                 wait_cycs(3, 0);
-                access(12, bits);
+                cpu_808x_access(12, bits);
                 set_ea(cpu_src);
                 break;
 
@@ -2493,14 +2493,14 @@ execx86_instruction(void)
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
                 wait_cycs(1, 0);
-                access(13, bits);
+                cpu_808x_access(13, bits);
                 set_ea(get_reg(cpu_reg));
                 break;
             case 0x8a ... 0x8b:
                 /* MOV reg, rm */
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
-                access(50, bits);
+                cpu_808x_access(50, bits);
                 set_reg(cpu_reg, get_ea());
                 wait_cycs(1, 0);
                 if (cpu_mod != 3)
@@ -2511,7 +2511,7 @@ execx86_instruction(void)
                 do_mod_rm();
                 if (cpu_mod == 3)
                     wait_cycs(1, 0);
-                access(14, 16);
+                cpu_808x_access(14, 16);
                 seteaw(_opseg[(rmdat & 0x18) >> 3]->seg);
                 break;
 
@@ -2525,7 +2525,7 @@ execx86_instruction(void)
 
             case 0x8e:             /* MOV sreg,w */
                 do_mod_rm();
-                access(51, 16);
+                cpu_808x_access(51, 16);
                 tempw = geteaw();
                 if ((rmdat & 0x18) == 0x08) {
                     load_cs(tempw);
@@ -2543,13 +2543,13 @@ execx86_instruction(void)
                 do_mod_rm();
                 wait_cycs(1, 0);
                 cpu_src = cpu_state.eaaddr;
-                access(24, 16);
+                cpu_808x_access(24, 16);
                 if (cpu_mod != 3)
                     wait_cycs(2, 0);
                 cpu_data         = pop();
                 cpu_state.eaaddr = cpu_src;
                 wait_cycs(2, 0);
-                access(15, 16);
+                cpu_808x_access(15, 16);
                 seteaw(cpu_data);
                 break;
 
@@ -2583,11 +2583,11 @@ execx86_instruction(void)
                     biu_suspend_fetch();
                 else {
                     pfq_clear();
-                    access(31, 16);
+                    cpu_808x_access(31, 16);
                 }
                 push(&(CS));
                 if (!is_new_biu)
-                    access(60, 16);
+                    cpu_808x_access(60, 16);
                 cpu_state.oldpc = cpu_state.pc;
                 load_cs(new_cs);
                 set_ip(new_ip);
@@ -2595,7 +2595,7 @@ execx86_instruction(void)
                     wait_cycs(3, 0);
                     biu_queue_flush();
                 }
-                access(32, 16);
+                cpu_808x_access(32, 16);
                 push((uint16_t *) &(cpu_state.oldpc));
                 break;
             case 0x9b:             /* WAIT */
@@ -2620,7 +2620,7 @@ execx86_instruction(void)
 #endif
                 break;
             case 0x9c:             /* PUSHF */
-                access(33, 16);
+                cpu_808x_access(33, 16);
                 if (is_nec)
                     tempw = (cpu_state.flags & 0x8fd7) | 0x7000;
                 else
@@ -2629,7 +2629,7 @@ execx86_instruction(void)
                 break;
             case 0x9d: {           /* POPF */
                 uint16_t old_flags = cpu_state.flags;
-                access(25, 16);
+                cpu_808x_access(25, 16);
                 if (is_nec && cpu_md_write_disable)
                     cpu_state.flags = pop() | 0x8002;
                 else
@@ -2652,7 +2652,7 @@ execx86_instruction(void)
                 bits = 8 << (opcode & 1);
                 wait_cycs(1, 0);
                 cpu_state.eaaddr = pfq_fetchw();
-                access(1, bits);
+                cpu_808x_access(1, bits);
                 set_accum(bits, readmem((ovr_seg ? *ovr_seg : ds)));
                 wait_cycs(1, 0);
                 break;
@@ -2660,7 +2660,7 @@ execx86_instruction(void)
                 bits = 8 << (opcode & 1);
                 wait_cycs(1, 0);
                 cpu_state.eaaddr = pfq_fetchw();
-                access(7, bits);
+                cpu_808x_access(7, bits);
                 writemem((ovr_seg ? *ovr_seg : ds), get_accum(bits));
                 break;
 
@@ -2680,10 +2680,10 @@ execx86_instruction(void)
                 }
                 if (in_rep != 0 && (opcode & 8) != 0)
                     wait_cycs(1, 0);
-                access(20, bits);
+                cpu_808x_access(20, bits);
                 lods(bits);
                 if ((opcode & 8) == 0) {
-                    access(27, bits);
+                    cpu_808x_access(27, bits);
                     stos(bits);
                 } else {
                     set_accum(bits, cpu_data);
@@ -2715,12 +2715,12 @@ execx86_instruction(void)
                 wait_cycs(1, 0);
                 cpu_dest = get_accum(bits);
                 if ((opcode & 8) == 0) {
-                    access(21, bits);
+                    cpu_808x_access(21, bits);
                     lods(bits);
                     wait_cycs(1, 0);
                     cpu_dest = cpu_data;
                 }
-                access(2, bits);
+                cpu_808x_access(2, bits);
                 cpu_state.eaaddr = DI;
                 cpu_data         = readmem(es);
                 DI               = string_increment(bits);
@@ -2761,7 +2761,7 @@ execx86_instruction(void)
                     break;
                 }
                 cpu_data = AX;
-                access(28, bits);
+                cpu_808x_access(28, bits);
                 stos(bits);
                 if (in_rep == 0) {
                     wait_cycs(3, 0);
@@ -2802,13 +2802,13 @@ execx86_instruction(void)
                     biu_suspend_fetch();
                 else
                     pfq_clear();
-                access(26, bits);
+                cpu_808x_access(26, bits);
                 new_ip = pop();
                 wait_cycs(2, 0);
                 if ((opcode & 8) == 0)
                     new_cs = CS;
                 else {
-                    access(42, bits);
+                    cpu_808x_access(42, bits);
                     new_cs = pop();
                     if (opcode & 1)
                         wait_cycs(1, 0);
@@ -2818,7 +2818,7 @@ execx86_instruction(void)
                     wait_cycs(1, 0);
                 }
                 load_cs(new_cs);
-                access(72, bits);
+                cpu_808x_access(72, bits);
                 set_ip(new_ip);
                 if (is_new_biu)
                     biu_queue_flush();
@@ -2827,10 +2827,10 @@ execx86_instruction(void)
             case 0xc4 ... 0xc5:    /* LsS rw, rmd */
                 do_mod_rm();
                 bits = 16;
-                access(52, bits);
+                cpu_808x_access(52, bits);
                 read_ea(1, bits);
                 cpu_state.regs[cpu_reg].w = cpu_data;
-                access(57, bits);
+                cpu_808x_access(57, bits);
                 read_ea2(bits);
                 load_seg(cpu_data, (opcode & 0x01) ? &cpu_state.seg_ds : &cpu_state.seg_es);
                 wait_cycs(1, 0);
@@ -2845,7 +2845,7 @@ execx86_instruction(void)
                 cpu_data = pfq_fetch();
                 if (cpu_mod == 3)
                     wait_cycs(1, 0);
-                access(16, bits);
+                cpu_808x_access(16, bits);
                 set_ea(cpu_data);
                 break;
 
@@ -2864,17 +2864,17 @@ execx86_instruction(void)
                 }
                 break;
             case 0xcf:             /* IRET */
-                access(43, 8);
+                cpu_808x_access(43, 8);
                 new_ip = pop();
                 wait_cycs(3, 0);
-                access(44, 8);
+                cpu_808x_access(44, 8);
                 new_cs = pop();
                 load_cs(new_cs);
-                access(62, 8);
+                cpu_808x_access(62, 8);
                 set_ip(new_ip);
                 if (is_new_biu)
                     biu_queue_flush();
-                access(45, 8);
+                cpu_808x_access(45, 8);
                 if (is_nec && cpu_md_write_disable)
                     cpu_state.flags = pop() | 0x8002;
                 else
@@ -2889,7 +2889,7 @@ execx86_instruction(void)
                 do_mod_rm();
                 if (cpu_mod == 3)
                     wait_cycs(1, 0);
-                access(53, bits);
+                cpu_808x_access(53, bits);
                 cpu_data = get_ea();
                 if ((opcode & 2) == 0) {
                     cpu_src = 1;
@@ -2971,7 +2971,7 @@ execx86_instruction(void)
                         wait_cycs(4, 0);
                     --cpu_src;
                 }
-                access(17, bits);
+                cpu_808x_access(17, bits);
                 set_ea(cpu_data);
                 break;
 
@@ -3007,14 +3007,14 @@ execx86_instruction(void)
                 fallthrough;
             case 0xd7:             /* XLATB */
                 cpu_state.eaaddr = (BX + AL) & 0xffff;
-                access(4, 8);
+                cpu_808x_access(4, 8);
                 AL = readmemb((ovr_seg ? *ovr_seg : ds), cpu_state.eaaddr);
                 wait_cycs(1, 0);
                 break;
 
             case 0xd8 ... 0xdf:    /* esc i, r, rm */
                 do_mod_rm();
-                access(54, 16);
+                cpu_808x_access(54, 16);
                 tempw = cpu_state.pc;
                 if (!hasfpu)
                     geteaw();
@@ -3117,7 +3117,7 @@ execx86_instruction(void)
                     cpu_data = DX;
                 cpu_state.eaaddr = cpu_data;
                 if ((opcode & 2) == 0) {
-                    access(3, bits);
+                    cpu_808x_access(3, bits);
                     if (opcode & 1)
                         cpu_io(16, 0, cpu_data);
                     else
@@ -3125,9 +3125,9 @@ execx86_instruction(void)
                     wait_cycs(1, 0);
                 } else {
                     if ((opcode & 8) == 0)
-                        access(8, bits);
+                        cpu_808x_access(8, bits);
                     else
-                        access(9, bits);
+                        cpu_808x_access(9, bits);
                     if (opcode & 1)
                         cpu_io(16, 1, cpu_data);
                     else
@@ -3138,7 +3138,7 @@ execx86_instruction(void)
             case 0xe8:             /* CALL rel 16 */
                 wait_cycs(1, 0);
                 cpu_state.oldpc = jump_near();
-                access(34, 8);
+                cpu_808x_access(34, 8);
                 push((uint16_t *) &(cpu_state.oldpc));
                 break;
             case 0xe9:             /* JMP rel 16 */
@@ -3151,7 +3151,7 @@ execx86_instruction(void)
                 wait_cycs(1, 0);
                 tempw = pfq_fetchw();
                 load_cs(tempw);
-                access(70, 8);
+                cpu_808x_access(70, 8);
                 if (is_new_biu)
                     biu_suspend_fetch();
                 else
@@ -3203,7 +3203,7 @@ execx86_instruction(void)
             case 0xf6 ... 0xf7:
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
-                access(55, bits);
+                cpu_808x_access(55, bits);
                 cpu_data = get_ea();
                 switch (rmdat & 0x38) {
                     case 0x00: case 0x08:    /* TEST */
@@ -3225,7 +3225,7 @@ execx86_instruction(void)
                             cpu_dest = 0;
                             sub(bits);
                         }
-                        access(18, bits);
+                        cpu_808x_access(18, bits);
                         set_ea(cpu_data);
                         break;
                     case 0x20: case 0x28:    /* MUL, IMUL */
@@ -3281,7 +3281,7 @@ execx86_instruction(void)
             case 0xfe ... 0xff:    /* misc */
                 bits = 8 << (opcode & 1);
                 do_mod_rm();
-                access(56, bits);
+                cpu_808x_access(56, bits);
                 read_ea(((rmdat & 0x38) == 0x18) || ((rmdat & 0x38) == 0x28), bits);
                 switch (rmdat & 0x38) {
                     case 0x00: case 0x08:    /* INC rm, DEC rm */
@@ -3297,12 +3297,12 @@ execx86_instruction(void)
                         do_af();
                         set_pzs(bits);
                         wait_cycs(2, 0);
-                        access(19, bits);
+                        cpu_808x_access(19, bits);
                         set_ea(cpu_data);
                         break;
                     case 0x10:               /* CALL rm */
                         cpu_data_opff_rm();
-                        access(63, bits);
+                        cpu_808x_access(63, bits);
                         wait_cycs(1, 0);
                         if (is_new_biu)
                             biu_suspend_fetch();
@@ -3317,19 +3317,19 @@ execx86_instruction(void)
                         if (is_new_biu)
                             biu_queue_flush();
                         wait_cycs(2, 0);
-                        access(35, bits);
+                        cpu_808x_access(35, bits);
                         push((uint16_t *) &(cpu_state.oldpc));
                         break;
                     case 0x18:               /* CALL rmd */
                         new_ip = cpu_data;
-                        access(58, bits);
+                        cpu_808x_access(58, bits);
                         read_ea2(bits);
                         if (!(opcode & 1))
                             cpu_data |= 0xff00;
                         new_cs = cpu_data;
-                        access(36, bits);
+                        cpu_808x_access(36, bits);
                         push(&(CS));
-                        access(64, bits);
+                        cpu_808x_access(64, bits);
                         if (!is_new_biu)
                             wait_cycs(4, 0);
                         cpu_state.oldpc = cpu_state.pc;
@@ -3339,25 +3339,25 @@ execx86_instruction(void)
                             wait_cycs(3, 0);
                             biu_queue_flush();
                         }
-                        access(37, bits);
+                        cpu_808x_access(37, bits);
                         push((uint16_t *) &(cpu_state.oldpc));
                         break;
                     case 0x20:               /* JMP rm */
                         cpu_data_opff_rm();
-                        access(65, bits);
+                        cpu_808x_access(65, bits);
                         set_ip(cpu_data);
                         if (is_new_biu)
                             biu_queue_flush();
                         break;
                     case 0x28:               /* JMP rmd */
                         new_ip = cpu_data;
-                        access(59, bits);
+                        cpu_808x_access(59, bits);
                         read_ea2(bits);
                         if (!(opcode & 1))
                             cpu_data |= 0xff00;
                         new_cs = cpu_data;
                         load_cs(new_cs);
-                        access(66, bits);
+                        cpu_808x_access(66, bits);
                         set_ip(new_ip);
                         if (is_new_biu)
                             biu_queue_flush();
@@ -3365,7 +3365,7 @@ execx86_instruction(void)
                     case 0x30: case 0x38:    /* PUSH rm */
                         if (cpu_mod != 3)
                             wait_cycs(1, 0);
-                        access(38, bits);
+                        cpu_808x_access(38, bits);
                         push((uint16_t *) &(cpu_data));
                         break;
                 }

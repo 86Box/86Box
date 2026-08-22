@@ -1054,13 +1054,15 @@ exec386(int32_t cycs)
 block_ended:
 #endif
             if (cpu_state.abrt) {
+#ifdef ENABLE_386_LOG
                 uint8_t oop    = opcode;
+#endif
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
                 cpu_state.abrt = 0;
                 x86_doabrt(tempi);
                 if (cpu_state.abrt) {
-                    pclog("Double fault - %02X\n", oop);
+                    x386_dynarec_log("Double fault - %02X\n", oop);
                     cpu_state.abrt = 0;
 #ifndef USE_NEW_DYNAREC
                     CS = oldcs;

@@ -5980,7 +5980,7 @@ static const device_config_t gd5434_isa_config[] = {
                 .files_no      = 1,
                 .local         = CIRRUS_ID_CLGD5434 | 0x100,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { BIOS_GD5434_DIAMOND_A3_ISA_PATH, "" }
             },
             {

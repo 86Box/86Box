@@ -930,11 +930,11 @@ static int
 opLOADALL(UNUSED(uint32_t fetchdat))
 {
     if (CPL && (cr0 & 1)) {
-        x86gpf(NULL, 0);
+        x86gpf(NULL, CPL & 0x00);
         return 1;
     }
     msw             = (msw & 1) | readmemw(0, 0x806);
-    cpu_state.flags = (readmemw(0, 0x818) & 0xffd5) | 2;
+    cpu_state.flags = (readmemw(0, 0x818) & 0x7fd5) | 2;
     flags_extract();
     tr.seg                  = readmemw(0, 0x816);
     cpu_state.pc            = readmemw(0, 0x81A);

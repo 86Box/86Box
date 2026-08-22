@@ -61,7 +61,7 @@ static int dither[4][4] = {
 };
 
 #define ROM_VIRGE_325                 "roms/video/s3virge/86c325.bin"
-#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge_v204.BIN"
+#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.BIN"
 #define ROM_MIROCRYSTAL_3D            "roms/video/s3virge/miro Crystal 3D 1.02.bin"
 #define ROM_DIAMOND_STEALTH3D_3000    "roms/video/s3virge/diamondstealth3000.vbi"
 #define ROM_STB_VELOCITY_3D           "roms/video/s3virge/stb_velocity3d_110.BIN"
@@ -6476,7 +6476,7 @@ static const device_config_t s3_virge_vx_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH3D_3000 | (988 << 16),
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 8),
                 .files         = { ROM_DIAMOND_STEALTH3D_3000, "" }
             },
             {

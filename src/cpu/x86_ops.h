@@ -340,8 +340,11 @@ extern const OpFn ops_fpu_686_df_a32[256];
 extern const OpFn ops_fpu_cyrix_686_df_a16[256];
 extern const OpFn ops_fpu_cyrix_686_df_a32[256];
 
+extern const OpFn ops_REPE_286[1024];
+extern const OpFn ops_REPNE_286[1024];
 extern const OpFn ops_REPE[1024];
 extern const OpFn ops_REPNE[1024];
+
 extern const OpFn ops_3DNOW[256];
 extern const OpFn ops_3DNOWE[256];
 
@@ -446,8 +449,11 @@ extern const OpFn ops_2386_fpu_df_a32[256];
 extern const OpFn ops_2386_nofpu_a16[256];
 extern const OpFn ops_2386_nofpu_a32[256];
 
+extern const OpFn ops_2386_REPE_286[1024];
+extern const OpFn ops_2386_REPNE_286[1024];
 extern const OpFn ops_2386_REPE[1024];
 extern const OpFn ops_2386_REPNE[1024];
+
 extern const OpFn ops_2386_3DNOW[256];
 
 #define FPU_SW_C3              (0x4000)  /* condition bit 3 */

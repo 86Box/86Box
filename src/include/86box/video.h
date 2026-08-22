@@ -327,6 +327,7 @@ extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
 
 extern void     video_clamp_vram(uint64_t bios_flags, int *vram);
+extern void     video_clamp_vram_2(uint64_t bios_flags, int *vram);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
 #define video_get_type()                      video_get_type_monitor(0)
