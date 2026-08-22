@@ -93,7 +93,6 @@ int optype;
 int inttype;
 int oddeven = 0;
 int timetolive;
-int ops_done = 0;
 
 uint16_t oldcs;
 

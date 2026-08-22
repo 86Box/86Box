@@ -216,13 +216,10 @@ fetch_ea_16_long(uint32_t rmdat)
     if (msw & 1 && !(cpu_state.eflags & VM_FLAG) && !(cpu_state.seg_cs.access & 0x80)) \
         x86np("Read from seg not present", cpu_state.seg_cs.seg & 0xfffc);             \
     else if ((cpu_state.pc < cpu_state.seg_cs.limit_low) ||                            \
-        ((cpu_state.pc + size - 1) > cpu_state.seg_cs.limit_high)) {                   \
-        x86gpf("Limit check (READ CS)", 0);                                            \
-        }
+        ((cpu_state.pc + size - 1) > cpu_state.seg_cs.limit_high))                     \
+        x86gpf("Limit check (READ CS)", 0);
 
 #include "386_ops.h"
-
-uint8_t old_opcode = 0x65;
 
 void
 exec386_2386(int32_t cycs)
@@ -261,36 +258,31 @@ exec386_2386(int32_t cycs)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
-            /*
-               Do not even attempt the READ CS check if an exception
-               is pending.
-             */
-            if (cpu_state.abrt == 0) {
-                fetchdat = fastreadl_fetch(cs + cpu_state.pc);
-                ol = opcode_length[fetchdat & 0xff];
-                if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
-                    ol = 2;
+            fetchdat = fastreadl_fetch(cs + cpu_state.pc);
+            ol = opcode_length[fetchdat & 0xff];
+            if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
+                ol = 2;
 
-                if (is386)
-                    ins_fetch_fault = cpu_386_check_instruction_fault();
+            if (is386)
+                ins_fetch_fault = cpu_386_check_instruction_fault();
 
-                /* Breakpoint fault has priority over other faults. */
-                if (ins_fetch_fault) {
-                    x86gen();
-                    ins_fetch_fault = 0;
-                    /* No instructions executed at this point. */
-                    goto block_ended;
-                } else if (cpu_16bitbus) {
-                    CHECK_READ_CS(MIN(ol, 2));
-                } else {
-                    CHECK_READ_CS(MIN(ol, 4));
-                }
+            /* Breakpoint fault has priority over other faults. */
+            if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+                x86gen();
+                ins_fetch_fault = 0;
+                /* No instructions executed at this point. */
+                goto block_ended;
+            } else if (cpu_16bitbus) {
+                CHECK_READ_CS(MIN(ol, 2));
+            } else {
+                CHECK_READ_CS(MIN(ol, 4));
+            }
 
+            if (!cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
                 if (in_smm)
                     x386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
 #endif
-                old_opcode = opcode;
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
                 trap = (trap & ~1) | (!!(cpu_state.flags & T_FLAG));
