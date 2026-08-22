@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-22 19:26+0000\n"
+"PO-Revision-Date: 2026-08-22 20:53+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -2987,7 +2987,7 @@ msgid "Vulkan device lost."
 msgstr "Vulkan-apparaat verloren."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Vulkan-surface verloren."
 
 msgid "GLSL Error"
 msgstr "GLSL-fout"
@@ -3080,10 +3080,10 @@ msgid "Toggle mute"
 msgstr "Geluiddemping omschakelen"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "On-screen display omschakelen"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "&On-screen display omschakelen"
 
 msgid "Text files"
 msgstr "Tekstbestanden"
@@ -3247,7 +3247,7 @@ msgid "Export EDID"
 msgstr "EDID exporteren"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "Het EDID-bestand \"%s\" is ongeldig."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Het EDID-bestand \"%s\" is te groot."
@@ -3286,10 +3286,10 @@ msgid "Fast forward"
 msgstr "Snel vooruitspoelen"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "&Niet-maskeerbare interrupt"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "Niet-maskeerbare interrupt"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "Om de systeemmap te wijzigen, moet u alle actieve machines stoppen."
@@ -3325,6 +3325,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Laden van image \"%s\" niet mogelijk: %1 ontbreekt, welke vereist is voor "
+"Aaru image bestandstype ondersteuning."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3470,10 +3472,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditioneel Chinees)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Samplefrequentie:"
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "CGA-lichtpen"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "Luminantiegrenswaarde (%)"
