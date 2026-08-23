@@ -73,6 +73,30 @@ typedef union {
     };
 } double_decompose_t;
 
+/* Precision control: a host double already matches PC=53 (and is the
+   closest we can get to PC=64); PC=24 must round the result of
+   ADD/SUB/MUL/DIV/SQRT to single. Approximations: the float cast clamps
+   to the single exponent range (the chip keeps 15 exponent bits), rounds
+   in the host mode of the moment (nearest where the op already restored
+   it), and sets no PE/OE/UE flags. */
+#define FP_ROUND_PC(r)                        \
+    do {                                      \
+        if (!(cpu_state.npxc & 0x300))        \
+            (r) = (double) (float) (r);       \
+    } while (0)
+
+/* Dynarec blocks are keyed on PC=24, but FLDCW/FLDENV/FRSTOR/FSAVE run
+   as helper calls inside a block: a precision change must end the block
+   so the ops after it are compiled under the new precision. */
+#define x87_set_control_word(w)                                              \
+    do {                                                                     \
+        uint16_t old_npxc_ = cpu_state.npxc;                                 \
+        cpu_state.npxc     = (w);                                            \
+        codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);               \
+        if ((!(old_npxc_ & 0x300)) != (!(cpu_state.npxc & 0x300)))           \
+            CPU_BLOCK_END();                                                 \
+    } while (0)
+
 #ifdef FPU_8087
 #    define x87_div(dst, src1, src2)                    \
         do {                                            \

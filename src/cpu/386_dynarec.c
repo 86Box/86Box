@@ -435,6 +435,14 @@ exec386_dynarec_dyn(void)
 #    endif
     int valid_block = 0;
 
+    /* Refresh before the lookup AND before a fresh compile: the old
+       dynarec skips the lookup on an empty hash slot, and the new block
+       still takes its key from cpu_cur_status. */
+    if (cpu_state.npxc & 0x300)
+        cpu_cur_status &= ~CPU_STATUS_FPU_PC24;
+    else
+        cpu_cur_status |= CPU_STATUS_FPU_PC24;
+
 #    ifdef USE_NEW_DYNAREC
     if (!cpu_state.abrt)
 #    else
