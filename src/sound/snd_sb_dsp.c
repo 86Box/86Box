@@ -270,6 +270,14 @@ uint16_t espcm3_dpcm_tables[1024] =
        5,   7,   8,   9,  10,  11,  12, 270,   5,   7,   8,   9,  10,  11,  12, 270,
        6,   7,   8,   9,  10,  11,  13, 271,   6,   7,   8,   9,  10,  11,  13,  15
 };
+
+/* Attenuation table for ESS 4-bit mixer volume.
+ * The last step is a jump to -48 dB. */
+static const double es488_att_2dbstep_4bits[] = {
+      164.0,  1304.0,  1641.0,  2067.0,  2602.0,  3276.0,  4125.0,  5192.0,
+     6537.0,  8230.0, 10362.0, 13044.0, 16422.0, 20674.0, 26027.0, 32767.0
+};
+
 // clang-format on
 
 double low_fir_sb16_coef[SB16_NCoef];
@@ -1798,10 +1806,17 @@ sb_exec_command(sb_dsp_t *dsp)
             } else if (IS_ESS(dsp)) /* Unknown command, always returns 1 on newer chips per the datasheets */
                 sb_add_data(dsp, 1);
             break;
-        case 0xD6: /* Continue 16-bit DMA */
+        case 0xD6: /* Continue 16-bit DMA (SB16+)/Get Recording Source (ES488) */
             if (dsp->sb_type >= SB16_DSP_404) {
                 dsp->sb_16_pause = 0;
                 sb_resume_dma(dsp, 1);
+            } else if (IS_ESS(dsp) && (dsp->sb_subtype == SB_SUBTYPE_ESS_ES488))
+                sb_add_data(dsp, dsp->es488_source);
+            break;
+        case 0xD7: /* Set Recording Source (ES488) */
+            if (IS_ESS(dsp) && (dsp->sb_subtype == SB_SUBTYPE_ESS_ES488)) {
+                sb_dsp_log("ES488 set record source: val = %02X\n", dsp->sb_data[0]);
+                dsp->es488_source = dsp->sb_data[0];
             }
             break;
         case 0xD8: /* Get speaker status */
@@ -1823,6 +1838,18 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xDD: /* Write current input gain (ESS) */
             if (IS_ESS(dsp))
                 dsp->ess_input_gain = dsp->sb_data[0];
+            break;
+        case 0xDE: /* Get Wave Volume (ES488) */
+            if (IS_ESS(dsp) && (dsp->sb_subtype == SB_SUBTYPE_ESS_ES488))
+                sb_add_data(dsp, dsp->es488_voice_reg);
+            break;
+        case 0xDF: /* Set Wave Volume (ES488) */
+            sb_dsp_log("ES488 set volume command\n");
+            if (IS_ESS(dsp) && (dsp->sb_subtype == SB_SUBTYPE_ESS_ES488)) {
+                sb_dsp_log("ES488 set output volume: val = %02X\n", dsp->sb_data[0]);
+                dsp->es488_voice_reg = dsp->sb_data[0];
+                dsp->es488_voice = es488_att_2dbstep_4bits[dsp->es488_voice_reg & 0x0F] / 32767.0;
+            }
             break;
         case 0xE0: /* DSP identification */
             sb_add_data(dsp, ~dsp->sb_data[0]);
@@ -1846,7 +1873,7 @@ sb_exec_command(sb_dsp_t *dsp)
                    ES1888 datasheet and the probing of the real ES688 and ES1688 cards.
                  */
                 /* Some ES688/1688 ISA cards have a jumper to set DSP version 2.01 */
-                if (dsp->ess_dsp_v2_mode == 1) {
+                if ((dsp->ess_dsp_v2_mode == 1) || (dsp->sb_subtype == SB_SUBTYPE_ESS_ES488) || (dsp->sb_subtype == SB_SUBTYPE_ESS_ES1488)) {
                     sb_add_data(dsp, 0x2);
                     sb_add_data(dsp, 0x1);
                 } else {
@@ -1925,6 +1952,14 @@ sb_exec_command(sb_dsp_t *dsp)
             if (IS_ESS(dsp)) {
                 switch (dsp->sb_subtype) {
                     default:
+                        break;
+                    case SB_SUBTYPE_ESS_ES488:
+                        sb_add_data(dsp, 0x48);
+                        sb_add_data(dsp, 0x80 | 0x01);
+                        break;
+                    case SB_SUBTYPE_ESS_ES1488:
+                        sb_add_data(dsp, 0x48);
+                        sb_add_data(dsp, 0x80 | 0x09);
                         break;
                     case SB_SUBTYPE_ESS_ES688:
                         sb_add_data(dsp, 0x68);

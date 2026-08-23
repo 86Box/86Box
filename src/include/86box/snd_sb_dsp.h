@@ -4,26 +4,28 @@
 #include <86box/fifo.h>
 
 /*Sound Blaster Clones, for quirks*/
-#define SB_SUBTYPE_DEFAULT             0 /* Handle as a Creative card */
-#define SB_SUBTYPE_CLONE_AZT2316A_0X11 1 /* Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone */
-#define SB_SUBTYPE_CLONE_AZT1605_0X0C  2 /* Aztech Sound Galaxy Nova 16 Extra /
-                                            Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone */
-#define SB_SUBTYPE_CLONE_AZTPR16_0X09  3 /* Aztech Sound Galaxy Pro 16 Extra */
-#define SB_SUBTYPE_CLONE_AZT2316R_0X12 4 /* Aztech Sound Galaxy Pro 16 II */
-#define SB_SUBTYPE_CLONE_AZT2320_0X13  5 /* Aztech AZT2320 */
-#define SB_SUBTYPE_MVD201              6 /* Mediavision MVD201, found on the thunderboard and PAS16 */
-#define SB_SUBTYPE_YMF7XX              7 /* Yamaha YMF-701/71x */
-#define SB_SUBTYPE_ESS_ES688           8 /* ESS Technology ES688 */
-#define SB_SUBTYPE_ESS_ES1688          9 /* ESS Technology ES1688 */
-#define SB_SUBTYPE_ESS_ES1788        0xa /* ESS Technology ES1788 */
-#define SB_SUBTYPE_ESS_ES1888        0xb /* ESS Technology ES1888 */
-#define SB_SUBTYPE_ESS_ES1887        0xc /* ESS Technology ES1887 */
-#define SB_SUBTYPE_ESS_ES1868        0xd /* ESS Technology ES1868 */
-#define SB_SUBTYPE_ESS_ES1869        0xe /* ESS Technology ES1869 */
+#define SB_SUBTYPE_DEFAULT             0  /* Handle as a Creative card */
+#define SB_SUBTYPE_CLONE_AZT2316A_0X11 1  /* Aztech Sound Galaxy Pro 16 AB, DSP 3.1 - SBPRO2 clone */
+#define SB_SUBTYPE_CLONE_AZT1605_0X0C  2  /* Aztech Sound Galaxy Nova 16 Extra /
+                                             Packard Bell Forte 16, DSP 2.1 - SBPRO2 clone */
+#define SB_SUBTYPE_CLONE_AZTPR16_0X09  3  /* Aztech Sound Galaxy Pro 16 Extra */
+#define SB_SUBTYPE_CLONE_AZT2316R_0X12 4  /* Aztech Sound Galaxy Pro 16 II */
+#define SB_SUBTYPE_CLONE_AZT2320_0X13  5  /* Aztech AZT2320 */
+#define SB_SUBTYPE_MVD201              6  /* Mediavision MVD201, found on the thunderboard and PAS16 */
+#define SB_SUBTYPE_YMF7XX              7  /* Yamaha YMF-701/71x */
+#define SB_SUBTYPE_ESS_ES488           8  /* ESS Technology ES488 */
+#define SB_SUBTYPE_ESS_ES1488          9  /* ESS Technology ES1488 */
+#define SB_SUBTYPE_ESS_ES688         0xa  /* ESS Technology ES688 */
+#define SB_SUBTYPE_ESS_ES1688        0xb  /* ESS Technology ES1688 */
+#define SB_SUBTYPE_ESS_ES1788        0xc  /* ESS Technology ES1788 */
+#define SB_SUBTYPE_ESS_ES1888        0xd  /* ESS Technology ES1888 */
+#define SB_SUBTYPE_ESS_ES1887        0xe  /* ESS Technology ES1887 */
+#define SB_SUBTYPE_ESS_ES1868        0xf  /* ESS Technology ES1868 */
+#define SB_SUBTYPE_ESS_ES1869        0x10 /* ESS Technology ES1869 */
 
 /* ESS-related */
-#define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES688)    /* Check for future ESS cards here */
-#define IS_NOT_ESS(dsp) ((dsp)->sb_subtype < SB_SUBTYPE_ESS_ES688) /* Check for future ESS cards here */
+#define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES488)    /* Check for future ESS cards here */
+#define IS_NOT_ESS(dsp) ((dsp)->sb_subtype < SB_SUBTYPE_ESS_ES488) /* Check for future ESS cards here */
 
 /* aztech-related */
 #define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2320_0X13 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) /* check for future AZT cards here */
@@ -206,6 +208,11 @@ typedef struct sb_dsp_t {
 
     /* ESS ES1869 DAC1 divider mode */
     uint8_t  es1869_divider_mode;
+
+    /* ESS ES488 mixer */
+    double  es488_voice;
+    uint8_t es488_voice_reg;
+    uint8_t es488_source;
 
     mpu_t *mpu;
 } sb_dsp_t;
