@@ -75,6 +75,34 @@ voodoo_log(const char *fmt, ...)
 #endif
 
 static int
+voodoo_get_board_id(void)
+{
+    const char *board_id = device_get_config_string("board_id");
+
+    if (board_id == NULL || board_id[0] == '\0')
+        return 0;
+
+    /*
+     * The board model is now represented as a BIOS-style device option.
+     * Accept the new internal names as well as the old numeric values so
+     * existing configuration files continue to work.
+     */
+    if (!strcmp(board_id, "diamond_monster_3d"))
+        return 4;
+
+    if (!strcmp(board_id, "diamond_monster_3d_ii"))
+        return 8;
+
+    if (!strcmp(board_id, "4"))
+        return 4;
+
+    if (!strcmp(board_id, "8"))
+        return 8;
+
+    return 0;
+}
+
+static int
 voodoo_env_is_disabled(const char *value)
 {
     /* Accept common "off" values for env overrides. */
@@ -579,13 +607,13 @@ voodoo_readl(uint32_t addr, void *priv)
                 break;
 
             case SST_fbiInit5:
-                temp = voodoo->fbiInit5 & ~0x1ff;
+                temp = (voodoo->fbiInit5 & ~0x1ff) | ((voodoo->board_id & 0xf) << 5);
                 break;
             case SST_fbiInit6:
                 temp = voodoo->fbiInit6;
                 break;
             case SST_fbiInit7:
-                temp = voodoo->fbiInit7 & ~0xff;
+                temp = (voodoo->fbiInit7 & ~0xff) | ((voodoo->board_id >> 4) & 1);
                 break;
 
             case SST_cmdFifoBaseAddr:
@@ -1160,155 +1188,354 @@ voodoo_card_init(const device_t *info)
     voodoo->bilinear_enabled  = device_get_config_int("bilinear");
     voodoo->dithersub_enabled = device_get_config_int("dithersub");
     voodoo->scrfilter         = device_get_config_int("dacfilter");
-    voodoo->texture_size      = device_get_config_int("texture_memory");
-    voodoo->texture_mask      = (voodoo->texture_size << 20) - 1;
-    voodoo->fb_size           = device_get_config_int("framebuffer_memory");
     voodoo->render_threads    = device_get_config_int("render_threads");
     voodoo->odd_even_mask     = voodoo->render_threads - 1;
-
-    const uint64_t bios_flags = device_get_bios_flags(info, device_get_config_bios("type"));
-    video_clamp_vram(bios_flags, &voodoo->fb_size);
-
-    voodoo->fb_mask           = (voodoo->fb_size << 20) - 1;
 
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
 #endif
-    voodoo->type = (int) device_get_bios_local(info, device_get_config_bios("type"));
-    switch (voodoo->type) {
-        case VOODOO_1:
-            voodoo->dual_tmus = 0;
+
+    /*
+     * The board model is authoritative.
+     *
+     * board_id:
+     *     0 = 3Dfx reference board
+     *     4 = Diamond Monster 3D      (Voodoo Graphics)
+     *     8 = Diamond Monster 3D II   (Voodoo 2)
+     *
+     * For the two Diamond boards, the board identity determines
+     * the Voodoo generation.  The generic "type" setting is only
+     * meaningful for the reference board.
+     */
+    voodoo->board_id = voodoo_get_board_id();
+    voodoo->type     = device_get_config_int("type");
+
+    switch (voodoo->board_id) {
+        case 4:
+            voodoo->type = VOODOO_1;
             break;
-        case VOODOO_SB50:
-            voodoo->dual_tmus = 1;
-            break;
-        case VOODOO_2:
-            voodoo->dual_tmus = 1;
+
+        case 8:
+            voodoo->type = VOODOO_2;
             break;
 
         default:
             break;
     }
 
-    if (voodoo->type == VOODOO_2) /*generate filter lookup tables*/
+    /*
+     * Enforce a legal board/type combination.
+     *
+     * Reference board:
+     *     Voodoo Graphics, Voodoo 2 or SB50 are permitted.
+     *
+     * Diamond Monster 3D:
+     *     Voodoo Graphics only.
+     *
+     * Diamond Monster 3D II:
+     *     Voodoo 2 only.
+     */
+    if (voodoo->board_id == 4)
+        voodoo->type = VOODOO_1;
+    else if (voodoo->board_id == 8)
+        voodoo->type = VOODOO_2;
+
+    /*
+     * Determine the physical memory arrangement from the final
+     * Voodoo generation.
+     *
+     * Voodoo Graphics:
+     *     4 MB = 2 MB framebuffer + 2 MB texture
+     *     6 MB = 2 MB framebuffer + 4 MB texture
+     *     8 MB = 4 MB framebuffer + 4 MB texture
+     *
+     * Voodoo 2:
+     *     8 MB  = 4 MB framebuffer + 2 MB texture/TMU
+     *     12 MB = 4 MB framebuffer + 4 MB texture/TMU
+     *
+     * SB50:
+     *     2 MB framebuffer + 2 MB per TMU.
+     */
+    {
+        int memory_size = device_get_config_int("memory_size");
+
+        switch (voodoo->type) {
+            case VOODOO_1:
+                if (memory_size != 4 &&
+                    memory_size != 6 &&
+                    memory_size != 8)
+                    memory_size = 4;
+
+                voodoo->fb_size =
+                    (memory_size == 8) ? 4 : 2;
+
+                voodoo->texture_size =
+                    (memory_size == 4) ? 2 : 4;
+                break;
+
+            case VOODOO_2:
+                if (memory_size != 8 &&
+                    memory_size != 12)
+                    memory_size = 8;
+
+                voodoo->fb_size = 4;
+
+                voodoo->texture_size =
+                    (memory_size == 12) ? 4 : 2;
+                break;
+
+            case VOODOO_SB50:
+                voodoo->fb_size       = 2;
+                voodoo->texture_size  = 2;
+                break;
+
+            default:
+                voodoo->type         = VOODOO_1;
+                voodoo->board_id     = 0;
+                voodoo->fb_size      = 2;
+                voodoo->texture_size = 2;
+                memory_size          = 4;
+                break;
+        }
+
+        /*
+         * Make the corrected values visible to the rest of the
+         * device configuration system as well.
+         */
+        device_set_config_int("type", voodoo->type);
+        device_set_config_int("board_id", voodoo->board_id);
+        device_set_config_int("memory_size", memory_size);
+
+        voodoo->texture_mask =
+            (voodoo->texture_size << 20) - 1;
+
+        voodoo->fb_mask =
+            (voodoo->fb_size << 20) - 1;
+    }
+
+    switch (voodoo->type) {
+        case VOODOO_1:
+            voodoo->dual_tmus = 0;
+            break;
+
+        case VOODOO_SB50:
+            voodoo->dual_tmus = 1;
+            break;
+
+        case VOODOO_2:
+            voodoo->dual_tmus = 1;
+            break;
+
+        default:
+            voodoo->dual_tmus = 0;
+            break;
+    }
+
+    if (voodoo->type == VOODOO_2)
         voodoo_generate_filter_v2(voodoo);
     else
         voodoo_generate_filter_v1(voodoo);
 
-    pci_add_card(PCI_ADD_NORMAL, voodoo_pci_read, voodoo_pci_write, voodoo, &voodoo->pci_slot);
+    pci_add_card(PCI_ADD_NORMAL,
+                 voodoo_pci_read,
+                 voodoo_pci_write,
+                 voodoo,
+                 &voodoo->pci_slot);
 
-    mem_mapping_add(&voodoo->mapping, 0, 0, NULL, voodoo_readw, voodoo_readl, NULL, voodoo_writew, voodoo_writel, NULL, MEM_MAPPING_EXTERNAL, voodoo);
+    mem_mapping_add(&voodoo->mapping,
+                    0,
+                    0,
+                    NULL,
+                    voodoo_readw,
+                    voodoo_readl,
+                    NULL,
+                    voodoo_writew,
+                    voodoo_writel,
+                    NULL,
+                    MEM_MAPPING_EXTERNAL,
+                    voodoo);
 
-    voodoo->fb_mem     = calloc(1, 4 * 1024 * 1024);
-    voodoo->tex_mem[0] = calloc(1, voodoo->texture_size * 1024 * 1024);
+    voodoo->fb_mem =
+        calloc(1, 4 * 1024 * 1024);
+
+    voodoo->tex_mem[0] =
+        calloc(1, voodoo->texture_size * 1024 * 1024);
+
     if (voodoo->dual_tmus)
-        voodoo->tex_mem[1] = calloc(1, voodoo->texture_size * 1024 * 1024);
-    voodoo->tex_mem_w[0] = (uint16_t *) voodoo->tex_mem[0];
-    voodoo->tex_mem_w[1] = (uint16_t *) voodoo->tex_mem[1];
+        voodoo->tex_mem[1] =
+            calloc(1, voodoo->texture_size * 1024 * 1024);
+
+    voodoo->tex_mem_w[0] =
+        (uint16_t *) voodoo->tex_mem[0];
+
+    voodoo->tex_mem_w[1] =
+        (uint16_t *) voodoo->tex_mem[1];
 
     for (c = 0; c < TEX_CACHE_MAX; c++) {
-        voodoo->texture_cache[0][c].data     = calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
-        voodoo->texture_cache[0][c].base     = -1; /*invalid*/
+        voodoo->texture_cache[0][c].data =
+            calloc(1,
+                   (256 * 256 +
+                    256 * 256 +
+                    128 * 128 +
+                    64 * 64 +
+                    32 * 32 +
+                    16 * 16 +
+                    8 * 8 +
+                    4 * 4 +
+                    2 * 2) * 4);
+
+        voodoo->texture_cache[0][c].base     = -1;
         voodoo->texture_cache[0][c].refcount = 0;
+
         if (voodoo->dual_tmus) {
-            voodoo->texture_cache[1][c].data     = calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
-            voodoo->texture_cache[1][c].base     = -1; /*invalid*/
+            voodoo->texture_cache[1][c].data =
+                calloc(1,
+                       (256 * 256 +
+                        256 * 256 +
+                        128 * 128 +
+                        64 * 64 +
+                        32 * 32 +
+                        16 * 16 +
+                        8 * 8 +
+                        4 * 4 +
+                        2 * 2) * 4);
+
+            voodoo->texture_cache[1][c].base     = -1;
             voodoo->texture_cache[1][c].refcount = 0;
         }
     }
 
-    timer_add(&voodoo->timer, voodoo_callback, voodoo, 1);
+    timer_add(&voodoo->timer,
+              voodoo_callback,
+              voodoo,
+              1);
 
     voodoo->svga     = svga_get_pri();
     voodoo->fbiInit0 = 0;
 
-    voodoo->wake_fifo_thread         = thread_create_event();
-    voodoo->wake_render_thread[0]    = thread_create_event();
-    voodoo->wake_render_thread[1]    = thread_create_event();
-    voodoo->wake_render_thread[2]    = thread_create_event();
-    voodoo->wake_render_thread[3]    = thread_create_event();
-    voodoo->wake_main_thread         = thread_create_event();
-    voodoo->fifo_not_full_event      = thread_create_event();
-    voodoo->fifo_empty_event         = thread_create_event();
+    voodoo->wake_fifo_thread      = thread_create_event();
+    voodoo->wake_render_thread[0] = thread_create_event();
+    voodoo->wake_render_thread[1] = thread_create_event();
+    voodoo->wake_render_thread[2] = thread_create_event();
+    voodoo->wake_render_thread[3] = thread_create_event();
+    voodoo->wake_main_thread      = thread_create_event();
+    voodoo->fifo_not_full_event   = thread_create_event();
+    voodoo->fifo_empty_event      = thread_create_event();
+
     thread_set_event(voodoo->fifo_empty_event);
     ATOMIC_STORE(voodoo->fifo_empty_signaled, 1);
+
     voodoo->render_not_full_event[0] = thread_create_event();
     voodoo->render_not_full_event[1] = thread_create_event();
     voodoo->render_not_full_event[2] = thread_create_event();
     voodoo->render_not_full_event[3] = thread_create_event();
-    voodoo->fifo_thread_run          = 1;
-    voodoo->fifo_thread              = thread_create(voodoo_fifo_thread, voodoo);
-    voodoo->render_thread_run[0]     = 1;
-    voodoo->render_thread[0]         = thread_create(voodoo_render_thread_1, voodoo);
+
+    voodoo->fifo_thread_run = 1;
+    voodoo->fifo_thread =
+        thread_create(voodoo_fifo_thread, voodoo);
+
+    voodoo->render_thread_run[0] = 1;
+    voodoo->render_thread[0] =
+        thread_create(voodoo_render_thread_1, voodoo);
+
     if (voodoo->render_threads >= 2) {
         voodoo->render_thread_run[1] = 1;
-        voodoo->render_thread[1]     = thread_create(voodoo_render_thread_2, voodoo);
+        voodoo->render_thread[1] =
+            thread_create(voodoo_render_thread_2, voodoo);
     }
+
     if (voodoo->render_threads == 4) {
         voodoo->render_thread_run[2] = 1;
-        voodoo->render_thread[2]     = thread_create(voodoo_render_thread_3, voodoo);
+        voodoo->render_thread[2] =
+            thread_create(voodoo_render_thread_3, voodoo);
+
         voodoo->render_thread_run[3] = 1;
-        voodoo->render_thread[3]     = thread_create(voodoo_render_thread_4, voodoo);
+        voodoo->render_thread[3] =
+            thread_create(voodoo_render_thread_4, voodoo);
     }
+
     voodoo->swap_mutex = thread_create_mutex();
-    timer_add(&voodoo->wake_timer, voodoo_wake_timer, (void *) voodoo, 0);
+
+    timer_add(&voodoo->wake_timer,
+              voodoo_wake_timer,
+              (void *) voodoo,
+              0);
 
     for (c = 0; c < 0x100; c++) {
         rgb332[c].r = c & 0xe0;
         rgb332[c].g = (c << 3) & 0xe0;
         rgb332[c].b = (c << 6) & 0xc0;
-        rgb332[c].r = rgb332[c].r | (rgb332[c].r >> 3) | (rgb332[c].r >> 6);
-        rgb332[c].g = rgb332[c].g | (rgb332[c].g >> 3) | (rgb332[c].g >> 6);
-        rgb332[c].b = rgb332[c].b | (rgb332[c].b >> 2);
-        rgb332[c].b = rgb332[c].b | (rgb332[c].b >> 4);
+
+        rgb332[c].r |= (rgb332[c].r >> 3) |
+                       (rgb332[c].r >> 6);
+
+        rgb332[c].g |= (rgb332[c].g >> 3) |
+                       (rgb332[c].g >> 6);
+
+        rgb332[c].b |= (rgb332[c].b >> 2);
+        rgb332[c].b |= (rgb332[c].b >> 4);
+
         rgb332[c].a = 0xff;
 
-        ai44[c].a = (c & 0xf0) | ((c & 0xf0) >> 4);
-        ai44[c].r = (c & 0x0f) | ((c & 0x0f) << 4);
-        ai44[c].g = ai44[c].b = ai44[c].r;
+        ai44[c].a =
+            (c & 0xf0) | ((c & 0xf0) >> 4);
+
+        ai44[c].r =
+            (c & 0x0f) | ((c & 0x0f) << 4);
+
+        ai44[c].g =
+            ai44[c].b =
+            ai44[c].r;
     }
 
     for (c = 0; c < 0x10000; c++) {
         rgb565[c].r = (c >> 8) & 0xf8;
         rgb565[c].g = (c >> 3) & 0xfc;
         rgb565[c].b = (c << 3) & 0xf8;
-        rgb565[c].r |= (rgb565[c].r >> 5);
-        rgb565[c].g |= (rgb565[c].g >> 6);
-        rgb565[c].b |= (rgb565[c].b >> 5);
+
+        rgb565[c].r |= rgb565[c].r >> 5;
+        rgb565[c].g |= rgb565[c].g >> 6;
+        rgb565[c].b |= rgb565[c].b >> 5;
         rgb565[c].a = 0xff;
 
         argb1555[c].r = (c >> 7) & 0xf8;
         argb1555[c].g = (c >> 2) & 0xf8;
         argb1555[c].b = (c << 3) & 0xf8;
-        argb1555[c].r |= (argb1555[c].r >> 5);
-        argb1555[c].g |= (argb1555[c].g >> 5);
-        argb1555[c].b |= (argb1555[c].b >> 5);
-        argb1555[c].a = (c & 0x8000) ? 0xff : 0;
+
+        argb1555[c].r |= argb1555[c].r >> 5;
+        argb1555[c].g |= argb1555[c].g >> 5;
+        argb1555[c].b |= argb1555[c].b >> 5;
+
+        argb1555[c].a =
+            (c & 0x8000) ? 0xff : 0;
 
         argb4444[c].a = (c >> 8) & 0xf0;
         argb4444[c].r = (c >> 4) & 0xf0;
         argb4444[c].g = c & 0xf0;
         argb4444[c].b = (c << 4) & 0xf0;
-        argb4444[c].a |= (argb4444[c].a >> 4);
-        argb4444[c].r |= (argb4444[c].r >> 4);
-        argb4444[c].g |= (argb4444[c].g >> 4);
-        argb4444[c].b |= (argb4444[c].b >> 4);
 
-        ai88[c].a = (c >> 8);
+        argb4444[c].a |= argb4444[c].a >> 4;
+        argb4444[c].r |= argb4444[c].r >> 4;
+        argb4444[c].g |= argb4444[c].g >> 4;
+        argb4444[c].b |= argb4444[c].b >> 4;
+
+        ai88[c].a = c >> 8;
         ai88[c].r = c & 0xff;
         ai88[c].g = c & 0xff;
         ai88[c].b = c & 0xff;
     }
+
 #ifndef NO_CODEGEN
     voodoo_codegen_init(voodoo);
 #endif
 
-    voodoo->disp_buffer = 0;
-    voodoo->draw_buffer = 1;
+    voodoo->disp_buffer        = 0;
+    voodoo->draw_buffer        = 1;
     voodoo->queued_disp_buffer = voodoo->disp_buffer;
     voodoo->queued_draw_buffer = voodoo->draw_buffer;
     voodoo->queued_lfbMode     = voodoo->lfbMode;
     voodoo->queued_fbzMode     = voodoo->params.fbzMode;
+
     voodoo_update_queued_buffers(voodoo);
 
     voodoo->force_blit_count = 0;
@@ -1317,6 +1544,7 @@ voodoo_card_init(const device_t *info)
 
     return voodoo;
 }
+
 
 void *
 voodoo_2d3d_card_init(int type)
@@ -1325,122 +1553,210 @@ voodoo_2d3d_card_init(int type)
     voodoo_t *voodoo = calloc(1, sizeof(voodoo_t));
 
     voodoo_init_relax_settings(voodoo);
-    voodoo->bilinear_enabled  = device_get_config_int("bilinear");
-    voodoo->dithersub_enabled = device_get_config_int("dithersub");
-    voodoo->scrfilter         = device_get_config_int("dacfilter");
-    voodoo->render_threads    = device_get_config_int("render_threads");
-    voodoo->odd_even_mask     = voodoo->render_threads - 1;
+
+    voodoo->bilinear_enabled =
+        device_get_config_int("bilinear");
+
+    voodoo->dithersub_enabled =
+        device_get_config_int("dithersub");
+
+    voodoo->scrfilter =
+        device_get_config_int("dacfilter");
+
+    voodoo->render_threads =
+        device_get_config_int("render_threads");
+
+    voodoo->odd_even_mask =
+        voodoo->render_threads - 1;
+
 #ifndef NO_CODEGEN
-    voodoo->use_recompiler = device_get_config_int("recompiler");
+    voodoo->use_recompiler =
+        device_get_config_int("recompiler");
 #endif
+
     voodoo->type      = type;
     voodoo->dual_tmus = (type == VOODOO_3) ? 1 : 0;
 
-    /*generate filter lookup tables*/
     voodoo_generate_filter_v2(voodoo);
 
     for (c = 0; c < TEX_CACHE_MAX; c++) {
-        voodoo->texture_cache[0][c].data     = calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
-        voodoo->texture_cache[0][c].base     = -1; /*invalid*/
+        voodoo->texture_cache[0][c].data =
+            calloc(1,
+                   (256 * 256 +
+                    256 * 256 +
+                    128 * 128 +
+                    64 * 64 +
+                    32 * 32 +
+                    16 * 16 +
+                    8 * 8 +
+                    4 * 4 +
+                    2 * 2) * 4);
+
+        voodoo->texture_cache[0][c].base     = -1;
         voodoo->texture_cache[0][c].refcount = 0;
+
         if (voodoo->dual_tmus) {
-            voodoo->texture_cache[1][c].data     = calloc(1, (256 * 256 + 256 * 256 + 128 * 128 + 64 * 64 + 32 * 32 + 16 * 16 + 8 * 8 + 4 * 4 + 2 * 2) * 4);
-            voodoo->texture_cache[1][c].base     = -1; /*invalid*/
+            voodoo->texture_cache[1][c].data =
+                calloc(1,
+                       (256 * 256 +
+                        256 * 256 +
+                        128 * 128 +
+                        64 * 64 +
+                        32 * 32 +
+                        16 * 16 +
+                        8 * 8 +
+                        4 * 4 +
+                        2 * 2) * 4);
+
+            voodoo->texture_cache[1][c].base     = -1;
             voodoo->texture_cache[1][c].refcount = 0;
         }
     }
 
-    timer_add(&voodoo->timer, voodoo_callback, voodoo, 1);
+    timer_add(&voodoo->timer,
+              voodoo_callback,
+              voodoo,
+              1);
 
     voodoo->fbiInit0 = 0;
 
-    voodoo->wake_fifo_thread         = thread_create_event();
-    voodoo->wake_render_thread[0]    = thread_create_event();
-    voodoo->wake_render_thread[1]    = thread_create_event();
-    voodoo->wake_render_thread[2]    = thread_create_event();
-    voodoo->wake_render_thread[3]    = thread_create_event();
-    voodoo->wake_main_thread         = thread_create_event();
-    voodoo->fifo_not_full_event      = thread_create_event();
-    voodoo->fifo_empty_event         = thread_create_event();
+    voodoo->wake_fifo_thread      = thread_create_event();
+    voodoo->wake_render_thread[0] = thread_create_event();
+    voodoo->wake_render_thread[1] = thread_create_event();
+    voodoo->wake_render_thread[2] = thread_create_event();
+    voodoo->wake_render_thread[3] = thread_create_event();
+    voodoo->wake_main_thread      = thread_create_event();
+    voodoo->fifo_not_full_event   = thread_create_event();
+    voodoo->fifo_empty_event      = thread_create_event();
+
     thread_set_event(voodoo->fifo_empty_event);
     ATOMIC_STORE(voodoo->fifo_empty_signaled, 1);
-    voodoo->render_not_full_event[0] = thread_create_event();
-    voodoo->render_not_full_event[1] = thread_create_event();
-    voodoo->render_not_full_event[2] = thread_create_event();
-    voodoo->render_not_full_event[3] = thread_create_event();
-    voodoo->fifo_thread_run          = 1;
-    voodoo->fifo_thread              = thread_create(voodoo_fifo_thread, voodoo);
-    voodoo->render_thread_run[0]     = 1;
-    voodoo->render_thread[0]         = thread_create(voodoo_render_thread_1, voodoo);
+
+    voodoo->render_not_full_event[0] =
+        thread_create_event();
+
+    voodoo->render_not_full_event[1] =
+        thread_create_event();
+
+    voodoo->render_not_full_event[2] =
+        thread_create_event();
+
+    voodoo->render_not_full_event[3] =
+        thread_create_event();
+
+    voodoo->fifo_thread_run = 1;
+
+    voodoo->fifo_thread =
+        thread_create(voodoo_fifo_thread, voodoo);
+
+    voodoo->render_thread_run[0] = 1;
+
+    voodoo->render_thread[0] =
+        thread_create(voodoo_render_thread_1, voodoo);
+
     if (voodoo->render_threads >= 2) {
         voodoo->render_thread_run[1] = 1;
-        voodoo->render_thread[1]     = thread_create(voodoo_render_thread_2, voodoo);
+
+        voodoo->render_thread[1] =
+            thread_create(voodoo_render_thread_2, voodoo);
     }
+
     if (voodoo->render_threads == 4) {
         voodoo->render_thread_run[2] = 1;
-        voodoo->render_thread[2]     = thread_create(voodoo_render_thread_3, voodoo);
+
+        voodoo->render_thread[2] =
+            thread_create(voodoo_render_thread_3, voodoo);
+
         voodoo->render_thread_run[3] = 1;
-        voodoo->render_thread[3]     = thread_create(voodoo_render_thread_4, voodoo);
+
+        voodoo->render_thread[3] =
+            thread_create(voodoo_render_thread_4, voodoo);
     }
-    voodoo->swap_mutex = thread_create_mutex();
-    timer_add(&voodoo->wake_timer, voodoo_wake_timer, (void *) voodoo, 0);
+
+    voodoo->swap_mutex =
+        thread_create_mutex();
+
+    timer_add(&voodoo->wake_timer,
+              voodoo_wake_timer,
+              (void *) voodoo,
+              0);
 
     for (c = 0; c < 0x100; c++) {
         rgb332[c].r = c & 0xe0;
         rgb332[c].g = (c << 3) & 0xe0;
         rgb332[c].b = (c << 6) & 0xc0;
-        rgb332[c].r = rgb332[c].r | (rgb332[c].r >> 3) | (rgb332[c].r >> 6);
-        rgb332[c].g = rgb332[c].g | (rgb332[c].g >> 3) | (rgb332[c].g >> 6);
-        rgb332[c].b = rgb332[c].b | (rgb332[c].b >> 2);
-        rgb332[c].b = rgb332[c].b | (rgb332[c].b >> 4);
+
+        rgb332[c].r |= rgb332[c].r >> 3;
+        rgb332[c].r |= rgb332[c].r >> 6;
+
+        rgb332[c].g |= rgb332[c].g >> 3;
+        rgb332[c].g |= rgb332[c].g >> 6;
+
+        rgb332[c].b |= rgb332[c].b >> 2;
+        rgb332[c].b |= rgb332[c].b >> 4;
+
         rgb332[c].a = 0xff;
 
-        ai44[c].a = (c & 0xf0) | ((c & 0xf0) >> 4);
-        ai44[c].r = (c & 0x0f) | ((c & 0x0f) << 4);
-        ai44[c].g = ai44[c].b = ai44[c].r;
+        ai44[c].a =
+            (c & 0xf0) | ((c & 0xf0) >> 4);
+
+        ai44[c].r =
+            (c & 0x0f) | ((c & 0x0f) << 4);
+
+        ai44[c].g =
+            ai44[c].b =
+            ai44[c].r;
     }
 
     for (c = 0; c < 0x10000; c++) {
         rgb565[c].r = (c >> 8) & 0xf8;
         rgb565[c].g = (c >> 3) & 0xfc;
         rgb565[c].b = (c << 3) & 0xf8;
-        rgb565[c].r |= (rgb565[c].r >> 5);
-        rgb565[c].g |= (rgb565[c].g >> 6);
-        rgb565[c].b |= (rgb565[c].b >> 5);
+
+        rgb565[c].r |= rgb565[c].r >> 5;
+        rgb565[c].g |= rgb565[c].g >> 6;
+        rgb565[c].b |= rgb565[c].b >> 5;
+
         rgb565[c].a = 0xff;
 
         argb1555[c].r = (c >> 7) & 0xf8;
         argb1555[c].g = (c >> 2) & 0xf8;
         argb1555[c].b = (c << 3) & 0xf8;
-        argb1555[c].r |= (argb1555[c].r >> 5);
-        argb1555[c].g |= (argb1555[c].g >> 5);
-        argb1555[c].b |= (argb1555[c].b >> 5);
-        argb1555[c].a = (c & 0x8000) ? 0xff : 0;
+
+        argb1555[c].r |= argb1555[c].r >> 5;
+        argb1555[c].g |= argb1555[c].g >> 5;
+        argb1555[c].b |= argb1555[c].b >> 5;
+
+        argb1555[c].a =
+            (c & 0x8000) ? 0xff : 0;
 
         argb4444[c].a = (c >> 8) & 0xf0;
         argb4444[c].r = (c >> 4) & 0xf0;
         argb4444[c].g = c & 0xf0;
         argb4444[c].b = (c << 4) & 0xf0;
-        argb4444[c].a |= (argb4444[c].a >> 4);
-        argb4444[c].r |= (argb4444[c].r >> 4);
-        argb4444[c].g |= (argb4444[c].g >> 4);
-        argb4444[c].b |= (argb4444[c].b >> 4);
 
-        ai88[c].a = (c >> 8);
+        argb4444[c].a |= argb4444[c].a >> 4;
+        argb4444[c].r |= argb4444[c].r >> 4;
+        argb4444[c].g |= argb4444[c].g >> 4;
+        argb4444[c].b |= argb4444[c].b >> 4;
+
+        ai88[c].a = c >> 8;
         ai88[c].r = c & 0xff;
         ai88[c].g = c & 0xff;
         ai88[c].b = c & 0xff;
     }
+
 #ifndef NO_CODEGEN
     voodoo_codegen_init(voodoo);
 #endif
 
-    voodoo->disp_buffer = 0;
-    voodoo->draw_buffer = 1;
+    voodoo->disp_buffer        = 0;
+    voodoo->draw_buffer        = 1;
     voodoo->queued_disp_buffer = voodoo->disp_buffer;
     voodoo->queued_draw_buffer = voodoo->draw_buffer;
     voodoo->queued_lfbMode     = voodoo->lfbMode;
     voodoo->queued_fbzMode     = voodoo->params.fbzMode;
+
     voodoo_update_queued_buffers(voodoo);
 
     voodoo->force_blit_count = 0;
@@ -1450,30 +1766,137 @@ voodoo_2d3d_card_init(int type)
     return voodoo;
 }
 
+
 void *
 voodoo_init(const device_t *info)
 {
-    voodoo_set_t *voodoo_set    = calloc(1, sizeof(voodoo_set_t));
-    uint32_t      tmuConfig     = 1;
+    voodoo_set_t *voodoo_set = calloc(1, sizeof(voodoo_set_t));
 
-    const int     type          = (int) device_get_bios_local(info, device_get_config_bios("type"));
+    uint32_t tmuConfig = 1;
 
-    voodoo_set->nr_cards        = device_get_config_int("sli") ? 2 : 1;
+    int type;
+    int board_id;
+    int memory_size;
 
-    voodoo_set->voodoos[0]      = voodoo_card_init(info);
-    voodoo_set->voodoos[0]->set = voodoo_set;
+    type        = device_get_config_int("type");
+    board_id   = voodoo_get_board_id();
+    memory_size = device_get_config_int("memory_size");
+
+    /*
+     * BOARD MODEL IS AUTHORITATIVE.
+     *
+     * This is deliberately done before any memory or TMU
+     * configuration.
+     */
+    switch (board_id) {
+        case 4:
+            /*
+             * Diamond Monster 3D is a Voodoo Graphics board.
+             * It can NEVER become a Voodoo 2.
+             */
+            type = VOODOO_1;
+            break;
+
+        case 8:
+            /*
+             * Diamond Monster 3D II is a Voodoo 2 board.
+             * It can NEVER become a Voodoo Graphics.
+             */
+            type = VOODOO_2;
+            break;
+
+        default:
+            /*
+             * Reference board: retain the explicitly selected
+             * Voodoo type.
+             */
+            break;
+    }
+
+    /*
+     * Validate the final configuration.
+     */
+    switch (type) {
+        case VOODOO_1:
+            /*
+             * Only reference Voodoo Graphics and Monster 3D
+             * can use this generation.
+             */
+            if (board_id != 0 && board_id != 4)
+                board_id = 0;
+
+            if (memory_size != 4 &&
+                memory_size != 6 &&
+                memory_size != 8)
+                memory_size = 4;
+            break;
+
+        case VOODOO_2:
+            /*
+             * Only reference Voodoo 2 and Monster 3D II
+             * can use this generation.
+             */
+            if (board_id != 0 && board_id != 8)
+                board_id = 0;
+
+            if (memory_size != 8 &&
+                memory_size != 12)
+                memory_size = 8;
+            break;
+
+        case VOODOO_SB50:
+            /*
+             * SB50 is a separate reference design.
+             */
+            board_id = 0;
+            memory_size = 4;
+            break;
+
+        default:
+            type = VOODOO_1;
+            board_id = 0;
+
+            if (memory_size != 4 &&
+                memory_size != 6 &&
+                memory_size != 8)
+                memory_size = 4;
+            break;
+    }
+
+    /*
+     * Store the final authoritative configuration.
+     */
+    device_set_config_int("type", type);
+    device_set_config_int("memory_size", memory_size);
+
+    voodoo_set->nr_cards =
+        device_get_config_int("sli") ? 2 : 1;
+
+    voodoo_set->voodoos[0] =
+        voodoo_card_init();
+
+    voodoo_set->voodoos[0]->set =
+        voodoo_set;
 
     if (voodoo_set->nr_cards == 2) {
-        voodoo_set->voodoos[1] = voodoo_card_init(info);
+        voodoo_set->voodoos[1] =
+            voodoo_card_init();
 
-        voodoo_set->voodoos[1]->set = voodoo_set;
+        voodoo_set->voodoos[1]->set =
+            voodoo_set;
 
         if (type == VOODOO_2) {
-            voodoo_set->voodoos[0]->fbiInit5 |= FBIINIT5_MULTI_CVG;
-            voodoo_set->voodoos[1]->fbiInit5 |= FBIINIT5_MULTI_CVG;
+            voodoo_set->voodoos[0]->fbiInit5 |=
+                FBIINIT5_MULTI_CVG;
+
+            voodoo_set->voodoos[1]->fbiInit5 |=
+                FBIINIT5_MULTI_CVG;
         } else {
-            voodoo_set->voodoos[0]->fbiInit1 |= FBIINIT1_MULTI_SST;
-            voodoo_set->voodoos[1]->fbiInit1 |= FBIINIT1_MULTI_SST;
+            voodoo_set->voodoos[0]->fbiInit1 |=
+                FBIINIT1_MULTI_SST;
+
+            voodoo_set->voodoos[1]->fbiInit1 |=
+                FBIINIT1_MULTI_SST;
         }
     }
 
@@ -1484,28 +1907,55 @@ voodoo_init(const device_t *info)
             else
                 tmuConfig = 1;
             break;
+
         case VOODOO_SB50:
             if (voodoo_set->nr_cards == 2)
-                tmuConfig = 1 | (3 << 3) | (3 << 6) | (2 << 9);
+                tmuConfig =
+                    1 |
+                    (3 << 3) |
+                    (3 << 6) |
+                    (2 << 9);
             else
-                tmuConfig = 1 | (3 << 6);
+                tmuConfig =
+                    1 |
+                    (3 << 6);
             break;
+
         case VOODOO_2:
-            tmuConfig = 1 | (3 << 6);
+            tmuConfig =
+                1 |
+                (3 << 6);
             break;
 
         default:
             break;
     }
 
-    voodoo_set->voodoos[0]->tmuConfig = tmuConfig;
-    if (voodoo_set->nr_cards == 2)
-        voodoo_set->voodoos[1]->tmuConfig = tmuConfig;
+    voodoo_set->voodoos[0]->tmuConfig =
+        tmuConfig;
 
-    mem_mapping_add(&voodoo_set->snoop_mapping, 0, 0, NULL, voodoo_snoop_readw, voodoo_snoop_readl, NULL, voodoo_snoop_writew, voodoo_snoop_writel, NULL, MEM_MAPPING_EXTERNAL, voodoo_set);
+    if (voodoo_set->nr_cards == 2)
+        voodoo_set->voodoos[1]->tmuConfig =
+            tmuConfig;
+
+    mem_mapping_add(
+        &voodoo_set->snoop_mapping,
+        0,
+        0,
+        NULL,
+        voodoo_snoop_readw,
+        voodoo_snoop_readl,
+        NULL,
+        voodoo_snoop_writew,
+        voodoo_snoop_writel,
+        NULL,
+        MEM_MAPPING_EXTERNAL,
+        voodoo_set
+    );
 
     return voodoo_set;
 }
+
 
 void
 voodoo_card_close(voodoo_t *voodoo)
@@ -1513,22 +1963,27 @@ voodoo_card_close(voodoo_t *voodoo)
     voodoo->fifo_thread_run = 0;
     thread_set_event(voodoo->wake_fifo_thread);
     thread_wait(voodoo->fifo_thread);
+
     voodoo->render_thread_run[0] = 0;
     thread_set_event(voodoo->wake_render_thread[0]);
     thread_wait(voodoo->render_thread[0]);
+
     if (voodoo->render_threads >= 2) {
         voodoo->render_thread_run[1] = 0;
         thread_set_event(voodoo->wake_render_thread[1]);
         thread_wait(voodoo->render_thread[1]);
     }
+
     if (voodoo->render_threads == 4) {
         voodoo->render_thread_run[2] = 0;
         thread_set_event(voodoo->wake_render_thread[2]);
         thread_wait(voodoo->render_thread[2]);
+
         voodoo->render_thread_run[3] = 0;
         thread_set_event(voodoo->wake_render_thread[3]);
         thread_wait(voodoo->render_thread[3]);
     }
+
     thread_destroy_event(voodoo->fifo_not_full_event);
     thread_destroy_event(voodoo->fifo_empty_event);
     thread_destroy_event(voodoo->wake_main_thread);
@@ -1538,60 +1993,87 @@ voodoo_card_close(voodoo_t *voodoo)
     thread_destroy_event(voodoo->render_not_full_event[0]);
     thread_destroy_event(voodoo->render_not_full_event[1]);
 
-    if (voodoo->wait_stats_enabled && voodoo->wait_stats_explicit) {
-        pclog("Voodoo wait stats (type=%d): fifo_full waits=%" PRIu64 " ticks=%" PRIu64 " spins=%" PRIu64
-              ", fifo_empty waits=%" PRIu64 " ticks=%" PRIu64 " spins=%" PRIu64
-              ", render_wait waits=%" PRIu64 " ticks=%" PRIu64 " spins=%" PRIu64
-              ", readl fb=%" PRIu64 " sync=%" PRIu64 " nosync=%" PRIu64 " relaxed=%" PRIu64 " relax=%d full=%d nocmdfifo=%d nodraw=%d nowrites=%d frontsync=%d"
-              " sync_buf f=%" PRIu64 " b=%" PRIu64 " a=%" PRIu64
-              " nosync_buf f=%" PRIu64 " b=%" PRIu64 " a=%" PRIu64
-              " relaxed_buf f=%" PRIu64 " b=%" PRIu64 " a=%" PRIu64
-              " reg=%" PRIu64 " tex=%" PRIu64 "\n",
-              voodoo->type,
-              voodoo->fifo_full_waits,
-              voodoo->fifo_full_wait_ticks,
-              voodoo->fifo_full_spin_checks,
-              voodoo->fifo_empty_waits,
-              voodoo->fifo_empty_wait_ticks,
-              voodoo->fifo_empty_spin_checks,
-              voodoo->render_waits,
-              voodoo->render_wait_ticks,
-              voodoo->render_wait_spin_checks,
-              voodoo->readl_fb_count,
-              voodoo->readl_fb_sync_count,
-              voodoo->readl_fb_nosync_count,
-              voodoo->readl_fb_relaxed_count,
-              voodoo->lfb_relax_enabled,
-              voodoo->lfb_relax_full,
-              voodoo->lfb_relax_ignore_cmdfifo,
-              voodoo->lfb_relax_ignore_draw,
-              voodoo->lfb_relax_ignore_fb_writes,
-              voodoo->lfb_relax_front_sync,
-              voodoo->readl_fb_sync_buf[0],
-              voodoo->readl_fb_sync_buf[1],
-              voodoo->readl_fb_sync_buf[2],
-              voodoo->readl_fb_nosync_buf[0],
-              voodoo->readl_fb_nosync_buf[1],
-              voodoo->readl_fb_nosync_buf[2],
-              voodoo->readl_fb_relaxed_buf[0],
-              voodoo->readl_fb_relaxed_buf[1],
-              voodoo->readl_fb_relaxed_buf[2],
-              voodoo->readl_reg_count,
-              voodoo->readl_tex_count);
+    if (voodoo->wait_stats_enabled &&
+        voodoo->wait_stats_explicit) {
+        pclog(
+            "Voodoo wait stats (type=%d): "
+            "fifo_full waits=%" PRIu64
+            " ticks=%" PRIu64
+            " spins=%" PRIu64
+            ", fifo_empty waits=%" PRIu64
+            " ticks=%" PRIu64
+            " spins=%" PRIu64
+            ", render_wait waits=%" PRIu64
+            " ticks=%" PRIu64
+            " spins=%" PRIu64
+            ", readl fb=%" PRIu64
+            " sync=%" PRIu64
+            " nosync=%" PRIu64
+            " relaxed=%" PRIu64
+            " relax=%d full=%d nocmdfifo=%d nodraw=%d "
+            "nowrites=%d frontsync=%d"
+            " sync_buf f=%" PRIu64
+            " b=%" PRIu64
+            " a=%" PRIu64
+            " nosync_buf f=%" PRIu64
+            " b=%" PRIu64
+            " a=%" PRIu64
+            " relaxed_buf f=%" PRIu64
+            " b=%" PRIu64
+            " a=%" PRIu64
+            " reg=%" PRIu64
+            " tex=%" PRIu64 "\n",
+            voodoo->type,
+            voodoo->fifo_full_waits,
+            voodoo->fifo_full_wait_ticks,
+            voodoo->fifo_full_spin_checks,
+            voodoo->fifo_empty_waits,
+            voodoo->fifo_empty_wait_ticks,
+            voodoo->fifo_empty_spin_checks,
+            voodoo->render_waits,
+            voodoo->render_wait_ticks,
+            voodoo->render_wait_spin_checks,
+            voodoo->readl_fb_count,
+            voodoo->readl_fb_sync_count,
+            voodoo->readl_fb_nosync_count,
+            voodoo->readl_fb_relaxed_count,
+            voodoo->lfb_relax_enabled,
+            voodoo->lfb_relax_full,
+            voodoo->lfb_relax_ignore_cmdfifo,
+            voodoo->lfb_relax_ignore_draw,
+            voodoo->lfb_relax_ignore_fb_writes,
+            voodoo->lfb_relax_front_sync,
+            voodoo->readl_fb_sync_buf[0],
+            voodoo->readl_fb_sync_buf[1],
+            voodoo->readl_fb_sync_buf[2],
+            voodoo->readl_fb_nosync_buf[0],
+            voodoo->readl_fb_nosync_buf[1],
+            voodoo->readl_fb_nosync_buf[2],
+            voodoo->readl_fb_relaxed_buf[0],
+            voodoo->readl_fb_relaxed_buf[1],
+            voodoo->readl_fb_relaxed_buf[2],
+            voodoo->readl_reg_count,
+            voodoo->readl_tex_count);
     }
 
     for (uint8_t c = 0; c < TEX_CACHE_MAX; c++) {
         if (voodoo->dual_tmus)
             free(voodoo->texture_cache[1][c].data);
+
         free(voodoo->texture_cache[0][c].data);
     }
+
 #ifndef NO_CODEGEN
     voodoo_codegen_close(voodoo);
 #endif
-    if (voodoo->type < VOODOO_BANSHEE && voodoo->fb_mem) {
+
+    if (voodoo->type < VOODOO_BANSHEE &&
+        voodoo->fb_mem) {
         free(voodoo->fb_mem);
+
         if (voodoo->dual_tmus)
             free(voodoo->tex_mem[1]);
+
         free(voodoo->tex_mem[0]);
     }
 
@@ -1600,92 +2082,133 @@ voodoo_card_close(voodoo_t *voodoo)
     free(voodoo);
 }
 
+
 void
 voodoo_close(void *priv)
 {
-    voodoo_set_t *voodoo_set = (voodoo_set_t *) priv;
+    voodoo_set_t *voodoo_set =
+        (voodoo_set_t *) priv;
 
     if (voodoo_set->nr_cards == 2)
         voodoo_card_close(voodoo_set->voodoos[1]);
+
     voodoo_card_close(voodoo_set->voodoos[0]);
 
     free(voodoo_set);
 }
 
+
 static const device_config_t voodoo_config[] = {
-  // clang-format off
+    // clang-format off
+
     {
         .name           = "type",
         .description    = "Voodoo type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = VOODOO_1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            {
+                .description = "3Dfx Voodoo Graphics",
+                .value = VOODOO_1
+            },
+            {
+                .description = "Obsidian SB50 + Amethyst (2 TMUs)",
+                .value = VOODOO_SB50
+            },
+            {
+                .description = "3Dfx Voodoo 2",
+                .value = VOODOO_2
+            },
+            {
+                .description = ""
+            }
+        },
+        .bios = { { 0 } }
+    },
+
+    {
+        .name           = "board_id",
+        .description    = "Board model",
         .type           = CONFIG_BIOS,
-        .default_string = "voodoo",
+        .default_string = "3dfx_reference",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "3Dfx Voodoo Graphics",
-                .internal_name = "voodoo",
+                .name          = "3Dfx reference board",
+                .internal_name = "3dfx_reference",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
-                .local         = VOODOO_1,
+                .local         = 0,
                 .size          = 0,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
-                .files         = { "" }
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 4 | (8 << 16)
             },
             {
-                .name          = "Obsidian SB50 + Amethyst (2 TMUs)",
-                .internal_name = "obsidian_sb50",
+                .name          = "Diamond Monster 3D",
+                .internal_name = "diamond_monster_3d",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
-                .local         = VOODOO_SB50,
+                .local         = 4,
                 .size          = 0,
-                .flags         = 0,
-                .files         = { "" }
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 4 | (4 << 16)
             },
             {
-                .name          = "3Dfx Voodoo 2",
-                .internal_name = "voodoo_2",
+                .name          = "Diamond Monster 3D II",
+                .internal_name = "diamond_monster_3d_ii",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
-                .local         = VOODOO_2,
+                .local         = 8,
                 .size          = 0,
-                .flags         = BIOS_LIMIT_MIN_MEMORY | 4,
-                .files         = { "" }
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 8 | (12 << 16)
             },
-            { .files_no = 0 }
-        },
+            {
+                .name          = "",
+                .internal_name = ""
+            }
+        }
     },
+
     {
-        .name           = "framebuffer_memory",
-        .description    = "Framebuffer memory size",
+        .name           = "memory_size",
+        .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 2,
+        .default_int    = 4,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
+            {
+                .description =
+                    "4 MB (2 MB framebuffer + 2 MB texture)",
+                .value = 4
+            },
+            {
+                .description =
+                    "6 MB (2 MB framebuffer + 4 MB texture)",
+                .value = 6
+            },
+            {
+                .description =
+                    "8 MB (4 MB framebuffer + 4 MB texture)",
+                .value = 8
+            },
+            {
+                .description =
+                    "12 MB (4 MB framebuffer + 4 MB per TMU)",
+                .value = 12
+            },
+            {
+                .description = ""
+            }
         },
-        .bios           = { { 0 } }
+        .bios = { { 0 } }
     },
-    {
-        .name           = "texture_memory",
-        .description    = "Texture memory size",
-        .type           = CONFIG_SELECTION,
-        .default_string = NULL,
-        .default_int    = 2,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = {
-            { .description = "2 MB", .value = 2 },
-            { .description = "4 MB", .value = 4 },
-            { .description = ""                 }
-        },
-        .bios           = { { 0 } }
-    },
+
     {
         .name           = "bilinear",
         .description    = "Bilinear filtering",
@@ -1695,8 +2218,9 @@ static const device_config_t voodoo_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
-        .bios           = { { 0 } }
+        .bios = { { 0 } }
     },
+
     {
         .name           = "dithersub",
         .description    = "Dither subtraction",
@@ -1706,8 +2230,9 @@ static const device_config_t voodoo_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
-        .bios           = { { 0 } }
+        .bios = { { 0 } }
     },
+
     {
         .name           = "dacfilter",
         .description    = "Screen Filter",
@@ -1717,8 +2242,9 @@ static const device_config_t voodoo_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
-        .bios           = { { 0 } }
+        .bios = { { 0 } }
     },
+
     {
         .name           = "render_threads",
         .description    = "Render threads",
@@ -1728,13 +2254,25 @@ static const device_config_t voodoo_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "1", .value = 1 },
-            { .description = "2", .value = 2 },
-            { .description = "4", .value = 4 },
-            { .description = ""              }
+            {
+                .description = "1",
+                .value = 1
+            },
+            {
+                .description = "2",
+                .value = 2
+            },
+            {
+                .description = "4",
+                .value = 4
+            },
+            {
+                .description = ""
+            }
         },
-        .bios           = { { 0 } }
+        .bios = { { 0 } }
     },
+
     {
         .name           = "sli",
         .description    = "SLI",
@@ -1744,8 +2282,9 @@ static const device_config_t voodoo_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
-        .bios           = { { 0 } }
+        .bios = { { 0 } }
     },
+
 #ifndef NO_CODEGEN
     {
         .name           = "recompiler",
@@ -1756,12 +2295,19 @@ static const device_config_t voodoo_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
-        .bios           = { { 0 } }
+        .bios = { { 0 } }
     },
 #endif
-    { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+
+    {
+        .name = "",
+        .description = "",
+        .type = CONFIG_END
+    }
+
+    // clang-format on
 };
+
 
 const device_t voodoo_device = {
     .name          = "3Dfx Voodoo Graphics",
