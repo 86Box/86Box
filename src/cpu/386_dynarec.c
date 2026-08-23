@@ -1132,10 +1132,16 @@ inboard_post_fixups(void)
        initialized by anything earlier in boot, so the CPU walks off into the raw IVT
        table as code until it coincidentally hits a real CALL FAR into segment 650B -
        legitimate code, but reached with completely bogus calling context, causing erratic
-       wild jumping. Pre-initializes the vector to a harmless one-byte IRET stub so INT 68h
-       becomes a no-op instead. Stub lives at IVT slot 0xF0's own 4-byte vector-table entry
-       (physical 0x3C0) - INT 0F0h is unused this early in a real-mode DOS/Windows 95 boot
-       on non-AT hardware, so borrowing its 1 byte of table space as scratch code is safe.
+       wild jumping. Pre-initializes the vector to point at an IRET, so INT 68h becomes a
+       harmless no-op instead.
+
+       Points at the BIOS's own IRET at F000:FF53, as suggested by Michal Necasek in review
+       of this PR, rather than writing a 0xCF stub into IVT slot 0xF0's vector-table entry
+       (physical 0x3C0) and pointing there. Verified: the byte at file offset 0x7F53 of the
+       U18/F800 chip is 0xCF (IRET) in both 1986 ROM revisions, 09MAY86 and 10JAN86, which
+       are the only BIOSes this machine accepts. Strictly better - no injected code, and no
+       assumption that INT 0F0h is unused this early in boot.
+
        Fires the moment CS first becomes 0x0EAF (empirically confirmed reliable trigger -
        firing earlier, e.g. at the very first instruction of boot, gets clobbered by
        ordinary BIOS POST/DOS kernel low-memory init before INT 68h is ever reached). */
@@ -1143,11 +1149,11 @@ inboard_post_fixups(void)
         static int patchint68_done = 0;
         if (!patchint68_done && (CS == 0x0EAF)) {
             patchint68_done = 1;
-            mem_writeb_phys(0x3C0, 0xCF); /* IRET, borrowed from INT F0h's vector slot */
-            mem_writeb_phys(0x1A0, 0xC0); /* INT 68h vector offset lo  = 0x03C0 */
-            mem_writeb_phys(0x1A1, 0x03); /* INT 68h vector offset hi */
-            mem_writeb_phys(0x1A2, 0x00); /* INT 68h vector segment lo = 0x0000 */
-            mem_writeb_phys(0x1A3, 0x00); /* INT 68h vector segment hi */
+            /* Point INT 68h at the BIOS's own IRET at F000:FF53. No stub is injected. */
+            mem_writeb_phys(0x1A0, 0x53); /* INT 68h vector offset lo  = 0xFF53 */
+            mem_writeb_phys(0x1A1, 0xFF); /* INT 68h vector offset hi */
+            mem_writeb_phys(0x1A2, 0x00); /* INT 68h vector segment lo = 0xF000 */
+            mem_writeb_phys(0x1A3, 0xF0); /* INT 68h vector segment hi */
         }
     }
 
