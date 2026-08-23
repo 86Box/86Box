@@ -1758,47 +1758,6 @@ x86illegal(void)
     x86_int(6);
 }
 
-int
-checkio(uint32_t port, int mask)
-{
-    uint32_t t;
-
-    if (!(tr.access & 0x08)) {
-        if ((CPL) > (IOPL))
-            return 1;
-
-        return 0;
-    }
-
-    cpl_override = 1;
-    t            = readmemw(tr.base, 0x66);
-
-    if (UNLIKELY(cpu_state.abrt)) {
-        cpl_override = 0;
-        return 0;
-    }
-
-    t += (port >> 3UL);
-
-    /* The 80386 truncates the I/O bitmap byte offset to 16 bits.  In
-       particular, an I/O map base of FFFFh wraps accesses to low TSS
-       offsets.  IBM's 386 planar diagnostics explicitly exercise this
-       behavior.  Later CPUs use the full intermediate offset. */
-    if ((cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_386DX))
-        t &= 0xffff;
-
-    mask <<= (port & 7);
-    if (UNLIKELY(mask & 0xff00)) {
-        if (LIKELY(t < tr.limit))
-            mask &= readmemwl(tr.base + t);
-    } else {
-        if (LIKELY(t <= tr.limit))
-            mask &= readmembl(tr.base + t);
-    }
-    cpl_override = 0;
-    return mask;
-}
-
 #ifdef OLD_DIVEXCP
 #    define divexcp()                                                                       \
         {                                                                                   \

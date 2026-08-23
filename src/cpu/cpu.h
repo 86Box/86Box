@@ -716,7 +716,7 @@ extern void cpu_CPUID(void);
 extern void cpu_RDMSR(void);
 extern void cpu_WRMSR(void);
 
-extern int  checkio(uint32_t port, int mask);
+// extern int  checkio(uint32_t port, int mask);
 extern void codegen_block_end(void);
 extern void codegen_reset(void);
 extern void cpu_set_edx(void);
