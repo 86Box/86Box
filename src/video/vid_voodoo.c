@@ -579,13 +579,13 @@ voodoo_readl(uint32_t addr, void *priv)
                 break;
 
             case SST_fbiInit5:
-                temp = voodoo->fbiInit5 & ~0x1ff;
+                temp = (voodoo->fbiInit5 & ~0x1ff) | ((voodoo->board_id & 0xf) << 5);
                 break;
             case SST_fbiInit6:
                 temp = voodoo->fbiInit6;
                 break;
             case SST_fbiInit7:
-                temp = voodoo->fbiInit7 & ~0xff;
+                temp = (voodoo->fbiInit7 & ~0xff) | ((voodoo->board_id >> 4) & 1);
                 break;
 
             case SST_cmdFifoBaseAddr:
@@ -1174,7 +1174,9 @@ voodoo_card_init(const device_t *info)
 #ifndef NO_CODEGEN
     voodoo->use_recompiler = device_get_config_int("recompiler");
 #endif
-    voodoo->type = (int) device_get_bios_local(info, device_get_config_bios("type"));
+    int type         = (int) device_get_bios_local(info, device_get_config_bios("type"));
+    voodoo->type     = type & 0x0f;
+    voodoo->board_id = ((type >> 4) & 0x0f);
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;
@@ -1456,7 +1458,7 @@ voodoo_init(const device_t *info)
     voodoo_set_t *voodoo_set    = calloc(1, sizeof(voodoo_set_t));
     uint32_t      tmuConfig     = 1;
 
-    const int     type          = (int) device_get_bios_local(info, device_get_config_bios("type"));
+    const int     type          = (int) device_get_bios_local(info, device_get_config_bios("type")) & 0x0f;
 
     voodoo_set->nr_cards        = device_get_config_int("sli") ? 2 : 1;
 
@@ -1628,7 +1630,17 @@ static const device_config_t voodoo_config[] = {
                 .internal_name = "voodoo",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
-                .local         = VOODOO_1,
+                .local         = VOODOO_1 | (VOODOO_GENERIC << 10),
+                .size          = 0,
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
+                .files         = { "" }
+            },
+            {
+                .name          = "Diamond Monster 3D",
+                .internal_name = "diamond_monster_3d",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = -1,
+                .local         = VOODOO_1 | (VOODOO_DIAMOND_MONSTER_3D << 10),
                 .size          = 0,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { "" }
@@ -1638,7 +1650,7 @@ static const device_config_t voodoo_config[] = {
                 .internal_name = "obsidian_sb50",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
-                .local         = VOODOO_SB50,
+                .local         = VOODOO_SB50 | (VOODOO_GENERIC << 10),
                 .size          = 0,
                 .flags         = 0,
                 .files         = { "" }
@@ -1648,7 +1660,17 @@ static const device_config_t voodoo_config[] = {
                 .internal_name = "voodoo_2",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
-                .local         = VOODOO_2,
+                .local         = VOODOO_2 | (VOODOO_GENERIC << 10),
+                .size          = 0,
+                .flags         = BIOS_LIMIT_MIN_MEMORY | 4,
+                .files         = { "" }
+            },
+            {
+                .name          = "Diamond Monster 3D II",
+                .internal_name = "diamond_monster_3d_2",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = -1,
+                .local         = VOODOO_2 | (VOODOO_DIAMOND_MONSTER_3D_2 << 10),
                 .size          = 0,
                 .flags         = BIOS_LIMIT_MIN_MEMORY | 4,
                 .files         = { "" }
