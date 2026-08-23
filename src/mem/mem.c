@@ -1595,11 +1595,13 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     int      cond = 1;
     uint32_t last_addr = addr + (num - 1);
     uint64_t a         = 0x0000000000000000ULL;
+
+    for (i = 0; i < num; i++) {
+        a64[i] = (uint64_t) (addr + i);
 #ifdef USE_DEBUG_REGS_486
-    mem_debug_check_addr(addr, write ? 2 : read_type);
+        mem_debug_check_addr(addr + i, write ? 2 : read_type);
 #endif
-    for (i = 0; i < num; i++)
-        a64[i] = (uint64_t) addr;
+    }
 
     if (cr0 >> 31)  for (i = 0; i < num; i++) {
         if (write && ((i == 0) || !(addr & 0xfff)))
@@ -1621,7 +1623,7 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
                 a      = mmutranslatereal(last_addr, write);
                 a64[i] = (uint32_t) a;
 
-                high_page = high_page || (!cpu_state.abrt && (a64[i] > 0xffffffffULL));
+                high_page = high_page || (!cpu_state.abrt && (a > 0xffffffffULL));
 
                 if (!cpu_state.abrt) {
                     a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));

@@ -258,6 +258,9 @@ exec386_2386(int32_t cycs)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+            if (inboard386_present)
+                inboard_post_fixups();
+
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
             ol = opcode_length[fetchdat & 0xff];
             if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))

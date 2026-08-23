@@ -274,10 +274,8 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     if (fxinst == 1) {
         /* FXRSTOR */
-        cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
-        fpus           = readmemw(easeg, cpu_state.eaaddr + 2);
-        cpu_state.npxc = (cpu_state.npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
-        codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);
+        fpus = readmemw(easeg, cpu_state.eaaddr + 2);
+        x87_set_control_word((readmemw(easeg, cpu_state.eaaddr) & ~FPU_CW_Reserved_Bits) | 0x0040);
         cpu_state.TOP = (fpus >> 11) & 7;
         /* Restore the full status word, like FRSTOR does (the previous AND-in
            dropped status bits the guest had set). */

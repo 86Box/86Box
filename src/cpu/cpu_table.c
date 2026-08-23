@@ -2062,6 +2062,36 @@ const cpu_family_t cpu_families[] = {
                 .atclk_div          = 9
             },
             {
+                /* Added for the Intel Inboard 386/PC project's real, physically-modded card:
+                   crystal changed 32MHz->40MHz, but CHECKCPU/CHECKit measure the resulting real
+                   speed at ~83.5MHz (25508 Dhrystones), noticeably above the theoretical
+                   60MHz-stock * 1.25-crystal-ratio = 75MHz the existing "75" entry represents.
+                   Using the measured, real-hardware figure rather than the theoretical one.
+                   mem/cache cycle counts linearly interpolated between the existing 75/100
+                   entries - their precision is secondary here, since the Inboard device itself
+                   (src/device/inboard386.c) overrides the actual consumed CPU-core timing
+                   variables directly for this specific machine. Was present in the codebase this
+                   project's Inboard PR (#7626) was built from, but src/cpu/cpu_table.c was not
+                   part of that PR's file list, so this entry never reached upstream - without it,
+                   requesting 83.5MHz silently rounds up to the "100" step's different (and
+                   untuned, for this CPU) timing constants. */
+                .name               = "83.5",
+                .cpu_type           = CPU_IBM486BL,
+                .fpus               = fpus_80386,
+                .rspeed             = 83500000,
+                .multi              = 3,
+                .voltage            = 5000,
+                .edx_reset          = 0x8439,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 14,
+                .mem_write_cycles   = 14,
+                .cache_read_cycles  = 9,
+                .cache_write_cycles = 9,
+                .atclk_div          = 10
+            },
+            {
                 .name               = "100",
                 .cpu_type           = CPU_IBM486BL,
                 .fpus               = fpus_80386,
