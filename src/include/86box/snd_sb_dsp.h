@@ -174,6 +174,7 @@ typedef struct sb_dsp_t {
     uint8_t  ess_extended_mode;
     uint8_t  ess_reload_len;
     uint32_t ess_dma_counter;
+    uint8_t  ess_input_gain;
 
     /* IRQ status flags (0x22C) */
     uint8_t  ess_irq_generic;
