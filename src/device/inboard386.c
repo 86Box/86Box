@@ -43,6 +43,12 @@
 #define INBOARD_CRYSTAL_20MHZ 1
 #define INBOARD_CRYSTAL_CUSTOM 2
 
+/* Non-zero only while an Inboard 386/PC card is actually present in the machine.
+   The POST fix-ups in the CPU interpreter loops (inboard_post_fixups(), 386_dynarec.c)
+   are gated on this, so on every other machine they cost one predictable, correctly
+   branch-predicted test per instruction and can never alter behaviour. */
+int inboard386_present = 0;
+
 typedef struct inboard386_t {
     uint8_t is_xt;             /* XT-style (port 0xA0/0x60) vs AT-style (port 0x674) card */
     uint8_t speed;             /* Raw value written to port 0x670 (bits 4-1 = waitstates/2, bit 0 = cache enable) */
@@ -103,7 +109,21 @@ inboard386_apply_waitstates(inboard386_t *dev)
        chipset-specific memory timing. Covers memory bus cycles only -
        see inboard386_apply_io_waitstates() below for the I/O-port side,
        which real ISA-bus hardware paces independently of CPU speed. */
-    cpu_waitstates = value ? (value + 1) : 0;
+    /* Deliberately do NOT hand `value` to 86Box's own cpu_waitstates knob.
+       cpu_update_waitstates() (cpu.c) only honours cpu_waitstates for
+       "cpu_type >= CPU_286 && cpu_type <= CPU_386DX", so doing so would apply
+       the wait states on 386-class CPUs while being silently ignored on the
+       486BL/486DLC-class ones - and inboard386_apply_mem_timing() below already
+       overrides the actually-consumed variables (cpu_cycles_read/write/prefetch)
+       directly, with proper bus-speed-ratio scaling, for EVERY CPU type. Setting
+       cpu_waitstates as well therefore double-throttles memory access on exactly
+       the 386DX/386SX parts this card was really used with (compounding with
+       io_waitstates/reg_op_waitstates/cpu_rom_prefetch_cycles), which made those
+       CPU choices unusably slow - POST completes, then the machine crawls and
+       never visibly finishes booting. Keep it zeroed so there is exactly one
+       memory-timing mechanism in play regardless of the selected CPU. */
+    cpu_waitstates = 0;
+    (void) value;
 
     /* CONFIRMED DEAD FOR OUR REAL TARGET CPU (2026-07-24): cpu_waitstates above is 86Box's
        existing knob, but cpu_update_waitstates() (cpu.c ~line 4523) only consults it when
@@ -597,6 +617,8 @@ inboard386_init(const device_t *info)
 
     dev->is_xt = (info->local & 1) ? 0 : 1; /* local=0 -> XT variant, local=1 -> AT variant */
 
+    inboard386_present = 1;
+
     dev->bios_shadow_ram   = (uint8_t *) calloc(1, 0x10000); /* 64KB - system BIOS shadow window only */
     dev->bios_rom_snapshot = (uint8_t *) calloc(1, 0x10000);
 
@@ -735,6 +757,8 @@ static void
 inboard386_close(void *priv)
 {
     inboard386_t *dev = (inboard386_t *) priv;
+
+    inboard386_present = 0;
 
     if (dev->is_xt)
         pic_set_force_xt_imr_timing(0);
