@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-18 07:22+0000\n"
+"PO-Revision-Date: 2026-08-25 17:06+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -482,16 +482,16 @@ msgid "&Mouse"
 msgstr "鼠标(&M)"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "触控板："
 
 msgid "Tablet"
-msgstr ""
+msgstr "触控板"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "触控板(&T)"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "触控板（十字光标）(&C)"
 
 msgid "Joystick:"
 msgstr "操纵杆:"
@@ -3480,4 +3480,4 @@ msgid "CGA lightpen"
 msgstr "CGA光笔"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "亮度阈值（%）"
