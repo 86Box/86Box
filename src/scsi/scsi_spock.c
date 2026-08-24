@@ -178,24 +178,35 @@ typedef struct {
 #define ENABLE_PT                   (1 << 12)
 
 #define CMD_MASK                    0xff3f
-#define CMD_ASSIGN                  0x040e
-#define CMD_DEVICE_INQUIRY          0x1c0b
-#define CMD_DMA_PACING_CONTROL      0x040d
-#define CMD_FEATURE_CONTROL         0x040c
-#define CMD_GET_POS_INFO            0x1c0a
-#define CMD_INVALID_412             0x0412
-#define CMD_GET_COMPLETE_STATUS     0x1c07
-#define CMD_FORMAT_UNIT             0x1c16
-#define CMD_READ_DATA               0x1c01
-#define CMD_READ_DEVICE_CAPACITY    0x1c09
-#define CMD_REQUEST_SENSE           0x1c08
 #define CMD_RESET                   0x0400
-#define CMD_SEND_OTHER_SCSI         0x241f
-#define CMD_UNKNOWN_1C10            0x1c10
-#define CMD_UNKNOWN_1C11            0x1c11
+#define CMD_READ_DATA               0x1c01
 #define CMD_WRITE_DATA              0x1c02
 #define CMD_VERIFY                  0x1c03
 #define CMD_WRITE_VERIFY            0x1c04
+#define CMD_GET_COMPLETE_STATUS     0x1c07
+#define CMD_REQUEST_SENSE           0x1c08
+#define CMD_READ_DEVICE_CAPACITY    0x1c09
+#define CMD_GET_POS_INFO            0x1c0a
+#define CMD_DEVICE_INQUIRY          0x1c0b
+#define CMD_FEATURE_CONTROL         0x040c
+#define CMD_DMA_PACING_CONTROL      0x040d
+#define CMD_ASSIGN                  0x040e
+#define CMD_ABORT                   0x040f
+#define CMD_WRITE_BUFFER_TEST       0x1c10
+#define CMD_READ_BUFFER_TEST        0x1c11
+#define CMD_RUN_DIAG_TEST           0x0412
+#define CMD_RUN_SELF_TEST           0x0413
+#define CMD_GET_DIAG_BLOCK          0x1c14
+#define CMD_FORMAT_UNIT             0x1c16
+#define CMD_FORMAT_PREPARE          0x0417
+#define CMD_REASSIGN_BLOCK          0x1c18
+#define CMD_COPY_DATA               0x1e19
+#define CMD_SET_MAX_LBA             0x1c1a
+#define CMD_READ_LOCAL_RAM          0x1c1c
+#define CMD_WRITE_LOCAL_RAM         0x1c1d
+#define CMD_SEND_OTHER_SCSI         0x241f
+#define CMD_SET_TARGET_MODE         0x1c20
+#define CMD_READ_PREFETCH           0x1c31
 
 #define IRQ_TYPE_NONE               0x0
 #define IRQ_TYPE_SCB_COMPLETE       0x1
@@ -497,8 +508,8 @@ spock_process_imm_cmd(spock_t *scsi)
             spock_log("Feature control: timeout=%is d-rate=%i\n", (scsi->command >> 16) & 0x1fff, scsi->command >> 29);
             spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
             break;
-        case CMD_INVALID_412:
-            spock_log("Invalid 412.\n");
+        case CMD_RUN_DIAG_TEST:
+            spock_log("Run diagnostic test.\n");
             spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
             break;
         case CMD_RESET:
@@ -633,14 +644,14 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                         }
                         break;
 
-                    case CMD_UNKNOWN_1C10:
-                        spock_log("Unknown 1C10\n");
+                    case CMD_WRITE_BUFFER_TEST:
+                        spock_log("Write attachment buffer test.\n");
                         dma_bm_read(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count, 2);
                         scsi->scb_state = 3;
                         break;
 
-                    case CMD_UNKNOWN_1C11:
-                        spock_log("Unknown 1C11\n");
+                    case CMD_READ_BUFFER_TEST:
+                        spock_log("Read attachment buffer test.\n");
                         dma_bm_write(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count, 2);
                         scsi->scb_state = 3;
                         break;
@@ -1070,7 +1081,7 @@ spock_callback(void *priv)
                         case CMD_ASSIGN:
                         case CMD_DMA_PACING_CONTROL:
                         case CMD_FEATURE_CONTROL:
-                        case CMD_INVALID_412:
+                        case CMD_RUN_DIAG_TEST:
                         case CMD_RESET:
                             spock_process_imm_cmd(scsi);
                             break;
