@@ -49,6 +49,11 @@
    branch-predicted test per instruction and can never alter behaviour. */
 int inboard386_present = 0;
 
+/* Physical address the card's own driver writes its ROM-shadow copy to. Fixed in the
+   hardware's memory controller, NOT derived from installed RAM - see the long note at the
+   alias mapping in inboard386_init() below. */
+#define INBOARD_SHADOW_ALIAS 0x5f0000
+
 typedef struct inboard386_t {
     uint8_t is_xt;             /* XT-style (port 0xA0/0x60) vs AT-style (port 0x674) card */
     uint8_t speed;             /* Raw value written to port 0x670 (bits 4-1 = waitstates/2, bit 0 = cache enable) */
@@ -58,7 +63,7 @@ typedef struct inboard386_t {
     uint8_t rom_shadow_enabled;/* BIOS ROM shadowed into fast RAM vs read directly from slow ROM */
 
     mem_mapping_t bios_shadow_mapping;
-    mem_mapping_t bios_shadow_alias_mapping; /* High alias at (0xF0000 + mem_size*1KB) - see
+    mem_mapping_t bios_shadow_alias_mapping; /* High alias at INBOARD_SHADOW_ALIAS - see
                                            inboard386_init() for why this exists: real hardware's
                                            shadow-RAM self-patch writes through this alias, not
                                            through 0xF0000 directly. */
@@ -693,18 +698,31 @@ inboard386_init(const device_t *info)
        so writes (which always target bios_shadow_ram) are never gated off. */
     mem_mapping_enable(&dev->bios_shadow_mapping);
 
-    /* High alias: real hardware's own shadow-write mechanism targets (0xF0000 + total
-       configured RAM), bank-aliased by the card's memory controller back into 0xF0000-FFFFF
-       for real-mode reads - see the live-traced evidence above. mem_size is in KB (86Box
-       convention, confirmed against this project's own 86box.cfg `mem_size = 5120` matching
-       the traced 0x500000-byte offset exactly).
+    /* High alias: real hardware's own shadow-write mechanism targets a fixed physical
+       address, bank-aliased by the card's memory controller back into 0xF0000-FFFFF for
+       real-mode reads - see the live-traced evidence above.
+
+       This was previously computed as (0xF0000 + mem_size * 1024), a formula fitted to a
+       single live trace taken at mem_size = 5120, where it happens to evaluate to 0x5F0000.
+       The driver's target is that constant, so the formula was right at exactly one board
+       size and wrong at every other - which is the "ROM BIOS shadow RAM failed" message
+       reported in #7638. Al Williams' contemporary driver for this card hard-codes the same
+       number: MINBRDPC.ASM has `inbrd_romram equ 5f0h  ; high speed ram to replace the pc's
+       [ROM]`, documented there as a starting physical bank number, and 0x5F0 * 4 KB =
+       0x5F0000.
+
+       Verified with stock INBRDPC.SYS at every board size the driver accepts:
+
+         mem_size   1024   2688   3072   4096   5120
+         before      -     fail   fail   fail   pass   <- passed only where the formula coincided
+         after      pass   pass   pass   pass   pass
        NOTE: flags=0, not MEM_MAPPING_INTERNAL - see the low mapping's own comment above for why
        (mem_mapping_access_allowed() in mem.c only honors MEM_MAPPING_INTERNAL-flagged mappings
        on pages some other code already marked ACCESS_INTERNAL, which this high, above-installed-
        RAM address never is). Confirmed live: with MEM_MAPPING_INTERNAL here, every write to this
        range silently landed nowhere (read back as 0xFF, 86Box's "no mapping at all" default)
        regardless of mem_mapping_enable() being re-asserted every reset. */
-    mem_mapping_add(&dev->bios_shadow_alias_mapping, 0xf0000 + ((uint32_t) mem_size * 1024), 0x10000,
+    mem_mapping_add(&dev->bios_shadow_alias_mapping, INBOARD_SHADOW_ALIAS, 0x10000,
                      inboard386_bios_shadow_read, NULL, NULL,
                      inboard386_bios_shadow_write, NULL, NULL,
                      dev->bios_shadow_ram, 0, dev);
