@@ -80,6 +80,8 @@ typedef struct inboard386_t {
     uint8_t rom_shadow_enabled;/* BIOS ROM shadowed into fast RAM vs read directly from slow ROM */
 
     mem_mapping_t bios_shadow_mapping;
+    mem_mapping_t ram_a31_alias_mapping; /* The card does not decode A31 - see the long
+                                           note at the mapping in inboard386_init(). */
     mem_mapping_t video_shadow_alias_mapping; /* Second half of the card's 128 KB reserved
                                            block, at INBOARD_VIDEO_SHADOW_ALIAS. Plain RAM -
                                            see the #define above for why it must exist. */
@@ -467,6 +469,48 @@ inboard386_apply_rom_shadow(UNUSED(inboard386_t *dev))
    version's fix (pre-populating bios_shadow_ram with a real ROM copy at init) was
    necessary but insufficient - the shadow RAM self-test still failed, because it's not
    simply asking "does a read return ROM content" - see the read/write split below. */
+/* A31 is not decoded by the card, so an access up at 0x80000000+ folds straight back
+   onto its own RAM. 86Box's stock mem_read_ram()/mem_write_ram() cannot be used for this:
+   they index ram[addr] with the ABSOLUTE address, which runs off the end of the array and
+   takes the emulator down with an access violation. These mask A31 off instead. The
+   mapping's exec pointer needs no such help - mem_mapping_recalc() already computes
+   _mem_exec[] as map->exec + (addr - map->base), which is the folded offset. */
+static uint8_t
+inboard386_ram_a31_read(uint32_t addr, UNUSED(void *priv))
+{
+    return ram[addr & 0x7fffffff];
+}
+
+static uint16_t
+inboard386_ram_a31_readw(uint32_t addr, UNUSED(void *priv))
+{
+    return *(uint16_t *) &ram[addr & 0x7fffffff];
+}
+
+static uint32_t
+inboard386_ram_a31_readl(uint32_t addr, UNUSED(void *priv))
+{
+    return *(uint32_t *) &ram[addr & 0x7fffffff];
+}
+
+static void
+inboard386_ram_a31_write(uint32_t addr, uint8_t val, UNUSED(void *priv))
+{
+    ram[addr & 0x7fffffff] = val;
+}
+
+static void
+inboard386_ram_a31_writew(uint32_t addr, uint16_t val, UNUSED(void *priv))
+{
+    *(uint16_t *) &ram[addr & 0x7fffffff] = val;
+}
+
+static void
+inboard386_ram_a31_writel(uint32_t addr, uint32_t val, UNUSED(void *priv))
+{
+    *(uint32_t *) &ram[addr & 0x7fffffff] = val;
+}
+
 /* The video/EGA half of the reserved block. Straight RAM in both directions - the driver's
    memory diagnostic writes a pattern here and reads it back, and with no mapping at all it
    read 0xFF and the block was marked bad. */
@@ -482,6 +526,16 @@ inboard386_video_shadow_write(uint32_t addr, uint8_t val, void *priv)
 {
     inboard386_t *dev = (inboard386_t *) priv;
     dev->video_shadow_ram[addr & 0xffff] = val;
+}
+
+/* HIGH window only: plain RAM read of the SHARED bios_shadow_ram - it must be the same
+   storage as the low 0xF0000 view ("Write RAM, Read=PCI/ROM" above), but unlike that view
+   it is not ROM-steered, so the driver's diagnostic can read back what it wrote. */
+static uint8_t
+inboard386_bios_alias_read(uint32_t addr, void *priv)
+{
+    const inboard386_t *dev = (inboard386_t *) priv;
+    return dev->bios_shadow_ram[addr & 0xffff];
 }
 
 static uint8_t
@@ -765,7 +819,7 @@ inboard386_init(const device_t *info)
        range silently landed nowhere (read back as 0xFF, 86Box's "no mapping at all" default)
        regardless of mem_mapping_enable() being re-asserted every reset. */
     mem_mapping_add(&dev->bios_shadow_alias_mapping, INBOARD_SHADOW_ALIAS, 0x10000,
-                     inboard386_bios_shadow_read, NULL, NULL,
+                     inboard386_bios_alias_read, NULL, NULL,
                      inboard386_bios_shadow_write, NULL, NULL,
                      dev->bios_shadow_ram, 0, dev);
     mem_mapping_enable(&dev->bios_shadow_alias_mapping);
@@ -779,6 +833,29 @@ inboard386_init(const device_t *info)
                      inboard386_video_shadow_write, NULL, NULL,
                      dev->video_shadow_ram, 0, dev);
     mem_mapping_enable(&dev->video_shadow_alias_mapping);
+
+    /* The card does not decode A31, so anything at 0x80000000+ aliases straight back down
+       onto its own RAM. This is not a guess: stock INBRDPC.SYS loads
+
+           MOV CR3 <- 802EC000        (cr0=7FFFFFF1, i.e. PG still clear)
+
+       and then enables paging. Strip bit 31 and that is 0x002EC000 - comfortably inside a
+       3 MB board. The driver is asking for a page directory in its own RAM; only a machine
+       that decodes all 32 address lines would fail to find it.
+
+       Without this the page-directory read lands in unbacked memory, mem.c's rammap()
+       scratch page returns 0xFFFFFFFF - present bit SET, frame 0xFFFFF000 - so the walk
+       "succeeds" into nothing and the guest takes a page fault, then a double fault, then
+       a triple fault and resets a few seconds after the driver loads. Observed as
+       `vec=0E cr2=00019EB0 cr3=802EC000`.
+
+       Sized to installed RAM so it cannot shadow anything else, and added last so it does
+       not take precedence over the reserved-block windows above. */
+    mem_mapping_add(&dev->ram_a31_alias_mapping, 0x80000000, (uint32_t) mem_size * 1024,
+                     inboard386_ram_a31_read, inboard386_ram_a31_readw, inboard386_ram_a31_readl,
+                     inboard386_ram_a31_write, inboard386_ram_a31_writew, inboard386_ram_a31_writel,
+                     ram, 0, NULL);
+    mem_mapping_enable(&dev->ram_a31_alias_mapping);
 
     if (dev->is_xt) {
         io_sethandler(0x0060, 1, NULL, NULL, NULL, inboard386_write_60, NULL, NULL, dev);
