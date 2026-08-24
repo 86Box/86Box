@@ -568,7 +568,7 @@ static const device_config_t zida6dxp_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.02",
+                .name          = "AwardBIOS v4.51PG - Revision 1.02",
                 .internal_name = "6dxp102",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -577,7 +577,7 @@ static const device_config_t zida6dxp_config[] = {
                 .files         = { "roms/machines/6dxp/6dxp102e.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.1",
+                .name          = "AwardBIOS v4.51PG - Revision 1.1",
                 .internal_name = "6dxp",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

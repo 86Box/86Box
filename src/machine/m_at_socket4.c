@@ -171,7 +171,7 @@ static const device_config_t p5mp3_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.50 - Revision 0205",
+                .name          = "AwardBIOS v4.50 - Revision 0205",
                 .internal_name = "p5mp3",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -180,7 +180,7 @@ static const device_config_t p5mp3_config[] = {
                 .files         = { "roms/machines/p5mp3/0205.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51G - Revision 0402 (Beta)",
+                .name          = "AwardBIOS v4.51G - Revision 0402 (Beta)",
                 .internal_name = "p5mp3_0402",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -584,7 +584,7 @@ static const device_config_t pci58pl_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.50G - Revision D1-ZZ",
+                .name          = "AwardBIOS v4.50G - Revision D1-ZZ",
                 .internal_name = "pci58pl_d1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -593,7 +593,7 @@ static const device_config_t pci58pl_config[] = {
                 .files         = { "roms/machines/pci58pl/586-014914716.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.50G - Revision D2-ZZ",
+                .name          = "AwardBIOS v4.50G - Revision D2-ZZ",
                 .internal_name = "pci58pl",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

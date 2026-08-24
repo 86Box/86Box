@@ -913,7 +913,7 @@ static const device_config_t p5vxb_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.50PG - Revision 1.0",
+                .name          = "AwardBIOS v4.50PG - Revision 1.0",
                 .internal_name = "p5vxb",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -922,7 +922,7 @@ static const device_config_t p5vxb_config[] = {
                 .files         = { "roms/machines/p5vxb/P5VXB10.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.5c",
+                .name          = "AwardBIOS v4.51PG - Revision 1.5c",
                 .internal_name = "p5vxb_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1222,7 +1222,7 @@ static const device_config_t pb810_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.00 (AST Bravo EL)",
+                .name          = "AwardBIOS v4.51PG - Revision 3.00 (AST Bravo EL)",
                 .internal_name = "pb810_ast300",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1231,7 +1231,7 @@ static const device_config_t pb810_config[] = {
                 .files         = { "roms/machines/pb810/JEWEL.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.03 (AST Bravo EL)",
+                .name          = "AwardBIOS v4.51PG - Revision 3.03 (AST Bravo EL)",
                 .internal_name = "pb810_ast",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1240,7 +1240,7 @@ static const device_config_t pb810_config[] = {
                 .files         = { "roms/machines/pb810/2a59gjew.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.25I (Packard Bell PB810)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.25I (Packard Bell PB810)",
                 .internal_name = "pb810",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1461,7 +1461,7 @@ static const device_config_t txp4x_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 0108el",
+                .name          = "AwardBIOS v4.51PG - Revision 0108el",
                 .internal_name = "txp4x_aw0108",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1470,7 +1470,7 @@ static const device_config_t txp4x_config[] = {
                 .files         = { "roms/machines/txp4x/XE5L0108.AWD", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 0112el-1 (Patched)",
+                .name          = "AwardBIOS v4.51PG - Revision 0112el-1 (Patched)",
                 .internal_name = "txp4x",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1793,7 +1793,7 @@ static const device_config_t ms5156_config[] = {
                 .files         = { "roms/machines/ms5156/A556C313.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.5",
+                .name          = "AwardBIOS v4.51PG - Revision 1.5",
                 .internal_name = "ms5156w",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1802,7 +1802,7 @@ static const device_config_t ms5156_config[] = {
                 .files         = { "roms/machines/ms5156/W556MS15.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.6B1 (ACPI Beta)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.6B1 (ACPI Beta)",
                 .internal_name = "ms5156wab",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2317,7 +2317,7 @@ static const device_config_t ms5146_config[] = {
                 .files         = { "roms/machines/ms5146/A546MS11.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.1",
+                .name          = "AwardBIOS v4.51PG - Revision 2.1",
                 .internal_name = "ms5146_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2391,7 +2391,7 @@ static const device_config_t r534f_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 06/12/1998",
+                .name          = "AwardBIOS v4.51PG - Revision 06/12/1998",
                 .internal_name = "r534f_1998",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2400,7 +2400,7 @@ static const device_config_t r534f_config[] = {
                 .files         = { "roms/machines/r534f/r534f008-1998.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 03/13/2000 (by Unicore Software)",
+                .name          = "AwardBIOS v4.51PG - Revision 03/13/2000 (by Unicore Software)",
                 .internal_name = "r534f",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2561,7 +2561,7 @@ static const device_config_t m5ata_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 12/23/97",
+                .name          = "AwardBIOS v4.51PG - Revision 12/23/97",
                 .internal_name = "m5ata_1223",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2570,7 +2570,7 @@ static const device_config_t m5ata_config[] = {
                 .files         = { "roms/machines/m5ata/ATA1223.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 05/27/98",
+                .name          = "AwardBIOS v4.51PG - Revision 05/27/98",
                 .internal_name = "m5ata",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
