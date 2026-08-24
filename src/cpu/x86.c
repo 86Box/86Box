@@ -82,6 +82,18 @@ int fpu_cycles = 0;
 
 int in_lock = 0;
 
+uint16_t temp_CS =     0x0000;
+uint16_t fpu_CS  =     0x0000;
+uint32_t temp_cs = 0x00000000;
+uint32_t fpu_cs  = 0x00000000;
+uint32_t temp_pc = 0x00000000;
+uint32_t fpu_pc  = 0x00000000;
+
+uint16_t fpu_op  =     0x0000;
+uint16_t fpu_DS  =     0x0000;
+uint32_t fpu_ds  = 0x00000000;
+uint32_t fpu_ea  = 0x00000000;
+
 #ifdef ENABLE_X86_LOG
 #if 0
 void dumpregs(int);

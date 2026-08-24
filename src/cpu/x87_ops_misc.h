@@ -244,12 +244,17 @@ FSAVE(void)
     cpu_state.npxs = (cpu_state.npxs & ~(7 << 11)) | ((cpu_state.TOP & 7) << 11);
 
     switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
-        case 0x000: /*16-bit real mode*/
+        case 0x000: {
+            /*16-bit real mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 6, x87_pc_off);
-            writememw(easeg, cpu_state.eaaddr + 10, x87_op_off);
+            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            writememw(easeg, cpu_state.eaaddr + 6, linear_pc & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 8, (((linear_pc >> 16) & 0x0f) << 12) | fpu_op);
+            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememw(easeg, cpu_state.eaaddr + 10, linear_ea & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 12, ((linear_ea >> 16) & 0x0f) << 12);
             cpu_state.eaaddr += 14;
             if (cpu_state.ismmx) {
                 x87_stmmx(cpu_state.MM[0]);
@@ -285,14 +290,14 @@ FSAVE(void)
                 x87_st_fsave(7);
             }
             break;
-        case 0x001: /*16-bit protected mode*/
+        } case 0x001: /*16-bit protected mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 6, x87_pc_off);
-            writememw(easeg, cpu_state.eaaddr + 8, x87_pc_seg);
-            writememw(easeg, cpu_state.eaaddr + 10, x87_op_off);
-            writememw(easeg, cpu_state.eaaddr + 12, x87_op_seg);
+            writememw(easeg, cpu_state.eaaddr + 6, fpu_pc & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 8, fpu_CS);
+            writememw(easeg, cpu_state.eaaddr + 10, fpu_ea & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 12, fpu_DS);
             cpu_state.eaaddr += 14;
             if (cpu_state.ismmx) {
                 x87_stmmx(cpu_state.MM[0]);
@@ -328,13 +333,17 @@ FSAVE(void)
                 x87_st_fsave(7);
             }
             break;
-        case 0x100: /*32-bit real mode*/
+        case 0x100: {
+            /*32-bit real mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 12, x87_pc_off);
-            writememw(easeg, cpu_state.eaaddr + 20, x87_op_off);
-            writememl(easeg, cpu_state.eaaddr + 24, (x87_op_off >> 16) << 12);
+            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            writememw(easeg, cpu_state.eaaddr + 12, linear_pc & 0xffff);
+            writememl(easeg, cpu_state.eaaddr + 16, (((linear_pc >> 16) & 0xffff) << 12) | fpu_op);
+            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememw(easeg, cpu_state.eaaddr + 20, linear_ea & 0xffff);
+            writememl(easeg, cpu_state.eaaddr + 24, ((linear_ea >> 16) & 0xffff) << 12);
             cpu_state.eaaddr += 28;
             if (cpu_state.ismmx) {
                 x87_stmmx(cpu_state.MM[0]);
@@ -370,14 +379,14 @@ FSAVE(void)
                 x87_st_fsave(7);
             }
             break;
-        case 0x101: /*32-bit protected mode*/
+        } case 0x101: /*32-bit protected mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            writememl(easeg, cpu_state.eaaddr + 12, x87_pc_off);
-            writememl(easeg, cpu_state.eaaddr + 16, x87_pc_seg);
-            writememl(easeg, cpu_state.eaaddr + 20, x87_op_off);
-            writememl(easeg, cpu_state.eaaddr + 24, x87_op_seg);
+            writememl(easeg, cpu_state.eaaddr + 12, fpu_pc);
+            writememl(easeg, cpu_state.eaaddr + 16, fpu_CS | (fpu_op << 16));
+            writememl(easeg, cpu_state.eaaddr + 20, fpu_ea);
+            writememl(easeg, cpu_state.eaaddr + 24, fpu_DS);
             cpu_state.eaaddr += 28;
             if (cpu_state.ismmx) {
                 x87_stmmx(cpu_state.MM[0]);
@@ -1069,38 +1078,47 @@ FSTENV(void)
     cpu_state.npxs = (cpu_state.npxs & ~(7 << 11)) | ((cpu_state.TOP & 7) << 11);
 
     switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
-        case 0x000: /*16-bit real mode*/
+        case 0x000: {
+            /*16-bit real mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 6, x87_pc_off);
-            writememw(easeg, cpu_state.eaaddr + 10, x87_op_off);
+            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            writememw(easeg, cpu_state.eaaddr + 6, linear_pc & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 8, (((linear_pc >> 16) & 0x0f) << 12) | fpu_op);
+            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememw(easeg, cpu_state.eaaddr + 10, linear_ea & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 12, ((linear_ea >> 16) & 0x0f) << 12);
             break;
-        case 0x001: /*16-bit protected mode*/
+        } case 0x001: /*16-bit protected mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 6, x87_pc_off);
-            writememw(easeg, cpu_state.eaaddr + 8, x87_pc_seg);
-            writememw(easeg, cpu_state.eaaddr + 10, x87_op_off);
-            writememw(easeg, cpu_state.eaaddr + 12, x87_op_seg);
+            writememw(easeg, cpu_state.eaaddr + 6, fpu_pc & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 8, fpu_CS);
+            writememw(easeg, cpu_state.eaaddr + 10, fpu_ea & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 12, fpu_DS);
             break;
-        case 0x100: /*32-bit real mode*/
+        case 0x100: {
+            /*32-bit real mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 12, x87_pc_off);
-            writememw(easeg, cpu_state.eaaddr + 20, x87_op_off);
-            writememl(easeg, cpu_state.eaaddr + 24, (x87_op_off >> 16) << 12);
+            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            writememw(easeg, cpu_state.eaaddr + 12, linear_pc & 0xffff);
+            writememl(easeg, cpu_state.eaaddr + 16, (((linear_pc >> 16) & 0xffff) << 12) | fpu_op);
+            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememw(easeg, cpu_state.eaaddr + 20, linear_ea & 0xffff);
+            writememl(easeg, cpu_state.eaaddr + 24, ((linear_ea >> 16) & 0xffff) << 12);
             break;
-        case 0x101: /*32-bit protected mode*/
+        } case 0x101: /*32-bit protected mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            writememl(easeg, cpu_state.eaaddr + 12, x87_pc_off);
-            writememl(easeg, cpu_state.eaaddr + 16, x87_pc_seg);
-            writememl(easeg, cpu_state.eaaddr + 20, x87_op_off);
-            writememl(easeg, cpu_state.eaaddr + 24, x87_op_seg);
+            writememl(easeg, cpu_state.eaaddr + 12, fpu_pc);
+            writememl(easeg, cpu_state.eaaddr + 16, fpu_CS | (fpu_op << 16));
+            writememl(easeg, cpu_state.eaaddr + 20, fpu_ea);
+            writememl(easeg, cpu_state.eaaddr + 24, fpu_DS);
             break;
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fstenv) : (x87_timings.fstenv * cpu_multi));

@@ -339,6 +339,11 @@ exec386_dynarec_int(void)
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
 
+        /* Temp variables for FPU exception reporting. */
+        temp_CS = CS;
+        temp_cs = cs;
+        temp_pc = cpu_state.pc;
+
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
         if (in_smm)
@@ -646,6 +651,11 @@ exec386_dynarec_dyn(void)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+            /* Temp variables for FPU exception reporting. */
+            temp_CS = CS;
+            temp_cs = cs;
+            temp_pc = cpu_state.pc;
+
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
             if (in_smm)
@@ -747,6 +757,12 @@ exec386_dynarec_dyn(void)
             cpu_state.ssegs  = 0;
 
             codegen_endpc = (cs + cpu_state.pc) + 8;
+
+            /* Temp variables for FPU exception reporting. */
+            temp_CS = CS;
+            temp_cs = cs;
+            temp_pc = cpu_state.pc;
+
             fetchdat      = fastreadl_fetch(cs + cpu_state.pc);
 
 #    ifdef ENABLE_386_DYNAREC_LOG
@@ -1219,6 +1235,11 @@ exec386(int32_t cycs)
                 goto block_ended;
             }
 #endif
+
+            /* Temp variables for FPU exception reporting. */
+            temp_CS = CS;
+            temp_cs = cs;
+            temp_pc = cpu_state.pc;
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 
