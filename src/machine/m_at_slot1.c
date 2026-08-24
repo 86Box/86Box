@@ -325,7 +325,7 @@ static const device_config_t lx6_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision LY",
+                .name          = "AwardBIOS v4.51PG - Revision LY",
                 .internal_name = "lx6",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
@@ -334,7 +334,7 @@ static const device_config_t lx6_config[] = {
                 .files         = { "roms/machines/lx6/LX6C_LY.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision PZ (Beta)",
+                .name          = "AwardBIOS v4.51PG - Revision PZ (Beta)",
                 .internal_name = "lx6_pz",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
@@ -514,7 +514,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/A617C410.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.2",
+                .name          = "AwardBIOS v4.51PG - Revision 3.2",
                 .internal_name = "ms6117w",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -523,7 +523,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/W617MS32.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.2 [Patched for larger drives]",
+                .name          = "AwardBIOS v4.51PG - Revision 3.2 [Patched for larger drives]",
                 .internal_name = "ms6117wp",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -532,7 +532,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/611732x_patched.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
                 .internal_name = "ms6117wfs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -541,7 +541,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/AWARD 1.04 .BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.02 (LG IBM Multinet x7E)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.02 (LG IBM Multinet x7E)",
                 .internal_name = "ms6117wlg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -550,7 +550,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/BIOS.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.5 (Viglen Vig67M)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.5 (Viglen Vig67M)",
                 .internal_name = "ms6117wvi",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -864,7 +864,7 @@ static const device_config_t be6ii_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 70",
+                .name          = "AwardBIOS v6.00PG - Revision 70",
                 .internal_name = "be6ii_70",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -873,7 +873,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/Beh_70.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision NP",
+                .name          = "AwardBIOS v6.00PG - Revision NP",
                 .internal_name = "be6ii_np",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -882,7 +882,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_NP.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision NY",
+                .name          = "AwardBIOS v6.00PG - Revision NY",
                 .internal_name = "be6ii_ny",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -891,7 +891,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_NY.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision NZ",
+                .name          = "AwardBIOS v6.00PG - Revision NZ",
                 .internal_name = "be6ii_nz",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -900,7 +900,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_NZ.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision PO",
+                .name          = "AwardBIOS v6.00PG - Revision PO",
                 .internal_name = "be6ii_po",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -909,7 +909,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_PO.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision QJ",
+                .name          = "AwardBIOS v6.00PG - Revision QJ",
                 .internal_name = "be6ii_qj",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -918,7 +918,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_QJ.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision RV",
+                .name          = "AwardBIOS v6.00PG - Revision RV",
                 .internal_name = "be6ii_rv",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -927,7 +927,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_RV.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision SH",
+                .name          = "AwardBIOS v6.00PG - Revision SH",
                 .internal_name = "be6ii_sh",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -936,7 +936,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_SH.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision UH",
+                .name          = "AwardBIOS v6.00PG - Revision UH",
                 .internal_name = "be6ii_uh",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -945,7 +945,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/BEH_UH.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision VN",
+                .name          = "AwardBIOS v6.00PG - Revision VN",
                 .internal_name = "be6ii_vn",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -954,7 +954,7 @@ static const device_config_t be6ii_config[] = {
                 .files         = { "roms/machines/be6ii/beh_vn.Bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision XU",
+                .name          = "AwardBIOS v6.00PG - Revision XU",
                 .internal_name = "be6ii_xu",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1039,7 +1039,7 @@ static const device_config_t bx6_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision EG",
+                .name          = "AwardBIOS v4.51PG - Revision EG",
                 .internal_name = "bx6",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1048,7 +1048,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_EG.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision CW",
+                .name          = "AwardBIOS v4.51PG - Revision CW",
                 .internal_name = "bx6_CW",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1057,7 +1057,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_CW.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision GQ",
+                .name          = "AwardBIOS v4.51PG - Revision GQ",
                 .internal_name = "bx6_GQ",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1066,7 +1066,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_GQ.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision JL",
+                .name          = "AwardBIOS v4.51PG - Revision JL",
                 .internal_name = "bx6_JL",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1075,7 +1075,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_JL.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision QS",
+                .name          = "AwardBIOS v4.51PG - Revision QS",
                 .internal_name = "bx6_qs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1227,7 +1227,7 @@ static const device_config_t ax6bc_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PGM - Revision R1.10",
+                .name          = "AwardBIOS v4.51PGM - Revision R1.10",
                 .internal_name = "ax6bc_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1236,7 +1236,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc110.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.20 (RM Accelerator 350P2XB/450P3XB)",
+                .name          = "AwardBIOS v4.60PGMA - Revision R2.20 (RM Accelerator 350P2XB/450P3XB)",
                 .internal_name = "ax6bc_rm",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1245,7 +1245,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc220.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.59",
+                .name          = "AwardBIOS v4.60PGMA - Revision R2.59",
                 .internal_name = "ax6bc",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1324,7 +1324,7 @@ static const device_config_t ga686_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 5/11/1998 (Amptron PII-3100)",
+                .name          = "AwardBIOS v4.51PG - Revision 5/11/1998 (Amptron PII-3100)",
                 .internal_name = "pii3100",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1333,7 +1333,7 @@ static const device_config_t ga686_config[] = {
                 .files         = { "roms/machines/686bx/31nologo.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision F1",
+                .name          = "AwardBIOS v4.51PG - Revision F1",
                 .internal_name = "686bx_f1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1342,7 +1342,7 @@ static const device_config_t ga686_config[] = {
                 .files         = { "roms/machines/686bx/6BX.F1", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision F2a (Beta)",
+                .name          = "AwardBIOS v4.51PG - Revision F2a (Beta)",
                 .internal_name = "686bx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1443,7 +1443,7 @@ static const device_config_t ms6119_config[] = {
                 .files         = { "roms/machines/ms6119/A19P2190.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.10",
+                .name          = "AwardBIOS v4.51PG - Revision 2.10",
                 .internal_name = "ms6119",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1452,7 +1452,7 @@ static const device_config_t ms6119_config[] = {
                 .files         = { "roms/machines/ms6119/w6119ims.2a0", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.12 (Viglen Vig69M)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.12 (Viglen Vig69M)",
                 .internal_name = "vig69m",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1461,7 +1461,7 @@ static const device_config_t ms6119_config[] = {
                 .files         = { "roms/machines/ms6119/vig69m.212", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet x7G)",
+                .name          = "AwardBIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet x7G)",
                 .internal_name = "lgibmx7g",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1538,7 +1538,7 @@ static const device_config_t ms6147_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.2 (Fujitsu ErgoPro e368)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.2 (Fujitsu ErgoPro e368)",
                 .internal_name = "ergoproe368",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1547,7 +1547,7 @@ static const device_config_t ms6147_config[] = {
                 .files         = { "roms/machines/ms6147/W647F412.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.8",
+                .name          = "AwardBIOS v4.51PG - Revision 1.8",
                 .internal_name = "ms6147",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1556,7 +1556,7 @@ static const device_config_t ms6147_config[] = {
                 .files         = { "roms/machines/ms6147/W647MS18.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.1 (Packard Bell Tempest)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.1 (Packard Bell Tempest)",
                 .internal_name = "pbtempest",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1646,7 +1646,7 @@ static const device_config_t p6sba_config[] = {
                 .files         = { "roms/machines/p6sba/SBAB21.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGA - Revision 05/07/1999 (Leadtek WinFast 8000BX)",
+                .name          = "AwardBIOS v4.60PGA - Revision 05/07/1999 (Leadtek WinFast 8000BX)",
                 .internal_name = "8000bx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1820,7 +1820,7 @@ static const device_config_t vei8_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 61100003 (beta)",
+                .name          = "AwardBIOS v6.00PG - Revision 61100003 (beta)",
                 .internal_name = "6110zu0003",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1829,7 +1829,7 @@ static const device_config_t vei8_config[] = {
                 .files         = { "roms/machines/vei8/61100003.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision R804",
+                .name          = "AwardBIOS v6.00PG - Revision R804",
                 .internal_name = "6110zu",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1838,7 +1838,7 @@ static const device_config_t vei8_config[] = {
                 .files         = { "roms/machines/vei8/r804.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision QHW.10.01 (HP Sherwood-B)",
+                .name          = "AwardBIOS v6.00PG - Revision QHW.10.01 (HP Sherwood-B)",
                 .internal_name = "vei8",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2154,7 +2154,7 @@ static const device_config_t ms6199va_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.5",
+                .name          = "AwardBIOS v4.51PG - Revision 3.5",
                 .internal_name = "ms6199va",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2163,7 +2163,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/w6199vms.350", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A)",
                 .internal_name = "ms6199va_200",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2172,7 +2172,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/W6199VC8.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A) [Patched for larger drives]",
+                .name          = "AwardBIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A) [Patched for larger drives]",
                 .internal_name = "ms6199va_200p",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2181,7 +2181,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/W6199VC8.PCD", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.7 (Packard Bell Phoenix)",
+                .name          = "AwardBIOS v4.51PG - Revision 3.7 (Packard Bell Phoenix)",
                 .internal_name = "ms6199va_370",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

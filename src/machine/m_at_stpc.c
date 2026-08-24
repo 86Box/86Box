@@ -155,7 +155,7 @@ static const device_config_t arb1479_config[] = {
                 .files         = { "roms/machines/arb1479/1479b.rom", "" }
             },
             {
-                .name          = "Phoenix - AwardBIOS v6.00PG - Revision 1.2 (AR-B1479D)",
+                .name          = "AwardBIOS v6.00PG - Revision 1.2 (AR-B1479D)",
                 .internal_name = "arb1479d12",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,

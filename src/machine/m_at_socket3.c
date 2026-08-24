@@ -264,7 +264,7 @@ static const device_config_t j403tg_config[] = {
                 .files         = { "roms/machines/403tg/J403TGRevD.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.50G",
+                .name          = "AwardBIOS v4.50G",
                 .internal_name = "403tg_award",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

@@ -18559,6 +18559,56 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
+       MultiKey/42 (version 1.38) KBC firmware. */
+    {
+        .name              = "[i430VX] BCM FM530",
+        .internal_name     = "pb810",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_INTEL_430VX,
+        .init              = machine_at_pb810_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 50000000,
+            .max_bus     = 83333333,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 4.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM,
+        /* Machine has internal video: S3 Trio64V2/DX, S3 Trio32/64/64V+ or S3 ViRGE DX/GX */
+        .ram       = {
+            .min  = 4096,
+            .max  = 131072,
+            .step = 4096
+        },
+        .nvrmask                  = 511,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &pb810_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &s3_trio64v2dx_onboard_pci_device,
+        .snd_device               = &cs4237b_device,
+        .net_device               = NULL,
+        .aliases                  = { "AST 221630-xxx", "AST Bravo EL", "Packard Bell PB810", "Packard Bell PB820", "" }
+    },
     /* [TEST] Has a VIA VT82C42N KBC. */
     {
         .name              = "[i430VX] Biostar MB-8500TVX-A",
@@ -19049,55 +19099,6 @@ const machine_t machines[] = {
         .snd_device               = NULL, /* Machine has Crystal CS4236-KQ onboard sound but it's unpopulated */
         .net_device               = NULL,
         .aliases                  = { "Packard Bell Orlando", "Packard Bell 2D", "Packard Bell 3D", "Packard Bell MMX", "Packard Bell R501", "Intel NV430VX", "Intel Orlando", "Intel Tampa", "" }
-    },
-    /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
-       MultiKey/42 (version 1.38) KBC firmware. */
-    {
-        .name              = "[i430VX] Packard Bell PB810",
-        .internal_name     = "pb810",
-        .type              = MACHINE_TYPE_SOCKET7,
-        .chipset           = MACHINE_CHIPSET_INTEL_430VX,
-        .init              = machine_at_pb810_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 50000000,
-            .max_bus     = 83333333,
-            .min_voltage = 2500,
-            .max_voltage = 3520,
-            .min_multi   = 1.5,
-            .max_multi   = 4.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM, /* Machine has internal video: S3 Trio64V2/DX */
-        .ram       = {
-            .min  = 4096,
-            .max  = 131072,
-            .step = 4096
-        },
-        .nvrmask                  = 511,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = &s3_trio64v2dx_onboard_pci_device, /* Machine has also internal video: S3 ViRGE */
-        .snd_device               = &cs4237b_device,
-        .net_device               = NULL,
-        .aliases                  = { "Packard Bell PB820", "BCM FM530", "" }
     },
     /* This has the AMIKey 'H' firmware, possibly AMIKey-2. Photos show it with a BestKey, so it
        likely clones the behavior of AMIKey 'H'. */

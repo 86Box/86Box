@@ -223,7 +223,7 @@ static const device_config_t fic4386vcv_config[] = {
                 .files         = { "roms/machines/fic4386vcv/486-4386-VC.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.20 - Revision 1.15K",
+                .name          = "AwardBIOS v4.20 - Revision 1.15K",
                 .internal_name = "fic4386vcv",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,

@@ -816,6 +816,51 @@ sb16_awe32_filter_midi(int channel, double *buffer, void *priv)
 void ess_dac2_update(void *priv);
 
 void
+sb_get_buffer_ess488(int32_t *buffer, uint16_t len, void *priv)
+{
+    sb_t              *ess   = (sb_t *) priv;
+
+    sb_dsp_update(&ess->dsp);
+
+    for (int c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
+
+        if (ess->dsp.sb_speaker)
+            out_l = out_r += (low_fir_sb16(1, (double) ess->dsp.buffer[c]) * ess->dsp.es488_voice) / 3.0;
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
+    ess->dsp.pos = 0;
+}
+
+static void
+sb_get_music_buffer_ess488(int32_t *buffer, uint16_t len, void *priv)
+{
+    const sb_t              *ess      = (const sb_t *) priv;
+    const int32_t           *opl_buf = NULL;
+
+    opl_buf = ess->opl.update(ess->opl.priv);
+
+    for (uint16_t c = 0; c < len * 2; c += 2) {
+        double out_l = 0.0;
+        double out_r = 0.0;
+
+        const double out_mono = ((double) opl_buf[c]) * 0.7171630859375;
+
+        out_l += out_mono;
+        out_r += out_mono;
+
+        buffer[c] += (int32_t) out_l;
+        buffer[c + 1] += (int32_t) out_r;
+    }
+
+    ess->opl.reset_buffer(ess->opl.priv);
+}
+
+void
 sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
 {
     sb_t              *ess   = (sb_t *) priv;
@@ -839,6 +884,9 @@ sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
         /* TODO: recording from the mixer. */
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
+
+        if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1488)
+            out_r = out_l;
 
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
@@ -890,6 +938,9 @@ sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv)
         /* TODO: recording from the mixer. */
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
+
+        if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1488)
+            out_r = out_l;
 
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
@@ -5478,6 +5529,84 @@ sb_awe32_pnp_init(const device_t *info)
 }
 
 static void *
+ess_x488_init(UNUSED(const device_t *info))
+{
+    sb_t          *ess      = calloc(sizeof(sb_t), 1);
+    const uint16_t addr     = device_get_config_hex16("base");
+
+    fm_driver_get(FM_YM3812, &ess->opl);
+
+    sb_dsp_set_real_opl(&ess->dsp, 1);
+    sb_dsp_init(&ess->dsp, SB_DSP_201, info->local ? SB_SUBTYPE_ESS_ES1488 : SB_SUBTYPE_ESS_ES488, ess);
+    sb_dsp_setaddr(&ess->dsp, addr);
+    sb_dsp_setirq(&ess->dsp, device_get_config_int("irq"));
+    sb_dsp_setdma8(&ess->dsp, device_get_config_int("dma"));
+    sb_dsp_setdma16_8(&ess->dsp, device_get_config_int("dma"));
+    sb_dsp_setdma16_supported(&ess->dsp, 0);
+
+    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1488)
+        ess_mixer_reset(ess);
+
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
+    io_sethandler(addr, 0x0002,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(addr + 8, 0x0002,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(addr + 8, 0x0002,
+                  ess_fm_midi_read, NULL, NULL,
+                  ess_fm_midi_write, NULL, NULL,
+                  ess);
+    io_sethandler(0x0388, 0x0002,
+                  ess->opl.read, NULL, NULL,
+                  ess->opl.write, NULL, NULL,
+                  ess->opl.priv);
+    io_sethandler(0x0388, 0x0002,
+                  ess_fm_midi_read, NULL, NULL,
+                  ess_fm_midi_write, NULL, NULL,
+                  ess);
+    io_sethandler(addr + 2, 0x0003,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
+    io_sethandler(addr + 6, 0x0001,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
+    io_sethandler(addr + 0x0a, 0x0006,
+                  ess_base_read, NULL, NULL,
+                  ess_base_write, NULL, NULL,
+                  ess);
+    if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1488) {
+        ess->mixer_enabled = 1;
+        ess->mixer_ess.regs[0x40] = 0x0a;
+        io_sethandler(addr + 2, 0x0002,
+                      ess_mixer_read, NULL, NULL,
+                      ess_mixer_write, NULL, NULL,
+                      ess);
+        sound_add_handler(sb_get_buffer_ess, ess);
+        music_add_handler(sb_get_music_buffer_ess, ess);
+        sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
+    } else {
+        sound_add_handler(sb_get_buffer_ess488, ess);
+        music_add_handler(sb_get_music_buffer_ess488, ess);
+    }
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+
+    if (device_get_config_int("gameport")) {
+        ess->gameport      = gameport_add(&gameport_200_device);
+        ess->gameport_addr = 0x200;
+    }
+
+    return ess;
+}
+
+static void *
 ess_x688_init(UNUSED(const device_t *info))
 {
     sb_t          *ess      = calloc(sizeof(sb_t), 1);
@@ -7721,6 +7850,81 @@ static const device_config_t sb_awe64_gold_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+static const device_config_t ess_488_config[] = {
+    {
+        .name           = "base",
+        .description    = "Address",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0x220,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "0x220", .value = 0x220 },
+            { .description = "0x230", .value = 0x230 },
+            { .description = "0x240", .value = 0x240 },
+            { .description = "0x250", .value = 0x250 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 5,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description =  "IRQ 2", .value =  2 },
+            { .description =  "IRQ 3", .value =  3 },
+            { .description =  "IRQ 5", .value =  5 },
+            { .description =  "IRQ 7", .value =  7 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dma",
+        .description    = "DMA",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "DMA 1", .value = 1 },
+            { .description = "DMA 3", .value = 3 },
+            { .description = ""                  }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Enable Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t ess_688_config[] = {
     {
         .name           = "base",
@@ -8509,6 +8713,34 @@ const device_t sb_awe64_gold_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_awe64_gold_config
+};
+
+const device_t ess_488_device = {
+    .name          = "ESS AudioDrive ES488",
+    .internal_name = "ess_es488",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = ess_x488_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = ess_488_config
+};
+
+const device_t ess_1488_device = {
+    .name          = "ESS AudioDrive ES1488",
+    .internal_name = "ess_es1488",
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = ess_x488_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = ess_488_config
 };
 
 const device_t ess_688_device = {
