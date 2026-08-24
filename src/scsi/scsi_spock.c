@@ -317,9 +317,16 @@ spock_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 4: /*Attention Register*/
-            scsi->attention_pending = val;
-            scsi->attention_wait = 2;
-            scsi->status |= STATUS_BUSY;
+            if ((val >> 4) == 0x0e) { 
+                scsi->irq_status = 0;
+                scsi->status &= ~STATUS_IRQ;
+                spock_clear_irq(scsi, val & 0x0f);
+                /*EOI - Process immediately to avoid a stale pending IRQ*/
+            } else {
+                scsi->attention_pending = val;
+                scsi->attention_wait = 2;
+                scsi->status |= STATUS_BUSY;
+            }
             break;
 
         case 5: /*Basic Control Register*/
