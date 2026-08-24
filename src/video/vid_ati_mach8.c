@@ -5684,7 +5684,28 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
 
     switch (port) {
         case 0x2e8:
-        case 0x2e9:
+            if (ATI_MACH32) {
+                if (dev->vc == svga->dispend) {
+                    if (dev->accel.advfunc_cntl & 0x04)
+                        temp |= 0x02;
+                }
+            } else {
+                if (dev->vc == dev->dispend) {
+                    if (dev->accel.advfunc_cntl & 0x04)
+                        temp |= 0x02;
+                }
+            }
+
+            if (((dev->_8514pal[0].r + dev->_8514pal[0].g + dev->_8514pal[0].b) >= 0x4e) ||
+                (dev->_8514pal[0].r >= 0x26) || (dev->_8514pal[0].g >= 0x26) ||
+                (dev->_8514pal[0].b >= 0x26))
+                temp |= 0x00;
+            else
+                temp |= 0x01;
+
+            mach_log(mach->log, "Read: Display Status1=%02x.\n", temp);
+            break;
+
         case 0x6e8:
         case 0x22e8:
         case 0x26e8:
@@ -5698,8 +5719,13 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev)
         case 0x42e9:
             if (!(port & 1)) {
                 if ((dev->subsys_cntl & INT_VSY) && !(dev->subsys_stat & INT_VSY)) {
-                    if (dev->vc == dev->dispend)
-                        temp |= INT_VSY;
+                    if (ATI_MACH32) {
+                        if (dev->vc == svga->dispend)
+                            temp |= INT_VSY;
+                    } else {
+                        if (dev->vc == dev->dispend)
+                            temp |= INT_VSY;
+                    }
                 }
 
                 if (mach->accel.cmd_type == -1) {
