@@ -1116,7 +1116,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     mach64->bank_w[0] = val << 15; // *32768
                     mach64_log("mach64 : write bank A0000-A7FFF set to %08X\n", mach64->bank_w[0]);
                     break;
-                case 0xb6:
+                case 0xb5: case 0xb6:
                     mach64->bank_w[1] = val << 15; // *32768
                     mach64_log("mach64 : write bank A8000-AFFFF set to %08X\n", mach64->bank_w[1]);
                     break;
@@ -1124,7 +1124,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     mach64->bank_r[0] = val << 15; // *32768
                     mach64_log("mach64 :  read bank A0000-A7FFF set to %08X\n", mach64->bank_r[0]);
                     break;
-                case 0xba:
+                case 0xb9: case 0xba:
                     mach64->bank_r[1] = val << 15; // *32768
                     mach64_log("mach64 :  read bank A8000-AFFFF set to %08X\n", mach64->bank_r[1]);
                     break;
@@ -1253,12 +1253,12 @@ mach64_ext_inb(uint16_t port, void *priv)
                 if (port_high == 0x5a)
                     addr_or_value = 0xb8;    
 
-                if ((port_low == 0xED) || (port_low == 0xEF))
+                if (port_low == 0xEF)
                     ret = 0x00;
                 else if (port_low == 0xEC)                 
                     ret = mach64_ext_readb(0x400 | addr_or_value, priv);
                 else
-                    ret = mach64_ext_readb(0x400 | (addr_or_value + 2), priv);
+                    ret = mach64_ext_readb(0x400 | (addr_or_value + 1), priv);
                 break; 
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)

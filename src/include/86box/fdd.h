@@ -23,7 +23,7 @@
 
 #define FDD_NUM              4
 #define FLOPPY_IMAGE_HISTORY 10
-#define SEEK_RECALIBRATE     -999
+#define SEEK_RECALIBRATE     (-999)
 #define DEFAULT_SEEK_TIME_MS 10.0
 
 /* BIOS boot status - used to detect POST vs normal operation */
@@ -112,7 +112,6 @@ extern void fdd_new(int drive, char *fn);
 extern void fdd_close(int drive);
 extern void fdd_init(void);
 extern void fdd_reset(void);
-extern void fdd_seek(int drive, int track);
 extern void fdd_readsector(int drive, int sector, int track,
                            int side, int density, int sector_size);
 extern void fdd_writesector(int drive, int sector, int track,
@@ -145,8 +144,8 @@ extern int fdd_changed[FDD_NUM];
 extern int drive_empty[FDD_NUM];
 
 /*Used in the Read A Track command. Only valid for fdd_readsector(). */
-#define SECTOR_FIRST -2
-#define SECTOR_NEXT  -1
+#define SECTOR_FIRST (-2)
+#define SECTOR_NEXT  (-1)
 
 typedef uint8_t d86f_format_id_t[4];
 
@@ -191,19 +190,6 @@ typedef union {
 
 extern const xdf_sector_t xdf_img_layout[2][2][46];
 extern const xdf_sector_t xdf_disk_layout[2][2][38];
-
-typedef struct sector_id_fields_t {
-    uint8_t c;
-    uint8_t h;
-    uint8_t r;
-    uint8_t n;
-} sector_id_fields_t;
-
-typedef union sector_id_t {
-    uint32_t           dword;
-    uint8_t            byte_array[4];
-    sector_id_fields_t id;
-} sector_id_t;
 
 void d86f_set_fdc(void *fdc);
 void fdi_set_fdc(void *fdc);
