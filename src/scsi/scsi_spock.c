@@ -512,6 +512,10 @@ spock_process_imm_cmd(spock_t *scsi)
             spock_log("Run diagnostic test.\n");
             spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
             break;
+        case CMD_RUN_SELF_TEST:
+            spock_log("Run selected self test.\n");
+            spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
+            break;
         case CMD_RESET:
             scsi->id_connected = 0;
             spock_log("Reset command, attention=%02x.\n", scsi->attention & 0x0f);
@@ -1112,6 +1116,7 @@ spock_callback(void *priv)
                         case CMD_DMA_PACING_CONTROL:
                         case CMD_FEATURE_CONTROL:
                         case CMD_RUN_DIAG_TEST:
+                        case CMD_RUN_SELF_TEST:
                         case CMD_RESET:
                             spock_process_imm_cmd(scsi);
                             break;
@@ -1229,6 +1234,10 @@ spock_reset(void *priv)
     scsi->cir_pending[2] = 0;
     scsi->cir_pending[3] = 0;
     scsi->cir_status     = 0;
+    scsi->irq_status     = 0;
+    scsi->irq_state      = 0;
+    for (int i = 0; i < SCSI_ID_MAX; i++)
+        scsi->irq_requests[i] = IRQ_TYPE_NONE;
 
     spock_log("Actual Reset.\n");
 }
