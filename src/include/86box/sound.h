@@ -244,6 +244,8 @@ extern const device_t cs4237b_device;
 extern const device_t cs4238b_device;
 
 /* ESS Technology */
+extern const device_t ess_488_device;
+extern const device_t ess_1488_device;
 extern const device_t ess_688_device;
 extern const device_t ess_ess0100_pnp_device;
 extern const device_t ess_ess0968_pnp_688_device;
