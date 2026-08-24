@@ -218,11 +218,21 @@ esdi_bios_readl(uint32_t addr, void *priv)
 #define CMD_WRITE_VERIFY           0x04
 #define CMD_SEEK                   0x05
 #define CMD_PARK_HEADS             0x06
+#define CMD_GET_CMD_STATUS         0x07
 #define CMD_GET_DEV_STATUS         0x08
 #define CMD_GET_DEV_CONFIG         0x09
 #define CMD_GET_POS_INFO           0x0a
+#define CMD_TRANSLATE_RBA          0x0b
+#define CMD_WRITE_BUFFER           0x10
+#define CMD_READ_BUFFER            0x11
+#define CMD_RUN_DIAG_TEST          0x12
+#define CMD_GET_DIAG_BLOCK         0x14
+#define CMD_GET_MFG_HEADER         0x15
 #define CMD_FORMAT_UNIT            0x16
 #define CMD_FORMAT_PREPARE         0x17
+#define CMD_SET_MAX_RBA            0x1a
+#define CMD_SET_PWR_MODE           0x1b
+#define CMD_PWR_CONSERVATION       0x1c
 
 #define STATUS_LEN(x)              ((x) << 8)
 #define STATUS_DEVICE(x)           ((x) << 5)
@@ -437,7 +447,7 @@ esdi_callback(void *priv)
     esdi_mca_log("Command=%02x.\n", dev->command);
     switch (dev->command) {
         case CMD_READ:
-        case 0x15:
+        case CMD_GET_MFG_HEADER:
             ESDI_DRIVE_ONLY();
 
             if (!drive->present) {
@@ -798,7 +808,7 @@ esdi_callback(void *priv)
             ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
-        case 0x10:
+        case CMD_WRITE_BUFFER:
             ESDI_ADAPTER_ONLY();
             switch (dev->cmd_state) {
                 case 0:
@@ -857,7 +867,7 @@ esdi_callback(void *priv)
             }
             break;
 
-        case 0x11:
+        case CMD_READ_BUFFER:
             ESDI_ADAPTER_ONLY();
             switch (dev->cmd_state) {
                 case 0:
@@ -917,7 +927,7 @@ esdi_callback(void *priv)
             }
             break;
 
-        case 0x12:
+        case CMD_RUN_DIAG_TEST:
             if (dev->cmd_dev != ATTN_DEVICE_0 &&
                 dev->cmd_dev != ATTN_DEVICE_1 &&
                 dev->cmd_dev != ATTN_HOST_ADAPTER) {
@@ -928,7 +938,7 @@ esdi_callback(void *priv)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
             dev->status_len     = 5;
-            dev->status_data[0] = 0x12 | STATUS_LEN(5) | dev->cmd_dev;
+            dev->status_data[0] = CMD_RUN_DIAG_TEST | STATUS_LEN(5) | dev->cmd_dev;
             dev->status_data[1] = 0;
             dev->status_data[2] = 0;
             dev->status_data[3] = 0;
@@ -941,7 +951,7 @@ esdi_callback(void *priv)
             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
-        case 0x14:
+        case CMD_GET_DIAG_BLOCK:
             if (dev->cmd_dev != ATTN_DEVICE_0 &&
                 dev->cmd_dev != ATTN_DEVICE_1 &&
                 dev->cmd_dev != ATTN_HOST_ADAPTER) {
