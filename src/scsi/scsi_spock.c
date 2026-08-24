@@ -684,6 +684,36 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                         }
                         break;
 
+                    case CMD_GET_DIAG_BLOCK:
+                        spock_log("Get diagnostic status block.\n");
+                        if (scb->sge.sys_buf_byte_count > 0) {
+                            memset(scsi->buf, 0x00, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->buf)));
+                            dma_bm_write(scb->sge.sys_buf_addr, scsi->buf, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->buf)), 2);
+                        }
+                        scsi->scb_state = 3;
+                        break;
+
+                    case CMD_SET_MAX_LBA:
+                        spock_log("Set max LBA: %08x.\n", scb->lba_addr);
+                        scsi->scb_state = 3;
+                        break;
+
+                    case CMD_READ_LOCAL_RAM:
+                        spock_log("Read attachment local RAM: offset=%08x, length=%08x.\n", scb->lba_addr, scb->sge.sys_buf_byte_count);
+                        if (scb->sge.sys_buf_byte_count > 0) {
+                            dma_bm_write(scb->sge.sys_buf_addr, scsi->buf, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->buf)), 2);
+                        }
+                        scsi->scb_state = 3;
+                        break;
+
+                    case CMD_WRITE_LOCAL_RAM:
+                        spock_log("Write attachment local RAM: offset=%08x, length=%08x.\n", scb->lba_addr, scb->sge.sys_buf_byte_count);
+                        if (scb->sge.sys_buf_byte_count > 0) {
+                            dma_bm_read(scb->sge.sys_buf_addr, scsi->buf, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->buf)), 2);
+                        }
+                        scsi->scb_state = 3;
+                        break;
+
                     case CMD_DEVICE_INQUIRY:
                         if (scsi->scb_id != 15) {
                             if (scsi->present[scsi->scb_id])
@@ -1194,6 +1224,11 @@ spock_reset(void *priv)
     scsi->attention_wait = 0;
     scsi->basic_ctrl     = 0;
     scsi->id_connected   = 0;
+    scsi->cir_pending[0] = 0;
+    scsi->cir_pending[1] = 0;
+    scsi->cir_pending[2] = 0;
+    scsi->cir_pending[3] = 0;
+    scsi->cir_status     = 0;
 
     spock_log("Actual Reset.\n");
 }
