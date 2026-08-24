@@ -425,6 +425,68 @@ complete_command_status(esdi_t *dev)
         else                                                                  \
             drive = &dev->drives[1];
 
+/* Build the primary defect map (spec 9.2.4, Figure 66) which is returned
+   by the Get Manufacturing Header command. The map is generated defect-free,
+   so it fits in the initial record; any additional blocks are left all-ones
+   as unused map blocks. */
+static void
+esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
+{
+    const char *model = hdd[drive->hdd_num].model;
+    uint8_t    *buf   = (uint8_t *) dev->sector_buffer;
+    uint8_t     sum;
+    uint32_t    rba;
+    int         i, j;
+
+    memset(buf, 0xff, (size_t) blocks * 512);
+
+    /* Primary Defect Map initial record */
+    memcpy(buf + 0, "DEFECT", 6); /* Header */
+    buf[6] = 0;      /* Count of Defects (LSB) */
+    buf[7] = 0;      /* Count of Defects (MSB) */
+    buf[8] = 0;      /* Number of Extension Records */
+    buf[9] = 0xff;   /* Reserved */
+
+    /* Drive Bar Code Number, ASCII, right justified. */
+    if (model) {
+        size_t len = strlen(model);
+
+        if (len > 16)
+            len = 16;
+        memcpy(buf + 10 + (16 - len), model, len);
+    }
+
+    memcpy(buf + 26, "01011980", 8); /* Date of Manufacture, MMDDYYYY */
+
+    rba = drive->sectors; /* # of RBA's required for capacity (LSB..MSB) */
+    buf[34] = rba & 0xff;
+    buf[35] = (rba >> 8) & 0xff;
+    buf[36] = (rba >> 16) & 0xff;
+    buf[37] = (rba >> 24) & 0xff;
+    buf[38] = 10;      /* Soft errors allowed on diagnostic read verify */
+    buf[39] = 0x03;    /* Errors in 64 reads to classify defect */
+    buf[40] = 0;       /* Skewed sectors, format #1 */
+    buf[41] = 0;       /* Spare sectors per track (not used) */
+    buf[42] = 0;       /* Spare sectors per cylinder */
+    buf[43] = 0xff;    /* Reserved */
+    buf[44] = 1;       /* Defect type: absolute block address */
+    buf[45] = 0;       /* Skewed sectors, format #2 */
+    buf[46] = 0;       /* Skewed sectors, format #3 */
+    /* buf[47..57]        reserved = FF (11 bytes)  */
+
+    /* defect absolute block addresses */
+    /* buf[58..505] = FF (4 * 112 bytes) */
+
+    /* buf[506..510] reserved = FF (5 bytes) */
+    /* Checksum each block so that the sum of all 512 bytes is zero. */
+    for (i = 0; i < blocks; i++) {
+        sum = 0;
+        for (j = 0; j < 511; j++)
+            sum += buf[i * 512 + j];
+        buf[i * 512 + 511] = (uint8_t) -sum;
+    }
+}
+
 static void
 esdi_callback(void *priv)
 {
@@ -457,13 +519,21 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    if (dev->command == CMD_READ)
+                    if (dev->command == CMD_GET_MFG_HEADER) {
+                        /* Get Manufacturing Header: return the primary defect
+                           map via DMA like a read command. The block count
+                           is taken from word 1 of the command. */
+                        if (dev->cmd_data[1] > 256)
+                            fatal("Read MFG header count %04x\n", dev->cmd_data[1]);
+                        esdi_build_mfg_header(dev, drive, dev->cmd_data[1]);
+                    } else
                         dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
 
                     dev->sector_pos   = 0;
                     dev->sector_count = dev->cmd_data[1];
 
-                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                    if ((dev->command != CMD_GET_MFG_HEADER) &&
+                        ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num))) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -486,13 +556,17 @@ esdi_callback(void *priv)
 
                     while (dev->sector_pos < dev->sector_count) {
                         if (!dev->data_pos) {
-                            if (dev->rba >= drive->sectors)
-                                fatal("Read past end of drive\n");
-                            if (hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data) < 0) {
-                                defective_block(dev);
-                                return;
+                            if (dev->command == CMD_GET_MFG_HEADER)
+                                memcpy(dev->data, dev->sector_buffer[dev->sector_pos], 512);
+                            else {
+                                if (dev->rba >= drive->sectors)
+                                    fatal("Read past end of drive\n");
+                                if (hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data) < 0) {
+                                    defective_block(dev);
+                                    return;
+                                }
+                                cmd_time += hdd_timing_read(&hdd[drive->hdd_num], dev->rba, 1);
                             }
-                            cmd_time += hdd_timing_read(&hdd[drive->hdd_num], dev->rba, 1);
                             cmd_time += esdi_mca_get_xfer_time(dev, 1);
                         }
 
@@ -979,7 +1053,6 @@ esdi_callback(void *priv)
             break;
 
         case CMD_FORMAT_UNIT:
-        case CMD_FORMAT_PREPARE:
             ESDI_DRIVE_ONLY();
 
             if (!drive->present) {
@@ -990,29 +1063,37 @@ esdi_callback(void *priv)
             switch (dev->cmd_state) {
                 case 0:
                     dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+                    /* Word 1: format options in the high byte, number of
+                       defective blocks to deallocate in the low byte. */
+                    dev->sector_count = dev->cmd_data[1] & 0xff;
 
-                    if (dev->command == CMD_FORMAT_UNIT)
-                        dev->sector_count = dev->cmd_data[1];
-                    else
-                        dev->sector_count = 0;
+                    if (!dev->sector_count) {
+                        /* No defective ABA list to transfer: skip the data
+                           phase and proceed straight to formatting. */
+                        dev->status    = STATUS_CMD_IN_PROGRESS;
+                        dev->cmd_state = 1;
+                        esdi_mca_set_callback(dev, ESDI_TIME);
+                        break;
+                    }
 
                     dev->status          = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
                     dev->irq_status      = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
                     dev->irq_in_progress = 1;
                     set_irq(dev);
 
+                    dev->data_pos = 0;
                     dev->cmd_state = 1;
                     esdi_mca_set_callback(dev, ESDI_TIME);
                     break;
 
                 case 1:
-                    if (!(dev->basic_ctrl & CTRL_DMA_ENA)) {
+                    if (dev->sector_count && !(dev->basic_ctrl & CTRL_DMA_ENA)) {
+                        /* Wait for the host to enable DMA for the ABA list. */
                         esdi_mca_set_callback(dev, ESDI_TIME);
                         return;
                     }
 
-                    if (dev->command == CMD_FORMAT_UNIT)
-                        hdd_image_zero(drive->hdd_num, 0, hdd_image_get_last_sector(drive->hdd_num) + 1);
+                    hdd_image_zero(drive->hdd_num, 0, hdd_image_get_last_sector(drive->hdd_num) + 1);
 
                     dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
@@ -1030,6 +1111,27 @@ esdi_callback(void *priv)
                 default:
                     break;
             }
+            break;
+
+        case CMD_FORMAT_PREPARE:
+            ESDI_DRIVE_ONLY();
+
+            if (!drive->present) {
+                device_not_present(dev);
+                return;
+            }
+
+            if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
+                fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
+
+            dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+            /* Format Prepare has no data phase; complete it immediately
+               with a Command Complete status block. */
+            complete_command_status(dev);
+            dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+            dev->irq_in_progress = 1;
+            set_irq(dev);
             break;
 
         default:
