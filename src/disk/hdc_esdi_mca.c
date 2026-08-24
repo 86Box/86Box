@@ -14,8 +14,8 @@
  *            I/O base:        0x3510-0x3517
  *            IRQ:             14
  *
- *            Primary Board    pos[0]=XXxx xx0X    0x3510
- *            Secondary Board  pos[0]=XXxx xx1X    0x3518
+ *            Primary Board    pos[0]=XXXX XX0X    0x3510
+ *            Secondary Board  pos[0]=XXXX XX1X    0x3518
  *
  *            DMA 5            pos[0]=XX01 01XX
  *            DMA 6            pos[0]=XX01 10XX
@@ -103,6 +103,7 @@ typedef struct esdi_drive_t {
 
 typedef struct esdi_t {
     int8_t dma;
+    int    base;
 
     uint32_t bios;
     rom_t    bios_rom;
@@ -499,8 +500,8 @@ esdi_callback(void *priv)
     if (dev->in_reset) {
         esdi_mca_log("ESDI reset.\n");
         dev->in_reset   = 0;
-        dev->status     = STATUS_IRQ | STATUS_TRANSFER_REQ | STATUS_STATUS_OUT_FULL;
-        dev->status_len = 1; /*ToDo: better implementation for Xenix?*/
+        dev->status     = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+        dev->status_len = 1; /* Required by Xenix 386 2.3.4q */
         dev->status_data[0] = STATUS_LEN(1) | ATTN_HOST_ADAPTER;
         dev->irq_status = IRQ_HOST_ADAPTER | IRQ_RESET_COMPLETE;
         return;
@@ -841,7 +842,7 @@ esdi_callback(void *priv)
 
                 dev->status_len = 6;
                 dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
-                dev->status_data[1] = 0x10; /*Zero defect*/
+                dev->status_data[1] = 0x08; /*Zero Defect flag (ZD, bit 3), no spares per cylinder*/
                 dev->status_data[2] = drive->sectors & 0xffff;
                 dev->status_data[3] = drive->sectors >> 16;
                 dev->status_data[4] = drive->tracks;
@@ -1369,7 +1370,7 @@ esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
     /* Save the new value. */
     dev->pos_regs[port & 7] = val;
 
-    io_removehandler(ESDI_IOADDR_PRI, 8,
+    io_removehandler(dev->base, 8,
                      esdi_read, esdi_readw, NULL,
                      esdi_write, esdi_writew, NULL, dev);
     mem_mapping_disable(&dev->bios_rom.mapping);
@@ -1433,8 +1434,14 @@ esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
     } else
         dev->bios = 0;
 
+    /* Set up controller I/O address. */
+    if (dev->pos_regs[2] & 0x02)
+        dev->base = ESDI_IOADDR_SEC;
+    else
+        dev->base = ESDI_IOADDR_PRI;
+
     if (dev->pos_regs[2] & 1) {
-        io_sethandler(ESDI_IOADDR_PRI, 8,
+        io_sethandler(dev->base, 8,
                       esdi_read, esdi_readw, NULL,
                       esdi_write, esdi_writew, NULL, dev);
 
@@ -1444,8 +1451,8 @@ esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
         }
 
         /* Say hello. */
-        esdi_mca_log("ESDI: I/O=3510, IRQ=14, DMA=%d, BIOS @%05X\n",
-                     dev->dma, dev->bios);
+        esdi_mca_log("ESDI: I/O=%04X, IRQ=14, DMA=%d, BIOS @%05X\n",
+                     dev->base, dev->dma, dev->bios);
     }
 }
 
@@ -1537,6 +1544,7 @@ esdi_init(UNUSED(const device_t *info))
 
     /* Mark as unconfigured. */
     dev->irq_status = 0xff;
+    dev->base       = ESDI_IOADDR_PRI;
 
     if (info->local == ESDI_IS_ADAPTER) {
         rom_init_interleaved(&dev->bios_rom,
@@ -1548,7 +1556,7 @@ esdi_init(UNUSED(const device_t *info))
         mem_mapping_set_p(&dev->bios_rom.mapping, dev);
         /* Card Selected Feedback is a side effect of every adapter-ROM read,
            so reads must not bypass the handler through the direct ROM path. */
-        mem_mapping_set_exec(&dev->bios_rom.mapping, NULL);
+        mem_mapping_set_exec(&dev->bios_rom.mapping, dev->bios_rom.rom);
         mem_mapping_disable(&dev->bios_rom.mapping);
     }
 
