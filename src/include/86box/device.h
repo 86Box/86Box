@@ -129,6 +129,8 @@ enum {
 
 #define BIOS_LIMIT_MIN_MEMORY            0x0100000000000000
 #define BIOS_LIMIT_MAX_MEMORY            0x0200000000000000
+#define BIOS_LIMIT_MIN_MEMORY_2          0x0400000000000000
+#define BIOS_LIMIT_MAX_MEMORY_2          0x0800000000000000
 
 typedef struct device_config_selection_t {
     const char *description;
@@ -244,10 +246,11 @@ extern void        device_set_config_int(const char *str, int val);
 extern void        device_set_config_hex16(const char *str, int val);
 extern void        device_set_config_hex20(const char *str, int val);
 extern void        device_set_config_mac(const char *str, int val);
+extern const char *device_get_config_bios(const char *name);
+extern void        device_migrate_config_bios(const void *priv, const char *name);
 extern const char *device_get_config_string(const char *name);
 extern void        device_set_config_string(const char *str, const char *val);
 extern int         device_get_instance(void);
-#define device_get_config_bios device_get_config_string
 
 extern const char *device_get_internal_name(const device_t *dev);
 

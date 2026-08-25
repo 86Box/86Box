@@ -1526,7 +1526,7 @@ static const device_config_t hot433a_config[] = {
                 .files         = { "roms/machines/hot433/433AUS33.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.5 (by eSupport)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.5 (by eSupport)",
                 .internal_name = "hot433a_v451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

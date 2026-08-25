@@ -339,6 +339,11 @@ exec386_dynarec_int(void)
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
 
+        /* Temp variables for FPU exception reporting. */
+        temp_CS = CS;
+        temp_cs = cs;
+        temp_pc = cpu_state.pc;
+
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
         if (in_smm)
@@ -434,6 +439,14 @@ exec386_dynarec_dyn(void)
     codeblock_t *block = codeblock_hash[hash];
 #    endif
     int valid_block = 0;
+
+    /* Refresh before the lookup AND before a fresh compile: the old
+       dynarec skips the lookup on an empty hash slot, and the new block
+       still takes its key from cpu_cur_status. */
+    if (cpu_state.npxc & 0x300)
+        cpu_cur_status &= ~CPU_STATUS_FPU_PC24;
+    else
+        cpu_cur_status |= CPU_STATUS_FPU_PC24;
 
 #    ifdef USE_NEW_DYNAREC
     if (!cpu_state.abrt)
@@ -638,6 +651,11 @@ exec386_dynarec_dyn(void)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+            /* Temp variables for FPU exception reporting. */
+            temp_CS = CS;
+            temp_cs = cs;
+            temp_pc = cpu_state.pc;
+
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
             if (in_smm)
@@ -739,6 +757,12 @@ exec386_dynarec_dyn(void)
             cpu_state.ssegs  = 0;
 
             codegen_endpc = (cs + cpu_state.pc) + 8;
+
+            /* Temp variables for FPU exception reporting. */
+            temp_CS = CS;
+            temp_cs = cs;
+            temp_pc = cpu_state.pc;
+
             fetchdat      = fastreadl_fetch(cs + cpu_state.pc);
 
 #    ifdef ENABLE_386_DYNAREC_LOG
@@ -947,6 +971,218 @@ exec386_dynarec(int32_t cycs)
 }
 #endif
 
+int
+is_dynarec_active(void)
+{
+#ifndef USE_DYNAREC
+    return false;
+#else
+    return cpu_exec == exec386_dynarec && cpu_use_dynarec && !(cpu_force_interpreter || cpu_override_dynarec || (!CACHE_ON()));
+#endif
+}
+
+/* Intel Inboard 386/PC POST fix-ups.
+
+   These are address-gated corrections to this specific 1986 IBM XT BIOS's own POST
+   self-tests and to the ATI Mach8 option ROM's self-test, needed because the Inboard's
+   accelerated CPU breaks blind, instruction-counted delay loops those routines were
+   calibrated against on a genuine 4.77 MHz 8088.
+
+   Kept in ONE function called from BOTH interpreter loops (exec386() here and
+   exec386_2386() in 386.c). cpu.c's cpu_set() routes 386DX/386SX-class CPUs to
+   exec386_2386() and 486BL/486DLC-class ones to exec386(); when these fix-ups lived only
+   in exec386(), selecting a plain 386DX/386SX - the CPU this card was actually sold to
+   pair with - meant none of them ran at all, and POST hung in the Mach8 option ROM's PIT
+   delay loop before even reaching the RAM count.
+
+   Both call sites are gated on inboard386_present (set only while the card's device is
+   instantiated), so on every other machine this costs one predictable branch per
+   instruction and nothing here can run. That gate is what makes it safe: the individual
+   fix-ups below are address-gated to this BIOS's and this option ROM's own code, but the
+   segment-scoped ones (CS==0xC000, CS==0x0EAF) would otherwise be reachable by unrelated
+   guests. */
+void
+inboard_post_fixups(void)
+{
+    /* Mach8 option-ROM self-test speed fix (2026-07-26, see
+       INBOARD_86BOX_PORT_PLAN.md). `io_waitstates`/`reg_op_waitstates`
+       (inboard386.c) exist to make the *system BIOS's* own blind, instruction-
+       counted delay loops - calibrated against real 4.77MHz-ISA-bus timing -
+       take roughly the same real wall-clock time regardless of the Inboard's
+       configured accelerator speed. The Mach8 option ROM's own self-test is a
+       different case entirely: once its PIT-readback delay loop is fixed (the
+       C000:7B37 fix below) to resolve on the guest's own terms, its remaining
+       delays are governed by genuine, correctly-real-time-paced PIT ticks, not
+       blind instruction counts - so it needs no compensation at all, and
+       applying the same inflation this project needs elsewhere in POST to the
+       option ROM's own hundreds of individual I/O operations is exactly what
+       was stretching a real-hardware-instant self-test into 65-100+ real
+       seconds (confirmed by the user's own real hardware: banner shows
+       immediately, no visible delay). Scoped to CS==0xC000 only - restores the
+       real values the instant execution leaves the option ROM's own segment,
+       so every other POST-timing fix elsewhere in this project (all tuned
+       against the real, uncompensated io_waitstates/reg_op_waitstates values)
+       is completely unaffected. */
+    {
+        static int c000_ws_saved        = 0;
+        static int saved_io_ws          = 0;
+        static int saved_regop_ws       = 0;
+        static int saved_prefetch       = 0;
+        static int saved_mem_prefetch   = 0;
+        static int saved_rom_prefetch   = 0;
+        static int saved_cycles_read    = 0;
+        static int saved_cycles_read_l  = 0;
+        static int saved_cycles_write   = 0;
+        static int saved_cycles_write_l = 0;
+        static int saved_isa_cycles     = 0;
+        if (CS == 0xC000) {
+            if (!c000_ws_saved) {
+                c000_ws_saved           = 1;
+                saved_io_ws             = io_waitstates;
+                saved_regop_ws          = reg_op_waitstates;
+                saved_prefetch          = cpu_prefetch_cycles;
+                saved_mem_prefetch      = cpu_mem_prefetch_cycles;
+                saved_rom_prefetch      = cpu_rom_prefetch_cycles;
+                saved_cycles_read       = cpu_cycles_read;
+                saved_cycles_read_l     = cpu_cycles_read_l;
+                saved_cycles_write      = cpu_cycles_write;
+                saved_cycles_write_l    = cpu_cycles_write_l;
+                saved_isa_cycles        = isa_cycles;
+                io_waitstates           = 0;
+                reg_op_waitstates       = 0;
+                cpu_prefetch_cycles     = 1;
+                cpu_mem_prefetch_cycles = 1;
+                cpu_rom_prefetch_cycles = 1;
+                cpu_cycles_read         = 1;
+                cpu_cycles_read_l       = 1;
+                cpu_cycles_write        = 1;
+                cpu_cycles_write_l      = 1;
+                isa_cycles              = 1;
+            }
+        } else if (c000_ws_saved) {
+            c000_ws_saved           = 0;
+            io_waitstates           = saved_io_ws;
+            reg_op_waitstates       = saved_regop_ws;
+            cpu_prefetch_cycles     = saved_prefetch;
+            cpu_mem_prefetch_cycles = saved_mem_prefetch;
+            cpu_rom_prefetch_cycles = saved_rom_prefetch;
+            cpu_cycles_read         = saved_cycles_read;
+            cpu_cycles_read_l       = saved_cycles_read_l;
+            cpu_cycles_write        = saved_cycles_write;
+            cpu_cycles_write_l      = saved_cycles_write_l;
+            isa_cycles              = saved_isa_cycles;
+        }
+    }
+
+    /* Mach8/ATI Graphics Ultra option-ROM PIT-readback delay-loop fix (2026-07-26,
+       omitted from PR #7626 - 386_dynarec.c was not part of that submission's file
+       list). The option ROM's own self-test does a real PIT-elapsed-ticks busy-wait
+       (OUT 43h,0 / IN 40h / IN 40h / SUB / NEG / CMP / JBE) which desyncs from this
+       project's CPU-speed/waitstate timing overrides and never resolves on its own.
+       Zero blast radius: only touches CS=C000 (the option ROM's own segment) at this
+       exact loop's compare instruction, forces the elapsed-ticks register past the
+       loop's own target so the guest's own CMP/JBE resolves and exits on its own
+       terms - the same as a real, unaccelerated system's PIT eventually ticking past
+       the target. 0x7B37/0x7B23 are two previously-encountered ROM revisions; 0x7B16
+       is a third, found via live CS:PC tracing against this clone's own ROM copy. */
+    if ((CS == 0xC000) && ((cpu_state.pc == 0x7B37) || (cpu_state.pc == 0x7B23) ||
+                            (cpu_state.pc == 0x7B16)) && (AX <= BX)) {
+        AX = (uint16_t) (BX + 1);
+    }
+
+    /* Intel Inboard 386/PC follow-up POST self-test fixes (2026-07-26), omitted from
+       the original PR #7626 - 386_dynarec.c was not part of that submission's file list.
+       The base PIC-IMR/DMA-refresh timing fix (dma_force_xt/force_xt_imr_timing) makes
+       the first of three back-to-back BIOS self-tests pass, but two more chained ones
+       were found to still intermittently fail on real timing:
+       1. F000:E362-E3AC: the BIOS's own IRQ0-delivery and "no spurious interrupt" checks
+          can be contaminated by a genuine, unrelated IRQ1 (keyboard controller's own
+          power-on self-test byte) landing during this narrow window, before this BIOS
+          ever unmasks interrupts at all - only IRQ1 is suppressed while IRQ0 is verified,
+          then both are suppressed during the immediately-following negative check.
+       2. F000:E507: the DMA channel-0 (DRAM refresh) status flag is a read-and-clear
+          register: something else reads port 8 between the last real refresh cycle and
+          this check, consuming the flag before the BIOS's own AND/JNE gets to see it,
+          even though refresh itself (PIT channel 1 -> DREQ0) is working correctly. Forces
+          the bit the guest's own check consumes, rather than the read that clears it.
+       Address-gated to this exact 1986 XT BIOS's own self-test byte ranges - inert on any
+       other BIOS content or machine, the same technique already used by this file's
+       existing Mach8-specific timing fixes. This self-test's own "test passed" exit can
+       land on any of three adjacent addresses (E38E/E3AD/E3AE) depending on a data-
+       dependent micro-branch a few instructions earlier; only E3AE proceeds into the
+       negative-test phase (2026-08-22 correction - the original port only recognized
+       E3AE/E38E, missing E3AD, which left IRQ1 suppressed for the rest of execution
+       whenever this exact ROM took that path). */
+    {
+        static int in_irq_selftest = 0;
+        static int in_negative_test = 0;
+        if ((CS == 0xF000) && (cpu_state.pc == 0xE362) && !in_irq_selftest) {
+            in_irq_selftest = 1;
+        }
+        /* Safety net: the explicit exit addresses below are reached via a data-dependent
+           micro-branch, so the exact one taken varies with POST timing (e.g. whether a
+           large video option ROM ran first). If execution leaves this self-test's own
+           address range by any path we didn't enumerate, disarm here rather than leave
+           IRQ1/IRQ0 suppressed for the rest of the session - a stuck gate silently breaks
+           the keyboard for the whole run (observed as a POST keyboard error requiring F1).
+           This can only ever shorten suppression, never extend it. */
+        if ((in_irq_selftest || in_negative_test) &&
+            ((CS != 0xF000) || (cpu_state.pc < 0xE362) || (cpu_state.pc > 0xE3C6))) {
+            in_irq_selftest  = 0;
+            in_negative_test = 0;
+        }
+        if (in_irq_selftest) {
+            picintc(2); /* IRQ1 (keyboard) only - bit 1. IRQ0 (bit 0) untouched. */
+            if ((CS == 0xF000) && ((cpu_state.pc == 0xE3AE) || (cpu_state.pc == 0xE38E)
+                                    || (cpu_state.pc == 0xE3AD))) {
+                in_irq_selftest  = 0;
+                in_negative_test = (cpu_state.pc == 0xE3AE);
+            }
+        }
+        if (in_negative_test) {
+            picintc(1);
+            picintc(2); /* both IRQ0 and IRQ1 - this test wants total silence. */
+            if ((CS == 0xF000) && ((cpu_state.pc == 0xE3C6) || (cpu_state.pc == 0xE38E))) {
+                in_negative_test = 0;
+            }
+        }
+    }
+    if ((CS == 0xF000) && (cpu_state.pc == 0xE507))
+        AL |= 0x01;
+
+    /* Segment-650B/INT-68h wild-jump fix (2026-08-04, Windows 95 boot). VMM32's real-mode
+       VxD-loader startup code (segment 0EAF) executes `INT 68h` (a private multiplex-style
+       call, AH=function selector) whose IVT vector (offset 0x68*4=0x1A0) is never
+       initialized by anything earlier in boot, so the CPU walks off into the raw IVT
+       table as code until it coincidentally hits a real CALL FAR into segment 650B -
+       legitimate code, but reached with completely bogus calling context, causing erratic
+       wild jumping. Pre-initializes the vector to point at an IRET, so INT 68h becomes a
+       harmless no-op instead.
+
+       Points at the BIOS's own IRET at F000:FF53, as suggested by Michal Necasek in review
+       of this PR, rather than writing a 0xCF stub into IVT slot 0xF0's vector-table entry
+       (physical 0x3C0) and pointing there. Verified: the byte at file offset 0x7F53 of the
+       U18/F800 chip is 0xCF (IRET) in both 1986 ROM revisions, 09MAY86 and 10JAN86, which
+       are the only BIOSes this machine accepts. Strictly better - no injected code, and no
+       assumption that INT 0F0h is unused this early in boot.
+
+       Fires the moment CS first becomes 0x0EAF (empirically confirmed reliable trigger -
+       firing earlier, e.g. at the very first instruction of boot, gets clobbered by
+       ordinary BIOS POST/DOS kernel low-memory init before INT 68h is ever reached). */
+    {
+        static int patchint68_done = 0;
+        if (!patchint68_done && (CS == 0x0EAF)) {
+            patchint68_done = 1;
+            /* Point INT 68h at the BIOS's own IRET at F000:FF53. No stub is injected. */
+            mem_writeb_phys(0x1A0, 0x53); /* INT 68h vector offset lo  = 0xFF53 */
+            mem_writeb_phys(0x1A1, 0xFF); /* INT 68h vector offset hi */
+            mem_writeb_phys(0x1A2, 0x00); /* INT 68h vector segment lo = 0xF000 */
+            mem_writeb_phys(0x1A3, 0xF0); /* INT 68h vector segment hi */
+        }
+    }
+
+}
+
 void
 exec386(int32_t cycs)
 {
@@ -984,6 +1220,9 @@ exec386(int32_t cycs)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+            if (inboard386_present)
+                inboard_post_fixups();
+
 #ifdef USE_DEBUG_REGS_486
             if (is386)
                 ins_fetch_fault = cpu_386_check_instruction_fault();
@@ -996,6 +1235,11 @@ exec386(int32_t cycs)
                 goto block_ended;
             }
 #endif
+
+            /* Temp variables for FPU exception reporting. */
+            temp_CS = CS;
+            temp_cs = cs;
+            temp_pc = cpu_state.pc;
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 
@@ -1044,13 +1288,15 @@ exec386(int32_t cycs)
 block_ended:
 #endif
             if (cpu_state.abrt) {
+#ifdef ENABLE_386_LOG
                 uint8_t oop    = opcode;
+#endif
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
                 cpu_state.abrt = 0;
                 x86_doabrt(tempi);
                 if (cpu_state.abrt) {
-                    pclog("Double fault - %02X\n", oop);
+                    x386_dynarec_log("Double fault - %02X\n", oop);
                     cpu_state.abrt = 0;
 #ifndef USE_NEW_DYNAREC
                     CS = oldcs;

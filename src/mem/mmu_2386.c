@@ -1040,39 +1040,40 @@ writememql_2386(uint32_t addr, uint64_t val)
 void
 do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write)
 {
-    int i;
+    int      i;
     uint32_t last_addr = addr + (num - 1);
-    uint64_t a = 0x0000000000000000ULL;
-    uint32_t temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
-
-    mem_debug_check_addr(addr, write ? 2 : read_type);
-
-    for (i = 0; i < num; i++)
-        a64[i] = (uint64_t) addr;
-
-    if (!(temp_cr0 >> 31))
-        return;
+    uint64_t a         = 0x0000000000000000ULL;
+    uint32_t       temp_cr0 = cpu_old_paging ? (cr0 ^ 0x80000000) : cr0;
 
     for (i = 0; i < num; i++) {
+        a64[i] = (uint64_t) (addr + i);
+        mem_debug_check_addr(addr + i, write ? 2 : read_type);
+    }
+
+    if (temp_cr0 >> 31)  for (i = 0; i < num; i++) {
         /* If we have encountered at least one page fault, mark all subsequent addresses as
            having page faulted, prevents false negatives in readmem*l_no_mmut. */
         if ((i > 0) && cpu_state.abrt && !high_page)
-            a64[i] = a64[i - 1];
+             a64[i] = a64[i - 1];
         /* If we are on the same page, there is no need to translate again, as we can just
-           reuse the previous result. */
+            reuse the previous result. */
         else if (i == 0) {
-            a = mmutranslatereal_2386(addr, write);
-            a64[i] = (uint32_t) a;
-        } else if (!(addr & 0xfff)) {
-            a = mmutranslatereal_2386(last_addr, write);
+            a      = mmutranslatereal_2386(addr, write);
             a64[i] = (uint32_t) a;
 
+            high_page = high_page || (!cpu_state.abrt && (a > 0xffffffffULL));
+        } else if (!(addr & 0xfff)) {
+            a      = mmutranslatereal_2386(last_addr, write);
+            a64[i] = (uint32_t) a;
+
+            high_page = high_page || (!cpu_state.abrt && (a > 0xffffffffULL));
+
             if (!cpu_state.abrt) {
-                a = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
+                a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
                 a64[i] = (uint32_t) a;
             }
         } else {
-            a = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
+            a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
             a64[i] = (uint32_t) a;
         }
 

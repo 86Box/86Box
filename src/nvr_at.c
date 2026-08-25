@@ -378,7 +378,7 @@ time_set(nvr_t *nvr, struct tm *tm)
         nvr->regs[RTC_DOM]     = tm->tm_mday;
         nvr->regs[RTC_MONTH]   = (tm->tm_mon + 1);
         nvr->regs[RTC_YEAR]    = (year % 100);
-        if (local->cent != 0xFF)
+        if (local->cent != 0xff)
             nvr->regs[local->cent] = (year / 100);
 
         if (nvr->regs[RTC_REGB] & REGB_2412) {
@@ -469,8 +469,19 @@ timer_update(void *priv)
         /* Get the current time from the internal clock. */
         nvr_time_get(&tm);
 
-        /* Update registers with current time. */
+        /*
+           Update registers with the current time.  The PS/2 century byte is
+           ordinary battery-backed RAM maintained by firmware, rather than a
+           live RTC field.  Rewriting it every second also corrupts the Model
+           70/80 reference-disk NVRAM test while it exercises CMOS 0Eh-3Fh.
+
+           This is actually true for all the AT+ machines - the century byte
+           is ordinary batter-backed RAM.
+         */
+        const uint8_t old_cent = (local->cent == 0xff) ? 0x00 : nvr->regs[local->cent];
         time_set(nvr, &tm);
+        if (local->cent != 0xff)
+            nvr->regs[local->cent] = old_cent;
 
         /* Check for any alarms we need to handle. */
         if (check_alarm(nvr, RTC_SECONDS) && check_alarm(nvr, RTC_MINUTES) && check_alarm(nvr, RTC_HOURS) &&
@@ -649,8 +660,9 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 
     if ((reg < RTC_REGA) || ((local->cent != 0xff) && (reg == local->cent))) {
         if ((reg != 1) && (reg != 3) && (reg != 5)) {
-            if ((old != val) && !(time_sync & TIME_SYNC_ENABLED)) {
-                /* Update internal clock. */
+            if (old != val) {
+                /* Host synchronization seeds the RTC; guest writes must still
+                   update the running clock just as they do on real hardware. */
                 time_get(nvr, &tm);
                 nvr_time_set(&tm);
                 // nvr_dosave = 1;

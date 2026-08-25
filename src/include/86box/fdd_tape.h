@@ -39,6 +39,8 @@
 #define FDD_TAPE_SECTOR_SIZE     1024
 #define FDD_TAPE_SECTORS_PER_SEG 32
 #define FDD_TAPE_SEGMENT_SIZE    (FDD_TAPE_SECTOR_SIZE * FDD_TAPE_SECTORS_PER_SEG)
+/* The last three sectors of a segment hold its Reed-Solomon parity. */
+#define FDD_TAPE_ECC_SECTORS     3
 /*
    Blank-cartridge defaults, keyed on the format being laid down. A formatted
    cartridge states its true mapping in its own header segment, which the

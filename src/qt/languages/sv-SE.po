@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 07:04+0000\n"
+"PO-Revision-Date: 2026-08-17 19:26+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -423,7 +423,7 @@ msgstr "Aktiverad (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Använd 486-programtolk för 286- och 386-processorer"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamisk omkompilator"
 
 msgid "CPU frame size"
@@ -456,6 +456,9 @@ msgstr "XGA-grafik"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 bildskärmsadapter"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Mus:"
 
 msgid "Mouse"
 msgstr "Mus"
+
+msgid "&Mouse"
+msgstr "&Mus"
+
+msgid "Tablet:"
+msgstr "Platta:"
+
+msgid "Tablet"
+msgstr "Platta"
+
+msgid "&Tablet"
+msgstr "&Platta"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Platta (&Hårkors)"
 
 msgid "Joystick:"
 msgstr "Styrspak:"
@@ -831,6 +849,9 @@ msgstr "Bildskärm"
 msgid "Input devices"
 msgstr "Inmatningsenheter"
 
+msgid "Input &device"
+msgstr "Inmatnings&enhet"
+
 msgid "Sound"
 msgstr "Ljud"
 
@@ -839,6 +860,9 @@ msgstr "Nätverk"
 
 msgid "Ports (COM & LPT)"
 msgstr "Portar (COM & LPT)"
+
+msgid "Port"
+msgstr "Port"
 
 msgid "Ports"
 msgstr "Portar"
@@ -1242,7 +1266,7 @@ msgid "Use regular expressions in search box"
 msgstr "Använd vanliga uttryck i sökfältet"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Ta bort virtuella maskiner till Papperskorgen"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1729,7 +1753,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Pausa automatiskt när fokus tappas"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Pausa automatiskt för dialogfönster"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox stöds inte längre"
@@ -2241,6 +2265,9 @@ msgstr "Serienummer"
 msgid "Host ID"
 msgstr "Värd-ID"
 
+msgid "Host"
+msgstr "Värd"
+
 msgid "FDC Address"
 msgstr "Adress till diskettstyrenhet"
 
@@ -2323,7 +2350,7 @@ msgid "Control PC speaker"
 msgstr "Styr PC-speaker"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Styr MIDI-volym"
 
 msgid "Memory size"
 msgstr "Minnesstorlek"
@@ -2670,6 +2697,18 @@ msgstr "Utökad färg - normalt läge (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Utökad färg - utökat läge (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monokrom)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, färg)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monokrom)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, färg)"
+
 msgid "Green"
 msgstr "Grön"
 
@@ -2923,7 +2962,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "Bekräfta innan avslut"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "För-cachea CHD-filer till minne"
 
 msgid "Options"
 msgstr "Alternativ"
@@ -2938,22 +2977,22 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Kunde inte initialisera Vulkan-renderaren."
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Skapande av Vulkan 1.3-instans misslyckades."
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "Ingen användbar maskinvara för Vulkan hittades."
 
 msgid "No Vulkan-capable physical devices found."
-msgstr ""
+msgstr "Ingen Vulkan-kapabel maskinvara hittades."
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "librashader hittades inte. Shaders kommer inte att vara tillgängliga."
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Vulkan-enhet förlorad."
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Vulkan-yta förlorad."
 
 msgid "GLSL Error"
 msgstr "GLSL-fel"
@@ -2977,7 +3016,7 @@ msgid "Shader Configuration"
 msgstr "Shader-inställningar"
 
 msgid "GPU:"
-msgstr ""
+msgstr "Grafikprocessor:"
 
 msgid "Add"
 msgstr "Lägg till"
@@ -3046,10 +3085,10 @@ msgid "Toggle mute"
 msgstr "Tysta"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Växla On-Screen Display"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Växla &On-Screen Display"
 
 msgid "Text files"
 msgstr "Textfiler"
@@ -3213,7 +3252,7 @@ msgid "Export EDID"
 msgstr "Exportera EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "EDID-fil \"%s\" är ogiltig."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDID-filen \"%s\" är för stor."
@@ -3251,6 +3290,12 @@ msgstr "&Spola fram"
 msgid "Fast forward"
 msgstr "Spola fram"
 
+msgid "&Non-maskable interrupt"
+msgstr "&Icke-maskerbart avbrott"
+
+msgid "Non-maskable interrupt"
+msgstr "Icke-maskerbart avbrott"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "ör att ändra systemkatalogen, stoppa alla maskiner som är körs."
 
@@ -3285,6 +3330,8 @@ msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
+"Avbildningen \"%s\" kunde inte laddas: %1 saknas, vilket krävs för stöd för "
+"avbildningar i Aaru format."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3430,4 +3477,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditionell kinesiska)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Samplingsfrekvens:"
+
+msgid "CGA lightpen"
+msgstr "CGA-ljuspenna"
+
+msgid "Luminance threshold (%)"
+msgstr "Tröskel för luminans (%)"

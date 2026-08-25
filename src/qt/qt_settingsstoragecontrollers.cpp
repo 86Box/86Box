@@ -429,37 +429,37 @@ SettingsStorageControllers::on_comboBoxCDInterface_currentIndexChanged(int index
 void
 SettingsStorageControllers::on_pushButtonFD_clicked()
 {
-    DeviceConfig::ConfigureDevice(fdc_card_getdevice(ui->comboBoxFD->currentData().toInt()));
+    fdc_cfg_changed |= DeviceConfig::ConfigureDevice(fdc_card_getdevice(ui->comboBoxFD->currentData().toInt()));
 }
 
 void
 SettingsStorageControllers::on_pushButtonHD1_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD1->currentData().toInt()), 1);
+    hdc_cfg_changed[0] |= DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD1->currentData().toInt()), 1);
 }
 
 void
 SettingsStorageControllers::on_pushButtonHD2_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD2->currentData().toInt()), 2);
+    hdc_cfg_changed[1] |= DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD2->currentData().toInt()), 2);
 }
 
 void
 SettingsStorageControllers::on_pushButtonHD3_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD3->currentData().toInt()), 3);
+    hdc_cfg_changed[2] |= DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD3->currentData().toInt()), 3);
 }
 
 void
 SettingsStorageControllers::on_pushButtonHD4_clicked()
 {
-    DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD4->currentData().toInt()), 4);
+    hdc_cfg_changed[3] |= DeviceConfig::ConfigureDevice(hdc_get_device(ui->comboBoxHD4->currentData().toInt()), 4);
 }
 
 void
 SettingsStorageControllers::on_pushButtonCDInterface_clicked()
 {
-    DeviceConfig::ConfigureDevice(cdrom_interface_get_device(ui->comboBoxCDInterface->currentData().toInt()));
+    cdrom_interface_cfg_changed |= DeviceConfig::ConfigureDevice(cdrom_interface_get_device(ui->comboBoxCDInterface->currentData().toInt()));
 }
 
 void
@@ -513,23 +513,23 @@ SettingsStorageControllers::on_pushButtonSCSI1_clicked()
 
     if (scsiCard == SCSI_CARD_INTERNAL)
         device = machine_get_scsi_device(machineId);
-    DeviceConfig::ConfigureDevice(device, 1);
+    scsi_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
 SettingsStorageControllers::on_pushButtonSCSI2_clicked()
 {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI2->currentData().toInt()), 2);
+    scsi_card_cfg_changed[1] |= DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI2->currentData().toInt()), 2);
 }
 
 void
 SettingsStorageControllers::on_pushButtonSCSI3_clicked()
 {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI3->currentData().toInt()), 3);
+    scsi_card_cfg_changed[2] |= DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI3->currentData().toInt()), 3);
 }
 
 void
 SettingsStorageControllers::on_pushButtonSCSI4_clicked()
 {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4);
+    scsi_card_cfg_changed[3] |= DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4);
 }

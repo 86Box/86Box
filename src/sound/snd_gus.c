@@ -810,8 +810,11 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         gus_log(gus->log, "GUS DMA changed: New DMA1 = %i, New DMA2 = %i\n", gus->dma, gus->dma2);
                         gus_log(gus->log, "GUS DMA register val = %02X\n", val);
 
-                        if (gus->type == GUS_MAX)
+                        if (gus->type == GUS_MAX) {
                             ad1848_setdma(&gus->ad1848, gus->dma2);
+                            if (gus->dma2 != gus->dma)
+                                ad1848_setdma2(&gus->ad1848, gus->dma);
+                        }
 
                         /* Bit 7 of this register fires/clears the secondary IRQ when in combine IRQs mode */
                         if (val & 0x80)
@@ -1055,6 +1058,11 @@ gus_read(uint16_t addr, void *priv)
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
                     return val;
 
+                case 0x4c: /*Reset*/
+                case 0xcc:
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->reset);
+                    return gus->reset;
+
                 case 0x00:
                 case 0x01:
                 case 0x02:
@@ -1136,6 +1144,11 @@ gus_read(uint16_t addr, void *priv)
                 case 0x4B: /*Joystick trim DAC*/
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->joy_trim);
                     return gus->joy_trim;
+
+                case 0x4c: /*Reset*/
+                case 0xcc:
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->reset);
+                    return gus->reset;
 
                 case 0x00:
                 case 0x01:
@@ -1925,10 +1938,14 @@ gus_extreme_init(UNUSED(const device_t *info))
     ess_mixer_reset(gus->ess);
 
     gus->ess->mixer_enabled = 1;
-    gus->ess->mixer_ess.regs[0x40] = 0x0a;
+    gus->ess->mixer_ess.regs[0x40] = 0x02;
     sound_add_handler(sb_get_buffer_ess, gus->ess);
     music_add_handler(sb_get_music_buffer_ess, gus->ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);
+
+    /* Filter is always enabled on ES1688 */
+    gus->ess->mixer_ess.input_filter = 1;
+    gus->ess->mixer_ess.output_filter = 1;
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
@@ -2257,7 +2274,7 @@ static const device_config_t gus_vipermax_config[] = {
         .description    = "Memory size",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = 2,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {

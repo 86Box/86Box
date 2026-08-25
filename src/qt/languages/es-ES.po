@@ -423,7 +423,7 @@ msgstr "Habilitado (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Utilizar el interpretador 486 para los procesadores 286 y 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Recompilador dinámico"
 
 msgid "CPU frame size"
@@ -456,6 +456,9 @@ msgstr "Gráficos XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Adaptador de gráficos de pantalla IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Ratón:"
 
 msgid "Mouse"
 msgstr "Ratón"
+
+msgid "&Mouse"
+msgstr "&Ratón"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Mando:"
@@ -831,6 +849,9 @@ msgstr "Vídeo"
 msgid "Input devices"
 msgstr "Dispositivos de entrada"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Sonido"
 
@@ -839,6 +860,9 @@ msgstr "Red"
 
 msgid "Ports (COM & LPT)"
 msgstr "Puertos (COM y LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Puertos"
@@ -1787,7 +1811,7 @@ msgid "&Host CD/DVD Drive (%1)"
 msgstr "&Unidad de CD/DVD anfitriona (%1)"
 
 msgid "&Connected"
-msgstr "&Conectrado"
+msgstr "&Conectado"
 
 msgid "Clear image &history"
 msgstr "Eliminar &historia de imágenes"
@@ -2242,6 +2266,9 @@ msgstr "Número de serie"
 msgid "Host ID"
 msgstr "ID de anfitrión"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Dirección del FDC"
 
@@ -2670,6 +2697,18 @@ msgstr "Color mejorado - modo normal (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Color mejorado - modo mejorado (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monocromo)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, color)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monocromo)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, color)"
 
 msgid "Green"
 msgstr "Verde"
@@ -3252,6 +3291,12 @@ msgstr "&Avance rápido"
 msgid "Fast forward"
 msgstr "Avance rápido"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Para cambiar el directorio del sistema, detenga todas las máquinas en funcionamiento."
 
@@ -3431,4 +3476,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (chino tradicional)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

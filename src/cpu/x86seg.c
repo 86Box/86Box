@@ -297,7 +297,7 @@ loadseg(uint16_t seg, x86seg *s)
                 return;
 #endif
             }
-            s->seg     = 0;
+            s->seg     = seg;
             s->access  = 0x80;
             s->ar_high = 0x10;
             s->base    = -1;
@@ -1303,12 +1303,14 @@ pmoderetf(int is32, uint16_t off)
         return;
     }
     if (!(seg & 0xfffc)) {
+        ESP = oldsp;
         x86gpf("pmoderetf(): seg is NULL", 0);
         return;
     }
     addr = seg & 0xfff8;
     dt   = (seg & 0x0004) ? &ldt : &gdt;
     if ((addr + 7) > dt->limit) {
+        ESP = oldsp;
         x86gpf("pmoderetf(): Selector > DT limit", seg & 0xfffc);
         return;
     }
@@ -1357,6 +1359,7 @@ pmoderetf(int is32, uint16_t off)
                 }
                 break;
             default:
+                ESP = oldsp;
                 x86gpf("pmoderetf(): Unknown type", seg & 0xfffc);
                 return;
         }

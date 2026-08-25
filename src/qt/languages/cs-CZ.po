@@ -423,7 +423,7 @@ msgstr "Zapnuta (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Použít interpreter 486 pro procesory 286 a 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamický překladač"
 
 msgid "CPU frame size"
@@ -456,6 +456,9 @@ msgstr "Povolit grafický adaptér XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Povolit grafický adaptér IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Myš:"
 
 msgid "Mouse"
 msgstr "Myš"
+
+msgid "&Mouse"
+msgstr "&Myš"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -831,6 +849,9 @@ msgstr "Obraz"
 msgid "Input devices"
 msgstr "Vstupní zařízení"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Zvuk"
 
@@ -839,6 +860,9 @@ msgstr "Síť"
 
 msgid "Ports (COM & LPT)"
 msgstr "COM a LPT porty"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Porty"
@@ -2281,6 +2305,9 @@ msgstr "Sériové číslo"
 msgid "Host ID"
 msgstr "ID hostitele"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Adresa FDC"
 
@@ -2711,6 +2738,18 @@ msgstr "Rozšířený barevný - normální režim (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Rozšířený barevný - rozšířený režim (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monochromatický)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, barevný)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monochromatický)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, barevný)"
 
 msgid "Green"
 msgstr "Zelený"
@@ -3294,6 +3333,12 @@ msgstr "&Zrychlit"
 msgid "Fast forward"
 msgstr "Zrychlit"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
 
@@ -3474,3 +3519,9 @@ msgstr "938 (klasická čínština)"
 
 msgid "Sample rate:"
 msgstr "Vzorkovací frekvence:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

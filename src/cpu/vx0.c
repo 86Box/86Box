@@ -1889,8 +1889,14 @@ decode(void)
 
     if (halted)
         opcode  = 0xf4;
-    else
+    else {
+        /* Temp variables for FPU exception reporting. */
+        temp_CS = CS;
+        temp_cs = cs;
+        temp_pc = cpu_state.pc;
+
         opcode  = biu_pfq_fetchb_common();
+    }
 
     while (1) {
         prefix = 0;
@@ -3808,6 +3814,7 @@ execute_instruction(void)
             tempw = cpu_state.pc;
             geteaw();
             /* fpu_op() */
+            x87_op = ((opcode & 0x07) << 8) | (rmdat & 0xff);
             if (hasfpu) {
                 if (fpu_softfloat) {
                     switch (opcode) {
@@ -3871,6 +3878,15 @@ execute_instruction(void)
                     }
                 }
             }
+
+            fpu_op = x87_op;
+            fpu_CS = temp_CS;
+            fpu_cs = temp_cs;
+            fpu_pc = temp_pc;
+            fpu_DS = cpu_state.ea_seg->seg;
+            fpu_ds = cpu_state.ea_seg->base;
+            fpu_ea = cpu_state.eaaddr;
+
             cpu_state.pc = tempw; /* Do this as the x87 code advances it, which is needed on
                                      the 286+ core, but not here. */
             break;
@@ -4429,6 +4445,9 @@ execute_instruction(void)
 
         case 0xfa: /* CLISTI */
         case 0xfb:
+            if ((opcode & 1) && !(cpu_state.flags & I_FLAG))
+                noint = 1;
+
             set_if(opcode & 1);
             break;
 

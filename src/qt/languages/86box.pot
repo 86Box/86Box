@@ -417,7 +417,7 @@ msgstr ""
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr ""
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr ""
 
 msgid "CPU frame size"
@@ -450,6 +450,9 @@ msgstr ""
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr ""
 
+msgid "SCSI:"
+msgstr ""
+
 msgid "Voodoo:"
 msgstr ""
 
@@ -463,6 +466,21 @@ msgid "Mouse:"
 msgstr ""
 
 msgid "Mouse"
+msgstr ""
+
+msgid "&Mouse"
+msgstr ""
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -825,6 +843,9 @@ msgstr ""
 msgid "Input devices"
 msgstr ""
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr ""
 
@@ -832,6 +853,9 @@ msgid "Network"
 msgstr ""
 
 msgid "Ports (COM & LPT)"
+msgstr ""
+
+msgid "Port"
 msgstr ""
 
 msgid "Ports"
@@ -2225,6 +2249,9 @@ msgstr ""
 msgid "Host ID"
 msgstr ""
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr ""
 
@@ -2652,6 +2679,18 @@ msgid "Enhanced Color - Normal Mode (5154/ECD)"
 msgstr ""
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
+msgstr ""
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr ""
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr ""
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr ""
+
+msgid "IBM 8512/13 (640x480, Color)"
 msgstr ""
 
 msgid "Green"
@@ -3234,6 +3273,12 @@ msgstr ""
 msgid "Fast forward"
 msgstr ""
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr ""
 
@@ -3409,4 +3454,10 @@ msgid "938 (Traditional Chinese)"
 msgstr ""
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

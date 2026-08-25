@@ -425,7 +425,7 @@ msgstr "Uključeno (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Koristi interpretator za 486 i za procesore 286 i 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dinamički rekompilator"
 
 msgid "CPU frame size"
@@ -458,6 +458,9 @@ msgstr "XGA grafika"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Grafika adaptera za prikaz IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -472,6 +475,21 @@ msgstr "Miš:"
 
 msgid "Mouse"
 msgstr "Miš"
+
+msgid "&Mouse"
+msgstr "&Miš"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Palica za igru:"
@@ -833,6 +851,9 @@ msgstr "Video"
 msgid "Input devices"
 msgstr "Ulazni uređaji"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Zvuk"
 
@@ -841,6 +862,9 @@ msgstr "Mreža"
 
 msgid "Ports (COM & LPT)"
 msgstr "Vrata (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Vrata"
@@ -2248,6 +2272,9 @@ msgstr "Serijski broj"
 msgid "Host ID"
 msgstr "ID nositelja"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Adresa FDC-a"
 
@@ -2676,6 +2703,18 @@ msgstr "Bojni pojačani - normalni način (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Bojni pojačani - pojačani način (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, crno-bijeli)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, bojni)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, crno-bijeli)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, bojni)"
 
 msgid "Green"
 msgstr "Zelena"
@@ -3259,6 +3298,12 @@ msgstr "&Brzo naprijed"
 msgid "Fast forward"
 msgstr "Brzo naprijed"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Za promjenu sustavskog direktorija zaustavite sve pokrenute strojeve."
 
@@ -3438,4 +3483,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (tradicionalni kineski)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

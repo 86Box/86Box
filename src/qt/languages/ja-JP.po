@@ -424,7 +424,7 @@ msgstr "有効(UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286および386プロセッサには486インタプリタを使用する"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "動的再コンパイル"
 
 msgid "CPU frame size"
@@ -457,6 +457,9 @@ msgstr "XGAグラフィック"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55ディスプレイアダプターグラフィックス"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -471,6 +474,21 @@ msgstr "マウス:"
 
 msgid "Mouse"
 msgstr "マウス"
+
+msgid "&Mouse"
+msgstr "マウス(&M)"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "ジョイスティック:"
@@ -832,6 +850,9 @@ msgstr "ディスプレイ"
 msgid "Input devices"
 msgstr "入力デバイス"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "サウンド"
 
@@ -840,6 +861,9 @@ msgstr "ネットワーク"
 
 msgid "Ports (COM & LPT)"
 msgstr "ポート (COM/LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "ポート"
@@ -2237,6 +2261,9 @@ msgstr "シリアル番号"
 msgid "Host ID"
 msgstr "ホストID"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "FDCアドレス"
 
@@ -2665,6 +2692,18 @@ msgstr "エンハンスト・カラー - ノーマルモード（5154/ECD）"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "エンハンスト・カラー - エンハンスト・モード（5154/ECD）"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507（1024x768、モノクローム）"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514（1024x768、カラー）"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503（640x480、モノクローム）"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13（640x480、カラー）"
 
 msgid "Green"
 msgstr "みどり"
@@ -3246,6 +3285,12 @@ msgstr "早送り(&F)"
 msgid "Fast forward"
 msgstr "早送り"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "システムディレクトリを変更するには、稼働中のマシンをすべて停止してください。"
 
@@ -3424,4 +3469,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体字中国語)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

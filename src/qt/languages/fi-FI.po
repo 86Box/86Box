@@ -423,7 +423,7 @@ msgstr "Käytössä (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Käytä 486-tulkintaa 286- ja 386-prosessoreille"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynaaminen uudelleenkääntäjä"
 
 msgid "CPU frame size"
@@ -456,6 +456,9 @@ msgstr "XGA-grafiikkasuoritin"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55-näyttöadapteri"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Hiiri:"
 
 msgid "Mouse"
 msgstr "Hiiri"
+
+msgid "&Mouse"
+msgstr "&Hiiri"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Peliohjain:"
@@ -831,6 +849,9 @@ msgstr "Näyttö"
 msgid "Input devices"
 msgstr "Syöttölaitteet"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Ääni"
 
@@ -839,6 +860,9 @@ msgstr "Verkko"
 
 msgid "Ports (COM & LPT)"
 msgstr "Portit (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Portit"
@@ -2245,6 +2269,9 @@ msgstr "Sarjanumero"
 msgid "Host ID"
 msgstr "Isännän ID"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "FDC-osoite"
 
@@ -2673,6 +2700,18 @@ msgstr "Parannettu väri - Normaali tila (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Parannettu väri - Parannettu tila (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, yksivärinen)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, väri)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, yksivärinen)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, väri)"
 
 msgid "Green"
 msgstr "Vihreä"
@@ -3255,6 +3294,12 @@ msgstr "&Pikakelaus"
 msgid "Fast forward"
 msgstr "Pikakelaus"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Järjestelmähakemiston muuttamiseksi pysäytä kaikki käynnissä olevat koneet."
 
@@ -3434,4 +3479,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (perinteinen kiina)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

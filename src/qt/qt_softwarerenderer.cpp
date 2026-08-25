@@ -188,7 +188,7 @@ SoftwareRenderer::event(QEvent *event)
 void
 SoftwareRenderer::onPaint(QPaintDevice *device)
 {
-    const bool osd = 1;
+    const bool osd = qt_osd_is_visible();
     /* Repaint when the OSD is up, or once more right after it closes so a
      * lingering overlay is cleared even while the machine is paused. */
     if (cur_image == -1 && !osd && !osd_drawn_last)

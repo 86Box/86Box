@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-31 15:40+0000\n"
+"PO-Revision-Date: 2026-08-16 00:00+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -424,7 +424,7 @@ msgstr "Включено (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Использовать интерпретатор 486 для процессоров 286 и 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Динамический рекомпилятор"
 
 msgid "CPU frame size"
@@ -457,6 +457,9 @@ msgstr "Ускоритель XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -471,6 +474,21 @@ msgstr "Мышь:"
 
 msgid "Mouse"
 msgstr "Мышь"
+
+msgid "&Mouse"
+msgstr "&Мышь"
+
+msgid "Tablet:"
+msgstr "Планшет:"
+
+msgid "Tablet"
+msgstr "Планшет"
+
+msgid "&Tablet"
+msgstr "&Планшет"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Планшет (&отображать прицел)"
 
 msgid "Joystick:"
 msgstr "Джойстик:"
@@ -832,6 +850,9 @@ msgstr "Дисплей"
 msgid "Input devices"
 msgstr "Устройства ввода"
 
+msgid "Input &device"
+msgstr "&Устройство ввода"
+
 msgid "Sound"
 msgstr "Звук"
 
@@ -840,6 +861,9 @@ msgstr "Сеть"
 
 msgid "Ports (COM & LPT)"
 msgstr "Порты (COM и LPT)"
+
+msgid "Port"
+msgstr "Порт"
 
 msgid "Ports"
 msgstr "Порты"
@@ -2254,6 +2278,9 @@ msgstr "Серийный номер"
 msgid "Host ID"
 msgstr "Идентификатор хоста"
 
+msgid "Host"
+msgstr "Хост"
+
 msgid "FDC Address"
 msgstr "Адрес FDC"
 
@@ -2682,6 +2709,18 @@ msgstr "Улучшенный цветной - нормальный режим (5
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Улучшенный цветной - улучшенный режим (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, монохромный)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, цветной)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, монохромный)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, цветной)"
 
 msgid "Green"
 msgstr "Зелёный"
@@ -3265,6 +3304,12 @@ msgstr "П&еремотка вперёд"
 msgid "Fast forward"
 msgstr "Перемотка вперёд"
 
+msgid "&Non-maskable interrupt"
+msgstr "Немаскируемое прерывание (&NMI)"
+
+msgid "Non-maskable interrupt"
+msgstr "Немаскируемое прерывание"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Чтобы изменить системную папку, остановите все запущенные машины."
 
@@ -3445,3 +3490,9 @@ msgstr "938 (китайский, традиционное письмо)"
 
 msgid "Sample rate:"
 msgstr "Частота дискретизации:"
+
+msgid "CGA lightpen"
+msgstr "Световое перо CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Порог яркости (%)"

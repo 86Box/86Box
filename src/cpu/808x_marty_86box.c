@@ -1708,6 +1708,8 @@ m808x_86box_fpu_exec(const uint8_t op, uint8_t modrm,
         default: easeg = ds; break;
     }
 
+    x87_op = ((op & 0x07) << 8) | (modrm & 0xff);
+
     if (!hasfpu) {
         if (cpu_mod != 3)
             (void) readmemw(easeg, ea);
@@ -1736,6 +1738,14 @@ m808x_86box_fpu_exec(const uint8_t op, uint8_t modrm,
             default: break;
         }
     }
+
+    fpu_op = x87_op;
+    fpu_CS = temp_CS;
+    fpu_cs = temp_cs;
+    fpu_pc = temp_pc;
+    fpu_DS = cpu_state.ea_seg->seg;
+    fpu_ds = cpu_state.ea_seg->base;
+    fpu_ea = cpu_state.eaaddr;
 
     cpu_state.pc = saved_pc;
     cpu_state.rm_data.rm_mod_reg_data = saved_rm_data;
@@ -2094,6 +2104,11 @@ decode_instruction(m808x_cpu_t *icpu)
     icpu->ins.instruction_ip = architectural_ip(icpu);
     icpu->in_lock = false;
     icpu->rep_prefix = 0u;
+
+    /* Temp variables for FPU exception reporting. */
+    temp_CS = icpu->segs[SEG_CS];
+    temp_cs = temp_CS << 4;
+    temp_pc = icpu->ins.instruction_ip;
 
     uint8_t iopcode = queue_read(icpu, true);
 

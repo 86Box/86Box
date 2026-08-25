@@ -749,6 +749,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 o                                   = svga->attrregs[svga->attraddr & 31];
+                if ((svga->attraddr & 31) > 0x14)
+                    val = o;
                 svga->attrregs[svga->attraddr & 31] = val;
                 if (svga->attraddr < 16)
                     svga->fullchange = changeframecount;
@@ -5978,7 +5980,7 @@ static const device_config_t gd5434_isa_config[] = {
                 .files_no      = 1,
                 .local         = CIRRUS_ID_CLGD5434 | 0x100,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { BIOS_GD5434_DIAMOND_A3_ISA_PATH, "" }
             },
             {

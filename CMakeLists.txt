@@ -19,9 +19,13 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if(HAIKU)
-    set(OPENAL ON)
-endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;UltraDebug;Optimized" CACHE STRING "")
 
 if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
@@ -40,6 +44,14 @@ project(86Box
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
+
+if (NOT (CMAKE_SIZEOF_VOID_P STREQUAL "8"))
+    message(FATAL_ERROR "Only 64-bit builds are supported.")
+endif()
+
+if (CMAKE_C_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+    message(FATAL_ERROR "Big-endian builds are not supported.")
+endif()
 
 include(CPack)
 include(CMakeDependentOption)
@@ -92,35 +104,16 @@ if(NOT NO_STATIC_OPTION)
     endif()
 endif()
 
-# Detect the target architecture by trying to compile `src/arch_detect.c`
-try_compile(RESULT_VAR ${CMAKE_BINARY_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/src/arch_detect.c" OUTPUT_VARIABLE ARCH)
-string(REGEX MATCH "ARCH ([a-zA-Z0-9_]+)" ARCH "${ARCH}")
-string(REPLACE "ARCH " "" ARCH "${ARCH}")
-if (NOT ARCH)
-    set(ARCH unknown)
-endif()
-
-add_compile_definitions(CMAKE)
-add_compile_definitions("$<$<CONFIG:Debug>:DEBUG>")
-
-if(WIN32)
-    # Disables *_s function warnings
-    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
-
-    # Disables POSIX name warnings
-    add_compile_definitions(_CRT_NONSTDC_NO_WARNINGS)
-
-    # Disables WinSock deprecation warnings
-    add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
-endif()
-
 if(NOT (WIN32 OR APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
     set(DISCORD OFF)
 endif()
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
+if(HAIKU)
+    set(OPENAL ON)
+endif()
+
+include(DetectTargetArch)
+include(CompilerFlags)
 
 # Optional features
 #

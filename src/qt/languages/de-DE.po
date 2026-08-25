@@ -423,7 +423,7 @@ msgstr "Eingeschaltet (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Verwende den 486-Interpreter für 286- und 386-Prozessoren"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamischer Recompiler"
 
 msgid "CPU frame size"
@@ -456,6 +456,9 @@ msgstr "XGA-Grafik"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Grafik-Adapter"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Maus:"
 
 msgid "Mouse"
 msgstr "Maus"
+
+msgid "&Mouse"
+msgstr "&Maus"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -831,6 +849,9 @@ msgstr "Anzeige"
 msgid "Input devices"
 msgstr "Eingabegeräte"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Ton"
 
@@ -839,6 +860,9 @@ msgstr "Netzwerk"
 
 msgid "Ports (COM & LPT)"
 msgstr "Anschlüsse (COM + LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Anschlüsse"
@@ -2241,6 +2265,9 @@ msgstr "Seriennummer"
 msgid "Host ID"
 msgstr "Host-ID"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "FDC-Adresse"
 
@@ -2669,6 +2696,18 @@ msgstr "Erweiterte Farbe - Normaler Modus (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Erweiterte Farbe - Erweiterter Modus (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, Monochrom)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, Farbe)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, Monochrom)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, Farbe)"
 
 msgid "Green"
 msgstr "Grün"
@@ -3251,6 +3290,12 @@ msgstr "&Schnellvorlauf"
 msgid "Fast forward"
 msgstr "Schnellvorlauf"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Um das Systemverzeichnis zu ändern, stoppen Sie alle laufenden Maschinen."
 
@@ -3431,4 +3476,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditionelles Chinesisch)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

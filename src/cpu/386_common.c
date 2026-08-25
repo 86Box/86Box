@@ -23,6 +23,7 @@
 #include <86box/pit.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/plat.h>
 #include <86box/keyboard.h>
 #include <86box/timer.h>
 
@@ -1757,39 +1758,6 @@ x86illegal(void)
     x86_int(6);
 }
 
-int
-checkio(uint32_t port, int mask)
-{
-    uint32_t t;
-
-    if (!(tr.access & 0x08)) {
-        if ((CPL) > (IOPL))
-            return 1;
-
-        return 0;
-    }
-
-    cpl_override = 1;
-    t            = readmemw(tr.base, 0x66);
-
-    if (UNLIKELY(cpu_state.abrt)) {
-        cpl_override = 0;
-        return 0;
-    }
-
-    t += (port >> 3UL);
-    mask <<= (port & 7);
-    if (UNLIKELY(mask & 0xff00)) {
-        if (LIKELY(t < tr.limit))
-            mask &= readmemwl(tr.base + t);
-    } else {
-        if (LIKELY(t <= tr.limit))
-            mask &= readmembl(tr.base + t);
-    }
-    cpl_override = 0;
-    return mask;
-}
-
 #ifdef OLD_DIVEXCP
 #    define divexcp()                                                                       \
         {                                                                                   \
@@ -2231,8 +2199,13 @@ smi_raise(void)
 void
 nmi_raise(void)
 {
-    if (is486 && (cpu_fast_off_flags & 0x20000000))
+    if (is486 && (cpu_fast_off_flags & 0x20000000)) {
+        if (!is_cpu_thread)
+            startblit();
         cpu_fast_off_advance();
+        if (!is_cpu_thread)
+            endblit();
+    }
 
     nmi = 1;
 }

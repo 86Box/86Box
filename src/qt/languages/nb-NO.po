@@ -424,7 +424,7 @@ msgstr "Aktivert (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Bruk 486-tolken for 286- og 386-prosessorer"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamisk recompilator"
 
 msgid "CPU frame size"
@@ -457,6 +457,9 @@ msgstr "XGA-grafikk"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 skjermadapter-grafikk"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -471,6 +474,21 @@ msgstr "Mus:"
 
 msgid "Mouse"
 msgstr "Mus"
+
+msgid "&Mouse"
+msgstr "&Mus"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Styrespak:"
@@ -832,6 +850,9 @@ msgstr "Skjerm"
 msgid "Input devices"
 msgstr "Inndataenheter"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Lyd"
 
@@ -840,6 +861,9 @@ msgstr "Nettverk"
 
 msgid "Ports (COM & LPT)"
 msgstr "Porter (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Porter"
@@ -2242,6 +2266,9 @@ msgstr "Serienummer"
 msgid "Host ID"
 msgstr "Vert-ID"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "FDC-adresse"
 
@@ -2670,6 +2697,18 @@ msgstr "Forbedret farge – normalmodus (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Forbedret farge – forbedret modus (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monokrom)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, farge)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monokrom)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, farge)"
 
 msgid "Green"
 msgstr "Grønn"
@@ -3252,6 +3291,12 @@ msgstr "&Spol fremover"
 msgid "Fast forward"
 msgstr "Spol fremover"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "For å endre systemkatalogen, stopp alle maskiner som er kjører."
 
@@ -3431,4 +3476,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Tradisjonell kinesisk)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

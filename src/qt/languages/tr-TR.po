@@ -423,8 +423,8 @@ msgstr "Etkin (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286 ve 386 işlemcilerde 486 yorumlayıcısını kullan"
 
-msgid "Dynamic Recompiler"
-msgstr "Dinamik Derleyici"
+msgid "Dynamic recompiler"
+msgstr "Dinamik derleyici"
 
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
@@ -456,6 +456,9 @@ msgstr "XGA Grafikleri"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Grafikleri"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Fare:"
 
 msgid "Mouse"
 msgstr "Fare"
+
+msgid "&Mouse"
+msgstr "&Fare"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Oyun Kolu:"
@@ -834,6 +852,9 @@ msgstr "Görüntü"
 msgid "Input devices"
 msgstr "Giriş cihazları"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Ses"
 
@@ -842,6 +863,9 @@ msgstr "Ağ"
 
 msgid "Ports (COM & LPT)"
 msgstr "Bağlantı noktaları (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Bağlantı noktaları"
@@ -2294,6 +2318,9 @@ msgstr "Seri Numarası"
 msgid "Host ID"
 msgstr "Ana sistem kimliği"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "FDC Adresi"
 
@@ -2722,6 +2749,18 @@ msgstr "Gelişmiş Renkli - Normal Mod (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Gelişmiş Renkli - Gelişmiş Mod (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, Tek Renkli)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, Çok Renkli)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, Tek Renkli)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, Çok Renkli)"
 
 msgid "Green"
 msgstr "Yeşil"
@@ -3313,6 +3352,12 @@ msgstr "&İleri sar"
 msgid "Fast forward"
 msgstr "İleri sar"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Sistem dizinini değiştirmek için çalışan tüm makineleri durdurun."
 
@@ -3495,3 +3540,9 @@ msgstr "938 (Geleneksel Çince)"
 
 msgid "Sample rate:"
 msgstr "Örnekleme hızı:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

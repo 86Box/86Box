@@ -28,6 +28,8 @@
 #include <86box/pit.h>
 #include <86box/video.h>
 #include <86box/vid_mcga.h>
+#include "cpu.h"
+#include "808x_marty_86box.h"
 
 #define MCGA_VRAM_SIZE      0x10000
 #define MCGA_FONT_RAM_SIZE  0x02000
@@ -743,15 +745,18 @@ mcga_poll(void *priv)
             if (dev->displine == 0)
                 video_wait_for_buffer();
             mcga_render_line(dev, dev->displine);
+            video_lightpen_check_trigger_strobe(0, dev->displine, 0, 0, 1. / (VGACONST1 / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
         }
         return;
     }
 
+    video_lightpen_hsync();
     timer_advance_u64(&dev->timer, dev->disp_off_time);
     dev->linepos = 0;
     dev->displine++;
 
     if (dev->displine == mcga_vsync_start(dev)) {
+        video_lightpen_vsync();
         if (dev->font_pending)
             mcga_load_font(dev);
 

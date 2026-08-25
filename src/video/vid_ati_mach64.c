@@ -1116,7 +1116,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     mach64->bank_w[0] = val << 15; // *32768
                     mach64_log("mach64 : write bank A0000-A7FFF set to %08X\n", mach64->bank_w[0]);
                     break;
-                case 0xb6:
+                case 0xb5: case 0xb6:
                     mach64->bank_w[1] = val << 15; // *32768
                     mach64_log("mach64 : write bank A8000-AFFFF set to %08X\n", mach64->bank_w[1]);
                     break;
@@ -1124,7 +1124,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     mach64->bank_r[0] = val << 15; // *32768
                     mach64_log("mach64 :  read bank A0000-A7FFF set to %08X\n", mach64->bank_r[0]);
                     break;
-                case 0xba:
+                case 0xb9: case 0xba:
                     mach64->bank_r[1] = val << 15; // *32768
                     mach64_log("mach64 :  read bank A8000-AFFFF set to %08X\n", mach64->bank_r[1]);
                     break;

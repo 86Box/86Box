@@ -423,7 +423,7 @@ msgstr "Activat (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Utilitzeu l'intèrpret 486 per a processadors 286 i 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Recompilador dinàmic"
 
 msgid "CPU frame size"
@@ -456,6 +456,9 @@ msgstr "Gràfics XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Adaptador de gràfics de pantalla IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Ratolí:"
 
 msgid "Mouse"
 msgstr "Ratolí"
+
+msgid "&Mouse"
+msgstr "&Ratolí"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Comandament:"
@@ -831,6 +849,9 @@ msgstr "Pantalla"
 msgid "Input devices"
 msgstr "Dispositius de entrada"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "So"
 
@@ -839,6 +860,9 @@ msgstr "Xarxa"
 
 msgid "Ports (COM & LPT)"
 msgstr "Ports (COM i LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Ports"
@@ -2241,6 +2265,9 @@ msgstr "Número de sèrie"
 msgid "Host ID"
 msgstr "ID de l'amfitrió"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Adreça del FDC"
 
@@ -2669,6 +2696,18 @@ msgstr "Color millorat - modalitat normal (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Color millorat - modalitat millorada (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monocromàtic)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, color)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monocromàtic)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, color)"
 
 msgid "Green"
 msgstr "Verd"
@@ -3251,6 +3290,12 @@ msgstr "&Avançar ràpidament"
 msgid "Fast forward"
 msgstr "Avançar ràpidament"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Per canviar el directori del sistema, atureu totes les màquines en funcionament."
 
@@ -3430,4 +3475,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (xinès tradicional)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

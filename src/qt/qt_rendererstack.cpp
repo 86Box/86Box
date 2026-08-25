@@ -346,7 +346,7 @@ RendererStack::enterEvent(QEvent *event)
     mousedata.mouse_tablet_in_proximity = m_monitor_index + 1;
 
     if (mouse_input_mode == 1)
-        QApplication::setOverrideCursor(Qt::BlankCursor);
+        QApplication::setOverrideCursor((tablet_get_device(tablet_type) && !memcmp(tablet_get_device(tablet_type)->internal_name, "wacom", 5)) ? Qt::BlankCursor : Qt::ArrowCursor);
     else if (mouse_input_mode == 2)
         QApplication::setOverrideCursor(Qt::CrossCursor);
 }
@@ -448,6 +448,13 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs        = rendererWindow->getBuffers();
                     switchInProgress = false;
                     emit rendererChanged();
+                    if (m_monitor_index != 0 && show_second_monitors)
+                        this->show();
+
+                    QTimer::singleShot(1000, [this] {
+                        if (m_monitor_index != 0 && show_second_monitors)
+                            this->show();
+                    });
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */
@@ -627,6 +634,10 @@ RendererStack::event(QEvent *event)
                 mouse_x_abs = 1;
             if (mouse_y_abs > 1)
                 mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif
@@ -659,6 +670,10 @@ RendererStack::event(QEvent *event)
 
             if (mouse_x_abs > 1) mouse_x_abs = 1;
             if (mouse_y_abs > 1) mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif

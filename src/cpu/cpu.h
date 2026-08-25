@@ -428,6 +428,10 @@ typedef struct {
 #define CPU_STATUS_PMODE   (1 << 2)
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
+/* x87 precision control = 24-bit: the double-based FPU must round
+   ADD/SUB/MUL/DIV/SQRT results to single, so such blocks are compiled
+   with a round-to-single uop after each of those ops. */
+#define CPU_STATUS_FPU_PC24 (1 << 5)
 #ifdef USE_NEW_DYNAREC
 #    define CPU_STATUS_FLAGS 0xff
 #else
@@ -716,7 +720,7 @@ extern void cpu_CPUID(void);
 extern void cpu_RDMSR(void);
 extern void cpu_WRMSR(void);
 
-extern int  checkio(uint32_t port, int mask);
+// extern int  checkio(uint32_t port, int mask);
 extern void codegen_block_end(void);
 extern void codegen_reset(void);
 extern void cpu_set_edx(void);
@@ -728,8 +732,13 @@ extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
 extern void exec386_2386(int32_t cycs);
+/* Intel Inboard 386/PC POST fix-ups - shared by both interpreter loops, and gated
+   on the card actually being present (inboard386.c). */
+extern int  inboard386_present;
+extern void inboard_post_fixups(void);
 extern void exec386(int32_t cycs);
 extern void exec386_dynarec(int32_t cycs);
+extern int  is_dynarec_active(void);
 extern int  idivl(int32_t val);
 extern void resetmcr(void);
 extern void resetx86(void);
@@ -847,6 +856,18 @@ extern int lock_legal_f6[8];
 extern int lock_legal_fe[8];
 
 extern int new_ne;
+
+extern uint16_t temp_CS;
+extern uint16_t fpu_CS;
+extern uint32_t temp_cs;
+extern uint32_t fpu_cs;
+extern uint32_t temp_pc;
+extern uint32_t fpu_pc;
+
+extern uint16_t fpu_op;
+extern uint16_t fpu_DS;
+extern uint32_t fpu_ds;
+extern uint32_t fpu_ea;
 
 extern int in_lock;
 extern int cpu_override_interpreter;

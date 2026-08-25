@@ -425,7 +425,7 @@ msgstr "Увімкнути (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Використовувати інтерпретатор 486 для процесорів 286 і 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Динамічний рекомпілятор"
 
 msgid "CPU frame size"
@@ -458,6 +458,9 @@ msgstr "Прискорювач XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -472,6 +475,21 @@ msgstr "Миша:"
 
 msgid "Mouse"
 msgstr "Миша"
+
+msgid "&Mouse"
+msgstr "&Миша"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Джойстик:"
@@ -833,6 +851,9 @@ msgstr "Дисплей"
 msgid "Input devices"
 msgstr "Пристрій введення"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Звук"
 
@@ -841,6 +862,9 @@ msgstr "Мережа"
 
 msgid "Ports (COM & LPT)"
 msgstr "Порти (COM и LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Порти"
@@ -2249,6 +2273,9 @@ msgstr "Серійний номер"
 msgid "Host ID"
 msgstr "Ідентифікатор хоста"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Адреса FDC"
 
@@ -2677,6 +2704,18 @@ msgstr "Покращений колір - звичайний режим (5154/EC
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Покращений колір - розширений режим (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, монохромний)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, кольоровий)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, монохромний)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, кольоровий)"
 
 msgid "Green"
 msgstr "Зелений"
@@ -3260,6 +3299,12 @@ msgstr "&Перемотай вперед"
 msgid "Fast forward"
 msgstr "Перемотай вперед"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Щоб змінити системний каталог, зупиніть усі машини, що працюють."
 
@@ -3439,4 +3484,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (китайська, традиційне письмо)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

@@ -110,11 +110,15 @@ extern const device_t      lpt_tnd_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
+extern const device_t      lpt_ditto_device;
+
 extern const device_t      lpt_loopback_device;
 
 extern void                lpt_write(uint16_t port, uint8_t val, void *priv);
 
 extern void                lpt_write_to_fifo(void *priv, uint8_t val);
+
+extern void                lpt_write_to_dat(void *priv, uint8_t val);
 
 extern uint8_t             lpt_read(uint16_t port, void *priv);
 

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-31 15:40+0000\n"
+"PO-Revision-Date: 2026-08-18 02:45+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -423,8 +423,8 @@ msgstr "Ενεργό (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Χρησιμοποιήστε τον διερμηνέα 486 για επεξεργαστές 286 και 386"
 
-msgid "Dynamic Recompiler"
-msgstr "Δυναμικός Αναμεταγλωττιστής"
+msgid "Dynamic recompiler"
+msgstr "Δυναμικός αναμεταγλωττιστής"
 
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
@@ -456,6 +456,9 @@ msgstr "Γραφικά XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Προσαρμογέας Γραφικών IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -470,6 +473,21 @@ msgstr "Ποντίκι:"
 
 msgid "Mouse"
 msgstr "Ποντίκι"
+
+msgid "&Mouse"
+msgstr "&Ποντίκι"
+
+msgid "Tablet:"
+msgstr "Ταμπλέτα:"
+
+msgid "Tablet"
+msgstr "Ταμπλέτα"
+
+msgid "&Tablet"
+msgstr "&Ταμπλέτα"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Ταμπλέτα (&Σημάδι)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -831,6 +849,9 @@ msgstr "Οθόνη"
 msgid "Input devices"
 msgstr "Συσκευές εισόδου"
 
+msgid "Input &device"
+msgstr "&Συσκευή εισόδου"
+
 msgid "Sound"
 msgstr "Ήχος"
 
@@ -839,6 +860,9 @@ msgstr "Δίκτυο"
 
 msgid "Ports (COM & LPT)"
 msgstr "Θύρες (COM & LPT)"
+
+msgid "Port"
+msgstr "Πόρτα"
 
 msgid "Ports"
 msgstr "Θύρες"
@@ -2274,6 +2298,9 @@ msgstr "Σειριακός Αριθμός"
 msgid "Host ID"
 msgstr "ID οικοδεσπότη"
 
+msgid "Host"
+msgstr "Οικοδεσπότης"
+
 msgid "FDC Address"
 msgstr "Διεύθυνση FDC"
 
@@ -2703,6 +2730,18 @@ msgstr "Ενισχυμένο Έγχρωμο - Κανονική Λειτουργ�
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένη Λειτουργία (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, Μονόχρωμο)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, Έγχρωμο)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, Μονόχρωμο)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, Έγχρωμο)"
 
 msgid "Green"
 msgstr "Πράσινο"
@@ -3307,6 +3346,12 @@ msgstr "&Γρήγορα μπροστά"
 msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 
+msgid "&Non-maskable interrupt"
+msgstr "&Διακοπή χωρίς μάσκα"
+
+msgid "Non-maskable interrupt"
+msgstr "Διακοπή χωρίς μάσκα"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές σε λειτουργία."
 
@@ -3489,3 +3534,9 @@ msgstr "938 (Παραδοσιακά Κινέζικα)"
 
 msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
+
+msgid "CGA lightpen"
+msgstr "Φωτογραφίδα CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Όριο φωτεινότητας (%)"

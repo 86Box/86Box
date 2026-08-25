@@ -58,6 +58,8 @@ typedef struct sis_85c4xx_t {
     uint8_t       shadowed;
     uint8_t       smram_enabled;
     uint8_t       pad;
+    uint8_t       force_cache_size;
+    uint8_t       cache_size_code;
     uint8_t       regs[39];
     uint8_t       scratch[2];
     uint32_t      mem_state[8];
@@ -585,6 +587,9 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x23:
             if ((dev->cur_reg >= dev->reg_base) && (dev->cur_reg <= dev->reg_last)) {
+                if (dev->is_471 && dev->force_cache_size && (rel_reg == 0x01))
+                    val = (val & 0x8f) | ((dev->cache_size_code & 0x07) << 4);
+
                 valxor = val ^ dev->regs[rel_reg];
 
                 if (!dev->is_471 && (rel_reg == 0x00))
@@ -859,7 +864,9 @@ sis_85c4xx_init(const device_t *info)
 {
     sis_85c4xx_t *dev = (sis_85c4xx_t *) calloc(1, sizeof(sis_85c4xx_t));
 
-    dev->is_471 = (info->local >> 8) & 0xff;
+    dev->is_471           = (info->local >> 8) & 0xff;
+    dev->cache_size_code  = (info->local >> 16) & 0x07;
+    dev->force_cache_size = (info->local >> 24) & 0x01;
 
     dev->reg_base = info->local & 0xff;
 

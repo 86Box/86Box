@@ -986,6 +986,14 @@ VMManagerSystem::setupVars()
     auto mouse_dev_name                            = DeviceConfig::DeviceName(mouse_get_device(mouse_dev), mouse_get_internal_name(mouse_dev), 0);
     display_table[VMManager::Display::Name::Mouse] = mouse_dev_name;
 
+    // Input (Tablet)
+    if (input_config.contains("tablet_type")) {
+        auto tablet_internal_name                       = input_config["tablet_type"];
+        auto tablet_dev                                 = tablet_get_from_internal_name(tablet_internal_name.toUtf8().data());
+        auto tablet_dev_name                            = DeviceConfig::DeviceName(tablet_get_device(tablet_dev), tablet_get_internal_name(tablet_dev), 0);
+        display_table[VMManager::Display::Name::Tablet] = tablet_dev_name;
+    }
+
     // Input (joystick)
     QString joystickDevice;
     if (input_config.contains("joystick_type")) {
