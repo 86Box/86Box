@@ -427,6 +427,9 @@ msgstr "Bruk 486-tolken for 286- og 386-prosessorer"
 msgid "Dynamic recompiler"
 msgstr "Dynamisk recompilator"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU-rammestørrelse"
 

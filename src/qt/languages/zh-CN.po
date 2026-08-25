@@ -427,6 +427,9 @@ msgstr "为286及386处理器应用486解释器"
 msgid "Dynamic recompiler"
 msgstr "动态重编译器"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 执行帧大小"
 

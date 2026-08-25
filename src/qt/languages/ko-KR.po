@@ -426,6 +426,9 @@ msgstr "286/386 프로세서에 486 인터프리터 사용"
 msgid "Dynamic recompiler"
 msgstr "동적 리컴파일러"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 프레임 크기"
 

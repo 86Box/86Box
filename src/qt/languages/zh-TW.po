@@ -427,6 +427,9 @@ msgstr "啟用 486 直譯器於 286 及 386 處理器"
 msgid "Dynamic recompiler"
 msgstr "動態重編譯器"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPU 執行期框架大小"
 
