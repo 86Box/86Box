@@ -58,6 +58,12 @@ enum {
     PAPER_B4_SIDE
 };
 
+enum {
+    RASTER_RLE_COUNTER = 0,
+    RASTER_RLE_LITERAL,
+    RASTER_RLE_REPEAT
+};
+
 /* Default page values (for now.) */
 #define COLOR_BLACK  7 << 5
 #define PAGE_CPI     10.0 /* standard 10 cpi */
@@ -180,6 +186,20 @@ typedef struct escp_t {
     uint8_t  bg_column[6];       /* #bytes of the current and last col */
     uint8_t  bg_previous[6];     // for non-adjacent pixels in graphics mode
     uint8_t  bg_bytes_read;      /* #bytes read so far for current col */
+
+    /* raster graphics data (ESC .) */
+    bool     rg_active;
+    uint8_t  rg_compression;
+    uint8_t  rg_rle_state;
+    uint16_t rg_h_density;
+    uint16_t rg_v_density;
+    uint16_t rg_width;
+    uint16_t rg_bytes_per_row;
+    uint16_t rg_rle_remaining;
+    uint32_t rg_bytes_read;
+    uint32_t rg_bytes_total;
+    double   rg_origin_x;
+    double   rg_origin_y;
 
     /* handshake data */
     uint8_t data;
@@ -540,6 +560,7 @@ reset_printer(escp_t *dev)
     dev->extra_intra_space    = 0.0;
     dev->print_upper_control  = 1;
     dev->bg_remaining_bytes   = 0;
+    dev->rg_active            = false;
     dev->density_k            = 0;
     dev->density_l            = 1;
     dev->density_y            = 2;
@@ -747,6 +768,41 @@ setup_bit_image(escp_t *dev, uint8_t density, uint16_t num_columns)
 
     dev->bg_remaining_bytes = num_columns * dev->bg_bytes_per_column;
     dev->bg_bytes_read      = 0;
+}
+
+static void
+setup_raster_graphics(escp_t *dev)
+{
+    const uint8_t  compression = dev->esc_parms[0];
+    const uint8_t  v           = dev->esc_parms[1];
+    const uint8_t  h           = dev->esc_parms[2];
+    const uint8_t  rows        = dev->esc_parms[3];
+    const uint16_t width       = PARAM16(4);
+
+    dev->rg_active = false;
+
+    if ((compression > 1) ||
+        ((v != 5) && (v != 10) && (v != 20)) ||
+        ((h != 5) && (h != 10) && (h != 20)) ||
+        ((rows != 1) && (rows != 8) && (rows != 24)) ||
+        (width == 0)) {
+        escp_log("ESC/P: Invalid raster graphics parameters: c=%u v=%u h=%u m=%u n=%u.\n",
+                 compression, v, h, rows, width);
+        return;
+    }
+
+    dev->rg_compression   = compression;
+    dev->rg_h_density     = 3600 / h;
+    dev->rg_v_density     = 3600 / v;
+    dev->rg_width         = width;
+    dev->rg_bytes_per_row = (width + 7) / 8;
+    dev->rg_rle_state     = RASTER_RLE_COUNTER;
+    dev->rg_rle_remaining = 0;
+    dev->rg_bytes_read    = 0;
+    dev->rg_bytes_total   = (uint32_t) rows * dev->rg_bytes_per_row;
+    dev->rg_origin_x      = dev->curr_x;
+    dev->rg_origin_y      = dev->curr_y;
+    dev->rg_active        = true;
 }
 
 /* This is the actual ESC/P interpreter. */
@@ -977,8 +1033,8 @@ process_char(escp_t *dev, uint8_t ch)
 
             case '.':
                 if (dev->lang >= LANG_ESCP2) {
-                    fatal("ESC/P: Print Raster Graphics (2E) command is not implemented.\nTerminating the emulator to avoid endless PNG generation.\n");
-                    exit(-1);
+                    dev->esc_parms_req = 6;
+                    break;
                 }
                 dev->esc_parms_req = 0;
                 dev->esc_pending = 0;
@@ -1166,6 +1222,10 @@ process_char(escp_t *dev, uint8_t ch)
 
             case '*': /* select bit image */
                 setup_bit_image(dev, dev->esc_parms[0], PARAM16(1));
+                break;
+
+            case '.': /* print raster graphics */
+                setup_raster_graphics(dev);
                 break;
 
             case 0x833: /* Set n/360-inch line spacing (FS 3) */
@@ -1902,6 +1962,75 @@ print_bit_graph(escp_t *dev, uint8_t ch)
 }
 
 static void
+print_raster_byte(escp_t *dev, uint8_t ch)
+{
+    const uint32_t row        = dev->rg_bytes_read / dev->rg_bytes_per_row;
+    const uint32_t byte_x     = dev->rg_bytes_read % dev->rg_bytes_per_row;
+    const unsigned dot_size_x = fmax(1.0, round((double) dev->dpi / dev->rg_h_density));
+    const unsigned dot_size_y = fmax(1.0, round((double) dev->dpi / dev->rg_v_density));
+
+    for (uint8_t bit = 0; bit < 8; bit++) {
+        const uint32_t dot_x = byte_x * 8 + bit;
+
+        if (dot_x >= dev->rg_width)
+            break;
+        if (!(ch & (0x80 >> bit)))
+            continue;
+
+        const unsigned page_x = (unsigned) round((dev->rg_origin_x + (double) dot_x / dev->rg_h_density) * dev->dpi);
+        const unsigned page_y = (unsigned) round((dev->rg_origin_y + (double) row / dev->rg_v_density) * dev->dpi);
+
+        for (unsigned xx = 0; (xx < dot_size_x) && ((page_x + xx) < dev->page->w); xx++) {
+            for (unsigned yy = 0; (yy < dot_size_y) && ((page_y + yy) < dev->page->h); yy++)
+                dev->page->pixels[(page_y + yy) * dev->page->pitch + page_x + xx] |= (dev->color | 0x1f);
+        }
+
+        dev->page->dirty = 1;
+    }
+
+    dev->rg_bytes_read++;
+    if (dev->rg_bytes_read >= dev->rg_bytes_total) {
+        dev->curr_x    = dev->rg_origin_x + (double) dev->rg_width / dev->rg_h_density;
+        dev->rg_active = false;
+    }
+}
+
+static void
+print_raster_graph(escp_t *dev, uint8_t ch)
+{
+    if (dev->rg_compression == 0) {
+        print_raster_byte(dev, ch);
+        return;
+    }
+
+    switch (dev->rg_rle_state) {
+        case RASTER_RLE_COUNTER:
+            if (ch <= 127) {
+                dev->rg_rle_remaining = (uint16_t) ch + 1;
+                dev->rg_rle_state     = RASTER_RLE_LITERAL;
+            } else {
+                dev->rg_rle_remaining = 257 - (uint16_t) ch;
+                dev->rg_rle_state     = RASTER_RLE_REPEAT;
+            }
+            break;
+
+        case RASTER_RLE_LITERAL:
+            print_raster_byte(dev, ch);
+            if (--dev->rg_rle_remaining == 0)
+                dev->rg_rle_state = RASTER_RLE_COUNTER;
+            break;
+
+        case RASTER_RLE_REPEAT:
+            while (dev->rg_active && (dev->rg_rle_remaining > 0)) {
+                dev->rg_rle_remaining--;
+                print_raster_byte(dev, ch);
+            }
+            dev->rg_rle_state = RASTER_RLE_COUNTER;
+            break;
+    }
+}
+
+static void
 handle_char(escp_t *dev, uint8_t ch)
 {
     FT_UInt  char_index;
@@ -1923,6 +2052,11 @@ handle_char(escp_t *dev, uint8_t ch)
 
     if (!(dev->dc1_selected) && ch != 0x11)
         return;
+
+    if (dev->rg_active) {
+        print_raster_graph(dev, ch);
+        return;
+    }
 
     if (dev->bg_remaining_bytes > 0) {
         print_bit_graph(dev, ch);
