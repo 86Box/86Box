@@ -1490,7 +1490,7 @@ esdi_integrated_mca_write(const uint16_t port, uint8_t val, void* priv)
     /* Save the new value. */
     dev->pos_regs[port & 7] = val;
 
-    io_removehandler(ESDI_IOADDR_PRI, 8,
+    io_removehandler(dev->base, 8,
         esdi_read, esdi_readw, NULL,
         esdi_write, esdi_writew, NULL, dev);
 
@@ -1521,14 +1521,20 @@ esdi_integrated_mca_write(const uint16_t port, uint8_t val, void* priv)
         break;
     }
 
+    /* Set up controller I/O address. */
+    if (dev->pos_regs[2] & 0x02)
+        dev->base = ESDI_IOADDR_SEC;
+    else
+        dev->base = ESDI_IOADDR_PRI;
+
     if (dev->pos_regs[2] & 1) {
-        io_sethandler(ESDI_IOADDR_PRI, 8,
+        io_sethandler(dev->base, 8,
             esdi_read, esdi_readw, NULL,
             esdi_write, esdi_writew, NULL, dev);
 
         /* Say hello. */
-        esdi_mca_log("ESDI: I/O=3510, IRQ=14, DMA=%d\n",
-            dev->dma);
+        esdi_mca_log("ESDI: I/O=%04X, IRQ=14, DMA=%d\n",
+            dev->base, dev->dma);
     }
 }
 
@@ -1636,8 +1642,8 @@ esdi_init(UNUSED(const device_t *info))
 
     /* Mark for a reset. */
     dev->in_reset = 1;
-    esdi_mca_set_callback(dev, ESDI_TIME * 50);
     dev->status = STATUS_BUSY;
+    esdi_mca_set_callback(dev, ESDI_TIME * 50);
 
     /* Set the reply timer. */
     timer_add(&dev->timer, esdi_callback, dev, 0);
