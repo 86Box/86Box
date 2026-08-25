@@ -842,10 +842,12 @@ esdi_callback(void *priv)
                 dev->status_len = 6;
                 dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
                 dev->status_data[1] = 0;
-                dev->status_data[2] = 0;
+                dev->status_data[2] = 0x0600;
                 /* bit 15-12: chip revision = 0011b, bit 11-8: sector buffer size = n * 256 bytes (n must be < 6) */
-                dev->status_data[3] = 0x3200;
-                dev->status_data[4] = 0;
+                /* If Buf_Size 1 = 0x30 (n = 0), then the buffer size is larger than 16K bytes per spec. */
+                /* Buf_size 2 = 0x36 indicates that the buffer size is 32K bytes. */
+                dev->status_data[3] = 0x3001;
+                dev->status_data[4] = 0x3600;
                 dev->status_data[5] = 0;
             }
             else
@@ -860,7 +862,7 @@ esdi_callback(void *priv)
                     fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
                 dev->status_len = 6;
-                dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
+                dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | dev->cmd_dev;
                 dev->status_data[1] = 0x08; /*Zero Defect flag (ZD, bit 3), no spares per cylinder*/
                 dev->status_data[2] = drive->sectors & 0xffff;
                 dev->status_data[3] = drive->sectors >> 16;
@@ -891,8 +893,8 @@ esdi_callback(void *priv)
             dev->status_data[0] = CMD_GET_POS_INFO | STATUS_LEN(5) | STATUS_DEVICE_HOST_ADAPTER;
             dev->status_data[1] = dev->pos_regs[1] | (dev->pos_regs[0] << 8); /*MCA ID*/
             dev->status_data[2] = dev->pos_regs[3] | (dev->pos_regs[2] << 8);
-            dev->status_data[3] = 0xff;
-            dev->status_data[4] = 0xff;
+            dev->status_data[3] = dev->pos_regs[5] | (dev->pos_regs[4] << 8);
+            dev->status_data[4] = dev->pos_regs[7] | (dev->pos_regs[6] << 8);
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
