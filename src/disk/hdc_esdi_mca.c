@@ -139,6 +139,7 @@ typedef struct esdi_t {
     pc_timer_t timer;
 
     uint32_t rba;
+    uint32_t last_rba;
 
     struct cmds {
         int req_in_progress;
@@ -398,11 +399,11 @@ complete_command_status(esdi_t *dev)
 {
     dev->status_len     = 7;
     dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
-    dev->status_data[1] = 0x0000;                  /*Error bits*/
-    dev->status_data[2] = 0x1900;                  /*Device status*/
-    dev->status_data[3] = 0;                       /*Number of blocks left to do*/
-    dev->status_data[4] = (dev->rba - 1) & 0xffff; /*Last RBA processed*/
-    dev->status_data[5] = (dev->rba - 1) >> 8;
+    dev->status_data[1] = 0x0000;                 /*Error bits*/
+    dev->status_data[2] = 0x1900;                 /*Device status*/
+    dev->status_data[3] = 0;                      /*Number of blocks left to do*/
+    dev->status_data[4] = dev->last_rba & 0xffff; /*Last RBA processed*/
+    dev->status_data[5] = (dev->last_rba >> 16) & 0xffff;
     dev->status_data[6] = 0; /*Number of blocks requiring error recovery*/
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
     ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
@@ -601,8 +602,9 @@ esdi_callback(void *priv)
                         dev->rba++;
                     }
 
-                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
+                    dev->last_rba  = dev->rba - 1;
+                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     esdi_mca_set_callback(dev, cmd_time);
                     break;
 
@@ -681,8 +683,9 @@ esdi_callback(void *priv)
                         dev->data_pos = 0;
                     }
 
-                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
+                    dev->last_rba  = dev->rba - 1;
+                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     esdi_mca_set_callback(dev, cmd_time);
                     break;
 
@@ -712,6 +715,7 @@ esdi_callback(void *priv)
                     dev->rba          = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
                     dev->sector_count = dev->cmd_data[1];
 
+                    dev->last_rba = dev->rba + dev->sector_count - 1;
                     if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
                         rba_out_of_range(dev);
                         return;
@@ -750,7 +754,7 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    dev->last_rba = dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
                     cmd_time = hdd_seek_get_time(&hdd[drive->hdd_num], dev->rba, HDD_OP_SEEK, 0, 0.0);
                     esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
                     dev->cmd_state = 1;
@@ -779,7 +783,7 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = 0x00000000;
+                    dev->last_rba = dev->rba = 0x00000000;
                     cmd_time = hdd_seek_get_time(&hdd[drive->hdd_num], dev->rba, HDD_OP_SEEK, 0, 0.0);
                     esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
                     dev->cmd_state = 1;
@@ -1036,7 +1040,7 @@ esdi_callback(void *priv)
 
             /* The Run Diagnostic Test command itself completes with a
                Command Complete status block. */
-            dev->rba = 1;
+            dev->last_rba = 0;
             complete_command_status(dev);
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
@@ -1078,7 +1082,7 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+                    dev->last_rba = dev->rba = hdd_image_get_last_sector(drive->hdd_num);
                     /* Word 1: format options in the high byte, number of
                        defective blocks to deallocate in the low byte. */
                     dev->sector_count = dev->cmd_data[1] & 0xff;
@@ -1140,7 +1144,7 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+            dev->last_rba = dev->rba = hdd_image_get_last_sector(drive->hdd_num);
             /* Format Prepare has no data phase; complete it immediately
                with a Command Complete status block. */
             complete_command_status(dev);
