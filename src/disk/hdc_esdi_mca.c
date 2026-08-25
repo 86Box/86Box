@@ -122,6 +122,7 @@ typedef struct esdi_t {
     int status_len;
 
     uint16_t status_data[256];
+    uint16_t diag_status[7];
 
     int      data_pos;
     uint16_t data[256];
@@ -395,11 +396,8 @@ defective_block(esdi_t *dev)
 static void
 complete_command_status(esdi_t *dev)
 {
-    dev->status_len = 7;
-    if (dev->cmd_dev == ATTN_DEVICE_0)
-        dev->status_data[0] = dev->command | STATUS_LEN(7) | STATUS_DEVICE(0);
-    else
-        dev->status_data[0] = dev->command | STATUS_LEN(7) | STATUS_DEVICE(1);
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0000;                  /*Error bits*/
     dev->status_data[2] = 0x1900;                  /*Device status*/
     dev->status_data[3] = 0;                       /*Number of blocks left to do*/
@@ -486,6 +484,21 @@ esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
             sum += buf[i * 512 + j];
         buf[i * 512 + 511] = (uint8_t) -sum;
     }
+}
+
+/* Build the diagnostic status block (spec 5.4, Figure 58) for the last
+   Run Diagnostic Test command; it is returned by the Get Diagnostic
+   Status Block command. */
+static void
+esdi_build_diag_status(esdi_t *dev, uint16_t cmd)
+{
+    dev->diag_status[0] = CMD_GET_DIAG_BLOCK | STATUS_LEN(7) | dev->cmd_dev;
+    dev->diag_status[1] = 0x0000; /* Command Status | Command Error Code */
+    dev->diag_status[2] = 0x1900; /* Device Status | Device Error Code */
+    dev->diag_status[3] = 0x0000; /* Power On Error Code | Test Error Code */
+    dev->diag_status[4] = cmd;    /* Diagnostic Command */
+    dev->diag_status[5] = 0;      /* Reserved */
+    dev->diag_status[6] = 0;      /* Reserved */
 }
 
 static void
@@ -1016,12 +1029,15 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->status_len     = 5;
-            dev->status_data[0] = CMD_RUN_DIAG_TEST | STATUS_LEN(5) | dev->cmd_dev;
-            dev->status_data[1] = 0;
-            dev->status_data[2] = 0;
-            dev->status_data[3] = 0;
-            dev->status_data[4] = 0;
+            /* Record the diagnostic results; they are retrieved with the
+               Get Diagnostic Status Block command (spec 4.16/5.4). These 
+               diagnostics are emulated as succeeding instantly. */
+            esdi_build_diag_status(dev, dev->cmd_data[1] & 0xff);
+
+            /* The Run Diagnostic Test command itself completes with a
+               Command Complete status block. */
+            dev->rba = 1;
+            complete_command_status(dev);
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
@@ -1040,15 +1056,10 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            /* Return the status block from the preceding command.  The
-               command's word count remains encoded in its first word even
-               after the status interface has been drained. */
-            dev->status_len = dev->status_data[0] >> 8;
+            /* Return the status block of the last Run Diagnostic Test command (spec 5.4). */
+            memcpy(dev->status_data, dev->diag_status, sizeof(dev->diag_status));
             dev->status_pos = 0;
-            if (!dev->status_len) {
-                cmd_unsupported(dev);
-                return;
-            }
+            dev->status_len = 7;
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
@@ -1602,6 +1613,9 @@ esdi_init(UNUSED(const device_t *info))
         dev->pos_regs[0] = 0x9f;
         dev->pos_regs[1] = 0xdf;
     }
+
+    /* No diagnostics have run yet. */
+    esdi_build_diag_status(dev, 0); 
 
     /* Enable the device. */
     if (info->local == ESDI_IS_INTEGRATED) {
