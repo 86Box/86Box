@@ -4187,13 +4187,7 @@ ibm8514_poll(void *priv)
                 if ((svga->scanline == (svga->crtc[11] & 31)) || (svga->scanline == svga->rowcount))
                     svga->cursorvisible = 0;
                 if (svga->dispon) {
-                    /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll
-                       - S3 Trio64V2/DX: scanline == rowcount, wrapping 5-bit counter. */
-                    if (svga->linedbl && !svga->linecountff) {
-                        svga->linecountff = 1;
-                        svga->memaddr          = svga->memaddr_backup;
-                    } else if (svga->scanline == svga->rowcount) {
-                        svga->linecountff = 0;
+                    if (svga->scanline == svga->rowcount) {
                         svga->scanline          = 0;
 
                         svga->memaddr_backup += (svga->rowoffset << 3);
@@ -4203,7 +4197,6 @@ ibm8514_poll(void *priv)
                         svga->memaddr_backup &= svga->vram_display_mask;
                         svga->memaddr = svga->memaddr_backup;
                     } else {
-                        svga->linecountff = 0;
                         svga->scanline++;
                         svga->scanline &= 0x1f;
                         svga->memaddr = svga->memaddr_backup;
@@ -4308,8 +4301,6 @@ ibm8514_poll(void *priv)
                     svga->half_pixel  = 0;
 
                     svga->x_add = svga->left_overscan;
-
-                    svga->linecountff = 0;
 
                     svga->hwcursor_on    = 0;
                     svga->hwcursor_latch = svga->hwcursor;
