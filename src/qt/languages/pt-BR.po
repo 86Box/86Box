@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-15 17:18+0000\n"
+"PO-Revision-Date: 2026-08-25 16:50+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -428,7 +428,7 @@ msgid "Dynamic recompiler"
 msgstr "Recompilador dinâmico"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Ambiente FPU preciso no recompilador dinâmico"
 
 msgid "CPU frame size"
 msgstr "Tamanho do quadro da CPU"
