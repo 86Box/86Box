@@ -499,7 +499,7 @@
            </sizepolicy>
           </property>
           <property name="text">
-           <string>Accurate FPU environemnt on the dynamic recompiler</string>
+           <string>Accurate FPU environment on the dynamic recompiler</string>
           </property>
          </widget>
         </item>
