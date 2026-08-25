@@ -127,8 +127,10 @@ dma_page_is_xt(void)
 int
 dma_xt8237_active(void)
 {
+#ifdef DMA_FORCE_REWRITE
     if (dma_force_xt)
         return !dma_advanced && !dma_ps2.is_ps2;
+#endif
     return 0;
 }
 
