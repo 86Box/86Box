@@ -434,9 +434,10 @@ esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
 {
     const char *model = hdd[drive->hdd_num].model;
     uint8_t    *buf   = (uint8_t *) dev->sector_buffer;
+    char        bar_code[17];
+    int         i, j;
     uint8_t     sum;
     uint32_t    rba;
-    int         i, j;
 
     memset(buf, 0xff, (size_t) blocks * 512);
 
@@ -448,13 +449,11 @@ esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
     buf[9] = 0xff;   /* Reserved */
 
     /* Drive Bar Code Number, ASCII, right justified. */
-    if (model) {
-        size_t len = strlen(model);
-
-        if (len > 16)
-            len = 16;
-        memcpy(buf + 10 + (16 - len), model, len);
-    }
+    if (model)
+        snprintf(bar_code, sizeof(bar_code), "%.16s", model);
+    else
+        snprintf(bar_code, sizeof(bar_code), "86B_HD%02u", drive->hdd_num);
+    memcpy(buf + 10 + (16 - strlen(bar_code)), bar_code, strlen(bar_code));
 
     memcpy(buf + 26, "01011980", 8); /* Date of Manufacture, MMDDYYYY */
 
