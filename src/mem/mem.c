@@ -278,8 +278,26 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 
 #define mmutranslate_read(addr)  mmutranslatereal(addr, 0)
 #define mmutranslate_write(addr) mmutranslatereal(addr, 1)
-#define rammap(x)                ((uint32_t *) (_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 2) & MEM_GRANULARITY_QMASK]
-#define rammap64(x)              ((uint64_t *) (_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 3) & MEM_GRANULARITY_PMASK]
+/* A page-table walk can legitimately land on a physical page with no RAM behind it:
+   `_mem_exec[]` is explicitly NULL both for addresses beyond installed RAM and for
+   MMIO-style mappings that have no exec pointer. The old macros cast that NULL and
+   indexed it, so a guest that merely pointed CR3 somewhere unbacked terminated the
+   emulator - observed as an access violation at the `rammap(addr2)` in
+   mmutranslatereal_normal() below, with an Intel Inboard 386/PC and Intel's own
+   INBRDPC.SYS, which does exactly that. Hardware has no notion of "absent" here; it
+   reads the bus and gets floating high bits. So substitute a shared page of 0xFF,
+   matching this file's own convention that an unmapped read returns 0xFF.
+
+   This keeps both macros usable as lvalues, which matters because several callers do
+   `rammap(x) |= ...` to set accessed/dirty bits. Those writes land in the scratch page
+   and are discarded, which is correct for memory that is not there - and the page stays
+   all-ones because the only writes are ORs of a few bits, so it cannot drift into
+   handing back a bogus present entry later. */
+static uint8_t mem_unbacked_pt_page[MEM_GRANULARITY_SIZE];
+
+#define rammap_backing(x)        (_mem_exec[(x) >> MEM_GRANULARITY_BITS] ? _mem_exec[(x) >> MEM_GRANULARITY_BITS] : mem_unbacked_pt_page)
+#define rammap(x)                ((uint32_t *) rammap_backing(x))[((x) >> 2) & MEM_GRANULARITY_QMASK]
+#define rammap64(x)              ((uint64_t *) rammap_backing(x))[((x) >> 3) & MEM_GRANULARITY_PMASK]
 
 static __inline uint64_t
 mmutranslatereal_normal(uint32_t addr, int rw)
@@ -2856,6 +2874,8 @@ mem_reset(void)
     }
 
     memset(_mem_exec, 0x00, sizeof(_mem_exec));
+    /* Reads of absent physical memory return floating high bits - see rammap() above. */
+    memset(mem_unbacked_pt_page, 0xff, sizeof(mem_unbacked_pt_page));
     memset(_mem_wp, 0x00, sizeof(_mem_wp));
     memset(_mem_wp_bus, 0x00, sizeof(_mem_wp_bus));
     memset(write_mapping, 0x00, sizeof(write_mapping));

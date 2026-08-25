@@ -206,6 +206,7 @@ int cpu_isa_pci_div;
 int cpu_agp_speed;
 int cpu_alt_reset;
 
+int cpu_dyn_accurate_fpu_env;
 int cpu_override;
 int cpu_effective;
 int cpu_multi;

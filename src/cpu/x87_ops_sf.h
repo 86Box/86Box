@@ -1,3 +1,5 @@
+#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
+
 static uint32_t
 fpu_save_environment(void)
 {
@@ -26,10 +28,10 @@ fpu_save_environment(void)
                 writememw(easeg, cpu_state.eaaddr + 0x02, tmp);
                 tmp = fpu_state.tag;
                 writememw(easeg, cpu_state.eaaddr + 0x04, tmp);
-                const uint32_t linear_pc = fpu_cs + fpu_pc;
+                const uint32_t linear_pc = cpu_state.fpu_cs + cpu_state.fpu_pc;
                 writememw(easeg, cpu_state.eaaddr + 0x06, linear_pc & 0xffff);
-                writememw(easeg, cpu_state.eaaddr + 0x08, (((linear_pc >> 16) & 0x0f) << 12) | fpu_op);
-                const uint32_t linear_ea = fpu_ds + fpu_ea;
+                writememw(easeg, cpu_state.eaaddr + 0x08, (((linear_pc >> 16) & 0x0f) << 12) | cpu_state.fpu_op);
+                const uint32_t linear_ea = cpu_state.fpu_ds + cpu_state.fpu_ea;
                 writememw(easeg, cpu_state.eaaddr + 0x0a, linear_ea & 0xffff);
                 writememw(easeg, cpu_state.eaaddr + 0x0c, ((linear_ea >> 16) & 0x0f) << 12);
                 offset = 0x0e;
@@ -44,10 +46,10 @@ fpu_save_environment(void)
                 writememw(easeg, cpu_state.eaaddr + 0x02, tmp);
                 tmp = fpu_state.tag;
                 writememw(easeg, cpu_state.eaaddr + 0x04, tmp);
-                writememw(easeg, cpu_state.eaaddr + 0x06, fpu_pc & 0xffff);
-                writememw(easeg, cpu_state.eaaddr + 0x08, fpu_CS);
-                writememw(easeg, cpu_state.eaaddr + 0x0a, fpu_ea & 0xffff);
-                writememw(easeg, cpu_state.eaaddr + 0x0c, fpu_DS);
+                writememw(easeg, cpu_state.eaaddr + 0x06, cpu_state.fpu_pc & 0xffff);
+                writememw(easeg, cpu_state.eaaddr + 0x08, cpu_state.fpu_CS);
+                writememw(easeg, cpu_state.eaaddr + 0x0a, cpu_state.fpu_ea & 0xffff);
+                writememw(easeg, cpu_state.eaaddr + 0x0c, cpu_state.fpu_DS);
                 offset = 0x0e;
             }
             break;
@@ -61,11 +63,11 @@ fpu_save_environment(void)
                 writememl(easeg, cpu_state.eaaddr + 0x04, tmp);
                 tmp = 0xffff0000 | fpu_state.tag;
                 writememl(easeg, cpu_state.eaaddr + 0x08, tmp);
-                const uint32_t linear_pc = fpu_cs + fpu_pc;
-                writememl(easeg, cpu_state.eaaddr + 0x0c, linear_pc & 0xffff);
-                writememl(easeg, cpu_state.eaaddr + 0x10, (((linear_pc >> 16) & 0xffff) << 12) | fpu_op);
-                const uint32_t linear_ea = fpu_ds + fpu_ea;
-                writememl(easeg, cpu_state.eaaddr + 0x14, linear_ea & 0xffff);
+                const uint32_t linear_pc = cpu_state.fpu_cs + cpu_state.fpu_pc;
+                writememl(easeg, cpu_state.eaaddr + 0x0c, 0xffff0000 | (linear_pc & 0xffff));
+                writememl(easeg, cpu_state.eaaddr + 0x10, (((linear_pc >> 16) & 0xffff) << 12) | cpu_state.fpu_op);
+                const uint32_t linear_ea = cpu_state.fpu_ds + cpu_state.fpu_ea;
+                writememl(easeg, cpu_state.eaaddr + 0x14, 0xffff0000 | (linear_ea & 0xffff));
                 writememl(easeg, cpu_state.eaaddr + 0x18, ((linear_ea >> 16) & 0xffff) << 12);
                 offset = 0x1c;
             }
@@ -79,10 +81,10 @@ fpu_save_environment(void)
                 writememl(easeg, cpu_state.eaaddr + 0x04, tmp);
                 tmp = 0xffff0000 | fpu_state.tag;
                 writememl(easeg, cpu_state.eaaddr + 0x08, tmp);
-                writememl(easeg, cpu_state.eaaddr + 0x0c, fpu_pc);
-                writememl(easeg, cpu_state.eaaddr + 0x10, fpu_CS | (fpu_op << 16));
-                writememl(easeg, cpu_state.eaaddr + 0x14, fpu_ea);
-                writememl(easeg, cpu_state.eaaddr + 0x18, fpu_DS);
+                writememl(easeg, cpu_state.eaaddr + 0x0c, cpu_state.fpu_pc);
+                writememl(easeg, cpu_state.eaaddr + 0x10, cpu_state.fpu_CS | (cpu_state.fpu_op << 16));
+                writememl(easeg, cpu_state.eaaddr + 0x14, cpu_state.fpu_ea);
+                writememl(easeg, cpu_state.eaaddr + 0x18, 0xffff0000 | cpu_state.fpu_DS);
                 offset = 0x1c;
             }
             break;
@@ -196,6 +198,13 @@ fpu_load_environment(void)
             }
             break;
     }
+
+    cpu_state.fpu_CS = fpu_state.fcs;
+    cpu_state.fpu_cs = 0x00000000;
+    cpu_state.fpu_pc = fpu_state.fcs;
+    cpu_state.fpu_DS = fpu_state.fds;
+    cpu_state.fpu_ds = 0x00000000;
+    cpu_state.fpu_ea = fpu_state.fdp;
 
     /* always set bit 6 as '1 */
     fpu_state.cwd = (fpu_state.cwd & ~FPU_CW_Reserved_Bits) | 0x0040;

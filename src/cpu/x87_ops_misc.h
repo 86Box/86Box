@@ -249,10 +249,10 @@ FSAVE(void)
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            const uint32_t linear_pc = cpu_state.fpu_cs + cpu_state.fpu_pc;
             writememw(easeg, cpu_state.eaaddr + 6, linear_pc & 0xffff);
-            writememw(easeg, cpu_state.eaaddr + 8, (((linear_pc >> 16) & 0x0f) << 12) | fpu_op);
-            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememw(easeg, cpu_state.eaaddr + 8, (((linear_pc >> 16) & 0x0f) << 12) | cpu_state.fpu_op);
+            const uint32_t linear_ea = cpu_state.fpu_ds + cpu_state.fpu_ea;
             writememw(easeg, cpu_state.eaaddr + 10, linear_ea & 0xffff);
             writememw(easeg, cpu_state.eaaddr + 12, ((linear_ea >> 16) & 0x0f) << 12);
             cpu_state.eaaddr += 14;
@@ -294,10 +294,10 @@ FSAVE(void)
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 6, fpu_pc & 0xffff);
-            writememw(easeg, cpu_state.eaaddr + 8, fpu_CS);
-            writememw(easeg, cpu_state.eaaddr + 10, fpu_ea & 0xffff);
-            writememw(easeg, cpu_state.eaaddr + 12, fpu_DS);
+            writememw(easeg, cpu_state.eaaddr + 6, cpu_state.fpu_pc & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 8, cpu_state.fpu_CS);
+            writememw(easeg, cpu_state.eaaddr + 10, cpu_state.fpu_ea & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 12, cpu_state.fpu_DS);
             cpu_state.eaaddr += 14;
             if (cpu_state.ismmx) {
                 x87_stmmx(cpu_state.MM[0]);
@@ -338,10 +338,10 @@ FSAVE(void)
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            const uint32_t linear_pc = cpu_state.fpu_cs + cpu_state.fpu_pc;
             writememw(easeg, cpu_state.eaaddr + 12, linear_pc & 0xffff);
-            writememl(easeg, cpu_state.eaaddr + 16, (((linear_pc >> 16) & 0xffff) << 12) | fpu_op);
-            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememl(easeg, cpu_state.eaaddr + 16, (((linear_pc >> 16) & 0xffff) << 12) | cpu_state.fpu_op);
+            const uint32_t linear_ea = cpu_state.fpu_ds + cpu_state.fpu_ea;
             writememw(easeg, cpu_state.eaaddr + 20, linear_ea & 0xffff);
             writememl(easeg, cpu_state.eaaddr + 24, ((linear_ea >> 16) & 0xffff) << 12);
             cpu_state.eaaddr += 28;
@@ -383,10 +383,10 @@ FSAVE(void)
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            writememl(easeg, cpu_state.eaaddr + 12, fpu_pc);
-            writememl(easeg, cpu_state.eaaddr + 16, fpu_CS | (fpu_op << 16));
-            writememl(easeg, cpu_state.eaaddr + 20, fpu_ea);
-            writememl(easeg, cpu_state.eaaddr + 24, fpu_DS);
+            writememl(easeg, cpu_state.eaaddr + 12, cpu_state.fpu_pc);
+            writememl(easeg, cpu_state.eaaddr + 16, cpu_state.fpu_CS | (cpu_state.fpu_op << 16));
+            writememl(easeg, cpu_state.eaaddr + 20, cpu_state.fpu_ea);
+            writememl(easeg, cpu_state.eaaddr + 24, cpu_state.fpu_DS);
             cpu_state.eaaddr += 28;
             if (cpu_state.ismmx) {
                 x87_stmmx(cpu_state.MM[0]);
@@ -1083,10 +1083,10 @@ FSTENV(void)
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            const uint32_t linear_pc = cpu_state.fpu_cs + cpu_state.fpu_pc;
             writememw(easeg, cpu_state.eaaddr + 6, linear_pc & 0xffff);
-            writememw(easeg, cpu_state.eaaddr + 8, (((linear_pc >> 16) & 0x0f) << 12) | fpu_op);
-            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememw(easeg, cpu_state.eaaddr + 8, (((linear_pc >> 16) & 0x0f) << 12) | cpu_state.fpu_op);
+            const uint32_t linear_ea = cpu_state.fpu_ds + cpu_state.fpu_ea;
             writememw(easeg, cpu_state.eaaddr + 10, linear_ea & 0xffff);
             writememw(easeg, cpu_state.eaaddr + 12, ((linear_ea >> 16) & 0x0f) << 12);
             break;
@@ -1094,20 +1094,20 @@ FSTENV(void)
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 2, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 4, x87_gettag());
-            writememw(easeg, cpu_state.eaaddr + 6, fpu_pc & 0xffff);
-            writememw(easeg, cpu_state.eaaddr + 8, fpu_CS);
-            writememw(easeg, cpu_state.eaaddr + 10, fpu_ea & 0xffff);
-            writememw(easeg, cpu_state.eaaddr + 12, fpu_DS);
+            writememw(easeg, cpu_state.eaaddr + 6, cpu_state.fpu_pc & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 8, cpu_state.fpu_CS);
+            writememw(easeg, cpu_state.eaaddr + 10, cpu_state.fpu_ea & 0xffff);
+            writememw(easeg, cpu_state.eaaddr + 12, cpu_state.fpu_DS);
             break;
         case 0x100: {
             /*32-bit real mode*/
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            const uint32_t linear_pc = fpu_cs + fpu_pc;
+            const uint32_t linear_pc = cpu_state.fpu_cs + cpu_state.fpu_pc;
             writememw(easeg, cpu_state.eaaddr + 12, linear_pc & 0xffff);
-            writememl(easeg, cpu_state.eaaddr + 16, (((linear_pc >> 16) & 0xffff) << 12) | fpu_op);
-            const uint32_t linear_ea = fpu_ds + fpu_ea;
+            writememl(easeg, cpu_state.eaaddr + 16, (((linear_pc >> 16) & 0xffff) << 12) | cpu_state.fpu_op);
+            const uint32_t linear_ea = cpu_state.fpu_ds + cpu_state.fpu_ea;
             writememw(easeg, cpu_state.eaaddr + 20, linear_ea & 0xffff);
             writememl(easeg, cpu_state.eaaddr + 24, ((linear_ea >> 16) & 0xffff) << 12);
             break;
@@ -1115,10 +1115,10 @@ FSTENV(void)
             writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
             writememw(easeg, cpu_state.eaaddr + 4, cpu_state.npxs);
             writememw(easeg, cpu_state.eaaddr + 8, x87_gettag());
-            writememl(easeg, cpu_state.eaaddr + 12, fpu_pc);
-            writememl(easeg, cpu_state.eaaddr + 16, fpu_CS | (fpu_op << 16));
-            writememl(easeg, cpu_state.eaaddr + 20, fpu_ea);
-            writememl(easeg, cpu_state.eaaddr + 24, fpu_DS);
+            writememl(easeg, cpu_state.eaaddr + 12, cpu_state.fpu_pc);
+            writememl(easeg, cpu_state.eaaddr + 16, cpu_state.fpu_CS | (cpu_state.fpu_op << 16));
+            writememl(easeg, cpu_state.eaaddr + 20, cpu_state.fpu_ea);
+            writememl(easeg, cpu_state.eaaddr + 24, cpu_state.fpu_DS);
             break;
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fstenv) : (x87_timings.fstenv * cpu_multi));

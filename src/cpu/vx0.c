@@ -1891,9 +1891,9 @@ decode(void)
         opcode  = 0xf4;
     else {
         /* Temp variables for FPU exception reporting. */
-        temp_CS = CS;
-        temp_cs = cs;
-        temp_pc = cpu_state.pc;
+        cpu_state.temp_CS = CS;
+        cpu_state.temp_cs = cs;
+        cpu_state.temp_pc = cpu_state.pc;
 
         opcode  = biu_pfq_fetchb_common();
     }
@@ -3879,13 +3879,13 @@ execute_instruction(void)
                 }
             }
 
-            fpu_op = x87_op;
-            fpu_CS = temp_CS;
-            fpu_cs = temp_cs;
-            fpu_pc = temp_pc;
-            fpu_DS = cpu_state.ea_seg->seg;
-            fpu_ds = cpu_state.ea_seg->base;
-            fpu_ea = cpu_state.eaaddr;
+            cpu_state.fpu_op = x87_op;
+            cpu_state.fpu_CS = cpu_state.temp_CS;
+            cpu_state.fpu_cs = cpu_state.temp_cs;
+            cpu_state.fpu_pc = cpu_state.temp_pc;
+            cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+            cpu_state.fpu_ds = cpu_state.ea_seg->base;
+            cpu_state.fpu_ea = cpu_state.eaaddr;
 
             cpu_state.pc = tempw; /* Do this as the x87 code advances it, which is needed on
                                      the 286+ core, but not here. */

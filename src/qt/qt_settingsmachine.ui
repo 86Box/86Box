@@ -470,7 +470,7 @@
        </layout>
       </item>
 
-       <item>
+      <item>
        <layout class="QHBoxLayout" name="dynamicRecompilerLayout">
         <item>
         <widget class="QCheckBox" name="checkBoxDynamicRecompiler">
@@ -482,6 +482,24 @@
           </property>
           <property name="text">
            <string>Dynamic recompiler</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </item>
+
+      <item>
+       <layout class="QHBoxLayout" name="accurateFPUEnvironmentLayout">
+        <item>
+        <widget class="QCheckBox" name="checkBoxAccurateFPUEnvironment">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>2</horstretch>
+           <verstretch>2</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="text">
+           <string>Accurate FPU environment on the dynamic recompiler</string>
           </property>
          </widget>
         </item>
@@ -587,6 +605,7 @@
   <tabstop>comboBoxWaitStates</tabstop>
   <tabstop>spinBoxRAM</tabstop>
   <tabstop>checkBoxDynamicRecompiler</tabstop>
+  <tabstop>checkBoxAccurateFPUEnvironment</tabstop>
   <tabstop>checkBoxFPUSoftfloat</tabstop>
   <tabstop>radioButtonDisabled</tabstop>
   <tabstop>radioButtonLocalTime</tabstop>
