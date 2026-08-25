@@ -1176,7 +1176,7 @@ voodoo_card_init(const device_t *info)
 #endif
     int type         = (int) device_get_bios_local(info, device_get_config_bios("type"));
     voodoo->type     = type & 0x0f;
-    voodoo->board_id = ((type >> 4) & 0x0f);
+    voodoo->board_id = ((type >> 8) & 0x0f);
     switch (voodoo->type) {
         case VOODOO_1:
             voodoo->dual_tmus = 0;
