@@ -1743,8 +1743,8 @@ m808x_86box_fpu_exec(const uint8_t op, uint8_t modrm,
     cpu_state.fpu_CS = cpu_state.temp_CS;
     cpu_state.fpu_cs = cpu_state.temp_cs;
     cpu_state.fpu_pc = cpu_state.temp_pc;
-    cpu_state.fpu_DS = cpu_state.ea_seg->seg;
-    cpu_state.fpu_ds = cpu_state.ea_seg->base;
+    cpu_state.fpu_DS = saved_easeg >> 4;
+    cpu_state.fpu_ds = saved_easeg;
     cpu_state.fpu_ea = cpu_state.eaaddr;
 
     cpu_state.pc = saved_pc;
