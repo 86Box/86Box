@@ -620,6 +620,8 @@ load_machine(void)
         time_sync = TIME_SYNC_ENABLED;
 
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
+
+    cpu_dyn_accurate_fpu_env = ini_section_get_int(cat, "cpu_dyn_accurate_fpu_env", 0);
 }
 
 /* Load "Video" section. */
@@ -2770,6 +2772,8 @@ config_load(void)
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
 
+        cpu_dyn_accurate_fpu_env = 0;
+
         gdbstub_port          = 12345;
 
         config_log("VM config file not present or invalid!\n");
@@ -3150,7 +3154,7 @@ save_general(void)
     else
         ini_section_delete_var(cat, "uuid");
 
-    if (gdbstub_port != 12345)
+    if (gdbstub_port == 12345)
         ini_section_delete_var(cat, "gdbstub_port");
     else
         ini_section_set_int(cat, "gdbstub_port", gdbstub_port);
@@ -3246,6 +3250,11 @@ save_machine(void)
         ini_section_delete_var(cat, "pit_mode");
     else
         ini_section_set_int(cat, "pit_mode", pit_mode);
+
+    if (cpu_dyn_accurate_fpu_env == 0)
+        ini_section_delete_var(cat, "cpu_dyn_accurate_fpu_env");
+    else
+        ini_section_set_int(cat, "cpu_dyn_accurate_fpu_env", cpu_dyn_accurate_fpu_env);
 
     ini_delete_section_if_empty(config, cat);
 }

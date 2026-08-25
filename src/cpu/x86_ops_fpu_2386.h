@@ -6,13 +6,18 @@ opESCAPE_d8_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_d8_a16[(fetchdat >> 3) & 0x1f](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -20,13 +25,18 @@ opESCAPE_d8_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_d8_a32[(fetchdat >> 3) & 0x1f](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 
@@ -35,13 +45,18 @@ opESCAPE_d9_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_d9_a16[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -49,13 +64,18 @@ opESCAPE_d9_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_d9_a32[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 
@@ -64,13 +84,18 @@ opESCAPE_da_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_da_a16[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -78,13 +103,18 @@ opESCAPE_da_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_da_a32[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 
@@ -93,13 +123,18 @@ opESCAPE_db_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_db_a16[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -107,13 +142,18 @@ opESCAPE_db_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_db_a32[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 
@@ -122,13 +162,18 @@ opESCAPE_dc_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_dc_a16[(fetchdat >> 3) & 0x1f](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -136,13 +181,18 @@ opESCAPE_dc_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_dc_a32[(fetchdat >> 3) & 0x1f](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 
@@ -151,13 +201,18 @@ opESCAPE_dd_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_dd_a16[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -165,13 +220,18 @@ opESCAPE_dd_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_dd_a32[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 
@@ -180,13 +240,18 @@ opESCAPE_de_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_de_a16[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -194,13 +259,18 @@ opESCAPE_de_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_de_a32[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 
@@ -209,13 +279,18 @@ opESCAPE_df_a16(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_df_a16[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 static int
@@ -223,13 +298,18 @@ opESCAPE_df_a32(uint32_t fetchdat)
 {
     x87_op = ((opcode & 0x07) << 8) | (fetchdat & 0xff);
     int ret = x86_2386_opcodes_df_a32[fetchdat & 0xff](fetchdat);
-    fpu_op = x87_op;
-    fpu_CS = temp_CS;
-    fpu_cs = temp_cs;
-    fpu_pc = temp_pc;
-    fpu_DS = cpu_state.ea_seg->seg;
-    fpu_ds = cpu_state.ea_seg->base;
-    fpu_ea = cpu_state.eaaddr;
+    if (fpu_softfloat) {
+        FPU_check_pending_exceptions();
+    }
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cpu_state.temp_CS;
+    cpu_state.fpu_cs = cpu_state.temp_cs;
+    cpu_state.fpu_pc = cpu_state.temp_pc;
+    if ((x87_op & 0xff) < 0xc0) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+        cpu_state.fpu_ea = cpu_state.eaaddr;
+    }
     return ret;
 }
 

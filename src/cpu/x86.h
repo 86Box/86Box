@@ -111,16 +111,4 @@ extern uint8_t is_smint;
 extern uint16_t io_port;
 extern uint32_t io_val;
 
-extern uint16_t temp_CS;
-extern uint16_t fpu_CS;
-extern uint32_t temp_cs;
-extern uint32_t fpu_cs;
-extern uint32_t temp_pc;
-extern uint32_t fpu_pc;
-
-extern uint16_t fpu_op;
-extern uint16_t fpu_DS;
-extern uint32_t fpu_ds;
-extern uint32_t fpu_ea;
-
 #endif /*EMU_X86_H*/
