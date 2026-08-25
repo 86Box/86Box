@@ -48,7 +48,10 @@ thread_create_named(void (*thread_rout)(void *param), void *param, const char *n
 int
 thread_wait(thread_t *arg)
 {
-    return pthread_join(*(pthread_t *) (arg), NULL);
+    int ret = pthread_join(*(pthread_t *) (arg), NULL);
+    if (!ret)
+        free(arg);
+    return ret;
 }
 
 event_t *
