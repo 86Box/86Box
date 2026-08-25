@@ -428,6 +428,9 @@ msgstr "Uporabi interpreter za 486 tudi za procesorje 286 in 386"
 msgid "Dynamic recompiler"
 msgstr "Dinamični prevajalnik"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Velikost blokov procesorja"
 

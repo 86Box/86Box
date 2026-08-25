@@ -427,6 +427,9 @@ msgstr "286および386プロセッサには486インタプリタを使用する
 msgid "Dynamic recompiler"
 msgstr "動的再コンパイル"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "CPUフレームサイズ"
 

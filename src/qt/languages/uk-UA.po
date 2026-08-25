@@ -428,6 +428,9 @@ msgstr "Використовувати інтерпретатор 486 для п�
 msgid "Dynamic recompiler"
 msgstr "Динамічний рекомпілятор"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Розмір кадру ЦП"
 
