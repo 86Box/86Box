@@ -427,6 +427,9 @@ msgstr "Usar o interpretador 486 para processadores 286 e 386"
 msgid "Dynamic recompiler"
 msgstr "Recompilador dinâmico"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "Tamanho do quadro da CPU"
 
