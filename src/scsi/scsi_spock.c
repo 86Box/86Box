@@ -135,7 +135,9 @@ typedef struct {
 
     uint8_t pacing;
     uint8_t irq_state;
-    uint8_t buf[0x600];
+    uint8_t buf[0x1000]; /* DMA Buffer (4096 bytes) */
+    uint8_t local_ram[0x100000]; /* 80C188 Address Space */
+    uint8_t cache_ram[0x200000]; /* External Cache Memory */
 
     struct {
         int phys_id;
@@ -638,7 +640,7 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                             get_complete_stat->cmd_status            = scsi->cmd_status << 8;
                             get_complete_stat->error                 = 0;
                             get_complete_stat->reserved              = 0;
-                            get_complete_stat->cache_info_status     = 0;
+                            get_complete_stat->cache_info_status     = 0x4000; /* 2MB Cache */
                             get_complete_stat->scb_addr              = scsi->scb_addr;
 
                             dma_bm_write(scb->sge.sys_buf_addr, (uint8_t *) &get_complete_stat->scb_status, 2, 2);
@@ -657,13 +659,17 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 
                     case CMD_WRITE_BUFFER_TEST:
                         spock_log("Write attachment buffer test.\n");
-                        dma_bm_read(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count, 2);
+                        if (scb->sge.sys_buf_byte_count > 0 && scb->lba_addr < sizeof(scsi->cache_ram)) {
+                            dma_bm_read(scb->sge.sys_buf_addr, scsi->cache_ram + scb->lba_addr, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->cache_ram) - (int) scb->lba_addr), 2);
+                        }
                         scsi->scb_state = 3;
                         break;
 
                     case CMD_READ_BUFFER_TEST:
                         spock_log("Read attachment buffer test.\n");
-                        dma_bm_write(scb->sge.sys_buf_addr, scsi->buf, scb->sge.sys_buf_byte_count, 2);
+                        if (scb->sge.sys_buf_byte_count > 0 && scb->lba_addr < sizeof(scsi->cache_ram)) {
+                            dma_bm_write(scb->sge.sys_buf_addr, scsi->cache_ram + scb->lba_addr, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->cache_ram) - (int) scb->lba_addr), 2);
+                        }
                         scsi->scb_state = 3;
                         break;
 
@@ -711,16 +717,16 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 
                     case CMD_READ_LOCAL_RAM:
                         spock_log("Read attachment local RAM: offset=%08x, length=%08x.\n", scb->lba_addr, scb->sge.sys_buf_byte_count);
-                        if (scb->sge.sys_buf_byte_count > 0) {
-                            dma_bm_write(scb->sge.sys_buf_addr, scsi->buf, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->buf)), 2);
+                        if (scb->sge.sys_buf_byte_count > 0 && scb->lba_addr < sizeof(scsi->local_ram)) {
+                            dma_bm_write(scb->sge.sys_buf_addr, scsi->local_ram + scb->lba_addr, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->local_ram) - (int) scb->lba_addr), 2);
                         }
                         scsi->scb_state = 3;
                         break;
 
                     case CMD_WRITE_LOCAL_RAM:
                         spock_log("Write attachment local RAM: offset=%08x, length=%08x.\n", scb->lba_addr, scb->sge.sys_buf_byte_count);
-                        if (scb->sge.sys_buf_byte_count > 0) {
-                            dma_bm_read(scb->sge.sys_buf_addr, scsi->buf, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->buf)), 2);
+                        if (scb->sge.sys_buf_byte_count > 0 && scb->lba_addr < sizeof(scsi->local_ram)) {
+                            dma_bm_read(scb->sge.sys_buf_addr, scsi->local_ram + scb->lba_addr, MIN((int) scb->sge.sys_buf_byte_count, (int) sizeof(scsi->local_ram) - (int) scb->lba_addr), 2);
                         }
                         scsi->scb_state = 3;
                         break;
