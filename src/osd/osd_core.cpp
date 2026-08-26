@@ -27,7 +27,6 @@ extern "C"
 {
 #include <86box/machine.h>
 #include <86box/device.h>
-#include <86box/video.h>
 #include <86box/version.h>
 #include <86box/mem.h>
 #include <86box/timer.h>
