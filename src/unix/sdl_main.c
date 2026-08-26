@@ -616,7 +616,7 @@ main(int argc, char **argv)
 #else
                             keyboard_input(event.key.down, xtkey);
 #endif
-                            if ((keyboard_get_shift() & 0x11) && keyboard_recv_ui(0x14f) && mouse_capture)
+                            if ((keyboard_get_shift() & 0x11) && (keyboard_get_shift() & 0x44) && keyboard_recv_ui(0x22) && mouse_capture)
                                 plat_mouse_capture(0);
                             break;
                         }
