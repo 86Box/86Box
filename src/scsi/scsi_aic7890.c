@@ -19,6 +19,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/rom.h>
 #include <86box/dma.h>
 #include <86box/pci.h>
 #include <86box/scsi.h>
@@ -32,9 +33,13 @@
 
 #define AIC7890_LOCAL_ONBOARD       0x00000001
 #define AIC7890_LOCAL_LARGE_SEEPROM 0x00000002
+#define AIC7890_LOCAL_U2W           0x00000004
 
 #define AIC7890_PCI_IO_SIZE   0x100
 #define AIC7890_PCI_MMIO_SIZE 0x1000
+
+#define AIC7890_ROM          "roms/scsi/adaptec/4U2W2572.ROM"
+#define AIC7890_PCI_ROM_SIZE 0x10000
 
 #define AIC7890_REG_WINDOW    0x100
 #define AIC7890_SEQRAM_SIZE   (768 * 4)
@@ -44,11 +49,19 @@
 #define AIC7890_HOST_ID       7
 
 /*
- * Linux aic7xxx ID_AIC7890 is 0x001F9005000F9005:
- * device 001f, vendor 9005, subdevice 000f, subvendor 9005.
+ * AIC-7890 chip PCI IDs (9005:001f, subsystem 9005:000f), used by
+ * on-board implementations where the motherboard BIOS owns the SCSI
+ * setup.
  */
 #define AIC7890_PCI_DEVICE_ID 0x001f
 #define AIC7890_PCI_SUBSYS_ID 0x000f
+
+/*
+ * AHA-2940U2W add-in card PCI IDs (9005:0010, subsystem 9005:a180);
+ * the 4U2W2572 option ROM and the Adaptec BIOS both key off these.
+ */
+#define AIC7890_U2W_PCI_DEVICE_ID 0x0010
+#define AIC7890_U2W_PCI_SUBSYS_ID 0xa180
 
 #define REG_SCSISEQ           0x00
 #define REG_SXFRCTL0          0x01
@@ -284,6 +297,8 @@ typedef struct aic7890_t {
     uint8_t       pci_slot;
     uint8_t       irq_state;
     uint8_t       pci_cfg[256];
+    uint16_t      pci_device_id;
+    uint16_t      pci_subsys_id;
 
     uint8_t       scsi_bus;
     uint8_t       regs[AIC7890_REG_WINDOW];
@@ -320,6 +335,9 @@ typedef struct aic7890_t {
     uint16_t      io_base;
     bool          io_enabled;
     mem_mapping_t mmio_mapping;
+    mem_mapping_t rom_bar_mapping;
+    uint32_t      rom_bar_mask;
+    uint8_t      *rom;
 
     pc_timer_t    countdown_timer;
     uint32_t      countdown_remaining;
@@ -918,14 +936,13 @@ aic7890_create_eeprom_config(uint16_t *config)
     config[30] = CFSIGNATURE2;
 
     /*
-     * The Adaptec SCSI BIOS validates the EEPROM checksum as the sum of
-     * all 32 words being zero, so store the negated sum rather than the
-     * positive checksum; with the wrong convention the BIOS treats the
-     * config as invalid and never installs ("SCSI BIOS Not installed!").
+     * The Adaptec SCSI BIOS validates the EEPROM like ahc_verify_cksum()
+     * does: the sum of words 0-30 must equal the value stored in word 31,
+     * so store the positive sum rather than a negated zero-sum value.
      */
     for (int i = 0; i < 31; i++)
         checksum += config[i];
-    config[31] = (0 - (checksum & 0xffff)) & 0xffff;
+    config[31] = checksum & 0xffff;
 }
 
 static void
@@ -3315,6 +3332,70 @@ aic7890_mmio_remap(aic7890_t *dev)
     }
 }
 
+static void
+aic7890_remap_rom_bar(aic7890_t *dev)
+{
+    uint32_t base = (uint32_t) dev->pci_cfg[PCI_REG_ROM_BAR_BYTE0]
+                  | ((uint32_t) dev->pci_cfg[PCI_REG_ROM_BAR_BYTE1] << 8)
+                  | ((uint32_t) dev->pci_cfg[PCI_REG_ROM_BAR_BYTE2] << 16)
+                  | ((uint32_t) dev->pci_cfg[PCI_REG_ROM_BAR_BYTE3] << 24);
+
+    if ((dev->pci_cfg[PCI_REG_COMMAND_L] & PCI_COMMAND_MEM)
+        && (dev->pci_cfg[PCI_REG_ROM_BAR_BYTE0] & 0x01)
+        && (base & ~0x01U)) {
+        base &= ~0x01U;
+        mem_mapping_set_addr(&dev->rom_bar_mapping, base, AIC7890_PCI_ROM_SIZE);
+        aic7890_log(1, "AIC7890: ROM enabled base=%08x\n", base);
+    } else {
+        mem_mapping_disable(&dev->rom_bar_mapping);
+        aic7890_log(1, "AIC7890: ROM disabled\n");
+    }
+}
+
+static uint8_t
+aic7890_rom_bar_readb(uint32_t addr, void *priv)
+{
+    const aic7890_t *dev = priv;
+
+    return dev->rom[addr & (AIC7890_PCI_ROM_SIZE - 1)];
+}
+
+static void
+aic7890_load_rom(const device_t *info, aic7890_t *dev)
+{
+    FILE  *fp;
+    size_t len;
+    int    ln2size = 0;
+
+    if (!(info->local & AIC7890_LOCAL_U2W))
+        return;
+
+    if (!rom_present(AIC7890_ROM)) {
+        aic7890_log(1, "AIC7890: expansion ROM not found (%s)\n", AIC7890_ROM);
+        return;
+    }
+
+    dev->rom = calloc(1, AIC7890_PCI_ROM_SIZE);
+    if (dev->rom == NULL)
+        return;
+
+    fp = rom_fopen(AIC7890_ROM, "rb");
+    if (fp == NULL) {
+        free(dev->rom);
+        dev->rom = NULL;
+        return;
+    }
+
+    len = fread(dev->rom, 1, AIC7890_PCI_ROM_SIZE, fp);
+    fclose(fp);
+    if (len < AIC7890_PCI_ROM_SIZE)
+        memset(&dev->rom[len], 0xff, AIC7890_PCI_ROM_SIZE - len);
+
+    while ((AIC7890_PCI_ROM_SIZE >> ln2size) > 1)
+        ln2size++;
+    dev->rom_bar_mask = (~((1u << ln2size) - 1)) | 0x01;
+}
+
 static uint8_t
 aic7890_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
 {
@@ -3372,6 +3453,25 @@ aic7890_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void
         case PCI_REG_BAR1_BYTE3:
             mask = 0xff;
             break;
+        case PCI_REG_SUBVEN_ID_L:
+        case PCI_REG_SUBVEN_ID_H:
+        case PCI_REG_SUBSYS_ID_L:
+        case PCI_REG_SUBSYS_ID_H:
+            /* The chip latches subsystem IDs programmed by the BIOS. */
+            mask = 0xff;
+            break;
+        case PCI_REG_ROM_BAR_BYTE0:
+            mask = (uint8_t) (dev->rom_bar_mask >> 0);
+            break;
+        case PCI_REG_ROM_BAR_BYTE1:
+            mask = (uint8_t) (dev->rom_bar_mask >> 8);
+            break;
+        case PCI_REG_ROM_BAR_BYTE2:
+            mask = (uint8_t) (dev->rom_bar_mask >> 16);
+            break;
+        case PCI_REG_ROM_BAR_BYTE3:
+            mask = (uint8_t) (dev->rom_bar_mask >> 24);
+            break;
         case PCI_REG_INT_LINE:
             mask = 0xff;
             break;
@@ -3392,6 +3492,8 @@ aic7890_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void
         aic7890_io_disable(dev);
     if (reg == PCI_REG_COMMAND_L || (reg >= PCI_REG_BAR1_BYTE0 && reg <= PCI_REG_BAR1_BYTE3))
         mem_mapping_disable(&dev->mmio_mapping);
+    if (reg == PCI_REG_COMMAND_L || (reg >= PCI_REG_ROM_BAR_BYTE0 && reg <= PCI_REG_ROM_BAR_BYTE3))
+        mem_mapping_disable(&dev->rom_bar_mapping);
 
     dev->pci_cfg[reg] = (dev->pci_cfg[reg] & ~mask) | (val & mask);
 
@@ -3404,6 +3506,8 @@ aic7890_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void
         dev->pci_cfg[PCI_REG_BAR1_BYTE0] = 0x00;
         aic7890_mmio_remap(dev);
     }
+    if (reg == PCI_REG_COMMAND_L || (reg >= PCI_REG_ROM_BAR_BYTE0 && reg <= PCI_REG_ROM_BAR_BYTE3))
+        aic7890_remap_rom_bar(dev);
 
     aic7890_update_irq(dev);
 }
@@ -3415,8 +3519,8 @@ aic7890_init_pci(aic7890_t *dev)
 
     dev->pci_cfg[PCI_REG_VENDOR_ID_L]    = 0x05;
     dev->pci_cfg[PCI_REG_VENDOR_ID_H]    = 0x90;
-    dev->pci_cfg[PCI_REG_DEVICE_ID_L]    = AIC7890_PCI_DEVICE_ID & 0xff;
-    dev->pci_cfg[PCI_REG_DEVICE_ID_H]    = AIC7890_PCI_DEVICE_ID >> 8;
+    dev->pci_cfg[PCI_REG_DEVICE_ID_L]    = dev->pci_device_id & 0xff;
+    dev->pci_cfg[PCI_REG_DEVICE_ID_H]    = dev->pci_device_id >> 8;
     dev->pci_cfg[PCI_REG_STATUS_H]       = PCI_DEVSEL_MEDIUM;
     dev->pci_cfg[PCI_REG_REVISION]       = 0x01;
     dev->pci_cfg[PCI_REG_PROG_IF]        = 0x00;
@@ -3428,8 +3532,8 @@ aic7890_init_pci(aic7890_t *dev)
     dev->pci_cfg[PCI_REG_BAR1_BYTE0]     = 0x00;
     dev->pci_cfg[PCI_REG_SUBVEN_ID_L]    = 0x05;
     dev->pci_cfg[PCI_REG_SUBVEN_ID_H]    = 0x90;
-    dev->pci_cfg[PCI_REG_SUBSYS_ID_L]    = AIC7890_PCI_SUBSYS_ID & 0xff;
-    dev->pci_cfg[PCI_REG_SUBSYS_ID_H]    = AIC7890_PCI_SUBSYS_ID >> 8;
+    dev->pci_cfg[PCI_REG_SUBSYS_ID_L]    = dev->pci_subsys_id & 0xff;
+    dev->pci_cfg[PCI_REG_SUBSYS_ID_H]    = dev->pci_subsys_id >> 8;
     dev->pci_cfg[0x40]                   = 0x40;
     dev->pci_cfg[PCI_REG_INT_LINE]       = 0x00;
     dev->pci_cfg[PCI_REG_INT_PIN]        = PCI_INTA;
@@ -3458,6 +3562,11 @@ aic7890_init(const device_t *info)
     eeprom_params.default_content = dev->eeprom_default;
     dev->eeprom = device_add_inst_params(&nmc93cxx_device, inst, &eeprom_params);
 
+    dev->pci_device_id = (info->local & AIC7890_LOCAL_U2W) ? AIC7890_U2W_PCI_DEVICE_ID
+                                                            : AIC7890_PCI_DEVICE_ID;
+    dev->pci_subsys_id = (info->local & AIC7890_LOCAL_U2W) ? AIC7890_U2W_PCI_SUBSYS_ID
+                                                            : AIC7890_PCI_SUBSYS_ID;
+
     aic7890_init_pci(dev);
     aic7890_reset_regs(dev);
 
@@ -3470,6 +3579,15 @@ aic7890_init(const device_t *info)
                     aic7890_mmio_writeb, aic7890_mmio_writew, aic7890_mmio_writel,
                     NULL, MEM_MAPPING_EXTERNAL, dev);
     mem_mapping_disable(&dev->mmio_mapping);
+
+    aic7890_load_rom(info, dev);
+    if (dev->rom != NULL) {
+        mem_mapping_add(&dev->rom_bar_mapping, 0, 0,
+                        aic7890_rom_bar_readb, NULL, NULL,
+                        NULL, NULL, NULL,
+                        NULL, MEM_MAPPING_EXTERNAL, dev);
+        mem_mapping_disable(&dev->rom_bar_mapping);
+    }
 
     pci_add_card((info->local & AIC7890_LOCAL_ONBOARD) ? (PCI_ADD_SCSI | PCI_ADD_STRICT) : PCI_ADD_NORMAL,
                  aic7890_pci_read, aic7890_pci_write, dev, &dev->pci_slot);
@@ -3487,15 +3605,19 @@ aic7890_close(void *priv)
 
     aic7890_io_disable(dev);
     mem_mapping_disable(&dev->mmio_mapping);
+    if (dev->rom != NULL) {
+        free(dev->rom);
+        dev->rom = NULL;
+    }
     aic7890_log(1, "AIC7890: close\n");
     free(dev);
 }
 
 const device_t aic7890_pci_device = {
-    .name          = "Adaptec AIC-7890",
+    .name          = "Adaptec AHA-2940U2W",
     .internal_name = "aic7890",
     .flags         = DEVICE_PCI,
-    .local         = 0,
+    .local         = AIC7890_LOCAL_U2W,
     .init          = aic7890_init,
     .close         = aic7890_close,
     .reset         = NULL,

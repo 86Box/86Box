@@ -15,9 +15,7 @@
 
 /* Ported over from the MAME eepromser.cpp implementation. Copyright 2013 Aaron Giles */
 
-#ifdef ENABLE_NMC93CXX_EEPROM_LOG
 #include <stdarg.h>
-#endif
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -118,12 +116,20 @@ struct nmc93cxx_eeprom_t {
 
 #ifdef ENABLE_NMC93CXX_EEPROM_LOG
 int nmc93cxx_eeprom_do_log = ENABLE_NMC93CXX_EEPROM_LOG;
+#else
+int nmc93cxx_eeprom_do_log = -1;
+#endif
 
 static void
 nmc93cxx_eeprom_log(nmc93cxx_eeprom_t *dev, int lvl, const char *fmt, ...)
 {
     va_list ap;
 
+    if (nmc93cxx_eeprom_do_log < 0) {
+        const char *env = getenv("NMC93CXX_LOG");
+
+        nmc93cxx_eeprom_do_log = (env != NULL) ? atoi(env) : 0;
+    }
     if (nmc93cxx_eeprom_do_log >= lvl) {
         va_start(ap, fmt);
         log_out(dev->log, fmt, ap);
@@ -164,9 +170,6 @@ nmc93cxx_eeprom_cmd_to_name(EepromCommand command)
     }
 }
 #undef MAKE_CASE
-#else
-#    define nmc93cxx_eeprom_log(dev, lvl, fmt, ...)
-#endif
 
 static void
 nmc93cxx_eeprom_set_state(nmc93cxx_eeprom_t *dev, EepromState state)
@@ -567,9 +570,9 @@ nmc93cxx_eeprom_handle_event(nmc93cxx_eeprom_t *dev, EepromEvent event)
                 uint32_t bit_index = dev->bits_accum++;
 
                 /* Wrapping the address on multi-read */
-                if (((bit_index % dev->data_bits) == 0) && (bit_index == 0))
+                if ((bit_index % dev->data_bits) == 0)
                 {
-                    uint32_t addr = (dev->address + dev->bits_accum / dev->data_bits) & ((1 << dev->address_bits) - 1);
+                    uint32_t addr = (dev->address + bit_index / dev->data_bits) & ((1 << dev->address_bits) - 1);
                     uint32_t data = nmc93cxx_eeprom_cell_read(dev, addr);
 
                     nmc93cxx_eeprom_log(dev, 1, "EEPROM: RD %08lX --> %X\n", addr, data);
