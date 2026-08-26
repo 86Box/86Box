@@ -2990,7 +2990,6 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
 #ifdef USE_NEW_DYNAREC
-        pages[c].evict_prev             = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
 #endif
@@ -3017,7 +3016,6 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
             pages[c].write_l = NULL;
         }
 #ifdef USE_NEW_DYNAREC
-        pages[c].evict_prev             = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
 #endif

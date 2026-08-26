@@ -616,7 +616,10 @@ main(int argc, char **argv)
 #else
                             const int key_down = event.key.down;
 #endif
-                            if (key_down && (xtkey == 0x14f) && (keyboard_get_shift() & 0x11) && mouse_capture) {
+                            if (key_down && (keyboard_get_shift() & 0x11) && (keyboard_get_shift() & 0x44) && (xtkey == 0x22) && mouse_capture) {
+                                /* Prevent an Alt-based shortcut from looking like a standalone
+                                 * Alt press to the guest when the held modifiers are released. */
+                                keyboard_input(0, xtkey);
                                 keyboard_all_up();
                                 plat_mouse_capture(0);
                                 break;
