@@ -135,6 +135,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 
                 /* Raise DEV_ERR if no device is at this address, or if the device returned NAK. */
                 if (!i2c_start(i2c_smbus, smbus_addr, read)) {
+                    smbus_piix4_log("No device at SMBUS address %02X\n", smbus_addr);
                     dev->next_stat = 0x04;
                     break;
                 }
@@ -277,6 +278,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 
                     default: /* unknown */
 unknown_protocol:
+                        smbus_piix4_log("Unknown protocol: %02X\n", cmd);
                         dev->next_stat = 0x04; /* raise DEV_ERR */
                         timer_bytes    = 0;
                         break;
