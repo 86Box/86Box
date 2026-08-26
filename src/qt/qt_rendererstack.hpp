@@ -110,6 +110,11 @@ public:
 
     void (*mouse_exit_func)() = nullptr;
 
+#ifdef __APPLE__
+    bool control_click_active = false;
+    bool right_button_active  = false;
+#endif
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
     /* OpenGL/Vulkan renderers ARE QWindows; dynamic_cast returns the QWindow
      * for pointer capture (Wayland, xinput2). Software renderer returns nullptr

@@ -46,25 +46,37 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                     return false;
                 case NSEventTypeLeftMouseDown:
                     {
-                        b = mouse_get_buttons_ex() | 1;
+                        if ([event modifierFlags] & NSEventModifierFlagControl) {
+                            control_click_active = true;
+                            b = mouse_get_buttons_ex() | 2;
+                        } else {
+                            b = mouse_get_buttons_ex() | 1;
+                        }
                         mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeLeftMouseUp:
                     {
-                        b = mouse_get_buttons_ex() & ~1;
+                        if (control_click_active) {
+                            control_click_active = false;
+                            b = right_button_active ? mouse_get_buttons_ex() : mouse_get_buttons_ex() & ~2;
+                        } else {
+                            b = mouse_get_buttons_ex() & ~1;
+                        }
                         mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeRightMouseDown:
                     {
+                        right_button_active = true;
                         b = mouse_get_buttons_ex() | 2;
                         mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeRightMouseUp:
                     {
-                        b = mouse_get_buttons_ex() & ~2;
+                        right_button_active = false;
+                        b = control_click_active ? mouse_get_buttons_ex() : mouse_get_buttons_ex() & ~2;
                         mouse_set_buttons_ex(b);
                         break;
                     }
