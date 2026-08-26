@@ -616,7 +616,7 @@ main(int argc, char **argv)
 #else
                             const int key_down = event.key.down;
 #endif
-                            if (key_down && (xtkey == 0x14f) && (keyboard_get_shift() & 0x11) && mouse_capture) {
+                            if (key_down && (keyboard_get_shift() & 0x11) && (keyboard_get_shift() & 0x44) && (xtkey == 0x22) && mouse_capture)
                                 keyboard_all_up();
                                 plat_mouse_capture(0);
                                 break;
