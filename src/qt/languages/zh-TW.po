@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-17 19:26+0000\n"
+"PO-Revision-Date: 2026-08-26 13:50+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -428,7 +428,7 @@ msgid "Dynamic recompiler"
 msgstr "動態重編譯器"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "動態重編譯時精確的 FPU 模擬"
 
 msgid "CPU frame size"
 msgstr "CPU 執行期框架大小"
