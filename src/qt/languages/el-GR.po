@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-18 02:45+0000\n"
+"PO-Revision-Date: 2026-08-26 13:50+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -427,7 +427,7 @@ msgid "Dynamic recompiler"
 msgstr "Δυναμικός αναμεταγλωττιστής"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμεταγλωττιστή"
 
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
