@@ -8286,7 +8286,7 @@ static const device_config_t ess_1688_pnp_config[] = {
 // clang-format on
 
 const device_t thunderboard_device = {
-    .name          = "MediaVision ThunderBoard",
+    .name          = "Media Vision Thunder Board",
     .internal_name = "thunderboard",
     .flags         = DEVICE_ISA,
     .local         = THUNDERBOARD,
