@@ -11,17 +11,18 @@
 #define SB_SUBTYPE_CLONE_AZTPR16_0X09  3  /* Aztech Sound Galaxy Pro 16 Extra */
 #define SB_SUBTYPE_CLONE_AZT2316R_0X12 4  /* Aztech Sound Galaxy Pro 16 II */
 #define SB_SUBTYPE_CLONE_AZT2320_0X13  5  /* Aztech AZT2320 */
-#define SB_SUBTYPE_MVD201              6  /* Mediavision MVD201, found on the thunderboard and PAS16 */
-#define SB_SUBTYPE_YMF7XX              7  /* Yamaha YMF-701/71x */
-#define SB_SUBTYPE_ESS_ES488           8  /* ESS Technology ES488 */
-#define SB_SUBTYPE_ESS_ES1488          9  /* ESS Technology ES1488 */
-#define SB_SUBTYPE_ESS_ES688         0xa  /* ESS Technology ES688 */
-#define SB_SUBTYPE_ESS_ES1688        0xb  /* ESS Technology ES1688 */
-#define SB_SUBTYPE_ESS_ES1788        0xc  /* ESS Technology ES1788 */
-#define SB_SUBTYPE_ESS_ES1888        0xd  /* ESS Technology ES1888 */
-#define SB_SUBTYPE_ESS_ES1887        0xe  /* ESS Technology ES1887 */
-#define SB_SUBTYPE_ESS_ES1868        0xf  /* ESS Technology ES1868 */
-#define SB_SUBTYPE_ESS_ES1869        0x10 /* ESS Technology ES1869 */
+#define SB_SUBTYPE_MVD201              6  /* Media Vision MVD201A Thunder, found on the Thunder Board and PAS16 */
+#define SB_SUBTYPE_MVD1216             7  /* Media Vision MVD1216B Jazz16, found on the Pro Sonic 16 */
+#define SB_SUBTYPE_YMF7XX              8  /* Yamaha YMF-701/71x */
+#define SB_SUBTYPE_ESS_ES488           9  /* ESS Technology ES488 */
+#define SB_SUBTYPE_ESS_ES1488        0xa  /* ESS Technology ES1488 */
+#define SB_SUBTYPE_ESS_ES688         0xb  /* ESS Technology ES688 */
+#define SB_SUBTYPE_ESS_ES1688        0xc  /* ESS Technology ES1688 */
+#define SB_SUBTYPE_ESS_ES1788        0xd  /* ESS Technology ES1788 */
+#define SB_SUBTYPE_ESS_ES1888        0xe  /* ESS Technology ES1888 */
+#define SB_SUBTYPE_ESS_ES1887        0xf  /* ESS Technology ES1887 */
+#define SB_SUBTYPE_ESS_ES1868        0x10 /* ESS Technology ES1868 */
+#define SB_SUBTYPE_ESS_ES1869        0x11 /* ESS Technology ES1869 */
 
 /* ESS-related */
 #define IS_ESS(dsp) ((dsp)->sb_subtype >= SB_SUBTYPE_ESS_ES488)    /* Check for future ESS cards here */
@@ -32,7 +33,8 @@
 #define AZTECH_EEPROM_SIZE 36
 
 /* MediaVision related */
-#define IS_MV201(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_MVD201)
+#define IS_MV201(dsp)  ((dsp)->sb_subtype == SB_SUBTYPE_MVD201)
+#define IS_MV1216(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_MVD1216)
 
 typedef struct sb_dsp_t {
     int   sb_type;
@@ -61,6 +63,7 @@ typedef struct sb_dsp_t {
     int sb_16_dma_enabled;
     int sb_16_dma_supported;
     int sb_16_dma_translate;
+    int jazz16_16bit;
     int sb_pausetime;
     int (*dma_readb)(void *priv);
     int (*dma_readw)(void *priv);

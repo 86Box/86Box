@@ -382,6 +382,13 @@ sb_get_buffer_sbpro(int32_t *buffer, const uint16_t len, void *priv)
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
 
+	    /* Output gain required for the Pro Sonic 16 so PCM sounds are volume adjusted
+		to similar levels produced by the external midi and PC speaker */
+        if (IS_MV1216(&sb->dsp)) {
+            out_l *= sb->mvd_1216_output_gain;
+            out_r *= sb->mvd_1216_output_gain;
+        }
+
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
     }
@@ -429,6 +436,13 @@ sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv)
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
 
+	    /* Output gain required for the Pro Sonic 16 so PCM sounds are volume adjusted
+		to similar levels produced by the external midi and PC speaker */
+        if (IS_MV1216(&sb->dsp)) {
+            out_l *= sb->mvd_1216_output_gain;
+            out_r *= sb->mvd_1216_output_gain;
+        }
+
         buffer[c] += (int32_t) out_l;
         buffer[c + 1] += (int32_t) out_r;
     }
@@ -446,6 +460,11 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
     const double             cd     = channel ? mixer->cd_r : mixer->cd_l;
     const double             master = channel ? mixer->master_r : mixer->master_l;
     double                   c      = ((*buffer * cd) / 3.0) * master;
+
+    /* Output gain required for the Pro Sonic 16 so CDDA music is volume adjusted
+	to similar levels produced by the external midi and PC speaker */
+    if (IS_MV1216(&sb->dsp))
+        c *= sb->mvd_1216_output_gain;
 
     *buffer = c;
 }
