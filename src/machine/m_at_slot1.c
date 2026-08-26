@@ -447,7 +447,7 @@ static const device_config_t al440lx_config[] = {
         .bios           = {
             {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P04-0014",
-                .internal_name = "an430tx_p04",
+                .internal_name = "al440lx_p04",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
                 .local         = 0,
