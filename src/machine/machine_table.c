@@ -22206,7 +22206,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "Intel Atlanta", "Gateway Astoria", "HP Pavilion 8190US", "Micron ClientPro 766XI", "Packard Bell PB80x", "" }
+        .aliases                  = { "Intel Atlanta", "Dell Dimension XPS D___", "Gateway Astoria", "HP Pavilion 8190US", "Micron ClientPro 766XI", "Packard Bell PB80x", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
