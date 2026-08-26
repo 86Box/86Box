@@ -509,6 +509,7 @@ machine_at_al440lx_init(const machine_t *model)
     device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC97307));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&lm78_al440lx_device); /* Probably NOT the correct HWM, but it works! */
 
     return ret;
 }
