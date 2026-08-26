@@ -446,17 +446,6 @@ static const device_config_t al440lx_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision A09 (Dell Dimension XPS D___)",
-                .internal_name = "dellxpsdxxx",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 5,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/al440lx/P10-0035.BIO", "roms/machines/al440lx/P10-0035.BI1",
-                                   "roms/machines/al440lx/P10-0035.BI2", "roms/machines/al440lx/P10-0035.BI3",
-                                   "roms/machines/al440lx/P10-0035.RCV", "" }
-            },
-            {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P04-0014",
                 .internal_name = "al440lx_p04",
                 .bios_type     = BIOS_NORMAL,
