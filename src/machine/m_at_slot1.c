@@ -446,6 +446,50 @@ static const device_config_t al440lx_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P04-0014",
+                .internal_name = "an430tx_p04",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P04-0014.BIO", "roms/machines/al440lx/P04-0014.BI1",
+                                   "roms/machines/al440lx/P04-0014.BI2", "roms/machines/al440lx/P04-0014.BI3",
+                                   "roms/machines/al440lx/P04-0014.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0009 (Packard Bell PB80x)",
+                .internal_name = "pb800",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/ALP0711A.BIO", "roms/machines/al440lx/ALP0711A.BI1",
+                                   "roms/machines/al440lx/ALP0711A.BI2", "roms/machines/al440lx/ALP0711A.BI3",
+                                   "roms/machines/al440lx/ALP0711A.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0024 (HP Pavilion 8190US)",
+                .internal_name = "pavilion8190us",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P07-0024.BIO", "roms/machines/al440lx/P07-0024.bi1",
+                                   "roms/machines/al440lx/P07-0024.bi2", "roms/machines/al440lx/P07-0024.bi3",
+                                   "roms/machines/al440lx/P07-0024.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P11-0019 (Micron ClientPro 766XI)",
+                .internal_name = "clpro766xi",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P11-0019.BIO", "roms/machines/al440lx/P11-0019.BI1",
+                                   "roms/machines/al440lx/P11-0019.BI2", "roms/machines/al440lx/P11-0019.BI3",
+                                   "roms/machines/al440lx/P11-0019.RCV", "" }
+            },
+            {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P14-0031",
                 .internal_name = "al440lx",
                 .bios_type     = BIOS_NORMAL,
@@ -455,6 +499,17 @@ static const device_config_t al440lx_config[] = {
                 .files         = { "roms/machines/al440lx/P14-0031.BIO", "roms/machines/al440lx/P14-0031.BI1",
                                    "roms/machines/al440lx/P14-0031.BI2", "roms/machines/al440lx/P14-0031.BI3",
                                    "roms/machines/al440lx/P14-0031.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P18-0023 (Gateway Astoria)",
+                .internal_name = "al440lx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P18-0023.BIO", "roms/machines/al440lx/P18-0023.BI1",
+                                   "roms/machines/al440lx/P18-0023.BI2", "roms/machines/al440lx/P18-0023.BI3",
+                                   "roms/machines/al440lx/P18-0023.RCV", "" }
             },
             { .files_no = 0 }
         }

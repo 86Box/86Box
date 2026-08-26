@@ -22182,7 +22182,7 @@ const machine_t machines[] = {
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: ATI Mach64GT-B 3D Rage II */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_SOUND | MACHINE_GAMEPORT, /* Machine has internal sound: Yamaha YMF715 */
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -22204,9 +22204,9 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &ymf715_onboard_device,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Atlanta", "Gateway Astoria", "HP Pavilion 8190US", "Micron ClientPro 766XI", "Packard Bell PB80x", "" }
     },
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
