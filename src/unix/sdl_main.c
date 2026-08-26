@@ -612,12 +612,16 @@ main(int argc, char **argv)
                             }
 #endif
 #ifdef USE_SDL2_LIB
-                            keyboard_input(event.key.state == SDL_PRESSED, xtkey);
+                            const int key_down = event.key.state == SDL_PRESSED;
 #else
-                            keyboard_input(event.key.down, xtkey);
+                            const int key_down = event.key.down;
 #endif
-                            if ((keyboard_get_shift() & 0x11) && keyboard_recv_ui(0x14f) && mouse_capture)
+                            if (key_down && (xtkey == 0x14f) && (keyboard_get_shift() & 0x11) && mouse_capture) {
+                                keyboard_all_up();
                                 plat_mouse_capture(0);
+                                break;
+                            }
+                            keyboard_input(key_down, xtkey);
                             break;
                         }
 #ifdef USE_SDL2_LIB
