@@ -433,6 +433,86 @@ machine_at_optiplexgxa_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t al440lx_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "al440lx",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P14-0031",
+                .internal_name = "al440lx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P14-0031.BIO", "roms/machines/al440lx/P14-0031.BI1",
+                                   "roms/machines/al440lx/P14-0031.BI2", "roms/machines/al440lx/P14-0031.BI3",
+                                   "roms/machines/al440lx/P14-0031.RCV", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t al440lx_device = {
+    .name          = "Intel AL440LX",
+    .internal_name = "al440lx",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = al440lx_config
+};
+
+int
+machine_at_al440lx_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn[5];
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    for (int i = 0; i < 5; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+    ret = bios_load_linear_combined2_ex(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 160);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440lx_device);;
+    device_add(&piix4_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC97307));
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+
+    return ret;
+}
+
 int
 machine_at_spitfire_init(const machine_t *model)
 {
