@@ -1691,21 +1691,24 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
     // TODO: Could this be simplified by proxying the event and manually
     // shoving it into the menubar?
     if (event->type() == QEvent::KeyPress) {
-        this->keyPressEvent((QKeyEvent *) event);
-
         // We check for mouse release even if we aren't fullscreen,
         // because it's not a menu accelerator.
-        if (event->type() == QEvent::KeyPress) {
-            QKeyEvent *ke = (QKeyEvent *) event;
+        QKeyEvent *ke = (QKeyEvent *) event;
+        if (mouse_capture) {
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse") || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse")) {
+                /* Prevent an Alt-based shortcut from looking like a standalone
+                 * Alt press to the guest when the held modifiers are released. */
+                this->keyReleaseEvent(ke);
+                keyboard_all_up();
                 plat_mouse_capture(0);
+                event->accept();
+                return true;
             }
-
         }
 
-        if (event->type() == QEvent::KeyPress && video_fullscreen != 0) {
-            QKeyEvent *ke = (QKeyEvent *) event;
+        this->keyPressEvent(ke);
 
+        if (event->type() == QEvent::KeyPress && video_fullscreen != 0) {
             if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("screenshot")
                 || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("screenshot")) {
                 ui->actionTake_screenshot->trigger();

@@ -100,6 +100,7 @@ void enter_pause(void)
         return;
     
     [[NSProcessInfo processInfo] endActivity: process_activity];
+    [process_activity release];
     process_activity = nil;
     pause_entered = true;
 }
@@ -112,6 +113,6 @@ void exit_pause(void)
     // NSActivityUserInteractive is a bitwise OR of NSActivityUserInitiated and NSActivityLatencyCritical.
     // However, allow the system to sleep if needed by using NSActivityUserInitiatedAllowingIdleSystemSleep instead of NSActivityUserInitiated.
     // And allow the system to terminate it as needed.
-    process_activity = [[NSProcessInfo processInfo] beginActivityWithOptions: ((NSActivityUserInitiatedAllowingIdleSystemSleep &~ (NSActivitySuddenTerminationDisabled | NSActivityAutomaticTerminationDisabled)) | NSActivityLatencyCritical) reason:@"Unpaused."];
+    process_activity = [[[NSProcessInfo processInfo] beginActivityWithOptions: ((NSActivityUserInitiatedAllowingIdleSystemSleep &~ (NSActivitySuddenTerminationDisabled | NSActivityAutomaticTerminationDisabled)) | NSActivityLatencyCritical) reason:@"Unpaused."] retain];
     pause_entered = false;
 }
