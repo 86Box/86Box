@@ -25,10 +25,9 @@
 #include <86box/86box.h>
 extern "C"
 {
+#include <86box/machine.h>
 #include <86box/device.h>
-#include <86box/plat.h>
 #include <86box/video.h>
-#include <86box/ui.h>
 #include <86box/version.h>
 #include <86box/mem.h>
 #include <86box/timer.h>
@@ -43,6 +42,8 @@ extern "C"
 #include <86box/cartridge.h>
 #include <86box/rom.h>
 }
+#include <86box/plat.h>
+#include <86box/ui.h>
 
 #include "osd_core.hpp"
 #include "osd_explorer.hpp"
