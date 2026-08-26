@@ -121,7 +121,7 @@ typedef struct esdi_t {
     int status_pos;
     int status_len;
 
-    uint16_t status_data[256];
+    uint16_t status_data[7];
     uint16_t diag_status[7];
 
     int      data_pos;
@@ -309,16 +309,14 @@ esdi_mca_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 static void
 cmd_unsupported(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0f03; /*Attention error, command not supported*/
     dev->status_data[2] = 0x0002; /*Interface fault*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -331,16 +329,14 @@ cmd_unsupported(esdi_t *dev)
 static void
 device_not_present(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0c11; /*Command failed, internal hardware error*/
     dev->status_data[2] = 0x000b; /*Selection error*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -353,16 +349,14 @@ device_not_present(esdi_t *dev)
 static void
 rba_out_of_range(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
     dev->status_data[2] = 0x0007; /*RBA out of range*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -375,16 +369,14 @@ rba_out_of_range(esdi_t *dev)
 static void
 defective_block(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
     dev->status_data[2] = 0x0009; /*Defective block*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -812,16 +804,10 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->status_len     = 9;
-            dev->status_data[0] = CMD_GET_DEV_STATUS | STATUS_LEN(9) | STATUS_DEVICE_HOST_ADAPTER;
-            dev->status_data[1] = 0x0000; /*Error bits*/
-            dev->status_data[2] = 0x1900; /*Device status*/
-            dev->status_data[3] = 0;      /*ESDI Standard Status*/
-            dev->status_data[4] = 0;      /*ESDI Vendor Unique Status*/
-            dev->status_data[5] = 0;
-            dev->status_data[6] = 0;
-            dev->status_data[7] = 0;
-            dev->status_data[8] = 0;
+            dev->status_len     = 3;
+            dev->status_data[0] = CMD_GET_DEV_STATUS | STATUS_LEN(3) | dev->cmd_dev;
+            dev->status_data[1] = 0;
+            dev->status_data[2] = 0x1900; /*Device status | Device error code*/
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
