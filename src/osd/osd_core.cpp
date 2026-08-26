@@ -10,6 +10,7 @@
  */
 #include "imgui.h"
 
+#include <functional>
 #include <algorithm>
 #include <cctype>
 #include <cmath>
@@ -22,15 +23,24 @@
 #include <utility>
 
 #include <86box/86box.h>
+extern "C"
+{
 #include <86box/device.h>
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
-#include <86box/cdrom.h>
 #include <86box/mem.h>
-extern "C"
-{
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/cdrom_interface.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
+#include <86box/cdrom.h>
+#include <86box/hdc.h>
+#include <86box/rdisk.h>
+#include <86box/mo.h>
+#include <86box/cartridge.h>
 #include <86box/rom.h>
 }
 
@@ -340,29 +350,74 @@ struct MenuItem {
     const char *label;
     OsdAction   action;     /* ACT_NONE → open a view */
     OsdView     view;       /* used when action == ACT_NONE */
+    std::function<bool()> is_enabled;
 };
 
+static bool
+isFirstCdromAvailable(void)
+{
+    const char *name = hdc_get_internal_name(hdc_current[0]);
+    if ((cdrom[0].bus_type == CDROM_BUS_ATAPI) && !((machine_has_flags(machine, MACHINE_IDE_QUAD) > 0) || other_ide_present) && memcmp(name, "ide", 3) && memcmp(name, "xtide", 5) && memcmp(name, "mcide", 5))
+        return false;
+    if ((cdrom[0].bus_type == CDROM_BUS_SCSI) && !((machine_has_flags(machine, MACHINE_SCSI) > 0) || other_scsi_present) && (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) && (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+        return false;
+    if ((cdrom[0].bus_type == CDROM_BUS_MITSUMI || cdrom[0].bus_type == CDROM_BUS_MKE) && (cdrom_interface_current == 0))
+        return false;
+    if (cdrom[0].bus_type != 0) {
+        return true;
+    }
+    return false;
+}
+
+static bool
+isFirstRdiskAvailable(void)
+{
+    const char *name = hdc_get_internal_name(hdc_current[0]);
+    if ((rdisk_drives[0].bus_type == RDISK_BUS_ATAPI) && !((machine_has_flags(machine, MACHINE_IDE_QUAD) > 0) || other_ide_present) && memcmp(name, "ide", 3) && memcmp(name, "xtide", 5) && memcmp(name, "mcide", 5))
+        return false;
+    if ((rdisk_drives[0].bus_type == RDISK_BUS_SCSI) && !((machine_has_flags(machine, MACHINE_SCSI) > 0) || other_scsi_present) && (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) && (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+        return false;
+    if (rdisk_drives[0].bus_type != 0) {
+        return true;
+    }
+    return false;
+}
+
+static bool
+isFirstMoAvailable(void)
+{
+    const char *name = hdc_get_internal_name(hdc_current[0]);
+    if ((mo_drives[0].bus_type == RDISK_BUS_ATAPI) && !((machine_has_flags(machine, MACHINE_IDE_QUAD) > 0) || other_ide_present) && memcmp(name, "ide", 3) && memcmp(name, "xtide", 5) && memcmp(name, "mcide", 5))
+        return false;
+    if ((mo_drives[0].bus_type == RDISK_BUS_SCSI) && !((machine_has_flags(machine, MACHINE_SCSI) > 0) || other_scsi_present) && (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) && (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+        return false;
+    if (mo_drives[0].bus_type != 0) {
+        return true;
+    }
+    return false;
+}
+
 static const MenuItem menu_items[] = {
-    { "Load Floppy Image...",      ACT_NONE,         VIEW_FILE_FLOPPY },
-    { "Load CD-ROM Image...",      ACT_NONE,         VIEW_FILE_CD     },
-    { "Mount CD Folder (VISO)...", ACT_NONE,         VIEW_CD_FOLDER   },
-    { "Load Removable Disk...",    ACT_NONE,         VIEW_FILE_RDISK  },
-    { "Load Cartridge...",         ACT_NONE,         VIEW_FILE_CART   },
-    { "Load MO Image...",          ACT_NONE,         VIEW_FILE_MO     },
+    { "Load Floppy Image...",      ACT_NONE,         VIEW_FILE_FLOPPY, [] () -> bool { return fdd_get_type(0); }                 },
+    { "Load CD-ROM Image...",      ACT_NONE,         VIEW_FILE_CD,     isFirstCdromAvailable                                     },
+    { "Mount CD Folder (VISO)...", ACT_NONE,         VIEW_CD_FOLDER,   isFirstCdromAvailable                                     },
+    { "Load Removable Disk...",    ACT_NONE,         VIEW_FILE_RDISK,  isFirstRdiskAvailable                                     },
+    { "Load Cartridge...",         ACT_NONE,         VIEW_FILE_CART,   [] () -> bool { return machine_has_cartridge(machine); }  },
+    { "Load MO Image...",          ACT_NONE,         VIEW_FILE_MO,     isFirstMoAvailable                                        },
     { nullptr, ACT_NONE, VIEW_MENU }, /* separator */
-    { "Eject Floppy",              ACT_EJECT_FLOPPY, VIEW_MENU        },
-    { "Eject CD-ROM",              ACT_EJECT_CD,     VIEW_MENU        },
-    { "Eject Removable Disk",      ACT_EJECT_RDISK,  VIEW_MENU        },
-    { "Eject Cartridge",           ACT_EJECT_CART,   VIEW_MENU        },
-    { "Eject MO",                  ACT_EJECT_MO,     VIEW_MENU        },
+    { "Eject Floppy",              ACT_EJECT_FLOPPY, VIEW_MENU, [] () -> bool { return fdd_get_type(0) && floppyfns[0][0] != 0; }                        },
+    { "Eject CD-ROM",              ACT_EJECT_CD,     VIEW_MENU, [] () -> bool { return isFirstCdromAvailable() && cdrom[0].image_path[0] != 0; }         },
+    { "Eject Removable Disk",      ACT_EJECT_RDISK,  VIEW_MENU, [] () -> bool { return isFirstRdiskAvailable() && rdisk_drives[0].image_path[0] != 0; }  },
+    { "Eject Cartridge",           ACT_EJECT_CART,   VIEW_MENU, [] () -> bool { return machine_has_cartridge(machine) && cart_fns[0][0] != 0; }          },
+    { "Eject MO",                  ACT_EJECT_MO,     VIEW_MENU, [] () -> bool { return isFirstMoAvailable() && mo_drives[0].image_path[0] != 0; }        },
     { nullptr, ACT_NONE, VIEW_MENU }, /* separator */
-    { "Show Log",                  ACT_NONE,         VIEW_LOG         },
+    { "Show Log",                  ACT_NONE,         VIEW_LOG,  [] () -> bool { return true; }  },
     { nullptr, ACT_NONE, VIEW_MENU }, /* separator */
-    { "Hard Reset",                ACT_HARDRESET,    VIEW_MENU        },
-    { "Toggle Fullscreen",         ACT_FULLSCREEN,   VIEW_MENU        },
-    { "Exit 86Box",                ACT_EXIT,         VIEW_MENU        },
+    { "Hard Reset",                ACT_HARDRESET,    VIEW_MENU, [] () -> bool { return true; }  },
+    { "Toggle Fullscreen",         ACT_FULLSCREEN,   VIEW_MENU, [] () -> bool { return true; }  },
+    { "Exit 86Box",                ACT_EXIT,         VIEW_MENU, [] () -> bool { return true; }  },
     { nullptr, ACT_NONE, VIEW_MENU }, /* separator */
-    { "Close OSD",                 ACT_CLOSE_OSD,    VIEW_MENU        },
+    { "Close OSD",                 ACT_CLOSE_OSD,    VIEW_MENU, [] () -> bool { return true; }  },
 };
 static constexpr int MENU_COUNT = sizeof(menu_items) / sizeof(menu_items[0]);
 
@@ -497,7 +552,7 @@ static bool draw_menu(void)
         menu_sel = menu_first_selectable();
     if (end)
         menu_sel = menu_last_selectable();
-    if (enter && menu_sel >= 0)
+    if (enter && menu_sel >= 0 && menu_items[menu_sel].is_enabled())
         activate_menu_item(menu_sel, &close_osd);
 
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
@@ -522,7 +577,7 @@ static bool draw_menu(void)
         }
 
         const bool selected = (i == menu_sel);
-        if (ImGui::Selectable(mi.label, selected)) {
+        if (ImGui::Selectable(mi.label, selected, !mi.is_enabled() ? ImGuiSelectableFlags_Disabled : 0)) {
             menu_sel = i;
             activate_menu_item(i, &close_osd);
         }
