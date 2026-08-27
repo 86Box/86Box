@@ -255,7 +255,7 @@ CLAMP(int16_t in, int16_t min, int16_t max)
     if (ATI_MACH32) {                                                                                           \
         if (dev->bpp) {                                                                                         \
             vga_vram_w[((addr)) & (svga->vram_mask >> 1)]           = dat;                                      \
-            dev->changedvram[(((addr)) & (dev->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount;   \
+            svga->changedvram[(((addr)) & (svga->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
         } else {                                                                                                \
             svga->vram[((addr)) & (svga->vram_mask)]                = dat;                                      \
             svga->changedvram[(((addr)) & (svga->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;      \
@@ -986,10 +986,17 @@ ibm8514_accel_in(uint16_t port, svga_t *svga)
 
     switch (port) {
         case 0x2e8:
-            if (dev->vc == dev->v_syncstart) {
+            if (dev->vc == dev->dispend) {
                 if (dev->accel.advfunc_cntl & 0x04)
                     temp |= 0x02;
             }
+
+            if (((dev->_8514pal[0].r + dev->_8514pal[0].g + dev->_8514pal[0].b) >= 0x4e) ||
+                (dev->_8514pal[0].r >= 0x26) || (dev->_8514pal[0].g >= 0x26) ||
+                (dev->_8514pal[0].b >= 0x26))
+                temp |= 0x00;
+            else
+                temp |= 0x01;
 
             ibm8514_log(dev->log,"Read: Display Status1=%02x.\n", temp);
             break;
@@ -4045,7 +4052,7 @@ ibm8514_render_overscan_left(ibm8514_t *dev, svga_t *svga)
         if ((svga->displine + svga->y_add) < 0)
             return;
 
-        if (svga->scrblank || (svga->hdisp == 0))
+        if (svga->scrblank || (dev->h_disp == 0))
             return;
 
         for (int i = 0; i < svga->x_add; i++)
@@ -4071,7 +4078,7 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
         if ((svga->displine + svga->y_add) < 0)
             return;
 
-        if (svga->scrblank || (svga->hdisp == 0))
+        if (svga->scrblank || (dev->h_disp == 0))
             return;
 
         right = (overscan_x >> 1);
@@ -4108,7 +4115,7 @@ ibm8514_poll(void *priv)
 
     ibm8514_log(dev->log,"IBM 8514/A poll=%x offtime=%" PRIu64 ", ontime=%" PRIu64 ".\n", dev->on, dev->dispofftime, dev->dispontime);
     if (dev->on) {
-        ibm8514_log(dev->log,"ON!\n");
+        ibm8514_log(dev->log, "ON!\n");
         if (svga->override)
             svga_set_poll(svga);
         else if (ATI_MACH32) {
@@ -4180,13 +4187,7 @@ ibm8514_poll(void *priv)
                 if ((svga->scanline == (svga->crtc[11] & 31)) || (svga->scanline == svga->rowcount))
                     svga->cursorvisible = 0;
                 if (svga->dispon) {
-                    /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll
-                       - S3 Trio64V2/DX: scanline == rowcount, wrapping 5-bit counter. */
-                    if (svga->linedbl && !svga->linecountff) {
-                        svga->linecountff = 1;
-                        svga->memaddr          = svga->memaddr_backup;
-                    } else if (svga->scanline == svga->rowcount) {
-                        svga->linecountff = 0;
+                    if (svga->scanline == svga->rowcount) {
                         svga->scanline          = 0;
 
                         svga->memaddr_backup += (svga->rowoffset << 3);
@@ -4196,7 +4197,6 @@ ibm8514_poll(void *priv)
                         svga->memaddr_backup &= svga->vram_display_mask;
                         svga->memaddr = svga->memaddr_backup;
                     } else {
-                        svga->linecountff = 0;
                         svga->scanline++;
                         svga->scanline &= 0x1f;
                         svga->memaddr = svga->memaddr_backup;
@@ -4254,7 +4254,7 @@ ibm8514_poll(void *priv)
                 if (dev->vc == svga->vsyncstart) {
                     svga->dispon = 0;
                     svga->cgastat |= 8;
-                    x = svga->hdisp;
+                    x = dev->h_disp;
 
                     if (svga->interlace && !svga->oddeven)
                         svga->lastline++;
@@ -4287,9 +4287,6 @@ ibm8514_poll(void *priv)
                     svga->memaddr_backup = (svga->memaddr_backup << 2);
                     svga->cursoraddr     = (svga->cursoraddr << 2);
 
-                    if (svga->vsync_callback)
-                        svga->vsync_callback(svga);
-
                     video_lightpen_vsync();
 
                     svga->start_retrace_latch = svga->crtc[0x4];
@@ -4304,8 +4301,6 @@ ibm8514_poll(void *priv)
                     svga->half_pixel  = 0;
 
                     svga->x_add = svga->left_overscan;
-
-                    svga->linecountff = 0;
 
                     svga->hwcursor_on    = 0;
                     svga->hwcursor_latch = svga->hwcursor;

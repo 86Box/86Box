@@ -255,13 +255,15 @@ acpi_raise_smi(void *priv, int do_smi)
                 dev->regs.smi_active = 1;
             }
         } else if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI)) {
-            if (do_smi)
+            if (do_smi) {
                 smi_raise();
-            /* Clear bit 16 of GLBCTL. */
-            if (dev->vendor == VEN_INTEL)
-                dev->regs.glbctl &= ~0x00010000;
-            else
-                dev->regs.ali_soft_smi = 1;
+
+                /* Clear bit 16 of GLBCTL. */
+                if (dev->vendor == VEN_INTEL)
+                    dev->regs.glbctl &= ~0x00010000;
+                else
+                    dev->regs.ali_soft_smi = 1;
+            }
         } else if (dev->vendor == VEN_SMC) {
             if (do_smi)
                 smi_raise();
@@ -1197,6 +1199,11 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x2b:
             /* GLBCTL - Global Control Register (IO) */
             dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff07;
+            /* Check if there's anything still pending and re-assert SMI# if it is. */
+            if (((dev->regs.glbctl & 0x00010001) == 0x00010001) &&
+                (((dev->regs.glbsts & 0x20) && dev->apm->do_smi) ||
+                 ((dev->regs.glbsts & 0x01) && (dev->regs.glben & 0x02))))
+                acpi_raise_smi(dev, 1);
             /* Setting BIOS_RLS also sets GBL_STS and generates SMI. */
             if (dev->regs.glbctl & 0x00000002) {
                 dev->regs.pmsts |= 0x20;
@@ -2408,7 +2415,11 @@ acpi_reset(void *priv)
        - Bit 2: 80-conductor cable on primary IDE channel (active low)
        Gigabyte GA-686BX:
        - Bit 1: CMOS battery low (active high) */
-    dev->regs.gpireg[2] = dev->gpireg2_default;
+    if (machines[machine].init == machine_at_al440lx_init)
+        /* ED = Normal, DD (2-3) - Maintenance, BD, FD (none) - Recovery. */
+        dev->regs.gpireg[2] = 0xed;
+    else
+        dev->regs.gpireg[2] = dev->gpireg2_default;
     for (uint8_t i = 0; i < 4; i++)
         dev->regs.gporeg[i] = dev->gporeg_default[i];
     if (dev->vendor == VEN_VIA_596B) {

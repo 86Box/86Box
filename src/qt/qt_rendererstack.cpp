@@ -243,6 +243,16 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
     if (mouse_capture || (mouse_input_mode >= 1)) {
+        Qt::MouseButton button = event->button();
+#ifdef __APPLE__
+        if ((button == Qt::LeftButton) && control_click_active) {
+            control_click_active = false;
+            button = right_button_active ? Qt::NoButton : Qt::RightButton;
+        } else if (button == Qt::RightButton) {
+            right_button_active = false;
+            button = control_click_active ? Qt::NoButton : Qt::RightButton;
+        }
+#endif
 #ifdef Q_OS_WINDOWS
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
@@ -252,7 +262,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
 #    endif
 #endif
-            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~button);
     }
     isMouseDown &= ~1;
 }
@@ -262,6 +272,15 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
     if (mouse_capture || (mouse_input_mode >= 1)) {
+        Qt::MouseButton button = event->button();
+#ifdef __APPLE__
+        if ((button == Qt::LeftButton) && (event->modifiers() & Qt::ControlModifier)) {
+            control_click_active = true;
+            button = Qt::RightButton;
+        } else if (button == Qt::RightButton) {
+            right_button_active = true;
+        }
+#endif
 #ifdef Q_OS_WINDOWS
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
@@ -271,7 +290,7 @@ RendererStack::mousePressEvent(QMouseEvent *event)
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
 #    endif
 #endif
-            mouse_set_buttons_ex(mouse_get_buttons_ex() | event->button());
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | button);
     }
     event->accept();
 }

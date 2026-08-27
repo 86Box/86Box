@@ -174,6 +174,12 @@ struct
     [IREG_eaa16] = { REG_WORD,         &cpu_state.eaaddr,                  REG_INTEGER, REG_PERMANENT},
     [IREG_x87_op] = { REG_WORD,         &x87_op,                            REG_INTEGER, REG_PERMANENT},
 
+    [IREG_fpu_op] = { REG_WORD,         &cpu_state.fpu_op,                            REG_INTEGER, REG_PERMANENT},
+    [IREG_fpu_CS] = { REG_WORD,         &cpu_state.fpu_CS,                            REG_INTEGER, REG_PERMANENT},
+    [IREG_fpu_cs] = { REG_DWORD,        &cpu_state.fpu_cs,                            REG_INTEGER, REG_PERMANENT},
+    [IREG_fpu_pc] = { REG_DWORD,        &cpu_state.fpu_pc,                            REG_INTEGER, REG_PERMANENT},
+    [IREG_sf_exc] = { REG_DWORD,        &cpu_state.sf_exc,                            REG_INTEGER, REG_PERMANENT},
+
  /*Temporary registers are stored on the stack, and are not guaranteed to
   be preserved across uOPs. They will not be written back if they will
   not be read again.*/

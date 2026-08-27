@@ -426,6 +426,9 @@ msgstr "286 ve 386 işlemcilerde 486 yorumlayıcısını kullan"
 msgid "Dynamic recompiler"
 msgstr "Dinamik derleyici"
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
 

@@ -679,7 +679,18 @@ static const device_config_t ibmxt_inboard386_config[] = {
         .description    = "IBM 5161 Expansion Unit",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 1,
+        /* Defaults off on this machine, unlike the rest of the ibmxt family: a 5160 fitted
+           with an Inboard 386/PC has no expansion chassis.
+
+           With one attached the 5160 BIOS's expansion-unit probe at F000:E452 writes 0x55
+           then 0xAA to port 0x210 and reads both back successfully, concludes a receiver
+           card is present, reads the address latches at 0x215/0x216, gets 0x00, and posts
+           1801 - stopping every cold boot at ERROR. (RESUME = "F1" KEY).
+
+           (ibm_5161.c answers the presence probe but does not implement the address-latch
+           readback the BIOS then verifies, so an enabled 5161 fails POST on the other XT
+           machines too. That is a separate issue and is not addressed here.) */
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },

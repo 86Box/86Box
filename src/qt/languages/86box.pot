@@ -420,6 +420,9 @@ msgstr ""
 msgid "Dynamic recompiler"
 msgstr ""
 
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
 msgid "CPU frame size"
 msgstr ""
 
@@ -1473,6 +1476,18 @@ msgid "ACPI shutdown"
 msgstr ""
 
 msgid "ACP&I shutdown"
+msgstr ""
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
 
 msgid "Hard disk (%1)"

@@ -18,6 +18,7 @@
 
 #define TAPE_NUM           4
 #define TAPE_BUF_SIZE      65536
+#define TAPE_MAX_TRANSFER  0x00ffffffU
 #define TAPE_TIME          10.0
 #define TAPE_IMAGE_HISTORY 10
 
@@ -27,19 +28,23 @@
 #define TAPE_SIMH_GAP      0xFFFFFFFE
 #define TAPE_SIMH_BAD_REC  0xFFFF0000
 
-/* QIC tape type definitions. */
+/* Tape media type definitions. */
 typedef struct tape_type_t {
     const char *name;
-    uint32_t    capacity_bytes;
+    uint64_t    capacity_bytes;
     uint16_t    default_block_size;
     uint8_t     density_code;
 } tape_type_t;
 
-#define KNOWN_TAPE_TYPES 3
+#define KNOWN_TAPE_TYPES 7
 static const tape_type_t tape_types[KNOWN_TAPE_TYPES] = {
-    { "QIC-150",  157286400, 512, 0x10 },
-    { "QIC-525",  549978112, 512, 0x11 },
-    { "QIC-1000", 1073741824, 512, 0x12 },
+    { "QIC-150",    157286400ULL, 512, 0x10 },
+    { "QIC-525",    549978112ULL, 512, 0x11 },
+    { "QIC-1000",  1073741824ULL, 512, 0x12 },
+    { "DDS-3",    12000000000ULL, 512, 0x25 },
+    { "DDS-4",    20000000000ULL, 512, 0x26 },
+    { "DAT-72",   36000000000ULL, 512, 0x47 },
+    { "DDS-2",     4000000000ULL, 512, 0x24 },
 };
 
 /* Tape drive type definitions. */
@@ -47,13 +52,16 @@ typedef struct tape_drive_type_t {
     const char *vendor;
     const char *model;
     const char *revision;
+    uint8_t     default_media;
     int8_t      supported_media[KNOWN_TAPE_TYPES];
 } tape_drive_type_t;
 
-#define KNOWN_TAPE_DRIVE_TYPES 2
+#define KNOWN_TAPE_DRIVE_TYPES 4
 static const tape_drive_type_t tape_drive_types[KNOWN_TAPE_DRIVE_TYPES] = {
-    { "86BOX",   "TAPE",             "1.00", { 1, 1, 1 } },
-    { "ARCHIVE", "VIPER 150 21247",  "2.10", { 1, 0, 0 } },
+    { "86BOX",   "TAPE",             "1.00", 0, { 1, 1, 1, 1, 1, 1, 1 } },
+    { "ARCHIVE", "VIPER 150 21247",  "2.10", 0, { 1, 0, 0, 0, 0, 0, 0 } },
+    { "86Box",   "DAT-72",           "1.00", 5, { 0, 0, 0, 1, 1, 1, 1 } },
+    { "ARCHIVE", "Python 04687-XXX", "4.CM", 6, { 0, 0, 0, 0, 0, 0, 1 } },
 };
 
 enum {
@@ -137,13 +145,21 @@ typedef struct tape_t {
     uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 
     /* Tape-specific state. */
-    uint32_t           tape_pos;       /* Current byte position in the .tap file. */
+    uint64_t           tape_pos;       /* Current byte position in the .tap file. */
+    uint64_t           data_pos;       /* Logical data bytes before tape_pos. */
     uint32_t           block_size;     /* Current fixed block size (0 = variable block mode). */
     uint32_t           num_blocks;     /* Current logical block number. */
-    uint32_t           tape_length;    /* File size of the .tap image. */
+    uint64_t           tape_length;    /* File size of the .tap image. */
     int                eot;            /* End-of-tape reached. */
     int                bot;            /* Beginning-of-tape. */
     int                filemark_pending; /* A filemark was just encountered. */
+    uint8_t            active_partition; /* Selected logical partition. */
+    uint8_t            aux_filemark;     /* Filemark follows auxiliary data. */
+    uint8_t            aux_filemark_seen; /* Current position is past that mark. */
+    uint8_t           *aux_buf;          /* Virtual auxiliary partition data. */
+    uint32_t           aux_buf_size;     /* Allocated auxiliary buffer size. */
+    uint32_t           aux_data_len;     /* Bytes of valid auxiliary data. */
+    uint32_t           aux_pos;          /* Byte position in auxiliary data. */
 
     /* Read-ahead buffer for re-blocking: when a SIMH record is larger than
        the requested fixed block size, the unconsumed remainder is stored here

@@ -261,10 +261,6 @@ exec386_2386(int32_t cycs)
             if (inboard386_present)
                 inboard_post_fixups();
 
-            /* Temp variables for FPU exception reporting. */
-            temp_CS = CS;
-            temp_cs = cs;
-            temp_pc = cpu_state.pc;
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
             ol = opcode_length[fetchdat & 0xff];
             if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
@@ -286,6 +282,11 @@ exec386_2386(int32_t cycs)
             }
 
             if (!cpu_state.abrt) {
+                /* Temp variables for FPU exception reporting. */
+                cpu_state.temp_CS = CS;
+                cpu_state.temp_cs = cs;
+                cpu_state.temp_pc = cpu_state.pc;
+
 #ifdef ENABLE_386_LOG
                 if (in_smm)
                     x386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);

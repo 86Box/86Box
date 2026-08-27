@@ -3076,13 +3076,13 @@ execx86_instruction(void)
                     default:
                         break;
                 }
-                fpu_op = x87_op;
-                fpu_CS = temp_CS;
-                fpu_cs = temp_cs;
-                fpu_pc = temp_pc;
-                fpu_DS = cpu_state.ea_seg->seg;
-                fpu_ds = cpu_state.ea_seg->base;
-                fpu_ea = cpu_state.eaaddr;
+                cpu_state.fpu_op = x87_op;
+                cpu_state.fpu_CS = cpu_state.temp_CS;
+                cpu_state.fpu_cs = cpu_state.temp_cs;
+                cpu_state.fpu_pc = cpu_state.temp_pc;
+                cpu_state.fpu_DS = easeg >> 4;
+                cpu_state.fpu_ds = easeg;
+                cpu_state.fpu_ea = cpu_state.eaaddr;
                 cpu_state.pc = tempw; /* Do this as the x87 code advances it, which is needed on
                                          the 286+ core, but not here. */
                 wait_cycs(1, 0);
@@ -3405,11 +3405,11 @@ execx86(int cycs)
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;
             /* Temp variables for FPU exception reporting. */
-            temp_CS         = CS;
-            temp_cs         = cs;
-            temp_pc         = cpu_state.pc;
-            opcode          = pfq_fetchb();
-            oldc            = cpu_state.flags & C_FLAG;
+            cpu_state.temp_CS = CS;
+            cpu_state.temp_cs = cs;
+            cpu_state.temp_pc = cpu_state.pc;
+            opcode            = pfq_fetchb();
+            oldc              = cpu_state.flags & C_FLAG;
             if (clear_lock) {
                 in_lock    = 0;
                 clear_lock = 0;

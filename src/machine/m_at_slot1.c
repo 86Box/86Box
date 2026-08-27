@@ -435,6 +435,156 @@ machine_at_optiplexgxa_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t al440lx_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "al440lx",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P04-0014",
+                .internal_name = "al440lx_p04",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P04-0014.BIO", "roms/machines/al440lx/P04-0014.BI1",
+                                   "roms/machines/al440lx/P04-0014.BI2", "roms/machines/al440lx/P04-0014.BI3",
+                                   "roms/machines/al440lx/P04-0014.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0009 (Packard Bell PB80x)",
+                .internal_name = "pb800",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/ALP0711A.BIO", "roms/machines/al440lx/ALP0711A.BI1",
+                                   "roms/machines/al440lx/ALP0711A.BI2", "roms/machines/al440lx/ALP0711A.BI3",
+                                   "roms/machines/al440lx/ALP0711A.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0016 (Sony Vaio PCV-2xx)",
+                .internal_name = "pcv2xx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P07-0016.BIO", "roms/machines/al440lx/P07-0016.BI1",
+                                   "roms/machines/al440lx/P07-0016.BI2", "roms/machines/al440lx/P07-0016.BI3",
+                                   "roms/machines/al440lx/P07-0024.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0024 (HP Pavilion 8190US)",
+                .internal_name = "pavilion8190us",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P07-0024.BIO", "roms/machines/al440lx/P07-0024.bi1",
+                                   "roms/machines/al440lx/P07-0024.bi2", "roms/machines/al440lx/P07-0024.bi3",
+                                   "roms/machines/al440lx/P07-0024.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P11-0019 (Micron ClientPro 766XI)",
+                .internal_name = "clpro766xi",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P11-0019.BIO", "roms/machines/al440lx/P11-0019.BI1",
+                                   "roms/machines/al440lx/P11-0019.BI2", "roms/machines/al440lx/P11-0019.BI3",
+                                   "roms/machines/al440lx/P11-0019.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P14-0031",
+                .internal_name = "al440lx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P14-0031.BIO", "roms/machines/al440lx/P14-0031.BI1",
+                                   "roms/machines/al440lx/P14-0031.BI2", "roms/machines/al440lx/P14-0031.BI3",
+                                   "roms/machines/al440lx/P14-0031.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P18-0023 (Gateway Astoria)",
+                .internal_name = "gwastoria",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P18-0023.BIO", "roms/machines/al440lx/P18-0023.BI1",
+                                   "roms/machines/al440lx/P18-0023.BI2", "roms/machines/al440lx/P18-0023.BI3",
+                                   "roms/machines/al440lx/P18-0023.RCV", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t al440lx_device = {
+    .name          = "Intel AL440LX",
+    .internal_name = "al440lx",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = al440lx_config
+};
+
+int
+machine_at_al440lx_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn[5];
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    for (int i = 0; i < 5; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+    ret = bios_load_linear_combined2_ex(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 160);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440lx_device);;
+    device_add(&piix4_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC97307));
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&lm78_al440lx_device); /* Probably NOT the correct HWM, but it works! */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
 int
 machine_at_spitfire_init(const machine_t *model)
 {

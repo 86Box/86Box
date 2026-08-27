@@ -112,11 +112,25 @@ dma_set_force_xt(int enable)
     dma_force_xt = enable;
 }
 
+/* True when this machine latches only the low 4 bits of a DMA page register,
+   as the PC/XT does, rather than the full 8 bits an AT does. dma_at alone gets
+   this wrong for an XT board fitted with a 286-or-higher accelerator: dma_at is
+   assigned is286, so such a machine is handed a 24-bit DMA reach where the real
+   hardware has 20-bit, and a driver placing its buffer above 1 MB appears to
+   work in emulation while silently transferring from the wrong address. */
+static int
+dma_page_is_xt(void)
+{
+    return dma_force_xt || !dma_at;
+}
+
 int
 dma_xt8237_active(void)
 {
+#ifdef DMA_FORCE_REWRITE
     if (dma_force_xt)
         return !dma_advanced && !dma_ps2.is_ps2;
+#endif
     return 0;
 }
 
@@ -1513,7 +1527,7 @@ dma_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
             dma[addr].ab   = (dma[addr].ab & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
             dma[addr].ac   = (dma[addr].ac & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
         } else {
-            dma[addr].page = dma_at ? val : val & 0xf;
+            dma[addr].page = dma_page_is_xt() ? (val & 0x0f) : val;
             dma[addr].ab   = (dma[addr].ab & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
             dma[addr].ac   = (dma[addr].ac & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
         }
@@ -1761,7 +1775,7 @@ dma_reset(void)
         dma[4].arb_level    = 4;
     }
 
-    if (!dma_at)
+    if (dma_page_is_xt())
         dma_m = (dma_m & 0xf0) | 0x0f;
 }
 

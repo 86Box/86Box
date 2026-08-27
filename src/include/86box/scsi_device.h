@@ -95,6 +95,8 @@
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10            0x49
 #define GPCMD_GET_EVENT_STATUS_NOTIFICATION           0x4a
 #define GPCMD_PAUSE_RESUME                            0x4b
+#define GPCMD_LOG_SELECT                              0x4c
+#define GPCMD_LOG_SENSE                               0x4d
 #define GPCMD_STOP_PLAY_SCAN                          0x4e
 #define GPCMD_READ_DISC_INFORMATION                   0x51
 #define GPCMD_READ_TRACK_INFORMATION                  0x52
@@ -231,6 +233,7 @@
 #define SENSE_UNIT_ATTENTION  6
 #define SENSE_DATA_PROTECT    7
 #define SENSE_BLANK_CHECK     8
+#define SENSE_VOLUME_OVERFLOW 13
 
 /* SCSI Additional Sense Codes */
 #define ASC_NONE                               0x00

@@ -1343,6 +1343,10 @@ extern const device_t  lx6_device;
 #endif
 extern int             machine_at_lx6_init(const machine_t *);
 extern int             machine_at_optiplexgxa_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  al440lx_device;
+#endif
+extern int             machine_at_al440lx_init(const machine_t *);
 extern int             machine_at_spitfire_init(const machine_t *);
 extern int             machine_at_ma30d_init(const machine_t *);
 

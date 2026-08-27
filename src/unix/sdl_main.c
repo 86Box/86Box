@@ -612,12 +612,19 @@ main(int argc, char **argv)
                             }
 #endif
 #ifdef USE_SDL2_LIB
-                            keyboard_input(event.key.state == SDL_PRESSED, xtkey);
+                            const int key_down = event.key.state == SDL_PRESSED;
 #else
-                            keyboard_input(event.key.down, xtkey);
+                            const int key_down = event.key.down;
 #endif
-                            if ((keyboard_get_shift() & 0x11) && keyboard_recv_ui(0x14f) && mouse_capture)
+                            if (key_down && (keyboard_get_shift() & 0x11) && (keyboard_get_shift() & 0x44) && (xtkey == 0x22) && mouse_capture) {
+                                /* Prevent an Alt-based shortcut from looking like a standalone
+                                 * Alt press to the guest when the held modifiers are released. */
+                                keyboard_input(0, xtkey);
+                                keyboard_all_up();
                                 plat_mouse_capture(0);
+                                break;
+                            }
+                            keyboard_input(key_down, xtkey);
                             break;
                         }
 #ifdef USE_SDL2_LIB

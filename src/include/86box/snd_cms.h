@@ -29,7 +29,7 @@ typedef struct cms_s {
     float    count[2][6];
     uint8_t  vol[2][6][2];
     uint8_t  stat[2][6];
-    uint16_t noise[2][2];
+    uint32_t noise[2][2];
     uint16_t noisefreq[2][2];
     uint16_t noisecount[2][2];
     uint8_t  noisetype[2][2];
