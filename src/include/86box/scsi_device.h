@@ -17,6 +17,8 @@
 #ifndef SCSI_DEVICE_H
 #define SCSI_DEVICE_H
 
+#define EMU_VERSION_EX    "3.50" /* frozen due to IDE re-detection behavior on Windows */
+
 /* Configuration. */
 #define SCSI_NUM         (SCSI_BUS_MAX * SCSI_ID_MAX)
 
