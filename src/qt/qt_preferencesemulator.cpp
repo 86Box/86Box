@@ -75,6 +75,23 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
     ui->radioButtonLight->setChecked(color_scheme == 1);
     ui->radioButtonDark->setChecked(color_scheme == 2);
 
+    ui->checkBoxCDDVDtoRam->setChecked(cdrom_ram_thread_enabled);
+    switch (cdrom_ram_thread_enabled) {
+        case -1:
+        default:
+            ui->comboBoxCDDVDtoRam->setCurrentIndex(0);
+            break;
+        case 2:
+            ui->comboBoxCDDVDtoRam->setCurrentIndex(1);
+            break;
+        case 4:
+            ui->comboBoxCDDVDtoRam->setCurrentIndex(2);
+            break;
+        case 8:
+            ui->comboBoxCDDVDtoRam->setCurrentIndex(3);
+            break;
+    }
+
 #ifndef Q_OS_WINDOWS
     ui->groupBox->setHidden(true);
 #endif
@@ -109,6 +126,27 @@ PreferencesEmulator::save()
 
     color_scheme       = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
 
+    bool ram_thread_enabled = ui->checkBoxCDDVDtoRam->isChecked();
+    if (ram_thread_enabled) {
+        switch (ui->comboBoxCDDVDtoRam->currentIndex())
+        {
+            case 1:
+                cdrom_ram_thread_enabled = 2;
+                break;
+            case 2:
+                cdrom_ram_thread_enabled = 4;
+                break;
+            case 3:
+                cdrom_ram_thread_enabled = 8;
+                break;
+            default:
+            case 0:
+                cdrom_ram_thread_enabled = -1;
+                break;
+        }
+    } else
+        cdrom_ram_thread_enabled = 0;
+
 #ifdef Q_OS_WINDOWS
     extern void selectDarkMode();
     selectDarkMode();
@@ -140,4 +178,11 @@ void
 PreferencesEmulator::on_pushButtonLanguage_released()
 {
     ui->comboBoxLanguage->setCurrentIndex(0);
+}
+
+void
+PreferencesEmulator::on_checkBoxCDDVDtoRam_stateChanged(int state)
+{
+    ui->comboBoxCDDVDtoRam->setEnabled(state == Qt::Checked);
+    ui->labelCDDVDtoRam->setEnabled(state == Qt::Checked);
 }

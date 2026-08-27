@@ -23,6 +23,9 @@ public:
     int  changed();
     void save();
 
+public slots:
+    void on_checkBoxCDDVDtoRam_stateChanged(int state);
+
 private slots:
     void on_pushButtonLanguage_released();
 
