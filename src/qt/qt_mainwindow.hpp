@@ -72,6 +72,7 @@ signals:
     void endProgressDialog();
 
     void initProgressDialogForNonQtThread(const char* text, uint64_t end);
+    void setProgressDialogProgForNonQtThread(uint64_t progress);
 
     void setTitle(const QString &title);
     void setFullscreen(bool state);

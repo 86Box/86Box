@@ -3375,7 +3375,6 @@ cdrom_update_status(cdrom_t *dev)
 struct thread_ram_load_status_t
 {
     _Atomic(uint64_t) cntr;
-    atomic_bool_t     finished;
 };
 
 typedef struct thread_ram_load_status_t thread_ram_load_status_t;
@@ -3387,22 +3386,12 @@ struct thread_ram_load_ctx_t
     const cdrom_ops_t* ops;
     uint64_t begin_pos;
     uint64_t sectors_to_read;
+    atomic_bool_t finished;
 
     thread_ram_load_status_t* load_status;
 };
 
 typedef struct thread_ram_load_ctx_t thread_ram_load_ctx_t;
-
-void
-display_cntr(void* param)
-{
-    thread_ram_load_status_t* cntr = (thread_ram_load_status_t*)param;
-
-    while (!atomic_load(&cntr->finished)) {
-        plat_delay_ms(1);
-        ui_set_prog_dialog(atomic_load(&cntr->cntr));
-    }
-}
 
 void
 ram_load_thread(void* param)
@@ -3413,6 +3402,7 @@ ram_load_thread(void* param)
         load_param->ops->read_sector(load_param->cd_image_ctx, &load_param->ram_image_to_read_info[(i + load_param->begin_pos) * 2448], i + load_param->begin_pos);
         atomic_fetch_add_explicit(&load_param->load_status->cntr, 1, memory_order_relaxed);
     }
+    load_param->finished = true;
 }
 
 int
@@ -3421,6 +3411,11 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     const int  was_empty = cdrom_is_empty(dev->id);
     int        ret       = 0;
 
+    if (!is_cpu_thread)
+        startblit();
+
+    cdrom_stop(dev);
+    sound_cd_thread_reset();
     /* Make sure to not STRCPY if the two are pointing
        at the same place. */
     if (fn != dev->image_path)
@@ -3465,7 +3460,6 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
                 thread_ram_load_ctx_t* cd_ram_threads_data = (thread_ram_load_ctx_t*)calloc(sizeof(thread_ram_load_ctx_t), num_of_threads);
 
                 atomic_init(&load_status->cntr, 0);
-                atomic_init(&load_status->finished, 0);
 
                 uint64_t cd_size_chunk = cd_size / num_of_threads;
 
@@ -3490,21 +3484,21 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
                 // Time to display the progress dialog.
                 ui_init_prog_dialog(strdup(dev->image_path), cd_size - 1);
 
-                // Start the counter thread.
-                thread_t* cntr_thread = thread_create(display_cntr, load_status);
-
-                // Now start all the RAM loading threads.
+                // Start all the RAM loading threads.
                 for (int i = 0; i < num_of_threads; i++)
                     cd_ram_threads[i] = thread_create(ram_load_thread, &cd_ram_threads_data[i]);
 
                 // Wait for all threads.
-                for (int i = 0; i < num_of_threads; i++)
-                    thread_wait(cd_ram_threads[i]);
-
-                load_status->finished = 1;
-
-                // Wait for counter thread.
-                thread_wait(cntr_thread);
+                while (1) {
+                    bool is_finished = true;
+                    for (int i = 0; i < num_of_threads; i++) {
+                        is_finished = is_finished && atomic_load(&cd_ram_threads_data[i].finished);
+                    }
+                    plat_delay_ms(1);
+                    ui_set_prog_dialog(atomic_load(&load_status->cntr));
+                    if (is_finished)
+                        break;
+                }
 
                 if (dev->close) {
                     dev->close(orig_local);
@@ -3572,6 +3566,9 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         if (was_empty)
             cdrom_insert(dev->id);
     }
+
+    if (!is_cpu_thread)
+        endblit();
 
     return ret;
 }

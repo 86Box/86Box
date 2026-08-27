@@ -965,30 +965,40 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::initProgressDialog, this, [this] (const char *text, uint64_t end) {
         isNonPause = true;
         prog_dialog = new QProgressDialog(this);
+        prog_dialog->setModal(true);
         prog_dialog->setMinimum(0);
         prog_dialog->setMaximum(end);
         prog_dialog->setAutoClose(false);
         prog_dialog->setAutoReset(false);
-        prog_dialog->setWindowTitle(text);
+        prog_dialog->setWindowTitle(EMU_NAME);
+        prog_dialog->setLabelText(text);
         prog_dialog->setValue(0);
+        prog_dialog->setCancelButton(nullptr);
         prog_dialog->show();
         free((void*)text);
     }, Qt::DirectConnection);
 
     connect(this, &MainWindow::setProgressDialogProg, this, [this] (uint64_t pos) {
-        if (prog_dialog)
+        if (prog_dialog) {
             prog_dialog->setValue(pos);
-    }, Qt::QueuedConnection);
+        }
+    }, Qt::DirectConnection);
 
     connect(this, &MainWindow::endProgressDialog, this, [this] () {
-        prog_dialog->deleteLater();
-        prog_dialog = nullptr;
+        if (prog_dialog) {
+            prog_dialog->deleteLater();
+            prog_dialog = nullptr;
+        }
         isNonPause = false;
     }, Qt::QueuedConnection);
 
     connect(this, &MainWindow::initProgressDialogForNonQtThread, this, [this] (const char *text, uint64_t end) {
         initProgressDialog(text, end);
     }, Qt::BlockingQueuedConnection);
+
+    connect(this, &MainWindow::setProgressDialogProgForNonQtThread, this, [this] (uint64_t progress) {
+        setProgressDialogProg(progress);
+    }, Qt::QueuedConnection);
 
 #ifdef XKBCOMMON
 #    ifdef XKBCOMMON_X11

@@ -427,7 +427,11 @@ ui_init_prog_dialog(const char *str, uint64_t end)
 void
 ui_set_prog_dialog(uint64_t progress)
 {
-    emit main_window->setProgressDialogProg(progress);
+    QApplication::processEvents();
+    if (QThread::currentThread() == main_window->thread()) {
+        emit main_window->setProgressDialogProg(progress);
+    } else
+        emit main_window->setProgressDialogProgForNonQtThread(progress);
 }
 
 void
