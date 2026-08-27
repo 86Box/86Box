@@ -606,8 +606,8 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
         ui->comboBoxSpeed->setEnabled(bus_type != CDROM_BUS_DISABLED);
     } else {
         ui->comboBoxSpeed->setEnabled(false);
-        if (bus_type == CDROM_BUS_MITSUMI) // temp hack
-            speed = 0;
+        if (bus_type == CDROM_BUS_MITSUMI)
+            speed = 2;
     }
     ui->comboBoxSpeed->setCurrentIndex(speed == 0 ? 7 : speed - 1);
     setCDROMSpeed(ui->treeViewCDROM->model(),

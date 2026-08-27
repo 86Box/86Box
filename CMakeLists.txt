@@ -181,12 +181,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
     SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-z,wxneeded")
 endif()
 
+option(CDROM_MITSUMI "Mitsumi CDROM" ON)
+
 # Development branch features
 #
 #                      Option         Description                                Def.  Condition     Otherwise
 #                      ------         -----------                                ----  ------------  ---------
 cmake_dependent_option(AMD_K5         "AMD K5"                                   ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(CDROM_MITSUMI  "Mitsumi CDROM"                            ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(G100           "Matrox Productiva G100"                   ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                              ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                        ON    "DEV_BRANCH"  OFF)

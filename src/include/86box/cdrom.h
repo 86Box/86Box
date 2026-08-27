@@ -593,7 +593,6 @@ extern int             cdrom_read_toc_sony(const cdrom_t *dev, uint8_t *b, const
 #ifdef USE_CDROM_MITSUMI
 extern void            cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf);
 extern int             cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode);
-extern uint8_t         cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len);
 #endif
 extern uint8_t         cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                                                 const uint8_t track, const int type);
