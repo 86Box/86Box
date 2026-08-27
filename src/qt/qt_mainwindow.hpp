@@ -8,6 +8,7 @@
 #include <QLabel>
 #include <QShortcut>
 #include <QIcon>
+#include <QProgressDialog>
 
 #include <memory>
 #include <array>
@@ -64,6 +65,13 @@ signals:
     void destroyRendererMonitorForNonQtThread(int monitor_index);
     void forceInterpretationCompleted();
     void hardResetCompleted();
+
+    // Only strdup'd/malloc'd strings must be passed onto it!
+    void initProgressDialog(const char* text, uint64_t end);
+    void setProgressDialogProg(uint64_t progress);
+    void endProgressDialog();
+
+    void initProgressDialogForNonQtThread(const char* text, uint64_t end);
 
     void setTitle(const QString &title);
     void setFullscreen(bool state);
@@ -220,6 +228,8 @@ private:
     bool window_blocked = false;
 
     bool skip_exit_confirmation = false;
+
+    QProgressDialog* prog_dialog;
 };
 
 #endif // QT_MAINWINDOW_HPP

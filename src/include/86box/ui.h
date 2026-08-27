@@ -64,6 +64,10 @@ extern void  ui_sb_set_text(char *str);
 extern void  ui_sb_bugui(char *str);
 extern void  ui_sb_mt32lcd(char *str);
 
+extern void  ui_init_prog_dialog(const char *str, uint64_t end);
+extern void  ui_set_prog_dialog(uint64_t progress);
+extern void  ui_end_prog_dialog(void);
+
 extern void     ui_update_force_interpreter(void);
 
 #ifdef __cplusplus

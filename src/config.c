@@ -359,6 +359,8 @@ load_general(void)
         fixed_size_x = fixed_size_y = 120;
     }
 
+    cdrom_ram_thread_enabled = ini_section_get_int(cat, "cdrom_ram_thread_enabled", 0);
+
     sound_gain = ini_section_get_int(cat, "sound_gain", 0);
 
     kbd_req_capture = ini_section_get_int(cat, "kbd_req_capture", 0);
@@ -3168,6 +3170,11 @@ save_general(void)
         ini_section_delete_var(cat, "gdbstub_port");
     else
         ini_section_set_int(cat, "gdbstub_port", gdbstub_port);
+
+    if (cdrom_ram_thread_enabled == 0)
+        ini_section_delete_var(cat, "cdrom_ram_thread_enabled");
+    else
+        ini_section_set_int(cat, "cdrom_ram_thread_enabled", cdrom_ram_thread_enabled);
 
     ini_delete_section_if_empty(config, cat);
 }

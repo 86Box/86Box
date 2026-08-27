@@ -164,6 +164,7 @@ extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
 #ifdef _WIN32
 extern void     plat_get_system_directory(char *outbuf);
 #endif
+extern int      plat_get_ideal_thread_count(void);
 extern void     plat_set_thread_name(void *thread, const char *name);
 extern void     plat_break(void);
 extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height);

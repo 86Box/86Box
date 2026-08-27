@@ -405,3 +405,13 @@ strnicmp(const char *s1, const char *s2, size_t n)
 {
     return strncasecmp(s1, s2, n);
 }
+
+int
+plat_get_ideal_thread_count(void)
+{
+#ifdef USE_SDL2_LIB
+    return SDL_GetCPUCount();
+#else
+    return SDL_GetNumLogicalCPUCores();
+#endif
+}

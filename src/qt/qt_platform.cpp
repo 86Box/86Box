@@ -46,6 +46,7 @@
 #include <QProcess>
 #include <QRegularExpression>
 #include <QKeySequence>
+#include <QThread>
 
 #include <QLibrary>
 #include <QElapsedTimer>
@@ -621,6 +622,12 @@ void
 plat_remove(char *path)
 {
     QFile(path).remove();
+}
+
+int
+plat_get_ideal_thread_count(void)
+{
+    return QThread::idealThreadCount();
 }
 
 void *

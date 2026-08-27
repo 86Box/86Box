@@ -962,6 +962,34 @@ MainWindow::MainWindow(QWidget *parent)
         ui->actionCursor_Puck->setChecked(true);
     }
 
+    connect(this, &MainWindow::initProgressDialog, this, [this] (const char *text, uint64_t end) {
+        isNonPause = true;
+        prog_dialog = new QProgressDialog(this);
+        prog_dialog->setMinimum(0);
+        prog_dialog->setMaximum(end);
+        prog_dialog->setAutoClose(false);
+        prog_dialog->setAutoReset(false);
+        prog_dialog->setWindowTitle(text);
+        prog_dialog->setValue(0);
+        prog_dialog->show();
+        free((void*)text);
+    }, Qt::DirectConnection);
+
+    connect(this, &MainWindow::setProgressDialogProg, this, [this] (uint64_t pos) {
+        if (prog_dialog)
+            prog_dialog->setValue(pos);
+    }, Qt::QueuedConnection);
+
+    connect(this, &MainWindow::endProgressDialog, this, [this] () {
+        prog_dialog->deleteLater();
+        prog_dialog = nullptr;
+        isNonPause = false;
+    }, Qt::QueuedConnection);
+
+    connect(this, &MainWindow::initProgressDialogForNonQtThread, this, [this] (const char *text, uint64_t end) {
+        initProgressDialog(text, end);
+    }, Qt::BlockingQueuedConnection);
+
 #ifdef XKBCOMMON
 #    ifdef XKBCOMMON_X11
     if (QApplication::platformName().contains("xcb"))

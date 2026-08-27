@@ -414,4 +414,26 @@ ui_sb_update_icon_write(int tag, int write)
             break;
     }
 }
+
+void
+ui_init_prog_dialog(const char *str, uint64_t end)
+{
+    if (QThread::currentThread() == main_window->thread()) {
+        emit main_window->initProgressDialog(str, end);
+    } else
+        emit main_window->initProgressDialogForNonQtThread(str, end);
+}
+
+void
+ui_set_prog_dialog(uint64_t progress)
+{
+    emit main_window->setProgressDialogProg(progress);
+}
+
+void
+ui_end_prog_dialog(void)
+{
+    emit main_window->endProgressDialog();
+}
+
 }

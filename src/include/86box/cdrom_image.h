@@ -38,4 +38,6 @@ extern void *aaru_image_open(cdrom_t *dev, const char *path);
 extern void *chd_image_open(cdrom_t *dev, const char *path);
 extern void *ccd_image_open(cdrom_t *dev, const char *path);
 
+extern void *ram_image_open(cdrom_t *dev, uint8_t* cd_image_data, int64_t end_lba, raw_track_info_t* rti_infos, uint32_t rti_size);
+
 #endif /*CDROM_IMAGE_H*/

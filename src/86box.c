@@ -234,6 +234,8 @@ int      is_new_808x = 0;                                         /* (C) Use the
 
 int      gdbstub_port = 12345;                                    /* (C) The GDB stub port. */
 
+int      cdrom_ram_thread_enabled = 0;                            /* (C) Load CD images into RAM. */
+
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
 

@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdatomic.h>
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -42,6 +43,7 @@
 #include <86box/scsi_cdrom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/thread.h>
 
 #define RAW_SECTOR_SIZE    2352
 
@@ -3370,6 +3372,49 @@ cdrom_update_status(cdrom_t *dev)
     }
 }
 
+struct thread_ram_load_status_t
+{
+    _Atomic(uint64_t) cntr;
+    atomic_bool_t     finished;
+};
+
+typedef struct thread_ram_load_status_t thread_ram_load_status_t;
+
+struct thread_ram_load_ctx_t
+{
+    void* cd_image_ctx;
+    uint8_t* ram_image_to_read_info;
+    const cdrom_ops_t* ops;
+    uint64_t begin_pos;
+    uint64_t sectors_to_read;
+
+    thread_ram_load_status_t* load_status;
+};
+
+typedef struct thread_ram_load_ctx_t thread_ram_load_ctx_t;
+
+void
+display_cntr(void* param)
+{
+    thread_ram_load_status_t* cntr = (thread_ram_load_status_t*)param;
+
+    while (!atomic_load(&cntr->finished)) {
+        plat_delay_ms(1);
+        ui_set_prog_dialog(atomic_load(&cntr->cntr));
+    }
+}
+
+void
+ram_load_thread(void* param)
+{
+    thread_ram_load_ctx_t* load_param = (thread_ram_load_ctx_t*)param;
+
+    for (uint64_t i = 0; i < load_param->sectors_to_read; i++) {
+        load_param->ops->read_sector(load_param->cd_image_ctx, &load_param->ram_image_to_read_info[(i + load_param->begin_pos) * 2448], i + load_param->begin_pos);
+        atomic_fetch_add_explicit(&load_param->load_status->cntr, 1, memory_order_relaxed);
+    }
+}
+
 int
 cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 {
@@ -3393,6 +3438,90 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->local = image_open(dev, dev->image_path);
         if (!dev->local)
             dev->local = aaru_image_open(dev, dev->image_path);
+    }
+
+    if (dev->local) {
+        if (cdrom_ram_thread_enabled && !(((strlen(dev->image_path) != 0) && (strstr(dev->image_path, "ioctl://") == dev->image_path)))) {
+            uint8_t rti_data[65536] = { 0 };
+            void* orig_local = dev->local;
+            int rti_size = 0;
+            
+            dev->ops->get_raw_track_info(orig_local, &rti_size, rti_data);
+
+            do {
+                int num_of_threads = cdrom_ram_thread_enabled;
+
+                if (num_of_threads == -1)
+                    num_of_threads = plat_get_ideal_thread_count();
+
+                uint32_t cd_size = dev->ops->get_last_block(dev->local) + 1;
+
+                uint8_t* ram_image_to_read_info = calloc(2448, cd_size);
+                if (!ram_image_to_read_info)
+                    break;
+
+                thread_t** cd_ram_threads = (thread_t**)calloc(sizeof(thread_t*), num_of_threads);
+                thread_ram_load_status_t* load_status = (thread_ram_load_status_t*)calloc(1, sizeof(thread_ram_load_status_t));
+                thread_ram_load_ctx_t* cd_ram_threads_data = (thread_ram_load_ctx_t*)calloc(sizeof(thread_ram_load_ctx_t), num_of_threads);
+
+                atomic_init(&load_status->cntr, 0);
+                atomic_init(&load_status->finished, 0);
+
+                uint64_t cd_size_chunk = cd_size / num_of_threads;
+
+                for (int i = 0; i < num_of_threads; i++) {
+                    if (cdrom_image_is_chd(dev->image_path))
+                        cd_ram_threads_data[i].cd_image_ctx = chd_image_open(dev, dev->image_path);
+                    else if (cdrom_image_is_aaru(dev->image_path))
+                        cd_ram_threads_data[i].cd_image_ctx = aaru_image_open(dev, dev->image_path);
+                    else {
+                        cd_ram_threads_data[i].cd_image_ctx = image_open(dev, dev->image_path);
+                        if (!cd_ram_threads_data[i].cd_image_ctx)
+                            cd_ram_threads_data[i].cd_image_ctx = aaru_image_open(dev, dev->image_path);
+                    }
+
+                    cd_ram_threads_data[i].load_status = load_status;
+                    cd_ram_threads_data[i].ops = dev->ops;
+                    cd_ram_threads_data[i].begin_pos = i * cd_size_chunk;
+                    cd_ram_threads_data[i].sectors_to_read = (i == (num_of_threads - 1)) ? (cd_size - ((num_of_threads - 1) * cd_size_chunk)) : cd_size_chunk;
+                    cd_ram_threads_data[i].ram_image_to_read_info = ram_image_to_read_info;
+                }
+
+                // Time to display the progress dialog.
+                ui_init_prog_dialog(strdup(dev->image_path), cd_size - 1);
+
+                // Start the counter thread.
+                thread_t* cntr_thread = thread_create(display_cntr, load_status);
+
+                // Now start all the RAM loading threads.
+                for (int i = 0; i < num_of_threads; i++)
+                    cd_ram_threads[i] = thread_create(ram_load_thread, &cd_ram_threads_data[i]);
+
+                // Wait for all threads.
+                for (int i = 0; i < num_of_threads; i++)
+                    thread_wait(cd_ram_threads[i]);
+
+                load_status->finished = 1;
+
+                // Wait for counter thread.
+                thread_wait(cntr_thread);
+
+                if (dev->close) {
+                    dev->close(orig_local);
+                    for (int i = 0; i < num_of_threads; i++) {
+                        dev->close(cd_ram_threads_data[i].cd_image_ctx);
+                    }
+                    free(cd_ram_threads_data);
+                }
+
+                free(load_status);
+                free(cd_ram_threads);
+
+                ui_end_prog_dialog();
+
+                dev->local = ram_image_open(dev, ram_image_to_read_info, cd_size - 1, (raw_track_info_t*)rti_data, rti_size);
+            } while(0);
+        }
     }
 
     dev->cached_sector  = -1;

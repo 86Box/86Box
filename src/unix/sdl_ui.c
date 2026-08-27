@@ -135,3 +135,21 @@ ui_update_force_interpreter(void)
 {
     /* No-op. */
 }
+
+void
+ui_init_prog_dialog(const char *str, uint64_t end)
+{
+    /* No-op. */
+}
+
+void
+ui_set_prog_dialog(uint64_t progress)
+{
+    /* No-op. */
+}
+
+void
+ui_end_prog_dialog(void)
+{
+    /* No-op. */
+}
