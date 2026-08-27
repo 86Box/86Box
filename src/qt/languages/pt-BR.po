@@ -1494,7 +1494,7 @@ msgid "Power off"
 msgstr "Desligar"
 
 msgid "Power &off…"
-msgstr "&Desligar"
+msgstr "&Desligar…"
 
 msgid "Power &off"
 msgstr "&Desligar"
