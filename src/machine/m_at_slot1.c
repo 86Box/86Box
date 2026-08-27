@@ -894,6 +894,7 @@ machine_at_in440ex_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
+    int is_sony = !strcmp(device_get_config_bios("bios"), "pcve2xx");
     fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
     device_context_restore();
@@ -911,7 +912,12 @@ machine_at_in440ex_init(const machine_t *model)
     device_add(&i440ex_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
-    device_add(&sst_flash_29ee020_device);
+
+    /* The Sony variant seems to use a different flash chip as it cannot save ESCD with the 29F020A */
+    if (is_sony)
+        device_add(&sst_flash_29ee020_device); /* guess */
+    else
+        device_add(&amd_flash_29f020a_device);
 
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
@@ -1006,7 +1012,7 @@ machine_at_in440exd_init(const machine_t *model)
     device_add(&i440ex_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
-    device_add(&sst_flash_29ee020_device);
+    device_add(&amd_flash_29f020a_device);
 
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
