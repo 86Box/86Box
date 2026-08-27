@@ -2418,6 +2418,9 @@ acpi_reset(void *priv)
     if (machines[machine].init == machine_at_al440lx_init)
         /* ED = Normal, DD (2-3) - Maintenance, BD, FD (none) - Recovery. */
         dev->regs.gpireg[2] = 0xed;
+    if ((machines[machine].init == machine_at_in440ex_init) || (machines[machine].init == machine_at_in440exd_init))
+        /* Bit 5: CMOS clear jumper(?) - must be set as otherwise CMOS is not saved */
+        dev->regs.gpireg[2] = 0xfd;
     else
         dev->regs.gpireg[2] = dev->gpireg2_default;
     for (uint8_t i = 0; i < 4; i++)
