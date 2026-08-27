@@ -447,6 +447,10 @@ mitsumi_dma_transfer(mcd_t *dev)
 
     while (read_result > 0) {
         while (dev->buf_count > 0) {
+            if (!cpu_thread_run || is_quit || hard_reset_pending) {
+                mitsumi_abort_read(dev);
+                return 0;
+            }
             const int transfer_bytes = ((dev->dma >= 4) && (dev->buf_count > 1)) ? 2 : 1;
             uint16_t  value = dev->buf[dev->buf_idx];
 
@@ -487,6 +491,12 @@ static void
 mitsumi_dma_callback(void *priv)
 {
     mcd_t    *dev = (mcd_t *) priv;
+
+    if (!cpu_thread_run || is_quit || hard_reset_pending) {
+        mitsumi_abort_read(dev);
+        return;
+    }
+
     const int result = mitsumi_dma_transfer(dev);
 
     if (result == 2) {
