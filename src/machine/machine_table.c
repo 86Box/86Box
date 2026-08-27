@@ -22352,7 +22352,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = &nec_pk_ug_x006_onboard_device,
+        .net_device               = NULL,
         .aliases                  = { "NEC Mate NX MA23D", "" }
     },
 

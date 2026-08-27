@@ -2450,11 +2450,11 @@ const device_t i82557b_onboard_device = {
     .config        = i8255x_onboard_config
 };
 
-const device_t nec_pk_ug_x006_onboard_device = {
+const device_t nec_pk_ug_x006_device = {
     .name          = "NEC PK-UG-X006",
-    .internal_name = "nec_pk_ug_x006_onboard",
+    .internal_name = "nec_pk_ug_x006",
     .flags         = DEVICE_PCI,
-    .local         = 0x0002 | 0x0100,
+    .local         = 0x0002,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = eepro100_reset,
