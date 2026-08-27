@@ -2190,7 +2190,7 @@ nic_init(const device_t *info)
     if (info->local == 0xff)
         variant = device_get_bios_local(info, device_get_config_bios("bios"));
     else
-        variant = info->local;
+        variant = info->local & 0xff;
     device_info = &eepro100_devices[variant];
 
     s->device = device_info->device;
@@ -2247,7 +2247,8 @@ nic_init(const device_t *info)
 
     s->nic = network_attach(s, s->mac, eepro100_do_receive, eepro100_set_link_status);
     s->nic->byte_period = NET_PERIOD_100M;
-    pci_add_card(PCI_ADD_NORMAL, eepro100_pci_read, eepro100_pci_write, s, &s->pci_slot);
+    pci_add_card((info->local & 0x0100) ? PCI_ADD_NETWORK : PCI_ADD_NORMAL,
+                 eepro100_pci_read, eepro100_pci_write, s, &s->pci_slot);
 
     nic_reset(s);
     return s;
@@ -2283,7 +2284,7 @@ static const device_config_t i82557_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "i82557B",
+                .name          = "S82557 B-step",
                 .internal_name = "i82557b",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
@@ -2292,7 +2293,7 @@ static const device_config_t i82557_config[] = {
                 .files         = { "" }
             },
             {
-                .name          = "i82557C",
+                .name          = "S82557 C-step",
                 .internal_name = "i82557c",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
@@ -2329,7 +2330,7 @@ static const device_config_t i8255xp_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "i82558B",
+                .name          = "SB82558B",
                 .internal_name = "i82558b",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
@@ -2338,7 +2339,7 @@ static const device_config_t i8255xp_config[] = {
                 .files         = { "" }
             },
             {
-                .name          = "i82559A",
+                .name          = "GD82559 A-step",
                 .internal_name = "i82559a",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
@@ -2347,7 +2348,7 @@ static const device_config_t i8255xp_config[] = {
                 .files         = { "" }
             },
             {
-                .name          = "i82559B",
+                .name          = "GD82559 B-step",
                 .internal_name = "i82559b",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
@@ -2356,7 +2357,7 @@ static const device_config_t i8255xp_config[] = {
                 .files         = { "" }
             },
             {
-                .name          = "i82559C",
+                .name          = "GD82559C",
                 .internal_name = "i82559c",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
@@ -2365,7 +2366,7 @@ static const device_config_t i8255xp_config[] = {
                 .files         = { "" }
             },
             {
-                .name          = "i82559ER (Intel PRO/100+ VE)",
+                .name          = "GD82559ER (PRO/100+ VE)",
                 .internal_name = "i82559er",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = -1,
@@ -2418,4 +2419,61 @@ const device_t i82558_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = i8255xp_config
+};
+
+static const device_config_t i8255x_onboard_config[] = {
+    {
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+const device_t i82557b_onboard_device = {
+    .name          = "Intel SB82558B (On-Board)",
+    .internal_name = "i82557b_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 0x0000 | 0x0100,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = eepro100_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = i8255x_onboard_config
+};
+
+const device_t nec_pk_ug_x006_onboard_device = {
+    .name          = "NEC PK-UG-X006",
+    .internal_name = "nec_pk_ug_x006_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 0x0002 | 0x0100,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = eepro100_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = i8255x_onboard_config
+};
+
+const device_t i82559c_onboard_device = {
+    .name          = "Intel GD82559C (On-Board)",
+    .internal_name = "i82559c_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 0x0005 | 0x0100,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = eepro100_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = i8255x_onboard_config
 };

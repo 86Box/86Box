@@ -2384,6 +2384,13 @@ go_to_mo:
             sscanf("00, none", "%u, %s", &tape_drives[c].type, s);
         tape_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
+        sprintf(temp, "tape_%02i_medium_type", c + 1);
+        tape_drives[c].medium_type = ini_section_get_int(cat, temp,
+            (tape_drives[c].type < KNOWN_TAPE_DRIVE_TYPES) ?
+            tape_drive_types[tape_drives[c].type].default_media : 0);
+        if (tape_drives[c].medium_type >= KNOWN_TAPE_TYPES)
+            tape_drives[c].medium_type = 0;
+
         /* Default values, needed for proper operation of the Settings dialog. */
         tape_drives[c].scsi_device_id = c + 4;
 
@@ -2465,6 +2472,9 @@ go_to_mo:
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "tape_%02i_image_path", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "tape_%02i_medium_type", c + 1);
             ini_section_delete_var(cat, temp);
 
             for (int i = 0; i < MAX_PREV_IMAGES; i++) {
@@ -4451,6 +4461,12 @@ save_other_removable_devices(void)
             ini_section_delete_var(cat, temp);
         else
             save_image_file(cat, temp, tape_drives[c].image_path);
+
+        sprintf(temp, "tape_%02i_medium_type", c + 1);
+        if (tape_drives[c].bus_type == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, tape_drives[c].medium_type);
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "tape_%02i_image_history_%02i", c + 1, i + 1);

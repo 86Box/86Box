@@ -1501,6 +1501,18 @@ msgstr "Zaustavitev ACPI"
 msgid "ACP&I shutdown"
 msgstr "Zaustavitev ACP&I"
 
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+
 msgid "Hard disk (%1)"
 msgstr "Trdi disk (%1)"
 

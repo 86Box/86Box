@@ -19,6 +19,10 @@
 #include <86box/version.h>
 #endif
 
+#ifndef SCSI_DEVICE_H
+#define EMU_VERSION_EX    "3.50" /* frozen due to IDE re-detection behavior on Windows */
+#endif
+
 #define CDROM_NUM                   8
 
 #define CD_STATUS_EMPTY             0

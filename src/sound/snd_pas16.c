@@ -3383,7 +3383,7 @@ static const device_config_t pas16_config[] = {
 };
 
 const device_t pas_device = {
-    .name          = "Pro Audio Spectrum",
+    .name          = "Media Vision Pro Audio Spectrum",
     .internal_name = "pas",
     .flags         = DEVICE_ISA,
     .local         = 0,
@@ -3397,7 +3397,7 @@ const device_t pas_device = {
 };
 
 const device_t pasplus_device = {
-    .name          = "Pro Audio Spectrum Plus",
+    .name          = "Media Vision Pro Audio Spectrum Plus",
     .internal_name = "pasplus",
     .flags         = DEVICE_ISA16,
     .local         = 0,
@@ -3411,7 +3411,7 @@ const device_t pasplus_device = {
 };
 
 const device_t pas16_device = {
-    .name          = "Pro Audio Spectrum 16",
+    .name          = "Media Vision Pro Audio Spectrum 16",
     .internal_name = "pas16",
     .flags         = DEVICE_ISA16,
     .local         = 0x0f,
@@ -3425,7 +3425,7 @@ const device_t pas16_device = {
 };
 
 const device_t pas16d_device = {
-    .name          = "Pro Audio Spectrum 16D",
+    .name          = "Media Vision Pro Audio Spectrum 16D",
     .internal_name = "pas16d",
     .flags         = DEVICE_ISA16,
     .local         = 0x0c,
