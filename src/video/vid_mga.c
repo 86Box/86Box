@@ -6792,7 +6792,7 @@ mystique_init(const device_t *info)
     mystique->is_agp = !!(info->flags & DEVICE_AGP);
 
     if (mystique->type == MGA_G100)
-        mystique->pll_ref_clock = 27050000.0f;
+        mystique->pll_ref_clock = 27000000.0f;
     else
         mystique->pll_ref_clock = 14318181.0f;
 
