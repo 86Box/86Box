@@ -17,7 +17,7 @@ msgid "&Action"
 msgstr "&Ação"
 
 msgid "&Keyboard requires capture"
-msgstr "O &teclado requer captura"
+msgstr "O teclado requer capt&ura"
 
 msgid "&Right CTRL is left ALT"
 msgstr "CTR&L direito é o ALT esquerdo"
