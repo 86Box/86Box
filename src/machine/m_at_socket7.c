@@ -342,6 +342,9 @@ machine_at_cu430hx_init(const machine_t *model)
     if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine)->available())
         machine_snd = device_add(machine_get_snd_device(machine));
 
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
+
     device_add(&i430hx_device);
     device_add(&piix3_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);
@@ -1404,6 +1407,9 @@ machine_at_nupro592_init(const machine_t *model)
     hwm_values.fans[1]         = 0; /* unused */
     hwm_values.fans[2]         = 0; /* unused */
     /* -5V is not reported by the BIOS, but leave it set */
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
 
     return ret;
 }
