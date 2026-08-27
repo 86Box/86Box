@@ -29,6 +29,8 @@
 #include <86box/scsi_aic7890.h>
 #include <86box/nmc93cxx.h>
 #include <86box/timer.h>
+#include <86box/pic.h>
+#include "cpu.h"
 #include <86box/plat_unused.h>
 
 #define AIC7890_LOCAL_ONBOARD       0x00000001
@@ -356,6 +358,8 @@ typedef struct aic7890_t {
     bool          scan2_active;
 
     pc_timer_t    cmd_timer;
+    pc_timer_t    diag_timer;
+    pc_timer_t    irq_timer;
 
     /* Sequencer microcode interpreter state (scan-start at SEQADDR 0x0002). */
     uint16_t      seq_pc;
@@ -840,6 +844,24 @@ aic7890_seqaddr(const aic7890_t *dev)
 }
 
 static void
+aic7890_irq_timer_callback(void *priv)
+{
+    aic7890_t *dev = priv;
+    bool irq_active = (dev->regs[REG_HCNTRL] & HCNTRL_INTEN)
+                   && !(dev->regs[REG_HCNTRL] & HCNTRL_POWRDN)
+                   && ((dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND)
+                    || (dev->regs[REG_HCNTRL] & HCNTRL_SWINT));
+
+    if (!irq_active || (dev->pci_cfg[PCI_REG_COMMAND_H] & PCI_COMMAND_H_INT_DIS))
+        return;
+
+    pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+    aic7890_log(1, "AIC7890: irq raised (deferred) hcntrl=%02x intstat=%02x if=%d\n",
+                dev->regs[REG_HCNTRL], dev->regs[REG_INTSTAT],
+                !!(cpu_state.flags & 0x200));
+}
+
+static void
 aic7890_update_irq(aic7890_t *dev)
 {
     bool irq_active = (dev->regs[REG_HCNTRL] & HCNTRL_INTEN)
@@ -853,17 +875,40 @@ aic7890_update_irq(aic7890_t *dev)
         dev->pci_cfg[PCI_REG_STATUS_L] &= ~PCI_STATUS_L_INT;
 
     if (irq_active && !(dev->pci_cfg[PCI_REG_COMMAND_H] & PCI_COMMAND_H_INT_DIS)) {
-        pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+        /*
+         * Defer the PCI line assertion by a short delay instead of
+         * raising it synchronously inside the host write.  Real hardware
+         * completes commands asynchronously, so the driver's interrupt
+         * handler always runs from a stable context (the BIOS sitting in
+         * its wait loop).  Raising the line immediately from inside the
+         * port write can interrupt the guest mid-routine, which breaks
+         * the Award BIOS's banked F-segment handlers (the ROM's ISR
+         * re-enters the system BIOS and finds the wrong bank mapped).
+         */
+        if (!timer_is_enabled(&dev->irq_timer)) {
+            const char *env = getenv("AIC7890_IRQ_DELAY_US");
+            double us = 1000.0;
+
+            if (env != NULL)
+                us = strtod(env, NULL);
+            timer_set_delay_u64(&dev->irq_timer,
+                                (uint64_t) (us * ((double) TIMER_USEC)));
+            aic7890_log(1, "AIC7890: irq arm (defer %fus) hcntrl=%02x intstat=%02x if=%d\n",
+                        us, dev->regs[REG_HCNTRL], dev->regs[REG_INTSTAT],
+                        !!(cpu_state.flags & 0x200));
+        }
     } else {
+        timer_disable(&dev->irq_timer);
         pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     }
 
     if (!dev->trace_irq_valid || dev->trace_irq_active != irq_active) {
         aic7890_log(1,
-                    "AIC7890: irq %s hcntrl=%02x intstat=%02x pci_cmd_h=%02x pci_status_l=%02x\n",
-                    irq_active ? "assert" : "clear", dev->regs[REG_HCNTRL],
+                    "AIC7890: irq %s hcntrl=%02x intstat=%02x pci_cmd_h=%02x pci_status_l=%02x imr=%02x/%02x if=%d slot=%02x\n",
+                    irq_active ? "pend" : "clear", dev->regs[REG_HCNTRL],
                     dev->regs[REG_INTSTAT], dev->pci_cfg[PCI_REG_COMMAND_H],
-                    dev->pci_cfg[PCI_REG_STATUS_L]);
+                    dev->pci_cfg[PCI_REG_STATUS_L], pic.imr, pic2.imr,
+                    !!(cpu_state.flags & 0x200), dev->pci_slot);
         dev->trace_irq_valid = true;
         dev->trace_irq_active = irq_active;
     }
@@ -915,6 +960,7 @@ aic7890_reset_regs(aic7890_t *dev)
     dev->scan2_active = false;
     timer_disable(&dev->scan2_timer);
     timer_disable(&dev->cmd_timer);
+    timer_disable(&dev->irq_timer);
     dev->seq_active = false;
     dev->seq_sp = 0;
     dev->seq_steps = 0;
@@ -934,7 +980,15 @@ aic7890_create_eeprom_config(uint16_t *config)
     for (int i = 0; i < 16; i++)
         config[i] = CFXFER | CFSYNCH | CFDISC | CFWIDEB | CFSYNCHISULTRA | CFINCBIOS;
 
-    config[16] = CFSUPREM | CFSUPREMB | CFBIOSEN | CFBIOS_BUSSCAN | CFSM2DRV
+    /*
+     * adapter_control (word 16): the option ROM's POST verdict logic
+     * requires (word16 & 0x000c) == CFBIOSEN, i.e. the BIOS-enabled bit
+     * set and the BIOS-bus-scan bit clear.  With the bus-scan bit set
+     * the ROM sets its "not bootable" scratch flag and always ends the
+     * scan with "SCSI BIOS Not installed!" even when devices were found,
+     * so keep that bit off.
+     */
+    config[16] = CFSUPREM | CFSUPREMB | CFBIOSEN | CFSM2DRV
                | CFCTRL_A | CFEXTEND | CFBOOTCD;
     config[17] = CFAUTOTERM | CFULTRAEN | CFSPARITY | CFRESETB | CFSEAUTOTERM;
     config[18] = AIC7890_HOST_ID;
@@ -1184,6 +1238,7 @@ aic7890_scsi_bus_reset(aic7890_t *dev, bool external)
     dev->scan2_active = false;
     timer_disable(&dev->scan2_timer);
     timer_disable(&dev->cmd_timer);
+    timer_disable(&dev->irq_timer);
     dev->seq_active = false;
     dev->seq_sp = 0;
     dev->seq_steps = 0;
@@ -2074,21 +2129,18 @@ aic7890_seq_probe_command(aic7890_t *dev)
     dev->seq_data_len = 0;
     dev->seq_data_pos = 0;
     /*
-     * The BIOS re-reads the scan SCB from the register window after the
-     * command; the aic7xxx status packet reuses bytes 0-8 of the SCB, so
-     * store the completion state (residual datacnt, SG list null, SCSI
-     * status) so the BIOS sees the command as GOOD instead of stale
-     * descriptor/CDB-pointer data.
+     * Zero the residual byte range (scb[0..3]) like the sequencer does
+     * after a completed command.  The rest of the SCB must be left
+     * untouched: this BIOS's HSCB layout keeps its buffer-descriptor
+     * pointer in scb[4..7] and its CDB pointer in scb[8..11], and the
+     * boot-path code resubmits commands using those fields without
+     * reloading them - clobbering them (e.g. with an SG-null marker or
+     * the SCSI status) turns any retry into a garbage command.
      */
     scb[0] = 0;                        /* residual data count */
     scb[1] = 0;
     scb[2] = 0;
     scb[3] = 0;
-    scb[4] = (uint8_t) SG_LIST_NULL;   /* residual SG pointer: no S/G list */
-    scb[5] = 0;
-    scb[6] = 0;
-    scb[7] = 0;
-    scb[8] = dev->seq_status;
     /*
      * The response data was delivered straight into the BIOS's buffer
      * above; keep the interpreter data path disabled (seq_has_data stays
@@ -2638,6 +2690,93 @@ aic7890_emulate_sequencer_run(aic7890_t *dev)
         aic7890_log(1,
                     "AIC7890: sequencer scan2 interpret start pc=%03x reset=%u\n",
                     dev->seq_pc, reset_pulse);
+        if (aic7890_log_level() >= 1) {
+            /*
+             * Debug aid: every 16th interpreted session, dump the DOS
+             * driver's low-memory state - the IVT entries for INT 13h and
+             * the adapter IRQ (to see whether the ROM's interrupt handler
+             * is hooked), and the driver's unit/command area around
+             * 0x0a00-0x0c00.  Regenerate with the "biosdiag" marker.
+             */
+            static int biosdiag_count;
+
+            if ((biosdiag_count++ & 0x0f) == 0) {
+                uint8_t ivt[16];
+                uint8_t low[0x60];
+
+                dma_bm_read(0x004c, ivt, 4, 1);
+                aic7890_log(1,
+                            "AIC7890: biosdiag int13=%04x:%04x\n",
+                            ivt[3] | (ivt[2] << 8), ivt[1] | (ivt[0] << 8));
+                {
+                    uint8_t irqv[4];
+                    uint8_t irqnum;
+                    uint32_t voff;
+
+                    dma_bm_read(0x0933, &irqnum, 1, 1);
+                    voff = ((uint32_t) (irqnum & 0x0f) < 8)
+                         ? (0x20u + ((uint32_t) (irqnum & 0x0f)) * 4)
+                         : (0x1c0u + ((uint32_t) (irqnum & 0x0f) - 8) * 4);
+                    dma_bm_read(voff, irqv, 4, 1);
+                    aic7890_log(1,
+                                "AIC7890: biosdiag irq=%02x vec%02x=%04x:%04x imr=%02x/%02x if=%d pci3c=%02x pin=%02x\n",
+                                irqnum, (unsigned) (voff / 4),
+                                irqv[3] | (irqv[2] << 8),
+                                irqv[1] | (irqv[0] << 8),
+                                pic.imr, pic2.imr,
+                                !!(cpu_state.flags & 0x200),
+                                dev->pci_cfg[PCI_REG_INT_LINE],
+                                dev->pci_cfg[PCI_REG_INT_PIN]);
+                }
+                {
+                    uint8_t vecs[64];
+                    int k;
+
+                    /* full hw-IRQ vector map: 08-0f then 70-77 */
+                    dma_bm_read(0x0020, vecs, 32, 1);
+                    dma_bm_read(0x01c0, vecs + 32, 32, 1);
+                    for (k = 0; k < 64; k += 16)
+                        aic7890_log(1,
+                                    "AIC7890: biosdiag ivt %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                                    vecs[k], vecs[k + 1], vecs[k + 2],
+                                    vecs[k + 3], vecs[k + 4], vecs[k + 5],
+                                    vecs[k + 6], vecs[k + 7], vecs[k + 8],
+                                    vecs[k + 9], vecs[k + 10], vecs[k + 11],
+                                    vecs[k + 12], vecs[k + 13], vecs[k + 14],
+                                    vecs[k + 15]);
+                }
+                dma_bm_read(0x0a00, low, sizeof(low), 1);
+                aic7890_log(1,
+                            "AIC7890: biosdiag low@0a00 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            low[0], low[1], low[2], low[3], low[4], low[5],
+                            low[6], low[7], low[8], low[9], low[10], low[11],
+                            low[12], low[13], low[14], low[15]);
+                aic7890_log(1,
+                            "AIC7890: biosdiag low@0a10 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            low[16], low[17], low[18], low[19], low[20],
+                            low[21], low[22], low[23], low[24], low[25],
+                            low[26], low[27], low[28], low[29], low[30],
+                            low[31]);
+                aic7890_log(1,
+                            "AIC7890: biosdiag low@0a20 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            low[32], low[33], low[34], low[35], low[36],
+                            low[37], low[38], low[39], low[40], low[41],
+                            low[42], low[43], low[44], low[45], low[46],
+                            low[47]);
+                dma_bm_read(0x0b40, low, sizeof(low), 1);
+                aic7890_log(1,
+                            "AIC7890: biosdiag low@0b40 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            low[0], low[1], low[2], low[3], low[4], low[5],
+                            low[6], low[7], low[8], low[9], low[10], low[11],
+                            low[12], low[13], low[14], low[15]);
+                aic7890_log(1,
+                            "AIC7890: biosdiag low@0b50 %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            low[16], low[17], low[18], low[19], low[20],
+                            low[21], low[22], low[23], low[24], low[25],
+                            low[26], low[27], low[28], low[29], low[30],
+                            low[31]);
+            }
+        }
         aic7890_seq_run(dev, aic7890_seq_max_steps());
         if (dev->regs[REG_INTSTAT] & INTSTAT_INT_PEND) {
             dev->regs[REG_HCNTRL] |= HCNTRL_PAUSE;
@@ -2711,6 +2850,21 @@ aic7890_cmd_callback(void *priv)
     aic7890_t *dev = priv;
 
     /*
+     * Debug aid ("waitstate"): this timer fires while the BIOS's polled
+     * wait loop spins, so it samples the CPU/PIC state inside the wait
+     * window rather than during the submit path.  Throttled to every
+     * 32nd tick, level-1 log only.
+     */
+    static unsigned waitstate_count;
+
+    if ((aic7890_log_level() >= 1) && ((waitstate_count++ & 0x1f) == 0))
+        aic7890_log(1,
+                    "AIC7890: waitstate if=%d imr=%02x/%02x irr=%02x/%02x isr=%02x/%02x intstat=%02x\n",
+                    !!(cpu_state.flags & 0x200), pic.imr, pic2.imr,
+                    pic.irr, pic2.irr, pic.isr, pic2.isr,
+                    dev->regs[REG_INTSTAT]);
+
+    /*
      * Only queue/FIFO SCB execution is deferred here.  The sequencer
      * servicing must stay synchronous in the HCNTRL unpause handler:
      * the BIOS pauses the sequencer for most of each poll loop, so a
@@ -2718,6 +2872,62 @@ aic7890_cmd_callback(void *priv)
      * idle-countdown arming/resume state machine would never progress.
      */
     aic7890_process_pending(dev);
+}
+
+static void
+aic7890_diag_callback(void *priv)
+{
+    aic7890_t *dev = priv;
+
+    /*
+     * Periodic (32 ms) sampling of CPU/PIC state while the machine runs;
+     * used to observe the BIOS's interrupt-driven wait loops from inside
+     * the wait window.  Only active with AIC7890_LOG >= 1.
+     */
+    timer_set_delay_u64(&dev->diag_timer, 32 * TIMER_USEC * 1000);
+
+    if (aic7890_log_level() >= 1) {
+        uint32_t linear = cpu_state.seg_cs.base + (cpu_state.pc & 0xffff);
+        uint8_t code[8];
+
+        dma_bm_read(linear, code, sizeof(code), 1);
+        aic7890_log(1,
+                    "AIC7890: diag if=%d imr=%02x/%02x irr=%02x/%02x isr=%02x/%02x intstat=%02x irq_pin=%d csip=%06x code=%02x%02x%02x%02x%02x%02x%02x%02x\n",
+                    !!(cpu_state.flags & 0x200), pic.imr, pic2.imr,
+                    pic.irr, pic2.irr, pic.isr, pic2.isr,
+                    dev->regs[REG_INTSTAT], dev->irq_state,
+                    linear,
+                    code[0], code[1], code[2], code[3],
+                    code[4], code[5], code[6], code[7]);
+        if (linear == 0xf8008) {
+            /* Follow the jmp at the stuck address once per minute. */
+            static unsigned stuck_dumps;
+
+            if ((stuck_dumps++ & 0x1f) == 0) {
+                uint8_t tgt[16];
+                uint8_t rst[8];
+
+                dma_bm_read(0xf14c, tgt, sizeof(tgt), 1);
+                dma_bm_read(0xfff0, rst, sizeof(rst), 1);
+                aic7890_log(1,
+                            "AIC7890: stuck: sp=%04x ss=%04x flags=%04x bp=%04x bx=%04x ax=%04x dx=%04x\n",
+                            (unsigned) (cpu_state.regs[4].w & 0xffff),
+                            (unsigned) (cpu_state.seg_ss.base >> 4) & 0xffff,
+                            (unsigned) (cpu_state.flags & 0xffff),
+                            (unsigned) (cpu_state.regs[5].w & 0xffff),
+                            (unsigned) (cpu_state.regs[3].w & 0xffff),
+                            (unsigned) (cpu_state.regs[0].w & 0xffff),
+                            (unsigned) (cpu_state.regs[2].w & 0xffff));
+                aic7890_log(1,
+                            "AIC7890: stuck target F000:E14C: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x | F000:FFF0: %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                            tgt[0], tgt[1], tgt[2], tgt[3], tgt[4], tgt[5],
+                            tgt[6], tgt[7], tgt[8], tgt[9], tgt[10], tgt[11],
+                            tgt[12], tgt[13], tgt[14], tgt[15],
+                            rst[0], rst[1], rst[2], rst[3],
+                            rst[4], rst[5], rst[6], rst[7]);
+            }
+        }
+    }
 }
 
 static void
@@ -3140,6 +3350,7 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
                     dev->scan2_remaining = timer_get_remaining_us(&dev->scan2_timer);
                 timer_disable(&dev->scan2_timer);
                 timer_disable(&dev->cmd_timer);
+    timer_disable(&dev->irq_timer);
             }
             aic7890_update_irq(dev);
             /* Sequencer servicing is synchronous (see cmd_callback note). */
@@ -3649,6 +3860,9 @@ aic7890_init(const device_t *info)
     timer_add(&dev->scan_init_timer, aic7890_scan_init_callback, dev, 0);
     timer_add(&dev->scan2_timer, aic7890_scan2_callback, dev, 0);
     timer_add(&dev->cmd_timer, aic7890_cmd_callback, dev, 0);
+    timer_add(&dev->irq_timer, aic7890_irq_timer_callback, dev, 0);
+    timer_add(&dev->diag_timer, aic7890_diag_callback, dev, 0);
+    timer_set_delay_u64(&dev->diag_timer, 32 * TIMER_USEC * 1000);
 
     mem_mapping_add(&dev->mmio_mapping, 0, 0,
                     aic7890_mmio_readb, aic7890_mmio_readw, aic7890_mmio_readl,
@@ -3680,6 +3894,7 @@ aic7890_close(void *priv)
     aic7890_t *dev = priv;
 
     timer_disable(&dev->cmd_timer);
+    timer_disable(&dev->irq_timer);
     aic7890_io_disable(dev);
     mem_mapping_disable(&dev->mmio_mapping);
     if (dev->rom != NULL) {
