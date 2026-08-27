@@ -1994,6 +1994,8 @@ aic7890_seq_probe_command(aic7890_t *dev)
         dev->seq_status = 0;
         scb[8] = 0;               /* status packet: GOOD */
         dev->seq_cmd_done = true;
+        dev->seq_phase = 0xc0;    /* target presents STATUS next */
+        dev->seq_req_pending = true;
         return;
     }
 
@@ -2026,13 +2028,27 @@ aic7890_seq_probe_command(aic7890_t *dev)
         && sd->buffer_length > 0 && sd->buffer_length < 4096
         && sd->sc->temp_buffer != NULL) {
         uint32_t count = AIC_MIN((uint32_t) sd->buffer_length, dev->probe_buf_len);
+        uint8_t *b = sd->sc->temp_buffer;
 
-        if (count > 0 && dev->probe_buf_addr != 0)
-            dma_bm_write(dev->probe_buf_addr, sd->sc->temp_buffer, count, 1);
-        aic7890_log(1, "AIC7890: scan2 probe data written addr=%08x len=%u cdb=%02x\n",
+        if (count > 0 && dev->probe_buf_addr != 0) {
+            /*
+             * Respect the transfer direction: DATA OUT commands (MODE
+             * SELECT and friends) read the parameters the host staged in
+             * memory, everything else writes the device's response.
+             */
+            if (sd->phase == SCSI_PHASE_DATA_OUT)
+                dma_bm_read(dev->probe_buf_addr, b, count, 1);
+            else
+                dma_bm_write(dev->probe_buf_addr, b, count, 1);
+        }
+        aic7890_log(1, "AIC7890: scan2 probe data xfer dir=%c addr=%08x len=%u cdb=%02x\n",
+                    (sd->phase == SCSI_PHASE_DATA_OUT) ? 'o' : 'i',
                     dev->probe_buf_addr, count, cdb[0]);
+        if (aic7890_log_level() >= 1 && cdb[0] != 0x28 && count >= 16)
+            aic7890_log(1, "AIC7890: probe payload %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
+                        b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
+                        b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]);
         if (cdb[0] == 0x28) {
-            uint8_t *b = sd->sc->temp_buffer;
             aic7890_log(1, "AIC7890: READ data %02x %02x %02x %02x %02x %02x %02x %02x ... %02x %02x\n",
                         b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
                         count >= 512 ? b[510] : 0, count >= 512 ? b[511] : 0);
@@ -2042,7 +2058,6 @@ aic7890_seq_probe_command(aic7890_t *dev)
                             b[0x1c6], b[0x1c7], b[0x1c8], b[0x1c9], b[0x1ca], b[0x1cb], b[0x1cc], b[0x1cd]);
         }
         if (cdb[0] == 0x43) {
-            uint8_t *b = sd->sc->temp_buffer;
             aic7890_log(1, "AIC7890: TOC data %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
                         b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7],
                         b[8], b[9], b[10], b[11], b[12], b[13], b[14], b[15]);
@@ -2080,6 +2095,8 @@ aic7890_seq_probe_command(aic7890_t *dev)
      * false) so the scan microcode completes without a data phase.
      */
     dev->seq_cmd_done = true;
+    dev->seq_phase = 0xc0;        /* target presents STATUS next */
+    dev->seq_req_pending = true;
 }
 
 static uint32_t
@@ -2143,28 +2160,18 @@ aic7890_seq_reg_read(aic7890_t *dev, uint8_t addr, int depth)
     if (addr == REG_CLRSINT1_SSTAT1) {
         uint8_t ret = dev->regs[addr];
 
+        /*
+         * Report synthetic-target REQ/BUSFREE state only.  The current
+         * bus phase lives in seq_phase and is advanced by the target-side
+         * state machine (command complete -> STATUS -> MESSAGE IN ->
+         * bus free); older code guessed it from caller addresses on the
+         * sequencer stack, which breaks whenever a BIOS loads a
+         * differently laid out microcode program.
+         */
         if (dev->seq_busfree)
             ret |= SSTAT1_BUSFREE;
-        if (dev->seq_req_pending) {
+        if (dev->seq_req_pending)
             ret |= SSTAT1_REQINIT;
-            /*
-             * The wait-for-REQ routine is entered by CALL from several
-             * places; the return address on the stack tells us which
-             * phase the target should be presenting now.
-             */
-            if (dev->seq_cmd_done && dev->seq_sp > 0) {
-                uint16_t retaddr = dev->seq_stack[dev->seq_sp - 1];
-
-                if (retaddr == 0x166 || retaddr == 0x66) {
-                    if (dev->seq_has_data && dev->seq_data_pos < dev->seq_data_len)
-                        dev->seq_phase = 0x40;   /* DATA IN */
-                    else
-                        dev->seq_phase = 0xc0;   /* STATUS */
-                } else if (retaddr == 0xaf) {
-                    dev->seq_phase = 0xe0;       /* MESSAGE OUT */
-                }
-            }
-        }
         return ret;
     }
     if (addr == REG_CLRSINT0_SSTAT0) {
@@ -2180,14 +2187,32 @@ aic7890_seq_reg_read(aic7890_t *dev, uint8_t addr, int depth)
         aic7890_log(2, "AIC7890: SCSISIGI read phase=%02x\n", dev->seq_phase);
         return dev->seq_phase | 0x01;   /* include BSY */
     }
-    if (addr == REG_SCSIDATL)
+    if (addr == REG_SCSIDATL) {
+        /*
+         * Reading the status byte consumes it: the target asserts REQ
+         * again for MESSAGE IN afterwards.
+         */
+        if (dev->seq_cmd_done && dev->seq_phase == 0xc0) {
+            dev->seq_phase = 0xe0;
+            dev->seq_req_pending = true;
+        }
         return dev->seq_status;
+    }
     if (addr == REG_CCSGCTL)
         return dev->regs[addr] | 0x80;  /* CCSG transfer done */
     if (addr == REG_SCSIBUSL) {
         if (dev->seq_has_data && dev->seq_data_pos < dev->seq_data_len)
             return dev->seq_data[dev->seq_data_pos++];
-        dev->regs[REG_CLRSINT1_SSTAT1] |= SSTAT1_BUSFREE;   /* target released the bus */
+        /*
+         * Reading the message byte consumes it: the target releases the
+         * bus (command complete).
+         */
+        if (dev->seq_phase == 0xe0 && dev->seq_req_pending) {
+            dev->seq_phase = 0;
+            dev->seq_req_pending = false;
+            dev->seq_busfree = true;
+        }
+        dev->regs[REG_CLRSINT1_SSTAT1] |= SSTAT1_BUSFREE;
         return 0x00;                     /* command-complete message */
     }
 
@@ -2477,10 +2502,10 @@ aic7890_seq_step(aic7890_t *dev)
                     cur_pc, opcode, source, dest, imm, addr, taken, dev->seq_sp);
     }
     /*
-     * Compact per-instruction stream while the BIOS scan interpretation is
-     * active; used to diff the scan-start microcode flow between machines.
+     * Compact per-instruction stream while microcode interpretation is
+     * active; used to diff the scan-start flow between machines.
      */
-    if (dev->scan2_active) {
+    if (dev->seq_active) {
         aic7890_log(1,
                     "AIC7890: s2i %03x->%03x op=%x src=%03x dst=%03x imm=%02x addr=%03x take=%u sp=%d fl=%02x\n",
                     cur_pc, dev->seq_pc, opcode, source, dest, imm, addr, taken,
