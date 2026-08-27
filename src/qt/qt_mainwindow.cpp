@@ -1003,7 +1003,10 @@ MainWindow::closeEvent(QCloseEvent *event)
     }
     exiting_manually = 0;
 
-    if (confirm_exit && confirm_exit_cmdl && cpu_thread_run) {
+    const bool skip_confirmation = skip_exit_confirmation;
+    skip_exit_confirmation       = false;
+
+    if (!skip_confirmation && confirm_exit && confirm_exit_cmdl && cpu_thread_run) {
         QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
         auto        chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
@@ -1836,7 +1839,14 @@ MainWindow::refreshMediaMenu()
     status->setSoundMenu(ui->menuSound);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-    ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
+    if (acpi_enabled) {
+        ui->actionACPI_Shutdown->setText(tr("ACP&I shutdown"));
+        ui->actionACPI_Shutdown->setToolTip(tr("ACPI shutdown"));
+    } else {
+        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
+    }
+    ui->actionACPI_Shutdown->setEnabled(true);
     ui_update_force_interpreter();
 
     num_label->setToolTip(QShortcut::tr("Num Lock"));
@@ -2705,7 +2715,21 @@ MainWindow::on_actionPen_triggered()
 void
 MainWindow::on_actionACPI_Shutdown_triggered()
 {
-    acpi_pwrbut_pressed = 1;
+    if (acpi_enabled) {
+        acpi_pwrbut_pressed = 1;
+        return;
+    }
+
+    if (confirm_exit && confirm_exit_cmdl) {
+        QMessageBox questionbox(QMessageBox::Icon::Warning, EMU_NAME, tr("Powering off the emulated machine may cause data loss. Are you sure you want to continue?"), QMessageBox::Yes | QMessageBox::No, this);
+        questionbox.setDefaultButton(QMessageBox::No);
+        questionbox.exec();
+        if (questionbox.result() != QMessageBox::Yes)
+            return;
+    }
+
+    skip_exit_confirmation = true;
+    on_actionExit_triggered();
 }
 
 void
