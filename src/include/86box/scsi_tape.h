@@ -36,7 +36,7 @@ typedef struct tape_type_t {
     uint8_t     density_code;
 } tape_type_t;
 
-#define KNOWN_TAPE_TYPES 6
+#define KNOWN_TAPE_TYPES 7
 static const tape_type_t tape_types[KNOWN_TAPE_TYPES] = {
     { "QIC-150",    157286400ULL, 512, 0x10 },
     { "QIC-525",    549978112ULL, 512, 0x11 },
@@ -44,6 +44,7 @@ static const tape_type_t tape_types[KNOWN_TAPE_TYPES] = {
     { "DDS-3",    12000000000ULL, 512, 0x25 },
     { "DDS-4",    20000000000ULL, 512, 0x26 },
     { "DAT-72",   36000000000ULL, 512, 0x47 },
+    { "DDS-2",     4000000000ULL, 512, 0x24 },
 };
 
 /* Tape drive type definitions. */
@@ -55,11 +56,12 @@ typedef struct tape_drive_type_t {
     int8_t      supported_media[KNOWN_TAPE_TYPES];
 } tape_drive_type_t;
 
-#define KNOWN_TAPE_DRIVE_TYPES 3
+#define KNOWN_TAPE_DRIVE_TYPES 4
 static const tape_drive_type_t tape_drive_types[KNOWN_TAPE_DRIVE_TYPES] = {
-    { "86BOX",   "TAPE",             "1.00", 0, { 1, 1, 1, 1, 1, 1 } },
-    { "ARCHIVE", "VIPER 150 21247",  "2.10", 0, { 1, 0, 0, 0, 0, 0 } },
-    { "86Box",   "DAT-72",           "1.00", 5, { 0, 0, 0, 1, 1, 1 } },
+    { "86BOX",   "TAPE",             "1.00", 0, { 1, 1, 1, 1, 1, 1, 1 } },
+    { "ARCHIVE", "VIPER 150 21247",  "2.10", 0, { 1, 0, 0, 0, 0, 0, 0 } },
+    { "86Box",   "DAT-72",           "1.00", 5, { 0, 0, 0, 1, 1, 1, 1 } },
+    { "ARCHIVE", "Python 04687-XXX", "4.CM", 6, { 0, 0, 0, 0, 0, 0, 1 } },
 };
 
 enum {
@@ -151,6 +153,9 @@ typedef struct tape_t {
     int                eot;            /* End-of-tape reached. */
     int                bot;            /* Beginning-of-tape. */
     int                filemark_pending; /* A filemark was just encountered. */
+    uint8_t            active_partition; /* Selected logical partition. */
+    uint8_t            aux_filemark;     /* Virtual auxiliary partition contents. */
+    uint8_t            aux_pos;          /* Position in the auxiliary partition. */
 
     /* Read-ahead buffer for re-blocking: when a SIMH record is larger than
        the requested fixed block size, the unconsumed remainder is stored here

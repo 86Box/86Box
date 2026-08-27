@@ -14,6 +14,10 @@
  *          Copyright 2025-2026 Plamen Ivanov.
  */
 #define _GNU_SOURCE
+#if defined(DEBUG) && !defined(ENABLE_TAPE_LOG)
+#    define ENABLE_TAPE_LOG 1
+#    define TAPE_FILE_LOG
+#endif
 #include <inttypes.h>
 #ifdef ENABLE_TAPE_LOG
 #include <stdarg.h>
@@ -67,6 +71,7 @@ const uint8_t tape_command_flags[0x100] = {
     [0x10]          = IMPLEMENTED | CHECK_READY,             /* WRITE FILEMARKS(6) */
     [0x11]          = IMPLEMENTED | CHECK_READY,             /* SPACE(6) */
     [0x12]          = IMPLEMENTED | ALLOW_UA,                /* INQUIRY */
+    [0x13]          = IMPLEMENTED | CHECK_READY,             /* VERIFY(6) */
     [0x15]          = IMPLEMENTED,                           /* MODE SELECT(6) */
     [0x16]          = IMPLEMENTED,                           /* RESERVE */
     [0x17]          = IMPLEMENTED,                           /* RELEASE */
@@ -77,6 +82,7 @@ const uint8_t tape_command_flags[0x100] = {
     [0x1e]          = IMPLEMENTED | CHECK_READY,             /* PREVENT/ALLOW MEDIUM REMOVAL */
     [0x2b]          = IMPLEMENTED | CHECK_READY,             /* LOCATE(10) */
     [0x34]          = IMPLEMENTED | CHECK_READY,             /* READ POSITION */
+    [0x4d]          = IMPLEMENTED,                           /* LOG SENSE(10) */
     [0x55]          = IMPLEMENTED,                           /* MODE SELECT(10) */
     [0x5a]          = IMPLEMENTED,                           /* MODE SENSE(10) */
 };
@@ -87,6 +93,7 @@ static uint64_t tape_mode_sense_page_flags =
     GPMODEP_DISCONNECT_PAGE |
     GPMODEP_DATA_COMPRESS_PAGE |
     GPMODEP_DEVICE_CONFIG_PAGE |
+    (1ULL << GPMODE_MEDIUM_PARTITION_PAGE) |
     GPMODEP_ALL_PAGES;
 
 static const mode_sense_pages_t tape_mode_sense_pages_default_scsi = {
@@ -111,6 +118,11 @@ static const mode_sense_pages_t tape_mode_sense_pages_default_scsi = {
             0x00, 0x00,                         /* DCE=0, DCC=0 (no compression) */
             0x00, 0x00, 0x00, 0x00,             /* Compression algorithm */
             0x00, 0x00, 0x00, 0x00,             /* Decompression algorithm */
+            0x00, 0x00, 0x00, 0x00
+        },
+        [GPMODE_MEDIUM_PARTITION_PAGE] = {
+            GPMODE_MEDIUM_PARTITION_PAGE, 0x06,
+            0x00, 0x00,                         /* No additional partitions */
             0x00, 0x00, 0x00, 0x00
         },
         [GPMODE_DEVICE_CONFIG_PAGE] = {
@@ -154,12 +166,22 @@ static const mode_sense_pages_t tape_mode_sense_pages_changeable = {
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00
         },
+        [GPMODE_MEDIUM_PARTITION_PAGE] = {
+            GPMODE_MEDIUM_PARTITION_PAGE, 0x06,
+            /* Backup applications may select FDP/IDP and append partition
+               size descriptors while initializing media. */
+            0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff
+        },
         [GPMODE_DEVICE_CONFIG_PAGE] = {
             GPMODE_DEVICE_CONFIG_PAGE, 0x0E,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00
+            /* The virtual backend accepts and remembers configuration hints;
+               buffering, setmark and early-warning choices do not alter the
+               SIMH record representation. */
+            0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff, 0xff, 0xff,
+            0xff, 0xff
         },
     }
 };
@@ -167,6 +189,13 @@ static const mode_sense_pages_t tape_mode_sense_pages_changeable = {
 
 static void tape_command_complete(tape_t *dev);
 static void tape_init(tape_t *dev);
+
+static int
+tape_is_dat_drive(const tape_t *dev)
+{
+    /* Types 2 and 3 are the DAT-72 and Seagate/Archive DDS drives. */
+    return (dev->drv->type == 2) || (dev->drv->type == 3);
+}
 
 #ifdef ENABLE_TAPE_LOG
 int tape_do_log = ENABLE_TAPE_LOG;
@@ -371,6 +400,9 @@ tape_init(tape_t *dev)
         dev->bot         = 1;
         dev->eot         = 0;
         dev->filemark_pending = 0;
+        dev->active_partition = 0;
+        dev->aux_filemark     = 0;
+        dev->aux_pos          = 0;
         dev->rec_remaining    = 0;
     }
 }
@@ -417,10 +449,11 @@ tape_mode_sense_load(tape_t *dev)
     memcpy(&dev->ms_pages_saved, &tape_mode_sense_pages_default_scsi,
            sizeof(mode_sense_pages_t));
 
-    if (dev->drv->type == 2) {
-        /* DAT-72 implements DCLZ data compression. The image stores the
+    if (tape_is_dat_drive(dev)) {
+        /* DAT drives implement DCLZ data compression. The image stores the
            logical (decompressed) record stream. */
         dev->ms_pages_saved.pages[GPMODE_DATA_COMPRESS_PAGE][2]  = 0x40; /* DCC */
+        dev->ms_pages_saved.pages[GPMODE_DATA_COMPRESS_PAGE][3]  = 0x80; /* DDE */
         dev->ms_pages_saved.pages[GPMODE_DATA_COMPRESS_PAGE][7]  = 0x20;
         dev->ms_pages_saved.pages[GPMODE_DATA_COMPRESS_PAGE][11] = 0x20;
     }
@@ -450,12 +483,14 @@ static uint8_t
 tape_mode_sense_read(const tape_t *dev, const uint8_t pgctl,
                      const uint8_t page, const uint8_t pos)
 {
-    if ((dev->drv->type == 2) && (page == GPMODE_DATA_COMPRESS_PAGE)) {
+    if (tape_is_dat_drive(dev) && (page == GPMODE_DATA_COMPRESS_PAGE)) {
         if ((pgctl == 1) && (pos == 2))
             return 0x80; /* DCE is changeable. */
         if (pgctl == 2) {
             if (pos == 2)
                 return 0x40; /* DCC */
+            if (pos == 3)
+                return 0x80; /* DDE */
             if ((pos == 7) || (pos == 11))
                 return 0x20; /* DCLZ */
         }
@@ -1551,6 +1586,15 @@ tape_set_buf_len(const tape_t *dev, int32_t *BufLen, int32_t *src_len)
 static void
 tape_rewind(tape_t *dev)
 {
+    if (dev->active_partition != 0) {
+        dev->aux_pos          = 0;
+        dev->bot              = 1;
+        dev->eot              = 0;
+        dev->filemark_pending = 0;
+        dev->rec_remaining    = 0;
+        return;
+    }
+
     fseeko64(dev->drv->fp, 0, SEEK_SET);
     dev->tape_pos         = 0;
     dev->data_pos         = 0;
@@ -1662,9 +1706,9 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_buf_alloc(dev, len);
             memset(dev->buffer, 0, len);
 
-            /* DAT-72 accepts variable records from 1 byte through the
+            /* DAT drives accept variable records from 1 byte through the
                largest value representable by the SSC block-limit field. */
-            if (dev->drv->type == 2) {
+            if (tape_is_dat_drive(dev)) {
                 dev->buffer[1] = 0xff;
                 dev->buffer[2] = 0xff;
                 dev->buffer[3] = 0xff;
@@ -1681,10 +1725,47 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_set_buf_len(dev, BufLen, &len);
 
             tape_log(dev->log, "Block limits: min=%u, max=%u\n",
-                     dev->drv->type == 2 ? 1 : 512,
-                     dev->drv->type == 2 ? 0xffffff : 32768);
+                     tape_is_dat_drive(dev) ? 1 : 512,
+                     tape_is_dat_drive(dev) ? 0xffffff : 32768);
             tape_data_command_finish(dev, len, len, len, 0);
             break;
+
+        case GPCMD_VERIFY_6: {
+            /* VERIFY reads records internally and advances the tape without
+               transferring their contents to the initiator. */
+            const uint32_t verify_len = ((uint32_t) cdb[2] << 16) |
+                                        ((uint32_t) cdb[3] << 8) |
+                                         (uint32_t) cdb[4];
+
+            tape_log(dev->log, "VERIFY: fixed=%u, count=%u\n",
+                     cdb[1] & 1, verify_len);
+
+            /* Byte compare requires a host data-out phase, which these drives
+               do not support. Media verification (BYTCMP=0) is supported. */
+            if (cdb[1] & 0x02) {
+                tape_invalid_field(dev, cdb[1]);
+                break;
+            }
+
+            if (verify_len != 0) {
+                dev->filemark_pending = 0;
+                fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
+                const int32_t verified = tape_space_blocks_forward(dev, verify_len);
+
+                if (verified < 0) {
+                    const uint32_t residual = (uint32_t) -verified;
+                    if (dev->filemark_pending)
+                        tape_filemark_detected(dev, residual);
+                    else
+                        tape_blank_check(dev, residual);
+                    break;
+                }
+            }
+
+            tape_set_phase(dev, SCSI_PHASE_STATUS);
+            tape_command_complete(dev);
+            break;
+        }
 
         case GPCMD_REQUEST_SENSE:
             max_len = cdb[4];
@@ -1758,6 +1839,16 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             uint32_t  xfer_len = ((uint32_t) cdb[2] << 16) |
                                  ((uint32_t) cdb[3] << 8) |
                                   (uint32_t) cdb[4];
+
+            if (dev->active_partition != 0) {
+                if (dev->aux_filemark && (dev->aux_pos == 0)) {
+                    dev->aux_pos = 1;
+                    dev->bot     = 0;
+                    tape_filemark_detected(dev, fixed ? xfer_len : 0);
+                } else
+                    tape_blank_check(dev, fixed ? xfer_len : 0);
+                return;
+            }
 
             tape_log(dev->log, "READ(6): fixed=%d, xfer_len=%u, block_size=%u, "
                      "filemark_pending=%d\n",
@@ -2055,6 +2146,16 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
 
             tape_log(dev->log, "WRITE FILEMARKS: count=%u\n", count);
 
+            if (dev->active_partition != 0) {
+                if (count != 0)
+                    dev->aux_filemark = 1;
+                dev->aux_pos = count != 0;
+                dev->bot     = count == 0;
+                tape_set_phase(dev, SCSI_PHASE_STATUS);
+                tape_command_complete(dev);
+                break;
+            }
+
             fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
 
             for (uint32_t i = 0; i < count; i++) {
@@ -2174,6 +2275,16 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             }
 
             tape_log(dev->log, "ERASE\n");
+
+            if (dev->active_partition != 0) {
+                dev->aux_filemark = 0;
+                dev->aux_pos      = 0;
+                dev->bot          = 1;
+                dev->eot          = 0;
+                tape_set_phase(dev, SCSI_PHASE_STATUS);
+                tape_command_complete(dev);
+                break;
+            }
 
             fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
             tape_write_marker(dev, TAPE_SIMH_EOD);
@@ -2355,6 +2466,55 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_data_command_finish(dev, len, len, alloc_length, 0);
             return;
 
+        case GPCMD_LOG_SENSE: {
+            const uint8_t page_code = cdb[2] & 0x3f;
+            const uint16_t parameter = ((uint16_t) cdb[5] << 8) | cdb[6];
+            const uint16_t allocation = ((uint16_t) cdb[7] << 8) | cdb[8];
+
+            tape_set_phase(dev, SCSI_PHASE_DATA_IN);
+
+            if ((page_code != 0x31) || (parameter != 0)) {
+                tape_invalid_field(dev, page_code != 0x31 ? cdb[2] : parameter);
+                return;
+            }
+
+            /* Tape capacity log page. Capacity values are expressed in MB.
+               Parameters 1/3 are remaining/maximum main-partition capacity;
+               parameters 2/4 describe an unsupported alternate partition. */
+            tape_buf_alloc(dev, 36);
+            memset(dev->buffer, 0, 36);
+            dev->buffer[0] = 0x31;
+            dev->buffer[2] = 0x00;
+            dev->buffer[3] = 0x20;
+
+            const uint64_t capacity = tape_capacity(dev);
+            const uint64_t remaining = dev->data_pos < capacity ?
+                                       capacity - dev->data_pos : 0;
+            const uint32_t values[4] = {
+                (uint32_t) MIN(remaining / 1000000ULL, UINT32_MAX),
+                0,
+                (uint32_t) MIN(capacity / 1000000ULL, UINT32_MAX),
+                0
+            };
+
+            for (uint8_t i = 0; i < 4; i++) {
+                const uint32_t pos = 4 + (i * 8);
+                dev->buffer[pos]     = 0;
+                dev->buffer[pos + 1] = i + 1;
+                dev->buffer[pos + 2] = 0;
+                dev->buffer[pos + 3] = 4;
+                dev->buffer[pos + 4] = (values[i] >> 24) & 0xff;
+                dev->buffer[pos + 5] = (values[i] >> 16) & 0xff;
+                dev->buffer[pos + 6] = (values[i] >> 8) & 0xff;
+                dev->buffer[pos + 7] = values[i] & 0xff;
+            }
+
+            len = MIN(36, allocation);
+            tape_set_buf_len(dev, BufLen, &len);
+            tape_data_command_finish(dev, len, len, allocation, 0);
+            return;
+        }
+
         case GPCMD_MODE_SELECT_6:
         case GPCMD_MODE_SELECT_10:
             tape_set_phase(dev, SCSI_PHASE_DATA_OUT);
@@ -2443,6 +2603,15 @@ tape_phase_data_out(scsi_common_t *sc)
                                  ((uint32_t) dev->current_cdb[3] << 8) |
                                   (uint32_t) dev->current_cdb[4];
 
+            if (dev->active_partition != 0) {
+                /* The SIMH image stores partition zero. Auxiliary directory
+                   data remains virtual so it cannot overwrite that stream. */
+                dev->aux_pos = 1;
+                dev->bot     = 0;
+                ui_sb_update_icon_write(SB_TAPE | dev->id, 0);
+                break;
+            }
+
             fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
 
             if (fixed) {
@@ -2476,6 +2645,12 @@ tape_phase_data_out(scsi_common_t *sc)
 
         case GPCMD_MODE_SELECT_6:
         case GPCMD_MODE_SELECT_10:
+            tape_log(dev->log, "MODE SELECT parameter data (%u bytes):",
+                     dev->total_length);
+            for (uint32_t i = 0; i < (uint32_t) dev->total_length; i++)
+                tape_log(dev->log, " %02X", dev->buffer[i]);
+            tape_log(dev->log, "\n");
+
             if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10) {
                 hdr_len        = 8;
                 param_list_len = dev->current_cdb[7];
@@ -2556,6 +2731,14 @@ tape_phase_data_out(scsi_common_t *sc)
                 }
 
                 pos += page_len;
+
+                if (page == GPMODE_DEVICE_CONFIG_PAGE) {
+                    dev->active_partition =
+                        dev->ms_pages_saved.pages[page][3];
+                    dev->aux_pos = 0;
+                    tape_log(dev->log, "MODE SELECT: active partition set to %u\n",
+                             dev->active_partition);
+                }
 
                 val = tape_mode_sense_pages_default_scsi.pages[page][0] & 0x80;
                 if (dev->do_page_save && val)
