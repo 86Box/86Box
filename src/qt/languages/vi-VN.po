@@ -1485,6 +1485,18 @@ msgstr "Tắt máy theo ACPI"
 msgid "ACP&I shutdown"
 msgstr "Tắt máy theo ACP&I"
 
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+
 msgid "Hard disk (%1)"
 msgstr "Ổ cứng (%1)"
 
