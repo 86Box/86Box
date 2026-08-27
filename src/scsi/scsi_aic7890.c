@@ -293,6 +293,9 @@
 
 #define AIC_MIN(a, b)         (((a) < (b)) ? (a) : (b))
 
+/* Period between queued command kicks, matching other SCSI HBA emulations. */
+#define AIC7890_CMD_PERIOD_US 10.0
+
 typedef struct aic7890_t {
     uint8_t       pci_slot;
     uint8_t       irq_state;
@@ -351,6 +354,8 @@ typedef struct aic7890_t {
     pc_timer_t    scan2_timer;
     uint32_t      scan2_remaining;
     bool          scan2_active;
+
+    pc_timer_t    cmd_timer;
 
     /* Sequencer microcode interpreter state (scan-start at SEQADDR 0x0002). */
     uint16_t      seq_pc;
@@ -909,6 +914,7 @@ aic7890_reset_regs(aic7890_t *dev)
     timer_disable(&dev->scan_init_timer);
     dev->scan2_active = false;
     timer_disable(&dev->scan2_timer);
+    timer_disable(&dev->cmd_timer);
     dev->seq_active = false;
     dev->seq_sp = 0;
     dev->seq_steps = 0;
@@ -1177,6 +1183,7 @@ aic7890_scsi_bus_reset(aic7890_t *dev, bool external)
     timer_disable(&dev->scan_init_timer);
     dev->scan2_active = false;
     timer_disable(&dev->scan2_timer);
+    timer_disable(&dev->cmd_timer);
     dev->seq_active = false;
     dev->seq_sp = 0;
     dev->seq_steps = 0;
@@ -2308,7 +2315,7 @@ aic7890_seq_step(aic7890_t *dev)
     uint16_t addr = (w >> 17) & 0x3ff;
     uint16_t next = (dev->seq_pc + 1) & 0x3ff;
     bool taken = false;
-    uint8_t sv, dv, rv;
+    uint8_t sv, rv = 0;
 
     switch (opcode) {
         case SEQ_OP_OR:
@@ -2469,6 +2476,16 @@ aic7890_seq_step(aic7890_t *dev)
                     "AIC7890: seq %03x op=%x src=%03x dst=%03x imm=%02x addr=%03x take=%u sp=%d\n",
                     cur_pc, opcode, source, dest, imm, addr, taken, dev->seq_sp);
     }
+    /*
+     * Compact per-instruction stream while the BIOS scan interpretation is
+     * active; used to diff the scan-start microcode flow between machines.
+     */
+    if (dev->scan2_active) {
+        aic7890_log(1,
+                    "AIC7890: s2i %03x->%03x op=%x src=%03x dst=%03x imm=%02x addr=%03x take=%u sp=%d fl=%02x\n",
+                    cur_pc, dev->seq_pc, opcode, source, dest, imm, addr, taken,
+                    dev->seq_sp, dev->regs[REG_FLAGS]);
+    }
     return true;
 }
 
@@ -2522,6 +2539,8 @@ aic7890_emulate_sequencer_run(aic7890_t *dev)
     if (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)
         return;
 
+    /* Drain deferred queue work first so the arming gates below observe
+     * the same state as the original synchronous implementation. */
     aic7890_process_pending(dev);
 
     reset_pulse = !!(dev->regs[REG_SCSISEQ] & SCSISEQ_SCSIRSTO);
@@ -2584,7 +2603,6 @@ aic7890_emulate_sequencer_run(aic7890_t *dev)
         if (aic7890_log_level() >= 1 && dev->seq_steps == 0) {
             for (int i = 0; i < 0x210; i++) {
                 uint32_t w = aic7890_seq_word(dev, (uint16_t) i);
-                uint32_t pos = (uint32_t) i * 4;
 
                 if (w == 0)
                     continue;
@@ -2646,6 +2664,35 @@ aic7890_emulate_sequencer_run(aic7890_t *dev)
                     "AIC7890: sequencer idle countdown armed %lluus seqaddr=%04x reset=%u\n",
                     (unsigned long long) us, aic7890_seqaddr(dev), reset_pulse);
     }
+}
+
+static void
+aic7890_kick_cmd_processing(aic7890_t *dev)
+{
+    if (dev->regs[REG_HCNTRL] & HCNTRL_PAUSE)
+        return;
+    if (timer_is_enabled(&dev->cmd_timer))
+        return;
+
+    timer_set_delay_u64(&dev->cmd_timer,
+                        (uint64_t) (AIC7890_CMD_PERIOD_US * ((double) TIMER_USEC)));
+    aic7890_log(2, "AIC7890: command processing armed tsc=%llu\n",
+                (unsigned long long) tsc);
+}
+
+static void
+aic7890_cmd_callback(void *priv)
+{
+    aic7890_t *dev = priv;
+
+    /*
+     * Only queue/FIFO SCB execution is deferred here.  The sequencer
+     * servicing must stay synchronous in the HCNTRL unpause handler:
+     * the BIOS pauses the sequencer for most of each poll loop, so a
+     * deferred sequencer run would never fire outside of PAUSE and the
+     * idle-countdown arming/resume state machine would never progress.
+     */
+    aic7890_process_pending(dev);
 }
 
 static void
@@ -3067,10 +3114,13 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
                 if (timer_is_enabled(&dev->scan2_timer))
                     dev->scan2_remaining = timer_get_remaining_us(&dev->scan2_timer);
                 timer_disable(&dev->scan2_timer);
+                timer_disable(&dev->cmd_timer);
             }
             aic7890_update_irq(dev);
+            /* Sequencer servicing is synchronous (see cmd_callback note). */
             if (!(dev->regs[REG_HCNTRL] & HCNTRL_PAUSE))
                 aic7890_emulate_sequencer_run(dev);
+            aic7890_kick_cmd_processing(dev);
             return;
         }
 
@@ -3086,7 +3136,7 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
             aic7890_log(1, "AIC7890: clear interrupt val=%02x intstat=%02x\n",
                         val, dev->regs[REG_INTSTAT]);
             aic7890_update_irq(dev);
-            aic7890_process_pending(dev);
+            aic7890_kick_cmd_processing(dev);
             return;
 
         case REG_DFCNTRL:
@@ -3100,7 +3150,7 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
 
         case REG_QINFIFO:
             aic7890_qin_push(dev, val);
-            aic7890_process_fifo(dev);
+            aic7890_kick_cmd_processing(dev);
             return;
 
         case REG_CCHCNT:
@@ -3125,7 +3175,7 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
         case REG_KERNEL_QINPOS:
             dev->hns_qoff = val;
             dev->regs[reg] = val;
-            aic7890_process_queue(dev);
+            aic7890_kick_cmd_processing(dev);
             return;
 
         case REG_QINPOS:
@@ -3145,7 +3195,7 @@ aic7890_reg_write(uint32_t addr, uint8_t val, void *priv)
                 dev->win_last_inquiry_target = SCB_LIST_NULL;
             dev->hns_qoff = val;
             dev->regs[reg] = val;
-            aic7890_process_queue(dev);
+            aic7890_kick_cmd_processing(dev);
             return;
 
         case REG_SNSCB_QOFF:
@@ -3573,6 +3623,7 @@ aic7890_init(const device_t *info)
     timer_add(&dev->countdown_timer, aic7890_countdown_callback, dev, 0);
     timer_add(&dev->scan_init_timer, aic7890_scan_init_callback, dev, 0);
     timer_add(&dev->scan2_timer, aic7890_scan2_callback, dev, 0);
+    timer_add(&dev->cmd_timer, aic7890_cmd_callback, dev, 0);
 
     mem_mapping_add(&dev->mmio_mapping, 0, 0,
                     aic7890_mmio_readb, aic7890_mmio_readw, aic7890_mmio_readl,
@@ -3603,6 +3654,7 @@ aic7890_close(void *priv)
 {
     aic7890_t *dev = priv;
 
+    timer_disable(&dev->cmd_timer);
     aic7890_io_disable(dev);
     mem_mapping_disable(&dev->mmio_mapping);
     if (dev->rom != NULL) {
