@@ -231,6 +231,7 @@
 #define SENSE_UNIT_ATTENTION  6
 #define SENSE_DATA_PROTECT    7
 #define SENSE_BLANK_CHECK     8
+#define SENSE_VOLUME_OVERFLOW 13
 
 /* SCSI Additional Sense Codes */
 #define ASC_NONE                               0x00

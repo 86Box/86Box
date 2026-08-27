@@ -90,15 +90,7 @@ static const QStringList moTypes = {
     "5.25\" 1.3 GB",
 };
 
-static const QStringList tapeTypes = {
-    "QIC-150",
-#if 0
-    "QIC-525",
-    "QIC-1000",
-#endif
-};
-
-NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
+NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent, int tape_drive_type)
     : QDialog(parent)
     , ui(new Ui::NewFloppyDialog)
     , mediaType_(type)
@@ -129,8 +121,17 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
             ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "img", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
         case MediaType::Tape:
-            for (int i = 0; i < tapeTypes.size(); ++i) {
-                Models::AddEntry(model, tr(tapeTypes[i].toUtf8().data()), i);
+            ui->labelSize->setText(tr("Tape type:"));
+            for (int i = 0; i < KNOWN_TAPE_TYPES; ++i) {
+                if ((tape_drive_type < 0) || (tape_drive_type >= KNOWN_TAPE_DRIVE_TYPES) ||
+                    tape_drive_types[tape_drive_type].supported_media[i])
+                    Models::AddEntry(model, tr(tape_types[i].name), i);
+            }
+            if ((tape_drive_type >= 0) && (tape_drive_type < KNOWN_TAPE_DRIVE_TYPES)) {
+                const auto matches = model->match(model->index(0, 0), Qt::UserRole,
+                                                  tape_drive_types[tape_drive_type].default_media);
+                if (!matches.isEmpty())
+                    ui->comboBoxSize->setCurrentIndex(matches.first().row());
             }
             ui->fileField->setFilter(tr("Tape images") % util::DlgFilter({ "tap" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
@@ -170,6 +171,12 @@ QString
 NewFloppyDialog::fileName() const
 {
     return ui->fileField->fileName();
+}
+
+int
+NewFloppyDialog::mediaTypeIndex() const
+{
+    return ui->comboBoxSize->currentData().toInt();
 }
 
 void
@@ -234,8 +241,9 @@ NewFloppyDialog::onCreate()
         case MediaType::Tape:
             {
                 std::atomic_bool res;
-                std::thread      t([this, &res, filename, &progress] {
-                    res = createTapeSectorImage(filename, ui->comboBoxSize->currentIndex(), progress);
+                const int        tape_type = mediaTypeIndex();
+                std::thread      t([this, &res, filename, tape_type, &progress] {
+                    res = createTapeSectorImage(filename, tape_type, progress);
                 });
                 progress.exec();
                 t.join();
@@ -826,6 +834,9 @@ NewFloppyDialog::createTapeSectorImage(const QString &filename, UNUSED(int8_t di
     if (!file.open(QIODevice::WriteOnly)) {
         return false;
     }
+    QDataStream stream(&file);
+    stream.setByteOrder(QDataStream::LittleEndian);
+    stream << (uint32_t) TAPE_SIMH_EOD;
     pbar.setMaximum(1);
     fileProgress(1);
 

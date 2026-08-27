@@ -18,6 +18,7 @@
 
 #define TAPE_NUM           4
 #define TAPE_BUF_SIZE      65536
+#define TAPE_MAX_TRANSFER  0x00ffffffU
 #define TAPE_TIME          10.0
 #define TAPE_IMAGE_HISTORY 10
 
@@ -27,19 +28,22 @@
 #define TAPE_SIMH_GAP      0xFFFFFFFE
 #define TAPE_SIMH_BAD_REC  0xFFFF0000
 
-/* QIC tape type definitions. */
+/* Tape media type definitions. */
 typedef struct tape_type_t {
     const char *name;
-    uint32_t    capacity_bytes;
+    uint64_t    capacity_bytes;
     uint16_t    default_block_size;
     uint8_t     density_code;
 } tape_type_t;
 
-#define KNOWN_TAPE_TYPES 3
+#define KNOWN_TAPE_TYPES 6
 static const tape_type_t tape_types[KNOWN_TAPE_TYPES] = {
-    { "QIC-150",  157286400, 512, 0x10 },
-    { "QIC-525",  549978112, 512, 0x11 },
-    { "QIC-1000", 1073741824, 512, 0x12 },
+    { "QIC-150",    157286400ULL, 512, 0x10 },
+    { "QIC-525",    549978112ULL, 512, 0x11 },
+    { "QIC-1000",  1073741824ULL, 512, 0x12 },
+    { "DDS-3",    12000000000ULL, 512, 0x25 },
+    { "DDS-4",    20000000000ULL, 512, 0x26 },
+    { "DAT-72",   36000000000ULL, 512, 0x47 },
 };
 
 /* Tape drive type definitions. */
@@ -47,13 +51,15 @@ typedef struct tape_drive_type_t {
     const char *vendor;
     const char *model;
     const char *revision;
+    uint8_t     default_media;
     int8_t      supported_media[KNOWN_TAPE_TYPES];
 } tape_drive_type_t;
 
-#define KNOWN_TAPE_DRIVE_TYPES 2
+#define KNOWN_TAPE_DRIVE_TYPES 3
 static const tape_drive_type_t tape_drive_types[KNOWN_TAPE_DRIVE_TYPES] = {
-    { "86BOX",   "TAPE",             "1.00", { 1, 1, 1 } },
-    { "ARCHIVE", "VIPER 150 21247",  "2.10", { 1, 0, 0 } },
+    { "86BOX",   "TAPE",             "1.00", 0, { 1, 1, 1, 1, 1, 1 } },
+    { "ARCHIVE", "VIPER 150 21247",  "2.10", 0, { 1, 0, 0, 0, 0, 0 } },
+    { "86Box",   "DAT-72",           "1.00", 5, { 0, 0, 0, 1, 1, 1 } },
 };
 
 enum {
@@ -137,10 +143,11 @@ typedef struct tape_t {
     uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 
     /* Tape-specific state. */
-    uint32_t           tape_pos;       /* Current byte position in the .tap file. */
+    uint64_t           tape_pos;       /* Current byte position in the .tap file. */
+    uint64_t           data_pos;       /* Logical data bytes before tape_pos. */
     uint32_t           block_size;     /* Current fixed block size (0 = variable block mode). */
     uint32_t           num_blocks;     /* Current logical block number. */
-    uint32_t           tape_length;    /* File size of the .tap image. */
+    uint64_t           tape_length;    /* File size of the .tap image. */
     int                eot;            /* End-of-tape reached. */
     int                bot;            /* Beginning-of-tape. */
     int                filemark_pending; /* A filemark was just encountered. */

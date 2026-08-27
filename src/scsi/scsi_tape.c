@@ -49,9 +49,6 @@
 
 tape_drive_t tape_drives[TAPE_NUM];
 
-/* Default block size for fixed-mode operations. */
-#define TAPE_DEFAULT_BLOCK_SIZE 512
-
 // clang-format off
 /*
    Table of all SCSI commands and their flags, needed for the new disc change /
@@ -276,18 +273,17 @@ tape_load(const tape_t *dev, const char *fn, const int skip_insert)
 
         if (ret) {
             fseeko64(dev->drv->fp, 0, SEEK_END);
-            ((tape_t *) dev)->tape_length = (uint32_t) ftello64(dev->drv->fp);
+            ((tape_t *) dev)->tape_length = (uint64_t) ftello64(dev->drv->fp);
             fseeko64(dev->drv->fp, 0, SEEK_SET);
 
             ((tape_t *) dev)->tape_pos   = 0;
+            ((tape_t *) dev)->data_pos   = 0;
             ((tape_t *) dev)->bot        = 1;
             ((tape_t *) dev)->eot        = 0;
             ((tape_t *) dev)->num_blocks = 0;
 
-            if (dev->drv->image_path != (fn - offs)) {
-                const int len = MIN(strlen(fn - offs), (strlen(dev->drv->image_path) - 1));
-                strncpy(dev->drv->image_path, fn - offs, len);
-            }
+            if (dev->drv->image_path != (fn - offs))
+                snprintf(dev->drv->image_path, sizeof(dev->drv->image_path), "%s", fn - offs);
         }
     }
 
@@ -362,8 +358,15 @@ tape_init(tape_t *dev)
         dev->packet_status = PHASE_NONE;
         tape_sense_key = tape_asc = tape_ascq = dev->unit_attention = dev->transition = 0;
         tape_info      = 0x00000000;
-        dev->block_size  = TAPE_DEFAULT_BLOCK_SIZE;
+        if (dev->drv->type >= KNOWN_TAPE_DRIVE_TYPES)
+            dev->drv->type = 0;
+        if ((dev->drv->medium_type >= KNOWN_TAPE_TYPES) ||
+            !tape_drive_types[dev->drv->type].supported_media[dev->drv->medium_type])
+            dev->drv->medium_type = tape_drive_types[dev->drv->type].default_media;
+
+        dev->block_size  = tape_types[dev->drv->medium_type].default_block_size;
         dev->tape_pos    = 0;
+        dev->data_pos    = 0;
         dev->num_blocks  = 0;
         dev->bot         = 1;
         dev->eot         = 0;
@@ -414,6 +417,14 @@ tape_mode_sense_load(tape_t *dev)
     memcpy(&dev->ms_pages_saved, &tape_mode_sense_pages_default_scsi,
            sizeof(mode_sense_pages_t));
 
+    if (dev->drv->type == 2) {
+        /* DAT-72 implements DCLZ data compression. The image stores the
+           logical (decompressed) record stream. */
+        dev->ms_pages_saved.pages[GPMODE_DATA_COMPRESS_PAGE][2]  = 0x40; /* DCC */
+        dev->ms_pages_saved.pages[GPMODE_DATA_COMPRESS_PAGE][7]  = 0x20;
+        dev->ms_pages_saved.pages[GPMODE_DATA_COMPRESS_PAGE][11] = 0x20;
+    }
+
     sprintf(fn, "scsi_tape_%02i_mode_sense_bin", dev->id);
     FILE *fp = plat_fopen(nvr_path(fn), "rb");
     if (fp) {
@@ -439,6 +450,17 @@ static uint8_t
 tape_mode_sense_read(const tape_t *dev, const uint8_t pgctl,
                      const uint8_t page, const uint8_t pos)
 {
+    if ((dev->drv->type == 2) && (page == GPMODE_DATA_COMPRESS_PAGE)) {
+        if ((pgctl == 1) && (pos == 2))
+            return 0x80; /* DCE is changeable. */
+        if (pgctl == 2) {
+            if (pos == 2)
+                return 0x40; /* DCC */
+            if ((pos == 7) || (pos == 11))
+                return 0x20; /* DCLZ */
+        }
+    }
+
     switch (pgctl) {
         case 0:
         case 3:
@@ -491,6 +513,12 @@ tape_mode_sense(const tape_t *dev, uint8_t *buf, uint32_t pos,
     }
 
     return pos;
+}
+
+static uint8_t
+tape_medium_type_code(const tape_t *dev)
+{
+    return (dev->drv->medium_type == 5) ? 0x35 : 0x00;
 }
 
 static void
@@ -875,6 +903,37 @@ tape_bop_detected(tape_t *dev, uint32_t residual)
     tape_cmd_error(dev);
 }
 
+/* Report end-of-medium. */
+static void
+tape_eom_detected(tape_t *dev, uint32_t residual)
+{
+    tape_sense_key = SENSE_VOLUME_OVERFLOW;
+    tape_asc       = ASC_NONE;
+    tape_ascq      = ASCQ_EOM_DETECTED;
+    dev->sense[2] |= 0x40;
+    tape_info      =  (residual >> 24)        |
+                     ((residual >> 16) <<  8) |
+                     ((residual >> 8)  << 16) |
+                     ( residual        << 24);
+    dev->eot       = 1;
+    tape_cmd_error(dev);
+}
+
+static uint64_t
+tape_capacity(const tape_t *dev)
+{
+    const uint32_t medium = (dev->drv->medium_type < KNOWN_TAPE_TYPES) ?
+                            dev->drv->medium_type : 0;
+    return tape_types[medium].capacity_bytes;
+}
+
+static int
+tape_write_fits(const tape_t *dev, uint64_t len)
+{
+    const uint64_t capacity = tape_capacity(dev);
+    return (dev->data_pos <= capacity) && (len <= (capacity - dev->data_pos));
+}
+
 /* ==================== SIMH .tap I/O helpers ==================== */
 
 /*
@@ -916,6 +975,24 @@ tape_write_marker(const tape_t *dev, uint32_t marker)
     return 0;
 }
 
+static int
+tape_truncate(const tape_t *dev, uint64_t length)
+{
+#ifdef _WIN32
+    const int     fd = _fileno(dev->drv->fp);
+    const HANDLE  fh = (HANDLE) _get_osfhandle(fd);
+    LARGE_INTEGER li;
+
+    li.QuadPart = (LONGLONG) length;
+    if (!SetFilePointerEx(fh, li, NULL, FILE_BEGIN) || !SetEndOfFile(fh))
+        return -1;
+#else
+    if (ftruncate(fileno(dev->drv->fp), (off_t) length) != 0)
+        return -1;
+#endif
+    return 0;
+}
+
 /*
  * Read one SIMH record from the tape at the current position.
  * Returns: record length on success, 0 for filemark, -1 for EOD, -2 for error.
@@ -927,24 +1004,24 @@ tape_simh_read_record(tape_t *dev, uint8_t *buf, uint32_t buf_size)
     uint32_t trailing_len;
 
     if (tape_read_marker(dev, &leading_len) < 0) {
-        tape_log(dev->log, "  read_record: read_marker failed (past EOF), tape_pos=%u\n",
+        tape_log(dev->log, "  read_record: read_marker failed (past EOF), tape_pos=%" PRIu64 "\n",
                  dev->tape_pos);
         return -1; /* Past end of file = EOD. */
     }
 
-    tape_log(dev->log, "  read_record: leading_len=0x%08X (%u), tape_pos=%u\n",
+    tape_log(dev->log, "  read_record: leading_len=0x%08X (%u), tape_pos=%" PRIu64 "\n",
              leading_len, leading_len, dev->tape_pos);
 
     /* Filemark. */
     if (leading_len == TAPE_SIMH_FILEMARK) {
-        tape_log(dev->log, "  read_record: FILEMARK at tape_pos=%u\n", dev->tape_pos);
+        tape_log(dev->log, "  read_record: FILEMARK at tape_pos=%" PRIu64 "\n", dev->tape_pos);
         dev->tape_pos += 4;
         return 0;
     }
 
     /* End of data. */
     if (leading_len == TAPE_SIMH_EOD || leading_len == TAPE_SIMH_GAP) {
-        tape_log(dev->log, "  read_record: EOD/GAP at tape_pos=%u\n", dev->tape_pos);
+        tape_log(dev->log, "  read_record: EOD/GAP at tape_pos=%" PRIu64 "\n", dev->tape_pos);
         return -1;
     }
 
@@ -958,12 +1035,17 @@ tape_simh_read_record(tape_t *dev, uint8_t *buf, uint32_t buf_size)
     if (leading_len > buf_size)
         fseeko64(dev->drv->fp, (int64_t)(leading_len - buf_size), SEEK_CUR);
 
+    /* SIMH records are padded to an even byte boundary. */
+    if (leading_len & 1)
+        fseeko64(dev->drv->fp, 1, SEEK_CUR);
+
     /* Read the trailing length marker. */
     if (tape_read_marker(dev, &trailing_len) < 0)
         return -2;
 
     /* Advance position. */
-    dev->tape_pos += 4 + leading_len + 4;
+    dev->tape_pos += 4 + leading_len + (leading_len & 1) + 4;
+    dev->data_pos += leading_len;
     dev->num_blocks++;
     dev->bot = 0;
 
@@ -977,10 +1059,16 @@ tape_simh_read_record(tape_t *dev, uint8_t *buf, uint32_t buf_size)
 static int
 tape_simh_write_record(tape_t *dev, const uint8_t *buf, uint32_t len)
 {
+    if (!tape_write_fits(dev, len))
+        return -2;
+
     if (tape_write_marker(dev, len) < 0)
         return -1;
 
     if (fwrite(buf, 1, len, dev->drv->fp) != len)
+        return -1;
+
+    if ((len & 1) && (fputc(0, dev->drv->fp) == EOF))
         return -1;
 
     if (tape_write_marker(dev, len) < 0)
@@ -992,10 +1080,16 @@ tape_simh_write_record(tape_t *dev, const uint8_t *buf, uint32_t len)
 
     fflush(dev->drv->fp);
 
+    const uint64_t end_pos = dev->tape_pos + 4 + len + (len & 1) + 4 + 4;
+    if (tape_truncate(dev, end_pos) < 0)
+        return -1;
+
     /* Seek back to just after the trailing length (before the EOD marker). */
     fseeko64(dev->drv->fp, -4, SEEK_CUR);
 
-    dev->tape_pos += 4 + len + 4;
+    dev->tape_pos += 4 + len + (len & 1) + 4;
+    dev->data_pos += len;
+    dev->tape_length = end_pos;
     dev->num_blocks++;
     dev->bot = 0;
 
@@ -1017,10 +1111,15 @@ tape_simh_write_filemark(tape_t *dev)
 
     fflush(dev->drv->fp);
 
+    const uint64_t end_pos = dev->tape_pos + 8;
+    if (tape_truncate(dev, end_pos) < 0)
+        return -1;
+
     /* Seek back to just after the filemark (before the EOD marker). */
     fseeko64(dev->drv->fp, -4, SEEK_CUR);
 
     dev->tape_pos += 4;
+    dev->tape_length = end_pos;
     dev->bot = 0;
 
     return 0;
@@ -1056,8 +1155,9 @@ tape_seek_blocks_forward(tape_t *dev, int32_t count)
             tape_log(dev->log, "First data block after %i blocks, seek back\n", dev->num_blocks);
             break;
         } else {
-            fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
-            dev->tape_pos += 4 + leading_len + 4;
+            fseeko64(dev->drv->fp, (int64_t)(leading_len + (leading_len & 1) + 4), SEEK_CUR);
+            dev->tape_pos += 4 + leading_len + (leading_len & 1) + 4;
+            dev->data_pos += leading_len;
             tape_log(dev->log, "Found %i blocks, increasing to %i\n", dev->num_blocks, dev->num_blocks + 1);
             dev->num_blocks++;
        }
@@ -1097,8 +1197,9 @@ tape_space_blocks_forward(tape_t *dev, int32_t count)
 
         /* Skip over the data and trailing length. */
         dev->bot = 0;
-        fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
-        dev->tape_pos += 4 + leading_len + 4;
+        fseeko64(dev->drv->fp, (int64_t)(leading_len + (leading_len & 1) + 4), SEEK_CUR);
+        dev->tape_pos += 4 + leading_len + (leading_len & 1) + 4;
+        dev->data_pos += leading_len;
         dev->num_blocks++;
         spaced++;
     }
@@ -1139,7 +1240,8 @@ tape_space_blocks_backward(tape_t *dev, int32_t count)
         }
 
         /* Back up over: trailing_len(4) + data(trailing_len) + leading_len(4). */
-        dev->tape_pos -= (4 + trailing_len + 4);
+        dev->tape_pos -= (4 + trailing_len + (trailing_len & 1) + 4);
+        dev->data_pos -= MIN(dev->data_pos, (uint64_t) trailing_len);
         fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
         if (dev->num_blocks > 0)
             dev->num_blocks--;
@@ -1175,8 +1277,9 @@ tape_space_filemarks_forward(tape_t *dev, int32_t count)
             found++;
         } else {
             /* Skip data record. */
-            fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
-            dev->tape_pos += 4 + leading_len + 4;
+            fseeko64(dev->drv->fp, (int64_t)(leading_len + (leading_len & 1) + 4), SEEK_CUR);
+            dev->tape_pos += 4 + leading_len + (leading_len & 1) + 4;
+            dev->data_pos += leading_len;
             dev->num_blocks++;
         }
 
@@ -1216,7 +1319,8 @@ tape_space_filemarks_backward(tape_t *dev, int32_t count)
         } else {
             /* Skip data record. */
             /* Back up over: trailing_len(4) + data(trailing_len) + leading_len(4). */
-            dev->tape_pos -= (4 + trailing_len + 4);
+            dev->tape_pos -= (4 + trailing_len + (trailing_len & 1) + 4);
+            dev->data_pos -= MIN(dev->data_pos, (uint64_t) trailing_len);
             fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
             if (dev->num_blocks > 0)
                 dev->num_blocks--;
@@ -1249,8 +1353,9 @@ tape_space_to_eod(tape_t *dev)
         if (leading_len == TAPE_SIMH_FILEMARK) {
             dev->tape_pos += 4;
         } else {
-            fseeko64(dev->drv->fp, (int64_t)(leading_len + 4), SEEK_CUR);
-            dev->tape_pos += 4 + leading_len + 4;
+            fseeko64(dev->drv->fp, (int64_t)(leading_len + (leading_len & 1) + 4), SEEK_CUR);
+            dev->tape_pos += 4 + leading_len + (leading_len & 1) + 4;
+            dev->data_pos += leading_len;
             dev->num_blocks++;
         }
 
@@ -1448,6 +1553,7 @@ tape_rewind(tape_t *dev)
 {
     fseeko64(dev->drv->fp, 0, SEEK_SET);
     dev->tape_pos         = 0;
+    dev->data_pos         = 0;
     dev->num_blocks       = 0;
     dev->bot              = 1;
     dev->eot              = 0;
@@ -1556,18 +1662,27 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_buf_alloc(dev, len);
             memset(dev->buffer, 0, len);
 
-            /* Byte 0: reserved */
-            /* Bytes 1-3: maximum block length (32KB = 0x008000) */
-            dev->buffer[1] = 0x00;
-            dev->buffer[2] = 0x80;
-            dev->buffer[3] = 0x00;
-            /* Bytes 4-5: minimum block length (512 bytes = 0x0200) */
-            dev->buffer[4] = 0x02;
-            dev->buffer[5] = 0x00;
+            /* DAT-72 accepts variable records from 1 byte through the
+               largest value representable by the SSC block-limit field. */
+            if (dev->drv->type == 2) {
+                dev->buffer[1] = 0xff;
+                dev->buffer[2] = 0xff;
+                dev->buffer[3] = 0xff;
+                dev->buffer[4] = 0x00;
+                dev->buffer[5] = 0x01;
+            } else {
+                dev->buffer[1] = 0x00;
+                dev->buffer[2] = 0x80;
+                dev->buffer[3] = 0x00;
+                dev->buffer[4] = 0x02;
+                dev->buffer[5] = 0x00;
+            }
 
             tape_set_buf_len(dev, BufLen, &len);
 
-            tape_log(dev->log, "Block limits: min=512, max=32768\n");
+            tape_log(dev->log, "Block limits: min=%u, max=%u\n",
+                     dev->drv->type == 2 ? 1 : 512,
+                     dev->drv->type == 2 ? 0xffffff : 32768);
             tape_data_command_finish(dev, len, len, len, 0);
             break;
 
@@ -1669,7 +1784,12 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                    SIMH records may be larger than block_size, so we re-block:
                    read whole SIMH records and split them into fixed blocks.
                    Unconsumed data is kept in dev->rec_buf for subsequent reads. */
-                const uint32_t total_bytes = xfer_len * dev->block_size;
+                const uint64_t total_bytes64 = (uint64_t) xfer_len * dev->block_size;
+                if ((dev->block_size == 0) || (total_bytes64 > TAPE_MAX_TRANSFER)) {
+                    tape_invalid_field(dev, xfer_len);
+                    return;
+                }
+                const uint32_t total_bytes = (uint32_t) total_bytes64;
                 tape_buf_alloc(dev, total_bytes);
                 memset(dev->buffer, 0, total_bytes);
 
@@ -1711,6 +1831,9 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                             break;
                         }
 
+                        if (peek_len & 1)
+                            fseeko64(dev->drv->fp, 1, SEEK_CUR);
+
                         /* Read trailing marker. */
                         uint32_t trail;
                         if (tape_read_marker(dev, &trail) < 0) {
@@ -1718,7 +1841,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                             break;
                         }
 
-                        dev->tape_pos += 4 + peek_len + 4;
+                        dev->tape_pos += 4 + peek_len + (peek_len & 1) + 4;
+                        dev->data_pos += peek_len;
                         dev->num_blocks++;
                         dev->bot = 0;
 
@@ -1809,6 +1933,10 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                     ui_sb_update_icon(SB_TAPE | dev->id, 0);
             } else {
                 /* Variable block mode: read one record, xfer_len = max bytes. */
+                if (xfer_len > TAPE_MAX_TRANSFER) {
+                    tape_invalid_field(dev, xfer_len);
+                    return;
+                }
                 tape_buf_alloc(dev, xfer_len);
                 memset(dev->buffer, 0, xfer_len);
 
@@ -1870,7 +1998,16 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             tape_set_phase(dev, SCSI_PHASE_DATA_OUT);
 
             if (fixed) {
-                const uint32_t total_bytes = xfer_len * dev->block_size;
+                const uint64_t total_bytes64 = (uint64_t) xfer_len * dev->block_size;
+                if ((dev->block_size == 0) || (total_bytes64 > TAPE_MAX_TRANSFER)) {
+                    tape_invalid_field(dev, xfer_len);
+                    return;
+                }
+                if (!tape_write_fits(dev, total_bytes64)) {
+                    tape_eom_detected(dev, xfer_len);
+                    return;
+                }
+                const uint32_t total_bytes = (uint32_t) total_bytes64;
                 tape_buf_alloc(dev, total_bytes);
 
                 dev->requested_blocks = xfer_len;
@@ -1884,6 +2021,10 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                                         dev->packet_status != PHASE_COMPLETE);
             } else {
                 /* Variable: xfer_len is the number of bytes for one record. */
+                if (!tape_write_fits(dev, xfer_len)) {
+                    tape_eom_detected(dev, 1);
+                    return;
+                }
                 tape_buf_alloc(dev, xfer_len);
 
                 dev->requested_blocks = 1;
@@ -2039,24 +2180,13 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             fflush(dev->drv->fp);
 
             /* Truncate the file at the current position. */
-#ifdef _WIN32
-            {
-                int fd = _fileno(dev->drv->fp);
-                HANDLE fh = (HANDLE) _get_osfhandle(fd);
-                LARGE_INTEGER li;
-                li.QuadPart = (int64_t)(dev->tape_pos + 4);
-                SetFilePointerEx(fh, li, NULL, FILE_BEGIN);
-                SetEndOfFile(fh);
-            }
-#else
-            {
-                int fd = fileno(dev->drv->fp);
-                if (ftruncate(fd, (off_t)(dev->tape_pos + 4)) != 0)
-                    tape_log(dev->log, "Failed to truncate tape image\n");
-            }
-#endif
+            if (tape_truncate(dev, dev->tape_pos + 4) != 0)
+                tape_log(dev->log, "Failed to truncate tape image\n");
+            else
+                dev->tape_length = dev->tape_pos + 4;
             /* Seek back to just before the EOD. */
             fseeko64(dev->drv->fp, (int64_t) dev->tape_pos, SEEK_SET);
+            dev->eot = 0;
 
             tape_set_phase(dev, SCSI_PHASE_STATUS);
             tape_command_complete(dev);
@@ -2201,7 +2331,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                 len            = tape_mode_sense(dev, dev->buffer, 4, cdb[2], block_desc);
                 len            = MIN(len, alloc_length);
                 dev->buffer[0] = len - 1;
-                dev->buffer[1] = 0; /* Medium type */
+                dev->buffer[1] = tape_medium_type_code(dev);
                 dev->buffer[2] = dev->drv->read_only ? 0x80 : 0x00; /* WP bit */
                 if (block_desc)
                     dev->buffer[3] = 8;
@@ -2210,7 +2340,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                 len            = MIN(len, alloc_length);
                 dev->buffer[0] = (len - 2) >> 8;
                 dev->buffer[1] = (len - 2) & 255;
-                dev->buffer[2] = 0; /* Medium type */
+                dev->buffer[2] = tape_medium_type_code(dev);
                 dev->buffer[3] = dev->drv->read_only ? 0x80 : 0x00; /* WP bit */
                 if (block_desc) {
                     dev->buffer[6] = 0;
@@ -2368,6 +2498,24 @@ tape_phase_data_out(scsi_common_t *sc)
 
             /* If there's a block descriptor, parse the block size from it. */
             if (block_desc_len >= 8) {
+                const uint8_t density = dev->buffer[hdr_len];
+                if (density != 0) {
+                    int media = -1;
+                    for (int i = 0; i < KNOWN_TAPE_TYPES; i++) {
+                        if ((tape_types[i].density_code == density) &&
+                            tape_drive_types[dev->drv->type].supported_media[i]) {
+                            media = i;
+                            break;
+                        }
+                    }
+                    if (media < 0) {
+                        tape_invalid_field_pl(dev, density);
+                        tape_buf_free(dev);
+                        return 0;
+                    }
+                    dev->drv->medium_type = media;
+                }
+
                 uint32_t new_block_size = ((uint32_t) dev->buffer[hdr_len + 5] << 16) |
                                           ((uint32_t) dev->buffer[hdr_len + 6] << 8) |
                                            (uint32_t) dev->buffer[hdr_len + 7];
@@ -2394,16 +2542,16 @@ tape_phase_data_out(scsi_common_t *sc)
                 if (!(tape_mode_sense_page_flags & (1LL << ((uint64_t) page))))
                     error |= 1;
                 else for (uint8_t i = 0; i < page_len; i++) {
-                    const uint8_t ch      = tape_mode_sense_pages_changeable.pages[page][i + 2];
+                    const uint8_t ch      = tape_mode_sense_read(dev, 1, page, i + 2);
                     const uint8_t old_val = dev->ms_pages_saved.pages[page][i + 2];
                     val                   = dev->buffer[pos + i];
                     if (val != old_val) {
-                        if (ch)
-                            dev->ms_pages_saved.pages[page][i + 2] = val;
-                        else {
+                        if ((val & ~ch) != (old_val & ~ch)) {
                             error |= 1;
                             tape_invalid_field_pl(dev, val);
-                        }
+                        } else
+                            dev->ms_pages_saved.pages[page][i + 2] =
+                                (old_val & ~ch) | (val & ch);
                     }
                 }
 
