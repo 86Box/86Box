@@ -978,6 +978,8 @@ sound_cd_thread_reset(void)
 {
     int available_cdrom_drives = 0;
 
+    timer_disable(&cd_poll_timer);
+
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_stop(&(cdrom[i]));
 

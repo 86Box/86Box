@@ -219,7 +219,7 @@ static const char *const floppy_exts[] = {
 
 /* .ccd/.nrg/.mdf not supported by backend; .mdx is encrypted MDS. */
 static const char *const cd_exts[] = {
-    ".iso", ".cue", ".mds", ".mdx", nullptr
+    ".iso", ".cue", ".toc", ".ccd", ".mds", ".mdx", nullptr
 };
 
 static const char *const rdisk_exts[] = {
