@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-25 16:50+0000\n"
+"PO-Revision-Date: 2026-08-27 13:01+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -26,7 +26,7 @@ msgid "&Hard reset"
 msgstr "&Reinicialização completa"
 
 msgid "&Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+&Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -1491,16 +1491,16 @@ msgid "ACP&I shutdown"
 msgstr "Desligamento por ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Desligar"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "&Desligar"
 
 msgid "Power &off"
-msgstr ""
+msgstr "&Desligar"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
-msgstr ""
+msgstr "Desligar a máquina virtual pode causar perda de dados. Você tem certeza que deseja continuar?"
 
 msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
@@ -3236,7 +3236,7 @@ msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Atualiza o estado do mouse em cada quadro da CPU"
+msgstr "Atualiza o estado do &mouse em cada quadro da CPU"
 
 msgid "Hue"
 msgstr "Matiz"
