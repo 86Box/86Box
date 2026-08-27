@@ -2080,7 +2080,7 @@ aic7890_seq_probe_command(aic7890_t *dev)
      * terminates; the BIOS reads the data from the buffer it gave us.
      */
     if (dev->probe_real_cmd && sd->sc != NULL && sd->phase != SCSI_PHASE_STATUS
-        && sd->buffer_length > 0 && sd->buffer_length < 4096
+        && sd->buffer_length > 0
         && sd->sc->temp_buffer != NULL) {
         uint32_t count = AIC_MIN((uint32_t) sd->buffer_length, dev->probe_buf_len);
         uint8_t *b = sd->sc->temp_buffer;
