@@ -293,8 +293,9 @@ extern const device_t entertainer_device;
 /* Mindscape Music Board */
 extern const device_t mmb_device;
 
-/* MediaVision ThunderBoard */
+/* Media Vision */
 extern const device_t thunderboard_device;
+extern const device_t jazz16_device;
 
 /* OPTi 82c93x */
 extern const device_t acermagic_s20_device;
