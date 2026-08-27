@@ -60,7 +60,6 @@
 #define CROSS_LEN           512
 
 static char temp_keyword[1024];
-static char temp_file[260]     = { 0 };
 
 #pragma pack(push, 1)
 struct sbi_replacement_ent
@@ -148,6 +147,8 @@ typedef struct cd_image_t {
     uint64_t sector_subs_size;
 
     FILE *subs_file;
+    
+    char temp_file[1024];
 } cd_image_t;
 
 typedef enum
@@ -2633,16 +2634,16 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     *fp = NULL;
 
     /* Dump mdxHeader */
-    plat_tempfile(temp_file, "mds_v2", ".tmp");
-    image_log(img->log, "\nDumping header into %s... ", nvr_path(temp_file));
+    plat_tempfile(img->temp_file, "mds_v2", ".tmp");
+    image_log(img->log, "\nDumping header into %s... ", nvr_path(img->temp_file));
 
-    *fp = plat_fopen64(nvr_path(temp_file), "wb");
+    *fp = plat_fopen64(nvr_path(img->temp_file), "wb");
     fwrite(mdxHeader, 1, decSize + 0x12, *fp);
 
     fclose(*fp);
     *fp = NULL;
 
-    *fp = plat_fopen64(nvr_path(temp_file), "rb");
+    *fp = plat_fopen64(nvr_path(img->temp_file), "rb");
 
     image_log(img->log, "Done\n");
     return isDVD + 1;
@@ -3507,9 +3508,9 @@ image_close(void *local)
 
         free(img);
 
-        if (temp_file[0] != 0x00) {
-            remove(nvr_path(temp_file));
-            temp_file[0] = 0x00;
+        if (img->temp_file[0] != 0x00) {
+            remove(nvr_path(img->temp_file));
+            img->temp_file[0] = 0x00;
         }
     }
 }

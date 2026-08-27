@@ -130,10 +130,10 @@ typedef struct {
     viso_entry_t  *file_fifo[VISO_OPEN_FILES];
 } viso_t;
 
-static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
-static const char rr_edesc[] = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
-static int        tz_offset_sec = 0;
-static int8_t     tz_offset_iso = 0;
+static const char rr_eid[]               = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
+static const char rr_edesc[]             = "THE ROCK RIDGE INTERCHANGE PROTOCOL PROVIDES SUPPORT FOR POSIX FILE SYSTEM SEMANTICS.";
+__thread static int        tz_offset_sec = 0;
+__thread static int8_t     tz_offset_iso = 0;
 
 #ifdef IMAGE_VISO_LOG
 int image_viso_do_log = IMAGE_VISO_LOG;
