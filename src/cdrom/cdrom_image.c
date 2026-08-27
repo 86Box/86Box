@@ -3506,12 +3506,12 @@ image_close(void *local)
         if (img->bad_sectors != NULL)
             free(img->bad_sectors);
 
-        free(img);
-
         if (img->temp_file[0] != 0x00) {
             remove(nvr_path(img->temp_file));
             img->temp_file[0] = 0x00;
         }
+
+        free(img);
     }
 }
 
