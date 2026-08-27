@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-16 17:51+0000\n"
+"PO-Revision-Date: 2026-08-27 20:33+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -427,7 +427,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamický překladač"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Přesnější FPU prostředí při dynamickém překladu"
 
 msgid "CPU frame size"
 msgstr "Velikost CPU rámců"
@@ -481,16 +481,16 @@ msgid "&Mouse"
 msgstr "&Myš"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "Tablet:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "Tablet"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "&Tablet"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "Tablet (&křížový kurzor)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -853,7 +853,7 @@ msgid "Input devices"
 msgstr "Vstupní zařízení"
 
 msgid "Input &device"
-msgstr ""
+msgstr "Vstupní &zařízení"
 
 msgid "Sound"
 msgstr "Zvuk"
@@ -865,7 +865,7 @@ msgid "Ports (COM & LPT)"
 msgstr "COM a LPT porty"
 
 msgid "Port"
-msgstr ""
+msgstr "Port"
 
 msgid "Ports"
 msgstr "Porty"
@@ -1294,8 +1294,9 @@ msgstr "Nebylo možné otevřít vybraný konfigurační soubor pro čtení: %1"
 msgid "Use regular expressions in search box"
 msgstr "Použít ve vyhledávacím poli regulární výrazy"
 
+#, fuzzy
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "Přesunout smazané virtuální počítače do koše"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1518,7 +1519,7 @@ msgid "ACP&I shutdown"
 msgstr "Vypnout skrze rozhraní ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Vypnout"
 
 msgid "Power &off…"
 msgstr ""
