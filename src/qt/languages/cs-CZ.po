@@ -1517,6 +1517,18 @@ msgstr "Vypnout skrze rozhraní ACPI"
 msgid "ACP&I shutdown"
 msgstr "Vypnout skrze rozhraní ACP&I"
 
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+
 msgid "Hard disk (%1)"
 msgstr "Pevný disk (%1)"
 

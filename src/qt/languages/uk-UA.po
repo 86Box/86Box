@@ -1496,6 +1496,18 @@ msgstr "Сигнал завершення ACPI"
 msgid "ACP&I shutdown"
 msgstr "Сигнал завершення ACP&I"
 
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+
 msgid "Hard disk (%1)"
 msgstr "Жорсткий диск (%1)"
 

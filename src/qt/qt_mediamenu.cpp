@@ -1236,12 +1236,13 @@ MediaMenu::moReload(int index, int slot)
 void
 MediaMenu::tapeNewImage(int i)
 {
-    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Tape, parentWidget);
+    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Tape, parentWidget, tape_drives[i].type);
     switch (dialog.exec()) {
         default:
             break;
         case QDialog::Accepted:
             QByteArray filename = dialog.fileName().toUtf8();
+            tape_drives[i].medium_type = dialog.mediaTypeIndex();
             tapeMount(i, filename, false);
             break;
     }

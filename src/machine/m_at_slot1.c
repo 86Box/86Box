@@ -468,6 +468,17 @@ static const device_config_t al440lx_config[] = {
                                    "roms/machines/al440lx/ALP0711A.RCV", "" }
             },
             {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0016 (Sony Vaio PCV-2xx)",
+                .internal_name = "pcv2xx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P07-0016.BIO", "roms/machines/al440lx/P07-0016.BI1",
+                                   "roms/machines/al440lx/P07-0016.BI2", "roms/machines/al440lx/P07-0016.BI3",
+                                   "roms/machines/al440lx/P07-0024.RCV", "" }
+            },
+            {
                 .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0024 (HP Pavilion 8190US)",
                 .internal_name = "pavilion8190us",
                 .bios_type     = BIOS_NORMAL,

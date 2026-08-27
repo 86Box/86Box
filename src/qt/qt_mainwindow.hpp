@@ -218,6 +218,8 @@ private:
     bool isShowMessage  = false;
     bool isNonPause     = false;
     bool window_blocked = false;
+
+    bool skip_exit_confirmation = false;
 };
 
 #endif // QT_MAINWINDOW_HPP
