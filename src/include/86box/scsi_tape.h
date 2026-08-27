@@ -154,8 +154,12 @@ typedef struct tape_t {
     int                bot;            /* Beginning-of-tape. */
     int                filemark_pending; /* A filemark was just encountered. */
     uint8_t            active_partition; /* Selected logical partition. */
-    uint8_t            aux_filemark;     /* Virtual auxiliary partition contents. */
-    uint8_t            aux_pos;          /* Position in the auxiliary partition. */
+    uint8_t            aux_filemark;     /* Filemark follows auxiliary data. */
+    uint8_t            aux_filemark_seen; /* Current position is past that mark. */
+    uint8_t           *aux_buf;          /* Virtual auxiliary partition data. */
+    uint32_t           aux_buf_size;     /* Allocated auxiliary buffer size. */
+    uint32_t           aux_data_len;     /* Bytes of valid auxiliary data. */
+    uint32_t           aux_pos;          /* Byte position in auxiliary data. */
 
     /* Read-ahead buffer for re-blocking: when a SIMH record is larger than
        the requested fixed block size, the unconsumed remainder is stored here

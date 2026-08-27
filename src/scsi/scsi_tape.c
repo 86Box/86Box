@@ -402,6 +402,8 @@ tape_init(tape_t *dev)
         dev->filemark_pending = 0;
         dev->active_partition = 0;
         dev->aux_filemark     = 0;
+        dev->aux_filemark_seen = 0;
+        dev->aux_data_len     = 0;
         dev->aux_pos          = 0;
         dev->rec_remaining    = 0;
     }
@@ -1588,6 +1590,7 @@ tape_rewind(tape_t *dev)
 {
     if (dev->active_partition != 0) {
         dev->aux_pos          = 0;
+        dev->aux_filemark_seen = 0;
         dev->bot              = 1;
         dev->eot              = 0;
         dev->filemark_pending = 0;
@@ -1812,13 +1815,28 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_LOCATE_10:
-            count = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+            /* SSC LOCATE(10) stores the logical object identifier in bytes
+               3 through 6. Byte 2 is reserved and byte 8 is the partition. */
+            count = ((uint32_t) cdb[3] << 24) |
+                    ((uint32_t) cdb[4] << 16) |
+                    ((uint32_t) cdb[5] << 8) |
+                     (uint32_t) cdb[6];
 
             if (cdb[1] & 0x06)
                 tape_invalid_field(dev, cdb[1]);
             else if (cdb[8] != 0x00)
                 tape_invalid_field(dev, cdb[8]);
             else {
+                if (dev->active_partition != 0) {
+                    uint64_t offset = (uint64_t) count * dev->block_size;
+                    dev->aux_pos = (uint32_t) MIN(offset, dev->aux_data_len);
+                    dev->aux_filemark_seen = 0;
+                    dev->bot = dev->aux_pos == 0;
+                    dev->eot = 0;
+                    tape_set_phase(dev, SCSI_PHASE_STATUS);
+                    tape_command_complete(dev);
+                    break;
+                }
                 tape_rewind(dev);
 
                 tape_seek_blocks_forward(dev, count);
@@ -1841,8 +1859,35 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                                   (uint32_t) cdb[4];
 
             if (dev->active_partition != 0) {
-                if (dev->aux_filemark && (dev->aux_pos == 0)) {
-                    dev->aux_pos = 1;
+                uint64_t requested64 = fixed ?
+                    ((uint64_t) xfer_len * dev->block_size) : xfer_len;
+                if ((fixed && (dev->block_size == 0)) ||
+                    (requested64 > TAPE_MAX_TRANSFER)) {
+                    tape_invalid_field(dev, xfer_len);
+                    return;
+                }
+
+                if (dev->aux_pos < dev->aux_data_len) {
+                    uint32_t requested = (uint32_t) requested64;
+                    uint32_t available = dev->aux_data_len - dev->aux_pos;
+                    uint32_t actual    = MIN(requested, available);
+
+                    tape_set_phase(dev, SCSI_PHASE_DATA_IN);
+                    tape_buf_alloc(dev, requested);
+                    memset(dev->buffer, 0, requested);
+                    memcpy(dev->buffer, dev->aux_buf + dev->aux_pos, actual);
+                    dev->aux_pos += actual;
+                    dev->bot = 0;
+                    dev->packet_len = actual;
+                    dev->requested_blocks = fixed ? xfer_len : 1;
+                    tape_set_buf_len(dev, BufLen, (int32_t *) &dev->packet_len);
+                    tape_data_command_finish(dev, actual,
+                                             fixed ? dev->block_size : actual,
+                                             actual, 0);
+                    ui_sb_update_icon(SB_TAPE | dev->id,
+                                      dev->packet_status != PHASE_COMPLETE);
+                } else if (dev->aux_filemark && !dev->aux_filemark_seen) {
+                    dev->aux_filemark_seen = 1;
                     dev->bot     = 0;
                     tape_filemark_detected(dev, fixed ? xfer_len : 0);
                 } else
@@ -2094,7 +2139,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                     tape_invalid_field(dev, xfer_len);
                     return;
                 }
-                if (!tape_write_fits(dev, total_bytes64)) {
+                if ((dev->active_partition == 0) &&
+                    !tape_write_fits(dev, total_bytes64)) {
                     tape_eom_detected(dev, xfer_len);
                     return;
                 }
@@ -2112,7 +2158,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                                         dev->packet_status != PHASE_COMPLETE);
             } else {
                 /* Variable: xfer_len is the number of bytes for one record. */
-                if (!tape_write_fits(dev, xfer_len)) {
+                if ((dev->active_partition == 0) &&
+                    !tape_write_fits(dev, xfer_len)) {
                     tape_eom_detected(dev, 1);
                     return;
                 }
@@ -2149,7 +2196,7 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
             if (dev->active_partition != 0) {
                 if (count != 0)
                     dev->aux_filemark = 1;
-                dev->aux_pos = count != 0;
+                dev->aux_filemark_seen = count != 0;
                 dev->bot     = count == 0;
                 tape_set_phase(dev, SCSI_PHASE_STATUS);
                 tape_command_complete(dev);
@@ -2194,6 +2241,47 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
                      code, count, dev->filemark_pending);
 
             dev->rec_remaining = 0; /* Invalidate read-ahead buffer. */
+
+            if (dev->active_partition != 0) {
+                switch (code) {
+                    case 0:
+                        if (dev->block_size == 0) {
+                            tape_invalid_field(dev, cdb[1]);
+                            return;
+                        }
+                        {
+                            int64_t offset = (int64_t) dev->aux_pos +
+                                             ((int64_t) count * dev->block_size);
+                            if (offset < 0)
+                                offset = 0;
+                            if (offset > dev->aux_data_len)
+                                offset = dev->aux_data_len;
+                            dev->aux_pos = (uint32_t) offset;
+                            dev->aux_filemark_seen = 0;
+                        }
+                        break;
+                    case 1:
+                        if (count > 0 && dev->aux_filemark) {
+                            dev->aux_pos = dev->aux_data_len;
+                            dev->aux_filemark_seen = 1;
+                        } else if (count < 0 && dev->aux_filemark) {
+                            dev->aux_pos = dev->aux_data_len;
+                            dev->aux_filemark_seen = 0;
+                        }
+                        break;
+                    case 3:
+                        dev->aux_pos = dev->aux_data_len;
+                        dev->aux_filemark_seen = dev->aux_filemark;
+                        break;
+                    default:
+                        tape_invalid_field(dev, cdb[1]);
+                        return;
+                }
+                dev->bot = dev->aux_pos == 0;
+                tape_set_phase(dev, SCSI_PHASE_STATUS);
+                tape_command_complete(dev);
+                break;
+            }
 
             /* If a filemark was deferred from a previous read, the tape
                position is already past the filemark.  Account for it
@@ -2278,6 +2366,8 @@ tape_command(scsi_common_t *sc, const uint8_t *cdb)
 
             if (dev->active_partition != 0) {
                 dev->aux_filemark = 0;
+                dev->aux_filemark_seen = 0;
+                dev->aux_data_len = 0;
                 dev->aux_pos      = 0;
                 dev->bot          = 1;
                 dev->eot          = 0;
@@ -2604,9 +2694,32 @@ tape_phase_data_out(scsi_common_t *sc)
                                   (uint32_t) dev->current_cdb[4];
 
             if (dev->active_partition != 0) {
-                /* The SIMH image stores partition zero. Auxiliary directory
-                   data remains virtual so it cannot overwrite that stream. */
-                dev->aux_pos = 1;
+                uint32_t bytes = fixed ? xfer_len * dev->block_size : xfer_len;
+                uint64_t end64 = (uint64_t) dev->aux_pos + bytes;
+                if (end64 > UINT32_MAX) {
+                    tape_eom_detected(dev, fixed ? xfer_len : 1);
+                    tape_buf_free(dev);
+                    return 0;
+                }
+                uint32_t end = (uint32_t) end64;
+                if (end > dev->aux_buf_size) {
+                    uint8_t *buf = (uint8_t *) realloc(dev->aux_buf, end);
+                    if (buf == NULL) {
+                        tape_sense_key = SENSE_MEDIUM_ERROR;
+                        tape_asc       = ASC_WRITE_ERROR;
+                        tape_ascq      = 0;
+                        tape_cmd_error(dev);
+                        tape_buf_free(dev);
+                        return 0;
+                    }
+                    dev->aux_buf      = buf;
+                    dev->aux_buf_size = end;
+                }
+                memcpy(dev->aux_buf + dev->aux_pos, dev->buffer, bytes);
+                dev->aux_pos       = end;
+                dev->aux_data_len  = end;
+                dev->aux_filemark  = 0;
+                dev->aux_filemark_seen = 0;
                 dev->bot     = 0;
                 ui_sb_update_icon_write(SB_TAPE | dev->id, 0);
                 break;
@@ -2735,7 +2848,6 @@ tape_phase_data_out(scsi_common_t *sc)
                 if (page == GPMODE_DEVICE_CONFIG_PAGE) {
                     dev->active_partition =
                         dev->ms_pages_saved.pages[page][3];
-                    dev->aux_pos = 0;
                     tape_log(dev->log, "MODE SELECT: active partition set to %u\n",
                              dev->active_partition);
                 }
@@ -2995,6 +3107,9 @@ tape_close(void)
 
                 if (dev->rec_buf)
                     free(dev->rec_buf);
+
+                if (dev->aux_buf)
+                    free(dev->aux_buf);
 
                 if (dev->tf)
                     free(dev->tf);
