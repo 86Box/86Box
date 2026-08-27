@@ -32,6 +32,9 @@
 #include <86box/hwm.h>
 #include <86box/spd.h>
 #include <86box/video.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/network.h>
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/sound.h>
@@ -785,9 +788,7 @@ machine_at_ma30d_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-#ifdef UNKNOWN_SLOT
-    pci_register_slot(0x0A, PCI_CARD_NETWORK,     2, 3, 4, 1); /* ???? device - GPIO? */
-#endif
+    pci_register_slot(0x0A, PCI_CARD_NETWORK,     2, 3, 4, 1); /* NEC PK-UG-X006 */
     pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
@@ -802,6 +803,9 @@ machine_at_ma30d_init(const machine_t *model)
     device_add_params(&fdc37c67x_device, (void *) (FDC37XXX2 | FDC37XXXX_370));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+        device_add(machine_get_net_device(machine));
 
     return ret;
 }

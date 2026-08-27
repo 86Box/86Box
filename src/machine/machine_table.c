@@ -18137,7 +18137,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB, /* Machine has internal video: ATI Mach64GT 3D Rage and internal NIC: Intel 82557 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB | MACHINE_NIC, /* Machine has internal video: ATI Mach64GT 3D Rage and internal NIC: Intel 82557 */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -18160,7 +18160,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &sb_vibra16c_onboard_device,
-        .net_device               = NULL,
+        .net_device               = &i82557b_onboard_device,
         .aliases                  = { "Intel Cumberland", "Toshiba Equium 5xx0D", "NEC PowerMate V2xxx", "NEC PowerMate P2xxx", "" }
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
@@ -19222,7 +19222,7 @@ const machine_t machines[] = {
             .max_multi   = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_VIDEO | MACHINE_NIC, /* Machine has internal NIC: Intel 82559C */
         .ram       = {
             .min  = 8192,
             .max  = 262144,
@@ -19245,7 +19245,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
-        .net_device               = NULL,
+        .net_device               = &i82559c_onboard_device,
         .aliases                  = { "ADLink NuPRO-590", "" }
     },
     /* This has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
@@ -22329,7 +22329,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_PCIONLY | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP, network: NEC PK-UG-X006 (Intel 82558B chip) and sound: OAK Audia 3D (OTI-610) for MA23D or YAMAHA YMF724 for MA30D */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_NIC,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -22352,7 +22352,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL,
+        .net_device               = &nec_pk_ug_x006_onboard_device,
         .aliases                  = { "NEC Mate NX MA23D", "" }
     },
 
