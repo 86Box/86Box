@@ -173,7 +173,10 @@ SettingsMachine::changed()
     else
         temp_mem_size = ui->spinBoxRAM->value() * 1024;
 
-    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    const int gran = machine_get_ram_granularity(machine);
+    const int min  = machine_get_min_ram(machine);
+    if (temp_mem_size > min)
+        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
     if (temp_mem_size < machine_get_min_ram(machine))
         temp_mem_size = machine_get_min_ram(machine);
     else if (temp_mem_size > machine_get_max_ram(machine))
@@ -227,7 +230,10 @@ SettingsMachine::save(int soft)
     else
         temp_mem_size = ui->spinBoxRAM->value() * 1024;
 
-    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    const int gran = machine_get_ram_granularity(machine);
+    const int min  = machine_get_min_ram(machine);
+    if (temp_mem_size > min)
+        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
     if (temp_mem_size < machine_get_min_ram(machine))
         temp_mem_size = machine_get_min_ram(machine);
     else if (temp_mem_size > machine_get_max_ram(machine))

@@ -720,7 +720,7 @@ update_mouse_msg(void)
              "Click to capture mouse");
     snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
              EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
-             (mouse_get_buttons() > 2) ? "Press CTRL-ALT-G to release mouse" : "Press CTRL-ALT-G or middle button to release mouse");
+             (mouse_get_buttons() > 2) ? "Press CTRL-SHIFT-G to release mouse" : "Press CTRL-SHIFT-G or middle button to release mouse");
     snprintf(mouse_msg[2], sizeof(mouse_msg[2]), "%s v%s - %%i%%%% - %s - %s/%s",
              EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name);
 }
