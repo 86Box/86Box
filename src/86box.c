@@ -282,12 +282,12 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
     {
         .name="fast_forward",
         .desc="Fast forward",
-        .seq="Ctrl+Alt+F"
+        .seq="Ctrl+Shift+F"
     },
     {
         .name="release_mouse",
         .desc="Release mouse pointer",
-        .seq="Ctrl+Alt+G"
+        .seq="Ctrl+Shift+G"
     },
     {
         .name="hard_reset",
@@ -297,17 +297,17 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
     {
         .name="pause",
         .desc="Toggle pause",
-        .seq="Ctrl+Alt+P"
+        .seq="Ctrl+Shift+P"
     },
     {
         .name="mute",
         .desc="Toggle mute",
-        .seq="Ctrl+Alt+M"
+        .seq="Ctrl+Shift+M"
     },
     {
         .name="force_interpretation",
         .desc="Force interpretation",
-        .seq="Ctrl+Alt+I"
+        .seq="Ctrl+Shift+I"
     },
     {
         .name="nmi",
@@ -317,7 +317,7 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
     {
         .name="toggle_osd",
         .desc="Toggle on-screen display",
-        .seq="Ctrl+Alt+O"
+        .seq="Ctrl+Shift+O"
     }
 ,
     {
