@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-22 20:53+0000\n"
+"PO-Revision-Date: 2026-08-28 22:12+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -427,7 +427,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamische recompiler"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Nauwkeurige FPU-omgeving voor de dynamische recompiler"
 
 msgid "CPU frame size"
 msgstr "CPU framegrootte"
@@ -1490,16 +1490,18 @@ msgid "ACP&I shutdown"
 msgstr "ACP&I-uitschakeling"
 
 msgid "Power off"
-msgstr ""
+msgstr "Uitschakelen"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "&Uitschakelen…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "&Uitschakelen"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Het uitschakelen van de geëmuleerde machine kan leiden tot gegevensverlies. "
+"Weet je zeker dat je door wilt gaan?"
 
 msgid "Hard disk (%1)"
 msgstr "Harde schijf (%1)"
