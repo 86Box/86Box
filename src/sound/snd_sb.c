@@ -924,8 +924,13 @@ sb_get_buffer_ess_dac2(int32_t *buffer, uint16_t len, void *priv)
     for (int c = 0; c < len * 2; c += 2) {
         double out_l = 0.0;
         double out_r = 0.0;
-        out_l += (low_fir_ess_dac2(0, (double) ess->ess_dac2_buffer[c]) * mixer->dac2_l) / 3.0;
-        out_r += (low_fir_ess_dac2(1, (double) ess->ess_dac2_buffer[c + 1]) * mixer->dac2_r) / 3.0;
+        if (mixer->output_filter_dac2) {
+            out_l += (low_fir_ess_dac2(0, (double) ess->ess_dac2_buffer[c]) * mixer->dac2_l) / 3.0;
+            out_r += (low_fir_ess_dac2(1, (double) ess->ess_dac2_buffer[c + 1]) * mixer->dac2_r) / 3.0;
+        } else {
+            out_l += (ess->ess_dac2_buffer[c] * mixer->dac2_l) / 3.0;
+            out_r += (ess->ess_dac2_buffer[c + 1] * mixer->dac2_r) / 3.0;
+        }
         out_l *= mixer->master_l;
         out_r *= mixer->master_r;
         buffer[c] += (int32_t) out_l;
@@ -2129,6 +2134,9 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1869) {
                         sb_log("ESS DAC2 Mode register write: val = %02X\n", val);
                         ess->dsp.es1869_divider_mode = (val & 0x20) ? 1 : 0;
+                        mixer->output_filter      = (val & 0x04) ? 1 : 0;
+                        mixer->input_filter       = (val & 0x04) ? 1 : 0;
+                        mixer->output_filter_dac2 = (val & 0x08) ? 1 : 0;
                     }
                     break;
                 case 0x72: /* DAC 2 Filter Clock Divider */
@@ -6015,6 +6023,7 @@ ess_1x88_onboard_init(const device_t *info)
         /* Initialize ESS filter to 8 kHz. This will be recalculated when a set frequency command is
            sent. */
         recalc_ess_dac2_filter(8000 * 2);
+        ess->mixer_ess.output_filter_dac2 = 1;
     }
 
     /* Calculate 6-bit attenuation values for ES1788+ master volume control */
@@ -6133,6 +6142,7 @@ ess_186x_init(const device_t *info)
     /* Initialize ESS filter to 8 kHz. This will be recalculated when a set frequency command is
        sent. */
     recalc_ess_dac2_filter(8000 * 2);
+    ess->mixer_ess.output_filter_dac2 = 1;
 
     /* Init read-only control registers */
     ess->es186x_ctrl_iregs[0x20] = 0x59;
