@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-08-28 22:12+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
 "Language: ja-JP\n"
@@ -866,7 +866,7 @@ msgid "Ports (COM & LPT)"
 msgstr "ポート (COM/LPT)"
 
 msgid "Port"
-msgstr ""
+msgstr "ポート"
 
 msgid "Ports"
 msgstr "ポート"
@@ -1266,7 +1266,7 @@ msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
 msgid "Delete virtual machines to Recycle Bin"
-msgstr ""
+msgstr "仮想マシンをごみ箱へ移動"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -2277,7 +2277,7 @@ msgid "Host ID"
 msgstr "ホストID"
 
 msgid "Host"
-msgstr ""
+msgstr "ホスト"
 
 msgid "FDC Address"
 msgstr "FDCアドレス"
@@ -2988,10 +2988,10 @@ msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkanレンダラーの初期化に失敗しました。"
 
 msgid "Failed to create Vulkan 1.3 instance."
-msgstr ""
+msgstr "Vulkan 1.3 インスタンスを作成できませんでした。"
 
 msgid "No usable Vulkan physical devices found."
-msgstr ""
+msgstr "利用可能な Vulkan 物理デバイスが検出されませんでした。"
 
 msgid "No Vulkan-capable physical devices found."
 msgstr ""
@@ -3000,10 +3000,10 @@ msgid "librashader not found. Shaders will not be available."
 msgstr ""
 
 msgid "Vulkan device lost."
-msgstr ""
+msgstr "Vulkan デバイスが失われました。"
 
 msgid "Vulkan surface lost."
-msgstr ""
+msgstr "Vulkan サーフェスが失われました。"
 
 msgid "GLSL Error"
 msgstr "GLSLエラー"
@@ -3027,7 +3027,7 @@ msgid "Shader Configuration"
 msgstr "シェーダー設定"
 
 msgid "GPU:"
-msgstr ""
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "追加"
@@ -3484,10 +3484,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体字中国語)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "サンプリング周波数:"
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "CGA ライトペン"
 
 msgid "Luminance threshold (%)"
 msgstr ""
