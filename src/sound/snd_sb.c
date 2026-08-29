@@ -2134,9 +2134,9 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     if (ess->dsp.sb_subtype == SB_SUBTYPE_ESS_ES1869) {
                         sb_log("ESS DAC2 Mode register write: val = %02X\n", val);
                         ess->dsp.es1869_divider_mode = (val & 0x20) ? 1 : 0;
-                        mixer->output_filter      = (val & 0x04) ? 1 : 0;
-                        mixer->input_filter       = (val & 0x04) ? 1 : 0;
-                        mixer->output_filter_dac2 = (val & 0x08) ? 1 : 0;
+                        mixer->output_filter      = (val & 0x04) ? 0 : 1;
+                        mixer->input_filter       = (val & 0x04) ? 0 : 1;
+                        mixer->output_filter_dac2 = (val & 0x08) ? 0 : 1;
                     }
                     break;
                 case 0x72: /* DAC 2 Filter Clock Divider */
