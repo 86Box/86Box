@@ -1498,6 +1498,9 @@ piix_reset(void *priv)
             piix_write(2, 0x21, 1, 0x00, priv);
             piix_write(2, 0x22, 1, 0x00, priv);
             piix_write(2, 0x23, 1, 0x00, priv);
+
+            piix_write(2, 0xc0, 1, 0x00, priv);
+            piix_write(2, 0xc1, 1, 0x20, priv);
         }
     }
 
