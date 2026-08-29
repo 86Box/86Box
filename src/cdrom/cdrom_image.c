@@ -1741,13 +1741,172 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
             free(rtis);
             free(rtis_sorted);
         }
-        return 1;
+        ini_close(ccd_ini);
+        free(img_path);
+        img_path = NULL;
+        if (img->tracks_num > 0)
+            return 1;
     }
+    if (img->subs_file != NULL) {
+        fclose(img->subs_file);
+        img->subs_file = NULL;
+    }
+    if (tf != NULL)
+        tf->close(tf);
+    free(img_path);
     return 0;
 }
 
+typedef struct toc_track_t {
+    char     filename[MAX_FILENAME_LENGTH];
+    char     file_type[9];
+    char     cue_type[16];
+    uint64_t offset;
+    uint64_t start;
+    uint64_t pregap;
+    uint8_t  flags;
+} toc_track_t;
+
+static int image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp);
+
+static uint64_t
+image_toc_get_frame(char **line, const uint32_t sector_size)
+{
+    char value[64] = { 0 };
+    unsigned int m, s, f;
+    uint64_t bytes;
+
+    if (!image_cue_get_buffer(value, line, 0))
+        return 0;
+    if (sscanf(value, "%u:%u:%u", &m, &s, &f) == 3)
+        return ((uint64_t) m * 60 + s) * 75 + f;
+    if (sscanf(value, "%" SCNu64, &bytes) == 1)
+        return sector_size ? bytes / sector_size : 0;
+    return 0;
+}
+
+/* Read the cdrdao TOC format and feed its normalized layout to the CUE
+   loader.  Both formats describe the same track/index model, but put FILE
+   directives on opposite sides of TRACK directives. */
 static int
-image_load_cue(cd_image_t *img, const char *cuefile)
+image_load_toc(cd_image_t *img, const char *tocfile)
+{
+    FILE        *in = plat_fopen(tocfile, "r");
+    FILE        *cue = NULL;
+    toc_track_t  tracks[99] = { 0 };
+    toc_track_t *track = NULL;
+    char         buf[MAX_LINE_LENGTH];
+    int          tracks_num = 0;
+    int          success = 1;
+
+    if (in == NULL)
+        return 0;
+
+    while (success && fgets(buf, sizeof(buf), in) != NULL) {
+        char *comment = strstr(buf, "//");
+        char *line = buf;
+        char *command;
+        char *type;
+        if (comment != NULL)
+            *comment = '\0';
+        if (!image_cue_get_keyword(&command, &line)) {
+            success = 0;
+            break;
+        }
+        if (!strcmp(command, "TRACK")) {
+            if (tracks_num == 99 || !image_cue_get_keyword(&type, &line)) {
+                success = 0;
+                break;
+            }
+            track = &tracks[tracks_num++];
+            strcpy(track->file_type, "BINARY");
+            if (!strcmp(type, "AUDIO"))
+                strcpy(track->cue_type, "AUDIO");
+            else if (!strcmp(type, "MODE1") || !strcmp(type, "MODE1_RAW"))
+                strcpy(track->cue_type, !strcmp(type, "MODE1") ? "MODE1/2048" : "MODE1/2352");
+            else if (!strcmp(type, "MODE2") || !strcmp(type, "MODE2_FORM_MIX") ||
+                     !strcmp(type, "MODE2_RAW"))
+                strcpy(track->cue_type, !strcmp(type, "MODE2_RAW") ? "MODE2/2352" : "MODE2/2336");
+            else if (!strcmp(type, "MODE2_FORM1"))
+                strcpy(track->cue_type, "MODE2/2048");
+            else if (!strcmp(type, "MODE2_FORM2"))
+                strcpy(track->cue_type, "MODE2/2324");
+            else
+                success = 0;
+        } else if (!strcmp(command, "FILE") || !strcmp(command, "DATAFILE") ||
+                   !strcmp(command, "AUDIOFILE")) {
+            if (track == NULL || !image_cue_get_buffer(track->filename, &line, 0)) {
+                success = 0;
+                break;
+            }
+            if (!strcmp(command, "AUDIOFILE"))
+                strcpy(track->file_type, "WAVE");
+            uint32_t sector_size = !strcmp(track->cue_type, "AUDIO") ? 2352 :
+                                   (strrchr(track->cue_type, '/') ? atoi(strrchr(track->cue_type, '/') + 1) : 2352);
+            track->offset = image_toc_get_frame(&line, sector_size);
+        } else if (!strcmp(command, "START")) {
+            if (track != NULL)
+                track->start = image_toc_get_frame(&line, 2352);
+        } else if (!strcmp(command, "PREGAP") || !strcmp(command, "SILENCE") ||
+                   !strcmp(command, "ZERO")) {
+            if (track != NULL)
+                track->pregap += image_toc_get_frame(&line, 2352);
+        } else if (!strcmp(command, "COPY")) {
+            if (track != NULL)
+                track->flags |= 1;
+        } else if (!strcmp(command, "PRE_EMPHASIS")) {
+            if (track != NULL)
+                track->flags |= 2;
+        } else if (!strcmp(command, "FOUR_CHANNEL_AUDIO")) {
+            if (track != NULL)
+                track->flags |= 4;
+        }
+        /* Disc type, CD-TEXT, catalog, ISRC and negative flags do not alter
+           the sector layout and are intentionally ignored. */
+    }
+    fclose(in);
+
+    if (!success || tracks_num == 0)
+        return 0;
+    cue = tmpfile();
+    if (cue == NULL)
+        return 0;
+
+    char previous_file[MAX_FILENAME_LENGTH] = { 0 };
+    for (int i = 0; i < tracks_num; i++) {
+        track = &tracks[i];
+        if (!track->filename[0]) {
+            success = 0;
+            break;
+        }
+        if (strcmp(previous_file, track->filename)) {
+            fprintf(cue, "FILE \"%s\" %s\n", track->filename, track->file_type);
+            memcpy(previous_file, track->filename, sizeof(previous_file));
+        }
+        fprintf(cue, "  TRACK %02d %s\n", i + 1, track->cue_type);
+        if (track->flags) {
+            fprintf(cue, "    FLAGS %s%s%s\n", (track->flags & 1) ? "DCP" : "",
+                    (track->flags & 2) ? "PRE" : "", (track->flags & 4) ? "4CH" : "");
+        }
+        if (track->pregap)
+            fprintf(cue, "    PREGAP %02" PRIu64 ":%02" PRIu64 ":%02" PRIu64 "\n",
+                    track->pregap / 4500, (track->pregap / 75) % 60, track->pregap % 75);
+        if (track->start) {
+            fprintf(cue, "    INDEX 00 %02" PRIu64 ":%02" PRIu64 ":%02" PRIu64 "\n",
+                    track->offset / 4500, (track->offset / 75) % 60, track->offset % 75);
+        }
+        const uint64_t index = track->offset + track->start;
+        fprintf(cue, "    INDEX 01 %02" PRIu64 ":%02" PRIu64 ":%02" PRIu64 "\n",
+                index / 4500, (index / 75) % 60, index % 75);
+    }
+    rewind(cue);
+    const int ret = success ? image_load_cue_fp(img, tocfile, cue) : 0;
+    fclose(cue);
+    return ret;
+}
+
+static int
+image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp)
 {
     track_t       *ct                            = NULL;
     track_index_t *ci                            = NULL;
@@ -1773,11 +1932,6 @@ image_load_cue(cd_image_t *img, const char *cuefile)
     /* Get a copy of the filename into pathname, we need it later. */
     memset(pathname, 0, MAX_FILENAME_LENGTH * sizeof(char));
     path_get_dirname(pathname, cuefile);
-
-    /* Open the file. */
-    FILE          *fp = plat_fopen(cuefile, "r");
-    if (fp == NULL)
-        return 0;
 
     /* Skip the UTF-8 BOM, if any. */
     int bom = (fread(buf, 1, 3, fp) >= 3) &&
@@ -2126,8 +2280,6 @@ image_load_cue(cd_image_t *img, const char *cuefile)
 
     tf = NULL;
 
-    fclose(fp);
-
     if (success)
         image_process(img);
     else
@@ -2180,6 +2332,18 @@ image_load_cue(cd_image_t *img, const char *cuefile)
     }
 
     return success;
+}
+
+static int
+image_load_cue(cd_image_t *img, const char *cuefile)
+{
+    FILE *fp = plat_fopen(cuefile, "r");
+    if (fp == NULL)
+        return 0;
+
+    const int ret = image_load_cue_fp(img, cuefile, fp);
+    fclose(fp);
+    return ret;
 }
 
 /*
@@ -3328,6 +3492,11 @@ image_close(void *local)
     if (img != NULL) {
         image_clear_tracks(img);
 
+        if (img->subs_file != NULL) {
+            fclose(img->subs_file);
+            img->subs_file = NULL;
+        }
+
         image_log(img->log, "Log closed\n");
 
         log_close(img->log);
@@ -3363,13 +3532,15 @@ static const cdrom_ops_t image_ops = {
 void *
 image_open(cdrom_t *dev, const char *path)
 {
-    const uintptr_t  ext = path + strlen(path) - strrchr(path, '.');
+    const char       *dot = strrchr(path, '.');
+    const uintptr_t   ext = dot ? (uintptr_t) (path + strlen(path) - dot) : 0;
     cd_image_t      *img = (cd_image_t *) calloc(1, sizeof(cd_image_t));
 
     if (img != NULL) {
         int       ret;
         const int is_ccd  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CCD"));
         const int is_cue  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CUE"));
+        const int is_toc  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "TOC"));
         const int is_mds  = ((ext == 4) && (!stricmp(path + strlen(path) - ext + 1, "MDS") ||
                                             !stricmp(path + strlen(path) - ext + 1, "MDX")));
         char      n[1024] = { 0 };
@@ -3381,6 +3552,16 @@ image_open(cdrom_t *dev, const char *path)
 
         if (is_ccd) {
             ret = image_load_ccd(img, path);
+
+            if (ret >= 1)
+                img->is_dvd = 2;
+        } else if (is_toc) {
+            ret = image_load_toc(img, path);
+
+            if (ret >= 2)
+                img->has_audio = 0;
+            else if (ret)
+                img->has_audio = 1;
 
             if (ret >= 1)
                 img->is_dvd = 2;

@@ -252,6 +252,9 @@ extern const device_t rtl8139c_plus_device;
 /* Intel 8255x */
 extern const device_t i82557_device;
 extern const device_t i82558_device;
+extern const device_t i82557b_onboard_device;
+extern const device_t nec_pk_ug_x006_device;
+extern const device_t i82559c_onboard_device;
 
 /* DEC Tulip */
 extern const device_t dec_tulip_device;

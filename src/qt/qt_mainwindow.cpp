@@ -1698,7 +1698,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         // because it's not a menu accelerator.
         QKeyEvent *ke = (QKeyEvent *) event;
         if (mouse_capture) {
-            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse") || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse")) {
+            if ((QKeySequence) (ke->key() | (ke->modifiers() & ~Qt::KeypadModifier)) == FindAcceleratorSeq("release_mouse")
+                || (QKeySequence) (ke->key() | ke->modifiers()) == FindAcceleratorSeq("release_mouse")) {
                 /* Prevent an Alt-based shortcut from looking like a standalone
                  * Alt press to the guest when the held modifiers are released. */
                 this->keyReleaseEvent(ke);

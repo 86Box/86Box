@@ -1109,7 +1109,7 @@ opOUTSB_a16_ex(UNUSED(uint32_t fetchdat))
 
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ(cpu_state.ea_seg, SI, SI);
-    do_mmut_rb(cpu_state.ea_seg->base, SI, addr64a);
+    do_mmut_rb(cpu_state.ea_seg->base, SI, &addr64);
     if (cpu_state.abrt)
         return 1;
     check_io_perm(DX, 1);

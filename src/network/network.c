@@ -123,6 +123,7 @@ static const NETWORK_CARD net_cards[] = {
     { &dec_tulip_device           },
     { &i82557_device              },
     { &i82558_device              },
+    { &nec_pk_ug_x006_device      },
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
     { &smc_epic100_device         },

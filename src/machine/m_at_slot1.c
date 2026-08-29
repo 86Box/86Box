@@ -32,6 +32,9 @@
 #include <86box/hwm.h>
 #include <86box/spd.h>
 #include <86box/video.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/network.h>
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/sound.h>
@@ -787,9 +790,7 @@ machine_at_ma30d_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-#ifdef UNKNOWN_SLOT
-    pci_register_slot(0x0A, PCI_CARD_NETWORK,     2, 3, 4, 1); /* ???? device - GPIO? */
-#endif
+    pci_register_slot(0x0A, PCI_CARD_SOUND,       2, 3, 4, 1); /* Sound - The NIC is an add-on card! */
     pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
@@ -809,6 +810,229 @@ machine_at_ma30d_init(const machine_t *model)
 }
 
 /* i440EX */
+static const device_config_t in440ex_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "in440ex",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.00",
+                .internal_name = "in440ex_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/655100.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.00 (Toshiba Equium 3000M)",
+                .internal_name = "equium3000m_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/659100.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.01 (Toshiba Equium 3000M)",
+                .internal_name = "equium3000m",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/659101.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.02 (Gobi Internet PC)",
+                .internal_name = "gobipc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/GOBI.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.03",
+                .internal_name = "in440ex",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/654103.bin", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 (Sony Vaio PCV-E2xx)",
+                .internal_name = "pcve2xx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/B018TV0K.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t in440ex_device = {
+    .name          = "BCM IN440EX",
+    .internal_name = "in440ex",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = in440ex_config
+};
+
+int
+machine_at_in440ex_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int is_sony = !strcmp(device_get_config_bios("bios"), "pcve2xx");
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+
+    device_add(&i440ex_device);
+    device_add(&piix4e_device);
+    device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
+
+    /* The Sony variant seems to use a different flash chip as it cannot save ESCD with the 29F020A */
+    if (is_sony)
+        device_add(&sst_flash_29ee020_device); /* guess */
+    else
+        device_add(&amd_flash_29f020a_device);
+
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+static const device_config_t in440exd_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "in440exd",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.00",
+                .internal_name = "in440exd_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440exd/852100.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.01 (CompUSA PC American Pro)",
+                .internal_name = "americanpro",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440exd/208529850103377_A03_Award_PCI_PNP_686_138086729_U22_Winbond_W29020P-90.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.02",
+                .internal_name = "in440exd",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440exd/852102.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t in440exd_device = {
+    .name          = "BCM IN440EX-D",
+    .internal_name = "in440exd",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = in440exd_config
+};
+
+int
+machine_at_in440exd_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+
+    device_add(&i440ex_device);
+    device_add(&piix4e_device);
+    device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
+    device_add(&amd_flash_29f020a_device);
+
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
 int
 machine_at_brio83xx_init(const machine_t *model)
 {

@@ -754,6 +754,7 @@ VulkanWindowRenderer::render()
     }
     vmaFlushAllocation(allocator, img_allocation, 0, VK_WHOLE_SIZE);
 
+#ifdef LIBRA_RUNTIME_VULKAN
     if (shaderSrcImageTransitioned[swapchain_image_index] && !noshadersloaded) {
         const VkImageMemoryBarrier image3_memory_barrier {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -773,6 +774,7 @@ VulkanWindowRenderer::render()
 
         m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
     }
+#endif
 
     VkClearColorValue clr_val = {};
     clr_val.float32[0] = 0;

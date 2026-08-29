@@ -441,6 +441,8 @@ typedef struct mystique_t {
 
     int type, is_agp;
 
+    float pll_ref_clock;
+
     mem_mapping_t lfb_mapping, ctrl_mapping,
         iload_mapping;
 
@@ -929,7 +931,7 @@ mystique_getclock(int clock, void *priv)
     int n  = mystique->xpixpll[2].n;
     int pl = mystique->xpixpll[2].p;
 
-    float fvco = 14318181.0f * ((float) n + 1.0f) / ((float) m + 1.0f);
+    float fvco = mystique->pll_ref_clock * ((float) n + 1.0f) / ((float) m + 1.0f);
     float fo   = fvco / ((float) pl + 1.0);
 
     return fo;
@@ -6788,6 +6790,11 @@ mystique_init(const device_t *info)
 
     mystique->type   = info->local;
     mystique->is_agp = !!(info->flags & DEVICE_AGP);
+
+    if (mystique->type == MGA_G100)
+        mystique->pll_ref_clock = 27000000.0f;
+    else
+        mystique->pll_ref_clock = 14318181.0f;
 
     if (mystique->type == MGA_2064W)
         romfn = ROM_MILLENNIUM;

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-26 13:50+0000\n"
+"PO-Revision-Date: 2026-08-28 02:07+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -1489,6 +1489,18 @@ msgstr "ACPI 關機"
 
 msgid "ACP&I shutdown"
 msgstr "ACPI 關機(&I)"
+
+msgid "Power off"
+msgstr "關機"
+
+msgid "Power &off…"
+msgstr "關機(&O)…"
+
+msgid "Power &off"
+msgstr "關機(&O)"
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr "強制關機可能導致模擬機資料流失，確定要繼續嗎？"
 
 msgid "Hard disk (%1)"
 msgstr "硬碟 (%1)"

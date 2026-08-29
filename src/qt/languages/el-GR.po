@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-26 13:50+0000\n"
+"PO-Revision-Date: 2026-08-27 20:33+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -1499,6 +1499,20 @@ msgstr "Τερματισμός ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Τερματισμός ACP&I"
+
+msgid "Power off"
+msgstr "Απενεργοποίηση"
+
+msgid "Power &off…"
+msgstr "&Απενεργοποίηση…"
+
+msgid "Power &off"
+msgstr "&Απενεργοποίηση"
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+"Η απενεργοποίηση της μηχανής εξομοίωσης μπορεί να οδηγήσει σε απώλεια "
+"δεδομένων. Επιθυμείτε σίγουρα να συνεχίσετε ;"
 
 msgid "Hard disk (%1)"
 msgstr "Σκληρός δίσκος (%1)"
