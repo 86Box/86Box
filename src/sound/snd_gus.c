@@ -213,10 +213,14 @@ typedef struct gus_t {
     int     uart_out;
     int     sysex;
 
-    uint8_t  gp1;
-    uint8_t  gp2;
+    uint8_t  gp1_in;
+    uint8_t  gp1_out;
+    uint8_t  gp2_in;
+    uint8_t  gp2_out;
     uint16_t gp1_addr;
     uint16_t gp2_addr;
+    uint16_t cur_gp1;
+    uint16_t cur_gp2;
 
     uint8_t usrr;
 
@@ -387,6 +391,64 @@ gus_input_poll(void *priv)
     } else {
         timer_disable(&gus->sample_timer);
     }
+}
+
+void
+gus_gp_write(uint16_t addr, uint8_t val, void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+
+    uint8_t port = addr & 1;
+
+    gus_log(gus->log, "GUS GP write: port = %i, val = %02X\n", port, val);
+
+    if (gus->reg_ctrl & 0x40) {
+        switch (port) {
+            case 0:
+                gus->gp1_in = val;
+                if (gus->reg_ctrl & 0x08)
+                    nmi_raise();
+                gus->usrr |= 0x08;
+                break;
+            case 1:
+                gus->gp2_in = val;
+                if (gus->reg_ctrl & 0x10)
+                    nmi_raise();
+                gus->usrr |= 0x20;
+                break;
+        }
+    }
+}
+
+uint8_t
+gus_gp_read(uint16_t addr, void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+    uint8_t ret = 0;
+
+    uint8_t port = addr & 1;
+
+    if (gus->reg_ctrl & 0x40) {
+        switch (port) {
+            case 0:
+                if (gus->reg_ctrl & 0x08)
+                    nmi_raise();
+                ret = gus->gp1_out;
+                gus->usrr |= 0x10;
+                break;
+            case 1:
+                if (gus->reg_ctrl & 0x10)
+                    nmi_raise();
+                ret = gus->gp2_out;
+                gus->usrr |= 0x40;
+                break;
+        }
+    } else
+        ret = 0xff;
+
+    gus_log(gus->log, "GUS GP read: port = %i, val = %02X\n", port, ret);
+
+    return ret;
 }
 
 void
@@ -824,16 +886,32 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
                 case 1:
-                    gus->gp1 = val;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->gp1_out = val;
                     break;
                 case 2:
-                    gus->gp2 = val;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->gp2_out = val;
                     break;
                 case 3:
-                    gus->gp1_addr = val;
+                    if (gus->type > GUS_CLASSIC) {
+                        if (gus->cur_gp1)
+                            io_removehandler(0x300 + gus->gp1_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->gp1_addr = val;
+                        io_sethandler(0x300 + gus->gp1_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->cur_gp1 = 0x300 + gus->gp1_addr;
+                        gus_log(gus->log, "GUS GP 1 address change: new addr = %04X\n", gus->cur_gp1);
+                    }
                     break;
                 case 4:
-                    gus->gp2_addr = val;
+                    if (gus->type > GUS_CLASSIC) {
+                        if (gus->cur_gp2)
+                            io_removehandler(0x300 + gus->gp2_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->gp2_addr = val;
+                        io_sethandler(0x300 + gus->gp2_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->cur_gp2 = 0x300 + gus->gp2_addr;
+                        gus_log(gus->log, "GUS GP 2 address change: new addr = %04X\n", gus->cur_gp2);
+                    }
                     break;
                 case 5:
                     if (gus->type > GUS_CLASSIC)
@@ -1018,7 +1096,7 @@ gus_read(uint16_t addr, void *priv)
 
         case 0x20F:
             if (gus->type > GUS_CLASSIC)
-                val = gus->jumper;
+                val = gus->usrr;
             else
                 val = 0xff;
             break;
@@ -1205,10 +1283,10 @@ gus_read(uint16_t addr, void *priv)
             if (gus->type > GUS_CLASSIC) {
                 switch (gus->reg_ctrl & 0x07) {
                     case 1:
-                        val = gus->gp1;
+                        val = gus->gp1_in;
                         break;
                     case 2:
-                        val = gus->gp2;
+                        val = gus->gp2_in;
                         break;
                     case 3:
                         val = gus->gp1_addr;
@@ -1791,8 +1869,10 @@ gus_reset(void *priv)
     gus->uart_out = 0;
     gus->sysex = 0;
 
-    gus->gp1 = 0;
-    gus->gp2 = 0;
+    gus->gp1_in = 0;
+    gus->gp1_out = 0;
+    gus->gp2_in = 0;
+    gus->gp2_out = 0;
     gus->gp1_addr = 0;
     gus->gp2_addr = 0;
 
