@@ -1971,8 +1971,6 @@ gus_init(UNUSED(const device_t *info))
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
         ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
-        ad1848_setirq(&gus->ad1848, 5);
-        ad1848_setdma(&gus->ad1848, 3);
         gus->cur_codec_addr = gus->base + 0x10C;
         io_sethandler(0x10C + gus->base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
