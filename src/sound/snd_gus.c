@@ -1304,7 +1304,7 @@ gus_read(uint16_t addr, void *priv)
         case 0x20c:
             val = gus->sb_2xc;
             if (gus->reg_ctrl & 0x20)
-                gus->sb_2xc &= 0x80;
+                gus->sb_2xc ^= 0x80;
             break;
         case 0x20e:
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->sb_2xe);
