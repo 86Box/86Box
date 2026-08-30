@@ -93,11 +93,12 @@ enum {
 
 enum {
     GUS_CLASSIC    = 0,
-    GUS_CLASSIC_37 = 1,
-    GUS_MAX        = 2,
-    GUS_ACE        = 3,
-    GUS_VIPERMAX   = 4,
-    GUS_EXTREME    = 5
+    GUS_CLASSIC_34 = 1,
+    GUS_CLASSIC_37 = 2,
+    GUS_MAX        = 3,
+    GUS_ACE        = 4,
+    GUS_VIPERMAX   = 5,
+    GUS_EXTREME    = 6
 };
 
 enum {
@@ -2448,6 +2449,20 @@ const device_t gus_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_config
+};
+
+const device_t gus_v34_device = {
+    .name          = "Gravis UltraSound (rev 3.4)",
+    .internal_name = "gusv34",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_CLASSIC_34,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_v37_config
 };
 
 const device_t gus_v37_device = {
