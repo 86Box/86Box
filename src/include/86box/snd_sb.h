@@ -164,6 +164,7 @@ typedef struct ess_mixer_t {
     int input_filter;
     int in_filter_freq;
     int output_filter;
+    int output_filter_dac2;
 
     int stereo;
     int stereo_isleft;
