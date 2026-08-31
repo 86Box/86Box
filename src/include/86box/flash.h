@@ -19,6 +19,8 @@
 
 #define AMD_FLAG_LEGACY           0x01
 
+extern const device_t intel_flash_e28f0xx_device;
+
 extern const device_t amd_flash_am29f016d_device;
 
 extern const device_t amd_am28f010_flash_device;
@@ -27,6 +29,9 @@ extern const device_t catalyst_flash_device;
 extern const device_t intel_flash_bxt_ami_device;
 extern const device_t intel_flash_bxt_device;
 extern const device_t intel_flash_bxb_device;
+
+extern const device_t micron_flash_t_device;
+extern const device_t micron_flash_x00_t_device;
 
 extern const device_t sst_flash_29ee010_device;
 extern const device_t sst_flash_29ee020_device;
