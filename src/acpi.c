@@ -2424,7 +2424,7 @@ acpi_reset(void *priv)
         dev->regs.gpireg[2] = 0xfd;
     else if (machines[machine].init == machine_at_em440_init)
         /* Bit 4: Recovery mode - must be set as otherwise the machine enters recovery flash mode */
-        dev->regs.gpireg[2] = 0x10;
+        dev->regs.gpireg[2] = 0xff;
     else
         dev->regs.gpireg[2] = dev->gpireg2_default;
     for (uint8_t i = 0; i < 4; i++)
