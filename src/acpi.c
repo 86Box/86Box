@@ -468,16 +468,14 @@ acpi_reg_read_intel(int size, uint16_t addr, void *priv)
         case 0x31:
         case 0x32:
             /* GPIREG - General Purpose Input Register (IO) */
-            if (size == 1)
-                ret = dev->regs.gpireg[addr & 3];
+            ret = dev->regs.gpireg[addr & 3];
             break;
         case 0x34:
         case 0x35:
         case 0x36:
         case 0x37:
             /* GPOREG - General Purpose Output Register (IO) */
-            if (size == 1)
-                ret = dev->regs.gporeg[addr & 3];
+            ret = dev->regs.gporeg[addr & 3];
             break;
         default:
             ret = acpi_reg_read_common_regs(size, addr, priv);
@@ -1225,11 +1223,9 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x36:
         case 0x37:
             /* GPOREG - General Purpose Output Register (IO) */
-            if (size == 1) {
-                dev->regs.gporeg[addr & 3] = val;
-                if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
-                    hdc_onboard_enabled = (val & 0x01);
-            }
+            dev->regs.gporeg[addr & 3] = val;
+            if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
+                hdc_onboard_enabled = (val & 0x01);
             break;
         default:
             acpi_reg_write_common_regs(size, addr, val, priv);
@@ -2021,9 +2017,11 @@ acpi_reg_readl(uint16_t addr, void *priv)
         acpi_latch_pmtmr(dev);
 
     ret = acpi_reg_read_common(4, addr, priv);
-    ret |= (acpi_reg_read_common(4, addr + 1, priv) << 8);
-    ret |= (acpi_reg_read_common(4, addr + 2, priv) << 16);
-    ret |= (acpi_reg_read_common(4, addr + 3, priv) << 24);
+    if ((dev->vendor != VEN_INTEL) || (addr < 0x30) || (addr > 0x37)) {
+        ret |= (acpi_reg_read_common(4, addr + 1, priv) << 8);
+        ret |= (acpi_reg_read_common(4, addr + 2, priv) << 16);
+        ret |= (acpi_reg_read_common(4, addr + 3, priv) << 24);
+    }
 
     acpi_log("ACPI: Read L %08X from %04X\n", ret, addr);
 
@@ -2042,7 +2040,8 @@ acpi_reg_readw(uint16_t addr, void *priv)
         acpi_latch_pmtmr(dev);
 
     ret = acpi_reg_read_common(2, addr, priv);
-    ret |= (acpi_reg_read_common(2, addr + 1, priv) << 8);
+    if ((dev->vendor != VEN_INTEL) || (addr < 0x30) || (addr > 0x37))
+        ret |= (acpi_reg_read_common(2, addr + 1, priv) << 8);
 
     acpi_log("ACPI: Read W %08X from %04X\n", ret, addr);
 
@@ -2110,21 +2109,28 @@ acpi_aux_reg_read(uint16_t addr, void *priv)
 static void
 acpi_reg_writel(uint16_t addr, uint32_t val, void *priv)
 {
+    const acpi_t * dev = (acpi_t *) priv;
+
     acpi_log("ACPI: Write L %08X to %04X\n", val, addr);
 
     acpi_reg_write_common(4, addr, val & 0xff, priv);
-    acpi_reg_write_common(4, addr + 1, (val >> 8) & 0xff, priv);
-    acpi_reg_write_common(4, addr + 2, (val >> 16) & 0xff, priv);
-    acpi_reg_write_common(4, addr + 3, (val >> 24) & 0xff, priv);
+    if ((dev->vendor != VEN_INTEL) || (addr < 0x34) || (addr > 0x37)) {
+        acpi_reg_write_common(4, addr + 1, (val >> 8) & 0xff, priv);
+        acpi_reg_write_common(4, addr + 2, (val >> 16) & 0xff, priv);
+        acpi_reg_write_common(4, addr + 3, (val >> 24) & 0xff, priv);
+    }
 }
 
 static void
 acpi_reg_writew(uint16_t addr, uint16_t val, void *priv)
 {
+    const acpi_t * dev = (acpi_t *) priv;
+
     acpi_log("ACPI: Write W %04X to %04X\n", val, addr);
 
     acpi_reg_write_common(2, addr, val & 0xff, priv);
-    acpi_reg_write_common(2, addr + 1, (val >> 8) & 0xff, priv);
+    if ((dev->vendor != VEN_INTEL) || (addr < 0x34) || (addr > 0x37))
+        acpi_reg_write_common(2, addr + 1, (val >> 8) & 0xff, priv);
 }
 
 static void
