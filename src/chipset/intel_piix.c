@@ -240,7 +240,7 @@ kbc_alias_update_io_mapping(piix_t *dev)
 static void
 smbus_update_io_mapping(piix_t *dev)
 {
-    smbus_piix4_remap(dev->smbus, ((uint16_t) (dev->regs[3][0x91] << 8)) | (dev->regs[3][0x90] & 0xf0), (dev->regs[3][PCI_REG_COMMAND] & PCI_COMMAND_IO) || (dev->regs[3][0xd2] & 0x01));
+    smbus_piix4_remap(dev->smbus, ((uint16_t) (dev->regs[3][0x91] << 8)) | (dev->regs[3][0x90] & 0xf0), (dev->regs[3][PCI_REG_COMMAND] & PCI_COMMAND_IO));
 }
 
 static void
@@ -461,6 +461,32 @@ piix_trap_update(void *priv)
     temp = fregs[0x72] & 0x0f;
     piix_trap_update_devctl(dev, trap_id++, 13, 0x02000000, fregs[0x72] & 0x10, (fregs[0x70] | (fregs[0x71] << 8)) & ~temp, temp + 1);
     /* Programmable memory trap not implemented. */
+}
+
+/*
+   EXTSMI#: asserted by board logic (e.g. a Super I/O GPIO pin).  A falling edge
+   latches the EXTSMI# status bit and, if SMI# is gated on, asserts SMI#.  Per the
+   82371SB datasheet the SMIREQ bits are set independently of CSMIGATE, so a
+   pending event fires as soon as software sets that gate.
+ */
+static piix_t *piix_ext = NULL;
+
+void
+piix_extsmi_raise(void)
+{
+    uint8_t *fregs;
+
+    if (piix_ext == NULL)
+        return;
+
+    fregs = (uint8_t *) piix_ext->regs[0];
+
+    /* SMIREQ (AAh) bit 6 = EXTSMI# SMI status. */
+    fregs[0xaa] |= 0x40;
+
+    /* SMICNTL (A0h) bit 0 = CSMIGATE. */
+    if (fregs[0xa0] & 0x01)
+        smi_raise();
 }
 
 static void
@@ -1553,6 +1579,8 @@ piix_init(const device_t *info)
 {
     piix_t *dev = (piix_t *) calloc(1, sizeof(piix_t));
 
+    piix_ext = dev;
+    
     dev->type = info->local & 0x0f;
     /* If (dev->type == 4) and (dev->rev & 0x08), then this is PIIX4E. */
     dev->rev        = (info->local >> 4) & 0x0f;
