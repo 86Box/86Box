@@ -39,6 +39,8 @@
 #define RAW_SECTOR_SIZE    2352
 #define COOKED_SECTOR_SIZE 2048
 #define DMA_SERVICE_BUDGET 256
+#define MITSUMI_1X_SECTOR_TIME_US (1000000 / 75)
+#define MITSUMI_2X_SECTOR_TIME_US (1000000 / 150)
 
 enum {
     STAT_CMD_CHECK = 0x01,
@@ -174,7 +176,7 @@ mitsumi_cdrom_is_ready(const mcd_t *dev)
 static void
 mitsumi_set_irq(const mcd_t *dev, const uint8_t mask)
 {
-    if (dev->enable_irq & mask)
+    if ((dev->irq >= 0) && (dev->irq < 16) && (dev->enable_irq & mask))
         picint(1 << dev->irq);
 }
 
@@ -432,59 +434,44 @@ static int
 mitsumi_dma_transfer(mcd_t *dev)
 {
     int      dma_result = 0;
-    int      read_result = 1;
-    uint32_t dma_terminal_budget;
     uint32_t service_budget;
 
-    /* Auto-initialize DMA reloads the terminal count and, on the legacy DMA
-       implementation, does not report DMA_OVER.  Bound this synchronous
-       service to the count programmed by the guest so it can never spin
-       indefinitely while processing an open-ended Mitsumi read command. */
+    /* DMA channels 5-7 count words rather than bytes.  Service a bounded
+       number of DMA units at a time, but only finish the request when the DMA
+       controller reports terminal count. */
     if ((dev->dma < 0) || (dev->dma >= 8) || (dma[dev->dma].cc < 0))
         return 1;
-    dma_terminal_budget = (uint32_t) dma[dev->dma].cc + 1;
-    service_budget = MIN(dma_terminal_budget, DMA_SERVICE_BUDGET);
+    service_budget = MIN((uint32_t) dma[dev->dma].cc + 1, DMA_SERVICE_BUDGET);
 
-    while (read_result > 0) {
-        while (dev->buf_count > 0) {
-            if (!cpu_thread_run || is_quit || hard_reset_pending) {
-                mitsumi_abort_read(dev);
-                return 0;
-            }
-            const int transfer_bytes = ((dev->dma >= 4) && (dev->buf_count > 1)) ? 2 : 1;
-            uint16_t  value = dev->buf[dev->buf_idx];
-
-            if (transfer_bytes == 2)
-                value |= dev->buf[dev->buf_idx + 1] << 8;
-
-            dma_result = dma_channel_write(dev->dma, value);
-            if (dma_result == DMA_NODATA)
-                return 1;
-            dev->buf_idx += transfer_bytes;
-            dev->buf_count -= transfer_bytes;
-
-            if (dma_result & DMA_OVER) {
-                mitsumi_abort_read(dev);
-                mitsumi_set_irq(dev, IRQ_DATACOMP);
-                return 0;
-            }
-            if (--service_budget == 0) {
-                if (dma_terminal_budget <= DMA_SERVICE_BUDGET) {
-                    /* Legacy auto-init DMA reloads its counter without
-                       returning DMA_OVER; reaching the original terminal
-                       count still completes this device request. */
-                    mitsumi_abort_read(dev);
-                    mitsumi_set_irq(dev, IRQ_DATACOMP);
-                    return 0;
-                }
-                return 2;
-            }
+    while (dev->buf_count > 0) {
+        if (!cpu_thread_run || is_quit || hard_reset_pending) {
+            mitsumi_abort_read(dev);
+            return 0;
         }
+        const int transfer_bytes = ((dev->dma >= 4) && (dev->buf_count > 1)) ? 2 : 1;
+        uint16_t  value = dev->buf[dev->buf_idx];
 
-        read_result = mitsumi_cdrom_read_sector(dev, 0);
+        if (transfer_bytes == 2)
+            value |= dev->buf[dev->buf_idx + 1] << 8;
+
+        dma_result = dma_channel_write(dev->dma, value);
+        if (dma_result == DMA_NODATA)
+            return 1;
+        dev->buf_idx += transfer_bytes;
+        dev->buf_count -= transfer_bytes;
+
+        if (dma_result & DMA_OVER) {
+            mitsumi_abort_read(dev);
+            mitsumi_set_irq(dev, IRQ_DATACOMP);
+            return 0;
+        }
+        if (--service_budget == 0)
+            return 2;
     }
 
-    return read_result;
+    /* Do not fetch another host-image sector in this callback.  A real
+       single/double-speed drive makes sectors available at 75/150 Hz. */
+    return 3;
 }
 
 static void
@@ -497,13 +484,35 @@ mitsumi_dma_callback(void *priv)
         return;
     }
 
-    const int result = mitsumi_dma_transfer(dev);
+    int result;
+
+    if (!dev->buf_count) {
+        result = mitsumi_cdrom_read_sector(dev, 0);
+        if (result <= 0) {
+            if (result < 0) {
+                dev->cur_sense = abs(result);
+                dev->stat      = mitsumi_status(dev) | STAT_ERROR | STAT_CMD_CHECK;
+                mitsumi_abort_read(dev);
+                mitsumi_set_irq(dev, IRQ_ERROR);
+            } else {
+                mitsumi_abort_read(dev);
+            }
+            return;
+        }
+    }
+
+    result = mitsumi_dma_transfer(dev);
 
     if (result == 2) {
         /* Yield between chunks so reset, pause and shutdown requests can be
            handled even during a large or open-ended DMA transfer. */
         dev->dma_retries = 0;
         timer_set_delay_u64(&dev->dma_timer, 10 * TIMER_USEC);
+    } else if (result == 3) {
+        dev->dma_retries = 0;
+        timer_set_delay_u64(&dev->dma_timer,
+                            ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                       MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
     } else if (result > 0) {
         /* The channel may still be masked or owned by another requester.
            Keep DRQ asserted and retry without blocking the emulation thread. */
