@@ -409,6 +409,8 @@ load_general(void)
         strncpy(uuid, p, sizeof(uuid) - 1);
     else
         strncpy(uuid, "", sizeof(uuid) - 1);
+
+    gdbstub_port = ini_section_get_int(cat, "gdbstub_port", 12345);
 }
 
 /* Load monitor section. */
@@ -633,6 +635,8 @@ load_machine(void)
         time_sync = TIME_SYNC_ENABLED;
 
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
+
+    cpu_dyn_accurate_fpu_env = ini_section_get_int(cat, "cpu_dyn_accurate_fpu_env", 0);
 }
 
 /* Load "Video" section. */
@@ -795,6 +799,18 @@ load_input_devices(void)
         mouse_type = mouse_get_from_internal_name(p);
     else
         mouse_type = 0;
+
+    // Migration.
+    if (tablet_get_from_internal_name(p) && mouse_type == 0)
+        ini_section_set_string(cat, "tablet_type", p);
+
+    p = ini_section_get_string(cat, "tablet_type", NULL);
+    if (p != NULL)
+        tablet_type = tablet_get_from_internal_name(p);
+    else
+        tablet_type = 0;
+
+    mouse_input_mode_initial = ini_section_get_int(cat, "mouse_input_mode_initial", 0);
 
     uint8_t joy_insn = 0;
     p = ini_section_get_string(cat, "joystick_type", NULL);
@@ -2383,6 +2399,13 @@ go_to_mo:
             sscanf("00, none", "%u, %s", &tape_drives[c].type, s);
         tape_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
+        sprintf(temp, "tape_%02i_medium_type", c + 1);
+        tape_drives[c].medium_type = ini_section_get_int(cat, temp,
+            (tape_drives[c].type < KNOWN_TAPE_DRIVE_TYPES) ?
+            tape_drive_types[tape_drives[c].type].default_media : 0);
+        if (tape_drives[c].medium_type >= KNOWN_TAPE_TYPES)
+            tape_drives[c].medium_type = 0;
+
         /* Default values, needed for proper operation of the Settings dialog. */
         tape_drives[c].scsi_device_id = c + 4;
 
@@ -2464,6 +2487,9 @@ go_to_mo:
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "tape_%02i_image_path", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "tape_%02i_medium_type", c + 1);
             ini_section_delete_var(cat, temp);
 
             for (int i = 0; i < MAX_PREV_IMAGES; i++) {
@@ -2771,6 +2797,10 @@ config_load(void)
         cassette_append       = 0;
         cassette_pcm          = 0;
         cassette_ui_writeprot = 0;
+
+        cpu_dyn_accurate_fpu_env = 0;
+
+        gdbstub_port          = 12345;
 
         config_log("VM config file not present or invalid!\n");
     } else {
@@ -3169,10 +3199,25 @@ save_general(void)
     else
         ini_section_delete_var(cat, "emu_build_num");
 
-  if (strnlen(uuid, sizeof(uuid) - 1) > 0)
+#ifdef USE_DYNAREC
+#   ifdef USE_NEW_DYNAREC
+    ini_section_set_string(cat, "emu_build_dynarec_type", "new");
+#   else
+    ini_section_set_string(cat, "emu_build_dynarec_type", "old");
+#   endif
+#else
+    ini_section_delete_var(cat, "emu_build_dynarec_type");
+#endif
+
+    if (strnlen(uuid, sizeof(uuid) - 1) > 0)
         ini_section_set_string(cat, "uuid", uuid);
     else
         ini_section_delete_var(cat, "uuid");
+
+    if (gdbstub_port == 12345)
+        ini_section_delete_var(cat, "gdbstub_port");
+    else
+        ini_section_set_int(cat, "gdbstub_port", gdbstub_port);
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -3265,6 +3310,11 @@ save_machine(void)
         ini_section_delete_var(cat, "pit_mode");
     else
         ini_section_set_int(cat, "pit_mode", pit_mode);
+
+    if (cpu_dyn_accurate_fpu_env == 0)
+        ini_section_delete_var(cat, "cpu_dyn_accurate_fpu_env");
+    else
+        ini_section_set_int(cat, "cpu_dyn_accurate_fpu_env", cpu_dyn_accurate_fpu_env);
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -3366,6 +3416,8 @@ save_input_devices(void)
 
     ini_section_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
+    ini_section_set_string(cat, "tablet_type", tablet_get_internal_name(tablet_type));
+
     uint8_t joy_insn = 0;
     if (!joystick_type[joy_insn]) {
         ini_section_delete_var(cat, "joystick_type");
@@ -3429,6 +3481,11 @@ save_input_devices(void)
         ini_section_set_int(cat, "tablet_tool_type", tablet_tool_type);
     else
         ini_section_delete_var(cat, "tablet_tool_type");
+
+    if (mouse_input_mode_initial != 0)
+        ini_section_set_int(cat, "mouse_input_mode_initial", mouse_input_mode_initial);
+    else
+        ini_section_delete_var(cat, "mouse_input_mode_initial");
 
     ini_delete_section_if_empty(config, cat);
 }
@@ -4454,6 +4511,12 @@ save_other_removable_devices(void)
             ini_section_delete_var(cat, temp);
         else
             save_image_file(cat, temp, tape_drives[c].image_path);
+
+        sprintf(temp, "tape_%02i_medium_type", c + 1);
+        if (tape_drives[c].bus_type == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, tape_drives[c].medium_type);
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "tape_%02i_image_history_%02i", c + 1, i + 1);

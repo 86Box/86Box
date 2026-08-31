@@ -459,7 +459,7 @@ mtouch_poll(void *priv)
 {
     mouse_microtouch_t *dev = (mouse_microtouch_t *) priv;
     
-    dev->but = mouse_get_buttons_ex();
+    dev->but = tablet_get_buttons_ex();
     mouse_get_abs_coords(&dev->abs_x, &dev->abs_y);
     
     if (enable_overscan && mouse_tablet_in_proximity > 0) {
@@ -491,10 +491,11 @@ mtouch_poll(void *priv)
     return 0;
 }
 
-static void
-mtouch_poll_global(void)
+static int
+mtouch_poll_global(void* arg)
 {
-    mtouch_poll(mtouch_inst);
+    (void)arg;
+    return mtouch_poll(mtouch_inst);
 }
 
 void *
@@ -527,11 +528,9 @@ mtouch_init(UNUSED(const device_t *info))
     } else {
         dev->format = FORMAT_TABLET;
     }
-    
-    mouse_input_mode = device_get_config_int("crosshair") + 1;
+
     mouse_set_buttons(2);
-    mouse_set_poll(mtouch_poll, dev);
-    mouse_set_poll_ex(mtouch_poll_global);
+    mouse_set_poll_ex(mtouch_poll_global, dev);
     mtouch_inst = dev;
     
     return dev;
@@ -589,17 +588,6 @@ static const device_config_t mtouch_config[] = {
             { .description = "Q1 - SMT3(R) Serial",         .value = 3 },
             { .description = ""                                        }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "crosshair",
-        .description    = "Show Crosshair",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }

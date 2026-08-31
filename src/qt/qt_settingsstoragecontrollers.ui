@@ -241,64 +241,6 @@
          </property>
         </widget>
        </item>
-
-       <item>
-        <widget class="QGroupBox" name="groupBoxFloppyTape">
-         <property name="title">
-          <string>Floppy tape drive</string>
-         </property>
-         <layout class="QGridLayout" name="gridLayoutFloppyTape">
-          <item row="0" column="0" colspan="3">
-           <widget class="QCheckBox" name="checkBoxFloppyTape">
-            <property name="text">
-             <string>Floppy tape drive (QIC-117)</string>
-            </property>
-            <property name="toolTip">
-             <string>Attaches a Colorado 250 tape drive to the floppy disk controller's cable.</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="labelFloppyTapeUnit">
-            <property name="text">
-             <string>Drive select:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1" colspan="2">
-           <widget class="QComboBox" name="comboBoxFloppyTapeUnit">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="toolTip">
-             <string>The drive select line the tape drive answers to. Any floppy drive configured on the same line is disconnected.</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="labelFloppyTapeFile">
-            <property name="text">
-             <string>Tape image:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="1" colspan="2">
-           <widget class="FileField" name="fileFieldFloppyTape" native="true">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-
        <item row="5" column="1">
         <spacer name="verticalSpacerGeneral">
          <property name="orientation">
@@ -452,6 +394,82 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tabFloppyTape">
+      <attribute name="title">
+       <string>Floppy tape drive</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutFloppyTape">
+       <item>
+        <widget class="QGroupBox" name="groupBoxFloppyTape">
+         <property name="title">
+          <string>Floppy tape drive</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayoutFloppyTape">
+          <item row="0" column="0" colspan="3">
+           <widget class="QCheckBox" name="checkBoxFloppyTape">
+            <property name="text">
+             <string>Floppy tape drive (QIC-117)</string>
+            </property>
+            <property name="toolTip">
+             <string>Attaches a Colorado 250 tape drive to the floppy disk controller's cable.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelFloppyTapeUnit">
+            <property name="text">
+             <string>Drive select:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="2">
+           <widget class="QComboBox" name="comboBoxFloppyTapeUnit">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="toolTip">
+             <string>The drive select line the tape drive answers to. Any floppy drive configured on the same line is disconnected.</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="labelFloppyTapeFile">
+            <property name="text">
+             <string>Tape image:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1" colspan="2">
+           <widget class="FileField" name="fileFieldFloppyTape" native="true">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <spacer name="verticalSpacerFloppyTape">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>20</width>
+           <height>40</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
     </widget>
    </item>
 
@@ -480,9 +498,6 @@
   <tabstop>comboBoxHD4</tabstop>
   <tabstop>pushButtonHD4</tabstop>
   <tabstop>checkBoxCassette</tabstop>
-  <tabstop>checkBoxFloppyTape</tabstop>
-  <tabstop>comboBoxFloppyTapeUnit</tabstop>
-  <tabstop>fileFieldFloppyTape</tabstop>
   <tabstop>comboBoxSCSI1</tabstop>
   <tabstop>pushButtonSCSI1</tabstop>
   <tabstop>comboBoxSCSI2</tabstop>
@@ -491,6 +506,9 @@
   <tabstop>pushButtonSCSI3</tabstop>
   <tabstop>comboBoxSCSI4</tabstop>
   <tabstop>pushButtonSCSI4</tabstop>
+  <tabstop>checkBoxFloppyTape</tabstop>
+  <tabstop>comboBoxFloppyTapeUnit</tabstop>
+  <tabstop>fileFieldFloppyTape</tabstop>
  </tabstops>
  <resources/>
  <connections/>

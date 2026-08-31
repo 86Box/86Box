@@ -134,6 +134,8 @@ const OpFn *x86_opcodes_de_a16;
 const OpFn *x86_opcodes_de_a32;
 const OpFn *x86_opcodes_df_a16;
 const OpFn *x86_opcodes_df_a32;
+const OpFn *x86_opcodes_REPE_286;
+const OpFn *x86_opcodes_REPNE_286;
 const OpFn *x86_opcodes_REPE;
 const OpFn *x86_opcodes_REPNE;
 const OpFn *x86_opcodes_3DNOW;
@@ -156,6 +158,8 @@ const OpFn *x86_2386_opcodes_de_a16;
 const OpFn *x86_2386_opcodes_de_a32;
 const OpFn *x86_2386_opcodes_df_a16;
 const OpFn *x86_2386_opcodes_df_a32;
+const OpFn *x86_2386_opcodes_REPE_286;
+const OpFn *x86_2386_opcodes_REPNE_286;
 const OpFn *x86_2386_opcodes_REPE;
 const OpFn *x86_2386_opcodes_REPNE;
 
@@ -175,6 +179,23 @@ int cpu_prefetch_width;
 int cpu_mem_prefetch_cycles;
 int cpu_rom_prefetch_cycles;
 int cpu_waitstates;
+int io_waitstates; /* Extra cycles added to IN/OUT instruction timing (x86_ops_io.h) -
+                       cpu_waitstates only ever throttles memory bus cycles; this covers
+                       I/O port cycles, which real ISA-bus hardware paces at a fixed bus
+                       clock independent of an accelerator CPU's own speed. Set by
+                       devices like inboard386.c that need to compensate for a fast CPU
+                       core executing I/O-bound timing loops (BIOS self-tests etc.)
+                       written assuming genuine 8088-class per-instruction throughput. */
+int reg_op_waitstates; /* Extra cycles added to pure register/branch instruction timing
+                           (currently just LOOP, x86_ops_jump.h) - covers the case where a
+                           period BIOS/driver delay or self-test loop is built entirely from
+                           register-only instructions (no memory or I/O access at all), so
+                           neither cpu_waitstates nor io_waitstates apply. A 386+-class core
+                           executes these natively far faster per cycle than an 8088 even at
+                           a matched clock, so a pure LOOP-based delay calibrated for genuine
+                           8088 timing finishes far too quickly on an accelerated CPU unless
+                           this is compensated too. Set by inboard386.c the same way as
+                           io_waitstates. */
 int cpu_cache_int_enabled;
 int cpu_cache_ext_enabled;
 int cpu_flush_pending;
@@ -185,6 +206,7 @@ int cpu_isa_pci_div;
 int cpu_agp_speed;
 int cpu_alt_reset;
 
+int cpu_dyn_accurate_fpu_env;
 int cpu_override;
 int cpu_effective;
 int cpu_multi;
@@ -599,15 +621,15 @@ cpu_set(void)
     x86_setopcodes(ops_386, ops_386_0f);
 #endif /* USE_DYNAREC */
     x86_setopcodes_2386(ops_2386_386, ops_2386_386_0f);
-    x86_opcodes_REPE       = ops_REPE;
-    x86_opcodes_REPNE      = ops_REPNE;
-    x86_2386_opcodes_REPE  = ops_2386_REPE;
-    x86_2386_opcodes_REPNE = ops_2386_REPNE;
-    x86_opcodes_3DNOW      = ops_3DNOW;
+    x86_opcodes_REPE           = ops_REPE;
+    x86_opcodes_REPNE          = ops_REPNE;
+    x86_2386_opcodes_REPE      = ops_2386_REPE;
+    x86_2386_opcodes_REPNE     = ops_2386_REPNE;
+    x86_opcodes_3DNOW          = ops_3DNOW;
 #ifdef USE_DYNAREC
-    x86_dynarec_opcodes_REPE  = dynarec_ops_REPE;
-    x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
-    x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOW;
+    x86_dynarec_opcodes_REPE   = dynarec_ops_REPE;
+    x86_dynarec_opcodes_REPNE  = dynarec_ops_REPNE;
+    x86_dynarec_opcodes_3DNOW  = dynarec_ops_3DNOW;
 #endif /* USE_DYNAREC */
 
     if (hasfpu) {
@@ -781,6 +803,7 @@ cpu_set(void)
     cpu_cyrix_alignment = 0;
     cpu_cpurst_on_sr    = 0;
     cpu_CR4_mask        = 0;
+    cpu_features        = 0;
 
     switch (cpu_s->cpu_type) {
         case CPU_8088:
@@ -807,6 +830,11 @@ cpu_set(void)
             x86_setopcodes(ops_286, ops_286_0f);
 #endif /* USE_DYNAREC */
             x86_setopcodes_2386(ops_2386_286, ops_2386_286_0f);
+
+            x86_opcodes_REPE           = ops_REPE_286;
+            x86_opcodes_REPNE          = ops_REPNE_286;
+            x86_2386_opcodes_REPE      = ops_2386_REPE_286;
+            x86_2386_opcodes_REPNE     = ops_2386_REPNE_286;
 
             if (fpu_type == FPU_287) {
 #ifdef USE_DYNAREC

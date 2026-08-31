@@ -32,6 +32,9 @@
 #include <86box/hwm.h>
 #include <86box/spd.h>
 #include <86box/video.h>
+#include <86box/thread.h>
+#include <86box/timer.h>
+#include <86box/network.h>
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/sound.h>
@@ -325,7 +328,7 @@ static const device_config_t lx6_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision LY",
+                .name          = "AwardBIOS v4.51PG - Revision LY",
                 .internal_name = "lx6",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
@@ -334,7 +337,7 @@ static const device_config_t lx6_config[] = {
                 .files         = { "roms/machines/lx6/LX6C_LY.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision PZ (Beta)",
+                .name          = "AwardBIOS v4.51PG - Revision PZ (Beta)",
                 .internal_name = "lx6_pz",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
@@ -433,6 +436,156 @@ machine_at_optiplexgxa_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t al440lx_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "al440lx",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P04-0014",
+                .internal_name = "al440lx_p04",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P04-0014.BIO", "roms/machines/al440lx/P04-0014.BI1",
+                                   "roms/machines/al440lx/P04-0014.BI2", "roms/machines/al440lx/P04-0014.BI3",
+                                   "roms/machines/al440lx/P04-0014.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0009 (Packard Bell PB80x)",
+                .internal_name = "pb800",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/ALP0711A.BIO", "roms/machines/al440lx/ALP0711A.BI1",
+                                   "roms/machines/al440lx/ALP0711A.BI2", "roms/machines/al440lx/ALP0711A.BI3",
+                                   "roms/machines/al440lx/ALP0711A.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0016 (Sony Vaio PCV-2xx)",
+                .internal_name = "pcv2xx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P07-0016.BIO", "roms/machines/al440lx/P07-0016.BI1",
+                                   "roms/machines/al440lx/P07-0016.BI2", "roms/machines/al440lx/P07-0016.BI3",
+                                   "roms/machines/al440lx/P07-0024.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P07-0024 (HP Pavilion 8190US)",
+                .internal_name = "pavilion8190us",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P07-0024.BIO", "roms/machines/al440lx/P07-0024.bi1",
+                                   "roms/machines/al440lx/P07-0024.bi2", "roms/machines/al440lx/P07-0024.bi3",
+                                   "roms/machines/al440lx/P07-0024.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P11-0019 (Micron ClientPro 766XI)",
+                .internal_name = "clpro766xi",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P11-0019.BIO", "roms/machines/al440lx/P11-0019.BI1",
+                                   "roms/machines/al440lx/P11-0019.BI2", "roms/machines/al440lx/P11-0019.BI3",
+                                   "roms/machines/al440lx/P11-0019.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P14-0031",
+                .internal_name = "al440lx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P14-0031.BIO", "roms/machines/al440lx/P14-0031.BI1",
+                                   "roms/machines/al440lx/P14-0031.BI2", "roms/machines/al440lx/P14-0031.BI3",
+                                   "roms/machines/al440lx/P14-0031.RCV", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision P18-0023 (Gateway Astoria)",
+                .internal_name = "gwastoria",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/al440lx/P18-0023.BIO", "roms/machines/al440lx/P18-0023.BI1",
+                                   "roms/machines/al440lx/P18-0023.BI2", "roms/machines/al440lx/P18-0023.BI3",
+                                   "roms/machines/al440lx/P18-0023.RCV", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t al440lx_device = {
+    .name          = "Intel AL440LX",
+    .internal_name = "al440lx",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = al440lx_config
+};
+
+int
+machine_at_al440lx_init(const machine_t *model)
+{
+    int ret = 0;
+    const char* fn[5];
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    for (int i = 0; i < 5; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+    ret = bios_load_linear_combined2_ex(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 160);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440lx_device);;
+    device_add(&piix4_device);
+    device_add_params(&pc87307_device, (void *) (PCX730X_AMI | PCX7307_PC97307));
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&lm78_al440lx_device); /* Probably NOT the correct HWM, but it works! */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
 int
 machine_at_spitfire_init(const machine_t *model)
 {
@@ -514,7 +667,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/A617C410.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.2",
+                .name          = "AwardBIOS v4.51PG - Revision 3.2",
                 .internal_name = "ms6117w",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -523,7 +676,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/W617MS32.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.2 [Patched for larger drives]",
+                .name          = "AwardBIOS v4.51PG - Revision 3.2 [Patched for larger drives]",
                 .internal_name = "ms6117wp",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -532,7 +685,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/611732x_patched.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.4 (Fujitsu-Siemens OEM)",
                 .internal_name = "ms6117wfs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -541,7 +694,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/AWARD 1.04 .BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.02 (LG IBM Multinet x7E)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.02 (LG IBM Multinet x7E)",
                 .internal_name = "ms6117wlg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -550,7 +703,7 @@ static const device_config_t ms6117_config[] = {
                 .files         = { "roms/machines/ms6117/BIOS.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.5 (Viglen Vig67M)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.5 (Viglen Vig67M)",
                 .internal_name = "ms6117wvi",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -635,9 +788,7 @@ machine_at_ma30d_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-#ifdef UNKNOWN_SLOT
-    pci_register_slot(0x0A, PCI_CARD_NETWORK,     2, 3, 4, 1); /* ???? device - GPIO? */
-#endif
+    pci_register_slot(0x0A, PCI_CARD_SOUND,       2, 3, 4, 1); /* Sound - The NIC is an add-on card! */
     pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
@@ -657,6 +808,264 @@ machine_at_ma30d_init(const machine_t *model)
 }
 
 /* i440EX */
+static const device_config_t in440ex_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "in440ex",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.00",
+                .internal_name = "in440ex_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/655100.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.00 (Toshiba Equium 3000M)",
+                .internal_name = "equium3000m_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/659100.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.01 (Toshiba Equium 3000M)",
+                .internal_name = "equium3000m",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/659101.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.02 (Gobi Internet PC)",
+                .internal_name = "gobipc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/GOBI.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.03",
+                .internal_name = "in440ex",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/654103.bin", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 (Sony Vaio PCV-E2xx)",
+                .internal_name = "pcve2xx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440ex/B018TV0K.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t in440ex_device = {
+    .name          = "BCM IN440EX",
+    .internal_name = "in440ex",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = in440ex_config
+};
+
+int
+machine_at_in440ex_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int is_sony = !strcmp(device_get_config_bios("bios"), "pcve2xx");
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+
+    device_add(&i440ex_device);
+    device_add(&piix4e_device);
+    device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
+
+    /* The Sony variant seems to use a different flash chip as it cannot save ESCD with the 29F020A */
+    if (is_sony)
+        device_add(&sst_flash_29ee020_device); /* guess */
+    else
+        device_add(&amd_flash_29f020a_device);
+
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+static const device_config_t in440exd_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "in440exd",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.00",
+                .internal_name = "in440exd_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440exd/852100.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.01 (CompUSA PC American Pro)",
+                .internal_name = "americanpro",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440exd/208529850103377_A03_Award_PCI_PNP_686_138086729_U22_Winbond_W29020P-90.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.02",
+                .internal_name = "in440exd",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in440exd/852102.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t in440exd_device = {
+    .name          = "BCM IN440EX-D",
+    .internal_name = "in440exd",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = in440exd_config
+};
+
+int
+machine_at_in440exd_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+
+    device_add(&i440ex_device);
+    device_add(&piix4e_device);
+    device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
+    device_add(&amd_flash_29f020a_device);
+
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+int
+machine_at_optiplexe1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/optiplexe1/DELL.ROM",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NETWORK,     4, 0, 0, 0); /* not yet emulated */
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 2, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_BRIDGE,      0, 0, 0, 0);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    device_add(&i440ex_device);
+    device_add(&piix4e_device);
+    machine_at_optiplex_21152_init();
+    device_add_params(&pc87309_device, (void *) (PCX730X_PHOENIX_42 | PC87309_PC87309));
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
 int
 machine_at_brio83xx_init(const machine_t *model)
 {
@@ -851,6 +1260,181 @@ machine_at_bf6_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t be6ii_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "be6ii_70",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v6.00PG - Revision 70",
+                .internal_name = "be6ii_70",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/Beh_70.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision NP",
+                .internal_name = "be6ii_np",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_NP.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision NY",
+                .internal_name = "be6ii_ny",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_NY.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision NZ",
+                .internal_name = "be6ii_nz",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_NZ.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision PO",
+                .internal_name = "be6ii_po",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_PO.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision QJ",
+                .internal_name = "be6ii_qj",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_QJ.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision RV",
+                .internal_name = "be6ii_rv",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_RV.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision SH",
+                .internal_name = "be6ii_sh",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_SH.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision UH",
+                .internal_name = "be6ii_uh",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_UH.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision VN",
+                .internal_name = "be6ii_vn",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/beh_vn.Bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Revision XU",
+                .internal_name = "be6ii_xu",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/be6ii/BEH_XU.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t be6ii_device = {
+    .name          = "ABIT AB-BE6-II",
+    .internal_name = "be6ii",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = be6ii_config
+};
+
+int
+machine_at_be6ii_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_IDE,         3, 4, 1, 2);    /* Not IDE */
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);    /* Not IDE */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);    /* Not IDE */
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);    /* Not IDE */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&i440bx_device);
+    device_add(&piix4e_device);
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    device_add(&ide_hpt366_ter_qua_onboard_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    device_add(&w83782d_device); /* fans: Chassis, Power, CPU; temperatures: System, CPU, unused */
+    hwm_values.temperatures[2] = 0;
+
+    return ret;
+}
+
 static const device_config_t bx6_config[] = {
     // clang-format off
     {
@@ -864,7 +1448,7 @@ static const device_config_t bx6_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision EG",
+                .name          = "AwardBIOS v4.51PG - Revision EG",
                 .internal_name = "bx6",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -873,7 +1457,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_EG.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision CW",
+                .name          = "AwardBIOS v4.51PG - Revision CW",
                 .internal_name = "bx6_CW",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -882,7 +1466,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_CW.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision GQ",
+                .name          = "AwardBIOS v4.51PG - Revision GQ",
                 .internal_name = "bx6_GQ",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -891,7 +1475,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_GQ.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision JL",
+                .name          = "AwardBIOS v4.51PG - Revision JL",
                 .internal_name = "bx6_JL",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -900,7 +1484,7 @@ static const device_config_t bx6_config[] = {
                 .files         = { "roms/machines/bx6/BX6_JL.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision QS",
+                .name          = "AwardBIOS v4.51PG - Revision QS",
                 .internal_name = "bx6_qs",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1052,7 +1636,7 @@ static const device_config_t ax6bc_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PGM - Revision R1.10",
+                .name          = "AwardBIOS v4.51PGM - Revision R1.10",
                 .internal_name = "ax6bc_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1061,7 +1645,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc110.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.20 (RM Accelerator 350P2XB/450P3XB)",
+                .name          = "AwardBIOS v4.60PGMA - Revision R2.20 (RM Accelerator 350P2XB/450P3XB)",
                 .internal_name = "ax6bc_rm",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1070,7 +1654,7 @@ static const device_config_t ax6bc_config[] = {
                 .files         = { "roms/machines/ax6bc/ax6bc220.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGMA - Revision R2.59",
+                .name          = "AwardBIOS v4.60PGMA - Revision R2.59",
                 .internal_name = "ax6bc",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1136,6 +1720,41 @@ machine_at_ax6bc_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_optiplexgx1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/optiplexgx1/DELL.ROM",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NETWORK,     4, 0, 0, 0); /* not yet emulated */
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 2, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_BRIDGE,      0, 0, 0, 0);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    device_add(&i440bx_device);
+    device_add(&piix4e_device);
+    machine_at_optiplex_21152_init();
+    device_add_params(&pc87309_device, (void *) (PCX730X_PHOENIX_42 | PC87309_PC87309));
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
 static const device_config_t ga686_config[] = {
     // clang-format off
     {
@@ -1149,7 +1768,7 @@ static const device_config_t ga686_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 5/11/1998 (Amptron PII-3100)",
+                .name          = "AwardBIOS v4.51PG - Revision 5/11/1998 (Amptron PII-3100)",
                 .internal_name = "pii3100",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1158,7 +1777,7 @@ static const device_config_t ga686_config[] = {
                 .files         = { "roms/machines/686bx/31nologo.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision F1",
+                .name          = "AwardBIOS v4.51PG - Revision F1",
                 .internal_name = "686bx_f1",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1167,7 +1786,7 @@ static const device_config_t ga686_config[] = {
                 .files         = { "roms/machines/686bx/6BX.F1", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision F2a (Beta)",
+                .name          = "AwardBIOS v4.51PG - Revision F2a (Beta)",
                 .internal_name = "686bx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1268,7 +1887,7 @@ static const device_config_t ms6119_config[] = {
                 .files         = { "roms/machines/ms6119/A19P2190.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.10",
+                .name          = "AwardBIOS v4.51PG - Revision 2.10",
                 .internal_name = "ms6119",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1277,7 +1896,7 @@ static const device_config_t ms6119_config[] = {
                 .files         = { "roms/machines/ms6119/w6119ims.2a0", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.12 (Viglen Vig69M)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.12 (Viglen Vig69M)",
                 .internal_name = "vig69m",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1286,7 +1905,7 @@ static const device_config_t ms6119_config[] = {
                 .files         = { "roms/machines/ms6119/vig69m.212", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet x7G)",
+                .name          = "AwardBIOS v4.51PG - Revision 3.30b1 (LG IBM Multinet x7G)",
                 .internal_name = "lgibmx7g",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1363,7 +1982,7 @@ static const device_config_t ms6147_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.2 (Fujitsu ErgoPro e368)",
+                .name          = "AwardBIOS v4.51PG - Revision 1.2 (Fujitsu ErgoPro e368)",
                 .internal_name = "ergoproe368",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1372,7 +1991,7 @@ static const device_config_t ms6147_config[] = {
                 .files         = { "roms/machines/ms6147/W647F412.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 1.8",
+                .name          = "AwardBIOS v4.51PG - Revision 1.8",
                 .internal_name = "ms6147",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1381,7 +2000,7 @@ static const device_config_t ms6147_config[] = {
                 .files         = { "roms/machines/ms6147/W647MS18.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.1 (Packard Bell Tempest)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.1 (Packard Bell Tempest)",
                 .internal_name = "pbtempest",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1471,7 +2090,7 @@ static const device_config_t p6sba_config[] = {
                 .files         = { "roms/machines/p6sba/SBAB21.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.60PGA - Revision 05/07/1999 (Leadtek WinFast 8000BX)",
+                .name          = "AwardBIOS v4.60PGA - Revision 05/07/1999 (Leadtek WinFast 8000BX)",
                 .internal_name = "8000bx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1645,7 +2264,7 @@ static const device_config_t vei8_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision 61100003 (beta)",
+                .name          = "AwardBIOS v6.00PG - Revision 61100003 (beta)",
                 .internal_name = "6110zu0003",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1654,7 +2273,7 @@ static const device_config_t vei8_config[] = {
                 .files         = { "roms/machines/vei8/61100003.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision R804",
+                .name          = "AwardBIOS v6.00PG - Revision R804",
                 .internal_name = "6110zu",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1663,7 +2282,7 @@ static const device_config_t vei8_config[] = {
                 .files         = { "roms/machines/vei8/r804.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v6.00PG - Revision QHW.10.01 (HP Sherwood-B)",
+                .name          = "AwardBIOS v6.00PG - Revision QHW.10.01 (HP Sherwood-B)",
                 .internal_name = "vei8",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1979,7 +2598,7 @@ static const device_config_t ms6199va_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.5",
+                .name          = "AwardBIOS v4.51PG - Revision 3.5",
                 .internal_name = "ms6199va",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1988,7 +2607,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/w6199vms.350", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A)",
                 .internal_name = "ms6199va_200",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1997,7 +2616,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/W6199VC8.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A) [Patched for larger drives]",
+                .name          = "AwardBIOS v4.51PG - Revision 2.0 (Compaq ProSignia/Deskpro 693A) [Patched for larger drives]",
                 .internal_name = "ms6199va_200p",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2006,7 +2625,7 @@ static const device_config_t ms6199va_config[] = {
                 .files         = { "roms/machines/ms6199va/W6199VC8.PCD", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 3.7 (Packard Bell Phoenix)",
+                .name          = "AwardBIOS v4.51PG - Revision 3.7 (Packard Bell Phoenix)",
                 .internal_name = "ms6199va_370",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

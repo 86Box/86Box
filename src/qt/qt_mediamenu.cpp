@@ -287,6 +287,8 @@ MediaMenu::refresh(QMenu *parentMenu)
     MachineStatus::iterateTape([this, parentMenu](int i) {
         auto *menu     = parentMenu->addMenu("");
         QIcon img_icon = QIcon(":/settings/qt/icons/tape_image.ico");
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { tapeNewImage(i); });
+        menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { tapeSelectImage(i, false); });
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { tapeSelectImage(i, true); });
         menu->addSeparator();
@@ -677,12 +679,17 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
 
     if (dir > 1)
         filename = QString::asprintf(R"(ioctl://%s)", arg.toUtf8().data());
-    else if (dir == 1)
-        filename = QFileDialog::getExistingDirectory(parentWidget, QString(), getMediaOpenDirectory());
+    else if (dir == 1) {
+        QFileDialog::Options options = QFileDialog::ShowDirsOnly;
+#ifdef Q_OS_LINUX
+        options |= QFileDialog::DontUseNativeDialog;
+#endif
+        filename = QFileDialog::getExistingDirectory(parentWidget, QString(), getMediaOpenDirectory(), options);
+    }
     else {
         filename = QFileDialog::getOpenFileName(parentWidget, QString(),
                                                 getMediaOpenDirectory(),
-                                                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "mds", "mdx", "aaruf", "aaruformat", "aif", "chd", "ccd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+                                                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "toc", "ccd", "mds", "mdx", "aaruf", "aaruformat", "aif", "chd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     }
 
     if (filename.isEmpty())
@@ -1249,6 +1256,21 @@ MediaMenu::moReload(int index, int slot)
     moMount(index, filename, false);
     moUpdateMenu(index);
     ui_sb_update_tip(SB_MO | index);
+}
+
+void
+MediaMenu::tapeNewImage(int i)
+{
+    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Tape, parentWidget, tape_drives[i].type);
+    switch (dialog.exec()) {
+        default:
+            break;
+        case QDialog::Accepted:
+            QByteArray filename = dialog.fileName().toUtf8();
+            tape_drives[i].medium_type = dialog.mediaTypeIndex();
+            tapeMount(i, filename, false);
+            break;
+    }
 }
 
 void

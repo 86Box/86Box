@@ -55,7 +55,7 @@ static const device_config_t p54tp4xe_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 0302",
+                .name          = "AwardBIOS v4.51PG - Revision 0302",
                 .internal_name = "p54tp4xe",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -896,7 +896,7 @@ static const device_config_t ms5119_config[] = {
                 .files         = { "roms/machines/ms5119/A37EB.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Release 2.3 (by Rainbow)",
+                .name          = "AwardBIOS v4.51PG - Release 2.3 (by Rainbow)",
                 .internal_name = "ms5119_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1077,7 +1077,7 @@ static const device_config_t fmb_config[] = {
                 .files         = { "roms/machines/fmb/P5IV183.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - 2001 Release (by Rainbow)",
+                .name          = "AwardBIOS v4.51PG - 2001 Release (by Rainbow)",
                 .internal_name = "fmb_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1485,7 +1485,7 @@ static const device_config_t c5sbm2_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.50GP - Revision 07/17/1995",
+                .name          = "AwardBIOS v4.50GP - Revision 07/17/1995",
                 .internal_name = "5sbm2_v450gp",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1494,7 +1494,7 @@ static const device_config_t c5sbm2_config[] = {
                 .files         = { "roms/machines/5sbm2/5SBM0717.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.50PG - Revision 03/26/1996",
+                .name          = "AwardBIOS v4.50PG - Revision 03/26/1996",
                 .internal_name = "5sbm2",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1503,7 +1503,7 @@ static const device_config_t c5sbm2_config[] = {
                 .files         = { "roms/machines/5sbm2/5SBM0326.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.2 (by Unicore Software)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.2 (by Unicore Software)",
                 .internal_name = "5sbm2_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1610,7 +1610,7 @@ static const device_config_t ap5s_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.50PG - Revision R1.20",
+                .name          = "AwardBIOS v4.50PG - Revision R1.20",
                 .internal_name = "ap5s_450pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1619,7 +1619,7 @@ static const device_config_t ap5s_config[] = {
                 .files         = { "roms/machines/ap5s/ap5s120.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision R1.50",
+                .name          = "AwardBIOS v4.51PG - Revision R1.50",
                 .internal_name = "ap5s_r150",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1628,7 +1628,7 @@ static const device_config_t ap5s_config[] = {
                 .files         = { "roms/machines/ap5s/AP5S150.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision R1.60",
+                .name          = "AwardBIOS v4.51PG - Revision R1.60",
                 .internal_name = "ap5s",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1774,7 +1774,7 @@ static const device_config_t ms5124_config[] = {
                 .files         = { "roms/machines/ms5124/AG77.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision WG72P",
+                .name          = "AwardBIOS v4.51PG - Revision WG72P",
                 .internal_name = "ms5124_451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

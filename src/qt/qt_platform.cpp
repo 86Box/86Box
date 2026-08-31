@@ -11,10 +11,12 @@
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
+ *          gdwnldsKSC
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
+ *          Copyright 2026 gdwnldsKSC
  */
 #ifdef __HAIKU__
 #    include <OS.h>
@@ -127,6 +129,11 @@ private:
     int   s;
 };
 
+#ifdef Q_OS_MACOS
+extern void exit_pause(void);
+extern void enter_pause(void);
+#endif
+
 extern "C" {
 #ifdef Q_OS_WINDOWS
 #    include <86box/win.h>
@@ -143,6 +150,7 @@ extern "C" {
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/config.h>
+#include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 #include <86box/ui.h>
 #ifdef DISCORD
@@ -616,9 +624,35 @@ plat_remove(char *path)
 }
 
 void *
-plat_mmap(size_t size, uint8_t executable)
+plat_mmap(size_t size, uint8_t executable, uint8_t* large)
 {
+    if (large)
+        *large = 0;
 #if defined Q_OS_WINDOWS
+    static bool priv_tried = false;
+    if (!priv_tried) {
+        priv_tried = true;
+        HANDLE tok;
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tok)) {
+            TOKEN_PRIVILEGES tp = { };
+            tp.PrivilegeCount   = 1;
+            if (LookupPrivilegeValueW(nullptr, L"SeLockMemoryPrivilege", &tp.Privileges[0].Luid)) {
+                tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+                AdjustTokenPrivileges(tok, FALSE, &tp, 0, nullptr, nullptr);
+            }
+            CloseHandle(tok);
+        }
+    }
+    const size_t lp = GetLargePageMinimum();
+    if (lp) {
+        const size_t rounded = (size + lp - 1) & ~(lp - 1);
+        void* p = VirtualAlloc(nullptr, rounded, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+        if (p) {
+            if (large)
+                *large = 1;
+            return p;
+        }
+    }
     return VirtualAlloc(NULL, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
 #elif defined Q_OS_UNIX
 #    if defined Q_OS_DARWIN && defined MAP_JIT
@@ -629,6 +663,13 @@ plat_mmap(size_t size, uint8_t executable)
         mprotect(ret, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0));
 #    else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
+#       ifdef MADV_HUGEPAGE
+    if (ret && ret != MAP_FAILED) {
+        if (large) {
+            *large = !madvise(ret, size, MADV_HUGEPAGE);
+        }
+    }
+#       endif
 #    endif
     return (ret == MAP_FAILED) ? nullptr : ret;
 #endif
@@ -724,7 +765,7 @@ plat_pause(int p)
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) || defined(Q_OS_MACOS)
     if (p)
         enter_pause();
     else
@@ -759,6 +800,7 @@ plat_power_off(void)
     plat_mouse_capture(0);
     plat_clean_up();
     confirm_exit_cmdl = 0;
+    ide_wait_for_async_reads();
     hdd_image_sync_all();
     nvr_save();
 
@@ -887,14 +929,17 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #    define LIB_NAME_GPCL "gpcl6dll64.dll"
 #    define LIB_NAME_PCAP "Npcap"
 #    define LIB_NAME_MDSX "mdsx.dll"
+#    define LIB_NAME_AARU "libaaruformat.dll"
 #else
 #    define LIB_NAME_GS   "libgs"
 #    define LIB_NAME_GPCL "libgpcl6"
 #    define LIB_NAME_PCAP "libpcap"
 #    ifdef __APPLE__
 #        define LIB_NAME_MDSX "mdsx.dylib"
+#        define LIB_NAME_AARU "libaaruformat.dylib"
 #    else
 #        define LIB_NAME_MDSX "mdsx.so"
+#        define LIB_NAME_AARU "libaaruformat.so"
 #    endif
 #endif
 
@@ -921,6 +966,7 @@ Preferences::reloadStrings()
     translatedstrings[STRING_CDROM_OPEN_MDS_ERROR]      = QCoreApplication::translate("", "Unable to open MDS file \"%s\".").toUtf8();
     translatedstrings[STRING_CDROM_LOAD_IMAGE_ERROR]    = QCoreApplication::translate("", "Unable to load CD-ROM image \"%s\".").toUtf8();
     translatedstrings[STRING_CDROM_LOAD_MDSX_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support.").arg(LIB_NAME_MDSX).toUtf8();
+    translatedstrings[STRING_CDROM_LOAD_AARU_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support.").arg(LIB_NAME_AARU).toUtf8();
     translatedstrings[STRING_CDROM_DVD_IN_CD_DRIVE]     = QCoreApplication::translate("", "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.").toUtf8();
     translatedstrings[STRING_CHARDEV_CONNECT_ERROR]     = QCoreApplication::translate("", "%s: Could not connect to %s: %s").toUtf8();
     translatedstrings[STRING_CHARDEV_CREATE_ERROR]      = QCoreApplication::translate("", "%s: Could not create %s: %s").toUtf8();

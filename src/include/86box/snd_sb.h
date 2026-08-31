@@ -164,6 +164,7 @@ typedef struct ess_mixer_t {
     int input_filter;
     int in_filter_freq;
     int output_filter;
+    int output_filter_dac2;
 
     int stereo;
     int stereo_isleft;
@@ -204,6 +205,10 @@ typedef struct sb_t {
 
     uint16_t midi_addr;
     uint16_t gameport_addr;
+
+    /* Output gain required for the Pro Sonic 16 so PCM sounds are volume adjusted
+	to similar levels produced by the external midi and PC speaker */
+    double mvd_1216_output_gain;
 
     uint8_t  ess_scr_locked;
     uint8_t  es1688_rsk_enable;

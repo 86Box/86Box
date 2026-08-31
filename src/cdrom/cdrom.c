@@ -1742,7 +1742,7 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
     uint8_t  ret  = 0;
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
-        cdrom_log(dev->log, "Audio Track Search: MSF = %06x, type = %02x, "
+        cdrom_log(dev->log,"Audio Track Search: MSF = %06x, type = %02x, "
                   "playbit = %02x\n", pos, type, playbit);
 
         ret = 1;
@@ -1765,6 +1765,7 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
                 } else
                     pos2 = MSFtoLBA(m, s, f) - 150;
 
+                cdrom_log(dev->log,"M=%d, S=%d, F=%d.\n", m, s, f);
                 dev->seek_pos = pos2;
                 break;
             } case 0x80: {
@@ -1805,37 +1806,55 @@ cdrom_audio_track_search(cdrom_t *dev, const uint32_t pos,
 }
 
 uint8_t
-cdrom_audio_track_search_pioneer(cdrom_t *dev, const uint32_t pos, const uint8_t playbit)
+cdrom_audio_track_search_pioneer(cdrom_t *dev, const uint32_t pos,
+                         const int type, const uint8_t playbit)
 {
+    uint32_t pos2 = pos;
     uint8_t  ret  = 0;
 
-    if (dev->cd_status &= CD_STATUS_HAS_AUDIO) {
-        const int f    = bcd2bin((pos >> 24) & 0xff);
-        const int s    = bcd2bin((pos >> 16) & 0xff);
-        const int m    = bcd2bin((pos >> 8) & 0xff);
-        uint32_t  pos2;
+    if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
+        cdrom_log(dev->log,"Audio Track Search Pioneer: MSF = %06x, type = %02x, "
+                  "playbit = %02x\n", pos, type, playbit);
 
-        if (pos == 0xffffffff)
-            pos2 = dev->seek_pos;
-        else
-            pos2 = MSFtoLBA(m, s, f) - 150;
+        ret = 1;
 
-        dev->seek_pos = pos2;
+        switch (type) {
+            case 0x00:
+                if (pos == 0xffffffff) {
+                    cdrom_log(dev->log, "(Type 0) Search from current position\n");
+                    pos2 = dev->seek_pos;
+                }
+                dev->seek_pos = pos2;
+                break;
+            case 0x40: {
+                const int m   = bcd2bin((pos >> 16) & 0xff);
+                const int s   = bcd2bin((pos >> 8) & 0xff);
+                const int f   = bcd2bin(pos & 0xff);
+                if (pos == 0xffffffff) {
+                    cdrom_log(dev->log, "(Type 1) Search from current position\n");
+                    pos2 = dev->seek_pos;
+                } else
+                    pos2 = MSFtoLBA(m, s, f) - 150;
 
-        /*
-           Do this at this point, since it's at this point that we know the
-           actual LBA position to start playing from.
-         */
-        if (dev->ops->get_track_type(dev->local, pos2) & CD_TRACK_AUDIO) {
+                cdrom_log(dev->log,"M=%d, S=%d, F=%d.\n", m, s, f);
+                dev->seek_pos = pos2;
+                break;
+            } default:
+                break;
+        }
+
+        if (ret) {
+            if (pos2 != 0x00000000)
+                pos2--;
+
+            cdrom_log(dev->log, "Track Search Pioneer: LBA=%08X.\n", pos);
+
             dev->cd_end    = dev->cdrom_capacity;
             dev->cd_buflen = 0;
 
             dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_HOLD;
 
-            ret = 1;
-        } else {
-            cdrom_log(dev->log, "LBA %08X not on an audio track\n", pos);
-            cdrom_stop(dev);
+            ret            = 1;
         }
     }
 
@@ -1846,12 +1865,18 @@ uint8_t
 cdrom_audio_play_pioneer(cdrom_t *dev, const uint32_t pos)
 {
     uint8_t  ret  = 0;
+    uint32_t pos2 = pos;
 
     if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
-        const int f    = bcd2bin((pos >> 24) & 0xff);
-        const int s    = bcd2bin((pos >> 16) & 0xff);
-        const int m    = bcd2bin((pos >> 8) & 0xff);
-        uint32_t  pos2 = MSFtoLBA(m, s, f) - 150;
+        const int f    = bcd2bin(pos & 0xff);
+        const int s    = bcd2bin((pos >> 8) & 0xff);
+        const int m    = bcd2bin((pos >> 16) & 0xff);
+
+        if (pos == 0xffffffff)
+            pos2 = dev->cd_end;
+        else
+            pos2 = MSFtoLBA(m, s, f) - 150;
+
         dev->cd_end = pos2;
 
         dev->cd_buflen = 0;
@@ -2197,8 +2222,8 @@ cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b)
     b[7] = subc->abs_s;
     b[8] = subc->abs_f;
 
-    cdrom_log(dev->log, "SubCodeQ: %02X %02X %02X %02X %02X %02X %02X %02X "
-              "%02X\n",
+    cdrom_log(dev->log,"SubCodeQ: b0=%02X b1=%02X b2=%02X b3=%02X b4=%02X b5=%02X b6=%02X b7=%02X "
+              "b8=%02X\n",
               b[0], b[1], b[2], b[3], b[4], b[5], b[6], b[7], b[8]);
 }
 
@@ -2321,17 +2346,14 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
     buf[8] = 0x00;
 }
 
-void
-cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
+int
+cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 {
-    int               num;
+    int               num = 0;
     uint8_t           rti[65536]  = { 0 };
     raw_track_info_t *t        = (raw_track_info_t *) rti;
-    int               first = 0;
-    int               last = 0;
-    memset(buf, 0x00, 10);
 
-    if (!mode) {    
+    if (!mode) {
         const subchannel_t *subc = &dev->cached_subc;
         cdrom_get_subchannel(dev, dev->seek_pos, 0);
 
@@ -2345,56 +2367,31 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
         buf[7] = subc->abs_m;
         buf[8] = subc->abs_s;
         buf[9] = subc->abs_f;
-        return;
+        return curtoctrk;
     }
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
-    // Find out current session.
-    uint32_t cur_lba = dev->seek_pos;
-    uint32_t cur_sess = 1;
 
-    for (int i = 0; i < num; i++) {
-        if (t[i].point == 0xb0) {
-            uint32_t next_sess_start = MSFtoLBA(t[i].m, t[i].s, t[i].f) - 150;
-            if (cur_lba >= next_sess_start) {
-                cur_sess++;
-            }
-        }
-    }
+    if (curtoctrk < 0)
+        curtoctrk = 0;
 
-    for (int i = 0; i < num; i++)
-        if ((t[i].session == cur_sess) && (t[i].point >= 1) && (t[i].point <= 99)) {
-            first = t[i].point;
-            break;
-        }
-
-    for (int i = (num - 1); i >= 0; i--)
-        if ((t[i].session == cur_sess) && (t[i].point >= 1) && (t[i].point <= 99)) {
-            last  = t[i].point;
-            break;
-        }
-
-    if (*curtoctrk < first)
-        *curtoctrk = first;
-
-    buf[0] = (t[*curtoctrk].adr_ctl >> 4) | ((t[*curtoctrk].adr_ctl & 0xf) << 4);
+    buf[0] = (t[curtoctrk].adr_ctl >> 4) | ((t[curtoctrk].adr_ctl & 0xf) << 4);
     buf[1] = 0;
-    buf[2] = t[*curtoctrk].point;
-    buf[3] = bin2bcd(t[*curtoctrk].m);
-    buf[4] = bin2bcd(t[*curtoctrk].s);
-    buf[5] = bin2bcd(t[*curtoctrk].f);
-    buf[6] = t[*curtoctrk].zero;
-    buf[7] = bin2bcd(t[*curtoctrk].pm);
-    buf[8] = bin2bcd(t[*curtoctrk].ps);
-    buf[9] = bin2bcd(t[*curtoctrk].pf);
+    buf[2] = (t[curtoctrk].point > 99)? t[curtoctrk].point : bin2bcd(t[curtoctrk].point);
+    buf[3] = bin2bcd(t[curtoctrk].m);
+    buf[4] = bin2bcd(t[curtoctrk].s);
+    buf[5] = bin2bcd(t[curtoctrk].f);
+    buf[6] = bin2bcd(t[curtoctrk].zero);
+    buf[7] = bin2bcd(t[curtoctrk].pm);
+    buf[8] = bin2bcd(t[curtoctrk].ps);
+    buf[9] = bin2bcd(t[curtoctrk].pf);
 
-    if (*curtoctrk > last) {
-        *curtoctrk = first;
-    } else {
-        (void)*curtoctrk++;
-    }
+    curtoctrk++;
 
-    return;
+    if (curtoctrk >= num)
+        curtoctrk = 0;
+
+    return curtoctrk;
 }
 
 uint8_t
@@ -2450,14 +2447,16 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                          const uint8_t track, const int type)
 {
     uint8_t                 rti[65536]  = { 0 };
+    uint8_t                 prti[65536] = { 0 };
     const raw_track_info_t *trti        = (raw_track_info_t *) rti;
+    raw_track_info_t *      tprti       = (raw_track_info_t *) prti;
     int                     num         = 0;
     int                     first       = -1;
     int                     t           = -1;
     uint8_t                 ret         = 1;
     uint32_t                temp;
 
-    cdrom_log(dev->log, "Read DISC Info TOC Type = %d, track = %d\n", type, track);
+    cdrom_log(dev->log,"Read DISC Info TOC Type = %d, track = %d\n", type, track);
 
     dev->inv_field = track;
     dev->ops->get_raw_track_info(dev->local, &num, rti);
@@ -2512,21 +2511,93 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                           b[2], bcd2bin(track), b[3]);
             }
             break;
-        case 3: /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
-            if (dev->is_nec) {
-                b[0x0e] = 0x00;
+        case 3:
+            if (dev->is_nec) { /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
+                if (track == 0xb0) { /*TOC type session */
+                    b[14] = 0x00;
 
-                if (num > 0)
-                    first = find_track(trti, num, 1);
+                    if (num > 0)
+                        first = find_track(trti, num, 1);
 
-                if (first == -1)
-                    ret = 0;
-                else {
-                    temp    = MSFtoLBA(trti[first].pm, trti[first].ps, trti[first].pf) - 150;
-                    b[0x0f] = temp >> 24;
-                    b[0x10] = temp >> 16;
-                    b[0x11] = temp >> 8;
-                    b[0x12] = temp;
+                    if (first == -1)
+                        ret = 0;
+                    else {
+                        temp  = MSFtoLBA(trti[first].pm, trti[first].ps, trti[first].pf) - 150;
+                        b[2]  = trti[first].adr_ctl;
+                        b[15] = bin2bcd(temp >> 24);
+                        b[16] = bin2bcd(temp >> 16);
+                        b[17] = bin2bcd(temp >> 8);
+                    }
+                } else {
+                    if (num > 0) {
+                        int j = 0;
+                        for (int i = 0; i < num; i++) {
+                            if ((trti[i].point >= 0x01) && (trti[i].point <= 0x63)) {
+                                tprti[j] = trti[i];
+                                if (t == -1)
+                                    t = j;
+
+                                j++;
+                            }
+                        }
+
+                        /* Bytes 9 and 19 = Number of first and last tracks found before lead out */
+                        b[9] = bin2bcd(tprti[0].point);
+                        b[19] = bin2bcd(tprti[j - 1].point);
+
+                        for (int i = (num - 1); i >= 0; i--) {
+                            if (trti[i].point == 0xa2) {
+                                tprti[j] = trti[i];
+                                tprti[j].point = 0xaa;
+                                if (t == -1)
+                                    t = j;
+
+                                j++;
+                                break;
+                            }
+                        }
+
+                        if (t != -1) {
+                            int lead_out = 0;
+                            int lead_out_trk_num = -1;
+                            for (int i = t; i < j; i++) {
+                                int track = (tprti[i].point > 0x63) ? tprti[i].point : bin2bcd(tprti[i].point);
+                                if (track == 0xaa) {
+                                    lead_out = 1;
+                                    lead_out_trk_num = i;
+                                    break;
+                                } else {
+                                    int pm = tprti[i].pm;
+                                    int ps = tprti[i].ps;
+                                    int pf = tprti[i].pf;
+                                    b[(i * 10) + 32] = tprti[i].adr_ctl;
+                                    b[(i * 10) + 33] = 0x00;
+                                    b[(i * 10) + 34] = track;
+                                    msf_to_bcd(&pm, &ps, &pf);
+                                    b[(i * 10) + 38] = 0x00;
+                                    b[(i * 10) + 39] = pm;
+                                    b[(i * 10) + 40] = ps;
+                                    b[(i * 10) + 41] = pf;
+                                    cdrom_log(dev->log, "I=%d, pm=%d, ps=%d, pf=%d, adr_ctl=%02x, point=%d.\n", i, pm, ps, pf, tprti[i].adr_ctl, tprti[i].point);
+                                }
+                            }
+                            if (lead_out) {
+                                int pm = tprti[lead_out_trk_num].pm;
+                                int ps = tprti[lead_out_trk_num].ps;
+                                int pf = tprti[lead_out_trk_num].pf;
+                                b[22] = tprti[lead_out_trk_num].adr_ctl;
+                                b[23] = 0x00;
+                                b[24] = 0xaa;
+                                msf_to_bcd(&pm, &ps, &pf);
+                                b[28] = 0x00;
+                                b[29] = pm;
+                                b[30] = ps;
+                                b[31] = pf;
+                            }
+                        } else
+                            ret = 0;
+                    } else
+                        b[9] = b[19] = 0x00;
                 }
             } else {
                 b[0] = trti[0].ps;    /* Disc type. */
@@ -2537,11 +2608,98 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                 if (first == -1)
                     ret = 0;
                 else {
-                    temp    = MSFtoLBA(trti[first].pm, trti[first].ps, trti[first].pf) - 150;
-                    b[0x1] = temp >> 24;
-                    b[0x2] = temp >> 16;
-                    b[0x3] = temp >> 8;
+                    temp = MSFtoLBA(trti[first].pm, trti[first].ps, trti[first].pf) - 150;
+                    b[1] = temp >> 24;
+                    b[2] = temp >> 16;
+                    b[3] = temp >> 8;
                 }
+            }
+            break;
+        default:
+            break;
+    }
+
+    return ret;
+}
+
+uint8_t
+cdrom_read_toc_nec(cdrom_t *dev, uint8_t *b,
+                         const uint8_t track, const int type, const int len)
+{
+    uint8_t ret;
+
+    ret = cdrom_read_disc_info_toc(dev, b, track, type);
+
+    if (type == 3) {
+        b[0] = (uint8_t) (((len - 2) >> 8) & 0xff);
+        b[1] = (uint8_t) ((len - 2) & 0xff);
+    }
+    return ret;
+}
+
+uint8_t
+cdrom_read_toc_pioneer(cdrom_t *dev, uint8_t *b,
+                         const uint8_t track, const int type)
+{
+    uint8_t                 rti[65536]  = { 0 };
+    const raw_track_info_t *trti        = (raw_track_info_t *) rti;
+    int                     num         = 0;
+    int                     t           = -1;
+    uint8_t                 ret         = 1;
+
+    cdrom_log(dev->log,"Read Pioneer DISC Info TOC Type = %d, track = %d\n", type, track);
+
+    dev->inv_field = track;
+    dev->ops->get_raw_track_info(dev->local, &num, rti);
+
+    switch (type) {
+        case 0:
+            if (num > 0) {
+                if (num < 4)
+                    ret = 0;
+                else {
+                    b[0] = bin2bcd(trti[0].pm);
+                    b[1] = bin2bcd(trti[1].pm);
+                    b[2] = 0x00;
+                    b[3] = 0x00;
+
+                    cdrom_log(dev->log, "Returned Pioneer disc information (type 0) "
+                              "at %02i:%02i\n", b[0], b[1]);
+                }
+            } else
+                ret = 0;
+            break;
+        case 1:
+            if (num > 0)
+                t = find_last_lead_out(trti, num);
+
+            if (t == -1)
+                ret = 0;
+            else {
+                b[0] = bin2bcd(trti[t].pm);
+                b[1] = bin2bcd(trti[t].ps);
+                b[2] = bin2bcd(trti[t].pf);
+                b[3] = 0x00;
+
+                cdrom_log(dev->log, "Returned Pioneer disc information (type 1) at "
+                          "%02i:%02i.%02i\n", b[0], b[1], b[2]);
+            }
+            break;
+        case 2:
+            if (num > 0)
+                t = find_specific_track(trti, num, bcd2bin(track));
+
+            if (t == -1)
+                ret = 0;
+            else {
+                b[0] = trti[t].adr_ctl;
+                b[1] = bin2bcd(trti[t].pm);
+                b[2] = bin2bcd(trti[t].ps);
+                b[3] = bin2bcd(trti[t].pf);
+
+                cdrom_log(dev->log, "Returned Pioneer disc information (type 2) at "
+                          "%02i:%02i.%02i, track=%d, attr=%02x.\n", b[1], b[2],
+                          b[3], bcd2bin(track), b[0]);
             }
             break;
         default:
@@ -2637,7 +2795,7 @@ cdrom_generate_scramble_lut(uint8_t *b)
             shift_reg >>= 1;
 
             /* Push the XOR result into the MSB of the shift register. */
-            if (xor_res != 0) 
+            if (xor_res != 0)
                 shift_reg += 16384; // Set bit 15
 
             /* Set the bit in the table byte. */
@@ -3227,8 +3385,6 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     if ((strlen(dev->image_path) != 0) &&
         (strstr(dev->image_path, "ioctl://") == dev->image_path))
         dev->local = ioctl_open(dev, dev->image_path);
-    else if (cdrom_image_is_ccd(dev->image_path))
-        dev->local = ccd_image_open(dev, dev->image_path);
     else if (cdrom_image_is_chd(dev->image_path))
         dev->local = chd_image_open(dev, dev->image_path);
     else if (cdrom_image_is_aaru(dev->image_path))

@@ -524,6 +524,8 @@ et3000_init(const device_t *info)
     dev->svga.packed_chain4 = 1;
     dev->svga.line_compare  = et3000_line_compare;
 
+    dev->svga.adv_flags    |= FLAG_EXT_AR;
+
     return dev;
 }
 

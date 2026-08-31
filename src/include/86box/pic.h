@@ -71,9 +71,11 @@ extern void    pic_elcr_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t pic_elcr_read(uint16_t port, void *priv);
 
 extern void pic_set_shadow(int sh);
+extern void pic_set_force_xt_imr_timing(int enable);
 extern int  pic_get_pci_flag(void);
 extern void pic_set_pci_flag(int pci);
 extern void pic_set_pci(void);
+extern void pic_set_vector_override(uint8_t irq, int vector);
 extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
 extern void pic_init(void);

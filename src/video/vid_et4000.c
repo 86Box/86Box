@@ -959,6 +959,8 @@ et4000_init(const device_t *info)
 
     dev->svga.packed_chain4 = 1;
 
+    dev->svga.adv_flags    |= FLAG_EXT_AR;
+
     return dev;
 }
 

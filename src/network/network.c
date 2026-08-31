@@ -121,6 +121,9 @@ static const NETWORK_CARD net_cards[] = {
     { &dec_tulip_21040_device     },
     { &dec_tulip_21140_device     },
     { &dec_tulip_device           },
+    { &i82557_device              },
+    { &i82558_device              },
+    { &nec_pk_ug_x006_device      },
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
     { &smc_epic100_device         },
@@ -134,6 +137,14 @@ net_cards_migrate[] = {
     /* DECchip 21140 "Tulip FasterNet" */
     { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip"                },
     { .device = &dec_tulip_21140_device,                        .old_internal_name = "dec_21140_tulip_vpc"            },
+    /* Intel 8255x (PRO/100 family) */
+    { .device = &i82557_device,                                 .old_internal_name = "i82557b"                       },
+    { .device = &i82557_device,                                 .old_internal_name = "i82557c"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82558b"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559a"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559b"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559c"                       },
+    { .device = &i82558_device,                                 .old_internal_name = "i82559er"                      },
     /* End of table */
     { .device = NULL,                                           .old_internal_name = ""                               }
   // clang-format on

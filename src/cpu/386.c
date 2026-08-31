@@ -246,10 +246,8 @@ exec386_2386(int32_t cycs)
             int ins_fetch_fault = 0;
             ins_cycles = cycles;
 
-#ifndef USE_NEW_DYNAREC
             oldcs  = CS;
             oldcpl = CPL;
-#endif
             cpu_state.oldpc = cpu_state.pc;
             cpu_state.op32  = use32;
 
@@ -259,6 +257,9 @@ exec386_2386(int32_t cycs)
 
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
+
+            if (inboard386_present)
+                inboard_post_fixups();
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
             ol = opcode_length[fetchdat & 0xff];
@@ -281,6 +282,11 @@ exec386_2386(int32_t cycs)
             }
 
             if (!cpu_state.abrt) {
+                /* Temp variables for FPU exception reporting. */
+                cpu_state.temp_CS = CS;
+                cpu_state.temp_cs = cs;
+                cpu_state.temp_pc = cpu_state.pc;
+
 #ifdef ENABLE_386_LOG
                 if (in_smm)
                     x386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
@@ -346,9 +352,7 @@ block_ended:
             } else if (new_ne) {
                 flags_rebuild();
                 new_ne = 0;
-#ifndef USE_NEW_DYNAREC
                 oldcs = CS;
-#endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(16);
             } else if (trap) {
@@ -357,9 +361,7 @@ block_ended:
                 if (trap & 1) dr[6] |= 0x4000;
                 if (trap & 16) dr[6] |= 0x2000;
                 trap = 0;
-#ifndef USE_NEW_DYNAREC
                 oldcs = CS;
-#endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(1);
             }
@@ -367,9 +369,7 @@ block_ended:
             if (smi_line)
                 enter_smm_check(0);
             else if (nmi && nmi_enable && nmi_mask) {
-#ifndef USE_NEW_DYNAREC
                 oldcs = CS;
-#endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
                 nmi_enable = 0;

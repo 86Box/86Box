@@ -107,6 +107,7 @@ typedef struct video_timings_t {
     void                  *wait_states_priv;
 } video_timings_t;
 
+// All bitmaps (including buffer32 and target_buffer) follow the 0xXXRRGGBB format, DWORD-wise.
 typedef struct bitmap_t {
     int       w;
     int       h;
@@ -309,6 +310,10 @@ extern void    video_monitor_close(int);
 extern void    video_init(void);
 extern void    video_close(void);
 extern void    video_reset_close(void);
+extern void    video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used));
+extern void    video_lightpen_hsync(void);
+extern void    video_lightpen_vsync(void);
+extern void    video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used);
 extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
 extern void    video_post_reset(void);
@@ -322,6 +327,7 @@ extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
 
 extern void     video_clamp_vram(uint64_t bios_flags, int *vram);
+extern void     video_clamp_vram_2(uint64_t bios_flags, int *vram);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
 #define video_get_type()                      video_get_type_monitor(0)
@@ -431,6 +437,9 @@ extern const device_t gd5480_pci_device;
 
 /* IBM CGA */
 extern const device_t cga_device;
+
+/* IBM 3270 PC Display Adapter */
+extern const device_t ibm3270pc_vid_device;
 
 /* Pravetz CGA */
 extern const device_t cga_pravetz_device;

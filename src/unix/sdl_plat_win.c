@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <io.h>
 
 #include <windows.h>
 
@@ -29,11 +32,11 @@ plat_unlock_volumes(plat_device_vol_locked_t* vol)
     uintptr_t i = 0;
     for (i = 0; i < vol->vol_nums; i++) {
         if (vol->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
-            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_DISMOUNT_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr);
-            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_UNLOCK_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr);
+            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_DISMOUNT_VOLUME, 0, 0, 0, 0, &bytesRet, NULL);
+            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_UNLOCK_VOLUME, 0, 0, 0, 0, &bytesRet, NULL);
         }
     }
-    DeviceIoControl((HANDLE)vol->handle_disk, IOCTL_DISK_UPDATE_PROPERTIES, 0, 0, 0, 0, &bytesRet, nullptr);
+    DeviceIoControl((HANDLE)vol->handle_disk, IOCTL_DISK_UPDATE_PROPERTIES, 0, 0, 0, 0, &bytesRet, NULL);
     (void)GetLogicalDrives();
     for (i = 0; i < vol->vol_nums; i++) {
         if (vol->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
@@ -68,12 +71,12 @@ plat_lock_volumes(FILE* file)
             locked_list->vol_nums = layout_info->PartitionCount;
             for (DWORD i = 0; i < layout_info->PartitionCount; i++) {
                 char path_name[256] = { 0 };
-                snprintf(path_name, sizeof(path_name) - 1, "\\\\?\\Harddisk%uPartition%lu", storage_num.DeviceNumber, i);
+                snprintf(path_name, sizeof(path_name) - 1, "\\\\?\\Harddisk%uPartition%lu", (unsigned int)storage_num.DeviceNumber, (long unsigned)i);
                 locked_list->handles_vols[i] = (uintptr_t)CreateFileA(path_name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, 0);
                 if (locked_list->handles_vols[i] != -1) {
                     if (DeviceIoControl((HANDLE)locked_list->handles_vols[i], FSCTL_LOCK_VOLUME, 0, 0, 0, 0, &bytesRet, NULL)) {
                     } else {
-                        warning("Failed to lock partition %lu on disk %d.", i, storage_num.DeviceNumber);
+                        warning("Failed to lock partition %lu on disk %d.", i, (int)storage_num.DeviceNumber);
                     }
                 }
             }
@@ -221,8 +224,35 @@ plat_get_block_device_size(UNUSED(const char *path))
  */
 
 void *
-plat_mmap(size_t size, uint8_t executable)
+plat_mmap(size_t size, uint8_t executable, uint8_t* large)
 {
+    if (large)
+        *large = 0;
+    static bool priv_tried = false;
+    if (!priv_tried) {
+        priv_tried = true;
+        HANDLE tok;
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tok)) {
+            TOKEN_PRIVILEGES tp;
+            memset((void*)&tp, 0, sizeof(TOKEN_PRIVILEGES));
+            tp.PrivilegeCount   = 1;
+            if (LookupPrivilegeValueW(NULL, L"SeLockMemoryPrivilege", &tp.Privileges[0].Luid)) {
+                tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+                AdjustTokenPrivileges(tok, FALSE, &tp, 0, NULL, NULL);
+            }
+            CloseHandle(tok);
+        }
+    }
+    size_t lp = GetLargePageMinimum();
+    if (lp) {
+        size_t rounded = (size + lp - 1) & ~(lp - 1);
+        void* p = VirtualAlloc(NULL, rounded, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+        if (p) {
+            if (large)
+                *large = 1;
+            return p;
+        }
+    }
     return VirtualAlloc(NULL, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
 }
 

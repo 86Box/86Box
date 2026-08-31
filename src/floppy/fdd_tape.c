@@ -6,9 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of a QIC-117 "floppy tape" drive, modelled after a
- *          Colorado QIC-40 drive ("Colorado 120", implying 60MB tapes,
- *          up to 120MB compressed).
+ *          Emulation of a QIC-117 "floppy tape" drive, namely a drive that
+ *          accepts a QIC-80 or QIC-80XL cartridge.
  *
  *          These drives share the floppy ribbon cable with the regular
  *          floppy drives and occupy one of the four drive select lines.
@@ -23,8 +22,10 @@
  *
  *          The cartridge is a flat image addressed by segment. A segment
  *          is 32 sectors of 1024 bytes and is mapped onto the controller's
- *          C/H/R space at four segments per cylinder, 1020 segments per
- *          head - the same fixed geometry the QIC-40/80 format specifies.
+ *          C/H/R space at four segments per cylinder; the host states its
+ *          cylinders per head in the cartridge header (150 for QIC-80, 255
+ *          for QIC-40), so the "head" digit runs well past the two a floppy
+ *          has.
  *
  * Authors: Dmitry Brant, <me@dmitrybrant.com>
  *
@@ -47,118 +48,18 @@
 #include <86box/fdd.h>
 #include <86box/fdd_tape.h>
 #include <86box/fdc.h>
+#include <86box/tape_qic117.h>
 
-/* QIC-117 rev. J command set. Only the ones the drive acts on are named. */
+/*
+   Codes this drive gives a meaning of its own, on top of the shared set in
+   tape_qic117.h. 31 and 40 are vendor unique; MAX_COMMAND is this drive's
+   own bound on what it will look at rather than a command.
+ */
 enum {
-    QIC_NO_COMMAND             = 0,
-    QIC_RESET                  = 1,
-    QIC_REPORT_NEXT_BIT        = 2,
-    QIC_PAUSE                  = 3,
-    QIC_MICRO_STEP_PAUSE       = 4,
-    QIC_ALTERNATE_TIMEOUT      = 5,
-    QIC_REPORT_DRIVE_STATUS    = 6,
-    QIC_REPORT_ERROR_CODE      = 7,
-    QIC_REPORT_DRIVE_CONFIG    = 8,
-    QIC_REPORT_ROM_VERSION     = 9,
-    QIC_LOGICAL_FORWARD        = 10,
-    QIC_PHYSICAL_REVERSE       = 11,
-    QIC_PHYSICAL_FORWARD       = 12,
-    QIC_SEEK_HEAD_TO_TRACK     = 13,
-    QIC_SEEK_LOAD_POINT        = 14,
-    QIC_ENTER_FORMAT_MODE      = 15,
-    QIC_WRITE_REFERENCE_BURST  = 16,
-    QIC_ENTER_VERIFY_MODE      = 17,
-    QIC_STOP_TAPE              = 18,
-    QIC_MICRO_STEP_HEAD_UP     = 21,
-    QIC_MICRO_STEP_HEAD_DOWN   = 22,
-    QIC_SOFT_SELECT            = 23,
-    QIC_SOFT_DESELECT          = 24,
-    QIC_SKIP_REVERSE           = 25,
-    QIC_SKIP_FORWARD           = 26,
-    QIC_SELECT_RATE            = 27,
-    QIC_ENTER_DIAGNOSTIC_1     = 28,
-    QIC_ENTER_DIAGNOSTIC_2     = 29,
-    QIC_ENTER_PRIMARY_MODE     = 30,
-    QIC_REPORT_VENDOR_ID       = 32,
-    QIC_REPORT_TAPE_STATUS     = 33,
-    QIC_SKIP_EXTENDED_REVERSE  = 34,
-    QIC_SKIP_EXTENDED_FORWARD  = 35,
-    QIC_CALIBRATE_TAPE_LENGTH  = 36,
-    QIC_REPORT_FORMAT_SEGMENTS = 37,
-    QIC_SET_FORMAT_SEGMENTS    = 38,
-    QIC_PHANTOM_SELECT         = 46,
-    QIC_PHANTOM_DESELECT       = 47,
-    QIC_EXT_SELECT_RATE        = 50,
-    QIC_EXT_REPORT_DRIVE_CONFIG = 51,
-    QIC_MAX_COMMAND            = 55
+    QIC_CMS_COMMAND_31 = 31,
+    QIC_CONNER_CMD_40  = 40,
+    QIC_MAX_COMMAND    = 55
 };
-
-/* Drive status bits, as returned by QIC_REPORT_DRIVE_STATUS. */
-#define QIC_STATUS_READY             0x01
-#define QIC_STATUS_ERROR             0x02
-#define QIC_STATUS_CARTRIDGE_PRESENT 0x04
-#define QIC_STATUS_WRITE_PROTECT     0x08
-#define QIC_STATUS_NEW_CARTRIDGE     0x10
-#define QIC_STATUS_REFERENCED        0x20
-#define QIC_STATUS_AT_BOT            0x40
-#define QIC_STATUS_AT_EOT            0x80
-
-/* Drive configuration bits, as returned by QIC_REPORT_DRIVE_CONFIG. */
-#define QIC_CONFIG_RATE_SHIFT        3
-#define QIC_CONFIG_LONG              0x40
-#define QIC_CONFIG_80                0x80
-
-/*
-   Rate codes, as they appear in bits 4-3 of the drive configuration and as
-   the argument to Select Rate. A QIC-40 drive runs at 250 Kbps by default, so
-   that is what it reports and calibrates to; 500 Kbps is accepted too, and
-   the transfer clock (tape_byte_period()) follows whichever the host actually
-   programs into the controller.
- */
-#define QIC_RATE_250                 0
-#define QIC_RATE_2000                1
-#define QIC_RATE_500                 2
-#define QIC_RATE_1000                3
-
-/*
-   Arguments to Select Rate above the rate codes name a tape format instead,
-   as (Tape Format * 4) + Increment, where increment 1 is standard quarter
-   inch media and 3 is 8 mm wide tape. This QIC-40 drive works QIC-40 media on
-   standard quarter-inch cartridges; the QIC-80 code is tolerated but nothing
-   past it.
- */
-#define QIC_FORMAT_QIC40             ((1 << 2) | 1)
-#define QIC_FORMAT_QIC80             ((2 << 2) | 1)
-#define QIC_FORMAT_QIC3020           ((3 << 2) | 1)
-#define QIC_FORMAT_QIC3010           ((4 << 2) | 1)
-
-/* Tape status bits, as returned by QIC_REPORT_TAPE_STATUS. */
-#define QIC_TAPE_QIC40               0x01
-#define QIC_TAPE_QIC80               0x02
-#define QIC_TAPE_QIC3020             0x03
-#define QIC_TAPE_QIC3010             0x04
-#define QIC_TAPE_205FT               0x10
-#define QIC_TAPE_307FT               0x20
-#define QIC_TAPE_VAR_LEN_550         0x30
-#define QIC_TAPE_1100FT              0x40
-#define QIC_TAPE_VAR_LEN_900         0x60
-#define QIC_TAPE_WIDE                0x80
-
-/* Error codes, from the QIC-117 rev. J error code list (3.5). */
-#define QIC_ERROR_NONE               0
-#define QIC_ERROR_NOT_READY          1
-#define QIC_ERROR_NO_CARTRIDGE       2
-#define QIC_ERROR_WRITE_PROTECTED    5
-#define QIC_ERROR_UNDEFINED_COMMAND  6
-#define QIC_ERROR_ILLEGAL_SEEK_TRACK 7
-#define QIC_ERROR_ILLEGAL_IN_REPORT  8
-#define QIC_ERROR_ILLEGAL_DIAG_ENTRY 9
-#define QIC_ERROR_NEW_CARTRIDGE      13
-#define QIC_ERROR_ILLEGAL_IN_FORMAT  15
-#define QIC_ERROR_NOT_REFERENCED     19
-#define QIC_ERROR_POWER_ON_RESET     26
-#define QIC_ERROR_SOFT_RESET         27
-#define QIC_ERROR_RATE_SELECTION     31
 
 /* The error code list (3.5) divides errors into classes: initialization
    errors overwrite any pending code, while every other class leaves an
@@ -173,28 +74,40 @@ enum {
 #define QIC_IGNORE_ABOVE             QIC_REPORT_VENDOR_ID
 
 /*
-   Vendor ID and ROM version, pulled from a real Colorado 120 drive.
+   Vendor ID and ROM version.
+   Emulating a Conner drive seems to be more compatible across various
+   host software, whereas emulating a Colorado drive makes the host
+   software dive deeper into Colorado-specific diagnostics that have not
+   yet been reverse-engineered.
  */
-#define QIC_VENDOR_ID                0x0047
-#define QIC_ROM_VERSION              0x58
+#define QIC_VENDOR_ID_CONNER         0x014e
+#define QIC_VENDOR_ID_CONNER_OLD     0x5
+#define QIC_VENDOR_ID_COLORADO       0x0047
 
-/* Manufacturer-specific signature handed back by command 37 while in
-   diagnostic mode (observed on a real Colorado 120 drive). */
-#define QIC_CMS_SIGNATURE            0xa5
+#define QIC_ROM_VERSION_CONNER       0x2
+#define QIC_ROM_VERSION_COLORADO     0x58
 
-/* Manufacturer-specific signature handed back by command 9 while in
-   diagnostic mode (observed on a real Colorado 120 drive). */
-#define QIC_CMS_DIAG_STATUS          0xc
+/* Colorado-specific signature handed back by command 9 while in
+   diagnostic mode (observed on a real Colorado 250 drive). */
+#define QIC_COLORADO_SIGNATURE       0xa5
+
+/* Colorado-specific signature handed back by command 37 while in
+   diagnostic mode. */
+#define QIC_COLORADO_DIAG_STATUS     0x4
+
+/* Conner-specific signature handed back by command 40 while in
+   diagnostic mode, to determine the drive model. */
+#define QIC_CONNER_DIAG_STATUS       0x4c1c
 
 /* The head parks at cylinder 0 while idle, so TRACK 0 doubles as the
    result line. Bits are handed back one at a time, framed by a leading
    acknowledge bit and a trailing stop bit. */
 #define TAPE_REPORT_IDLE             (-1)
 
-/* A blank cartridge holds this many segments (QIC-40, 307.5 ft extended
-   length, 20 tracks of 102 segments), the layout this QIC-40 drive presents. */
-#define TAPE_SEGMENTS_PER_TRACK      102
-#define TAPE_TRACKS                  20
+/* A blank cartridge holds this many segments (QIC-80, 307.5 ft extended
+   length, 28 tracks of 150 segments), the layout this QIC-80 drive presents. */
+#define TAPE_SEGMENTS_PER_TRACK      150
+#define TAPE_TRACKS                  28
 #define TAPE_TOTAL_SEGMENTS          (TAPE_SEGMENTS_PER_TRACK * TAPE_TRACKS)
 
 /* Transfer states of the read/write engine. */
@@ -461,7 +374,7 @@ tape_head_segment(void)
 }
 
 /* Segments per tape track. The real figure lives in the cartridge's header
-   segment, which only the host has read, so this is the QIC-40 default
+   segment, which only the host has read, so this is the QIC-80 default
    unless the host has told us otherwise. */
 static int
 tape_segments_per_track(void)
@@ -739,7 +652,7 @@ tape_finish_parameters(void)
         case QIC_SEEK_HEAD_TO_TRACK:
             /*
                The track number must be valid for the format in effect. A
-               QIC-40 cartridge has 20 tracks; anything beyond that is an
+               QIC-80 cartridge has 28 tracks; anything beyond that is an
                "illegal track address specified for seek" (cmd 13, error 7),
                and the head stays where it is.
              */
@@ -788,36 +701,22 @@ tape_finish_parameters(void)
             break;
 
         case QIC_SELECT_RATE:
-            /*
-               The one argument selects either a data rate or a tape format.
-               Whatever the drive cannot do has to be refused rather than
-               quietly ignored: a host that asks for something and gets no
-               complaint will read the configuration back, find nothing
-               changed, and conclude the drive cannot reach the capacity it
-               wants.
-             */
+            if (tape.param[0] >= 6) {
+                /* If we want to emulate a Colorado drive: the drive actually
+                   reports error 8 for any rate code >= 6, which is technically
+                   against the spec.
+                   tape_set_error(QIC_ERROR_ILLEGAL_IN_REPORT, tape.param_cmd);
+                */
+                tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
+                break;
+            }
             switch (tape.param[0]) {
-                case QIC_RATE_250:
                 case QIC_RATE_500:
-                    /*
-                       250 Kbps is this QIC-40 drive's native rate; 500 Kbps is
-                       accepted too so a host probing rates sees no hard
-                       refusal. Either selection is reported back as-is, and a
-                       host that asks for one and reads back the other takes the
-                       drive to have failed the request.
-                     */
+                case QIC_RATE_1000:
                     tape.rate_code = tape.param[0];
                     break;
 
-                case QIC_FORMAT_QIC40:
-                case QIC_FORMAT_QIC80:
-                    /* Only consulted when the host goes on to format. */
-                    tape.format_code = tape.param[0];
-                    break;
-
                 default:
-                    /* 1 and 2 Mbps, the QIC-3010 and QIC-3020 formats, and
-                       8 mm wide media are all beyond a QIC-40 drive. */
                     tape_set_error(QIC_ERROR_RATE_SELECTION, tape.param_cmd);
                     break;
             }
@@ -849,6 +748,7 @@ tape_command_defined(uint8_t command)
         case QIC_PHANTOM_DESELECT:
         case QIC_EXT_SELECT_RATE:
         case QIC_EXT_REPORT_DRIVE_CONFIG:
+        case QIC_CONNER_CMD_40:
             return 1;
 
         default:
@@ -856,32 +756,25 @@ tape_command_defined(uint8_t command)
     }
 }
 
-/* How many parameters a command expects, if any. */
+
+/*
+   Parameter widths are shared (tape_qic117.h); this drive answers for the
+   one command the shared table leaves to it. Phantom select carries the
+   drive number, which only means anything on a cable with more than one
+   drive on it.
+
+   The shared table also names widths for commands this drive does not
+   have, seek to partition among them. Those never arrive here: an
+   undefined code at or above Report Vendor ID is ignored outright in
+   tape_command() long before the parameters are counted.
+ */
 static int
 tape_command_params(uint8_t command)
 {
-    switch (command) {
-        case QIC_SKIP_EXTENDED_FORWARD:
-        case QIC_SKIP_EXTENDED_REVERSE:
-        case QIC_SET_FORMAT_SEGMENTS:
-            /* Three nibbles, low first, for a value up to 4095 (table 2b). */
-            return 3;
+    if (command == QIC_PHANTOM_SELECT)
+        return 1;
 
-        case QIC_SKIP_FORWARD:
-        case QIC_SKIP_REVERSE:
-            return 2;
-
-        case QIC_ALTERNATE_TIMEOUT:
-        case QIC_SEEK_HEAD_TO_TRACK:
-        case QIC_SOFT_SELECT:
-        case QIC_SELECT_RATE:
-        case QIC_PHANTOM_SELECT:
-        case QIC_EXT_SELECT_RATE:
-            return 1;
-
-        default:
-            return 0;
-    }
+    return qic117_command_params(command);
 }
 
 #ifdef ENABLE_FDD_TAPE_LOG
@@ -1057,7 +950,7 @@ tape_command(uint8_t command)
                or sets it again (cmd 37).
              */
             tape.rate_code       = QIC_RATE_500;
-            tape.format_code     = QIC_FORMAT_QIC40;
+            tape.format_code     = QIC_FORMAT_QIC80;
             tape.format_segments = 0;
             /*
                A reset is itself an error condition (cmd 1, 3.2): the drive
@@ -1087,29 +980,32 @@ tape_command(uint8_t command)
             return;
 
         case QIC_REPORT_DRIVE_CONFIG: {
-            /* The only rate the drive will accept is the only one it can
-               ever be running at, so the selected rate is the live one. */
-            tape_start_report((tape.rate_code << QIC_CONFIG_RATE_SHIFT) |
-                              QIC_CONFIG_LONG, 8);
+            uint8_t config = (tape.rate_code << QIC_CONFIG_RATE_SHIFT) | QIC_CONFIG_80;
+            if (tape_has_cartridge())
+                config |= QIC_CONFIG_LONG;
+
+            tape_start_report(config, 8);
             return;
         }
 
         case QIC_REPORT_ROM_VERSION:
-            /*
-               In diagnostic mode this command hands back the manufacturer's
-               signature rather than the ROM version - it is how a host
-               confirms it really is talking to a Colorado/CMS drive. A host
-               that gets anything else treats the drive as an unknown make
-               and refuses to use it.
-             */
-            if (tape.diag_mode == 1)
-                tape_start_report(QIC_CMS_SIGNATURE, 8);
-            else
-                tape_start_report(QIC_ROM_VERSION, 8);
+            if (tape.diag_mode == 1) {
+                /* Colorado-specific response when in diagnostic mode. */
+                tape_start_report(QIC_COLORADO_SIGNATURE, 8);
+            } else {
+                tape_start_report(QIC_ROM_VERSION_CONNER, 8);
+            }
+            return;
+
+        case QIC_CONNER_CMD_40:
+            if (tape.diag_mode == 1) {
+                /* Conner-specific response when in diagnostic mode. */
+                tape_start_report(QIC_CONNER_DIAG_STATUS, 16);
+            }
             return;
 
         case QIC_REPORT_VENDOR_ID:
-            tape_start_report(QIC_VENDOR_ID & 0xffff, 16);
+            tape_start_report(QIC_VENDOR_ID_CONNER & 0xffff, 16);
             return;
 
         case QIC_REPORT_TAPE_STATUS:
@@ -1117,26 +1013,20 @@ tape_command(uint8_t command)
                 tape_set_error(QIC_ERROR_NO_CARTRIDGE, command);
                 break;
             }
-            tape_start_report(QIC_TAPE_QIC40 | QIC_TAPE_307FT, 8);
+            tape_start_report(QIC_TAPE_QIC80 | QIC_TAPE_307FT, 8);
             return;
 
         case QIC_REPORT_FORMAT_SEGMENTS:
-            /*
-               Diagnostic mode redefines this code as manufacturer
-               territory: it hands back an eight bit status rather than the
-               sixteen bit segment count. The host wants a valid answer -
-               silence times it out and a report marked invalid makes it
-               retry - and reads the make and model out of the value.
-             */
             if (tape.diag_mode) {
-                tape_start_report(QIC_CMS_DIAG_STATUS, 8);
+                /* Colorado-specific response when in diagnostic mode. */
+                tape_start_report(QIC_COLORADO_DIAG_STATUS, 8);
                 return;
             }
 
             /*
                Zero until the host calibrates the tape or sets the count
                explicitly - the value is only meaningful after one of those
-               (cmd 37). Internal geometry falls back to the QIC-40 default
+               (cmd 37). Internal geometry falls back to the QIC-80 default
                separately, in tape_segments_per_track().
              */
             tape_start_report(tape.format_segments, 16);
@@ -1241,6 +1131,11 @@ tape_command(uint8_t command)
             }
             tape.format_mode = 1;
             tape.verify_mode = 0;
+            /* Settle the C/H/R mapping before the format writes arrive: a
+               blank cartridge takes the mapping of the format the host just
+               selected (Select Rate sets format_code first), and a
+               reformatted one re-reads its existing header. */
+            tape_read_geometry();
             break;
 
         case QIC_ENTER_VERIFY_MODE:
@@ -1252,6 +1147,13 @@ tape_command(uint8_t command)
             tape.format_mode = 0;
             tape.verify_mode = 0;
             tape.diag_mode   = 0;
+            break;
+
+        case QIC_CMS_COMMAND_31:
+            if (tape.diag_mode == 1) {
+                tape_start_report(0x4a, 8);
+                return;
+            }
             break;
 
         /*
@@ -1290,7 +1192,7 @@ tape_command(uint8_t command)
 
             /* in case we need to send back an error in this case:
             if (tape.format_mode == 0) {
-                tape_set_error(QIC_ERROR_ILLEGAL_IN_FORMAT, command);
+                tape_set_error(QIC_ERROR_ILLEGAL_IN_PRIMARY, command);
                 break;
             }
             */
@@ -1308,7 +1210,7 @@ tape_command(uint8_t command)
         case QIC_CALIBRATE_TAPE_LENGTH:
             /*
                Calibrate determines the number of segments per track the tape
-               can hold (cmd 36). This fixed-geometry QIC-40 extended-length
+               can hold (cmd 36). This fixed-geometry QIC-80 extended-length
                cartridge has a known count, so record it; Report Format
                Segments reads it back afterwards, having returned zero until
                now (cmd 37).
@@ -1413,8 +1315,8 @@ tape_sector_offset(int track, int side, int sector, uint32_t *offset)
     /*
        The head field is not a physical head here, just the high digits of
        the segment number, so it ranges well beyond the two a floppy has:
-       a full QIC-40 cartridge holds a couple of thousand segments, which is
-       head 2 at 1020 segments per head.
+       a full QIC-80 cartridge holds a few thousand segments, which is
+       head 6 at 600 segments per head.
      */
     if ((track < 0) || (track > FDD_TAPE_MAX_TRACK) || (side < 0) || (side > 0xff))
         return 0;
@@ -1519,9 +1421,6 @@ tape_command_timeout(UNUSED(void *priv))
     /* A bare Report Next Bit was already answered as its pulses arrived. */
     if ((steps == QIC_REPORT_NEXT_BIT) && presented)
         return;
-
-    fdd_tape_log("Tape: pulse train complete, %i pulse(s), fdc rate %i kbps\n",
-                 steps, (tape_fdc != NULL) ? tape_fdc->bit_rate : -1);
 
     tape_step_pulses(steps);
 }
@@ -2113,8 +2012,18 @@ tape_read_geometry(void)
 {
     uint8_t hdr[FDD_TAPE_SECTOR_SIZE];
 
+    /*
+       With no header to read - a blank cartridge about to be formatted - fall
+       back to the mapping the selected format is laid down with, so the format
+       writes land in the same C/H/R space the host later reads them back from.
+       A QIC-80 cartridge is packed at 150 cylinders per head, a QIC-40 one at
+       255; getting this wrong scatters the host's writes across a sparse,
+       oversized image.
+     */
     tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
-    tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
+    tape.segs_per_head = (tape.format_code == QIC_FORMAT_QIC40)
+                             ? FDD_TAPE_SEGS_PER_HEAD_QIC40
+                             : FDD_TAPE_SEGS_PER_HEAD_QIC80;
 
     if (tape.fp == NULL)
         return;
@@ -2246,7 +2155,7 @@ fdd_tape_init(void)
     tape.segs_per_cyl  = FDD_TAPE_SEGS_PER_CYL;
     tape.segs_per_head = FDD_TAPE_SEGS_PER_HEAD;
     tape.rate_code     = QIC_RATE_500;
-    tape.format_code   = QIC_FORMAT_QIC40;
+    tape.format_code   = QIC_FORMAT_QIC80;
     tape.status     = QIC_STATUS_READY;
     tape.report_pos = TAPE_REPORT_IDLE;
     tape.error_cmd  = QIC_NO_COMMAND;
@@ -2294,6 +2203,10 @@ fdd_tape_init(void)
        latched for good.
      */
     tape.status &= ~QIC_STATUS_NEW_CARTRIDGE;
+
+    /* Initialize the drive with a power-on-reset error, which must be
+       cleared by the host software before proceeding. */
+    tape_set_init_error(QIC_ERROR_POWER_ON_RESET);
 }
 
 void

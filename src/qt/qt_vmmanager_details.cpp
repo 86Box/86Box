@@ -345,6 +345,7 @@ VMManagerDetails::updateConfig(VMManagerSystem *passed_sysconfig)
     inputSection->clear();
     inputSection->addSection("Keyboard", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Keyboard));
     inputSection->addSection("Mouse", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Mouse));
+    inputSection->addSection("Tablet", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Tablet));
     inputSection->addSection("Joystick", passed_sysconfig->getDisplayValue(VMManager::Display::Name::Joystick));
 
     // Ports

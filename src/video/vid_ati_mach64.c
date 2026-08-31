@@ -43,7 +43,7 @@ mach64_log(const char *fmt, ...);
         va_end(ap);
     }
 }
-#endif 
+#endif
 
 // x86 I/O port output function
 void
@@ -558,6 +558,18 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 case 0xb0 ... 0xb3:
                     READ8(addr, mach64->mem_cntl);
                     break;
+                case 0xb4:
+                    ret = (mach64->bank_w[0] >> 15);
+                    break;
+                case 0xb6:
+                    ret = (mach64->bank_w[1] >> 15);
+                    break;
+                case 0xb8:
+                    ret = (mach64->bank_r[0] >> 15);
+                    break;
+                case 0xba:
+                    ret = (mach64->bank_r[0] >> 15);
+                    break;
                 case 0xc0 ... 0xc3:
                     if (mach64->type == MACH64_GX)
                         ret = ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
@@ -846,7 +858,7 @@ mach64_ext_readw(uint32_t addr, void *priv)
             ret = mach64_ext_readb(addr, priv);
             ret |= mach64_ext_readb(addr + 1, priv) << 8;
         } else // optimise
-            switch (addr & 0x3ff) {
+            switch (addr & 0x3fe) {
             case 0xb4: case 0xb6:
                     ret = (mach64->bank_w[(addr & 2) >> 1] >> 15);
                     break;
@@ -879,7 +891,7 @@ mach64_ext_readl(uint32_t addr, void *priv)
             ret = mach64_ext_readw(addr, priv);
             ret |= mach64_ext_readw(addr + 2, priv) << 16;
         } else
-            switch (addr & 0x3ff) {
+            switch (addr & 0x3fc) {
             case 0x18:
                     ret = mach64->crtc_int_cntl & ~1;
                     if (mach64->svga.cgastat & 8)
@@ -1188,8 +1200,20 @@ mach64_ext_writew(uint32_t addr, uint16_t val, void *priv)
         } else if (addr & 0x300) {
             mach64_queue(mach64, addr & 0x3fe, val, FIFO_WRITE_WORD);
         } else {
-            mach64_ext_writeb(addr, val, priv);
-            mach64_ext_writeb(addr + 1, val >> 8, priv);
+            switch (addr & 0x3fe) {
+                case 0xb4:
+                case 0xb6:
+                    mach64->bank_w[(addr & 2) >> 1] = val << 15;
+                    break;
+                case 0xb8:
+                case 0xba:
+                    mach64->bank_r[(addr & 2) >> 1] = val << 15;
+                    break;
+                default:
+                    mach64_ext_writeb(addr, val, priv);
+                    mach64_ext_writeb(addr + 1, val >> 8, priv);
+                    break;
+            }
         }
     }
 }
@@ -1212,8 +1236,20 @@ mach64_ext_writel(uint32_t addr, uint32_t val, void *priv)
         } else if (addr & 0x300) {
             mach64_queue(mach64, addr & 0x3fc, val, FIFO_WRITE_DWORD);
         } else {
-            mach64_ext_writew(addr, val, priv);
-            mach64_ext_writew(addr + 2, val >> 16, priv);
+            switch (addr & 0x3fc) {
+                case 0xb4:
+                    mach64->bank_w[0] = val << 15;
+                    mach64->bank_w[1] = ((val >> 16) << 15);
+                    break;
+                case 0xb8:
+                    mach64->bank_r[0] = val << 15;
+                    mach64->bank_r[1] = ((val >> 16) << 15);
+                    break;
+                default:
+                    mach64_ext_writew(addr, val, priv);
+                    mach64_ext_writew(addr + 2, val >> 16, priv);
+                    break;
+            }
         }
     }
 }
@@ -1246,25 +1282,23 @@ mach64_ext_inb(uint16_t port, void *priv)
         {
             // some special cases
             case 0x56: // 56ec-56ef
-            case 0x5a: 
+            case 0x5a: // 5aec-5aef
 
-                addr_or_value = 0xB4;
+                addr_or_value = 0xb4;
 
                 if (port_high == 0x5a)
-                    addr_or_value = 0xb8;    
+                    addr_or_value = 0xb8;
 
-                if (port_low == 0xEF)
-                    ret = 0x00;
-                else if (port_low == 0xEC)                 
+                if (port_low == 0xEC)
                     ret = mach64_ext_readb(0x400 | addr_or_value, priv);
-                else
-                    ret = mach64_ext_readb(0x400 | (addr_or_value + 1), priv);
-                break; 
+                else if (port_low == 0xEE)
+                    ret = mach64_ext_readb(0x400 | addr_or_value, priv);
+                break;
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
                     ret = ati68860_ramdac_in((lane) | ((mach64->dac_cntl & 3) << 2), 0, mach64->svga.ramdac, &mach64->svga);
                 else {
-                    uint16_t port_list[4] = { 0x3c8, 0x3c9, 0x3c6, 0x3c7 }; 
+                    uint16_t port_list[4] = { 0x3c8, 0x3c9, 0x3c6, 0x3c7 };
                     ret = svga_in(port_list[lane], svga);
                 }
                 break;
@@ -1282,7 +1316,7 @@ mach64_ext_inb(uint16_t port, void *priv)
                     addr_or_value = port_high + 0x32;
                 else if ((port_high >= 0x42) && (port_high <= 0x46))
                     addr_or_value = port_high + 0x3E;
-                else if (port_high == 0x4A) 
+                else if (port_high == 0x4A)
                     addr_or_value = 0x90;
                 else if (port_high == 0x52)
                     addr_or_value = 0xb0;
@@ -1352,28 +1386,24 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
         switch (port_high)
         {
              case 0x56: // 56ec-56ef
-                if (port_low == 0xEF)
-                    break;
-
-                if (port_low == 0xEC)                 
+                mach64_log("BankWrite portlow=%02x, val=%02x.\n", port_low, val);
+                if (port_low == 0xEC)
                     mach64_ext_writeb(0x400 | 0xb4, val, priv);
-                else
-                    mach64_ext_writeb(0x400 | 0xb5, val, priv);
-                break; 
+                else if (port_low == 0xEE)
+                    mach64_ext_writeb(0x400 | 0xb6, val, priv);
+                break;
             case 0x5a: // 5aec-5aef
-                if (port_low == 0xEF)
-                    break;
-
-                if (port_low == 0xEC)                 
+                mach64_log("BankRead portlow=%02x, val=%02x.\n", port_low, val);
+                if (port_low == 0xEC)
                     mach64_ext_writeb(0x400 | 0xb8, val, priv);
-                else
-                    mach64_ext_writeb(0x400 | 0xb9, val, priv);
-                break; 
+                else if (port_low == 0xEE)
+                    mach64_ext_writeb(0x400 | 0xba, val, priv);
+                break;
             case 0x5e: // 5eec-5eef
                 if (mach64->type == MACH64_GX)
                     ati68860_ramdac_out((port & 3) | ((mach64->dac_cntl & 3) << 2), val, 0, svga->ramdac, svga);
                 else {
-                    uint16_t port_list[4] = { 0x3c8, 0x3c9, 0x3c6, 0x3c7 }; 
+                    uint16_t port_list[4] = { 0x3c8, 0x3c9, 0x3c6, 0x3c7 };
                     svga_out(port_list[port & 3], val, svga);
                 }
                 break;
@@ -1395,7 +1425,7 @@ mach64_ext_outb(uint16_t port, uint8_t val, void *priv)
                     addr_or_value = port_high + 0x32;
                 else if ((port_high >= 0x42) && (port_high <= 0x46))
                     addr_or_value = port_high + 0x3E;
-                else if (port_high == 0x4A) 
+                else if (port_high == 0x4A)
                     addr_or_value = 0x90;
                 else if (port_high == 0x52)
                     addr_or_value = 0xb0;
@@ -1815,7 +1845,7 @@ mach64_writel_linear(uint32_t addr, uint32_t val, void *priv)
 
     if (((mach64->scaler_yuv_aper >> 4) & 0xc) && !!(addr & 0x800000) == !(mach64->scaler_yuv_aper & 0x20)) {
         uint32_t offset_from_base = addr & 0x7FFFFF;
-        if (addr & 0x800000) 
+        if (addr & 0x800000)
             bswap32s(&val);
         if (((mach64->scaler_yuv_aper >> 4) & 0xc) == 0x4) { // Y plane
             offset_from_base <<= 1;
@@ -1964,8 +1994,8 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
 {
     mach64_t *mach64 = (mach64_t *) priv;
 
-    // Addresses that DON'T need to 
-    bool dont_remap_io = (addr == PCI_REG_COMMAND // controls the mapping so we don't use the default behaviour  
+    // Addresses that DON'T need to
+    bool dont_remap_io = (addr == PCI_REG_COMMAND // controls the mapping so we don't use the default behaviour
     || addr == PCI_REG_BAR0_BYTE2
     || addr == PCI_REG_BAR0_BYTE3
     || (addr >= PCI_REG_ROM_BAR_BYTE0 || addr <= PCI_REG_ROM_BAR_BYTE3));
@@ -2009,7 +2039,7 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             break;
         case PCI_REG_ROM_BAR_BYTE0:
         case PCI_REG_ROM_BAR_BYTE2 ... PCI_REG_ROM_BAR_BYTE3:
-            if (mach64->on_board) 
+            if (mach64->on_board)
                 return;
             mach64->pci_regs[addr] = val;
             if (mach64->pci_regs[PCI_REG_ROM_BAR_BYTE0] & 0x01) {

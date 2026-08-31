@@ -173,6 +173,55 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #    endif
 #endif
 
+static int
+checkio(uint32_t port, int mask)
+{
+    uint32_t t;
+
+    if (!(tr.access & 0x08)) {
+        if ((CPL) > (IOPL))
+            return 1;
+
+        return 0;
+    }
+
+    cpl_override = 1;
+
+    addr64a_2[0] = addr64a_2[1] = 0x00000000;
+
+    do_mmut_rw(tr.base, 0x66, addr64a_2);
+    t            = readmemw_n(tr.base, 0x66, addr64a_2);
+
+    if (UNLIKELY(cpu_state.abrt)) {
+        cpl_override = 0;
+        return 0;
+    }
+
+    t += (port >> 3UL);
+
+    /* The 80386 truncates the I/O bitmap byte offset to 16 bits.  In
+       particular, an I/O map base of FFFFh wraps accesses to low TSS
+       offsets.  IBM's 386 planar diagnostics explicitly exercise this
+       behavior.  Later CPUs use the full intermediate offset. */
+    if ((cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_386DX))
+        t &= 0xffff;
+
+    mask <<= (port & 7);
+    if (UNLIKELY(mask & 0xff00)) {
+        if (LIKELY(t < tr.limit)) {
+            do_mmut_rw(tr.base, t, addr64a_2);
+            mask &= readmemw_n(tr.base, t, addr64a_2);
+        }
+    } else {
+        if (LIKELY(t <= tr.limit)) {
+            do_mmut_rb(tr.base, t, addr64a_2);
+            mask &= readmemb_n(tr.base, t, addr64a_2[0]);
+        }
+    }
+    cpl_override = 0;
+    return mask;
+}
+
 #include "x86_ops_arith.h"
 #include "x86_ops_atomic.h"
 #include "x86_ops_bcd.h"
@@ -230,8 +279,10 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #    include "x86_ops_rep_dyn.h"
 #else
 #    ifdef OPS_286_386
+#        include "x86_ops_rep_286_2386.h"
 #        include "x86_ops_rep_2386.h"
 #    else
+#        include "x86_ops_rep_286.h"
 #        include "x86_ops_rep.h"
 #    endif
 #endif
@@ -242,8 +293,8 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #endif
 #include "x86_ops_set.h"
 #include "x86_ops_stack.h"
-#ifdef OPS_286_386
-#    include "x86_ops_string_2386.h"
+#ifdef IS_DYNAREC
+#    include "x86_ops_string_dyn.h"
 #else
 #    include "x86_ops_string.h"
 #endif
@@ -673,7 +724,7 @@ const OpFn OP_TABLE(386_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     ILLEGAL,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  ILLEGAL,        ILLEGAL,        opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  ILLEGAL,        ILLEGAL,        opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -717,7 +768,7 @@ const OpFn OP_TABLE(386_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     ILLEGAL,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  ILLEGAL,        ILLEGAL,        opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  ILLEGAL,        ILLEGAL,        opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -765,7 +816,7 @@ const OpFn OP_TABLE(486_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -809,7 +860,7 @@ const OpFn OP_TABLE(486_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -858,7 +909,7 @@ const OpFn OP_TABLE(c486_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -902,7 +953,7 @@ const OpFn OP_TABLE(c486_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -950,7 +1001,7 @@ const OpFn OP_TABLE(stpc_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -994,7 +1045,7 @@ const OpFn OP_TABLE(stpc_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1043,7 +1094,7 @@ const OpFn OP_TABLE(ibm486_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1087,7 +1138,7 @@ const OpFn OP_TABLE(ibm486_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1136,7 +1187,7 @@ const OpFn OP_TABLE(winchip_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -1180,7 +1231,7 @@ const OpFn OP_TABLE(winchip_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -1228,7 +1279,7 @@ const OpFn OP_TABLE(winchip2_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -1272,7 +1323,7 @@ const OpFn OP_TABLE(winchip2_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -1320,7 +1371,7 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1364,7 +1415,7 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1412,7 +1463,7 @@ const OpFn OP_TABLE(c6x86_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1456,7 +1507,7 @@ const OpFn OP_TABLE(c6x86_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1504,7 +1555,7 @@ const OpFn OP_TABLE(c6x86l_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1548,7 +1599,7 @@ const OpFn OP_TABLE(c6x86l_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -1596,7 +1647,7 @@ const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -1640,7 +1691,7 @@ const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -1688,7 +1739,7 @@ const OpFn OP_TABLE(k6_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -1732,7 +1783,7 @@ const OpFn OP_TABLE(k6_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -1780,7 +1831,7 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -1824,7 +1875,7 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -1872,7 +1923,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -1916,7 +1967,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -1964,7 +2015,7 @@ const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -2008,7 +2059,7 @@ const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
@@ -2056,7 +2107,7 @@ const OpFn OP_TABLE(pentium2_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,ILLEGAL,        opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -2100,7 +2151,7 @@ const OpFn OP_TABLE(pentium2_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,ILLEGAL,        opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -2148,7 +2199,7 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a16,     opSETNO_a16,    opSETB_a16,     opSETNB_a16,    opSETE_a16,     opSETNE_a16,    opSETBE_a16,    opSETNBE_a16,   opSETS_a16,     opSETNS_a16,    opSETP_a16,     opSETNP_a16,    opSETL_a16,     opSETNL_a16,    opSETLE_a16,    opSETNLE_a16,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a16,   opSHLD_w_i_a16, opSHLD_w_CL_a16,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a16,  opSHRD_w_i_a16, opSHRD_w_CL_a16,opFXSAVESTOR_a16,opIMUL_w_w_a16,
-/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a16,opCMPXCHG_w_a16,opLSS_w_a16,    opBTR_w_r_a16,  opLFS_w_a16,    opLGS_w_a16,    opMOVZX_w_b_a16,opMOVZX_w_w_a16,ILLEGAL,        ILLEGAL,        opBA_w_a16,     opBTC_w_r_a16,  opBSF_w_a16,    opBSR_w_a16,    opMOVSX_w_b_a16,opMOVSX_w_w_a16,
 
 /*c0*/  opXADD_b_a16,   opXADD_w_a16,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a16,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a16,    opPSRLD_a16,    opPSRLQ_a16,    ILLEGAL,        opPMULLW_a16,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a16,  opPSUBUSW_a16,  NULL,           opPAND_a16,     opPADDUSB_a16,  opPADDUSW_a16,  NULL,           opPANDN_a16,
@@ -2192,7 +2243,7 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*80*/  opJO_w,         opJNO_w,        opJB_w,         opJNB_w,        opJE_w,         opJNE_w,        opJBE_w,        opJNBE_w,       opJS_w,         opJNS_w,        opJP_w,         opJNP_w,        opJL_w,         opJNL_w,        opJLE_w,        opJNLE_w,
 /*90*/  opSETO_a32,     opSETNO_a32,    opSETB_a32,     opSETNB_a32,    opSETE_a32,     opSETNE_a32,    opSETBE_a32,    opSETNBE_a32,   opSETS_a32,     opSETNS_a32,    opSETP_a32,     opSETNP_a32,    opSETL_a32,     opSETNL_a32,    opSETLE_a32,    opSETNLE_a32,
 /*a0*/  opPUSH_FS_w,    opPOP_FS_w,     opCPUID,        opBT_w_r_a32,   opSHLD_w_i_a32, opSHLD_w_CL_a32,ILLEGAL,        ILLEGAL,        opPUSH_GS_w,    opPOP_GS_w,     opRSM,          opBTS_w_r_a32,  opSHRD_w_i_a32, opSHRD_w_CL_a32,opFXSAVESTOR_a32,opIMUL_w_w_a32,
-/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,ILLEGAL,
+/*b0*/  opCMPXCHG_b_a32,opCMPXCHG_w_a32,opLSS_w_a32,    opBTR_w_r_a32,  opLFS_w_a32,    opLGS_w_a32,    opMOVZX_w_b_a32,opMOVZX_w_w_a32,ILLEGAL,        ILLEGAL,        opBA_w_a32,     opBTC_w_r_a32,  opBSF_w_a32,    opBSR_w_a32,    opMOVSX_w_b_a32,opMOVSX_w_w_a32,
 
 /*c0*/  opXADD_b_a32,   opXADD_w_a32,   ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        opCMPXCHG8B_a32,opBSWAP_EAX,    opBSWAP_ECX,    opBSWAP_EDX,    opBSWAP_EBX,    opBSWAP_ESP,    opBSWAP_EBP,    opBSWAP_ESI,    opBSWAP_EDI,
 /*d0*/  ILLEGAL,        opPSRLW_a32,    opPSRLD_a32,    opPSRLQ_a32,    ILLEGAL,        opPMULLW_a32,   ILLEGAL,        ILLEGAL,        opPSUBUSB_a32,  opPSUBUSW_a32,  NULL,           opPAND_a32,     opPADDUSB_a32,  opPADDUSW_a32,  NULL,           opPANDN_a32,
@@ -2499,6 +2550,192 @@ const OpFn OP_TABLE(386)[1024] = {
 /*f0*/  opLOCK,         opINT1,         opREPNE,        opREPE,         opHLT,          opCMC,          opF6_a32,       opF7_l_a32,     opCLC,          opSTC,          opCLI,          opSTI,          opCLD,          opSTD,          opINCDEC_b_a32, opFF_l_a32,
     // clang-format on
 };
+
+#ifndef IS_DYNAREC
+const OpFn OP_TABLE(REPE_286)[1024] = {
+    // clang-format off
+        /*16-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPE_w_a16,0,              0,              0,              0,              0,              0,              0,              opCS_REPE_w_a16,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPE_w_a16,0,              0,              0,              0,              0,              0,              0,              opDS_REPE_w_a16,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              opREP_INSB_286_a16, opREP_INSW_286_a16, opREP_OUTSB_286_a16,opREP_OUTSW_286_a16,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_286_a16,opREP_MOVSW_286_a16,opREP_CMPSB_286_a16_E,opREP_CMPSW_286_a16_E,0,    0,              opREP_STOSB_286_a16,opREP_STOSW_286_a16,opREP_LODSB_286_a16,opREP_LODSW_286_a16,opREP_SCASB_286_a16_E,opREP_SCASW_286_a16_E,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*30*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*16-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*30*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*30*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+    // clang-format on
+};
+
+const OpFn OP_TABLE(REPNE_286)[1024] = {
+    // clang-format off
+        /*16-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              opES_REPNE_w_a16,0,             0,              0,              0,              0,              0,              0,              opCS_REPNE_w_a16,0,
+/*30*/  0,              0,              0,              0,              0,              0,              opSS_REPNE_w_a16,0,             0,              0,              0,              0,              0,              0,              opDS_REPNE_w_a16,0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              opREP_INSB_286_a16, opREP_INSW_286_a16, opREP_OUTSB_286_a16,opREP_OUTSW_286_a16,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              opREP_MOVSB_286_a16,opREP_MOVSW_286_a16,opREP_CMPSB_286_a16_NE,opREP_CMPSW_286_a16_NE,0,  0,              opREP_STOSB_286_a16,opREP_STOSW_286_a16,opREP_LODSB_286_a16,opREP_LODSW_286_a16,opREP_SCASB_286_a16_NE,opREP_SCASW_286_a16_NE,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 16-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*30*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*16-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*30*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+        /*32-bit data, 32-bit addr*/
+/*      00              01              02              03              04              05              06              07              08              09              0a              0b              0c              0d              0e              0f*/
+/*00*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*10*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*20*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*30*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*40*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*50*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*60*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*70*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*80*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*90*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*a0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*b0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+
+/*c0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*d0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*e0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+/*f0*/  0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,              0,
+    // clang-format on
+};
+#endif
 
 const OpFn OP_TABLE(REPE)[1024] = {
     // clang-format off

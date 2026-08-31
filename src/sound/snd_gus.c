@@ -1,3 +1,29 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Gravis UltraSound emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          win2kgamer
+ *
+ *          Copyright 2010-2020 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright      2026 win2kgamer
+ */
+
+/*
+ * TODO:
+ * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
+ *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
+ *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
+ */
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -23,6 +49,8 @@
 #include <86box/snd_sb_dsp.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
 #include <86box/log.h>
 
 #ifdef ENABLE_GUS_LOG
@@ -65,11 +93,12 @@ enum {
 
 enum {
     GUS_CLASSIC    = 0,
-    GUS_CLASSIC_37 = 1,
-    GUS_MAX        = 2,
-    GUS_ACE        = 3,
-    GUS_VIPERMAX   = 4,
-    GUS_EXTREME    = 5
+    GUS_CLASSIC_34 = 1,
+    GUS_CLASSIC_37 = 2,
+    GUS_MAX        = 3,
+    GUS_ACE        = 4,
+    GUS_VIPERMAX   = 5,
+    GUS_EXTREME    = 6
 };
 
 enum {
@@ -154,6 +183,7 @@ typedef struct gus_t {
     uint8_t  type;
 
     int      irq;
+    int      irq2;
     int      dma;
     int      irq_midi;
     int      dma2;
@@ -184,10 +214,14 @@ typedef struct gus_t {
     int     uart_out;
     int     sysex;
 
-    uint8_t  gp1;
-    uint8_t  gp2;
+    uint8_t  gp1_in;
+    uint8_t  gp1_out;
+    uint8_t  gp2_in;
+    uint8_t  gp2_out;
     uint16_t gp1_addr;
     uint16_t gp2_addr;
+    uint16_t cur_gp1;
+    uint16_t cur_gp2;
 
     uint8_t usrr;
 
@@ -203,6 +237,17 @@ typedef struct gus_t {
     uint16_t gus_new_base;
     uint8_t  gus_reloc_latch;
     uint8_t  gus_reloc_state;
+
+    uint16_t cur_codec_addr;
+    uint8_t  dmaover;
+
+    /* GUS ADC stub */
+    uint8_t    adc_srate;
+    uint8_t    adc_ctrl;
+    uint16_t   adc_freq;
+    uint8_t    adc_irq;
+    double     inputlatch;
+    pc_timer_t sample_timer;
 
     void *   log; /* New logging system */
 } gus_t;
@@ -259,6 +304,8 @@ gus_update_int_status(gus_t *gus)
         irq_pending = 1; /*Timer 2 interrupt pending*/
     if ((gus->irqstatus & 0x80) && (gus->dmactrl & 0x20))
         irq_pending = 1; /*DMA TC interrupt pending*/
+    if ((gus->irqstatus & 0x80) && (gus->adc_ctrl & 0x20))
+        irq_pending = 1; /*ADC DMA TC interrupt pending*/
 
     midi_irq_pending = gus->midi_status & MIDI_INT_MASTER;
 
@@ -311,6 +358,98 @@ gus_midi_update_int_status(gus_t *gus)
         gus->irqstatus &= ~GUS_INT_MIDI_RECEIVE;
 
     gus_update_int_status(gus);
+}
+
+void
+gus_input_poll(void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+    int dma_result;
+
+    timer_advance_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
+
+    if (gus->adc_ctrl & 0x01) {
+        if (gus->adc_ctrl & 0x02) {
+            if (gus->adc_ctrl & 0x04)
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
+            else {
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+            }
+        } else {
+            if (gus->adc_ctrl & 0x04)
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
+            else
+                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+        }
+        if (dma_result & DMA_OVER) {
+            gus->adc_ctrl &= 0xfe;
+            gus->irqstatus |= 0x80;
+            gus->adc_irq = 1;
+            gus_log(gus->log, "ADC DMA complete, firing IRQ\n");
+            timer_disable(&gus->sample_timer);
+        }
+    } else {
+        timer_disable(&gus->sample_timer);
+    }
+}
+
+void
+gus_gp_write(uint16_t addr, uint8_t val, void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+
+    uint8_t port = addr & 1;
+
+    gus_log(gus->log, "GUS GP write: port = %i, val = %02X\n", port, val);
+
+    if (gus->reg_ctrl & 0x40) {
+        switch (port) {
+            case 0:
+                gus->gp1_in = val;
+                if (gus->reg_ctrl & 0x08)
+                    nmi_raise();
+                gus->usrr |= 0x08;
+                break;
+            case 1:
+                gus->gp2_in = val;
+                if (gus->reg_ctrl & 0x10)
+                    nmi_raise();
+                gus->usrr |= 0x20;
+                break;
+        }
+    }
+}
+
+uint8_t
+gus_gp_read(uint16_t addr, void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+    uint8_t ret = 0;
+
+    uint8_t port = addr & 1;
+
+    if (gus->reg_ctrl & 0x40) {
+        switch (port) {
+            case 0:
+                if (gus->reg_ctrl & 0x08)
+                    nmi_raise();
+                ret = gus->gp1_out;
+                gus->usrr |= 0x10;
+                break;
+            case 1:
+                if (gus->reg_ctrl & 0x10)
+                    nmi_raise();
+                ret = gus->gp2_out;
+                gus->usrr |= 0x40;
+                break;
+        }
+    } else
+        ret = 0xff;
+
+    gus_log(gus->log, "GUS GP read: port = %i, val = %02X\n", port, ret);
+
+    return ret;
 }
 
 void
@@ -538,8 +677,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                 gus->dmaaddr++;
                                 gus->dmaaddr &= 0xfffff;
                                 c++;
-                                if (dma_result & DMA_OVER)
+                                if (dma_result & DMA_OVER) {
+                                    gus->dmaover = 1;
                                     break;
+                                }
                             }
                             gus->dmactrl = val & ~0x40;
                             gus->irqnext = 1;
@@ -570,13 +711,20 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                 gus->dmaaddr++;
                                 gus->dmaaddr &= 0xfffff;
                                 c++;
-                                if (d & DMA_OVER)
+                                if (d & DMA_OVER) {
+                                    gus->dmaover = 1;
                                     break;
+                                }
                             }
                             gus->dmactrl = val & ~0x40;
+                            if (gus->dmaover) {
+                                gus->dmaover = 0;
+                                gus->dmactrl &= 0xfe;
+                            }
                             gus->irqnext = 1;
                         }
-                    }
+                    } else
+                        gus->dmactrl = val & ~0x40;
                     break;
 
                 case 0x42: /*DMA address low*/
@@ -611,6 +759,25 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     gus->t2on          = 1;
                     break;
 
+                case 0x48: /*ADC Sample Rate*/
+                    gus->adc_srate  = val;
+                    gus->adc_freq   = 617400 / gus->adc_srate; /* (9878400 / (freq * 16) - 2 */
+                    double temp     = 1000000.0 / gus->adc_freq;
+                    if (gus->adc_freq < 4000)
+                        gus->adc_freq = 4000;
+                    if (gus->adc_freq > 44100)
+                        gus->adc_freq = 44100;
+                    gus->inputlatch = ((double) TIMER_USEC * temp);
+                    gus_log(gus->log, "GUS ADC samplerate set to %i, val = %02X\n", gus->adc_freq, gus->adc_srate);
+                    break;
+                case 0x49: /*ADC Sample Control*/
+                    /* This is the ADC equivalent of index 41h DMA Control and is relied on by MegaEM 3.x */
+                    gus->adc_ctrl = val;
+                    if (val & 1)
+                        timer_set_delay_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
+                    gus_log(gus->log, "GUS DMA Control write! new val = %02X\n", val);
+                    break;
+
                 case 0x4B: /*Joystick trim DAC*/
                     gus->joy_trim = val;
                     break;
@@ -634,6 +801,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x389:
+        case 0x209:
             if ((gus->tctrl & GUS_TIMER_CTRL_AUTO) || gus->adcommand != 4) {
                 gus->ad_data = val;
                 gus->ad_status |= 0x01;
@@ -684,6 +852,13 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                             ad1848_setirq(&gus->ad1848, gus->irq);
 
                         gus->sb_nmi = val & 0x80;
+
+                        /* Store the second IRQ even when in combine IRQs mode: while MIDI won't use it MegaEM 3.x does */
+                        gus->irq2 = gus_midi_irqs[(val >> 3) & 7];
+
+                        gus_log(gus->log, "GUS IRQ changed: New IRQ1 = %i, New IRQ2 = %i, NMI %sabled\n", gus->irq, gus->irq2, gus->sb_nmi ? "En" : "Dis");
+                        gus_log(gus->log, "GUS IRQ register val = %02X, Shared IRQ %sabled\n", val, (val & 0x40) ? "En" : "Dis");
+
                     } else {
                         gus->dma = gus_dmas[val & 7];
 
@@ -695,21 +870,49 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         } else
                             gus->dma2 = gus_dmas[(val >> 3) & 7];
 
-                        if (gus->type == GUS_MAX)
+                        gus_log(gus->log, "GUS DMA changed: New DMA1 = %i, New DMA2 = %i\n", gus->dma, gus->dma2);
+                        gus_log(gus->log, "GUS DMA register val = %02X\n", val);
+
+                        if (gus->type == GUS_MAX) {
                             ad1848_setdma(&gus->ad1848, gus->dma2);
+                            if (gus->dma2 != gus->dma)
+                                ad1848_setdma2(&gus->ad1848, gus->dma);
+                        }
+
+                        /* Bit 7 of this register fires/clears the secondary IRQ when in combine IRQs mode */
+                        if (val & 0x80)
+                            picint(1 << gus->irq2);
+                        else
+                            picintc(1 << gus->irq2);
                     }
                     break;
                 case 1:
-                    gus->gp1 = val;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->gp1_out = val;
                     break;
                 case 2:
-                    gus->gp2 = val;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->gp2_out = val;
                     break;
                 case 3:
-                    gus->gp1_addr = val;
+                    if (gus->type > GUS_CLASSIC) {
+                        if (gus->cur_gp1)
+                            io_removehandler(0x300 + gus->gp1_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->gp1_addr = val;
+                        io_sethandler(0x300 + gus->gp1_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->cur_gp1 = 0x300 + gus->gp1_addr;
+                        gus_log(gus->log, "GUS GP 1 address change: new addr = %04X\n", gus->cur_gp1);
+                    }
                     break;
                 case 4:
-                    gus->gp2_addr = val;
+                    if (gus->type > GUS_CLASSIC) {
+                        if (gus->cur_gp2)
+                            io_removehandler(0x300 + gus->gp2_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->gp2_addr = val;
+                        io_sethandler(0x300 + gus->gp2_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->cur_gp2 = 0x300 + gus->gp2_addr;
+                        gus_log(gus->log, "GUS GP 2 address change: new addr = %04X\n", gus->cur_gp2);
+                    }
                     break;
                 case 5:
                     if (gus->type > GUS_CLASSIC)
@@ -723,6 +926,11 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                             else if ((val & 0x2) && !(gus->jumper & 0x2))
                                 io_sethandler(0x0100 + gus->base, 0x0002, gus_read, NULL, NULL, gus_write, NULL, NULL, gus);
 
+                            if (!(val & 0x4) && (gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x0);
+                            else if ((val & 0x4) && !(gus->jumper & 0x4))
+                                gameport_remap(gus->gameport, 0x201);
+                        } else if ((gus->type == GUS_EXTREME) || (gus->type == GUS_VIPERMAX)) {
                             if (!(val & 0x4) && (gus->jumper & 0x4))
                                 gameport_remap(gus->gameport, 0x0);
                             else if ((val & 0x4) && !(gus->jumper & 0x4))
@@ -801,9 +1009,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                 }
                 break;
-            } else if (gus->type == GUS_EXTREME) {
-                ess_mixer_write(gus->ess->ess_dsp_addr + 4, val, gus->ess);
-                break;
             }
             fallthrough;
         case 0x706:
@@ -816,19 +1021,21 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     val |= 0x20;
                 gus->max_ctrl = (val >> 6) & 1;
                 if (val & 0x40) {
-                    if ((val & 0xF) != ((addr >> 4) & 0xF)) {
-                        csioport = 0x30c | ((addr >> 4) & 0xf);
+                    if ((val & 0xF) != ((gus->cur_codec_addr >> 4) & 0xF)) {
+                        csioport = 0x30c | (gus->cur_codec_addr & 0xf0);
+                        gus_log(gus->log, "Removing handler for codec on addr %04X\n", csioport);
                         io_removehandler(csioport, 4,
                                          ad1848_read, NULL, NULL,
                                          ad1848_write, NULL, NULL, &gus->ad1848);
                         csioport = 0x30c | ((val & 0xf) << 4);
+                        gus->cur_codec_addr = csioport;
+                        gus_log(gus->log, "Setting handler for codec on addr %04X\n", csioport);
                         io_sethandler(csioport, 4,
                                       ad1848_read, NULL, NULL,
                                       ad1848_write, NULL, NULL, &gus->ad1848);
                     }
                 }
-            } else if (gus->type == GUS_EXTREME)
-                ess_mixer_write(gus->ess->ess_dsp_addr + 5, val, gus->ess);
+            }
             break;
 
         default:
@@ -876,14 +1083,21 @@ gus_read(uint16_t addr, void *priv)
 
         case 0x206: /*IRQ status*/
             val = gus->irqstatus & ~0x10;
-            if (gus->ad_status & 0x19)
+            /* Handling for undocumented NMI status bit, needed by SBOS */
+            if (((gus->ad_status & 0x18) && (gus->sb_ctrl & 0x20)) || ((gus->ad_status & 0x01) && (gus->sb_ctrl & 0x02)))
                 val |= 0x10;
+            /* Ensure the DMA TC bit *is* set if the ADC caused an IRQ */
+            if (gus->adc_irq)
+                val |= 0x80;
+            /* DMA Terminal Count bit is inhibited if DMA Control bit 5 is cleared */
+            if ((!(gus->dmactrl & 0x20)) && (!(gus->adc_ctrl & 0x20)))
+                val &= 0x7f;
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
             return val;
 
         case 0x20F:
             if (gus->type > GUS_CLASSIC)
-                val = gus->jumper;
+                val = gus->usrr;
             else
                 val = 0xff;
             break;
@@ -922,6 +1136,11 @@ gus_read(uint16_t addr, void *priv)
                     gus_update_int_status(gus);
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
                     return val;
+
+                case 0x4c: /*Reset*/
+                case 0xcc:
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->reset);
+                    return gus->reset;
 
                 case 0x00:
                 case 0x01:
@@ -994,13 +1213,21 @@ gus_read(uint16_t addr, void *priv)
                 case 0x45: /*Timer control*/
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->tctrl);
                     return gus->tctrl;
-                case 0x49: /*Sampling control*/
-                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, 0);
-                    return 0;
+                case 0x49: /*ADC Sampling control*/
+                    val = gus->adc_ctrl | (((gus->irqstatus & 0x80) || gus->adc_irq) ? 0x40 : 0);
+                    gus->irqstatus &= ~0x80;
+                    gus->adc_irq = 0;
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, val);
+                    return val;
 
                 case 0x4B: /*Joystick trim DAC*/
                     gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->joy_trim);
                     return gus->joy_trim;
+
+                case 0x4c: /*Reset*/
+                case 0xcc:
+                    gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->reset);
+                    return gus->reset;
 
                 case 0x00:
                 case 0x01:
@@ -1036,7 +1263,7 @@ gus_read(uint16_t addr, void *priv)
             else if (gus->type == GUS_VIPERMAX)
                 val = 0x50; /* Synergy Vipermax */
             else if (gus->type == GUS_EXTREME)
-                val = 0x70; /* GUS Extreme */
+                val = 0x50; /* GUS Extreme */
             else
                 val = 0xff; /* Pre 3.7 - no mixer */
             break;
@@ -1057,10 +1284,10 @@ gus_read(uint16_t addr, void *priv)
             if (gus->type > GUS_CLASSIC) {
                 switch (gus->reg_ctrl & 0x07) {
                     case 1:
-                        val = gus->gp1;
+                        val = gus->gp1_in;
                         break;
                     case 2:
-                        val = gus->gp2;
+                        val = gus->gp2_in;
                         break;
                     case 3:
                         val = gus->gp1_addr;
@@ -1078,7 +1305,7 @@ gus_read(uint16_t addr, void *priv)
         case 0x20c:
             val = gus->sb_2xc;
             if (gus->reg_ctrl & 0x20)
-                gus->sb_2xc &= 0x80;
+                gus->sb_2xc ^= 0x80;
             break;
         case 0x20e:
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->sb_2xe);
@@ -1643,8 +1870,10 @@ gus_reset(void *priv)
     gus->uart_out = 0;
     gus->sysex = 0;
 
-    gus->gp1 = 0;
-    gus->gp2 = 0;
+    gus->gp1_in = 0;
+    gus->gp1_out = 0;
+    gus->gp2_in = 0;
+    gus->gp2_out = 0;
     gus->gp1_addr = 0;
     gus->gp2_addr = 0;
 
@@ -1676,7 +1905,7 @@ gus_init(UNUSED(const device_t *info))
 
     gus->log = log_open("GUS");
 
-    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_37))
+    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_34) || (info->local == GUS_CLASSIC_37))
         gus->gus_end_ram = gus_ram * 262144;
     else
         gus->gus_end_ram = 1 << (18 + gus_ram);
@@ -1743,8 +1972,7 @@ gus_init(UNUSED(const device_t *info))
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
         ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
-        ad1848_setirq(&gus->ad1848, 5);
-        ad1848_setdma(&gus->ad1848, 3);
+        gus->cur_codec_addr = gus->base + 0x10C;
         io_sethandler(0x10C + gus->base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
@@ -1752,6 +1980,7 @@ gus_init(UNUSED(const device_t *info))
     timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
+    timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
 
     sound_add_handler(gus_get_buffer, gus);
 
@@ -1767,7 +1996,6 @@ gus_extreme_init(UNUSED(const device_t *info))
     int     c;
     double  out     = 1.0;
     gus_t  *gus     = calloc(1, sizeof(gus_t));
-    uint8_t gus_ram = device_get_config_int("gus_ram");
 
     gus->log = log_open("GUS");
 
@@ -1789,10 +2017,14 @@ gus_extreme_init(UNUSED(const device_t *info))
     ess_mixer_reset(gus->ess);
 
     gus->ess->mixer_enabled = 1;
-    gus->ess->mixer_ess.regs[0x40] = 0x0a;
+    gus->ess->mixer_ess.regs[0x40] = 0x02;
     sound_add_handler(sb_get_buffer_ess, gus->ess);
     music_add_handler(sb_get_music_buffer_ess, gus->ess);
     sound_set_cd_audio_filter(ess_filter_cd_audio, gus->ess);
+
+    /* Filter is always enabled on ES1688 */
+    gus->ess->mixer_ess.input_filter = 1;
+    gus->ess->mixer_ess.output_filter = 1;
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
@@ -1803,15 +2035,16 @@ gus_extreme_init(UNUSED(const device_t *info))
     mpu401_init(gus->ess->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
     sb_dsp_set_mpu(&gus->ess->dsp, gus->ess->mpu);
 
-    gus->ess->gameport      = gameport_add(&gameport_200_device);
-    gus->ess->gameport_addr = 0x200;
-
     gus->ess->ess_readseq_state = 0;
     gus->ess->ess_dsp_addr      = 0;
     ess_rsk_reset(gus->ess);
 
     /* Init GF1 section */
-    gus->gus_end_ram = 1 << (18 + gus_ram);
+    if (info->local != GUS_EXTREME) {
+        uint8_t gus_ram = device_get_config_int("gus_ram");
+        gus->gus_end_ram = 1 << (18 + gus_ram);
+    } else
+        gus->gus_end_ram = 1 << 20;
     gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
 
     for (c = 0; c < 32; c++) {
@@ -1845,12 +2078,24 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     sound_add_handler(gus_extreme_get_buffer, gus);
 
+    gus->gameport = gameport_add(&gameport_pnp_1io_device);
+    gameport_remap(gus->gameport, 0x201);
+
     /* GUS Extreme base I/O relocation is done via ES1688 GPO and joystick port writes */
     io_sethandler(0x227, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
     io_sethandler(0x237, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
     io_sethandler(0x247, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
     io_sethandler(0x257, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
     io_sethandler(0x201, 0x0001, NULL, NULL, NULL, gus_reloc_write, NULL, NULL, gus);
+
+    /* Secondary IDE Channel */
+    if (device_get_config_int("enable_ide")) {
+        device_add(&ide_isa_sec_device);
+        ide_set_base(1, 0x170);
+        ide_set_side(1, 0x376);
+        ide_set_irq(1, 0xf);
+        other_ide_present++;
+    }
 
     return gus;
 }
@@ -2102,7 +2347,7 @@ static const device_config_t gus_ace_config[] = {
 // clang-format off
 };
 
-static const device_config_t gus_extreme_config[] = {
+static const device_config_t gus_vipermax_config[] = {
     {
         .name           = "gus_ram",
         .description    = "Memory size",
@@ -2116,6 +2361,54 @@ static const device_config_t gus_extreme_config[] = {
             { .description = "1 MB",   .value = 2 },
             { NULL                                }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "enable_ide",
+        .description    = "Enable IDE (Secondary Channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input",
+        .description    = "Receive MIDI input",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t gus_extreme_config[] = {
+    {
+        .name           = "enable_ide",
+        .description    = "Enable IDE (Secondary Channel)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -2156,6 +2449,20 @@ const device_t gus_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_config
+};
+
+const device_t gus_v34_device = {
+    .name          = "Gravis UltraSound (rev 3.4)",
+    .internal_name = "gusv34",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_CLASSIC_34,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_v37_config
 };
 
 const device_t gus_v37_device = {
@@ -2226,5 +2533,5 @@ const device_t gus_vipermax_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .alias         = "Synergy UltraSound VIP/Extreme",
-    .config        = gus_extreme_config
+    .config        = gus_vipermax_config
 };

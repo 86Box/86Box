@@ -66,11 +66,14 @@ msgstr "&Renderöijä"
 msgid "&Qt (Software)"
 msgstr "&Qt (ohjelmistopohjainen)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "&Määritä koko…"
@@ -420,8 +423,11 @@ msgstr "Käytössä (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Käytä 486-tulkintaa 286- ja 386-prosessoreille"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynaaminen uudelleenkääntäjä"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "CPU frame-koko"
@@ -453,6 +459,9 @@ msgstr "XGA-grafiikkasuoritin"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55-näyttöadapteri"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -467,6 +476,21 @@ msgstr "Hiiri:"
 
 msgid "Mouse"
 msgstr "Hiiri"
+
+msgid "&Mouse"
+msgstr "&Hiiri"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Peliohjain:"
@@ -828,6 +852,9 @@ msgstr "Näyttö"
 msgid "Input devices"
 msgstr "Syöttölaitteet"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Ääni"
 
@@ -836,6 +863,9 @@ msgstr "Verkko"
 
 msgid "Ports (COM & LPT)"
 msgstr "Portit (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Portit"
@@ -1238,6 +1268,9 @@ msgstr "Valittua määritystä ei voitu avata: %1"
 msgid "Use regular expressions in search box"
 msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] ""
@@ -1415,8 +1448,11 @@ msgstr "Virtuaalikoneen pakkopysäytys saattaa johtaa datan menettämiseen. Tee 
 msgid "&Delete"
 msgstr "&Poista"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Haluatko varmasti poistaa \"%1\"-virtuaalikoneen ja kaikki sen tiedostot? Poistamista ei voi perua!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Haluatko varmasti poistaa \"%1\"-virtuaalikoneen ja kaikki sen tiedostot?"
+
+msgid "This action cannot be undone!"
+msgstr "Poistamista ei voi perua!"
 
 msgid "Show &config file"
 msgstr "Näytä &määritystiedosto"
@@ -1456,6 +1492,18 @@ msgstr "ACPI-sammutus"
 
 msgid "ACP&I shutdown"
 msgstr "ACP&I-sammutus"
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "Kiintolevy (%1)"
@@ -2236,6 +2284,9 @@ msgstr "Sarjanumero"
 msgid "Host ID"
 msgstr "Isännän ID"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "FDC-osoite"
 
@@ -2665,6 +2716,18 @@ msgstr "Parannettu väri - Normaali tila (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Parannettu väri - Parannettu tila (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, yksivärinen)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, väri)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, yksivärinen)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, väri)"
+
 msgid "Green"
 msgstr "Vihreä"
 
@@ -2917,6 +2980,9 @@ msgstr "Kysy varmistusta ennen uudelleenkäynnistystä"
 msgid "Ask for confirmation before quitting"
 msgstr "Kysy varmistusta ennen lopettamista"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Asetukset"
 
@@ -2928,6 +2994,24 @@ msgstr "Malli:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan-rendereriä ei voitu alustaa."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "GLSL-virhe"
@@ -2949,6 +3033,9 @@ msgstr "Varjostinhallinta"
 
 msgid "Shader Configuration"
 msgstr "Varjostinasetukset"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Lisää"
@@ -3222,6 +3309,12 @@ msgstr "&Pikakelaus"
 msgid "Fast forward"
 msgstr "Pikakelaus"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Järjestelmähakemiston muuttamiseksi pysäytä kaikki käynnissä olevat koneet."
 
@@ -3253,6 +3346,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Levykuvaa \"%s\" ei voitu ladata: Daemon Tools MDS v2- ja MDX-levykuvatukeen "
 "tarvittava %1 puuttuu."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3398,4 +3494,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (perinteinen kiina)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

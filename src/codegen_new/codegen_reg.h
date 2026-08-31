@@ -134,6 +134,15 @@ enum {
     IREG_temp0d,
     IREG_temp1d,
 
+    IREG_fpu_op,
+    IREG_fpu_CS,
+    IREG_fpu_cs,
+    IREG_fpu_pc,
+    /* IREG_fpu_DS,
+    IREG_fpu_ds,
+    IREG_fpu_ea, */
+    IREG_sf_exc,
+
     IREG_COUNT,
 
     IREG_INVALID = 255,
@@ -205,7 +214,13 @@ enum {
     IREG_ssegs = IREG_ssegsx + IREG_SIZE_B,
 
     IREG_flags  = IREG_flagsx + IREG_SIZE_W,
-    IREG_eflags = IREG_eflagsx + IREG_SIZE_W
+    IREG_eflags = IREG_eflagsx + IREG_SIZE_W,
+
+    IREG_fpu_op_b = IREG_fpu_op + IREG_SIZE_B,
+    IREG_fpu_CS_w = IREG_fpu_CS + IREG_SIZE_W,
+    IREG_fpu_cs_l = IREG_fpu_cs + IREG_SIZE_L,
+    IREG_fpu_pc_l = IREG_fpu_pc + IREG_SIZE_L,
+    IREG_sf_exc_b = IREG_sf_exc + IREG_SIZE_B
 };
 
 #define IREG_8(reg)                (((reg) &4) ? (((reg) &3) + IREG_AH) : ((reg) + IREG_AL))

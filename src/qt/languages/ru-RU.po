@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-17 07:28+0000\n"
+"PO-Revision-Date: 2026-08-16 00:00+0000\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -67,11 +67,14 @@ msgstr "&Рендеринг"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "&Указать размеры главного окна…"
@@ -421,8 +424,11 @@ msgstr "Включено (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Использовать интерпретатор 486 для процессоров 286 и 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Динамический рекомпилятор"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "Размер кадра ЦП"
@@ -454,6 +460,9 @@ msgstr "Ускоритель XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -468,6 +477,21 @@ msgstr "Мышь:"
 
 msgid "Mouse"
 msgstr "Мышь"
+
+msgid "&Mouse"
+msgstr "&Мышь"
+
+msgid "Tablet:"
+msgstr "Планшет:"
+
+msgid "Tablet"
+msgstr "Планшет"
+
+msgid "&Tablet"
+msgstr "&Планшет"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Планшет (&отображать прицел)"
 
 msgid "Joystick:"
 msgstr "Джойстик:"
@@ -829,6 +853,9 @@ msgstr "Дисплей"
 msgid "Input devices"
 msgstr "Устройства ввода"
 
+msgid "Input &device"
+msgstr "&Устройство ввода"
+
 msgid "Sound"
 msgstr "Звук"
 
@@ -837,6 +864,9 @@ msgstr "Сеть"
 
 msgid "Ports (COM & LPT)"
 msgstr "Порты (COM и LPT)"
+
+msgid "Port"
+msgstr "Порт"
 
 msgid "Ports"
 msgstr "Порты"
@@ -1255,6 +1285,9 @@ msgstr "Невозможно открыть выбранный файл конф
 msgid "Use regular expressions in search box"
 msgstr "Использовать регулярные выражения в поле поиска"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Удалять виртуальные машины в Корзину"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n машина в настоящее время активна. Вы уверены, что всё равно хотите выйти из менеджера виртуальных машин?"
@@ -1429,8 +1462,11 @@ msgstr "Принудительное завершение процесса ви�
 msgid "&Delete"
 msgstr "&Удалить"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Вы действительно хотите удалить виртуальную машину «%1» и все её файлы? Это действие не может быть отменено!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Вы действительно хотите удалить виртуальную машину «%1» и все её файлы?"
+
+msgid "This action cannot be undone!"
+msgstr "Это действие не может быть отменено!"
 
 msgid "Show &config file"
 msgstr "Показать файл &конфигурации"
@@ -1470,6 +1506,18 @@ msgstr "Сигнал завершения ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Сигнал завершения ACP&I"
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "Жёсткий диск (%1)"
@@ -2245,6 +2293,9 @@ msgstr "Серийный номер"
 msgid "Host ID"
 msgstr "Идентификатор хоста"
 
+msgid "Host"
+msgstr "Хост"
+
 msgid "FDC Address"
 msgstr "Адрес FDC"
 
@@ -2674,6 +2725,18 @@ msgstr "Улучшенный цветной - нормальный режим (5
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Улучшенный цветной - улучшенный режим (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, монохромный)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, цветной)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, монохромный)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, цветной)"
+
 msgid "Green"
 msgstr "Зелёный"
 
@@ -2926,6 +2989,9 @@ msgstr "Запрашивать подтверждение перед холод�
 msgid "Ask for confirmation before quitting"
 msgstr "Запрашивать подтверждение перед выходом"
 
+msgid "Precache CHD files into memory"
+msgstr "Загружать файлы CHD в память"
+
 msgid "Options"
 msgstr "Параметры"
 
@@ -2937,6 +3003,24 @@ msgstr "Модель:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Не удалось инициализировать рендерер Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Не удалось создать экземпляр Vulkan 1.3."
+
+msgid "No usable Vulkan physical devices found."
+msgstr "Не найдены пригодные к использованию физические устройства Vulkan."
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Не найдены физические устройства, поддерживающие Vulkan."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "Не найдена библиотека librashader. Шейдеры не будут работать."
+
+msgid "Vulkan device lost."
+msgstr "Потеряно устройство Vulkan."
+
+msgid "Vulkan surface lost."
+msgstr "Потеряна поверхность Vulkan."
 
 msgid "GLSL Error"
 msgstr "Ошибка GLSL"
@@ -2958,6 +3042,9 @@ msgstr "Управление шейдерами"
 
 msgid "Shader Configuration"
 msgstr "Конфигурация шейдера"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Добавить"
@@ -3232,6 +3319,12 @@ msgstr "П&еремотка вперёд"
 msgid "Fast forward"
 msgstr "Перемотка вперёд"
 
+msgid "&Non-maskable interrupt"
+msgstr "Немаскируемое прерывание (&NMI)"
+
+msgid "Non-maskable interrupt"
+msgstr "Немаскируемое прерывание"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Чтобы изменить системную папку, остановите все запущенные машины."
 
@@ -3263,6 +3356,11 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Невозможно загрузить образ «%s»: отсутствеут библиотека %1, необходимая для "
 "поддержки образов Daemon Tools MDS v2 и MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Невозможно загрузить образ «%s»: отсутствеут библиотека %1, необходимая для "
+"поддержки образов формата Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "Образ DVD «%s» был вставлен в дисковод, не поддерживающий DVD, и будет проигнорирован."
@@ -3407,3 +3505,9 @@ msgstr "938 (китайский, традиционное письмо)"
 
 msgid "Sample rate:"
 msgstr "Частота дискретизации:"
+
+msgid "CGA lightpen"
+msgstr "Световое перо CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Порог яркости (%)"

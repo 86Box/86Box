@@ -94,6 +94,7 @@ private slots:
     void on_actionToggle_OSD_triggered();
     void on_actionCtrl_Alt_Del_triggered();
     void on_actionCtrl_Alt_Esc_triggered();
+    void on_actionNon_maskable_interrupt_triggered();
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
@@ -155,6 +156,9 @@ protected:
 
 private slots:
     void on_actionPen_triggered();
+    void on_actionMouse_triggered();
+    void on_actionTablet_triggered();
+    void on_actionTablet_Crosshair_triggered();
 
 private slots:
     void on_actionCursor_Puck_triggered();
@@ -215,6 +219,8 @@ private:
     bool isShowMessage  = false;
     bool isNonPause     = false;
     bool window_blocked = false;
+
+    bool skip_exit_confirmation = false;
 };
 
 #endif // QT_MAINWINDOW_HPP

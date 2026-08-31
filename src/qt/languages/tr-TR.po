@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-07-24 06:25+0000\n"
+"PO-Revision-Date: 2026-07-29 14:45+0000\n"
 "Last-Translator: Umut Çağan Uçanok <ucucanok@outlook.com.tr>\n"
 "Language-Team: Turkish <https://weblate.86box.net/projects/86box/86box/tr/>\n"
 "Language: tr-TR\n"
@@ -66,11 +66,14 @@ msgstr "Derley&ici"
 msgid "&Qt (Software)"
 msgstr "&Qt (Yazılım bazlı)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenG&L (Sürüm 3.0)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Pencere &boyutunu belirle…"
@@ -420,8 +423,11 @@ msgstr "Etkin (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286 ve 386 işlemcilerde 486 yorumlayıcısını kullan"
 
-msgid "Dynamic Recompiler"
-msgstr "Dinamik Derleyici"
+msgid "Dynamic recompiler"
+msgstr "Dinamik derleyici"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "İşlemci kare boyutu"
@@ -453,6 +459,9 @@ msgstr "XGA Grafikleri"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Grafikleri"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -467,6 +476,21 @@ msgstr "Fare:"
 
 msgid "Mouse"
 msgstr "Fare"
+
+msgid "&Mouse"
+msgstr "&Fare"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Oyun Kolu:"
@@ -831,6 +855,9 @@ msgstr "Görüntü"
 msgid "Input devices"
 msgstr "Giriş cihazları"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Ses"
 
@@ -839,6 +866,9 @@ msgstr "Ağ"
 
 msgid "Ports (COM & LPT)"
 msgstr "Bağlantı noktaları (COM & LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Bağlantı noktaları"
@@ -1258,6 +1288,9 @@ msgstr "Seçili yapılandırma dosyası okunmak için açılamıyor: %1"
 msgid "Use regular expressions in search box"
 msgstr "Arama kutusunda düzenli ifadeler kullan"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Sanal makineleri Geri Dönüşüm Kutusu'na gönder"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n makine şu anda aktif. Yine de sanal makine yöneticisinden çıkmak istediğinize emin misiniz?"
@@ -1435,10 +1468,11 @@ msgstr ""
 msgid "&Delete"
 msgstr "&Sil"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
-"Gerçekten \"%1\" sanal makinesini tüm dosyalarıyla birlikte silmek istiyor "
-"musunuz? Bu işlem geri alınamaz!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Gerçekten \"%1\" sanal makinesini tüm dosyalarıyla birlikte silmek istiyor musunuz?"
+
+msgid "This action cannot be undone!"
+msgstr "Bu işlem geri alınamaz!"
 
 msgid "Show &config file"
 msgstr "Yap&ılandırma dosyasını göster"
@@ -1478,6 +1512,18 @@ msgstr "ACPI ile kapat"
 
 msgid "ACP&I shutdown"
 msgstr "ACP&I ile kapat"
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "Sabit disk (%1)"
@@ -2287,6 +2333,9 @@ msgstr "Seri Numarası"
 msgid "Host ID"
 msgstr "Ana sistem kimliği"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "FDC Adresi"
 
@@ -2716,6 +2765,18 @@ msgstr "Gelişmiş Renkli - Normal Mod (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Gelişmiş Renkli - Gelişmiş Mod (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, Tek Renkli)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, Çok Renkli)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, Tek Renkli)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, Çok Renkli)"
+
 msgid "Green"
 msgstr "Yeşil"
 
@@ -2968,6 +3029,9 @@ msgstr "Yeniden başlamaya zorlamadan önce onay için sor"
 msgid "Ask for confirmation before quitting"
 msgstr "Çıkış yapmadan once onay için sor"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Seçenekler"
 
@@ -2979,6 +3043,25 @@ msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan derleyicisi başlatılamadı."
+
+#, fuzzy
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Vulkan 1.3 instance'ı oluşturulamadı."
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Vulkan uyumlu fiziksel cihaz bulunamadı."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "librashader bulunamadı. Gölgelendiriciler kullanılamayacak."
+
+msgid "Vulkan device lost."
+msgstr "Vulkan cihazı kayboldu."
+
+msgid "Vulkan surface lost."
+msgstr "Vulkan yüzeyi kayboldu."
 
 msgid "GLSL Error"
 msgstr "GLSL Hatası"
@@ -3003,6 +3086,9 @@ msgstr "Gölgelendirici Yöneticisi"
 
 msgid "Shader Configuration"
 msgstr "Gölgelendirici Seçenekleri"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Ekle"
@@ -3281,6 +3367,12 @@ msgstr "&İleri sar"
 msgid "Fast forward"
 msgstr "İleri sar"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Sistem dizinini değiştirmek için çalışan tüm makineleri durdurun."
 
@@ -3312,6 +3404,11 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "\"%s\" görüntüsü yüklenemiyor: Daemon Tools MDS v2 ve MDX görüntü desteği "
 "için gerekli olan %1 mevcut değil."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Görüntü \"%s\" yüklenemiyor: Aaru biçimi görüntüsü desteği için gerekli olan "
+"%1 bulunamıyor."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3458,3 +3555,9 @@ msgstr "938 (Geleneksel Çince)"
 
 msgid "Sample rate:"
 msgstr "Örnekleme hızı:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

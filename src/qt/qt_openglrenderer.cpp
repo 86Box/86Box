@@ -825,6 +825,9 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     , renderTimer(new QTimer(this))
     , osdRenderTimer(new QTimer(this))
 {
+    // Force a cleanup of ImGui OSD.
+    qt_osd_shutdown();
+
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
     connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
         if (video_framerate == -1 && dopause && qt_osd_is_visible())
@@ -1826,7 +1829,7 @@ OpenGLRenderer::render()
 
     /* Draw the OSD crisp on top of the shaded image, in the default
        framebuffer at full window resolution. */
-    {
+    if (qt_osd_is_visible()) {
         glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());

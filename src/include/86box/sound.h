@@ -244,6 +244,8 @@ extern const device_t cs4237b_device;
 extern const device_t cs4238b_device;
 
 /* ESS Technology */
+extern const device_t ess_488_device;
+extern const device_t ess_1488_device;
 extern const device_t ess_688_device;
 extern const device_t ess_ess0100_pnp_device;
 extern const device_t ess_ess0968_pnp_688_device;
@@ -272,6 +274,7 @@ extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound family */
 extern const device_t gus_device;
+extern const device_t gus_v34_device;
 extern const device_t gus_v37_device;
 extern const device_t gus_max_device;
 extern const device_t gus_ace_device;
@@ -291,8 +294,9 @@ extern const device_t entertainer_device;
 /* Mindscape Music Board */
 extern const device_t mmb_device;
 
-/* MediaVision ThunderBoard */
+/* Media Vision */
 extern const device_t thunderboard_device;
+extern const device_t jazz16_device;
 
 /* OPTi 82c93x */
 extern const device_t acermagic_s20_device;

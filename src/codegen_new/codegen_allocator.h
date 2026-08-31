@@ -17,7 +17,9 @@
   instruction. ARMv8 is limited to +/- 128 MB, x86 to
   +/- 2GB. It was 32 MB on ARMv7 before we removed it*/
 
+#ifndef MEM_BLOCK_NR
 #define MEM_BLOCK_NR 131072
+#endif
 
 
 #define MEM_BLOCK_MASK (MEM_BLOCK_NR - 1)

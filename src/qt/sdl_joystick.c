@@ -16,7 +16,19 @@
  *          Copyright 2021 Joakim L. Gilje.
  *          Copyright 2021-2025 Jasmine Iwanek.
  */
-#include <SDL2/SDL.h>
+#ifdef USE_SDL2_LIB
+#include <SDL.h>
+#define SDL_GetNumJoystickHats SDL_JoystickNumHats
+#define SDL_GetNumJoystickButtons SDL_JoystickNumButtons
+#define SDL_GetNumJoystickAxes SDL_JoystickNumAxes
+#define SDL_CloseJoystick SDL_JoystickClose
+#define SDL_UpdateJoysticks SDL_JoystickUpdate
+#define SDL_GetJoystickAxis SDL_JoystickGetAxis
+#define SDL_GetJoystickButton SDL_JoystickGetButton
+#define SDL_GetJoystickHat SDL_JoystickGetHat
+#else
+#include <SDL3/SDL.h>
+#endif
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -57,17 +69,30 @@ joystick_init(void)
 #endif
         return;
 
+#ifdef USE_SDL2_LIB
     joysticks_present = SDL_NumJoysticks();
+#else
+    joysticks_present = 0;
 
+    SDL_JoystickID* ids = SDL_GetJoysticks(&joysticks_present);
+#endif
     memset(sdl_joy, 0, sizeof(sdl_joy));
     for (int js = 0; js < joysticks_present; js++) {
+#ifdef USE_SDL2_LIB
         sdl_joy[js] = SDL_JoystickOpen(js);
+#else
+        sdl_joy[js] = SDL_OpenJoystick(ids[js]);
+#endif
 
         if (sdl_joy[js]) {
+#ifdef USE_SDL2_LIB
             strncpy(plat_joystick_state[js].name, SDL_JoystickNameForIndex(js), 64);
-            plat_joystick_state[js].nr_axes    = MIN(SDL_JoystickNumAxes(sdl_joy[js]), MAX_JOY_AXES);
-            plat_joystick_state[js].nr_buttons = MIN(SDL_JoystickNumButtons(sdl_joy[js]), MAX_JOY_BUTTONS);
-            plat_joystick_state[js].nr_povs    = MIN(SDL_JoystickNumHats(sdl_joy[js]), MAX_JOY_POVS);
+#else
+            strncpy(plat_joystick_state[js].name, SDL_GetJoystickNameForID(ids[js]), 64);
+#endif
+            plat_joystick_state[js].nr_axes    = MIN(SDL_GetNumJoystickAxes(sdl_joy[js]), MAX_JOY_AXES);
+            plat_joystick_state[js].nr_buttons = MIN(SDL_GetNumJoystickButtons(sdl_joy[js]), MAX_JOY_BUTTONS);
+            plat_joystick_state[js].nr_povs    = MIN(SDL_GetNumJoystickHats(sdl_joy[js]), MAX_JOY_POVS);
 
             for (int axis_nr = 0; axis_nr < plat_joystick_state[js].nr_axes; axis_nr++) {
                 snprintf(plat_joystick_state[js].axis[axis_nr].name, sizeof(plat_joystick_state[js].axis[axis_nr].name), "Axis %i", axis_nr);
@@ -90,7 +115,7 @@ joystick_close(void)
 {
     for (int js = 0; js < joysticks_present; js++) {
         if (sdl_joy[js])
-            SDL_JoystickClose(sdl_joy[js]);
+            SDL_CloseJoystick(sdl_joy[js]);
     }
 }
 
@@ -137,16 +162,16 @@ joystick_process(uint8_t gp)
     if (!joystick_type[gp])
         return;
 
-    SDL_JoystickUpdate();
+    SDL_UpdateJoysticks();
     for (int js = 0; js < joysticks_present; js++) {
         for (int axis_nr = 0; axis_nr < plat_joystick_state[js].nr_axes; axis_nr++)
-            plat_joystick_state[js].a[axis_nr] = SDL_JoystickGetAxis(sdl_joy[js], axis_nr);
+            plat_joystick_state[js].a[axis_nr] = SDL_GetJoystickAxis(sdl_joy[js], axis_nr);
 
         for (int button_nr = 0; button_nr < plat_joystick_state[js].nr_buttons; button_nr++)
-            plat_joystick_state[js].b[button_nr] = SDL_JoystickGetButton(sdl_joy[js], button_nr);
+            plat_joystick_state[js].b[button_nr] = SDL_GetJoystickButton(sdl_joy[js], button_nr);
 
         for (int pov_nr = 0; pov_nr < plat_joystick_state[js].nr_povs; pov_nr++)
-            plat_joystick_state[js].p[pov_nr] = SDL_JoystickGetHat(sdl_joy[js], pov_nr);
+            plat_joystick_state[js].p[pov_nr] = SDL_GetJoystickHat(sdl_joy[js], pov_nr);
 
 #if 0
         pclog("joystick %i - x=%i y=%i b[0]=%i b[1]=%i  %i\n", js,

@@ -80,16 +80,15 @@ uint32_t biosaddr;
 uint32_t pccache;
 uint8_t *pccache2;
 
-int        readlnext;
-int        readlookup[256];
+int        readlnext[2];
+int        readlookup[512];
 uintptr_t  old_rl2;
-uint8_t    uncached = 0;
 int        writelnext;
 int        writelookup[256];
 
 /* The lookup tables. */
 page_t *page_lookup[1048576] = { 0 };
-uintptr_t readlookup2[1048576] = { 0 };
+uintptr_t readlookup2[2097152] = { 0 };
 uintptr_t writelookup2[1048576] = { 0 };
 
 
@@ -109,7 +108,8 @@ int mem_a20_alt     = 0;
 int mem_a20_chipset = 0;
 int mem_a20_state   = 0;
 
-int mmuflush = 0;
+int mmuflush        = 0;
+int is_compare      = 0;
 
 #ifdef USE_NEW_DYNAREC
 uint64_t *byte_dirty_mask;
@@ -136,7 +136,7 @@ static uint8_t        ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 static mem_state_t    _mem_state[MEM_MAPPINGS_NO];
 static uint32_t       remap_start_addr;
 static uint32_t       remap_start_addr2;
-static size_t ram_size = 0;
+static size_t         ram_size = 0;
 
 #ifdef ENABLE_MEM_LOG
 int mem_do_log = ENABLE_MEM_LOG;
@@ -172,31 +172,35 @@ resetreadlookup(void)
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
     /* Initialize the tables for lower (<= 1024K) RAM. */
-    for (uint16_t c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 512; c++) {
         readlookup[c]  = 0xffffffff;
-        writelookup[c] = 0xffffffff;
+
+        if (c < 256)
+            writelookup[c] = 0xffffffff;
     }
 
     /* Initialize the tables for high (> 1024K) RAM. */
-    memset(readlookup2, 0xff, (1 << 20) * sizeof(uintptr_t));
+    memset(readlookup2, 0xff, (2 << 20) * sizeof(uintptr_t));
 
     memset(writelookup2, 0xff, (1 << 20) * sizeof(uintptr_t));
 
-    readlnext  = 0;
-    writelnext = 0;
-    pccache    = 0xffffffff;
-    high_page  = 0;
+    readlnext[0] = 0;
+    readlnext[1] = 0;
+    writelnext   = 0;
+    pccache      = 0xffffffff;
+    high_page    = 0;
 }
 
 void
 flushmmucache(void)
 {
-    for (uint16_t c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 512; c++) {
         if (readlookup[c] != (int) 0xffffffff) {
             readlookup2[readlookup[c]] = LOOKUP_INV;
+            readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
             readlookup[c]              = 0xffffffff;
         }
-        if (writelookup[c] != (int) 0xffffffff) {
+        if ((c < 256) && (writelookup[c] != (int) 0xffffffff)) {
             page_lookup[writelookup[c]]  = NULL;
             writelookup2[writelookup[c]] = LOOKUP_INV;
             writelookup[c]               = 0xffffffff;
@@ -241,12 +245,13 @@ flushmmucache_pc(void)
 void
 flushmmucache_nopc(void)
 {
-    for (uint16_t c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 512; c++) {
         if (readlookup[c] != (int) 0xffffffff) {
             readlookup2[readlookup[c]] = LOOKUP_INV;
+            readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
             readlookup[c]              = 0xffffffff;
         }
-        if (writelookup[c] != (int) 0xffffffff) {
+        if ((c < 256) && (writelookup[c] != (int) 0xffffffff)) {
             page_lookup[writelookup[c]]  = NULL;
             writelookup2[writelookup[c]] = LOOKUP_INV;
             writelookup[c]               = 0xffffffff;
@@ -273,8 +278,26 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 
 #define mmutranslate_read(addr)  mmutranslatereal(addr, 0)
 #define mmutranslate_write(addr) mmutranslatereal(addr, 1)
-#define rammap(x)                ((uint32_t *) (_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 2) & MEM_GRANULARITY_QMASK]
-#define rammap64(x)              ((uint64_t *) (_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 3) & MEM_GRANULARITY_PMASK]
+/* A page-table walk can legitimately land on a physical page with no RAM behind it:
+   `_mem_exec[]` is explicitly NULL both for addresses beyond installed RAM and for
+   MMIO-style mappings that have no exec pointer. The old macros cast that NULL and
+   indexed it, so a guest that merely pointed CR3 somewhere unbacked terminated the
+   emulator - observed as an access violation at the `rammap(addr2)` in
+   mmutranslatereal_normal() below, with an Intel Inboard 386/PC and Intel's own
+   INBRDPC.SYS, which does exactly that. Hardware has no notion of "absent" here; it
+   reads the bus and gets floating high bits. So substitute a shared page of 0xFF,
+   matching this file's own convention that an unmapped read returns 0xFF.
+
+   This keeps both macros usable as lvalues, which matters because several callers do
+   `rammap(x) |= ...` to set accessed/dirty bits. Those writes land in the scratch page
+   and are discarded, which is correct for memory that is not there - and the page stays
+   all-ones because the only writes are ORs of a few bits, so it cannot drift into
+   handing back a bogus present entry later. */
+static uint8_t mem_unbacked_pt_page[MEM_GRANULARITY_SIZE];
+
+#define rammap_backing(x)        (_mem_exec[(x) >> MEM_GRANULARITY_BITS] ? _mem_exec[(x) >> MEM_GRANULARITY_BITS] : mem_unbacked_pt_page)
+#define rammap(x)                ((uint32_t *) rammap_backing(x))[((x) >> 2) & MEM_GRANULARITY_QMASK]
+#define rammap64(x)              ((uint64_t *) rammap_backing(x))[((x) >> 3) & MEM_GRANULARITY_PMASK]
 
 static __inline uint64_t
 mmutranslatereal_normal(uint32_t addr, int rw)
@@ -569,23 +592,26 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
+    uint32_t large_offset = is_compare ? 1048576 : 0;
+    uint32_t small_offset = is_compare ? 256 : 0;
+    uint32_t index        = large_offset | (virt >> 12);
+    int *    rln          = &(readlnext[is_compare]);
+    int      cur_rln      = *rln | (int) small_offset;
+
 #ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
-    if (readlookup2[virt >> 12] != (uintptr_t) LOOKUP_INV)
+    if (readlookup2[index] != (uintptr_t) LOOKUP_INV)
         return;
 
-    if (readlookup[readlnext] != (int) 0xffffffff) {
-        if ((readlookup[readlnext] == ((es + DI) >> 12)) || (readlookup[readlnext] == ((es + EDI) >> 12)))
-            uncached = 1;
-        readlookup2[readlookup[readlnext]] = LOOKUP_INV;
-    }
+    if (readlookup[cur_rln] != (int) 0xffffffff)
+        readlookup2[large_offset | readlookup[cur_rln]] = LOOKUP_INV;
 
-    readlookup2[virt >> 12] = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
+    readlookup2[index] = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
 
-    readlookup[readlnext++] = virt >> 12;
-    readlnext &= (cachesize - 1);
+    readlookup[cur_rln] = virt >> 12;
+    *rln = (*rln + 1) & (cachesize - 1);
 #endif
 
     cycles -= 9;
@@ -606,11 +632,15 @@ addwritelookup(uint32_t virt, uint32_t phys)
         writelookup2[writelookup[writelnext]] = LOOKUP_INV;
     }
 
+    /* A page holds code not only when a block starts in it (block) but also
+       when a block crossing a page boundary ends in it (block_2). Writes to
+       such a page must take the tracked page_lookup path, or self-modifying
+       code in the second page never invalidates the spanning block. */
 #ifdef USE_NEW_DYNAREC
 #    ifdef USE_DYNAREC
-    if (pages[phys >> 12].block || (phys & ~0xfff) == recomp_page) {
+    if (pages[phys >> 12].block || pages[phys >> 12].block_2 || (phys & ~0xfff) == recomp_page) {
 #    else
-    if (pages[phys >> 12].block) {
+    if (pages[phys >> 12].block || pages[phys >> 12].block_2) {
 #    endif
 #else
 #    ifdef USE_DYNAREC
@@ -881,6 +911,9 @@ readmemwl(uint32_t addr)
     high_page = 0;
 
     if (addr & 1) {
+        uint32_t       large_offset = is_compare ? 1048576 : 0;
+        uintptr_t     *rl2 = &(readlookup2[large_offset | (addr >> 12)]);
+
         if (!cpu_cyrix_alignment || (addr & 7) == 7)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
@@ -895,8 +928,8 @@ readmemwl(uint32_t addr)
             }
 
             return readmembl_no_mmut(addr, addr64a[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, addr64a[1])) << 8);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
-            return *(uint16_t *) (readlookup2[addr >> 12] + addr);
+        } else if (*rl2 != (uintptr_t) LOOKUP_INV)
+            return *(uint16_t *) (*rl2 + addr);
     }
 
     if (cr0 >> 31) {
@@ -1009,6 +1042,9 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
     mem_logical_addr = addr;
 
     if (addr & 1) {
+        uint32_t       large_offset = is_compare ? 1048576 : 0;
+        uintptr_t     *rl2 = &(readlookup2[large_offset | (addr >> 12)]);
+
         if (!cpu_cyrix_alignment || (addr & 7) == 7)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
@@ -1018,8 +1054,8 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
             }
 
             return readmembl_no_mmut(addr, a64[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, a64[1])) << 8);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
-            return *(uint16_t *) (readlookup2[addr >> 12] + addr);
+        } else if (*rl2 != (uintptr_t) LOOKUP_INV)
+            return *(uint16_t *) (*rl2 + addr);
     }
 
     if (cr0 >> 31) {
@@ -1117,6 +1153,9 @@ readmemll(uint32_t addr)
     high_page = 0;
 
     if (addr & 3) {
+        uint32_t       large_offset = is_compare ? 1048576 : 0;
+        uintptr_t     *rl2 = &(readlookup2[large_offset | (addr >> 12)]);
+
         if (!cpu_cyrix_alignment || (addr & 7) > 4)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
@@ -1145,8 +1184,8 @@ readmemll(uint32_t addr)
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
             return readmemwl_no_mmut(addr, addr64a) | (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64a[2]))) << 16);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
-            return *(uint32_t *) (readlookup2[addr >> 12] + addr);
+        } else if (*rl2 != (uintptr_t) LOOKUP_INV)
+            return *(uint32_t *) (*rl2 + addr);
     }
 
     if (cr0 >> 31) {
@@ -1279,6 +1318,9 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
     mem_logical_addr = addr;
 
     if (addr & 3) {
+        uint32_t       large_offset = is_compare ? 1048576 : 0;
+        uintptr_t     *rl2 = &(readlookup2[large_offset | (addr >> 12)]);
+
         if (!cpu_cyrix_alignment || (addr & 7) > 4)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffc) {
@@ -1288,8 +1330,8 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
             }
 
             return readmemwl_no_mmut(addr, a64) | ((uint32_t) (readmemwl_no_mmut(addr + 2, &(a64[2]))) << 16);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
-            return *(uint32_t *) (readlookup2[addr >> 12] + addr);
+        } else if (*rl2 != (uintptr_t) LOOKUP_INV)
+            return *(uint32_t *) (*rl2 + addr);
     }
 
     if (cr0 >> 31) {
@@ -1395,6 +1437,9 @@ readmemql(uint32_t addr)
     high_page = 0;
 
     if (addr & 7) {
+        uint32_t       large_offset = is_compare ? 1048576 : 0;
+        uintptr_t     *rl2 = &(readlookup2[large_offset | (addr >> 12)]);
+
         cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xff8) {
             if (cr0 >> 31) {
@@ -1422,8 +1467,8 @@ readmemql(uint32_t addr)
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
             return readmemll_no_mmut(addr, addr64a) | (((uint64_t) readmemll_no_mmut(addr + 4, &(addr64a[4]))) << 32);
-        } else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
-            return *(uint64_t *) (readlookup2[addr >> 12] + addr);
+        } else if (*rl2 != (uintptr_t) LOOKUP_INV)
+            return *(uint64_t *) (*rl2 + addr);
     }
 
     if (cr0 >> 31) {
@@ -1568,11 +1613,13 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     int      cond = 1;
     uint32_t last_addr = addr + (num - 1);
     uint64_t a         = 0x0000000000000000ULL;
+
+    for (i = 0; i < num; i++) {
+        a64[i] = (uint64_t) (addr + i);
 #ifdef USE_DEBUG_REGS_486
-    mem_debug_check_addr(addr, write ? 2 : read_type);
+        mem_debug_check_addr(addr + i, write ? 2 : read_type);
 #endif
-    for (i = 0; i < num; i++)
-        a64[i] = (uint64_t) addr;
+    }
 
     if (cr0 >> 31)  for (i = 0; i < num; i++) {
         if (write && ((i == 0) || !(addr & 0xfff)))
@@ -1594,7 +1641,7 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
                 a      = mmutranslatereal(last_addr, write);
                 a64[i] = (uint32_t) a;
 
-                high_page = high_page || (!cpu_state.abrt && (a64[i] > 0xffffffffULL));
+                high_page = high_page || (!cpu_state.abrt && (a > 0xffffffffULL));
 
                 if (!cpu_state.abrt) {
                     a      = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
@@ -2729,6 +2776,7 @@ void
 mem_reset(void)
 {
     size_t m;
+    uint8_t large_mem = 0;
 
     memset(page_ff, 0xff, sizeof(page_ff));
 
@@ -2760,12 +2808,14 @@ mem_reset(void)
 
     ram_size = m;
     /* Allocate 16 extra bytes of RAM to mitigate some dynarec recompiler memory access quirks. */
-    ram      = (uint8_t *) plat_mmap(ram_size + 16, 0); /* allocate and clear the RAM block */
+    ram      = (uint8_t *) plat_mmap(ram_size + 16, 0, &large_mem); /* allocate and clear the RAM block */
     if (ram == NULL) {
         fatal("Failed to allocate RAM block. Make sure you have enough RAM available.\n");
         return;
     }
-    memset(ram, 0x00, ram_size + 16);
+
+    if (large_mem)
+        pclog("Allocated %.02lf megabytes of large pages for RAM\n", ram_size / (double)(1024 * 1024));
 
     /*
      * Allocate the page table based on how much RAM we have.
@@ -2824,6 +2874,8 @@ mem_reset(void)
     }
 
     memset(_mem_exec, 0x00, sizeof(_mem_exec));
+    /* Reads of absent physical memory return floating high bits - see rammap() above. */
+    memset(mem_unbacked_pt_page, 0xff, sizeof(mem_unbacked_pt_page));
     memset(_mem_wp, 0x00, sizeof(_mem_wp));
     memset(_mem_wp_bus, 0x00, sizeof(_mem_wp_bus));
     memset(write_mapping, 0x00, sizeof(write_mapping));
@@ -2938,7 +2990,6 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
 #ifdef USE_NEW_DYNAREC
-        pages[c].evict_prev             = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
 #endif
@@ -2965,7 +3016,6 @@ mem_remap_top_ex_common(int kb, uint32_t start, int mid)
             pages[c].write_l = NULL;
         }
 #ifdef USE_NEW_DYNAREC
-        pages[c].evict_prev             = EVICT_NOT_IN_LIST;
         pages[c].byte_dirty_mask        = &byte_dirty_mask[c * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[c * 64];
 #endif

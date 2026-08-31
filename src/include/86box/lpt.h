@@ -33,6 +33,7 @@ typedef struct lpt_device_s {
 #include <86box/char.h>
 typedef struct lpt_t {
     uint8_t       enabled;
+    uint8_t       output_enabled;
     uint8_t       irq;
     uint8_t       irq_state;
     uint8_t       dma;
@@ -109,11 +110,15 @@ extern const device_t      lpt_tnd_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
+extern const device_t      lpt_ditto_device;
+
 extern const device_t      lpt_loopback_device;
 
 extern void                lpt_write(uint16_t port, uint8_t val, void *priv);
 
 extern void                lpt_write_to_fifo(void *priv, uint8_t val);
+
+extern void                lpt_write_to_dat(void *priv, uint8_t val);
 
 extern uint8_t             lpt_read(uint16_t port, void *priv);
 
@@ -125,6 +130,7 @@ extern uint8_t             lpt_read_ecp_mode(lpt_t *dev);
 extern void                lpt_irq(void *priv, int raise);
 
 extern void                lpt_set_ext(lpt_t *dev, uint8_t ext);
+extern void                lpt_set_output_enabled(lpt_t *dev, uint8_t enabled);
 extern void                lpt_set_ecp(lpt_t *dev, uint8_t ecp);
 extern void                lpt_set_epp(lpt_t *dev, uint8_t epp);
 extern void                lpt_set_lv2(lpt_t *dev, uint8_t lv2);

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-17 07:28+0000\n"
+"PO-Revision-Date: 2026-08-27 20:33+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -66,11 +66,14 @@ msgstr "&Απεικονιστής"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Ορισμός &διαστάσεων…"
@@ -420,8 +423,11 @@ msgstr "Ενεργό (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Χρησιμοποιήστε τον διερμηνέα 486 για επεξεργαστές 286 και 386"
 
-msgid "Dynamic Recompiler"
-msgstr "Δυναμικός Αναμεταγλωττιστής"
+msgid "Dynamic recompiler"
+msgstr "Δυναμικός αναμεταγλωττιστής"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr "Ακριβές περιβάλλον FPU σε δυναμικό αναμεταγλωττιστή"
 
 msgid "CPU frame size"
 msgstr "Μέγεθος πλαισίου CPU"
@@ -453,6 +459,9 @@ msgstr "Γραφικά XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Προσαρμογέας Γραφικών IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -467,6 +476,21 @@ msgstr "Ποντίκι:"
 
 msgid "Mouse"
 msgstr "Ποντίκι"
+
+msgid "&Mouse"
+msgstr "&Ποντίκι"
+
+msgid "Tablet:"
+msgstr "Ταμπλέτα:"
+
+msgid "Tablet"
+msgstr "Ταμπλέτα"
+
+msgid "&Tablet"
+msgstr "&Ταμπλέτα"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Ταμπλέτα (&Σημάδι)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -828,6 +852,9 @@ msgstr "Οθόνη"
 msgid "Input devices"
 msgstr "Συσκευές εισόδου"
 
+msgid "Input &device"
+msgstr "&Συσκευή εισόδου"
+
 msgid "Sound"
 msgstr "Ήχος"
 
@@ -836,6 +863,9 @@ msgstr "Δίκτυο"
 
 msgid "Ports (COM & LPT)"
 msgstr "Θύρες (COM & LPT)"
+
+msgid "Port"
+msgstr "Πόρτα"
 
 msgid "Ports"
 msgstr "Θύρες"
@@ -1249,6 +1279,9 @@ msgstr "Αδυναμία ανοίγματος επιλεγμένου αρχεί�
 msgid "Use regular expressions in search box"
 msgstr "Χρήση συχνών εκφράσεων στην αναζήτηση"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Διαγραφή εικονικών μηχανών στον Κάδο Ανακύκλωσης"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n μηχανή είναι εν ενεργεία. Είστε σίγουγος για την έξοδο απο το VM manager;"
@@ -1422,10 +1455,11 @@ msgstr "Ο εξαναγκαστικός τέρματισμός της εικον
 msgid "&Delete"
 msgstr "&Διαγραφή"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr ""
-"Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα "
-"αρχεία της; Αυτή η ενέργεια είναι ανεπανόρθωτη!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Επιθυμείτε σίγουρα να διαγράψετε την εικονική μηχανή \"%1\" και όλα τα αρχεία της;"
+
+msgid "This action cannot be undone!"
+msgstr "Αυτή η ενέργεια είναι ανεπανόρθωτη!"
 
 msgid "Show &config file"
 msgstr "Εμφάνιση αρχείου &προσαρμογής"
@@ -1465,6 +1499,20 @@ msgstr "Τερματισμός ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Τερματισμός ACP&I"
+
+msgid "Power off"
+msgstr "Απενεργοποίηση"
+
+msgid "Power &off…"
+msgstr "&Απενεργοποίηση…"
+
+msgid "Power &off"
+msgstr "&Απενεργοποίηση"
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+"Η απενεργοποίηση της μηχανής εξομοίωσης μπορεί να οδηγήσει σε απώλεια "
+"δεδομένων. Επιθυμείτε σίγουρα να συνεχίσετε ;"
 
 msgid "Hard disk (%1)"
 msgstr "Σκληρός δίσκος (%1)"
@@ -2267,6 +2315,9 @@ msgstr "Σειριακός Αριθμός"
 msgid "Host ID"
 msgstr "ID οικοδεσπότη"
 
+msgid "Host"
+msgstr "Οικοδεσπότης"
+
 msgid "FDC Address"
 msgstr "Διεύθυνση FDC"
 
@@ -2697,6 +2748,18 @@ msgstr "Ενισχυμένο Έγχρωμο - Κανονική Λειτουργ�
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Ενισχυμένο Έγχρωμο - Ενισχυμένη Λειτουργία (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, Μονόχρωμο)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, Έγχρωμο)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, Μονόχρωμο)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, Έγχρωμο)"
+
 msgid "Green"
 msgstr "Πράσινο"
 
@@ -2949,6 +3012,9 @@ msgstr "Ερώτηση επιβεβαίωσης πριν από την ολικ�
 msgid "Ask for confirmation before quitting"
 msgstr "Ερώτηση επιβεβαίωσης κατά την έξοδο"
 
+msgid "Precache CHD files into memory"
+msgstr "Προφόρτωση αρχείων CHD στη μνήμη"
+
 msgid "Options"
 msgstr "Επιλογές"
 
@@ -2960,6 +3026,24 @@ msgstr "Μοντέλο:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Αποτυχία αρχικοποίησης απεικονιστή Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Αποτυχία δημιουργίας στιγμιότυπου Vulkan 1.3."
+
+msgid "No usable Vulkan physical devices found."
+msgstr "Δεν βρέθηκαν φυσικές συσκευές Vulkan που μπορούν να χρησιμοποιηθούν."
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Δεν βρέθηκαν φυσικές συσκευές με δυνατότητα Vulkan."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "Το librashader δεν βρέθηκε. Τα shaders δεν θα είναι διαθέσιμα."
+
+msgid "Vulkan device lost."
+msgstr "H συσκευή Vulkan χάθηκε."
+
+msgid "Vulkan surface lost."
+msgstr "Η επιφάνεια Vulkan χάθηκε."
 
 msgid "GLSL Error"
 msgstr "Σφάλμα GLSL"
@@ -2987,6 +3071,9 @@ msgstr "Διαχειριστής Σκίασης"
 
 msgid "Shader Configuration"
 msgstr "Διαμόρφωση Σκίασης"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Προσθήκη"
@@ -3276,6 +3363,12 @@ msgstr "&Γρήγορα μπροστά"
 msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 
+msgid "&Non-maskable interrupt"
+msgstr "&Διακοπή χωρίς μάσκα"
+
+msgid "Non-maskable interrupt"
+msgstr "Διακοπή χωρίς μάσκα"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Για να αλλάξετε τον κατάλογο συστήματος, σταματήστε πρώτα όλες τις μηχανές σε λειτουργία."
 
@@ -3307,6 +3400,11 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Αδυναμία φόρτωσης της εικόνας \"%s\": Το %1 λείπει, το οποίο απαιτείται για "
 "την υποστήριξη εικόνων MDS v2 και MDX του Daemon Tools."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Αδυναμία φόρτωσης της εικόνας \"%s\": Λείπει το %1, το οποίο απαιτείται για "
+"την υποστήριξη εικόνων σε μορφή Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3453,3 +3551,9 @@ msgstr "938 (Παραδοσιακά Κινέζικα)"
 
 msgid "Sample rate:"
 msgstr "Ρυθμός δειγματοληψίας:"
+
+msgid "CGA lightpen"
+msgstr "Φωτογραφίδα CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Όριο φωτεινότητας (%)"

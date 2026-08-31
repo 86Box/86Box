@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-08-28 22:12+0000\n"
+"Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
 "Language: ja-JP\n"
@@ -67,11 +67,14 @@ msgstr "レンダラー(&N)"
 msgid "&Qt (Software)"
 msgstr "Qt (ソフトウェア)(&Q)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 Core)(&G)"
+msgid "Open&GL"
+msgstr "OpenGL(&G)"
 
-msgid "&VNC"
-msgstr "VNC(&V)"
+msgid "&Vulkan"
+msgstr "Vulkan(&V)"
+
+msgid "V&NC"
+msgstr "VNC(&N)"
 
 msgid "Specify &dimensions…"
 msgstr "ディメンションを指定(&D)…"
@@ -421,8 +424,11 @@ msgstr "有効(UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "286および386プロセッサには486インタプリタを使用する"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "動的再コンパイル"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "CPUフレームサイズ"
@@ -454,6 +460,9 @@ msgstr "XGAグラフィック"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55ディスプレイアダプターグラフィックス"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -468,6 +477,21 @@ msgstr "マウス:"
 
 msgid "Mouse"
 msgstr "マウス"
+
+msgid "&Mouse"
+msgstr "マウス(&M)"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "ジョイスティック:"
@@ -829,6 +853,9 @@ msgstr "ディスプレイ"
 msgid "Input devices"
 msgstr "入力デバイス"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "サウンド"
 
@@ -837,6 +864,9 @@ msgstr "ネットワーク"
 
 msgid "Ports (COM & LPT)"
 msgstr "ポート (COM/LPT)"
+
+msgid "Port"
+msgstr "ポート"
 
 msgid "Ports"
 msgstr "ポート"
@@ -1235,6 +1265,9 @@ msgstr "選択した設定ファイルを読み込むことができませんで
 msgid "Use regular expressions in search box"
 msgstr "検索ボックスで正規表現を使用する"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "仮想マシンをごみ箱へ移動"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "現在、%n台の仮想マシンがアクティブです。それでもVMマネージャーを終了しますか？"
@@ -1407,8 +1440,11 @@ msgstr "仮想マシンを強制終了すると、データが失われる可能
 msgid "&Delete"
 msgstr "削除(&D)"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？ この操作は元に戻せません！"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "本当に仮想マシン「%1」とそのすべてのファイルを削除しますか？"
+
+msgid "This action cannot be undone!"
+msgstr "この操作は元に戻せません！"
 
 msgid "Show &config file"
 msgstr "設定ファイルを表示する(&C)"
@@ -1448,6 +1484,18 @@ msgstr "ACPIシャットダウン"
 
 msgid "ACP&I shutdown"
 msgstr "ACPIシャットダウン(&I)"
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "ハードディスク (%1)"
@@ -2228,6 +2276,9 @@ msgstr "シリアル番号"
 msgid "Host ID"
 msgstr "ホストID"
 
+msgid "Host"
+msgstr "ホスト"
+
 msgid "FDC Address"
 msgstr "FDCアドレス"
 
@@ -2657,6 +2708,18 @@ msgstr "エンハンスト・カラー - ノーマルモード（5154/ECD）"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "エンハンスト・カラー - エンハンスト・モード（5154/ECD）"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507（1024x768、モノクローム）"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514（1024x768、カラー）"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503（640x480、モノクローム）"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13（640x480、カラー）"
+
 msgid "Green"
 msgstr "みどり"
 
@@ -2909,6 +2972,9 @@ msgstr "ハードリセットを行う前に確認を求めます"
 msgid "Ask for confirmation before quitting"
 msgstr "終了する前に確認を求めます"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "オプション"
 
@@ -2920,6 +2986,24 @@ msgstr "モデル:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkanレンダラーの初期化に失敗しました。"
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Vulkan 1.3 インスタンスを作成できませんでした。"
+
+msgid "No usable Vulkan physical devices found."
+msgstr "利用可能な Vulkan 物理デバイスが検出されませんでした。"
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr "Vulkan デバイスが失われました。"
+
+msgid "Vulkan surface lost."
+msgstr "Vulkan サーフェスが失われました。"
 
 msgid "GLSL Error"
 msgstr "GLSLエラー"
@@ -2941,6 +3025,9 @@ msgstr "シェーダーマネージャー"
 
 msgid "Shader Configuration"
 msgstr "シェーダー設定"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "追加"
@@ -3213,6 +3300,12 @@ msgstr "早送り(&F)"
 msgid "Fast forward"
 msgstr "早送り"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "システムディレクトリを変更するには、稼働中のマシンをすべて停止してください。"
 
@@ -3244,6 +3337,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "画像「%s」を読み込めません：Daemon Tools MDS v2 および MDX "
 "イメージのサポートに必要な %1 が見つかりません。"
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVDイメージ「%s」は、DVDメディアに対応していないドライブに挿入されたため、無"
@@ -3388,4 +3484,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (繁体字中国語)"
 
 msgid "Sample rate:"
+msgstr "サンプリング周波数:"
+
+msgid "CGA lightpen"
+msgstr "CGA ライトペン"
+
+msgid "Luminance threshold (%)"
 msgstr ""

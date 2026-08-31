@@ -484,7 +484,11 @@ run_dma_cycle(void)
         case DMA_STATE_OPERATING:
             dma_state_length--;
             if (dma_state_length == 3) {
-                dma_wait_states = 7;
+                if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
+                    (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0))
+                    dma_wait_states = 12;    /* 3 + 9 */
+                else
+                    dma_wait_states = 7;     /* 3 + 4 */
                 ready = 0;
             } else if (dma_state_length == 0) {
                 dma_state = DMA_STATE_IDLE;
@@ -636,8 +640,15 @@ biu_do_cycle(void)
                 }
 
                 if ((BUS_CYCLE == BUS_T3) && (biu_state == BIU_STATE_EU)) {
-                    if ((bus_request_type != 0) && ((bus_request_type & BUS_ACCESS_TYPE) == BUS_IO))
-                        wait_states++;
+                    if ((bus_request_type != 0) && ((bus_request_type & BUS_ACCESS_TYPE) == BUS_IO)) {
+                        int board_ws = 1;
+
+                        if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
+                            (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0))
+                            board_ws = 4;
+
+                        wait_states += board_ws;
+                    }
                 }
 
                 if ((BUS_CYCLE == BUS_T3) && ((wait_states != 0) || (dma_wait_states != 0)))

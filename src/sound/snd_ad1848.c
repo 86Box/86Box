@@ -88,6 +88,13 @@ ad1848_setdma(ad1848_t *ad1848, int newdma)
 }
 
 void
+ad1848_setdma2(ad1848_t *ad1848, int newdma)
+{
+    ad1848_log("AD1848: setdma2(%d)\n", newdma);
+    ad1848->dma2 = newdma;
+}
+
+void
 ad1848_updatevolmask(ad1848_t *ad1848)
 {
     if ((ad1848->type == AD1848_TYPE_CS4236B) && !(ad1848->xregs[4] & 0x10) && !ad1848->wten)
@@ -333,10 +340,23 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                             timer_set_delay_u64(&ad1848->timer_count, TIMER_USEC);
                     }
                     ad1848->enable = ((val & 0x41) == 0x01);
+                    if (!ad1848->rec_enable && (val & 0x42) == 0x02) {
+                        ad1848->adpcm_pos = 0;
+                        ad1848->adpcm_predictor[0] = ad1848->adpcm_predictor[1] = 0;
+                        ad1848->adpcm_step_index[0] = ad1848->adpcm_step_index[1] = 0;
+                        ad1848->dma_ff = 0;
+                        if (ad1848->timer_latch)
+                            timer_set_delay_u64(&ad1848->rec_timer_count, ad1848->timer_latch);
+                        else
+                            timer_set_delay_u64(&ad1848->rec_timer_count, TIMER_USEC);
+                    }
+                    ad1848->rec_enable = ((val & 0x42) == 0x02);
                     if (!ad1848->enable) {
                         timer_disable(&ad1848->timer_count);
                         ad1848->out_l = ad1848->out_r = 0;
                     }
+                    if (!ad1848->rec_enable)
+                        timer_disable(&ad1848->rec_timer_count);
                     break;
 
                 case 11:
@@ -356,6 +376,9 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 14:
                     ad1848->count = ad1848->regs[15] | (val << 8);
+                    /* Record and playback counters are shared in MODE1 */
+                    if ((!((ad1848->regs[12] & 0x40) && (ad1848->type >= AD1848_TYPE_CS4231)) && !((ad1848->type == AD1848_TYPE_OPTI930) && (ad1848->opti930_mode2))) || (ad1848->regs[9] & 0x04))
+                        ad1848->rec_count = ad1848->count;
                     break;
 
                 case 16:
@@ -531,6 +554,10 @@ readonly_x:
                         goto readonly_i;
                     break;
 
+                case 30:
+                    ad1848->rec_count = ad1848->regs[31] | (val << 8);
+                    break;
+
                 default:
                     break;
             }
@@ -671,6 +698,159 @@ ad1848_process_adpcm(ad1848_t *ad1848, int channel)
     ad1848->adpcm_step_index[channel] = step_index;
 
     return (int16_t) predictor;
+}
+
+static void
+ad1848_input_poll(void *priv)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+
+    uint8_t mode2_en   = ((ad1848->regs[12] & 0x40) && (ad1848->type >= AD1848_TYPE_CS4231)) || ((ad1848->type == AD1848_TYPE_OPTI930) && (ad1848->opti930_mode2));
+    uint8_t fullduplex = mode2_en && !(ad1848->regs[9] & 0x04);
+    uint8_t channel    = fullduplex ? ad1848->dma2 : ad1848->dma;
+    uint8_t rec_format = mode2_en ? (ad1848->regs[28] & ad1848->fmt_mask) : (ad1848->regs[8] & ad1848->fmt_mask);
+
+    if (ad1848->timer_latch)
+        timer_advance_u64(&ad1848->rec_timer_count, ad1848->timer_latch);
+    else
+        timer_advance_u64(&ad1848->rec_timer_count, TIMER_USEC * 1000);
+
+    if (ad1848->rec_enable) {
+
+        switch (rec_format) {
+            case 0x00: /* Mono, 8-bit PCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0x10: /* Stereo, 8-bit PCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x20: /* Mono, 8-bit Mu-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0x30: /* Stereo, 8-bit Mu-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x40: /* Mono, 16-bit PCM little endian */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x50: /* Stereo, 16-bit PCM little endian */
+                if (channel >= 4) {
+                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, 0x0000);
+                } else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x60: /* Mono, 8-bit A-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0x70: /* Stereo, 8-bit A-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+                /* 0x80 and 0x90 reserved */
+
+            case 0xa0: /* Mono, 4-bit ADPCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0xb0: /* Stereo, 4-bit ADPCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0xc0: /* Mono, 16-bit PCM big endian */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0xd0: /* Stereo, 16-bit PCM big endian */
+                if (channel >= 4) {
+                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, 0x0000);
+                } else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+                /* 0xe0 and 0xf0 reserved */
+
+            default:
+                break;
+        }
+
+        if (ad1848->rec_count < 0) {
+            if (fullduplex)
+                ad1848->rec_count = ad1848->regs[31] | (ad1848->regs[30] << 8);
+            else
+                ad1848->rec_count = ad1848->regs[15] | (ad1848->regs[14] << 8);
+            ad1848->adpcm_pos = 0;
+            if (!(ad1848->status & 0x01)) {
+                ad1848->status |= 0x01;
+                ad1848->regs[24] |= 0x20;
+            }
+            if (ad1848->regs[10] & 2)
+                picint(1 << ad1848->irq);
+            else
+                picintc(1 << ad1848->irq);
+        }
+
+        if (!(ad1848->adpcm_pos & 7)) /* ADPCM counts down every 4 bytes */
+            ad1848->rec_count--;
+    }
 }
 
 static void
@@ -965,6 +1145,7 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
     ad1848->type = type;
 
     timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
+    timer_add(&ad1848->rec_timer_count, ad1848_input_poll, ad1848, 0);
 
     if ((ad1848->type != AD1848_TYPE_DEFAULT) && (ad1848->type != AD1848_TYPE_CS4248))
         sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);

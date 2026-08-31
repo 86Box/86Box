@@ -1117,10 +1117,21 @@ video_color_transform(uint32_t color)
 void
 video_clamp_vram(const uint64_t bios_flags, int *vram)
 {
-    const int min_ram = (uint16_t) (bios_flags & 0xffff);
-    const int max_ram = (uint16_t) ((bios_flags >> 16) & 0xffff);
+    const int min_ram = (uint16_t) (bios_flags & 0xff);
+    const int max_ram = (uint16_t) ((bios_flags >> 8) & 0xff);
     if ((bios_flags & BIOS_LIMIT_MIN_MEMORY) && (*vram < min_ram))
         *vram = min_ram;
     if ((bios_flags & BIOS_LIMIT_MAX_MEMORY) && (*vram > max_ram))
+        *vram = max_ram;
+}
+
+void
+video_clamp_vram_2(const uint64_t bios_flags, int *vram)
+{
+    const int min_ram = (uint16_t) ((bios_flags >> 16) & 0xff);
+    const int max_ram = (uint16_t) ((bios_flags >> 24) & 0xff);
+    if ((bios_flags & BIOS_LIMIT_MIN_MEMORY_2) && (*vram < min_ram))
+        *vram = min_ram;
+    if ((bios_flags & BIOS_LIMIT_MAX_MEMORY_2) && (*vram > max_ram))
         *vram = max_ram;
 }

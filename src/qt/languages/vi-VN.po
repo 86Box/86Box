@@ -67,11 +67,14 @@ msgstr "Re&nderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (phần mềm)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Tự nhập độ &phân giải…"
@@ -421,8 +424,11 @@ msgstr "Bật (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Sử dụng trình thông dịch 486 cho các bộ xử lý 286 và 386"
 
-msgid "Dynamic Recompiler"
-msgstr "Bộ tái biên dịch động (Dynamic Recompiler)"
+msgid "Dynamic recompiler"
+msgstr "Bộ tái biên dịch động (Dynamic recompiler)"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "Cỡ khung CPU"
@@ -454,6 +460,9 @@ msgstr "Đồ họa XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Đồ họa adaptor xuất hình IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -468,6 +477,21 @@ msgstr "Chuột:"
 
 msgid "Mouse"
 msgstr "Chuột"
+
+msgid "&Mouse"
+msgstr "&Chuột"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Cần điều khiển:"
@@ -829,6 +853,9 @@ msgstr "Hiển thị"
 msgid "Input devices"
 msgstr "Thiết bị nhập"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Âm thanh"
 
@@ -837,6 +864,9 @@ msgstr "Nối mạng"
 
 msgid "Ports (COM & LPT)"
 msgstr "Cổng (COM và LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Cổng"
@@ -1235,6 +1265,9 @@ msgstr "Không thể mở cấu hình đã chọn để đọc: %1"
 msgid "Use regular expressions in search box"
 msgstr "Dùng regex trong hộp tìm kiếm"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n máy hiện vẫn đang chạy. Bạn có muốn thoát trình quản lý máy ảo không?"
@@ -1407,8 +1440,11 @@ msgstr "Buộc một máy ảo dừng có thể gây ra mất mát dữ liệu. 
 msgid "&Delete"
 msgstr "Xóa"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Bạn có thật sự muốn xóa máy ảo \"%1\" và tất cả các tập tin của nó không? Thao tác này không thể được phục hồi!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Bạn có thật sự muốn xóa máy ảo \"%1\" và tất cả các tập tin của nó không?"
+
+msgid "This action cannot be undone!"
+msgstr "Thao tác này không thể được phục hồi!"
 
 msgid "Show &config file"
 msgstr "Hiện tập tin cấu hình"
@@ -1448,6 +1484,18 @@ msgstr "Tắt máy theo ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Tắt máy theo ACP&I"
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "Ổ cứng (%1)"
@@ -2228,6 +2276,9 @@ msgstr "Số seri"
 msgid "Host ID"
 msgstr "ID máy chủ"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Địa chỉ FDC"
 
@@ -2657,6 +2708,18 @@ msgstr "Màu sắc nâng cao - Chế độ bình thường (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Màu sắc nâng cao - Chế độ nâng cao (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, đơn sắc)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, màu sắc)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, đơn sắc)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, màu sắc)"
+
 msgid "Green"
 msgstr "Màu xanh lá cây"
 
@@ -2909,6 +2972,9 @@ msgstr "Hỏi xác nhận trước khi buộc khởi động lại"
 msgid "Ask for confirmation before quitting"
 msgstr "Hỏi xác nhận trước khi thoát"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Tùy chọn"
 
@@ -2920,6 +2986,24 @@ msgstr "Mẫu máy:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Không thể khởi tạo renderer Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "Lỗi GLSL"
@@ -2941,6 +3025,9 @@ msgstr "Trình quản lý shader"
 
 msgid "Shader Configuration"
 msgstr "Cấu hình shader"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Thêm"
@@ -3215,6 +3302,12 @@ msgstr "&Tăng tốc giả lập"
 msgid "Fast forward"
 msgstr "Tăng tốc giả lập"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Để thay đổi thư mục hệ thống, hãy tắt tất cả các máy đang chạy."
 
@@ -3246,6 +3339,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Không thể mở ảnh đĩa \"%s\": Hỗ trợ cho ảnh đĩa MDS v2 của Daemon Tools và "
 "MDX cần có %1, hiện không tìm thấy."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3392,3 +3488,9 @@ msgstr "938 (Trung phồn thể)"
 
 msgid "Sample rate:"
 msgstr "Tần số lấy mẫu:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""

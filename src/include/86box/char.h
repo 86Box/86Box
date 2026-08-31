@@ -18,7 +18,7 @@
 #define EMU_CHAR_H
 
 #ifdef _WIN32
-#    define CHAR_FD_VALID(fd) ((fd) && ((fd) != INVALID_HANDLE_VALUE))
+#    define CHAR_FD_VALID(fd) (((void *) (fd) != NULL) && ((void *) (fd) != (void *) INVALID_HANDLE_VALUE))
 #else
 #    define CHAR_FD_VALID(fd) ((fd) >= 0)
 #endif
@@ -158,5 +158,6 @@ extern const device_t char_file_lpt_device;
 extern const device_t char_stdio_com_device;
 extern const device_t char_loopback_com_device;
 extern const device_t char_loopback_lpt_device;
+extern const device_t char_fujinet_com_device;
 
 #endif /*EMU_CHAR_H*/

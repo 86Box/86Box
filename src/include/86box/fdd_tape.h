@@ -39,13 +39,20 @@
 #define FDD_TAPE_SECTOR_SIZE     1024
 #define FDD_TAPE_SECTORS_PER_SEG 32
 #define FDD_TAPE_SEGMENT_SIZE    (FDD_TAPE_SECTOR_SIZE * FDD_TAPE_SECTORS_PER_SEG)
+/* The last three sectors of a segment hold its Reed-Solomon parity. */
+#define FDD_TAPE_ECC_SECTORS     3
 /*
-   Defaults only. The cartridge's own header segment states the mapping it
-   was formatted with, and a QIC-80 tape typically uses 150 cylinders per
-   head rather than the 255 these defaults imply.
+   Blank-cartridge defaults, keyed on the format being laid down. A formatted
+   cartridge states its true mapping in its own header segment, which the
+   loader reads and which overrides these. The host packs a QIC-80 cartridge
+   at 150 cylinders per head and a QIC-40 one at 255, both at four segments
+   per cylinder - the values observed in the headers it writes.
  */
-#define FDD_TAPE_SEGS_PER_CYL    4
-#define FDD_TAPE_SEGS_PER_HEAD   1020
+#define FDD_TAPE_SEGS_PER_CYL         4
+#define FDD_TAPE_SEGS_PER_HEAD_QIC80  600   /* 150 cylinders per head */
+#define FDD_TAPE_SEGS_PER_HEAD_QIC40  1020  /* 255 cylinders per head */
+/* Default before the host has selected a format: this is a QIC-80 drive. */
+#define FDD_TAPE_SEGS_PER_HEAD        FDD_TAPE_SEGS_PER_HEAD_QIC80
 
 /* Highest cylinder a data transfer may name in the C/H/R address space. */
 #define FDD_TAPE_MAX_TRACK       255

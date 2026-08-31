@@ -14,8 +14,8 @@
  *            I/O base:        0x3510-0x3517
  *            IRQ:             14
  *
- *            Primary Board    pos[0]=XXxx xx0X    0x3510
- *            Secondary Board  pos[0]=XXxx xx1X    0x3518
+ *            Primary Board    pos[0]=XXXX XX0X    0x3510
+ *            Secondary Board  pos[0]=XXXX XX1X    0x3518
  *
  *            DMA 5            pos[0]=XX01 01XX
  *            DMA 6            pos[0]=XX01 10XX
@@ -103,6 +103,7 @@ typedef struct esdi_drive_t {
 
 typedef struct esdi_t {
     int8_t dma;
+    int    base;
 
     uint32_t bios;
     rom_t    bios_rom;
@@ -152,6 +153,33 @@ enum {
     ESDI_IS_INTEGRATED
 };
 
+static uint8_t
+esdi_bios_read(uint32_t addr, void *priv)
+{
+    esdi_t *dev = (esdi_t *) priv;
+
+    mca_feedback_set();
+    return rom_read(addr, &dev->bios_rom);
+}
+
+static uint16_t
+esdi_bios_readw(uint32_t addr, void *priv)
+{
+    esdi_t *dev = (esdi_t *) priv;
+
+    mca_feedback_set();
+    return rom_readw(addr, &dev->bios_rom);
+}
+
+static uint32_t
+esdi_bios_readl(uint32_t addr, void *priv)
+{
+    esdi_t *dev = (esdi_t *) priv;
+
+    mca_feedback_set();
+    return rom_readl(addr, &dev->bios_rom);
+}
+
 #define STATUS_DMA_ENA             (1 << 7)
 #define STATUS_IRQ_PENDING         (1 << 6)
 #define STATUS_CMD_IN_PROGRESS     (1 << 5)
@@ -191,11 +219,21 @@ enum {
 #define CMD_WRITE_VERIFY           0x04
 #define CMD_SEEK                   0x05
 #define CMD_PARK_HEADS             0x06
+#define CMD_GET_CMD_STATUS         0x07
 #define CMD_GET_DEV_STATUS         0x08
 #define CMD_GET_DEV_CONFIG         0x09
 #define CMD_GET_POS_INFO           0x0a
+#define CMD_TRANSLATE_RBA          0x0b
+#define CMD_WRITE_BUFFER           0x10
+#define CMD_READ_BUFFER            0x11
+#define CMD_RUN_DIAG_TEST          0x12
+#define CMD_GET_DIAG_BLOCK         0x14
+#define CMD_GET_MFG_HEADER         0x15
 #define CMD_FORMAT_UNIT            0x16
 #define CMD_FORMAT_PREPARE         0x17
+#define CMD_SET_MAX_RBA            0x1a
+#define CMD_SET_PWR_MODE           0x1b
+#define CMD_PWR_CONSERVATION       0x1c
 
 #define STATUS_LEN(x)              ((x) << 8)
 #define STATUS_DEVICE(x)           ((x) << 5)
@@ -388,6 +426,68 @@ complete_command_status(esdi_t *dev)
         else                                                                  \
             drive = &dev->drives[1];
 
+/* Build the primary defect map (spec 9.2.4, Figure 66) which is returned
+   by the Get Manufacturing Header command. The map is generated defect-free,
+   so it fits in the initial record; any additional blocks are left all-ones
+   as unused map blocks. */
+static void
+esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
+{
+    const char *model = hdd[drive->hdd_num].model;
+    uint8_t    *buf   = (uint8_t *) dev->sector_buffer;
+    uint8_t     sum;
+    uint32_t    rba;
+    int         i, j;
+
+    memset(buf, 0xff, (size_t) blocks * 512);
+
+    /* Primary Defect Map initial record */
+    memcpy(buf + 0, "DEFECT", 6); /* Header */
+    buf[6] = 0;      /* Count of Defects (LSB) */
+    buf[7] = 0;      /* Count of Defects (MSB) */
+    buf[8] = 0;      /* Number of Extension Records */
+    buf[9] = 0xff;   /* Reserved */
+
+    /* Drive Bar Code Number, ASCII, right justified. */
+    if (model) {
+        size_t len = strlen(model);
+
+        if (len > 16)
+            len = 16;
+        memcpy(buf + 10 + (16 - len), model, len);
+    }
+
+    memcpy(buf + 26, "01011980", 8); /* Date of Manufacture, MMDDYYYY */
+
+    rba = drive->sectors; /* # of RBA's required for capacity (LSB..MSB) */
+    buf[34] = rba & 0xff;
+    buf[35] = (rba >> 8) & 0xff;
+    buf[36] = (rba >> 16) & 0xff;
+    buf[37] = (rba >> 24) & 0xff;
+    buf[38] = 10;      /* Soft errors allowed on diagnostic read verify */
+    buf[39] = 0x03;    /* Errors in 64 reads to classify defect */
+    buf[40] = 0;       /* Skewed sectors, format #1 */
+    buf[41] = 0;       /* Spare sectors per track (not used) */
+    buf[42] = 0;       /* Spare sectors per cylinder */
+    buf[43] = 0xff;    /* Reserved */
+    buf[44] = 1;       /* Defect type: absolute block address */
+    buf[45] = 0;       /* Skewed sectors, format #2 */
+    buf[46] = 0;       /* Skewed sectors, format #3 */
+    /* buf[47..57]        reserved = FF (11 bytes)  */
+
+    /* defect absolute block addresses */
+    /* buf[58..505] = FF (4 * 112 bytes) */
+
+    /* buf[506..510] reserved = FF (5 bytes) */
+    /* Checksum each block so that the sum of all 512 bytes is zero. */
+    for (i = 0; i < blocks; i++) {
+        sum = 0;
+        for (j = 0; j < 511; j++)
+            sum += buf[i * 512 + j];
+        buf[i * 512 + 511] = (uint8_t) -sum;
+    }
+}
+
 static void
 esdi_callback(void *priv)
 {
@@ -400,8 +500,8 @@ esdi_callback(void *priv)
     if (dev->in_reset) {
         esdi_mca_log("ESDI reset.\n");
         dev->in_reset   = 0;
-        dev->status     = STATUS_IRQ | STATUS_TRANSFER_REQ | STATUS_STATUS_OUT_FULL;
-        dev->status_len = 1; /*ToDo: better implementation for Xenix?*/
+        dev->status     = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+        dev->status_len = 1; /* Required by Xenix 386 2.3.4q */
         dev->status_data[0] = STATUS_LEN(1) | ATTN_HOST_ADAPTER;
         dev->irq_status = IRQ_HOST_ADAPTER | IRQ_RESET_COMPLETE;
         return;
@@ -410,7 +510,7 @@ esdi_callback(void *priv)
     esdi_mca_log("Command=%02x.\n", dev->command);
     switch (dev->command) {
         case CMD_READ:
-        case 0x15:
+        case CMD_GET_MFG_HEADER:
             ESDI_DRIVE_ONLY();
 
             if (!drive->present) {
@@ -420,13 +520,21 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    if (dev->command == CMD_READ)
+                    if (dev->command == CMD_GET_MFG_HEADER) {
+                        /* Get Manufacturing Header: return the primary defect
+                           map via DMA like a read command. The block count
+                           is taken from word 1 of the command. */
+                        if (dev->cmd_data[1] > 256)
+                            fatal("Read MFG header count %04x\n", dev->cmd_data[1]);
+                        esdi_build_mfg_header(dev, drive, dev->cmd_data[1]);
+                    } else
                         dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
 
                     dev->sector_pos   = 0;
                     dev->sector_count = dev->cmd_data[1];
 
-                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                    if ((dev->command != CMD_GET_MFG_HEADER) &&
+                        ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num))) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -449,13 +557,17 @@ esdi_callback(void *priv)
 
                     while (dev->sector_pos < dev->sector_count) {
                         if (!dev->data_pos) {
-                            if (dev->rba >= drive->sectors)
-                                fatal("Read past end of drive\n");
-                            if (hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data) < 0) {
-                                defective_block(dev);
-                                return;
+                            if (dev->command == CMD_GET_MFG_HEADER)
+                                memcpy(dev->data, dev->sector_buffer[dev->sector_pos], 512);
+                            else {
+                                if (dev->rba >= drive->sectors)
+                                    fatal("Read past end of drive\n");
+                                if (hdd_image_read(drive->hdd_num, dev->rba, 1, (uint8_t *) dev->data) < 0) {
+                                    defective_block(dev);
+                                    return;
+                                }
+                                cmd_time += hdd_timing_read(&hdd[drive->hdd_num], dev->rba, 1);
                             }
-                            cmd_time += hdd_timing_read(&hdd[drive->hdd_num], dev->rba, 1);
                             cmd_time += esdi_mca_get_xfer_time(dev, 1);
                         }
 
@@ -730,7 +842,7 @@ esdi_callback(void *priv)
 
                 dev->status_len = 6;
                 dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
-                dev->status_data[1] = 0x10; /*Zero defect*/
+                dev->status_data[1] = 0x08; /*Zero Defect flag (ZD, bit 3), no spares per cylinder*/
                 dev->status_data[2] = drive->sectors & 0xffff;
                 dev->status_data[3] = drive->sectors >> 16;
                 dev->status_data[4] = drive->tracks;
@@ -771,7 +883,7 @@ esdi_callback(void *priv)
             ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
-        case 0x10:
+        case CMD_WRITE_BUFFER:
             ESDI_ADAPTER_ONLY();
             switch (dev->cmd_state) {
                 case 0:
@@ -830,7 +942,7 @@ esdi_callback(void *priv)
             }
             break;
 
-        case 0x11:
+        case CMD_READ_BUFFER:
             ESDI_ADAPTER_ONLY();
             switch (dev->cmd_state) {
                 case 0:
@@ -890,24 +1002,58 @@ esdi_callback(void *priv)
             }
             break;
 
-        case 0x12:
-            ESDI_ADAPTER_ONLY();
+        case CMD_RUN_DIAG_TEST:
+            if (dev->cmd_dev != ATTN_DEVICE_0 &&
+                dev->cmd_dev != ATTN_DEVICE_1 &&
+                dev->cmd_dev != ATTN_HOST_ADAPTER) {
+                cmd_unsupported(dev);
+                return;
+            }
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->status_len     = 2;
-            dev->status_data[0] = 0x12 | STATUS_LEN(5) | STATUS_DEVICE_HOST_ADAPTER;
+            dev->status_len     = 5;
+            dev->status_data[0] = CMD_RUN_DIAG_TEST | STATUS_LEN(5) | dev->cmd_dev;
             dev->status_data[1] = 0;
+            dev->status_data[2] = 0;
+            dev->status_data[3] = 0;
+            dev->status_data[4] = 0;
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
-            dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
+            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+            dev->irq_in_progress = 1;
+            set_irq(dev);
+            ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+            break;
+
+        case CMD_GET_DIAG_BLOCK:
+            if (dev->cmd_dev != ATTN_DEVICE_0 &&
+                dev->cmd_dev != ATTN_DEVICE_1 &&
+                dev->cmd_dev != ATTN_HOST_ADAPTER) {
+                cmd_unsupported(dev);
+                return;
+            }
+            if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
+                fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
+
+            /* Return the status block from the preceding command.  The
+               command's word count remains encoded in its first word even
+               after the status interface has been drained. */
+            dev->status_len = dev->status_data[0] >> 8;
+            dev->status_pos = 0;
+            if (!dev->status_len) {
+                cmd_unsupported(dev);
+                return;
+            }
+
+            dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
             dev->irq_in_progress = 1;
             set_irq(dev);
             ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
             break;
 
         case CMD_FORMAT_UNIT:
-        case CMD_FORMAT_PREPARE:
             ESDI_DRIVE_ONLY();
 
             if (!drive->present) {
@@ -918,29 +1064,37 @@ esdi_callback(void *priv)
             switch (dev->cmd_state) {
                 case 0:
                     dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+                    /* Word 1: format options in the high byte, number of
+                       defective blocks to deallocate in the low byte. */
+                    dev->sector_count = dev->cmd_data[1] & 0xff;
 
-                    if (dev->command == CMD_FORMAT_UNIT)
-                        dev->sector_count = dev->cmd_data[1];
-                    else
-                        dev->sector_count = 0;
+                    if (!dev->sector_count) {
+                        /* No defective ABA list to transfer: skip the data
+                           phase and proceed straight to formatting. */
+                        dev->status    = STATUS_CMD_IN_PROGRESS;
+                        dev->cmd_state = 1;
+                        esdi_mca_set_callback(dev, ESDI_TIME);
+                        break;
+                    }
 
                     dev->status          = STATUS_IRQ | STATUS_CMD_IN_PROGRESS | STATUS_TRANSFER_REQ;
                     dev->irq_status      = dev->cmd_dev | IRQ_DATA_TRANSFER_READY;
                     dev->irq_in_progress = 1;
                     set_irq(dev);
 
+                    dev->data_pos = 0;
                     dev->cmd_state = 1;
                     esdi_mca_set_callback(dev, ESDI_TIME);
                     break;
 
                 case 1:
-                    if (!(dev->basic_ctrl & CTRL_DMA_ENA)) {
+                    if (dev->sector_count && !(dev->basic_ctrl & CTRL_DMA_ENA)) {
+                        /* Wait for the host to enable DMA for the ABA list. */
                         esdi_mca_set_callback(dev, ESDI_TIME);
                         return;
                     }
 
-                    if (dev->command == CMD_FORMAT_UNIT)
-                        hdd_image_zero(drive->hdd_num, 0, hdd_image_get_last_sector(drive->hdd_num) + 1);
+                    hdd_image_zero(drive->hdd_num, 0, hdd_image_get_last_sector(drive->hdd_num) + 1);
 
                     dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
@@ -960,8 +1114,30 @@ esdi_callback(void *priv)
             }
             break;
 
+        case CMD_FORMAT_PREPARE:
+            ESDI_DRIVE_ONLY();
+
+            if (!drive->present) {
+                device_not_present(dev);
+                return;
+            }
+
+            if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
+                fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
+
+            dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+            /* Format Prepare has no data phase; complete it immediately
+               with a Command Complete status block. */
+            complete_command_status(dev);
+            dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+            dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
+            dev->irq_in_progress = 1;
+            set_irq(dev);
+            break;
+
         default:
-            fatal("BAD COMMAND %02x %i\n", dev->command, dev->cmd_dev);
+            cmd_unsupported(dev);
+            break;
     }
 }
 
@@ -970,6 +1146,8 @@ esdi_read(uint16_t port, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
     uint8_t ret = 0x00;
+
+    mca_feedback_set();
 
     switch (port & 7) {
         case 2: /*Basic status register*/
@@ -995,6 +1173,8 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
     uint8_t old;
+
+    mca_feedback_set();
 
     esdi_mca_log("ESDI: wr(%04x, %02x)\n", port & 7, val);
 
@@ -1109,6 +1289,8 @@ esdi_readw(uint16_t port, void *priv)
     esdi_t  *dev = (esdi_t *) priv;
     uint16_t ret = 0xffff;
 
+    mca_feedback_set();
+
     switch (port & 7) {
         case 0: /*Status Interface Register*/
             if (dev->status_pos >= dev->status_len) {
@@ -1134,6 +1316,8 @@ static void
 esdi_writew(uint16_t port, uint16_t val, void *priv)
 {
     esdi_t *dev = (esdi_t *) priv;
+
+    mca_feedback_set();
 
     esdi_mca_log("ESDI: wrw(%04x, %04x)\n", port & 7, val);
 
@@ -1186,7 +1370,7 @@ esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
     /* Save the new value. */
     dev->pos_regs[port & 7] = val;
 
-    io_removehandler(ESDI_IOADDR_PRI, 8,
+    io_removehandler(dev->base, 8,
                      esdi_read, esdi_readw, NULL,
                      esdi_write, esdi_writew, NULL, dev);
     mem_mapping_disable(&dev->bios_rom.mapping);
@@ -1250,8 +1434,14 @@ esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
     } else
         dev->bios = 0;
 
+    /* Set up controller I/O address. */
+    if (dev->pos_regs[2] & 0x02)
+        dev->base = ESDI_IOADDR_SEC;
+    else
+        dev->base = ESDI_IOADDR_PRI;
+
     if (dev->pos_regs[2] & 1) {
-        io_sethandler(ESDI_IOADDR_PRI, 8,
+        io_sethandler(dev->base, 8,
                       esdi_read, esdi_readw, NULL,
                       esdi_write, esdi_writew, NULL, dev);
 
@@ -1261,8 +1451,8 @@ esdi_mca_write(const uint16_t port, uint8_t val, void *priv)
         }
 
         /* Say hello. */
-        esdi_mca_log("ESDI: I/O=3510, IRQ=14, DMA=%d, BIOS @%05X\n",
-                     dev->dma, dev->bios);
+        esdi_mca_log("ESDI: I/O=%04X, IRQ=14, DMA=%d, BIOS @%05X\n",
+                     dev->base, dev->dma, dev->bios);
     }
 }
 
@@ -1354,11 +1544,19 @@ esdi_init(UNUSED(const device_t *info))
 
     /* Mark as unconfigured. */
     dev->irq_status = 0xff;
+    dev->base       = ESDI_IOADDR_PRI;
 
     if (info->local == ESDI_IS_ADAPTER) {
         rom_init_interleaved(&dev->bios_rom,
             BIOS_FILE_H, BIOS_FILE_L,
             0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        mem_mapping_set_handler(&dev->bios_rom.mapping,
+            esdi_bios_read, esdi_bios_readw, esdi_bios_readl,
+            NULL, NULL, NULL);
+        mem_mapping_set_p(&dev->bios_rom.mapping, dev);
+        /* Card Selected Feedback is a side effect of every adapter-ROM read,
+           so reads must not bypass the handler through the direct ROM path. */
+        mem_mapping_set_exec(&dev->bios_rom.mapping, dev->bios_rom.rom);
         mem_mapping_disable(&dev->bios_rom.mapping);
     }
 
