@@ -1905,7 +1905,7 @@ gus_init(UNUSED(const device_t *info))
 
     gus->log = log_open("GUS");
 
-    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_37))
+    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_34) || (info->local == GUS_CLASSIC_37))
         gus->gus_end_ram = gus_ram * 262144;
     else
         gus->gus_end_ram = 1 << (18 + gus_ram);
