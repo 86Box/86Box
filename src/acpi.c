@@ -2412,7 +2412,8 @@ acpi_reset(void *priv)
     /* Dell OptiPlex E1:
        - Bit 6: Chassis intrusion switch - must be cleared as otherwise POST complains that the chassis was opened
        - Bit 3: ??? - must be cleared as otherwise POST complains about regulator failure */    
-    dev->regs.gpireg[0] = (machines[machine].init == machine_at_optiplexe1_init) ? 0xb7 : 0xff;
+    dev->regs.gpireg[0] = ((machines[machine].init == machine_at_optiplexe1_init) ||
+                           (machines[machine].init == machine_at_optiplexgx1_init)) ? 0xb7 : 0xff;
     dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)

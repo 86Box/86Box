@@ -240,7 +240,7 @@ kbc_alias_update_io_mapping(piix_t *dev)
 static void
 smbus_update_io_mapping(piix_t *dev)
 {
-    smbus_piix4_remap(dev->smbus, ((uint16_t) (dev->regs[3][0x91] << 8)) | (dev->regs[3][0x90] & 0xf0), (dev->regs[3][PCI_REG_COMMAND] & PCI_COMMAND_IO) && (dev->regs[3][0xd2] & 0x01));
+    smbus_piix4_remap(dev->smbus, ((uint16_t) (dev->regs[3][0x91] << 8)) | (dev->regs[3][0x90] & 0xf0), (dev->regs[3][PCI_REG_COMMAND] & PCI_COMMAND_IO) || (dev->regs[3][0xd2] & 0x01));
 }
 
 static void
