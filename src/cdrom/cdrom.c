@@ -28,9 +28,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
-#ifdef USE_CDROM_MITSUMI
 #include <86box/cdrom_mitsumi.h>
-#endif
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
 #include <86box/log.h>
@@ -128,9 +126,7 @@ static const struct {
 } controllers[] = {
     // clang-format off
     { &cdrom_interface_none_device  },
-#ifdef USE_CDROM_MITSUMI
     { &mitsumi_cdrom_device         },
-#endif
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
     { NULL                          }
@@ -2300,7 +2296,6 @@ cdrom_read_toc_sony(const cdrom_t *dev, uint8_t *b, const uint8_t start_track,
     return len;
 }
 
-#ifdef USE_CDROM_MITSUMI
 /* New API calls for Mitsumi CD-ROM. */
 void
 cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
@@ -2398,8 +2393,6 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 
     return curtoctrk;
 }
-
-#endif
 
 uint8_t
 cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,

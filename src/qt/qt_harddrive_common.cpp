@@ -52,31 +52,19 @@ void
 Harddrives::populateCDROMBuses(QAbstractItemModel *model)
 {
     model->removeRows(0, model->rowCount());
-#ifdef USE_CDROM_MITSUMI
     model->insertRows(0, 5);
-#else
-    model->insertRows(0, 4);
-#endif
 
     model->setData(model->index(0, 0), QObject::tr("Disabled"));
     model->setData(model->index(1, 0), "ATAPI");
     model->setData(model->index(2, 0), "SCSI");
-#ifdef USE_CDROM_MITSUMI
     model->setData(model->index(3, 0), "Mitsumi");
     model->setData(model->index(4, 0), "Panasonic/MKE");
-#else
-    model->setData(model->index(3, 0), "Panasonic/MKE");
-#endif
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_ATAPI, Qt::UserRole);
     model->setData(model->index(2, 0), HDD_BUS_SCSI, Qt::UserRole);
-#ifdef USE_CDROM_MITSUMI
     model->setData(model->index(3, 0), CDROM_BUS_MITSUMI, Qt::UserRole);
     model->setData(model->index(4, 0), CDROM_BUS_MKE, Qt::UserRole);
-#else
-    model->setData(model->index(3, 0), CDROM_BUS_MKE, Qt::UserRole);
-#endif
 }
 
 void
