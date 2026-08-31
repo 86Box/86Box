@@ -468,16 +468,14 @@ acpi_reg_read_intel(int size, uint16_t addr, void *priv)
         case 0x31:
         case 0x32:
             /* GPIREG - General Purpose Input Register (IO) */
-            if (size == 1)
-                ret = dev->regs.gpireg[addr & 3];
+            ret = dev->regs.gpireg[addr & 3];
             break;
         case 0x34:
         case 0x35:
         case 0x36:
         case 0x37:
             /* GPOREG - General Purpose Output Register (IO) */
-            if (size == 1)
-                ret = dev->regs.gporeg[addr & 3];
+            ret = dev->regs.gporeg[addr & 3];
             break;
         default:
             ret = acpi_reg_read_common_regs(size, addr, priv);
@@ -1225,11 +1223,9 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x36:
         case 0x37:
             /* GPOREG - General Purpose Output Register (IO) */
-            if (size == 1) {
-                dev->regs.gporeg[addr & 3] = val;
-                if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
-                    hdc_onboard_enabled = (val & 0x01);
-            }
+            dev->regs.gporeg[addr & 3] = val;
+            if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
+                hdc_onboard_enabled = (val & 0x01);
             break;
         default:
             acpi_reg_write_common_regs(size, addr, val, priv);
