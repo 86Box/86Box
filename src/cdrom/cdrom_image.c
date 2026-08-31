@@ -497,7 +497,11 @@ bin_init(const uint8_t id, const char *filename, int *error)
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
     strncpy(tf->fn, filename, sizeof(tf->fn) - 1);
+#ifdef _WIN32
+    tf->fp = plat_fopen64(tf->fn, "rbS");
+#else
     tf->fp = plat_fopen64(tf->fn, "rb");
+#endif
     image_log(tf->log, "binary_open(%s) = %08lx\n", tf->fn, tf->fp);
 
     if (stat(tf->fn, &stats) != 0) {
