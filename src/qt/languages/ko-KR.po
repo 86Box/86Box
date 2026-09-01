@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-14 17:43+0000\n"
+"PO-Revision-Date: 2026-09-01 17:51+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -427,7 +427,7 @@ msgid "Dynamic recompiler"
 msgstr "동적 리컴파일러"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "동적 리컴파일러에서 정확한 FPU 환경 사용"
 
 msgid "CPU frame size"
 msgstr "CPU 프레임 크기"
@@ -463,7 +463,7 @@ msgid "SCSI:"
 msgstr "SCSI:"
 
 msgid "Voodoo:"
-msgstr "Voodoo:"
+msgstr "부두:"
 
 msgid "Keyboard:"
 msgstr "키보드:"
@@ -481,16 +481,16 @@ msgid "&Mouse"
 msgstr "마우스(&M)"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "태블릿:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "태블릿"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "태블릿(&T)"
 
 msgid "Tablet (&Crosshair)"
-msgstr ""
+msgstr "태블릿 (조준선(&C))"
 
 msgid "Joystick:"
 msgstr "조이스틱:"
@@ -860,7 +860,7 @@ msgid "Input devices"
 msgstr "입력 장치"
 
 msgid "Input &device"
-msgstr ""
+msgstr "입력 장치(&D)"
 
 msgid "Sound"
 msgstr "사운드"
@@ -1523,16 +1523,17 @@ msgid "ACP&I shutdown"
 msgstr "ACPI 종료(&I)"
 
 msgid "Power off"
-msgstr ""
+msgstr "전원 끄기"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "전원 끄기(&o)…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "전원 끄기(&o)"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
-msgstr ""
+msgstr "에뮬레이션된 컴퓨터의 전원을 끄면 데이터가 손실될 수 있습니다. "
+"계속하시겠습니까?"
 
 msgid "Hard disk (%1)"
 msgstr "하드 디스크 (%1)"
@@ -3375,10 +3376,10 @@ msgid "Fast forward"
 msgstr "빠른 전진"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "마스크 불가능 인터럽트(&N)"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "마스크 불가능 인터럽트"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "시스템 디렉터리를 변경하려면 실행 중인 모든 머신을 중지하십시오."
@@ -3562,7 +3563,7 @@ msgid "Sample rate:"
 msgstr "샘플링 주파수:"
 
 msgid "CGA lightpen"
-msgstr ""
+msgstr "CGA 라이트펜"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "휘도 임계값 (%)"
