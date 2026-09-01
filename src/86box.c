@@ -1592,49 +1592,52 @@ pc_send_ca(uint16_t sc)
         /* Use R-Alt because PS/55 DOS and OS/2 assign L-Alt Kanji */
         keyboard_input(1, 0x1D);  /*  Ctrl key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, 0x138); /* R-Alt key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         usleep(50000);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x138); /* R-Alt key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x1D);  /*  Ctrl key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
     } else {
         keyboard_input(1, 0x1D); /* Ctrl key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, 0x38); /* Alt key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         usleep(50000);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x38); /* Alt key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x1D); /* Ctrl key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
     }
 
+cleanup:
+    if (keyboard_get_in_reset())
+        keyboard_all_up();
     keyboard_toggle_override();
 }
 
