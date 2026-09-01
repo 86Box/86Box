@@ -69,7 +69,4 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *dev, bool eecs, bool eesk, bool ee
 /* Returns pointer to the current EEPROM data array. */
 const uint16_t *nmc93cxx_eeprom_data(nmc93cxx_eeprom_t *dev);
 
-/* Replaces one cell without emulating a serial programming command. */
-void nmc93cxx_eeprom_set_cell(nmc93cxx_eeprom_t *dev, uint16_t address, uint16_t data);
-
 extern const device_t nmc93cxx_device;

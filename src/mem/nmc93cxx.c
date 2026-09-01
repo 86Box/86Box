@@ -679,20 +679,6 @@ nmc93cxx_eeprom_data(nmc93cxx_eeprom_t *dev)
     return &dev->array_data[0];
 }
 
-void
-nmc93cxx_eeprom_set_cell(nmc93cxx_eeprom_t *dev, uint16_t address, uint16_t data)
-{
-    assert(dev != NULL);
-
-    if (address >= dev->cells)
-        return;
-
-    if (dev->data_bits == 16)
-        dev->array_data[address] = data;
-    else
-        ((uint8_t *) dev->array_data)[address] = data & 0xff;
-}
-
 const device_t nmc93cxx_device = {
     .name          = "National Semiconductor NMC93Cxx",
     .internal_name = "nmc93cxx",

@@ -50,7 +50,6 @@
 
 typedef struct ps2_nvr_t {
     int addr;
-    int loaded;
 
     uint8_t *ram;
     int      size;
@@ -133,30 +132,12 @@ ps2_nvr_init(const device_t *info)
 
     nvr->ram = (uint8_t *) calloc(1, nvr->size);
     if (fp != NULL) {
-        nvr->loaded = 1;
         if ((cpu_s != NULL) && (fread(nvr->ram, 1, nvr->size, fp) != nvr->size))
             fatal("ps2_nvr_init(): Error reading EEPROM data\n");
         fclose(fp);
     }
 
     return nvr;
-}
-
-int
-ps2_nvr_is_new(void *priv)
-{
-    const ps2_nvr_t *nvr = (const ps2_nvr_t *) priv;
-
-    return !nvr->loaded;
-}
-
-void
-ps2_nvr_set_byte(void *priv, uint16_t addr, uint8_t val)
-{
-    ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
-
-    if (addr < nvr->size)
-        nvr->ram[addr] = val;
 }
 
 static void
