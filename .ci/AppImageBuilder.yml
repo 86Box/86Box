@@ -36,16 +36,17 @@ AppDir:
   apt:
     arch: !ENV '${arch_deb}'
     sources:
-    - sourceline: 'deb http://deb.debian.org/debian bullseye main'
+    - sourceline: 'deb http://deb.debian.org/debian bookworm main'
       key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x1f89983e0081fde018f3cc9673a4f27b8dd47936'
-    - sourceline: 'deb http://security.debian.org/debian-security bullseye-security main'
+    - sourceline: 'deb http://security.debian.org/debian-security bookworm-security main'
       key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x1f89983e0081fde018f3cc9673a4f27b8dd47936'
-    - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
+    - sourceline: 'deb http://deb.debian.org/debian bookworm-updates main'
       key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xac530d520f2f3269f5e98313a48449044aad5c5d'
     include:
     - libedit2 # if (CLI:BOOL=ON|QT:BOOL=OFF)
     - libevdev2 # if QT:BOOL=ON
     - libfreetype6
+    - libgpiod2
     - libgomp1
     - libgs9
     - libjack-jackd2-0 # required by the distro RtMidi runtime, which is built with JACK support

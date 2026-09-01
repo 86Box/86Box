@@ -239,6 +239,7 @@ int      is_new_808x = 0;                                         /* (C) Use the
 int      gpio_enabled = 0;
 char     gpio_device[256] = "/dev/gpiochip0";
 int      gpio_hdd_pin = -1;                                      /* -1 = disabled */
+int      gpio_active_low = 0;
 #endif
 
 #ifdef USE_FLOPPY_CONTROL_SOCKET

@@ -86,6 +86,7 @@ gpio_set_pin(int pin, int active)
 
         struct gpiod_line_settings *settings = gpiod_line_settings_new();
         gpiod_line_settings_set_direction(settings, GPIOD_LINE_DIRECTION_OUTPUT);
+        gpiod_line_settings_set_active_low(settings, gpio_active_low != 0);
 
         struct gpiod_line_config *line_cfg = gpiod_line_config_new();
         unsigned int              offset   = (unsigned int) pin;

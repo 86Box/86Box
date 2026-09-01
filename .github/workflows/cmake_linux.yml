@@ -15,6 +15,7 @@ env:
     -D USE_SDL_SHADER=ON
     -D NEW_DYNAREC=ON
     -D FLOPPY_CONTROL_SOCKET=ON
+    -D GPIO=ON
   ASSETS_REPOSITORY: https://github.com/86Box/assets.git
   MDSX_REPOSITORY: https://github.com/86Box/mdsx.git
 
@@ -22,7 +23,7 @@ jobs:
   pull-request:
     if: github.event_name == 'pull_request'
     name: "PR ${{ matrix.build.name }}"
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: true
       matrix:
@@ -55,6 +56,7 @@ jobs:
           libvdeplug-dev
           libserialport-dev
           libzstd-dev
+          libgpiod-dev
 
       - name: Configure CMake
         run: >-
@@ -82,9 +84,9 @@ jobs:
       matrix:
         include:
           - arch: x86_64
-            runner: ubuntu-22.04
+            runner: ubuntu-24.04
           - arch: arm64
-            runner: ubuntu-22.04-arm
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: Checkout repository
@@ -105,6 +107,7 @@ jobs:
           -D USE_SDL_SHADER=ON
           -D NEW_DYNAREC=ON
           -D FLOPPY_CONTROL_SOCKET=ON
+          -D GPIO=ON
           -D BUILD_TYPE=release
           -D EMU_BUILD_NUM=$BUILD_NUMBER
 
@@ -119,7 +122,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     name: Publish GitHub release
     needs: release-build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
 

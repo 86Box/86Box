@@ -166,6 +166,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     ui->checkBoxGpioEnabled->setChecked(gpio_enabled);
     ui->lineEditGpioDevice->setText(gpio_device);
     ui->spinBoxGpioHddPin->setValue(gpio_hdd_pin);
+    ui->checkBoxGpioActiveLow->setChecked(gpio_active_low);
 #else
     ui->groupBoxGpio->setVisible(false);
 #endif
@@ -241,6 +242,7 @@ SettingsHarddisks::save(int soft)
     strncpy(gpio_device, dev.data(), sizeof(gpio_device) - 1);
     gpio_device[sizeof(gpio_device) - 1] = '\0';
     gpio_hdd_pin = ui->spinBoxGpioHddPin->value();
+    gpio_active_low = ui->checkBoxGpioActiveLow->isChecked() ? 1 : 0;
 #endif
 }
 

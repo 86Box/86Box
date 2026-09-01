@@ -395,6 +395,7 @@ load_general(void)
     p = ini_section_get_string(cat, "gpio_device", "/dev/gpiochip0");
     strncpy(gpio_device, p, sizeof(gpio_device) - 1);
     gpio_hdd_pin = ini_section_get_int(cat, "gpio_hdd_pin", -1);
+    gpio_active_low = ini_section_get_int(cat, "gpio_active_low", 0);
 #endif
 
 #ifdef USE_FLOPPY_CONTROL_SOCKET
@@ -3176,6 +3177,11 @@ save_general(void)
         ini_section_set_int(cat, "gpio_hdd_pin", gpio_hdd_pin);
     else
         ini_section_delete_var(cat, "gpio_hdd_pin");
+
+    if (gpio_active_low)
+        ini_section_set_int(cat, "gpio_active_low", gpio_active_low);
+    else
+        ini_section_delete_var(cat, "gpio_active_low");
 #endif
 
 #ifdef USE_FLOPPY_CONTROL_SOCKET

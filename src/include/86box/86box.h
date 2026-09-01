@@ -271,6 +271,7 @@ extern int fdd_sounds_enabled;              /* (C) Enable floppy drive sounds */
 extern int  gpio_enabled;                   /* (G) Enable GPIO output */
 extern char gpio_device[256];               /* (G) GPIO chip device path */
 extern int  gpio_hdd_pin;                   /* (G) GPIO pin for HDD activity LED */
+extern int  gpio_active_low;                /* (G) GPIO output is active low */
 #endif
 
 #ifdef USE_FLOPPY_CONTROL_SOCKET
