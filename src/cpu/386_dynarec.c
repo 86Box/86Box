@@ -434,7 +434,7 @@ exec386_dynarec_dyn(void)
     uint32_t phys_addr = get_phys(cs + cpu_state.pc);
     int      hash      = HASH(phys_addr);
 #    ifdef USE_NEW_DYNAREC
-    codeblock_t *block = &codeblock[codeblock_hash_get(hash, 0)];
+    codeblock_t *block = &codeblock[codeblock_hash[hash]];
 #    else
     codeblock_t *block = codeblock_hash[hash];
 #    endif
@@ -461,29 +461,13 @@ exec386_dynarec_dyn(void)
            also catch any page faults at this stage */
         valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) && (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
         if (!valid_block) {
-#    ifdef USE_NEW_DYNAREC
-            for (unsigned int way = 1; way < CODEBLOCK_HASH_WAYS; way++) {
-                const uint16_t alternate_nr = codeblock_hash_get(hash, way);
-
-                if (alternate_nr) {
-                    codeblock_t *alternate = &codeblock[alternate_nr];
-
-                    valid_block = (alternate->pc == cs + cpu_state.pc) && (alternate->_cs == cs) && (alternate->phys == phys_addr) && !((alternate->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((alternate->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
-                    if (valid_block) {
-                        block = alternate;
-                        codeblock_hash_promote(hash, alternate_nr);
-                        break;
-                    }
-                }
-            }
-#    endif
             uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
 #    ifdef USE_NEW_DYNAREC
             int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
             uint64_t byte_mask   = 1ULL << (phys_addr & PAGE_BYTE_MASK_MASK);
 
-            if (!valid_block && ((page->code_present_mask & mask) ||
-                ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask))))
+            if ((page->code_present_mask & mask) ||
+                ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
 #    else
             if (page->code_present_mask[(phys_addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] & mask)
 #    endif
@@ -495,7 +479,7 @@ exec386_dynarec_dyn(void)
                     if (valid_block) {
                         block = new_block;
 #    ifdef USE_NEW_DYNAREC
-                        codeblock_hash_promote(hash, get_block_nr(block));
+                        codeblock_hash[hash] = get_block_nr(block);
 #    endif
                     }
                 }

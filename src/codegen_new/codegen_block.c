@@ -247,7 +247,7 @@ codegen_reset(void)
     }
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
-    memset(codeblock_hash, 0, HASH_SIZE * CODEBLOCK_HASH_WAYS * sizeof(uint16_t));
+    memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
     mem_reset_page_blocks();
 
     block_free_list = 0;
@@ -389,7 +389,8 @@ delete_block(codeblock_t *block)
 {
     uint32_t old_pc = block->pc;
 
-    codeblock_hash_remove(HASH(block->phys), get_block_nr(block));
+    if (block == &codeblock[codeblock_hash[HASH(block->phys)]])
+        codeblock_hash[HASH(block->phys)] = BLOCK_INVALID;
 
 #ifndef RELEASE_BUILD
     if (!block->valid)
@@ -411,7 +412,8 @@ delete_block(codeblock_t *block)
 static void
 delete_dirty_block(codeblock_t *block)
 {
-    codeblock_hash_remove(HASH(block->phys), get_block_nr(block));
+    if (block == &codeblock[codeblock_hash[HASH(block->phys)]])
+        codeblock_hash[HASH(block->phys)] = BLOCK_INVALID;
 
 #ifndef RELEASE_BUILD
     if (!block->valid)
@@ -517,7 +519,7 @@ codegen_block_init(uint32_t phys_addr)
     block_current = get_block_nr(block);
 
     block_num                 = HASH(phys_addr);
-    codeblock_hash_promote(block_num, block_current);
+    codeblock_hash[block_num] = block_current;
 
     block->valid       = 1;
     block->ins         = 0;
