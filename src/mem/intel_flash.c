@@ -95,7 +95,8 @@ flash_read(uint32_t addr, void *priv)
             break;
 
         case CMD_IID:
-            if (addr & 1)
+            if (((addr & 1) && (!(dev->flags & FLAG_X00))) ||
+                ((addr & 2) && (dev->flags & FLAG_X00)))
                 ret = dev->flash_id & 0xff;
             else
                 ret = 0x89;
