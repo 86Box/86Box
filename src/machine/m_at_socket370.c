@@ -210,7 +210,7 @@ machine_at_em440_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&pc87309_device, (void *) (PCX730X_15C | PCX730X_AMI | PC87309_PC87309));
-    device_add(&intel_flash_bxt_device);
+    device_add(&micron_flash_x00_t_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
