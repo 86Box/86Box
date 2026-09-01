@@ -645,6 +645,8 @@ europc_boot(UNUSED(const device_t *info))
      * the way of other cards that need this range.
      */
     sys->jim = device_get_config_hex16("js9");
+    if (sys->jim == 0x0000)
+        sys->jim = 0x0250;
     io_sethandler(sys->jim, 16,
                   jim_read, NULL, NULL, jim_write, NULL, NULL, sys);
 
