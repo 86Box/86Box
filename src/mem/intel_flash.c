@@ -95,7 +95,8 @@ flash_read(uint32_t addr, void *priv)
             break;
 
         case CMD_IID:
-            if (addr & 1)
+            if (((addr & 1) && (!(dev->flags & FLAG_X00))) ||
+                ((addr & 2) && (dev->flags & FLAG_X00)))
                 ret = dev->flash_id & 0xff;
             else
                 ret = 0x89;
@@ -417,7 +418,9 @@ intel_flash_init(const device_t *info)
             break;
 
         case 0x3ffff:
-            if (dev->flags & FLAG_WORD)
+            if (dev->flags & FLAG_X00)
+                dev->flash_id = (dev->flags & FLAG_BXB) ? 0x75 : 0x74;
+            else if (dev->flags & FLAG_WORD)
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x2275 : 0x2274;
             else
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x7D : 0x7C;
