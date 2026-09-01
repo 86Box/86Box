@@ -468,16 +468,14 @@ acpi_reg_read_intel(int size, uint16_t addr, void *priv)
         case 0x31:
         case 0x32:
             /* GPIREG - General Purpose Input Register (IO) */
-            if (size == 1)
-                ret = dev->regs.gpireg[addr & 3];
+            ret = dev->regs.gpireg[addr & 3];
             break;
         case 0x34:
         case 0x35:
         case 0x36:
         case 0x37:
             /* GPOREG - General Purpose Output Register (IO) */
-            if (size == 1)
-                ret = dev->regs.gporeg[addr & 3];
+            ret = dev->regs.gporeg[addr & 3];
             break;
         default:
             ret = acpi_reg_read_common_regs(size, addr, priv);
@@ -1225,11 +1223,9 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x36:
         case 0x37:
             /* GPOREG - General Purpose Output Register (IO) */
-            if (size == 1) {
-                dev->regs.gporeg[addr & 3] = val;
-                if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
-                    hdc_onboard_enabled = (val & 0x01);
-            }
+            dev->regs.gporeg[addr & 3] = val;
+            if ((addr == 0x34) && (machines[machine].init == machine_at_cubx_init))
+                hdc_onboard_enabled = (val & 0x01);
             break;
         default:
             acpi_reg_write_common_regs(size, addr, val, priv);
@@ -2426,6 +2422,9 @@ acpi_reset(void *priv)
     else if ((machines[machine].init == machine_at_in440ex_init) || (machines[machine].init == machine_at_in440exd_init))
         /* Bit 5: CMOS clear jumper(?) - must be set as otherwise CMOS is not saved */
         dev->regs.gpireg[2] = 0xfd;
+    else if (machines[machine].init == machine_at_em440_init)
+        /* Bit 4: Recovery mode - must be set as otherwise the machine enters recovery flash mode */
+        dev->regs.gpireg[2] = 0xff;
     else
         dev->regs.gpireg[2] = dev->gpireg2_default;
     for (uint8_t i = 0; i < 4; i++)

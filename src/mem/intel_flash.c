@@ -28,9 +28,11 @@
 #include <86box/nvr.h>
 #include <86box/plat.h>
 
-#define FLAG_WORD    4
-#define FLAG_BXB     2
-#define FLAG_INV_A16 1
+#define FLAG_X00     16
+#define FLAG_MICRON   8
+#define FLAG_WORD     4
+#define FLAG_BXB      2
+#define FLAG_INV_A16  1
 
 enum {
     BLOCK_MAIN1,
@@ -93,7 +95,8 @@ flash_read(uint32_t addr, void *priv)
             break;
 
         case CMD_IID:
-            if (addr & 1)
+            if (((addr & 1) && (!(dev->flags & FLAG_X00))) ||
+                ((addr & 2) && (dev->flags & FLAG_X00)))
                 ret = dev->flash_id & 0xff;
             else
                 ret = 0x89;
@@ -363,7 +366,11 @@ intel_flash_init(const device_t *info)
 
     switch (biosmask) {
         case 0x7ffff:
-            if (dev->flags & FLAG_WORD)
+            if (dev->flags & FLAG_X00)
+                dev->flash_id = (dev->flags & FLAG_BXB) ? 0x71 : 0x70;
+            else if (dev->flags & FLAG_MICRON)
+                dev->flash_id = (dev->flags & FLAG_BXB) ? 0x79 : 0x78;
+            else if (dev->flags & FLAG_WORD)
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x4471 : 0x4470;
             else
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x8A : 0x89;
@@ -411,7 +418,9 @@ intel_flash_init(const device_t *info)
             break;
 
         case 0x3ffff:
-            if (dev->flags & FLAG_WORD)
+            if (dev->flags & FLAG_X00)
+                dev->flash_id = (dev->flags & FLAG_BXB) ? 0x75 : 0x74;
+            else if (dev->flags & FLAG_WORD)
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x2275 : 0x2274;
             else
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x7D : 0x7C;
@@ -588,6 +597,34 @@ const device_t intel_flash_bxb_device = {
     .internal_name = "intel_flash_bxb",
     .flags         = DEVICE_PCI,
     .local         = FLAG_BXB,
+    .init          = intel_flash_init,
+    .close         = intel_flash_close,
+    .reset         = intel_flash_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t micron_flash_t_device = {
+    .name          = "Micron 28F00xB5-T Flash BIOS",
+    .internal_name = "micron_flash_t",
+    .flags         = DEVICE_PCI,
+    .local         = FLAG_MICRON,
+    .init          = intel_flash_init,
+    .close         = intel_flash_close,
+    .reset         = intel_flash_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t micron_flash_x00_t_device = {
+    .name          = "Micron 28FX00B5-T Flash BIOS",
+    .internal_name = "micron_flash_x00_t",
+    .flags         = DEVICE_PCI,
+    .local         = FLAG_MICRON | FLAG_X00,
     .init          = intel_flash_init,
     .close         = intel_flash_close,
     .reset         = intel_flash_reset,

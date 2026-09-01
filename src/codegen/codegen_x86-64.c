@@ -1212,20 +1212,23 @@ codegen_skip:
         addbyte(0xC7); /*MOVW $cpu_state.temp_pc,(RSI)*/
         addbyte(0x00 | REG_ESI);
         addlong(cpu_state.temp_pc);
-        addbyte(0x58 | REG_ESI); /*POP RSI*/
         if ((x87_op & 0xff) < 0xc0) {
             call(block, (uintptr_t) fpu_postamble);
         }
         if (fpu_softfloat) {
             /* Check for exceptions. */
-            addbyte(0xf6); /* test byte ptr[&cpu_state.sf_exc],1 */
-            addbyte(0x04);
-            addbyte(0x25);
-            addlong((uint32_t) (uintptr_t) &cpu_state.sf_exc);
+            addbyte(0x48); /*MOV RSI, &(cpu_state.sf_exc)*/
+            addbyte(0xb8 | REG_ESI);
+            addquad((uint64_t) &(cpu_state.sf_exc));
+            addbyte(0xf6); /* test byte ptr[rsi],1 */
+            addbyte(0x06);
             addbyte(0x01);
+            addbyte(0x58 | REG_ESI); /*POP RSI*/
             addbyte(0x0F);
             addbyte(0x85); /*JNZ 0*/
             addlong((uint32_t) (uintptr_t) &block->data[BLOCK_EXIT_OFFSET] - (uint32_t) (uintptr_t) (&block->data[block_pos + 4]));
+        } else {
+            addbyte(0x58 | REG_ESI); /*POP RSI*/
         }
     }
 

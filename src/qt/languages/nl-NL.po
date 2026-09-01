@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-28 22:12+0000\n"
+"PO-Revision-Date: 2026-09-01 17:51+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -733,10 +733,10 @@ msgid "Removable disks:"
 msgstr "Verwisselbare schijven:"
 
 msgid "Tape drives"
-msgstr "Band-schijfstations"
+msgstr "Tapestations"
 
 msgid "Tape drives:"
-msgstr "Band-schijfstations:"
+msgstr "Tapestations:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
