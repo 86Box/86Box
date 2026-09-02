@@ -169,7 +169,7 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
     if (biosmask == 0x7ffff)
-        bb_mask &= 0xffff8000;
+        bb_mask &= 0xffffc000;
     else if (biosmask == 0x3ffff)
         bb_mask &= 0xffffc000;
 
@@ -227,7 +227,7 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
     if (biosmask == 0x7ffff)
-        bb_mask &= 0xffff8000;
+        bb_mask &= 0xffffc000;
     else if (biosmask == 0x3ffff)
         bb_mask &= 0xffffc000;
 
@@ -317,6 +317,19 @@ intel_flash_add_mappings(flash_t *dev)
         if (dev->flags & FLAG_INV_A16)
             fbase ^= 0x10000;
 
+        /*
+           What happens with the inverted flashes:
+
+           Top gets copied to bottom and bottom to top, exec gets set to top and
+           then to bottom, respectively.
+
+           Doing this, we simplify the read and write handlers, but complicate
+           the mappings.
+
+           But if we stored the array inverted, then we would simplify the mapping,
+           but complicate the read and write handlers, unless we applied the XOR
+           within the code.
+         */
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
         if ((max == 2) || (i >= 2)) {
