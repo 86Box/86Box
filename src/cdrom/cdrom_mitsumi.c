@@ -773,9 +773,10 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                                sector available. */
                                             dev->dma_retries = 0;
                                             dma_set_drq(dev->dma, 1);
-                                            timer_set_delay_u64(&dev->dma_timer,
-                                                                ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                                MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+                                            /* The first sector is already buffered.  Service it
+                                               promptly: MTMMINIP times out if DRQ is left pending
+                                               for a complete sector interval. */
+                                            timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
                                         }
                                         break;
                                     case 0x10:
@@ -808,16 +809,18 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
-                                if (!dev->readcount)
-                                    /* A read count of zero means fetch until TC. */
+                                if (!dev->readcount && dev->early_status)
+                                    /* Early-status DMA reads use TC as their
+                                       open-ended transfer delimiter. */
                                     dev->readcount = 0xffffffff;
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
                                 if (dev->enable_dma && read_res > 0) {
                                     dev->dma_retries = 0;
                                     dma_set_drq(dev->dma, 1);
-                                    timer_set_delay_u64(&dev->dma_timer,
-                                                        ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                        MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+                                    /* The command path has already fetched the
+                                       first sector, so only later sectors need
+                                       the 1x/2x rotational delay. */
+                                    timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
                                 }
                                 dev->cmdbuf_count = 1;
                                 if (read_res < 0) {
