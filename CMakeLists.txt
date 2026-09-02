@@ -136,10 +136,16 @@ option(LIBASAN      "Enable compilation with the addresss sanitizer"            
 option(QT           "Use the Qt-based user interface"                            ON)
 option(SDL2         "Use SDL2 instead of SDL3"                                   OFF)
 option(BUILD_TESTING "Build the unit test suite"                                  OFF)
+option(BUILD_BENCHMARKS "Build performance benchmarks"                            OFF)
 
 if(BUILD_TESTING)
     enable_testing()
     find_package(GTest CONFIG REQUIRED)
+endif()
+if(BUILD_BENCHMARKS)
+    find_package(benchmark CONFIG REQUIRED)
+endif()
+if(BUILD_TESTING OR BUILD_BENCHMARKS)
     add_subdirectory(tests)
 endif()
 
