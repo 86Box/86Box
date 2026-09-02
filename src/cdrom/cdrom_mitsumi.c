@@ -816,7 +816,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                             case 0:
                                 dev->readcount |= val;
                                 dev->audio_end_msf |= val;
-                                if (!dev->readcount && dev->early_status)
+                                if (!dev->readcount && dev->enable_dma)
                                     /* Early-status DMA reads use TC as their
                                        open-ended transfer delimiter. */
                                     dev->readcount = 0xffffffff;
