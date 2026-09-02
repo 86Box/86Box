@@ -807,9 +807,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
-                                if (!dev->readcount && dev->early_status) {
-                                    dev->readcount = 0xFFFFFFFF; // keep fetching sectors indefinitely.
-                                }
+                                if (!dev->readcount)
+                                    /* A read count of zero means fetch until TC. */
+                                    dev->readcount = 0xffffffff;
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
                                 if (dev->enable_dma && read_res > 0) {
                                     dev->dma_retries = 0;
