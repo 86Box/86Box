@@ -24350,7 +24350,7 @@ const machine_t machines[] = {
     /* Has a National Semiconductor PC87309 Super I/O with on-chip KBC, which has one of these
        firmwares: AMI '5' MegaKey, Phoenix MultiKey/42 1.37, or Phoenix MultiKey/42i 4.16. */
     {
-        .name              = "[i440BX] Radisys Endura EM440",
+        .name              = "[i440BX] RadiSys Endura EM440",
         .internal_name     = "em440",
         .type              = MACHINE_TYPE_SOCKET370,
         .chipset           = MACHINE_CHIPSET_INTEL_440BX,
