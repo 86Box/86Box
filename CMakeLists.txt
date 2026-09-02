@@ -135,6 +135,13 @@ option(DEBUGREGS486 "Enable debug register opeartion on 486+ CPUs"              
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
 option(QT           "Use the Qt-based user interface"                            ON)
 option(SDL2         "Use SDL2 instead of SDL3"                                   OFF)
+option(BUILD_TESTING "Build the unit test suite"                                  OFF)
+
+if(BUILD_TESTING)
+    enable_testing()
+    find_package(GTest CONFIG REQUIRED)
+    add_subdirectory(tests)
+endif()
 
 if((ARCH STREQUAL "arm64"))
     set(NEW_DYNAREC ON)
