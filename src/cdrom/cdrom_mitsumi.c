@@ -816,10 +816,13 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                             case 0:
                                 dev->readcount |= val;
                                 dev->audio_end_msf |= val;
-                                if (!dev->readcount && dev->enable_dma)
+                                if (!dev->readcount && dev->enable_dma) {
                                     /* Early-status DMA reads use TC as their
                                        open-ended transfer delimiter. */
                                     dev->readcount = 0xffffffff;
+                                    /* Set the end MSF to 99:59.74. */
+                                    dev->audio_end_msf = 0x00995974;
+                                }
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
                                 if (dev->enable_dma && (read_res == 1)) {
                                     dev->dma_retries = 0;
