@@ -75,7 +75,7 @@ enum {
     CMD_LOCK       = 0xfe
 };
 enum {
-    MODE_MUTE    = 0x01,
+    MODE_MUTE_DATA = 0x01,
     MODE_GET_TOC = 0x04,
     MODE_STOP    = 0x08,
     MODE_ECC     = 0x20,
@@ -122,6 +122,7 @@ typedef struct mcd_t {
     uint16_t dmalen;
     uint32_t readmsf;
     uint32_t readcount;
+    uint32_t audio_end_msf;
     uint32_t readbuflen;
     int      locked;
     int      drvmode;
@@ -320,6 +321,7 @@ static void
 mitsumi_cdrom_reset(mcd_t *dev)
 {
     picintc(1 << dev->irq);
+    cdrom_stop(dev->cdrom_dev);
     dev->cmdrd_count   = 0;
     dev->cmdbuf_count  = 0;
     dev->cmdbuf_idx    = 0;
@@ -333,6 +335,7 @@ mitsumi_cdrom_reset(mcd_t *dev)
     dev->conf          = 0;
     dev->dmalen        = COOKED_SECTOR_SIZE + MITSUMI_DMA_COUNT_BIAS;
     dev->readmsf       = 0;
+    dev->audio_end_msf = 0;
     dev->dma_retries   = 0;
     dev->locked        = 0;
     dev->change        = 1;
@@ -399,12 +402,15 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
            only select audio mode when both addresses are valid and the start
            is actually on an audio track. */
         if (mitsumi_msf_to_lba(dev->readmsf, &lba) &&
-            mitsumi_msf_to_lba(dev->readcount, &end_lba) && (end_lba > lba) &&
+            mitsumi_msf_to_lba(dev->audio_end_msf, &end_lba) && (end_lba > lba) &&
             (dev->cdrom_dev->ops->get_track_type(dev->cdrom_dev->local, lba) == CD_TRACK_AUDIO)) {
             status = cdrom_audio_play(dev->cdrom_dev, lba, end_lba - lba, 0);
             if (status == 1) {
                 mitsumi_cdrom_log("Mitsumi read sector: Playing audio.\n");
-                return status;
+                /* Audio playback has no data phase.  Keep DMA idle even when
+                   the interface was configured for DMA before this command. */
+                dev->readcount = 0;
+                return 2;
             }
         }
         dev->drvmode = DRV_MODE_READ;
@@ -809,12 +815,13 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
+                                dev->audio_end_msf |= val;
                                 if (!dev->readcount && dev->early_status)
                                     /* Early-status DMA reads use TC as their
                                        open-ended transfer delimiter. */
                                     dev->readcount = 0xffffffff;
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
-                                if (dev->enable_dma && read_res > 0) {
+                                if (dev->enable_dma && (read_res == 1)) {
                                     dev->dma_retries = 0;
                                     dma_set_drq(dev->dma, 1);
                                     /* The command path has already fetched the
@@ -833,9 +840,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 break;
                             case 1:
                                 dev->readcount |= (val << 8);
+                                dev->audio_end_msf |= val << 8;
                                 break;
                             case 2:
                                 dev->readcount    = ((val & 0x0f) << 16);
+                                dev->audio_end_msf = val << 16;
                                 dev->early_status = ((val & 0xf0) == 0xf0);
                                 if (dev->early_status)
                                     mitsumi_cdrom_log("Mitsumi early-status read\n");
@@ -937,9 +946,10 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                 case CMD_READ2X:
                     if (mitsumi_cdrom_is_ready(dev)) {
                         mitsumi_abort_read(dev);
-                        dev->readcount   = 0;
-                        dev->drvmode     = (val == CMD_READ1X) ? DRV_MODE_CDDA : DRV_MODE_READ;
-                        dev->cmdrd_count = 6;
+                        dev->readcount     = 0;
+                        dev->audio_end_msf = 0;
+                        dev->drvmode       = (val == CMD_READ1X) ? DRV_MODE_CDDA : DRV_MODE_READ;
+                        dev->cmdrd_count   = 6;
                     } else {
                         dev->cmdbuf_count = 1;
                         dev->cmdbuf[0]    = STAT_CMD_CHECK;
@@ -1016,9 +1026,6 @@ mitsumi_get_volume(void *priv, int channel)
 {
     mcd_t   *dev      = (mcd_t *) priv;
 
-    if (dev->mode & MODE_MUTE)
-        return 0;
-
     switch (channel & 3) {
         case 0:
             return dev->cdrom_vols.att0;
@@ -1037,8 +1044,10 @@ mitsumi_get_channel(void *priv, int channel)
 {
     mcd_t   *dev      = (mcd_t *) priv;
 
+    /* att0/att1 are the left output's left/right gains.  att3/att2
+       are the corresponding gains for the right output. */
     return (channel == 0) ? ((!!(dev->cdrom_vols.att0)) | ((!!(dev->cdrom_vols.att1)) << 1)) :
-                            ((!!(dev->cdrom_vols.att2)) | ((!!(dev->cdrom_vols.att3)) << 1));
+                            ((!!(dev->cdrom_vols.att3)) | ((!!(dev->cdrom_vols.att2)) << 1));
 }
 
 static void *
