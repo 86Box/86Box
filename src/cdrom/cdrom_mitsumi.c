@@ -948,7 +948,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         mitsumi_abort_read(dev);
                         dev->readcount     = 0;
                         dev->audio_end_msf = 0;
-                        dev->drvmode       = (val == CMD_READ1X) ? DRV_MODE_CDDA : DRV_MODE_READ;
+                        dev->drvmode       = DRV_MODE_CDDA;
                         dev->cmdrd_count   = 6;
                     } else {
                         dev->cmdbuf_count = 1;
