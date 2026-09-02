@@ -507,7 +507,7 @@ et3000_init(const device_t *info)
             svga_init(info, &dev->svga, dev, device_get_config_int("memory") << 10,
                       et3000_recalctimings, et3000_in, et3000_out,
                       NULL, NULL);
-            io_sethandler(0x03b0, 48,
+            io_sethandler(0x03a0, 64,
                           et3000_in, NULL, NULL, et3000_out, NULL, NULL, dev);
             break;
 
@@ -519,7 +519,7 @@ et3000_init(const device_t *info)
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->svga.bpp     = 8;
-    dev->svga.miscout = 1;
+    dev->svga.miscout = 0;
 
     dev->svga.packed_chain4 = 1;
     dev->svga.line_compare  = et3000_line_compare;

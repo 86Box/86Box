@@ -1779,6 +1779,10 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->attrregs[0x11] = 0;
     svga->overscan_color = 0x000000;
 
+    /* Color Plane Enable defaults to all four planes enabled. */
+    svga->attrregs[0x12] = 0x0f;
+    svga->plane_mask     = 0x0f;
+
     svga->left_overscan           = 8;
     svga->monitor->mon_overscan_x = 16;
     svga->monitor->mon_overscan_y = 32;

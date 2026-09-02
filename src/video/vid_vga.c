@@ -220,7 +220,7 @@ vga_init(const device_t *info, vga_t *vga, int enabled)
               NULL);
 
     vga->svga.bpp     = 8;
-    vga->svga.miscout = 1;
+    vga->svga.miscout = 0;
 
     vga->svga.vga_enabled = enabled;
 }
@@ -236,7 +236,7 @@ vga_standalone_init(const device_t *info)
 
     vga_init(info, vga, 0);
 
-    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+    io_sethandler(0x03a0, 0x0040, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
 
     if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
         (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0)) {
@@ -262,7 +262,7 @@ ps1vga_init(const device_t *info)
 
     vga_init(info, vga, 1);
 
-    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+    io_sethandler(0x03a0, 0x0040, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
 
     return vga;
 }

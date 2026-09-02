@@ -799,7 +799,7 @@ paradise_init(const device_t *info, uint32_t memory)
     mem_mapping_set_handler(&svga->mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
     mem_mapping_set_p(&svga->mapping, paradise);
 
-    io_sethandler(0x03c0, 0x0020, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
+    io_sethandler(0x03a0, 0x0040, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
 
     /* Common to all three types. */
     svga->crtc[0x31] = 'W';
@@ -823,7 +823,7 @@ paradise_init(const device_t *info, uint32_t memory)
     }
 
     svga->bpp     = 8;
-    svga->miscout = 1;
+    svga->miscout = 0;
 
     paradise->type = info->local;
 
