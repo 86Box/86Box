@@ -193,7 +193,7 @@ mitsumi_status(const mcd_t *dev)
     if (dev->tray_open)
         status |= STAT_OPEN;
     if (mitsumi_cdrom_is_ready(dev)) {
-        status |= STAT_READY;
+        status |= STAT_READY | STAT_SERVO;
         if (dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO)
             status |= STAT_DISK_CDDA;
     }
@@ -544,8 +544,24 @@ mitsumi_dma_callback(void *priv)
     } else if (result > 0) {
         /* The channel may still be masked or owned by another requester.
            Keep DRQ asserted and retry without blocking the emulation thread. */
+        if ((dma[dev->dma].cc < 0) ||
+            ((dma[dev->dma].mode & 0x0c) != 0x04)) {
+            /* The DOS driver enables the interface before it finishes
+               programming the 8237 count and direction.  This is not a
+               read error. */
+            timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
+            return;
+        }
+        if (!dev->dma_retries)
+            mitsumi_cdrom_log("Mitsumi: DMA stalled (channel=%d, cc=%d, mode=%02x, size=%d, enabled=%02x, masked=%02x, writable=%d, result=%d)\n",
+                              dev->dma, dma[dev->dma].cc, dma[dev->dma].mode,
+                              dma[dev->dma].size, dma_e, dma_m,
+                              dma_channel_writable(dev->dma), result);
         if (++dev->dma_retries < 10000) {
-            timer_set_delay_u64(&dev->dma_timer, 100 * TIMER_USEC);
+            /* MTMCDAE briefly unmasks the 8237 channel and then polls for
+               terminal count.  Retry on the next CPU cycle so the emulated
+               drive cannot miss that short DMA service window. */
+            timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
             return;
         }
         dev->cur_sense = 3;
@@ -730,8 +746,17 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                         dev->enable_dma = val;
                                         mitsumi_cdrom_log("Mitsumi: DMA enable=%02x, channel=%d\n",
                                                           dev->enable_dma, dev->dma);
-                                        if (!dev->enable_dma)
+                                        if (!dev->enable_dma) {
                                             mitsumi_abort_read(dev);
+                                        } else if (dev->data && dev->buf_count) {
+                                            /* MTMCDAE may enable DMA after the
+                                               read command has made its first
+                                               sector available. */
+                                            dev->dma_retries = 0;
+                                            dma_set_drq(dev->dma, 1);
+                                            timer_set_delay_u64(&dev->dma_timer,
+                                                                1ULL << 32);
+                                        }
                                         break;
                                     case 0x10:
                                         dev->enable_irq = val;
@@ -770,7 +795,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 if (dev->enable_dma && read_res > 0) {
                                     dev->dma_retries = 0;
                                     dma_set_drq(dev->dma, 1);
-                                    timer_set_delay_u64(&dev->dma_timer, TIMER_USEC);
+                                    timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
                                 }
                                 dev->cmdbuf_count = 1;
                                 if (read_res < 0) {
@@ -869,6 +894,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                 case CMD_GET_STAT:
                     dev->change = 0;
                     dev->stat   = mitsumi_status(dev);
+                    dev->cmdbuf[0] = dev->stat;
                     break;
                 case CMD_SET_MODE:
                     dev->cmdrd_count = 1;
@@ -949,7 +975,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
             dev->cur_control  = val;
             break;
         case 3:
-            mitsumi_cdrom_reset(dev);
+            /* MTMCDAE uses this register to select the DMA transfer mode
+               (40h followed by the channel selector, e.g. 45h for DMA 5).
+               Only a zero write is a hardware reset request. */
+            if (!val)
+                mitsumi_cdrom_reset(dev);
             break;
         default:
             break;
@@ -1077,7 +1107,7 @@ static const device_config_t mitsumi_config[] = {
         .description    = "IRQ",
         .type           = CONFIG_SELECTION,
         .default_string = NULL,
-        .default_int    = 5,
+        .default_int    = 10,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
