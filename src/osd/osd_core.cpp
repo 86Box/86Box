@@ -76,7 +76,8 @@ enum OsdView {
     VIEW_FILE_RDISK,
     VIEW_FILE_CART,
     VIEW_FILE_MO,
-    VIEW_CD_FOLDER
+    VIEW_CD_FOLDER,
+    VIEW_MEDIA_TYPE
 };
 
 static OsdView   current_view   = VIEW_MENU;
@@ -247,6 +248,41 @@ static const char *const *exts_for_view(OsdView v)
         case VIEW_FILE_MO:     return mo_exts;
         default:               return nullptr;
     }
+}
+
+/* Last path mounted from each view */
+static char osd_last_mount[VIEW_MEDIA_TYPE][OSD_PATH_CAPACITY];
+
+/* Does the path exist, and hold what this view browses for? */
+static bool path_suits_view(OsdView view, char *path)
+{
+    if ((path == nullptr) || (path[0] == '\0'))
+        return false;
+
+    /* Check if we are on a file (image) or directory (VISO folder) */
+    return (view == VIEW_CD_FOLDER) ? (plat_dir_check(path) != 0)
+                                    : (plat_file_check(path) != 0);
+}
+
+/* Get the start directory from currently mounted image */
+static const char *browser_initial_path(OsdView view)
+{
+    char *path = nullptr;
+
+    switch (view) {
+        case VIEW_FILE_FLOPPY: path = floppyfns[0];               break;
+        case VIEW_FILE_CD:
+        case VIEW_CD_FOLDER:   path = cdrom[0].image_path;        break;
+        case VIEW_FILE_RDISK:  path = rdisk_drives[0].image_path; break;
+        case VIEW_FILE_CART:   path = cart_fns[0];                break;
+        case VIEW_FILE_MO:     path = mo_drives[0].image_path;    break;
+        default:                                                  break;
+    }
+
+    if (!path_suits_view(view, path))
+        path = osd_last_mount[view];
+
+    return path_suits_view(view, path) ? path : nullptr;
 }
 
 /* ------------------------------------------------------------------ */
@@ -485,7 +521,7 @@ open_browser(OsdView view)
     explorer_config.accept_label    = view_accept_label(view);
     explorer_config.mode            = (view == VIEW_CD_FOLDER) ? OsdExplorerMode::Directory : OsdExplorerMode::File;
     explorer_config.extension_globs = exts_for_view(view);
-    explorer_config.initial_path    = nullptr;
+    explorer_config.initial_path    = browser_initial_path(view);
 
     explorer.Open(explorer_config);
     current_view = view;
@@ -683,6 +719,10 @@ static bool draw_browser(void)
 {
     OsdExplorerResult result = explorer.Draw();
     if (result.type == OsdExplorerResultType::Accepted) {
+        /* Record selected path in osd_last_mount for next run. */
+        snprintf(osd_last_mount[current_view], OSD_PATH_CAPACITY, "%s", result.path.data());
+
+        /* Mount the image/folder and proceed. */
         mount_path(result.path.data());
         current_view       = VIEW_LOG;
         log_scroll_pending = true;
