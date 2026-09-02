@@ -331,7 +331,7 @@ device_not_present(esdi_t *dev)
 {
     dev->status_len     = 7;
     dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
-    dev->status_data[1] = 0x0c11; /*Command failed, internal hardware error*/
+    dev->status_data[1] = 0x0c00; /*Command terminated with failure*/
     dev->status_data[2] = 0x000b; /*Selection error*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
@@ -391,7 +391,7 @@ complete_command_status(esdi_t *dev)
 {
     dev->status_len     = 7;
     dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
-    dev->status_data[1] = 0x0000;                 /*Error bits*/
+    dev->status_data[1] = 0x0100;                 /*Error bits*/
     dev->status_data[2] = 0x1900;                 /*Device status*/
     dev->status_data[3] = 0;                      /*Number of blocks left to do*/
     dev->status_data[4] = dev->last_rba & 0xffff; /*Last RBA processed*/
@@ -485,7 +485,7 @@ static void
 esdi_build_diag_status(esdi_t *dev, uint16_t cmd)
 {
     dev->diag_status[0] = CMD_GET_DIAG_BLOCK | STATUS_LEN(7) | dev->cmd_dev;
-    dev->diag_status[1] = 0x0000; /* Command Status | Command Error Code */
+    dev->diag_status[1] = 0x0100; /* Command Status | Command Error Code */
     dev->diag_status[2] = 0x1900; /* Device Status | Device Error Code */
     dev->diag_status[3] = 0x0000; /* Power On Error Code | Test Error Code */
     dev->diag_status[4] = cmd;    /* Diagnostic Command */
