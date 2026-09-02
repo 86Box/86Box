@@ -1031,16 +1031,71 @@ machine_at_in440exd_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t optiplexe1_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "optiplexe1",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision A03",
+                .internal_name = "optiplexe1_a03",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/optiplexe1/A03.ROM", "" }
+            },
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision A04",
+                .internal_name = "optiplexe1",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/optiplexe1/DELL.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t optiplexe1_device = {
+    .name          = "Dell OptiPlex E1",
+    .internal_name = "optiplexe1",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = optiplexe1_config
+};
+
 int
 machine_at_optiplexe1_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/optiplexe1/DELL.ROM",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 
@@ -1720,16 +1775,71 @@ machine_at_ax6bc_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t optiplexgx1_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "optiplexgx1",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision A09",
+                .internal_name = "optiplexgx1_a09",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/optiplexgx1/A09.ROM", "" }
+            },
+            {
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision A10",
+                .internal_name = "optiplexgx1",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/optiplexgx1/DELL.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t optiplexgx1_device = {
+    .name          = "Dell OptiPlex GX1",
+    .internal_name = "optiplexgx1",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = optiplexgx1_config
+};
+
 int
 machine_at_optiplexgx1_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/optiplexgx1/DELL.ROM",
-                           0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 
