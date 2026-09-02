@@ -22469,7 +22469,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SLOT1,
-            .block       = CPU_BLOCK(CPU_PENTIUMPRO, CPU_CYRIX3S),
+            .block       = CPU_BLOCK_NONE,
             .min_bus     = 66666667,
             .max_bus     = 66666667,
             .min_voltage = 1800,
@@ -22496,13 +22496,13 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &optiplexe1_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL, /* not yet emulated */
         .snd_device               = &cs4236b_device,
         .net_device               = NULL, /* not yet emulated */
-        .aliases                  = { "" }
+        .aliases                  = { "Dell System Apex", "" }
     },
     /* Has a SM(S)C FDC37C675 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
