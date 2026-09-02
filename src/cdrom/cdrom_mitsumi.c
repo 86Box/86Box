@@ -38,7 +38,7 @@
 
 #define RAW_SECTOR_SIZE    2352
 #define COOKED_SECTOR_SIZE 2048
-#define DMA_SERVICE_BUDGET 256
+#define DMA_SERVICE_BUDGET 2048
 #define MITSUMI_1X_SECTOR_TIME_US (1000000 / 75)
 #define MITSUMI_2X_SECTOR_TIME_US (1000000 / 150)
 #define MITSUMI_DMA_COUNT_BIAS    7
@@ -431,7 +431,10 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
                        dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev));
     if (ret <= 0)
         return -3;
-    dev->readmsf   = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
+    const uint32_t next_msf = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
+    dev->readmsf = (bin2bcd((next_msf >> 16) & 0xff) << 16) |
+                   (bin2bcd((next_msf >> 8) & 0xff) << 8) |
+                   bin2bcd(next_msf & 0xff);
     dev->buf_idx   = 0;
     if (dev->mode & 0x80) {
         if (!(dev->mode & MODE_DATA)) {
@@ -489,8 +492,21 @@ mitsumi_dma_transfer(mcd_t *dev)
 
         if (dma_result & DMA_OVER) {
             mitsumi_cdrom_log("Mitsumi: DMA terminal count at buffer offset %d\n", dev->buf_idx);
-            mitsumi_abort_read(dev);
+            dma_set_drq(dev->dma, 0);
+            dev->buf_count  = 0;
+            dev->buf_idx    = 0;
+            dev->readbuflen = 0;
+            dev->data       = 0;
             mitsumi_set_irq(dev, IRQ_DATACOMP);
+            if (dev->readcount && dev->enable_dma &&
+                (dev->drvmode == DRV_MODE_READ)) {
+                timer_set_delay_u64(&dev->dma_timer,
+                                    ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                               MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+            } else {
+                timer_disable(&dev->dma_timer);
+                dev->drvmode = DRV_MODE_STOP;
+            }
             return 0;
         }
         if (--service_budget == 0)
@@ -527,6 +543,8 @@ mitsumi_dma_callback(void *priv)
             }
             return;
         }
+        if (dev->enable_dma)
+            dma_set_drq(dev->dma, 1);
     }
 
     result = mitsumi_dma_transfer(dev);
@@ -545,11 +563,12 @@ mitsumi_dma_callback(void *priv)
         /* The channel may still be masked or owned by another requester.
            Keep DRQ asserted and retry without blocking the emulation thread. */
         if ((dma[dev->dma].cc < 0) ||
+            (dma_m & (1 << dev->dma)) ||
             ((dma[dev->dma].mode & 0x0c) != 0x04)) {
             /* The DOS driver enables the interface before it finishes
-               programming the 8237 count and direction.  This is not a
-               read error. */
-            timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
+               programming and briefly unmasking the 8237 channel.  None of
+               those waiting states is a read error. */
+            timer_set_delay_u64(&dev->dma_timer, 100 * TIMER_USEC);
             return;
         }
         if (!dev->dma_retries)
@@ -1048,6 +1067,7 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
     timer_add(&dev->dma_timer, mitsumi_dma_callback, dev, 0);
+    dma_set_service_handler(dev->dma, mitsumi_dma_callback, dev);
     mitsumi_cdrom_reset(dev);
 
     return dev;
@@ -1059,6 +1079,7 @@ mitsumi_cdrom_close(void *priv)
     mcd_t *dev = (mcd_t *) priv;
 
     if (dev) {
+        dma_set_service_handler(dev->dma, NULL, NULL);
         mitsumi_abort_read(dev);
         io_removehandler(dev->base, 4,
                          mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
