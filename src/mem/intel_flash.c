@@ -168,9 +168,8 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
-    if (biosmask == 0x7ffff)
-        bb_mask &= 0xffffc000;
-    else if (biosmask == 0x3ffff)
+
+    if ((biosmask == 0x3ffff) || (biosmask == 0x7ffff))
         bb_mask &= 0xffffc000;
 
     if (dev->flags & FLAG_INV_A16)
@@ -226,9 +225,8 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
-    if (biosmask == 0x7ffff)
-        bb_mask &= 0xffffc000;
-    else if (biosmask == 0x3ffff)
+
+    if ((biosmask == 0x3ffff) || (biosmask == 0x7ffff))
         bb_mask &= 0xffffc000;
 
     if (dev->flags & FLAG_INV_A16)

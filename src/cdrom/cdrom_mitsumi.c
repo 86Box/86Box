@@ -500,9 +500,9 @@ mitsumi_dma_transfer(mcd_t *dev)
             mitsumi_set_irq(dev, IRQ_DATACOMP);
             if (dev->readcount && dev->enable_dma &&
                 (dev->drvmode == DRV_MODE_READ)) {
-                timer_set_delay_u64(&dev->dma_timer,
-                                    ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                               MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+                timer_advance_u64(&dev->dma_timer,
+                                  ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                                   MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
             } else {
                 timer_disable(&dev->dma_timer);
                 dev->drvmode = DRV_MODE_STOP;
@@ -553,12 +553,12 @@ mitsumi_dma_callback(void *priv)
         /* Yield between chunks so reset, pause and shutdown requests can be
            handled even during a large or open-ended DMA transfer. */
         dev->dma_retries = 0;
-        timer_set_delay_u64(&dev->dma_timer, 10 * TIMER_USEC);
+        timer_advance_u64(&dev->dma_timer, 10 * TIMER_USEC);
     } else if (result == 3) {
         dev->dma_retries = 0;
-        timer_set_delay_u64(&dev->dma_timer,
-                            ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                       MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+        timer_advance_u64(&dev->dma_timer,
+                          ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                           MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
     } else if (result > 0) {
         /* The channel may still be masked or owned by another requester.
            Keep DRQ asserted and retry without blocking the emulation thread. */
@@ -568,7 +568,7 @@ mitsumi_dma_callback(void *priv)
             /* The DOS driver enables the interface before it finishes
                programming and briefly unmasking the 8237 channel.  None of
                those waiting states is a read error. */
-            timer_set_delay_u64(&dev->dma_timer, 100 * TIMER_USEC);
+            timer_advance_u64(&dev->dma_timer, 100 * TIMER_USEC);
             return;
         }
         if (!dev->dma_retries)
@@ -580,7 +580,7 @@ mitsumi_dma_callback(void *priv)
             /* MTMCDAE briefly unmasks the 8237 channel and then polls for
                terminal count.  Retry on the next CPU cycle so the emulated
                drive cannot miss that short DMA service window. */
-            timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
+            timer_advance_u64(&dev->dma_timer, 1ULL << 32);
             return;
         }
         dev->cur_sense = 3;
@@ -774,7 +774,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                             dev->dma_retries = 0;
                                             dma_set_drq(dev->dma, 1);
                                             timer_set_delay_u64(&dev->dma_timer,
-                                                                1ULL << 32);
+                                                                ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                                MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
                                         }
                                         break;
                                     case 0x10:
@@ -807,14 +808,16 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         switch (dev->cmdrd_count) {
                             case 0:
                                 dev->readcount |= val;
-                                if (!dev->readcount && dev->early_status) {
-                                    dev->readcount = 0xFFFFFFFF; // keep fetching sectors indefinitely.
-                                }
+                                if (!dev->readcount)
+                                    /* A read count of zero means fetch until TC. */
+                                    dev->readcount = 0xffffffff;
                                 read_res = mitsumi_cdrom_read_sector(dev, 1);
                                 if (dev->enable_dma && read_res > 0) {
                                     dev->dma_retries = 0;
                                     dma_set_drq(dev->dma, 1);
-                                    timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
+                                    timer_set_delay_u64(&dev->dma_timer,
+                                                        ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                        MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
                                 }
                                 dev->cmdbuf_count = 1;
                                 if (read_res < 0) {

@@ -182,13 +182,72 @@ machine_at_cubx_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t em440_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "em440",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision 1.03B",
+                .internal_name = "em440_103b",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 524288,
+                .files         = { "roms/machines/em440/BIOS512K.ROM", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.0 Release 6.0 - Revision 1.04A",
+                .internal_name = "em440",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/em440/BIOS256K.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t em440_device = {
+    .name          = "RadiSys Endura EM440",
+    .internal_name = "em440",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = em440_config
+};
+
 int
 machine_at_em440_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/em440/BIOS256K.ROM",
-                           0x000c0000, 262144, 0);
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    int size = device_get_bios_file_size(machine_get_device(machine), device_get_config_bios("bios"));
+    ret = bios_load_linear(fn, 0x00100000 - size, size, 0);
+    device_context_restore();
 
     if (bios_only || !ret)
         return ret;
