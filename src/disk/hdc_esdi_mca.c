@@ -539,7 +539,7 @@ esdi_callback(void *priv)
                     dev->sector_count = dev->cmd_data[1];
 
                     if ((dev->command != CMD_GET_MFG_HEADER) &&
-                        ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num))) {
+                        ((dev->rba + dev->sector_count) > drive->sectors)) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -627,7 +627,7 @@ esdi_callback(void *priv)
                     dev->sector_pos   = 0;
                     dev->sector_count = dev->cmd_data[1];
 
-                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                    if ((dev->rba + dev->sector_count) > drive->sectors) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -707,7 +707,7 @@ esdi_callback(void *priv)
                     dev->sector_count = dev->cmd_data[1];
 
                     dev->last_rba = dev->rba + dev->sector_count - 1;
-                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                    if ((dev->rba + dev->sector_count) > drive->sectors) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -738,7 +738,7 @@ esdi_callback(void *priv)
                 return;
             }
 
-            if (dev->rba >= hdd_image_get_last_sector(drive->hdd_num)) {
+            if (dev->rba >= drive->sectors) {
                 rba_out_of_range(dev);
                 return;
             }
@@ -1591,7 +1591,7 @@ esdi_init(UNUSED(const device_t *info))
             drive->spt     = hdd[i].spt;
             drive->hpc     = hdd[i].hpc;
             drive->tracks  = hdd[i].tracks;
-            drive->sectors = hdd_image_get_last_sector(i);
+            drive->sectors = hdd_image_get_last_sector(i) + 1;
             drive->hdd_num = i;
 
             /* Mark drive as present. */
