@@ -1677,7 +1677,7 @@ ega_standalone_init(const device_t *info)
             ega->alt_addr = 1;
     }
 #endif
-    io_sethandler(addr, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+    io_sethandler(addr - 0x20, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
     if (ega->chipset) {
         io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);

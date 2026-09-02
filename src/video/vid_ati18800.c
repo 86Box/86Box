@@ -290,9 +290,9 @@ ati18800_init(const device_t *info)
     ati18800->svga.getclock  = ics2494_getclock;
 
     io_sethandler(0x01ce, 0x0002, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
-    io_sethandler(0x03c0, 0x0020, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
+    io_sethandler(0x03a0, 0x0040, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
 
-    ati18800->svga.miscout = 1;
+    ati18800->svga.miscout = 0;
     ati18800->svga.bpp = 8;
 
     ati_eeprom_load(&ati18800->eeprom, "ati18800.nvr", 0);
