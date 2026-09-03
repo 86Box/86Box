@@ -317,6 +317,17 @@ chd_image_has_audio(UNUSED(const void *local))
     return 0;
 }
 
+static int
+chd_image_has_data(UNUSED(const void *local))
+{
+    chd_image_t *img = (chd_image_t *) local;
+    for (unsigned int i = 0; i < img->track_size; i++) {
+        if (img->track_entries[i].track_type != CD_TRACK_AUDIO)
+            return 1;
+    }
+    return 0;
+}
+
 static void
 chd_image_close(void *local)
 {
@@ -723,6 +734,7 @@ static const cdrom_ops_t chd_image_ops = {
     chd_image_read_dvd_structure,
     chd_image_is_dvd,
     chd_image_has_audio,
+    chd_image_has_data,
     NULL,
     chd_image_close,
     NULL
@@ -737,6 +749,7 @@ static const cdrom_ops_t chd_image_dvd_ops = {
     chd_image_read_dvd_structure,
     chd_image_is_dvd,
     chd_image_has_audio,
+    chd_image_has_data,
     NULL,
     chd_image_close,
     NULL

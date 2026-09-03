@@ -425,6 +425,7 @@ typedef struct cdrom_ops_t {
                                    uint32_t *info);
     int      (*is_dvd)(const void *local);
     int      (*has_audio)(const void *local);
+    int      (*has_data)(const void *local);
     int      (*is_empty)(const void *local);
     void     (*close)(void *local);
     void     (*load)(const void *local);
@@ -566,6 +567,7 @@ extern void            cdrom_deinterleave_subch(uint8_t *d, const uint8_t *s);
 extern double          cdrom_seek_time(const cdrom_t *dev);
 extern void            cdrom_stop(cdrom_t *dev);
 extern void            cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type);
+extern int             cdrom_has_data(cdrom_t *dev);
 extern int             cdrom_is_pre(const cdrom_t *dev, const uint32_t lba);
 
 extern int             cdrom_audio_callback(cdrom_t *dev, int16_t *output, const int len);
