@@ -129,6 +129,7 @@ typedef struct mcd_t {
     int      cur_toc_track;
     int      tray_open;
     uint32_t dma_retries;
+    pc_timer_t pio_timer;
     pc_timer_t dma_timer;
     uint8_t  last_flags;
 
@@ -221,6 +222,7 @@ mitsumi_error_status(const mcd_t *dev, const int sense)
 static void
 mitsumi_abort_read(mcd_t *dev)
 {
+    timer_disable(&dev->pio_timer);
     timer_disable(&dev->dma_timer);
     if ((dev->dma >= 0) && (dev->dma < 8))
         dma_set_drq(dev->dma, 0);
@@ -525,6 +527,20 @@ mitsumi_dma_transfer(mcd_t *dev)
 }
 
 static void
+mitsumi_pio_callback(void *priv)
+{
+    mcd_t    *dev = (mcd_t *) priv;
+
+    const int read_result = mitsumi_cdrom_read_sector(dev, 0);
+    if (read_result < 0) {
+        dev->cur_sense = abs(read_result);
+        dev->stat = mitsumi_error_status(dev, dev->cur_sense);
+        mitsumi_set_irq(dev, IRQ_ERROR);
+    } else if (read_result == 1)
+        mitsumi_set_irq(dev, IRQ_DATAREADY);
+}
+
+static void
 mitsumi_dma_callback(void *priv)
 {
     mcd_t    *dev = (mcd_t *) priv;
@@ -631,11 +647,19 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 dev->buf_idx++;
                 dev->buf_count--;
                 if (!dev->buf_count) {
-                    const int read_result = mitsumi_cdrom_read_sector(dev, 0);
-                    if (read_result < 0) {
-                        dev->cur_sense = abs(read_result);
-                        dev->stat = mitsumi_error_status(dev, dev->cur_sense);
-                        mitsumi_set_irq(dev, IRQ_ERROR);
+                    /*
+                       Do PIO transfers on a timer, fixes the Windows 9x driver in
+                       IRQ mode.
+                     */
+                    if (dev->readcount > 0 /*dev->enable_irq & IRQ_DATAREADY*/) {
+                        timer_set_delay_u64(&dev->pio_timer,
+                                            ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                                             MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+                        mitsumi_cdrom_log("Mitsumi PIO timer started at sector %u.\n", dev->cdrom_dev->seek_pos);
+                    } else {
+                        mitsumi_set_irq(dev, IRQ_DATACOMP);
+                        mitsumi_cdrom_log("Mitsumi PIO read complete at sector %u.\n", dev->cdrom_dev->seek_pos);
+                        dev->cur_toc_track = INT32_MIN;
                     }
                 }
 
@@ -652,6 +676,13 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
         case 1:
             picintc(1 << dev->irq);
             ret = mitsumi_cdrom_get_flags(dev);
+            /*
+               Return FLAG_NOSTAT while waiting for a PIO sector read to finish,
+               otherwise, the Windows 9x driver in polled mode mistakenly assumes
+               the command has finished and stalls.
+             */
+            if (timer_is_enabled(&dev->pio_timer))
+                ret |= FLAG_NOSTAT;
             if (ret != dev->last_flags) {
                 mitsumi_cdrom_log("Mitsumi: flags=%02x (data=%d, bytes=%d, status=%d)\n",
                                   ret, dev->data, dev->buf_count, dev->cmdbuf_count);
@@ -1084,6 +1115,7 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     io_sethandler(dev->base, 4,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
+    timer_add(&dev->pio_timer, mitsumi_pio_callback, dev, 0);
     timer_add(&dev->dma_timer, mitsumi_dma_callback, dev, 0);
     dma_set_service_handler(dev->dma, mitsumi_dma_callback, dev);
     mitsumi_cdrom_reset(dev);
