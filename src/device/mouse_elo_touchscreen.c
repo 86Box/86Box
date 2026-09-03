@@ -63,16 +63,16 @@ enum elo_mode1_bits {
 };
 
 enum elo_mode2_bits {
-    ELO_M2_TRIM    = 0x02,
-    ELO_M2_CAL     = 0x04,
-    ELO_M2_SCALE   = 0x08,
-    ELO_M2_TRACK   = 0x40
+    ELO_M2_TRIM  = 0x02,
+    ELO_M2_CAL   = 0x04,
+    ELO_M2_SCALE = 0x08,
+    ELO_M2_TRACK = 0x40
 };
 
 typedef struct mouse_elo_t {
     /* Packet framing state. */
-    uint8_t  body[8];
-    int      cmd_pos; /* -1 = waiting for lead byte, 0..7 = body index, 8 = waiting checksum */
+    uint8_t body[8];
+    int     cmd_pos; /* -1 = waiting for lead byte, 0..7 = body index, 8 = waiting checksum */
 
     /* Response FIFO -> host, paced at baud rate. */
     Fifo8 resp;
@@ -104,20 +104,20 @@ typedef struct mouse_elo_t {
     uint8_t invert_mask;
 
     /* Misc stubs (stored/echoed, not functionally wired up). */
-    uint8_t untouch_delay, rep_delay;
-    uint8_t diag_result;
-    uint8_t filter_slen, filter_width, filter_states, filter_control;
-    uint8_t timer_enable, timer_mode;
+    uint8_t  untouch_delay, rep_delay;
+    uint8_t  diag_result;
+    uint8_t  filter_slen, filter_width, filter_states, filter_control;
+    uint8_t  timer_enable, timer_mode;
     uint16_t timer_interval;
-    uint8_t key_value;
-    uint8_t low_power;
-    char    owner[7];
+    uint8_t  key_value;
+    uint8_t  low_power;
+    char     owner[7];
 
     /* Touch/pointer state. */
     int     but, but_old;
     int32_t raw_x, raw_y, raw_x_old, raw_y_old;
 
-    char    nvr_path[64];
+    char nvr_path[64];
 
     pc_timer_t host_to_serial_timer;
     pc_timer_t reset_timer;
@@ -132,10 +132,14 @@ elo_save_nvr(void *priv)
     FILE        *fp;
     int32_t      buf[8];
 
-    buf[0] = dev->cal_lo[0]; buf[1] = dev->cal_hi[0];
-    buf[2] = dev->cal_lo[1]; buf[3] = dev->cal_hi[1];
-    buf[4] = dev->scale_lo[0]; buf[5] = dev->scale_hi[0];
-    buf[6] = dev->scale_lo[1]; buf[7] = dev->scale_hi[1];
+    buf[0] = dev->cal_lo[0];
+    buf[1] = dev->cal_hi[0];
+    buf[2] = dev->cal_lo[1];
+    buf[3] = dev->cal_hi[1];
+    buf[4] = dev->scale_lo[0];
+    buf[5] = dev->scale_hi[0];
+    buf[6] = dev->scale_lo[1];
+    buf[7] = dev->scale_hi[1];
 
     fp = nvr_fopen(dev->nvr_path, "wb");
     if (fp) {
@@ -147,8 +151,8 @@ elo_save_nvr(void *priv)
 static void
 elo_load_defaults(mouse_elo_t *dev)
 {
-    dev->mode1 = ELO_M1_ZRESERVED | ELO_M1_INITIAL | ELO_M1_STREAM | ELO_M1_UNTOUCH;
-    dev->mode2 = 0;
+    dev->mode1               = ELO_M1_ZRESERVED | ELO_M1_INITIAL | ELO_M1_STREAM | ELO_M1_UNTOUCH;
+    dev->mode2               = 0;
     dev->calibration_enabled = false;
     dev->scaling_enabled     = false;
     dev->swap_axes           = false;
@@ -162,18 +166,22 @@ elo_load_defaults(mouse_elo_t *dev)
 static void
 elo_load_nvr(mouse_elo_t *dev)
 {
-    FILE    *fp;
-    int32_t  buf[8];
+    FILE   *fp;
+    int32_t buf[8];
 
     elo_load_defaults(dev);
 
     fp = nvr_fopen(dev->nvr_path, "rb");
     if (fp) {
         if (fread(buf, sizeof(buf), 1, fp) == 1) {
-            dev->cal_lo[0] = buf[0]; dev->cal_hi[0] = buf[1];
-            dev->cal_lo[1] = buf[2]; dev->cal_hi[1] = buf[3];
-            dev->scale_lo[0] = buf[4]; dev->scale_hi[0] = buf[5];
-            dev->scale_lo[1] = buf[6]; dev->scale_hi[1] = buf[7];
+            dev->cal_lo[0]   = buf[0];
+            dev->cal_hi[0]   = buf[1];
+            dev->cal_lo[1]   = buf[2];
+            dev->cal_hi[1]   = buf[3];
+            dev->scale_lo[0] = buf[4];
+            dev->scale_hi[0] = buf[5];
+            dev->scale_lo[1] = buf[6];
+            dev->scale_hi[1] = buf[7];
         }
         fclose(fp);
     }
@@ -215,8 +223,8 @@ elo_transform(mouse_elo_t *dev, int axis, int32_t raw)
     int32_t lo, hi, out;
 
     if (dev->calibration_enabled) {
-        lo = dev->cal_lo[axis];
-        hi = dev->cal_hi[axis];
+        lo  = dev->cal_lo[axis];
+        hi  = dev->cal_hi[axis];
         mid = (hi != lo) ? (int32_t) (((int64_t) (raw - lo) * ELO_RAW_MAX) / (hi - lo)) : 0;
         if (dev->mode2 & ELO_M2_TRIM) {
             if (mid < 0)
@@ -262,19 +270,34 @@ elo_process_mode_ascii(mouse_elo_t *dev, const uint8_t *str)
 
     for (int i = 0; i < 7 && str[i]; i++) {
         switch (str[i]) {
-            case 'I': dev->mode1 |= ELO_M1_INITIAL; break;
-            case 'S': dev->mode1 |= ELO_M1_STREAM; break;
-            case 'U': dev->mode1 |= ELO_M1_UNTOUCH; break;
-            case 'T': dev->mode2 |= ELO_M2_TRACK; break;
+            case 'I':
+                dev->mode1 |= ELO_M1_INITIAL;
+                break;
+            case 'S':
+                dev->mode1 |= ELO_M1_STREAM;
+                break;
+            case 'U':
+                dev->mode1 |= ELO_M1_UNTOUCH;
+                break;
+            case 'T':
+                dev->mode2 |= ELO_M2_TRACK;
+                break;
             case 'P':
                 dev->mode2 |= ELO_M2_TRIM;
                 dev->mode1 |= ELO_M1_RANGECHK;
                 dev->mode2 |= ELO_M2_CAL;
                 break;
-            case 'C': dev->mode2 |= ELO_M2_CAL; break;
-            case 'M': dev->mode2 |= ELO_M2_SCALE; break;
-            case 'B': dev->mode1 |= ELO_M1_RANGECHK; break;
-            default: return; /* invalid char: rest of string ignored */
+            case 'C':
+                dev->mode2 |= ELO_M2_CAL;
+                break;
+            case 'M':
+                dev->mode2 |= ELO_M2_SCALE;
+                break;
+            case 'B':
+                dev->mode1 |= ELO_M1_RANGECHK;
+                break;
+            default:
+                return; /* invalid char: rest of string ignored */
         }
     }
 }
@@ -282,11 +305,11 @@ elo_process_mode_ascii(mouse_elo_t *dev, const uint8_t *str)
 static void
 elo_process_command(mouse_elo_t *dev, const uint8_t *body)
 {
-    uint8_t        cmd     = body[0];
-    const uint8_t *data    = &body[1];
-    bool           query   = islower((unsigned char) cmd) != 0;
-    uint8_t        base    = (uint8_t) toupper((unsigned char) cmd);
-    uint8_t        resp[7] = { 0 };
+    uint8_t        cmd          = body[0];
+    const uint8_t *data         = &body[1];
+    bool           query        = islower((unsigned char) cmd) != 0;
+    uint8_t        base         = (uint8_t) toupper((unsigned char) cmd);
+    uint8_t        resp[7]      = { 0 };
     bool           has_response = true;
 
     switch (base) {
@@ -300,9 +323,12 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
                 int16_t x = (int16_t) elo_transform(dev, 0, dev->raw_x);
                 int16_t y = (int16_t) elo_transform(dev, 1, dev->raw_y);
                 tdata[0]  = (dev->but ? ELO_M1_STREAM : ELO_M1_UNTOUCH);
-                tdata[1] = x & 0xff; tdata[2] = (x >> 8) & 0xff;
-                tdata[3] = y & 0xff; tdata[4] = (y >> 8) & 0xff;
-                tdata[5] = 255; tdata[6] = 0;
+                tdata[1]  = x & 0xff;
+                tdata[2]  = (x >> 8) & 0xff;
+                tdata[3]  = y & 0xff;
+                tdata[4]  = (y >> 8) & 0xff;
+                tdata[5]  = 255;
+                tdata[6]  = 0;
                 elo_enqueue(dev, 'T', tdata);
             }
             return;
@@ -330,9 +356,9 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
         case 'C':
             if (data[0] == '2') {
                 if (!query) {
-                    dev->cal_active   = true;
-                    dev->cal_step     = 0;
-                    dev->cal_but_old  = dev->but != 0;
+                    dev->cal_active  = true;
+                    dev->cal_step    = 0;
+                    dev->cal_but_old = dev->but != 0;
                 }
                 resp[0] = '2';
             } else if (data[0] == 'S') {
@@ -343,32 +369,37 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
             } else if (data[0] == 'X' || data[0] == 'Y') {
                 int axis = (data[0] == 'X') ? 0 : 1;
                 if (!query) {
-                    dev->cal_lo[axis] = data[1] | (data[2] << 8);
-                    dev->cal_hi[axis] = data[3] | (data[4] << 8);
+                    dev->cal_lo[axis]        = data[1] | (data[2] << 8);
+                    dev->cal_hi[axis]        = data[3] | (data[4] << 8);
                     dev->calibration_enabled = true;
                 }
                 resp[0] = data[0];
-                resp[1] = dev->cal_lo[axis] & 0xff; resp[2] = (dev->cal_lo[axis] >> 8) & 0xff;
-                resp[3] = dev->cal_hi[axis] & 0xff; resp[4] = (dev->cal_hi[axis] >> 8) & 0xff;
+                resp[1] = dev->cal_lo[axis] & 0xff;
+                resp[2] = (dev->cal_lo[axis] >> 8) & 0xff;
+                resp[3] = dev->cal_hi[axis] & 0xff;
+                resp[4] = (dev->cal_hi[axis] >> 8) & 0xff;
             } else if (data[0] == 'x' || data[0] == 'y') {
                 /* Offset/Numerator/Denominator form: HighPoint = Offset + Denominator
                  * (manual App. B); Numerator is fixed at 1 by our convention, both on
                  * the query response below and here on set, so the two stay symmetric. */
                 int axis = (data[0] == 'x') ? 0 : 1;
                 if (!query) {
-                    int32_t offset = (int16_t) (data[1] | (data[2] << 8));
-                    int32_t denom  = (int16_t) (data[5] | (data[6] << 8));
-                    dev->cal_lo[axis] = offset;
-                    dev->cal_hi[axis] = offset + denom;
+                    int32_t offset           = (int16_t) (data[1] | (data[2] << 8));
+                    int32_t denom            = (int16_t) (data[5] | (data[6] << 8));
+                    dev->cal_lo[axis]        = offset;
+                    dev->cal_hi[axis]        = offset + denom;
                     dev->calibration_enabled = true;
                     pclog("ELO: cal SET (o/n/d form) axis=%d lo=%d hi=%d\n", axis, dev->cal_lo[axis], dev->cal_hi[axis]);
                 }
                 int32_t offset = dev->cal_lo[axis];
                 int32_t denom  = dev->cal_hi[axis] - dev->cal_lo[axis];
-                resp[0] = 0;
-                resp[1] = offset & 0xff; resp[2] = (offset >> 8) & 0xff;
-                resp[3] = 1; resp[4] = 0;
-                resp[5] = denom & 0xff; resp[6] = (denom >> 8) & 0xff;
+                resp[0]        = 0;
+                resp[1]        = offset & 0xff;
+                resp[2]        = (offset >> 8) & 0xff;
+                resp[3]        = 1;
+                resp[4]        = 0;
+                resp[5]        = denom & 0xff;
+                resp[6]        = (denom >> 8) & 0xff;
             } else {
                 resp[0] = data[0];
             }
@@ -406,18 +437,20 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
             }
             resp[0] = dev->timer_enable;
             resp[1] = dev->timer_mode;
-            resp[2] = dev->timer_interval & 0xff; resp[3] = (dev->timer_interval >> 8) & 0xff;
-            resp[4] = dev->timer_interval & 0xff; resp[5] = (dev->timer_interval >> 8) & 0xff;
+            resp[2] = dev->timer_interval & 0xff;
+            resp[3] = (dev->timer_interval >> 8) & 0xff;
+            resp[4] = dev->timer_interval & 0xff;
+            resp[5] = (dev->timer_interval >> 8) & 0xff;
             break;
 
         case 'I':
-            resp[0] = '0'; /* AccuTouch-class touchscreen */
-            resp[1] = '0'; /* serial interface */
+            resp[0] = '0';  /* AccuTouch-class touchscreen */
+            resp[1] = '0';  /* serial interface */
             resp[2] = 0x80; /* features: Z reported (constant) */
-            resp[3] = 1;  /* firmware minor */
-            resp[4] = 2;  /* firmware major */
-            resp[5] = 0;  /* config packet count ('g') */
-            resp[6] = 0;  /* IFlag: E271-2200-class */
+            resp[3] = 1;    /* firmware minor */
+            resp[4] = 2;    /* firmware major */
+            resp[5] = 0;    /* config packet count ('g') */
+            resp[6] = 0;    /* IFlag: E271-2200-class */
             break;
 
         case 'J':
@@ -463,7 +496,9 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
                 else
                     elo_load_nvr(dev);
             }
-            resp[0] = data[0]; resp[1] = data[1]; resp[2] = data[2];
+            resp[0] = data[0];
+            resp[1] = data[1];
+            resp[2] = data[2];
             break;
 
         case 'O':
@@ -475,9 +510,9 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
         case 'P':
             if (!query) {
                 static const int baud_table[8] = { 300, 600, 1200, 2400, 4800, 9600, 19200, 38400 };
-                dev->ser1 = data[1];
-                dev->ser2 = data[2];
-                dev->baud_rate = baud_table[dev->ser1 & 7];
+                dev->ser1                      = data[1];
+                dev->ser2                      = data[2];
+                dev->baud_rate                 = baud_table[dev->ser1 & 7];
                 timer_stop(&dev->host_to_serial_timer);
                 timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10.);
             }
@@ -504,32 +539,37 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
             } else if (data[0] == 'X' || data[0] == 'Y') {
                 int axis = (data[0] == 'X') ? 0 : 1;
                 if (!query) {
-                    dev->scale_lo[axis] = (int16_t) (data[1] | (data[2] << 8));
-                    dev->scale_hi[axis] = (int16_t) (data[3] | (data[4] << 8));
+                    dev->scale_lo[axis]  = (int16_t) (data[1] | (data[2] << 8));
+                    dev->scale_hi[axis]  = (int16_t) (data[3] | (data[4] << 8));
                     dev->scaling_enabled = true;
                 }
                 resp[0] = data[0];
-                resp[1] = dev->scale_lo[axis] & 0xff; resp[2] = (dev->scale_lo[axis] >> 8) & 0xff;
-                resp[3] = dev->scale_hi[axis] & 0xff; resp[4] = (dev->scale_hi[axis] >> 8) & 0xff;
+                resp[1] = dev->scale_lo[axis] & 0xff;
+                resp[2] = (dev->scale_lo[axis] >> 8) & 0xff;
+                resp[3] = dev->scale_hi[axis] & 0xff;
+                resp[4] = (dev->scale_hi[axis] >> 8) & 0xff;
             } else if (data[0] == 'x' || data[0] == 'y') {
                 /* Offset/Numerator/Denominator form: HighPoint = Offset + Numerator
                  * (manual App. B); Denominator is fixed at 1 by our convention, both
                  * on the query response below and here on set. */
                 int axis = (data[0] == 'x') ? 0 : 1;
                 if (!query) {
-                    int32_t offset = (int16_t) (data[1] | (data[2] << 8));
-                    int32_t numer  = (int16_t) (data[3] | (data[4] << 8));
-                    dev->scale_lo[axis] = offset;
-                    dev->scale_hi[axis] = offset + numer;
+                    int32_t offset       = (int16_t) (data[1] | (data[2] << 8));
+                    int32_t numer        = (int16_t) (data[3] | (data[4] << 8));
+                    dev->scale_lo[axis]  = offset;
+                    dev->scale_hi[axis]  = offset + numer;
                     dev->scaling_enabled = true;
                     pclog("ELO: scale SET (o/n/d form) axis=%d lo=%d hi=%d\n", axis, dev->scale_lo[axis], dev->scale_hi[axis]);
                 }
                 int32_t offset = dev->scale_lo[axis];
                 int32_t numer  = dev->scale_hi[axis] - dev->scale_lo[axis];
-                resp[0] = 0;
-                resp[1] = offset & 0xff; resp[2] = (offset >> 8) & 0xff;
-                resp[3] = numer & 0xff; resp[4] = (numer >> 8) & 0xff;
-                resp[5] = 1; resp[6] = 0;
+                resp[0]        = 0;
+                resp[1]        = offset & 0xff;
+                resp[2]        = (offset >> 8) & 0xff;
+                resp[3]        = numer & 0xff;
+                resp[4]        = (numer >> 8) & 0xff;
+                resp[5]        = 1;
+                resp[6]        = 0;
             } else {
                 resp[0] = data[0];
             }
@@ -577,12 +617,23 @@ elo_prepare_transmit(mouse_elo_t *dev)
         return;
 
     if (dev->but && !dev->but_old) {
-        if (dev->mode1 & ELO_M1_INITIAL) { status |= ELO_M1_INITIAL; send = true; }
-        else if (dev->mode1 & ELO_M1_STREAM) { status |= ELO_M1_STREAM; send = true; }
+        if (dev->mode1 & ELO_M1_INITIAL) {
+            status |= ELO_M1_INITIAL;
+            send = true;
+        } else if (dev->mode1 & ELO_M1_STREAM) {
+            status |= ELO_M1_STREAM;
+            send = true;
+        }
     } else if (dev->but && dev->but_old) {
-        if (dev->mode1 & ELO_M1_STREAM) { status |= ELO_M1_STREAM; send = true; }
+        if (dev->mode1 & ELO_M1_STREAM) {
+            status |= ELO_M1_STREAM;
+            send = true;
+        }
     } else {
-        if (dev->mode1 & ELO_M1_UNTOUCH) { status |= ELO_M1_UNTOUCH; send = true; }
+        if (dev->mode1 & ELO_M1_UNTOUCH) {
+            status |= ELO_M1_UNTOUCH;
+            send = true;
+        }
     }
 
     if (send && !dev->quiet_touch) {
@@ -593,9 +644,12 @@ elo_prepare_transmit(mouse_elo_t *dev)
         int16_t y  = (int16_t) elo_transform(dev, 1, ry);
 
         data[0] = status;
-        data[1] = x & 0xff; data[2] = (x >> 8) & 0xff;
-        data[3] = y & 0xff; data[4] = (y >> 8) & 0xff;
-        data[5] = 255; data[6] = 0;
+        data[1] = x & 0xff;
+        data[2] = (x >> 8) & 0xff;
+        data[3] = y & 0xff;
+        data[4] = (y >> 8) & 0xff;
+        data[5] = 255;
+        data[6] = 0;
         elo_enqueue(dev, 'T', data);
     }
 
@@ -653,13 +707,19 @@ elo_poll(void *priv)
         abs_y = abs_y / (double) monitors[index].mon_ysize;
     }
 
-    if (abs_x >= 1.0) abs_x = 1.0;
-    if (abs_y >= 1.0) abs_y = 1.0;
-    if (abs_x <= 0.0) abs_x = 0.0;
-    if (abs_y <= 0.0) abs_y = 0.0;
+    if (abs_x >= 1.0)
+        abs_x = 1.0;
+    if (abs_y >= 1.0)
+        abs_y = 1.0;
+    if (abs_x <= 0.0)
+        abs_x = 0.0;
+    if (abs_y <= 0.0)
+        abs_y = 0.0;
 
     if (dev->swap_axes) {
-        double t = abs_x; abs_x = abs_y; abs_y = t;
+        double t = abs_x;
+        abs_x    = abs_y;
+        abs_y    = t;
     }
 
     dev->raw_x = (int32_t) lround(abs_x * ELO_RAW_MAX);
@@ -673,10 +733,12 @@ elo_poll(void *priv)
             dev->cal_step++;
             elo_ack(dev, 0);
             if (dev->cal_step >= 2) {
-                dev->cal_lo[0] = dev->cal_points[0][0]; dev->cal_hi[0] = dev->cal_points[1][0];
-                dev->cal_lo[1] = dev->cal_points[0][1]; dev->cal_hi[1] = dev->cal_points[1][1];
+                dev->cal_lo[0]           = dev->cal_points[0][0];
+                dev->cal_hi[0]           = dev->cal_points[1][0];
+                dev->cal_lo[1]           = dev->cal_points[0][1];
+                dev->cal_hi[1]           = dev->cal_points[1][1];
                 dev->calibration_enabled = true;
-                dev->cal_active = false;
+                dev->cal_active          = false;
             }
         }
         dev->cal_but_old = but_now;
@@ -697,11 +759,11 @@ elo_init(UNUSED(const device_t *info))
 {
     mouse_elo_t *dev = calloc(1, sizeof(mouse_elo_t));
 
-    dev->cmd_pos = -1;
-    dev->serial  = serial_attach(device_get_config_int("port"), NULL, elo_write, dev);
+    dev->cmd_pos   = -1;
+    dev->serial    = serial_attach(device_get_config_int("port"), NULL, elo_write, dev);
     dev->baud_rate = 9600;
-    dev->ser1 = 5; /* 9600 baud, 8N1 */
-    dev->ser2 = 0x04; /* hardware handshaking enabled */
+    dev->ser1      = 5;    /* 9600 baud, 8N1 */
+    dev->ser2      = 0x04; /* hardware handshaking enabled */
     if (dev->serial) {
         serial_set_cts(dev->serial, 1);
         serial_set_dsr(dev->serial, 1);
@@ -713,8 +775,11 @@ elo_init(UNUSED(const device_t *info))
     timer_add(&dev->reset_timer, elo_reset_complete, dev, 0);
     timer_on_auto(&dev->host_to_serial_timer, (1000000. / dev->baud_rate) * 10.);
 
-    dev->filter_slen = 4; dev->filter_width = 8; dev->filter_states = 8; dev->filter_control = 0x90;
-    dev->rep_delay   = 2;
+    dev->filter_slen    = 4;
+    dev->filter_width   = 8;
+    dev->filter_states  = 8;
+    dev->filter_control = 0x90;
+    dev->rep_delay      = 2;
     memcpy(dev->owner, "EloInc.", 7);
 
     snprintf(dev->nvr_path, sizeof(dev->nvr_path), "elo_smartset.nvr");
@@ -741,7 +806,7 @@ elo_close(void *priv)
 }
 
 static const device_config_t elo_config[] = {
-  // clang-format off
+    // clang-format off
     {
         .name           = "port",
         .description    = "Serial Port",
@@ -760,7 +825,7 @@ static const device_config_t elo_config[] = {
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-  // clang-format on
+    // clang-format on
 };
 
 const device_t mouse_elo_device = {
