@@ -117,6 +117,7 @@ static mouse_t tablet_devices[] = {
     { &mouse_wacom_artpad_tablet_device },
 #endif
     { &mouse_mtouch_device              },
+    { &mouse_elo_device                 },
     { &mouse_cga_lightpen_device        },
     { &mouse_pxl_380_device             },
     { NULL                              }
