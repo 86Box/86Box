@@ -218,6 +218,12 @@ elo_transform(mouse_elo_t *dev, int axis, int32_t raw)
         lo = dev->cal_lo[axis];
         hi = dev->cal_hi[axis];
         mid = (hi != lo) ? (int32_t) (((int64_t) (raw - lo) * ELO_RAW_MAX) / (hi - lo)) : 0;
+        if (dev->mode2 & ELO_M2_TRIM) {
+            if (mid < 0)
+                mid = 0;
+            if (mid > ELO_RAW_MAX)
+                mid = ELO_RAW_MAX;
+        }
     }
 
     if (!dev->scaling_enabled)
@@ -345,7 +351,18 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
                 resp[1] = dev->cal_lo[axis] & 0xff; resp[2] = (dev->cal_lo[axis] >> 8) & 0xff;
                 resp[3] = dev->cal_hi[axis] & 0xff; resp[4] = (dev->cal_hi[axis] >> 8) & 0xff;
             } else if (data[0] == 'x' || data[0] == 'y') {
+                /* Offset/Numerator/Denominator form: HighPoint = Offset + Denominator
+                 * (manual App. B); Numerator is fixed at 1 by our convention, both on
+                 * the query response below and here on set, so the two stay symmetric. */
                 int axis = (data[0] == 'x') ? 0 : 1;
+                if (!query) {
+                    int32_t offset = (int16_t) (data[1] | (data[2] << 8));
+                    int32_t denom  = (int16_t) (data[5] | (data[6] << 8));
+                    dev->cal_lo[axis] = offset;
+                    dev->cal_hi[axis] = offset + denom;
+                    dev->calibration_enabled = true;
+                    pclog("ELO: cal SET (o/n/d form) axis=%d lo=%d hi=%d\n", axis, dev->cal_lo[axis], dev->cal_hi[axis]);
+                }
                 int32_t offset = dev->cal_lo[axis];
                 int32_t denom  = dev->cal_hi[axis] - dev->cal_lo[axis];
                 resp[0] = 0;
@@ -495,7 +512,18 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
                 resp[1] = dev->scale_lo[axis] & 0xff; resp[2] = (dev->scale_lo[axis] >> 8) & 0xff;
                 resp[3] = dev->scale_hi[axis] & 0xff; resp[4] = (dev->scale_hi[axis] >> 8) & 0xff;
             } else if (data[0] == 'x' || data[0] == 'y') {
+                /* Offset/Numerator/Denominator form: HighPoint = Offset + Numerator
+                 * (manual App. B); Denominator is fixed at 1 by our convention, both
+                 * on the query response below and here on set. */
                 int axis = (data[0] == 'x') ? 0 : 1;
+                if (!query) {
+                    int32_t offset = (int16_t) (data[1] | (data[2] << 8));
+                    int32_t numer  = (int16_t) (data[3] | (data[4] << 8));
+                    dev->scale_lo[axis] = offset;
+                    dev->scale_hi[axis] = offset + numer;
+                    dev->scaling_enabled = true;
+                    pclog("ELO: scale SET (o/n/d form) axis=%d lo=%d hi=%d\n", axis, dev->scale_lo[axis], dev->scale_hi[axis]);
+                }
                 int32_t offset = dev->scale_lo[axis];
                 int32_t numer  = dev->scale_hi[axis] - dev->scale_lo[axis];
                 resp[0] = 0;
