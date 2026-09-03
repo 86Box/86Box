@@ -528,9 +528,13 @@ take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i)
         }
     }
 
+    /* screenshot_rgb is a persistent buffer that a later screenshot will
+       overwrite. QImage does not copy it and the clipboard only serialises
+       the image once another application asks to paste, so hand over a
+       deep copy to avoid publishing a torn or stale frame. */
     QImage image(screenshot_rgb, sw, sh, sw * 3, QImage::Format_RGB888);
     QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setImage(image, QClipboard::Clipboard);
+    clipboard->setImage(image.copy(), QClipboard::Clipboard);
     monitors[i].mon_screenshots_raw_clipboard--;
 }
 
