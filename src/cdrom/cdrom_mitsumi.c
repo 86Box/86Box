@@ -196,7 +196,8 @@ mitsumi_status(const mcd_t *dev)
         status |= STAT_OPEN;
     if (mitsumi_cdrom_is_ready(dev)) {
         status |= STAT_READY | STAT_SERVO;
-        if (dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO)
+        if ((dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO) &&
+            !cdrom_has_data(dev->cdrom_dev))
             status |= STAT_DISK_CDDA;
     }
     if (dev->change)

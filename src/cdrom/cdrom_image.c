@@ -136,6 +136,7 @@ typedef struct cd_image_t {
     void         *log;
     int           is_dvd;
     int           has_audio;
+    int           has_data;
     int           has_dstruct;
     int           data_tracks_scrambled;
     int32_t       tracks_num;
@@ -1652,6 +1653,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
                 current_track->max_index   = 1;
 
                 img->has_audio = img->has_audio || (!special_track && !(rtis[i].adr_ctl & 0x4));
+                img->has_data  = img->has_data || (!special_track && (rtis[i].adr_ctl & 0x4));
 
                 current_track->idx[0].file        = NULL;
                 current_track->idx[0].file_length = 0;
@@ -3481,6 +3483,14 @@ image_is_dvd(const void *local)
 }
 
 static int
+image_has_data(const void *local)
+{
+    const cd_image_t *img = (const cd_image_t *) local;
+
+    return img->has_audio;
+}
+
+static int
 image_has_audio(const void *local)
 {
     const cd_image_t *img = (const cd_image_t *) local;
@@ -3527,6 +3537,7 @@ static const cdrom_ops_t image_ops = {
     image_read_dvd_structure,
     image_is_dvd,
     image_has_audio,
+    image_has_data,
     NULL,
     image_close,
     NULL

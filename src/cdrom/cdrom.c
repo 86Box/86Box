@@ -1542,6 +1542,17 @@ cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type)
     dev->subc_sector = -1;
 }
 
+int
+cdrom_has_data(cdrom_t *dev)
+{
+    int ret = 0;
+
+    if ((dev != NULL) && (dev->ops != NULL) && (dev->ops->has_data != NULL))
+        ret = dev->ops->has_data(dev->local);
+
+    return ret;
+}
+
 #include <86box/filters.h>
 
 static void
