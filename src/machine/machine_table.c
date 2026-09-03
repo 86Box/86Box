@@ -6546,7 +6546,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Most likely has a Phoenix MultiKey/42 keyboard controller. */
+    /* Most likely has an Award keyboard controller. */
     {
         .name              = "[NEAT] Micro Express Inc. 066-3.1-0889",
         .internal_name     = "me386sx",
