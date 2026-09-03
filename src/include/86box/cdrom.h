@@ -134,6 +134,10 @@ static const struct cdrom_drive_types_s {
     const int     caddy;
     const int     is_dvd;
     const int     transfer_max[4];
+    /* Optional protocol identity overrides. NULL preserves the existing generated identity. */
+    const char   *identify_model;
+    const char   *inquiry_vendor;
+    const char   *inquiry_model;
 } cdrom_drive_types[] = {
     { EMU_NAME,   "86B_CD",           CDV,    "",          "86cd",           BUS_TYPE_BOTH, 2, -1, 36, 0, 0, {  4,  2,  2,  5 } },
     { EMU_NAME,   "86B_CD",           "1.00", "",          "86cd100",        BUS_TYPE_BOTH, 1, -1, 36, 1, 0, {  0, -1, -1, -1 } }, /* SCSI-1 / early ATAPI generic - second on purpose so the later variant is the default. */
@@ -163,7 +167,7 @@ static const struct cdrom_drive_types_s {
     { "GOLDSTAR", "CRD-8160B",        "3.14", "",          "goldstar",       BUS_TYPE_IDE,  0, 16, 36, 0, 0, {  4,  2,  1, -1 } },
     { "GOLDSTAR", "CRD-8240B",        "1.11", "",          "goldstar_8240b", BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  1, -1 } },
     { "GOLDSTAR", "CRD-8320B",        "1.10", "",          "goldstar_8320b", BUS_TYPE_IDE,  0, 32, 36, 0, 0, {  4,  2,  1, -1 } },
-    { "GOLDSTAR", "CRD-8400B",        "1.03", "",          "gs_8400b_103",   BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 } },
+    { "GOLDSTAR", "CRD-8400B",        "1.03", "",          "gs_8400b_103",   BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 }, "CRD-8400B", "LG", "CD-ROM CRD-8400B" },
     { "GOLDSTAR", "CRD-8400B",        "1.12", "",          "goldstar_8400b", BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2, -1 } },
     { "GOLDSTAR", "CRD-8484B",        "1.03", "",          "goldstar_8484b", BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  2 } },
     { "GOLDSTAR", "GCD-R542B",        "1.20", "",          "goldstar_r542b", BUS_TYPE_IDE,  0,  4, 36, 0, 0, {  3,  2,  1, -1 } },
@@ -540,6 +544,8 @@ bcd2bin(int x)
 
 extern char           *cdrom_get_vendor(const int type);
 extern void            cdrom_get_model(const int type, char *name, const int id);
+extern char           *cdrom_get_inquiry_vendor(const int type);
+extern void            cdrom_get_inquiry_model(const int type, char *name, const int id);
 extern char           *cdrom_get_revision(const int type);
 extern int             cdrom_get_scsi_std(const int type);
 extern int             cdrom_is_early(const int type);
