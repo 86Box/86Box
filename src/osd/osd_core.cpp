@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <cstdarg>
 #include <cstdio>
 #include <cstring>
 #include <dirent.h>
@@ -65,6 +66,9 @@ static constexpr float OSD_MAX_SCALE        = 6.0f;
 static constexpr float OSD_REF_WIDTH        = 768.0f;
 static constexpr float OSD_REF_HEIGHT       = 576.0f;
 
+/* Seconds a message stays on screen before it expires. */
+static constexpr float OSD_MESSAGE_SECONDS  = 3.0f;
+
 /* ------------------------------------------------------------------ */
 /*  State                                                              */
 /* ------------------------------------------------------------------ */
@@ -101,6 +105,32 @@ static int         log_ring_head  = 0;   /* next write slot */
 static int         log_ring_count = 0;   /* entries populated */
 static std::mutex  log_mutex;
 static bool        log_scroll_pending = false;
+
+/* ------------------------------------------------------------------ */
+/*  Transient message                                                  */
+/* ------------------------------------------------------------------ */
+static char       message_text[OSD_LOG_LINE_LEN];
+static float      message_left = 0.0f; /* seconds remaining, set by osd_core_show_message() */
+static bool       message_close_pending = false;
+static std::mutex message_mutex;
+
+bool
+osd_core_message_active(void)
+{
+    std::lock_guard<std::mutex> lock(message_mutex);
+
+    return message_left > 0.0f;
+}
+
+/* A message is meant to be read with the OSD out of the way, so posting one
+ * asks osd_core_build_ui() to dismiss it. True once per message. */
+static bool
+consume_close_request(void)
+{
+    std::lock_guard<std::mutex> lock(message_mutex);
+
+    return std::exchange(message_close_pending, false);
+}
 
 static void show_main_menu(void);
 static bool focused_button(const char *label, bool focused);
@@ -744,10 +774,10 @@ static bool draw_browser(void)
         /* Record selected path in osd_last_mount for next run. */
         snprintf(osd_last_mount[current_view], OSD_PATH_CAPACITY, "%s", result.path.data());
 
-        /* Mount the image/folder and proceed. */
+        /* Mount the image/folder and report it. Posting the message dismisses
+         * the OSD, handing input back to the machine. */
         mount_path(result.path.data());
-        current_view       = VIEW_LOG;
-        log_scroll_pending = true;
+        osd_core_show_message("Loading %s", result.path.data());
     } else if (result.type == OsdExplorerResultType::Cancelled)
         show_main_menu();
 
@@ -774,6 +804,9 @@ void osd_core_set_title(const char *title)
 
 void osd_core_reset_to_menu(void)
 {
+    /* Drop a request left over from a message posted with the OSD already
+     * closed, so it cannot dismiss this one. */
+    consume_close_request();
     show_main_menu();
 }
 
@@ -787,11 +820,24 @@ bool osd_core_escape(void)
 
 bool osd_core_build_ui(void)
 {
+    bool keep_open;
+
     switch (current_view) {
-        case VIEW_MENU:      return draw_menu();
-        case VIEW_LOG:       return draw_log();
-        default:             return draw_browser();
+        case VIEW_MENU:
+            keep_open = draw_menu();
+            break;
+        case VIEW_LOG:
+            keep_open = draw_log();
+            break;
+        default:
+            keep_open = draw_browser();
+            break;
     }
+
+    /* A message posted while drawing closes the OSD so it can be read. */
+    const bool dismissed = consume_close_request();
+
+    return keep_open && !dismissed;
 }
 
 int osd_percentage = 0;
@@ -810,6 +856,57 @@ void osd_core_draw_indicators(void)
         ImGui::End();
     }
 #endif
+
+    char  text[OSD_LOG_LINE_LEN];
+    float left;
+
+    {
+        std::lock_guard<std::mutex> lock(message_mutex);
+
+        if (message_left <= 0.0f)
+            return;
+
+        message_left -= ImGui::GetIO().DeltaTime;
+        left = message_left;
+        snprintf(text, sizeof(text), "%s", message_text);
+    }
+
+    if (left <= 0.0f)
+        return;
+
+    /* Click-through overlay, so the emulator keeps all input. */
+    ImGuiWindowFlags flags = ImGuiWindowFlags_NoDecoration;
+    flags |= ImGuiWindowFlags_NoInputs;
+    flags |= ImGuiWindowFlags_NoNav;
+    flags |= ImGuiWindowFlags_NoFocusOnAppearing;
+    flags |= ImGuiWindowFlags_NoSavedSettings;
+    flags |= ImGuiWindowFlags_AlwaysAutoResize;
+
+    ImGui::SetNextWindowPos(ImVec2(osd_core_scaled(8.0f), osd_core_scaled(8.0f)));
+    ImGui::PushStyleVar(ImGuiStyleVar_Alpha, std::min(1.0f, left)); /* fade out over the last second */
+    if (ImGui::Begin("##osd_message", nullptr, flags))
+        ImGui::TextUnformatted(text);
+    ImGui::End();
+    ImGui::PopStyleVar();
+}
+
+void
+osd_core_show_message(const char *text, ...)
+{
+    std::lock_guard<std::mutex> lock(message_mutex);
+
+    if (text == nullptr)
+        message_text[0] = '\0';
+    else {
+        va_list ap;
+
+        va_start(ap, text);
+        vsnprintf(message_text, sizeof(message_text), text, ap);
+        va_end(ap);
+    }
+
+    message_left          = (message_text[0] != '\0') ? OSD_MESSAGE_SECONDS : 0.0f;
+    message_close_pending = (message_left > 0.0f);
 }
 
 void osd_core_install_log_hook(void)

@@ -23,6 +23,10 @@ void qt_osd_shutdown(void);
 
 bool qt_osd_is_visible(void);
 
+/* Visible, or still drawing a message after being closed. Gates rendering
+   only: input keeps following qt_osd_is_visible(). */
+bool qt_osd_needs_render(void);
+
 void qt_osd_toggle(void);
 
 void qt_osd_set_layout_scale_hint(float scale);

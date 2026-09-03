@@ -176,6 +176,8 @@ void osd_init(void)
 
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    /* Leave the host cursor to the emulator; the OSD never sets it. */
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
     io.IniFilename = nullptr; /* don't save layout */
 
     osd_set_scale(1.0f);
@@ -277,7 +279,11 @@ int osd_handle(SDL_Event event)
 /* ------------------------------------------------------------------ */
 void osd_present(int output_w, int output_h)
 {
-    if (!osd_visible || !osd_inited)
+    if (!osd_inited)
+        return;
+
+    /* Keep rendering after a close so a message can finish on screen. */
+    if (!osd_visible && !osd_core_message_active())
         return;
 
 #ifdef USE_SDL_SHADER_PIPELINE
@@ -303,8 +309,9 @@ void osd_present(int output_w, int output_h)
     ImGui_ImplSDL3_NewFrame();
 #endif
     ImGui::NewFrame();
-    if (!osd_core_build_ui())
+    if (osd_visible && !osd_core_build_ui())
         pending_close = true;
+    osd_core_draw_indicators();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #else
@@ -321,8 +328,9 @@ void osd_present(int output_w, int output_h)
     ImGui_ImplSDL3_NewFrame();
 #endif
     ImGui::NewFrame();
-    if (!osd_core_build_ui())
+    if (osd_visible && !osd_core_build_ui())
         pending_close = true;
+    osd_core_draw_indicators();
     ImGui::Render();
 #ifdef USE_SDL2_LIB
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_render);

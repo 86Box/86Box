@@ -367,6 +367,12 @@ qt_osd_is_visible(void)
     return g_visible;
 }
 
+bool
+qt_osd_needs_render(void)
+{
+    return g_visible || osd_core_message_active();
+}
+
 void
 qt_osd_toggle(void)
 {
