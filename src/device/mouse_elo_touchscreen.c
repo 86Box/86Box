@@ -22,10 +22,6 @@
  *            drivers/input/touchscreen/elo.c calls its "10-byte" format.
  *
  * TODO:
- *   - Calibration/Scaling "Offset,Numerator,Denominator" direct set/query
- *     sub-form (axis given in lowercase) is not implemented; only
- *     "set by range" (axis uppercase + Low/High words) and two-point
- *     auto-calibrate ('C2') are. Add if a real driver is found to need it.
  *   - Report/Filter/Timer/Key/Low Power commands are accept-and-echo stubs
  *     with no functional effect beyond storing the value.
  *   - Configuration ('g') dump/restore is not implemented (responds with
@@ -393,7 +389,7 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
                 }
                 int32_t offset = dev->cal_lo[axis];
                 int32_t denom  = dev->cal_hi[axis] - dev->cal_lo[axis];
-                resp[0]        = 0;
+                resp[0]        = data[0]; /* the axis, echoed back as the manual has it */
                 resp[1]        = offset & 0xff;
                 resp[2]        = (offset >> 8) & 0xff;
                 resp[3]        = 1;
@@ -484,8 +480,14 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
                     elo_process_mode_ascii(dev, data);
                 }
             }
-            resp[0] = dev->mode1;
-            resp[1] = dev->mode2;
+            /* The null in the first byte is the binary-form marker -- the same one
+               the set path above tests for.  Without it, a host that queries the
+               modes, flips a bit and sends the packet straight back (which is how
+               the manual says to change one) would have mode1's value read as that
+               discriminator and the rest parsed as ASCII mode letters. */
+            resp[0] = 0;
+            resp[1] = dev->mode1;
+            resp[2] = dev->mode2;
             break;
 
         case 'N':
@@ -563,7 +565,7 @@ elo_process_command(mouse_elo_t *dev, const uint8_t *body)
                 }
                 int32_t offset = dev->scale_lo[axis];
                 int32_t numer  = dev->scale_hi[axis] - dev->scale_lo[axis];
-                resp[0]        = 0;
+                resp[0]        = data[0]; /* the axis, echoed back as the manual has it */
                 resp[1]        = offset & 0xff;
                 resp[2]        = (offset >> 8) & 0xff;
                 resp[3]        = numer & 0xff;
