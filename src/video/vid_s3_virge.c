@@ -941,7 +941,13 @@ s3_virge_recalctimings(svga_t *svga)
 
     svga->hdisp_time = svga->hdisp;
 
-    svga->hdisp *= svga->dots_per_clock;
+    int char_width = svga->dots_per_clock;
+    if (char_width < 8)
+        char_width = svga->hdisp_old / (svga->crtc[1] + 1);
+    if (char_width <= 0)
+        char_width = 8;
+
+    svga->hdisp *= char_width;
 
     svga->vtotal = svga->crtc[6];
     if (svga->crtc[7] & 0x01)
