@@ -108,16 +108,34 @@ MicroTouch's existing device.
 | Phase | Deliverable | Status |
 |---|---|---|
 | 0 — bootstrap: read MicroTouch device, fetch/cross-reference Linux elo.c + SmartSet PDF, confirm integration points, stand up this repo | this file | done |
-| 1 — implement `mouse_elo_touchscreen.c` (packet parser, Touch/Mode/Calibration/Scaling/Parameter/Reset/ID/Ack), wire into build | — | next |
-| 2 — build via MSYS2 clang64, smoke-test device attaches/detaches cleanly in 86Box UI | — | pending |
-| 3 — DOS test: `Utilities/eloutil/COMDUMP.EXE` + `COMTEST.EXE` against the emulated COM port with no driver loaded, confirm raw bytes match protocol notes above | — | pending |
-| 4 — DOS test: install `Drivers/elodos.zip` driver + calibrate + verify touch tracks mouse/tablet input | — | pending |
-| 5 — Windows 9x test: install `Drivers/elo98.exe` or `win9x sw500085.exe`, verify touch works in Win98SE test VM | — | pending |
-| 6 — write up findings, README, protocol doc polish | — | pending |
+| 1 — implement `mouse_elo_touchscreen.c` (packet parser, Touch/Mode/Calibration/Scaling/Parameter/Reset/ID/Ack), wire into build | `src/device/mouse_elo_touchscreen.c` | done |
+| 2 — build via MSYS2 (ucrt64, not clang64 — see toolchain note below), smoke-test device attaches/detaches cleanly in 86Box UI | `build/regular/src/86Box.exe` | done |
+| 3 — DOS test: `Utilities/eloutil/COMDUMP.EXE` + `COMTEST.EXE` against the emulated COM port with no driver loaded, confirm raw bytes match protocol notes above | — | done — packets correctly framed/checksummed, tracked live during a drag |
+| 4 — DOS test: install `Drivers/elodos.zip` driver + calibrate + verify touch tracks mouse/tablet input | — | done — `ELODEV.EXE` 1.7d detects+self-tests, `ELOCALIB.EXE` 1.6c calibrates and tracks correctly (found and fixed two real bugs along the way: the Offset/Numerator/Denominator calibration/scaling set-form was a silent no-op, and Trim mode wasn't clamping) |
+| 5 — Windows 9x test: install `Drivers/elo98.exe` or `win9x sw500085.exe`, verify touch works in Win98SE test VM | — | done — MonitorMouse 03.00.00 installs without PnP involvement (expected, real hardware isn't PnP either) and reports "installed and working properly"; the Diagnostics tab's "Controller model" field shows "Not available" — confirmed via strings/RE on the driver binary that this is a generic placeholder baked into `monmouse.cpl` with no wire-protocol field backing it, not a gap on our end (real hardware would show the same) |
+| 6 — write up findings, README, protocol doc polish | — | in progress — upstream PR opened: https://github.com/86Box/86Box/pull/7849 |
 
 New surfaces (protocol mismatches, driver quirks, undocumented commands a
 real driver turns out to need) are expected to appear during phases 3–5, not
 a process failure — append them here when found.
+
+**Toolchain correction (Phase 2):** the workspace has MSYS2 `ucrt64`, not
+`clang64` as originally assumed. Build recipe:
+```
+export PATH="/c/msys64/ucrt64/bin:$PATH"
+cmake -B build/regular -S . -G Ninja -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_C_COMPILER=C:/msys64/ucrt64/bin/gcc.exe \
+  -DCMAKE_CXX_COMPILER=C:/msys64/ucrt64/bin/g++.exe \
+  -DDEV_BRANCH=OFF -DNEW_DYNAREC=OFF -DQT=ON \
+  -DCMAKE_PREFIX_PATH=C:/msys64/ucrt64/qt5-static \
+  -DQt5_DIR=C:/msys64/ucrt64/qt5-static/lib/cmake/Qt5 \
+  -DQt5LinguistTools_DIR=C:/msys64/ucrt64/qt5-static/lib/cmake/Qt5LinguistTools
+ninja -C build/regular src/86Box.exe
+```
+The resulting `86Box.exe` is fully statically linked (`objdump -p` shows only
+standard Windows/UCRT DLLs, no MinGW runtime or Qt DLLs) — a build folder is
+a portable, drop-in-and-run VM rig with no other files needed beyond the
+usual `roms/`, `nvr/`, and a `.cfg`.
 
 ## What the user supplies / has already supplied
 
