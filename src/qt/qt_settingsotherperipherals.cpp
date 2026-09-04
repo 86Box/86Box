@@ -25,6 +25,7 @@ extern "C" {
 #include <86box/isarom.h>
 #include <86box/isartc.h>
 #include <86box/unittester.h>
+#include <86box/softpower.h>
 #include <86box/novell_cardkey.h>
 }
 
@@ -64,6 +65,7 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     isartc_cfg_changed         = 0;
 
     unittester_cfg_changed     = 0;
+    softpower_cfg_changed      = 0;
     novell_keycard_cfg_changed = 0;
 
     onCurrentMachineChanged(machine);
@@ -96,11 +98,14 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     ui->pushButtonConfigureUT->setEnabled(unittester_enabled > 0);
     ui->checkBoxKeyCard->setEnabled(machineHasIsa);
     ui->pushButtonConfigureKeyCard->setEnabled(novell_keycard_enabled > 0);
+    ui->checkBoxSoftPower->setEnabled(machineHasIsa);
+    ui->pushButtonConfigureSoftPower->setEnabled((machineHasIsa && (softpower_enabled > 0)));
 
     ui->checkBoxISABugger->setChecked((machineHasIsa && (bugger_enabled > 0)) ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
     ui->checkBoxUnitTester->setChecked(unittester_enabled > 0 ? true : false);
     ui->checkBoxKeyCard->setChecked((machineHasIsa && (novell_keycard_enabled > 0)) ? true : false);
+    ui->checkBoxSoftPower->setChecked((machineHasIsa && (softpower_enabled > 0)) ? true : false);
 
     scRTC->removeRows();
     ui->comboBoxRTC->clear();
@@ -236,6 +241,8 @@ SettingsOtherPeripherals::changed()
     has_changed |= (postcard_enabled       != (ui->checkBoxPOSTCard->isChecked() ? 1 : 0));
     has_changed |= (unittester_enabled     != (ui->checkBoxUnitTester->isChecked() ? 1 : 0));
     has_changed |= unittester_cfg_changed;
+    has_changed |= (softpower_enabled       != (ui->checkBoxSoftPower->isChecked() ? 1 : 0));
+    has_changed |= softpower_cfg_changed;
     has_changed |= (novell_keycard_enabled != (ui->checkBoxKeyCard->isChecked() ? 1 : 0));
     has_changed |= novell_keycard_cfg_changed;
 
@@ -272,6 +279,7 @@ SettingsOtherPeripherals::save(int soft)
     bugger_enabled         = ui->checkBoxISABugger->isChecked() ? 1 : 0;
     postcard_enabled       = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
     unittester_enabled     = ui->checkBoxUnitTester->isChecked() ? 1 : 0;
+    softpower_enabled       = ui->checkBoxSoftPower->isChecked() ? 1 : 0;
     novell_keycard_enabled = ui->checkBoxKeyCard->isChecked() ? 1 : 0;
 
     /* ISA memory boards. */
@@ -432,6 +440,18 @@ void
 SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
 {
     unittester_cfg_changed |= DeviceConfig::ConfigureDevice(&unittester_device);
+}
+
+void
+SettingsOtherPeripherals::on_checkBoxSoftPower_stateChanged(int arg1)
+{
+    ui->pushButtonConfigureSoftPower->setEnabled(arg1 != 0);
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureSoftPower_clicked()
+{
+    softpower_cfg_changed |= DeviceConfig::ConfigureDevice(&softpower_device);
 }
 
 void

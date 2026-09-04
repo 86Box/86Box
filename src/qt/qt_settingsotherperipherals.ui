@@ -166,6 +166,38 @@
            </layout>
           </item>
 
+          <item row="4">
+           <layout class="QHBoxLayout" name="horizontalLayoutSoftPower">
+            <item>
+             <widget class="QCheckBox" name="checkBoxSoftPower">
+              <property name="text">
+               <string>Soft power card (PC Convertible-style)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacerSoftPower">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButtonConfigureSoftPower">
+              <property name="text">
+               <string>Configure</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
          </layout>
         </widget>
        </item>
@@ -518,6 +550,8 @@
   <tabstop>pushButtonConfigureUT</tabstop>
   <tabstop>checkBoxKeyCard</tabstop>
   <tabstop>pushButtonConfigureKeyCard</tabstop>
+  <tabstop>checkBoxSoftPower</tabstop>
+  <tabstop>pushButtonConfigureSoftPower</tabstop>
   <tabstop>comboBoxIsaMemCard1</tabstop>
   <tabstop>pushButtonConfigureIsaMemCard1</tabstop>
   <tabstop>comboBoxIsaMemCard2</tabstop>

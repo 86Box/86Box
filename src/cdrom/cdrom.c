@@ -2386,7 +2386,11 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 
     if (!mode) {
         const subchannel_t *subc = &dev->cached_subc;
-        cdrom_get_subchannel(dev, dev->seek_pos, 0);
+
+        if (dev->cached_sector == -1)
+            cdrom_get_subchannel(dev, dev->seek_pos, 0);
+        else
+            cdrom_get_subchannel(dev, dev->cached_sector, 0);
 
         buf[0] = subc->attr;
         buf[1] = subc->track;

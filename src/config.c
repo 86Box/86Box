@@ -2497,6 +2497,7 @@ load_other_peripherals(void)
     postcard_enabled       = !!ini_section_get_int(cat, "postcard_enabled", 0);
     unittester_enabled     = !!ini_section_get_int(cat, "unittester_enabled", 0);
     novell_keycard_enabled = !!ini_section_get_int(cat, "novell_keycard_enabled", 0);
+    softpower_enabled      = !!ini_section_get_int(cat, "softpower_enabled", 0);
 
     if (!bugger_enabled)
         ini_section_delete_var(cat, "bugger_enabled");
@@ -2509,6 +2510,9 @@ load_other_peripherals(void)
 
     if (!novell_keycard_enabled)
         ini_section_delete_var(cat, "novell_keycard_enabled");
+
+    if (!softpower_enabled)
+        ini_section_delete_var(cat, "softpower_enabled");
 
     // ISA RAM Boards
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
@@ -3950,6 +3954,11 @@ save_other_peripherals(void)
         ini_section_delete_var(cat, "novell_keycard_enabled");
     else
         ini_section_set_int(cat, "novell_keycard_enabled", novell_keycard_enabled);
+
+    if (softpower_enabled == 0)
+        ini_section_delete_var(cat, "softpower_enabled");
+    else
+        ini_section_set_int(cat, "softpower_enabled", softpower_enabled);
 
     // ISA RAM Boards
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
