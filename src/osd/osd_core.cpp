@@ -256,33 +256,44 @@ static char osd_last_mount[VIEW_MEDIA_TYPE][OSD_PATH_CAPACITY];
 /* Does the path exist, and hold what this view browses for? */
 static bool path_suits_view(OsdView view, char *path)
 {
-    if ((path == nullptr) || (path[0] == '\0'))
+    if (path == nullptr)
         return false;
 
     /* Check if we are on a file (image) or directory (VISO folder) */
-    return (view == VIEW_CD_FOLDER) ? (plat_dir_check(path) != 0)
-                                    : (plat_file_check(path) != 0);
+    return (view == VIEW_CD_FOLDER) ? plat_dir_check(path) : plat_file_check(path);
 }
 
-/* Get the start directory from currently mounted image */
-static const char *browser_initial_path(OsdView view)
+/* Get image path from current mount, last mount in view or history */
+static char *
+last_known_path(OsdView view, char *mounted, char **history)
 {
-    char *path = nullptr;
+    char *candidates[] = { mounted, osd_last_mount[view], history[0] };
 
+    for (char *candidate : candidates)
+        if (path_suits_view(view, candidate))
+            return candidate;
+
+    return nullptr;
+}
+
+static const char *
+browser_initial_path(OsdView view)
+{
     switch (view) {
-        case VIEW_FILE_FLOPPY: path = floppyfns[0];               break;
+        case VIEW_FILE_FLOPPY:
+            return last_known_path(view, floppyfns[0], fdd_image_history[0]);
         case VIEW_FILE_CD:
-        case VIEW_CD_FOLDER:   path = cdrom[0].image_path;        break;
-        case VIEW_FILE_RDISK:  path = rdisk_drives[0].image_path; break;
-        case VIEW_FILE_CART:   path = cart_fns[0];                break;
-        case VIEW_FILE_MO:     path = mo_drives[0].image_path;    break;
-        default:                                                  break;
+        case VIEW_CD_FOLDER:
+            return last_known_path(view, cdrom[0].image_path, cdrom[0].image_history);
+        case VIEW_FILE_RDISK:
+            return last_known_path(view, rdisk_drives[0].image_path, rdisk_drives[0].image_history);
+        case VIEW_FILE_CART:
+            return last_known_path(view, cart_fns[0], cart_image_history[0]);
+        case VIEW_FILE_MO:
+            return last_known_path(view, mo_drives[0].image_path, mo_drives[0].image_history);
+        default:
+            return nullptr;
     }
-
-    if (!path_suits_view(view, path))
-        path = osd_last_mount[view];
-
-    return path_suits_view(view, path) ? path : nullptr;
 }
 
 /* ------------------------------------------------------------------ */
