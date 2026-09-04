@@ -102,9 +102,10 @@ typedef struct mcd_t {
     int      change;
     int      data;
     uint8_t  stat;
-    uint8_t  buf[RAW_SECTOR_SIZE];
+    uint8_t  buf[65536];
     int      buf_count;
     int      buf_idx;
+    int      real_count;
     uint8_t  cmdbuf[32];
     int      cmdbuf_count;
     int      cmdrd_count;
@@ -228,6 +229,7 @@ mitsumi_abort_read(mcd_t *dev)
         dma_set_drq(dev->dma, 0);
     dev->readcount  = 0;
     dev->buf_count  = 0;
+    dev->real_count = 0;
     dev->buf_idx    = 0;
     dev->readbuflen = 0;
     dev->data       = 0;
@@ -439,7 +441,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     if (dev->cdrom_dev->seek_pos > dev->cdrom_dev->cdrom_capacity) {
         return -2;
     }
-    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 3 : 2, (dev->mode & 0x80) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
+    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 3 : 2, (dev->mode & 0x40) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
 
     mitsumi_cdrom_log("Mitsumi read sector @ %u, ret = %d, readlen = %u, blocklen = %u\n",
                        dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev));
@@ -450,20 +452,14 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
                    (bin2bcd((next_msf >> 8) & 0xff) << 8) |
                    bin2bcd(next_msf & 0xff);
     dev->buf_idx   = 0;
-    if (dev->mode & 0x80) {
-        if (!(dev->mode & MODE_DATA)) {
-            // Skip the main header.
-            offset = 16;
-        }
-    }
 
-    available      = MIN(dev->readbuflen, RAW_SECTOR_SIZE);
-    offset         = MIN(offset, available);
-    dev->buf_idx   = offset;
-    available     -= offset;
-    if (!(dev->mode & 0x80))
+    available       = MIN(dev->readbuflen, RAW_SECTOR_SIZE);
+    dev->buf_idx    = offset;
+    available      -= offset;
+    if (!(dev->mode & MODE_DATA))
         available = MIN(available, COOKED_SECTOR_SIZE);
-    dev->buf_count = MIN(mitsumi_dma_length(dev), available);
+    dev->real_count = available;
+    dev->buf_count  = MIN(mitsumi_dma_length(dev), available);
     if (dev->buf_count == 0)
         return -3;
 
@@ -559,20 +555,29 @@ mitsumi_dma_callback(void *priv)
     int result;
 
     if (!dev->buf_count) {
-        result = mitsumi_cdrom_read_sector(dev, 0);
-        if (result <= 0) {
-            if (result < 0) {
-                dev->cur_sense = abs(result);
-                dev->stat      = mitsumi_error_status(dev, dev->cur_sense);
-                mitsumi_abort_read(dev);
-                mitsumi_set_irq(dev, IRQ_ERROR);
-            } else {
-                mitsumi_abort_read(dev);
+        const int buf_len = mitsumi_dma_length(dev);
+        if (dev->real_count > buf_len) {
+            dev->real_count -= buf_len;
+            memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
+            dev->buf_idx     = 0;
+            dev->buf_count   = MIN(dev->real_count, buf_len);
+            mitsumi_cdrom_log("Mitsum CD-ROM: [DMA] Moved the next %i bytes into the buffer.\n", dev->buf_count);
+        } else {
+            result = mitsumi_cdrom_read_sector(dev, 0);
+            if (result <= 0) {
+                if (result < 0) {
+                    dev->cur_sense = abs(result);
+                    dev->stat      = mitsumi_error_status(dev, dev->cur_sense);
+                    mitsumi_abort_read(dev);
+                    mitsumi_set_irq(dev, IRQ_ERROR);
+                } else {
+                    mitsumi_abort_read(dev);
+                }
+                return;
             }
-            return;
+            if (dev->enable_dma)
+                dma_set_drq(dev->dma, 1);
         }
-        if (dev->enable_dma)
-            dma_set_drq(dev->dma, 1);
     }
 
     result = mitsumi_dma_transfer(dev);
@@ -649,18 +654,27 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 dev->buf_count--;
                 if (!dev->buf_count) {
                     mitsumi_set_irq(dev, IRQ_DATACOMP);
-                    /*
-                       Do PIO transfers on a timer, fixes the Windows 9x driver in
-                       IRQ mode.
-                     */
-                    if (dev->readcount > 0) {
-                        timer_set_delay_u64(&dev->pio_timer,
-                                            ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                                             MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
-                        mitsumi_cdrom_log("Mitsumi PIO timer started at sector %u.\n", dev->cdrom_dev->seek_pos);
+                    const int buf_len = mitsumi_dma_length(dev);
+                    if (dev->real_count > buf_len) {
+                        dev->real_count -= buf_len;
+                        memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
+                        dev->buf_idx     = 0;
+                        dev->buf_count   = MIN(dev->real_count, buf_len);
+                        mitsumi_cdrom_log("Mitsum CD-ROM: [PIO] Moved the next %i bytes into the buffer.\n", dev->buf_count);
                     } else {
-                        mitsumi_cdrom_log("Mitsumi PIO read complete at sector %u.\n", dev->cdrom_dev->seek_pos);
-                        dev->cur_toc_track = INT32_MIN;
+                        /*
+                           Do PIO transfers on a timer, fixes the Windows 9x driver in
+                           IRQ mode.
+                         */
+                        if (dev->readcount > 0) {
+                            timer_set_delay_u64(&dev->pio_timer,
+                                                ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
+                                                                                 MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+                            mitsumi_cdrom_log("Mitsumi PIO timer started at sector %u.\n", dev->cdrom_dev->seek_pos);
+                        } else {
+                            mitsumi_cdrom_log("Mitsumi PIO read complete at sector %u.\n", dev->cdrom_dev->seek_pos);
+                            dev->cur_toc_track = INT32_MIN;
+                        }
                     }
                 }
                 return ret;
