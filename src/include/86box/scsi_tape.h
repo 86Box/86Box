@@ -218,6 +218,10 @@ extern void tape_insert(tape_t *dev);
 extern void tape_global_init(void);
 extern void tape_hard_reset(void);
 
+/* Bus-agnostic runtime mount/eject, valid for every tape bus. */
+extern int  tape_drive_mount(int i, const char *path, int read_only);
+extern void tape_drive_eject(int i);
+
 extern void tape_reset(scsi_common_t *sc);
 extern int  tape_is_empty(const uint8_t id);
 extern void tape_load(const tape_t *dev, const char *fn, const int skip_insert);

@@ -30,6 +30,9 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/lpt.h>
+#include <86box/lpt_ditto.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
 #include <86box/fdd_tape.h>
 #include <86box/plat.h>
 #include <86box/tape_qic117.h>
@@ -847,6 +850,143 @@ ditto_cartridge(int value)
             return &ditto_cartridges[i];
 
     return &ditto_cartridges[0];
+}
+
+/* --------------------------------------------------------------------- */
+/* Tape drives tab mappings (shared with the settings UI)                */
+/* --------------------------------------------------------------------- */
+
+/* The tape_drive_types[] indices the three Ditto models live at; the
+   DITTO_MODEL_LIST order matches their order there. */
+#define DITTO_TAPE_TYPE_BASE 5
+
+/* The single live drive, and the tape_drives[] entry driving it (-1 when
+   configured from the legacy per-device section, or when not attached). */
+static ditto_t *ditto_live          = NULL;
+static int      ditto_live_tape_idx = -1;
+
+static void ditto_image_sync(ditto_t *dev);
+static void ditto_image_load(ditto_t *dev, const char *fn);
+
+int
+ditto_model_from_tape_type(uint32_t type)
+{
+    if ((type >= DITTO_TAPE_TYPE_BASE) &&
+        (type < (DITTO_TAPE_TYPE_BASE + (int) DITTO_MODELS)))
+        return (int) (type - DITTO_TAPE_TYPE_BASE);
+
+    return -1;
+}
+
+int
+ditto_tape_type_from_model(int model)
+{
+    if ((model >= 0) && (model < (int) DITTO_MODELS))
+        return (DITTO_TAPE_TYPE_BASE + model);
+
+    return -1;
+}
+
+/* Cartridges and tape_types[] media share their names, so the mapping
+   goes by name and survives table reordering on either side. */
+int
+ditto_cartridge_from_medium(uint32_t medium)
+{
+    if (medium >= KNOWN_TAPE_TYPES)
+        return -1;
+
+    for (size_t i = 0; i < DITTO_CARTRIDGES; i++)
+        if (!strcmp(ditto_cartridges[i].name, tape_types[medium].name))
+            return ditto_cartridges[i].value;
+
+    return -1;
+}
+
+int
+ditto_tape_medium_from_cartridge(int value)
+{
+    for (size_t i = 0; i < DITTO_CARTRIDGES; i++) {
+        if (ditto_cartridges[i].value == value) {
+            for (uint32_t m = 0; m < KNOWN_TAPE_TYPES; m++)
+                if (!strcmp(ditto_cartridges[i].name, tape_types[m].name))
+                    return (int) m;
+            break;
+        }
+    }
+
+    return -1;
+}
+
+/* The tape_drives[] entry configuring the given parallel port, if any. */
+static int
+ditto_find_tape_entry(int port)
+{
+    for (uint8_t c = 0; c < TAPE_NUM; c++) {
+        if ((tape_drives[c].bus_type == TAPE_BUS_LPT) &&
+            (tape_drives[c].lpt_port == port))
+            return (int) c;
+    }
+
+    return -1;
+}
+
+/* --------------------------------------------------------------------- */
+/* Runtime cartridge swap (used by the media menu in the UI)             */
+/* --------------------------------------------------------------------- */
+
+void
+lpt_ditto_eject(void)
+{
+    ditto_t *dev = ditto_live;
+
+    if (dev == NULL)
+        return;
+
+    ditto_image_sync(dev);
+    ditto_image_close(dev);
+
+    dev->qic_status &= ~QIC_STATUS_CARTRIDGE_PRESENT;
+
+    if ((ditto_live_tape_idx >= 0) && (tape_drives[ditto_live_tape_idx].image_path[0] != 0x00))
+        tape_drives[ditto_live_tape_idx].image_path[0] = 0x00;
+
+    ditto_log("Ditto: cartridge ejected\n");
+}
+
+void
+lpt_ditto_load(const char *path, int read_only)
+{
+    ditto_t *dev = ditto_live;
+
+    if ((dev == NULL) || (path == NULL))
+        return;
+
+    /* A wp:// prefix on the path means the same as the flag. */
+    if (strstr(path, "wp://") == path) {
+        path += 5;
+        read_only = 1;
+    }
+
+    dev->readonly = !!read_only;
+    ditto_image_load(dev, path);
+
+    if (dev->image_loaded) {
+        dev->qic_status |= QIC_STATUS_CARTRIDGE_PRESENT;
+        if (dev->readonly)
+            dev->qic_status |= QIC_STATUS_WRITE_PROTECT;
+        else
+            dev->qic_status &= ~QIC_STATUS_WRITE_PROTECT;
+    } else
+        dev->qic_status &= ~QIC_STATUS_CARTRIDGE_PRESENT;
+
+    if (ditto_live_tape_idx >= 0) {
+        strncpy(tape_drives[ditto_live_tape_idx].image_path, path, MAX_IMAGE_PATH_LEN - 1);
+        tape_drives[ditto_live_tape_idx].image_path[MAX_IMAGE_PATH_LEN - 1] = 0x00;
+        tape_drives[ditto_live_tape_idx].read_only = dev->readonly;
+    }
+
+    ditto_log("Ditto: loaded %s%s\n", path,
+              dev->image_loaded ? (dev->readonly ? " (read-only)" : "") : " (failed)");
 }
 
 /* Every byte the image holds once the ECC sectors are counted in too. */
@@ -2982,7 +3122,7 @@ ditto_connect(ditto_t *dev)
     if ((dev->proto >= DITTO_PROTO_EPP8) && !dev->epp_warned) {
         dev->epp_warned = 1;
         ditto_log("Ditto: EPP selected; the port %s carry EPP cycles\n",
-                  lpt_port_offers_epp(dev->lpt) ? "does" : "DOES NOT");
+                  ((lpt_t *) dev->lpt)->epp ? "does" : "DOES NOT");
     }
 }
 
@@ -3344,28 +3484,53 @@ ditto_init(UNUSED(const device_t *info))
     dev->unit     = 0;
     dev->max_proto = DITTO_PROTO_EPP8;
 
-    dev->readonly = device_get_config_int("writeprot");
+    /*
+       A tape_drives[] entry on the LPT bus (the Tape drives tab) takes
+       priority; the legacy per-device configuration section is honored
+       only in its absence, so old configs keep booting.
+     */
+    const int port     = device_get_instance() - 1;
+    const int tape_idx = ditto_find_tape_entry(port);
+
+    int         tape_model = -1;
+    int         tape_cart  = -1;
+    int         tape_ro    = -1;
+    const char *tape_fn    = NULL;
+
+    if (tape_idx >= 0) {
+        tape_model = ditto_model_from_tape_type(tape_drives[tape_idx].type);
+        tape_cart  = ditto_cartridge_from_medium(tape_drives[tape_idx].medium_type);
+        tape_ro    = tape_drives[tape_idx].read_only;
+        tape_fn    = tape_drives[tape_idx].image_path;
+    }
+
+    dev->readonly = (tape_ro >= 0) ? !!tape_ro : device_get_config_int("writeprot");
 
     /*
-       The drive's own identity, which the cartridge does not change. Set
-       before the geometry, which fills in the parts the cartridge does
-       decide - the extra length bit and the rate the drive comes up at.
+        The drive's own identity, which the cartridge does not change. Set
+        before the geometry, which fills in the parts the cartridge does
+        decide - the extra length bit and the rate the drive comes up at.
      */
-    model = ditto_model(device_get_config_int("model"));
+    model = ditto_model((tape_model >= 0) ? tape_model : device_get_config_int("model"));
 
     dev->qic_vendor_id   = model->vendor_id;
     dev->qic_rom_version = model->rom_version;
     dev->qic_config      = QIC_CONFIG_80;
 
-    dev->capacity = ditto_cartridge(device_get_config_int("capacity"))->value;
+    dev->capacity = ditto_cartridge((tape_cart >= 0) ? tape_cart : device_get_config_int("capacity"))->value;
 
     /* The geometry has to be settled before an image is measured
        against it. */
     ditto_set_geometry(dev);
 
-    fn = device_get_config_string("image");
-    if (fn != NULL)
-        strncpy(dev->image_fn, fn, sizeof(dev->image_fn) - 1);
+    if (tape_idx >= 0) {
+        if (tape_fn != NULL)
+            strncpy(dev->image_fn, tape_fn, sizeof(dev->image_fn) - 1);
+    } else {
+        fn = device_get_config_string("image");
+        if (fn != NULL)
+            strncpy(dev->image_fn, fn, sizeof(dev->image_fn) - 1);
+    }
 
     dev->buffer = calloc(1, DITTO_BUFFER_SIZE);
     if (dev->buffer == NULL) {
@@ -3406,11 +3571,15 @@ ditto_init(UNUSED(const device_t *info))
                           ditto_read_status, NULL,
                           ditto_epp_write_data, ditto_epp_request_read, dev);
     if (dev->lpt == NULL) {
-        /* Another device already has this port. */
+        /* Another device already has this port, or the port is absent. */
+        ditto_log("Ditto: port %i unavailable or already claimed, not attaching\n", port);
         free(dev->buffer);
         free(dev);
         return NULL;
     }
+
+    ditto_live          = dev;
+    ditto_live_tape_idx = tape_idx;
 
     ditto_log("Ditto: attached as %s (vendor ID %04X, ROM %02X), protocol "
               "ceiling %s, image \"%s\"%s\n",
@@ -3425,6 +3594,11 @@ static void
 ditto_close(void *priv)
 {
     ditto_t *dev = (ditto_t *) priv;
+
+    if (ditto_live == dev) {
+        ditto_live          = NULL;
+        ditto_live_tape_idx = -1;
+    }
 
     timer_disable(&dev->busy_timer);
     ditto_image_close(dev);
