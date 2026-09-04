@@ -50,6 +50,9 @@ private slots:
     void on_checkBoxKeyCard_stateChanged(int arg1);
     void on_pushButtonConfigureKeyCard_clicked();
 
+    void on_checkBoxSoftPower_stateChanged(int arg1);
+    void on_pushButtonConfigureSoftPower_clicked();
+
 private:
     Ui::SettingsOtherPeripherals *ui;
     int                           machineId { 0 };
@@ -59,6 +62,7 @@ private:
     int                           isartc_cfg_changed         = 0;
     int                           unittester_cfg_changed     = 0;
     int                           novell_keycard_cfg_changed = 0;
+    int                           softpower_cfg_changed      = 0;
 
     SettingsCompleter            *scRTC;
 
