@@ -36,7 +36,6 @@
 #include <stdexcept>
 
 #include <QApplication>
-#include <QClipboard>
 
 #include <QScreen>
 #include <QMessageBox>
@@ -529,8 +528,7 @@ take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i)
     }
 
     QImage image(screenshot_rgb, sw, sh, sw * 3, QImage::Format_RGB888);
-    QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setImage(image, QClipboard::Clipboard);
+    util::copyImageToClipboard(image);
     monitors[i].mon_screenshots_raw_clipboard--;
 }
 

@@ -562,10 +562,10 @@ ali5229_ide_handler(ali1543_t *dev)
 {
     uint32_t ch = 0;
 
-    uint16_t native_base_pri_addr = (dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8) & 0xfffe;
-    uint16_t native_side_pri_addr = (dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8) & 0xfffe;
-    uint16_t native_base_sec_addr = (dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8) & 0xfffe;
-    uint16_t native_side_sec_addr = (dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8) & 0xfffe;
+    uint16_t native_base_pri_addr = (dev->ide_conf[0x10] | dev->ide_conf[0x11] << 8) & 0xfffe;
+    uint16_t native_side_pri_addr = ((dev->ide_conf[0x14] | dev->ide_conf[0x15] << 8) & 0xfffe) | 0x0002;
+    uint16_t native_base_sec_addr = (dev->ide_conf[0x18] | dev->ide_conf[0x19] << 8) & 0xfffe;
+    uint16_t native_side_sec_addr = ((dev->ide_conf[0x1c] | dev->ide_conf[0x1d] << 8) & 0xfffe) | 0x0002;
 
     uint16_t comp_base_pri_addr = 0x01f0;
     uint16_t comp_side_pri_addr = 0x03f6;

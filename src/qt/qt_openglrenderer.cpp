@@ -20,13 +20,13 @@
  */
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
+#include "qt_util.hpp"
 
 extern MainWindow *main_window;
 
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QWindow>
-#include <QClipboard>
 #include <QPainter>
 #include <QWidget>
 #include <QEvent>
@@ -1819,8 +1819,7 @@ OpenGLRenderer::render()
 
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setImage(image.IMG_FLIPPED, QClipboard::Clipboard);
+        util::copyImageToClipboard(image.IMG_FLIPPED);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
         free(rgb);
     }

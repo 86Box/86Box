@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-28 22:12+0000\n"
+"PO-Revision-Date: 2026-09-03 20:04+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
@@ -482,13 +482,13 @@ msgid "&Mouse"
 msgstr "マウス(&M)"
 
 msgid "Tablet:"
-msgstr ""
+msgstr "タブレット:"
 
 msgid "Tablet"
-msgstr ""
+msgstr "タブレット"
 
 msgid "&Tablet"
-msgstr ""
+msgstr "タブレット(&T)"
 
 msgid "Tablet (&Crosshair)"
 msgstr ""
@@ -854,7 +854,7 @@ msgid "Input devices"
 msgstr "入力デバイス"
 
 msgid "Input &device"
-msgstr ""
+msgstr "入力デバイス(&D)"
 
 msgid "Sound"
 msgstr "サウンド"
@@ -1486,16 +1486,17 @@ msgid "ACP&I shutdown"
 msgstr "ACPIシャットダウン(&I)"
 
 msgid "Power off"
-msgstr ""
+msgstr "電源を切る"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "電源を切る(&O)…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "電源を切る(&O)"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
-msgstr ""
+msgstr "エミュレート中のマシンの電源を切ると、データが失われる可能性があります。続行"
+"してもよろしいですか？"
 
 msgid "Hard disk (%1)"
 msgstr "ハードディスク (%1)"
@@ -2997,7 +2998,7 @@ msgid "No Vulkan-capable physical devices found."
 msgstr ""
 
 msgid "librashader not found. Shaders will not be available."
-msgstr ""
+msgstr "librashaderが見つからないため、シェーダーは利用できません。"
 
 msgid "Vulkan device lost."
 msgstr "Vulkan デバイスが失われました。"
@@ -3262,7 +3263,7 @@ msgid "Export EDID"
 msgstr "EDIDのエクスポート"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "EDIDファイル「%s」は無効です。"
 
 msgid "EDID file \"%s\" is too large."
 msgstr "EDIDファイル「%s」が大きすぎます。"
@@ -3301,10 +3302,10 @@ msgid "Fast forward"
 msgstr "早送り"
 
 msgid "&Non-maskable interrupt"
-msgstr ""
+msgstr "マスク不能割り込みを送信(&N)"
 
 msgid "Non-maskable interrupt"
-msgstr ""
+msgstr "マスク不能割り込みを送信"
 
 msgid "To change the system directory, stop all running machines."
 msgstr "システムディレクトリを変更するには、稼働中のマシンをすべて停止してください。"
@@ -3334,12 +3335,12 @@ msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "CD-ROMイメージ「%s」を読み込めません。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr ""
-"画像「%s」を読み込めません：Daemon Tools MDS v2 および MDX "
-"イメージのサポートに必要な %1 が見つかりません。"
+msgstr "イメージ「%s」を読み込めません：Daemon Tools MDS "
+"v2およびMDXイメージのサポートに必要な%1が見つかりません。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
-msgstr ""
+msgstr "イメージ「%s」を読み込めません：Aaru形式イメージのサポートに必要な%1が見つか"
+"りません。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVDイメージ「%s」は、DVDメディアに対応していないドライブに挿入されたため、無"

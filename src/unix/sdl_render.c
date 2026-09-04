@@ -459,6 +459,7 @@ sdl_reinit_texture(void)
 
 #ifdef USE_SDL2_LIB
 #else
+    SDL_SetTextureBlendMode(sdl_tex, SDL_BLENDMODE_NONE);
     SDL_SetTextureScaleMode(sdl_tex, video_filter_method ? SDL_SCALEMODE_LINEAR : SDL_SCALEMODE_NEAREST);
 #endif
 

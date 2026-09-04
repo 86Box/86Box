@@ -443,6 +443,7 @@ et3000_recalctimings(svga_t *svga)
             case 0x00:
                 svga->render = svga_render_4bpp_highres;
                 svga->hdisp *= 2;
+                svga->dots_per_clock *= 2;
                 break;
             case 0x20:
                 svga->render = svga_render_2bpp_highres;

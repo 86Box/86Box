@@ -18,7 +18,6 @@
  */
 #include "qt_softwarerenderer.hpp"
 #include <QApplication>
-#include <QClipboard>
 #include <QPainter>
 #include <QResizeEvent>
 #include <QScreen>
@@ -160,8 +159,7 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         else
             image = pixmap.toImage().scaled(qs * win_scale, Qt::IgnoreAspectRatio,
                                             Qt::SmoothTransformation);
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setImage(image, QClipboard::Clipboard);
+        util::copyImageToClipboard(image);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
     }
     if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {

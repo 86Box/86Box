@@ -461,9 +461,11 @@ oti_recalctimings(svga_t *svga)
     if (svga->bpp == 16) {
         svga->render = svga_render_16bpp_highres;
         svga->hdisp >>= 1;
+        svga->dots_per_clock /= 2;
     } else if (svga->bpp == 15) {
         svga->render = svga_render_15bpp_highres;
         svga->hdisp >>= 1;
+        svga->dots_per_clock /= 2;
     }
 }
 

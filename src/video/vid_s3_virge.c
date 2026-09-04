@@ -920,15 +920,15 @@ s3_virge_recalctimings(svga_t *svga)
         svga_set_ramdac_type(svga, (svga->seqregs[0x1b] & 0x10) ? RAMDAC_8BIT : RAMDAC_6BIT);
         svga->lut_map = !!(svga->seqregs[0x1b] & 0x8);
     }
-    if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
-        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
-        svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
-    }
 
-    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0x0c) == 0x0c)) {
-        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
-        if (!svga->scrblank && svga->attr_palette_enable)
-            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+    if (!svga->scrblank) {
+        if (svga->crtc[0x43] & 0x80)
+            /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+                svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+
+        if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0x0c) == 0x0c))
+            /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+                svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
     }
 
     svga->htotal = svga->crtc[0] + ((svga->crtc[0x5d] & 0x01) ? 0x100 : 0);

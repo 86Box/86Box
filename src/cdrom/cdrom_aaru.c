@@ -564,6 +564,17 @@ aaru_image_has_audio(UNUSED(const void *local))
     return 0;
 }
 
+static int
+aaru_image_has_data(UNUSED(const void *local))
+{
+    aaru_image_t *img = (aaru_image_t *) local;
+    for (unsigned int i = 0; i < img->track_size; i++) {
+        if (img->track_entries[i].type != kTrackTypeAudio)
+            return 1;
+    }
+    return 0;
+}
+
 static void
 aaru_image_close(void *local)
 {
@@ -632,6 +643,7 @@ static const cdrom_ops_t aaru_image_ops = {
     aaru_image_read_dvd_structure,
     aaru_image_is_dvd,
     aaru_image_has_audio,
+    aaru_image_has_data,
     NULL,
     aaru_image_close,
     NULL

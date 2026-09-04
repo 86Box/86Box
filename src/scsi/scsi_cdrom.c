@@ -4007,10 +4007,10 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         dev->buffer[idx++] = 34;
 
                         ide_padstr8(dev->buffer + idx,  8,
-                                    cdrom_get_vendor(dev->drv->type));    /* Vendor */
+                                    cdrom_get_inquiry_vendor(dev->drv->type));    /* Vendor */
                         idx += 8;
 
-                        cdrom_get_model(dev->drv->type, model, dev->id);
+                        cdrom_get_inquiry_model(dev->drv->type, model, dev->id);
                         ide_padstr8(dev->buffer + idx, 16, model);                               /* Product */
                         idx += 16;
 
@@ -4054,8 +4054,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 }
 
                 ide_padstr8(dev->buffer + 8,   8,
-                            cdrom_get_vendor(dev->drv->type));      /* Vendor */
-                cdrom_get_model(dev->drv->type, model, dev->id);
+                            cdrom_get_inquiry_vendor(dev->drv->type));      /* Vendor */
+                cdrom_get_inquiry_model(dev->drv->type, model, dev->id);
                 ide_padstr8(dev->buffer + 16, 16, model);                                 /* Product */
                 ide_padstr8(dev->buffer + 32,  4,
                             cdrom_get_revision(dev->drv->type));    /* Revision */
