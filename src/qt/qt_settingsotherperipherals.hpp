@@ -26,6 +26,15 @@ private slots:
     void on_comboBoxRTC_currentIndexChanged(int index);
     void on_pushButtonConfigureRTC_clicked();
 
+    void on_comboBoxMcaMemCard1_currentIndexChanged(int index);
+    void on_pushButtonConfigureMcaMemCard1_clicked();
+    void on_comboBoxMcaMemCard2_currentIndexChanged(int index);
+    void on_pushButtonConfigureMcaMemCard2_clicked();
+    void on_comboBoxMcaMemCard3_currentIndexChanged(int index);
+    void on_pushButtonConfigureMcaMemCard3_clicked();
+    void on_comboBoxMcaMemCard4_currentIndexChanged(int index);
+    void on_pushButtonConfigureMcaMemCard4_clicked();
+
     void on_comboBoxIsaMemCard1_currentIndexChanged(int index);
     void on_pushButtonConfigureIsaMemCard1_clicked();
     void on_comboBoxIsaMemCard2_currentIndexChanged(int index);
@@ -57,6 +66,7 @@ private:
     Ui::SettingsOtherPeripherals *ui;
     int                           machineId { 0 };
 
+    int                           mcamem_cfg_changed[4]      = { 0, 0, 0, 0 };
     int                           isamem_cfg_changed[4]      = { 0, 0, 0, 0 };
     int                           isarom_cfg_changed[4]      = { 0, 0, 0, 0 };
     int                           isartc_cfg_changed         = 0;
@@ -66,6 +76,7 @@ private:
 
     SettingsCompleter            *scRTC;
 
+    SettingsCompleter            *scMcaMemCard[4];
     SettingsCompleter            *scIsaMemCard[4];
     SettingsCompleter            *scIsaRomCard[4];
 };
