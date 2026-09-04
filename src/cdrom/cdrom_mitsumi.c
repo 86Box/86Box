@@ -22,7 +22,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <limits.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -30,10 +29,8 @@
 #include <86box/pic.h>
 #include <86box/dma.h>
 #include <86box/cdrom.h>
-#include <86box/cdrom_interface.h>
 #include <86box/cdrom_mitsumi.h>
 #include <86box/plat.h>
-#include <86box/sound.h>
 #include <86box/timer.h>
 
 #define RAW_SECTOR_SIZE    2352
@@ -188,20 +185,22 @@ mitsumi_set_irq(const mcd_t *dev, const uint8_t mask)
 }
 
 static uint8_t
-mitsumi_status(const mcd_t *dev)
+mitsumi_status(mcd_t *dev)
 {
     uint8_t status = 0;
 
     if (dev->tray_open)
         status |= STAT_OPEN;
-    if (mitsumi_cdrom_is_ready(dev)) {
+    if (mitsumi_cdrom_is_ready(dev) && (dev->change != 2)) {
         status |= STAT_READY | STAT_SERVO;
         if ((dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO) &&
             !cdrom_has_data(dev->cdrom_dev))
             status |= STAT_DISK_CDDA;
     }
-    if (dev->change)
+    if (dev->change > 0) {
         status |= STAT_CHANGE;
+        dev->change--;
+    }
     if (dev->cdrom_dev && (dev->cdrom_dev->cd_status == CD_STATUS_PLAYING))
         status |= STAT_PLAY_CDDA;
 
@@ -211,7 +210,7 @@ mitsumi_status(const mcd_t *dev)
 static uint8_t
 mitsumi_error_status(const mcd_t *dev, const int sense)
 {
-    uint8_t status = mitsumi_status(dev) | STAT_ERROR;
+    uint8_t status = mitsumi_status((mcd_t*) dev) | STAT_ERROR;
 
     /* Invalid addresses/parameters are command errors.  Media and sector
        format failures are read errors and must not set COMMAND CHECK. */
@@ -278,9 +277,10 @@ mitsumi_cdrom_insert(void *priv)
 
     mitsumi_abort_read(dev);
     cdrom_stop(dev->cdrom_dev);
-    dev->change    = 1;
+    dev->change    = (mitsumi_cdrom_is_ready(dev)) ? 2 : 1;
     dev->tray_open = !mitsumi_cdrom_is_ready(dev);
     dev->stat      = mitsumi_status(dev);
+    dev->change    = (mitsumi_cdrom_is_ready(dev)) ? 2 : 1;
     dev->cmdbuf_count = 0;
     picintc(1 << dev->irq);
 }
@@ -396,7 +396,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 
     dev->data    = 0;
 
-    if (!mitsumi_cdrom_is_ready(dev))
+    if (!mitsumi_cdrom_is_ready(dev) || (dev->change > 0))
         return -1;
 
     if (dev->drvmode == DRV_MODE_CDDA) {
@@ -615,11 +615,6 @@ mitsumi_dma_callback(void *priv)
         dev->stat      = mitsumi_error_status(dev, dev->cur_sense);
         mitsumi_abort_read(dev);
         mitsumi_set_irq(dev, IRQ_ERROR);
-    } else if (result < 0) {
-        dev->cur_sense = abs(result);
-        dev->stat      = mitsumi_error_status(dev, dev->cur_sense);
-        mitsumi_abort_read(dev);
-        mitsumi_set_irq(dev, IRQ_ERROR);
     }
 }
 
@@ -755,7 +750,6 @@ static void
 mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
 {
     mcd_t   *dev      = (mcd_t *) priv;
-    int      read_res = -1;
 
     mitsumi_cdrom_log("Mitsumi CD-ROM OUT=%03x, val=%02x\n", port, val);
     switch (port & 3) {
@@ -779,6 +773,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                         break;
                     case CMD_SET_VOL:
                         switch (dev->cmdrd_count) {
+                            default:
+                                break;
                             case 3:
                                 dev->cdrom_vols.att0 = val;
                                 break;
@@ -848,7 +844,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     case CMD_READ1X:
                     case CMD_READ2X:
                         switch (dev->cmdrd_count) {
-                            case 0:
+                            case 0: {
                                 dev->readcount |= val;
                                 dev->audio_end_msf |= val;
                                 if (!dev->readcount && (dev->enable_dma || dev->early_status)) {
@@ -860,7 +856,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                     /* Set the end MSF to 99:59.74. */
                                     dev->audio_end_msf = 0x00995974;
                                 }
-                                read_res = mitsumi_cdrom_read_sector(dev, 1);
+                                const int read_res = mitsumi_cdrom_read_sector(dev, 1);
                                 if (dev->enable_dma && (read_res == 1)) {
                                     dev->dma_retries = 0;
                                     dma_set_drq(dev->dma, 1);
@@ -878,7 +874,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                                  mitsumi_error_status(dev, dev->cur_sense) :
                                                  mitsumi_status(dev);
                                 break;
-                            case 1:
+                            } case 1:
                                 dev->readcount |= (val << 8);
                                 dev->audio_end_msf |= val << 8;
                                 break;
@@ -966,7 +962,6 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     }
                     break;
                 case CMD_GET_STAT:
-                    dev->change = 0;
                     dev->stat   = mitsumi_status(dev);
                     dev->cmdbuf[0] = dev->stat;
                     break;
@@ -1005,7 +1000,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     if (dev->tray_open) {
                         dev->tray_open = 0;
                         cdrom_reload(dev->cdrom_dev->id);
-                        dev->change = 1;
+                        dev->change = (mitsumi_cdrom_is_ready(dev)) ? 2 : 1;
                     }
                     dev->stat = mitsumi_status(dev);
                     dev->cmdbuf[0] = dev->stat;
@@ -1067,6 +1062,8 @@ mitsumi_get_volume(void *priv, int channel)
     mcd_t   *dev      = (mcd_t *) priv;
 
     switch (channel & 3) {
+        default:
+            break;
         case 0:
             return dev->cdrom_vols.att0;
         case 1:
