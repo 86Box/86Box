@@ -234,6 +234,12 @@ xa2_find_dev_id(const char *friendly_name)
 #endif /* _WIN32 && !USE_FAUDIO */
 
 const char *
+sound_get_input_devices(void)
+{
+    return NULL; /* XAudio2/FAudio: capture not supported (see al_capture_*) */
+}
+
+const char *
 sound_get_output_devices(void)
 {
 #if defined(_WIN32) && !defined(USE_FAUDIO)
@@ -438,4 +444,27 @@ sound_get_device_supported_rates(const char *device_name, int *rates_out, int ma
         rates_out[i] = candidates[i];
 
     return 2;
+}
+
+int
+al_capture_available(void)
+{
+    return 0;
+}
+
+void
+al_capture_start(void)
+{
+}
+
+void
+al_capture_stop(void)
+{
+}
+
+void
+al_capture_get_data(int16_t *buf, size_t *len)
+{
+    if (len)
+        *len = 0;
 }

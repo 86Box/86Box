@@ -46,6 +46,11 @@ typedef struct {
     void *priv;
 } sound_handler_t;
 
+typedef struct {
+    void (*put_buffer)(int16_t *buffer, int len, void *priv);
+    void *priv;
+} sound_in_handler_t;
+
 int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int  sound_pos_global                   = 0;
 static int sound_buf_len                = SOUNDBUFLEN;
@@ -66,8 +71,10 @@ unsigned long long src_freqs[I_MAX] = {
 #define NUM_MUSIC_HANDLERS 16
 #define NUM_YM2151_HANDLERS 16
 #define NUM_WAVETABLE_HANDLERS 16
+#define NUM_SOUND_IN_HANDLERS 16
 
 static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS];
+static sound_in_handler_t sound_in_handlers[NUM_SOUND_IN_HANDLERS];
 static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS];
 static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS];
 static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS];
@@ -90,6 +97,8 @@ static int32_t   *outbuffer_w;
 static float     *outbuffer_w_ex;
 static int16_t   *outbuffer_w_ex_int16;
 static uint8_t    sound_handlers_num;
+static uint8_t    sound_in_handlers_num;
+static uint8_t    sound_in_started_input;
 static uint8_t    music_handlers_num;
 static uint8_t    ym2151_handlers_num;
 static uint8_t    wavetable_handlers_num;
@@ -106,6 +115,8 @@ static uint64_t   ym2151_poll_latch;
 static pc_timer_t wavetable_poll_timer;
 static uint64_t   wavetable_poll_latch;
 
+/* Capture is stereo: two int16_t per frame, SOUNDBUFLEN frames. */
+static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
@@ -669,6 +680,40 @@ wavetable_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *pr
 }
 
 void
+sound_in_add_handler(void (*put_buffer)(int16_t *buffer, int len, void *priv), void *priv)
+{
+    if (sound_in_handlers_num >= NUM_SOUND_IN_HANDLERS) {
+        sound_log("sound_in_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    sound_in_handlers[sound_in_handlers_num].put_buffer = put_buffer;
+    sound_in_handlers[sound_in_handlers_num].priv        = priv;
+    sound_in_handlers_num++;
+}
+
+void
+sound_in_start_input(void)
+{
+    const uint8_t old = sound_in_started_input;
+
+    sound_in_started_input++;
+    if (!old && al_capture_available())
+        al_capture_start();
+}
+
+void
+sound_in_stop_input(void)
+{
+    const uint8_t old = sound_in_started_input;
+
+    if (sound_in_started_input)
+        sound_in_started_input--;
+    if (old && !sound_in_started_input && al_capture_available())
+        al_capture_stop();
+}
+
+void
 sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
 {
     if ((filter_cd_audio == NULL) || (filter == NULL)) {
@@ -725,6 +770,17 @@ sound_poll(UNUSED(void *priv))
         for (uint8_t c = 0; c < handler_count; c++)
             if (sound_handlers[c].get_buffer != NULL)
                 sound_handlers[c].get_buffer(outbuffer, sound_buf_len, sound_handlers[c].priv);
+
+        if (sound_in_started_input) {
+            size_t in_len = (size_t) SOUNDBUFLEN;
+
+            al_capture_get_data(sound_input_buffer, &in_len);
+            if (in_len > 0) {
+                for (uint8_t c = 0; c < sound_in_handlers_num; c++)
+                    if (sound_in_handlers[c].put_buffer != NULL)
+                        sound_in_handlers[c].put_buffer(sound_input_buffer, (int) in_len, sound_in_handlers[c].priv);
+            }
+        }
 
         for (uint32_t c = 0; c < (uint32_t) (sound_buf_len * 2); c++) {
             if (sound_is_float)
@@ -907,6 +963,9 @@ sound_reset(void)
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+    sound_in_handlers_num = 0;
+    sound_in_started_input = 0;
+    memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
 
     memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&music_poll_timer, music_poll, NULL, 1);
@@ -1143,6 +1202,9 @@ sound_close(void)
     timer_disable(&sound_poll_timer);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+    sound_in_handlers_num = 0;
+    sound_in_started_input = 0;
+    memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
 
     timer_disable(&music_poll_timer);
     music_handlers_num = 0;

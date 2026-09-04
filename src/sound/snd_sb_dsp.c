@@ -525,8 +525,9 @@ sb_dsp_reset(sb_dsp_t *dsp)
 
     dsp->sbreset = 0;
 
-    dsp->record_pos_read  = 0;
-    dsp->record_pos_write = SB_DSP_REC_SAFEFTY_MARGIN;
+    dsp->record_pos_read      = 0;
+    dsp->record_pos_write     = SB_DSP_REC_SAFEFTY_MARGIN;
+    dsp->record_pos_write_mic = SB_DSP_REC_SAFEFTY_MARGIN;
 
     dsp->irq_update(dsp->irq_priv, 0);
 

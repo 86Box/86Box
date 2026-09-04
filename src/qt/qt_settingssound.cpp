@@ -90,6 +90,8 @@ SettingsSound::changed()
     has_changed  |= (sound_is_float             != (ui->checkBoxFloat32->isChecked() ? 1 : 0));
     has_changed  |= (QString(sound_output_device) != ui->comboBoxAudioOutputDevice->currentData().toString());
     has_changed  |= (sound_sample_rate           != ui->comboBoxSampleRate->currentData().toInt());
+    has_changed  |= (sound_input_enabled         != (ui->checkBoxSoundInput->isChecked() ? 1 : 0));
+    has_changed  |= (QString(sound_input_dev_name) != ui->comboBoxAudioInputDevice->currentData().toString());
 
     soft_changed |= (midi_output_device_current != ui->comboBoxMidiOut->currentData().toInt());
     soft_changed |= midi_output_device_cfg_changed;
@@ -131,6 +133,12 @@ SettingsSound::save(int soft)
     QByteArray devName = ui->comboBoxAudioOutputDevice->currentData().toString().toUtf8();
     strncpy(sound_output_device, devName.constData(), sizeof(sound_output_device) - 1);
     sound_output_device[sizeof(sound_output_device) - 1] = '\0';
+
+    sound_input_enabled = ui->checkBoxSoundInput->isChecked() ? 1 : 0;
+
+    QByteArray inDevName = ui->comboBoxAudioInputDevice->currentData().toString().toUtf8();
+    strncpy(sound_input_dev_name, inDevName.constData(), sizeof(sound_input_dev_name) - 1);
+    sound_input_dev_name[sizeof(sound_input_dev_name) - 1] = '\0';
 }
 
 void
@@ -290,6 +298,34 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
         }
     }
 
+    // Audio Input Device
+    auto *modelAudioIn      = ui->comboBoxAudioInputDevice->model();
+    auto  removeRowsAudioIn = modelAudioIn->rowCount();
+    int   selectedInputRow  = 0;
+
+    int inputRow = Models::AddEntry(modelAudioIn, tr("System Default"), QString(""));
+    if (sound_input_dev_name[0] == '\0')
+        selectedInputRow = inputRow - removeRowsAudioIn;
+
+    const char *inDevList = sound_get_input_devices();
+    if (inDevList != nullptr) {
+        const char *dev = inDevList;
+        while (*dev != '\0') {
+            QString devName = QString::fromUtf8(dev);
+            inputRow        = Models::AddEntry(modelAudioIn, devName, devName);
+            if (devName == QString(sound_input_dev_name))
+                selectedInputRow = inputRow - removeRowsAudioIn;
+            dev += strlen(dev) + 1;
+        }
+    }
+
+    modelAudioIn->removeRows(0, removeRowsAudioIn);
+    ui->comboBoxAudioInputDevice->setCurrentIndex(-1);
+    ui->comboBoxAudioInputDevice->setCurrentIndex(selectedInputRow);
+
+    ui->checkBoxSoundInput->setChecked(sound_input_enabled > 0);
+    ui->comboBoxAudioInputDevice->setEnabled(sound_input_enabled > 0);
+
     modelAudioOut->removeRows(0, removeRowsAudioOut);
     ui->comboBoxAudioOutputDevice->setCurrentIndex(-1);
     /* Setting the index fires on_comboBoxAudioOutputDevice_currentIndexChanged,
@@ -427,6 +463,12 @@ SettingsSound::on_comboBoxAudioOutputDevice_currentIndexChanged(int index)
     modelSR->removeRows(0, removeRowsSR);
     ui->comboBoxSampleRate->setCurrentIndex(-1);
     ui->comboBoxSampleRate->setCurrentIndex(selectedRow);
+}
+
+void
+SettingsSound::on_checkBoxSoundInput_stateChanged(int state)
+{
+    ui->comboBoxAudioInputDevice->setEnabled(state == Qt::Checked);
 }
 
 void

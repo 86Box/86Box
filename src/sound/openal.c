@@ -40,6 +40,7 @@ static int                initialized       = 0;
 static int                sources           = 2;
 static ALCcontext *       Context;
 static ALCdevice  *       Device;
+static ALCdevice  *       CaptureDevice;
 
 static unsigned long long buf_sizes[I_MAX] = {
     0, (MUSICBUFLEN << 1), (WTBUFLEN << 1),     (CD_BUFLEN << 1),
@@ -60,6 +61,14 @@ sound_get_output_devices(void)
         return alcGetString(NULL, ALC_ALL_DEVICES_SPECIFIER);
     if (alcIsExtensionPresent(NULL, "ALC_ENUMERATION_EXT"))
         return alcGetString(NULL, ALC_DEVICE_SPECIFIER);
+    return NULL;
+}
+
+const char *
+sound_get_input_devices(void)
+{
+    if (alcIsExtensionPresent(NULL, "ALC_EXT_CAPTURE"))
+        return alcGetString(NULL, ALC_CAPTURE_DEVICE_SPECIFIER);
     return NULL;
 }
 
@@ -142,11 +151,22 @@ alutInit(UNUSED(ALint *argc), UNUSED(ALbyte **argv))
             alcMakeContextCurrent(Context);
         }
     }
+
+    CaptureDevice = NULL;
+    if (sound_input_enabled) {
+        const ALCchar *cap_name = (sound_input_dev_name[0] != '\0') ? sound_input_dev_name : NULL;
+        CaptureDevice = alcCaptureOpenDevice(cap_name, 48000, AL_FORMAT_STEREO16, SOUNDBUFLEN * 4);
+    }
 }
 
 ALvoid
 alutExit(ALvoid)
 {
+    if (CaptureDevice != NULL) {
+        alcCaptureCloseDevice(CaptureDevice);
+        CaptureDevice = NULL;
+    }
+
     if (Context != NULL) {
         /* Disable context */
         alcMakeContextCurrent(NULL);
@@ -176,6 +196,52 @@ closeal(void)
     alutExit();
 
     initialized = 0;
+}
+
+int
+al_capture_available(void)
+{
+    return !!CaptureDevice;
+}
+
+void
+al_capture_start(void)
+{
+    if (al_capture_available())
+        alcCaptureStart(CaptureDevice);
+}
+
+void
+al_capture_stop(void)
+{
+    if (al_capture_available())
+        alcCaptureStop(CaptureDevice);
+}
+
+void
+al_capture_get_data(int16_t *buf, size_t *len)
+{
+    ALint availableSamples = 0;
+
+    if (!buf || !len)
+        return;
+
+    if (!al_capture_available()) {
+        *len = 0;
+        return;
+    }
+
+    alcGetIntegerv(CaptureDevice, ALC_CAPTURE_SAMPLES, 1, &availableSamples);
+    if (availableSamples <= 0) {
+        *len = 0;
+        return;
+    }
+
+    if ((size_t) availableSamples > *len)
+        availableSamples = (ALint) *len;
+
+    alcCaptureSamples(CaptureDevice, buf, availableSamples);
+    *len = (size_t) availableSamples;
 }
 
 void

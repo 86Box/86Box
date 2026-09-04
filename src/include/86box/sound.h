@@ -80,6 +80,13 @@ extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),
                               void *priv);
 
+extern void sound_in_add_handler(void (*put_buffer)(int16_t *buffer,
+                                                     int len, void *priv),
+                                 void *priv);
+
+extern void sound_in_start_input(void);
+extern void sound_in_stop_input(void);
+
 extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),
                               void *priv);
@@ -138,11 +145,16 @@ extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
 extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
+extern const char *sound_get_input_devices(void);  /* returns double-null-terminated list, or NULL */
 extern int         sound_get_device_sample_rate(const char *device_name);   /* probe native rate, 0 = unknown */
 extern int         sound_get_device_supported_rates(const char *device_name, /* probe supported rates into rates_out; returns count */
                                                     int *rates_out, int max_rates);
 extern void        closeal(void);
 extern void        inital(void);
+extern int         al_capture_available(void);
+extern void        al_capture_start(void);
+extern void        al_capture_stop(void);
+extern void        al_capture_get_data(int16_t *buf, size_t *len);
 
 #ifdef bool
 extern bool        fast_forward;

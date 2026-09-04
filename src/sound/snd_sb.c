@@ -539,6 +539,52 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, uint16_t len, void *priv)
     sb->dsp.pos = 0;
 }
 
+#define SB_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
+
+static void
+sb_put_buffer_sb16_awe32(int16_t *buffer, int len, void *priv)
+{
+    sb_t                    *sb          = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer       = &sb->mixer_sb16;
+    const int                dsp_rec_pos = sb->dsp.record_pos_write_mic;
+
+    for (int c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l    = (int32_t) buffer[c];
+        const int32_t cap_r    = (int32_t) buffer[c + 1];
+        const int32_t mic      = (cap_l + cap_r) / 2;
+        int32_t       in_l     = 0;
+        int32_t       in_r     = 0;
+        const int     c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / SOUND_FREQ);
+
+        /* mic is the sum of L+R input capture */
+        if (mixer->input_selector_left & INPUT_MIC)
+            in_l += mic;
+        if (mixer->input_selector_left & INPUT_LINE_L)
+            in_l += cap_l;
+        if (mixer->input_selector_left & INPUT_LINE_R)
+            in_l += cap_r;
+
+        if (mixer->input_selector_right & INPUT_MIC)
+            in_r += mic;
+        if (mixer->input_selector_right & INPUT_LINE_L)
+            in_r += cap_l;
+        if (mixer->input_selector_right & INPUT_LINE_R)
+            in_r += cap_r;
+
+        in_l = SB_RECORD_CLAMP(in_l);
+        in_r = SB_RECORD_CLAMP(in_r);
+
+        in_l = SB_RECORD_CLAMP(in_l << mixer->input_gain_L);
+        in_r = SB_RECORD_CLAMP(in_r << mixer->input_gain_R);
+
+        sb->dsp.record_buffer[c_record & 0xffff]       = (int16_t) in_l;
+        sb->dsp.record_buffer[(c_record + 1) & 0xffff] = (int16_t) in_r;
+    }
+
+    sb->dsp.record_pos_write_mic += ((len * 2 * sb->dsp.sb_freq) / SOUND_FREQ);
+    sb->dsp.record_pos_write_mic &= 0xffff;
+}
+
 static void
 sb_get_music_buffer_sb16_awe32(int32_t *buffer, const uint16_t len, void *priv)
 {
@@ -4916,6 +4962,8 @@ sb_16_init(UNUSED(const device_t *info))
     io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read, NULL, NULL,
                   sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
@@ -4966,6 +5014,8 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
@@ -5024,6 +5074,8 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
@@ -5130,6 +5182,8 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
     if (device_get_config_int("control_pc_speaker"))
@@ -5228,6 +5282,8 @@ sb_16_compat_init(const device_t *info)
     sb->opl_enabled   = 1;
     sb->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
 
     sb->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -5339,6 +5395,8 @@ sb_awe32_init(UNUSED(const device_t *info))
     io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read, NULL, NULL,
                   sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
     if (sb->opl_enabled)
         music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     wavetable_add_handler(sb_get_wavetable_buffer_sb16_awe32, sb);
@@ -5436,6 +5494,8 @@ sb_awe32_pnp_init(const device_t *info)
     sb->mixer_enabled            = 1;
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_in_add_handler(sb_put_buffer_sb16_awe32, sb);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sb16_awe32, sb);
     wavetable_add_handler(sb_get_wavetable_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);

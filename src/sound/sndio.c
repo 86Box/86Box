@@ -30,6 +30,12 @@ static struct sio_hdl* audio[I_MAX] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL,
 static struct sio_par  info[I_MAX];
 
 const char *
+sound_get_input_devices(void)
+{
+    return NULL; /* sndio: capture device enumeration not implemented */
+}
+
+const char *
 sound_get_output_devices(void)
 {
     static char dev_list[1024];

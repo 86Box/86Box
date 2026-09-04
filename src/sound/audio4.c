@@ -43,6 +43,12 @@ static audio_info_t       info[8];
 #endif
 
 const char *
+sound_get_input_devices(void)
+{
+    return NULL; /* audio(4): capture device enumeration not implemented */
+}
+
+const char *
 sound_get_output_devices(void)
 {
     static char dev_list[1024];
