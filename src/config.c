@@ -396,6 +396,7 @@ load_general(void)
         strncpy(uuid, "", sizeof(uuid) - 1);
 
     gdbstub_port = ini_section_get_int(cat, "gdbstub_port", 12345);
+    memdump_port = ini_section_get_int(cat, "memdump_port", 0);
 }
 
 /* Load monitor section. */
@@ -3179,6 +3180,11 @@ save_general(void)
         ini_section_delete_var(cat, "gdbstub_port");
     else
         ini_section_set_int(cat, "gdbstub_port", gdbstub_port);
+
+    if (memdump_port == 0)
+        ini_section_delete_var(cat, "memdump_port");
+    else
+        ini_section_set_int(cat, "memdump_port", memdump_port);
 
     ini_delete_section_if_empty(config, cat);
 }

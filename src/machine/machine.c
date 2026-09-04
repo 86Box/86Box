@@ -29,6 +29,7 @@
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/mem.h>
+#include <86box/memdump.h>
 #include <86box/rom.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
@@ -153,6 +154,7 @@ machine_init(void)
     if (!gdbstub_started) {
         gdbstub_started = 1;
         gdbstub_init();
+        memdump_init();
     }
 
     (void) machine_init_ex(machine);
