@@ -52,14 +52,12 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 {
     ui->setupUi(this);
 
-    for (uint8_t i = 0; i < MCAMEM_MAX; ++i) {
-        scMcaMemCard[i] = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxMcaMemCard%1").arg(i + 1)), nullptr);
-        mcamem_cfg_changed[i] = 0;
-    }
-
+    /* Memory expansion cards: one shared set of four slots, fed from the
+       ISA board list (isamem) on ISA machines and from the MCA board list
+       (mcamem) on MCA machines. */
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        scIsaMemCard[i] = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1)), nullptr);
-        isamem_cfg_changed[i] = 0;
+        scMemExpCard[i] = new SettingsCompleter(findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1)), nullptr);
+        memexp_cfg_changed[i] = 0;
     }
 
     for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
@@ -79,11 +77,8 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 
 SettingsOtherPeripherals::~SettingsOtherPeripherals()
 {
-    for (uint8_t i = 0; i < MCAMEM_MAX; ++i)
-        delete scMcaMemCard[i];
-
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i)
-        delete scIsaMemCard[i];
+        delete scMemExpCard[i];
 
     for (uint8_t i = 0; i < ISAROM_MAX; ++i)
         delete scIsaRomCard[i];
@@ -119,15 +114,9 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     scRTC->removeRows();
     ui->comboBoxRTC->clear();
 
-    for (uint8_t i = 0; i < MCAMEM_MAX; ++i) {
-        scMcaMemCard[i]->removeRows();
-        if (auto *cb = findChild<QComboBox *>(QString("comboBoxMcaMemCard%1").arg(i + 1)))
-            cb->clear();
-    }
-
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        scIsaMemCard[i]->removeRows();
-        if (auto *cb = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1)))
+        scMemExpCard[i]->removeRows();
+        if (auto *cb = findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1)))
             cb->clear();
     }
 
@@ -162,74 +151,49 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     ui->comboBoxRTC->setCurrentIndex(selectedRow);
     ui->pushButtonConfigureRTC->setEnabled((isartc_type != 0) && isartc_has_config(isartc_type) && machineHasIsaOrSidecar);
 
-    // MCA Memory Expansion Cards
-    QComboBox          *mcamem_cbox[MCAMEM_MAX]         = { 0 };
-    QAbstractItemModel *mcamem_models[MCAMEM_MAX]       = { 0 };
-    int                 mcamem_removeRows_[MCAMEM_MAX]  = { 0 };
-    int                 mcamem_selectedRows[MCAMEM_MAX] = { 0 };
+    // Memory Expansion Cards (shared UI: ISA or MCA boards depending on
+    // the machine bus).  The isamem/mcamem databases and their config
+    // globals remain separate; only the four dropdown slots are shared.
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    const bool isa_bus = !mca_bus && hasIsaOrSidecarBus(machineId);
 
-    for (uint8_t i = 0; i < MCAMEM_MAX; ++i) {
-        mcamem_cbox[i]        = findChild<QComboBox *>(QString("comboBoxMcaMemCard%1").arg(i + 1));
-        mcamem_models[i]      = mcamem_cbox[i]->model();
-        mcamem_removeRows_[i] = mcamem_models[i]->rowCount();
-    }
-
-    c = 0;
-    while (true) {
-        const QString name = DeviceConfig::DeviceName(mcamem_get_device(c),
-                                                      mcamem_get_internal_name(c), 0);
-
-        if (name.isEmpty())
-            break;
-
-        if (device_is_valid(mcamem_get_device(c), machineId)) {
-            for (uint8_t i = 0; i < MCAMEM_MAX; ++i) {
-                int row = Models::AddEntry(mcamem_models[i], name, c);
-                scMcaMemCard[i]->addDevice(nullptr, name);
-
-                if (c == mcamem_type[i])
-                    mcamem_selectedRows[i] = row - mcamem_removeRows_[i];
-            }
-        }
-
-        c++;
-    }
-
-    for (uint8_t i = 0; i < MCAMEM_MAX; ++i) {
-        mcamem_models[i]->removeRows(0, mcamem_removeRows_[i]);
-        mcamem_cbox[i]->setEnabled(mcamem_models[i]->rowCount() > 1);
-        mcamem_cbox[i]->setCurrentIndex(-1);
-        mcamem_cbox[i]->setCurrentIndex(mcamem_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureMcaMemCard%1").arg(i + 1))->setEnabled(device_is_valid(mcamem_get_device(mcamem_type[i]), machineId) && mcamem_has_config(mcamem_type[i]));
-    }
-
-    // ISA Memory Expansion Cards
-    QComboBox          *isamem_cbox[ISAMEM_MAX]         = { 0 };
-    QAbstractItemModel *isamem_models[ISAMEM_MAX]       = { 0 };
-    int                 isamem_removeRows_[ISAMEM_MAX]  = { 0 };
-    int                 isamem_selectedRows[ISAMEM_MAX] = { 0 };
+    QComboBox          *mem_cbox[ISAMEM_MAX]         = { 0 };
+    QAbstractItemModel *mem_models[ISAMEM_MAX]       = { 0 };
+    int                 mem_removeRows_[ISAMEM_MAX]  = { 0 };
+    int                 mem_selectedRows[ISAMEM_MAX] = { 0 };
 
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        isamem_cbox[i]        = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
-        isamem_models[i]      = isamem_cbox[i]->model();
-        isamem_removeRows_[i] = isamem_models[i]->rowCount();
+        mem_cbox[i]        = findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1));
+        mem_models[i]      = mem_cbox[i]->model();
+        mem_removeRows_[i] = mem_models[i]->rowCount();
     }
 
     c = 0;
     while (true) {
-        const QString name = DeviceConfig::DeviceName(isamem_get_device(c),
-                                                      isamem_get_internal_name(c), 0);
+        const device_t *dev   = NULL;
+        const char     *iname = NULL;
 
+        if (mca_bus) {
+            dev   = mcamem_get_device(c);
+            iname = mcamem_get_internal_name(c);
+        } else if (isa_bus) {
+            dev   = isamem_get_device(c);
+            iname = isamem_get_internal_name(c);
+        } else
+            break;
+
+        const QString name = DeviceConfig::DeviceName(dev, iname, 0);
         if (name.isEmpty())
             break;
 
-        if (device_is_valid(isamem_get_device(c), machineId)) {
+        if (device_is_valid(dev, machineId)) {
             for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-                int row = Models::AddEntry(isamem_models[i], name, c);
-                scIsaMemCard[i]->addDevice(nullptr, name);
+                int cur = mca_bus ? mcamem_type[i] : isamem_type[i];
+                int row = Models::AddEntry(mem_models[i], name, c);
+                scMemExpCard[i]->addDevice(nullptr, name);
 
-                if (c == isamem_type[i])
-                    isamem_selectedRows[i] = row - isamem_removeRows_[i];
+                if (c == cur)
+                    mem_selectedRows[i] = row - mem_removeRows_[i];
             }
         }
 
@@ -237,11 +201,14 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     }
 
     for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
-        isamem_models[i]->removeRows(0, isamem_removeRows_[i]);
-        isamem_cbox[i]->setEnabled(isamem_models[i]->rowCount() > 1);
-        isamem_cbox[i]->setCurrentIndex(-1);
-        isamem_cbox[i]->setCurrentIndex(isamem_selectedRows[i]);
-        findChild<QPushButton *>(QString("pushButtonConfigureIsaMemCard%1").arg(i + 1))->setEnabled((isamem_type[i] != 0) && isamem_has_config(isamem_type[i]) && machineHasIsaOrSidecar);
+        const device_t *seldev = mca_bus ? mcamem_get_device(mcamem_type[i]) : isamem_get_device(isamem_type[i]);
+        bool            hascfg = mca_bus ? (mcamem_has_config(mcamem_type[i]) != 0) : (isamem_has_config(isamem_type[i]) != 0);
+
+        mem_models[i]->removeRows(0, mem_removeRows_[i]);
+        mem_cbox[i]->setEnabled(mem_models[i]->rowCount() > 1);
+        mem_cbox[i]->setCurrentIndex(-1);
+        mem_cbox[i]->setCurrentIndex(mem_selectedRows[i]);
+        findChild<QPushButton *>(QString("pushButtonConfigureMemExpCard%1").arg(i + 1))->setEnabled(device_is_valid(seldev, machineId) && hascfg);
     }
 
     // ISA ROM Expansion Cards
@@ -302,18 +269,18 @@ SettingsOtherPeripherals::changed()
     has_changed |= (novell_keycard_enabled != (ui->checkBoxKeyCard->isChecked() ? 1 : 0));
     has_changed |= novell_keycard_cfg_changed;
 
-    /* MCA memory boards. */
-    for (int i = 0; i < MCAMEM_MAX; i++) {
-        auto *cbox     = findChild<QComboBox *>(QString("comboBoxMcaMemCard%1").arg(i + 1));
-        has_changed |= (mcamem_type[i]         != cbox->currentData().toInt());
-        has_changed |= mcamem_cfg_changed[i];
-    }
+    /* Memory expansion boards (shared slots; active family by machine). */
+    {
+        const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
 
-    /* ISA memory boards. */
-    for (int i = 0; i < ISAMEM_MAX; i++) {
-        auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
-        has_changed |= (isamem_type[i]         != cbox->currentData().toInt());
-        has_changed |= isamem_cfg_changed[i];
+        if (mca_bus || hasIsaOrSidecarBus(machineId)) {
+            for (int i = 0; i < ISAMEM_MAX; i++) {
+                auto *cbox    = findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1));
+                int   cur     = mca_bus ? mcamem_type[i] : isamem_type[i];
+                has_changed  |= (cur != cbox->currentData().toInt());
+                has_changed  |= memexp_cfg_changed[i];
+            }
+        }
     }
 
     /* ISA ROM boards. */
@@ -345,16 +312,23 @@ SettingsOtherPeripherals::save(int soft)
     softpower_enabled       = ui->checkBoxSoftPower->isChecked() ? 1 : 0;
     novell_keycard_enabled = ui->checkBoxKeyCard->isChecked() ? 1 : 0;
 
-    /* MCA memory boards. */
-    for (int i = 0; i < MCAMEM_MAX; i++) {
-        auto *cbox     = findChild<QComboBox *>(QString("comboBoxMcaMemCard%1").arg(i + 1));
-        mcamem_type[i] = cbox->currentData().toInt();
-    }
+    /* Memory expansion boards (shared slots; write the active family and
+       clear the inactive one, matching the single-UI layout). */
+    {
+        const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+        const bool isa_bus = !mca_bus && hasIsaOrSidecarBus(machineId);
 
-    /* ISA memory boards. */
-    for (int i = 0; i < ISAMEM_MAX; i++) {
-        auto *cbox     = findChild<QComboBox *>(QString("comboBoxIsaMemCard%1").arg(i + 1));
-        isamem_type[i] = cbox->currentData().toInt();
+        for (int i = 0; i < ISAMEM_MAX; i++) {
+            int val = (mca_bus || isa_bus) ? findChild<QComboBox *>(QString("comboBoxMemExpCard%1").arg(i + 1))->currentData().toInt() : 0;
+
+            if (mca_bus) {
+                mcamem_type[i] = val;
+                isamem_type[i] = 0;
+            } else {
+                isamem_type[i] = val;
+                mcamem_type[i] = 0;
+            }
+        }
     }
 
     /* ISA ROM boards. */
@@ -379,124 +353,86 @@ SettingsOtherPeripherals::on_pushButtonConfigureRTC_clicked()
     isartc_cfg_changed |= DeviceConfig::ConfigureDevice(isartc_get_device(ui->comboBoxRTC->currentData().toInt()));
 }
 
+/* Shared memory-expansion slot helpers: resolve the board device and its
+   config capability from the machine's active bus family (MCA or ISA). */
+static const device_t *
+memexp_slot_device(int idx, bool mca_bus)
+{
+    return mca_bus ? mcamem_get_device(idx) : isamem_get_device(idx);
+}
+
+static int
+memexp_slot_has_config(int idx, bool mca_bus)
+{
+    return mca_bus ? mcamem_has_config(idx) : isamem_has_config(idx);
+}
+
 void
-SettingsOtherPeripherals::on_comboBoxMcaMemCard1_currentIndexChanged(int index)
+SettingsOtherPeripherals::on_comboBoxMemExpCard1_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureMcaMemCard1->setEnabled(device_is_valid(mcamem_get_device(index), machineId) && mcamem_has_config(index));
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard1->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
 }
 
 void
-SettingsOtherPeripherals::on_pushButtonConfigureMcaMemCard1_clicked()
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard1_clicked()
 {
-    mcamem_cfg_changed[0] |= DeviceConfig::ConfigureDevice(mcamem_get_device(ui->comboBoxMcaMemCard1->currentData().toInt()), 1);
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[0] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard1->currentData().toInt(), mca_bus), 1);
 }
 
 void
-SettingsOtherPeripherals::on_comboBoxMcaMemCard2_currentIndexChanged(int index)
-{
-    if (index < 0)
-        return;
-
-    ui->pushButtonConfigureMcaMemCard2->setEnabled(device_is_valid(mcamem_get_device(index), machineId) && mcamem_has_config(index));
-}
-
-void
-SettingsOtherPeripherals::on_pushButtonConfigureMcaMemCard2_clicked()
-{
-    mcamem_cfg_changed[1] |= DeviceConfig::ConfigureDevice(mcamem_get_device(ui->comboBoxMcaMemCard2->currentData().toInt()), 2);
-}
-
-void
-SettingsOtherPeripherals::on_comboBoxMcaMemCard3_currentIndexChanged(int index)
+SettingsOtherPeripherals::on_comboBoxMemExpCard2_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureMcaMemCard3->setEnabled(device_is_valid(mcamem_get_device(index), machineId) && mcamem_has_config(index));
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard2->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
 }
 
 void
-SettingsOtherPeripherals::on_pushButtonConfigureMcaMemCard3_clicked()
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard2_clicked()
 {
-    mcamem_cfg_changed[2] |= DeviceConfig::ConfigureDevice(mcamem_get_device(ui->comboBoxMcaMemCard3->currentData().toInt()), 3);
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[1] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard2->currentData().toInt(), mca_bus), 2);
 }
 
 void
-SettingsOtherPeripherals::on_comboBoxMcaMemCard4_currentIndexChanged(int index)
-{
-    if (index < 0)
-        return;
-
-    ui->pushButtonConfigureMcaMemCard4->setEnabled(device_is_valid(mcamem_get_device(index), machineId) && mcamem_has_config(index));
-}
-
-void
-SettingsOtherPeripherals::on_pushButtonConfigureMcaMemCard4_clicked()
-{
-    mcamem_cfg_changed[3] |= DeviceConfig::ConfigureDevice(mcamem_get_device(ui->comboBoxMcaMemCard4->currentData().toInt()), 4);
-}
-
-void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard1_currentIndexChanged(int index)
+SettingsOtherPeripherals::on_comboBoxMemExpCard3_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard1->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard3->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
 }
 
 void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard1_clicked()
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard3_clicked()
 {
-    isamem_cfg_changed[0] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard1->currentData().toInt()), 1);
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[2] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard3->currentData().toInt(), mca_bus), 3);
 }
 
 void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard2_currentIndexChanged(int index)
-{
-    if (index < 0)
-        return;
-
-    ui->pushButtonConfigureIsaMemCard2->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
-}
-
-void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard2_clicked()
-{
-    isamem_cfg_changed[1] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard2->currentData().toInt()), 2);
-}
-
-void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard3_currentIndexChanged(int index)
+SettingsOtherPeripherals::on_comboBoxMemExpCard4_currentIndexChanged(int index)
 {
     if (index < 0)
         return;
 
-    ui->pushButtonConfigureIsaMemCard3->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    ui->pushButtonConfigureMemExpCard4->setEnabled(device_is_valid(memexp_slot_device(index, mca_bus), machineId) && memexp_slot_has_config(index, mca_bus));
 }
 
 void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard3_clicked()
+SettingsOtherPeripherals::on_pushButtonConfigureMemExpCard4_clicked()
 {
-    isamem_cfg_changed[2] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard3->currentData().toInt()), 3);
-}
-
-void
-SettingsOtherPeripherals::on_comboBoxIsaMemCard4_currentIndexChanged(int index)
-{
-    if (index < 0)
-        return;
-
-    ui->pushButtonConfigureIsaMemCard4->setEnabled((index != 0) && isamem_has_config(index) && hasIsaOrSidecarBus(machineId));
-}
-
-void
-SettingsOtherPeripherals::on_pushButtonConfigureIsaMemCard4_clicked()
-{
-    isamem_cfg_changed[3] |= DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxIsaMemCard4->currentData().toInt()), 4);
+    const bool mca_bus = (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0);
+    memexp_cfg_changed[3] |= DeviceConfig::ConfigureDevice(memexp_slot_device(ui->comboBoxMemExpCard4->currentData().toInt(), mca_bus), 4);
 }
 
 void
