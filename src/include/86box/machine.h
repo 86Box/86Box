@@ -601,6 +601,7 @@ extern int             machine_at_shuttle386sx_init(const machine_t *);
 /* NEAT */
 extern int             machine_at_cmdsl386sx16_init(const machine_t *);
 extern int             machine_at_neat_init(const machine_t *);
+extern int             machine_at_me386sx_init(const machine_t *);
 extern int             machine_at_p3345_init(const machine_t *);
 
 /* NEATsx */

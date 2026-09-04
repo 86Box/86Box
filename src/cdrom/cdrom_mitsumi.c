@@ -420,9 +420,13 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     }
 
     if (!dev->readcount) {
-        mitsumi_set_irq(dev, IRQ_DATACOMP);
         mitsumi_cdrom_log("Mitsumi read complete at sector %u.\n", dev->cdrom_dev->seek_pos);
+        cdrom_stop(dev->cdrom_dev);
+        cdrom_seek(dev->cdrom_dev, lba, 0);
         dev->cur_toc_track = INT32_MIN;
+        if (dev->cdrom_dev->seek_pos > dev->cdrom_dev->cdrom_capacity) {
+            return -2;
+        }
         return 0;
     }
 
@@ -436,6 +440,7 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         return -2;
     }
     ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 3 : 2, (dev->mode & 0x80) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
+
     mitsumi_cdrom_log("Mitsumi read sector @ %u, ret = %d, readlen = %u, blocklen = %u\n",
                        dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev));
     if (ret <= 0)
@@ -648,23 +653,21 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 dev->buf_idx++;
                 dev->buf_count--;
                 if (!dev->buf_count) {
+                    mitsumi_set_irq(dev, IRQ_DATACOMP);
                     /*
                        Do PIO transfers on a timer, fixes the Windows 9x driver in
                        IRQ mode.
                      */
-                    if (dev->readcount > 0 /*dev->enable_irq & IRQ_DATAREADY*/) {
+                    if (dev->readcount > 0) {
                         timer_set_delay_u64(&dev->pio_timer,
                                             ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
                                                                              MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
                         mitsumi_cdrom_log("Mitsumi PIO timer started at sector %u.\n", dev->cdrom_dev->seek_pos);
                     } else {
-                        mitsumi_set_irq(dev, IRQ_DATACOMP);
                         mitsumi_cdrom_log("Mitsumi PIO read complete at sector %u.\n", dev->cdrom_dev->seek_pos);
                         dev->cur_toc_track = INT32_MIN;
                     }
                 }
-
-                //pclog("Read port 0 data\n");
                 return ret;
             } else if (dev->cmdbuf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NOSTAT)) {
                 dev->cmdbuf_count--;
@@ -848,9 +851,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                             case 0:
                                 dev->readcount |= val;
                                 dev->audio_end_msf |= val;
-                                if (!dev->readcount && dev->enable_dma) {
-                                    /* Early-status DMA reads use TC as their
-                                       open-ended transfer delimiter. */
+                                if (!dev->readcount && (dev->enable_dma || dev->early_status)) {
+                                    /*
+                                      For DMA and early-status PIO reads,
+                                      readcount = 0 means read until TC.
+                                    */
                                     dev->readcount = 0xffffffff;
                                     /* Set the end MSF to 99:59.74. */
                                     dev->audio_end_msf = 0x00995974;
