@@ -11,6 +11,8 @@
 #define DEV_RDISK    0x04
 #define DEV_MO       0x08
 #define DEV_TAPE     0x10
+#define DEV_FDD      0x20
+#define DEV_LPT      0x40
 
 #define BUS_MFM      0
 #define BUS_ESDI     1
@@ -38,6 +40,8 @@ public:
     uint8_t next_free_xta_channel();
     uint8_t next_free_ide_channel();
     uint8_t next_free_scsi_id();
+    uint8_t next_free_fdc_unit();
+    uint8_t next_free_lpt_port();
 
     int mke_bus_full();
     int mfm_bus_full();
@@ -66,6 +70,10 @@ private:
        8 bits per device (future-proofing) = 2048 bits. */
     uint64_t scsi_tracking[32] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    /* 4 FDC drive lines, 8 bits per line. */
+    uint64_t fdc_tracking { 0 };
+    /* 4 LPT ports, 8 bits per port. */
+    uint64_t lpt_tracking { 0 };
 
     bool mitsumi_tracking;
 };
