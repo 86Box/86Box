@@ -2392,7 +2392,21 @@ go_to_mo:
             tape_drives[c].medium_type = 0;
 
         /* Default values, needed for proper operation of the Settings dialog. */
-        tape_drives[c].scsi_device_id = c + 4;
+        tape_drives[c].res = 0;
+
+        if (tape_drives[c].bus_type == TAPE_BUS_FDC) {
+            sprintf(temp, "tape_%02i_fdd_unit", c + 1);
+            tape_drives[c].fdd_unit = ini_section_get_int(cat, temp, 0);
+            if (tape_drives[c].fdd_unit >= FDD_NUM)
+                tape_drives[c].fdd_unit = 0;
+        } else if (tape_drives[c].bus_type == TAPE_BUS_LPT) {
+            sprintf(temp, "tape_%02i_lpt_port", c + 1);
+            tape_drives[c].lpt_port = ini_section_get_int(cat, temp, 0);
+            if (tape_drives[c].lpt_port >= PARALLEL_MAX)
+                tape_drives[c].lpt_port = 0;
+        } else {
+            tape_drives[c].scsi_device_id = c + 4;
+        }
 
         if (tape_drives[c].bus_type == TAPE_BUS_ATAPI) {
             sprintf(temp, "tape_%02i_ide_channel", c + 1);
@@ -2436,6 +2450,16 @@ go_to_mo:
 
         sprintf(temp, "tape_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
+
+        if (tape_drives[c].bus_type != TAPE_BUS_FDC) {
+            sprintf(temp, "tape_%02i_fdd_unit", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
+
+        if (tape_drives[c].bus_type != TAPE_BUS_LPT) {
+            sprintf(temp, "tape_%02i_lpt_port", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
 
         sprintf(temp, "tape_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
@@ -4443,6 +4467,18 @@ save_other_removable_devices(void)
 
         sprintf(temp, "tape_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "tape_%02i_fdd_unit", c + 1);
+        if (tape_drives[c].bus_type != TAPE_BUS_FDC)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, tape_drives[c].fdd_unit);
+
+        sprintf(temp, "tape_%02i_lpt_port", c + 1);
+        if (tape_drives[c].bus_type != TAPE_BUS_LPT)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, tape_drives[c].lpt_port);
 
         sprintf(temp, "tape_%02i_writeprot", c + 1);
         ini_section_delete_var(cat, temp);
