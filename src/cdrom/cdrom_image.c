@@ -3487,7 +3487,7 @@ image_has_data(const void *local)
 {
     const cd_image_t *img = (const cd_image_t *) local;
 
-    return img->has_audio;
+    return img->has_data;
 }
 
 static int
