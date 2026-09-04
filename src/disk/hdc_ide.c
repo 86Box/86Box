@@ -1937,6 +1937,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x7: /* Command register */
+            /* Workaround for Cobalt Qube 3 BIOS issuing IDENTIFY but only reading 2 words,
+               resulting in the next command (IDENTIFY by Linux kernel) reading bogus data
+               from the partial transfer. Needs to be validated against relevant ATA specs. */
+            if ((ide->type == IDE_HDD) && (ide->tf->atastat & DRQ_STAT) &&
+                !(ide->tf->atastat & BSY_STAT)) {
+                ide->tf->atastat &= ~DRQ_STAT;
+                ide->tf->pos      = 0;
+            }
+
             if ((ide->tf->atastat & (BSY_STAT | DRQ_STAT)) &&
                 ((val != WIN_SRST) || (ide->type != IDE_ATAPI)) &&
                 ((val != WIN_VERIFY) || (prev != WIN_IDENTIFY)))
