@@ -26,6 +26,7 @@ extern "C" {
 #include <86box/cdrom.h>
 #include <86box/cdrom_interface.h>
 #include <86box/fdd.h>
+#include <86box/lpt.h>
 #include <86box/hdc.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
@@ -527,6 +528,10 @@ MachineStatus::iterateTape(const std::function<void(int)> &cb)
         if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasSCSI() &&
             (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
             (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        /* A parallel-port tape needs the port it sits on to exist. */
+        if ((tape_drives[i].bus_type == TAPE_BUS_LPT) &&
+            !lpt_ports[tape_drives[i].lpt_port].enabled)
             continue;
         if (tape_drives[i].bus_type != 0) {
             cb(i);

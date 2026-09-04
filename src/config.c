@@ -1460,24 +1460,11 @@ load_storage_controllers(void)
     if (p != NULL)
         cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
 
-    fdd_tape_enabled = !!ini_section_get_int(cat, "floppy_tape_enabled", 0);
-
-    fdd_tape_unit = ini_section_get_int(cat, "floppy_tape_unit", 1);
-    if ((fdd_tape_unit < 0) || (fdd_tape_unit >= FDD_NUM))
-        fdd_tape_unit = 1;
-
-    memset(fdd_tape_fn, 0x00, sizeof(fdd_tape_fn));
-    p = ini_section_get_string(cat, "floppy_tape_file", "");
-    if ((p != NULL) && (p[0] != 0x00)) {
-        if (load_image_file(fdd_tape_fn, p, NULL))
-            fatal("Configuration: Length of floppy_tape_file is more than %i\n",
-                  MAX_IMAGE_PATH_LEN - 1);
-    }
-
-    if (!fdd_tape_enabled) {
-        ini_section_delete_var(cat, "floppy_tape_unit");
-        ini_section_delete_var(cat, "floppy_tape_file");
-    }
+    /* The floppy tape is configured from the Tape drives tab now; the old
+       keys are stale and get cleaned up. */
+    ini_section_delete_var(cat, "floppy_tape_enabled");
+    ini_section_delete_var(cat, "floppy_tape_unit");
+    ini_section_delete_var(cat, "floppy_tape_file");
 
     if (machine_has_bus(machine, MACHINE_BUS_CASSETTE))
         cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
@@ -2392,7 +2379,21 @@ go_to_mo:
             tape_drives[c].medium_type = 0;
 
         /* Default values, needed for proper operation of the Settings dialog. */
-        tape_drives[c].scsi_device_id = c + 4;
+        tape_drives[c].res = 0;
+
+        if (tape_drives[c].bus_type == TAPE_BUS_FDC) {
+            sprintf(temp, "tape_%02i_fdd_unit", c + 1);
+            tape_drives[c].fdd_unit = ini_section_get_int(cat, temp, 0);
+            if (tape_drives[c].fdd_unit >= FDD_NUM)
+                tape_drives[c].fdd_unit = 0;
+        } else if (tape_drives[c].bus_type == TAPE_BUS_LPT) {
+            sprintf(temp, "tape_%02i_lpt_port", c + 1);
+            tape_drives[c].lpt_port = ini_section_get_int(cat, temp, 0);
+            if (tape_drives[c].lpt_port >= PARALLEL_MAX)
+                tape_drives[c].lpt_port = 0;
+        } else {
+            tape_drives[c].scsi_device_id = c + 4;
+        }
 
         if (tape_drives[c].bus_type == TAPE_BUS_ATAPI) {
             sprintf(temp, "tape_%02i_ide_channel", c + 1);
@@ -2436,6 +2437,16 @@ go_to_mo:
 
         sprintf(temp, "tape_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
+
+        if (tape_drives[c].bus_type != TAPE_BUS_FDC) {
+            sprintf(temp, "tape_%02i_fdd_unit", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
+
+        if (tape_drives[c].bus_type != TAPE_BUS_LPT) {
+            sprintf(temp, "tape_%02i_lpt_port", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
 
         sprintf(temp, "tape_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
@@ -2772,10 +2783,6 @@ config_load(void)
             isarom_type[i] = 0;
         for (i = 0; i < ISAMEM_MAX; i++)
             isamem_type[i] = 0;
-
-        fdd_tape_enabled = 0;
-        fdd_tape_unit    = 1;
-        memset(fdd_tape_fn, 0x00, sizeof(fdd_tape_fn));
 
         cassette_enable = 1;
         memset(cassette_fname, 0x00, sizeof(cassette_fname));
@@ -3835,19 +3842,10 @@ save_storage_controllers(void)
         ini_section_set_string(cat, "cdrom_interface",
                                cdrom_interface_get_internal_name(cdrom_interface_current));
 
-    if (fdd_tape_enabled == 0) {
-        ini_section_delete_var(cat, "floppy_tape_enabled");
-        ini_section_delete_var(cat, "floppy_tape_unit");
-        ini_section_delete_var(cat, "floppy_tape_file");
-    } else {
-        ini_section_set_int(cat, "floppy_tape_enabled", fdd_tape_enabled);
-        ini_section_set_int(cat, "floppy_tape_unit", fdd_tape_unit);
-
-        if (strlen(fdd_tape_fn) == 0)
-            ini_section_delete_var(cat, "floppy_tape_file");
-        else
-            save_image_file(cat, "floppy_tape_file", fdd_tape_fn);
-    }
+    /* The floppy tape is configured from the Tape drives tab now. */
+    ini_section_delete_var(cat, "floppy_tape_enabled");
+    ini_section_delete_var(cat, "floppy_tape_unit");
+    ini_section_delete_var(cat, "floppy_tape_file");
 
     if (cassette_enable == 0)
         ini_section_delete_var(cat, "cassette_enabled");
@@ -4452,6 +4450,18 @@ save_other_removable_devices(void)
 
         sprintf(temp, "tape_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "tape_%02i_fdd_unit", c + 1);
+        if (tape_drives[c].bus_type != TAPE_BUS_FDC)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, tape_drives[c].fdd_unit);
+
+        sprintf(temp, "tape_%02i_lpt_port", c + 1);
+        if (tape_drives[c].bus_type != TAPE_BUS_LPT)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, tape_drives[c].lpt_port);
 
         sprintf(temp, "tape_%02i_writeprot", c + 1);
         ini_section_delete_var(cat, temp);

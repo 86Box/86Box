@@ -836,6 +836,16 @@ NewFloppyDialog::createTapeSectorImage(const QString &filename, UNUSED(int8_t di
     }
     QDataStream stream(&file);
     stream.setByteOrder(QDataStream::LittleEndian);
+
+    if (disk_size >= 7) {
+        /* QIC-117 floppy-tape / Ditto cartridges: the cores create and
+           format their own blank images (a zero-length file), so keep
+           the cartridge byte-identical to an auto-created one. */
+        pbar.setMaximum(1);
+        fileProgress(1);
+        return true;
+    }
+
     stream << (uint32_t) TAPE_SIMH_EOD;
     pbar.setMaximum(1);
     fileProgress(1);

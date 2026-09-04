@@ -24,6 +24,8 @@ extern "C" {
 #include "86box/hdd.h"
 #include "86box/scsi.h"
 #include "86box/cdrom.h"
+#include "86box/scsi_device.h"
+#include "86box/scsi_tape.h"
 }
 
 #include "qt_settings_bus_tracking.hpp"
@@ -148,6 +150,42 @@ SettingsBusTracking::next_free_scsi_id()
         mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (!(scsi_tracking[element] & mask)) {
+            ret = (uint8_t) i;
+            break;
+        }
+    }
+
+    return ret;
+}
+
+uint8_t
+SettingsBusTracking::next_free_fdc_unit()
+{
+    uint64_t mask;
+    uint8_t  ret = CHANNEL_NONE;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+
+        if (!(fdc_tracking & mask)) {
+            ret = (uint8_t) i;
+            break;
+        }
+    }
+
+    return ret;
+}
+
+uint8_t
+SettingsBusTracking::next_free_lpt_port()
+{
+    uint64_t mask;
+    uint8_t  ret = CHANNEL_NONE;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+
+        if (!(lpt_tracking & mask)) {
             ret = (uint8_t) i;
             break;
         }
@@ -304,6 +342,20 @@ SettingsBusTracking::busChannelsInUse(const int bus)
                     channelsInUse.append(i);
             }
             break;
+        case TAPE_BUS_FDC:
+            for (uint8_t i = 0; i < 4; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (fdc_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
+        case TAPE_BUS_LPT:
+            for (uint8_t i = 0; i < 4; i++) {
+                mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
+                if (lpt_tracking & mask)
+                    channelsInUse.append(i);
+            }
+            break;
         default:
             break;
     }
@@ -375,6 +427,23 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
                 scsi_tracking[element] |= mask;
             else
                 scsi_tracking[element] &= ~mask;
+            break;
+        case TAPE_BUS_FDC:
+            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+
+            if (set)
+                fdc_tracking |= mask;
+            else
+                fdc_tracking &= ~mask;
+            break;
+
+        case TAPE_BUS_LPT:
+            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+
+            if (set)
+                lpt_tracking |= mask;
+            else
+                lpt_tracking &= ~mask;
             break;
     }
 }

@@ -48,6 +48,8 @@
 #include <86box/fdd.h>
 #include <86box/fdd_tape.h>
 #include <86box/fdc.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
 #include <86box/tape_qic117.h>
 
 /*
@@ -120,7 +122,7 @@ enum {
     TAPE_XFER_READID
 };
 
-typedef struct tape_t {
+typedef struct fdd_tape_state_t {
     int      attached;      /* drive is fitted to the cable */
     int      drive;         /* drive select line it answers to */
 
@@ -191,9 +193,9 @@ typedef struct tape_t {
     int      format_datac;
     int      format_count;
     uint32_t format_offset;
-} tape_t;
+} fdd_tape_state_t;
 
-static tape_t  tape;
+static fdd_tape_state_t  tape;
 static fdc_t  *tape_fdc = NULL;
 
 /*
@@ -201,7 +203,7 @@ static fdc_t  *tape_fdc = NULL;
    attention to the controller's motor line, so the transfer clock is ours
    rather than the floppy drive poll.
 
-   This lives outside tape_t deliberately: detaching the drive wipes the
+   This lives outside fdd_tape_state_t deliberately: detaching the drive wipes the
    rest of the state, and a registered timer must never be memset while it
    might still be linked into the timer list.
  */
@@ -212,7 +214,7 @@ static int        tape_timer_added = 0;
    QIC-117 delimits commands by time, not by seek boundaries: a pulse train
    ends when no further STEP pulse arrives for TTIMEOUT, and only then does
    the drive act on the count. This timer measures that gap. It lives
-   outside tape_t for the same reason as the transfer clock above.
+   outside fdd_tape_state_t for the same reason as the transfer clock above.
  */
 static pc_timer_t tape_cmd_timer;
 static int        tape_cmd_timer_added = 0;
@@ -237,7 +239,7 @@ static int        tape_motion_timer_added = 0;
    the instant it is asked can wedge a host whose completion check waits to
    first see the drive go busy: it never does, so the check keeps retrying
    and eventually gives up. This one-shot timer models the wind and drops the
-   busy state when it fires. It lives outside tape_t for the same reason as
+   busy state when it fires. It lives outside fdd_tape_state_t for the same reason as
    the timers above.
  */
 static pc_timer_t tape_busy_timer;
@@ -279,9 +281,9 @@ static int        tape_busy_timer_added = 0;
  */
 #define TAPE_SCAN_SPEEDUP    32
 
-int  fdd_tape_enabled = 0;
-int  fdd_tape_unit    = 1;
-char fdd_tape_fn[MAX_IMAGE_PATH_LEN];
+/* The tape_drives[] entry this drive is configured from, or -1 when the
+   drive is not configured at all. */
+static int tape_entry = -1;
 
 #ifdef ENABLE_FDD_TAPE_LOG
 int fdd_tape_do_log = ENABLE_FDD_TAPE_LOG;
@@ -365,6 +367,7 @@ static void tape_start_clock(void);
 static void tape_stop_clock(void);
 static void tape_start_motion(void);
 static void tape_stop_motion_clock(void);
+static void fdd_tape_ui_activity(int active, int write);
 
 /* The segment currently under the head. */
 static int
@@ -1502,6 +1505,9 @@ tape_stop_clock(void)
 {
     if (tape_timer_added)
         timer_disable(&tape_timer);
+
+    /* The transfer clock stopping means the drive has gone idle. */
+    fdd_tape_ui_activity(0, 0);
 }
 
 static void
@@ -1528,6 +1534,9 @@ tape_motion_tick(UNUSED(void *priv))
         tape_stop_motion_clock();
         return;
     }
+
+    /* The tape is moving: keep the drive's activity light lit. */
+    fdd_tape_ui_activity(1, tape.xfer_state == TAPE_XFER_WRITE);
 
     /*
        A physical wind runs the head toward the end it was sent to and comes
@@ -1620,6 +1629,8 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
         tape_image_read(offset, tape.buffer, FDD_TAPE_SECTOR_SIZE);
     else
         memset(tape.buffer, 0x00, FDD_TAPE_SECTOR_SIZE);
+
+    fdd_tape_ui_activity(1, state == TAPE_XFER_WRITE);
 
     /* The segment under the head advances as sectors stream past. */
     tape_head_to_offset(offset);
@@ -1750,6 +1761,8 @@ tape_format(int drive, UNUSED(int side), UNUSED(int density), UNUSED(uint8_t fil
     tape.format_datac = 0;
     tape.format_count = 0;
 
+    fdd_tape_ui_activity(1, 1);
+
     tape_start_clock();
 }
 
@@ -1789,6 +1802,14 @@ tape_clock(UNUSED(void *priv))
         tape_stop_clock();
         return;
     }
+
+    /*
+       The transfer is in progress: keep the drive's activity light lit.
+       The status bar only samples the flag periodically and clears it
+       after displaying, so it has to be re-asserted as the transfer runs.
+     */
+    fdd_tape_ui_activity(1, (tape.xfer_state == TAPE_XFER_WRITE) ||
+                                (tape.xfer_state == TAPE_XFER_FORMAT));
 
     switch (tape.xfer_state) {
         case TAPE_XFER_READID:
@@ -2047,8 +2068,33 @@ tape_read_geometry(void)
                  "%i segments/head\n", tape.segs_per_cyl, tape.segs_per_head);
 }
 
-void
-fdd_tape_eject(void)
+/* Keeps the owning drive's status-bar icon in step with the drive. */
+static void
+fdd_tape_ui_update(void)
+{
+    if (tape_entry < 0)
+        return;
+
+    ui_sb_update_icon_state(SB_TAPE | tape_entry, !tape_has_cartridge());
+    ui_sb_update_icon_wp(SB_TAPE | tape_entry, tape.readonly);
+}
+
+/* Transient read/write activity on the owning drive's icon. */
+static void
+fdd_tape_ui_activity(int active, int write)
+{
+    if (tape_entry < 0)
+        return;
+
+    ui_sb_update_icon(SB_TAPE | tape_entry, active);
+    if (write)
+        ui_sb_update_icon_write(SB_TAPE | tape_entry, active);
+}
+
+/* Releases the cartridge image without touching the owning tape_drives[]
+   entry - the internal half of an eject. */
+static void
+tape_image_release(void)
 {
     if (tape.fp != NULL) {
         fclose(tape.fp);
@@ -2064,11 +2110,23 @@ fdd_tape_eject(void)
 }
 
 void
+fdd_tape_eject(void)
+{
+    tape_image_release();
+
+    /* A runtime eject leaves the owning entry empty as well. */
+    if ((tape_entry >= 0) && (tape_drives[tape_entry].image_path[0] != 0x00))
+        tape_drives[tape_entry].image_path[0] = 0x00;
+
+    fdd_tape_ui_update();
+}
+
+void
 fdd_tape_load(const char *fn)
 {
     FILE *fp;
 
-    fdd_tape_eject();
+    tape_image_release();
 
     if ((fn == NULL) || (fn[0] == 0x00))
         return;
@@ -2130,8 +2188,34 @@ fdd_tape_load(const char *fn)
     if (tape.attached)
         writeprot[tape.drive] = tape.readonly;
 
+    /* Keep the owning entry in step with what is actually in the drive. */
+    if (tape_entry >= 0) {
+        strncpy(tape_drives[tape_entry].image_path, fn, MAX_IMAGE_PATH_LEN - 1);
+        tape_drives[tape_entry].image_path[MAX_IMAGE_PATH_LEN - 1] = 0x00;
+        tape_drives[tape_entry].read_only = tape.readonly;
+    }
+
     fdd_tape_log("Tape: loaded %s (%u bytes%s)\n", fn, tape.image_size,
                  tape.readonly ? ", read-only" : "");
+
+    fdd_tape_ui_update();
+}
+
+/* Queries whether a drive select line belongs to a tape drive. A floppy
+   may not be (re)loaded onto such a line. */
+static int
+fdd_tape_line_owned(int drive)
+{
+    if ((drive < 0) || (drive >= FDD_NUM))
+        return 0;
+
+    for (uint8_t c = 0; c < TAPE_NUM; c++) {
+        if ((tape_drives[c].bus_type == TAPE_BUS_FDC) &&
+            (tape_drives[c].fdd_unit == drive))
+            return 1;
+    }
+
+    return 0;
 }
 
 void
@@ -2141,10 +2225,21 @@ fdd_tape_init(void)
 
     fdd_tape_close();
 
-    if (!fdd_tape_enabled)
+    /*
+       Resolve the configuration from the tape_drives[] entry on the FDC
+       bus (the Tape drives tab).
+     */
+    tape_entry = -1;
+    for (uint8_t c = 0; c < TAPE_NUM; c++) {
+        if (tape_drives[c].bus_type == TAPE_BUS_FDC) {
+            tape_entry = c;
+            break;
+        }
+    }
+    if (tape_entry < 0)
         return;
 
-    drive = fdd_tape_unit;
+    drive = tape_drives[tape_entry].fdd_unit;
     if ((drive < 0) || (drive >= FDD_NUM))
         drive = 1;
 
@@ -2194,7 +2289,14 @@ fdd_tape_init(void)
     drive_empty[drive] = 0;
     fdd_changed[drive] = 0;
 
-    fdd_tape_load(fdd_tape_fn);
+    char fn[MAX_IMAGE_PATH_LEN + 8];
+
+    if (tape_drives[tape_entry].read_only)
+        snprintf(fn, sizeof(fn), "wp://%s", tape_drives[tape_entry].image_path);
+    else
+        snprintf(fn, sizeof(fn), "%s", tape_drives[tape_entry].image_path);
+
+    fdd_tape_load(fn);
 
     /*
        A cartridge that was already in the drive when the power came on is
@@ -2215,10 +2317,12 @@ fdd_tape_close(void)
     const int drive        = tape.drive;
     const int was_attached = tape.attached;
 
-    fdd_tape_eject();
+    /* Not fdd_tape_eject(): a close (e.g. on the re-attach path) must not
+       clear the owning entry's image, only a runtime eject does that. */
+    tape_image_release();
 
     /*
-       The timer is left alone on purpose. It lives outside tape_t, so the
+       The timer is left alone on purpose. It lives outside fdd_tape_state_t, so the
        wipe below cannot corrupt it, and it may legitimately still be in
        the timer list here or have been orphaned by a hard reset - calling
        timer_disable() in the latter case would trip the timer layer's own
@@ -2243,6 +2347,8 @@ fdd_tape_close(void)
     memset(&tape, 0x00, sizeof(tape));
     tape.report_pos = TAPE_REPORT_IDLE;
 
-    if (was_attached)
+    /* A line owned by a tape drive must not have a floppy resurrected
+       onto it - the tape (re)attaches right after this on the reset path. */
+    if (was_attached && !fdd_tape_line_owned(drive))
         fdd_load(drive, floppyfns[drive]);
 }
