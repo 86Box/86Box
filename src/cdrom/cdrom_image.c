@@ -1427,6 +1427,7 @@ image_load_iso(cd_image_t *img, const char *filename)
     int            sector_sizes[8] = { 2448, 2368, RAW_SECTOR_SIZE, 2336,
                                        2332, 2328, 2324,            COOKED_SECTOR_SIZE };
 
+    img->has_data   = 1;
     img->tracks     = NULL;
     /*
        Pass 1 - loading the ISO image.
@@ -1625,10 +1626,11 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
 
             memcpy(rtis_sorted, rtis, (uint64_t) toc_entries * sizeof(raw_track_info_t));
             for (uint32_t i = 0; i < toc_entries; i++) {
-                if ((rtis_sorted[i].adr_ctl >> 4) == 0x5) {
+                if ((rtis_sorted[i].adr_ctl >> 4) == 0x5)
                     // Make sure these appear last.
                     rtis_sorted[i].point |= 0xF0;
-                }
+                else if ((rtis_sorted[i].adr_ctl >> 4) == 0x1)
+                    img->has_data |= !!(rtis_sorted[i].adr_ctl & 0x04);
             }
             qsort(rtis_sorted, toc_entries, sizeof(raw_track_info_t), compare_points);
 
@@ -1828,16 +1830,20 @@ image_load_toc(cd_image_t *img, const char *tocfile)
             strcpy(track->file_type, "BINARY");
             if (!strcmp(type, "AUDIO"))
                 strcpy(track->cue_type, "AUDIO");
-            else if (!strcmp(type, "MODE1") || !strcmp(type, "MODE1_RAW"))
+            else if (!strcmp(type, "MODE1") || !strcmp(type, "MODE1_RAW")) {
                 strcpy(track->cue_type, !strcmp(type, "MODE1") ? "MODE1/2048" : "MODE1/2352");
-            else if (!strcmp(type, "MODE2") || !strcmp(type, "MODE2_FORM_MIX") ||
-                     !strcmp(type, "MODE2_RAW"))
+                img->has_data |= 1;
+            } else if (!strcmp(type, "MODE2") || !strcmp(type, "MODE2_FORM_MIX") ||
+                     !strcmp(type, "MODE2_RAW")) {
                 strcpy(track->cue_type, !strcmp(type, "MODE2_RAW") ? "MODE2/2352" : "MODE2/2336");
-            else if (!strcmp(type, "MODE2_FORM1"))
+                img->has_data |= 1;
+            } else if (!strcmp(type, "MODE2_FORM1")) {
                 strcpy(track->cue_type, "MODE2/2048");
-            else if (!strcmp(type, "MODE2_FORM2"))
+                img->has_data |= 1;
+            } else if (!strcmp(type, "MODE2_FORM2")) {
                 strcpy(track->cue_type, "MODE2/2324");
-            else
+                img->has_data |= 1;
+            } else
                 success = 0;
         } else if (!strcmp(command, "FILE") || !strcmp(command, "DATAFILE") ||
                    !strcmp(command, "AUDIOFILE")) {
@@ -2087,6 +2093,7 @@ image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp)
                 }
                 if (((ct->sector_size == 2336) || (ct->sector_size == 2332)) && (ct->mode == 2) && (ct->form == 1))
                     ct->skip        = 8;
+                img->has_data |= 1;
             } else if (!memcmp(type, "CD", 2)) {
                 ct->attr        = DATA_TRACK;
                 ct->mode        = 2;
@@ -3031,6 +3038,8 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
                 ct->form        = (mds_trk_block.trk_mode & 0x07) - 0x03;
             if (ct->attr == AUDIO_TRACK)
                 success         = 1;
+            if  (ct->attr == DATA_TRACK)
+                img->has_data  |= 1;
 
             if (((ct->sector_size == 2336) || (ct->sector_size == 2332)) && (ct->mode == 2) && (ct->form == 1))
                 ct->skip       += 8;
@@ -3564,6 +3573,7 @@ image_open(cdrom_t *dev, const char *path)
         img->log          = log_open(n);
 
         img->dev          = dev;
+        img->has_data     = 0;
 
         if (is_ccd) {
             ret = image_load_ccd(img, path);
