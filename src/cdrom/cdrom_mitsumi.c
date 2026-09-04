@@ -660,6 +660,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                         memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                         dev->buf_idx     = 0;
                         dev->buf_count   = MIN(dev->real_count, buf_len);
+                        mitsumi_set_irq(dev, IRQ_DATAREADY);
                         mitsumi_cdrom_log("Mitsum CD-ROM: [PIO] Moved the next %i bytes into the buffer.\n", dev->buf_count);
                     } else {
                         /*
