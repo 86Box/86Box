@@ -1716,7 +1716,7 @@ mach64_io_unmap(mach64_t *mach64)
             return;
     }
 
-    io_removehandler(0x03c0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
+    io_removehandler(0x03a0, 0x0040, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     for (uint8_t c = 0; c < 32; c++) // *0x400
         io_removehandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
@@ -1750,6 +1750,8 @@ mach64_io_map(mach64_t *mach64)
             return;
     }
 
+    if (!(mach64->svga.miscout & 0x01))
+        io_sethandler(0x03a0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
     io_sethandler(0x03c0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     if (!mach64->use_block_decoded_io) {

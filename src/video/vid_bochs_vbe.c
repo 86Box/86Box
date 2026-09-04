@@ -699,7 +699,7 @@ bochs_vbe_pci_read(const int func, const int addr, UNUSED(const int len), void *
 static void
 bochs_vbe_disable_handlers(bochs_vbe_t *dev)
 {
-    io_removehandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
+    io_removehandler(0x03a0, 0x0040, bochs_vbe_in, NULL, NULL,
                      bochs_vbe_out, NULL, NULL, dev);
     io_removehandler(0x01ce, 0x0003, bochs_vbe_in, bochs_vbe_inw,
                      bochs_vbe_inl, bochs_vbe_out, bochs_vbe_outw, bochs_vbe_outl, dev);
@@ -729,7 +729,7 @@ bochs_vbe_pci_write(const int func, const int addr, UNUSED(const int len), const
             break;
         case 0x04:
             dev->pci_conf_status = val;
-            io_removehandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
+            io_removehandler(0x03a0, 0x0040, bochs_vbe_in, NULL, NULL,
                              bochs_vbe_out, NULL, NULL, dev);
             io_removehandler(0x01ce, 0x0003, bochs_vbe_in, bochs_vbe_inw,
                              bochs_vbe_inl, bochs_vbe_out, bochs_vbe_outw, bochs_vbe_outl, dev);
@@ -738,6 +738,9 @@ bochs_vbe_pci_write(const int func, const int addr, UNUSED(const int len), const
             mem_mapping_disable(&dev->svga.mapping);
             mem_mapping_disable(&dev->bios_rom.mapping);
             if (dev->pci_conf_status & PCI_COMMAND_IO) {
+                if (!(dev->svga.miscout & 0x01))
+                    io_sethandler(0x03a0, 0x0020, bochs_vbe_in, NULL, NULL,
+                                  bochs_vbe_out, NULL, NULL, dev);
                 io_sethandler(0x03c0, 0x0020, bochs_vbe_in, NULL, NULL,
                               bochs_vbe_out, NULL, NULL, dev);
                 io_sethandler(0x01ce, 0x0003, bochs_vbe_in, bochs_vbe_inw, bochs_vbe_inl,
@@ -864,7 +867,7 @@ bochs_vbe_init(const device_t *info)
     mem_mapping_disable(&dev->linear_mapping_2);
 
     dev->svga.bpp     = 8;
-    dev->svga.miscout = 1;
+    dev->svga.miscout = 0;
 
     dev->bank_gran    = 64;
 

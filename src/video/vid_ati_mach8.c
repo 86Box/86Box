@@ -7890,17 +7890,20 @@ mach32_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
                 mach_log(mach->log,"Remove and set handlers.\n");
                 io_removehandler(0x01ce, 2,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 io_removehandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-                io_removehandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
+                io_removehandler(0x03a0, 64, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 mach_io_remove(mach);
                 io_sethandler(0x01ce, 2,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 io_sethandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
+
+                if (!(mach->svga.miscout & 0x01))
+                    io_sethandler(0x03a0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 io_sethandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 mach_io_set(mach);
             } else {
                 mach_log(mach->log,"Remove handlers.\n");
                 io_removehandler(0x01ce, 2,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 io_removehandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-                io_removehandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
+                io_removehandler(0x03a0, 64, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 mach_io_remove(mach);
             }
             mach32_updatemapping(mach, &mach->svga);
@@ -7991,7 +7994,7 @@ mach_disable_handlers(mach_t *mach)
     if (mach->pci_bus) {
         io_removehandler(0x01ce, 2,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
         io_removehandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-        io_removehandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
+        io_removehandler(0x03a0, 64, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
         mach_io_remove(mach);
     }
 
@@ -8215,12 +8218,12 @@ mach8_init(const device_t *info)
     dev->ext_crt_pitch = 0x80;
     dev->accel_bpp = 8;
     svga->force_old_addr = 1;
-    svga->miscout = 1;
+    svga->miscout = 0;
     svga->bpp = 8;
     svga->packed_chain4 = 1;
     dev->rowoffset = 0x80;
     io_sethandler(0x01ce, 2,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-    io_sethandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
+    io_sethandler(0x03a0, 64, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
     io_sethandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
     mach_io_set(mach);
     mach->accel.cmd_type = -2;

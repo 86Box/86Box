@@ -95,7 +95,8 @@ flash_read(uint32_t addr, void *priv)
             break;
 
         case CMD_IID:
-            if (addr & 1)
+            if (((addr & 1) && (!(dev->flags & FLAG_X00))) ||
+                ((addr & 2) && (dev->flags & FLAG_X00)))
                 ret = dev->flash_id & 0xff;
             else
                 ret = 0x89;
@@ -167,9 +168,8 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
-    if (biosmask == 0x7ffff)
-        bb_mask &= 0xffff8000;
-    else if (biosmask == 0x3ffff)
+
+    if ((biosmask == 0x3ffff) || (biosmask == 0x7ffff))
         bb_mask &= 0xffffc000;
 
     if (dev->flags & FLAG_INV_A16)
@@ -225,9 +225,8 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
-    if (biosmask == 0x7ffff)
-        bb_mask &= 0xffff8000;
-    else if (biosmask == 0x3ffff)
+
+    if ((biosmask == 0x3ffff) || (biosmask == 0x7ffff))
         bb_mask &= 0xffffc000;
 
     if (dev->flags & FLAG_INV_A16)
@@ -316,6 +315,19 @@ intel_flash_add_mappings(flash_t *dev)
         if (dev->flags & FLAG_INV_A16)
             fbase ^= 0x10000;
 
+        /*
+           What happens with the inverted flashes:
+
+           Top gets copied to bottom and bottom to top, exec gets set to top and
+           then to bottom, respectively.
+
+           Doing this, we simplify the read and write handlers, but complicate
+           the mappings.
+
+           But if we stored the array inverted, then we would simplify the mapping,
+           but complicate the read and write handlers, unless we applied the XOR
+           within the code.
+         */
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
         if ((max == 2) || (i >= 2)) {
@@ -417,7 +429,9 @@ intel_flash_init(const device_t *info)
             break;
 
         case 0x3ffff:
-            if (dev->flags & FLAG_WORD)
+            if (dev->flags & FLAG_X00)
+                dev->flash_id = (dev->flags & FLAG_BXB) ? 0x75 : 0x74;
+            else if (dev->flags & FLAG_WORD)
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x2275 : 0x2274;
             else
                 dev->flash_id = (dev->flags & FLAG_BXB) ? 0x7D : 0x7C;

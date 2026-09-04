@@ -1238,6 +1238,26 @@ cdrom_get_model(const int type, char *name, const int id)
 }
 
 char *
+cdrom_get_inquiry_vendor(const int type)
+{
+    if (cdrom_drive_types[type].inquiry_vendor != NULL)
+        return (char *) cdrom_drive_types[type].inquiry_vendor;
+
+    return (char *) cdrom_drive_types[type].vendor;
+}
+
+void
+cdrom_get_inquiry_model(const int type, char *name, const int id)
+{
+    if (cdrom_drive_types[type].inquiry_model != NULL) {
+        sprintf(name, "%s", cdrom_drive_types[type].inquiry_model);
+        return;
+    }
+
+    cdrom_get_model(type, name, id);
+}
+
+char *
 cdrom_get_revision(const int type)
 {
     return (char *) cdrom_drive_types[type].revision;
@@ -1336,6 +1356,11 @@ void
 cdrom_get_identify_model(const int type, char *name, const int id)
 {
     char  elements[3][512] = { 0 };
+
+    if (cdrom_drive_types[type].identify_model != NULL) {
+        sprintf(name, "%s", cdrom_drive_types[type].identify_model);
+        return;
+    }
 
     memcpy(elements[0], cdrom_drive_types[type].vendor,
            strlen(cdrom_drive_types[type].vendor) + 1);
@@ -1540,6 +1565,17 @@ cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type)
 
     dev->cached_sector = -1;
     dev->subc_sector = -1;
+}
+
+int
+cdrom_has_data(cdrom_t *dev)
+{
+    int ret = 0;
+
+    if ((dev != NULL) && (dev->ops != NULL) && (dev->ops->has_data != NULL))
+        ret = dev->ops->has_data(dev->local);
+
+    return ret;
 }
 
 #include <86box/filters.h>

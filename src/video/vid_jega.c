@@ -764,12 +764,12 @@ jega_common_init(const device_t *info, void *priv, int vga)
                   NULL);
 
         jega->vga.svga.bpp     = 8;
-        jega->vga.svga.miscout = 1;
+        jega->vga.svga.miscout = 0;
 
         jega->vga.svga.vga_enabled = 0;
         jega->vga.svga.priv_parent = jega;
         jega->pallook = jega->vga.svga.pallook;
-        io_sethandler(0x03c0, 0x0020, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
+        io_sethandler(0x03a0, 0x0040, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
     } else {
         for (uint16_t c = 0; c < 256; c++) {
             pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
@@ -784,7 +784,7 @@ jega_common_init(const device_t *info, void *priv, int vga)
                         ega_read, NULL, NULL, ega_write, NULL, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, &jega->ega);
         /* I/O 3DD and 3DE are used by Oki if386 */
-        io_sethandler(0x03c0, 0x001c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
+        io_sethandler(0x03a0, 0x003c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);
     }
     /* I/O 3DD and 3DE are used by Oki if386 */
     // io_sethandler(0x03b0, 0x002c, jega_in, NULL, NULL, jega_out, NULL, NULL, jega);

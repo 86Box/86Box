@@ -137,6 +137,12 @@ ioctl_has_audio(UNUSED(const void *local))
 }
 
 static int
+ioctl_has_data(UNUSED(const void *local))
+{
+    return 0;
+}
+
+static int
 ioctl_is_empty(const void *local)
 {
     return 1;
@@ -192,6 +198,7 @@ static const cdrom_ops_t ioctl_ops = {
     ioctl_read_dvd_structure,
     ioctl_is_dvd,
     ioctl_has_audio,
+    ioctl_has_data,
     ioctl_is_empty,
     ioctl_close,
     ioctl_load

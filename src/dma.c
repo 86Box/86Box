@@ -472,6 +472,19 @@ dma_set_drq(int channel, int set)
         dma_xt_refresh_reconcile();
 }
 
+static void (*dma_service_handler[8])(void *);
+static void  *dma_service_priv[8];
+
+void
+dma_set_service_handler(int channel, void (*handler)(void *), void *priv)
+{
+    if ((channel < 0) || (channel > 7))
+        return;
+
+    dma_service_handler[channel] = handler;
+    dma_service_priv[channel]    = priv;
+}
+
 void
 dma_set_eop(int channel, int set)
 {
@@ -985,6 +998,14 @@ dma_read_legacy(uint16_t addr, UNUSED(void *priv))
             break;
 
         case 8: /*Status register*/
+            /* A peripheral with DRQ asserted may complete its transfer while
+               software polls terminal count.  Service it before returning
+               the controller status so the completion is visible at once. */
+            for (channel = 0; channel < 4; channel++) {
+                if ((dma_stat_rq_pc & (1 << channel)) &&
+                    !(dma_m & (1 << channel)) && dma_service_handler[channel])
+                    dma_service_handler[channel](dma_service_priv[channel]);
+            }
             if (dma_ps2.is_ps2) {
                 ret = (dma_stat_rq & 0x0f) << 4;
                 ret |= dma_stat & 0x0f;
@@ -1366,6 +1387,12 @@ dma16_read(uint16_t addr, UNUSED(void *priv))
             break;
 
         case 8: /*Status register*/
+            /* See the primary-controller status path above. */
+            for (channel = 4; channel < 8; channel++) {
+                if ((dma_stat_rq_pc & (1 << channel)) &&
+                    !(dma_m & (1 << channel)) && dma_service_handler[channel])
+                    dma_service_handler[channel](dma_service_priv[channel]);
+            }
             if (dma_ps2.is_ps2) {
                 ret = dma_stat_rq & 0xf0;
                 ret |= (dma_stat & 0xf0) >> 4;
