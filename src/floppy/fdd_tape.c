@@ -281,12 +281,8 @@ static int        tape_busy_timer_added = 0;
  */
 #define TAPE_SCAN_SPEEDUP    32
 
-int  fdd_tape_enabled = 0;
-int  fdd_tape_unit    = 1;
-char fdd_tape_fn[MAX_IMAGE_PATH_LEN];
-
-/* The tape_drives[] entry this drive is configured from, or -1 while the
-   legacy globals above remain the source of truth (transition period). */
+/* The tape_drives[] entry this drive is configured from, or -1 when the
+   drive is not configured at all. */
 static int tape_entry = -1;
 
 #ifdef ENABLE_FDD_TAPE_LOG
@@ -371,6 +367,7 @@ static void tape_start_clock(void);
 static void tape_stop_clock(void);
 static void tape_start_motion(void);
 static void tape_stop_motion_clock(void);
+static void fdd_tape_ui_activity(int active, int write);
 
 /* The segment currently under the head. */
 static int
@@ -1508,6 +1505,9 @@ tape_stop_clock(void)
 {
     if (tape_timer_added)
         timer_disable(&tape_timer);
+
+    /* The transfer clock stopping means the drive has gone idle. */
+    fdd_tape_ui_activity(0, 0);
 }
 
 static void
@@ -1534,6 +1534,9 @@ tape_motion_tick(UNUSED(void *priv))
         tape_stop_motion_clock();
         return;
     }
+
+    /* The tape is moving: keep the drive's activity light lit. */
+    fdd_tape_ui_activity(1, tape.xfer_state == TAPE_XFER_WRITE);
 
     /*
        A physical wind runs the head toward the end it was sent to and comes
@@ -1626,6 +1629,8 @@ tape_setup_transfer(int state, int sector, int track, int side, int sector_size)
         tape_image_read(offset, tape.buffer, FDD_TAPE_SECTOR_SIZE);
     else
         memset(tape.buffer, 0x00, FDD_TAPE_SECTOR_SIZE);
+
+    fdd_tape_ui_activity(1, state == TAPE_XFER_WRITE);
 
     /* The segment under the head advances as sectors stream past. */
     tape_head_to_offset(offset);
@@ -1756,6 +1761,8 @@ tape_format(int drive, UNUSED(int side), UNUSED(int density), UNUSED(uint8_t fil
     tape.format_datac = 0;
     tape.format_count = 0;
 
+    fdd_tape_ui_activity(1, 1);
+
     tape_start_clock();
 }
 
@@ -1795,6 +1802,14 @@ tape_clock(UNUSED(void *priv))
         tape_stop_clock();
         return;
     }
+
+    /*
+       The transfer is in progress: keep the drive's activity light lit.
+       The status bar only samples the flag periodically and clears it
+       after displaying, so it has to be re-asserted as the transfer runs.
+     */
+    fdd_tape_ui_activity(1, (tape.xfer_state == TAPE_XFER_WRITE) ||
+                                (tape.xfer_state == TAPE_XFER_FORMAT));
 
     switch (tape.xfer_state) {
         case TAPE_XFER_READID:
@@ -2053,6 +2068,29 @@ tape_read_geometry(void)
                  "%i segments/head\n", tape.segs_per_cyl, tape.segs_per_head);
 }
 
+/* Keeps the owning drive's status-bar icon in step with the drive. */
+static void
+fdd_tape_ui_update(void)
+{
+    if (tape_entry < 0)
+        return;
+
+    ui_sb_update_icon_state(SB_TAPE | tape_entry, !tape_has_cartridge());
+    ui_sb_update_icon_wp(SB_TAPE | tape_entry, tape.readonly);
+}
+
+/* Transient read/write activity on the owning drive's icon. */
+static void
+fdd_tape_ui_activity(int active, int write)
+{
+    if (tape_entry < 0)
+        return;
+
+    ui_sb_update_icon(SB_TAPE | tape_entry, active);
+    if (write)
+        ui_sb_update_icon_write(SB_TAPE | tape_entry, active);
+}
+
 /* Releases the cartridge image without touching the owning tape_drives[]
    entry - the internal half of an eject. */
 static void
@@ -2079,6 +2117,8 @@ fdd_tape_eject(void)
     /* A runtime eject leaves the owning entry empty as well. */
     if ((tape_entry >= 0) && (tape_drives[tape_entry].image_path[0] != 0x00))
         tape_drives[tape_entry].image_path[0] = 0x00;
+
+    fdd_tape_ui_update();
 }
 
 void
@@ -2157,11 +2197,12 @@ fdd_tape_load(const char *fn)
 
     fdd_tape_log("Tape: loaded %s (%u bytes%s)\n", fn, tape.image_size,
                  tape.readonly ? ", read-only" : "");
+
+    fdd_tape_ui_update();
 }
 
-/* Queries whether a drive select line belongs to a tape drive, either
-   through a tape_drives[] entry or the legacy configuration. A floppy may
-   not be (re)loaded onto such a line. */
+/* Queries whether a drive select line belongs to a tape drive. A floppy
+   may not be (re)loaded onto such a line. */
 static int
 fdd_tape_line_owned(int drive)
 {
@@ -2174,38 +2215,31 @@ fdd_tape_line_owned(int drive)
             return 1;
     }
 
-    return (fdd_tape_enabled && (fdd_tape_unit == drive));
+    return 0;
 }
 
 void
 fdd_tape_init(void)
 {
     int drive;
-    int enabled;
 
     fdd_tape_close();
 
     /*
-       Resolve the configuration. A tape_drives[] entry on the FDC bus
-       takes priority; the legacy globals are honored only in its absence
-       (the fallback goes away once the old UI does).
+       Resolve the configuration from the tape_drives[] entry on the FDC
+       bus (the Tape drives tab).
      */
     tape_entry = -1;
-    enabled    = 0;
     for (uint8_t c = 0; c < TAPE_NUM; c++) {
         if (tape_drives[c].bus_type == TAPE_BUS_FDC) {
             tape_entry = c;
-            enabled    = 1;
             break;
         }
     }
     if (tape_entry < 0)
-        enabled = fdd_tape_enabled;
-
-    if (!enabled)
         return;
 
-    drive = (tape_entry >= 0) ? tape_drives[tape_entry].fdd_unit : fdd_tape_unit;
+    drive = tape_drives[tape_entry].fdd_unit;
     if ((drive < 0) || (drive >= FDD_NUM))
         drive = 1;
 
@@ -2255,17 +2289,14 @@ fdd_tape_init(void)
     drive_empty[drive] = 0;
     fdd_changed[drive] = 0;
 
-    if (tape_entry >= 0) {
-        char fn[MAX_IMAGE_PATH_LEN + 8];
+    char fn[MAX_IMAGE_PATH_LEN + 8];
 
-        if (tape_drives[tape_entry].read_only)
-            snprintf(fn, sizeof(fn), "wp://%s", tape_drives[tape_entry].image_path);
-        else
-            snprintf(fn, sizeof(fn), "%s", tape_drives[tape_entry].image_path);
+    if (tape_drives[tape_entry].read_only)
+        snprintf(fn, sizeof(fn), "wp://%s", tape_drives[tape_entry].image_path);
+    else
+        snprintf(fn, sizeof(fn), "%s", tape_drives[tape_entry].image_path);
 
-        fdd_tape_load(fn);
-    } else
-        fdd_tape_load(fdd_tape_fn);
+    fdd_tape_load(fn);
 
     /*
        A cartridge that was already in the drive when the power came on is

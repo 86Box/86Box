@@ -35,12 +35,13 @@
 #include <86box/scsi_tape.h>
 #include <86box/fdd_tape.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/tape_qic117.h>
 
 /*
    Whether debug logging is enabled.
  */
-#if 0
+#if 1
 #define ENABLE_LPT_DITTO_LOG 1
 #endif
 
@@ -483,6 +484,7 @@ typedef struct ditto_t {
     int      epp_warned;    /* the EPP-vs-port mismatch has been reported */
     uint32_t last_port_ms;  /* when the host last touched the port */
     uint8_t  dat_out;       /* last byte we put on the data lines */
+    uint8_t  ui_write;      /* the drive's current command writes to the tape */
 
     /* Counted for the format-rate summary, not used by the emulation. */
 
@@ -867,6 +869,30 @@ static int      ditto_live_tape_idx = -1;
 
 static void ditto_image_sync(ditto_t *dev);
 static void ditto_image_load(ditto_t *dev, const char *fn);
+static void ditto_ui_activity(int active, int write);
+
+/* Keeps the owning drive's status-bar icon in step with the drive. */
+static void
+ditto_ui_update(void)
+{
+    if ((ditto_live == NULL) || (ditto_live_tape_idx < 0))
+        return;
+
+    ui_sb_update_icon_state(SB_TAPE | ditto_live_tape_idx, !ditto_live->image_loaded);
+    ui_sb_update_icon_wp(SB_TAPE | ditto_live_tape_idx, ditto_live->readonly);
+}
+
+/* Transient read/write activity on the owning drive's icon. */
+static void
+ditto_ui_activity(int active, int write)
+{
+    if (ditto_live_tape_idx < 0)
+        return;
+
+    ui_sb_update_icon(SB_TAPE | ditto_live_tape_idx, active);
+    if (write)
+        ui_sb_update_icon_write(SB_TAPE | ditto_live_tape_idx, active);
+}
 
 int
 ditto_model_from_tape_type(uint32_t type)
@@ -950,6 +976,8 @@ lpt_ditto_eject(void)
     if ((ditto_live_tape_idx >= 0) && (tape_drives[ditto_live_tape_idx].image_path[0] != 0x00))
         tape_drives[ditto_live_tape_idx].image_path[0] = 0x00;
 
+    ditto_ui_update();
+
     ditto_log("Ditto: cartridge ejected\n");
 }
 
@@ -987,6 +1015,8 @@ lpt_ditto_load(const char *path, int read_only)
 
     ditto_log("Ditto: loaded %s%s\n", path,
               dev->image_loaded ? (dev->readonly ? " (read-only)" : "") : " (failed)");
+
+    ditto_ui_update();
 }
 
 /* Every byte the image holds once the ECC sectors are counted in too. */
@@ -1160,6 +1190,8 @@ ditto_image_write(ditto_t *dev, uint32_t offset, const uint8_t *buf, uint32_t le
     if ((offset + len) > dev->image_size)
         dev->image_size = offset + len;
 
+    ditto_ui_activity(1, 1);
+
     return 1;
 }
 
@@ -1171,6 +1203,8 @@ ditto_image_sync(ditto_t *dev)
 
     fflush(dev->fp);
     dev->image_dirty = 0;
+
+    ditto_ui_activity(0, 1);
 }
 
 /*
@@ -1488,6 +1522,11 @@ qic_motion_tick(void *priv)
     }
 
     timer_advance_u64(&dev->motion_timer, qic_stream_period_us(dev) * TIMER_USEC);
+
+    /* The tape is streaming: keep the drive's activity light lit. The
+       status bar samples the flag periodically and clears it after
+       displaying, so it has to be re-asserted as the tape runs. */
+    ditto_ui_activity(1, dev->ui_write);
 
     if (dev->qic_segment < end) {
         dev->qic_segment++;
@@ -2249,6 +2288,8 @@ fdc_transfer(ditto_t *dev, uint8_t unit, int writing)
     int       sector;
     uint32_t  offset;
 
+    dev->ui_write = !!writing;
+
     if (writing && (dev->readonly || (dev->fp == NULL))) {
         fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
                         FDC_ST1_WRITE_PROTECT, 0x00);
@@ -2423,6 +2464,8 @@ fdc_format(ditto_t *dev, uint8_t unit)
     UNUSED(int wrote)   = 0;
     UNUSED(int skipped) = 0;
 
+    dev->ui_write = 1;
+
     if (dev->readonly || (dev->fp == NULL)) {
         fdc_data_result(dev, (uint8_t) (FDC_ST0_ABNORMAL | unit),
                         FDC_ST1_WRITE_PROTECT, 0x00);
@@ -2577,6 +2620,7 @@ fdc_execute(ditto_t *dev)
             if (steps < 0)
                 steps = -steps;
 
+            dev->ui_write = 0;
             ditto_qic_step(dev, steps);
 
             dev->fdc_pcn = dev->fdc_cmd[2];
@@ -3444,6 +3488,15 @@ ditto_read_status(void *priv)
     uint8_t  ret;
 
     ditto_note_idle(dev);
+
+    /*
+       The host polls the status lines non-stop while it waits for the
+       drive - which is exactly while the drive is busy. The status bar
+       only samples the activity flag periodically and clears it after
+       displaying, so re-assert it on every poll.
+     */
+    if ((dev->fdc_phase == FDC_PHASE_EXEC) || dev->qic_busy || dev->qic_running)
+        ditto_ui_activity(1, dev->ui_write);
 
     if (dev->connected && dev->ident)
         ret = ditto_ident_response(dev);
