@@ -1677,7 +1677,7 @@ ali1543_init(const device_t *info)
     pci_enable_mirq(6);
 
     /* Super I/O chip */
-    device_add(&ali5123_device);
+    device_add_params(&ali5123_device, (void *) (uintptr_t) ((info->local & ALI1543_SIO_370) ? ALI5123_370 : 0));
 
     ali1543_reset(dev);
 
