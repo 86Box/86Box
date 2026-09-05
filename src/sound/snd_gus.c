@@ -371,16 +371,16 @@ gus_input_poll(void *priv)
     if (gus->adc_ctrl & 0x01) {
         if (gus->adc_ctrl & 0x02) {
             if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
             else {
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
             }
         } else {
             if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
             else
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
         }
         if (dma_result & DMA_OVER) {
             gus->adc_ctrl &= 0xfe;
