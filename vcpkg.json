@@ -15,7 +15,7 @@
     "dependencies": [
         "freetype",
         "libpng",
-        "sdl2",
+        "sdl3",
         "rtmidi",
         "libslirp",
         "fluidsynth",
