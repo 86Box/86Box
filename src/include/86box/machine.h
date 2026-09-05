@@ -1290,6 +1290,7 @@ extern int             machine_in530_boot_logo_enabled(void);
 #ifdef EMU_DEVICE_H
 extern const device_t  in530_device;
 #endif
+extern int             machine_at_aptiva2187_init(const machine_t *);
 
 /* VIA MVP3 */
 extern int             machine_at_ax59pro_init(const machine_t *);
