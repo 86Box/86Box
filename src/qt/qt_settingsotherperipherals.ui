@@ -552,14 +552,6 @@
   <tabstop>pushButtonConfigureKeyCard</tabstop>
   <tabstop>checkBoxSoftPower</tabstop>
   <tabstop>pushButtonConfigureSoftPower</tabstop>
-  <tabstop>comboBoxIsaMemCard1</tabstop>
-  <tabstop>pushButtonConfigureIsaMemCard1</tabstop>
-  <tabstop>comboBoxIsaMemCard2</tabstop>
-  <tabstop>pushButtonConfigureIsaMemCard2</tabstop>
-  <tabstop>comboBoxIsaMemCard3</tabstop>
-  <tabstop>pushButtonConfigureIsaMemCard3</tabstop>
-  <tabstop>comboBoxIsaMemCard4</tabstop>
-  <tabstop>pushButtonConfigureIsaMemCard4</tabstop>
   <tabstop>comboBoxMemExpCard1</tabstop>
   <tabstop>pushButtonConfigureMemExpCard1</tabstop>
   <tabstop>comboBoxMemExpCard2</tabstop>
