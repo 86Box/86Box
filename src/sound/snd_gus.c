@@ -1867,7 +1867,6 @@ gus_reset(void *priv)
     gus->midi_r = 0;
     gus->midi_w = 0;
     gus->uart_in = 0;
-    gus->uart_out = 0;
     gus->sysex = 0;
 
     gus->gp1_in = 0;
