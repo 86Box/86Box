@@ -1103,6 +1103,20 @@ solo1_close(void *priv)
     free(dev);
 }
 
+const device_t ess_solo1_device = {
+    .name          = "ESS ES1938S Solo-1",
+    .internal_name = "ess_solo1",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = solo1_init,
+    .close         = solo1_close,
+    .reset         = solo1_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t ess_solo1_onboard_device = {
     .name          = "ESS ES1938S Solo-1 (On-Board)",
     .internal_name = "ess_solo1_onboard",
