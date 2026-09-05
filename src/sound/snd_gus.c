@@ -371,16 +371,16 @@ gus_input_poll(void *priv)
     if (gus->adc_ctrl & 0x01) {
         if (gus->adc_ctrl & 0x02) {
             if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
             else {
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
             }
         } else {
             if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
             else
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
         }
         if (dma_result & DMA_OVER) {
             gus->adc_ctrl &= 0xfe;
@@ -657,8 +657,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                     if ((gus_addr + 1) < gus->gus_end_ram)
                                         d                 |= (gus->ram[gus_addr + 1] << 8);
 
-                                    if (val & 0x80)
-                                        d ^= 0x8080;
                                     dma_result = dma_channel_write(gus->dma, d);
                                     if (dma_result == DMA_NODATA)
                                         break;
@@ -668,8 +666,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                     else
                                         d = 0x00;
 
-                                    if (val & 0x80)
-                                        d ^= 0x80;
                                     dma_result = dma_channel_write(gus->dma, d);
                                     if (dma_result == DMA_NODATA)
                                         break;
@@ -773,6 +769,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x49: /*ADC Sample Control*/
                     /* This is the ADC equivalent of index 41h DMA Control and is relied on by MegaEM 3.x */
                     gus->adc_ctrl = val;
+                    gus->adc_ctrl &= ~0x40;
                     if (val & 1)
                         timer_set_delay_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
                     gus_log(gus->log, "GUS DMA Control write! new val = %02X\n", val);
@@ -1867,7 +1864,6 @@ gus_reset(void *priv)
     gus->midi_r = 0;
     gus->midi_w = 0;
     gus->uart_in = 0;
-    gus->uart_out = 0;
     gus->sysex = 0;
 
     gus->gp1_in = 0;
