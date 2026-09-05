@@ -21404,8 +21404,9 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
+        /* NVR is on the super I/O chip. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
@@ -21417,7 +21418,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Intel Aurora", "" }
     },
     /* 450GX */
     /* This has an AMIKey-2, which is type 'H'. */
