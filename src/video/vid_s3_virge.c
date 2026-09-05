@@ -6157,8 +6157,10 @@ s3_virge_init(const device_t *info)
             default:
                 break;
         }
-        if (virge->type == S3_VIRGE_GX)
+        if (virge->type == S3_VIRGE_GX) {
             virge->svga.crtc[0x36] |= (1 << 2);
+            virge->svga.crtc[0x6f] |= 1;
+        }
     }
 
     virge->svga.crtc[0x37] = 1 | (7 << 5);
