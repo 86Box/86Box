@@ -106,6 +106,7 @@
 #define MACHINE_APM               0x0000000000080000ULL /* sys has APM */
 #define MACHINE_ACPI              0x0000000000100000ULL /* sys has ACPI */
 #define MACHINE_PCI_INTERNAL      0x0000000000200000ULL /* sys has only internal PCI */
+#define MACHINE_AGP_INTERNAL      0x0000000200000000ULL /* sys has only internal AGP */
 #define MACHINE_CARTRIDGE         0x0000000000400000ULL /* sys has cartridge bays */
 /* Feature flags for internal storage controllers. */
 #define MACHINE_MFM               0x0000000000800000ULL /* sys has int MFM/RLL */
@@ -283,6 +284,7 @@ enum {
     MACHINE_CHIPSET_SIS_5511,
     MACHINE_CHIPSET_SIS_5571,
     MACHINE_CHIPSET_SIS_5581,
+    MACHINE_CHIPSET_SIS_530,
     MACHINE_CHIPSET_SIS_5591,
     MACHINE_CHIPSET_SIS_5600,
     MACHINE_CHIPSET_SMSC_VICTORYBX_66,
@@ -424,6 +426,7 @@ extern const char *    machine_get_internal_name_ex(int m);
 extern const char *    machine_get_nvr_name_ex(int m);
 extern int             machine_get_nvrmask(int m);
 extern int             machine_has_flags(int m, uintptr_t flags);
+extern uintptr_t       machine_has_flags_64(int m, uintptr_t flags);
 extern void            machine_set_ps2(void);
 extern void            machine_force_ps2(int is_ps2);
 extern int             machine_has_flags_ex(uintptr_t flags);
@@ -1276,6 +1279,13 @@ extern int             machine_at_g5x_init(const machine_t *);
 extern const device_t  ms5169_device;
 #endif
 extern int             machine_at_ms5169_init(const machine_t *);
+
+/* SiS 530/5595 */
+extern int             machine_at_in530_init(const machine_t *);
+extern int             machine_in530_boot_logo_enabled(void);
+#ifdef EMU_DEVICE_H
+extern const device_t  in530_device;
+#endif
 
 /* VIA MVP3 */
 extern int             machine_at_ax59pro_init(const machine_t *);
