@@ -28,9 +28,9 @@
 
 #define ZIP_750_SECTORS     (1468596) /* Estimated */
 
-#define JAZ_1GB_SECTORS     (2045952)
+#define JAZ_1GB_SECTORS     (2091050)
 
-#define JAZ_2GB_SECTORS     (3903796)
+#define JAZ_2GB_SECTORS     (3915600)
 
 #define SUPERDISK_SECTORS      (963 * 256)
 
