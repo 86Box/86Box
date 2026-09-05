@@ -689,7 +689,7 @@ mitsumi_read_callback(void *priv)
             break;
         case STATE_SEEK:
             mitsumi_cdrom_log("Mitsumi: state STATE_SEEK\n");
-            if (!dev->readcount && (dev->enable_dma || dev->early_status)) {
+            if (!dev->readcount && dev->early_status) {
                 /*
                   For DMA and early-status PIO reads,
                   readcount = 0 means read until TC.
