@@ -657,8 +657,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                     if ((gus_addr + 1) < gus->gus_end_ram)
                                         d                 |= (gus->ram[gus_addr + 1] << 8);
 
-                                    if (val & 0x80)
-                                        d ^= 0x8080;
                                     dma_result = dma_channel_write(gus->dma, d);
                                     if (dma_result == DMA_NODATA)
                                         break;
@@ -668,8 +666,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                     else
                                         d = 0x00;
 
-                                    if (val & 0x80)
-                                        d ^= 0x80;
                                     dma_result = dma_channel_write(gus->dma, d);
                                     if (dma_result == DMA_NODATA)
                                         break;
