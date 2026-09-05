@@ -97,8 +97,11 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
     if (dev->mem_state[base] != state) {
         mem_set_mem_state_both(addr, size, states[state]);
         dev->mem_state[base] = state;
-        /* A PAM change can replace the backing of the current instruction page. */
-        flushmmucache();
+        if (machines[machine].init == machine_at_ibm_pc700_init)
+            /* A PAM change can replace the backing of the current instruction page. */
+            flushmmucache();
+        else
+            flushmmucache_nopc();
     }
 }
 
