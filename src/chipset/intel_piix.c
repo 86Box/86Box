@@ -68,6 +68,7 @@ typedef struct _piix_ {
     uint16_t       func0_id;
     uint16_t       nvr_io_base;
     uint16_t       acpi_io_base;
+    uint16_t       irq_state;
     double         fast_off_period;
     sff8038i_t    *bm[2];
     smbus_piix4_t *smbus;
@@ -471,6 +472,29 @@ piix_trap_update(void *priv)
  */
 static piix_t *piix_ext = NULL;
 
+static void
+piix_irq(uint16_t num, int set, void *priv)
+{
+    piix_t        *dev    = (piix_t *) priv;
+    uint8_t       *fregs  = dev->regs[0];
+    const uint16_t rising = num & ~dev->irq_state;
+    uint8_t        status;
+
+    if (!set) {
+        dev->irq_state &= ~num;
+        return;
+    }
+
+    dev->irq_state |= num;
+    /* SMIEN/SMIREQ bits 0-4 correspond to IRQ1, IRQ3, IRQ4, IRQ8 and IRQ12. */
+    status = ((rising >> 1) & 0x01) | ((rising >> 2) & 0x06) |
+             ((rising >> 5) & 0x08) | ((rising >> 8) & 0x10);
+    status &= fregs[0xa2];
+    fregs[0xaa] |= status;
+    if (status && (fregs[0xa0] & 0x01))
+        smi_raise();
+}
+
 void
 piix_extsmi_raise(void)
 {
@@ -701,8 +725,12 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0xa0:
                 if (dev->type < 4) {
+                    const uint8_t old = fregs[addr];
+
                     fregs[addr] = val & 0x1f;
                     apm_set_do_smi(dev->apm, !!(val & 0x01) && !!(fregs[0xa2] & 0x80));
+                    if ((val & 0x01) && !(old & 0x01) && fregs[0xaa])
+                        smi_raise();
                     switch ((val & 0x18) >> 3) {
                         case 0x00:
                             dev->fast_off_period = PCICLK * 32768.0 * 60000.0;
@@ -1471,12 +1499,14 @@ piix_fast_off_count(void *priv)
 static void
 piix_reset(void *priv)
 {
-    const piix_t *dev = (piix_t *) priv;
+    piix_t *dev = (piix_t *) priv;
 
     if (dev->type > 3) {
         piix_write(3, 0x04, 1, 0x00, priv);
         piix_write(3, 0x5b, 1, 0x00, priv);
     } else {
+        dev->irq_state    = 0;
+        dev->regs[0][0xaa] = dev->regs[0][0xab] = 0;
         piix_write(0, 0xa0, 1, 0x08, priv);
         piix_write(0, 0xa2, 1, 0x00, priv);
         piix_write(0, 0xa4, 1, 0x00, priv);
@@ -1554,6 +1584,11 @@ piix_close(void *priv)
 {
     piix_t *dev = (piix_t *) priv;
 
+    if (dev->type < 4)
+        pic_set_irq_callback(NULL, NULL);
+    if (piix_ext == dev)
+        piix_ext = NULL;
+
     for (int i = 0; i < (sizeof(dev->io_traps) / sizeof(dev->io_traps[0])); i++)
         io_trap_remove(dev->io_traps[i].trap);
 
@@ -1582,6 +1617,8 @@ piix_init(const device_t *info)
     piix_ext = dev;
     
     dev->type = info->local & 0x0f;
+    if (dev->type < 4)
+        pic_set_irq_callback(piix_irq, dev);
     /* If (dev->type == 4) and (dev->rev & 0x08), then this is PIIX4E. */
     dev->rev        = (info->local >> 4) & 0x0f;
     dev->func_shift = (info->local >> 8) & 0x0f;

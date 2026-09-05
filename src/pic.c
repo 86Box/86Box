@@ -64,6 +64,8 @@ static int mouse_latch = 0;
 
 static uint16_t smi_irq_mask   = 0x0000;
 static uint16_t smi_irq_status = 0x0000;
+static void (*irq_callback)(uint16_t, int, void *);
+static void *irq_callback_priv;
 
 static uint16_t latched_irqs   = 0x0000;
 static int16_t  irq_vector_override[8] = {
@@ -89,6 +91,13 @@ pic_log(const char *fmt, ...)
 #else
 #    define pic_log(fmt, ...)
 #endif
+
+void
+pic_set_irq_callback(void (*callback)(uint16_t, int, void *), void *priv)
+{
+    irq_callback      = callback;
+    irq_callback_priv = priv;
+}
 
 void
 pic_reset_smi_irq_mask(void)
@@ -792,6 +801,9 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
        acpi_rtc_status = !!set;
 
    if (num) {
+       if (irq_callback != NULL)
+           irq_callback(num, set, irq_callback_priv);
+
        if (set) {
             if (smi_irq_mask & num) {
                 smi_raise();
