@@ -611,6 +611,13 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             break;
 
         case 0x0002:
+            /* A bidirectional port still latches DTR writes while its pins are
+               inputs. Drive that latched byte before an output-mode strobe. */
+            if (dev->output_enabled && (dev->ext || dev->epp) &&
+                (dev->ctrl & 0x20) && !(val & 0x20) && dev->dt &&
+                dev->dt->write_data && dev->dt->priv)
+                dev->dt->write_data(dev->dat, dev->dt->priv);
+
             if (dev->output_enabled && dev->dt && dev->dt->write_ctrl && dev->dt->priv)
                 dev->dt->write_ctrl(val, dev->dt->priv);
             dev->ctrl       = val;
