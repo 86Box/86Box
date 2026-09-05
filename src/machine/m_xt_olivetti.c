@@ -2031,7 +2031,8 @@ m19_vid_init(m19_vid_t *vid)
 #endif
 
     vid->ogc.cga.rgb_type = device_get_config_int("rgb_type");
-    cga_palette           = (vid->ogc.cga.rgb_type << 1);
+    if (&(cga_palette) != NULL)
+        cga_palette           = (vid->ogc.cga.rgb_type << 1);
     cgapal_rebuild();
     ogc_mdaattr_rebuild();
 
@@ -2459,7 +2460,8 @@ machine_xt_m19_init(const machine_t *model)
 
     device_add(&kbc_xt_olivetti_device);
 
-    pit_set_clock((uint32_t) 14318184.0);
+    if (cpu_s != NULL)
+        pit_set_clock((uint32_t) 14318184.0);
 
     return ret;
 }

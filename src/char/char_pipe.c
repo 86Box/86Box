@@ -146,7 +146,7 @@ char_pipe_connect(char_pipe_t *dev, int startup)
     char  fmt[512];
     DWORD create_err = 0;
     if (dev->mode != CHAR_PIPE_MODE_CLIENT) {
-        dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
+        dev->fd = CreateNamedPipeA(dev->path, PIPE_ACCESS_DUPLEX | FILE_FLAG_FIRST_PIPE_INSTANCE, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, 1, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
         if (CHAR_FD_VALID(dev->fd)) {
             char_pipe_log(dev->log, "Created new pipe: %s\n", dev->path);
             dev->block_connect = !dev->reconnect;
@@ -172,7 +172,7 @@ client:
             dev->server        = 0;
 
             /* Configure client pipe. */
-            DWORD mode = PIPE_READMODE_BYTE | PIPE_WAIT;
+            DWORD mode = PIPE_READMODE_BYTE | PIPE_NOWAIT;
             SetNamedPipeHandleState(dev->fd, &mode, NULL, NULL);
         } else {
             DWORD err = GetLastError();
@@ -462,6 +462,10 @@ char_pipe_init(const device_t *info)
                 flags |= CHAR_LPT_PTI;
                 break;
 
+            case 3:
+                flags |= CHAR_LPT_NIBBLE | CHAR_LPT_USESTROBE;
+                break;
+
             default:
                 break;
         }
@@ -492,6 +496,7 @@ static const device_config_t char_pipe_config[] = {
             { .description = "Unidirectional (8-bit) / LapLink (4-bit)", .value = 0 },
             { .description = "Bidirectional (8-bit)",                    .value = 1 },
             { .description = "DirectParallel FAST",                      .value = 2 },
+            { .description = "Raw SPP with handshaking",                  .value = 3 },
             { NULL                                                                  }
         }
     },

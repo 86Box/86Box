@@ -45,6 +45,7 @@ enum {
     STRING_CDROM_OPEN_MDS_ERROR,      /* "Unable to open MDS file \"%s\"" */
     STRING_CDROM_LOAD_IMAGE_ERROR,    /* "Unable to load CD-ROM image: %s" */
     STRING_CDROM_LOAD_MDSX_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
+    STRING_CDROM_LOAD_AARU_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
     STRING_CDROM_DVD_IN_CD_DRIVE,     /* "DVD image \"%s\" in a CD-only drive..." */
     STRING_CHARDEV_CONNECT_ERROR,     /* "%s: Could not connect to %s: %s" */
     STRING_CHARDEV_CREATE_ERROR,      /* "%s: Could not create %s: %s" */
@@ -52,6 +53,15 @@ enum {
     STRING_CHARDEV_VCON_IN_USE,       /* "%s: Virtual console already in use by %s" */
     STRING_CHARDEV_TERMINAL_ERROR,    /* "%s: Could not create terminal: %s" */
 };
+
+struct plat_device_vol_locked_t
+{
+    uintptr_t handle_disk;
+    uintptr_t vol_nums;
+    uintptr_t handles_vols[1];
+};
+
+typedef struct plat_device_vol_locked_t plat_device_vol_locked_t;
 
 /* The Win32 API uses _wcsicmp. */
 #ifdef _WIN32
@@ -137,7 +147,7 @@ extern void     plat_init_asset_paths(void);
 extern int      plat_dir_check(char *path);
 extern int      plat_file_check(const char *path);
 extern int      plat_dir_create(char *path);
-extern void    *plat_mmap(size_t size, uint8_t executable);
+extern void    *plat_mmap(size_t size, uint8_t executable, uint8_t* large);
 extern void     plat_munmap(void *ptr, size_t size);
 extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
@@ -156,9 +166,12 @@ extern void     plat_get_system_directory(char *outbuf);
 #endif
 extern void     plat_set_thread_name(void *thread, const char *name);
 extern void     plat_break(void);
-extern void     plat_send_to_clipboard(unsigned char *rgb, int width, int height);
 extern int      plat_run_command(const char *cmd, const char **env, const char *title);
 extern void     plat_clean_up(void);
+
+/* Windows-specific physical disk handling. */
+extern plat_device_vol_locked_t* plat_lock_volumes(FILE* file);
+extern void                      plat_unlock_volumes(plat_device_vol_locked_t* vol);
 
 /* Resource management. */
 extern char *plat_get_string(int id);

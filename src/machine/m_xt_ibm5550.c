@@ -139,6 +139,16 @@
 
 #define EPOCH_IRQ3_BIT (1 << 3) /* Keyboard */
 #define EPOCH_IRQ6_BIT (1 << 6) /* PIT */
+#define EPOCH_IRQ7_BIT (1 << 7) /* Software timer */
+
+/* Software timer (port 0xA6) timings, in microseconds.
+   Writing 1 arms a free-running timer: first raises IRQ7 after a short delay
+   (long enough for the ROM to have written the IMR), then keeps raising IRQ7
+   periodically. Writing 0 from the IRQ handler acknowledges (keeps the timer
+   running); writing 0 from normal code (FE67:0191 DMA-test cleanup) disarms it.
+   The ROM BAT checks five IRQ7 interrupts arrive while its handler is running. */
+#define EPOCH_SWTIMER_FIRST  10    /* first IRQ7 delay after arming */
+#define EPOCH_SWTIMER_PERIOD 20000 /* 20 ms free-running period */
 
 enum epoch_nvr_ADDR {
     epoch_nvr_SECOND1,
@@ -280,6 +290,10 @@ typedef struct epoch_t {
     int nvrctrl;
     int nvrdata;
 
+    /* Software timer (IRQ7) control, port 0xA6 */
+    pc_timer_t swtimer_timer;
+    uint8_t swtimer;
+
     int testmode;
     
 } epoch_t;
@@ -300,7 +314,7 @@ The IBM 5550 has different IRQ assignments like the 6580 Displaywriter System.
 | 4   | Diskette   | Diskette interrupt                 | Async Comm (Pri) |
 | 5   | ?          | Not used                           | Fixed Disk       |
 | 6   | Timer      | Software timer                     | Diskette         |
-| 7   | ?          | Error on commo data link           | Printer          |
+| 7   | Soft Timer | Error on commo data link           | Printer          |
 
 [Memory map]
 | Start Address | Function                                              | 
@@ -1421,6 +1435,28 @@ epoch_parity_writew(uint32_t addr, uint16_t val, void *priv)
     mem_write_ramw(addr, val, priv);
 }
 
+/* Software timer (IRQ7): a free-running timer controlled via port 0xA6.
+   Writing 1 arms it (first fire after EPOCH_SWTIMER_FIRST), writing 0 from
+   IRQ handler acknowledges. This callback raises IRQ7 and re-arms itself. */
+static void
+epoch_swtimer_callback(void *priv)
+{
+    epoch_t *epoch = (epoch_t *) priv;
+
+    picint(EPOCH_IRQ7_BIT);
+    timer_advance_u64(&epoch->swtimer_timer, EPOCH_SWTIMER_PERIOD * TIMER_USEC);
+}
+
+/* True while the CPU is inside the IRQ7 (software timer) handler
+   (FC00:0600-FC00:061F).  The acknowledge written at FC00:0619
+   must not disarm the free-running timer; only a write 0 from
+   normal code (e.g. the FE67:0191 DMA-test cleanup) stops it. */
+static int
+epoch_in_swtimer_isr(void)
+{
+    return ((cs >> 4) == 0xfc00) && (cpu_state.pc >= 0x600) && (cpu_state.pc <= 0x61f);
+}
+
 static uint8_t
 epoch_misc_in(uint16_t port, void *priv)
 {
@@ -1489,6 +1525,12 @@ xxx1 xxxx: Serial port 2f8h
         case 0xA5:
             ret = 0x08; /* Bit 3: Keyboard connected? */
             break;
+        case 0xA6: /* Software timer status (bit 0 = armed) */
+            ret = epoch->swtimer;
+            break;
+        case 0xA7:
+            ret = 0;
+            break;
         // case 0x164:
         //     switch (epoch->fontcard.portdata) {
         //         case 0x16A:
@@ -1539,6 +1581,23 @@ x1xx xxxx: Enable parity update (Disable this -> Write data -> Enable this -> Re
         case 0xA2:
             /* Reset memory error bit */
             epoch->parityerror = 0;
+            break;
+        case 0xA6: 
+            /* Software timer (IRQ7) arm/ack */
+            if (val & 1) {
+                epoch->swtimer = 1;
+                /* Armed: start the free-running timer with a short first delay. */
+                timer_set_delay_u64(&epoch->swtimer_timer, EPOCH_SWTIMER_FIRST * TIMER_USEC);
+            } else if ((val & 0xfe) == 0) {
+                /* bit0 cleared, no DMA bit: either the IRQ handler's acknowledge
+                   (which must keep the timer running so the ROM BAT can count five 
+                   IRQ7s) or a disarm from normal code (FE67:0191 DMA-test cleanup).  
+                   Only the latter stops it. */
+                if (!epoch_in_swtimer_isr()) {
+                    epoch->swtimer = 0;
+                    timer_disable(&epoch->swtimer_timer);
+                }
+            }
             break;
         // case 0x160 ... 0x16A:
         //     mem_mapping_enable(&epoch->fontcard.map);
@@ -1699,6 +1758,17 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0x61: /* Keyboard Control Register (aka Port B) */
             kbd->pb = val;
+
+            if (val == 0x00) {
+                /* The IPL writes 0x00 to port B at the start of the keyboard
+                   test to disable the keyboard. Discard any leftover keydata
+                   (e.g. the tail of a Ctrl+Alt+Del scancode that the ROM did 
+                   not consume before reset) so the clock-poll that follows 
+                   sees an idle line. */
+                key_queue_start        = key_queue_end = 0;
+                kbd->kbd_readdata_step = 16;
+                kbd->want_irq          = 0;
+            }
 
             if ((val & 0x18) == 0x08) {
                 new_clock = !(val & 0x04);
@@ -2122,6 +2192,8 @@ epoch_reset(void *priv)
     epoch->parityenabled = 1;
     epoch->lowmemorydisabled = 1;
     epoch->crtioenabled = 0;
+    epoch->swtimer = 0;
+    timer_disable(&epoch->swtimer_timer);
     mem_mapping_disable(&epoch->cmap);
     mem_mapping_disable(&epoch->vmap);
     // epoch->attrc[LV_CURSOR_COLOR]    = 0x0f;                   /* cursor color */
@@ -2271,6 +2343,7 @@ epoch_init(UNUSED(const device_t *info))
     epoch_reset(epoch);
     
     timer_add(&epoch->timer, epoch_poll, epoch, 1);
+    timer_add(&epoch->swtimer_timer, epoch_swtimer_callback, epoch, 0);
 
     epoch_nvr_init(epoch);
 
@@ -2406,6 +2479,18 @@ pit_irq6_timer(int new_out, int old_out, UNUSED(void *priv))
         picintc(EPOCH_IRQ6_BIT);
 }
 
+/* Counter 0 output: keep the DRAM refresh on the rising edge, and cascade a clock
+   pulse to counter 1 on the falling edge (counter 0 -> counter 1 -> IRQ6). This
+   gives the 50 ms software timer from the 1 ms counter 0 rate. */
+static void
+pit_ibm5550_ctr0_out(int new_out, int old_out, void *priv)
+{
+    pit_refresh_timer_xt(new_out, old_out, priv);
+
+    if (!new_out && old_out)
+        ctr_clock(priv, TIMER_CTR_1);
+}
+
 static pit_t *
 pit_ibm5550_init(void)
 {
@@ -2422,9 +2507,12 @@ pit_ibm5550_init(void)
         pit_intf->set_gate(pit_intf->data, i, 1);
         pit_intf->set_using_timer(pit_intf->data, i, 1);
     }
+    /* Counter 1 is clocked by counter 0's output (cascade), not by
+       the PIT timer, so it must not use the internal timer clock. */
+    pit_intf->set_using_timer(pit_intf->data, TIMER_CTR_1, 0);
 
     pit_intf->set_out_func(pit_intf->data, TIMER_CTR_1, pit_irq6_timer);
-    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_0, pit_refresh_timer_xt);
+    pit_intf->set_out_func(pit_intf->data, TIMER_CTR_0, pit_ibm5550_ctr0_out);
     pit_intf->set_out_func(pit_intf->data, TIMER_CTR_2, pit_speaker_timer);
     pit_intf->set_load_func(pit_intf->data, TIMER_CTR_2, speaker_set_count);
 

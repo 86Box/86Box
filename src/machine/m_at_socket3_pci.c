@@ -298,7 +298,7 @@ static const device_config_t pc330_6573_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "English (PC 330, type 6573)",
+                .name          = "English",
                 .internal_name = "pc330_6573", .bios_type = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -504,7 +504,7 @@ machine_at_486pi_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add(&i420ex_device);
+    device_add(&i420ex_ide_device);
 
     return ret;
 }
@@ -524,7 +524,7 @@ machine_at_bat4ip3e_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE,   0xfe, 0xff, 0, 0);
+    pci_register_slot(0x0b, PCI_CARD_IDE,   0xfe, 0xff, 0, 0);
     pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 1, 2);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 1, 2, 1);
     pci_register_slot(0x0a, PCI_CARD_NORMAL,      1, 2, 1, 2);
@@ -534,8 +534,8 @@ machine_at_bat4ip3e_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&i420ex_device);
-    device_add(&ide_cmd640_pci_device);
-    device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
+    device_add(&ide_cmd640_pci_single_channel_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_SEC));
 
     return ret;
 }
@@ -566,7 +566,7 @@ machine_at_486ap4_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&i420ex_device);
+    device_add(&i420ex_ide_device);
 
     return ret;
 }
@@ -592,7 +592,7 @@ machine_at_sb486p_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add_params(&i82091aa_device, (void *) I82091AA_26E);
-    device_add(&i420ex_device);
+    device_add(&i420ex_ide_device);
 
     return ret;
 }
@@ -621,7 +621,7 @@ machine_at_ninja_init(const machine_t *model)
 
     device_add(&intel_flash_bxt_ami_device);
 
-    device_add(&i420ex_device);
+    device_add(&i420ex_ide_device);
     device_add_params(&i82091aa_device, (void *) I82091AA_022);
 
     return ret;
@@ -868,16 +868,71 @@ machine_at_sb486pv_init(const machine_t *model)
 }
 
 /* IMS 8848 */
+static const device_config_t pci400cb_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "pci400cb",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 060692 - Revision 08/03/94",
+                .internal_name = "pci400cb_060692",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pci400cb/080394.ROM", "" }
+            },
+            {
+                .name          = "AMI WinBIOS (061594) - Revision 03/21/95",
+                .internal_name = "pci400cb",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/pci400cb/032295.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t pci400cb_device = {
+    .name          = "J-Bond PCI400C-B",
+    .internal_name = "pci400cb",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pci400cb_config
+};
+
 int
 machine_at_pci400cb_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/pci400cb/032295.ROM",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 
@@ -938,7 +993,7 @@ machine_at_acerp3_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL, 1, 2, 3, 4);
 
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_close(&ide_pci_2ch_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
 
     if (gfxcard[0] == VID_INTERNAL)
@@ -970,7 +1025,6 @@ machine_at_486sp3c_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&intel_flash_bxt_device);
 
@@ -999,21 +1053,75 @@ machine_at_ls486e_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
 
+static const device_config_t m4li_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "m4li",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PhoenixBIOS 4.04 - Revision M4LI-04sc",
+                .internal_name = "m4li",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m4li/M4LI.04S", "" }
+            },
+            {
+                .name          = "PhoenixBIOS 4.04 - Revision M4LI-05PM (Micron OEM)",
+                .internal_name = "m4limc",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m4li/m4li.5pm", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t m4li_device = {
+    .name          = "Micronics M4LI",
+    .internal_name = "m4li",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = m4li_config
+};
+
 int
 machine_at_m4li_init(const machine_t *model)
 {
-    int ret;
+    int         ret = 0;
+    const char *fn;
 
-    ret = bios_load_linear("roms/machines/m4li/M4LI.04S",
-                           0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
+    /* No ROMs available */
+    if (!device_available(model->device))
         return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
 
     machine_at_common_init(model);
 
@@ -1026,7 +1134,6 @@ machine_at_m4li_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1052,7 +1159,6 @@ machine_at_ms4144_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add_params(&w837x7_device, (void *) (W83787F | W837X7_KEY_89));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&sst_flash_29ee010_device);
 
@@ -1081,7 +1187,6 @@ machine_at_r418_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&fdc37c6xx_device, (void *) FDC37C665);
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     return ret;
 }
@@ -1108,7 +1213,6 @@ machine_at_4saw2_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&w837x7_device, (void *) (W83777F | W837X7_KEY_89));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&intel_flash_bxt_device);
 
@@ -1137,7 +1241,6 @@ machine_at_4dps_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add_params(&w837x7_device, (void *) (W83787IF | W837X7_KEY_89));
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
     device_add(&intel_flash_bxt_device);
 
@@ -1423,7 +1526,7 @@ static const device_config_t hot433a_config[] = {
                 .files         = { "roms/machines/hot433/433AUS33.ROM", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 2.5 (by eSupport)",
+                .name          = "AwardBIOS v4.51PG - Revision 2.5 (by eSupport)",
                 .internal_name = "hot433a_v451pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

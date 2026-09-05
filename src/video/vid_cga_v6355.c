@@ -722,6 +722,7 @@ v6355_poll(void *priv)
                 break;
         }
 
+        video_lightpen_check_trigger_strobe(8, v6355->displine * (v6355->double_type ? 2 : 1), 0, v6355->firstline, 21477270.0 / 2.0, 0);
         v6355->sc = oldsc;
 
         if (v6355->vc == crtc7 && !v6355->sc)
@@ -735,6 +736,7 @@ v6355_poll(void *priv)
         timer_advance_u64(&v6355->timer, v6355->dispontime);
 
         v6355->linepos = 0;
+        video_lightpen_hsync();
 
         if (v6355->vsynctime) {
             v6355->vsynctime--;
@@ -792,6 +794,7 @@ v6355_poll(void *priv)
                 v6355->cgadispon = 0;
                 v6355->displine = 0;
                 v6355->vsynctime = 16;
+                video_lightpen_vsync();
                 if (crtc7) {
                     x = width + 16;
                     v6355->lastline++;
@@ -929,7 +932,8 @@ v6355_standalone_init(const device_t *info) {
                   v6355);
 
     v6355->rgb_type = device_get_config_int("rgb_type");
-    cga_palette     = (v6355->rgb_type << 1);
+    if (&(cga_palette) != NULL)
+        cga_palette     = (v6355->rgb_type << 1);
     cgapal_rebuild();
     update_cga16_color(v6355->cgamode, v6355->cgacol);
 
@@ -1068,5 +1072,6 @@ const device_t v6355d_device = {
     .available     = NULL,
     .speed_changed = v6355_speed_changed,
     .force_redraw  = NULL,
-    .config        = v6355_config
+    .config        = v6355_config,
+    .alias         = "Tulip DGA"
 };

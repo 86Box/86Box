@@ -749,6 +749,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                 }
             } else {
                 o                                   = svga->attrregs[svga->attraddr & 31];
+                if ((svga->attraddr & 31) > 0x14)
+                    val = o;
                 svga->attrregs[svga->attraddr & 31] = val;
                 if (svga->attraddr < 16)
                     svga->fullchange = changeframecount;
@@ -4903,9 +4905,12 @@ cl_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *pri
         case PCI_REG_COMMAND:
             gd54xx->pci_regs[PCI_REG_COMMAND] = val & 0x23;
             mem_mapping_disable(&gd54xx->vgablt_mapping);
-            io_removehandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
-            if (val & PCI_COMMAND_IO)
+            io_removehandler(0x03a0, 0x0040, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+            if (val & PCI_COMMAND_IO) {
+                if (!(gd54xx->svga.miscout & 0x01))
+                    io_sethandler(0x03a0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
                 io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+            }
             if ((val & PCI_COMMAND_MEM) && (gd54xx->vgablt_base != 0x00000000) && (gd54xx->vgablt_base < 0xfff00000))
                 mem_mapping_set_addr(&gd54xx->vgablt_mapping, gd54xx->vgablt_base, 0x1000);
             if ((gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM) && (gd54xx->pci_regs[0x30] & 0x01)) {
@@ -5010,7 +5015,9 @@ gd54xx_reset(void *priv)
     svga->dispofftime = 1000ULL << 32;
     svga->bpp         = 8;
 
-    io_removehandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+    io_removehandler(0x03a0, 0x0040, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+    if (!(svga->miscout & 0x01))
+        io_sethandler(0x03a0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
     mem_mapping_disable(&gd54xx->vgablt_mapping);
@@ -5134,8 +5141,10 @@ gd54xx_init(const device_t *info)
             break;
 
         case CIRRUS_ID_CLGD5424:
-            if (local & 0x200)
-                romfn = /*NULL*/ "roms/machines/advantage40xxd/AST101.09A";
+            if ((local & 0x200) && (machines[machine].init == machine_at_advantage40xxd_init))
+                romfn = "roms/machines/advantage40xxd/AST101.09A";
+            else if (local & 0x200)
+                romfn = NULL;
             else
                 romfn = BIOS_GD5422_PATH;
             break;
@@ -5361,7 +5370,7 @@ gd54xx_init(const device_t *info)
                         gd5480_vgablt_write, gd5480_vgablt_writew, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     }
-    io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+    io_sethandler(0x03a0, 0x0040, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
     if (gd54xx->pci && (id >= CIRRUS_ID_CLGD5430)) {
         if (local & 0x200)
@@ -5976,7 +5985,7 @@ static const device_config_t gd5434_isa_config[] = {
                 .files_no      = 1,
                 .local         = CIRRUS_ID_CLGD5434 | 0x100,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { BIOS_GD5434_DIAMOND_A3_ISA_PATH, "" }
             },
             {

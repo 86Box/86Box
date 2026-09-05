@@ -379,8 +379,7 @@ mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t val)
     if (addr & 2
     && (addr >= 0x200 && addr <= 0x23e))
         mach64_blit(val, 16, mach64);
-    else
-    {
+    else {
         switch (addr & 0x3fe) {
             case 0x2fc:
                 mach64->dp_set_gui_engine |= (mach64->dp_set_gui_engine & 0xffff0000) | val;
@@ -404,22 +403,19 @@ mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t val)
                 break;
             }
     }
-    
+
 }
 static void
 mach64_accel_write_fifo_l(mach64_t *mach64, uint32_t addr, uint32_t val)
 {
     addr &= 0x3fc;
 
-    if (addr >= 0x200 && addr <= 0x23c)
-    {
+    if (addr >= 0x200 && addr <= 0x23c) {
         if (mach64->accel.source_host || (mach64->dp_pix_width & DP_BYTE_PIX_ORDER))
             mach64_blit(val, 32, mach64);
         else
             mach64_blit(((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24), 32, mach64);
-    }
-    else
-    {
+    } else {
         switch (addr & 0x3fc) {
             case 0x32c:
                 mach64->context_load_cntl = val;
@@ -515,15 +511,57 @@ void
 mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
     fifo_entry_t *fifo = &mach64->fifo[mach64->fifo_write_idx & FIFO_MASK];
+    int limit = 0;
 
-    // Before me, there was some code that checked if the address was 0x11b (if a byte), 0x11a (if a word), or 0x118 (if a dword), and only fired the FIFO thread
-    // if there were 16 or more entries in the FIFO. It was introduced in a commit on 8/21/2024 with no discussion that I can find even related to it. 
-    // It didn't break anything to remove it and I can't think of any design reason for it to exist.
+    /*FIXME: I know it's a hack, but the way the threading is done causes some desyncs in the FIFO queue on some stuff
+      (particularly accelerated 24bpp using Calculator on NT 3.x), so, until a proper solution is found, slow down only on
+      initialization of the bitblt engine when the FIFO entries are more than 16.*/
+    switch (type) {
+        case FIFO_WRITE_BYTE:
+            switch (addr & 0x3ff) {
+                case 0x11b:
+                    limit = 1;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case FIFO_WRITE_WORD:
+            switch (addr & 0x3fe) {
+                case 0x11a:
+                    limit = 1;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        case FIFO_WRITE_DWORD:
+            switch (addr & 0x3fc) {
+                case 0x118:
+                    limit = 1;
+                    break;
+                default:
+                    break;
+            }
+            break;
+        default:
+            break;
+    }
 
-    if (FIFO_FULL) {
-        thread_reset_event(mach64->fifo_not_full_event);
-        if (FIFO_FULL)
-            thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+    if (limit) {
+        if (FIFO_ENTRIES >= 16) {
+            thread_reset_event(mach64->fifo_not_full_event);
+            if (FIFO_ENTRIES >= 16)
+                thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+
+        }
+    } else {
+        if (FIFO_FULL) {
+            thread_reset_event(mach64->fifo_not_full_event);
+            if (FIFO_FULL)
+                thread_wait_event(mach64->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+
+        }
     }
 
     fifo->val       = val;
@@ -885,7 +923,7 @@ mach64_blit_calc_cmp_clr(mach64_t* mach64, uint32_t src_dat, uint32_t dest_dat)
             break;
     }
 
-    return cmp_clr; 
+    return cmp_clr;
 }
 
 void

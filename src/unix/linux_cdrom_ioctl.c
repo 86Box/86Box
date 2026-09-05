@@ -44,6 +44,7 @@ typedef struct ioctl_t {
     int       fd;
     int       is_dvd;
     int       has_audio;
+    int       has_data;
     int       blocks_num;
     uint8_t   cur_rti[65536];
     char      path[256];
@@ -239,6 +240,7 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
     free(buffer);
 
     ioctl->has_audio  = 0;
+    ioctl->has_data   = 0;
     ioctl->blocks_num = 0;
     memset(ioctl->cur_rti, 0x00, 65536);
 
@@ -325,8 +327,11 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
     if (ioctl->blocks_num)  for (int i = 0; i < ioctl->blocks_num; i++) {
         const raw_track_info_t *crt = &(rti[i]);
 
-        if ((crt->point >= 1) && (crt->point <= 99) && !(crt->adr_ctl & 0x04)) {
-            ioctl->has_audio = 1;
+        if ((crt->point >= 1) && (crt->point <= 99)) {
+            if (crt->adr_ctl & 0x04)
+                ioctl->has_data |= 1;
+            else
+                ioctl->has_audio |= 1;
             break;
         }
     }
@@ -450,25 +455,6 @@ ioctl_get_raw_track_info(const void *local, int *num, uint8_t *rti)
 
     *num = ioctl->blocks_num;
     memcpy(rti, ioctl->cur_rti, ioctl->blocks_num * 11);
-}
-
-static int
-ioctl_is_track_pre(const void *local, const uint32_t sector)
-{
-    const ioctl_t          *ioctl = (const ioctl_t *) local;
-    const raw_track_info_t *rti   = (const raw_track_info_t *) ioctl->cur_rti;
-    int                     ret   = 0;
-
-    if (ioctl->has_audio && !ioctl->is_dvd) {
-        const int track   = ioctl_get_track(ioctl, sector);
-        const int control = rti[track].adr_ctl;
-
-        ret = control & 0x01;
-
-        ioctl_log(ioctl->log, "ioctl_is_track_pre(%08X, %02X): %i\n", sector, track, ret);
-    }
-
-    return ret;
 }
 
 static int
@@ -724,6 +710,14 @@ ioctl_has_audio(const void *local)
 }
 
 static int
+ioctl_has_data(const void *local)
+{
+    const ioctl_t *ioctl = (const ioctl_t *) local;
+
+    return ioctl->has_data;
+}
+
+static int
 ioctl_is_empty(const void *local)
 {
     const ioctl_t *ioctl = (const ioctl_t *) local;
@@ -829,13 +823,13 @@ ioctl_load(const void *local)
 static const cdrom_ops_t ioctl_ops = {
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
-    ioctl_is_track_pre,
     ioctl_read_sector,
     ioctl_get_track_type,
     ioctl_get_last_block,
     ioctl_read_dvd_structure,
     ioctl_is_dvd,
     ioctl_has_audio,
+    ioctl_has_data,
     ioctl_is_empty,
     ioctl_close,
     ioctl_load

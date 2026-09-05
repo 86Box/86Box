@@ -33,25 +33,31 @@ AppDir:
     version: !ENV '${project_version}'
     exec: !ENV 'usr/local/bin/${project}'
     exec_args: $@
+  after_runtime: |
+    mkdir -p "./archive_tmp/runtime/compat/lib64"
+    ln -sf ../usr/lib64/ld-linux-x86-64.so.2 "./archive_tmp/runtime/compat/lib64/ld-linux-x86-64.so.2"
+    mkdir -p "./archive_tmp/runtime/compat/lib"
+    ln -sf ../usr/lib/ld-linux-aarch64.so.1 "./archive_tmp/runtime/compat/lib/ld-linux-aarch64.so.1"
   apt:
     arch: !ENV '${arch_deb}'
     sources:
-    - sourceline: 'deb http://deb.debian.org/debian bullseye main'
-      key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x1f89983e0081fde018f3cc9673a4f27b8dd47936'
-    - sourceline: 'deb http://security.debian.org/debian-security bullseye-security main'
-      key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x1f89983e0081fde018f3cc9673a4f27b8dd47936'
-    - sourceline: 'deb http://deb.debian.org/debian bullseye-updates main'
-      key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xac530d520f2f3269f5e98313a48449044aad5c5d'
+    - sourceline: 'deb http://deb.debian.org/debian trixie main'
+      key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x04b54c3cdca79751b16bc6b5225629df75b188bd'
+    - sourceline: 'deb http://security.debian.org/debian-security trixie-security main'
+      key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x04b54c3cdca79751b16bc6b5225629df75b188bd'
+    - sourceline: 'deb http://deb.debian.org/debian trixie-updates main'
+      key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x5e04a1e3223a19a20706e20f9904613d4cce68c6'
     include:
     - libedit2 # if (CLI:BOOL=ON|QT:BOOL=OFF)
     - libevdev2 # if QT:BOOL=ON
     - libfreetype6
+    - libopenal1
     - libgomp1
-    - libgs9
+    - libgs10
     - libpng16-16
-    - libqt5core5a # if QT:BOOL=ON
-    - libqt5gui5 # if QT:BOOL=ON
-    - libqt5widgets5 # if QT:BOOL=ON
+    - libqt6core6t64 # if QT:BOOL=ON
+    - libqt6gui6 # if QT:BOOL=ON
+    - libqt6widgets6 # if QT:BOOL=ON
     - libsixel1 # if CLI:BOOL=ON
     - libslirp0
     - libsndfile1
@@ -61,13 +67,15 @@ AppDir:
     - libx11-6 # if QT:BOOL=ON
     - libx11-xcb1 # if QT:BOOL=ON
     - libxcb1 # if QT:BOOL=ON
+    - libxcb-cursor0 # if QT:BOOL=ON
     - libxcb-render0 # if QT:BOOL=ON
     - libxcb-shape0 # if QT:BOOL=ON
     - libxcb-shm0 # if QT:BOOL=ON
     - libxcb-xfixes0 # if QT:BOOL=ON
     - libxi6 # if QT:BOOL=ON
     - libxkbcommon-x11-0 # if QT:BOOL=ON
-    - qtwayland5 # if QT:BOOL=ON
+    - qt6-wayland # if QT:BOOL=ON
+    - libqt6waylandclient6 # if QT:BOOL=ON
     - zlib1g
     - libserialport0
   files:

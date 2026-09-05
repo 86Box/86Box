@@ -476,7 +476,7 @@ lpt_ecp_update_irq(lpt_t *dev)
 static void
 lpt_strobe(lpt_t *dev, const uint8_t val)
 {
-    if (dev->dt && dev->dt->strobe && dev->dt->priv)
+    if (dev->output_enabled && dev->dt && dev->dt->strobe && dev->dt->priv)
         dev->dt->strobe(dev->strobe, val, dev->dt->priv);
 
     dev->strobe = val;
@@ -526,7 +526,7 @@ lpt_fifo_out_callback(void *priv)
 
                 /* We do not currently support sending commands. */
                 if (tag == 0x01) {
-                    if (dev->dt && dev->dt->write_data && dev->dt->priv)
+                    if (dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv)
                         dev->dt->write_data(val, dev->dt->priv);
 
                     lpt_strobe(dev, 1);
@@ -593,13 +593,14 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                     /* AFIFO */
                     lpt_write_fifo(dev, val, 0x00);
                 else if (!(dev->ecr & 0xc0) && (!(dev->ecr & 0x20) || !(lpt_get_ctrl_raw(dev) & 0x20)) &&
-                           dev->dt && dev->dt->write_data && dev->dt->priv)
+                           dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv)
                     /* DATAR */
                     dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
             } else {
                 /* DTR */
-                if ((!(dev->ext || dev->epp) || !(lpt_get_ctrl_raw(dev) & 0x20)) && dev->dt &&
+                if (dev->output_enabled &&
+                    (!(dev->ext || dev->epp) || !(lpt_get_ctrl_raw(dev) & 0x20)) && dev->dt &&
                     dev->dt->write_data && dev->dt->priv)
                     dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
@@ -610,7 +611,14 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             break;
 
         case 0x0002:
-            if (dev->dt && dev->dt->write_ctrl && dev->dt->priv)
+            /* A bidirectional port still latches DTR writes while its pins are
+               inputs. Drive that latched byte before an output-mode strobe. */
+            if (dev->output_enabled && (dev->ext || dev->epp) &&
+                (dev->ctrl & 0x20) && !(val & 0x20) && dev->dt &&
+                dev->dt->write_data && dev->dt->priv)
+                dev->dt->write_data(dev->dat, dev->dt->priv);
+
+            if (dev->output_enabled && dev->dt && dev->dt->write_ctrl && dev->dt->priv)
                 dev->dt->write_ctrl(val, dev->dt->priv);
             dev->ctrl       = val;
             dev->strobe     = val & 0x01;
@@ -623,14 +631,14 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
         case 0x0003:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_write_data && dev->dt->priv)
+                if (dev->output_enabled && dev->dt && dev->dt->epp_write_data && dev->dt->priv)
                     dev->dt->epp_write_data(1, val, dev->dt->priv);
             }
             break;
 
         case 0x0004 ... 0x0007:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_write_data && dev->dt->priv)
+                if (dev->output_enabled && dev->dt && dev->dt->epp_write_data && dev->dt->priv)
                     dev->dt->epp_write_data(0, val, dev->dt->priv);
             }
             break;
@@ -1007,6 +1015,12 @@ lpt_set_ext(lpt_t *dev, const uint8_t ext)
 }
 
 void
+lpt_set_output_enabled(lpt_t *dev, const uint8_t enabled)
+{
+    dev->output_enabled = !!enabled;
+}
+
+void
 lpt_set_ecp(lpt_t *dev, const uint8_t ecp)
 {
     if (lpt_ports[dev->id].enabled)
@@ -1155,6 +1169,7 @@ lpt_port_zero(lpt_t *dev)
     memset(dev, 0x00, sizeof(lpt_t));
 
     dev->addr           = 0xffff;
+    dev->output_enabled = 1;
     dev->irq            = temp.irq;
     dev->id             = temp.id;
     dev->dt             = temp.dt;

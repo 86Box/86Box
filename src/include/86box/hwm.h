@@ -58,6 +58,7 @@ extern const device_t lm75_1_4a_device;
 extern const device_t lm75_w83781d_device;
 
 extern const device_t lm78_device;
+extern const device_t lm78_al440lx_device;
 extern const device_t w83781d_device;
 extern const device_t w83781d_p5a_device;
 extern const device_t as99127f_device;

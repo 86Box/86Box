@@ -191,6 +191,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "IBM XT Model 286", .new = "IBM XT model 286" },
         { .old = "Packard Bell Legend 300SX", .new = "Packard Bell PB300" },
         { .old = "Packard Bell PB300/PB320", .new = "Packard Bell PB300" }, /* 6.0 pre-release */
+        { .old = "IBM XT (1982) w/ Intel Inboard 386/PC", .new = "IBM XT (Inboard 386/PC)" },
         { .old = "DataExpert SX495", .new = "DataExpert OPTI-495SX" },
         { .old = "Packard Bell PB410/PB410A/PB420/PB420T", .new = "Packard Bell PB410A" }, /* 6.0 pre-release */
         { .old = "Intel Premiere/PCI (Batman)", .new = "Intel Premiere/PCI" },
@@ -242,6 +243,12 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)", .new = "Cirrus Logic GD5428 (MCA)" },
         { .old = "Cirrus Logic GD5426 (MCA) (Reply Video Adapter)", .new = "Cirrus Logic GD5426 (MCA)" },
         { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
+        { .old = "Gravis/Synergy Vipermax", .new = "Synergy ViperMAX" },
+        { .old = "Colorplus", .new = "Plantronics Colorplus" },
+        { .old = "Sound Blaster PCI 128 (ES1373)", .new = "Creative Sound Blaster PCI 128 (ES1373)" },
+        { .old = "Sound Blaster PCI 128 (ES1373) (On-Board)", .new = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)" },
+        { .old = "Sound Blaster PCI 4.1 (CT5880)", .new = "Creative Sound Blaster PCI 4.1 (CT5880)" },
+        { .old = "Sound Blaster PCI 4.1 (CT5880) (On-Board)", .new = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)" },
         { 0 }
     };
 
@@ -320,8 +327,10 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
        IMPORTANT: This is needed to gracefully handle machine
                   device addition if the relevant device is NULL.
      */
-    if (dev == NULL)
+    if (dev == NULL) {
+        device_log("Attempting to add a NULL device\n");
         return NULL;
+    }
 
     if (!device_available(dev)) {
         char temp[512] = { 0 };
@@ -345,11 +354,22 @@ device_add_common(const device_t *dev, void *p, void *params, int inst)
     } else
         init_dev = (device_t *) dev;
 
+    if (inst == -1) {
+        inst = 1;
+        for (c = 0; c < DEVICE_MAX; c++) {
+            if ((devices[c] == dev) && (device_state[c].local == init_dev->local))
+                inst = device_state[c].inst + 1;
+            if (devices[c] == NULL)
+                break;
+        }
+        device_log("DEVICE: Automatically assigned instance: %i\n", inst);
+    }
+
     for (c = 0; c < DEVICE_MAX; c++) {
         if ((devices[c] == dev) && (device_state[c].local == init_dev->local) &&
             (device_state[c].inst == inst)) {
-            device_log("DEVICE: Device "%s", local %016" PRIX64 ", inst %i already exists!\n",
-                       init_dev->name, init_dev->local,
+            warning("DEVICE: Device \"%s\", local 0x%016" PRIX64 ", inst %i already exists!\n",
+                       init_dev->name, (uint64_t) init_dev->local,
                        inst);
             return (NULL);
         }
@@ -653,6 +673,11 @@ device_available(const device_t *dev)
 static const device_config_bios_t *
 device_get_bios(const device_t *dev, const char *internal_name)
 {
+    if (internal_name == NULL) {
+        fatal("Failed to get the default BIOS for this device, please update your ROM set and contact 86Box support if it still occurs\n");
+        return NULL;
+    }
+
     if (dev != NULL) {
         const device_config_t *config = dev->config;
         while (config && (config->type != CONFIG_END)) {
@@ -936,6 +961,74 @@ device_get_config_string(const char *str)
     return ret;
 }
 
+const char *
+device_get_config_bios(const char *str)
+{
+    const char *ret = "";
+
+    if (device_current.dev != NULL) {
+        const device_config_t *cfg = device_current.dev->config;
+
+        while ((cfg != NULL) && (cfg->type != CONFIG_END)) {
+            if (!strcmp(str, cfg->name)) {
+                const char *s = (config_get_string(device_current.name,
+                                 (char *) str, (char *) cfg->default_string));
+                if ((s != NULL) && (strlen(s) == 1)) {
+                    switch (s[0]) {
+                        default:
+                            ret = "";
+                            fatal("Invalid config integer: %i\n", s[0]);
+                            break;
+                        case '0':
+                            ret = "voodoo";
+                            config_set_string(device_current.name, str, ret);
+                            break;
+                        case '1':
+                            ret = "obsidian_sb50";
+                            config_set_string(device_current.name, str, ret);
+                            break;
+                        case '2':
+                            ret = "voodoo_2";
+                            config_set_string(device_current.name, str, ret);
+                            break;
+                    }
+                } else
+                    ret = (s == NULL) ? "" : s;
+                break;
+            }
+
+            cfg++;
+        }
+    }
+
+    return ret;
+}
+
+void
+device_migrate_config_bios(const void *priv, const char *name)
+{
+    const device_config_t *cfg = (const device_config_t *) priv;
+
+    const char *s = config_get_string(name, cfg->name, (char *) cfg->default_string);
+
+    if ((s != NULL) && (strlen(s) == 1)) {
+        switch (s[0]) {
+            default:
+                fatal("Invalid config integer: %i\n", s[0]);
+                break;
+            case '0':
+                config_set_string(name, cfg->name, "voodoo");
+                break;
+            case '1':
+                config_set_string(name, cfg->name, "obsidian_sb50");
+                break;
+            case '2':
+                config_set_string(name, cfg->name, "voodoo_2");
+                break;
+        }
+    }
+}
+
 int
 device_get_config_int(const char *str)
 {
@@ -1112,9 +1205,12 @@ device_is_valid(const device_t *device, int mch)
     int ret = 1;
 
     if ((device != NULL) && ((device->flags & DEVICE_BUS) != 0)) {
-        /* Hide PCI devices on machines with only an internal PCI bus. */
+        /* Hide PCI or AGP devices on machines with only an internal PCI or AGP bus. */
         if ((device->flags & DEVICE_PCI) &&
             machine_has_flags(mch, MACHINE_PCI_INTERNAL))
+            ret = 0;
+        else if ((device->flags & DEVICE_AGP) &&
+                 machine_has_flags_64(mch, MACHINE_AGP_INTERNAL))
             ret = 0;
         else
             ret = machine_has_bus(mch, device->flags & DEVICE_BUS);

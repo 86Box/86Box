@@ -190,7 +190,7 @@ static const device_config_t g5x_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision F4",
+                .name          = "AwardBIOS v4.51PG - Revision F4",
                 .internal_name = "5ax",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -199,7 +199,7 @@ static const device_config_t g5x_config[] = {
                 .files         = { "roms/machines/5ax/5AX.F4", "" }
             },
             {
-                .name          = "Phoenix - AwardBIOS v6.00PG - Release 4.1 (by eSupport)",
+                .name          = "AwardBIOS v6.00PG - Release 4.1 (by eSupport)",
                 .internal_name = "5ax_600pg",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -261,6 +261,139 @@ machine_at_g5x_init(const machine_t *model)
     device_add(&ali1541_device);
     device_add(&ali1543c_device); /* +0 */
     device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    return ret;
+}
+
+static const device_config_t ms5169_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ms5169",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.1 (Simplified Chinese)",
+                .internal_name = "ms5169v11",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569C311.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.4",
+                .internal_name = "ms5169v14",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS14.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 2.0",
+                .internal_name = "ms5169v20",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS20.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 2.7",
+                .internal_name = "ms5169v27",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS27.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (051499) - Revision 3.1",
+                .internal_name = "ms5169v31",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS31.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071599) - Revision 3.7",
+                .internal_name = "ms5169v37",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/a5169ams.370", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 3.8 B3 (Beta)",
+                .internal_name = "ms5169",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/5169.rom", "" }
+            }, 
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ms5169_device = {
+    .name          = "MSI MS-5169",
+    .internal_name = "ms5169",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ms5169_config
+};
+
+int
+machine_at_ms5169_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,          1, 2, 3, 4);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&winbond_flash_w29c010_device); /* assumed */
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
@@ -477,7 +610,6 @@ machine_at_5emapro_init(const machine_t *model)
     device_add(&via_vt82c686a_device);
     device_add(&sst_flash_39sf010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-    device_add(&via_vt82c686_hwm_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
     hwm_values.temperatures[0] += 2;      /* CPU offset */
     hwm_values.temperatures[1] += 2;      /* System offset */
     hwm_values.temperatures[2] = 0;       /* unused */
@@ -512,6 +644,185 @@ machine_at_k6bv3p_a_init(const machine_t *model)
     device_add_params(&fdc37c669_device, (void *) 0); /* jmi2k: what's that param? */
     device_add(&winbond_flash_w29c011a_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
+static int in530_boot_logo_enabled = 1;
+
+static const device_config_t in530_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "in530_pb_129",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.11J (Packard Bell)",
+                .internal_name = "in530_pb_111j",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/88200111.rom",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.28 (Monorail)",
+                .internal_name = "in530_mono_128",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/20888128.ROM",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.29 (Packard Bell)",
+                .internal_name = "in530_pb_129",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/52000129.rom",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.36J (NEC)",
+                .internal_name = "in530_nec_136j",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/0136J.ROM",
+                    ""
+                }
+            },
+            { .files_no = 0 }
+        }
+    },
+	/* Boot logo toggle doesn't work yet for the NEC, so disabling until it does */
+    /*{
+        .name           = "boot_logo",
+        .description    = "Enable Boot Logo",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },*/
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t in530_device = {
+    .name          = "BCM IN530",
+    .internal_name = "in530",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = in530_config
+};
+
+int
+machine_in530_boot_logo_enabled(void)
+{
+    return in530_boot_logo_enabled;
+}
+
+/* SiS 530 / 5595 */
+int
+machine_at_in530_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+	/* Force full screen boot logo on for now */
+    /* in530_boot_logo_enabled = device_get_config_int("boot_logo"); */
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    /* Physical FR520 / IN530 PCI topology verified with PCITool:
+         device 09h - PCI slot 1
+         device 0Ah - PCI slot 2
+         device 0Bh - PCI slot 3
+         device 0Ch - on-board ESS ES1938S Solo-1                 */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,           4, 1, 2, 3);
+
+    device_add(&sis_530_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
+    device_add(&amd_flash_29f002nbt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
+machine_at_aptiva2187_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/aptiva2187/tp110320.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 5);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_VIDEO,           1, 2, 3, 4); /* guess */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_SOUND,           1, 2, 3, 4);
+
+    device_add(&sis_530_device);
+    device_add(&it8661f_device); /* guess */
+    device_add(&sst_flash_29ee020_device); /* guess */
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
 
     return ret;
 }

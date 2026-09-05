@@ -160,7 +160,10 @@ SettingsMachine::changed()
     has_changed |= (cpu                        != ui->comboBoxSpeed->currentData().toInt());
     has_changed |= (fpu_type                   != ui->comboBoxFPU->currentData().toInt());
     has_changed |= (cpu_override_interpreter   != (ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0));
+#ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
+    has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
+#endif
     has_changed |= (fpu_softfloat              != (ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0));
     has_changed |= (force_10ms                 != (ui->radioButtonLargerFrames->isChecked() ? 1 : 0));
 
@@ -170,7 +173,10 @@ SettingsMachine::changed()
     else
         temp_mem_size = ui->spinBoxRAM->value() * 1024;
 
-    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    const int gran = machine_get_ram_granularity(machine);
+    const int min  = machine_get_min_ram(machine);
+    if (temp_mem_size > min)
+        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
     if (temp_mem_size < machine_get_min_ram(machine))
         temp_mem_size = machine_get_min_ram(machine);
     else if (temp_mem_size > machine_get_max_ram(machine))
@@ -211,7 +217,10 @@ SettingsMachine::save(int soft)
     cpu                      = ui->comboBoxSpeed->currentData().toInt();
     fpu_type                 = ui->comboBoxFPU->currentData().toInt();
     cpu_override_interpreter = ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0;
+#ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
+    cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
+#endif
     fpu_softfloat            = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
     force_10ms               = ui->radioButtonLargerFrames->isChecked() ? 1 : 0;
 
@@ -221,7 +230,10 @@ SettingsMachine::save(int soft)
     else
         temp_mem_size = ui->spinBoxRAM->value() * 1024;
 
-    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    const int gran = machine_get_ram_granularity(machine);
+    const int min  = machine_get_min_ram(machine);
+    if (temp_mem_size > min)
+        temp_mem_size = min + ((temp_mem_size - min) / gran) * gran;
     if (temp_mem_size < machine_get_min_ram(machine))
         temp_mem_size = machine_get_min_ram(machine);
     else if (temp_mem_size > machine_get_max_ram(machine))
@@ -365,14 +377,19 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         if (!(flags & CPU_SUPPORTS_DYNAREC)) {
             ui->checkBoxDynamicRecompiler->setChecked(false);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
+            ui->checkBoxAccurateFPUEnvironment->setEnabled(false);
         } else if ((flags & CPU_REQUIRES_DYNAREC) && !cpu_override) {
             ui->checkBoxDynamicRecompiler->setChecked(true);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
+            ui->checkBoxAccurateFPUEnvironment->setEnabled(true);
         } else {
             ui->checkBoxDynamicRecompiler->setChecked(cpu_use_dynarec);
             ui->checkBoxDynamicRecompiler->setEnabled(true);
+            ui->checkBoxAccurateFPUEnvironment->setEnabled(cpu_use_dynarec);
         }
 #endif
+
+        ui->checkBoxAccurateFPUEnvironment->setChecked(cpu_dyn_accurate_fpu_env);
 
         if ((cpuType < CPU_286) || (cpuType == CPU_IBM486SLC) || (cpuType == CPU_IBM486BL) ||
             !strcmp(cpuFamily->manufacturer, "Cyrix") || !strcmp(cpuFamily->manufacturer, "ST") ||
@@ -440,6 +457,14 @@ SettingsMachine::on_checkBoxFPUSoftfloat_stateChanged(int state)
         ui->softFloatWarningIcon->setVisible(false);
         ui->softFloatWarningText->setVisible(false);
     }
+}
+
+void
+SettingsMachine::on_checkBoxDynamicRecompiler_stateChanged(int state)
+{
+#ifdef USE_DYNAREC
+    ui->checkBoxAccurateFPUEnvironment->setEnabled(state);
+#endif
 }
 
 void

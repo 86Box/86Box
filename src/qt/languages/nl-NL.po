@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-29 22:34+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-09-01 17:51+0000\n"
+"Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
 "MIME-Version: 1.0\n"
@@ -16,7 +16,7 @@ msgid "&Action"
 msgstr "&Actie"
 
 msgid "&Keyboard requires capture"
-msgstr "&Keyboard vereist vastleggen"
+msgstr "&Toetsenbord vereist vastleggen"
 
 msgid "&Right CTRL is left ALT"
 msgstr "&Rechtse CTRL is linkse ALT"
@@ -66,11 +66,14 @@ msgstr "Re&nderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "&Afmetingen opgeven…"
@@ -418,10 +421,13 @@ msgid "Enabled (UTC)"
 msgstr "Ingeschakeld (UTC)"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
-msgstr "Gebruik de 486-interpreter voor 286- en 386-processors"
+msgstr "Gebruik de 486-interpreter voor 286- en 386-processoren"
 
-msgid "Dynamic Recompiler"
-msgstr "Dynamische Recompiler"
+msgid "Dynamic recompiler"
+msgstr "Dynamische recompiler"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr "Nauwkeurige FPU-omgeving voor de dynamische recompiler"
 
 msgid "CPU frame size"
 msgstr "CPU framegrootte"
@@ -453,6 +459,9 @@ msgstr "XGA-graphics"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -467,6 +476,21 @@ msgstr "Muis:"
 
 msgid "Mouse"
 msgstr "Muis"
+
+msgid "&Mouse"
+msgstr "&Muis"
+
+msgid "Tablet:"
+msgstr "Tablet:"
+
+msgid "Tablet"
+msgstr "Tablet"
+
+msgid "&Tablet"
+msgstr "&Tablet"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Tablet (&Crosshair)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -505,7 +529,7 @@ msgid "MIDI In Device:"
 msgstr "MIDI invoerapparaat:"
 
 msgid "MIDI Out:"
-msgstr "Midi uit:"
+msgstr "MIDI uit:"
 
 msgid "Standalone MPU-401"
 msgstr "Standalone MPU-401"
@@ -709,10 +733,10 @@ msgid "Removable disks:"
 msgstr "Verwisselbare schijven:"
 
 msgid "Tape drives"
-msgstr "Band-schijfstations"
+msgstr "Tapestations"
 
 msgid "Tape drives:"
-msgstr "Band-schijfstations:"
+msgstr "Tapestations:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -828,6 +852,9 @@ msgstr "Scherm"
 msgid "Input devices"
 msgstr "Invoerapparaten"
 
+msgid "Input &device"
+msgstr "Invoer&apparaat"
+
 msgid "Sound"
 msgstr "Geluid"
 
@@ -836,6 +863,9 @@ msgstr "Netwerk"
 
 msgid "Ports (COM & LPT)"
 msgstr "Poorten (COM & LPT)"
+
+msgid "Port"
+msgstr "Poort"
 
 msgid "Ports"
 msgstr "Poorten"
@@ -1238,6 +1268,9 @@ msgstr "Openen van geselecteerd configuratiebestand voor lezen niet mogelijk: %1
 msgid "Use regular expressions in search box"
 msgstr "Gebruik reguliere expressies in zoekveld"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Verwijder virtuele machine naar Prullenbak"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n machine is nu actief. Weet je zeker dat je de VM manager wil afsluiten?"
@@ -1411,8 +1444,11 @@ msgstr "Gedwongen beëindiging van een virtuele machine kan dataverlies veroorza
 msgid "&Delete"
 msgstr "&Verwijderen"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Weet je zeker dat je de virtuele machine \"%1\" en al haar bestanden wil verwijderen? Deze actie kan niet ongedaan gemaakt worden!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Weet je zeker dat je de virtuele machine \"%1\" en al haar bestanden wil verwijderen?"
+
+msgid "This action cannot be undone!"
+msgstr "Deze actie kan niet ongedaan gemaakt worden!"
 
 msgid "Show &config file"
 msgstr "Toon &configuratiebestand"
@@ -1452,6 +1488,20 @@ msgstr "ACPI-uitschakeling"
 
 msgid "ACP&I shutdown"
 msgstr "ACP&I-uitschakeling"
+
+msgid "Power off"
+msgstr "Uitschakelen"
+
+msgid "Power &off…"
+msgstr "&Uitschakelen…"
+
+msgid "Power &off"
+msgstr "&Uitschakelen"
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
+"Het uitschakelen van de geëmuleerde machine kan leiden tot gegevensverlies. "
+"Weet je zeker dat je door wilt gaan?"
 
 msgid "Hard disk (%1)"
 msgstr "Harde schijf (%1)"
@@ -1715,7 +1765,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Autopauze bij focusverlies"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Autopauze bij dialoogvenster"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox wordt niet langer ondersteund"
@@ -2186,7 +2236,7 @@ msgid "Controller"
 msgstr "Controller"
 
 msgid "Show Crosshair"
-msgstr "Toon dradenkruis"
+msgstr "Toon crosshair"
 
 msgid "DMA"
 msgstr "DMA"
@@ -2226,6 +2276,9 @@ msgstr "Serienummer"
 
 msgid "Host ID"
 msgstr "Host-ID"
+
+msgid "Host"
+msgstr "Host"
 
 msgid "FDC Address"
 msgstr "FDC Adres"
@@ -2309,7 +2362,7 @@ msgid "Control PC speaker"
 msgstr "Bestuur pc-luidspreker"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Pas MIDI-volume aan"
 
 msgid "Memory size"
 msgstr "Geheugengrootte"
@@ -2656,6 +2709,18 @@ msgstr "Verbeterde kleur - normale modus (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Verbeterde kleur - Verbeterde modus (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monochroom)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, kleur)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monochroom)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, kleur)"
+
 msgid "Green"
 msgstr "Groen"
 
@@ -2908,6 +2973,9 @@ msgstr "Vraag om bevestiging voor een harde reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Vraag om bevestiging voor afsluiten"
 
+msgid "Precache CHD files into memory"
+msgstr "CHD-bestanden vooraf in geheugen cachen"
+
 msgid "Options"
 msgstr "Opties"
 
@@ -2919,6 +2987,24 @@ msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Initialisatie van de Vulkan-renderer is mislukt."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Creëren van Vulcan 1.3 instantie mislukt."
+
+msgid "No usable Vulkan physical devices found."
+msgstr "Geen bruikbare Vulkan fysieken apparaten gevonden."
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Geen Vulkan-compatibele fysieke apparaten gevonden."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "librashader niet gevonden. Shaders niet beschikbaar."
+
+msgid "Vulkan device lost."
+msgstr "Vulkan-apparaat verloren."
+
+msgid "Vulkan surface lost."
+msgstr "Vulkan-surface verloren."
 
 msgid "GLSL Error"
 msgstr "GLSL-fout"
@@ -2940,6 +3026,9 @@ msgstr "Shaderbeheer"
 
 msgid "Shader Configuration"
 msgstr "Shaderconfiguratie"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Toevoegen"
@@ -3008,10 +3097,10 @@ msgid "Toggle mute"
 msgstr "Geluiddemping omschakelen"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "On-screen display omschakelen"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "&On-screen display omschakelen"
 
 msgid "Text files"
 msgstr "Tekstbestanden"
@@ -3175,7 +3264,7 @@ msgid "Export EDID"
 msgstr "EDID exporteren"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "Het EDID-bestand \"%s\" is ongeldig."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Het EDID-bestand \"%s\" is te groot."
@@ -3213,6 +3302,12 @@ msgstr "&Snel vooruitspoelen"
 msgid "Fast forward"
 msgstr "Snel vooruitspoelen"
 
+msgid "&Non-maskable interrupt"
+msgstr "&Niet-maskeerbare interrupt"
+
+msgid "Non-maskable interrupt"
+msgstr "Niet-maskeerbare interrupt"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Om de systeemmap te wijzigen, moet u alle actieve machines stoppen."
 
@@ -3244,6 +3339,11 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "De image „%s“ kan niet worden geladen: het bestand „%1“ ontbreekt, dat nodig "
 "is voor ondersteuning van Daemon Tools MDS v2- en MDX-images."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Laden van image \"%s\" niet mogelijk: %1 ontbreekt, welke vereist is voor "
+"Aaru image bestandstype ondersteuning."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3389,4 +3489,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (Traditioneel Chinees)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Samplefrequentie:"
+
+msgid "CGA lightpen"
+msgstr "CGA-lichtpen"
+
+msgid "Luminance threshold (%)"
+msgstr "Luminantiegrenswaarde (%)"

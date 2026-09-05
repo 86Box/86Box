@@ -179,6 +179,7 @@ azt2320_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
             sb_dsp_setirq(&azt2320->sb->dsp, 0);
 
             ad1848_setdma(&azt2320->ad1848, 0);
+            ad1848_setdma2(&azt2320->ad1848, 0);
             sb_dsp_setdma8(&azt2320->sb->dsp, 0);
 
             if (config->activate) {
@@ -213,6 +214,10 @@ azt2320_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
                     sb_dsp_setdma8(&azt2320->sb->dsp, azt2320->cur_dma);
                     ad1848_setdma(&azt2320->ad1848, azt2320->cur_wss_dma);
                     azt2320_log(azt2320->log, "Updated WSS Playback/SB DMA to %04X\n", azt2320->cur_dma);
+                }
+                if (config->dma[1].dma != ISAPNP_DMA_DISABLED) {
+                    ad1848_setdma2(&azt2320->ad1848, config->dma[1].dma);
+                    azt2320_log(azt2320->log, "Updated WSS Capture DMA to %04X\n", config->dma[1].dma);
                 }
             }
             break;
@@ -273,7 +278,7 @@ azt2320_init(UNUSED(const device_t *info))
     azt2320->sb->opl_enabled = device_get_config_int("opl");
 
     if (azt2320->sb->opl_enabled)
-        fm_driver_get_cs(FM_YMF262, &azt2320->sb->opl);
+        fm_driver_get_cs(FM_YMF289B, &azt2320->sb->opl);
 
     sb_dsp_set_real_opl(&azt2320->sb->dsp, 1);
     sb_dsp_init(&azt2320->sb->dsp, SBPRO_DSP_302, SB_SUBTYPE_CLONE_AZT2320_0X13, azt2320);

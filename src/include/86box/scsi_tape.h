@@ -18,6 +18,7 @@
 
 #define TAPE_NUM           4
 #define TAPE_BUF_SIZE      65536
+#define TAPE_MAX_TRANSFER  0x00ffffffU
 #define TAPE_TIME          10.0
 #define TAPE_IMAGE_HISTORY 10
 
@@ -27,19 +28,51 @@
 #define TAPE_SIMH_GAP      0xFFFFFFFE
 #define TAPE_SIMH_BAD_REC  0xFFFF0000
 
-/* QIC tape type definitions. */
+enum {
+    TAPE_BUS_DISABLED = 0,
+    TAPE_BUS_LPT      = 6,  /* coincides with HDD_BUS_LPT/CDROM_BUS_LPT for config strings */
+    TAPE_BUS_ATAPI    = 8,  /* coincides with HDD_BUS_ATAPI */
+    TAPE_BUS_SCSI     = 9,  /* coincides with HDD_BUS_SCSI */
+    TAPE_BUS_FDC      = 11  /* no HDD_BUS counterpart */
+};
+
+#define TAPE_DRIVE_TYPE_LPT        TAPE_BUS_LPT
+#define TAPE_DRIVE_TYPE_ATAPI      TAPE_BUS_ATAPI
+#define TAPE_DRIVE_TYPE_SCSI       TAPE_BUS_SCSI
+#define TAPE_DRIVE_TYPE_FDC        TAPE_BUS_FDC
+#define TAPE_DRIVE_TYPE_SCSI_ATAPI -2
+#define TAPE_DRIVE_TYPE_NONE       -1
+
+/* Tape media type definitions. */
 typedef struct tape_type_t {
     const char *name;
-    uint32_t    capacity_bytes;
+    uint64_t    capacity_bytes;
     uint16_t    default_block_size;
     uint8_t     density_code;
 } tape_type_t;
 
-#define KNOWN_TAPE_TYPES 3
+#define KNOWN_TAPE_TYPES 20
 static const tape_type_t tape_types[KNOWN_TAPE_TYPES] = {
-    { "QIC-150",  157286400, 512, 0x10 },
-    { "QIC-525",  549978112, 512, 0x11 },
-    { "QIC-1000", 1073741824, 512, 0x12 },
+    { "QIC-150",    157286400ULL, 512, 0x10 },
+    { "QIC-525",    549978112ULL, 512, 0x11 },
+    { "QIC-1000",  1073741824ULL, 512, 0x12 },
+    { "DDS-3",    12000000000ULL, 512, 0x25 },
+    { "DDS-4",    20000000000ULL, 512, 0x26 },
+    { "DAT-72",   36000000000ULL, 512, 0x47 },
+    { "DDS-2",     4000000000ULL, 512, 0x24 },
+    { "Ditto 2 GB",              1184366592ULL, 512, 0 },
+    { "Ditto 3 GB",              1776549888ULL, 512, 0 },
+    { "Ditto 5 GB",              2963275776ULL, 512, 0 },
+    { "Ditto Max 7 GB",          4147642368ULL, 512, 0 },
+    { "QIC-80, DC-2080 (205 ft)",  91750400ULL, 512, 0 },
+    { "QIC-80, DC-2120 (307.5 ft)",137625600ULL, 512, 0 },
+    { "QIC-80, 425 ft",           189923328ULL, 512, 0 },
+    { "QIC-80, 1100 ft",          492699648ULL, 512, 0 },
+    { "QIC-3010 (255 MB)",        281804800ULL, 512, 0 },
+    { "QIC-3020 (500 MB)",        553123840ULL, 512, 0 },
+    { "Travan TR-1 (400 MB)",     431751168ULL, 512, 0 },
+    { "Travan TR-2 (800 MB)",     707788800ULL, 512, 0 },
+    { "Travan TR-3 (1.6 GB)",    1389363200ULL, 512, 0 },
 };
 
 /* Tape drive type definitions. */
@@ -47,19 +80,21 @@ typedef struct tape_drive_type_t {
     const char *vendor;
     const char *model;
     const char *revision;
+    uint8_t     default_media;
+    int         drive_type;
     int8_t      supported_media[KNOWN_TAPE_TYPES];
 } tape_drive_type_t;
 
-#define KNOWN_TAPE_DRIVE_TYPES 2
+#define KNOWN_TAPE_DRIVE_TYPES 8
 static const tape_drive_type_t tape_drive_types[KNOWN_TAPE_DRIVE_TYPES] = {
-    { "86BOX",   "TAPE",             "1.00", { 1, 1, 1 } },
-    { "ARCHIVE", "VIPER 150 21247",  "2.10", { 1, 0, 0 } },
-};
-
-enum {
-    TAPE_BUS_DISABLED = 0,
-    TAPE_BUS_ATAPI    = 8,
-    TAPE_BUS_SCSI     = 9
+    { "86BOX",   "TAPE",             "1.00", 0, TAPE_DRIVE_TYPE_SCSI_ATAPI, { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } },
+    { "ARCHIVE", "VIPER 150 21247",  "2.10", 0, TAPE_DRIVE_TYPE_SCSI_ATAPI, { 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+    { "86Box",   "DAT-72",           "1.00", 5, TAPE_DRIVE_TYPE_SCSI_ATAPI, { 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+    { "ARCHIVE", "Python 04687-XXX", "4.CM", 6, TAPE_DRIVE_TYPE_SCSI_ATAPI, { 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
+    { "Colorado", "250",             "",    11, TAPE_DRIVE_TYPE_FDC,        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0 } },
+    { "Iomega",  "Ditto 2GB",        "",     7, TAPE_DRIVE_TYPE_LPT,        { 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } },
+    { "Iomega",  "Ditto Max",        "",    10, TAPE_DRIVE_TYPE_LPT,        { 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } },
+    { "Iomega",  "QIC-3020",         "",    15, TAPE_DRIVE_TYPE_LPT,        { 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 } },
 };
 
 typedef struct tape_drive_t {
@@ -72,6 +107,8 @@ typedef struct tape_drive_t {
         uint8_t            res1;
         uint8_t            ide_channel;
         uint8_t            scsi_device_id;
+        uint8_t            fdd_unit;
+        uint8_t            lpt_port;
     };
 
     uint8_t            bus_type;
@@ -137,13 +174,21 @@ typedef struct tape_t {
     uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
 
     /* Tape-specific state. */
-    uint32_t           tape_pos;       /* Current byte position in the .tap file. */
+    uint64_t           tape_pos;       /* Current byte position in the .tap file. */
+    uint64_t           data_pos;       /* Logical data bytes before tape_pos. */
     uint32_t           block_size;     /* Current fixed block size (0 = variable block mode). */
     uint32_t           num_blocks;     /* Current logical block number. */
-    uint32_t           tape_length;    /* File size of the .tap image. */
+    uint64_t           tape_length;    /* File size of the .tap image. */
     int                eot;            /* End-of-tape reached. */
     int                bot;            /* Beginning-of-tape. */
     int                filemark_pending; /* A filemark was just encountered. */
+    uint8_t            active_partition; /* Selected logical partition. */
+    uint8_t            aux_filemark;     /* Filemark follows auxiliary data. */
+    uint8_t            aux_filemark_seen; /* Current position is past that mark. */
+    uint8_t           *aux_buf;          /* Virtual auxiliary partition data. */
+    uint32_t           aux_buf_size;     /* Allocated auxiliary buffer size. */
+    uint32_t           aux_data_len;     /* Bytes of valid auxiliary data. */
+    uint32_t           aux_pos;          /* Byte position in auxiliary data. */
 
     /* Read-ahead buffer for re-blocking: when a SIMH record is larger than
        the requested fixed block size, the unconsumed remainder is stored here
@@ -172,6 +217,10 @@ extern void tape_insert(tape_t *dev);
 
 extern void tape_global_init(void);
 extern void tape_hard_reset(void);
+
+/* Bus-agnostic runtime mount/eject, valid for every tape bus. */
+extern int  tape_drive_mount(int i, const char *path, int read_only);
+extern void tape_drive_eject(int i);
 
 extern void tape_reset(scsi_common_t *sc);
 extern int  tape_is_empty(const uint8_t id);

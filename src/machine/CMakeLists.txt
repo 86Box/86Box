@@ -45,12 +45,14 @@ add_library(mch OBJECT
     m_at_socket2.c
     m_at_socket3.c
     m_at_socket3_pci.c
-    m_at_486_misc.c
+    m_at_stpc.c
+    m_at_socket3_4.c
     m_at_socket4.c
     m_at_socket4_5.c
     m_at_socket5.c
     m_at_socket7_3v.c
     m_at_socket7.c
+    m_at_ibm_pc700.c
     m_at_sockets7.c
     m_at_socket8.c
     m_at_slot1.c

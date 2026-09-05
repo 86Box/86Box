@@ -11,7 +11,7 @@ body:
     attributes:
       label: Checklist
       options:
-        - label: I **have searched** the issue tracker and **was unable** to find an [open](../issues?q=is%3Aissue+is%3Aopen) or [closed](../issues?q=is%3Aissue+is%3Aclosed) issue matching what I'm seeing. 
+        - label: I **have searched** the issue tracker and **was unable** to find an [open](https://github.com/86Box/86Box/issues?q=is%3Aissue+is%3Aopen) or [closed](https://github.com/86Box/86Box/issues?q=is%3Aissue+is%3Aclosed) issue matching what I'm seeing. 
           required: true
         - label: I **have verified** that the issue is happening in the **[latest nightly build](https://ci.86box.net/job/86Box/lastSuccessfulBuild/artifact/)**, or the latest commit, if building from source.
           required: true

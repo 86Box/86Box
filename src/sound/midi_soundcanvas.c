@@ -46,7 +46,6 @@
 #define RENDER_RATE      100
 #define BUFFER_SEGMENTS  10
 
-extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
 /* ------------------------------------------------------------------ */
@@ -92,7 +91,6 @@ typedef struct soundcanvas {
     event_t  *event;
     event_t  *start_event;
     mutex_t  *midi_mutex;
-    int       midi_pos;
     int       on;
 
     /* logging */
@@ -229,11 +227,8 @@ void
 soundcanvas_poll(void)
 {
     soundcanvas_t *data = &scdev;
-    data->midi_pos++;
-    if (data->midi_pos == sound_sample_rate / RENDER_RATE) {
-        data->midi_pos = 0;
-        thread_set_event(data->event);
-    }
+
+    thread_set_event(data->event);
 }
 
 /* ------------------------------------------------------------------ */

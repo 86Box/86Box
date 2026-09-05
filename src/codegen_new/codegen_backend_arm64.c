@@ -1,10 +1,12 @@
 #if defined __aarch64__ || defined _M_ARM64
 
+#    include <inttypes.h>
 #    include <stdlib.h>
 #    include <stdint.h>
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
+#    include <86box/plat.h>
 
 #    include "codegen.h"
 #    include "codegen_allocator.h"
@@ -284,9 +286,16 @@ void
 codegen_backend_init(void)
 {
     codeblock_t *block;
+    uint8_t      large_block = 0;
+    uint8_t      large_hash = 0;
 
-    codeblock      = calloc(BLOCK_SIZE, sizeof(codeblock_t));
-    codeblock_hash = calloc(HASH_SIZE, sizeof(codeblock_t *));
+    codeblock      = plat_mmap(BLOCK_SIZE * sizeof(codeblock_t), 0, &large_block);
+    codeblock_hash = plat_mmap(HASH_SIZE * sizeof(codeblock_t *), 0, &large_hash);
+
+    if (large_block)
+        pclog("Allocated %" PRIu64 " bytes of large pages for codeblock pointers\n", (uint64_t) (BLOCK_SIZE * sizeof(codeblock_t)));
+    if (large_hash)
+        pclog("Allocated %" PRIu64 " bytes of large pages for codeblock hashes\n", (uint64_t) (HASH_SIZE * sizeof(codeblock_t *)));
 
     for (int c = 0; c < BLOCK_SIZE; c++) {
         codeblock[c].valid = 0;

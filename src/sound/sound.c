@@ -58,6 +58,10 @@ char sound_output_device[512]           = { 0 };
 int  midi_freq                          = 44100;
 int  midi_buf_size                      = 4410;
 
+unsigned long long src_freqs[I_MAX] = {
+    0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0
+};
+
 #define NUM_SOUND_HANDLERS 16
 #define NUM_MUSIC_HANDLERS 16
 #define NUM_YM2151_HANDLERS 16
@@ -89,6 +93,10 @@ static uint8_t    sound_handlers_num;
 static uint8_t    music_handlers_num;
 static uint8_t    ym2151_handlers_num;
 static uint8_t    wavetable_handlers_num;
+static pc_timer_t cd_poll_timer;
+static uint64_t   cd_poll_latch;
+static pc_timer_t midi_poll_timer;
+static uint64_t   midi_poll_latch;
 static pc_timer_t sound_poll_timer;
 static uint64_t   sound_poll_latch;
 static pc_timer_t music_poll_timer;
@@ -103,7 +111,6 @@ static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
 static unsigned int cd_vol_l;
 static unsigned int cd_vol_r;
-static int          cd_buf_update    = CD_BUFLEN / SOUNDBUFLEN;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
@@ -136,6 +143,8 @@ static const SOUND_CARD sound_cards[] = {
     { &adgold_device                },
     { &soundmaster_device           },
     { &cms_device                   },
+    { &ess_488_device               },
+    { &ess_1488_device              },
     { &imfc_device                  },
     { &ssi2001_device               },
     { &thunderboard_device          },
@@ -167,7 +176,6 @@ static const SOUND_CARD sound_cards[] = {
     { &azt1605_device               },
     { &azt2316a_device              },
     { &azt2316r_device              },
-    { &azt2320_device               },
     { &sb_goldfinch_device          },
     { &cs4232_device                },
     { &cs4235_device                },
@@ -178,18 +186,23 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_1688_device              },
     { &ess_ess0102_pnp_device       },
     { &ess_ess0968_pnp_device       },
+    { &ess_1788_device              },
     { &ess_1868_device              },
     { &ess_1869_device              },
     { &gus_device                   },
+    { &gus_v34_device               },
     { &gus_v37_device               },
     { &gus_max_device               },
     { &gus_ace_device               },
-    { &mirosound_pcm10_device       },
-    { &opti_82c930_device           },
-    { &opti_82c931_device           },
+    { &gus_extreme_device           },
+    { &azt2320_device               },
     { &pasplus_device               },
     { &pas16_device                 },
     { &pas16d_device                },
+    { &jazz16_device                },
+    { &mirosound_pcm10_device       },
+    { &opti_82c930_device           },
+    { &opti_82c931_device           },
     { &sb_16_device                 },
     { &sb_16_pnp_device             },
     { &sb_16_pnp_ide_device         },
@@ -205,6 +218,7 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_vibra16cl_device          },
     { &sb_vibra16s_device           },
     { &sb_vibra16xv_device          },
+    { &gus_vipermax_device          },
     { &wss_device                   },
     { &ymf701_device                },
     { &ymf718_device                },
@@ -221,10 +235,11 @@ static const SOUND_CARD sound_cards[] = {
     /* PCI */
     { &cmi8338_device               },
     { &cmi8738_device               },
-    { &es1370_device                },
-    { &es1371_device                },
     { &es1373_device                },
     { &ct5880_device                },
+    { &es1370_device                },
+    { &es1371_device                },
+    { &ess_solo1_device             },
     /* AC97 */
     { &ad1881_device                },
     { &cs4297a_device               },
@@ -323,10 +338,12 @@ sound_cd_clean_buffers(void)
 static void
 sound_cd_thread(UNUSED(void *param))
 {
-    int      temp_buffer[2];
+    int16_t  temp_buffer[2];
     int      channel_select[2];
-    double   audio_vol_l;
-    double   audio_vol_r;
+    double   audio_vol_ll;
+    double   audio_vol_rr;
+    double   audio_vol_lr;
+    double   audio_vol_rl;
     double   cd_buffer_temp[2] = { 0.0, 0.0 };
 
     thread_set_event(sound_cd_start_event);
@@ -355,11 +372,15 @@ sound_cd_thread(UNUSED(void *param))
 
             if (ret) {
                 if (cdrom[i].get_volume) {
-                    audio_vol_l = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 0)];
-                    audio_vol_r = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 1)];
+                    audio_vol_ll = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 0)];
+                    audio_vol_rr = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 1)];
+                    audio_vol_lr = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 2)];
+                    audio_vol_rl = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 3)];
                 } else {
-                    audio_vol_l = cd_audio_volume_lut[255];
-                    audio_vol_r = cd_audio_volume_lut[255];
+                    audio_vol_ll = cd_audio_volume_lut[255];
+                    audio_vol_rr = cd_audio_volume_lut[255];
+                    audio_vol_lr = cd_audio_volume_lut[255];
+                    audio_vol_rl = cd_audio_volume_lut[255];
                 }
 
                 if (cdrom[i].get_channel) {
@@ -375,28 +396,24 @@ sound_cd_thread(UNUSED(void *param))
                     /* Apply ATAPI channel select */
                     cd_buffer_temp[0] = cd_buffer_temp[1] = 0.0;
 
-                    if ((audio_vol_l != 0.0) && (channel_select[0] != 0)) {
+                    if (((audio_vol_ll + audio_vol_lr) != 0.0) && (channel_select[0] != 0)) {
+                        /* Multiply Port 0 by the volumes in the process */
                         if (channel_select[0] & 1)
                             /* Channel 0 => Port 0 */
-                            cd_buffer_temp[0] += ((double) cd_buffer[i][c]);
+                            cd_buffer_temp[0] += ((double) cd_buffer[i][c]) * audio_vol_ll;
                         if (channel_select[0] & 2)
                             /* Channel 1 => Port 0 */
-                            cd_buffer_temp[0] += ((double) cd_buffer[i][c + 1]);
-
-                        /* Multiply Port 0 by Port 0 volume */
-                        cd_buffer_temp[0] *= audio_vol_l;
+                            cd_buffer_temp[0] += ((double) cd_buffer[i][c + 1]) * audio_vol_lr;
                     }
 
-                    if ((audio_vol_r != 0.0) && (channel_select[1] != 0)) {
+                    if (((audio_vol_rl + audio_vol_rr) != 0.0) && (channel_select[1] != 0)) {
+                        /* Multiply Port 1 by the volumes in the process */
                         if (channel_select[1] & 1)
                             /* Channel 0 => Port 1 */
-                            cd_buffer_temp[1] += ((double) cd_buffer[i][c]);
+                            cd_buffer_temp[1] += ((double) cd_buffer[i][c]) * audio_vol_rl;
                         if (channel_select[1] & 2)
                             /* Channel 1 => Port 1 */
-                            cd_buffer_temp[1] += ((double) cd_buffer[i][c + 1]);
-
-                        /* Multiply Port 1 by Port 1 volume */
-                        cd_buffer_temp[1] *= audio_vol_r;
+                            cd_buffer_temp[1] += ((double) cd_buffer[i][c + 1]) * audio_vol_rr;
                     }
 
                     /* Apply sound card CD volume and filters */
@@ -411,20 +428,22 @@ sound_cd_thread(UNUSED(void *param))
                         cd_out_buffer[c] += (float) (cd_buffer_temp[0] / 32768.0);
                         cd_out_buffer[c + 1] += (float) (cd_buffer_temp[1] / 32768.0);
                     } else {
-                        temp_buffer[0] = (int) trunc(cd_buffer_temp[0]);
-                        temp_buffer[1] = (int) trunc(cd_buffer_temp[1]);
-
-                        if (temp_buffer[0] > 32767)
+                        if (cd_buffer_temp[0] > 32767.0)
                             temp_buffer[0] = 32767;
-                        if (temp_buffer[0] < -32768)
+                        else if (cd_buffer_temp[0] < -32768.0)
                             temp_buffer[0] = -32768;
-                        if (temp_buffer[1] > 32767)
-                            temp_buffer[1] = 32767;
-                        if (temp_buffer[1] < -32768)
-                            temp_buffer[1] = -32768;
+                        else
+                            temp_buffer[0] = (int16_t) trunc(cd_buffer_temp[0]);
 
-                        cd_out_buffer_int16[c]     += *(int16_t *) (&temp_buffer[0]);
-                        cd_out_buffer_int16[c + 1] += *(int16_t *) (&temp_buffer[1]);
+                        if (cd_buffer_temp[1] > 32767.0)
+                            temp_buffer[1] = 32767;
+                        else if (cd_buffer_temp[1] < -32768.0)
+                            temp_buffer[1] = -32768;
+                        else
+                            temp_buffer[1] = (int16_t) trunc(cd_buffer_temp[1]);
+
+                        cd_out_buffer_int16[c]     = (int16_t) (cd_out_buffer_int16[c] + temp_buffer[0]);
+                        cd_out_buffer_int16[c + 1] = (int16_t) (cd_out_buffer_int16[c + 1] + temp_buffer[1]);
                     }
                 }
             }
@@ -678,13 +697,27 @@ sound_set_midi_filter(void (*filter)(int channel, double *buffer, void *priv), v
 }
 
 void
+cd_poll(UNUSED(void *priv))
+{
+    timer_advance_u64(&cd_poll_timer, cd_poll_latch * CD_BUFLEN);
+
+    thread_set_event(sound_cd_event);
+}
+
+void
+midi_poll_ex(UNUSED(void *priv))
+{
+    timer_advance_u64(&midi_poll_timer, midi_poll_latch * 480);
+
+    midi_poll();
+}
+
+void
 sound_poll(UNUSED(void *priv))
 {
     const uint8_t handler_count = (sound_handlers_num < NUM_SOUND_HANDLERS) ? sound_handlers_num : NUM_SOUND_HANDLERS;
 
     timer_advance_u64(&sound_poll_timer, sound_poll_latch);
-
-    midi_poll();
 
     sound_pos_global++;
     if (sound_pos_global == sound_buf_len) {
@@ -711,14 +744,6 @@ sound_poll(UNUSED(void *priv))
             givealbuffer(outbuffer_ex);
         else
             givealbuffer(outbuffer_ex_int16);
-
-        if (cd_thread_enable) {
-            cd_buf_update--;
-            if (!cd_buf_update) {
-                cd_buf_update = 50 / (CD_FREQ / CD_BUFLEN);
-                thread_set_event(sound_cd_event);
-            }
-        }
 
         if (fdd_thread_enable) {
             thread_set_event(sound_fdd_event);
@@ -847,6 +872,10 @@ sound_speed_changed(void)
 {
     sound_buf_len = sound_sample_rate / 50;
 
+    cd_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) FREQ_44100));
+
+    midi_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) FREQ_48000));
+
     sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
 
     music_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) MUSIC_FREQ));
@@ -871,6 +900,9 @@ sound_reset(void)
     midi_in_device_init();
 
     inital();
+
+    memset(&midi_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&midi_poll_timer, midi_poll_ex, NULL, 1);
 
     memset(&sound_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
@@ -969,6 +1001,11 @@ sound_cd_thread_reset(void)
         sound_cd_thread_end();
 
     cd_thread_enable = available_cdrom_drives ? 1 : 0;
+
+    if (cd_thread_enable) {
+        memset(&cd_poll_timer, 0x00, sizeof(pc_timer_t));
+        timer_add(&cd_poll_timer, cd_poll, NULL, 1);
+    }
 }
 
 static void
@@ -1100,6 +1137,10 @@ sound_recalc_timers(void)
 void
 sound_close(void)
 {
+    timer_disable(&cd_poll_timer);
+
+    timer_disable(&midi_poll_timer);
+
     timer_disable(&sound_poll_timer);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));

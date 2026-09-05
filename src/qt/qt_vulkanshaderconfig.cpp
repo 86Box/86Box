@@ -15,7 +15,7 @@ extern "C" {
 #include <86box/config.h>
 extern void get_glslp_name(const char *f, char *s, int size);
 }
-static char s[512];
+static char s[1024];
 static char name[512];
 
 #ifndef LIBRASHADER_STATIC
@@ -87,11 +87,6 @@ VulkanShaderConfig::VulkanShaderConfig(QWidget *parent, slang_shader *shader)
     slangp_read_shader_config(*currentShader);
 
     for (unsigned int i = 0; i < currentShader->param_list.length; i++) {
-        // XXX: librashader returns duplicated parameters for some reason.
-        if (this->findChild<QDoubleSpinBox *>(QString(currentShader->param_list.parameters[i].name))) {
-            QFormLayout *layout = (QFormLayout *) ui->scrollAreaWidgetContents->layout();
-            layout->removeRow(this->findChild<QDoubleSpinBox *>(QString(currentShader->param_list.parameters[i].name)));
-        }
         auto spinBox = new QDoubleSpinBox;
         spinBox->setDecimals(3);
         spinBox->setObjectName(currentShader->param_list.parameters[i].name);

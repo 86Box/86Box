@@ -62,6 +62,19 @@
 #define FDC_FLAG_5550           0x200000 /* IBM Multistation 5550 */
 #define FDC_FLAG_NO_TDR         0x400000 /* Has no tape drive register */
 
+typedef struct sector_id_fields_t {
+    uint8_t c;
+    uint8_t h;
+    uint8_t r;
+    uint8_t n;
+} sector_id_fields_t;
+
+typedef union sector_id_t {
+    uint32_t           dword;
+    uint8_t            byte_array[4];
+    sector_id_fields_t id;
+} sector_id_t;
+
 typedef struct fdc_t {
     uint8_t dor;
     uint8_t stat;
@@ -196,7 +209,6 @@ extern void fdc_badcylinder(fdc_t *fdc);
 extern void fdc_writeprotect(fdc_t *fdc);
 extern void fdc_datacrcerror(fdc_t *fdc);
 extern void fdc_headercrcerror(fdc_t *fdc);
-extern void fdc_nosector(fdc_t *fdc);
 
 extern int real_drive(fdc_t *fdc, int drive);
 

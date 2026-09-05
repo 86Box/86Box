@@ -1,0 +1,21 @@
+name: Android
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        android_abi: [arm64-v8a, armeabi-v7a, x86, x86_64]
+        android_stl: [c++_shared, c++_static]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+          -DANDROID_ABI=${{ matrix.android_abi }} -DANDROID_STL=${{ matrix.android_stl }}
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build --config Release

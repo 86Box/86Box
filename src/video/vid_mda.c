@@ -271,6 +271,7 @@ mda_poll(void *priv)
             }
 
             video_process_8(mda->crtc[MDA_CRTC_HDISP] * 9, mda->displine);
+            video_lightpen_check_trigger_strobe(0, mda->displine, 0, mda->firstline, (1. / (MDACONST / (cpuclock * (double) (1ULL << 32)))) * 9.0, monitor_index_global);
         }
         mda->scanline = scanline_old;
         if (mda->vc == mda->crtc[MDA_CRTC_VSYNC] && !mda->scanline) {
@@ -281,6 +282,7 @@ mda_poll(void *priv)
             mda->displine = 0;
     } else {
         timer_advance_u64(&mda->timer, mda->dispontime);
+        video_lightpen_hsync();
         if (mda->dispon)
             mda->status &= ~1;
         mda->linepos = 0;
@@ -334,6 +336,7 @@ mda_poll(void *priv)
                 mda->dispon    = 0;
                 mda->displine  = 0;
                 mda->vsynctime = 16;
+                video_lightpen_vsync();
                 if (mda->crtc[MDA_CRTC_VSYNC]) {
                     uint32_t x = mda->crtc[MDA_CRTC_HDISP] * 9;
                     mda->lastline++;
@@ -451,7 +454,7 @@ mda_standalone_init(UNUSED(const device_t *info))
 
     mda_init(mda);
 
-    mda->lpt = device_add_inst(&lpt_port_device, 1);
+    mda->lpt = device_add_inst(&lpt_port_device, -1);
     lpt_port_setup(mda->lpt, LPT_MDA_ADDR);
     lpt_set_3bc_used(1);
 
@@ -538,4 +541,3 @@ const device_t mda_device = {
     .force_redraw  = NULL,
     .config        = mda_config
 };
-

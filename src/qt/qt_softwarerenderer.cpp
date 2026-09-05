@@ -18,7 +18,6 @@
  */
 #include "qt_softwarerenderer.hpp"
 #include <QApplication>
-#include <QClipboard>
 #include <QPainter>
 #include <QResizeEvent>
 #include <QScreen>
@@ -160,8 +159,7 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         else
             image = pixmap.toImage().scaled(qs * win_scale, Qt::IgnoreAspectRatio,
                                             Qt::SmoothTransformation);
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setImage(image, QClipboard::Clipboard);
+        util::copyImageToClipboard(image);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
     }
     if (monitors[r_monitor_index].mon_screenshots_raw_clipboard) {
@@ -188,7 +186,7 @@ SoftwareRenderer::event(QEvent *event)
 void
 SoftwareRenderer::onPaint(QPaintDevice *device)
 {
-    const bool osd = 1;
+    const bool osd = qt_osd_is_visible();
     /* Repaint when the OSD is up, or once more right after it closes so a
      * lingering overlay is cleared even while the machine is paused. */
     if (cur_image == -1 && !osd && !osd_drawn_last)

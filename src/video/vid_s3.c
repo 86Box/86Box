@@ -93,7 +93,7 @@
 #define ROM_SPEA_86C964                "roms/video/s3/SPEA V7-Mercury P-64 (S3 Vision964 PCI, BT485).bin"
 #define ROM_GENOA_VISION868            "roms/video/s3/Genoa Phantom 64 PCI (S3 Vision868).bin"
 #define ROM_MIROVIDEO_VISION868        "roms/video/s3/miroVIDEO 20SD PCI (S3 Vision868).bin"
-#define ROM_SPEA_TRIO32                "roms/video/s3/SPEA V7-Mercury P-32 (S3 Trio32 PCI).bin"
+#define ROM_SPEA_TRIO32                "roms/video/s3/SPEA V7-Mirage P-32 (S3 Trio32 PCI).bin"
 #define ROM_DIAMOND_TRIO64V            "roms/video/s3/Diamond Stealth64 Video 2001 (S3 Trio64V+ PCI).bin"
 #define ROM_HERCULES_TRIO64V           "roms/video/s3/Hercules Terminator 64 Video (S3 Trio64V+ PCI).BIN"
 #define ROM_MIROMEDIA_TV               "roms/video/s3/miroMEDIA TV (S3 Trio64V+ PCI).rom"
@@ -2925,7 +2925,7 @@ s3_io_remove_alt(s3_t *s3)
 static void
 s3_io_remove(s3_t *s3)
 {
-    io_removehandler(0x03c0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
+    io_removehandler(0x03a0, 0x0040, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
     io_removehandler(0x82ec, 0x0002, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
 
     io_removehandler(0x02e8, 0x0002, s3_in, NULL, NULL, NULL, NULL, NULL, s3);
@@ -3024,6 +3024,8 @@ s3_io_set(s3_t *s3)
 
     s3_io_remove(s3);
 
+    if (!(svga->miscout & 0x01))
+        io_sethandler(0x03a0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
     io_sethandler(0x03c0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
 
     if ((s3->chip == S3_VISION968 || s3->chip == S3_VISION868) && (svga->seqregs[9] & 0x80)) {
@@ -3299,7 +3301,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     s3_log("Write CRTC45=%02x.\n", val);
                     if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968))
                         break;
-                    svga->hwcursor.ena = val & 1;
+                    svga->hwcursor.ena = val & 0x01;
                     break;
                 case 0x46:
                 case 0x47:
@@ -3309,9 +3311,15 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                 case 0x4d:
                 case 0x4e:
                 case 0x4f:
+                    ;
+                    uint16_t x_mask = 0x7ff;
+
+                    if (((s3->chip >= S3_86C928) && (s3->chip <= S3_86C805I) && ((svga->bpp == 15) || (svga->bpp == 16)) && s3->elsa_eeprom && (svga->hwcursor_draw != NULL)))
+                        x_mask = 0xfff;
+
                     if ((s3->chip == S3_VISION964) || (s3->chip == S3_VISION968))
                         break;
-                    svga->hwcursor.x = ((svga->crtc[0x46] << 8) | svga->crtc[0x47]) & 0x7ff;
+                    svga->hwcursor.x = ((svga->crtc[0x46] << 8) | svga->crtc[0x47]) & x_mask;
                     if (svga->bpp == 32)
                         svga->hwcursor.x >>= 1;
 
@@ -3330,6 +3338,8 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                         svga->hwcursor.x /= 3;
                     else if ((s3->chip <= S3_86C805) && s3->color_16bit)
                         svga->hwcursor.x >>= 1;
+
+                    s3_log("Write CRTC46=%02x, CRTC47=%02x, x=%04x.\n", svga->crtc[0x46], svga->crtc[0x47], svga->hwcursor.x);
                     break;
 
                 case 0x4a:
@@ -3596,7 +3606,9 @@ s3_in(uint16_t addr, void *priv)
                     }
                     break;
                 case 0x30:
-                    return ((svga->crtc[0x38] & 0xcc) != 0x48) ? 0xFF : s3->id; /*Chip ID*/
+                    temp = (((svga->crtc[0x38] & 0xcc) == 0x48) ||
+                            ((svga->crtc[0x39] & 0xe0) == 0xa0)) ? s3->id : 0xff; /*Chip ID*/
+                    return temp;
                 case 0x31:
                     return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
                 case 0x35:
@@ -3977,9 +3989,9 @@ s3_recalctimings(svga_t *svga)
 
     if (enhanced_8bpp_modes) {
         s3_log("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, "
-               "attr=%02x, hdisp=%d, dotsperclock=%x, clksel=%x, clockmultiplier=%d, multiplexingrate=%d, mapenable=%x.\n", svga->bpp, s3->width, svga->crtc[0x50],
+               "attr=%02x, hdisp=%d, dotsperclock=%x, clksel=%x, clockmultiplier=%d, multiplexingrate=%d, mapenable=%x, ramdac type=%d, clksel=%d.\n", svga->bpp, s3->width, svga->crtc[0x50],
                svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 0x04,
-               svga->attrregs[0x10] & 0x40, svga->hdisp, svga->dots_per_clock, clk_sel, svga->clock_multiplier, svga->multiplexing_rate, svga->mapping.enable);
+               svga->attrregs[0x10] & 0x40, svga->hdisp, svga->dots_per_clock, clk_sel, svga->clock_multiplier, svga->multiplexing_rate, svga->mapping.enable, s3->ramdac_type, clk_sel);
         switch (svga->bpp) {
             case 8:
                 svga->render = svga_render_8bpp_highres;
@@ -4199,10 +4211,8 @@ s3_recalctimings(svga_t *svga)
                                         svga->dots_per_clock >>= 1;
                                         svga->clock *= 2.0;
                                     } else {
-                                        if (clk_sel != 2) {
-                                            svga->hdisp >>= 1;
-                                            svga->dots_per_clock >>= 1;
-                                        }
+                                        svga->hdisp >>= 1;
+                                        svga->dots_per_clock >>= 1;
                                     }
                                 }
                                 break;
@@ -4406,10 +4416,8 @@ s3_recalctimings(svga_t *svga)
                                         svga->dots_per_clock >>= 1;
                                         svga->clock *= 2.0;
                                     } else {
-                                        if (clk_sel != 2) {
-                                            svga->hdisp >>= 1;
-                                            svga->dots_per_clock >>= 1;
-                                        }
+                                        svga->hdisp >>= 1;
+                                        svga->dots_per_clock >>= 1;
                                     }
                                 }
                                 break;
@@ -4803,12 +4811,18 @@ s3_recalctimings(svga_t *svga)
         }
     }
 
-    if ((s3->elsa_eeprom && (svga->bpp == 32)) ||
-        (s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) || (s3->chip == S3_VISION864) || (s3->chip == S3_VISION868) || (s3->chip == S3_VISION968))
+    const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
+    if (!is_vga_mode && ((s3->elsa_eeprom && (svga->bpp == 32)) ||
+        (s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) ||
+        (s3->chip == S3_VISION864) || (s3->chip == S3_VISION868) ||
+        (s3->chip == S3_VISION968)))
         svga->hoverride = 1;
-    else
+    else {
         svga->hoverride = 0;
-
+        if (((s3->chip == S3_TRIO32) || (s3->chip == S3_TRIO64) ||
+            (!s3->pci && (s3->chip == S3_VISION968))) && enhanced_8bpp_modes)
+            svga->hoverride = 1;
+    }
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;
     else if (svga->render == svga_render_2bpp_highres)
@@ -4818,8 +4832,9 @@ s3_recalctimings(svga_t *svga)
 static void
 s3_trio64v_recalctimings(svga_t *svga)
 {
-    s3_t *s3            = (s3_t *) svga->priv;
-    int         clk_sel = (svga->miscout >> 2) & 3;
+    s3_t *s3                  = (s3_t *) svga->priv;
+    int   clk_sel             = (svga->miscout >> 2) & 3;
+    int   enhanced_8bpp_modes = 0;
 
     if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
         /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
@@ -5010,7 +5025,21 @@ s3_trio64v_recalctimings(svga_t *svga)
         svga->vram_display_mask = s3->vram_mask;
     }
 
-    svga->hoverride = 1;
+    enhanced_8bpp_modes = !!((svga->crtc[0x3a] & 0x10) && !svga->lowres);
+
+    const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
+    svga->hoverride = !is_vga_mode;
+
+    if (is_vga_mode) {
+        svga->hoverride = 0;
+        /* Preserve the first character when blanking ends at line rollover.
+           A zero end value can also match before rollover on longer lines. */
+        if (enhanced_8bpp_modes || ((svga->hblank_end_val == 0) &&
+                                   ((svga->hblankstart + 1) == svga->hdisp_time) &&
+                                   ((svga->hblankstart >> 6) == ((svga->htotal - 1) >> 6))))
+            svga->hoverride = 1;
+    } else
+        svga->hoverride = 1;
 
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;
@@ -12057,7 +12086,7 @@ static const device_config_t s3_86c928_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_SPEA_MERCURY_LITE_PCI,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (1 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (1 << 8),
                 .files         = { ROM_SPEA_MERCURY_LITE_PCI, "" }
             },
             { .files_no = 0 }
@@ -12293,7 +12322,7 @@ static const device_config_t s3_vision864_vlb_config[] = {
                 .files_no      = 1,
                 .local         = S3_MIROCRYSTAL20SD_864,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_MIROCRYSTAL20SD_864_VLB, "" }
             },
             {
@@ -12303,7 +12332,7 @@ static const device_config_t s3_vision864_vlb_config[] = {
                 .files_no      = 1,
                 .local         = S3_PARADISE_BAHAMAS64,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_PARADISE_BAHAMAS64, "" }
             },
             {
@@ -12355,7 +12384,7 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DEC_VISION864,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DEC_VISION864, "" }
             },
             {
@@ -12365,7 +12394,7 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH64_864,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_864, "" }
             },
             {
@@ -12375,7 +12404,7 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_LEADTEK_VISION864,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_LEADTEK_VISION864, "" }
             },
             {
@@ -12385,7 +12414,7 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_PARADISE_BAHAMAS64,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_PARADISE_BAHAMAS64, "" }
             },
             {
@@ -12503,8 +12532,8 @@ static const device_config_t s3_trio32_pci_config[] = {
                 .files         = { ROM_PHOENIX_TRIO32, "" }
             },
             {
-                .name          = "SPEA V7-Mercury P-32",
-                .internal_name = "spea_mercury32p_pci",
+                .name          = "SPEA V7-Mirage P-32",
+                .internal_name = "spea_mirage32p_pci", /* TODO: to add migration */
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = S3_SPEA_TRIO32,
@@ -12561,7 +12590,7 @@ static const device_config_t s3_vision964_vlb_config[] = {
                 .files_no      = 1,
                 .local         = S3_MIROCRYSTAL20SV_964,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_MIROCRYSTAL20SV_964_VLB, "" }
             },
             { .files_no = 0 }
@@ -12603,7 +12632,7 @@ static const device_config_t s3_vision964_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH64_964,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_964, "" }
             },
             {
@@ -12623,7 +12652,7 @@ static const device_config_t s3_vision964_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_MIROCRYSTAL20SV_964,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_MIROCRYSTAL20SV_964_PCI, "" }
             },
             {
@@ -12633,7 +12662,7 @@ static const device_config_t s3_vision964_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_SPEA_86C964,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_SPEA_86C964, "" }
             },
             { .files_no = 0 }
@@ -12676,7 +12705,7 @@ static const device_config_t s3_trio64_vlb_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH64_764,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_764, "" }
             },
             {
@@ -12686,7 +12715,7 @@ static const device_config_t s3_trio64_vlb_config[] = {
                 .files_no      = 1,
                 .local         = S3_NUMBER9_9FX,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_NUMBER9_9FX, "" }
             },
             {
@@ -12706,7 +12735,7 @@ static const device_config_t s3_trio64_vlb_config[] = {
                 .files_no      = 1,
                 .local         = S3_SPEA_MIRAGE_P64,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_SPEA_MIRAGE_P64, "" }
             },
             { .files_no = 0 }
@@ -12748,7 +12777,7 @@ static const device_config_t s3_trio64_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH64_764,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_764, "" }
             },
             {
@@ -12758,7 +12787,7 @@ static const device_config_t s3_trio64_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_NUMBER9_9FX,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_NUMBER9_9FX, "" }
             },
             {
@@ -12810,7 +12839,7 @@ static const device_config_t s3_vision868_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_GENOA_VISION868,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_GENOA_VISION868, "" }
             },
             {
@@ -12820,7 +12849,7 @@ static const device_config_t s3_vision868_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_MIROVIDEO_VISION868,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_MIROVIDEO_VISION868, "" }
             },
             {
@@ -12830,7 +12859,7 @@ static const device_config_t s3_vision868_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_NUMBER9_9FX_531,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_NUMBER9_9FX_531, "" }
             },
             {
@@ -12923,7 +12952,7 @@ static const device_config_t s3_vision968_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_STEALTH64_968,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 2 | (4 << 16),
+                .flags         = BIOS_LIMIT_MIN_MEMORY | BIOS_LIMIT_MAX_MEMORY | 2 | (4 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_968, "" }
             },
             {
@@ -12943,7 +12972,7 @@ static const device_config_t s3_vision968_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_MIROVIDEO40SV_ERGO_968,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 8),
                 .files         = { ROM_MIROVIDEO40SV_ERGO_968_PCI, "" }
             },
             {
@@ -12963,7 +12992,7 @@ static const device_config_t s3_vision968_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_PHOENIX_VISION968,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 8),
                 .files         = { ROM_PHOENIX_VISION968, "" }
             },
             {
@@ -12973,7 +13002,7 @@ static const device_config_t s3_vision968_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_SPEA_MERCURY_P64V,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (4 << 8),
                 .files         = { ROM_SPEA_MERCURY_P64V, "" }
             },
             { .files_no = 0 }
@@ -13078,7 +13107,7 @@ static const device_config_t s3_trio64vplus_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_DIAMOND_TRIO64V,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DIAMOND_TRIO64V, "" }
             },
             {
@@ -13088,7 +13117,7 @@ static const device_config_t s3_trio64vplus_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_HERCULES_TRIO64V,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_HERCULES_TRIO64V, "" }
             },
             {
@@ -13098,7 +13127,7 @@ static const device_config_t s3_trio64vplus_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_MIROMEDIA_TV,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_MIROMEDIA_TV, "" }
             },
             {
@@ -13108,7 +13137,7 @@ static const device_config_t s3_trio64vplus_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_MIRO_TRIO64V,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_MIRO_TRIO64V, "" }
             },
             {
@@ -13171,7 +13200,7 @@ static const device_config_t s3_trio64v2dx_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_ACER_TRIO64V2,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_ACER_TRIO64V2, "" }
             },
             {
@@ -13181,7 +13210,7 @@ static const device_config_t s3_trio64v2dx_pci_config[] = {
                 .files_no      = 1,
                 .local         = S3_ASUS_TRIO64V2,
                 .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 16),
+                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_ASUS_TRIO64V2, "" }
             },
             {

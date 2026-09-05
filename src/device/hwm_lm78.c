@@ -37,6 +37,7 @@
 #define LM78_AS99127F_REV2      0x080000
 #define LM78_W83782D            0x100000
 #define LM78_P5A                0x200000
+#define LM78_AL440LX            0x400000
 #define LM78_AS99127F           (LM78_AS99127F_REV1 | LM78_AS99127F_REV2)     /* mask covering both _REV1 and _REV2 */
 #define LM78_WINBOND            (LM78_W83781D | LM78_AS99127F | LM78_W83782D) /* mask covering all Winbond variants */
 #define LM78_WINBOND_VENDOR_ID  ((dev->local & LM78_AS99127F_REV1) ? 0x12c3 : 0x5ca3)
@@ -256,7 +257,9 @@ lm78_reset(void *priv)
     dev->regs[0x47] = 0x50;
     if (dev->local & LM78_I2C) {
         if (!initialization) { /* don't reset main I2C address if the reset was triggered by the INITIALIZATION bit */
-            if (dev->local & LM78_P5A)
+            if (dev->local & LM78_AL440LX)
+                dev->i2c_addr = 0x4e;
+            else if (dev->local & LM78_P5A)
                 dev->i2c_addr = 0x77;
             else
                 dev->i2c_addr = 0x2d;
@@ -851,6 +854,24 @@ const device_t lm78_device = {
     .internal_name = "lm78",
     .flags         = DEVICE_ISA,
     .local         = 0x290 | LM78_I2C,
+    .init          = lm78_init,
+    .close         = lm78_close,
+    .reset         = lm78_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/*
+   National Semiconductor LM78 on ISA and SMBus, AL440LX.
+   Probably NOT the correct HWM, but it works!
+ */
+const device_t lm78_al440lx_device = {
+    .name          = "National Semiconductor LM78 Hardware Monitor",
+    .internal_name = "lm78_al440lx",
+    .flags         = DEVICE_ISA,
+    .local         = 0x290 | LM78_I2C | LM78_AL440LX,
     .init          = lm78_init,
     .close         = lm78_close,
     .reset         = lm78_reset,

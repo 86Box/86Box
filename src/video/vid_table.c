@@ -72,7 +72,6 @@ video_cards[] = {
     { .device = &sega_device,                                   .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5401_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &gd5402_isa_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
-    { .device = &colorplus_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &compaq_cga_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &compaq_cga_2_device,                           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &cpqega_device,                                 .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -97,6 +96,7 @@ video_cards[] = {
     { .device = &paradise_pvga1a_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &paradise_wd90c11_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &paradise_wd90c30_device,                       .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &colorplus_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &cga_pravetz_device,                            .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &quadcolor_device,                              .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &realtek_rtg3105_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -378,6 +378,12 @@ vid_table_log(const char *fmt, ...)
 
 static pc_timer_t framerate_timer;
 
+void* lightpen_priv = NULL;
+
+void (*lightpen_hsync_callback)(void*) = NULL;
+void (*lightpen_vsync_callback)(void*) = NULL;
+void (*lightpen_check_trigger_strobe)(void* priv, int x_offset, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used) = NULL;
+
 void
 video_update_framerates(void* priv)
 {
@@ -401,6 +407,36 @@ video_reset_close(void)
     monitor_index_global = 0;
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
     was_reset = 0;
+}
+
+void
+video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double hpix_clock, int monitor_used))
+{
+    lightpen_priv = priv;
+    lightpen_hsync_callback = lightpen_hsync;
+    lightpen_vsync_callback = lightpen_vsync;
+    lightpen_check_trigger_strobe = lightpen_trigger_strobe;
+}
+
+void
+video_lightpen_hsync(void)
+{
+    if (lightpen_hsync_callback)
+        lightpen_hsync_callback(lightpen_priv);
+}
+
+void
+video_lightpen_vsync(void)
+{
+    if (lightpen_vsync_callback)
+        lightpen_vsync_callback(lightpen_priv);
+}
+
+void
+video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used)
+{
+    if (lightpen_check_trigger_strobe)
+        lightpen_check_trigger_strobe(lightpen_priv, x_offset, y, x_offset_from_hsync, firstline, pix_clock, monitor_used);
 }
 
 static void
@@ -586,4 +622,40 @@ int
 video_is_cga(void)
 {
     return (video_get_type() == VIDEO_FLAG_TYPE_CGA);
+}
+
+static unsigned
+video_default_cga_wait_states(uint32_t address, uint64_t cpu_cycle)
+{
+    /* Existing Marty-derived IBM CGA READY-slot model.  This fallback is
+     * limited to ISA CGA timing descriptors; integrated VIDEO_BUS devices
+     * such as the PC1512 must publish their own model. */
+    static const uint8_t waits[16] = {
+        5, 5, 4, 4, 4, 3, 8, 8,
+        8, 7, 7, 7, 6, 6, 6, 5
+    };
+
+    if ((address < 0xb8000u) || (address > 0xbffffu))
+        return 0;
+
+    return waits[(unsigned)((cpu_cycle * 3u + 1u) & 0x0fu)];
+}
+
+unsigned
+video_get_wait_states(uint32_t address, int write, unsigned size,
+                      uint64_t cpu_cycle)
+{
+    const video_timings_t *timings = monitors[0].mon_vid_timings;
+
+    if (timings && timings->wait_states)
+        return timings->wait_states(address, write, size, cpu_cycle,
+                                    timings->wait_states_priv);
+
+    /* Preserve the previous exact-808x behavior for ordinary ISA CGA while
+     * avoiding the IBM table for machine-integrated video buses. */
+    if (timings && (timings->type == VIDEO_ISA) &&
+        (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_CGA))
+        return video_default_cga_wait_states(address, cpu_cycle);
+
+    return 0;
 }

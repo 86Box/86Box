@@ -187,6 +187,7 @@ extern kbc_at_port_t     *kbc_at_ports[2];
 extern const device_t kbc_pc_device;
 extern const device_t kbc_pc82_device;
 extern const device_t kbc_pravetz_device;
+extern const device_t kbc_3270pc_device;
 extern const device_t kbc_xt_device;
 extern const device_t kbc_xt86_device;
 extern const device_t kbc_xt_compaq_device;
@@ -201,6 +202,7 @@ extern const device_t kbc_xt_jukost_device;
 extern const device_t kbc_xtclone_device;
 
 extern const device_t kbc_at_device;
+extern const device_t kbc_ps2_m25_device;
 
 extern const device_t keyboard_pc_xt_device;
 extern const device_t keyboard_at_device;
@@ -226,6 +228,7 @@ extern void     keyboard_set_in_reset(uint8_t in_reset);
 extern uint8_t  keyboard_get_in_reset(void);
 extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl, uint8_t *kl);
 extern void     keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
+extern void     keyboard_at_set_scancode_set_persistent(uint8_t persistent);
 extern int      keyboard_recv(uint16_t key);
 extern int      keyboard_recv_ui(uint16_t key);
 extern int      keyboard_isfsenter(void);

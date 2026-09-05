@@ -38,6 +38,124 @@
 #include <86box/sound.h>
 #include <86box/snd_ac97.h>
 
+/* ALi ALADDiN-PRO II */
+static const device_config_t m726mrt_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "m726mrt_1204",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 08/16/1999 S",
+                .internal_name = "m726mrt_0816",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m726mrt/990816s.rom", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 12/04/1999 S",
+                .internal_name = "m726mrt_1204",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/m726mrt/991204S.ROM", "" }
+            },
+            /* These hang after the memory test for some reason and need to be investigated further.
+                {
+                    .name          = "AMIBIOS 6 (071595) - Revision 09/19/2000 S",
+                    .internal_name = "m726mrt_0919",
+                    .bios_type     = BIOS_NORMAL,
+                    .files_no      = 1,
+                    .local         = 0,
+                    .size          = 262144,
+                    .files         = { "roms/machines/m726mrt/2k0919s.ROM", "" }
+                },
+                {
+                    .name          = "AMIBIOS 6 (071595) - Revision 05/25/2001 S",
+                    .internal_name = "m726mrt",
+                    .bios_type     = BIOS_NORMAL,
+                    .files_no      = 1,
+                    .local         = 0,
+                    .size          = 262144,
+                    .files         = { "roms/machines/m726mrt/010525s.rom", "" }
+                }, */
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t m726mrt_device = {
+    .name          = "PC Chips M726MRT",
+    .internal_name = "m726mrt",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = m726mrt_config
+};
+
+int
+machine_at_m726mrt_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    int size = device_get_bios_file_size(machine_get_device(machine), device_get_config_bios("bios"));
+    ret = bios_load_linear(fn, 0x00100000 - size, size, 0);
+    device_context_restore();
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,           2, 3, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,          2, 3, 4, 1);
+
+    device_add(&ali1621_device);
+    device_add(&ali1543c_device); /* +0 */
+    /* The actual board has an MX 29F001 or 29F002 flash chip, neither of which have
+       been implemented yet. Since they're SST clones, these should do for now. */
+    device_add(/* (size > 131072) ? &sst_flash_29ee020_device : */ &sst_flash_29ee010_device);
+
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
 /* i440BX */
 static const device_config_t prosignias31x_config[] = {
     // clang-format off
@@ -52,7 +170,7 @@ static const device_config_t prosignias31x_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 5.3",
+                .name          = "AwardBIOS v4.51PG - Revision 5.3",
                 .internal_name = "p6bxt_53",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -61,7 +179,7 @@ static const device_config_t prosignias31x_config[] = {
                 .files         = { "roms/machines/prosignias31x_bx/bxt53s.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 5.5 (Compaq ProSignia/Deskpro 440BX)",
+                .name          = "AwardBIOS v4.51PG - Revision 5.5 (Compaq ProSignia/Deskpro 440BX)",
                 .internal_name = "prosignias31x_bx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -70,7 +188,7 @@ static const device_config_t prosignias31x_config[] = {
                 .files         = { "roms/machines/prosignias31x_bx/p6bxt-ap-092600.bin", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.51PG - Revision 5.6",
+                .name          = "AwardBIOS v4.51PG - Revision 5.6",
                 .internal_name = "p6bxt",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -197,19 +315,24 @@ machine_at_p6bat_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0a, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0c, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL,      4, 3, 2, 1);
+    pci_register_slot(0x0d, PCI_CARD_SOUND,       4, 3, 2, 1); /* assumed */
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_apro133_device);
-    device_add(&via_vt82c596b_device);
+    device_add_params(&via_vt82c596b_device, (void *) VIA_PIPC_NO_KBC);
     device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    device_add(&gl520sm_2d_device);  /* fans: CPU, Chassis; temperature: System */
+    hwm_values.temperatures[0] += 2; /* System offset */
+    hwm_values.temperatures[1] += 2; /* CPU offset */
+    hwm_values.voltages[0] = 3300;   /* Vcore and 3.3V are swapped */
+    hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(machine_get_snd_device(machine));

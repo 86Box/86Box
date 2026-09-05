@@ -24,6 +24,9 @@ extern "C" {
 QVariantHash VMManagerConfig::generalDefaults = {
     { "hide_tool_bar",   0 },
     { "regex_search",    0 },
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    { "delete_to_trash", 0 },
+#endif
 #if EMU_BUILD_NUM != 0
     { "update_check",    1 },
 #endif

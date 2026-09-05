@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-15 21:21+0000\n"
+"PO-Revision-Date: 2026-08-27 13:01+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -17,7 +17,7 @@ msgid "&Action"
 msgstr "&Ação"
 
 msgid "&Keyboard requires capture"
-msgstr "O &teclado requer captura"
+msgstr "O teclado requer capt&ura"
 
 msgid "&Right CTRL is left ALT"
 msgstr "CTR&L direito é o ALT esquerdo"
@@ -26,7 +26,7 @@ msgid "&Hard reset"
 msgstr "&Reinicialização completa"
 
 msgid "&Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+&Del"
+msgstr "&Ctrl+Alt+Del"
 
 msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
@@ -67,11 +67,14 @@ msgstr "&Renderizador"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (Núcleo 3.0)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Especificar as dime&nsões…"
@@ -421,8 +424,11 @@ msgstr "Ativar (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Usar o interpretador 486 para processadores 286 e 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Recompilador dinâmico"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr "Ambiente FPU preciso no recompilador dinâmico"
 
 msgid "CPU frame size"
 msgstr "Tamanho do quadro da CPU"
@@ -454,6 +460,9 @@ msgstr "Gráficos XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Gráficos do Adaptador de Vídeo IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -468,6 +477,21 @@ msgstr "Mouse:"
 
 msgid "Mouse"
 msgstr "Mouse"
+
+msgid "&Mouse"
+msgstr "&Mouse"
+
+msgid "Tablet:"
+msgstr "Tablet:"
+
+msgid "Tablet"
+msgstr "Tablet"
+
+msgid "&Tablet"
+msgstr "&Tablet"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Tablet (&Cruz)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -829,6 +853,9 @@ msgstr "Vídeo"
 msgid "Input devices"
 msgstr "Dispositivos de entrada"
 
+msgid "Input &device"
+msgstr "D&ispositivo de entrada"
+
 msgid "Sound"
 msgstr "Som"
 
@@ -837,6 +864,9 @@ msgstr "Rede"
 
 msgid "Ports (COM & LPT)"
 msgstr "Portas (COM & LPT)"
+
+msgid "Port"
+msgstr "Porta"
 
 msgid "Ports"
 msgstr "Portas"
@@ -1239,6 +1269,9 @@ msgstr "Não foi possível abrir o arquivo de configuração selecionado para le
 msgid "Use regular expressions in search box"
 msgstr "Usar expressões regulares na caixa de pesquisa"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Excluir máquinas virtuais para a Lixeira"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n máquina está ativa no momento. Tem certeza de que deseja sair do gerenciador de MVs mesmo assim?"
@@ -1412,8 +1445,11 @@ msgstr "Forçar o encerramento de uma máquina virtual pode causar perda de dado
 msgid "&Delete"
 msgstr "&Apagar"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Deseja realmente apagar a máquina virtual \"%1\" e todos os seus arquivos? Essa ação não pode ser desfeita!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Deseja realmente apagar a máquina virtual \"%1\" e todos os seus arquivos?"
+
+msgid "This action cannot be undone!"
+msgstr "Essa ação não pode ser desfeita!"
 
 msgid "Show &config file"
 msgstr "Mostrar arquivo de &configuração"
@@ -1453,6 +1489,18 @@ msgstr "Desligamento por ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Desligamento por ACP&I"
+
+msgid "Power off"
+msgstr "Desligar"
+
+msgid "Power &off…"
+msgstr "&Desligar…"
+
+msgid "Power &off"
+msgstr "&Desligar"
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr "Desligar a máquina virtual pode causar perda de dados. Você tem certeza que deseja continuar?"
 
 msgid "Hard disk (%1)"
 msgstr "Disco rígido (%1)"
@@ -1776,7 +1824,7 @@ msgid "&Pen"
 msgstr "C&aneta"
 
 msgid "&Host CD/DVD Drive (%1)"
-msgstr "&Unidade de CD/DVD do anfitrião (%1)"
+msgstr "&Unidade de CD/DVD do hospedeiro (%1)"
 
 msgid "&Connected"
 msgstr "&Conectado"
@@ -1788,7 +1836,7 @@ msgid "Create…"
 msgstr "Criar…"
 
 msgid "Host CD/DVD Drive (%1)"
-msgstr "Unidade de CD/DVD do anfitrião (%1)"
+msgstr "Unidade de CD/DVD do hospedeiro (%1)"
 
 msgid "Unknown Bus"
 msgstr "Barramento desconhecido"
@@ -2232,7 +2280,10 @@ msgid "Serial Number"
 msgstr "Número de série"
 
 msgid "Host ID"
-msgstr "ID do anfitrião"
+msgstr "ID do hospedeiro"
+
+msgid "Host"
+msgstr "Hospedeiro"
 
 msgid "FDC Address"
 msgstr "Endereço da FDC"
@@ -2663,6 +2714,18 @@ msgstr "Colorido aprimorado - Modo normal (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Colorido aprimorado - Modo aprimorado (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monocromático)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, colorido)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monocromático)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, colorido)"
+
 msgid "Green"
 msgstr "Verde"
 
@@ -2763,7 +2826,7 @@ msgid "Serial Passthrough"
 msgstr "Passagem de porta serial"
 
 msgid "Host serial device"
-msgstr "Dispositivo serial host"
+msgstr "Dispositivo serial no hospedeiro"
 
 msgid "Named Pipe"
 msgstr "Pipe nomeado"
@@ -2915,6 +2978,9 @@ msgstr "Perguntar antes de reinicialização completa"
 msgid "Ask for confirmation before quitting"
 msgstr "Perguntar antes de sair"
 
+msgid "Precache CHD files into memory"
+msgstr "Pré-carregar arquivos CHD na memória"
+
 msgid "Options"
 msgstr "Opções"
 
@@ -2926,6 +2992,24 @@ msgstr "Modelo:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Falha ao inicializar o renderizador Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Falha ao criar instância Vulkan 1.3."
+
+msgid "No usable Vulkan physical devices found."
+msgstr "Nenhum dispositivo Vulkan utilizável encontrado."
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Nenhum dispositivo físico compatível com Vulkan encontrado."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "librashader não encontrada. Shaders não estarão disponíveis."
+
+msgid "Vulkan device lost."
+msgstr "Dispositivo Vulkan perdido."
+
+msgid "Vulkan surface lost."
+msgstr "Superfície Vulkan perdida."
 
 msgid "GLSL Error"
 msgstr "Erro GLSL"
@@ -2947,6 +3031,9 @@ msgstr "Gerenciador de Shaders"
 
 msgid "Shader Configuration"
 msgstr "Configuração de Shaders"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "Adicionar"
@@ -3042,7 +3129,7 @@ msgid "Hub Mode"
 msgstr "Modo Hub"
 
 msgid "Hostname:"
-msgstr "Nome do anfitrião:"
+msgstr "Nome do hospedeiro:"
 
 msgid "ISA RAM:"
 msgstr "RAM ISA:"
@@ -3149,7 +3236,7 @@ msgid "The system will not be added."
 msgstr "O sistema não será adicionado."
 
 msgid "&Update mouse every CPU frame"
-msgstr "&Atualiza o estado do mouse em cada quadro da CPU"
+msgstr "Atualiza o estado do &mouse em cada quadro da CPU"
 
 msgid "Hue"
 msgstr "Matiz"
@@ -3220,6 +3307,12 @@ msgstr "&Avançar rapidamente"
 msgid "Fast forward"
 msgstr "Avançar rapidamente"
 
+msgid "&Non-maskable interrupt"
+msgstr "Interrupção &não-mascarável"
+
+msgid "Non-maskable interrupt"
+msgstr "Interrupção não-mascarável"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Para alterar o diretório do sistema, pare todas as máquinas em funcionamento."
 
@@ -3251,6 +3344,11 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Não foi possível carregar a imagem \"%s\": Falta %1, necessário para "
 "suporte a imagens Daemon Tools MDS v2 e MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
+"Não foi possível carregar a imagem \"%s\": %1 está faltando, o que é "
+"necessário para suporte a imagens no formato Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3397,3 +3495,10 @@ msgstr "938 (Chinês tradicional)"
 
 msgid "Sample rate:"
 msgstr "Taxa de amostragem:"
+
+
+msgid "CGA lightpen"
+msgstr "Caneta óptica CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Limiar de luminância (%)"

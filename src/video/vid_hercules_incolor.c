@@ -196,6 +196,14 @@ recalc_timings(incolor_t *dev)
     _dispontime *= HERCCONST;
     _dispofftime *= HERCCONST;
 
+    if (dev->ctrl & 0x02) {
+        _dispontime *= 16;
+        _dispofftime *= 16;
+    } else {
+        _dispontime *= 9;
+        _dispofftime *= 9;
+    }
+
     dev->dispontime  = (uint64_t) (int64_t) (_dispontime);
     dev->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
@@ -879,6 +887,7 @@ incolor_poll(void *priv)
                 graphics_line(dev);
             else
                 text_line(dev, cursoraddr);
+            video_lightpen_check_trigger_strobe(0, dev->displine, 0, dev->firstline, 1. / (HERCCONST / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
         }
         dev->scanline = scanline_old;
         if (dev->vc == dev->crtc[7] && !dev->scanline)
@@ -887,6 +896,7 @@ incolor_poll(void *priv)
         if (dev->displine >= 500)
             dev->displine = 0;
     } else {
+        video_lightpen_hsync();
         timer_advance_u64(&dev->timer, dev->dispontime);
         if (dev->dispon)
             dev->status &= ~1;
@@ -936,6 +946,7 @@ incolor_poll(void *priv)
                 dev->dispon    = 0;
                 dev->displine  = 0;
                 dev->vsynctime = 16;
+                video_lightpen_vsync();
                 if (dev->crtc[7]) {
                     if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH))
                         x = dev->crtc[1] << 4;
@@ -1034,7 +1045,7 @@ incolor_init(UNUSED(const device_t *info))
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_incolor);
 
     /* Force the LPT3 port to be enabled. */
-    dev->lpt = device_add_inst(&lpt_port_device, 1);
+    dev->lpt = device_add_inst(&lpt_port_device, -1);
     lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
     lpt_set_3bc_used(1);
 

@@ -441,6 +441,8 @@ typedef struct mystique_t {
 
     int type, is_agp;
 
+    float pll_ref_clock;
+
     mem_mapping_t lfb_mapping, ctrl_mapping,
         iload_mapping;
 
@@ -738,7 +740,8 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 if ((svga->crtcreg & 0x3f) < 0xE || (svga->crtcreg & 0x3f) > 0x10) {
                     if (((svga->crtcreg & 0x3f) == 0xc) || ((svga->crtcreg & 0x3f) == 0xd)) {
                         svga->fullchange = 3;
-                        svga->memaddr_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+                        svga->memaddr_latch      = (((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
+                                                     (svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
                         svga->fullchange = changeframecount;
                         svga_recalctimings(svga);
@@ -770,8 +773,8 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 if (!(mystique->type >= MGA_2164W))
                     svga->rowoffset <<= 1;
 
-                svga->memaddr_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
-                                      (svga->crtc[0xc] << 8) | svga->crtc[0xd];
+                svga->memaddr_latch      = (((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) |
+                                             (svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                 if ((mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8))) {
                     svga->rowoffset <<= 1;
                     svga->memaddr_latch <<= 1;
@@ -928,7 +931,7 @@ mystique_getclock(int clock, void *priv)
     int n  = mystique->xpixpll[2].n;
     int pl = mystique->xpixpll[2].p;
 
-    float fvco = 14318181.0f * ((float) n + 1.0f) / ((float) m + 1.0f);
+    float fvco = mystique->pll_ref_clock * ((float) n + 1.0f) / ((float) m + 1.0f);
     float fo   = fvco / ((float) pl + 1.0);
 
     return fo;
@@ -1117,9 +1120,12 @@ mystique_recalc_mapping(mystique_t *mystique)
     svga_t *svga = &mystique->svga;
     xga_t  *xga  = (xga_t *) svga->xga;
 
-    io_removehandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
-    if ((mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) && (mystique->pci_regs[0x41] & 1))
+    io_removehandler(0x03a0, 0x0040, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
+    if ((mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) && (mystique->pci_regs[0x41] & 1)) {
+        if (!(svga->miscout & 0x01))
+            io_sethandler(0x03a0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
         io_sethandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
+    }
 
     if (!(mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
         mem_mapping_disable(&svga->mapping);
@@ -6788,6 +6794,11 @@ mystique_init(const device_t *info)
     mystique->type   = info->local;
     mystique->is_agp = !!(info->flags & DEVICE_AGP);
 
+    if (mystique->type == MGA_G100)
+        mystique->pll_ref_clock = 27000000.0f;
+    else
+        mystique->pll_ref_clock = 14318181.0f;
+
     if (mystique->type == MGA_2064W)
         romfn = ROM_MILLENNIUM;
     else if (mystique->type == MGA_2164W)
@@ -6841,7 +6852,7 @@ mystique_init(const device_t *info)
             mystique->svga.decode_mask = 0xffffff;
     }
 
-    io_sethandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
+    io_sethandler(0x03a0, 0x0040, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
     mem_mapping_add(&mystique->ctrl_mapping, 0, 0,
                     mystique_ctrl_read_b, NULL, mystique_ctrl_read_l,
                     mystique_ctrl_write_b, NULL, mystique_ctrl_write_l,

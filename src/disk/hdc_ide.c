@@ -36,6 +36,7 @@
 #include <86box/rom.h>
 #include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/machine.h>
 #include <86box/scsi_device.h>
 #include <86box/isapnp.h>
 #include <86box/cdrom.h>
@@ -45,6 +46,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 #include <86box/rdisk.h>
+#include <86box/thread.h>
 #include <86box/version.h>
 
 /* Bits of 'atastat' */
@@ -234,6 +236,147 @@ static uint8_t ide_qua_pnp_rom[] = {
 };
 
 ide_t *ide_drives[IDE_NUM] = { 0 };
+
+/*
+ * Host image reads are independent of guest-visible IDE state until the
+ * emulated command-completion callback consumes their result.  Starting the
+ * read when the command is issued lets host I/O overlap the emulated seek and
+ * transfer delay without changing task-file, DMA, or IRQ ordering.
+ *
+ * Keep this state outside ide_t: that structure is shared with controller and
+ * chipset code, while the worker is an implementation detail of this module.
+ */
+typedef struct ide_async_read_s {
+    ide_t    *ide;
+    thread_t *thread;
+    event_t  *request_event;
+    event_t  *complete_event;
+    volatile int running;
+    int          pending;
+    int          result;
+    uint32_t     sector;
+    uint32_t     count;
+} ide_async_read_t;
+
+static ide_async_read_t ide_async_reads[IDE_NUM];
+
+static void
+ide_async_read_worker(void *priv)
+{
+    ide_async_read_t *state = (ide_async_read_t *) priv;
+
+    while (state->running) {
+        thread_wait_event(state->request_event, -1);
+        thread_reset_event(state->request_event);
+
+        if (!state->running)
+            break;
+
+        state->result = hdd_image_read(state->ide->hdd_num, state->sector,
+                                       state->count, state->ide->sector_buffer);
+        thread_set_event(state->complete_event);
+    }
+}
+
+static void
+ide_async_read_init(ide_t *ide)
+{
+    ide_async_read_t *state;
+
+    if ((ide == NULL) || (ide->channel < 0) || (ide->channel >= IDE_NUM))
+        return;
+
+    state = &ide_async_reads[ide->channel];
+    if (state->thread != NULL)
+        return;
+
+    memset(state, 0, sizeof(*state));
+    state->ide            = ide;
+    state->request_event  = thread_create_event();
+    state->complete_event = thread_create_event();
+    state->running        = 1;
+    state->thread         = thread_create_named(ide_async_read_worker, state, "ide-read");
+}
+
+static void
+ide_async_read_start(ide_t *ide, uint32_t sector, uint32_t count)
+{
+    ide_async_read_t *state;
+
+    if ((ide == NULL) || (ide->channel < 0) || (ide->channel >= IDE_NUM))
+        return;
+
+    state = &ide_async_reads[ide->channel];
+    if ((state->thread == NULL) || state->pending || (count == 0))
+        return;
+
+    state->sector  = sector;
+    state->count   = count;
+    state->result  = -1;
+    state->pending = 1;
+    thread_reset_event(state->complete_event);
+    thread_set_event(state->request_event);
+}
+
+/* Return non-zero when an asynchronous result was consumed. */
+static int
+ide_async_read_finish(ide_t *ide, int *result)
+{
+    ide_async_read_t *state;
+
+    if ((ide == NULL) || (ide->channel < 0) || (ide->channel >= IDE_NUM))
+        return 0;
+
+    state = &ide_async_reads[ide->channel];
+    if ((state->thread == NULL) || !state->pending)
+        return 0;
+
+    thread_wait_event(state->complete_event, -1);
+    thread_reset_event(state->complete_event);
+    state->pending = 0;
+    if (result != NULL)
+        *result = state->result;
+
+    return 1;
+}
+
+static void
+ide_async_read_discard(ide_t *ide)
+{
+    (void) ide_async_read_finish(ide, NULL);
+}
+
+static void
+ide_async_read_close(ide_t *ide)
+{
+    ide_async_read_t *state;
+
+    if ((ide == NULL) || (ide->channel < 0) || (ide->channel >= IDE_NUM))
+        return;
+
+    state = &ide_async_reads[ide->channel];
+    if (state->thread == NULL)
+        return;
+
+    ide_async_read_discard(ide);
+    state->running = 0;
+    thread_set_event(state->request_event);
+    thread_wait(state->thread);
+    thread_destroy_event(state->complete_event);
+    thread_destroy_event(state->request_event);
+    memset(state, 0, sizeof(*state));
+}
+
+void
+ide_wait_for_async_reads(void)
+{
+    for (int channel = 0; channel < IDE_NUM; channel++) {
+        ide_async_read_t *state = &ide_async_reads[channel];
+
+        if ((state->thread != NULL) && state->pending)
+            ide_async_read_discard(state->ide);
+    }
+}
 
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
@@ -769,6 +912,26 @@ ide_get_last_sector(ide_t *ide)
         return (((((off64_t) ide->tf->cylinder * heads) + (off64_t) ide->tf->head) * sectors) +
                 (off64_t) sector) + (off64_t) add;
     }
+}
+
+static void
+ide_async_read_start_current(ide_t *ide)
+{
+    uint32_t count;
+    off64_t  sector;
+
+    if ((ide == NULL) || (ide->type != IDE_HDD) ||
+        ((!ide->tf->lba) && (ide->cfg_spt == 0)) ||
+        ((ide->command == WIN_READ_MULTIPLE) && (ide->blocksize == 0)))
+        return;
+
+    sector = ide_get_sector(ide);
+    if ((sector < 0) || (sector > hdd_image_get_last_sector(ide->hdd_num)) ||
+        (ide_get_last_sector(ide) > hdd_image_get_last_sector(ide->hdd_num)))
+        return;
+
+    count = ide->tf->secount ? ide->tf->secount : 256;
+    ide_async_read_start(ide, (uint32_t) sector, count);
 }
 
 static off64_t
@@ -1544,6 +1707,7 @@ ide_writel(uint16_t addr, uint32_t val, void *priv)
 static void
 dev_reset(ide_t *ide)
 {
+    ide_async_read_discard(ide);
     ide_set_signature(ide);
 
     if ((ide->type == IDE_ATAPI) && ide->stop)
@@ -1773,6 +1937,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x7: /* Command register */
+            /* Workaround for Cobalt Qube 3 BIOS issuing IDENTIFY but only reading 2 words,
+               resulting in the next command (IDENTIFY by Linux kernel) reading bogus data
+               from the partial transfer. Needs to be validated against relevant ATA specs. */
+            if ((ide->type == IDE_HDD) && (ide->tf->atastat & DRQ_STAT) &&
+                !(ide->tf->atastat & BSY_STAT)) {
+                ide->tf->atastat &= ~DRQ_STAT;
+                ide->tf->pos      = 0;
+            }
+
             if ((ide->tf->atastat & (BSY_STAT | DRQ_STAT)) &&
                 ((val != WIN_SRST) || (ide->type != IDE_ATAPI)) &&
                 ((val != WIN_VERIFY) || (prev != WIN_IDENTIFY)))
@@ -1854,9 +2027,10 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time > xfer_time ? seek_time : xfer_time;
                         } else if ((val == WIN_READ_MULTIPLE) && (hdd[ide->hdd_num].speed_preset == 0)) {
-                           ide_set_callback(ide, 200.0 * IDE_TIME);
-                           ide->do_initial_read = 1;
-                           break;
+                            ide_set_callback(ide, 200.0 * IDE_TIME);
+                            ide->do_initial_read = 1;
+                            ide_async_read_start_current(ide);
+                            break;
                         } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize > 0)) {
                             sec_count = ide->tf->secount ? ide->tf->secount : 256;
                             if (sec_count > ide->blocksize)
@@ -1878,6 +2052,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     } else
                         ide_set_callback(ide, 200.0 * IDE_TIME);
                     ide->do_initial_read = 1;
+                    ide_async_read_start_current(ide);
                     break;
 
                 case WIN_WRITE_MULTIPLE:
@@ -2106,7 +2281,7 @@ ide_status(ide_t *ide, UNUSED(ide_t *ide_other), UNUSED(int ch))
     /* Absent and is master or both are absent. */
     if (ide->type == IDE_NONE) {
         /* Bit 7 pulled down, all other bits pulled up, per the spec. */
-        ret = 0x7f;
+        ret = (machines[machine].init == machine_at_lgibmx61_init) ? 0xff : 0x7f;
     /* Absent and is slave and master is present. */
     } else if (ide->type & IDE_SHADOW) {
         /* On real hardware, a slave with a present master always
@@ -2437,8 +2612,9 @@ ide_callback(void *priv)
                 if (ide->do_initial_read) {
                     ide->do_initial_read = 0;
                     ide->sector_pos      = 0;
-                    ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide),
-                                         ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
+                    if (!ide_async_read_finish(ide, &ret))
+                        ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide),
+                                             ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
                 } else
                     ret = 0;
 
@@ -2478,7 +2654,14 @@ ide_callback(void *priv)
 
                 ide->tf->pos = 0;
 
-                if (hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->sector_pos, ide->sector_buffer) < 0) {
+                if (ide->do_initial_read) {
+                    ide->do_initial_read = 0;
+                    if (!ide_async_read_finish(ide, &ret))
+                        ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide), ide->sector_pos, ide->sector_buffer);
+                } else
+                    ret = 0;
+
+                if (ret < 0) {
                     ide_log("IDE %i: DMA read aborted (image read error)\n", ide->channel);
                     err = UNC_ERR;
                 } else if (!ide_boards[ide->board]->force_ata3 && bm->dma) {
@@ -2526,8 +2709,9 @@ ide_callback(void *priv)
                 if (ide->do_initial_read) {
                     ide->do_initial_read = 0;
                     ide->sector_pos      = 0;
-                    ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide),
-                                         ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
+                    if (!ide_async_read_finish(ide, &ret))
+                        ret = hdd_image_read(ide->hdd_num, ide_get_sector(ide),
+                                             ide->tf->secount ? ide->tf->secount : 256, ide->sector_buffer);
                 } else {
                     ret = 0;
                 }
@@ -2944,6 +3128,8 @@ ide_board_close(int board)
         dev = ide_drives[c];
 
         if (dev != NULL) {
+            ide_async_read_close(dev);
+
             if ((dev->type == IDE_HDD) && (dev->hdd_num != -1))
                 hdd_image_close(dev->hdd_num);
 
@@ -2999,6 +3185,8 @@ ide_board_setup(const int board)
             loadhd(ide_drives[ch], d, hdd[d].fn);
             if (ide_drives[ch]->sector_buffer == NULL)
                 ide_drives[ch]->sector_buffer = (uint8_t *) calloc(1, 256 * 512);
+            if (ide_drives[ch]->type == IDE_HDD)
+                ide_async_read_init(ide_drives[ch]);
             if (++c >= 2)
                 break;
         }
@@ -3318,6 +3506,8 @@ static void
 ide_drive_reset(int d)
 {
     ide_log("Resetting IDE drive %i...\n", d);
+
+    ide_async_read_discard(ide_drives[d]);
 
     if ((d & 1) && (ide_drives[d]->type == IDE_NONE) && (ide_drives[d ^ 1]->type != IDE_NONE)) {
         ide_drives[d]->type = ide_drives[d ^ 1]->type | IDE_SHADOW;

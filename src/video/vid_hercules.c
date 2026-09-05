@@ -47,6 +47,14 @@ recalc_timings(hercules_t *dev)
     _dispontime *= HERCCONST;
     _dispofftime *= HERCCONST;
 
+    if (dev->ctrl & 0x02) {
+        _dispontime *= 16;
+        _dispofftime *= 16;
+    } else {
+        _dispontime *= 9;
+        _dispofftime *= 9;
+    }
+
     dev->dispontime  = (uint64_t) (int64_t) (_dispontime);
     dev->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
@@ -374,6 +382,7 @@ hercules_poll(void *priv)
                 x = dev->crtc[1] * 9;
 
             video_process_8(x + 16, dev->displine + 14);
+            video_lightpen_check_trigger_strobe(8, dev->displine + 14, 0, dev->firstline + 14, 1. / (HERCCONST / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
         }
         dev->scanline = scanline_old;
 
@@ -384,6 +393,7 @@ hercules_poll(void *priv)
             dev->displine = 0;
     } else {
         timer_advance_u64(&dev->timer, dev->dispontime);
+        video_lightpen_hsync();
 
         if (dev->dispon)
             dev->status &= ~1;
@@ -504,6 +514,7 @@ hercules_poll(void *priv)
                         video_bpp   = 0;
                     }
                 }
+                video_lightpen_vsync();
                 dev->firstline = 1000;
                 dev->lastline  = 0;
                 dev->blink++;
@@ -603,7 +614,7 @@ hercules_init(UNUSED(const device_t *info))
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
 
     /* Force the LPT3 port to be enabled. */
-    dev->lpt = device_add_inst(&lpt_port_device, 1);
+    dev->lpt = device_add_inst(&lpt_port_device, -1);
     lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
     lpt_set_3bc_used(1);
 

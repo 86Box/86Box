@@ -37,6 +37,7 @@
 #define BIOS_077_PATH         "roms/video/oti/oti077.vbi"
 #define BIOS_077_ACER100T_PATH "roms/machines/acer100t/oti077_acer100t.BIN"
 #define BIOS_077_PCS44C_PATH  "roms/machines/pcs44c/V032004G.25"
+#define BIOS_077_PB400_PATH   "roms/machines/pb400/PB_400_SYSTEM_VGA_BIOS.BIN"
 
 enum {
     OTI_037C         = 0,
@@ -46,7 +47,8 @@ enum {
     OTI_067_M300     = 4,
     OTI_077          = 5,
     OTI_077_ACER100T = 6,
-    OTI_077_PCS44C   = 7
+    OTI_077_PCS44C   = 7,
+    OTI_077_PB400    = 8
 };
 
 typedef struct {
@@ -105,7 +107,7 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c8:
         case 0x3c9:
             if ((oti->chip_id == OTI_077) || (oti->chip_id == OTI_077_ACER100T) ||
-                (oti->chip_id == OTI_077_PCS44C))
+                (oti->chip_id == OTI_077_PCS44C) || (oti->chip_id == OTI_077_PB400))
                 sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
             else
                 svga_out(addr, val, svga);
@@ -168,7 +170,7 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
                         else
                             mem_mapping_enable(&svga->mapping);
                     } else if ((oti->chip_id == OTI_077) || (oti->chip_id == OTI_077_ACER100T) ||
-                               (oti->chip_id == OTI_077_PCS44C)) {
+                               (oti->chip_id == OTI_077_PCS44C) || (oti->chip_id == OTI_077_PB400)) {
                         svga->vram_display_mask = (val & 0x0c) ? oti->vram_mask : 0x3ffff;
 
                         switch ((val & 0xc0) >> 6) {
@@ -258,7 +260,7 @@ oti_in(uint16_t addr, void *priv)
         case 0x3c8:
         case 0x3c9:
             if ((oti->chip_id == OTI_077) || (oti->chip_id == OTI_077_ACER100T) ||
-                (oti->chip_id == OTI_077_PCS44C))
+                (oti->chip_id == OTI_077_PCS44C) || (oti->chip_id == OTI_077_PB400))
                 temp = sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
             else
                 temp = svga_in(addr, svga);
@@ -361,11 +363,14 @@ oti_pos_out(UNUSED(uint16_t addr), uint8_t val, void *priv)
     oti_t *oti = (oti_t *) priv;
 
     if ((val ^ oti->pos) & 8) {
-        if (val & 8)
+        if (val & 8) {
+            if (!(oti->svga.miscout & 0x01))
+                io_sethandler(0x03a0, 32, oti_in, NULL, NULL,
+                              oti_out, NULL, NULL, oti);
             io_sethandler(0x03c0, 32, oti_in, NULL, NULL,
                           oti_out, NULL, NULL, oti);
-        else
-            io_removehandler(0x03c0, 32, oti_in, NULL, NULL,
+        } else
+            io_removehandler(0x03a0, 64, oti_in, NULL, NULL,
                              oti_out, NULL, NULL, oti);
     }
 
@@ -456,9 +461,11 @@ oti_recalctimings(svga_t *svga)
     if (svga->bpp == 16) {
         svga->render = svga_render_16bpp_highres;
         svga->hdisp >>= 1;
+        svga->dots_per_clock /= 2;
     } else if (svga->bpp == 15) {
         svga->render = svga_render_15bpp_highres;
         svga->hdisp >>= 1;
+        svga->dots_per_clock /= 2;
     }
 }
 
@@ -477,10 +484,6 @@ oti_init(const device_t *info)
             romfn          = BIOS_037C_PATH;
             oti->vram_size = 256;
             oti->regs[0]   = 0x08; /* FIXME: The BIOS wants to read this at index 0? This index is undocumented. */
-#if 0
-            io_sethandler(0x03c0, 32,
-                          oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
-#endif
             break;
 
         case OTI_037_PBL300SX:
@@ -528,6 +531,12 @@ oti_init(const device_t *info)
             oti->pos = 0x08; /* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
             io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
             break;
+        case OTI_077_PB400:
+            romfn          = NULL;
+            oti->vram_size = device_get_config_int("memory");
+            oti->pos = 0x08; /* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
+            io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
+            break;
 
         default:
             break;
@@ -552,13 +561,13 @@ oti_init(const device_t *info)
               oti_recalctimings, oti_in, oti_out, NULL, NULL);
 
     if ((oti->chip_id == OTI_077) || (oti->chip_id == OTI_077_ACER100T) ||
-        (oti->chip_id == OTI_077_PCS44C))
+        (oti->chip_id == OTI_077_PCS44C) || (oti->chip_id == OTI_077_PB400))
         oti->svga.ramdac = device_add(&sc11487_ramdac_device); /*Actually a 82c487, probably a clone.*/
 
-    io_sethandler(0x03c0, 32,
+    io_sethandler(0x03a0, 64,
                   oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
 
-    oti->svga.miscout       = 1;
+    oti->svga.miscout       = 0;
     oti->svga.packed_chain4 = 1;
 
     return oti;
@@ -612,6 +621,12 @@ static int
 oti077_pcs44c_available(void)
 {
     return (rom_present(BIOS_077_PCS44C_PATH));
+}
+
+static int
+oti077_pb400_available(void)
+{
+    return (rom_present(BIOS_077_PB400_PATH));
 }
 
 static int
@@ -822,5 +837,19 @@ const device_t oti077_pcs44c_device = {
     .speed_changed = oti_speed_changed,
     .force_redraw  = oti_force_redraw,
     .machine       = "Olivetti PCS 44/C",
+    .config        = oti077_acer100t_config
+};
+
+const device_t oti077_pb400_device = {
+    .name          = "Oak OTI-077 On-Board (Packard Bell PB400)",
+    .internal_name = "oti077_pb400",
+    .flags         = DEVICE_ISA,
+    .local         = 8,
+    .init          = oti_init,
+    .close         = oti_close,
+    .reset         = NULL,
+    .available     = oti077_pb400_available,
+    .speed_changed = oti_speed_changed,
+    .force_redraw  = oti_force_redraw,
     .config        = oti077_acer100t_config
 };

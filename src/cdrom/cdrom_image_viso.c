@@ -1046,7 +1046,13 @@ next_dir:
     }
 
     /* Get root directory basename for the volume ID. */
-    const char *basename = path_get_filename(viso->root_dir->path);
+    char  *volume_path    = viso->root_dir->path;
+    size_t path_len       = strlen(volume_path);
+    while ((path_len > 0) && ((volume_path[path_len - 1] == '/') || (volume_path[path_len - 1] == '\\')))
+        path_len--;
+    char saved_trailer    = volume_path[path_len];
+    volume_path[path_len] = '\0';
+    const char *basename  = path_get_filename(volume_path);
     if (!basename || !basename[0])
         basename = EMU_NAME;
 
@@ -1192,6 +1198,7 @@ next_dir:
             fwrite(data, viso->sector_size, 1, viso->tf.fp);
         }
     }
+    volume_path[path_len] = saved_trailer;
 
     /* Fill terminator. */
     p = data;

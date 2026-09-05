@@ -3,6 +3,8 @@
 
 #define SYSEX_SIZE 8192
 
+#define RENDER_RATE                100
+
 extern uint8_t MIDI_InSysexBuf[SYSEX_SIZE];
 extern uint8_t MIDI_evt_len[256];
 

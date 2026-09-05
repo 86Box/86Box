@@ -31,11 +31,6 @@
 #include <86box/plat_unused.h>
 #include <86box/plat_cdrom_ioctl.h>
 
-/* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
-   there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
-   of the audio while audio still plays. With an absolute conversion, the counter is fine. */
-#define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
-
 typedef struct ioctl_t {
     cdrom_t                *dev;
     void                   *log;
@@ -93,20 +88,6 @@ ioctl_get_raw_track_info(UNUSED(const void *local), int *num, uint8_t *rti)
 }
 
 static int
-ioctl_is_track_pre(const void *local, UNUSED(const uint32_t sector))
-{
-    ioctl_t *ioctl = (ioctl_t *) local;
-
-    ioctl_read_toc(ioctl);
-
-    const int ret = 0;
-
-    ioctl_log("ioctl_is_track_audio(%08X): %i\n", sector, ret);
-
-    return ret;
-}
-
-static int
 ioctl_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32_t const sector))
 {
     ioctl_t *ioctl = (ioctl_t *) local;
@@ -151,6 +132,12 @@ ioctl_is_dvd(UNUSED(const void *local))
 
 static int
 ioctl_has_audio(UNUSED(const void *local))
+{
+    return 0;
+}
+
+static int
+ioctl_has_data(UNUSED(const void *local))
 {
     return 0;
 }
@@ -205,13 +192,13 @@ ioctl_load(const void *local)
 static const cdrom_ops_t ioctl_ops = {
     ioctl_get_track_info,
     ioctl_get_raw_track_info,
-    ioctl_is_track_pre,
     ioctl_read_sector,
     ioctl_get_track_type,
     ioctl_get_last_block,
     ioctl_read_dvd_structure,
     ioctl_is_dvd,
     ioctl_has_audio,
+    ioctl_has_data,
     ioctl_is_empty,
     ioctl_close,
     ioctl_load

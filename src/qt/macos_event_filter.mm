@@ -1,7 +1,7 @@
-#include <SDL.h>
 // #include "86box/plat.h"
 #include "cocoa_mouse.hpp"
 #import <AppKit/AppKit.h>
+#import <Cocoa/Cocoa.h>
 extern "C" {
 #include <86box/86box.h>
 #include <86box/keyboard.h>
@@ -46,25 +46,37 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                     return false;
                 case NSEventTypeLeftMouseDown:
                     {
-                        b = mouse_get_buttons_ex() | 1;
+                        if ([event modifierFlags] & NSEventModifierFlagControl) {
+                            control_click_active = true;
+                            b = mouse_get_buttons_ex() | 2;
+                        } else {
+                            b = mouse_get_buttons_ex() | 1;
+                        }
                         mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeLeftMouseUp:
                     {
-                        b = mouse_get_buttons_ex() & ~1;
+                        if (control_click_active) {
+                            control_click_active = false;
+                            b = right_button_active ? mouse_get_buttons_ex() : mouse_get_buttons_ex() & ~2;
+                        } else {
+                            b = mouse_get_buttons_ex() & ~1;
+                        }
                         mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeRightMouseDown:
                     {
+                        right_button_active = true;
                         b = mouse_get_buttons_ex() | 2;
                         mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeRightMouseUp:
                     {
-                        b = mouse_get_buttons_ex() & ~2;
+                        right_button_active = false;
+                        b = control_click_active ? mouse_get_buttons_ex() : mouse_get_buttons_ex() & ~2;
                         mouse_set_buttons_ex(b);
                         break;
                     }
@@ -89,4 +101,30 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
         }
     }
     return false;
+}
+
+static bool         pause_entered = true;
+static id<NSObject> process_activity = nil;
+
+void enter_pause(void)
+{
+    if (pause_entered)
+        return;
+    
+    [[NSProcessInfo processInfo] endActivity: process_activity];
+    [process_activity release];
+    process_activity = nil;
+    pause_entered = true;
+}
+
+void exit_pause(void)
+{
+    if (!pause_entered)
+        return;
+
+    // NSActivityUserInteractive is a bitwise OR of NSActivityUserInitiated and NSActivityLatencyCritical.
+    // However, allow the system to sleep if needed by using NSActivityUserInitiatedAllowingIdleSystemSleep instead of NSActivityUserInitiated.
+    // And allow the system to terminate it as needed.
+    process_activity = [[[NSProcessInfo processInfo] beginActivityWithOptions: ((NSActivityUserInitiatedAllowingIdleSystemSleep &~ (NSActivitySuddenTerminationDisabled | NSActivityAutomaticTerminationDisabled)) | NSActivityLatencyCritical) reason:@"Unpaused."] retain];
+    pause_entered = false;
 }

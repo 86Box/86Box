@@ -1,4 +1,12 @@
 {
+	"vcpkg-configuration": {
+		"default-registry": {
+			"kind": "git",
+			"repository": "https://github.com/Microsoft/vcpkg",
+			"baseline": "9b965a116838c6cdcd36bca60d1b81b030c8ab8d",
+			"reference": "9b965a116838c6cdcd36bca60d1b81b030c8ab8d"
+		}
+	},
     "name": "86box",
     "version-string": "7.0",
     "homepage": "https://86box.net/",
@@ -10,7 +18,8 @@
         "sdl2",
         "rtmidi",
         "libslirp",
-        "fluidsynth"
+        "fluidsynth",
+        "libsndfile"
     ],
     "features": {
         "qt-ui": {
@@ -20,8 +29,7 @@
                     "name": "qtbase",
                     "default-features": false,
                     "features": [
-                        "concurrent",
-                        "default-features",
+                        "thread",
                         "gui",
                         "opengl",
                         "harfbuzz",
@@ -31,6 +39,11 @@
                         "png",
                         "zstd"
                     ]
+                },
+                {
+                    "name": "qtbase",
+                    "default-features": false,
+                    "host": true
                 },
                 {
                     "name": "qttools",

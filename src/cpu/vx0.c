@@ -41,11 +41,11 @@
 #include <86box/plat_unused.h>
 #include "vx0_biu.h"
 
-#define do_cycle()           wait_vx0(1)
+#define do_cycle()           wait_vx0(1, 0)
 #define do_cycle_no_modrm()  if (!nx)       \
                                  do_cycle()
 #define do_cycle_i()         do_cycle()
-#define do_cycles(c)         wait_vx0(c)
+#define do_cycles(c)         wait_vx0(c, 0)
 #define do_cycles_i(c)       do_cycles(c)
 #define do_cycle_nx()        nx = 1
 #define do_cycle_nx_i()      nx = 1
@@ -468,6 +468,10 @@ void i8080_port_out(UNUSED(void* priv), uint8_t port, uint8_t val)
 void
 reset_vx0(int hard)
 {
+    i808x_hook_prefetch_queue(biu_pfq_set_pos, biu_pfq_set_ip, biu_pfq_set_prefetching,
+                              biu_pfq_get_pos, biu_pfq_get_ip, biu_pfq_get_prefetching,
+                              biu_pfq_get_size, wait_vx0);
+
     is_new_biu = 1;
     halted     = 0;
     in_hlt     = 0;
@@ -1885,8 +1889,14 @@ decode(void)
 
     if (halted)
         opcode  = 0xf4;
-    else
+    else {
+        /* Temp variables for FPU exception reporting. */
+        cpu_state.temp_CS = CS;
+        cpu_state.temp_cs = cs;
+        cpu_state.temp_pc = cpu_state.pc;
+
         opcode  = biu_pfq_fetchb_common();
+    }
 
     while (1) {
         prefix = 0;
@@ -3804,6 +3814,7 @@ execute_instruction(void)
             tempw = cpu_state.pc;
             geteaw();
             /* fpu_op() */
+            x87_op = ((opcode & 0x07) << 8) | (rmdat & 0xff);
             if (hasfpu) {
                 if (fpu_softfloat) {
                     switch (opcode) {
@@ -3867,6 +3878,15 @@ execute_instruction(void)
                     }
                 }
             }
+
+            cpu_state.fpu_op = x87_op;
+            cpu_state.fpu_CS = cpu_state.temp_CS;
+            cpu_state.fpu_cs = cpu_state.temp_cs;
+            cpu_state.fpu_pc = cpu_state.temp_pc;
+            cpu_state.fpu_DS = easeg >> 4;
+            cpu_state.fpu_ds = easeg;
+            cpu_state.fpu_ea = cpu_state.eaaddr;
+
             cpu_state.pc = tempw; /* Do this as the x87 code advances it, which is needed on
                                      the 286+ core, but not here. */
             break;
@@ -4425,6 +4445,9 @@ execute_instruction(void)
 
         case 0xfa: /* CLISTI */
         case 0xfb:
+            if ((opcode & 1) && !(cpu_state.flags & I_FLAG))
+                noint = 1;
+
             set_if(opcode & 1);
             break;
 

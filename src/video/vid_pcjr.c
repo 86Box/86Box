@@ -749,10 +749,12 @@ pcjr_vid_init(pcjr_t *pcjr)
                   vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
     timer_add(&pcjr->timer, vid_poll, pcjr, 1);
 
-    if (pcjr->composite)
-        cga_palette = 0;
-    else
-        cga_palette = (display_type << 1);
+    if (&(cga_palette) != NULL) {
+        if (pcjr->composite)
+            cga_palette = 0;
+        else
+            cga_palette = (display_type << 1);
+    }
     cgapal_rebuild();
 
     pcjr->double_type = device_get_config_int("double_type");

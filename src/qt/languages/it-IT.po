@@ -2,15 +2,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-05-29 19:36+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-08-15 19:20+0200\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
-"Language: it-IT\n"
+"Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.12.2\n"
+"X-Generator: Poedit 3.5\n"
 "X-Language: it_IT\n"
 "X-Source-Language: en_US\n"
 
@@ -68,11 +68,14 @@ msgstr "Re&nderizzatore"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Specifica dim&ensioni…"
@@ -422,8 +425,11 @@ msgstr "Abilitato (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Utilizza l'interprete 486 per i processori 286 e 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Ricompilatore dinamico"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "Dimensione blocchi CPU"
@@ -455,6 +461,9 @@ msgstr "Scheda grafica XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Scheda grafica IBM PS/55 Display Adapter"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -469,6 +478,21 @@ msgstr "Mouse:"
 
 msgid "Mouse"
 msgstr "Mouse"
+
+msgid "&Mouse"
+msgstr "&Mouse"
+
+msgid "Tablet:"
+msgstr "Tavoletta:"
+
+msgid "Tablet"
+msgstr "Tavoletta"
+
+msgid "&Tablet"
+msgstr "&Tavoletta"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Tavoletta (&cursore a croce)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -516,7 +540,7 @@ msgid "Use FLOAT32 sound"
 msgstr "Usa suono FLOAT32"
 
 msgid "FM synth driver:"
-msgstr "Driver sint. FM:"
+msgstr "Driver sintetizzatore FM:"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked (più accurato)"
@@ -836,6 +860,9 @@ msgstr "Schermo"
 msgid "Input devices"
 msgstr "Dispositivi di ingresso"
 
+msgid "Input &device"
+msgstr "&Dispositivo di ingresso"
+
 msgid "Sound"
 msgstr "Audio"
 
@@ -844,6 +871,9 @@ msgstr "Rete"
 
 msgid "Ports (COM & LPT)"
 msgstr "Porte (COM e LPT)"
+
+msgid "Port"
+msgstr "Porta"
 
 msgid "Ports"
 msgstr "Porte"
@@ -1057,11 +1087,23 @@ msgstr "Sei sicuro di voler riavviare la macchina emulata?"
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Sei sicuro di voler uscire da 86Box?"
 
-msgid "Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr "Impossibile inizializzare Ghostscript. %1 è richiesto per la conversione automatica di file PostScript in PDF.\n\nQualsiasi documento inviato alla stampante PostScript generica verrà salvato come file PostScript (.ps)."
+msgid ""
+"Unable to initialize Ghostscript. %1 is required for automatic conversion of PostScript files to PDF.\n"
+"\n"
+"Any documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr ""
+"Impossibile inizializzare Ghostscript. %1 è richiesto per la conversione automatica di file PostScript in PDF.\n"
+"\n"
+"Qualsiasi documento inviato alla stampante PostScript generica verrà salvato come file PostScript (.ps)."
 
-msgid "Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n\nAny documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
-msgstr "Impossibile inizializzare GhostPCL. %1 è richiesto per la conversione automatica di file PCL in PDF.\n\nQualsiasi documento inviato alla stampante PCL generica verrà salvato come file Printer Command Language (.pcl)."
+msgid ""
+"Unable to initialize GhostPCL. %1 is required for automatic conversion of PCL files to PDF.\n"
+"\n"
+"Any documents sent to the generic PCL printer will be saved as Printer Command Language (.pcl) files."
+msgstr ""
+"Impossibile inizializzare GhostPCL. %1 è richiesto per la conversione automatica di file PCL in PDF.\n"
+"\n"
+"Qualsiasi documento inviato alla stampante PCL generica verrà salvato come file Printer Command Language (.pcl)."
 
 msgid "MO %1 (%2): %3"
 msgstr "magneto-ottico %1 (%2): %3"
@@ -1270,6 +1312,9 @@ msgstr "Impossibile aprire il file di configurazione selezionato per la lettura:
 msgid "Use regular expressions in search box"
 msgstr "Utilizza espressioni regolari nella casella di ricerca"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Usa il cestino per eliminare le macchine virtuali"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "È attualmente attiva %n macchina. Vuoi comunque uscire dal gestore delle macchine virtuali?"
@@ -1449,8 +1494,11 @@ msgstr ""
 msgid "&Delete"
 msgstr "&Elimina"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Vuoi davvero eliminare la macchina virtuale \"%1\" e tutti i suoi file? Questa operazione è irreversibile!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Vuoi davvero eliminare la macchina virtuale \"%1\" e tutti i suoi file?"
+
+msgid "This action cannot be undone!"
+msgstr "Questa operazione è irreversibile!"
 
 msgid "Show &config file"
 msgstr "Mostra file di &configurazione"
@@ -1490,6 +1538,18 @@ msgstr "Arresto ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Arresto ACP&I"
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "Disco rigido (%1)"
@@ -1555,9 +1615,7 @@ msgid "Unable to read device"
 msgstr "Errore di lettura del dispositivo"
 
 msgid "Could not determine block device size. Make sure you have permission to access this device."
-msgstr ""
-"Non è stato possible determinare le dimensioni del dispositivo di blocco. "
-"Assicurarsi di avere il peremesso per accedere a questo dispositivo."
+msgstr "Non è stato possible determinare le dimensioni del dispositivo di blocco. Assicurarsi di avere il peremesso per accedere a questo dispositivo."
 
 msgid "Device too large"
 msgstr "Dispositivo troppo grande"
@@ -1568,7 +1626,10 @@ msgstr "Il dispositivo di blocco verrà utilizzato come un hard disk."
 msgid "Block device detected"
 msgstr "Dispositivo di blocco trovato"
 
-msgid "Detected block device: %1\nSize: %2 MB\nGeometry: %3 cylinders, %4 heads, %5 sectors"
+msgid ""
+"Detected block device: %1\n"
+"Size: %2 MB\n"
+"Geometry: %3 cylinders, %4 heads, %5 sectors"
 msgstr ""
 "Dispositivo di blocco trovato: %1\n"
 "Dimensioni: %2 MB\n"
@@ -1634,8 +1695,18 @@ msgstr "File VHD"
 msgid "Select the parent VHD"
 msgstr "Seleziona il VHD padre"
 
-msgid "Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Le marche temporali del disco padre e figlio non corrispondono. Ciò potrebbe significare che l'immagine padre è stata modificata dopo la creazione dell'immagine di differenziazione.\n\nPuò verificarsi anche se i file immagine sono stati spostati o copiati, oppure a causa di un errore del programma che ha creato il disco.\n\nVuoi correggere la marca temporale?"
+msgid ""
+"Parent and child disk timestamps do not match. This could mean that the parent image was modified after the differencing image was created.\n"
+"\n"
+"It can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n"
+"\n"
+"Do you want to fix the timestamps?"
+msgstr ""
+"Le marche temporali del disco padre e figlio non corrispondono. Ciò potrebbe significare che l'immagine padre è stata modificata dopo la creazione dell'immagine di differenziazione.\n"
+"\n"
+"Può verificarsi anche se i file immagine sono stati spostati o copiati, oppure a causa di un errore del programma che ha creato il disco.\n"
+"\n"
+"Vuoi correggere la marca temporale?"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "Le marche temporali del disco padre e figlio non corrispondono"
@@ -1733,8 +1804,18 @@ msgstr "Creazione dell'immagine…"
 msgid "(System Default)"
 msgstr "(Predefinito del sistema)"
 
-msgid "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver."
-msgstr "Impossibile inizializzare il driver di rete:\n\n%s\n\nLa configurazione di rete verrà commutata sul driver Null."
+msgid ""
+"Failed to initialize network driver:\n"
+"\n"
+"%s\n"
+"\n"
+"The network configuration will be switched to the null driver."
+msgstr ""
+"Impossibile inizializzare il driver di rete:\n"
+"\n"
+"%s\n"
+"\n"
+"La configurazione di rete verrà commutata sul driver Null."
 
 msgid "Mouse sensitivity:"
 msgstr "Sensibilità del mouse:"
@@ -1758,7 +1839,7 @@ msgid "Auto-pause on focus loss"
 msgstr "Pausa automatica se in secondo piano"
 
 msgid "Auto-pause on dialog boxes"
-msgstr ""
+msgstr "Pausa automatica nelle finestre di dialogo"
 
 msgid "WinBox is no longer supported"
 msgstr "WinBox non è più supportato"
@@ -2286,6 +2367,9 @@ msgstr "Numero di serie"
 msgid "Host ID"
 msgstr "ID host"
 
+msgid "Host"
+msgstr "Host"
+
 msgid "FDC Address"
 msgstr "Indirizzo FDC"
 
@@ -2368,7 +2452,7 @@ msgid "Control PC speaker"
 msgstr "Controlla l'altoparlante del PC"
 
 msgid "Control MIDI volume"
-msgstr ""
+msgstr "Controlla il volume MIDI"
 
 msgid "Memory size"
 msgstr "Dimensione della memoria"
@@ -2715,6 +2799,18 @@ msgstr "Colore migliorato - Modalità normale (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Colore migliorato - Modalità avanzata (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monocromatico)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, colore)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monocromatico)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, colore)"
+
 msgid "Green"
 msgstr "Verde"
 
@@ -2824,16 +2920,16 @@ msgid "Output file"
 msgstr "File di uscita"
 
 msgid "Append to file if it exists"
-msgstr "Appendere al file se esiste"
+msgstr "Aggiungi al file se esiste"
 
 msgid "Input file"
-msgstr "File di entrata"
+msgstr "File di ingresso"
 
 msgid "Loop input file"
-msgstr "Ripetere il file di entrata"
+msgstr "Ripeti file di ingresso"
 
 msgid "Require STROBE signal"
-msgstr "Esigere il segnale STROBE"
+msgstr "Richiedi segnale STROBE"
 
 msgid "Loopback Type"
 msgstr "Tipo di loopback"
@@ -2866,7 +2962,7 @@ msgid "Reconnect automatically"
 msgstr "Riconnettere automaticamente"
 
 msgid "Use standard input/output"
-msgstr "Utilizzare entrata/uscita standard"
+msgstr "Utilizzare ingresso/uscita standard"
 
 msgid "Create pseudoterminal"
 msgstr "Crea pseudoterminale"
@@ -2967,6 +3063,9 @@ msgstr "Chiedi conferma prima di riavviare"
 msgid "Ask for confirmation before quitting"
 msgstr "Chiedi conferma prima di uscire"
 
+msgid "Precache CHD files into memory"
+msgstr "Precarica i file CHD in memoria"
+
 msgid "Options"
 msgstr "Opzioni"
 
@@ -2978,6 +3077,24 @@ msgstr "Modello:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Impossibile inizializzare il renderizzatore Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Impossibile creare l'istanza di Vulkan 1.3."
+
+msgid "No usable Vulkan physical devices found."
+msgstr "Non sono stati rilevati dispositivi fisici Vulkan utilizzabili."
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "Non sono stati trovati dispositivi fisici compatibili con Vulkan."
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "librashader non trovato. Gli shader non saranno disponibili."
+
+msgid "Vulkan device lost."
+msgstr "Dispositivo Vulkan disconnesso."
+
+msgid "Vulkan surface lost."
+msgstr "Superficie Vulkan disconnessa."
 
 msgid "GLSL Error"
 msgstr "Errore GLSL"
@@ -3012,6 +3129,9 @@ msgstr "Gestore shader"
 msgid "Shader Configuration"
 msgstr "Configurazione shader"
 
+msgid "GPU:"
+msgstr "GPU:"
+
 msgid "Add"
 msgstr "Aggiungi"
 
@@ -3028,7 +3148,7 @@ msgid "Emulator"
 msgstr "Emulatore"
 
 msgid "Input"
-msgstr "Entrata"
+msgstr "Ingresso"
 
 msgid "Key bindings"
 msgstr "Associazione dei tasti"
@@ -3079,10 +3199,10 @@ msgid "Toggle mute"
 msgstr "Attiva/disattiva audio"
 
 msgid "Toggle on-screen display"
-msgstr ""
+msgstr "Attiva/disattiva on-screen display"
 
 msgid "Toggle &on-screen display"
-msgstr ""
+msgstr "Attiva/disattiva &on-screen display"
 
 msgid "Text files"
 msgstr "File di testo"
@@ -3262,7 +3382,7 @@ msgid "Export EDID"
 msgstr "Esporta EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr ""
+msgstr "Il file EDID \"%s\" non è valido."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Il file EDID \"%s\" è troppo grande."
@@ -3300,6 +3420,12 @@ msgstr "&Avanti veloce"
 msgid "Fast forward"
 msgstr "Avanti veloce"
 
+msgid "&Non-maskable interrupt"
+msgstr "Interruzione &non mascherabile"
+
+msgid "Non-maskable interrupt"
+msgstr "Interruzione non mascherabile"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Per modificare la directory di sistema, arrestare tutte le macchine in funzione."
 
@@ -3325,17 +3451,16 @@ msgid "Unable to open MDS file \"%s\"."
 msgstr "Impossibile aprire il file MDS \"%s\"."
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "Impossibile aprire l'immagine CD-ROM \"%s\"."
+msgstr "Impossibile caricare l'immagine CD-ROM \"%s\"."
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr ""
-"Impossibile aprire l'immagine \"%s\": manca %1, necessaria per il "
-"supporto delle immagini MDS v2 e MDX di Daemon Tools."
+msgstr "Impossibile caricare l'immagine \"%s\": manca %1, richiesto per il supporto delle immagini MDS v2 e MDX di Daemon Tools."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr "Impossibile caricare l'immagine \"%s\": manca %1, richiesto per il supporto alle immagini in formato Aaru."
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr ""
-"L'immagine DVD \"%s\" è stata inserita in un lettore che non supporta i "
-"media DVD e sarà ignorata."
+msgstr "L'immagine DVD \"%s\" è stata inserita in un'unità che non è compatibile con i supporti DVD e verrà ignorata."
 
 msgid "%s: Could not connect to %s: %s"
 msgstr "%s: Impossibile connettersi a %s: %s"
@@ -3395,7 +3520,7 @@ msgid "Draft"
 msgstr "Bozza"
 
 msgid "(Near) Letter"
-msgstr "(Quasi) Lettera"
+msgstr "Tipografia"
 
 msgid "Auto LF"
 msgstr "Avanzamento automatico della riga"
@@ -3476,4 +3601,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (cinese tradizionale)"
 
 msgid "Sample rate:"
-msgstr ""
+msgstr "Frequenza di campionamento:"
+
+msgid "CGA lightpen"
+msgstr "Penna ottica CGA"
+
+msgid "Luminance threshold (%)"
+msgstr "Soglia di luminanza (%)"

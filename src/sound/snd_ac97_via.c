@@ -124,10 +124,12 @@ ac97_via_read_status(void *priv)
     const ac97_via_t *dev = (ac97_via_t *) priv;
     uint8_t           ret = 0x00;
 
-    /* Flag each codec as ready if present. */
-    for (uint8_t i = 0; i < (sizeof(dev->codec) / sizeof(dev->codec[0])); i++) {
-        if (dev->codec[i])
-            ret |= 0x01 << (i << 1);
+    if (dev != NULL) {
+        /* Flag each codec as ready if present. */
+        for (uint8_t i = 0; i < (sizeof(dev->codec) / sizeof(dev->codec[0])); i++) {
+            if (dev->codec[i])
+                ret |= 0x01 << (i << 1);
+        }
     }
 
     ac97_via_log("AC97 VIA: read_status() = %02X\n", ret);

@@ -11,24 +11,31 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          W. M. Martinez, <anikom15@outlook.com>
+ *          Daniel Balsom
+ *          Cacodemon345
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2023      W. M. Martinez
+ *          Copyright 2022-2026 Daniel Balsom
+ *          Copyright 2026      Cacodemon345
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
 #include <86box/86box.h>
 #include "cpu.h"
+#include "808x_marty_86box.h"
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/mouse.h>
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
@@ -68,15 +75,18 @@ static uint8_t interp_lut[2][256][256];
 
 static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
+bool cga_lightpen_enabled = false;
+float cga_luma_threshold = 0.125;
+
 void cga_recalctimings(cga_t *cga);
 
 static void
-cga_update_latch(cga_t *cga)
+cga_update_latch(cga_t *cga, uint16_t memaddr)
 {
-    uint32_t lp_latch = cga->displine * cga->crtc[CGA_CRTC_HDISP];
+    uint32_t lp_latch = memaddr & DEVICE_VRAM_MASK;
 
-    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_HIGH] = (lp_latch >> 8) & 0x3f;
-    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_LOW] = lp_latch & 0xff;
+    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_HIGH] = (lp_latch >> 8) & 0xFF;
+    cga->crtc[CGA_CRTC_LIGHT_PEN_ADDR_LOW] = lp_latch & 0xFF;
 }
 
 void
@@ -138,7 +148,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
         case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
-                cga_update_latch(cga);
+                cga_update_latch(cga, cga->displine * cga->crtc[CGA_CRTC_HDISP]);
             }
             return;
 
@@ -164,7 +174,7 @@ cga_in(uint16_t addr, void *priv)
             ret = cga->crtc[cga->crtcreg];
             break;
         case CGA_REGISTER_STATUS:
-            ret = cga->cgastat;
+            ret = cga->cgastat | (cga->lp_strobe ? 0b010 : 0) | ((!cga_lightpen_enabled || !tablet_get_buttons_ex()) ? 0b100 : 0);
             break;
         case CGA_REGISTER_CLEAR_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 1)
@@ -173,7 +183,7 @@ cga_in(uint16_t addr, void *priv)
         case CGA_REGISTER_SET_LIGHT_PEN_LATCH:
             if (cga->lp_strobe == 0) {
                 cga->lp_strobe = 1;
-                cga_update_latch(cga);
+                cga_update_latch(cga, cga->displine * cga->crtc[CGA_CRTC_HDISP]);
             }
             break;
 
@@ -203,11 +213,23 @@ cga_pravetz_in(UNUSED(uint16_t addr), void *priv)
 void
 cga_waitstates(UNUSED(void *priv))
 {
-    int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
-    int ws;
+    /*
+     * NOCONA_CGA_WAIT_PHASE_808X_UPDATE_V1
+     *
+     * The Marty-derived CPU has already selected the physical CGA slot in T2
+     * and emitted the corresponding Tw clocks before invoking this callback.
+     * Charging the legacy countdown here would double the delay and, more
+     * importantly, would put VRAM/snow side effects back on the wrong edge.
+     */
+    static const uint8_t legacy_waits[16] = {
+        3, 4, 5, 6, 7, 8, 4, 5,
+        6, 7, 8, 4, 5, 6, 7, 8
+    };
 
-    ws = ws_array[cycles & 0xf];
-    cycles -= ws;
+    if (m808x_86box_active())
+        return;
+
+    cycles -= legacy_waits[cycles & 0x0f];
 }
 
 void
@@ -263,6 +285,61 @@ cga_recalctimings(cga_t *cga)
     cga->dispofftime = (uint64_t) (int64_t) (_dispofftime);
 }
 
+bool
+cga_is_in_lightpen(cga_t *cga, int x, int y)
+{
+    double abs_x = 0.0;
+    double abs_y = 0.0;
+
+    if (!mouse_tablet_in_proximity)
+        return false;
+
+    if ((mouse_tablet_in_proximity - 1) != cga->monitor_used)
+        return false;
+
+    mouse_get_abs_coords(&abs_x, &abs_y);
+
+    abs_x *= monitors[cga->monitor_used].mon_unscaled_size_x - 1;
+    abs_y *= monitors[cga->monitor_used].mon_efscrnsz_y - 1;
+    x -= 8;
+    y -= cga->double_type ? cga->firstline * 2 : cga->firstline;
+    
+    if (enable_overscan) {
+        x += 8;
+        y += cga->double_type ? 8 : 4;
+    }
+
+    if (!cga->double_type) {
+        abs_y /= 2;
+    }
+
+    return (int)abs_x == x && (int)abs_y == y;
+}
+
+float
+cga_sample_luma(bitmap_t* target_buffer, uint32_t x, uint32_t y)
+{
+    const float R_COEFF    = 0.3;
+    const float G_COEFF    = 0.4;
+    const float B_COEFF    = 0.7;
+    float total_luma       = 0.0;
+
+    for (int ky = -2; ky <= 2; ky++) {
+        for (int kx = -2; kx <= 2; kx++) {
+            uint32_t xx = (((int)x) + kx) & 2047;
+            uint32_t yy = (((int)y) + ky) & 2047;
+
+            float r = ((target_buffer->line[yy][xx] >> 16) & 0xFF) / 255.0;
+            float g = ((target_buffer->line[yy][xx] >> 8) & 0xFF) / 255.0;
+            float b = (target_buffer->line[yy][xx] & 0xFF) / 255.0;
+
+            total_luma += (r * R_COEFF) + (g * G_COEFF) + (b * B_COEFF);
+        }
+    }
+
+    return total_luma / 25.0;
+}
+
 static void
 cga_render(cga_t *cga, int line)
 {
@@ -277,24 +354,16 @@ cga_render(cga_t *cga, int line)
     int      col;
 
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
+    bool     overlay_flag          = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag);
 
-    if (((cga->cgamode & highres_graphics_flag) == highres_graphics_flag)) {
-        for (column = 0; column < 8; ++column) {
-            buffer32->line[line][column] = 0;
-            if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 3) + 8] = 0;
-            else
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 4) + 8] = 0;
-        }
-    } else {
-        for (column = 0; column < 8; ++column) {
-            buffer32->line[line][column] = (cga->cgacol & 15) + 16;
-            if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 3) + 8] = (cga->cgacol & 15) + 16;
-            else
-                buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] << 4) + 8] = (cga->cgacol & 15) + 16;
-        }
+    for (column = 0; column < 8; ++column) {
+        buffer32->line[line][column] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
+        if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
+            buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 8) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
+        else
+            buffer32->line[line][column + (cga->crtc[CGA_CRTC_HDISP] * 16) + 8] = overlay_flag ? 0 : ((cga->cgacol & 0b1111) + 16);
     }
+
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES) { /* 80-column text */
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
             if (cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) {
@@ -310,17 +379,19 @@ cga_render(cga_t *cga, int line)
                     cols[1] = cols[0];
             } else
                 cols[0] = (attr >> 4) + 16;
-            if (drawcursor) {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 3) + column + 8]
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ 15;
-                }
-            } else {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 3) + column + 8]
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0];
+
+            for (column = 0; column < 8; column++) {
+                buffer32->line[line][(x * 8) + column + 8]
+                    = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0);
+                
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && cga_is_in_lightpen(cga, (x * 8) + column + 8, line)) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 8) + column + 8;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
+                    cga->lp_latch_found   = true;
                 }
             }
+
             cga->memaddr++;
         }
     } else if (!(cga->cgamode & CGA_MODE_FLAG_GRAPHICS)) {
@@ -338,22 +409,24 @@ cga_render(cga_t *cga, int line)
                     cols[1] = cols[0];
             } else
                 cols[0] = (attr >> 4) + 16;
-            cga->memaddr++;
-            if (drawcursor) {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 4) + (column << 1) + 8]
-                        = buffer32->line[line][(x << 4) + (column << 1) + 9]
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ 15;
-                }
-            } else {
-                for (column = 0; column < 8; column++) {
-                    buffer32->line[line][(x << 4) + (column << 1) + 8]
-                        = buffer32->line[line][(x << 4) + (column << 1) + 9] 
-                        = cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0];
+
+            for (column = 0; column < 8; column++) {
+                buffer32->line[line][(x * 16) + (column << 1) + 8]
+                    = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
+                    = (cols[(fontdat[chr + cga->fontbase][cga->scanline & 7] & (1 << (column ^ 7))) ? 1 : 0] ^ (drawcursor ? 0b1111 : 0));
+
+                
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 16) + (column << 1) + 8;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
+                    cga->lp_latch_found   = true;
                 }
             }
+
+            cga->memaddr++;
         }
-    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) { /* not hi-res (but graphics) => 4-color mode */
+    } else if (!(cga->cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS)) { /* not hi-res (but graphics) => 4-color mode (2bpp) */
         cols[0] = (cga->cgacol & 15) | 16;
         col     = (cga->cgacol & 16) ? 24 : 16;
         if (cga->cgamode & CGA_MODE_FLAG_BW) {
@@ -375,15 +448,23 @@ cga_render(cga_t *cga, int line)
                       cga->vram[((cga->memaddr << 1) & 0x1fff) + ((cga->scanline & 1) * 0x2000) + 1];
             else
                 dat = 0;
-            cga->memaddr++;
             for (column = 0; column < 8; column++) {
-                buffer32->line[line][(x << 4) + (column << 1) + 8]
-                    = buffer32->line[line][(x << 4) + (column << 1) + 9]
+                buffer32->line[line][(x * 16) + (column << 1) + 8]
+                    = buffer32->line[line][(x * 16) + (column << 1) + 8 + 1]
                     = cols[dat >> 14];
+
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && (cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8, line) || cga_is_in_lightpen(cga, (x * 16) + (column << 1) + 8 + 1, line))) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 16) + (column << 1) + 8;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
+                    cga->lp_latch_found   = true;
+                }
+
                 dat <<= 2;
             }
+            cga->memaddr++;
         }
-    } else { /* 2-color hi-res graphics mode */
+    } else { /* 2-color hi-res graphics mode (1bpp) */
         cols[0] = 0;
         cols[1] = (cga->cgacol & 15) + 16;
         for (x = 0; x < cga->crtc[CGA_CRTC_HDISP]; x++) {
@@ -392,11 +473,18 @@ cga_render(cga_t *cga, int line)
                       cga->vram[((cga->memaddr << 1) & 0x1fff) + ((cga->scanline & 1) * 0x2000) + 1];
             else
                 dat = 0;
-            cga->memaddr++;
             for (column = 0; column < 16; column++) {
-                buffer32->line[line][(x << 4) + column + 8] = cols[dat >> 15];
+                buffer32->line[line][(x * 16) + column + 8] = cols[dat >> 15];
                 dat <<= 1;
+
+                if (cga_lightpen_enabled && !cga->lp_latch_found && mouse_tablet_in_proximity > 0 && cga_is_in_lightpen(cga, (x * 16) + column + 8, line)) {
+                    cga->lp_latch_found_y = line;
+                    cga->lp_latch_found_x = (x * 16) + column + 8;
+                    cga->lp_latch_found_memaddr = cga->memaddr;
+                    cga->lp_latch_found   = true;
+                }
             }
+            cga->memaddr++;
         }
     }
 }
@@ -409,9 +497,9 @@ cga_render_blank(cga_t *cga, int line)
     int col = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 15) + 16;
 
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] << 3) + 16, col);
+        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 8) + 16, col);
     else
-        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] << 4) + 16, col);
+        hline(buffer32, 0, line, (cga->crtc[CGA_CRTC_HDISP] * 16) + 16, col);
 }
 
 static void
@@ -422,12 +510,12 @@ cga_render_process(cga_t *cga, int line)
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-        x = (cga->crtc[CGA_CRTC_HDISP] << 3) + 16;
+        x = (cga->crtc[CGA_CRTC_HDISP] * 8) + 16;
     else
-        x = (cga->crtc[CGA_CRTC_HDISP] << 4) + 16;
+        x = (cga->crtc[CGA_CRTC_HDISP] * 16) + 16;
 
     if (cga->composite) {
-        border = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 15);
+        border = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 0b1111);
 
         Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[line]);
     } else
@@ -536,6 +624,107 @@ cga_blit_memtoscreen(int x, int y, int w, int h, int double_type)
     video_blit_memtoscreen(x, y, w, h);
 }
 
+/*
+ * NOCONA_CGA_PRESENT_GEOMETRY_LATCH_V1
+ *
+ * Timing-sensitive software can move VSYNC or terminate a frame early while
+ * the CRT beam is active.  That changes the raw firstline/lastline extent for
+ * the affected frame, but it must not immediately resize the host window.
+ *
+ * A real monitor retains its physical raster geometry through a transient bad
+ * frame.  Require a new geometry to repeat for several complete frames before
+ * presenting it as a genuine mode change.
+ */
+#define CGA_PRESENT_GEOMETRY_CONFIRM_FRAMES 3u
+#define CGA_PRESENT_GEOMETRY_SLOTS          2u
+
+typedef struct cga_present_geometry_latch_t {
+    cga_t   *owner;
+    int      candidate_x;
+    int      candidate_y;
+    unsigned candidate_frames;
+} cga_present_geometry_latch_t;
+
+static cga_present_geometry_latch_t
+    cga_present_geometry_latches[CGA_PRESENT_GEOMETRY_SLOTS];
+
+static cga_present_geometry_latch_t *
+cga_present_geometry_latch(cga_t *cga)
+{
+    cga_present_geometry_latch_t *free_slot = NULL;
+
+    for (unsigned i = 0; i < CGA_PRESENT_GEOMETRY_SLOTS; ++i) {
+        cga_present_geometry_latch_t *slot =
+            &cga_present_geometry_latches[i];
+
+        if (slot->owner == cga)
+            return slot;
+        if (slot->owner == NULL && free_slot == NULL)
+            free_slot = slot;
+    }
+
+    if (free_slot == NULL)
+        free_slot = &cga_present_geometry_latches[0];
+
+    memset(free_slot, 0, sizeof(*free_slot));
+    free_slot->owner = cga;
+    return free_slot;
+}
+
+static void
+cga_present_geometry_release(cga_t *cga)
+{
+    for (unsigned i = 0; i < CGA_PRESENT_GEOMETRY_SLOTS; ++i) {
+        cga_present_geometry_latch_t *slot =
+            &cga_present_geometry_latches[i];
+
+        if (slot->owner == cga) {
+            memset(slot, 0, sizeof(*slot));
+            return;
+        }
+    }
+}
+
+static int
+cga_present_geometry_should_commit(cga_t *cga, int new_x, int new_y,
+                                   int force_resize)
+{
+    cga_present_geometry_latch_t *slot =
+        cga_present_geometry_latch(cga);
+
+    if (force_resize || xsize <= 0 || ysize <= 0) {
+        slot->candidate_x = 0;
+        slot->candidate_y = 0;
+        slot->candidate_frames = 0;
+        return 1;
+    }
+
+    if (new_x == xsize && new_y == ysize) {
+        slot->candidate_x = 0;
+        slot->candidate_y = 0;
+        slot->candidate_frames = 0;
+        return 0;
+    }
+
+    if (new_x != slot->candidate_x || new_y != slot->candidate_y) {
+        slot->candidate_x = new_x;
+        slot->candidate_y = new_y;
+        slot->candidate_frames = 1;
+        return 0;
+    }
+
+    if (slot->candidate_frames < CGA_PRESENT_GEOMETRY_CONFIRM_FRAMES)
+        ++slot->candidate_frames;
+
+    if (slot->candidate_frames < CGA_PRESENT_GEOMETRY_CONFIRM_FRAMES)
+        return 0;
+
+    slot->candidate_x = 0;
+    slot->candidate_y = 0;
+    slot->candidate_frames = 0;
+    return 1;
+}
+
 void
 cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type)
 {
@@ -620,6 +809,8 @@ cga_poll(void *priv)
                 break;
         }
 
+        video_lightpen_check_trigger_strobe(8, cga->displine * (cga->double_type ? 2 : 1), 0, cga->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), cga->monitor_used);
+
         cga->scanline = scanline_old;
         if (cga->vc == cga->crtc[CGA_CRTC_VSYNC] && !cga->scanline)
             cga->cgastat |= 8;
@@ -628,6 +819,8 @@ cga_poll(void *priv)
             cga->displine = 0;
     } else {
         timer_advance_u64(&cga->timer, cga->dispontime);
+
+        video_lightpen_hsync();
         cga->linepos = 0;
         if (cga->vsynctime) {
             cga->vsynctime--;
@@ -687,9 +880,9 @@ cga_poll(void *priv)
                 cga->vsynctime = 16;
                 if (cga->crtc[CGA_CRTC_VSYNC]) {
                     if (cga->cgamode & CGA_MODE_FLAG_HIGHRES)
-                        x = (cga->crtc[CGA_CRTC_HDISP] << 3) + 16;
+                        x = (cga->crtc[CGA_CRTC_HDISP] * 8) + 16;
                     else
-                        x = (cga->crtc[CGA_CRTC_HDISP] << 4) + 16;
+                        x = (cga->crtc[CGA_CRTC_HDISP] * 16) + 16;
                     cga->lastline++;
 
                     xs_temp = x;
@@ -703,20 +896,40 @@ cga_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) && ((xs_temp != xsize) ||
-                            (ys_temp != ysize) || video_force_resize_get())) {
+                        /*
+                         * Keep raw beam timing separate from host presentation
+                         * geometry.  Beam-racing software may create one short
+                         * frame; Qt must not magnify that frame to fill a newly
+                         * shortened window.
+                         */
+                        const int force_resize = video_force_resize_get();
+
+                        if ((cga->cgamode & CGA_MODE_FLAG_VIDEO_ENABLE) &&
+                            cga_present_geometry_should_commit(
+                                cga, xs_temp, ys_temp, force_resize)) {
                             xsize = xs_temp;
                             ysize = ys_temp;
-                            set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                            set_screen_size(xsize,
+                                            ysize +
+                                                (enable_overscan ? 16 : 0));
 
-                            if (video_force_resize_get())
+                            if (force_resize)
                                 video_force_resize_set(0);
                         }
 
                         cga_do_blit(xsize, cga->firstline, cga->lastline, cga->double_type);
+
+                        // The palette conversion has been performed, sample the lightpen position now.
+                        if (cga_lightpen_enabled && mouse_tablet_in_proximity > 0 && cga->lp_latch_found && cga_sample_luma(buffer32, cga->lp_latch_found_x, cga->lp_latch_found_y) >= cga_luma_threshold) {
+                            cga->lp_strobe = 1;
+                            cga_update_latch(cga, cga->lp_latch_found_memaddr);
+                        }
                     }
 
+                    video_lightpen_vsync();
+
                     frames++;
+                    cga->lp_latch_found = false;
 
                     video_res_x = xsize;
                     video_res_y = ysize;
@@ -741,13 +954,13 @@ cga_poll(void *priv)
             }
         } else {
             cga->scanline++;
-            cga->scanline &= 31;
+            cga->scanline &= 0b11111;
             cga->memaddr = cga->memaddr_backup;
         }
         if (cga->cgadispon)
             cga->cgastat &= ~1;
-        if (cga->scanline == (cga->crtc[CGA_CRTC_CURSOR_START] & 31) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
-            cga->scanline == ((cga->crtc[CGA_CRTC_CURSOR_START] & 31) >> 1)))
+        if (cga->scanline == (cga->crtc[CGA_CRTC_CURSOR_START] & 0b11111) || ((cga->crtc[CGA_CRTC_INTERLACE] & 3) == 3 &&
+            cga->scanline == ((cga->crtc[CGA_CRTC_CURSOR_START] & 0b11111) >> 1)))
             cga->cursorvisible = 1;
         if (cga->cgadispon && (cga->cgamode & CGA_MODE_FLAG_HIGHRES)) {
             for (x = 0; x < (cga->crtc[CGA_CRTC_HDISP] << 1); x++)
@@ -806,6 +1019,7 @@ cga_standalone_init(UNUSED(const device_t *info))
     }
 
     monitors[monitor_index_global].mon_composite = !!cga->composite;
+    cga->monitor_used                            = monitor_index_global;
 
     return cga;
 }
@@ -830,6 +1044,7 @@ cga_close(void *priv)
 {
     cga_t *cga = (cga_t *) priv;
 
+    cga_present_geometry_release(cga);
     free(cga->vram);
     free(cga);
 }
@@ -967,4 +1182,56 @@ const device_t cga_pravetz_device = {
     .speed_changed = cga_speed_changed,
     .force_redraw  = NULL,
     .config        = cga_config
+};
+
+
+// Light pen
+void *
+cga_lightpen_init(UNUSED(const device_t *info))
+{
+    mouse_set_buttons(2);
+    mouse_set_poll_ex(NULL, NULL);
+    cga_luma_threshold = device_get_config_int("luma_thresh") / 100.;
+    cga_lightpen_enabled = true;
+    
+    return (void*)1;
+}
+
+void
+cga_lightpen_close(void* priv)
+{
+    cga_lightpen_enabled = false;
+    (void)priv;
+}
+
+
+static const device_config_t cga_lightpen_config[] = {
+  // clang-format off
+    {
+        .name           = "luma_thresh",
+        .description    = "Luminance threshold (%)",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 12,
+        .file_filter    = NULL,
+        .spinner        = { .min = 0, .max = 100, .step = 1 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+const device_t mouse_cga_lightpen_device = {
+    .name          = "CGA lightpen",
+    .internal_name = "cga_lightpen",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = cga_lightpen_init,
+    .close         = cga_lightpen_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = cga_lightpen_config
 };

@@ -20,13 +20,13 @@
  */
 #include "qt_renderercommon.hpp"
 #include "qt_mainwindow.hpp"
+#include "qt_util.hpp"
 
 extern MainWindow *main_window;
 
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QWindow>
-#include <QClipboard>
 #include <QPainter>
 #include <QWidget>
 #include <QEvent>
@@ -825,6 +825,9 @@ OpenGLRenderer::OpenGLRenderer(QWidget *parent)
     , renderTimer(new QTimer(this))
     , osdRenderTimer(new QTimer(this))
 {
+    // Force a cleanup of ImGui OSD.
+    qt_osd_shutdown();
+
     connect(renderTimer, &QTimer::timeout, this, [this]() { this->render(); });
     connect(osdRenderTimer, &QTimer::timeout, this, [this]() {
         if (video_framerate == -1 && dopause && qt_osd_is_visible())
@@ -1816,8 +1819,7 @@ OpenGLRenderer::render()
 
         int pitch_adj = (4 - ((width * 3) & 3)) & 3;
         QImage image((uchar*)rgb, width, height, (width * 3) + pitch_adj, QImage::Format_RGB888);
-        QClipboard *clipboard = QApplication::clipboard();
-        clipboard->setImage(image.IMG_FLIPPED, QClipboard::Clipboard);
+        util::copyImageToClipboard(image.IMG_FLIPPED);
         monitors[r_monitor_index].mon_screenshots_clipboard--;
         free(rgb);
     }
@@ -1826,7 +1828,7 @@ OpenGLRenderer::render()
 
     /* Draw the OSD crisp on top of the shaded image, in the default
        framebuffer at full window resolution. */
-    {
+    if (qt_osd_is_visible()) {
         glw.glBindFramebuffer(GL_FRAMEBUFFER, 0);
         glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());

@@ -2,7 +2,7 @@ cmake
 pkgconfig
 ninja
 freetype
-libsdl2
+SDL3
 libpng
 openal-soft
 rtmidi
@@ -20,4 +20,4 @@ rust
 rust-src
 cargo
 cargo-c
-corrosion
+zstd

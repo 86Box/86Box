@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-15 21:21+0000\n"
+"PO-Revision-Date: 2026-08-28 02:07+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -67,11 +67,14 @@ msgstr "渲染器(&N)"
 msgid "&Qt (Software)"
 msgstr "Qt (軟體)(&Q)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 Core)(&G)"
+msgid "Open&GL"
+msgstr "OpenGL(&G)"
 
-msgid "&VNC"
-msgstr "VNC(&V)"
+msgid "&Vulkan"
+msgstr "&Vulkan(&V)"
+
+msgid "V&NC"
+msgstr "VNC(&N)"
 
 msgid "Specify &dimensions…"
 msgstr "指定視窗大小(&D)…"
@@ -421,8 +424,11 @@ msgstr "啟用 (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "啟用 486 直譯器於 286 及 386 處理器"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "動態重編譯器"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr "動態重編譯時精確的 FPU 模擬"
 
 msgid "CPU frame size"
 msgstr "CPU 執行期框架大小"
@@ -454,6 +460,9 @@ msgstr "XGA 圖形"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 顯示介面卡圖形"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -468,6 +477,21 @@ msgstr "滑鼠:"
 
 msgid "Mouse"
 msgstr "滑鼠"
+
+msgid "&Mouse"
+msgstr "滑鼠(&M)"
+
+msgid "Tablet:"
+msgstr "平板:"
+
+msgid "Tablet"
+msgstr "平板"
+
+msgid "&Tablet"
+msgstr "平板(&T)"
+
+msgid "Tablet (&Crosshair)"
+msgstr "平板 十字線(&C)"
 
 msgid "Joystick:"
 msgstr "搖桿:"
@@ -834,6 +858,9 @@ msgstr "顯示"
 msgid "Input devices"
 msgstr "輸入裝置"
 
+msgid "Input &device"
+msgstr "輸入裝置(&D)"
+
 msgid "Sound"
 msgstr "聲音"
 
@@ -842,6 +869,9 @@ msgstr "網路"
 
 msgid "Ports (COM & LPT)"
 msgstr "連接埠 (COM 和 LPT)"
+
+msgid "Port"
+msgstr "連接埠"
 
 msgid "Ports"
 msgstr "連接埠"
@@ -1217,7 +1247,7 @@ msgid "%1 total"
 msgstr "%1 總計"
 
 msgid "VMs: %1"
-msgstr "虛擬機器：%1"
+msgstr "虛擬機器: %1"
 
 msgid "System Directory:"
 msgstr "系統目錄:"
@@ -1239,6 +1269,9 @@ msgstr "無法開啟選取的組態檔進行讀取: %1"
 
 msgid "Use regular expressions in search box"
 msgstr "在搜尋欄中使用正規表示式"
+
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "刪除虛擬機至回收筒"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1347,7 +1380,7 @@ msgid "Directory %1 already exists"
 msgstr "目錄 %1 已經存在"
 
 msgid "You cannot use the following characters in the name: %1"
-msgstr "您不能在名稱中使用下列字元：%1"
+msgstr "您不能在名稱中使用下列字元: %1"
 
 msgid "Clone"
 msgstr "複製"
@@ -1412,8 +1445,11 @@ msgstr "強制終止虛擬機器可能會導致資料遺失。只有在 86Box �
 msgid "&Delete"
 msgstr "刪除(&D)"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？此操作無法回復！"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "您真的想要刪除虛擬機器 \"%1\" 及其所有檔案嗎？"
+
+msgid "This action cannot be undone!"
+msgstr "此操作無法回復！"
 
 msgid "Show &config file"
 msgstr "顯示組態檔(&C)"
@@ -1453,6 +1489,18 @@ msgstr "ACPI 關機"
 
 msgid "ACP&I shutdown"
 msgstr "ACPI 關機(&I)"
+
+msgid "Power off"
+msgstr "關機"
+
+msgid "Power &off…"
+msgstr "關機(&O)…"
+
+msgid "Power &off"
+msgstr "關機(&O)"
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr "強制關機可能導致模擬機資料流失，確定要繼續嗎？"
 
 msgid "Hard disk (%1)"
 msgstr "硬碟 (%1)"
@@ -1751,7 +1799,7 @@ msgid "MCA devices"
 msgstr "MCA 裝置"
 
 msgid "List of MCA devices:"
-msgstr "MCA 裝置清單："
+msgstr "MCA 裝置清單:"
 
 msgid "&Tablet tool"
 msgstr "平板工具(&T)"
@@ -1799,7 +1847,7 @@ msgid "Null Driver"
 msgstr "空驅動器"
 
 msgid "NIC:"
-msgstr "網路介面控制器："
+msgstr "網路介面控制器:"
 
 msgid "NIC %1 (%2) %3"
 msgstr "網路介面控制器 %1 (%2) %3"
@@ -1811,7 +1859,7 @@ msgid "Render behavior"
 msgstr "渲染行為"
 
 msgid "Use target framerate:"
-msgstr "使用目標影格速率："
+msgstr "使用目標影格速率:"
 
 msgid " fps"
 msgstr " fps"
@@ -1970,7 +2018,7 @@ msgid "Roland MT-32 Emulation"
 msgstr "Roland MT-32 模擬"
 
 msgid "Roland MT-32 (New) Emulation"
-msgstr "Roland MT-32（新）模擬"
+msgstr "Roland MT-32 (新) 模擬"
 
 msgid "Roland CM-32L Emulation"
 msgstr "Roland CM-32L 模擬"
@@ -2165,7 +2213,7 @@ msgid "Reverb Level"
 msgstr "殘響位準"
 
 msgid "Interpolation Method"
-msgstr "插值方法"
+msgstr "插補法"
 
 msgid "Dynamic Sample Loading"
 msgstr "動態取樣載入"
@@ -2238,6 +2286,9 @@ msgstr "序號"
 
 msgid "Host ID"
 msgstr "主機 ID"
+
+msgid "Host"
+msgstr "主機"
 
 msgid "FDC Address"
 msgstr "FDC 位址"
@@ -2609,7 +2660,7 @@ msgid "New"
 msgstr "新"
 
 msgid "Color (generic)"
-msgstr "彩色（通用）"
+msgstr "彩色 (通用)"
 
 msgid "Green Monochrome"
 msgstr "綠色單色"
@@ -2621,16 +2672,16 @@ msgid "Gray Monochrome"
 msgstr "灰色單色"
 
 msgid "Color (no brown)"
-msgstr "彩色（無棕色）"
+msgstr "彩色 (無棕色)"
 
 msgid "Color (IBM 5153)"
-msgstr "彩色（IBM 5153）"
+msgstr "彩色 (IBM 5153)"
 
 msgid "Simple doubling"
 msgstr "簡單倍增"
 
 msgid "sRGB interpolation"
-msgstr "sRGB 插值"
+msgstr "sRGB 插補"
 
 msgid "Linear interpolation"
 msgstr "線性插補"
@@ -2648,13 +2699,13 @@ msgid "128 KB"
 msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr "單色 (5151/MDA)（白色）"
+msgstr "單色 (5151/MDA) (白色)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr "單色 (5151/MDA)（綠色）"
+msgstr "單色 (5151/MDA) (綠色)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr "單色 (5151/MDA)（琥珀色）"
+msgstr "單色 (5151/MDA) (琥珀色)"
 
 msgid "Color 40x25 (5153/CGA)"
 msgstr "彩色 40x25 (5153/CGA)"
@@ -2667,6 +2718,18 @@ msgstr "增強色彩 - 一般模式 (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "增強色彩 - 增強模式 (5154/ECD)"
+
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768，單色)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768，彩色)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480，單色)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480，彩色)"
 
 msgid "Green"
 msgstr "綠色"
@@ -2714,7 +2777,7 @@ msgid "3Dfx Voodoo 2"
 msgstr "3Dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
-msgstr "Obsidian SB50 + Amethyst (2 TMU)"
+msgstr "Obsidian SB50 + Amethyst (2 TMUs)"
 
 msgid "8-bit"
 msgstr "8 位元"
@@ -2885,7 +2948,7 @@ msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A 相容品"
 
 msgid "Vendor"
-msgstr "製造商"
+msgstr "銷售商"
 
 msgid "30 Hz (JMP2 = 1)"
 msgstr "30 Hz (JMP2 = 1)"
@@ -2917,10 +2980,13 @@ msgid "Ask for confirmation before saving settings"
 msgstr "儲存設定前要求確認"
 
 msgid "Ask for confirmation before hard resetting"
-msgstr "硬體重設前要求確認"
+msgstr "硬重設前要求確認"
 
 msgid "Ask for confirmation before quitting"
 msgstr "退出前請先確認"
+
+msgid "Precache CHD files into memory"
+msgstr "預快取 CHD 檔於記憶體中"
 
 msgid "Options"
 msgstr "選項"
@@ -2933,6 +2999,24 @@ msgstr "型號:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "初始化 Vulkan 渲染器失敗。"
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr "Vulkan 1.3 執行體創建失敗。"
+
+msgid "No usable Vulkan physical devices found."
+msgstr "未發現可用的 Vulkan 實體裝置。"
+
+msgid "No Vulkan-capable physical devices found."
+msgstr "未發現支援 Vulkan 的實體裝置。"
+
+msgid "librashader not found. Shaders will not be available."
+msgstr "未發現 librashader。著色器將無法使用。"
+
+msgid "Vulkan device lost."
+msgstr "失去 Vulkan 裝置。"
+
+msgid "Vulkan surface lost."
+msgstr "遺失 Vulkan 描繪面。"
 
 msgid "GLSL Error"
 msgstr "GLSL 錯誤"
@@ -2954,6 +3038,9 @@ msgstr "著色器管理員"
 
 msgid "Shader Configuration"
 msgstr "著色器組態"
+
+msgid "GPU:"
+msgstr "GPU:"
 
 msgid "Add"
 msgstr "新增"
@@ -3231,6 +3318,12 @@ msgstr "快轉(&F)"
 msgid "Fast forward"
 msgstr "快轉"
 
+msgid "&Non-maskable interrupt"
+msgstr "不可遮罩中斷(&N)"
+
+msgid "Non-maskable interrupt"
+msgstr "不可遮罩中斷"
+
 msgid "To change the system directory, stop all running machines."
 msgstr "欲變更系統目錄，請先停止全部運行中的機器。"
 
@@ -3259,8 +3352,11 @@ msgid "Unable to load CD-ROM image \"%s\"."
 msgstr "無法開啟光碟映像 \"%s\"。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr "無法開啟映像 \"%s\": %1 遺失，此為存取 Daemon Tools MDS v2 及 MDX "
-"映像之必要檔案。"
+msgstr "無法開啟映像 \"%s\": 缺少 %1 ，此為存取 Daemon Tools MDS v2 及 MDX "
+"映像所必需。"
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr "無法載入映像 \"%s\": 缺少 %1，此為支援 Aaru 格式圖像所必需。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr "DVD 映像 \"%s\" 被置入不支援 DVD 之光碟機，將被忽略。"
@@ -3323,7 +3419,7 @@ msgid "Draft"
 msgstr "草稿"
 
 msgid "(Near) Letter"
-msgstr "近信件 (NLQ)"
+msgstr "近信件品質 (NLQ)"
 
 msgid "Auto LF"
 msgstr "自動送行"
@@ -3405,3 +3501,9 @@ msgstr "938 (正體中文)"
 
 msgid "Sample rate:"
 msgstr "取樣率:"
+
+msgid "CGA lightpen"
+msgstr "CGA光筆"
+
+msgid "Luminance threshold (%)"
+msgstr "亮度閾值 (%)"

@@ -113,7 +113,7 @@ static const device_config_t opti495_ami_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AMI 060692",
+                .name          = "AMIBIOS 060692",
                 .internal_name = "ami495",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
@@ -168,6 +168,107 @@ machine_at_opti495_ami_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti495sx_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_pred1plus_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pred1plus/PRED1PLUS.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sl82c461_device);
+    device_add(&ide_isa_device);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+    
+    return ret;
+}
+
+static const device_config_t fic4386vcv_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "fic4386vcv",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 021293 - Revision 1.02",
+                .internal_name = "fic4386vcv_ami",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/fic4386vcv/486-4386-VC.BIN", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.20 - Revision 1.15K",
+                .internal_name = "fic4386vcv",
+                .bios_type     = BIOS_NORMAL, 
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/fic4386vcv/FIC4386VCV.BIN", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t fic4386vcv_device = {
+    .name          = "FIC 4386-VC-V",
+    .internal_name = "fic4386vcv",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = fic4386vcv_config
+};
+
+int
+machine_at_fic4386vcv_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000f0000, 65536, 0);
+
+    machine_at_common_init(model);
+
+    device_add(&via_vt82c49x_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

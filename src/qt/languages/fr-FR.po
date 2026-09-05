@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-05-30 16:42+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-07-31 15:39+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: French <https://weblate.86box.net/projects/86box/86box/fr/>\n"
 "Language: fr-FR\n"
 "MIME-Version: 1.0\n"
@@ -66,11 +66,14 @@ msgstr "Moteur de re&ndu vidéo"
 msgid "&Qt (Software)"
 msgstr "&Qt (Logiciel)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "Spécifier dimen&sions…"
@@ -420,8 +423,11 @@ msgstr "Activé (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Employer l'interprète 486 pour les processeurs 286 et 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Recompilateur dynamique"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "Taille du bloc de processeur"
@@ -453,6 +459,9 @@ msgstr "Graphique XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Graphique de l'adaptateur IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI :"
+
 msgid "Voodoo:"
 msgstr "Voodoo :"
 
@@ -467,6 +476,21 @@ msgstr "Souris :"
 
 msgid "Mouse"
 msgstr "Souris"
+
+msgid "&Mouse"
+msgstr "&Souris"
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
+msgstr ""
 
 msgid "Joystick:"
 msgstr "Manette :"
@@ -832,6 +856,9 @@ msgstr "Affichage"
 msgid "Input devices"
 msgstr "Dispositifs d'entrée"
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr "Son"
 
@@ -840,6 +867,9 @@ msgstr "Réseau"
 
 msgid "Ports (COM & LPT)"
 msgstr "Ports (COM et LPT)"
+
+msgid "Port"
+msgstr ""
 
 msgid "Ports"
 msgstr "Ports"
@@ -1254,6 +1284,9 @@ msgstr "Impossible d'ouvrir le fichier de configuration sélectionné pour lectu
 msgid "Use regular expressions in search box"
 msgstr "Utilisez des expressions régulières dans le champ de recherche"
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n machine est actuellement active. Êtes-vous sûr de vouloir quitter le gestionnaire de machines virtuelles malgré tout ?"
@@ -1427,8 +1460,11 @@ msgstr "La fermeture forcée d'une machine virtuelle peut entraîner une perte d
 msgid "&Delete"
 msgstr "&Supprimer"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Voulez-vous vraiment supprimer la machine virtuelle « %1 » et tous ses fichiers ? Cette action ne peut pas être annulée !"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Voulez-vous vraiment supprimer la machine virtuelle « %1 » et tous ses fichiers ?"
+
+msgid "This action cannot be undone!"
+msgstr "Cette action ne peut pas être annulée !"
 
 msgid "Show &config file"
 msgstr "Afficher le fichier de &configuration"
@@ -1468,6 +1504,18 @@ msgstr "Arrêt ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Arrêt ACP&I"
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "Disque dur (%1)"
@@ -2250,6 +2298,9 @@ msgstr "Numéro de série"
 msgid "Host ID"
 msgstr "ID de l'hôte"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Adresse FDC"
 
@@ -2679,6 +2730,18 @@ msgstr "Couleur améliorée - Mode normal (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Couleur améliorée - Mode amélioré (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monochrome)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, couleur)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monochrome)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, couleur)"
+
 msgid "Green"
 msgstr "Vert"
 
@@ -2931,6 +2994,9 @@ msgstr "Demander confirmation avant hard reset"
 msgid "Ask for confirmation before quitting"
 msgstr "Demander confirmation avant de quitter"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Options"
 
@@ -2942,6 +3008,24 @@ msgstr "Modèle :"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Impossible d’initialiser le moteur de rendu Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "Erreur GLSL"
@@ -2963,6 +3047,9 @@ msgstr "Gestionnaire de shader"
 
 msgid "Shader Configuration"
 msgstr "Configuration du shader"
+
+msgid "GPU:"
+msgstr "GPU :"
 
 msgid "Add"
 msgstr "Ajouter"
@@ -3236,6 +3323,12 @@ msgstr "&Avance rapide"
 msgid "Fast forward"
 msgstr "Avance rapide"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Pour modifier le répertoire système, arrêtez toutes les machines en cours d'exécution."
 
@@ -3268,6 +3361,9 @@ msgstr ""
 "Ne feut pas possible ouvrir l'image \" %s \" : la bibliothèque %1 est "
 "manquante, qui est nécessaire pour pouvoir ouvrir les images MDS v2 et MDX "
 "de Daemon Tools."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3413,4 +3509,10 @@ msgid "938 (Traditional Chinese)"
 msgstr "938 (chinois traditionnel)"
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

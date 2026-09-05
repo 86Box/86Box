@@ -11,10 +11,12 @@
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
+ *          gdwnldsKSC
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
+ *          Copyright 2026 gdwnldsKSC
  */
 #ifdef __HAIKU__
 #    include <OS.h>
@@ -31,7 +33,6 @@
 #include <QDebug>
 
 #include <QApplication>
-#include <QClipboard>
 #include <QDir>
 #include <QFileInfo>
 #include <QMimeData>
@@ -127,6 +128,11 @@ private:
     int   s;
 };
 
+#ifdef Q_OS_MACOS
+extern void exit_pause(void);
+extern void enter_pause(void);
+#endif
+
 extern "C" {
 #ifdef Q_OS_WINDOWS
 #    include <86box/win.h>
@@ -143,6 +149,7 @@ extern "C" {
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/config.h>
+#include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 #include <86box/ui.h>
 #ifdef DISCORD
@@ -282,6 +289,74 @@ plat_file_check(const char *path)
     if (stat(path, &stats) < 0)
         return 0;
     return !S_ISDIR(stats.st_mode);
+#endif
+}
+
+void
+plat_unlock_volumes(plat_device_vol_locked_t* vol)
+{
+#ifdef _WIN32
+    DWORD bytesRet = 0;
+    for (uintptr_t i = 0; i < vol->vol_nums; i++) {
+        if (vol->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
+            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_DISMOUNT_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr);
+            DeviceIoControl((HANDLE)vol->handles_vols[i], FSCTL_UNLOCK_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr);
+        }
+    }
+    DeviceIoControl((HANDLE)vol->handle_disk, IOCTL_DISK_UPDATE_PROPERTIES, 0, 0, 0, 0, &bytesRet, nullptr);
+    (void)GetLogicalDrives();
+    for (uintptr_t i = 0; i < vol->vol_nums; i++) {
+        if (vol->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
+            CloseHandle((HANDLE)vol->handles_vols[i]);
+        }
+    }
+    free(vol);
+#endif
+}
+
+plat_device_vol_locked_t*
+plat_lock_volumes(FILE* file)
+{
+#ifndef _WIN32
+    return NULL;
+#else
+    HANDLE filehandle = (HANDLE)_get_osfhandle(fileno(file));
+    if (filehandle == INVALID_HANDLE_VALUE) {
+        return nullptr;
+    }
+    DWORD bytesRet = 0;
+
+    STORAGE_DEVICE_NUMBER storage_num;
+    if (!DeviceIoControl(filehandle, IOCTL_STORAGE_GET_DEVICE_NUMBER, nullptr, 0, &storage_num, sizeof(STORAGE_DEVICE_NUMBER), &bytesRet, nullptr)) {
+        return 0;
+    }
+
+    // Excessive, but needed.
+    DRIVE_LAYOUT_INFORMATION* layout_info = (DRIVE_LAYOUT_INFORMATION*)calloc(81920, 1);
+    if (DeviceIoControl(filehandle, IOCTL_DISK_GET_DRIVE_LAYOUT, nullptr, 0, layout_info, 81920, &bytesRet, nullptr)) {
+        //auto partCount = layout_info->PartitionCount;
+        //layout_info = (DRIVE_LAYOUT_INFORMATION_EX*)realloc(layout_info, sizeof(PARTITION_INFORMATION_EX) * (partCount + 1) + sizeof(DRIVE_LAYOUT_INFORMATION_EX));
+        plat_device_vol_locked_t* locked_list = (plat_device_vol_locked_t*)calloc(1, sizeof(plat_device_vol_locked_t) + layout_info->PartitionCount * sizeof(uintptr_t));
+        if (locked_list) {
+            locked_list->handle_disk = (uintptr_t)filehandle;
+            locked_list->vol_nums = layout_info->PartitionCount;
+            for (DWORD i = 0; i < layout_info->PartitionCount; i++) {
+                char path_name[256] = { 0 };
+                snprintf(path_name, sizeof(path_name) - 1, "\\\\?\\Harddisk%uPartition%lu", (unsigned int) storage_num.DeviceNumber, i);
+                locked_list->handles_vols[i] = (uintptr_t)CreateFileA(path_name, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, 0);
+                if (locked_list->handles_vols[i] != ((uintptr_t) (intptr_t) -1)) {
+                    if (DeviceIoControl((HANDLE)locked_list->handles_vols[i], FSCTL_LOCK_VOLUME, 0, 0, 0, 0, &bytesRet, nullptr)) {
+                    } else {
+                        warning("Failed to lock partition %lu on disk %d.", i, (int) storage_num.DeviceNumber);
+                    }
+                }
+            }
+        }
+    } else {
+        pclog("Failed to get drive layout information (%ld).\n", GetLastError());
+    }
+    free(layout_info);
+    return nullptr;
 #endif
 }
 
@@ -548,9 +623,35 @@ plat_remove(char *path)
 }
 
 void *
-plat_mmap(size_t size, uint8_t executable)
+plat_mmap(size_t size, uint8_t executable, uint8_t* large)
 {
+    if (large)
+        *large = 0;
 #if defined Q_OS_WINDOWS
+    static bool priv_tried = false;
+    if (!priv_tried) {
+        priv_tried = true;
+        HANDLE tok;
+        if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &tok)) {
+            TOKEN_PRIVILEGES tp = { };
+            tp.PrivilegeCount   = 1;
+            if (LookupPrivilegeValueW(nullptr, L"SeLockMemoryPrivilege", &tp.Privileges[0].Luid)) {
+                tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+                AdjustTokenPrivileges(tok, FALSE, &tp, 0, nullptr, nullptr);
+            }
+            CloseHandle(tok);
+        }
+    }
+    const size_t lp = GetLargePageMinimum();
+    if (lp) {
+        const size_t rounded = (size + lp - 1) & ~(lp - 1);
+        void* p = VirtualAlloc(nullptr, rounded, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+        if (p) {
+            if (large)
+                *large = 1;
+            return p;
+        }
+    }
     return VirtualAlloc(NULL, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
 #elif defined Q_OS_UNIX
 #    if defined Q_OS_DARWIN && defined MAP_JIT
@@ -561,6 +662,13 @@ plat_mmap(size_t size, uint8_t executable)
         mprotect(ret, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0));
 #    else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
+#       ifdef MADV_HUGEPAGE
+    if (ret && ret != MAP_FAILED) {
+        if (large) {
+            *large = !madvise(ret, size, MADV_HUGEPAGE);
+        }
+    }
+#       endif
 #    endif
     return (ret == MAP_FAILED) ? nullptr : ret;
 #endif
@@ -656,7 +764,7 @@ plat_pause(int p)
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-#ifdef Q_OS_WINDOWS
+#if defined(Q_OS_WINDOWS) || defined(Q_OS_MACOS)
     if (p)
         enter_pause();
     else
@@ -691,6 +799,7 @@ plat_power_off(void)
     plat_mouse_capture(0);
     plat_clean_up();
     confirm_exit_cmdl = 0;
+    ide_wait_for_async_reads();
     hdd_image_sync_all();
     nvr_save();
 
@@ -819,14 +928,17 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #    define LIB_NAME_GPCL "gpcl6dll64.dll"
 #    define LIB_NAME_PCAP "Npcap"
 #    define LIB_NAME_MDSX "mdsx.dll"
+#    define LIB_NAME_AARU "libaaruformat.dll"
 #else
 #    define LIB_NAME_GS   "libgs"
 #    define LIB_NAME_GPCL "libgpcl6"
 #    define LIB_NAME_PCAP "libpcap"
 #    ifdef __APPLE__
 #        define LIB_NAME_MDSX "mdsx.dylib"
+#        define LIB_NAME_AARU "libaaruformat.dylib"
 #    else
 #        define LIB_NAME_MDSX "mdsx.so"
+#        define LIB_NAME_AARU "libaaruformat.so"
 #    endif
 #endif
 
@@ -853,6 +965,7 @@ Preferences::reloadStrings()
     translatedstrings[STRING_CDROM_OPEN_MDS_ERROR]      = QCoreApplication::translate("", "Unable to open MDS file \"%s\".").toUtf8();
     translatedstrings[STRING_CDROM_LOAD_IMAGE_ERROR]    = QCoreApplication::translate("", "Unable to load CD-ROM image \"%s\".").toUtf8();
     translatedstrings[STRING_CDROM_LOAD_MDSX_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support.").arg(LIB_NAME_MDSX).toUtf8();
+    translatedstrings[STRING_CDROM_LOAD_AARU_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support.").arg(LIB_NAME_AARU).toUtf8();
     translatedstrings[STRING_CDROM_DVD_IN_CD_DRIVE]     = QCoreApplication::translate("", "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.").toUtf8();
     translatedstrings[STRING_CHARDEV_CONNECT_ERROR]     = QCoreApplication::translate("", "%s: Could not connect to %s: %s").toUtf8();
     translatedstrings[STRING_CHARDEV_CREATE_ERROR]      = QCoreApplication::translate("", "%s: Could not create %s: %s").toUtf8();
@@ -1103,40 +1216,6 @@ plat_break(void)
 #else
     raise(SIGTRAP);
 #endif
-}
-
-static unsigned char *rgb_    = NULL;
-static int            width_  = 0;
-static int            height_ = 0;
-static volatile int   waiting = 0;
-
-static void
-send_to_clipboard(void)
-{
-    unsigned char *rgb = (unsigned char *) calloc(1, height_ * width_ * 4);
-    memcpy(rgb, rgb_, height_ * width_ * 3);
-    QImage image(rgb, width_, height_, width_ * 3, QImage::Format_RGB888);
-    QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setImage(image, QClipboard::Clipboard);
-    free(rgb);
-    waiting = 0;
-}
-
-void
-plat_send_to_clipboard(unsigned char *rgb, int width, int height)
-{
-    rgb_    = rgb;
-    width_  = width;
-    height_ = height;
-    waiting = 1;
-
-    QTimer::singleShot(0, main_window, &send_to_clipboard);
-    while (waiting)
-        ;
-
-    height_ = 0;
-    width_  = 0;
-    rgb_    = NULL;
 }
 
 #if !defined(Q_OS_WINDOWS) && !defined(Q_OS_MACOS)

@@ -72,16 +72,6 @@ typedef struct ali1543_t {
 
 } ali1543_t;
 
-/*
-    Notes:
-    - Power Managment isn't functioning properly
-    - IDE isn't functioning properly
-    - 1543C differences have to be examined
-    - Some Chipset functionality might be missing
-    - Device numbers and types might be incorrect
-    - Code quality is abysmal and needs lot's of cleanup.
-*/
-
 int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
                                 1, 11, PCI_IRQ_DISABLED, 12, PCI_IRQ_DISABLED, 14, PCI_IRQ_DISABLED, 15 };
 
@@ -572,10 +562,10 @@ ali5229_ide_handler(ali1543_t *dev)
 {
     uint32_t ch = 0;
 
-    uint16_t native_base_pri_addr = (dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8) & 0xfffe;
-    uint16_t native_side_pri_addr = (dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8) & 0xfffe;
-    uint16_t native_base_sec_addr = (dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8) & 0xfffe;
-    uint16_t native_side_sec_addr = (dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8) & 0xfffe;
+    uint16_t native_base_pri_addr = (dev->ide_conf[0x10] | dev->ide_conf[0x11] << 8) & 0xfffe;
+    uint16_t native_side_pri_addr = ((dev->ide_conf[0x14] | dev->ide_conf[0x15] << 8) & 0xfffe) | 0x0002;
+    uint16_t native_base_sec_addr = (dev->ide_conf[0x18] | dev->ide_conf[0x19] << 8) & 0xfffe;
+    uint16_t native_side_sec_addr = ((dev->ide_conf[0x1c] | dev->ide_conf[0x1d] << 8) & 0xfffe) | 0x0002;
 
     uint16_t comp_base_pri_addr = 0x01f0;
     uint16_t comp_side_pri_addr = 0x03f6;
@@ -781,7 +771,7 @@ ali5229_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x21:
             /* Datasheet erratum: the PCI BAR's actually have different sizes. */
             if (addr == 0x20)
-                dev->ide_conf[addr] = (val & 0xe0) | 0x01;
+                dev->ide_conf[addr] = (val & 0xf0) | 0x01;
             else if ((addr & 0x07) == 0x00)
                 dev->ide_conf[addr] = (val & 0xf8) | 0x01;
             else if ((addr & 0x07) == 0x04)

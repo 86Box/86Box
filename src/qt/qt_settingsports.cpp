@@ -24,6 +24,8 @@ extern "C" {
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/lpt.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
 #include <86box/serial.h>
 #include <86box/char.h>
 }
@@ -34,9 +36,13 @@ extern "C" {
 #include "qt_defs.hpp"
 
 #include "qt_settings_completer.hpp"
+#include "qt_settings_bus_tracking.hpp"
+#include "qt_harddrive_common.hpp"
 
 #include "qt_settingsports.hpp"
 #include "ui_qt_settingsports.h"
+
+#include <QStandardItem>
 
 SettingsPorts::SettingsPorts(QWidget *parent)
     : QWidget(parent)
@@ -65,6 +71,20 @@ SettingsPorts::~SettingsPorts()
         delete scCom[i];
 
     delete ui;
+}
+
+void
+SettingsPorts::updateLptPortTracking(int i)
+{
+    auto *comboBox = findChild<QComboBox *>(QString("comboBoxLpt%1").arg(i + 1));
+    if (comboBox == NULL)
+        return;
+
+    int  device   = comboBox->currentData().toInt();
+    bool occupied = (lpt_ports[i].enabled > 0) && (device > 0) &&
+                    (char_get_device(device) != &lpt_ditto_device);
+
+    Harddrives::busTrackClass->device_track(occupied ? 1 : 0, DEV_LPT, TAPE_BUS_LPT, i);
 }
 
 int
@@ -258,6 +278,8 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
                 buttonCfg->setEnabled(device_has_config(char_get_device(lptDevice)) && (lpt_ports[i].enabled > 0));
             }
         }
+
+        updateLptPortTracking(i);
     }
 
     c = 0;
@@ -325,6 +347,7 @@ SettingsPorts::on_comboBoxLpt1_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt1->currentData().toInt();
 
+    updateLptPortTracking(0);
     ui->pushButtonConfigureLpt1->setEnabled(ui->comboBoxLpt1->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 
@@ -345,6 +368,7 @@ SettingsPorts::on_comboBoxLpt2_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt2->currentData().toInt();
 
+    updateLptPortTracking(1);
     ui->pushButtonConfigureLpt2->setEnabled(ui->comboBoxLpt2->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 
@@ -365,6 +389,7 @@ SettingsPorts::on_comboBoxLpt3_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt3->currentData().toInt();
 
+    updateLptPortTracking(2);
     ui->pushButtonConfigureLpt3->setEnabled(ui->comboBoxLpt3->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 
@@ -385,6 +410,7 @@ SettingsPorts::on_comboBoxLpt4_currentIndexChanged(int index)
 
     int lptDevice = ui->comboBoxLpt4->currentData().toInt();
 
+    updateLptPortTracking(3);
     ui->pushButtonConfigureLpt4->setEnabled(ui->comboBoxLpt4->isEnabled() && device_has_config(char_get_device(lptDevice)));
 }
 

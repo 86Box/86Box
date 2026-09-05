@@ -890,6 +890,7 @@ ega_poll(void *priv)
                 ega->lastline = ega->displine;
         }
 
+        video_lightpen_check_trigger_strobe(8, ega->displine, 0, ega->firstline, (1. / (ega->dot_clock / (cpuclock * (double) (1ULL << 32)))) * ((ega->seqregs[1] & 1) ? 8.0 : 9.0), 0);
         ega->displine++;
         if (ega->interlace)
             ega->displine++;
@@ -910,6 +911,7 @@ ega_poll(void *priv)
         }
     } else {
         timer_advance_u64(&ega->timer, ega->dispontime);
+        video_lightpen_hsync();
 
         if (ega->dispon)
             ega->status &= ~1;
@@ -990,6 +992,7 @@ ega_poll(void *priv)
 #endif
 //            x = ega->hdisp;
 
+            video_lightpen_vsync();
             if (ega->interlace && !ega->oddeven)
                 ega->lastline++;
             if (ega->interlace && ega->oddeven)
@@ -1511,7 +1514,7 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
         if (ega->alt_addr == 1)
             base_addr = 0x02a0;
 #endif
-        io_sethandler(base_addr, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+        io_sethandler(base_addr, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
     } else {
         for (uint16_t c = 0; c < 256; c++) {
             pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
@@ -1521,8 +1524,6 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
             if ((c & 0x17) == 6)
                 pallook16[c] = makecol32(0xaa, 0x55, 0);
         }
-
-        ega->miscout |= 1;
     }
 
     ega->pallook = pallook16;
@@ -1553,6 +1554,10 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
     ega->vrammask   = ega->vram_limit - 1;
 
     old_overscan_color = 0;
+
+    /* Color Plane Enable defaults to all four planes enabled. */
+    ega->attrregs[0x12] = 0x0f;
+    ega->plane_mask     = 0x0f;
 
     ega->miscout |= 0x22;
     ega->oddeven_page = 0;
@@ -1674,7 +1679,7 @@ ega_standalone_init(const device_t *info)
             ega->alt_addr = 1;
     }
 #endif
-    io_sethandler(addr, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+    io_sethandler(addr - 0x20, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
     if (ega->chipset) {
         io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);

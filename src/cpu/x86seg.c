@@ -297,7 +297,7 @@ loadseg(uint16_t seg, x86seg *s)
                 return;
 #endif
             }
-            s->seg     = 0;
+            s->seg     = seg;
             s->access  = 0x80;
             s->ar_high = 0x10;
             s->base    = -1;
@@ -651,9 +651,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                 case 0x0c00:
                     cgate32 = (type & 0x0800);
                     cgate16 = !cgate32;
-#ifndef USE_NEW_DYNAREC
                     oldcs = CS;
-#endif
                     cpu_state.oldpc = cpu_state.pc;
                     if (DPL < CPL) {
                         x86gpf("loadcsjmp(): Call gate DPL < CPL", seg & 0xfffc);
@@ -972,9 +970,7 @@ loadcscall(uint16_t seg)
                     x86seg_log("Callgate %08X\n", cpu_state.pc);
                     cgate32 = (type & 0x0800);
                     cgate16 = !cgate32;
-#ifndef USE_NEW_DYNAREC
                     oldcs = CS;
-#endif
                     count = segdat[2] & 0x001f;
                     if (DPL < CPL) {
                         x86gpf("loadcscall(): ex DPL < CPL", seg & 0xfffc);
@@ -1095,7 +1091,7 @@ loadcscall(uint16_t seg)
                                 writememw(0, addr + 4, segdat2[2] | 0x100); /* Set accessed bit */
                                 cpl_override = 0;
 
-                                CS = seg2;
+                                CS = (seg2 & ~3) | DPL;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
                                     flushmmucache_nopc();
@@ -1212,7 +1208,7 @@ loadcscall(uint16_t seg)
                         case 0x1d00:
                         case 0x1e00:
                         case 0x1f00: /* Conforming */
-                            CS = seg2;
+                            CS = (seg2 & ~3) | CPL;
                             do_seg_load(&cpu_state.seg_cs, segdat);
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_nopc();
@@ -1307,12 +1303,14 @@ pmoderetf(int is32, uint16_t off)
         return;
     }
     if (!(seg & 0xfffc)) {
+        ESP = oldsp;
         x86gpf("pmoderetf(): seg is NULL", 0);
         return;
     }
     addr = seg & 0xfff8;
     dt   = (seg & 0x0004) ? &ldt : &gdt;
     if ((addr + 7) > dt->limit) {
+        ESP = oldsp;
         x86gpf("pmoderetf(): Selector > DT limit", seg & 0xfffc);
         return;
     }
@@ -1361,6 +1359,7 @@ pmoderetf(int is32, uint16_t off)
                 }
                 break;
             default:
+                ESP = oldsp;
                 x86gpf("pmoderetf(): Unknown type", seg & 0xfffc);
                 return;
         }

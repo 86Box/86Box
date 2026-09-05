@@ -100,11 +100,17 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/nvr.h>
 extern int  qt_nvr_save(void);
+#ifndef Q_OS_MACOS
 extern void exit_pause(void);
+#endif
 
 bool cpu_thread_running = false;
 bool fast_forward = false;
 }
+
+#ifdef Q_OS_MACOS
+extern void exit_pause(void);
+#endif
 
 #include <locale.h>
 
@@ -216,6 +222,9 @@ extern int         main_window_blocked;
 static LRESULT CALLBACK
 emu_LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
+    if (is_quit)
+        return CallNextHookEx(NULL, nCode, wParam, lParam);
+
     LPKBDLLHOOKSTRUCT lpKdhs = (LPKBDLLHOOKSTRUCT) lParam;
     /* Checks if CTRL was pressed. */
     BOOL bCtrlDown      = GetAsyncKeyState(VK_CONTROL) >> ((sizeof(SHORT) * 8) - 1);
@@ -452,7 +461,7 @@ main_thread_fn()
     const qint64 max_debt_ns = 50000000LL;
     frames                   = 0;
     debt_ns                  = 0;
-    is_cpu_thread             = 1;
+    is_cpu_thread            = 1;
     while (!is_quit && cpu_thread_run) {
         /* See if it is time to run a frame of code. */
         const qint64 new_ns = elapsed_timer.nsecsElapsed();
@@ -755,6 +764,10 @@ main(int argc, char *argv[])
 
 #ifdef DISCORD
     discord_load();
+#endif
+
+#ifdef Q_OS_MACOS
+    exit_pause();
 #endif
 
 #ifdef Q_OS_WINDOWS

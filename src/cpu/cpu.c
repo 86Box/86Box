@@ -134,6 +134,8 @@ const OpFn *x86_opcodes_de_a16;
 const OpFn *x86_opcodes_de_a32;
 const OpFn *x86_opcodes_df_a16;
 const OpFn *x86_opcodes_df_a32;
+const OpFn *x86_opcodes_REPE_286;
+const OpFn *x86_opcodes_REPNE_286;
 const OpFn *x86_opcodes_REPE;
 const OpFn *x86_opcodes_REPNE;
 const OpFn *x86_opcodes_3DNOW;
@@ -156,6 +158,8 @@ const OpFn *x86_2386_opcodes_de_a16;
 const OpFn *x86_2386_opcodes_de_a32;
 const OpFn *x86_2386_opcodes_df_a16;
 const OpFn *x86_2386_opcodes_df_a32;
+const OpFn *x86_2386_opcodes_REPE_286;
+const OpFn *x86_2386_opcodes_REPNE_286;
 const OpFn *x86_2386_opcodes_REPE;
 const OpFn *x86_2386_opcodes_REPNE;
 
@@ -175,6 +179,23 @@ int cpu_prefetch_width;
 int cpu_mem_prefetch_cycles;
 int cpu_rom_prefetch_cycles;
 int cpu_waitstates;
+int io_waitstates; /* Extra cycles added to IN/OUT instruction timing (x86_ops_io.h) -
+                       cpu_waitstates only ever throttles memory bus cycles; this covers
+                       I/O port cycles, which real ISA-bus hardware paces at a fixed bus
+                       clock independent of an accelerator CPU's own speed. Set by
+                       devices like inboard386.c that need to compensate for a fast CPU
+                       core executing I/O-bound timing loops (BIOS self-tests etc.)
+                       written assuming genuine 8088-class per-instruction throughput. */
+int reg_op_waitstates; /* Extra cycles added to pure register/branch instruction timing
+                           (currently just LOOP, x86_ops_jump.h) - covers the case where a
+                           period BIOS/driver delay or self-test loop is built entirely from
+                           register-only instructions (no memory or I/O access at all), so
+                           neither cpu_waitstates nor io_waitstates apply. A 386+-class core
+                           executes these natively far faster per cycle than an 8088 even at
+                           a matched clock, so a pure LOOP-based delay calibrated for genuine
+                           8088 timing finishes far too quickly on an accelerated CPU unless
+                           this is compensated too. Set by inboard386.c the same way as
+                           io_waitstates. */
 int cpu_cache_int_enabled;
 int cpu_cache_ext_enabled;
 int cpu_flush_pending;
@@ -185,6 +206,7 @@ int cpu_isa_pci_div;
 int cpu_agp_speed;
 int cpu_alt_reset;
 
+int cpu_dyn_accurate_fpu_env;
 int cpu_override;
 int cpu_effective;
 int cpu_multi;
@@ -403,6 +425,10 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 
     bus_speed = cpu_s->rspeed / cpu_s->multi;
 
+    /* The IBM PC 700 firmware has no speed entry for the 50 MHz / 2x setting. */
+    if ((machine_s->init == machine_at_ibm_pc700_init) && (bus_speed == 50000000) && (cpu_s->multi == 2.0))
+        return 0;
+
     /* Minimum bus speed with ~0.84 MHz (for 8086) tolerance. */
     if (machine_s->cpu.min_bus && (bus_speed < (machine_s->cpu.min_bus - 840907)))
         return 0;
@@ -510,6 +536,9 @@ SF_FPU_reset(void)
 void
 cpu_set(void)
 {
+    if (cpu_f == NULL)
+        return;
+
     cpu_inited = 1;
 
     cpu_effective = cpu;
@@ -596,15 +625,15 @@ cpu_set(void)
     x86_setopcodes(ops_386, ops_386_0f);
 #endif /* USE_DYNAREC */
     x86_setopcodes_2386(ops_2386_386, ops_2386_386_0f);
-    x86_opcodes_REPE       = ops_REPE;
-    x86_opcodes_REPNE      = ops_REPNE;
-    x86_2386_opcodes_REPE  = ops_2386_REPE;
-    x86_2386_opcodes_REPNE = ops_2386_REPNE;
-    x86_opcodes_3DNOW      = ops_3DNOW;
+    x86_opcodes_REPE           = ops_REPE;
+    x86_opcodes_REPNE          = ops_REPNE;
+    x86_2386_opcodes_REPE      = ops_2386_REPE;
+    x86_2386_opcodes_REPNE     = ops_2386_REPNE;
+    x86_opcodes_3DNOW          = ops_3DNOW;
 #ifdef USE_DYNAREC
-    x86_dynarec_opcodes_REPE  = dynarec_ops_REPE;
-    x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
-    x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOW;
+    x86_dynarec_opcodes_REPE   = dynarec_ops_REPE;
+    x86_dynarec_opcodes_REPNE  = dynarec_ops_REPNE;
+    x86_dynarec_opcodes_3DNOW  = dynarec_ops_3DNOW;
 #endif /* USE_DYNAREC */
 
     if (hasfpu) {
@@ -778,6 +807,7 @@ cpu_set(void)
     cpu_cyrix_alignment = 0;
     cpu_cpurst_on_sr    = 0;
     cpu_CR4_mask        = 0;
+    cpu_features        = 0;
 
     switch (cpu_s->cpu_type) {
         case CPU_8088:
@@ -804,6 +834,11 @@ cpu_set(void)
             x86_setopcodes(ops_286, ops_286_0f);
 #endif /* USE_DYNAREC */
             x86_setopcodes_2386(ops_2386_286, ops_2386_286_0f);
+
+            x86_opcodes_REPE           = ops_REPE_286;
+            x86_opcodes_REPNE          = ops_REPNE_286;
+            x86_2386_opcodes_REPE      = ops_2386_REPE_286;
+            x86_2386_opcodes_REPNE     = ops_2386_REPNE_286;
 
             if (fpu_type == FPU_287) {
 #ifdef USE_DYNAREC
@@ -1543,9 +1578,9 @@ cpu_set(void)
             if (cpu_s->cpu_type >= CPU_CxGX1)
                 cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_CR4;
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
-                cpu_features |= CPU_FEATURE_MMX;
-            if (cpu_s->cpu_type >= CPU_CxGX1)
-                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
+                cpu_features |= CPU_FEATURE_MMX | CPU_FEATURE_CR4;
+            if ((cpu_s->cpu_type >= CPU_CxGX1) || (cpu_s->cpu_type == CPU_Cx6x86MX))
+                cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE | CR4_PGE;
 
 #    ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_686);
@@ -1916,7 +1951,15 @@ cpu_set_pci_speed(int speed)
     else if (speed)
         pc_speed_changed();
 
-    pci_burst_time    = cpu_s->rspeed / cpu_pci_speed;
+    if (cpu_pci_speed == 0)
+            pci_burst_time    = 2;
+    else {
+        if (cpu_s == NULL)
+            pci_burst_time    = 66666667 / cpu_pci_speed;
+        else
+            pci_burst_time    = cpu_s->rspeed / cpu_pci_speed;
+    }
+
     pci_nonburst_time = 4 * pci_burst_time;
 
     cpu_log("cpu_set_pci_speed(%d) = %d\n", speed, cpu_pci_speed);
@@ -1948,7 +1991,15 @@ cpu_set_agp_speed(int speed)
     else
         cpu_agp_speed = cpu_busspeed / 2;
 
-    agp_burst_time    = cpu_s->rspeed / cpu_agp_speed;
+    if (cpu_agp_speed == 0)
+        agp_burst_time    = 1;
+    else {
+        if (cpu_s == NULL)
+            agp_burst_time    = 66666667 / cpu_agp_speed;
+        else
+            agp_burst_time    = cpu_s->rspeed / cpu_agp_speed;
+    }
+
     agp_nonburst_time = 4 * agp_burst_time;
 
     cpu_log("cpu_set_agp_speed(%d) = %d\n", speed, cpu_agp_speed);
@@ -2439,7 +2490,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_PGE;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2453,7 +2504,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX;
+                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX | CPUID_PGE;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -4476,44 +4527,46 @@ x86_setopcodes_2386(const OpFn *opcodes, const OpFn *opcodes_0f)
 void
 cpu_update_waitstates(void)
 {
-    cpu_s = (CPU *) &cpu_f->cpus[cpu_effective];
+    if (cpu_f != NULL) {
+        cpu_s = (CPU *) &cpu_f->cpus[cpu_effective];
 
-    if (is486)
-        cpu_prefetch_width = 16;
-    else
-        cpu_prefetch_width = cpu_16bitbus ? 2 : 4;
+        if (is486)
+            cpu_prefetch_width = 16;
+        else
+            cpu_prefetch_width = cpu_16bitbus ? 2 : 4;
 
-    if (cpu_cache_int_enabled) {
-        /* Disable prefetch emulation */
-        cpu_prefetch_cycles = 0;
-    } else if (cpu_cache_ext_enabled) {
-        /* Use cache timings */
-        cpu_prefetch_cycles = cpu_s->cache_read_cycles;
-        cpu_cycles_read     = cpu_s->cache_read_cycles;
-        cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * cpu_s->cache_read_cycles;
-        cpu_cycles_write    = cpu_s->cache_write_cycles;
-        cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * cpu_s->cache_write_cycles;
-    } else if (cpu_waitstates && (cpu_s->cpu_type >= CPU_286 && cpu_s->cpu_type <= CPU_386DX)) {
-        /* Waitstates override */
-        cpu_prefetch_cycles = cpu_waitstates + 1;
-        cpu_cycles_read     = cpu_waitstates + 1;
-        cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
-        cpu_cycles_write    = cpu_waitstates + 1;
-        cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
-    } else {
-        /* Use memory timings */
-        cpu_prefetch_cycles = cpu_s->mem_read_cycles;
-        cpu_cycles_read     = cpu_s->mem_read_cycles;
-        cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * cpu_s->mem_read_cycles;
-        cpu_cycles_write    = cpu_s->mem_write_cycles;
-        cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * cpu_s->mem_write_cycles;
+        if (cpu_cache_int_enabled) {
+            /* Disable prefetch emulation */
+            cpu_prefetch_cycles = 0;
+        } else if (cpu_cache_ext_enabled) {
+            /* Use cache timings */
+            cpu_prefetch_cycles = cpu_s->cache_read_cycles;
+            cpu_cycles_read     = cpu_s->cache_read_cycles;
+            cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * cpu_s->cache_read_cycles;
+            cpu_cycles_write    = cpu_s->cache_write_cycles;
+            cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * cpu_s->cache_write_cycles;
+        } else if (cpu_waitstates && (cpu_s->cpu_type >= CPU_286 && cpu_s->cpu_type <= CPU_386DX)) {
+            /* Waitstates override */
+            cpu_prefetch_cycles = cpu_waitstates + 1;
+            cpu_cycles_read     = cpu_waitstates + 1;
+            cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
+            cpu_cycles_write    = cpu_waitstates + 1;
+            cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * (cpu_waitstates + 1);
+        } else {
+            /* Use memory timings */
+            cpu_prefetch_cycles = cpu_s->mem_read_cycles;
+            cpu_cycles_read     = cpu_s->mem_read_cycles;
+            cpu_cycles_read_l   = (cpu_16bitbus ? 2 : 1) * cpu_s->mem_read_cycles;
+            cpu_cycles_write    = cpu_s->mem_write_cycles;
+            cpu_cycles_write_l  = (cpu_16bitbus ? 2 : 1) * cpu_s->mem_write_cycles;
+        }
+
+        if (is486)
+            cpu_prefetch_cycles = (cpu_prefetch_cycles * 11) / 16;
+
+        cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
+
+        if (cpu_s->rspeed <= 8000000)
+            cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
     }
-
-    if (is486)
-        cpu_prefetch_cycles = (cpu_prefetch_cycles * 11) / 16;
-
-    cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
-
-    if (cpu_s->rspeed <= 8000000)
-        cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
 }

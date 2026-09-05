@@ -59,6 +59,7 @@ add_library(chipset OBJECT
     opti822.c
     opti895.c
     opti5x7.c
+    opti55x.c
     philips.c
     sanyo.c
     scamp.c
@@ -69,6 +70,8 @@ add_library(chipset OBJECT
     sis_85c50x.c
     sis_5511.c
     sis_5571.c
+    sis_530.c
+    sis_530_h2p.c
     sis_5581.c
     sis_5591.c
     sis_5600.c

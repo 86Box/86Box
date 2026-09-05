@@ -650,6 +650,11 @@ OsdExplorer::ResolveTypedPath(fs::path *path, bool *is_directory, bool *is_file)
 
     std::string typed = filename_input_.data();
 
+    /* Don't accept ".." as target directory to mount */
+    if (config_.mode == OsdExplorerMode::Directory)
+        if (typed == "..")
+            return false;
+
     const fs::path typed_path(typed);
     fs::path       resolved_path = typed_path;
     if (!typed_path.is_absolute())
@@ -746,6 +751,15 @@ OsdExplorer::BuildAcceptedPath(fs::path *path) const
             if (entry->kind == EntryKind::Directory || entry->kind == EntryKind::Drive) {
                 *path = entry->path;
                 return true;
+            }
+
+            /* Selecting ".." should not mount the parent */
+            if (entry->kind == EntryKind::Parent) {
+                if (!current_path_.empty()) {
+                    *path = current_path_;
+                    return true;
+                }
+                return false;
             }
         }
 

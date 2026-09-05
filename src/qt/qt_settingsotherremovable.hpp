@@ -54,6 +54,7 @@ private:
     void setRDiskBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type, uint8_t channel);
     void setRDiskType(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type);
     void setTapeBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t channel);
+    void updateTapeTypeCombo();
     void enableCurrentlySelectedChannel_MO();
     void enableCurrentlySelectedChannel_RDisk();
     void enableCurrentlySelectedChannel_Tape();
@@ -63,6 +64,7 @@ private:
     QIcon rdisk_disabled_icon;
     QIcon rdisk_icon;
     QIcon zip_icon;
+    QIcon jaz_icon;
     QIcon tape_disabled_icon;
     QIcon tape_icon;
 

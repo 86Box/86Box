@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-06-16 17:51+0000\n"
+"PO-Revision-Date: 2026-08-27 20:33+0000\n"
 "Last-Translator: David Hrdlička <hrdlickadavid@outlook.com>\n"
 "Language-Team: Czech <https://weblate.86box.net/projects/86box/86box/cs/>\n"
 "Language: cs-CZ\n"
@@ -66,11 +66,14 @@ msgstr "&Renderer"
 msgid "&Qt (Software)"
 msgstr "&Qt (Software)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL"
+msgstr "Open&GL"
 
-msgid "&VNC"
-msgstr "&VNC"
+msgid "&Vulkan"
+msgstr "&Vulkan"
+
+msgid "V&NC"
+msgstr "V&NC"
 
 msgid "Specify &dimensions…"
 msgstr "&Zadat velikost…"
@@ -420,8 +423,11 @@ msgstr "Zapnuta (UTC)"
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Použít interpreter 486 pro procesory 286 a 386"
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
 msgstr "Dynamický překladač"
+
+msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr "Přesnější FPU prostředí při dynamickém překladu"
 
 msgid "CPU frame size"
 msgstr "Velikost CPU rámců"
@@ -453,6 +459,9 @@ msgstr "Povolit grafický adaptér XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Povolit grafický adaptér IBM PS/55"
 
+msgid "SCSI:"
+msgstr "SCSI:"
+
 msgid "Voodoo:"
 msgstr "Voodoo:"
 
@@ -467,6 +476,21 @@ msgstr "Myš:"
 
 msgid "Mouse"
 msgstr "Myš"
+
+msgid "&Mouse"
+msgstr "&Myš"
+
+msgid "Tablet:"
+msgstr "Tablet:"
+
+msgid "Tablet"
+msgstr "Tablet"
+
+msgid "&Tablet"
+msgstr "&Tablet"
+
+msgid "Tablet (&Crosshair)"
+msgstr "Tablet (&křížový kurzor)"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -828,6 +852,9 @@ msgstr "Obraz"
 msgid "Input devices"
 msgstr "Vstupní zařízení"
 
+msgid "Input &device"
+msgstr "Vstupní &zařízení"
+
 msgid "Sound"
 msgstr "Zvuk"
 
@@ -836,6 +863,9 @@ msgstr "Síť"
 
 msgid "Ports (COM & LPT)"
 msgstr "COM a LPT porty"
+
+msgid "Port"
+msgstr "Port"
 
 msgid "Ports"
 msgstr "Porty"
@@ -1264,6 +1294,10 @@ msgstr "Nebylo možné otevřít vybraný konfigurační soubor pro čtení: %1"
 msgid "Use regular expressions in search box"
 msgstr "Použít ve vyhledávacím poli regulární výrazy"
 
+#, fuzzy
+msgid "Delete virtual machines to Recycle Bin"
+msgstr "Přesunout smazané virtuální počítače do koše"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n počítač je stále aktivní. Opravdu chcete ukončit správce virtuálních počítačů?"
@@ -1439,8 +1473,11 @@ msgstr "Ukončení virtuálního počítače může způsobit ztrátu dat. Prove
 msgid "&Delete"
 msgstr "&Odstranit"
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
-msgstr "Opravdu chcete odstranit virtuální počítač \"%1\" a všechny jeho soubory? Tuto akci nelze vrátit zpět!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr "Opravdu chcete odstranit virtuální počítač \"%1\" a všechny jeho soubory?"
+
+msgid "This action cannot be undone!"
+msgstr "Tuto akci nelze vrátit zpět!"
 
 msgid "Show &config file"
 msgstr "Zobrazit &konfigurační soubor"
@@ -1480,6 +1517,18 @@ msgstr "Vypnout skrze rozhraní ACPI"
 
 msgid "ACP&I shutdown"
 msgstr "Vypnout skrze rozhraní ACP&I"
+
+msgid "Power off"
+msgstr "Vypnout"
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
+msgstr ""
 
 msgid "Hard disk (%1)"
 msgstr "Pevný disk (%1)"
@@ -2272,6 +2321,9 @@ msgstr "Sériové číslo"
 msgid "Host ID"
 msgstr "ID hostitele"
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr "Adresa FDC"
 
@@ -2703,6 +2755,18 @@ msgstr "Rozšířený barevný - normální režim (5154/ECD)"
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr "Rozšířený barevný - rozšířený režim (5154/ECD)"
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr "IBM 8507 (1024x768, monochromatický)"
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr "IBM 8514 (1024x768, barevný)"
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr "IBM 8503 (640x480, monochromatický)"
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr "IBM 8512/13 (640x480, barevný)"
+
 msgid "Green"
 msgstr "Zelený"
 
@@ -2955,6 +3019,9 @@ msgstr "Vyžadovat potvrzení před resetováním"
 msgid "Ask for confirmation before quitting"
 msgstr "Vyžadovat potvrzení před ukončením"
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr "Možnosti"
 
@@ -2966,6 +3033,24 @@ msgstr "Model:"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Selhala inicializace rendereru Vulkan."
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
+msgstr ""
 
 msgid "GLSL Error"
 msgstr "Chyba GLSL"
@@ -2987,6 +3072,9 @@ msgstr "Správce shaderů"
 
 msgid "Shader Configuration"
 msgstr "Konfigurace shaderu"
+
+msgid "GPU:"
+msgstr ""
 
 msgid "Add"
 msgstr "Přidat"
@@ -3261,6 +3349,12 @@ msgstr "&Zrychlit"
 msgid "Fast forward"
 msgstr "Zrychlit"
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr "Před změnou systémového adresáře nejprve zastavte všechny běžící počítače."
 
@@ -3292,6 +3386,9 @@ msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon 
 msgstr ""
 "Nebylo možné načíst obraz \"%s\": nebyla nalezena knihovna %1, která je "
 "potřeba pro podporu obrazů v Daemon Tools formátech MDS v2 a MDX."
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
+msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
 msgstr ""
@@ -3438,3 +3535,9 @@ msgstr "938 (klasická čínština)"
 
 msgid "Sample rate:"
 msgstr "Vzorkovací frekvence:"
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
+msgstr ""
