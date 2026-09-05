@@ -45,6 +45,10 @@
 #define MOUSE_TYPE_QPORT     0x40 /* Mouse is an on-board version of one of the above. */
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
+/* Masks returned by mouse_get_release_buttons(). */
+#define MOUSE_RELEASE_MIDDLE 0x04 /* Middle button */
+#define MOUSE_RELEASE_THUMB  0x18 /* Thumb buttons (buttons 4 and 5) */
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -133,6 +137,7 @@ extern const device_t *mouse_get_device(int mouse);
 extern const device_t *tablet_get_device(int mouse);
 #endif
 extern int             mouse_get_buttons(void);
+extern int             mouse_get_release_buttons(void);
 extern int             mouse_get_ndev(void);
 extern int             tablet_get_ndev(void);
 extern void            mouse_set_raw(int raw);

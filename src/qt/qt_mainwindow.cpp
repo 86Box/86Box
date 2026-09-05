@@ -1158,7 +1158,16 @@ MainWindow::updateShortcuts()
 void
 MainWindow::updateMouseStrings()
 {
-    mouseStringCaptured = tr(mouse_get_buttons() > 2 ? "Press %1 to release mouse" : "Press %1 or middle button to release mouse").arg(QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText));
+    const int     release_buttons = mouse_get_release_buttons();
+    const QString seq             = QKeySequence(acc_keys[FindAccelerator("release_mouse")].seq, QKeySequence::PortableText).toString(QKeySequence::NativeText);
+
+    if (release_buttons & MOUSE_RELEASE_MIDDLE)
+        mouseStringCaptured = tr("Press %1 or middle button to release mouse").arg(seq);
+    else if (release_buttons & MOUSE_RELEASE_THUMB)
+        mouseStringCaptured = tr("Press %1 or thumb button to release mouse").arg(seq);
+    else
+        mouseStringCaptured = tr("Press %1 to release mouse").arg(seq);
+
     mouseStringUncaptured = tr("Click to capture mouse");
 }
 
