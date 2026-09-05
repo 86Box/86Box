@@ -777,7 +777,7 @@ machine_at_in530_init(const machine_t *model)
      *   device 0Ah - PCI slot 2
      *   device 0Bh - PCI slot 3
      *   device 0Ch - on-board ESS ES1938S Solo-1
-     */
+    */
     pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
@@ -786,6 +786,40 @@ machine_at_in530_init(const machine_t *model)
     device_add(&sis_530_device);
     device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
     device_add(&amd_flash_29f002nbt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
+machine_at_aptiva2187_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/aptiva2187/tp110320.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 5);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_VIDEO,           1, 2, 3, 4); /* guess */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_SOUND,           1, 2, 3, 4);
+
+    device_add(&sis_530_device);
+    device_add(&it8661f_device);
+    device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
