@@ -1201,9 +1201,12 @@ device_is_valid(const device_t *device, int mch)
     int ret = 1;
 
     if ((device != NULL) && ((device->flags & DEVICE_BUS) != 0)) {
-        /* Hide PCI devices on machines with only an internal PCI bus. */
+        /* Hide PCI or AGP devices on machines with only an internal PCI or AGP bus. */
         if ((device->flags & DEVICE_PCI) &&
             machine_has_flags(mch, MACHINE_PCI_INTERNAL))
+            ret = 0;
+        else if ((device->flags & DEVICE_AGP) &&
+                 machine_has_flags_64(mch, MACHINE_AGP_INTERNAL))
             ret = 0;
         else
             ret = machine_has_bus(mch, device->flags & DEVICE_BUS);

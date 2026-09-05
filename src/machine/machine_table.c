@@ -25393,6 +25393,19 @@ machine_has_flags(int m, uintptr_t flags)
     return ret;
 }
 
+uintptr_t
+machine_has_flags_64(int m, uintptr_t flags)
+{
+    uintptr_t ret = machines[m].flags & flags;
+
+    /* Can't have PS/2 ports with an AT KBC. */
+    if ((flags & MACHINE_PS2_KBC) &&
+        (machines[m].bus_flags & MACHINE_BUS_PS2_PORTS))
+        ret |= MACHINE_PS2_KBC;
+
+    return ret;
+}
+
 void
 machine_set_ps2(void)
 {
