@@ -16725,6 +16725,55 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "HP Chimay", "" }
     },
+    /* IBM's 6877 and 6887 share the same planar and differ in chassis/riser capacity. It was also seen with a i430JX chipset. */
+    {
+        .name              = "[i430FX] IBM PC 7x0 (type 68x7)",
+        .internal_name     = "ibm_pc700_6877_6887",
+        .type              = MACHINE_TYPE_SOCKET7_3V,
+        .chipset           = MACHINE_CHIPSET_INTEL_430FX,
+        .init              = machine_at_ibm_pc700_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = machine_at_ibm_pc700_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86, CPU_WINCHIP, CPU_WINCHIP2, CPU_PENTIUMMMX),
+            .min_bus     = 50000000,
+            .max_bus     = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi   = 1.5,
+            .max_multi   = 2.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
+        .ram       = {
+            .min  = 16384, /* 16mb memory is onboard */
+            .max  = 131072,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
+        .default_jumpered_ecp_dma = 3,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        /* RTC/NVR is on the PC87306 Super I/O. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000044f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &s3_trio64vplus_onboard_pci_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "IBM PC 730 type 6877", "IBM PC 750 type 6887", "IBM PC 700", "" }
+    },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
@@ -17170,56 +17219,6 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "Suk Jung SJ-PENTIUM FX", "" }
-    },
-
-    /* IBM's 6877 and 6887 share the same planar and differ in chassis/riser capacity. */
-    {
-        .name              = "[i430FX] IBM PC 730/750 (type 6877/6887)",
-        .internal_name     = "ibm_pc700_6877_6887",
-        .type              = MACHINE_TYPE_SOCKET7_3V,
-        .chipset           = MACHINE_CHIPSET_INTEL_430FX,
-        .init              = machine_at_ibm_pc700_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = machine_at_ibm_pc700_gpio_handler,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK(CPU_K5, CPU_5K86, CPU_Cx6x86, CPU_WINCHIP, CPU_WINCHIP2, CPU_PENTIUMMMX),
-            .min_bus     = 50000000,
-            .max_bus     = 66666667,
-            .min_voltage = 3380,
-            .max_voltage = 3520,
-            .min_multi   = 1.5,
-            .max_multi   = 2.5
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
-        .ram       = {
-            .min  = 16384,
-            .max  = 131072,
-            .step = 8192
-        },
-        .nvrmask                  = 255,
-        .jumpered_ecp_dma         = MACHINE_DMA_DISABLED | MACHINE_DMA_1 | MACHINE_DMA_3,
-        .default_jumpered_ecp_dma = 3,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        /* RTC/NVR is on the PC87306 Super I/O. */
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000044f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = &s3_trio64vplus_onboard_pci_device,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "IBM PC 730 type 6877", "IBM PC 750 type 6887", "IBM PC 700", "" }
     },
     /* 430HX */
     /* Has SST Flash. */
@@ -23514,8 +23513,8 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* AGP is reserved for the internal video */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* AGP is reserved for the internal video */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_AGP_INTERNAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -23563,8 +23562,8 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* AGP is reserved for the internal video */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* AGP is reserved for the internal video */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_AGP_INTERNAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -24418,9 +24417,9 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0 /* limits assumed */
         },
-        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB, /* Machine has EISA, possibly for a riser? */
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Machine has EISA, possibly for a riser? */
                                                         /* Yes, that's a riser slot, not EISA. */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_VIDEO, /* Machine has internal video: C&T B69000, sound: ESS ES1938S (Solo-1) and NIC: Realtek RTL8139C */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_AGP_INTERNAL | MACHINE_VIDEO, /* Machine has internal video: C&T B69000, sound: ESS ES1938S (Solo-1) and NIC: Realtek RTL8139C */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -24569,7 +24568,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
         .ram       = {
-            .min  = 16384,
+            .min  = 16384, /* Machine does not start (hang) with 8mb memory */
             .max  = 524288,
             .step = 8192
         },
