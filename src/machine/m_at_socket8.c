@@ -72,7 +72,7 @@ machine_at_ap61_init(const machine_t *model)
     return ret;
 }
 
-static const device_config_t performanceau_config[] = {
+static const device_config_t aurora_config[] = {
     // clang-format off
     {
         .name           = "bios",
@@ -91,9 +91,9 @@ static const device_config_t performanceau_config[] = {
                 .files_no      = 5,
                 .local         = 0,
                 .size          = 262144,
-                .files         = { "roms/machines/performanceau/1001CG0Q.BIO", "roms/machines/performanceau/1001CG0Q.BI1",
-                                   "roms/machines/performanceau/1001CG0Q.BI2", "roms/machines/performanceau/1001CG0Q.BI3",
-                                   "roms/machines/performanceau/1001CG0Q.RCV", "" }
+                .files         = { "roms/machines/aurora/1001CG0Q.BIO", "roms/machines/aurora/1001CG0Q.BI1",
+                                   "roms/machines/aurora/1001CG0Q.BI2", "roms/machines/aurora/1001CG0Q.BI3",
+                                   "roms/machines/aurora/1001CG0Q.RCV", "" }
             },
             {
                 .name          = "Intel AMIBIOS - Revision 1.00.01.CG0P (Compaq ProLinea 6xxxe)",
@@ -102,9 +102,9 @@ static const device_config_t performanceau_config[] = {
                 .files_no      = 5,
                 .local         = 0,
                 .size          = 262144,
-                .files         = { "roms/machines/performanceau/1001CG0P.BIO", "roms/machines/performanceau/1001CG0P.BI1",
-                                   "roms/machines/performanceau/1001CG0P.BI2", "roms/machines/performanceau/1001CG0P.BI3",
-                                   "roms/machines/performanceau/1001CG0P.RCV", "" }
+                .files         = { "roms/machines/aurora/1001CG0P.BIO", "roms/machines/aurora/1001CG0P.BI1",
+                                   "roms/machines/aurora/1001CG0P.BI2", "roms/machines/aurora/1001CG0P.BI3",
+                                   "roms/machines/aurora/1001CG0P.RCV", "" }
             },
             { .files_no = 0 }
         }
@@ -113,9 +113,9 @@ static const device_config_t performanceau_config[] = {
     // clang-format on
 };
 
-const device_t performanceau_device = {
+const device_t aurora_device = {
     .name          = "Intel Performance/AU",
-    .internal_name = "performanceau",
+    .internal_name = "aurora",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,
@@ -124,11 +124,11 @@ const device_t performanceau_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = performanceau_config
+    .config        = aurora_config
 };
 
 int
-machine_at_performanceau_init(const machine_t *model)
+machine_at_aurora_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn[5];

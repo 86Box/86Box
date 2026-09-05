@@ -1310,9 +1310,9 @@ extern int             machine_at_5sg100_init(const machine_t *);
 /* i450KX */
 extern int             machine_at_ap61_init(const machine_t *);
 #ifdef EMU_DEVICE_H
-extern const device_t  performanceau_device;
+extern const device_t  aurora_device;
 #endif
-extern int             machine_at_performanceau_init(const machine_t *);
+extern int             machine_at_aurora_init(const machine_t *);
 
 /* i450GX */
 #ifdef EMU_DEVICE_H
