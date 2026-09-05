@@ -40,7 +40,7 @@
                         "zstd",
                         {
                             "name": "windeployqt",
-                            "platform": "windows"
+                            "platform": "windows & !static"
                         }
                     ]
                 },
