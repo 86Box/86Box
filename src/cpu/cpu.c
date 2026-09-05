@@ -425,6 +425,10 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 
     bus_speed = cpu_s->rspeed / cpu_s->multi;
 
+    /* The IBM PC 700 firmware has no speed entry for the 50 MHz / 2x setting. */
+    if ((machine_s->init == machine_at_ibm_pc700_init) && (bus_speed == 50000000) && (cpu_s->multi == 2.0))
+        return 0;
+
     /* Minimum bus speed with ~0.84 MHz (for 8086) tolerance. */
     if (machine_s->cpu.min_bus && (bus_speed < (machine_s->cpu.min_bus - 840907)))
         return 0;
