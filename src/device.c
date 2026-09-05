@@ -245,6 +245,10 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
         { .old = "Gravis/Synergy Vipermax", .new = "Synergy ViperMAX" },
         { .old = "Colorplus", .new = "Plantronics Colorplus" },
+        { .old = "Sound Blaster PCI 128 (ES1373)", .new = "Creative Sound Blaster PCI 128 (ES1373)" },
+        { .old = "Sound Blaster PCI 128 (ES1373) (On-Board)", .new = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)" },
+        { .old = "Sound Blaster PCI 4.1 (CT5880)", .new = "Creative Sound Blaster PCI 4.1 (CT5880)" },
+        { .old = "Sound Blaster PCI 4.1 (CT5880) (On-Board)", .new = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)" },
         { 0 }
     };
 
