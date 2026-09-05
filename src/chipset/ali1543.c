@@ -36,6 +36,7 @@
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/plat_unused.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/port_92.h>
 #include <86box/sio.h>
 #include <86box/smbus.h>
@@ -44,6 +45,7 @@
 #include <86box/acpi.h>
 
 #include <86box/chipset.h>
+#include <86box/flash.h>
 
 typedef struct ali1543_t {
     uint8_t mirq_states[8];
@@ -70,6 +72,7 @@ typedef struct ali1543_t {
     smbus_ali7101_t *smbus;
     usb_t           *usb;
 
+    pc_timer_t wdt_timer;
 } ali1543_t;
 
 int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
@@ -1267,6 +1270,18 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pmu_conf[addr] = val & 0x02;
             break;
 
+        case 0x92:
+            if (dev->type == 1) {
+                if (val & 0x01) {
+                    if (!(dev->pmu_conf[addr] & 0x01))
+                        timer_set_delay_u64(&dev->wdt_timer, (uint64_t) (((val & 0x02) ? 1000000 : 1000) * TIMER_USEC));
+                } else if (dev->pmu_conf[addr] & 0x01) {
+                    timer_disable(&dev->wdt_timer);
+                }
+                dev->pmu_conf[addr] = val & 0x07;
+            }
+            break;
+
         case 0x94:
             dev->pmu_conf[addr] = val & 0xf0;
             break;
@@ -1303,6 +1318,11 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0xb8:
+#ifdef FUTURE_STUFF
+            if (dev->type == 1)
+                flash_e28f0xx_qube3_update(val);
+            fallthrough;
+#endif
         case 0xb9:
             if (dev->type == 1)
                 dev->pmu_conf[addr] = val;
@@ -1480,6 +1500,17 @@ ali7101_read(int func, int addr, UNUSED(int len), void *priv)
 }
 
 static void
+ali7101_wdt_timer(void *priv)
+{
+    const ali1543_t *dev = (ali1543_t *) priv;
+
+    if (dev->pmu_conf[0x92] & 0x01) {
+        ali1543_log("M7101: watchdog expired, resetting\n");
+        pci_write(0xcf9, 0x06, NULL);
+    }
+}
+
+static void
 ali1543_reset(void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
@@ -1605,6 +1636,7 @@ ali1543_init(const device_t *info)
     /* ACPI */
     dev->acpi = device_add(&acpi_ali_device);
     dev->nvr  = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4);
+    timer_add(&dev->wdt_timer, ali7101_wdt_timer, dev, 0);
 
     /* DMA */
     dma_alias_set();
