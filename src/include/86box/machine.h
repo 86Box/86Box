@@ -1177,6 +1177,10 @@ extern int             machine_at_epc2102_init(const machine_t *);
 extern int             machine_at_pcv90_init(const machine_t *);
 extern int             machine_at_p55t2s_init(const machine_t *);
 
+/* IBM PC 730/750 (types 6877/6887) */
+extern uint32_t         machine_at_ibm_pc700_gpio_handler(uint8_t write, uint32_t val);
+extern int             machine_at_ibm_pc700_init(const machine_t *);
+
 /* i430VX */
 extern int             machine_at_ap5vm_init(const machine_t *);
 extern int             machine_at_p55tvp4_init(const machine_t *);
