@@ -1104,7 +1104,7 @@ solo1_close(void *priv)
 }
 
 const device_t ess_solo1_device = {
-    .name          = "ESS Solo-1",
+    .name          = "ESS Solo-1 ES1938S",
     .internal_name = "ess_solo1",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -1119,7 +1119,7 @@ const device_t ess_solo1_device = {
 };
 
 const device_t ess_solo1_onboard_device = {
-    .name          = "ESS Solo-1 (On-Board)",
+    .name          = "ESS Solo-1 ES1938S (On-Board)",
     .internal_name = "ess_solo1_onboard",
     .flags         = DEVICE_PCI,
     .local         = 1,
