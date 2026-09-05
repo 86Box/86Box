@@ -331,6 +331,36 @@ timer_onesec(UNUSED(void *param), UNUSED(SDL_TimerID timerID), uint32_t interval
     return interval;
 }
 
+/* Convert an SDL button number to a mouse_get_buttons_ex() mask. */
+static int
+sdl_mouse_buttonmask(uint8_t button)
+{
+    int ret;
+
+    switch (button) {
+        case SDL_BUTTON_LEFT:
+            ret = 1;
+            break;
+        case SDL_BUTTON_RIGHT:
+            ret = 2;
+            break;
+        case SDL_BUTTON_MIDDLE:
+            ret = 4;
+            break;
+        case SDL_BUTTON_X1:
+            ret = 8;
+            break;
+        case SDL_BUTTON_X2:
+            ret = 16;
+            break;
+        default:
+            ret = 0;
+            break;
+    }
+
+    return ret;
+}
+
 extern int gfxcard[GFXCARD_MAX];
 int
 main(int argc, char **argv)
@@ -521,27 +551,10 @@ main(int argc, char **argv)
                                 break;
                             }
                             if (mouse_capture || video_fullscreen) {
-                                int buttonmask = 0;
+                                int buttonmask = sdl_mouse_buttonmask(event.button.button);
 
-                                switch (event.button.button) {
-                                    case SDL_BUTTON_LEFT:
-                                        buttonmask = 1;
-                                        break;
-                                    case SDL_BUTTON_RIGHT:
-                                        buttonmask = 2;
-                                        break;
-                                    case SDL_BUTTON_MIDDLE:
-                                        buttonmask = 4;
-                                        break;
-                                    case SDL_BUTTON_X1:
-                                        buttonmask = 8;
-                                        break;
-                                    case SDL_BUTTON_X2:
-                                        buttonmask = 16;
-                                        break;
-                                    default:
-                                        printf("Unknown mouse button %d\n", event.button.button);
-                                }
+                                if (buttonmask == 0)
+                                    printf("Unknown mouse button %d\n", event.button.button);
                                 SDL_LockMutex(mousemutex);
 #ifdef USE_SDL2_LIB
                                 if (event.button.state == SDL_PRESSED)
