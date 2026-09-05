@@ -249,6 +249,7 @@ extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
 extern int    gdbstub_port;                 /* (C) The GDB stub port. */
+extern int    memdump_port;                 /* (C) The memory-dump server port. */
 
 extern char exe_path[2048];        /* path (dir) of executable */
 extern char usr_path[1024];        /* path (dir) of user data */

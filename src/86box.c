@@ -47,6 +47,7 @@
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/mem.h>
+#include <86box/memdump.h>
 #include "cpu.h"
 #ifdef USE_DYNAREC
 #    include "codegen_public.h"
@@ -235,6 +236,7 @@ int      fdd_sounds_enabled = 1;                                  /* (C) Floppy 
 int      is_new_808x = 0;                                         /* (C) Use the new 808x code. */
 
 int      gdbstub_port = 12345;                                    /* (C) The GDB stub port. */
+int      memdump_port = 0;                                       /* (C) The memory-dump server port (0 = disabled). */
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
@@ -1986,6 +1988,7 @@ pc_close(UNUSED(thread_t *ptr))
     scsi_disk_close();
 
     gdbstub_close();
+    memdump_close();
 
 }
 

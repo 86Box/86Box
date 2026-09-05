@@ -65,6 +65,8 @@ if(GDBSTUB)
     target_sources(86Box PRIVATE gdbstub.c)
 endif()
 
+target_sources(86Box PRIVATE memdump.c)
+
 if(NEW_DYNAREC)
     add_compile_definitions(USE_NEW_DYNAREC)
 endif()
