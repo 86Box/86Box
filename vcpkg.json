@@ -37,7 +37,11 @@
                         "vulkan",
                         "widgets",
                         "png",
-                        "zstd"
+                        "zstd",
+                        {
+                            "name": "windeployqt",
+                            "platform": "windows"
+                        }
                     ]
                 },
                 {
