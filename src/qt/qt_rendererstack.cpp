@@ -495,6 +495,8 @@ RendererStack::createRenderer(Renderer renderer)
 
     this->setStyleSheet("background-color: black");
     boxLayout->addWidget(current.get());
+    if (m_monitor_index > 0)
+        current->show();
 
     rendererWindow->r_monitor_index = m_monitor_index;
 
