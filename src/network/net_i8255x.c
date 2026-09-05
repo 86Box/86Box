@@ -1607,7 +1607,7 @@ eepro100_io_readb(uint16_t addr, void *priv)
 {
     eepro100_t *s = priv;
 
-    return eepro100_read1(s, addr & 0xff);
+    return eepro100_read1(s, addr & (PCI_IO_SIZE - 1));
 }
 
 static uint16_t
@@ -1615,7 +1615,7 @@ eepro100_io_readw(uint16_t addr, void *priv)
 {
     eepro100_t *s = priv;
 
-    return eepro100_read2(s, addr & 0xff);
+    return eepro100_read2(s, addr & (PCI_IO_SIZE - 1));
 }
 
 static uint32_t
@@ -1623,7 +1623,7 @@ eepro100_io_readl(uint16_t addr, void *priv)
 {
     eepro100_t *s = priv;
 
-    return eepro100_read4(s, addr & 0xff);
+    return eepro100_read4(s, addr & (PCI_IO_SIZE - 1));
 }
 
 static void
@@ -1631,7 +1631,7 @@ eepro100_io_writeb(uint16_t addr, uint8_t val, void *priv)
 {
     eepro100_t *s = priv;
 
-    eepro100_write1(s, addr & 0xff, val);
+    eepro100_write1(s, addr & (PCI_IO_SIZE - 1), val);
 }
 
 static void
@@ -1639,7 +1639,7 @@ eepro100_io_writew(uint16_t addr, uint16_t val, void *priv)
 {
     eepro100_t *s = priv;
 
-    eepro100_write2(s, addr & 0xff, val);
+    eepro100_write2(s, addr & (PCI_IO_SIZE - 1), val);
 }
 
 static void
@@ -1647,7 +1647,7 @@ eepro100_io_writel(uint16_t addr, uint32_t val, void *priv)
 {
     eepro100_t *s = priv;
 
-    eepro100_write4(s, addr & 0xff, val);
+    eepro100_write4(s, addr & (PCI_IO_SIZE - 1), val);
 }
 
 /* MMIO access handlers. */
@@ -1658,7 +1658,7 @@ eepro100_mem_readb(uint32_t addr, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->mem_base) && (addr < (s->mem_base + PCI_MEM_SIZE)))
-        return eepro100_read1(s, addr & 0xfff);
+        return eepro100_read1(s, addr & (PCI_MEM_SIZE - 1));
     return 0xff;
 }
 
@@ -1668,7 +1668,7 @@ eepro100_mem_readw(uint32_t addr, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->mem_base) && (addr < (s->mem_base + PCI_MEM_SIZE)))
-        return eepro100_read2(s, addr & 0xfff);
+        return eepro100_read2(s, addr & (PCI_MEM_SIZE - 1));
     return 0xffff;
 }
 
@@ -1678,7 +1678,7 @@ eepro100_mem_readl(uint32_t addr, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->mem_base) && (addr < (s->mem_base + PCI_MEM_SIZE)))
-        return eepro100_read4(s, addr & 0xfff);
+        return eepro100_read4(s, addr & (PCI_MEM_SIZE - 1));
     return 0xffffffff;
 }
 
@@ -1688,7 +1688,7 @@ eepro100_mem_writeb(uint32_t addr, uint8_t val, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->mem_base) && (addr < (s->mem_base + PCI_MEM_SIZE)))
-        eepro100_write1(s, addr & 0xfff, val);
+        eepro100_write1(s, addr & (PCI_MEM_SIZE - 1), val);
 }
 
 static void
@@ -1697,7 +1697,7 @@ eepro100_mem_writew(uint32_t addr, uint16_t val, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->mem_base) && (addr < (s->mem_base + PCI_MEM_SIZE)))
-        eepro100_write2(s, addr & 0xfff, val);
+        eepro100_write2(s, addr & (PCI_MEM_SIZE - 1), val);
 }
 
 static void
@@ -1706,7 +1706,7 @@ eepro100_mem_writel(uint32_t addr, uint32_t val, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->mem_base) && (addr < (s->mem_base + PCI_MEM_SIZE)))
-        eepro100_write4(s, addr & 0xfff, val);
+        eepro100_write4(s, addr & (PCI_MEM_SIZE - 1), val);
 }
 
 /* Flash access handlers (aliased to the same registers). */
@@ -1717,7 +1717,7 @@ eepro100_flash_readb(uint32_t addr, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        return eepro100_read1(s, addr & 0xff);
+        return eepro100_read1(s, addr & (PCI_FLASH_SIZE - 1));
     return 0xff;
 }
 
@@ -1727,7 +1727,7 @@ eepro100_flash_readw(uint32_t addr, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        return eepro100_read2(s, addr & 0xff);
+        return eepro100_read2(s, addr & (PCI_FLASH_SIZE - 1));
     return 0xffff;
 }
 
@@ -1737,7 +1737,7 @@ eepro100_flash_readl(uint32_t addr, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        return eepro100_read4(s, addr & 0xff);
+        return eepro100_read4(s, addr & (PCI_FLASH_SIZE - 1));
     return 0xffffffff;
 }
 
@@ -1747,7 +1747,7 @@ eepro100_flash_writeb(uint32_t addr, uint8_t val, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        eepro100_write1(s, addr & 0xff, val);
+        eepro100_write1(s, addr & (PCI_FLASH_SIZE - 1), val);
 }
 
 static void
@@ -1756,7 +1756,7 @@ eepro100_flash_writew(uint32_t addr, uint16_t val, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        eepro100_write2(s, addr & 0xff, val);
+        eepro100_write2(s, addr & (PCI_FLASH_SIZE - 1), val);
 }
 
 static void
@@ -1765,7 +1765,7 @@ eepro100_flash_writel(uint32_t addr, uint32_t val, void *priv)
     eepro100_t *s = priv;
 
     if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        eepro100_write4(s, addr & 0xff, val);
+        eepro100_write4(s, addr & (PCI_FLASH_SIZE - 1), val);
 }
 
 static int
