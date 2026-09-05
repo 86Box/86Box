@@ -66,6 +66,7 @@
 #include <86box/unittester.h>
 #include <86box/softpower.h>
 #include <86box/novell_cardkey.h>
+#include <86box/mcamem.h>
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/isartc.h>
@@ -171,6 +172,7 @@ int      postcard_enabled                       = 0;              /* (C) enable 
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      softpower_enabled                      = 0;              /* (C) enable PC Convertible-style soft power card */
 int      gameport_type[GAMEPORT_MAX]            = { 0, 0 };       /* (C) enable gameports */
+int      mcamem_type[MCAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable MCA mem cards */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isarom_type[ISAROM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA ROM cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
@@ -1811,6 +1813,9 @@ pc_reset_hard_init(void)
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
+
+    /* Reset and reconfigure the MCA memory expansion boards. */
+    mcamem_reset();
 
     /*
      * Reset the mouse, this will attach it to any port needed.

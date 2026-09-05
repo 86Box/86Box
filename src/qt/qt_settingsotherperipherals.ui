@@ -217,7 +217,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tabIsaMem">
+     <widget class="QWidget" name="tabMemExp">
       <attribute name="icon">
        <iconset resource="../qt_resources.qrc">
         <normaloff>:/settings/qt/icons/isa_memory.ico</normaloff>:/settings/qt/icons/isa_memory.ico</iconset>
@@ -225,11 +225,11 @@
       <attribute name="title">
        <string>ISA Memory Expansion</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayoutIsaMem">
+      <layout class="QVBoxLayout" name="verticalLayoutMemExp">
 
        <item>
-        <widget class="QWidget" name="widget_2" native="true">
-         <layout class="QGridLayout" name="gridLayout_2">
+        <widget class="QWidget" name="widgetMemExp" native="true">
+         <layout class="QGridLayout" name="gridLayoutMemExpOuter">
 
           <property name="leftMargin">
            <number>0</number>
@@ -245,16 +245,16 @@
           </property>
 
           <item>
-           <layout class="QGridLayout" name="gridLayoutMem">
+           <layout class="QGridLayout" name="gridLayoutMemExp">
             <item row="0" column="0">
-             <widget class="QLabel" name="labelIsaMemCard1">
+             <widget class="QLabel" name="labelMemExpCard1">
               <property name="text">
                <string>Card 1:</string>
               </property>
              </widget>
             </item>
             <item row="0" column="1">
-             <widget class="QComboBox" name="comboBoxIsaMemCard1">
+             <widget class="QComboBox" name="comboBoxMemExpCard1">
               <property name="sizePolicy">
                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -267,21 +267,21 @@
              </widget>
             </item>
             <item row="0" column="2">
-             <widget class="QPushButton" name="pushButtonConfigureIsaMemCard1">
+             <widget class="QPushButton" name="pushButtonConfigureMemExpCard1">
               <property name="text">
                <string>Configure</string>
               </property>
              </widget>
             </item>
             <item row="1" column="0">
-             <widget class="QLabel" name="labelIsaMemCard2">
+             <widget class="QLabel" name="labelMemExpCard2">
               <property name="text">
                <string>Card 2:</string>
               </property>
              </widget>
             </item>
             <item row="1" column="1">
-             <widget class="QComboBox" name="comboBoxIsaMemCard2">
+             <widget class="QComboBox" name="comboBoxMemExpCard2">
               <property name="sizePolicy">
                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -294,21 +294,21 @@
              </widget>
             </item>
             <item row="1" column="2">
-             <widget class="QPushButton" name="pushButtonConfigureIsaMemCard2">
+             <widget class="QPushButton" name="pushButtonConfigureMemExpCard2">
               <property name="text">
                <string>Configure</string>
               </property>
              </widget>
             </item>
             <item row="2" column="0">
-             <widget class="QLabel" name="labelIsaMemCard3">
+             <widget class="QLabel" name="labelMemExpCard3">
               <property name="text">
                <string>Card 3:</string>
               </property>
              </widget>
             </item>
             <item row="2" column="1">
-             <widget class="QComboBox" name="comboBoxIsaMemCard3">
+             <widget class="QComboBox" name="comboBoxMemExpCard3">
               <property name="sizePolicy">
                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -321,21 +321,21 @@
              </widget>
             </item>
             <item row="2" column="2">
-             <widget class="QPushButton" name="pushButtonConfigureIsaMemCard3">
+             <widget class="QPushButton" name="pushButtonConfigureMemExpCard3">
               <property name="text">
                <string>Configure</string>
               </property>
              </widget>
             </item>
             <item row="3" column="0">
-             <widget class="QLabel" name="labelIsaMemCard4">
+             <widget class="QLabel" name="labelMemExpCard4">
               <property name="text">
                <string>Card 4:</string>
               </property>
              </widget>
             </item>
             <item row="3" column="1">
-             <widget class="QComboBox" name="comboBoxIsaMemCard4">
+             <widget class="QComboBox" name="comboBoxMemExpCard4">
               <property name="sizePolicy">
                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
                 <horstretch>0</horstretch>
@@ -348,7 +348,7 @@
              </widget>
             </item>
             <item row="3" column="2">
-             <widget class="QPushButton" name="pushButtonConfigureIsaMemCard4">
+             <widget class="QPushButton" name="pushButtonConfigureMemExpCard4">
               <property name="text">
                <string>Configure</string>
               </property>
@@ -361,8 +361,8 @@
         </widget>
        </item>
 
-       <item row="2" column="1">
-        <spacer name="verticalIsaMem">
+      <item row="2" column="1">
+        <spacer name="verticalSpacerMemExp">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
          </property>
@@ -560,6 +560,14 @@
   <tabstop>pushButtonConfigureIsaMemCard3</tabstop>
   <tabstop>comboBoxIsaMemCard4</tabstop>
   <tabstop>pushButtonConfigureIsaMemCard4</tabstop>
+  <tabstop>comboBoxMemExpCard1</tabstop>
+  <tabstop>pushButtonConfigureMemExpCard1</tabstop>
+  <tabstop>comboBoxMemExpCard2</tabstop>
+  <tabstop>pushButtonConfigureMemExpCard2</tabstop>
+  <tabstop>comboBoxMemExpCard3</tabstop>
+  <tabstop>pushButtonConfigureMemExpCard3</tabstop>
+  <tabstop>comboBoxMemExpCard4</tabstop>
+  <tabstop>pushButtonConfigureMemExpCard4</tabstop>
   <tabstop>comboBoxIsaRomCard1</tabstop>
   <tabstop>pushButtonConfigureIsaRomCard1</tabstop>
   <tabstop>comboBoxIsaRomCard2</tabstop>
