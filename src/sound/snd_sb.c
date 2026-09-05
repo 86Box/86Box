@@ -165,6 +165,57 @@ static const uint8_t ess_4bit_xlat[] = {
 
 static double ess_att_6bits[64];
 
+/*
+ * ES1938S Solo-1 playback-mixer curves (datasheet Table 22).
+ *
+ * The Solo-1 has separate gain curves for each audio source, so they have
+ * been separated out so as to not break existing AudioDrive mixers
+ *
+ * Entry 0 is mute and is handled explicitly by ess_solo1_4bit_gain().
+ */
+static const double ess_solo1_audio1_db[16] = {
+     0.0, -30.0, -27.0, -24.0, -21.0, -18.0, -15.0, -12.0,
+    -9.0,  -7.5,  -6.0,  -4.5,  -3.0,  -1.5,   0.0,   1.5
+};
+
+static const double ess_solo1_audio2_db[16] = {
+      0.0, -31.5, -28.5, -25.5, -22.5, -19.5, -16.5, -13.5,
+    -10.5,  -9.0,  -7.5,  -6.0,  -4.5,  -3.0,  -1.5,   0.0
+};
+
+static const double ess_solo1_music_db[16] = {
+     0.0, -21.0, -18.0, -15.0, -12.0, -9.0, -6.0, -3.0,
+     0.0,   1.5,   3.0,   4.5,   6.0,  7.5,  9.0, 10.5
+};
+
+static const double ess_solo1_aux_db[16] = {
+      0.0, -28.5, -25.5, -22.5, -19.5, -16.5, -13.5, -10.5,
+     -7.5,  -6.0,  -4.5,  -3.0,  -1.5,   0.0,   1.5,   3.0
+};
+
+static double
+ess_solo1_4bit_gain(const double table[16], uint8_t value)
+{
+    value &= 0x0f;
+    if (value == 0)
+        return 0.0;
+
+    return pow(10.0, table[value] / 20.0);
+}
+
+static double
+ess_solo1_master_gain(uint8_t value)
+{
+    double db;
+
+    /* Bit 6 is mute; bits 5:0 are 0.75 dB steps, 3Fh = 0 dB. */
+    if (value & 0x40)
+        return 0.0;
+
+    db = -47.25 + (0.75 * (double) (value & 0x3f));
+    return pow(10.0, db / 20.0);
+}
+
 static const uint16_t sb_mcv_addr[8]     = { 0x200, 0x210, 0x220, 0x230, 0x240, 0x250, 0x260, 0x270 };
 static const int      sb_pro_mcv_irqs[4] = { 7, 5, 3, 3 };
 
@@ -2357,6 +2408,81 @@ ess_mixer_write(uint16_t addr, uint8_t val, void *priv)
     }
 }
 
+static void
+ess_solo1_mixer_recalc(sb_t *ess)
+{
+    ess_mixer_t *mixer;
+
+    if (ess == NULL)
+        return;
+
+    mixer = &ess->mixer_ess;
+
+    mixer->voice_l = ess_solo1_4bit_gain(ess_solo1_audio1_db,
+                                          (mixer->regs[0x14] >> 4) & 0x0f);
+    mixer->voice_r = ess_solo1_4bit_gain(ess_solo1_audio1_db,
+                                          mixer->regs[0x14] & 0x0f);
+
+    mixer->fm_l = ess_solo1_4bit_gain(ess_solo1_music_db,
+                                       (mixer->regs[0x36] >> 4) & 0x0f);
+    mixer->fm_r = ess_solo1_4bit_gain(ess_solo1_music_db,
+                                       mixer->regs[0x36] & 0x0f);
+
+    mixer->cd_l = ess_solo1_4bit_gain(ess_solo1_aux_db,
+                                       (mixer->regs[0x38] >> 4) & 0x0f);
+    mixer->cd_r = ess_solo1_4bit_gain(ess_solo1_aux_db,
+                                       mixer->regs[0x38] & 0x0f);
+
+    mixer->dac2_l = ess_solo1_4bit_gain(ess_solo1_audio2_db,
+                                         (mixer->regs[0x7c] >> 4) & 0x0f);
+    mixer->dac2_r = ess_solo1_4bit_gain(ess_solo1_audio2_db,
+                                         mixer->regs[0x7c] & 0x0f);
+
+    mixer->master_l = ess_solo1_master_gain(mixer->regs[0x60]);
+    mixer->master_r = ess_solo1_master_gain(mixer->regs[0x62]);
+}
+
+static void
+ess_solo1_mixer_set_reset_defaults(sb_t *ess)
+{
+    ess_mixer_t *mixer;
+
+    if (ess == NULL)
+        return;
+
+    mixer = &ess->mixer_ess;
+
+    mixer->regs[0x14] = 0x88; /* Audio 1 play volume. */
+    mixer->regs[0x32] = 0x88; /* Backward-compatible master volume. */
+    mixer->regs[0x36] = 0x88; /* Music DAC / ESFM volume. */
+    mixer->regs[0x38] = 0x00; /* AuxA / CD muted at reset. */
+    mixer->regs[0x3a] = 0x00;
+    mixer->regs[0x3c] = 0x04;
+    mixer->regs[0x3e] = 0x00;
+    mixer->regs[0x60] = 0x36; /* Actual left master hardware volume. */
+    mixer->regs[0x62] = 0x36; /* Actual right master hardware volume. */
+    mixer->regs[0x64] = 0x00; /* SB Pro master-volume emulation enabled. */
+    mixer->regs[0x7c] = 0x00; /* Audio 2 playback muted at reset. */
+}
+
+static void
+ess_solo1_mixer_write(uint16_t addr, uint8_t val, void *priv)
+{
+    sb_t *ess = (sb_t *) priv;
+    int   mixer_reset = 0;
+
+    if (ess != NULL && (addr & 1) && ess->mixer_ess.index == 0x00)
+        mixer_reset = 1;
+
+    ess_mixer_write(addr, val, priv);
+
+    if (ess != NULL && (addr & 1)) {
+        if (mixer_reset)
+            ess_solo1_mixer_set_reset_defaults(ess);
+        ess_solo1_mixer_recalc(ess);
+    }
+}
+
 uint8_t
 ess_mixer_read(uint16_t addr, void *priv)
 {
@@ -2555,6 +2681,15 @@ ess_mixer_reset(sb_t *ess)
 {
     ess_mixer_write(4, 0, ess);
     ess_mixer_write(5, 0, ess);
+}
+
+static void
+ess_solo1_mixer_reset(sb_t *ess)
+{
+    /* Preserve all generic reset side effects, then impose Solo-1 reset state. */
+    ess_mixer_reset(ess);
+    ess_solo1_mixer_set_reset_defaults(ess);
+    ess_solo1_mixer_recalc(ess);
 }
 
 void
@@ -6179,6 +6314,367 @@ ess_186x_init(const device_t *info)
     }
 
     return ess;
+}
+
+/*
+ * ESS Solo-1 DOS mode
+ */
+
+static int
+solo1_legacy_dma_readb(void *priv)
+{
+    sb_t *ess = (sb_t *) priv;
+    int ch = ess->dsp.sb_8_dmanum;
+    int ret = dma_channel_read(ch);
+
+
+    return ret;
+}
+
+static int
+solo1_legacy_dma_readw(void *priv)
+{
+    sb_t *ess = (sb_t *) priv;
+    int ch = ess->dsp.sb_16_dmanum;
+    int lo = dma_channel_read(ch);
+    int hi;
+
+    if (lo & DMA_NODATA)
+        return lo;
+
+    hi = dma_channel_read(ch);
+    if (hi & DMA_NODATA)
+        return hi;
+
+
+    return (lo & 0xff) | ((hi & 0xff) << 8);
+}
+
+static int
+solo1_legacy_dma_writeb(void *priv, uint8_t val)
+{
+    sb_t *ess = (sb_t *) priv;
+    int ch = ess->dsp.sb_8_dmanum;
+    int ret = dma_channel_write(ch, val);
+
+
+    return ret == DMA_NODATA;
+}
+
+static int
+solo1_legacy_dma_writew(void *priv, uint16_t val)
+{
+    sb_t *ess = (sb_t *) priv;
+    int ch = ess->dsp.sb_16_dmanum;
+    int ret;
+
+    ret = dma_channel_write(ch, val & 0xff);
+    if (ret == DMA_NODATA)
+        return 1;
+
+    ret = dma_channel_write(ch, val >> 8);
+
+
+    return ret == DMA_NODATA;
+}
+
+/* sb_doreset() is needed for the Solo-1 but appears to not be declared,
+ * so doing it here to keep it local
+ */
+extern void sb_doreset(sb_dsp_t *dsp);
+
+void *
+ess_solo1_legacy_init(void)
+{
+    sb_t *ess = calloc(1, sizeof(sb_t));
+
+
+    ess->opl_enabled = 1;
+    fm_driver_get_cs(FM_ESFM, &ess->opl);
+
+    sb_dsp_set_real_opl(&ess->dsp, 1);
+    sb_dsp_init(&ess->dsp, SBPRO_DSP_301, SB_SUBTYPE_ESS_ES1869, ess);
+    sb_dsp_dma_attach(&ess->dsp,
+                      solo1_legacy_dma_readb,
+                      solo1_legacy_dma_readw,
+                      solo1_legacy_dma_writeb,
+                      solo1_legacy_dma_writew,
+                      ess);
+    sb_dsp_setdma16_supported(&ess->dsp, 0);
+    ess_solo1_mixer_reset(ess);
+
+    ess->mixer_ess.input_filter  = 1;
+    ess->mixer_ess.output_filter = 1;
+    ess->mixer_enabled           = 1;
+
+    sound_add_handler(sb_get_buffer_ess, ess);
+    music_add_handler(sb_get_music_buffer_ess, ess);
+    sound_set_cd_audio_filter(ess_filter_cd_audio, ess);
+
+    ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
+    mpu401_init(ess->mpu, 0, -1, M_UART, 0);
+    sb_dsp_set_mpu(&ess->dsp, ess->mpu);
+
+    ess->gameport = gameport_add(&gameport_pnp_device);
+
+    sb_dsp_setaddr(&ess->dsp, 0);
+    sb_dsp_setirq(&ess->dsp, 0);
+    sb_dsp_setdma8(&ess->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16_8(&ess->dsp, ISAPNP_DMA_DISABLED);
+    mpu401_change_addr(ess->mpu, 0);
+    mpu401_setirq(ess->mpu, -1);
+    gameport_remap(ess->gameport, 0);
+
+    return ess;
+}
+
+void
+ess_solo1_legacy_reset(void *priv)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if (ess == NULL)
+        return;
+
+    sb_doreset(&ess->dsp);
+
+    memset(ess->dsp.ess_regs, 0x00, sizeof(ess->dsp.ess_regs));
+    ess->dsp.ess_regs[0x05] = 0xf8; /* A5h reset value used by sb_doreset(). */
+    ess->dsp.ess_playback_mode = 0;
+    ess->dsp.ess_irq_generic   = 0;
+    ess->dsp.ess_irq_dmactr    = 0;
+    ess->dsp.ess_dma_counter   = 0;
+
+    ess_solo1_mixer_reset(ess);
+    ess->mixer_ess.input_filter  = 1;
+    ess->mixer_ess.output_filter = 1;
+    ess->mixer_enabled           = 1;
+}
+
+void
+ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enable,
+                        int fm_enable, int fm_legacy_alias,
+                        uint16_t mpu_addr, int mpu_enable,
+                        int sb_irq, int mpu_irq, int dma, uint16_t game_addr)
+{
+    sb_t    *ess = (sb_t *) priv;
+    uint16_t old_sb;
+
+    if (ess == NULL)
+        return;
+
+    old_sb = ess->dsp.sb_addr;
+
+    if (old_sb) {
+        io_removehandler(old_sb, 0x0004,
+                         ess->opl.read, NULL, NULL,
+                         ess->opl.write, NULL, NULL,
+                         ess->opl.priv);
+        io_removehandler(old_sb + 8, 0x0002,
+                         ess->opl.read, NULL, NULL,
+                         ess->opl.write, NULL, NULL,
+                         ess->opl.priv);
+        io_removehandler(old_sb + 8, 0x0002,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
+        io_removehandler(old_sb + 4, 0x0002,
+                         ess_mixer_read, NULL, NULL,
+                         ess_solo1_mixer_write, NULL, NULL,
+                         ess);
+        io_removehandler(old_sb + 2, 0x0003,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
+                         ess);
+        io_removehandler(old_sb + 6, 0x0001,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
+                         ess);
+        io_removehandler(old_sb + 0x0a, 0x0006,
+                         ess_base_read, NULL, NULL,
+                         ess_base_write, NULL, NULL,
+                         ess);
+    }
+
+    if (ess->opl_pnp_addr) {
+        io_removehandler(ess->opl_pnp_addr, 0x0004,
+                         ess->opl.read, NULL, NULL,
+                         ess->opl.write, NULL, NULL,
+                         ess->opl.priv);
+        io_removehandler(ess->opl_pnp_addr, 0x0004,
+                         ess_fm_midi_read, NULL, NULL,
+                         ess_fm_midi_write, NULL, NULL,
+                         ess);
+        ess->opl_pnp_addr = 0;
+    }
+
+    sb_dsp_setaddr(&ess->dsp, 0);
+    mpu401_change_addr(ess->mpu, 0);
+    mpu401_setirq(ess->mpu, -1);
+    gameport_remap(ess->gameport, 0);
+
+    sb_dsp_setirq(&ess->dsp, sb_enable ? sb_irq : 0);
+    sb_dsp_setdma8(&ess->dsp, sb_enable ? dma : ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16_8(&ess->dsp, sb_enable ? dma : ISAPNP_DMA_DISABLED);
+
+    if (sb_enable) {
+        if (fm_enable) {
+            io_sethandler(sb_addr, 0x0004,
+                          ess->opl.read, NULL, NULL,
+                          ess->opl.write, NULL, NULL,
+                          ess->opl.priv);
+            io_sethandler(sb_addr + 8, 0x0002,
+                          ess->opl.read, NULL, NULL,
+                          ess->opl.write, NULL, NULL,
+                          ess->opl.priv);
+            io_sethandler(sb_addr + 8, 0x0002,
+                          ess_fm_midi_read, NULL, NULL,
+                          ess_fm_midi_write, NULL, NULL,
+                          ess);
+        }
+
+        io_sethandler(sb_addr + 4, 0x0002,
+                      ess_mixer_read, NULL, NULL,
+                      ess_solo1_mixer_write, NULL, NULL,
+                      ess);
+
+        sb_dsp_setaddr(&ess->dsp, sb_addr);
+        io_sethandler(sb_addr + 2, 0x0003,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+        io_sethandler(sb_addr + 6, 0x0001,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+        io_sethandler(sb_addr + 0x0a, 0x0006,
+                      ess_base_read, NULL, NULL,
+                      ess_base_write, NULL, NULL,
+                      ess);
+    }
+
+    if (fm_enable && fm_legacy_alias) {
+        ess->opl_pnp_addr = 0x0388;
+        io_sethandler(ess->opl_pnp_addr, 0x0004,
+                      ess->opl.read, NULL, NULL,
+                      ess->opl.write, NULL, NULL,
+                      ess->opl.priv);
+        io_sethandler(ess->opl_pnp_addr, 0x0004,
+                      ess_fm_midi_read, NULL, NULL,
+                      ess_fm_midi_write, NULL, NULL,
+                      ess);
+    }
+
+    if (mpu_enable) {
+        ess->midi_addr = mpu_addr;
+        mpu401_change_addr(ess->mpu, mpu_addr);
+        mpu401_setirq(ess->mpu, mpu_irq);
+    } else
+        ess->midi_addr = 0;
+
+    ess->gameport_addr = game_addr;
+    gameport_remap(ess->gameport, ess->gameport_addr);
+}
+
+void
+ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len)
+{
+    sb_t          *ess = (sb_t *) priv;
+    const int32_t *opl_buf;
+
+    if (ess == NULL || !ess->opl_enabled || buffer == NULL || !len)
+        return;
+
+    opl_buf = ess->opl.update(ess->opl.priv);
+    if (opl_buf != NULL) {
+        for (uint16_t c = 0; c < len * 2; c++)
+            buffer[c] += (int32_t) ((double) opl_buf[c] * 0.7171630859375);
+    }
+
+    ess->opl.reset_buffer(ess->opl.priv);
+}
+
+uint8_t
+ess_solo1_legacy_fm_read(void *priv, uint16_t addr)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if (ess == NULL || !ess->opl_enabled)
+        return 0xff;
+
+    return ess->opl.read(addr, ess->opl.priv);
+}
+
+void
+ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if (ess == NULL || !ess->opl_enabled)
+        return;
+
+    ess->opl.write(addr, val, ess->opl.priv);
+}
+
+void
+ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if (ess == NULL)
+        return;
+
+    ess->mixer_ess.index = index;
+    ess_solo1_mixer_write(5, val, ess);
+}
+
+double
+ess_solo1_legacy_audio2_gain(void *priv, int channel)
+{
+    const sb_t        *ess;
+    const ess_mixer_t *mixer;
+    double             source;
+    double             master;
+
+    ess = (const sb_t *) priv;
+    if (ess == NULL)
+        return 0.0;
+
+    mixer  = &ess->mixer_ess;
+    source = channel ? mixer->dac2_r : mixer->dac2_l;
+    master = channel ? mixer->master_r : mixer->master_l;
+
+    return source * master;
+}
+
+uint8_t
+ess_solo1_legacy_mpu_read(void *priv, uint16_t addr)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if (ess == NULL || ess->mpu == NULL)
+        return 0xff;
+
+    return mpu401_read(addr, ess->mpu);
+}
+
+void
+ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if (ess == NULL || ess->mpu == NULL)
+        return;
+
+    mpu401_write(addr, val, ess->mpu);
+}
+
+void
+ess_solo1_legacy_close(void *priv)
+{
+    ess_solo1_legacy_config(priv, 0, 0, 0, 0, 0, 0, 0, 0,
+                            ISAPNP_DMA_DISABLED, 0);
+    sb_close(priv);
 }
 
 void

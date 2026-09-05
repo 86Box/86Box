@@ -648,6 +648,152 @@ machine_at_k6bv3p_a_init(const machine_t *model)
     return ret;
 }
 
+static int in530_boot_logo_enabled = 1;
+
+static const device_config_t in530_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "in530_pb_129",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.11J (Packard Bell)",
+                .internal_name = "in530_pb_111j",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/88200111.rom",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.28 (Monorail)",
+                .internal_name = "in530_mono_128",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/20888128.ROM",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.29 (Packard Bell)",
+                .internal_name = "in530_pb_129",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/52000129.rom",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.36J (NEC)",
+                .internal_name = "in530_nec_136j",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/0136J.ROM",
+                    ""
+                }
+            },
+            { .files_no = 0 }
+        }
+    },
+	/* Boot logo toggle doesn't work yet for the NEC, so disabling until it does */
+    /*{
+        .name           = "boot_logo",
+        .description    = "Enable Boot Logo",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },*/
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t in530_device = {
+    .name          = "BCM IN530",
+    .internal_name = "in530",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = in530_config
+};
+
+int
+machine_in530_boot_logo_enabled(void)
+{
+    return in530_boot_logo_enabled;
+}
+
+/* SiS 530 / 5595 */
+int
+machine_at_in530_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+	/* Force full screen boot logo on for now */
+    /* in530_boot_logo_enabled = device_get_config_int("boot_logo"); */
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    /* Physical FR520 / IN530 PCI topology verified with PCITool:
+     *   device 09h - PCI slot 1
+     *   device 0Ah - PCI slot 2
+     *   device 0Bh - PCI slot 3
+     *   device 0Ch - on-board ESS ES1938S Solo-1
+     */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,           4, 1, 2, 3);
+
+    device_add(&sis_530_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
+    device_add(&amd_flash_29f002nbt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
 /* SiS 5591 */
 int
 machine_at_5sg100_init(const machine_t *model)

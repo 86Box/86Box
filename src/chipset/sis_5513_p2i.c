@@ -800,6 +800,9 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, void *priv)
             pci_set_irq_routing(addr & 0x07, (val & 0x80) ? PCI_IRQ_DISABLED : (val & 0x0f));
             break;
         case 0x44: /* INTD# Remapping Control Register */
+            /* The onboard Solo-1 on the IN530 uses this for INTA for IRQ5 */
+            if (!strcmp(machine_get_internal_name(), "in530") && !(val & 0x80))
+                val = (val & 0xf0) | 0x05;
             if (dev->rev == 0x11) {
                 dev->pci_conf[addr] = val & 0xcf;
                 sis_5513_apc_recalc(dev, val & 0x10);

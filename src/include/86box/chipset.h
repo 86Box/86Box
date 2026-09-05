@@ -173,6 +173,7 @@ extern const device_t sis_5511_device;
 extern const device_t sis_5571_device;
 extern const device_t sis_5581_device;
 extern const device_t sis_5591_1997_device;
+extern const device_t sis_530_device;
 extern const device_t sis_5591_device;
 extern const device_t sis_5600_1997_device;
 extern const device_t sis_5600_device;

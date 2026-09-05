@@ -284,6 +284,7 @@ enum {
     MACHINE_CHIPSET_SIS_5511,
     MACHINE_CHIPSET_SIS_5571,
     MACHINE_CHIPSET_SIS_5581,
+    MACHINE_CHIPSET_SIS_530,
     MACHINE_CHIPSET_SIS_5591,
     MACHINE_CHIPSET_SIS_5600,
     MACHINE_CHIPSET_SMSC_VICTORYBX_66,
@@ -1278,6 +1279,13 @@ extern int             machine_at_g5x_init(const machine_t *);
 extern const device_t  ms5169_device;
 #endif
 extern int             machine_at_ms5169_init(const machine_t *);
+
+/* SiS 530/5595 */
+extern int             machine_at_in530_init(const machine_t *);
+extern int             machine_in530_boot_logo_enabled(void);
+#ifdef EMU_DEVICE_H
+extern const device_t  in530_device;
+#endif
 
 /* VIA MVP3 */
 extern int             machine_at_ax59pro_init(const machine_t *);

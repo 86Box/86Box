@@ -36,6 +36,8 @@ extern void    sis_5581_host_to_pci_write(int addr, uint8_t val, void *priv);
 extern uint8_t sis_5581_host_to_pci_read(int addr, void *priv);
 extern void    sis_5591_host_to_pci_write(int addr, uint8_t val, void *priv);
 extern uint8_t sis_5591_host_to_pci_read(int addr, void *priv);
+extern void    sis_530_host_to_pci_write(int addr, uint8_t val, void *priv);
+extern uint8_t sis_530_host_to_pci_read(int addr, void *priv);
 extern void    sis_5600_host_to_pci_write(int addr, uint8_t val, void *priv);
 extern uint8_t sis_5600_host_to_pci_read(int addr, void *priv);
 
@@ -52,6 +54,7 @@ extern const device_t sis_5511_h2p_device;
 extern const device_t sis_5571_h2p_device;
 extern const device_t sis_5581_h2p_device;
 extern const device_t sis_5591_h2p_device;
+extern const device_t sis_530_h2p_device;
 extern const device_t sis_5600_h2p_device;
 
 extern const device_t sis_5513_p2i_device;
