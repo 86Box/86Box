@@ -773,6 +773,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x49: /*ADC Sample Control*/
                     /* This is the ADC equivalent of index 41h DMA Control and is relied on by MegaEM 3.x */
                     gus->adc_ctrl = val;
+                    gus->adc_ctrl &= ~0x40;
                     if (val & 1)
                         timer_set_delay_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
                     gus_log(gus->log, "GUS DMA Control write! new val = %02X\n", val);
