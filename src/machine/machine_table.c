@@ -21372,6 +21372,9 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
+       PC87306 Super I/O chip, command 0xA1 returns '5'.
+       Command 0xA0 copyright string: (C)1994 AMI . */
     {
         .name              = "[i450KX] Intel Performance/AU",
         .internal_name     = "aurora",
@@ -21402,9 +21405,9 @@ const machine_t machines[] = {
         .nvrmask                  = 255,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
+        /* KBC and NVR are on the super I/O chip. */
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
-        /* NVR is on the super I/O chip. */
         .nvr_device               = NULL,
         .nvr_params               = 0x00000000,
         .sio_device               = NULL,

@@ -78,14 +78,14 @@ static const device_config_t aurora_config[] = {
         .name           = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "bravomst6xxx",
+        .default_string = "aurora",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6xxx)",
+                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6___)",
                 .internal_name = "bravomst6xxx",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
@@ -96,7 +96,7 @@ static const device_config_t aurora_config[] = {
                                    "roms/machines/aurora/1001CG0Q.RCV", "" }
             },
             {
-                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0P (Compaq ProLinea 6xxxe)",
+                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0P (Compaq ProLinea 6___e)",
                 .internal_name = "prolinea6xxxe",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 5,
@@ -105,6 +105,50 @@ static const device_config_t aurora_config[] = {
                 .files         = { "roms/machines/aurora/1001CG0P.BIO", "roms/machines/aurora/1001CG0P.BI1",
                                    "roms/machines/aurora/1001CG0P.BI2", "roms/machines/aurora/1001CG0P.BI3",
                                    "roms/machines/aurora/1001CG0P.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.05.CG0T (Gateway MBDSAC02_A_WW)",
+                .internal_name = "aurora_gateway",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1005CG0T.BIO", "roms/machines/aurora/1005CG0T.BI1",
+                                   "roms/machines/aurora/1005CG0T.BI2", "roms/machines/aurora/1005CG0T.BI3",
+                                   "roms/machines/aurora/1005CG0T.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.06.CG0",
+                .internal_name = "aurora_06",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1006CG0_.BIO", "roms/machines/aurora/1006CG0_.BI1",
+                                   "roms/machines/aurora/1006CG0_.BI2", "roms/machines/aurora/1006CG0_.BI3",
+                                   "roms/machines/aurora/1006CG0_.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.09.CG0",
+                .internal_name = "aurora",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1009CG0_.BIO", "roms/machines/aurora/1009CG0_.BI1",
+                                   "roms/machines/aurora/1009CG0_.BI2", "roms/machines/aurora/1009CG0_.BI3",
+                                   "roms/machines/aurora/1009CG0_.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision LTKT16AUS [IBM PC 360 S___ (Type 6598)]",
+                .internal_name = "pc360_6598",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1B14CG0M.BIO", "roms/machines/aurora/1B14CG0M.BI1",
+                                   "roms/machines/aurora/1B14CG0M.BI2", "roms/machines/aurora/1B14CG0M.BI3",
+                                   "roms/machines/aurora/1B14CG0M.RCV", "" }
             },
             { .files_no = 0 }
         }
