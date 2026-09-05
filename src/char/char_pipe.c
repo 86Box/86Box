@@ -462,6 +462,10 @@ char_pipe_init(const device_t *info)
                 flags |= CHAR_LPT_PTI;
                 break;
 
+            case 3:
+                flags |= CHAR_LPT_NIBBLE | CHAR_LPT_USESTROBE;
+                break;
+
             default:
                 break;
         }
@@ -492,6 +496,7 @@ static const device_config_t char_pipe_config[] = {
             { .description = "Unidirectional (8-bit) / LapLink (4-bit)", .value = 0 },
             { .description = "Bidirectional (8-bit)",                    .value = 1 },
             { .description = "DirectParallel FAST",                      .value = 2 },
+            { .description = "Raw SPP with handshaking",                  .value = 3 },
             { NULL                                                                  }
         }
     },
