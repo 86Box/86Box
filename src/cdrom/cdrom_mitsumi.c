@@ -94,6 +94,22 @@ enum {
     IRQ_DATACOMP  = 2,
     IRQ_ERROR     = 4
 };
+enum {
+    STATE_IDLE = 0,
+    STATE_SEEK,
+    STATE_STATUS,
+    STATE_STATUS_WAIT,
+    STATE_READ_SECTOR,
+    STATE_ADVANCE_BUFFER,
+    STATE_DATA_READY,
+    STATE_WRITE_DMA
+};
+enum {
+    STATUS_ERROR = -1,
+    STATUS_NO_DATA = 0,
+    STATUS_OK = 1,
+    STATUS_AUDIO = 2
+};
 
 typedef struct mcd_t {
     uint16_t base;
@@ -104,6 +120,7 @@ typedef struct mcd_t {
     uint8_t  stat;
     uint8_t  buf[65536];
     int      buf_count;
+    int      old_buf_count;
     int      buf_idx;
     int      real_count;
     uint8_t  cmdbuf[32];
@@ -117,6 +134,9 @@ typedef struct mcd_t {
     uint8_t  enable_irq;
     uint8_t  enable_dma;
     uint8_t  early_status;
+    uint8_t  state;
+    uint8_t  first;
+    int8_t   status;
     uint16_t dmalen;
     uint32_t readmsf;
     uint32_t readcount;
@@ -129,6 +149,7 @@ typedef struct mcd_t {
     uint32_t dma_retries;
     pc_timer_t pio_timer;
     pc_timer_t dma_timer;
+    pc_timer_t read_timer;
     uint8_t  last_flags;
 
     uint8_t  cur_control;
@@ -223,8 +244,8 @@ mitsumi_error_status(const mcd_t *dev, const int sense)
 static void
 mitsumi_abort_read(mcd_t *dev)
 {
-    timer_disable(&dev->pio_timer);
-    timer_disable(&dev->dma_timer);
+    timer_disable(&dev->read_timer);
+    dev->state      = STATE_IDLE;
     if ((dev->dma >= 0) && (dev->dma < 8))
         dma_set_drq(dev->dma, 0);
     dev->readcount  = 0;
@@ -263,10 +284,11 @@ mitsumi_msf_to_lba(const uint32_t msf, uint32_t *lba)
 static uint32_t
 mitsumi_dma_length(const mcd_t *dev)
 {
-    /* The Mitsumi transfer-count register is biased by seven.  For example,
-       the Windows 9x MTMMINIP driver programs 0807h for a 2048-byte sector. */
-    return (dev->dmalen >= MITSUMI_DMA_COUNT_BIAS) ?
-           dev->dmalen - MITSUMI_DMA_COUNT_BIAS : 0;
+    /*
+       Mask out the lower 3 bits, need for one of the DOS drivers to
+       operate correctly.
+     */
+    return dev->dmalen & 0xfff8;
 }
 
 static void
@@ -386,20 +408,39 @@ mitsumi_disc_info(mcd_t *mcd, unsigned char *b)
     return 1;
 }
 
+/* This is needed for early status. */
 static int
-mitsumi_cdrom_read_sector(mcd_t *dev, int first)
+mitsumi_cdrom_check_sector_error(mcd_t *dev)
 {
-    uint8_t  status;
-    int      ret = 0;
     uint32_t lba;
-    uint32_t end_lba;
-    uint32_t offset = 0;
-    uint32_t available;
 
     dev->data    = 0;
 
     if (!mitsumi_cdrom_is_ready(dev) || (dev->change > 0))
         return -1;
+
+    if (!mitsumi_msf_to_lba(dev->readmsf, &lba))
+        return -2;
+
+    if (lba > dev->cdrom_dev->cdrom_capacity)
+        return -2;
+
+    return 1;
+}
+
+static int
+mitsumi_cdrom_seek_sector(mcd_t *dev)
+{
+    uint8_t  status;
+    uint32_t lba;
+    uint32_t end_lba;
+
+    dev->data    = 0;
+
+    int ret = mitsumi_cdrom_check_sector_error(dev);
+
+    if (ret != 1)
+        return ret;
 
     if (dev->drvmode == DRV_MODE_CDDA) {
         /* C0 is both PLAY AUDIO and the single-speed data-read command.
@@ -431,6 +472,24 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
         }
         return 0;
     }
+
+    return 1;
+}
+
+static int
+mitsumi_cdrom_read_sector(mcd_t *dev, int first)
+{
+    int      ret = 0;
+    uint32_t lba = 0;
+    uint32_t offset = 0;
+    uint32_t available;
+
+    dev->data    = 0;
+
+    ret = mitsumi_cdrom_seek_sector(dev);
+
+    if (ret != 1)
+        return ret;
 
     if (!mitsumi_msf_to_lba(dev->readmsf, &lba))
         return -2;
@@ -465,9 +524,81 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
 
     dev->data = 1;
     dev->readcount--;
-    if (first && !dev->early_status)
-        mitsumi_set_irq(dev, IRQ_DATAREADY);
     return 1;
+}
+
+static uint64_t
+mitsumi_get_seek_period(mcd_t *dev)
+{
+    uint32_t lba = 0;
+
+    mitsumi_msf_to_lba(dev->readmsf, &lba);
+
+    dev->cdrom_dev->seek_diff = ABS(lba - dev->cdrom_dev->seek_pos);
+
+    const double period = cdrom_seek_time(dev->cdrom_dev);
+
+    return (uint64_t) (period * (double) TIMER_USEC);
+}
+
+static void
+mitsumi_start_status_phase(mcd_t *dev, const int from_callback, const int status)
+{
+    dev->state = STATE_STATUS;
+    if (from_callback)
+        timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
+    else
+        timer_set_delay_u64(&dev->read_timer, 10 * TIMER_USEC);
+    dev->status = (int8_t) status;
+    if ((dev->status == STATUS_OK) && dev->early_status) {
+        /* Report no data while we are delivering the status. */
+        dev->old_buf_count = dev->buf_count;
+        dev->buf_count = 0;
+    }
+    mitsumi_cdrom_log("[%s] Mitsumi: state advanced to STATE_STATUS\n",
+                      (dev->status == STATUS_ERROR) ? "ERROR" :
+                      ((dev->status == STATUS_AUDIO) ? "AUDIO" :
+                      ((dev->status == STATUS_NO_DATA) ? "ND" : "OK")));
+}
+
+static void
+mitsumi_start_seek_phase(mcd_t *dev, const int from_callback)
+{
+    dev->state = STATE_SEEK;
+    if (from_callback)
+        timer_advance_u64(&dev->read_timer, dev->first ? mitsumi_get_seek_period(dev) :
+                                                         (10 * TIMER_USEC));
+    else
+        timer_set_delay_u64(&dev->read_timer, dev->first ? mitsumi_get_seek_period(dev) :
+                                                         (10 * TIMER_USEC));
+    mitsumi_cdrom_log("Mitsumi: [OK] state advanced to STATE_SEEK\n");
+}
+
+static void
+mitsumi_start_read_phase(mcd_t *dev)
+{
+    dev->state = STATE_READ_SECTOR;
+    timer_advance_u64(&dev->read_timer, ((dev->cmd == CMD_READ2X) ?
+                      MITSUMI_2X_SECTOR_TIME_US :
+                      MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+    mitsumi_cdrom_log("Mitsumi: [OK] state advanced to STATE_READ_SECTOR\n");
+}
+
+static void
+mitsumi_start_data_ready_phase(mcd_t *dev, const int from_callback)
+{
+    if (dev->enable_dma) {
+        dev->state = STATE_WRITE_DMA;
+        timer_advance_u64(&dev->read_timer, 1ULL << 32);
+        mitsumi_cdrom_log("Mitsumi: [OK] state advanced to STATE_WRITE_DMA\n");
+    } else {
+        dev->state = STATE_DATA_READY;
+        if (from_callback)
+            timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
+        else
+            timer_set_delay_u64(&dev->read_timer, 10 * TIMER_USEC);
+        mitsumi_cdrom_log("Mitsumi: [OK] state advanced to STATE_DATA_READY\n");
+    }
 }
 
 static int
@@ -510,12 +641,20 @@ mitsumi_dma_transfer(mcd_t *dev)
             mitsumi_set_irq(dev, IRQ_DATACOMP);
             if (dev->readcount && dev->enable_dma &&
                 (dev->drvmode == DRV_MODE_READ)) {
-                timer_advance_u64(&dev->dma_timer,
-                                  ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                                   MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
+                const int buf_len = mitsumi_dma_length(dev);
+                if (dev->real_count > buf_len) {
+                    dev->real_count -= buf_len;
+                    memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
+                    dev->buf_idx     = 0;
+                    dev->buf_count   = MIN(dev->real_count, buf_len);
+                    timer_advance_u64(&dev->read_timer, 1ULL << 32);
+                } else
+                    mitsumi_start_seek_phase(dev, 1);
             } else {
-                timer_disable(&dev->dma_timer);
+                mitsumi_cdrom_log("Mitsumi: [DMA] timer stopped\n");
+                timer_disable(&dev->read_timer);
                 dev->drvmode = DRV_MODE_STOP;
+                dev->state = STATE_IDLE;
             }
             return 0;
         }
@@ -529,97 +668,208 @@ mitsumi_dma_transfer(mcd_t *dev)
 }
 
 static void
-mitsumi_pio_callback(void *priv)
+mitsumi_read_callback(void *priv)
 {
-    mcd_t    *dev = (mcd_t *) priv;
-
-    const int read_result = mitsumi_cdrom_read_sector(dev, 0);
-    if (read_result < 0) {
-        dev->cur_sense = abs(read_result);
-        dev->stat = mitsumi_error_status(dev, dev->cur_sense);
-        mitsumi_set_irq(dev, IRQ_ERROR);
-    } else if (read_result == 1)
-        mitsumi_set_irq(dev, IRQ_DATAREADY);
-}
-
-static void
-mitsumi_dma_callback(void *priv)
-{
-    mcd_t    *dev = (mcd_t *) priv;
+    mcd_t    *dev      = (mcd_t *) priv;
+    int       read_res = 0;
 
     if (!cpu_thread_run || is_quit || hard_reset_pending) {
         mitsumi_abort_read(dev);
         return;
     }
 
-    int result;
+    const int buf_len = mitsumi_dma_length(dev);
 
-    if (!dev->buf_count) {
-        const int buf_len = mitsumi_dma_length(dev);
-        if (dev->real_count > buf_len) {
+    switch (dev->state) {
+        default:
+            mitsumi_cdrom_log("Mitsumi: state UNKNOWN %02X\n", dev->state);
+            break;
+        case STATE_IDLE:
+            mitsumi_cdrom_log("Mitsumi: state STATE_IDLE\n");
+            break;
+        case STATE_SEEK:
+            mitsumi_cdrom_log("Mitsumi: state STATE_SEEK\n");
+            if (!dev->readcount && (dev->enable_dma || dev->early_status)) {
+                /*
+                  For DMA and early-status PIO reads,
+                  readcount = 0 means read until TC.
+                */
+                dev->readcount = 0xffffffff;
+                /* Set the end MSF to 99:59.74. */
+                dev->audio_end_msf = 0x00995974;
+            }
+
+            read_res = mitsumi_cdrom_seek_sector(dev);
+
+            switch (read_res) {
+               default:
+                    /* Error. */
+                    dev->cur_sense = abs(read_res);
+                    dev->cmdbuf[0] = mitsumi_error_status(dev, dev->cur_sense);
+                    mitsumi_set_irq(dev, IRQ_ERROR);
+
+                    mitsumi_start_status_phase(dev, 1, STATUS_ERROR);
+                    break;
+                case 0: case 2:
+                    /* Seek or audio play, just return status if needed. */
+                    dev->cmdbuf[0] = mitsumi_status(dev);
+
+                    mitsumi_start_status_phase(dev, 1, read_res);
+                    break;
+                case 1:
+                    /* Data read. */
+                    dev->cmdbuf_count = 0;
+
+                    mitsumi_start_read_phase(dev);
+                    break;
+            }
+            break;
+        case STATE_STATUS:
+            dev->cmdbuf_count = 1;
+            dev->cmdbuf_idx = 0;
+
+            if (dev->status == STATUS_OK)
+                dev->state = STATE_STATUS_WAIT;
+            else
+                dev->state = STATE_IDLE;
+            break;
+        case STATE_READ_SECTOR:
+            mitsumi_cdrom_log("Mitsumi: state STATE_READ_SECTOR\n");
+            read_res = mitsumi_cdrom_read_sector(dev, dev->first);
+
+            switch (read_res) {
+                default:
+                    /* Error. */
+                    dev->cur_sense = abs(read_res);
+                    dev->cmdbuf[0] = mitsumi_error_status(dev, dev->cur_sense);
+                    mitsumi_set_irq(dev, IRQ_ERROR);
+
+                    mitsumi_start_status_phase(dev, 1, STATUS_ERROR);
+                    break;
+                case 0: case 2:
+                    /* Read nothing or audio play, just return status if needed. */
+                    dev->cmdbuf[0] = mitsumi_status(dev);
+
+                    mitsumi_start_status_phase(dev, 1, read_res);
+                    break;
+                case 1:
+                    /* Read successful. */
+                    if (dev->first && dev->early_status && !dev->enable_dma) {
+                        /* In DMA mode, the status always follows immediately. */
+                        dev->cmdbuf[0] = mitsumi_status(dev);
+                        mitsumi_start_status_phase(dev, 1, STATUS_OK);
+                    } else
+                        mitsumi_start_data_ready_phase(dev, 1);
+                    if (dev->first && dev->enable_dma) {
+                        dev->dma_retries = 0;
+                        dma_set_drq(dev->dma, 1);
+                        dev->cmdbuf_count = 1;
+                        dev->cmdbuf_idx = 0;
+                    }
+                    break;
+            }
+
+            if (dev->first)
+                dev->first = 0;
+            break;
+        case STATE_DATA_READY:
+            mitsumi_set_irq(dev, IRQ_DATAREADY);
+            dev->state = STATE_IDLE;
+            mitsumi_cdrom_log("Mitsumi: [DR OK] state advanced to STATE_IDLE\n");
+            break;
+        case STATE_ADVANCE_BUFFER:
+            mitsumi_cdrom_log("Mitsumi: state ADVANCE_BUFFER\n");
             dev->real_count -= buf_len;
             memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
             dev->buf_idx     = 0;
             dev->buf_count   = MIN(dev->real_count, buf_len);
-            mitsumi_cdrom_log("Mitsum CD-ROM: [DMA] Moved the next %i bytes into the buffer.\n", dev->buf_count);
-        } else {
-            result = mitsumi_cdrom_read_sector(dev, 0);
-            if (result <= 0) {
-                if (result < 0) {
-                    dev->cur_sense = abs(result);
+            mitsumi_cdrom_log("Mitsumi CD-ROM: [%s] Moved the next %i bytes "
+                              "into the buffer.\n", dev->enable_dma ? "DMA" : "PIO",
+                              dev->buf_count);
+            break;
+        case STATE_WRITE_DMA:
+            mitsumi_cdrom_log("Mitsumi: state STATE_WRITE_DMA\n");
+            read_res = mitsumi_dma_transfer(dev);
+            switch (read_res) {
+                default:
+                    break;
+                case 1:
+                    /* The channel may still be masked or owned by another requester.
+                       Keep DRQ asserted and retry without blocking the emulation thread. */
+                    if ((dma[dev->dma].cc < 0) || (dma_m & (1 << dev->dma)) ||
+                        ((dma[dev->dma].mode & 0x0c) != 0x04)) {
+                        /* The DOS driver enables the interface before it finishes
+                           programming and briefly unmasking the 8237 channel.  None of
+                           those waiting states is a read error. */
+                        mitsumi_cdrom_log("Mitsumi: DMA not writable (channel=%d, cc=%d, mode=%02x, size=%d, enabled=%02x, masked=%02x, writable=%d, result=%d)\n",
+                                          dev->dma, dma[dev->dma].cc, dma[dev->dma].mode,
+                                          dma[dev->dma].size, dma_e, dma_m,
+                                          dma_channel_writable(dev->dma), read_res);
+                        timer_advance_u64(&dev->read_timer, 100 * TIMER_USEC);
+                        break;
+                    }
+                    if (!dev->dma_retries)
+                        mitsumi_cdrom_log("Mitsumi: DMA stalled (channel=%d, cc=%d, mode=%02x, size=%d, enabled=%02x, masked=%02x, writable=%d, result=%d)\n",
+                                          dev->dma, dma[dev->dma].cc, dma[dev->dma].mode,
+                                          dma[dev->dma].size, dma_e, dma_m,
+                                          dma_channel_writable(dev->dma), read_res);
+                    if (++dev->dma_retries < 10000) {
+                        /* MTMCDAE briefly unmasks the 8237 channel and then polls for
+                           terminal count.  Retry on the next CPU cycle so the emulated
+                           drive cannot miss that short DMA service window. */
+                        timer_advance_u64(&dev->read_timer, 1ULL << 32);
+                        return;
+                    }
+                    dev->cur_sense = 3;
                     dev->stat      = mitsumi_error_status(dev, dev->cur_sense);
                     mitsumi_abort_read(dev);
                     mitsumi_set_irq(dev, IRQ_ERROR);
-                } else {
-                    mitsumi_abort_read(dev);
-                }
-                return;
+                    break;
+                case 2:
+                    /* Yield between chunks so reset, pause and shutdown requests can be
+                       handled even during a large or open-ended DMA transfer. */
+                    dev->dma_retries = 0;
+                    if (dev->buf_count == 0) {
+                        if (dev->readcount > 0) {
+                            /* Another sector to read or more data from the buffer. */
+                            if (dev->real_count > buf_len) {
+                                dev->real_count -= buf_len;
+                                memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
+                                dev->buf_idx     = 0;
+                                dev->buf_count   = MIN(dev->real_count, buf_len);
+                                timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
+                            } else
+                                mitsumi_start_seek_phase(dev, 1);
+                        } else if (!dev->early_status) {
+                            /* Exhausted everything and not early status. */
+                            dev->cmdbuf[0] = mitsumi_status(dev);
+                            mitsumi_start_status_phase(dev, 1, STATUS_NO_DATA);
+                        } else
+                            /* Exhausted everything and early status. */
+                            dev->state = STATE_IDLE;
+                    } else
+                        /* Buffer not (yet) exhausted. */
+                        timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
+                    break;
+                case 3:
+                    dev->dma_retries = 0;
+                    if (dev->readcount > 0) {
+                        if (dev->real_count > buf_len) {
+                            dev->real_count -= buf_len;
+                            memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
+                            dev->buf_idx     = 0;
+                            dev->buf_count   = MIN(dev->real_count, buf_len);
+                            timer_advance_u64(&dev->read_timer, 1ULL << 32);
+                        } else
+                            mitsumi_start_seek_phase(dev, 1);
+                    } else if (!dev->early_status) {
+                        dev->cmdbuf[0] = mitsumi_status(dev);
+                        mitsumi_start_status_phase(dev, 1, STATUS_NO_DATA);
+                    } else
+                        dev->state = STATE_IDLE;
+                    break;
             }
-            if (dev->enable_dma)
-                dma_set_drq(dev->dma, 1);
-        }
-    }
-
-    result = mitsumi_dma_transfer(dev);
-
-    if (result == 2) {
-        /* Yield between chunks so reset, pause and shutdown requests can be
-           handled even during a large or open-ended DMA transfer. */
-        dev->dma_retries = 0;
-        timer_advance_u64(&dev->dma_timer, 10 * TIMER_USEC);
-    } else if (result == 3) {
-        dev->dma_retries = 0;
-        timer_advance_u64(&dev->dma_timer,
-                          ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                           MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
-    } else if (result > 0) {
-        /* The channel may still be masked or owned by another requester.
-           Keep DRQ asserted and retry without blocking the emulation thread. */
-        if ((dma[dev->dma].cc < 0) ||
-            (dma_m & (1 << dev->dma)) ||
-            ((dma[dev->dma].mode & 0x0c) != 0x04)) {
-            /* The DOS driver enables the interface before it finishes
-               programming and briefly unmasking the 8237 channel.  None of
-               those waiting states is a read error. */
-            timer_advance_u64(&dev->dma_timer, 100 * TIMER_USEC);
-            return;
-        }
-        if (!dev->dma_retries)
-            mitsumi_cdrom_log("Mitsumi: DMA stalled (channel=%d, cc=%d, mode=%02x, size=%d, enabled=%02x, masked=%02x, writable=%d, result=%d)\n",
-                              dev->dma, dma[dev->dma].cc, dma[dev->dma].mode,
-                              dma[dev->dma].size, dma_e, dma_m,
-                              dma_channel_writable(dev->dma), result);
-        if (++dev->dma_retries < 10000) {
-            /* MTMCDAE briefly unmasks the 8237 channel and then polls for
-               terminal count.  Retry on the next CPU cycle so the emulated
-               drive cannot miss that short DMA service window. */
-            timer_advance_u64(&dev->dma_timer, 1ULL << 32);
-            return;
-        }
-        dev->cur_sense = 3;
-        dev->stat      = mitsumi_error_status(dev, dev->cur_sense);
-        mitsumi_abort_read(dev);
-        mitsumi_set_irq(dev, IRQ_ERROR);
+            break;
     }
 }
 
@@ -631,14 +881,14 @@ mitsumi_cdrom_get_flags(mcd_t* dev)
         ret |= FLAG_NODATA;
     if (!dev->cmdbuf_count)
         ret |= FLAG_NOSTAT;
-    if (!(ret & FLAG_NODATA) && !(ret & FLAG_NOSTAT))
-        ret |= dev->early_status ? FLAG_NODATA : FLAG_NOSTAT;
 
     if (dev->tray_open)
         ret |= FLAG_OPEN;
 
     return ret | FLAG_UNK | 1;
 }
+
+#include "cpu.h"
 
 static uint8_t
 mitsumi_cdrom_in(uint16_t port, void *priv)
@@ -648,6 +898,20 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
 
     switch (port & 3) {
         case 0:
+            if (dev->cmdbuf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NOSTAT)) {
+                dev->cmdbuf_count--;
+                ret = dev->cmdbuf[dev->cmdbuf_idx++];
+                if ((dev->cmdbuf_count == 0) &&
+                    ((dev->cmd == CMD_READ1X) || (dev->cmd == CMD_READ2X)) &&
+                    (dev->state == STATE_STATUS_WAIT) && !dev->enable_dma) {
+                    dev->buf_count     = dev->old_buf_count;
+                    dev->old_buf_count = 0;
+                    mitsumi_start_data_ready_phase(dev, 0);
+                }
+                mitsumi_cdrom_log("Mitsumi: response cmd=%02x byte=%02x remaining=%d\n",
+                                  dev->cmd, ret, dev->cmdbuf_count);
+                return ret;
+            }
             if (dev->buf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NODATA)) {
                 ret = dev->buf[dev->buf_idx];
                 dev->buf_idx++;
@@ -655,7 +919,10 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 if (!dev->buf_count) {
                     mitsumi_set_irq(dev, IRQ_DATACOMP);
                     const int buf_len = mitsumi_dma_length(dev);
+                    mitsumi_cdrom_log("Mitsumi CD-ROM: Real count = %i, buffer length = %i\n",
+                                      dev->real_count, buf_len);
                     if (dev->real_count > buf_len) {
+                        /* Advance instantly - OS/2's REP INSB does *NOT* like waits. */
                         dev->real_count -= buf_len;
                         memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                         dev->buf_idx     = 0;
@@ -667,41 +934,31 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                            Do PIO transfers on a timer, fixes the Windows 9x driver in
                            IRQ mode.
                          */
-                        if (dev->readcount > 0) {
-                            timer_set_delay_u64(&dev->pio_timer,
-                                                ((dev->cmd == CMD_READ2X) ? MITSUMI_2X_SECTOR_TIME_US :
-                                                                                 MITSUMI_1X_SECTOR_TIME_US) * TIMER_USEC);
-                            mitsumi_cdrom_log("Mitsumi PIO timer started at sector %u.\n", dev->cdrom_dev->seek_pos);
-                        } else {
-                            mitsumi_cdrom_log("Mitsumi PIO read complete at sector %u.\n", dev->cdrom_dev->seek_pos);
+                        if (dev->readcount > 0)
+                            mitsumi_start_seek_phase(dev, 0);
+                        else {
+                            if (!dev->early_status) {
+                                dev->cmdbuf[0] = mitsumi_status(dev);
+                                mitsumi_start_status_phase(dev, 0, STATUS_NO_DATA);
+                            }
                             dev->cur_toc_track = INT32_MIN;
+                            mitsumi_cdrom_log("Mitsumi PIO read complete at sector %u.\n", dev->cdrom_dev->seek_pos);
                         }
                     }
                 }
-                return ret;
-            } else if (dev->cmdbuf_count && !(mitsumi_cdrom_get_flags(dev) & FLAG_NOSTAT)) {
-                dev->cmdbuf_count--;
-                ret = dev->cmdbuf[dev->cmdbuf_idx++];
-                mitsumi_cdrom_log("Mitsumi: response cmd=%02x byte=%02x remaining=%d\n",
-                                  dev->cmd, ret, dev->cmdbuf_count);
+                mitsumi_cdrom_log("Mitsumi: data cmd=%02x byte=%02x remaining=%d (ECX=%08X)\n",
+                                  dev->cmd, ret, dev->buf_count, ECX);
                 return ret;
             }
-            return 0xFF;
+            mitsumi_cdrom_log("Mitsumi: byte=ff\n");
+            return 0xff;
         case 1:
             picintc(1 << dev->irq);
             ret = mitsumi_cdrom_get_flags(dev);
-            /*
-               Return FLAG_NOSTAT while waiting for a PIO sector read to finish,
-               otherwise, the Windows 9x driver in polled mode mistakenly assumes
-               the command has finished and stalls.
-             */
-            if (timer_is_enabled(&dev->pio_timer))
-                ret |= FLAG_NOSTAT;
-            if (ret != dev->last_flags) {
-                mitsumi_cdrom_log("Mitsumi: flags=%02x (data=%d, bytes=%d, status=%d)\n",
-                                  ret, dev->data, dev->buf_count, dev->cmdbuf_count);
+            mitsumi_cdrom_log("Mitsumi: [%04X:%08X] flags=%02x (data=%d, bytes=%d, status=%d)\n",
+                              CS, cpu_state.pc, ret, dev->data, dev->buf_count, dev->cmdbuf_count);
+            if (ret != dev->last_flags)
                 dev->last_flags = ret;
-            }
             return ret;
         case 2:
             return 0xFF;
@@ -825,10 +1082,6 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                                sector available. */
                                             dev->dma_retries = 0;
                                             dma_set_drq(dev->dma, 1);
-                                            /* The first sector is already buffered.  Service it
-                                               promptly: MTMMINIP times out if DRQ is left pending
-                                               for a complete sector interval. */
-                                            timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
                                         }
                                         break;
                                     case 0x10:
@@ -862,32 +1115,10 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                             case 0: {
                                 dev->readcount |= val;
                                 dev->audio_end_msf |= val;
-                                if (!dev->readcount && (dev->enable_dma || dev->early_status)) {
-                                    /*
-                                      For DMA and early-status PIO reads,
-                                      readcount = 0 means read until TC.
-                                    */
-                                    dev->readcount = 0xffffffff;
-                                    /* Set the end MSF to 99:59.74. */
-                                    dev->audio_end_msf = 0x00995974;
-                                }
-                                const int read_res = mitsumi_cdrom_read_sector(dev, 1);
-                                if (dev->enable_dma && (read_res == 1)) {
-                                    dev->dma_retries = 0;
-                                    dma_set_drq(dev->dma, 1);
-                                    /* The command path has already fetched the
-                                       first sector, so only later sectors need
-                                       the 1x/2x rotational delay. */
-                                    timer_set_delay_u64(&dev->dma_timer, 1ULL << 32);
-                                }
-                                dev->cmdbuf_count = 1;
-                                if (read_res < 0) {
-                                    dev->cur_sense = abs(read_res);
-                                    mitsumi_set_irq(dev, IRQ_ERROR);
-                                }
-                                dev->cmdbuf[0] = (read_res < 0) ?
-                                                 mitsumi_error_status(dev, dev->cur_sense) :
-                                                 mitsumi_status(dev);
+                                dev->cmdbuf_count = 0;
+                                dev->first = 1;
+                                dev->cdrom_dev->cur_speed = (dev->cmd == CMD_READ2X ? 2 : 1);
+                                mitsumi_start_seek_phase(dev, 0);
                                 break;
                             } case 1:
                                 dev->readcount |= (val << 8);
@@ -1133,9 +1364,7 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     io_sethandler(dev->base, 4,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
-    timer_add(&dev->pio_timer, mitsumi_pio_callback, dev, 0);
-    timer_add(&dev->dma_timer, mitsumi_dma_callback, dev, 0);
-    dma_set_service_handler(dev->dma, mitsumi_dma_callback, dev);
+    timer_add(&dev->read_timer, mitsumi_read_callback, dev, 0);
     mitsumi_cdrom_reset(dev);
 
     return dev;
