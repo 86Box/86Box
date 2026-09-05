@@ -546,7 +546,7 @@ main(int argc, char **argv)
                                 plat_mouse_capture(1);
                                 break;
                             }
-                            if (mouse_get_buttons() < 3 && event.button.button == SDL_BUTTON_MIDDLE && !video_fullscreen) {
+                            if (mouse_capture && (sdl_mouse_buttonmask(event.button.button) & mouse_get_release_buttons()) && !video_fullscreen) {
                                 plat_mouse_capture(0);
                                 break;
                             }
