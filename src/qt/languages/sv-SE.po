@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-17 19:26+0000\n"
+"PO-Revision-Date: 2026-09-05 10:56+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -427,7 +427,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamisk omkompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
 
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
@@ -1490,16 +1490,18 @@ msgid "ACP&I shutdown"
 msgstr "ACP&I-avstängning"
 
 msgid "Power off"
-msgstr ""
+msgstr "Stäng av"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Stäng &av…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Stäng &av"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Avstängning av den emulerade maskinen kan orsaka dataförlust. Är du säker på "
+"att du vill fortsätta?"
 
 msgid "Hard disk (%1)"
 msgstr "Hårddisk (%1)"
@@ -1708,10 +1710,10 @@ msgid "3.5\" 640 MB (ISO 15498)"
 msgstr "3.5\" 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5-tums 1.3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5-tums 2.3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
 msgstr "5.25\" 600 MB"

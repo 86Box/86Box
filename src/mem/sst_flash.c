@@ -562,6 +562,20 @@ sst_init(const device_t *info)
     } else
         dev->dirty = 1; /* It is by definition dirty on creation. */
 
+    /* This is currently forced on until the NEC variant can be fixed */
+    /* Edit the rom to enable/disable the full screen logo */
+    if ((machines[machine].init == machine_at_in530_init) &&
+        (info->local == (AMD | AMD29F002NBT | SIZE_2M))) {
+        const uint8_t old = dev->array[0x3af70];
+
+        dev->array[0x3af70] &= 0xf0;
+        if (machine_in530_boot_logo_enabled())
+            dev->array[0x3af70] |= 0x01;
+
+        if (dev->array[0x3af70] != old)
+            dev->dirty = 1;
+    }
+
     if (!dev->is_39)
         timer_add(&dev->page_write_timer, sst_page_write, dev, 0);
 
