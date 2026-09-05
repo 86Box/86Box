@@ -6587,7 +6587,7 @@ ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len)
 
     opl_buf = ess->opl.update(ess->opl.priv);
     if (opl_buf != NULL) {
-        for (uint16_t c = 0; c < len * 2; c++)
+        for (uint32_t c = 0; c < (uint32_t) len * 2; c++)
             buffer[c] += (int32_t) ((double) opl_buf[c] * 0.7171630859375);
     }
 
