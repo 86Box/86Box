@@ -768,7 +768,8 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
     cdrom_log(dev->log, "read_toc_raw(%016" PRIXPTR ", %016" PRIXPTR ", %02X)\n",
               (uintptr_t) dev, (uintptr_t) b, start_track);
 
-    dev->ops->get_raw_track_info(dev->local, &num, rti);
+    if ((dev != NULL) && (dev->ops != NULL) && (dev->ops->get_raw_track_info != NULL))
+        dev->ops->get_raw_track_info(dev->local, &num, rti);
 
     /* Bytes 2 and 3 = Number of first and last sessions */
     read_toc_identify_sessions((raw_track_info_t *) rti, num, b);

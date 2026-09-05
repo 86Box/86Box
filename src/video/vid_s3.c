@@ -5032,7 +5032,11 @@ s3_trio64v_recalctimings(svga_t *svga)
 
     if (is_vga_mode) {
         svga->hoverride = 0;
-        if (enhanced_8bpp_modes)
+        /* Preserve the first character when blanking ends at line rollover.
+           A zero end value can also match before rollover on longer lines. */
+        if (enhanced_8bpp_modes || ((svga->hblank_end_val == 0) &&
+                                   ((svga->hblankstart + 1) == svga->hdisp_time) &&
+                                   ((svga->hblankstart >> 6) == ((svga->htotal - 1) >> 6))))
             svga->hoverride = 1;
     } else
         svga->hoverride = 1;

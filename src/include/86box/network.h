@@ -268,6 +268,9 @@ extern const device_t wd8013ebt_device;
 extern const device_t wd8003eta_device;
 extern const device_t wd8003ea_device;
 extern const device_t wd8013epa_device;
+extern const device_t ibm_ethernet_efd4_device;
+extern const device_t ibm_ethernet_efd5_device;
+extern const device_t ibm_ethernet_efe5_device;
 #endif
 
 #ifdef __cplusplus

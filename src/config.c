@@ -54,6 +54,7 @@
 #include <86box/nvr.h>
 #include <86box/ini.h>
 #include <86box/config.h>
+#include <86box/mcamem.h>
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/isartc.h>
@@ -2525,6 +2526,17 @@ load_other_peripherals(void)
     if (!softpower_enabled)
         ini_section_delete_var(cat, "softpower_enabled");
 
+    // MCA RAM Boards
+    for (uint8_t c = 0; c < MCAMEM_MAX; c++) {
+        sprintf(temp, "mcamem%d_type", c);
+
+        p              = ini_section_get_string(cat, temp, "none");
+        mcamem_type[c] = mcamem_get_from_internal_name(p);
+
+        if (!strcmp(p, "none"))
+            ini_section_delete_var(cat, temp);
+    }
+
     // ISA RAM Boards
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
@@ -2783,6 +2795,8 @@ config_load(void)
             isarom_type[i] = 0;
         for (i = 0; i < ISAMEM_MAX; i++)
             isamem_type[i] = 0;
+        for (i = 0; i < MCAMEM_MAX; i++)
+            mcamem_type[i] = 0;
 
         cassette_enable = 1;
         memset(cassette_fname, 0x00, sizeof(cassette_fname));
@@ -3957,6 +3971,16 @@ save_other_peripherals(void)
         ini_section_delete_var(cat, "softpower_enabled");
     else
         ini_section_set_int(cat, "softpower_enabled", softpower_enabled);
+
+    // MCA RAM Boards
+    for (uint8_t c = 0; c < MCAMEM_MAX; c++) {
+        sprintf(temp, "mcamem%d_type", c);
+        if (mcamem_type[c] == 0)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp,
+                                   mcamem_get_internal_name(mcamem_type[c]));
+    }
 
     // ISA RAM Boards
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
