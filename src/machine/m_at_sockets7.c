@@ -773,11 +773,10 @@ machine_at_in530_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
     /* Physical FR520 / IN530 PCI topology verified with PCITool:
-     *   device 09h - PCI slot 1
-     *   device 0Ah - PCI slot 2
-     *   device 0Bh - PCI slot 3
-     *   device 0Ch - on-board ESS ES1938S Solo-1
-    */
+         device 09h - PCI slot 1
+         device 0Ah - PCI slot 2
+         device 0Bh - PCI slot 3
+         device 0Ch - on-board ESS ES1938S Solo-1                 */
     pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
@@ -818,8 +817,8 @@ machine_at_aptiva2187_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_SOUND,           1, 2, 3, 4);
 
     device_add(&sis_530_device);
-    device_add(&it8661f_device);
-    device_add(&sst_flash_29ee020_device);
+    device_add(&it8661f_device); /* guess */
+    device_add(&sst_flash_29ee020_device); /* guess */
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
 
     if (sound_card_current[0] == SOUND_INTERNAL)
