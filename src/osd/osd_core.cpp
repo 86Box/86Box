@@ -263,6 +263,15 @@ static bool path_suits_view(OsdView view, char *path)
     return (view == VIEW_CD_FOLDER) ? plat_dir_check(path) : plat_file_check(path);
 }
 
+/* Write protection is marked with a wp:// prefix that is not part of the path */
+static char *usable_path(OsdView view, char *path)
+{
+    if ((path != nullptr) && (strstr(path, "wp://") == path))
+        path += 5;
+
+    return path_suits_view(view, path) ? path : nullptr;
+}
+
 /* Get image path from current mount, last mount in view or history */
 template <size_t entries>
 static char *
@@ -271,12 +280,12 @@ last_known_path(OsdView view, char *mounted, char *(&history)[entries])
     char *candidates[] = { mounted, osd_last_mount[view] };
 
     for (char *candidate : candidates)
-        if (path_suits_view(view, candidate))
+        if ((candidate = usable_path(view, candidate)) != nullptr)
             return candidate;
 
     /* Slots run newest first and can have gaps, so take the first usable one */
     for (char *entry : history)
-        if (path_suits_view(view, entry))
+        if ((entry = usable_path(view, entry)) != nullptr)
             return entry;
 
     return nullptr;
