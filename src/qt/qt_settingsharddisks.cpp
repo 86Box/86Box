@@ -53,6 +53,7 @@ uint64_t               ic[HDD_NUM] = { 0 };
 uint64_t               ih[HDD_NUM] = { 0 };
 uint64_t               is[HDD_NUM] = { 0 };
 uint64_t               ia[HDD_NUM] = { 0 };
+uint64_t               ib[HDD_NUM] = { 0 };
 
 #if 0
 static void
@@ -111,6 +112,7 @@ SettingsHarddisks::addRow(QAbstractItemModel *model, void *priv)
     ih[row] = hd->hpc;
     is[row] = hd->spt;
     ia[row] = hd->audio_profile;
+    ib[row] = hd->vhd_blocksize;
     QString strGeometry = QString("%1, %2, %3 (%4 %5)").arg(hd->tracks).arg(hd->hpc).arg(hd->spt).arg((hd->tracks * hd->hpc * hd->spt) >> 11).arg(tr("MiB"));
     model->setData(model->index(row, ColumnGeometry), strGeometry);
     auto speedIndex = model->index(row, ColumnSpeed);
@@ -188,6 +190,7 @@ SettingsHarddisks::changed()
         has_changed |= (hdd[i].spt           != is[i]);
         has_changed |= (hdd[i].speed_preset  != idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt());
         has_changed |= (hdd[i].audio_profile != ia[i]);
+        has_changed |= (hdd[i].vhd_blocksize != ib[i]);
 
         QByteArray fileName  = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
         has_changed |= strcmp(hdd[i].fn, fileName.data());
@@ -220,6 +223,7 @@ SettingsHarddisks::save(int soft)
         hdd[i].spt           = is[i];
         hdd[i].speed_preset  = idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
         hdd[i].audio_profile = ia[i];
+        hdd[i].vhd_blocksize = ib[i];
 
         QByteArray fileName  = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
         strncpy(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn) - 1);
@@ -482,6 +486,7 @@ SettingsHarddisks::on_pushButtonRemove_clicked()
     ih[idx.row()] = 0;
     is[idx.row()] = 0;
     ia[idx.row()] = 0;
+    ib[idx.row()] = 0;
     model->removeRow(idx.row());
     ui->pushButtonNew->setEnabled(true);
     ui->pushButtonExisting->setEnabled(true);
