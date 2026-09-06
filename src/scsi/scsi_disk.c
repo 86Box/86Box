@@ -1138,7 +1138,7 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
                     scsi_disk_data_command_finish(dev, alloc_length, 512,
                                                   alloc_length, 0);
 
-                    ui_sb_update_icon(SB_HDD, dev->packet_status != PHASE_COMPLETE);
+                    ui_sb_update_icon(SB_HDD | dev->drv->bus_type, dev->packet_status != PHASE_COMPLETE);
                 } else {
                     scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
                     dev->packet_status = (ret < 0) ? PHASE_ERROR : PHASE_COMPLETE;
