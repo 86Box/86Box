@@ -196,7 +196,7 @@ machine_at_aurora_init(const machine_t *model)
         fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
 
     if (is_dell)
-        ret = bios_load_linear(fn[0], 0x000c0000, 262144, 0);
+        ret = bios_load_linear_inverted(fn[0], 0x000c0000, 262144, 0);
     else {
         ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
     }
@@ -216,12 +216,7 @@ machine_at_aurora_init(const machine_t *model)
     device_add(&i450kx_device);
     device_add(&piix_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);
-
-    if (is_dell)
-        device_add(&intel_flash_bxt_device);
-    else {
-        device_add(&intel_flash_bxt_ami_device);
-    }
+    device_add(&intel_flash_bxt_ami_device);
 
     return ret;
 }
