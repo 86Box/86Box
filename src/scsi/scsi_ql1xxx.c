@@ -93,6 +93,7 @@
 
 /* Maximum SCSI devices supported by the chip */
 #define QL_MAX_TID   16
+#define QL_MAX_LUNS  32
 
 #define QL_PCI_PM_BASE             0x44
 #define QL_PCI_IO_BAR_SIZE         0x100
@@ -285,11 +286,16 @@
 #define QL_CMD_ABORT_DEVICE                 0x0016
 #define QL_CMD_ABORT_TARGET                 0x0017
 #define QL_CMD_BUS_RESET                    0x0018
+#define QL_CMD_STOP_QUEUE                   0x0019
 #define QL_CMD_START_QUEUE                  0x001A
+#define QL_CMD_SINGLE_STEP_QUEUE            0x001B
+#define QL_CMD_ABORT_QUEUE                  0x001C
+#define QL_CMD_GET_DEVICE_QUEUE_STATUS      0x001D
 #define QL_CMD_GET_FIRMWARE_STATUS          0x001F
 #define QL_CMD_GET_RETRY_COUNT              0x0022
 #define QL_CMD_GET_ACT_NEG_STATE            0x0025
 #define QL_CMD_GET_TARGET_PARAMETERS        0x0028
+#define QL_CMD_GET_DEVICE_QUEUE_PARAMS      0x0029
 #define QL_CMD_SET_INITIATOR_ID             0x0030
 #define QL_CMD_SET_SELECTION_TIMEOUT        0x0031
 #define QL_CMD_SET_RETRY_COUNT              0x0032
@@ -320,6 +326,11 @@
 #define QL_MBOX_STATUS_TEST_FAILED          0x4003
 #define QL_MBOX_STATUS_CMD_ERROR            0x4005
 #define QL_MBOX_STATUS_CMD_PARAM_ERROR      0x4006
+
+#define QL_QUEUE_STOPPED                    0x0002
+#define QL_QUEUE_SINGLE_STEP                0x0004
+#define QL_QUEUE_DEFAULT_DEPTH              256
+#define QL_QUEUE_DEFAULT_THROTTLE           16
 
 /*
  * Mailbox asynchronous event status codes
@@ -650,6 +661,12 @@ typedef struct ql_fw_target_params {
     uint16_t sync_period;
 } ql_fw_target_params;
 
+typedef struct ql_fw_device_queue {
+    uint16_t flags;
+    uint16_t depth;
+    uint16_t throttle;
+} ql_fw_device_queue;
+
 typedef struct ql_t {
     /* Hardware registers */
     uint16_t reg_cdma_cfg;
@@ -723,6 +740,8 @@ typedef struct ql_t {
     pc_timer_t cmd_timer;
     /* Firmware device parameters */
     ql_fw_target_params fw_tid_params[2][QL_MAX_TID];
+    /* Per-LUN command queue state and limits */
+    ql_fw_device_queue fw_dev_queues[2][QL_MAX_TID][QL_MAX_LUNS];
     /* Firmware retry count and delay settings */
     uint16_t fw_retry_params[4];
     /* Size of the SCSI payload data */
@@ -818,11 +837,16 @@ ql_debug_cmd_to_name(uint16_t opcode)
         MAKE_CASE(QL_CMD_ABORT_DEVICE             );
         MAKE_CASE(QL_CMD_ABORT_TARGET             );
         MAKE_CASE(QL_CMD_BUS_RESET                );
+        MAKE_CASE(QL_CMD_STOP_QUEUE               );
         MAKE_CASE(QL_CMD_START_QUEUE              );
+        MAKE_CASE(QL_CMD_SINGLE_STEP_QUEUE        );
+        MAKE_CASE(QL_CMD_ABORT_QUEUE              );
+        MAKE_CASE(QL_CMD_GET_DEVICE_QUEUE_STATUS  );
         MAKE_CASE(QL_CMD_GET_FIRMWARE_STATUS      );
         MAKE_CASE(QL_CMD_GET_RETRY_COUNT          );
         MAKE_CASE(QL_CMD_GET_ACT_NEG_STATE        );
         MAKE_CASE(QL_CMD_GET_TARGET_PARAMETERS    );
+        MAKE_CASE(QL_CMD_GET_DEVICE_QUEUE_PARAMS  );
         MAKE_CASE(QL_CMD_SET_INITIATOR_ID         );
         MAKE_CASE(QL_CMD_SET_SELECTION_TIMEOUT    );
         MAKE_CASE(QL_CMD_SET_RETRY_COUNT          );
@@ -1350,6 +1374,16 @@ ql_reset_asic(ql_t *dev)
     dev->sxp_flags = 0;
     dev->sxp_state = SXP_STATE_IDLE;
 
+    memset(dev->fw_dev_queues, 0, sizeof(dev->fw_dev_queues));
+    for (uint32_t path_id = 0; path_id < 2; path_id++) {
+        for (uint32_t target_id = 0; target_id < QL_MAX_TID; target_id++) {
+            for (uint32_t lun = 0; lun < QL_MAX_LUNS; lun++) {
+                dev->fw_dev_queues[path_id][target_id][lun].depth = QL_QUEUE_DEFAULT_DEPTH;
+                dev->fw_dev_queues[path_id][target_id][lun].throttle = QL_QUEUE_DEFAULT_THROTTLE;
+            }
+        }
+    }
+
     ql_update_irq(dev);
 }
 
@@ -1407,6 +1441,146 @@ ql_sxp_abort_commands(ql_t *dev, uint8_t path_id, uint8_t target_id, uint8_t lun
     }
 
     return success;
+}
+
+static bool
+ql_get_device_queue(ql_t *dev, uint16_t address, uint8_t *path_id,
+                    uint8_t *target_id, uint8_t *lun,
+                    ql_fw_device_queue **queue)
+{
+    *path_id = (uint8_t)(address >> 15);
+    *target_id = (uint8_t)((address >> 8) & 0x7F);
+    *lun = (uint8_t)address;
+
+    if ((*path_id >= dev->max_bus_count) || (*target_id >= QL_MAX_TID) ||
+        (*lun >= QL_MAX_LUNS)) {
+        return false;
+    }
+
+    *queue = &dev->fw_dev_queues[*path_id][*target_id][*lun];
+    return true;
+}
+
+static bool
+ql_sxp_command_active(ql_t *dev, uint8_t path_id, uint8_t target_id,
+                      uint8_t lun)
+{
+    switch (dev->sxp_state) {
+        case SXP_STATE_SELECT_DEVICE:
+        case SXP_STATE_SELECTION_TIMEOUT:
+        case SXP_STATE_SEND_CDB:
+        case SXP_STATE_COMPLETE_COMMAND:
+            return (((dev->pkt.bus_target & 0x80) >> 7) == path_id) &&
+                   ((dev->pkt.bus_target & 0x7F) == target_id) &&
+                   (dev->pkt.lun == lun) &&
+                   ((dev->pkt.hdr.entry_type == RQSTYPE_REQUEST) ||
+                    (dev->pkt.hdr.entry_type == RQSTYPE_REQUEST_A64));
+        default:
+            return false;
+    }
+}
+
+static uint16_t
+ql_sxp_queued_commands(ql_t *dev, uint8_t path_id, uint8_t target_id,
+                       uint8_t lun)
+{
+    uint16_t cons, count = 0;
+    uint16_t scanned = 0;
+
+    if (!(dev->sxp_flags & SXP_FLAG_ENGINE_ACTIVE) ||
+        (dev->rqst_ring_size == 0)) {
+        return 0;
+    }
+
+    cons = QL_RQST_CONS(dev);
+    if (ql_sxp_command_active(dev, path_id, target_id, lun)) {
+        cons = (uint16_t)((cons + MAX(dev->pkt.hdr.entry_count, 1)) %
+                          dev->rqst_ring_size);
+    }
+
+    while ((cons != QL_RQST_PROD(dev)) && (scanned < dev->rqst_ring_size)) {
+        uint32_t address = dev->rqst_ring_base + cons * QENTRY_LEN;
+        ql_sxp_req_t pkt;
+        uint16_t entries = 1;
+
+        if (ql_sxp_fetch_request(&pkt, address)) {
+            entries = (uint16_t)MIN(MAX(pkt.hdr.entry_count, 1),
+                                    dev->rqst_ring_size - scanned);
+            if (((pkt.hdr.entry_type == RQSTYPE_REQUEST) ||
+                 (pkt.hdr.entry_type == RQSTYPE_REQUEST_A64)) &&
+                (((pkt.bus_target & 0x80) >> 7) == path_id) &&
+                ((pkt.bus_target & 0x7F) == target_id) &&
+                (pkt.lun == lun)) {
+                count++;
+            }
+        }
+        cons = (uint16_t)((cons + entries) % dev->rqst_ring_size);
+        scanned += entries;
+    }
+
+    return count;
+}
+
+static uint16_t
+ql_handle_cmd_device_queue_control(ql_t *dev, uint16_t command)
+{
+    ql_fw_device_queue *queue;
+    uint8_t path_id, target_id, lun;
+
+    if (!ql_get_device_queue(dev, dev->reg_mbox_in[1], &path_id,
+                             &target_id, &lun, &queue)) {
+        return QL_MBOX_STATUS_CMD_PARAM_ERROR;
+    }
+
+    switch (command) {
+        case QL_CMD_STOP_QUEUE:
+            queue->flags &= ~QL_QUEUE_SINGLE_STEP;
+            queue->flags |= QL_QUEUE_STOPPED;
+            break;
+        case QL_CMD_START_QUEUE:
+            queue->flags &= ~(QL_QUEUE_STOPPED | QL_QUEUE_SINGLE_STEP);
+            break;
+        case QL_CMD_SINGLE_STEP_QUEUE:
+            queue->flags |= QL_QUEUE_SINGLE_STEP;
+            break;
+        case QL_CMD_ABORT_QUEUE:
+            (void) ql_sxp_abort_commands(dev, path_id, target_id, lun, 0, false);
+            break;
+        default:
+            assert(false);
+            break;
+    }
+
+    ql_log("QL: [%u:%u:%u] Queue command 0x%X, flags 0x%X\n",
+           path_id, target_id, lun, command, queue->flags);
+
+    dev->mbox_out_mask |= QL_BIT(1) | QL_BIT(2);
+    dev->mbox_data[1] = dev->reg_mbox_in[1];
+    dev->mbox_data[2] = queue->flags;
+    return QL_MBOX_STATUS_COMPLETE;
+}
+
+static uint16_t
+ql_handle_cmd_get_device_queue_status(ql_t *dev)
+{
+    ql_fw_device_queue *queue;
+    uint8_t path_id, target_id, lun;
+
+    if (!ql_get_device_queue(dev, dev->reg_mbox_in[1], &path_id,
+                             &target_id, &lun, &queue)) {
+        return QL_MBOX_STATUS_CMD_PARAM_ERROR;
+    }
+
+    dev->mbox_out_mask |= QL_BIT(1) | QL_BIT(2) | QL_BIT(3) | QL_BIT(6);
+    dev->mbox_data[1] = queue->flags;
+    dev->mbox_data[2] = ql_sxp_queued_commands(dev, path_id, target_id, lun);
+    dev->mbox_data[3] = ql_sxp_command_active(dev, path_id, target_id, lun);
+    dev->mbox_data[6] = 0;
+
+    ql_log("QL: [%u:%u:%u] Queue status flags 0x%X queued %u active %u\n",
+           path_id, target_id, lun, dev->mbox_data[1],
+           dev->mbox_data[2], dev->mbox_data[3]);
+    return QL_MBOX_STATUS_COMPLETE;
 }
 
 static void
@@ -2004,12 +2178,42 @@ ql_handle_cmd_get_target_parameters(ql_t *dev)
 static uint16_t
 ql_handle_cmd_set_device_queue(ql_t *dev)
 {
-    ql_log("QL: Queue params 0x%X %u %u\n", dev->reg_mbox_in[1], dev->reg_mbox_in[2], dev->reg_mbox_in[3]);
+    ql_fw_device_queue *queue;
+    uint8_t path_id, target_id, lun;
+
+    if (!ql_get_device_queue(dev, dev->reg_mbox_in[1], &path_id,
+                             &target_id, &lun, &queue)) {
+        return QL_MBOX_STATUS_CMD_PARAM_ERROR;
+    }
+
+    queue->depth = dev->reg_mbox_in[2];
+    queue->throttle = dev->reg_mbox_in[3];
+
+    ql_log("QL: [%u:%u:%u] Queue depth %u, execution throttle %u\n",
+           path_id, target_id, lun, queue->depth, queue->throttle);
 
     dev->mbox_out_mask |= QL_BIT(1) | QL_BIT(2) | QL_BIT(3);
     dev->mbox_data[1] = dev->reg_mbox_in[1];
-    dev->mbox_data[2] = dev->reg_mbox_in[2];
-    dev->mbox_data[3] = 0x0064;
+    dev->mbox_data[2] = queue->depth;
+    dev->mbox_data[3] = queue->throttle;
+    return QL_MBOX_STATUS_COMPLETE;
+}
+
+static uint16_t
+ql_handle_cmd_get_device_queue_params(ql_t *dev)
+{
+    ql_fw_device_queue *queue;
+    uint8_t path_id, target_id, lun;
+
+    if (!ql_get_device_queue(dev, dev->reg_mbox_in[1], &path_id,
+                             &target_id, &lun, &queue)) {
+        return QL_MBOX_STATUS_CMD_PARAM_ERROR;
+    }
+
+    dev->mbox_out_mask |= QL_BIT(1) | QL_BIT(2) | QL_BIT(3);
+    dev->mbox_data[1] = dev->reg_mbox_in[1];
+    dev->mbox_data[2] = queue->depth;
+    dev->mbox_data[3] = queue->throttle;
     return QL_MBOX_STATUS_COMPLETE;
 }
 
@@ -2175,8 +2379,14 @@ ql_process_mailbox(ql_t *dev)
         case QL_CMD_BUS_RESET:
             status = ql_handle_cmd_bus_reset(dev);
             break;
+        case QL_CMD_STOP_QUEUE:
         case QL_CMD_START_QUEUE:
-            status = ql_handle_cmd_nop(dev);
+        case QL_CMD_SINGLE_STEP_QUEUE:
+        case QL_CMD_ABORT_QUEUE:
+            status = ql_handle_cmd_device_queue_control(dev, dev->reg_mbox_in[0]);
+            break;
+        case QL_CMD_GET_DEVICE_QUEUE_STATUS:
+            status = ql_handle_cmd_get_device_queue_status(dev);
             break;
         case QL_CMD_GET_RETRY_COUNT:
             status = ql_handle_cmd_get_retry_count(dev);
@@ -2186,6 +2396,9 @@ ql_process_mailbox(ql_t *dev)
             break;
         case QL_CMD_GET_TARGET_PARAMETERS:
             status = ql_handle_cmd_get_target_parameters(dev);
+            break;
+        case QL_CMD_GET_DEVICE_QUEUE_PARAMS:
+            status = ql_handle_cmd_get_device_queue_params(dev);
             break;
         case QL_CMD_GET_FIRMWARE_STATUS:
             status = ql_handle_cmd_get_firmware_status(dev);
@@ -2676,6 +2889,13 @@ ql_sxp_state_machine(ql_t *dev)
 
                         fifo8_drop(&dev->abort_iocbs_fifo, sizeof(rqst_idx));
 
+                        dev->pkt_address = dev->rqst_ring_base + QL_RQST_CONS(dev) * QENTRY_LEN;
+                        if (!ql_sxp_fetch_request(pkt, dev->pkt_address)) {
+                            pkt->hdr.entry_count = 1;
+                            dev->sxp_state = SXP_STATE_BAD_PACKET;
+                            break;
+                        }
+
                         ql_sxp_begin_response_entry(pkt, resp);
                         resp->scsi_status = SCSI_STATUS_OK;
                         resp->comp_status = RQCS_ABORTED;
@@ -2697,6 +2917,26 @@ ql_sxp_state_machine(ql_t *dev)
 
                 dev->sxp_state = SXP_STATE_BAD_PACKET;
                 break;
+            }
+
+            if ((pkt->hdr.entry_type == RQSTYPE_REQUEST) ||
+                (pkt->hdr.entry_type == RQSTYPE_REQUEST_A64)) {
+                ql_fw_device_queue *queue;
+                uint8_t path_id, target_id, lun;
+                uint16_t address = ((uint16_t)pkt->bus_target << 8) |
+                                   pkt->lun;
+
+                if (ql_get_device_queue(dev, address, &path_id, &target_id,
+                                        &lun, &queue)) {
+                    if ((queue->flags & QL_QUEUE_STOPPED) &&
+                        !(queue->flags & QL_QUEUE_SINGLE_STEP)) {
+                        return false;
+                    }
+                    if (queue->flags & QL_QUEUE_SINGLE_STEP) {
+                        queue->flags &= ~QL_QUEUE_SINGLE_STEP;
+                        queue->flags |= QL_QUEUE_STOPPED;
+                    }
+                }
             }
 
             dev->sxp_state = SXP_STATE_SELECT_DEVICE;
@@ -2736,6 +2976,13 @@ ql_sxp_state_machine(ql_t *dev)
 
             if (dev->curr_target_id >= MIN(QL_MAX_TID, SCSI_ID_MAX)) {
                 dev->sxp_state = SXP_STATE_SELECTION_TIMEOUT;
+                break;
+            }
+
+            if ((pkt->hdr.entry_type == RQSTYPE_REQUEST ||
+                 pkt->hdr.entry_type == RQSTYPE_REQUEST_A64) &&
+                pkt->cdb_length > sizeof(pkt->cdb)) {
+                dev->sxp_state = SXP_STATE_BAD_PACKET;
                 break;
             }
 
@@ -2781,6 +3028,13 @@ ql_sxp_state_machine(ql_t *dev)
                 dev->timer_period = ql_sxp_handle_state_send_cdb_sgl(dev, sd);
             }
             scsi_device_identify(sd, SCSI_LUN_USE_CDB);
+
+            if ((pkt->lun < QL_MAX_LUNS) &&
+                (resp->scsi_status == SCSI_STATUS_CHECK_CONDITION) &&
+                (dev->fw_tid_params[dev->curr_path_id][dev->curr_target_id].flags & DPARM_QFRZ)) {
+                dev->fw_dev_queues[dev->curr_path_id][dev->curr_target_id][pkt->lun].flags |=
+                    QL_QUEUE_STOPPED;
+            }
 
             dev->sxp_state = SXP_STATE_COMPLETE_COMMAND;
             break;
@@ -2873,9 +3127,13 @@ ql_sxp_state_machine(ql_t *dev)
             break;
         }
         case SXP_STATE_ACQUIRE_MBOX_SEMAPHORE: {
-            /* Wait for the mailbox semaphore to be released */
-            if (dev->reg_semaphore & QL_SEMAPHORE_LOCK) {
-                ql_log("Mailbox semaphore is not released\n");
+            /*
+             * Do not replace a mailbox result until the host has released
+             * its registers and acknowledged the interrupt for that result.
+             */
+            if ((dev->reg_semaphore & QL_SEMAPHORE_LOCK) ||
+                (dev->reg_intr_status & QL_RISC_INTR_REQ)) {
+                ql_log("Mailbox result is not released\n");
                 return false;
             }
 
@@ -3025,6 +3283,10 @@ ql_write_host_command(ql_t *dev, uint16_t val)
             dev->reg_host_cmd_flags &= ~QL_HC_FLAG_HOST_INTR;
             dev->reg_intr_status = 0;
             ql_update_irq(dev);
+
+            if (dev->sxp_state == SXP_STATE_ACQUIRE_MBOX_SEMAPHORE) {
+                ql_sxp_run_state_machine(dev);
+            }
             break;
         case QL_HC_DISABLE_BIOS:
             dev->reg_host_cmd_flags = 0;
