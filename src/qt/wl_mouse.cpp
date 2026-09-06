@@ -211,11 +211,8 @@ wl_mouse_capture(QWindow *window)
         wl_surface *surface          = surface_for(window);
         wl_surface *toplevel_surface = surface_for(toplevel);
 
-        /* Compositors disagree on which surface a constraint is resolved
-         * against: KWin uses the window's root surface, while Weston, Mutter
-         * and wlroots use the focused (sub)surface. With the OpenGL and Vulkan
-         * renderers those differ, so lock both and let the compositor activate
-         * whichever one it recognises. */
+        /* Compositors disagree on whether a constraint is resolved against the
+         * focused surface or the window's top-level one, so lock both. */
         if (pointer) {
             conf_pointer = lock_pointer_to(surface, pointer);
             if (toplevel_surface != surface)
@@ -227,7 +224,7 @@ wl_mouse_capture(QWindow *window)
 void
 wl_mouse_uncapture()
 {
-    if (conf_pointer_interface && !pointer_locked)
+    if ((conf_pointer || conf_pointer_toplevel) && !pointer_locked)
         qWarning() << "Wayland: the compositor never activated the pointer lock";
 
     if (conf_pointer)
