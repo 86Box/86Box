@@ -826,6 +826,11 @@ VMManagerSystem::setupVars()
             auto scsi_id            = scsi_card_get_from_internal_name(scsi_internal_name.toUtf8().data());
             auto scsi_device        = scsi_card_getdevice(scsi_id);
             auto scsi_name          = DeviceConfig::DeviceName(scsi_device, scsi_card_get_internal_name(scsi_id), 1);
+            if ((ci != -1) && (QString(scsi_internal_name) == "internal")) {
+                auto internal_device = machine_get_scsi_device(ci);
+                if (internal_device)
+                    scsi_name.append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
+            }
             if (!scsi_name.isEmpty()) {
                 scsiControllers.append(scsi_name);
             }

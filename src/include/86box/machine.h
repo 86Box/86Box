@@ -384,6 +384,7 @@ typedef struct _machine_ {
     const device_t        *fdc_device;
     const device_t        *vid_device;
     const device_t        *snd_device;
+    const device_t        *scsi_device;
     const device_t        *net_device;
 #else
     void                  *device;
@@ -391,6 +392,7 @@ typedef struct _machine_ {
     void                  *fdc_device;
     void                  *vid_device;
     void                  *snd_device;
+    void                  *scsi_device;
     void                  *net_device;
 #endif
     const char            *aliases[16];
@@ -420,6 +422,7 @@ extern const device_t *machine_get_device(int m);
 extern const device_t *machine_get_fdc_device(int m);
 extern const device_t *machine_get_vid_device(int m);
 extern const device_t *machine_get_snd_device(int m);
+extern const device_t *machine_get_scsi_device(int m);
 extern const device_t *machine_get_net_device(int m);
 #endif
 extern const char *    machine_get_internal_name_ex(int m);
