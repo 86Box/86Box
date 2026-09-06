@@ -179,6 +179,7 @@ private:
     Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
+    QMenu                         *dynarecMenu = nullptr;
 
     void updateShortcuts();
     void processKeyboardInput(bool down, uint32_t keycode);

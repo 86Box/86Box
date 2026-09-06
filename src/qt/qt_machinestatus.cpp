@@ -392,7 +392,7 @@ struct MachineStatus::States {
     std::array<StateActive, HDD_BUS_USB>       hdds;
     std::array<StateEmptyActive, NET_CARD_MAX> net;
     std::unique_ptr<ClickableLabel>            sound;
-    std::unique_ptr<QLabel>                    dynarec;
+    std::unique_ptr<ClickableLabel>            dynarec;
     std::unique_ptr<QLabel>                    text;
 };
 
@@ -402,6 +402,7 @@ MachineStatus::MachineStatus(QObject *parent)
 {
     d         = std::make_unique<MachineStatus::States>(this);
     soundMenu = nullptr;
+    dynarecMenu = nullptr;
     connect(refreshTimer, &QTimer::timeout, this, &MachineStatus::refreshIcons);
     refreshTimer->start(75);
 }
@@ -412,6 +413,12 @@ void
 MachineStatus::setSoundMenu(QMenu *menu)
 {
     soundMenu = menu;
+}
+
+void
+MachineStatus::setDynarecMenu(QMenu *menu)
+{
+    dynarecMenu = menu;
 }
 
 bool
@@ -612,8 +619,12 @@ MachineStatus::refreshIcons()
     if (d->sound)
         d->sound->setPixmap((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 
-    if (d->dynarec)
+    if (d->dynarec) {
+        d->dynarec->setVisible(cpu_use_dynarec);
         d->dynarec->setPixmap(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
+        d->dynarec->setToolTip(is_dynarec_active() ? tr("Dynamic recompiler is active") :
+                                                     tr("Dynamic recompiler is inactive"));
+    }
 
     /* Check if icons should show activity. */
     if (!update_icons)
@@ -1052,9 +1063,17 @@ MachineStatus::refresh(QStatusBar *sbar)
     d->sound->setToolTip(tr("Sound"));
     sbar->addWidget(d->sound.get());
 
-    d->dynarec = std::make_unique<QLabel>();
+    d->dynarec = std::make_unique<ClickableLabel>();
     d->dynarec->setPixmap(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
-    d->dynarec->setToolTip(tr("Dynamic recompiler"));
+    d->dynarec->setToolTip(is_dynarec_active() ? tr("Dynamic recompiler is active") :
+                                                 tr("Dynamic recompiler is inactive"));
+    d->dynarec->setVisible(cpu_use_dynarec);
+
+    connect(d->dynarec.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
+        if (this->dynarecMenu)
+            this->dynarecMenu->popup(pos - QPoint(0, this->dynarecMenu->sizeHint().height()));
+    });
+
     sbar->addWidget(d->dynarec.get());
 
     d->text = std::make_unique<QLabel>();
