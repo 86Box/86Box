@@ -630,6 +630,10 @@ extern const device_t tandy_1000_video_device;
 extern const device_t tandy_1000hx_video_device;
 extern const device_t tandy_1000sl_video_device;
 
+/* Hitachi HD44780 character LCD */
+extern const device_t hd44780_device;
+extern const device_t hd44780_qube3_device;
+
 #endif
 
 #endif /*EMU_VIDEO_H*/

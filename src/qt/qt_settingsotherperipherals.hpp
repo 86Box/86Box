@@ -26,14 +26,14 @@ private slots:
     void on_comboBoxRTC_currentIndexChanged(int index);
     void on_pushButtonConfigureRTC_clicked();
 
-    void on_comboBoxIsaMemCard1_currentIndexChanged(int index);
-    void on_pushButtonConfigureIsaMemCard1_clicked();
-    void on_comboBoxIsaMemCard2_currentIndexChanged(int index);
-    void on_pushButtonConfigureIsaMemCard2_clicked();
-    void on_comboBoxIsaMemCard3_currentIndexChanged(int index);
-    void on_pushButtonConfigureIsaMemCard3_clicked();
-    void on_comboBoxIsaMemCard4_currentIndexChanged(int index);
-    void on_pushButtonConfigureIsaMemCard4_clicked();
+    void on_comboBoxMemExpCard1_currentIndexChanged(int index);
+    void on_pushButtonConfigureMemExpCard1_clicked();
+    void on_comboBoxMemExpCard2_currentIndexChanged(int index);
+    void on_pushButtonConfigureMemExpCard2_clicked();
+    void on_comboBoxMemExpCard3_currentIndexChanged(int index);
+    void on_pushButtonConfigureMemExpCard3_clicked();
+    void on_comboBoxMemExpCard4_currentIndexChanged(int index);
+    void on_pushButtonConfigureMemExpCard4_clicked();
 
     void on_comboBoxIsaRomCard1_currentIndexChanged(int index);
     void on_pushButtonConfigureIsaRomCard1_clicked();
@@ -57,7 +57,7 @@ private:
     Ui::SettingsOtherPeripherals *ui;
     int                           machineId { 0 };
 
-    int                           isamem_cfg_changed[4]      = { 0, 0, 0, 0 };
+    int                           memexp_cfg_changed[4]      = { 0, 0, 0, 0 };
     int                           isarom_cfg_changed[4]      = { 0, 0, 0, 0 };
     int                           isartc_cfg_changed         = 0;
     int                           unittester_cfg_changed     = 0;
@@ -66,7 +66,7 @@ private:
 
     SettingsCompleter            *scRTC;
 
-    SettingsCompleter            *scIsaMemCard[4];
+    SettingsCompleter            *scMemExpCard[4];
     SettingsCompleter            *scIsaRomCard[4];
 };
 

@@ -235,7 +235,13 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         isMouseDown &= ~1;
         return;
     }
-    if (mouse_capture && (event->button() == Qt::MiddleButton) && (mouse_get_buttons() < 3)) {
+    if (mouse_capture && (event->button() & mouse_get_release_buttons())) {
+        /*
+           On Windows the raw input thread sets the button bit behind our back and
+           stops processing as soon as the capture drops, so clear it here to keep it
+           from staying stuck down. Elsewhere the press was already consumed above.
+         */
+        mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
         plat_mouse_capture(0);
         this->unsetCursor();
         isMouseDown &= ~1;
@@ -270,6 +276,11 @@ void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
+    /* A button that releases the capture is consumed, not sent to the guest. */
+    if (mouse_capture && (event->button() & mouse_get_release_buttons())) {
+        event->accept();
+        return;
+    }
     if (mouse_capture || (mouse_input_mode >= 1)) {
         Qt::MouseButton button = event->button();
 #ifdef __APPLE__
@@ -495,6 +506,8 @@ RendererStack::createRenderer(Renderer renderer)
 
     this->setStyleSheet("background-color: black");
     boxLayout->addWidget(current.get());
+    if (m_monitor_index > 0)
+        current->show();
 
     rendererWindow->r_monitor_index = m_monitor_index;
 

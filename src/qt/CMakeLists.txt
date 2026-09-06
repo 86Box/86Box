@@ -506,6 +506,15 @@ if(WIN32)
                 ")
             endif()
         endif()
+
+        # The Qt plugins live in the vcpkg tree rather than next to the
+        # binary, so point Qt at them to make the build tree runnable
+        # without going through `cmake --install` first.
+        if(VCPKG_TOOLCHAIN)
+            file(GENERATE
+                OUTPUT "$<TARGET_FILE_DIR:86Box>/qt.conf"
+                CONTENT "[Paths]\nPlugins = ${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}$<$<CONFIG:Debug>:/debug>/Qt${QT_MAJOR}/plugins\n")
+        endif()
     endif()
 endif()
 
