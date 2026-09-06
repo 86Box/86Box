@@ -217,6 +217,9 @@ MainWindow::MainWindow(QWidget *parent)
     main_window = this;
     ui->setupUi(this);
     status->setSoundMenu(ui->menuSound);
+    dynarecMenu = new QMenu(this);
+    dynarecMenu->addAction(ui->actionForce_interpretation);
+    status->setDynarecMenu(dynarecMenu);
     ui->actionMute_Unmute->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
@@ -1847,6 +1850,7 @@ MainWindow::refreshMediaMenu()
 {
     mm->refresh(ui->menuMedia);
     status->setSoundMenu(ui->menuSound);
+    status->setDynarecMenu(dynarecMenu);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     if (acpi_enabled) {
