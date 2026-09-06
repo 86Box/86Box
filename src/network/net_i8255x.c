@@ -2437,10 +2437,24 @@ static const device_config_t i8255x_onboard_config[] = {
 };
 
 const device_t i82557b_onboard_device = {
-    .name          = "Intel SB82558B (On-Board)",
+    .name          = "Intel SB82557B (On-Board)",
     .internal_name = "i82557b_onboard",
     .flags         = DEVICE_PCI,
     .local         = 0x0000 | 0x0100,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = eepro100_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = i8255x_onboard_config
+};
+
+const device_t i82558b_onboard_device = {
+    .name          = "Intel SB82558B (On-Board)",
+    .internal_name = "i82558b_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 0x0002 | 0x0100,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = eepro100_reset,

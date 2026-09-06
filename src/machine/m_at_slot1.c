@@ -1887,7 +1887,7 @@ machine_at_ergox365_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add_params(&fdc37c67x_device, (void *) (FDC37XXX5 | FDC37XXXX_370));
-    device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_39sf040_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
