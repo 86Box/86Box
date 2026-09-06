@@ -206,18 +206,50 @@ mitsumi_set_irq(const mcd_t *dev, const uint8_t mask)
     }
 }
 
+static int
+mitsumi_msf_to_lba(const uint32_t msf, uint32_t *lba)
+{
+    const uint8_t minute_bcd = (msf >> 16) & 0xff;
+    const uint8_t second_bcd = (msf >> 8) & 0xff;
+    const uint8_t frame_bcd  = msf & 0xff;
+
+    if (((minute_bcd & 0x0f) > 9) || ((minute_bcd >> 4) > 9) ||
+        ((second_bcd & 0x0f) > 9) || ((second_bcd >> 4) > 9) ||
+        ((frame_bcd & 0x0f) > 9) || ((frame_bcd >> 4) > 9))
+        return 0;
+
+    const uint8_t minute = CD_DCB(minute_bcd);
+    const uint8_t second = CD_DCB(second_bcd);
+    const uint8_t frame  = CD_DCB(frame_bcd);
+    const uint32_t absolute_lba = MSFtoLBA(minute, second, frame);
+
+    if ((second >= 60) || (frame >= 75) || (absolute_lba < 150))
+        return 0;
+
+    *lba = absolute_lba - 150;
+    return 1;
+}
+
 static uint8_t
 mitsumi_status(mcd_t *dev)
 {
-    uint8_t status = 0;
+    uint8_t  status = 0;
+    uint32_t lba    = 0;
 
     if (dev->tray_open)
         status |= STAT_OPEN;
     if (mitsumi_cdrom_is_ready(dev) && (dev->change != 2)) {
         status |= STAT_READY | STAT_SERVO;
-        if ((dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO) &&
-            !cdrom_has_data(dev->cdrom_dev))
-            status |= STAT_DISK_CDDA;
+        if (dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO) {
+            if (!cdrom_has_data(dev->cdrom_dev))
+                status |= STAT_DISK_CDDA;
+            else if ((dev->cdrom_dev != NULL) && (dev->cdrom_dev->ops != NULL) &&
+                     (dev->cdrom_dev->ops->get_track_type != NULL)) {
+                if (mitsumi_msf_to_lba(dev->readmsf, &lba) &&
+                    dev->cdrom_dev->ops->get_track_type(dev->cdrom_dev->local, lba) == CD_TRACK_AUDIO)
+                    status |= STAT_DISK_CDDA;
+            }
+        }
     }
     if (dev->change > 0) {
         status |= STAT_CHANGE;
@@ -255,30 +287,6 @@ mitsumi_abort_read(mcd_t *dev)
     dev->readbuflen = 0;
     dev->data       = 0;
     dev->drvmode    = DRV_MODE_STOP;
-}
-
-static int
-mitsumi_msf_to_lba(const uint32_t msf, uint32_t *lba)
-{
-    const uint8_t minute_bcd = (msf >> 16) & 0xff;
-    const uint8_t second_bcd = (msf >> 8) & 0xff;
-    const uint8_t frame_bcd  = msf & 0xff;
-
-    if (((minute_bcd & 0x0f) > 9) || ((minute_bcd >> 4) > 9) ||
-        ((second_bcd & 0x0f) > 9) || ((second_bcd >> 4) > 9) ||
-        ((frame_bcd & 0x0f) > 9) || ((frame_bcd >> 4) > 9))
-        return 0;
-
-    const uint8_t minute = CD_DCB(minute_bcd);
-    const uint8_t second = CD_DCB(second_bcd);
-    const uint8_t frame  = CD_DCB(frame_bcd);
-    const uint32_t absolute_lba = MSFtoLBA(minute, second, frame);
-
-    if ((second >= 60) || (frame >= 75) || (absolute_lba < 150))
-        return 0;
-
-    *lba = absolute_lba - 150;
-    return 1;
 }
 
 static uint32_t

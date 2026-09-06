@@ -332,7 +332,6 @@ ioctl_read_raw_toc(ioctl_t *ioctl)
                 ioctl->has_data |= 1;
             else
                 ioctl->has_audio |= 1;
-            break;
         }
     }
 
