@@ -168,6 +168,8 @@ typedef struct mcd_t {
     cdrom_t *cdrom_dev;
 } mcd_t;
 
+static void    mitsumi_read_callback(void *priv);
+
 #define CD_DCB(x)         ((((x) &0xf0) >> 4) * 10 + ((x) &0x0f))
 
 #ifdef ENABLE_MITSUMI_CDROM_LOG
@@ -510,8 +512,8 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     }
     ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 3 : 2, (dev->mode & 0x40) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
 
-    mitsumi_cdrom_log("Mitsumi read sector @ %u, ret = %d, readlen = %u, blocklen = %u\n",
-                       dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev));
+    mitsumi_cdrom_log("Mitsumi read sector @ %u, ret = %d, readlen = %u, blocklen = %u, mode = %02X, smode = %02X, dmalen = %04X\n",
+                       dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev), dev->mode, dev->smode, dev->dmalen);
     if (ret <= 0)
         return -3;
     const uint32_t next_msf = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
@@ -520,11 +522,18 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
                    bin2bcd(next_msf & 0xff);
     dev->buf_idx   = 0;
 
+    if ((dev->readbuflen == 2048) && (dev->mode & 0x80))
+        dev->readbuflen = 2050;
+
     available       = MIN(dev->readbuflen, RAW_SECTOR_SIZE);
     dev->buf_idx    = offset;
     available      -= offset;
-    if (!(dev->mode & MODE_DATA))
-        available = MIN(available, COOKED_SECTOR_SIZE);
+    if (!(dev->mode & MODE_DATA)) {
+        if (dev->mode & 0x80)
+            available = MIN(available, COOKED_SECTOR_SIZE + 2);
+        else
+            available = MIN(available, COOKED_SECTOR_SIZE);
+    }
     dev->real_count = available;
     dev->buf_count  = MIN(mitsumi_dma_length(dev), available);
     if (dev->buf_count == 0)
@@ -556,7 +565,7 @@ mitsumi_start_status_phase(mcd_t *dev, const int from_callback, const int status
     if (from_callback)
         timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
     else
-        timer_set_delay_u64(&dev->read_timer, 10 * TIMER_USEC);
+        mitsumi_read_callback(dev);
     dev->status = (int8_t) status;
     if ((dev->status == STATUS_OK) && dev->early_status) {
         /* Report no data while we are delivering the status. */
@@ -733,6 +742,7 @@ mitsumi_read_callback(void *priv)
             }
             break;
         case STATE_STATUS:
+            mitsumi_cdrom_log("Mitsumi: state STATE_STATUS\n");
             dev->cmdbuf_count = 1;
             dev->cmdbuf_idx = 0;
 
@@ -781,6 +791,7 @@ mitsumi_read_callback(void *priv)
                 dev->first = 0;
             break;
         case STATE_DATA_READY:
+            mitsumi_cdrom_log("Mitsumi: state STATE_DATA_READY\n");
             mitsumi_set_irq(dev, IRQ_DATAREADY);
             dev->state = STATE_IDLE;
             mitsumi_cdrom_log("Mitsumi: [DR OK] state advanced to STATE_IDLE\n");
