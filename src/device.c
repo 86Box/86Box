@@ -660,7 +660,7 @@ device_available(const device_t *dev)
 
     if (ret == 0) {
         /* No CONFIG_BIOS field present, use the classic available(). */
-        if (dev->available != NULL)
+        if ((dev != NULL) && (dev->available != NULL))
             ret = (dev->available());
         else
             ret = (dev != NULL);
