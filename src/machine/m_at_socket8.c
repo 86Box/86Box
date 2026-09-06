@@ -85,15 +85,6 @@ static const device_config_t aurora_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Intel AMIBIOS - Revision 0.06.01.CG0 (Dell Dimension XPS Pro___)",
-                .internal_name = "dimensionxpspro",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 262144,
-                .files         = { "roms/machines/aurora/DELL.ROM", "" }
-            },
-            {
                 .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6___)",
                 .internal_name = "bravomst6xxx",
                 .bios_type     = BIOS_NORMAL,
@@ -147,6 +138,15 @@ static const device_config_t aurora_config[] = {
                 .files         = { "roms/machines/aurora/1009CG0_.BIO", "roms/machines/aurora/1009CG0_.BI1",
                                    "roms/machines/aurora/1009CG0_.BI2", "roms/machines/aurora/1009CG0_.BI3",
                                    "roms/machines/aurora/1009CG0_.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision A01 (Dell Dimension XPS Pro___)",
+                .internal_name = "dimensionxpspro",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/DELL.ROM", "" }
             },
             {
                 .name          = "Intel AMIBIOS - Revision LTKT16AUS [IBM PC 360 S___ (Type 6598)]",
