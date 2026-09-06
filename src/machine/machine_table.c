@@ -21421,7 +21421,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Intel Aurora", "AST Bravo MS-T 6___", "Compaq ProLinea 6___e", "Gateway MBDSAC02_A_WW", "IBM PC 360 S___ (Type 6598)", "" }
+        .aliases                  = { "Intel Aurora", "AST Bravo MS-T 6___", "Compaq ProLinea 6___e", "Dell Dimension XPS Pro___", "Gateway MBDSAC02_A_WW", "IBM PC 360 S___ (Type 6598)", "" }
     },
     /* 450GX */
     /* This has an AMIKey-2, which is type 'H'. */
