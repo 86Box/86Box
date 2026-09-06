@@ -264,14 +264,20 @@ static bool path_suits_view(OsdView view, char *path)
 }
 
 /* Get image path from current mount, last mount in view or history */
+template <size_t entries>
 static char *
-last_known_path(OsdView view, char *mounted, char **history)
+last_known_path(OsdView view, char *mounted, char *(&history)[entries])
 {
-    char *candidates[] = { mounted, osd_last_mount[view], history[0] };
+    char *candidates[] = { mounted, osd_last_mount[view] };
 
     for (char *candidate : candidates)
         if (path_suits_view(view, candidate))
             return candidate;
+
+    /* Slots run newest first and can have gaps, so take the first usable one */
+    for (char *entry : history)
+        if (path_suits_view(view, entry))
+            return entry;
 
     return nullptr;
 }
