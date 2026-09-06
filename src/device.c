@@ -70,6 +70,7 @@ static device_context_t device_current;
 static device_context_t device_prev;
 static void            *device_common_priv;
 
+#define ENABLE_DEVICE_LOG 1
 #ifdef ENABLE_DEVICE_LOG
 int device_do_log = ENABLE_DEVICE_LOG;
 

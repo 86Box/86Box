@@ -44,6 +44,9 @@
 #include <86box/vid_cga_comp.h>
 #include <86box/flash.h>
 #include <86box/machine.h>
+#include <86box/port_92.h>
+#include <86box/pic.h>
+#include <86box/sound.h>
 
 /* ISA */
 static const device_config_t ibmat_config[] = {
@@ -922,6 +925,126 @@ machine_at_neat_ami_init(const machine_t *model)
         device_add(&fdc_at_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+static rom_t tandy_vis_rom_struct;
+static rom_t tandy_vis_rom_struct_2;
+
+static rom_t tandy_vis_rom_struct_3;
+static rom_t tandy_vis_rom_struct_4;
+
+static uint8_t
+tvis_unk2_read(uint16_t addr, void* priv)
+{
+    return 0x40;
+}
+
+static uint8_t tvis_chipset_regs[0x100];
+static uint8_t tvis_chipset_index;
+
+static uint8_t
+tvis_unk_read(uint16_t addr, void* priv)
+{
+    return (addr & 1) ? tvis_chipset_regs[tvis_chipset_index] : 0;
+}
+
+static void
+tvis_unk_write(uint16_t addr, uint8_t val, void* priv)
+{
+    if (addr & 1)
+        tvis_chipset_regs[tvis_chipset_index] = val;
+    else
+        tvis_chipset_index = val & 0xf;
+}
+
+static uint8_t
+tvis_unk1_read(uint16_t addr, void* priv)
+{
+    return ((addr & 3) == 2) ? 0xde : 0x00;
+}
+
+static void
+tvis_unk1_write(uint16_t addr, uint8_t val, void* priv)
+{
+    if ((addr & 3) == 1) {
+        if (val == 0x10)
+            picintc(1 << 9);
+        else if (val == 0x16)
+            picint(1 << 9);
+    }
+}
+
+void*
+tvis_init(const device_t* info)
+{
+    return (void*)1;
+}
+
+void
+tvis_close(void* priv)
+{
+
+}
+
+void
+tvis_reset(void* priv)
+{
+    memset(tvis_chipset_regs, 0, sizeof(tvis_chipset_regs));
+}
+
+const device_t tvis_device = {
+    .name          = "Tandy VIS",
+    .internal_name = "tvis",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = tvis_init,
+    .close         = tvis_close,
+    .reset         = tvis_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+int
+machine_at_tandy_vis_init(const machine_t *model)
+{
+    int ret;
+
+    if (bios_only)
+        ret = bios_load_linear("roms/machines/tvis/p513bk0b.bin", 0x300000, 0x80000, 0) && bios_load_aux_linear("roms/machines/tvis/p513bk1b.bin", 0x380000, 0x80000, 0);
+    else {
+        ret = !rom_init(&tandy_vis_rom_struct, "roms/machines/tvis/p513bk0b.bin", 0x300000, 0x80000, 0x7ffff, 0, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS);
+        ret = ret && !rom_init(&tandy_vis_rom_struct_2, "roms/machines/tvis/p513bk1b.bin", 0x380000, 0x80000, 0x7ffff, 0, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS);
+
+        bios_load_linear("roms/machines/tvis/p513bk1b.bin", 0x380000, 0x80000, 0);
+
+        ret = ret && !rom_init(&tandy_vis_rom_struct_3, "roms/machines/tvis/p513bk1b.bin", 0xd8000, 0x28000, 0x7ffff, 0xd8000 - 0x80000, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS);
+        ret = ret && !rom_init(&tandy_vis_rom_struct_4, "roms/machines/tvis/p513bk1b.bin", 0xff0000, 0x10000, 0xffff, 0x70000, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS);
+
+        mem_set_mem_state_both(0xff0000, 0x10000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+        mem_set_mem_state_both(0x300000, 0x100000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+        mem_set_mem_state_both(0xd8000, 0x28000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    }
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add(&port_92_device);
+    device_add(&sensationaud_device);
+
+    memset(tvis_chipset_regs, 0, sizeof(tvis_chipset_regs));
+    io_sethandler(0x26, 2, tvis_unk_read, NULL, NULL, tvis_unk_write, NULL, NULL, (void*)1);
+    io_sethandler(0x6a, 1, tvis_unk2_read, NULL, NULL, NULL, NULL, NULL, (void*)1);
+    io_sethandler(0x23c, 4, tvis_unk1_read, NULL, NULL, tvis_unk1_write, NULL, NULL, (void*)1);
+
+    extern const device_t tvis_vid_device;
+    device_add(&tvis_vid_device);
 
     return ret;
 }

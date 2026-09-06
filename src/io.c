@@ -61,6 +61,7 @@ uint8_t initialized = 0;
 io_t   *io[NPORTS];
 io_t   *io_last[NPORTS];
 
+#define ENABLE_IO_LOG 1
 #ifdef ENABLE_IO_LOG
 uint8_t io_do_log = ENABLE_IO_LOG;
 

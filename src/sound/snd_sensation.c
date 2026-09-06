@@ -1183,6 +1183,7 @@ sensation_init(UNUSED(const device_t *info))
     fm_driver_get_ex(FM_YMF262, &dev->opl, 3);
 
     dev->visdac_freq = 44100;
+    dev->visdac_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) dev->visdac_freq));
     timer_add(&dev->sensation_mma_timer_count, sensation_mma_timer_poll, dev, 1);
     timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 1);
 
