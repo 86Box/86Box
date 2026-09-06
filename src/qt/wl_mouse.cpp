@@ -37,6 +37,12 @@ static zwp_locked_pointer_v1                     *conf_pointer_toplevel  = nullp
 static zwp_keyboard_shortcuts_inhibit_manager_v1 *kbd_manager            = nullptr;
 static zwp_keyboard_shortcuts_inhibitor_v1       *kbd_inhibitor          = nullptr;
 
+/* Registry names of the globals bound below, so that a global_remove can be
+ * matched against the one global it actually refers to. */
+static uint32_t rel_manager_name  = 0;
+static uint32_t conf_pointer_name = 0;
+static uint32_t kbd_manager_name  = 0;
+
 static bool wl_init_ok     = false;
 static bool pointer_locked = false;
 
@@ -93,36 +99,67 @@ display_handle_global(void *data, struct wl_registry *registry, uint32_t id,
                       const char *interface, uint32_t version)
 {
     if (!strcmp(interface, "zwp_relative_pointer_manager_v1")) {
-        rel_manager = (zwp_relative_pointer_manager_v1 *) wl_registry_bind(registry, id, &zwp_relative_pointer_manager_v1_interface, version);
+        rel_manager      = (zwp_relative_pointer_manager_v1 *) wl_registry_bind(registry, id, &zwp_relative_pointer_manager_v1_interface, version);
+        rel_manager_name = id;
     }
     if (!strcmp(interface, "zwp_pointer_constraints_v1")) {
         conf_pointer_interface = (zwp_pointer_constraints_v1 *) wl_registry_bind(registry, id, &zwp_pointer_constraints_v1_interface, version);
+        conf_pointer_name      = id;
     }
     if (!strcmp(interface, "zwp_keyboard_shortcuts_inhibit_manager_v1")) {
-        kbd_manager = (zwp_keyboard_shortcuts_inhibit_manager_v1 *) wl_registry_bind(registry, id, &zwp_keyboard_shortcuts_inhibit_manager_v1_interface, version);
+        kbd_manager      = (zwp_keyboard_shortcuts_inhibit_manager_v1 *) wl_registry_bind(registry, id, &zwp_keyboard_shortcuts_inhibit_manager_v1_interface, version);
+        kbd_manager_name = id;
     }
 }
 
 static void
 display_global_remove(void *data, struct wl_registry *wl_registry, uint32_t name)
 {
-    plat_mouse_capture(0);
-    if (kbd_inhibitor) {
-        zwp_keyboard_shortcuts_inhibitor_v1_destroy(kbd_inhibitor);
-        kbd_inhibitor = nullptr;
-    }
-    if (kbd_manager) {
+    /* Only the objects derived from the global that went away become inert;
+     * anything else we hold stays valid. Globals come and go routinely - an
+     * output being enabled or disabled, for instance - so tearing down
+     * everything here would permanently disable mouse capture. */
+    bool lost_capture = false;
+
+    if (kbd_manager && (name == kbd_manager_name)) {
+        if (kbd_inhibitor) {
+            zwp_keyboard_shortcuts_inhibitor_v1_destroy(kbd_inhibitor);
+            kbd_inhibitor = nullptr;
+        }
         zwp_keyboard_shortcuts_inhibit_manager_v1_destroy(kbd_manager);
-        kbd_manager = nullptr;
+        kbd_manager      = nullptr;
+        kbd_manager_name = 0;
     }
-    if (rel_manager) {
+
+    if (rel_manager && (name == rel_manager_name)) {
+        if (rel_pointer) {
+            zwp_relative_pointer_v1_destroy(rel_pointer);
+            rel_pointer = nullptr;
+        }
         zwp_relative_pointer_manager_v1_destroy(rel_manager);
-        rel_manager = nullptr;
+        rel_manager      = nullptr;
+        rel_manager_name = 0;
+        lost_capture     = true;
     }
-    if (conf_pointer_interface) {
+
+    if (conf_pointer_interface && (name == conf_pointer_name)) {
+        if (conf_pointer) {
+            zwp_locked_pointer_v1_destroy(conf_pointer);
+            conf_pointer = nullptr;
+        }
+        if (conf_pointer_toplevel) {
+            zwp_locked_pointer_v1_destroy(conf_pointer_toplevel);
+            conf_pointer_toplevel = nullptr;
+        }
         zwp_pointer_constraints_v1_destroy(conf_pointer_interface);
         conf_pointer_interface = nullptr;
+        conf_pointer_name      = 0;
+        pointer_locked         = false;
+        lost_capture           = true;
     }
+
+    if (lost_capture)
+        plat_mouse_capture(0);
 }
 
 static const struct wl_registry_listener registry_listener = {
