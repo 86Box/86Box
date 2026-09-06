@@ -245,6 +245,10 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
         { .old = "Gravis/Synergy Vipermax", .new = "Synergy ViperMAX" },
         { .old = "Colorplus", .new = "Plantronics Colorplus" },
+        { .old = "Sound Blaster PCI 128 (ES1373)", .new = "Creative Sound Blaster PCI 128 (ES1373)" },
+        { .old = "Sound Blaster PCI 128 (ES1373) (On-Board)", .new = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)" },
+        { .old = "Sound Blaster PCI 4.1 (CT5880)", .new = "Creative Sound Blaster PCI 4.1 (CT5880)" },
+        { .old = "Sound Blaster PCI 4.1 (CT5880) (On-Board)", .new = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)" },
         { 0 }
     };
 
@@ -1201,9 +1205,12 @@ device_is_valid(const device_t *device, int mch)
     int ret = 1;
 
     if ((device != NULL) && ((device->flags & DEVICE_BUS) != 0)) {
-        /* Hide PCI devices on machines with only an internal PCI bus. */
+        /* Hide PCI or AGP devices on machines with only an internal PCI or AGP bus. */
         if ((device->flags & DEVICE_PCI) &&
             machine_has_flags(mch, MACHINE_PCI_INTERNAL))
+            ret = 0;
+        else if ((device->flags & DEVICE_AGP) &&
+                 machine_has_flags_64(mch, MACHINE_AGP_INTERNAL))
             ret = 0;
         else
             ret = machine_has_bus(mch, device->flags & DEVICE_BUS);

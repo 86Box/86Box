@@ -63,6 +63,7 @@ extern void     pic_reset_smi_irq_mask(void);
 extern void     pic_set_smi_irq_mask(int irq, int set);
 extern uint16_t pic_get_smi_irq_status(void);
 extern void     pic_clear_smi_irq_status(int irq);
+extern void     pic_set_irq_callback(void (*callback)(uint16_t, int, void *), void *priv);
 
 extern int     pic_elcr_get_enabled(void);
 extern void    pic_elcr_set_enabled(int enabled);

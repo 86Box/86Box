@@ -20,6 +20,9 @@ extern const device_t acc3221_device;
 
 /* Acer / ALi */
 extern const device_t ali5113_device;
+
+#define ALI5123_370 0x00100
+
 extern const device_t ali5123_device;
 
 /* Chips & Technologies */

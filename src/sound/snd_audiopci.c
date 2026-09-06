@@ -2882,7 +2882,8 @@ const device_t es1370_device = {
     .available     = NULL,
     .speed_changed = es137x_speed_changed,
     .force_redraw  = NULL,
-    .config        = es1370_config
+    .config        = es1370_config,
+    .alias         = "Creative Sound Blaster PCI 64"
 };
 
 const device_t es1371_device = {
@@ -2914,7 +2915,7 @@ const device_t es1371_onboard_device = {
 };
 
 const device_t es1373_device = {
-    .name          = "Sound Blaster PCI 128 (ES1373)",
+    .name          = "Creative Sound Blaster PCI 128 (ES1373)",
     .internal_name = "es1373",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_ES1373,
@@ -2924,11 +2925,12 @@ const device_t es1373_device = {
     .available     = NULL,
     .speed_changed = es137x_speed_changed,
     .force_redraw  = NULL,
-    .config        = es1373_config
+    .config        = es1373_config,
+    .alias         = "Ensoniq AudioPCI (ES1373)"
 };
 
 const device_t es1373_onboard_device = {
-    .name          = "Sound Blaster PCI 128 (ES1373) (On-Board)",
+    .name          = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)",
     .internal_name = "es1373_onboard",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_ES1373 | 1,
@@ -2942,7 +2944,7 @@ const device_t es1373_onboard_device = {
 };
 
 const device_t ct5880_device = {
-    .name          = "Sound Blaster PCI 4.1 (CT5880)",
+    .name          = "Creative Sound Blaster PCI 4.1 (CT5880)",
     .internal_name = "ct5880",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_CT5880,
@@ -2952,11 +2954,12 @@ const device_t ct5880_device = {
     .available     = NULL,
     .speed_changed = es137x_speed_changed,
     .force_redraw  = NULL,
-    .config        = ct5880_config
+    .config        = ct5880_config,
+    .alias         = "Creative CT2518"
 };
 
 const device_t ct5880_onboard_device = {
-    .name          = "Sound Blaster PCI 4.1 (CT5880) (On-Board)",
+    .name          = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)",
     .internal_name = "ct5880_onboard",
     .flags         = DEVICE_PCI,
     .local         = AUDIOPCI_CT5880 | 1,

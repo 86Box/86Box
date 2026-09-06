@@ -133,7 +133,8 @@ static char flash_path[1024];
 
 #define AMD         0x01 /* AMD Manufacturer's ID */
 #define AMD29F010A  0x2000
-#define AMD29F020A  0xb000
+#define AMD29F020A    0xb000
+#define AMD29F002NBT  0xb000
 
 #define SIZE_512K   0x010000
 #define SIZE_1M     0x020000
@@ -560,6 +561,20 @@ sst_init(const device_t *info)
         fclose(fp);
     } else
         dev->dirty = 1; /* It is by definition dirty on creation. */
+
+    /* This is currently forced on until the NEC variant can be fixed */
+    /* Edit the rom to enable/disable the full screen logo */
+    if ((machines[machine].init == machine_at_in530_init) &&
+        (info->local == (AMD | AMD29F002NBT | SIZE_2M))) {
+        const uint8_t old = dev->array[0x3af70];
+
+        dev->array[0x3af70] &= 0xf0;
+        if (machine_in530_boot_logo_enabled())
+            dev->array[0x3af70] |= 0x01;
+
+        if (dev->array[0x3af70] != old)
+            dev->dirty = 1;
+    }
 
     if (!dev->is_39)
         timer_add(&dev->page_write_timer, sst_page_write, dev, 0);
@@ -1043,3 +1058,17 @@ const device_t amd_flash_29f020a_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+const device_t amd_flash_29f002nbt_device = {
+    .name          = "AMD Am29F002NBT Flash BIOS",
+    .internal_name = "amd_flash_29f002nbt",
+    .flags         = 0,
+    .local         = AMD | AMD29F002NBT | SIZE_2M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+

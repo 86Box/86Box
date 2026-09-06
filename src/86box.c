@@ -64,7 +64,9 @@
 #include <86box/bugger.h>
 #include <86box/postcard.h>
 #include <86box/unittester.h>
+#include <86box/softpower.h>
 #include <86box/novell_cardkey.h>
+#include <86box/mcamem.h>
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/isartc.h>
@@ -168,7 +170,9 @@ int      bugger_enabled                         = 0;              /* (C) enable 
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
+int      softpower_enabled                      = 0;              /* (C) enable PC Convertible-style soft power card */
 int      gameport_type[GAMEPORT_MAX]            = { 0, 0 };       /* (C) enable gameports */
+int      mcamem_type[MCAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable MCA mem cards */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isarom_type[ISAROM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA ROM cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
@@ -1592,49 +1596,52 @@ pc_send_ca(uint16_t sc)
         /* Use R-Alt because PS/55 DOS and OS/2 assign L-Alt Kanji */
         keyboard_input(1, 0x1D);  /*  Ctrl key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, 0x138); /* R-Alt key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         usleep(50000);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x138); /* R-Alt key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x1D);  /*  Ctrl key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
     } else {
         keyboard_input(1, 0x1D); /* Ctrl key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, 0x38); /* Alt key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         usleep(50000);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x38); /* Alt key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x1D); /* Ctrl key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
     }
 
+cleanup:
+    if (keyboard_get_in_reset())
+        keyboard_all_up();
     keyboard_toggle_override();
 }
 
@@ -1807,6 +1814,9 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
 
+    /* Reset and reconfigure the MCA memory expansion boards. */
+    mcamem_reset();
+
     /*
      * Reset the mouse, this will attach it to any port needed.
      */
@@ -1874,6 +1884,8 @@ pc_reset_hard_init(void)
         device_add(&postcard_device);
     if (unittester_enabled)
         device_add(&unittester_device);
+    if (softpower_enabled)
+        device_add(&softpower_device);
 
     if (novell_keycard_enabled)
         device_add(&novell_keycard_device);

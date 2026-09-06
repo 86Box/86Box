@@ -397,9 +397,14 @@ keyboard_all_up(void)
 
         if (recv_key[i]) {
             recv_key[i] = 0;
-            key_process(i, 0);
+            if (kbd_in_reset)
+                oldkey[i] = 0;
+            else
+                key_process(i, 0);
         }
     }
+
+    shift = 0;
 }
 
 void

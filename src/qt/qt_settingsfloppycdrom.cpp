@@ -29,6 +29,8 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
 #include <86box/fdd_audio.h>
 }
 
@@ -163,6 +165,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 #else
         ifa[i] = 0;
 #endif
+        Harddrives::busTrackClass->device_track(fdd_get_type(i) ? 1 : 0, DEV_FDD, TAPE_BUS_FDC, i);
     }
 
     for (int i = 0; i < model->columnCount(); i++)
@@ -498,7 +501,9 @@ SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 {
     auto currentIndex = ui->treeViewFloppy->selectionModel()->currentIndex();
     auto typeIndex    = currentIndex.siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_FDD, TAPE_BUS_FDC, currentIndex.row());
     setFloppyType(ui->treeViewFloppy->model(), typeIndex, index);
+    Harddrives::busTrackClass->device_track(index ? 1 : 0, DEV_FDD, TAPE_BUS_FDC, currentIndex.row());
     ui->treeViewFloppy->resizeColumnToContents(0);
 
     // Trigger row changed to rebuild audio profile list

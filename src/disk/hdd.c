@@ -26,6 +26,8 @@
 #include <86box/ui.h>
 #include <86box/hdd.h>
 #include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
 #include <86box/video.h>
 #include <86box/hdd_audio.h>
 #include "cpu.h"
@@ -65,12 +67,19 @@ hdd_string_to_bus(char *str, int cdrom)
 
     if (!strcmp(str, "scsi"))
         return HDD_BUS_SCSI;
-    
+
     if (!strcmp(str, "mitsumi") && cdrom)
         return CDROM_BUS_MITSUMI;
 
     if (!strcmp(str, "mke") && cdrom)
         return CDROM_BUS_MKE;
+
+    /* Removable-mode only: the QIC-117 tape buses. */
+    if (!strcmp(str, "lpt") && cdrom)
+        return TAPE_BUS_LPT;
+
+    if (!strcmp(str, "fdc") && cdrom)
+        return TAPE_BUS_FDC;
 
     return HDD_BUS_DISABLED;
 }
@@ -119,6 +128,17 @@ hdd_bus_to_string(int bus, int cdrom)
         case CDROM_BUS_MKE:
             if (cdrom)
                 s = "mke";
+            break;
+
+        /* Removable-mode only: the QIC-117 tape buses. */
+        case TAPE_BUS_LPT:
+            if (cdrom)
+                s = "lpt";
+            break;
+
+        case TAPE_BUS_FDC:
+            if (cdrom)
+                s = "fdc";
             break;
     }
 

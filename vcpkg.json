@@ -15,7 +15,7 @@
     "dependencies": [
         "freetype",
         "libpng",
-        "sdl2",
+        "sdl3",
         "rtmidi",
         "libslirp",
         "fluidsynth",
@@ -37,7 +37,11 @@
                         "vulkan",
                         "widgets",
                         "png",
-                        "zstd"
+                        "zstd",
+                        {
+                            "name": "windeployqt",
+                            "platform": "windows & !static"
+                        }
                     ]
                 },
                 {
