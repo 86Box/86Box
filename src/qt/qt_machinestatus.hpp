@@ -80,6 +80,7 @@ public:
     QString getMessage();
     void    clearActivity();
     void    setSoundMenu(QMenu *menu);
+    void    setDynarecMenu(QMenu *menu);
 public slots:
     void refresh(QStatusBar *sbar);
     void message(const QString &msg);
@@ -93,6 +94,7 @@ private:
     std::unique_ptr<States> d;
     QTimer                 *refreshTimer;
     QMenu                  *soundMenu;
+    QMenu                  *dynarecMenu;
 };
 
 #endif // QT_MACHINESTATUS_HPP

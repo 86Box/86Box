@@ -140,6 +140,15 @@ static const device_config_t aurora_config[] = {
                                    "roms/machines/aurora/1009CG0_.RCV", "" }
             },
             {
+                .name          = "Intel AMIBIOS - Revision A01 (Dell Dimension XPS Pro___)",
+                .internal_name = "dimensionxpspro",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/DELL.ROM", "" }
+            },
+            {
                 .name          = "Intel AMIBIOS - Revision LTKT16AUS [IBM PC 360 S___ (Type 6598)]",
                 .internal_name = "pc360_6598",
                 .bios_type     = BIOS_NORMAL,
@@ -182,9 +191,15 @@ machine_at_aurora_init(const machine_t *model)
         return ret;
 
     device_context(model->device);
+    int is_dell = !strcmp(device_get_config_bios("bios"), "dimensionxpspro");
     for (uint8_t i = 0; i < 5; i++)
         fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
-    ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
+
+    if (is_dell)
+        ret = bios_load_linear_inverted(fn[0], 0x000c0000, 262144, 0);
+    else {
+        ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
+    }
     device_context_restore();
 
     machine_at_common_init(model);
@@ -201,7 +216,6 @@ machine_at_aurora_init(const machine_t *model)
     device_add(&i450kx_device);
     device_add(&piix_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);
-
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
