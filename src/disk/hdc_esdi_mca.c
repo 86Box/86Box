@@ -544,9 +544,10 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
 
+                    dev->data_pos = 0;
                     dev->cmd_state = 1;
                     esdi_mca_set_callback(dev, ESDI_TIME);
-                    dev->data_pos = 0;
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
                     break;
 
                 case 1:
@@ -630,9 +631,10 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
 
+                    dev->data_pos = 0;
                     dev->cmd_state = 1;
                     esdi_mca_set_callback(dev, ESDI_TIME);
-                    dev->data_pos = 0;
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 1);
                     break;
 
                 case 1:
@@ -897,9 +899,10 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
 
+                    dev->data_pos = 0;
                     dev->cmd_state = 1;
                     esdi_mca_set_callback(dev, ESDI_TIME);
-                    dev->data_pos = 0;
+                    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 1);
                     break;
 
                 case 1:
@@ -956,9 +959,10 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
 
+                    dev->data_pos = 0;
                     dev->cmd_state = 1;
                     esdi_mca_set_callback(dev, ESDI_TIME);
-                    dev->data_pos = 0;
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
                     break;
 
                 case 1:
@@ -1337,7 +1341,6 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
                 esdi_mca_set_callback(dev, ESDI_TIME);
                 dev->status   = STATUS_BUSY;
                 dev->data_pos = 0;
-                ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 1);
             }
             break;
 
