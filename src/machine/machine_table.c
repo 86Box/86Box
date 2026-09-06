@@ -23320,7 +23320,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Has internal video: ATi 3D Rage Pro Turbo AGP, network: Intel 82558-based, and sound: Crystal CX4235 */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -23342,9 +23342,9 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
+        .snd_device               = &cs4235_onboard_device,
         .net_device               = &i82558b_onboard_device,
-        .aliases                  = { "Fujitsu ErgoPro x565", "" }
+        .aliases                  = { "Fujitsu ErgoPro x564", "Fujitsu ErgoPro x565", "" }
     },
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
