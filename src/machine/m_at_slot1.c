@@ -1896,6 +1896,9 @@ machine_at_ergox365_init(const machine_t *model)
     if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
         device_add(machine_get_net_device(machine));
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
     return ret;
 }
 
