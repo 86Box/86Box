@@ -92,6 +92,7 @@
 #define QL_IOCB_FW_BASE     0x0700
 
 /* Maximum SCSI devices supported by the chip */
+#define QL_MAX_PATHS 2
 #define QL_MAX_TID   16
 #define QL_MAX_LUNS  32
 
@@ -517,15 +518,41 @@
 
 #define QL_BIT(b)   (1 << (b))
 
-#define ql_dma_write(address, buffer, size) dma_bm_write(address, (uint8_t *)(buffer), size, 4);
-#define ql_dma_write8(address, buffer)      dma_bm_write(address, (uint8_t *)(buffer), 1, 4);
-#define ql_dma_write16(address, buffer)     dma_bm_write(address, (uint8_t *)(buffer), 2, 4);
-#define ql_dma_write32(address, buffer)     dma_bm_write(address, (uint8_t *)(buffer), 4, 4);
+static bool
+ql_dma_range_supported(uint64_t address, uint32_t size)
+{
+    return (address <= UINT32_MAX) &&
+           ((size == 0) || ((uint64_t)size - 1 <= UINT32_MAX - address));
+}
 
-#define ql_dma_read(address, buffer, size)  dma_bm_read(address, (uint8_t *)(buffer), size, 4);
-#define ql_dma_read8(address, buffer)       dma_bm_read(address, (uint8_t *)(buffer), 1, 4);
-#define ql_dma_read16(address, buffer)      dma_bm_read(address, (uint8_t *)(buffer), 2, 4);
-#define ql_dma_read32(address, buffer)      dma_bm_read(address, (uint8_t *)(buffer), 4, 4);
+static void
+ql_dma_read(uint64_t address, void *buffer, uint32_t size)
+{
+    if (!ql_dma_range_supported(address, size)) {
+        memset(buffer, 0xff, size);
+        return;
+    }
+
+    dma_bm_read((uint32_t)address, (uint8_t *)buffer, size, 4);
+}
+
+static void
+ql_dma_write(uint64_t address, const void *buffer, uint32_t size)
+{
+    if (!ql_dma_range_supported(address, size)) {
+        return;
+    }
+
+    dma_bm_write((uint32_t)address, (const uint8_t *)buffer, size, 4);
+}
+
+#define ql_dma_write8(address, buffer)  ql_dma_write(address, (uint8_t *)(buffer), 1);
+#define ql_dma_write16(address, buffer) ql_dma_write(address, (uint8_t *)(buffer), 2);
+#define ql_dma_write32(address, buffer) ql_dma_write(address, (uint8_t *)(buffer), 4);
+
+#define ql_dma_read8(address, buffer)   ql_dma_read(address, (uint8_t *)(buffer), 1);
+#define ql_dma_read16(address, buffer)  ql_dma_read(address, (uint8_t *)(buffer), 2);
+#define ql_dma_read32(address, buffer)  ql_dma_read(address, (uint8_t *)(buffer), 4);
 
 typedef enum FlashMode {
     M_READ_ARRAY,
@@ -607,7 +634,7 @@ typedef struct isp_hdr_t {
 } isp_hdr_t;
 
 typedef struct isp_data_seg_t {
-    uint32_t address;
+    uint64_t address;
     uint32_t length;
 } isp_data_seg_t;
 
@@ -697,15 +724,15 @@ typedef struct ql_t {
     /* SXP flags */
     uint32_t sxp_flags;
     /* Physical address of the request ring */
-    uint32_t rqst_ring_base;
+    uint64_t rqst_ring_base;
     /* Request ring size */
     uint16_t rqst_ring_size;
     /* Response ring size */
     uint16_t resp_ring_size;
     /* Physical address of the response ring */
-    uint32_t resp_ring_base;
+    uint64_t resp_ring_base;
     /* Physical address of the current request IOCB */
-    uint32_t pkt_address;
+    uint64_t pkt_address;
     /* Current request IOCB */
     ql_sxp_req_t pkt;
     /* Current response IOCB */
@@ -718,8 +745,8 @@ typedef struct ql_t {
     uint8_t curr_target_id;
     /* Number of SCSI buses on this HBA */
     uint8_t max_bus_count;
-    /* SCSI bus emulation internal index */
-    uint8_t scsi_bus;
+    /* SCSI bus emulation internal indices */
+    uint8_t scsi_bus[QL_MAX_PATHS];
     /* ISP chip type */
     uint8_t isp_type;
     /* ISP chip revision */
@@ -739,9 +766,9 @@ typedef struct ql_t {
     /* Command timer */
     pc_timer_t cmd_timer;
     /* Firmware device parameters */
-    ql_fw_target_params fw_tid_params[2][QL_MAX_TID];
+    ql_fw_target_params fw_tid_params[QL_MAX_PATHS][QL_MAX_TID];
     /* Per-LUN command queue state and limits */
-    ql_fw_device_queue fw_dev_queues[2][QL_MAX_TID][QL_MAX_LUNS];
+    ql_fw_device_queue fw_dev_queues[QL_MAX_PATHS][QL_MAX_TID][QL_MAX_LUNS];
     /* Firmware retry count and delay settings */
     uint16_t fw_retry_params[4];
     /* Size of the SCSI payload data */
@@ -773,7 +800,7 @@ typedef struct ql_t {
 extern double cpuclock;
 
 static bool
-ql_sxp_fetch_request(ql_sxp_req_t* pkt, uint32_t address);
+ql_sxp_fetch_request(ql_sxp_req_t* pkt, uint64_t address);
 
 #ifdef ENABLE_QL_LOG
 int ql_do_log = ENABLE_QL_LOG;
@@ -1375,7 +1402,7 @@ ql_reset_asic(ql_t *dev)
     dev->sxp_state = SXP_STATE_IDLE;
 
     memset(dev->fw_dev_queues, 0, sizeof(dev->fw_dev_queues));
-    for (uint32_t path_id = 0; path_id < 2; path_id++) {
+    for (uint32_t path_id = 0; path_id < QL_MAX_PATHS; path_id++) {
         for (uint32_t target_id = 0; target_id < QL_MAX_TID; target_id++) {
             for (uint32_t lun = 0; lun < QL_MAX_LUNS; lun++) {
                 dev->fw_dev_queues[path_id][target_id][lun].depth = QL_QUEUE_DEFAULT_DEPTH;
@@ -1401,7 +1428,7 @@ ql_sxp_abort_commands(ql_t *dev, uint8_t path_id, uint8_t target_id, uint8_t lun
 
     /* Iterate over the request IOCBs looking for a match */
     for (cons = QL_RQST_CONS(dev); cons != QL_RQST_PROD(dev); cons = (cons + 1) % dev->rqst_ring_size) {
-        uint32_t pkt_address = dev->rqst_ring_base + cons * QENTRY_LEN;
+        uint64_t pkt_address = dev->rqst_ring_base + cons * QENTRY_LEN;
         ql_sxp_req_t pkt;
         uint8_t curr_path_id, curr_target_id;
 
@@ -1499,7 +1526,7 @@ ql_sxp_queued_commands(ql_t *dev, uint8_t path_id, uint8_t target_id,
     }
 
     while ((cons != QL_RQST_PROD(dev)) && (scanned < dev->rqst_ring_size)) {
-        uint32_t address = dev->rqst_ring_base + cons * QENTRY_LEN;
+        uint64_t address = dev->rqst_ring_base + cons * QENTRY_LEN;
         ql_sxp_req_t pkt;
         uint16_t entries = 1;
 
@@ -1599,11 +1626,17 @@ ql_sxp_initialize_queues(ql_t *dev)
     }
 }
 
-static uint32_t
-ql_mbox_get_phys_address(ql_t *dev, UNUSED(bool is_64bit_addr))
+static uint64_t
+ql_mbox_get_phys_address(ql_t *dev, bool is_64bit_addr)
 {
-    /* The high part of the address is ignored for 86Box */
-    return ((uint32_t)dev->reg_mbox_in[2] << 16) | dev->reg_mbox_in[3];
+    uint64_t address = ((uint32_t)dev->reg_mbox_in[2] << 16) |
+                       dev->reg_mbox_in[3];
+
+    if (is_64bit_addr) {
+        address |= (uint64_t)dev->reg_mbox_in[6] << 48;
+        address |= (uint64_t)dev->reg_mbox_in[7] << 32;
+    }
+    return address;
 }
 
 static uint16_t
@@ -1682,7 +1715,7 @@ ql_handle_cmd_load_ram_block(ql_t *dev, bool is_64bit_addr)
     uint32_t offset = dev->reg_mbox_in[1];
     uint32_t block_size_words = dev->reg_mbox_in[4];
     uint8_t *dest_address = (uint8_t *)&dev->cpu_mem[offset];
-    uint32_t src_address = ql_mbox_get_phys_address(dev, is_64bit_addr);
+    uint64_t src_address = ql_mbox_get_phys_address(dev, is_64bit_addr);
 
     if ((offset + block_size_words) > ARRAY_SIZE(dev->cpu_mem)) {
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
@@ -1698,7 +1731,7 @@ ql_handle_cmd_dump_ram_block(ql_t *dev, bool is_64bit_addr)
     uint32_t offset = dev->reg_mbox_in[1];
     uint32_t block_size_words = dev->reg_mbox_in[4];
     uint8_t *src_address = (uint8_t *)&dev->cpu_mem[offset];
-    uint32_t dest_address = ql_mbox_get_phys_address(dev, is_64bit_addr);
+    uint64_t dest_address = ql_mbox_get_phys_address(dev, is_64bit_addr);
 
     if ((offset + block_size_words) > ARRAY_SIZE(dev->cpu_mem)) {
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
@@ -1825,10 +1858,11 @@ ql_handle_cmd_about_firmware(ql_t *dev)
 static uint16_t
 ql_handle_cmd_init_request_queue(ql_t *dev, bool is_64bit_addr)
 {
-    uint32_t address = ql_mbox_get_phys_address(dev, is_64bit_addr);
+    uint64_t address = ql_mbox_get_phys_address(dev, is_64bit_addr);
     uint16_t queue_length = dev->reg_mbox_in[1];
 
-    ql_log("QL: REQ queue address 0x%X, length %u\n", address, queue_length);
+    ql_log("QL: REQ queue address 0x%llX, length %u\n",
+           (unsigned long long)address, queue_length);
 
     if ((address == 0) || (queue_length == 0)) {
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
@@ -1846,10 +1880,11 @@ ql_handle_cmd_init_request_queue(ql_t *dev, bool is_64bit_addr)
 static uint16_t
 ql_handle_cmd_init_response_queue(ql_t *dev, bool is_64bit_addr)
 {
-    uint32_t address = ql_mbox_get_phys_address(dev, is_64bit_addr);
+    uint64_t address = ql_mbox_get_phys_address(dev, is_64bit_addr);
     uint16_t queue_length = dev->reg_mbox_in[1];
 
-    ql_log("QL: RSP queue address 0x%X, length %u\n", address, queue_length);
+    ql_log("QL: RSP queue address 0x%llX, length %u\n",
+           (unsigned long long)address, queue_length);
 
     if ((address == 0) || (queue_length == 0)) {
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
@@ -1971,11 +2006,8 @@ ql_handle_cmd_bus_reset(ql_t *dev)
         return QL_MBOX_STATUS_CMD_PARAM_ERROR;
     }
 
-    /* 86Box supports one SCSI bus per controller for now */
-    if (path_id == 0) {
-        for (uint32_t i = 0; i < MIN(QL_MAX_TID, SCSI_ID_MAX); i++) {
-            scsi_device_reset(&scsi_devices[dev->scsi_bus][i]);
-        }
+    for (uint32_t i = 0; i < MIN(QL_MAX_TID, SCSI_ID_MAX); i++) {
+        scsi_device_reset(&scsi_devices[dev->scsi_bus[path_id]][i]);
     }
 
     /* Abort all active commands on the bus (PATH) */
@@ -2475,54 +2507,62 @@ ql_process_mailbox(ql_t *dev)
 
 /* RQSTYPE_REQUEST */
 static void
-ql_pkt_get_sgl_req(uint32_t address, uint32_t idx, isp_data_seg_t *data_seg)
+ql_pkt_get_sgl_req(uint64_t address, uint32_t idx, isp_data_seg_t *data_seg)
 {
-    uint32_t offset = address + 32 + idx * 8;
+    uint64_t offset = address + 32 + idx * 8;
+    uint32_t low;
 
-    ql_dma_read32(offset + 0, &data_seg->address);
+    ql_dma_read32(offset + 0, &low);
+    data_seg->address = low;
     ql_dma_read32(offset + 4, &data_seg->length);
 }
 
 /* RQSTYPE_REQUEST_A64 */
 static void
-ql_pkt_get_sgl_req64(uint32_t address, uint32_t idx, isp_data_seg_t *data_seg)
+ql_pkt_get_sgl_req64(uint64_t address, uint32_t idx, isp_data_seg_t *data_seg)
 {
-    uint32_t offset = address + 36 + idx * 12;
+    uint64_t offset = address + 40 + idx * 12;
+    uint32_t high, low;
 
-    /* The high part of the address is ignored for 86Box */
-    ql_dma_read32(offset + 0, &data_seg->address);
+    ql_dma_read32(offset + 0, &low);
+    ql_dma_read32(offset + 4, &high);
+    data_seg->address = (uint64_t)high << 32 | low;
     ql_dma_read32(offset + 8, &data_seg->length);
 }
 
 /* RQSTYPE_DATASEG */
 static void
-ql_pkt_get_sgl_cont(uint32_t address, uint32_t idx, isp_data_seg_t *data_seg)
+ql_pkt_get_sgl_cont(uint64_t address, uint32_t idx, isp_data_seg_t *data_seg)
 {
-    uint32_t offset = address + 8 + idx * 8;
+    uint64_t offset = address + 8 + idx * 8;
+    uint32_t low;
 
-    ql_dma_read32(offset + 0, &data_seg->address);
+    ql_dma_read32(offset + 0, &low);
+    data_seg->address = low;
     ql_dma_read32(offset + 4, &data_seg->length);
 }
 
 /* RQSTYPE_A64_CONT */
 static void
-ql_pkt_get_sgl_cont64(uint32_t address, uint32_t idx, isp_data_seg_t *data_seg)
+ql_pkt_get_sgl_cont64(uint64_t address, uint32_t idx, isp_data_seg_t *data_seg)
 {
-    uint32_t offset = address + 4 + idx * 12;
+    uint64_t offset = address + 4 + idx * 12;
+    uint32_t high, low;
 
-    /* The high part of the address is ignored for 86Box */
-    ql_dma_read32(offset + 0, &data_seg->address);
+    ql_dma_read32(offset + 0, &low);
+    ql_dma_read32(offset + 4, &high);
+    data_seg->address = (uint64_t)high << 32 | low;
     ql_dma_read32(offset + 8, &data_seg->length);
 }
 
 static void
-ql_pkt_get_entry_type(uint32_t address, uint8_t *entry_type)
+ql_pkt_get_entry_type(uint64_t address, uint8_t *entry_type)
 {
     ql_dma_read8(address + 0, entry_type);
 }
 
 static void
-ql_pkt_put_header(uint32_t address, isp_hdr_t *hdr)
+ql_pkt_put_header(uint64_t address, isp_hdr_t *hdr)
 {
     ql_dma_write8(address + 0, &hdr->entry_type);
     ql_dma_write8(address + 1, &hdr->entry_count);
@@ -2531,7 +2571,7 @@ ql_pkt_put_header(uint32_t address, isp_hdr_t *hdr)
 }
 
 static void
-ql_pkt_put_request_status(uint32_t address, isp_req_status_t *resp)
+ql_pkt_put_request_status(uint64_t address, isp_req_status_t *resp)
 {
     ql_pkt_put_header(address, &resp->hdr);
 
@@ -2563,7 +2603,7 @@ ql_pkt_put_request_status(uint32_t address, isp_req_status_t *resp)
 }
 
 static bool
-ql_sxp_fetch_request(ql_sxp_req_t* pkt, uint32_t address)
+ql_sxp_fetch_request(ql_sxp_req_t* pkt, uint64_t address)
 {
     /* Fetch the header */
     ql_dma_read8(address + 0, &pkt->hdr.entry_type);
@@ -2704,7 +2744,7 @@ ql_sxp_handle_state_send_cdb_sgl(ql_t *dev, scsi_device_t *sd)
         uint32_t dev_buffer_length = sd->buffer_length;
         uint8_t *dev_buffer = sd->sc->temp_buffer;
         uint8_t entry_type = pkt->hdr.entry_type;
-        uint32_t pkt_address = dev->pkt_address;
+        uint64_t pkt_address = dev->pkt_address;
         uint16_t pkt_entry_idx = QL_RQST_CONS(dev);
         uint32_t host_buffer_size = 0;
         uint32_t bytes_moved = 0;
@@ -2771,13 +2811,16 @@ ql_sxp_handle_state_send_cdb_sgl(ql_t *dev, scsi_device_t *sd)
             }
             host_buffer_size += data_seg.length;
             block_size = MIN(data_seg.length, dev_buffer_length - bytes_moved);
-            bytes_xfered += sizeof(data_seg);
+            bytes_xfered += entry_type == RQSTYPE_REQUEST ||
+                            entry_type == RQSTYPE_DATASEG ? 8 : 12;
 
             if (sd->phase == SCSI_PHASE_DATA_IN) {
-                ql_log("QL: DMA to 0x%lx %lu bytes\n", data_seg.address, block_size);
+                ql_log("QL: DMA to 0x%llx %u bytes\n",
+                       (unsigned long long)data_seg.address, block_size);
                 ql_dma_write(data_seg.address, &dev_buffer[bytes_moved], block_size);
             } else if (sd->phase == SCSI_PHASE_DATA_OUT) {
-                ql_log("QL: DMA from 0x%lx %lu bytes\n", data_seg.address, block_size);
+                ql_log("QL: DMA from 0x%llx %u bytes\n",
+                       (unsigned long long)data_seg.address, block_size);
                 ql_dma_read(data_seg.address, &dev_buffer[bytes_moved], block_size);
             }
             bytes_moved += block_size;
@@ -2968,12 +3011,6 @@ ql_sxp_state_machine(ql_t *dev)
                 break;
             }
 
-            /* 86Box supports one SCSI bus per controller for now */
-            if (dev->curr_path_id != 0) {
-                dev->sxp_state = SXP_STATE_SELECTION_TIMEOUT;
-                break;
-            }
-
             if (dev->curr_target_id >= MIN(QL_MAX_TID, SCSI_ID_MAX)) {
                 dev->sxp_state = SXP_STATE_SELECTION_TIMEOUT;
                 break;
@@ -2986,7 +3023,8 @@ ql_sxp_state_machine(ql_t *dev)
                 break;
             }
 
-            if (!scsi_device_present(&scsi_devices[dev->scsi_bus][dev->curr_target_id])) {
+            if (!scsi_device_present(
+                    &scsi_devices[dev->scsi_bus[dev->curr_path_id]][dev->curr_target_id])) {
                 dev->sxp_state = SXP_STATE_SELECTION_TIMEOUT;
                 break;
             }
@@ -2996,7 +3034,8 @@ ql_sxp_state_machine(ql_t *dev)
             break;
         }
         case SXP_STATE_SEND_CDB: {
-            scsi_device_t *sd = &scsi_devices[dev->scsi_bus][dev->curr_target_id];
+            scsi_device_t *sd =
+                &scsi_devices[dev->scsi_bus[dev->curr_path_id]][dev->curr_target_id];
             ql_sxp_req_t *pkt = &dev->pkt;
             isp_req_status_t *resp = &dev->pkt_resp;
 
@@ -4115,10 +4154,10 @@ static void ql_init_scsi(ql_t *dev) {
             break;
     }
 
-    /* 86Box supports one SCSI bus per controller for now */
-    dev->scsi_bus = scsi_get_bus();
-
-    scsi_bus_set_speed(dev->scsi_bus, dev->xfer_rate_bps);
+    for (uint32_t path_id = 0; path_id < dev->max_bus_count; path_id++) {
+        dev->scsi_bus[path_id] = scsi_get_bus();
+        scsi_bus_set_speed(dev->scsi_bus[path_id], dev->xfer_rate_bps);
+    }
 
     timer_add(&dev->cmd_timer, ql_sxp_timer_callback, dev, 0);
 }
