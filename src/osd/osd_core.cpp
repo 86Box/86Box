@@ -253,23 +253,19 @@ static const char *const *exts_for_view(OsdView v)
 /* Last path mounted from each view */
 static char osd_last_mount[VIEW_MEDIA_TYPE][OSD_PATH_CAPACITY];
 
-/* Does the path exist, and hold what this view browses for? */
-static bool path_suits_view(OsdView view, char *path)
-{
-    if (path == nullptr)
-        return false;
-
-    /* Check if we are on a file (image) or directory (VISO folder) */
-    return (view == VIEW_CD_FOLDER) ? plat_dir_check(path) : plat_file_check(path);
-}
-
-/* Write protection is marked with a wp:// prefix that is not part of the path */
+/* Strip the wp:// write protection marker and check the path suits the view */
 static char *usable_path(OsdView view, char *path)
 {
-    if ((path != nullptr) && (strstr(path, "wp://") == path))
+    if (path == nullptr)
+        return nullptr;
+
+    if (strstr(path, "wp://") == path)
         path += 5;
 
-    return path_suits_view(view, path) ? path : nullptr;
+    /* Check if we are on a file (image) or directory (VISO folder) */
+    const bool suits = (view == VIEW_CD_FOLDER) ? plat_dir_check(path) : plat_file_check(path);
+
+    return suits ? path : nullptr;
 }
 
 /* Get image path from current mount, last mount in view or history */
