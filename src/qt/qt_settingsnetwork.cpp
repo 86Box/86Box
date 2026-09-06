@@ -73,7 +73,11 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
 
         bridge_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_TAP);
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
-        conf_btn->setEnabled(network_card_has_config(nic_cbox->currentData().toInt()));
+        auto nic = nic_cbox->currentData().toInt();
+        if (nic == NET_INTERNAL)
+            conf_btn->setEnabled(device_has_config(machine_get_net_device(machineId)));
+        else
+            conf_btn->setEnabled(network_card_has_config(nic_cbox->currentData().toInt()));
         // net_type_conf_btn->setEnabled(network_type_has_config(netType));
 
         // NEW STUFF
@@ -336,7 +340,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
     QAbstractItemModel *models[NET_CARD_MAX]       = { 0 };
     int                 removeRows_[NET_CARD_MAX]  = { 0 };
     int                 selectedRows[NET_CARD_MAX] = { 0 };
-    int                 m_has_net                  = machine_has_flags(machineId, MACHINE_NIC);
+    int                 m_has_net                  = (!!machine_has_flags_64(machineId, MACHINE_NIC_PRI)) | ((!!machine_has_flags_64(machineId, MACHINE_NIC_SEC)) << 1);
 
     for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
         sc[i]->removeRows();
@@ -357,7 +361,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         if (network_card_available(c)) {
             if (device_is_valid(network_card_getdevice(c), machineId)) {
                 for (uint8_t i = 0; i < NET_CARD_MAX; ++i) {
-                    if ((c != 1) || ((i == 0) && m_has_net)) {
+                    if ((c != 1) || (m_has_net & (1 << i))) {
                         if (i == 0 && c == 1 && m_has_net && machine_get_net_device(machineId)) {
                             name += QString(" (%1)").arg(DeviceConfig::DeviceName(machine_get_net_device(machineId), machine_get_net_device(machineId)->internal_name, 0));
                         }
@@ -468,9 +472,12 @@ SettingsNetwork::on_pushButtonConf1_clicked()
     auto *device  = network_card_getdevice(netCard);
     if (netCard == NET_INTERNAL) {
         device = machine_get_net_device(machineId);
-        net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device);
-    } else
-        net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
+        if (!machine_has_flags_64(machineId, MACHINE_NIC_SEC)) {
+            net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device);
+            return;
+        }
+    }
+    net_card_cfg_changed[0] = DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
@@ -478,6 +485,8 @@ SettingsNetwork::on_pushButtonConf2_clicked()
 {
     int   netCard = ui->comboBoxNIC2->currentData().toInt();
     auto *device  = network_card_getdevice(netCard);
+    if (netCard == NET_INTERNAL)
+        device = machine_get_net_device(machineId);
     net_card_cfg_changed[1] = DeviceConfig::ConfigureDevice(device, 2);
 }
 
