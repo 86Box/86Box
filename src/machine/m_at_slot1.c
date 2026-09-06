@@ -1879,10 +1879,13 @@ machine_at_ergox365_init(const machine_t *model)
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 2, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NETWORK,     3, 0, 0, 0);
 
     device_add(&i440bx_device);
     device_add(&piix4e_device);

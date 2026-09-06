@@ -1994,10 +1994,10 @@ eepro100_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return (s->pci_conf[0x02]);
         case 0x03:
             return (s->pci_conf[0x03]);
-        case 0x07:
-            return s->pci_conf[addr & 0xFF] | 0x02;
         case 0x05:
             return s->pci_conf[addr & 0xFF] & 1;
+        case 0x07:
+            return s->pci_conf[addr & 0xFF] | 0x02;
         case 0x09:
             return 0x0;
         case 0x0a:
@@ -2071,6 +2071,11 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             break;
         case 0x05:
             s->pci_conf[addr & 0xFF] = val & 1;
+            break;
+        case 0x06:
+            break;
+        case 0x07:
+            s->pci_conf[addr & 0xFF] &= ~(val & 0xf9);
             break;
         case 0x0c:
             s->pci_conf[addr & 0xFF] = val;
@@ -2162,6 +2167,7 @@ nic_init_pci(eepro100_t *s)
     pci_conf[0x02] = (s->pci_device_id) & 0xff;
     pci_conf[0x03] = (s->pci_device_id) >> 8;
     pci_conf[0x04] = 0x07; /* command: IO, memory, bus master */
+    pci_conf[0x06] = 0x80;
     pci_conf[0x07] = 0x02; /* status */
     pci_conf[0x08] = s->pci_revision; /* revision */
     pci_conf[0x0b] = 0x02; /* class: network ethernet */

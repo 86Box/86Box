@@ -23320,7 +23320,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Has internal video: ATi 3D Rage Pro Turbo AGP, network: Intel 82558-based, and sound: Crystal CX4235 */
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_NIC | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
