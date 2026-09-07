@@ -465,7 +465,7 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
     return 1;
 }
 
-/* Load a ROM BIOS from its chips, interleaved mode. */
+/* Load a ROM BIOS from its chips, linear mode. */
 int
 rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
