@@ -693,6 +693,17 @@ seteaq(uint64_t v)
 #    define seteaw_mem(v) writememwl_2386(easeg + cpu_state.eaaddr, v);
 #    define seteal_mem(v) writememll_2386(easeg + cpu_state.eaaddr, v);
 #else
+/* The eal_r/eal_w effective-address fast path dereferences a cached host
+   pointer directly, bypassing the debug-register checks that the readmem and
+   writemem macros perform. It must therefore stay disabled while any
+   breakpoint is armed. Evaluated once per instruction in fetch_ea_*, not per
+   access. Folds to a constant when the option is off. */
+#        ifdef USE_DEBUG_REGS_486
+#            define EA_FASTPATH_OK() (!(dr[7] & 0xFF))
+#        else
+#            define EA_FASTPATH_OK() 1
+#        endif
+
 static __inline uint8_t
 getbyte(void)
 {
