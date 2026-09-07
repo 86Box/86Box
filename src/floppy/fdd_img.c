@@ -498,7 +498,9 @@ static int
 format_conditions(int drive)
 {
     const img_t *dev  = img[drive];
-    int          temp = (fdc_get_format_sectors(img_fdc) == dev->sectors);
+    /* Allow bigger sector sizes because of HD_COPY. */
+    int          temp = (fdc_get_format_sectors(img_fdc) == dev->sectors) ||
+                        (fdc_get_format_sectors(img_fdc) == (dev->sectors + 1));
 
     temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);
@@ -513,10 +515,11 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
     img_t   *dev = img[drive];
     int      ssize;
     uint8_t  seen[256][256] = { 0 };
+    d86f_format_id_t temp_ids[64] = { 0 };
 
     if ((dev == NULL) || (side < 0) || (side >= dev->sides) ||
         (dev->track < 0) || (dev->track >= 256) ||
-        (count != dev->sectors))
+        ((count != dev->sectors) && (count != (dev->sectors + 1))))
         return 0;
 
     /*
@@ -525,17 +528,32 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
      * contents.  Reject layouts the fixed-size backing store cannot represent
      * instead of reporting a format that did not actually occur.
      */
+    int i = 0;
     for (uint16_t sector = 0; sector < count; sector++) {
         const uint8_t h = ids[sector][1];
         const uint8_t r = ids[sector][2];
 
+        /* Ignore sectors with ID equal to 0 or (count + 1). */
+        if ((r == 0) || (r == (dev->sectors + 1)))
+            continue;
+
+        memcpy(temp_ids[i], ids[sector], sizeof(d86f_format_id_t));
+
         if ((ids[sector][3] != dev->sector_size) || seen[h][r])
             return 0;
         seen[h][r] = 1;
+
+        i++;
     }
 
+    /* Are there enough matching sector ID's left? */
+    if (i != dev->sectors)
+        return 0;
+
+    count = MIN(count, dev->sectors);
+
     ssize = 128 << dev->sector_size;
-    memcpy(dev->formatted_sector_ids[dev->track][side], ids,
+    memcpy(dev->formatted_sector_ids[dev->track][side], temp_ids,
            count * sizeof(d86f_format_id_t));
     dev->formatted_sector_count[dev->track][side] = count;
 
