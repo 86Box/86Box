@@ -918,7 +918,7 @@ machine_at_in440ex_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_VIDEO,       3, 4, 1, 2);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x11, PCI_CARD_SOUND,       2, 3, 4, 1);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
 
     device_add(&i440ex_device);
@@ -1021,7 +1021,7 @@ machine_at_in440exd_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_VIDEO,       3, 4, 1, 2);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x11, PCI_CARD_SOUND,       2, 3, 4, 1);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
 
     device_add(&i440ex_device);

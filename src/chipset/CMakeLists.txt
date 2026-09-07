@@ -92,6 +92,7 @@ add_library(chipset OBJECT
     umc_8886.c
     umc_hb4.c
     umc_8890.c
+    ut85c50x.c
     via_apollo.c
     via_pipc.c
     vl82c480.c

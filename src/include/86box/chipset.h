@@ -199,6 +199,9 @@ extern const device_t umc_8886bf_device;
 extern const device_t umc_8890_device;
 extern const device_t umc_hb4_device;
 
+/* Utron */
+extern const device_t ut85c50x_device;
+
 /* VIA */
 extern const device_t via_vt82c49x_device;
 extern const device_t via_vt82c49x_pci_device;

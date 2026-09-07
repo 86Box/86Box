@@ -299,6 +299,7 @@ enum {
     MACHINE_CHIPSET_UMC_UM82C491,
     MACHINE_CHIPSET_UMC_UM8881,
     MACHINE_CHIPSET_UMC_UM8890BF,
+    MACHINE_CHIPSET_UTRON_UT85C50X,
     MACHINE_CHIPSET_VIA_VT82C495,
     MACHINE_CHIPSET_VIA_VT82C496G,
     MACHINE_CHIPSET_VIA_APOLLO_VPX,
@@ -1270,6 +1271,9 @@ extern const device_t  m5ata_device;
 extern int             machine_at_m5ata_init(const machine_t *);
 extern int             machine_at_ms5164_init(const machine_t *);
 extern int             machine_at_m560_init(const machine_t *);
+
+/* Utron UT85C50x */
+extern int             machine_at_m558_init(const machine_t *);
 
 /* m_at_sockets7.c */
 /* ALi ALADDiN V */

@@ -690,12 +690,11 @@ via_apollo_read(int func, int addr, UNUSED(int len), void *priv)
     const via_apollo_t *dev = (via_apollo_t *) priv;
     uint8_t             ret = 0xff;
 
-    switch (func) {
-        case 0:
+    if (func == 0) {
+        if ((dev->pci_conf[0xfc] & 0x01) && ((addr == 2) || (addr == 3)))
+            ret = dev->pci_conf[addr + 0xfc];
+        else
             ret = dev->pci_conf[addr];
-            break;
-        default:
-            break;
     }
 
     return ret;
