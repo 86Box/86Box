@@ -72,6 +72,9 @@ machine_at_p5a_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
     device_add(&w83781d_p5a_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
     return ret;
 }
 

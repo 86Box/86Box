@@ -166,7 +166,7 @@ static const device_config_t softpower_config[] = {
         .file_filter    = NULL,
         .spinner        = {
             .min  =     0,
-            .max  = 60000,
+            .max  = 30000,
             .step =   100
         },
         .selection      = { { 0 } },

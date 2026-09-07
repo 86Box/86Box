@@ -623,27 +623,37 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
         endif()
     endif()
 
-    find_package(ECM NO_MODULE)
-    if (ECM_FOUND)
-        list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
-        find_package(Wayland COMPONENTS Client)
-        if (Wayland_FOUND)
-            target_link_libraries(ui PRIVATE Wayland::Client)
-            find_package(WaylandScanner REQUIRED)
-            if (WaylandScanner_FOUND)
-                set(WL_SOURCE_VAR)
-                ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/relative-pointer-unstable-v1.xml BASENAME relative-pointer-unstable-v1)
-                ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/pointer-constraints-unstable-v1.xml BASENAME pointer-constraints-unstable-v1)
-                ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/keyboard-shortcuts-inhibit-unstable-v1.xml BASENAME keyboard-shortcuts-inhibit-unstable-v1)
-                target_include_directories(ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${Qt${QT_MAJOR}Gui_PRIVATE_INCLUDE_DIRS})
-                target_sources(ui PRIVATE ${WL_SOURCE_VAR} wl_mouse.cpp)
-                if (XKBCOMMON_FOUND)
-                    target_sources(ui PRIVATE xkbcommon_wl_keyboard.cpp)
-                endif()
-                target_compile_definitions(ui PRIVATE WAYLAND)
-                set(QT_PRIVATE_HEADERS ON)
-            endif()
+    # Wayland client protocols. wayland-scanner and the wayland-client
+    # pkg-config file both ship with wayland itself.
+    pkg_check_modules(WAYLAND_CLIENT IMPORTED_TARGET wayland-client)
+    find_program(WAYLAND_SCANNER_EXECUTABLE NAMES wayland-scanner)
+    if (WAYLAND_CLIENT_FOUND AND WAYLAND_SCANNER_EXECUTABLE)
+        set(WL_SOURCE_VAR)
+        foreach(_wl_proto relative-pointer-unstable-v1
+                          pointer-constraints-unstable-v1
+                          keyboard-shortcuts-inhibit-unstable-v1)
+            set(_wl_xml ${CMAKE_SOURCE_DIR}/wl_protocols/${_wl_proto}.xml)
+            set(_wl_hdr ${CMAKE_CURRENT_BINARY_DIR}/wayland-${_wl_proto}-client-protocol.h)
+            set(_wl_src ${CMAKE_CURRENT_BINARY_DIR}/wayland-${_wl_proto}-protocol.c)
+            add_custom_command(OUTPUT ${_wl_hdr}
+                COMMAND ${WAYLAND_SCANNER_EXECUTABLE} client-header ${_wl_xml} ${_wl_hdr}
+                DEPENDS ${_wl_xml} VERBATIM)
+            add_custom_command(OUTPUT ${_wl_src}
+                COMMAND ${WAYLAND_SCANNER_EXECUTABLE} public-code ${_wl_xml} ${_wl_src}
+                DEPENDS ${_wl_xml} ${_wl_hdr} VERBATIM)
+            set_property(SOURCE ${_wl_hdr} ${_wl_src} PROPERTY SKIP_AUTOMOC ON)
+            list(APPEND WL_SOURCE_VAR ${_wl_hdr} ${_wl_src})
+        endforeach()
+        target_link_libraries(ui PRIVATE PkgConfig::WAYLAND_CLIENT)
+        target_include_directories(ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${Qt${QT_MAJOR}Gui_PRIVATE_INCLUDE_DIRS})
+        target_sources(ui PRIVATE ${WL_SOURCE_VAR} wl_mouse.cpp)
+        if (XKBCOMMON_FOUND)
+            target_sources(ui PRIVATE xkbcommon_wl_keyboard.cpp)
         endif()
+        target_compile_definitions(ui PRIVATE WAYLAND)
+        set(QT_PRIVATE_HEADERS ON)
+    else()
+        message(WARNING "Wayland client development files not found; Wayland mouse capture will be disabled.")
     endif()
 
     # Add private headers for Qt5 if required.

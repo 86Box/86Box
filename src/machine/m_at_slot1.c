@@ -931,6 +931,9 @@ machine_at_in440ex_init(const machine_t *model)
     else
         device_add(&amd_flash_29f020a_device);
 
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
@@ -1027,6 +1030,9 @@ machine_at_in440exd_init(const machine_t *model)
     device_add(&amd_flash_29f020a_device);
 
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     return ret;
 }
@@ -2617,6 +2623,9 @@ machine_at_ficka6130_init(const machine_t *model)
     device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     return ret;
 }

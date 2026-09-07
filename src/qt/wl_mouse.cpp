@@ -14,6 +14,7 @@
  */
 #include "wl_mouse.hpp"
 #include <QGuiApplication>
+#include <QDebug>
 #include <wayland-client-core.h>
 #include <wayland-client-protocol.h>
 #include <wayland-relative-pointer-unstable-v1-client-protocol.h>

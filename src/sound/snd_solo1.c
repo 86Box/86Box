@@ -1084,7 +1084,7 @@ solo1_init(const device_t *info)
     dev->legacy = ess_solo1_legacy_init();
     sound_add_handler(solo1_get_buffer, dev);
 
-    pci_add_card(PCI_ADD_SOUND, solo1_pci_read, solo1_pci_write,
+    pci_add_card((info->local & 1) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, solo1_pci_read, solo1_pci_write,
                  dev, &dev->pci_slot);
     solo1_reset(dev);
 
