@@ -857,7 +857,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
-    plat_dir_t     context         = { 0 };
+    plat_dir_t     context         = PLAT_DIR_INIT;
     viso_entry_t **dir_entries     = NULL;
     size_t         dir_entries_len = 0;
     while (LIKELY(dir)) {
