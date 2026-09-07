@@ -331,6 +331,9 @@ exec386_dynarec_int(void)
     }
 
     while (!cpu_block_end) {
+#    ifdef USE_DEBUG_REGS_486
+        int ins_fetch_fault = 0;
+#    endif
         oldcs  = CS;
         oldcpl = CPL;
         cpu_state.oldpc = cpu_state.pc;
@@ -338,6 +341,19 @@ exec386_dynarec_int(void)
 
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
+
+#    ifdef USE_DEBUG_REGS_486
+        if (is386)
+            ins_fetch_fault = cpu_386_check_instruction_fault();
+
+        /* Breakpoint fault has priority over other faults. */
+        if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+            x86gen();
+            ins_fetch_fault = 0;
+            /* No instructions executed at this point. */
+            goto block_ended;
+        }
+#    endif
 
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
