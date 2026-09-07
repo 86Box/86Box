@@ -351,7 +351,12 @@ exec386_dynarec_int(void)
             if (trap & 16)
                 dr[6] |= 0x2000;
             trap = 0;
+            /* RF must be set in the EFLAGS image x86gen() pushes, so the
+               handler's IRET resumes the instruction instead of faulting on it
+               again; delivery itself leaves RF clear for the handler. */
+            cpu_state.eflags |= RF_FLAG;
             x86gen();
+            cpu_state.eflags &= ~RF_FLAG;
             /* No instructions executed at this point. */
             break;
         }
@@ -1247,7 +1252,12 @@ exec386(int32_t cycs)
 
             /* Breakpoint fault has priority over other faults. */
             if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+                /* RF must be set in the EFLAGS image x86gen() pushes, so the
+                   handler's IRET resumes the instruction instead of faulting on
+                   it again; delivery leaves RF clear for the handler. */
+                cpu_state.eflags |= RF_FLAG;
                 x86gen();
+                cpu_state.eflags &= ~RF_FLAG;
                 ins_fetch_fault = 0;
                 /* No instructions executed at this point. */
                 goto block_ended;
