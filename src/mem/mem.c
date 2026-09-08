@@ -598,7 +598,6 @@ addreadlookup(uint32_t virt, uint32_t phys)
     int *    rln          = &(readlnext[is_compare]);
     int      cur_rln      = *rln | (int) small_offset;
 
-#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -611,8 +610,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
     readlookup2[index] = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
 
     readlookup[cur_rln] = virt >> 12;
-    *rln = (*rln + 1) & (cachesize - 1);
-#endif
+    *rln                = (*rln + 1) & (cachesize - 1);
 
     cycles -= 9;
 }
@@ -620,7 +618,6 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
-#ifndef USE_DEBUG_REGS_486
     if (virt == 0xffffffff)
         return;
 
@@ -657,7 +654,6 @@ addwritelookup(uint32_t virt, uint32_t phys)
 
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
-#endif
 
     cycles -= 9;
 }

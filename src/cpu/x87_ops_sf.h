@@ -1,4 +1,8 @@
+#ifdef USE_DEBUG_REGS_486
+#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !(dr[7] & 0xFF))
+#else
 #    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
+#endif
 
 static uint32_t
 fpu_save_environment(void)

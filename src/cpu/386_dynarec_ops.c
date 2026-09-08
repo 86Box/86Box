@@ -41,7 +41,7 @@ fetch_ea_32_long(UNUSED(uint32_t rmdat))
 {
     eal_r = eal_w = NULL;
     easeg         = cpu_state.ea_seg->base;
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -55,7 +55,7 @@ fetch_ea_16_long(UNUSED(uint32_t rmdat))
 {
     eal_r = eal_w = NULL;
     easeg         = cpu_state.ea_seg->base;
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);

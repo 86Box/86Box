@@ -5616,6 +5616,10 @@ s3_virge_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             ret = virge->pci_regs[PCI_REG_COMMAND] & 0x27;
             break;
 
+        case 0x06:
+            ret = (virge->chip >= S3_VIRGEGX2) ? PCI_STATUS_L_CAPAB : 0x00;
+            break;
+
         case 0x07:
             ret = virge->pci_regs[0x07] & 0x36;
             break;
@@ -6153,8 +6157,10 @@ s3_virge_init(const device_t *info)
             default:
                 break;
         }
-        if (virge->type == S3_VIRGE_GX)
+        if (virge->type == S3_VIRGE_GX) {
             virge->svga.crtc[0x36] |= (1 << 2);
+            virge->svga.crtc[0x6f] |= 1;
+        }
     }
 
     virge->svga.crtc[0x37] = 1 | (7 << 5);

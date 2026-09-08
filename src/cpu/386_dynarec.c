@@ -140,7 +140,7 @@ fetch_ea_32_long(uint32_t rmdat)
             cpu_state.eaaddr = getlong();
         }
     }
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -176,7 +176,7 @@ fetch_ea_16_long(uint32_t rmdat)
         }
         cpu_state.eaaddr &= 0xFFFF;
     }
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    if (easeg != 0xFFFFFFFF && EA_FASTPATH_OK() && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -338,6 +338,29 @@ exec386_dynarec_int(void)
 
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
+
+#    ifdef USE_DEBUG_REGS_486
+        /* Breakpoint fault has priority over other faults. x86gen() delivers
+           #DB right away, so fold any still-pending trap into the same DR6
+           image and clear it, otherwise the epilogue raises a second #DB. A
+           pending BS is always stale here - trap's TF bit is only set further
+           down, once an instruction is about to retire - so it is dropped. */
+        if ((cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
+            if (trap & 2)
+                dr[6] |= 0x8000;
+            if (trap & 16)
+                dr[6] |= 0x2000;
+            trap = 0;
+            /* RF must be set in the EFLAGS image x86gen() pushes, so the
+               handler's IRET resumes the instruction instead of faulting on it
+               again; delivery itself leaves RF clear for the handler. */
+            cpu_state.eflags |= RF_FLAG;
+            x86gen();
+            cpu_state.eflags &= ~RF_FLAG;
+            /* No instructions executed at this point. */
+            break;
+        }
+#    endif
 
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
@@ -1229,7 +1252,12 @@ exec386(int32_t cycs)
 
             /* Breakpoint fault has priority over other faults. */
             if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+                /* RF must be set in the EFLAGS image x86gen() pushes, so the
+                   handler's IRET resumes the instruction instead of faulting on
+                   it again; delivery leaves RF clear for the handler. */
+                cpu_state.eflags |= RF_FLAG;
                 x86gen();
+                cpu_state.eflags &= ~RF_FLAG;
                 ins_fetch_fault = 0;
                 /* No instructions executed at this point. */
                 goto block_ended;

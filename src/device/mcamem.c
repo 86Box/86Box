@@ -41,10 +41,12 @@ typedef struct {
 
 static const MCAMEM_CARD mcamem_cards[] = {
     // clang-format off
-    { &device_none              },
+    { &device_none                 },
     /* MCA Memory Expansion Boards */
-    { &ibm_xma_mca_2mb_device   },
-    { NULL                      }
+    { &ibm_xma_mca_2mb_device      },
+    { &ibm_xma_mca_8mb_f7fe_device },
+    { &ibm_xma_mca_8mb_f7f7_device },
+    { NULL                         }
     // clang-format on
 };
 
