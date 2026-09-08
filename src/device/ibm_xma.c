@@ -488,6 +488,51 @@ mxo_close(void *priv)
  * device driver source (XMA2EMS.ASM / PS2_5060.INC).
  */
 
+/* The init ROMs claim 8KB windows inside C8000h-DFFFFh, the same range the
+   translate table's page-frame slots (A0000h-E0000h) can map card RAM onto.
+   On real hardware the two decodes coexist: while a TT entry covers the ROM
+   window the ROM keeps answering, and once that entry is unmapped the ROM
+   is simply reachable again. 86Box has a single flat mapping per address
+   however, so register a new mapping removes the old one, and card RAM
+   would shadow the init ROM while running its translate table self-test
+   (which writes entries covering the very window the ROM executes from).
+   Every mapped ROM window is registered and skipped by xma_pf_update()
+   to keep the card RAM from ever shadowing it. */
+static struct {
+    const xma_t *dev;
+    uint32_t     base;
+} xma_rom_windows[8];
+static uint8_t xma_rom_windows_nr;
+
+static uint8_t
+xma_addr_in_rom(uint32_t addr)
+{
+    for (uint8_t i = 0; i < xma_rom_windows_nr; i++) {
+        if ((addr >= xma_rom_windows[i].base) && (addr < (xma_rom_windows[i].base + XMA_BIOS_SIZE)))
+            return 1;
+    }
+
+    return 0;
+}
+
+static void
+xma_rom_register(const xma_t *dev, uint32_t base)
+{
+    /* Drop any previous window of this card first. */
+    for (uint8_t i = 0; i < xma_rom_windows_nr; i++) {
+        if (xma_rom_windows[i].dev == dev) {
+            xma_rom_windows[i] = xma_rom_windows[--xma_rom_windows_nr];
+            break;
+        }
+    }
+
+    if (base && (xma_rom_windows_nr < 8)) {
+        xma_rom_windows[xma_rom_windows_nr].dev  = dev;
+        xma_rom_windows[xma_rom_windows_nr].base = base;
+        xma_rom_windows_nr++;
+    }
+}
+
 /* Translate table entry check: not inhibited and a valid block number. */
 static uint8_t
 xma_tt_enabled(const xma_t *dev, uint16_t idx)
@@ -575,6 +620,13 @@ xma_pf_update(xma_t *dev)
                 en = xma_tt_enabled(dev, (uint16_t) ((t << 8) | i));
         } else
             en = xma_tt_enabled(dev, i);
+
+        /* Real hardware lets the ROM and the TT RAM coexist; 86Box cannot,
+           so a page-frame slot falling inside any card's init ROM window
+           stays unmapped and the ROM keeps executing while its own
+           self-test writes TT entries covering the window. */
+        if (en && xma_addr_in_rom((uint32_t) i << XMA_BLOCK_SHIFT))
+            en = 0;
 
         if (en == dev->pf_state[k])
             continue;
@@ -941,11 +993,17 @@ xma_bios_update(xma_t *dev)
         mem_mapping_enable(&dev->bios_rom.mapping);
         mem_mapping_set_addr(&dev->bios_rom.mapping, dev->bios_base, XMA_BIOS_SIZE);
         xma_log("xma_bios_update: ROM space %u -> %05X\n", dev->rom_space, dev->bios_base);
+        xma_rom_register(dev, dev->bios_base);
     } else {
         dev->bios_base = 0;
         mem_mapping_disable(&dev->bios_rom.mapping);
         xma_log("xma_bios_update: ROM disabled\n");
+        xma_rom_register(dev, 0);
     }
+
+    /* Re-evaluate the page-frame slots: slots leaving the ROM window may
+       become available, slots entering it must be masked off. */
+    xma_pf_update(dev);
 }
 
 static void
@@ -1067,9 +1125,12 @@ xma_init(const device_t *info)
     xma_pf_update(dev);
     xma_map_update(dev); /* size the linear window to the default TT map */
 
-    /* Load the 8KB init ROM.  It starts out at Space 1 (C8000h); the
-       reference disk can move it through POS 104h bits 7-4 later. */
-    dev->rom_space = 4;
+    /* Load the 8KB init ROM but keep it disabled until the reference disk
+       selects a window through POS 104h bits 7-4 (xma_bios_update). The ROM 
+       must not be mapped at power-on so that two adapters in one machine do
+       not shadow each other at a fixed address; the card only presents its
+       ROM at the POS-assigned window. */
+    dev->rom_space = 1; /* space 1 = ROM not mapped */
     rom_init(&dev->bios_rom, bios_file,
              0xc8000U, XMA_BIOS_SIZE, XMA_BIOS_MASK, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_set_handler(&dev->bios_rom.mapping,
@@ -1077,8 +1138,8 @@ xma_init(const device_t *info)
                             NULL, NULL, NULL);
     mem_mapping_set_p(&dev->bios_rom.mapping, dev);
     mem_mapping_set_exec(&dev->bios_rom.mapping, dev->bios_rom.rom);
-    xma_log("xma_init: on-board init ROM loaded from %s\n", bios_file);
-    xma_bios_update(dev);
+    xma_log("xma_init: on-board init ROM loaded from %s (waiting for POS)\n", bios_file);
+    mem_mapping_disable(&dev->bios_rom.mapping);
 
     /* Register the fixed virtual-mode window (0x31A0h-0x31A8h).  Only a
        single card can be used in virtual mode, so a second XMA/A in the
@@ -1100,6 +1161,7 @@ xma_close(void *priv)
                      xma_io_readb, xma_io_readw, NULL,
                      xma_io_writeb, xma_io_writew, NULL,
                      dev);
+    xma_rom_register(dev, 0);
     free(dev->ram.ptr);
     free(dev);
 }
