@@ -277,7 +277,12 @@ exec386_2386(int32_t cycs)
                 if (trap & 16)
                     dr[6] |= 0x2000;
                 trap = 0;
+                /* RF must be set in the EFLAGS image x86gen() pushes, so the
+                handler's IRET resumes the instruction instead of faulting on it
+                again; delivery itself leaves RF clear for the handler. */
+                cpu_state.eflags |= RF_FLAG;
                 x86gen();
+                cpu_state.eflags &= ~RF_FLAG;
                 /* No instructions executed at this point. */
                 break;
             } else if (cpu_16bitbus) {
