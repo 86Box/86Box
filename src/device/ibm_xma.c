@@ -101,10 +101,15 @@ typedef struct xma_t {
     mem_mapping_t pf_map[XMA_PF_SLOTS]; /* per-4K EMS page-frame slots */
     mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
 
+    uint8_t       pf_state[XMA_PF_SLOTS]; /* last programmed pf slot state (0 = off, 1 = on) */
+    uint16_t      ext_lo;                 /* last programmed ext window base TT index */
+    uint16_t      ext_hi;                 /* last programmed ext window top TT index */
+
     rom_t         bios_rom;   /* on-board 8KB init ROM */
     uint32_t      bios_base;  /* ROM window base (0 = disabled) */
     uint8_t       rom_space;  /* ROM space code from 104h bits 7-4 (1 = none, 4-15 = spaces) */
 
+    uint8_t       slot;       /* MCA slot index assigned by mca_add() */
     uint8_t       pos_regs[8];
 } xma_t;
 
@@ -549,7 +554,14 @@ xma_mem_write(uint32_t addr, uint8_t val, void *priv)
 
 /* Enable the per-4K page-frame slots whose TT entry is active. In
    virtual mode a slot is claimed if any of the 16 banks maps it; the
-   actual access is still gated by the currently selected bank. */
+   actual access is still gated by the currently selected bank.
+
+   The init ROM and the drivers program the translate table in bulk
+   loops (thousands of entries per run), and each of those writes
+   lands here. mem_mapping_enable/disable() each recalculate the whole
+   memory map and flush the TLB, so a slot is only touched when its
+   state actually changed - that keeps a table-fill pass from costing
+   one full recalculation per entry. */
 static void
 xma_pf_update(xma_t *dev)
 {
@@ -564,6 +576,10 @@ xma_pf_update(xma_t *dev)
         } else
             en = xma_tt_enabled(dev, i);
 
+        if (en == dev->pf_state[k])
+            continue;
+
+        dev->pf_state[k] = en;
         if (en)
             mem_mapping_enable(&dev->pf_map[k]);
         else
@@ -576,7 +592,14 @@ xma_pf_update(xma_t *dev)
    home.  The init ROM repositions the card's memory by rewriting the
    translate table (at POST the blocks live at the default 1M+384K home
    only until the ROM moves them above the system memory), so the
-   window must follow the table instead of being fixed at xma_init. */
+   window must follow the table instead of being fixed at xma_init.
+
+   During the ROM's bulk table fill the window changes only once per
+   reposition, so the last computed (lo, hi) pair is kept and the
+   mapping is only rewritten when the window actually moved -
+   mem_mapping_set_addr() recalculates the whole memory map and would
+   otherwise repeat that cost for every one of the thousands of writes
+   that make up a single window. */
 static void
 xma_map_update(xma_t *dev)
 {
@@ -590,6 +613,12 @@ xma_map_update(xma_t *dev)
             hi = i;
         }
     }
+
+    if ((lo == dev->ext_lo) && (hi == dev->ext_hi))
+        return; /* window unchanged - mapping is already correct */
+
+    dev->ext_lo = lo;
+    dev->ext_hi = hi;
 
     if (lo <= hi) {
         mem_mapping_set_addr(&dev->ext_mapping,
@@ -982,7 +1011,10 @@ xma_init(const device_t *info)
     mca_add(xma_mca_read, xma_mca_write, xma_mca_feedb, xma_reset, dev);
 
     /* Extended-memory home at 1M+384K; xma_mem_read/write() gate access
-       through the TT so inhibited entries simply read empty. */
+       through the TT so inhibited entries simply read empty. The mapping 
+       starts out disabled - the default all-inhibited table leaves no 
+       window - and xma_map_update() sizes and enables it as the init
+       ROM programs the table. */
     mem_mapping_add(&dev->ext_mapping,
                     XMA_EXT_BASE,
                     (uint32_t) dev->blocks << XMA_BLOCK_SHIFT,
@@ -995,6 +1027,7 @@ xma_init(const device_t *info)
                     NULL,
                     0,
                     dev);
+    mem_mapping_disable(&dev->ext_mapping);
 
     /* EMS page frame slots (A0000h-E0000h), one 4K mapping per slot.
        Only slots whose TT entry is active get enabled, so the card
