@@ -675,6 +675,10 @@ check_flags:
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
         }
+        /* Drawing the OSD can ask it to close -- posting a message does -- so
+         * finish that here instead of waiting for the next input event. */
+        if (flag_osd_open && osd_take_pending_close())
+            flag_osd_open = 0;
         if (title_set) {
             ui_window_title_real();
         }

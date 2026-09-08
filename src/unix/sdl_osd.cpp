@@ -237,6 +237,20 @@ int osd_close(SDL_Event event)
     return 1;
 }
 
+int osd_take_pending_close(void)
+{
+    if (!pending_close)
+        return 0;
+
+    pending_close = false;
+
+    /* osd_close() ignores the event; it only takes one to mirror osd_open(). */
+    SDL_Event dummy {};
+    osd_close(dummy);
+
+    return 1;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Public API: event handling                                         */
 /* ------------------------------------------------------------------ */
@@ -259,11 +273,6 @@ int osd_handle(SDL_Event event)
                 return 0; /* close OSD entirely */
         }
         return 1; /* consume */
-    }
-
-    if (pending_close) {
-        pending_close = false;
-        return 0;
     }
 
 #ifdef USE_SDL2_LIB
