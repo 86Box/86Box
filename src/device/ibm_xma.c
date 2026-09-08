@@ -742,7 +742,12 @@ xma_mca_feedb(void *priv)
     return (dev->pos_regs[2] & 1);
 }
 
-/* Virtual (banked) mode ports, 0x31A0h-0x31A8h */
+/* Virtual (banked) mode ports, 0x31A0h-0x31A8h. On real hardware this
+   fixed window is shared by every XMA-family adapter, but only the card
+   whose MCA slot is currently selected (port 96h) responds to it - so a
+   multi-card machine keeps the cards' translate tables from interfering
+   with each other during the init-ROM memory test. A card that is not
+   selected must answer reads with 0xFF/0xFFFF and ignore writes. */
 static uint16_t
 xma_tt_data16(const xma_t *dev)
 {
@@ -755,6 +760,9 @@ xma_io_readb(const uint16_t port, void *priv)
     xma_t    *dev = (xma_t *) priv;
     uint16_t off = port & 0x000f;
     uint8_t  ret;
+
+    if (mca_get_index() != dev->slot)
+        return 0xff;
 
     switch (off) {
         case 0x00: /* TT pointer low byte */
@@ -788,6 +796,9 @@ xma_io_readw(const uint16_t port, void *priv)
     xma_t    *dev = (xma_t *) priv;
     uint16_t data;
 
+    if (mca_get_index() != dev->slot)
+        return 0xffff;
+
     switch (port) {
         case XMA_TT_POINTER:
             return dev->tt_ptr;
@@ -813,6 +824,9 @@ xma_io_writeb(const uint16_t port, uint8_t val, void *priv)
 {
     xma_t    *dev = (xma_t *) priv;
     uint16_t off = port & 0x000f;
+
+    if (mca_get_index() != dev->slot)
+        return;
 
     switch (off) {
         case 0x00: /* TT pointer low byte */
@@ -863,6 +877,9 @@ static void
 xma_io_writew(const uint16_t port, uint16_t val, void *priv)
 {
     xma_t *dev = (xma_t *) priv;
+
+    if (mca_get_index() != dev->slot)
+        return;
 
     switch (port) {
         case XMA_TT_POINTER:
@@ -1008,7 +1025,7 @@ xma_init(const device_t *info)
         dev->tt[i] = XMA_TT_INHIBIT;
 
     /* Register the card on the MCA bus. */
-    mca_add(xma_mca_read, xma_mca_write, xma_mca_feedb, xma_reset, dev);
+    dev->slot = mca_add(xma_mca_read, xma_mca_write, xma_mca_feedb, xma_reset, dev);
 
     /* Extended-memory home at 1M+384K; xma_mem_read/write() gate access
        through the TT so inhibited entries simply read empty. The mapping 
