@@ -266,15 +266,25 @@ exec386_2386(int32_t cycs)
             if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
                 ol = 2;
 
-            if (is386)
-                ins_fetch_fault = cpu_386_check_instruction_fault();
-
-            /* Breakpoint fault has priority over other faults. */
-            if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+            /* Breakpoint fault has priority over other faults. x86gen() delivers
+               #DB right away, so fold any still-pending trap into the same DR6
+               image and clear it, otherwise the epilogue raises a second #DB. A
+               pending BS is always stale here - trap's TF bit is only set further
+               down, once an instruction is about to retire - so it is dropped. */
+            if ((cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
+                if (trap & 2)
+                    dr[6] |= 0x8000;
+                if (trap & 16)
+                    dr[6] |= 0x2000;
+                trap = 0;
+                /* RF must be set in the EFLAGS image x86gen() pushes, so the
+                handler's IRET resumes the instruction instead of faulting on it
+                again; delivery itself leaves RF clear for the handler. */
+                cpu_state.eflags |= RF_FLAG;
                 x86gen();
-                ins_fetch_fault = 0;
+                cpu_state.eflags &= ~RF_FLAG;
                 /* No instructions executed at this point. */
-                goto block_ended;
+                break;
             } else if (cpu_16bitbus) {
                 CHECK_READ_CS(MIN(ol, 2));
             } else {
