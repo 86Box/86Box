@@ -7,7 +7,7 @@
 extern "C" {
 #define fallthrough [[fallthrough]]
 #define calloc(count, size) (mcd_t *) calloc(count, size)
-#include "../src/cdrom/cdrom_mitsumi.c"
+#include "../../src/cdrom/cdrom_mitsumi.c"
 #undef calloc
 #undef fallthrough
 }
