@@ -137,6 +137,7 @@ typedef struct mcd_t {
     uint8_t  early_status;
     uint8_t  state;
     uint8_t  first;
+    uint8_t  dma_timeout_ms;
     int8_t   status;
     uint16_t dmalen;
     uint32_t readmsf;
@@ -148,9 +149,8 @@ typedef struct mcd_t {
     int      cur_toc_track;
     int      tray_open;
     uint32_t dma_retries;
-    pc_timer_t pio_timer;
-    pc_timer_t dma_timer;
     pc_timer_t read_timer;
+    pc_timer_t dma_timeout_timer;
     uint8_t  last_flags;
 
     uint8_t  cur_control;
@@ -279,7 +279,12 @@ mitsumi_error_status(const mcd_t *dev, const int sense)
 static void
 mitsumi_abort_read(mcd_t *dev)
 {
-    timer_disable(&dev->read_timer);
+    if (timer_is_enabled(&dev->dma_timeout_timer))
+        timer_disable(&dev->dma_timeout_timer);
+
+    if (timer_is_enabled(&dev->read_timer))
+        timer_disable(&dev->read_timer);
+
     dev->state      = STATE_IDLE;
     if ((dev->dma >= 0) && (dev->dma < 8))
         dma_set_drq(dev->dma, 0);
@@ -361,35 +366,36 @@ mitsumi_cdrom_reset(mcd_t *dev)
 {
     picintc(1 << dev->irq);
     cdrom_stop(dev->cdrom_dev);
-    dev->cmdrd_count   = 0;
-    dev->cmdbuf_count  = 0;
-    dev->cmdbuf_idx    = 0;
+    dev->dma_timeout_ms  = 18;
+    dev->cmdrd_count     = 0;
+    dev->cmdbuf_count    = 0;
+    dev->cmdbuf_idx      = 0;
     mitsumi_abort_read(dev);
-    dev->cur_toc_track = 0;
-    dev->enable_dma    = 0;
-    dev->enable_irq    = 0;
-    dev->early_status  = 0;
-    dev->mode          = 0;
-    dev->cmd           = 0;
-    dev->conf          = 0;
-    dev->dmalen        = COOKED_SECTOR_SIZE + MITSUMI_DMA_COUNT_BIAS;
-    dev->readmsf       = 0;
-    dev->audio_end_msf = 0;
-    dev->dma_retries   = 0;
-    dev->locked        = 0;
-    dev->change        = 1;
-    dev->data          = 0;
-    dev->smode         = 1;
-    dev->cur_control   = 0x0c;
-    dev->cur_sense     = 0;
-    dev->last_flags    = 0xff;
-    dev->tray_open     = !mitsumi_cdrom_is_ready(dev);
+    dev->cur_toc_track   = 0;
+    dev->enable_dma      = 0;
+    dev->enable_irq      = 0;
+    dev->early_status    = 0;
+    dev->mode            = 0;
+    dev->cmd             = 0;
+    dev->conf            = 0;
+    dev->dmalen          = COOKED_SECTOR_SIZE + MITSUMI_DMA_COUNT_BIAS;
+    dev->readmsf         = 0;
+    dev->audio_end_msf   = 0;
+    dev->dma_retries     = 0;
+    dev->locked          = 0;
+    dev->change          = 1;
+    dev->data            = 0;
+    dev->smode           = 1;
+    dev->cur_control     = 0x0c;
+    dev->cur_sense       = 0;
+    dev->last_flags      = 0xff;
+    dev->tray_open       = !mitsumi_cdrom_is_ready(dev);
 
     dev->cdrom_vols.att0 = 255;
     dev->cdrom_vols.att1 = 0;
     dev->cdrom_vols.att2 = 255;
     dev->cdrom_vols.att3 = 0;
-    dev->stat = mitsumi_status(dev);
+    dev->stat            = mitsumi_status(dev);
 }
 
 uint8_t
@@ -605,9 +611,20 @@ mitsumi_start_read_phase(mcd_t *dev)
 }
 
 static void
+mitsumi_rearm_dma_timeout(mcd_t *dev)
+{
+    if (timer_is_enabled(&dev->dma_timeout_timer))
+        timer_disable(&dev->dma_timeout_timer);
+
+    timer_set_delay_u64(&dev->dma_timeout_timer,
+                        (uint64_t) dev->dma_timeout_ms * 1000ULL * TIMER_USEC);
+}
+
+static void
 mitsumi_start_data_ready_phase(mcd_t *dev, const int from_callback)
 {
     if (dev->enable_dma) {
+        mitsumi_rearm_dma_timeout(dev);
         dev->state = STATE_WRITE_DMA;
         timer_advance_u64(&dev->read_timer, 1ULL << 32);
         mitsumi_cdrom_log("Mitsumi: [OK] state advanced to STATE_WRITE_DMA\n");
@@ -653,6 +670,8 @@ mitsumi_dma_transfer(mcd_t *dev)
 
         if (dma_result & DMA_OVER) {
             mitsumi_cdrom_log("Mitsumi: DMA terminal count at buffer offset %d\n", dev->buf_idx);
+            if (timer_is_enabled(&dev->dma_timeout_timer))
+                timer_disable(&dev->dma_timeout_timer);
             dma_set_drq(dev->dma, 0);
             dev->buf_count  = 0;
             dev->buf_idx    = 0;
@@ -663,6 +682,7 @@ mitsumi_dma_transfer(mcd_t *dev)
                 (dev->drvmode == DRV_MODE_READ)) {
                 const int buf_len = mitsumi_dma_length(dev);
                 if (dev->real_count > buf_len) {
+                    mitsumi_rearm_dma_timeout(dev);
                     dev->real_count -= buf_len;
                     memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                     dev->buf_idx     = 0;
@@ -685,6 +705,14 @@ mitsumi_dma_transfer(mcd_t *dev)
     /* Do not fetch another host-image sector in this callback.  A real
        single/double-speed drive makes sectors available at 75/150 Hz. */
     return 3;
+}
+
+static void
+mitsumi_dma_timeout_callback(void *priv)
+{
+    mcd_t    *dev      = (mcd_t *) priv;
+
+    mitsumi_abort_read(dev);
 }
 
 static void
@@ -814,6 +842,8 @@ mitsumi_read_callback(void *priv)
         case STATE_WRITE_DMA:
             mitsumi_cdrom_log("Mitsumi: state STATE_WRITE_DMA\n");
             read_res = mitsumi_dma_transfer(dev);
+            if ((read_res > 1) && (timer_is_enabled(&dev->dma_timeout_timer)))
+                timer_disable(&dev->dma_timeout_timer);
             switch (read_res) {
                 default:
                     break;
@@ -857,6 +887,7 @@ mitsumi_read_callback(void *priv)
                         if (dev->readcount > 0) {
                             /* Another sector to read or more data from the buffer. */
                             if (dev->real_count > buf_len) {
+                                mitsumi_rearm_dma_timeout(dev);
                                 dev->real_count -= buf_len;
                                 memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                                 dev->buf_idx     = 0;
@@ -871,14 +902,17 @@ mitsumi_read_callback(void *priv)
                         } else
                             /* Exhausted everything and early status. */
                             dev->state = STATE_IDLE;
-                    } else
+                    } else {
                         /* Buffer not (yet) exhausted. */
+                        mitsumi_rearm_dma_timeout(dev);
                         timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
+                    }
                     break;
                 case 3:
                     dev->dma_retries = 0;
                     if (dev->readcount > 0) {
                         if (dev->real_count > buf_len) {
+                            mitsumi_rearm_dma_timeout(dev);
                             dev->real_count -= buf_len;
                             memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                             dev->buf_idx     = 0;
@@ -1107,6 +1141,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                             dev->dma_retries = 0;
                                             dma_set_drq(dev->dma, 1);
                                         }
+                                        break;
+                                    case 0x08:
+                                        dev->dma_timeout_ms = val;
+                                        mitsumi_cdrom_log("Mitsumi: DMA timeout=%i ms\n",
+                                                          dev->dma_timeout_ms);
                                         break;
                                     case 0x10:
                                         dev->enable_irq = val;
@@ -1387,7 +1426,9 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     io_sethandler(dev->base, 4,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
+    timer_add(&dev->dma_timeout_timer, mitsumi_dma_timeout_callback, dev, 0);
     timer_add(&dev->read_timer, mitsumi_read_callback, dev, 0);
+
     mitsumi_cdrom_reset(dev);
 
     return dev;
