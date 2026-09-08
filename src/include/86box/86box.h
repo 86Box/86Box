@@ -207,6 +207,7 @@ extern int      sound_is_float;             /* (C) sound uses FP values */
 extern char     sound_input_dev_name[512];  /* (C) name of sound input device */
 extern int      sound_input_enabled;        /* (C) enable sound input */
 extern int      sound_sample_rate;          /* (C) sound output sample rate */
+extern int      sb_input_rate;              /* (C) SB16/AWE32 hardware sample rate */
 extern int      voodoo_enabled;             /* (C) video option */
 extern int      ibm8514_standalone_enabled; /* (C) video option */
 extern int      xga_standalone_enabled;     /* (C) video option */

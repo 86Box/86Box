@@ -37,6 +37,11 @@ private slots:
 
     void on_checkBoxSoundInput_stateChanged(int state);
 
+private:
+    void updateSoundInputEnabled();
+
+private slots:
+
     void on_comboBoxMidiOut_currentIndexChanged(int index);
     void on_pushButtonConfigureMidiOut_clicked();
 

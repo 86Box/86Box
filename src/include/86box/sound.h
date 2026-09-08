@@ -120,6 +120,7 @@ extern int sound_card_available(int card);
 extern const device_t *sound_card_getdevice(int card);
 #endif
 extern int         sound_card_has_config(int card);
+extern int         sound_card_has_input(int card);
 extern const char *sound_card_get_internal_name(int card);
 extern int         sound_card_get_from_internal_name(const char *s);
 extern void        sound_card_init(void);
@@ -146,11 +147,16 @@ extern void sound_hdd_thread_end(void);
 
 extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
 extern const char *sound_get_input_devices(void);  /* returns double-null-terminated list, or NULL */
+extern void        al_capture_open(void);
+extern void        al_capture_close(void);
+extern int         al_capture_get_rate(void);
 extern int         sound_get_device_sample_rate(const char *device_name);   /* probe native rate, 0 = unknown */
 extern int         sound_get_device_supported_rates(const char *device_name, /* probe supported rates into rates_out; returns count */
                                                     int *rates_out, int max_rates);
 extern void        closeal(void);
 extern void        inital(void);
+extern void        sound_reopen_input(void);
+extern void        sound_reopen_output(void);
 extern int         al_capture_available(void);
 extern void        al_capture_start(void);
 extern void        al_capture_stop(void);

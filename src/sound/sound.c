@@ -72,6 +72,11 @@ unsigned long long src_freqs[I_MAX] = {
 #define NUM_YM2151_HANDLERS 16
 #define NUM_WAVETABLE_HANDLERS 16
 #define NUM_SOUND_IN_HANDLERS 16
+#define SNDIN_OUTAGE_TICKS 5
+#define SNDIN_REOPEN_TICKS 10
+#define SNDIN_WEDGED_TICKS 500
+#define SNDIN_HEALTHY_TICKS 250
+#define SNDIN_MAX_WEDGE_ATTEMPTS 3
 
 static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS];
 static sound_in_handler_t sound_in_handlers[NUM_SOUND_IN_HANDLERS];
@@ -115,8 +120,6 @@ static uint64_t   ym2151_poll_latch;
 static pc_timer_t wavetable_poll_timer;
 static uint64_t   wavetable_poll_latch;
 
-/* Capture is stereo: two int16_t per frame, SOUNDBUFLEN frames. */
-static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
@@ -124,6 +127,14 @@ static unsigned int cd_vol_l;
 static unsigned int cd_vol_r;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
+
+static int sound_in_empty_reads = 0;
+static int sound_in_reopen_ticks = 0;
+static int sound_in_had_data = 0;
+static int sound_in_recover_attempts = 0;
+static int sound_in_good_ticks = 0;
+static int sound_in_wedge_attempts = 0;
+static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
 
 static thread_t     *sound_fdd_thread_h;
 static event_t      *sound_fdd_event;
@@ -299,6 +310,14 @@ sound_card_has_config(int card)
     if (sound_cards[card].device == NULL)
         return 0;
     return device_has_config(sound_cards[card].device) ? 1 : 0;
+}
+
+int
+sound_card_has_input(int card)
+{
+    if (sound_cards[card].device == NULL)
+        return 0;
+    return (sound_cards[card].device->flags & DEVICE_AUDIO_IN) ? 1 : 0;
 }
 
 const char *
@@ -697,9 +716,57 @@ sound_in_start_input(void)
 {
     const uint8_t old = sound_in_started_input;
 
+    if (!old)
+        al_capture_open();
+
     sound_in_started_input++;
     if (!old && al_capture_available())
         al_capture_start();
+}
+
+
+static int
+sound_capture_suspend(void)
+{
+    const int was_capturing = (sound_in_started_input > 0);
+
+    if (al_capture_available())
+        al_capture_stop();
+    al_capture_close();
+
+    return was_capturing;
+}
+
+static void
+sound_capture_resume(const int was_capturing)
+{
+    if (was_capturing && sound_input_enabled) {
+        sound_in_had_data = 0;
+        al_capture_open();
+        if (al_capture_available())
+            al_capture_start();
+        else
+            /* recovery retry on next tick */
+            sound_in_reopen_ticks = SNDIN_REOPEN_TICKS;
+    }
+}
+
+void
+sound_reopen_input(void)
+{
+    /* al_capture_open()/al_capture_close() mutex-guarded in sound_poll()*/
+    sound_capture_resume(sound_capture_suspend());
+}
+
+void
+sound_reopen_output(void)
+{
+    const int was_capturing = sound_capture_suspend();
+
+    closeal();
+    inital();
+
+    sound_capture_resume(was_capturing);
 }
 
 void
@@ -774,7 +841,69 @@ sound_poll(UNUSED(void *priv))
         if (sound_in_started_input) {
             size_t in_len = (size_t) SOUNDBUFLEN;
 
+            /* recover a failed device capture */
+            if (sound_input_enabled) {
+                const int dead = !al_capture_available();
+                const int wedged = !dead && sound_in_had_data
+                                && (sound_in_wedge_attempts < SNDIN_MAX_WEDGE_ATTEMPTS)
+                                && (sound_in_empty_reads >= SNDIN_WEDGED_TICKS);
+
+                if (dead || wedged) {
+                    const int shift = (sound_in_recover_attempts < 6) ? sound_in_recover_attempts : 6;
+                    const int wait  = SNDIN_REOPEN_TICKS << shift;
+
+                    if (++sound_in_reopen_ticks >= wait) {
+                        sound_in_reopen_ticks = 0;
+                        sound_in_empty_reads  = 0;
+                        sound_in_had_data     = 0;
+                        sound_in_good_ticks   = 0;
+                        sound_in_recover_attempts++;
+
+                        if (wedged) {
+                            sound_in_wedge_attempts++;
+                            al_capture_stop();
+                            al_capture_close();
+                        }
+
+                        al_capture_open();
+                        if (al_capture_available())
+                            al_capture_start();
+                    }
+                } else {
+                    sound_in_reopen_ticks = 0;
+                }
+            }
+
+            /* use SOUND_FREQ when device not open */
+            const int cap_rate = al_capture_get_rate();
+            const int fill_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+            size_t    want      = (size_t) fill_rate / 50;
+
+            if (want > (size_t) SOUNDBUFLEN)
+                want = (size_t) SOUNDBUFLEN;
+
             al_capture_get_data(sound_input_buffer, &in_len);
+
+            if (in_len == 0) {
+                sound_in_empty_reads++;
+                sound_in_good_ticks = 0;
+                if (sound_in_empty_reads >= SNDIN_OUTAGE_TICKS) {
+                    memset(sound_input_buffer, 0x00,
+                           want * 2 * sizeof(int16_t));
+                    in_len = want;
+                }
+            } else {
+                sound_in_empty_reads = 0;
+                sound_in_had_data    = 1;
+
+                /* sustained delivery clears the backoff */
+                if (++sound_in_good_ticks >= SNDIN_HEALTHY_TICKS) {
+                    sound_in_recover_attempts = 0;
+                    sound_in_wedge_attempts   = 0;
+                    sound_in_good_ticks       = 0;
+                }
+            }
+
             if (in_len > 0) {
                 for (uint8_t c = 0; c < sound_in_handlers_num; c++)
                     if (sound_in_handlers[c].put_buffer != NULL)
@@ -966,6 +1095,7 @@ sound_reset(void)
     sound_in_handlers_num = 0;
     sound_in_started_input = 0;
     memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
+    al_capture_close();
 
     memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&music_poll_timer, music_poll, NULL, 1);

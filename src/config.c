@@ -992,6 +992,10 @@ load_sound(void)
     sound_sample_rate = ini_section_get_int(cat, "sound_sample_rate", FREQ_48000);
     if (sound_sample_rate != FREQ_44100 && sound_sample_rate != FREQ_48000)
         sound_sample_rate = FREQ_48000;
+
+    sb_input_rate = ini_section_get_int(cat, "sound_input_rate", FREQ_44100);
+    if (sb_input_rate != FREQ_44100 && sb_input_rate != FREQ_48000)
+        sb_input_rate = FREQ_44100;
 }
 
 /* Load "Network" section. */
@@ -3540,6 +3544,11 @@ save_sound(void)
         ini_section_delete_var(cat, "sound_sample_rate");
     else
         ini_section_set_int(cat, "sound_sample_rate", sound_sample_rate);
+
+    if (sb_input_rate == FREQ_44100)
+        ini_section_delete_var(cat, "sound_input_rate");
+    else
+        ini_section_set_int(cat, "sound_input_rate", sb_input_rate);
 
     ini_delete_section_if_empty(config, cat);
 }

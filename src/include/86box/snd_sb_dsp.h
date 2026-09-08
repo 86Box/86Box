@@ -169,6 +169,8 @@ typedef struct sb_dsp_t {
     int     record_pos_read;
     int     record_pos_write;
     int     record_pos_write_mic;
+    int     record_phase_mic;
+    int     record_denom_mic;
     int16_t record_buffer[0x10000];
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;

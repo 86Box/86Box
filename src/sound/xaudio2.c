@@ -46,6 +46,7 @@ static dllimp_t xaudio2_imports[] = {
 #endif
 
 static int                     initialized     = 0;
+static int                     atexit_reg      = 0;
 static IXAudio2               *xaudio2         = NULL;
 static IXAudio2MasteringVoice *mastervoice     = NULL;
 static IXAudio2SourceVoice    *srcvoice[I_MAX] = { 0 };
@@ -233,6 +234,12 @@ xa2_find_dev_id(const char *friendly_name)
 }
 #endif /* _WIN32 && !USE_FAUDIO */
 
+int
+al_capture_get_rate(void)
+{
+    return 0;
+}
+
 const char *
 sound_get_input_devices(void)
 {
@@ -334,7 +341,11 @@ inital(void)
     }
 
     initialized = 1;
-    atexit(closeal);
+
+    if (!atexit_reg) {
+        atexit(closeal);
+        atexit_reg = 1;
+    }
 }
 
 void
@@ -450,6 +461,16 @@ int
 al_capture_available(void)
 {
     return 0;
+}
+
+void
+al_capture_open(void)
+{
+}
+
+void
+al_capture_close(void)
+{
 }
 
 void

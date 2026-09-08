@@ -112,6 +112,7 @@ enum {
 
     DEVICE_BIOS_ALIAS = 0x8000000,  /* use only BIOS names for aliases */
 
+    DEVICE_AUDIO_IN   = 0x10000000,
     DEVICE_ONBOARD    = 0x40000000, /* is on-board */
     DEVICE_PIT        = 0x80000000, /* device is a PIT */
 
