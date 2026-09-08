@@ -15,4 +15,8 @@ Tests:
 
 Try to match your code's filename and append the type of test it is.
 
+## Summary of current tests
+
+# Mitsumi
+
 The Mitsumi tests exercise the device implementation in isolation using mocked CD-ROM, DMA, interrupt and timer dependencies. They are device-level unit tests, not full-emulator or guest-driver integration tests. The benchmark measures performance and is not a correctness test.
