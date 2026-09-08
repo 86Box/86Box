@@ -144,6 +144,8 @@ volatile int cpu_thread_run = 1;
 volatile int is_quit;
 int hard_reset_pending;
 
+void ui_sb_update_icon(int, int) {}
+
 void picint_common(uint16_t, int, int, uint8_t *) {}
 void dma_set_drq(int, int) {}
 void dma_set_service_handler(int, void (*)(void *), void *) {}
