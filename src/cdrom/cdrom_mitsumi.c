@@ -1227,8 +1227,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     }
                     break;
                 case CMD_GET_STAT:
-                    dev->stat   = mitsumi_status(dev);
-                    dev->cmdbuf[0] = dev->stat;
+                    /* The command prelude already captured and consumed status. */
                     break;
                 case CMD_SET_MODE:
                     dev->cmdrd_count = 1;

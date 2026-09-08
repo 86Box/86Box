@@ -181,8 +181,9 @@ TEST_F(MitsumiTest, VersionUnknownStatusAndSenseCommandsReturnExpectedBytes)
 
     dev.change = 1;
     command(CMD_GET_STAT);
+    EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO | STAT_CHANGE }));
+    command(CMD_GET_STAT);
     EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO }));
-    EXPECT_EQ(dev.change, 0);
 }
 
 TEST_F(MitsumiTest, ModeVolumeLockAndControlRegistersAreProgrammable)
