@@ -36,6 +36,8 @@ extern const device_t *mcamem_get_device(int t);
 
 /* MCA Memory Expansion Boards. */
 extern const device_t ibm_xma_mca_2mb_device;
+extern const device_t ibm_xma_mca_8mb_f7fe_device;
+extern const device_t ibm_xma_mca_8mb_f7f7_device;
 #endif
 
 #ifdef __cplusplus
