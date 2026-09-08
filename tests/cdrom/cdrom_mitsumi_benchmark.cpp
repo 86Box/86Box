@@ -157,6 +157,8 @@ void timer_enable(pc_timer_t *timer) { timer->flags |= TIMER_ENABLED; }
 void timer_disable(pc_timer_t *timer) { timer->flags &= ~TIMER_ENABLED; }
 void timer_add(pc_timer_t *, void (*)(void *), void *, int) {}
 void cdrom_stop(cdrom_t *) {}
+int cdrom_has_data(cdrom_t *) { return 1; }
+double cdrom_seek_time(const cdrom_t *) { return 0.0; }
 int cdrom_read_toc(const cdrom_t *, uint8_t *buffer, int, uint8_t, int, int)
 {
     std::memset(buffer, 0, 4);
