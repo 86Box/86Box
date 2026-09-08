@@ -146,7 +146,7 @@ if(BUILD_BENCHMARKS)
     find_package(benchmark CONFIG REQUIRED)
 endif()
 if(BUILD_TESTING OR BUILD_BENCHMARKS)
-    add_subdirectory(tests)
+    add_subdirectory(test)
 endif()
 
 if((ARCH STREQUAL "arm64"))
