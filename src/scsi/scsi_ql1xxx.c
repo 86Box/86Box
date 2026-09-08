@@ -4150,6 +4150,7 @@ static void ql_init_scsi(ql_t *dev) {
 
         default:
             /* Should not happen */
+            dev->max_bus_count = 1;
             assert(false);
             break;
     }
