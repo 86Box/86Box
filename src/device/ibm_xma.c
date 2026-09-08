@@ -1051,11 +1051,16 @@ xma_init(const device_t *info)
     dev->pos_regs[0] = (info->local == 1) ? 0xf7 : 0xfe;
     dev->pos_regs[1] = 0xf7;
 
-    /* Encode the fitted memory into the config (105h, banks 1-3) and
-       control (102h bits 7-6, bank 4) registers: split the total size
-       in half-megs across the four banks, each bank taking 0, 2 or 4
-       half-megs (a whole number of MB).  A '00' descriptor reads back
-       as 4 half-megs after the driver flips it. */
+    /* Encode the fitted memory into the config (105h, banks 1-3) and control
+       (102h bits 7-6, bank 4) registers.  The two card variants have different
+       socket layouts and use different bank descriptor tables in their init ROMs:
+       - 2-8MB 286/386SX (F7F7): four SIMM sockets, one per bank, holding 1 MB or 
+         2 MB modules - descriptor '00' = 1 MB, '10' = 2 MB, '01'/'11' = empty
+         (the ROM sums the descriptors directly).
+       - 1-8MB 286 (F7FE): eight SIP sockets as four banks of SIPs, holding
+         up to 1 MB per SIP - descriptor '00' = 2 x 1 MB, '01' = 2 x 512 KB, 
+         '10' = 2 x 256 KB and '11' = empty. The ROM doubles the accumulated 
+         sum (shl 1), so '00' means 2 MB per bank. */
     banks = (uint32_t) size_kb / XMA_KB_PER_HALFM;
     {
         uint8_t hm[XMA_MAX_BANKS] = { 0, 0, 0, 0 };
@@ -1067,8 +1072,12 @@ xma_init(const device_t *info)
             hm[b]    = (uint8_t) t;
             banks   -= t;
         }
-        for (uint32_t b = 0; b < XMA_MAX_BANKS; b++)
-            desc[b] = (hm[b] == 0) ? 3 : ((hm[b] == 2) ? 1 : 0);
+        if (info->local == 1)
+            for (uint32_t b = 0; b < XMA_MAX_BANKS; b++)
+                desc[b] = (hm[b] == 0) ? 3 : ((hm[b] == 2) ? 0 : 2);
+        else
+            for (uint32_t b = 0; b < XMA_MAX_BANKS; b++)
+                desc[b] = (hm[b] == 0) ? 3 : ((hm[b] == 2) ? 1 : 0);
 
         dev->pos_regs[2] = (uint8_t) ((desc[3] << 6) | XMA_ROM_SLEEP);
         /* 105h: bank 1-3 descriptors in bits 5-0; bits 7-6 read as 1s
