@@ -31,6 +31,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_mitsumi.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/timer.h>
 
 #define RAW_SECTOR_SIZE    2352
@@ -289,6 +290,7 @@ mitsumi_abort_read(mcd_t *dev)
     dev->readbuflen = 0;
     dev->data       = 0;
     dev->drvmode    = DRV_MODE_STOP;
+    ui_sb_update_icon(SB_CDROM | dev->cdrom_dev->id, 0);
 }
 
 static uint32_t
@@ -594,6 +596,7 @@ mitsumi_start_seek_phase(mcd_t *dev, const int from_callback)
 static void
 mitsumi_start_read_phase(mcd_t *dev)
 {
+    ui_sb_update_icon(SB_CDROM | dev->cdrom_dev->id, 1);
     dev->state = STATE_READ_SECTOR;
     timer_advance_u64(&dev->read_timer, ((dev->cmd == CMD_READ2X) ?
                       MITSUMI_2X_SECTOR_TIME_US :
@@ -754,6 +757,8 @@ mitsumi_read_callback(void *priv)
         case STATE_READ_SECTOR:
             mitsumi_cdrom_log("Mitsumi: state STATE_READ_SECTOR\n");
             read_res = mitsumi_cdrom_read_sector(dev, dev->first);
+
+            ui_sb_update_icon(SB_CDROM | dev->cdrom_dev->id, 0);
 
             switch (read_res) {
                 default:
