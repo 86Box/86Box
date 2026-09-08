@@ -282,8 +282,8 @@ void osd_present(int output_w, int output_h)
     if (!osd_inited)
         return;
 
-    /* Keep rendering after a close so a message can finish on screen. */
-    if (!osd_visible && !osd_core_message_active())
+    /* Keep rendering while the core still has an overlay to draw. */
+    if (!osd_visible && !osd_core_needs_render())
         return;
 
 #ifdef USE_SDL_SHADER_PIPELINE
@@ -312,6 +312,7 @@ void osd_present(int output_w, int output_h)
     if (osd_visible && !osd_core_build_ui())
         pending_close = true;
     osd_core_draw_indicators();
+    osd_core_draw_message();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #else
@@ -331,6 +332,7 @@ void osd_present(int output_w, int output_h)
     if (osd_visible && !osd_core_build_ui())
         pending_close = true;
     osd_core_draw_indicators();
+    osd_core_draw_message();
     ImGui::Render();
 #ifdef USE_SDL2_LIB
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_render);

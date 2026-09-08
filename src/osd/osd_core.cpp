@@ -114,8 +114,8 @@ static float      message_left = 0.0f; /* seconds remaining, set by osd_core_sho
 static bool       message_close_pending = false;
 static std::mutex message_mutex;
 
-bool
-osd_core_message_active(void)
+static bool
+message_active(void)
 {
     std::lock_guard<std::mutex> lock(message_mutex);
 
@@ -842,8 +842,20 @@ bool osd_core_build_ui(void)
 
 int osd_percentage = 0;
 
+/* Single point of truth for whether the indicator layer has anything to show.
+ * Indicators live alongside normal emulation, so this must never consult OSD
+ * visibility. */
+static bool
+indicators_active(void)
+{
+    return false; /* nothing to draw while the block below is #if 0 */
+}
+
 void osd_core_draw_indicators(void)
 {
+    if (!indicators_active())
+        return;
+
 #if 0
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoBackground;
@@ -856,7 +868,11 @@ void osd_core_draw_indicators(void)
         ImGui::End();
     }
 #endif
+}
 
+void
+osd_core_draw_message(void)
+{
     char  text[OSD_LOG_LINE_LEN];
     float left;
 
@@ -888,6 +904,15 @@ void osd_core_draw_indicators(void)
         ImGui::TextUnformatted(text);
     ImGui::End();
     ImGui::PopStyleVar();
+}
+
+/* True when the core wants a frame with the OSD closed. Frontends gate their
+ * rendering on this, so a new always-on layer only has to be taught to
+ * indicators_active() to start reaching the screen. */
+bool
+osd_core_needs_render(void)
+{
+    return indicators_active() || message_active();
 }
 
 void
