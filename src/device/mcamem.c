@@ -46,6 +46,8 @@ static const MCAMEM_CARD mcamem_cards[] = {
     { &ibm_xma_mca_2mb_device      },
     { &ibm_xma_mca_8mb_f7fe_device },
     { &ibm_xma_mca_8mb_f7f7_device },
+    { &quadmeg_psq_4mb_76da_device },
+    { &quadmeg_psq_4mb_76de_device },
     { NULL                         }
     // clang-format on
 };

@@ -6,9 +6,10 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the IBM PS/2 Memory Expansion Option (MXO, 
- *          a.k.a. "Holster"), and the 1-8MB 286 Memory Expansion Adapter
- *          (XMA/A, a.k.a. "Catskill") with its 2-8MB 286/386SX variant.
+ *          Implementation of the IBM PS/2 Memory Expansion Option (MXO,
+ *          a.k.a. "Holster"), the 1-8MB 286 Memory Expansion Adapter
+ *          (XMA/A, a.k.a. "Catskill") with its 2-8MB 286/386SX variant,
+ *          and the Quadram QuadMEG PS/Q MCA Memory Adapter (76DA/76DE).
  *
  *          NOTE: The register and translate table layout are from MS-DOS 4.0
  *                XMA2EMS.ASM device driver source. For copyright information, 
@@ -47,6 +48,11 @@
 #define MXO_TT_ENTRIES      1024U
 #define MXO_BLOCK_SHIFT     14
 
+/* PS/Q translate table: 1K entries holding 9-bit entries, 16 KB blocks.
+   Entry bits 7-0 = 16 KB block number, bit 8 = mapping enabled. */
+#define PSQ_TT_ENTRIES      1024U
+#define PSQ_BLOCK_SHIFT     14
+
 /* XMA/A translate table: 4K entries holding 12-bit entries, 4 KB blocks. */
 #define XMA_TT_ENTRIES      4096U
 #define XMA_BLOCK_SHIFT     12
@@ -56,6 +62,10 @@
 #define MXO_PF_SCAN_LAST    (0xe0000U >> MXO_BLOCK_SHIFT)   /* 0x38 */
 #define MXO_PF_SLOTS        (MXO_PF_SCAN_LAST - MXO_PF_SCAN_FIRST) /* per-16K page-frame slots */
 
+#define PSQ_PF_SCAN_FIRST   (0xa0000U >> PSQ_BLOCK_SHIFT)   /* 0x28 */
+#define PSQ_PF_SCAN_LAST    (0xe0000U >> PSQ_BLOCK_SHIFT)   /* 0x38 */
+#define PSQ_PF_SLOTS        (PSQ_PF_SCAN_LAST - PSQ_PF_SCAN_FIRST) /* per-16K page-frame slots */
+
 #define XMA_PF_SCAN_FIRST   (0xa0000U >> XMA_BLOCK_SHIFT)   /* 0xA0 */
 #define XMA_PF_SCAN_LAST    (0xe0000U >> XMA_BLOCK_SHIFT)   /* 0xE0 */
 #define XMA_PF_SLOTS        (XMA_PF_SCAN_LAST - XMA_PF_SCAN_FIRST) /* per-4K page-frame slots */
@@ -63,6 +73,9 @@
 /* Extended-memory home; follows the planar memory size. */
 #define MXO_EXT_BASE        0x160000U /* 1M + 384K: default card home */
 #define MXO_EXT_FIRST_TT    (MXO_EXT_BASE >> MXO_BLOCK_SHIFT) /* 0x58 */
+
+#define PSQ_EXT_BASE        0x160000U /* 1M + 384K: default card home */
+#define PSQ_EXT_FIRST_TT    (PSQ_EXT_BASE >> PSQ_BLOCK_SHIFT) /* 0x58 */
 
 #define XMA_EXT_BASE        0x160000U /* 1M + 384K: default card home */
 #define XMA_EXT_FIRST_TT    (XMA_EXT_BASE >> XMA_BLOCK_SHIFT) /* 0x160 */
@@ -84,6 +97,20 @@ typedef struct mxo_t {
 
     uint8_t       pos_regs[8];
 } mxo_t;
+
+typedef struct psq_t {
+    ram_t         ram;      /* fitted card memory */
+    uint32_t      blocks;   /* usable capacity in 16 KB blocks */
+
+    uint16_t      tt_ptr;   /* 10-bit translate table pointer */
+    uint8_t       tt_latch; /* last 103h data byte (bits 6-0 data, bit 7 enable) */
+    uint16_t      tt[PSQ_TT_ENTRIES];
+
+    mem_mapping_t pf_map[PSQ_PF_SLOTS]; /* per-16K EMS page-frame slots */
+    mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
+
+    uint8_t       pos_regs[8];
+} psq_t;
 
 typedef struct xma_t {
     ram_t         ram;     /* fitted card memory */
@@ -123,7 +150,15 @@ typedef struct xma_t {
 #define MXO_KB_PER_BANK     512U    /* each 512 KB memory kit / bank */
 #define MXO_MAX_BANKS       (MXO_SIZE_2MB / MXO_BLOCK_SIZE / (MXO_KB_PER_BANK >> 4)) /* 4 */
 
-/* XMA entries: bit 11 = no translate, bits 10-0 = 4K block pointer. */
+/* PS/Q entries: bit 8 = mapping enabled, bits 7-0 = 16 KB block number. */
+#define PSQ_BLOCK_SIZE      (1U << PSQ_BLOCK_SHIFT)
+#define PSQ_TT_ENABLE       0x0100U  /* entry bit 8 = mapping enabled */
+#define PSQ_TT_BLOCK_MASK   0x00ffU  /* entry bits 7-0 = block number */
+
+/* Largest configuration supported by the POS capacity encoding. */
+#define PSQ_SIZE_4MB        (4U * 1024U * 1024U)
+
+/* XMA/A entries: bit 11 = no translate, bits 10-0 = 4K block pointer. */
 #define XMA_BLOCK_SIZE      (1U << XMA_BLOCK_SHIFT)
 #define XMA_TT_INHIBIT      0x0800U /* bit 11 set = no translate */
 #define XMA_TT_MASK         0x0fffU /* keep the 12-bit entry */
@@ -456,6 +491,326 @@ static void
 mxo_close(void *priv)
 {
     mxo_t *dev = (mxo_t *) priv;
+
+    free(dev->ram.ptr);
+    free(dev);
+}
+
+/*
+ * QuadMEG PS/Q - Quadram MCA memory adapter, 512 KB - 4 MB (Adapter IDs
+ * 076DAh "primary" / 076DEh "secondary", identical register semantics).
+ *
+ * The QuadMEG reuses the MXO-style real-mode register set but extends the
+ * translate table entries to 9 bits so that up to 4 MB (256 x 16 KB blocks)
+ * can be addressed.  EMMXMA.SYS drives the card as a pure LIM 4.0 EMS
+ * adapter (the IBM XMA2EMS.SYS driver does not know this card):
+ *
+ *   100h/101h  card ID (DA|DE/76, read-only)
+ *   102h       bit 0 = awake/enable (writable); bits 6 and 2 encode the
+ *              fitted capacity for the driver (hardware-driven, read-only):
+ *              bit6=1/bit2=0 = 512K, 1/1 = 1M, 0/0 = 2M, 0/1 = 4M
+ *   103h       TT data: bits 6-0 = block number bits 0-6, bit 7 = enable
+ *              (the commit strobe - always written last)
+ *   104h       bit 0 = TT data bit 7 (the 4 MB block-number extension)
+ *   105h       bit 7 = channel check / presence, bit 1 = enhanced mode
+ *              (set by EMMXMA.SYS and the ADF POST)
+ *   106h/107h  TT pointer, 10 bits (low byte + bits 0-1 of the high byte)
+ *
+ * The driver's runtime remap sequence writes 103h (block | enable) BEFORE
+ * 104h (block bit 7), so a write to 104h re-commits the latched entry.
+ * The card has no option ROM and the ADF POST clears the whole table at
+ * power-on, so the default TT is empty (no extended-memory home mapping).
+ */
+
+/* Translate table entry check: enabled and a valid block number. */
+static uint8_t
+psq_tt_enabled(const psq_t *dev, uint16_t idx)
+{
+    uint16_t entry;
+
+    if (idx >= PSQ_TT_ENTRIES)
+        return 0;
+
+    entry = dev->tt[idx];
+    return (((entry & PSQ_TT_ENABLE) != 0) && ((entry & PSQ_TT_BLOCK_MASK) < dev->blocks));
+}
+
+/* TT-gated access: reads/writes only reach card RAM if the TT entry
+   covering the address is enabled and points to a valid block. */
+static uint8_t
+psq_mem_read(uint32_t addr, void *priv)
+{
+    const psq_t *dev = (const psq_t *) priv;
+    uint16_t idx   = addr >> PSQ_BLOCK_SHIFT;
+    uint16_t entry = dev->tt[idx];
+
+    if (!(entry & PSQ_TT_ENABLE) || ((entry & PSQ_TT_BLOCK_MASK) >= dev->blocks))
+        return 0xff;
+
+    return dev->ram.ptr[((uint32_t) (entry & PSQ_TT_BLOCK_MASK) << PSQ_BLOCK_SHIFT) + (addr & (PSQ_BLOCK_SIZE - 1))];
+}
+
+static void
+psq_mem_write(uint32_t addr, uint8_t val, void *priv)
+{
+    psq_t *dev = (psq_t *) priv;
+    uint16_t idx   = addr >> PSQ_BLOCK_SHIFT;
+    uint16_t entry = dev->tt[idx];
+
+    if (!(entry & PSQ_TT_ENABLE) || ((entry & PSQ_TT_BLOCK_MASK) >= dev->blocks))
+        return;
+
+    dev->ram.ptr[((uint32_t) (entry & PSQ_TT_BLOCK_MASK) << PSQ_BLOCK_SHIFT) + (addr & (PSQ_BLOCK_SIZE - 1))] = val;
+}
+
+/* Enable or disable the individual 16K page-frame mappings based on
+   TT entries. Each 16K slot is mapped separately so that a card never
+   claims an address whose own TT entry is disabled - this is what keeps
+   multiple memory cards from stealing each other's page-frame segments
+   (a single min..max window would span disabled holes and swallow the
+   other card's mappings). */
+static void
+psq_pf_update(psq_t *dev)
+{
+    for (uint16_t i = PSQ_PF_SCAN_FIRST; i < PSQ_PF_SCAN_LAST; i++) {
+        uint8_t k = i - PSQ_PF_SCAN_FIRST;
+
+        if (psq_tt_enabled(dev, i))
+            mem_mapping_enable(&dev->pf_map[k]);
+        else
+            mem_mapping_disable(&dev->pf_map[k]);
+    }
+}
+
+/* Position the extended-memory mapping over the currently enabled home
+   entries, in the same way the MXO does. */
+static void
+psq_ext_update(psq_t *dev)
+{
+    uint16_t first = 0;
+    uint16_t last  = 0;
+    uint8_t  any   = 0;
+
+    for (uint16_t i = PSQ_EXT_FIRST_TT; i < PSQ_TT_ENTRIES; i++) {
+        if (psq_tt_enabled(dev, i)) {
+            if (!any)
+                first = i;
+            last = i;
+            any  = 1;
+        }
+    }
+
+    if (any) {
+        mem_mapping_set_addr(&dev->ext_mapping,
+                             (uint32_t) first << PSQ_BLOCK_SHIFT,
+                             (uint32_t) (last - first + 1) << PSQ_BLOCK_SHIFT);
+        mem_mapping_enable(&dev->ext_mapping);
+    } else
+        mem_mapping_disable(&dev->ext_mapping);
+}
+
+/* Commit the translate table entry selected by the TT pointer from the
+   latched 103h data byte and POS 104h bit 0.  EMMXMA.SYS writes 103h
+   before 104h when remapping at runtime (the enable strobe goes out
+   first), so a write to 104h must re-commit the latched entry. */
+static void
+psq_tt_commit(psq_t *dev)
+{
+    uint16_t idx = dev->tt_ptr & (PSQ_TT_ENTRIES - 1);
+#ifdef ENABLE_XMA_LOG
+    uint16_t old = dev->tt[idx];
+#endif
+
+    dev->tt[idx] = (uint16_t) ((dev->tt_latch & 0x7f) |
+                               ((dev->pos_regs[4] & 0x01) << 7) |
+                               ((dev->tt_latch & 0x80) << 1));
+
+    psq_ext_update(dev);
+    psq_pf_update(dev); /* Update memory mappings with current TT contents */
+
+    xma_log("psq_tt_commit: TT [%03X] %03X -> %03X\n", idx, old, dev->tt[idx]);
+}
+
+static uint8_t
+psq_mca_read(const uint16_t port, void *priv)
+{
+    const psq_t *dev = (const psq_t *) priv;
+    uint16_t entry;
+    uint8_t  ret;
+
+    switch (port & 7) {
+    /* The TT data port (0x03) is a live window into the translate table
+       (enable bit echoed in bit 7), and POS 104h bit 0 echoes the selected
+       entry's TT data bit 7; every other register echoes pos_regs[]. */
+        case 0x03: /* TT data: entry selected by the TT pointer */
+            entry = dev->tt[dev->tt_ptr & (PSQ_TT_ENTRIES - 1)];
+            ret   = (uint8_t) ((entry & 0x7f) | ((entry & PSQ_TT_ENABLE) >> 1));
+            break;
+
+        case 0x04: /* POS 104h: bit 0 = TT data bit 7 of the selected entry */
+            entry = dev->tt[dev->tt_ptr & (PSQ_TT_ENTRIES - 1)];
+            ret   = (uint8_t) ((dev->pos_regs[4] & 0xfe) | ((entry >> 7) & 0x01));
+            break;
+
+        default:
+            ret = dev->pos_regs[port & 7];
+            break;
+    }
+
+    xma_log("psq_mca_read: port=%04x ret=%02x\n", port, ret);
+    return ret;
+}
+
+static void
+psq_mca_write(const uint16_t port, uint8_t val, void *priv)
+{
+    psq_t *dev = (psq_t *) priv;
+
+    switch (port & 7) {
+        case 0x00: /* adapter ID, read-only */
+        case 0x01:
+            return;
+
+        case 0x02: /* POS 102h: only bit 0 (awake) is writable; the
+                      capacity bits are driven by the fitted memory */
+            dev->pos_regs[2] = (uint8_t) ((dev->pos_regs[2] & 0xfe) | (val & 0x01));
+            return;
+
+        case 0x03: /* TT data: latch the low bits + enable, then commit */
+            dev->tt_latch = val;
+            psq_tt_commit(dev);
+            return;
+
+        case 0x04: /* TT data bit 7 latch: re-commits the selected entry */
+            dev->pos_regs[4] = val;
+            psq_tt_commit(dev);
+            return;
+
+        case 0x05: /* POS 105h: channel check / enhanced mode */
+            dev->pos_regs[5] = val;
+            return;
+
+        case 0x06: /* TT pointer (low byte) */
+            dev->tt_ptr = (uint16_t) ((dev->tt_ptr & 0xff00) | val);
+            return;
+
+        case 0x07: /* TT pointer (bits 8-9) */
+            dev->tt_ptr = (uint16_t) ((dev->tt_ptr & 0x00ff) | ((val & 0x03) << 8));
+            return;
+    }
+}
+
+static uint8_t
+psq_mca_feedb(void *priv)
+{
+    const psq_t *dev = (const psq_t *) priv;
+
+    return (dev->pos_regs[2] & 1);
+}
+
+static void
+psq_reset(void *priv)
+{
+    psq_t *dev = (psq_t *) priv;
+
+    dev->tt_ptr      = 0;
+    dev->tt_latch    = 0;
+    dev->pos_regs[6] = 0;
+    dev->pos_regs[7] = 0;
+
+    psq_ext_update(dev);
+    psq_pf_update(dev);
+}
+
+static void *
+psq_init(const device_t *info)
+{
+    psq_t *dev;
+    int        size_kb;
+
+    dev = (psq_t *) calloc(1, sizeof(psq_t));
+
+    size_kb = device_get_config_int("size");
+
+    dev->ram.size_kb = (uint32_t) size_kb;
+    dev->ram.ptr     = (uint8_t *) calloc((size_t) size_kb << 10, 1);
+    dev->blocks      = (uint32_t) size_kb >> 4; /* KB -> 16 KB blocks */
+
+    /* POS registers: adapter card ID 0x76DA (primary) / 0x76DE (secondary). */
+    dev->pos_regs[0] = (info->local == 1) ? 0xde : 0xda;
+    dev->pos_regs[1] = 0x76;
+
+    /* POS 102h: bit 0 = awake/enable; bits 7-1 are the capacity code
+       the QuadMEG init program decodes as 512K (0xFE), 1M (0xFA),
+       2M (0xAA) or 4M (anything else). */
+    dev->pos_regs[2] |= 0x01;  /* awake */
+    if (size_kb >= 4096)
+        dev->pos_regs[2] = 0x00;  /* 4 MB */
+    else if (size_kb >= 2048)
+        dev->pos_regs[2] = 0xaa;  /* 2 MB */
+    else if (size_kb >= 1024)
+        dev->pos_regs[2] = 0xfa;  /* 1 MB */
+    else
+        dev->pos_regs[2] = 0xfe;  /* 512 KB */
+
+    /* POS 103h: FixedResources pos[3] = 1XXXXX0Xb */
+    dev->pos_regs[3] = 0x80;
+
+    /* POS 104h: bit 0 latches TT data bit 7 (the 4 MB extension). */
+    dev->pos_regs[4] = 0xff;
+
+    /* POS 105h: bit 7 set (channel check / presence); bit 1 is the
+       enhanced-mode enable written by EMMXMA.SYS and the ADF POST. */
+    dev->pos_regs[5] = 0x80;
+
+    /* No default translate table: the card is a pure EMS adapter and the
+       ADF POST clears all entries at power-on. */
+
+    /* Register the card on the MCA bus. */
+    mca_add(psq_mca_read, psq_mca_write, psq_mca_feedb, psq_reset, dev);
+
+    /* EMS page frame slots (A0000h-E0000h), one 16K mapping per slot.
+       psq_pf_update() enables only the slots whose TT entry is active,
+       so a card never claims a page-frame address it has not mapped. */
+    for (uint8_t k = 0; k < PSQ_PF_SLOTS; k++) {
+        mem_mapping_add(&dev->pf_map[k],
+                        (uint32_t) (PSQ_PF_SCAN_FIRST + k) << PSQ_BLOCK_SHIFT,
+                        PSQ_BLOCK_SIZE,
+                        psq_mem_read,
+                        NULL,
+                        NULL,
+                        psq_mem_write,
+                        NULL,
+                        NULL,
+                        NULL,
+                        0,
+                        dev);
+        mem_mapping_disable(&dev->pf_map[k]);
+    }
+
+    /* Extended-memory window at 1M+384K, enabled only by TT entries that
+       a driver programs above the page frame area (empty TT: disabled). */
+    mem_mapping_add(&dev->ext_mapping,
+                    PSQ_EXT_BASE,
+                    PSQ_SIZE_4MB,
+                    psq_mem_read,
+                    NULL,
+                    NULL,
+                    psq_mem_write,
+                    NULL,
+                    NULL,
+                    NULL,
+                    0,
+                    dev);
+    psq_ext_update(dev);
+
+    return dev;
+}
+
+static void
+psq_close(void *priv)
+{
+    psq_t *dev = (psq_t *) priv;
 
     free(dev->ram.ptr);
     free(dev);
@@ -1217,6 +1572,7 @@ const device_t ibm_xma_mca_2mb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .alias         = "IBM PS/2 80286 Memory Expansion Option",
     .config        = ibm_xma_mca_config
 };
 
@@ -1286,4 +1642,51 @@ const device_t ibm_xma_mca_8mb_f7f7_device = {
     .force_redraw  = NULL,
     .alias         = "IBM 2-8MB 286/386SX Memory Expansion Option",
     .config        = ibm_xma_mca_8mb_f7f7_config
+};
+
+static const device_config_t quadmeg_psq_4mb_config[] = {
+    {
+        .name           = "size",
+        .description    = "Memory size",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min  = 512,
+            .max  = 4096,
+            .step = 512
+        },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+const device_t quadmeg_psq_4mb_76da_device = {
+    .name          = "Quadram QuadMEG PS/Q Memory Adapter (Primary)",
+    .internal_name = "quadmeg_psq_4mb_76da",
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = psq_init,
+    .close         = psq_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = quadmeg_psq_4mb_config
+};
+
+const device_t quadmeg_psq_4mb_76de_device = {
+    .name          = "Quadram QuadMEG PS/Q Memory Adapter (Secondary)",
+    .internal_name = "quadmeg_psq_4mb_76de",
+    .flags         = DEVICE_MCA,
+    .local         = 1,
+    .init          = psq_init,
+    .close         = psq_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = quadmeg_psq_4mb_config
 };
