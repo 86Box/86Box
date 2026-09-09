@@ -19943,7 +19943,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = &ymf715_onboard_device,
-        .net_device               = NULL,
+        .net_device               = NULL,  /* Machine is shipped with an optional standalone NIC: NEC PK-UG-X006 (Intel 82558B chip) */
         .aliases                  = { "" }
     },
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior.
@@ -22723,8 +22723,8 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP, network: NEC PK-UG-X006 (Intel 82558B chip) and sound: OAK Audia 3D (OTI-610) for MA23D or YAMAHA YMF724 for MA30D */
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_NIC,
+        .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB, /* Has internal video: SGS Thompson Riva 128 AGP and sound: YAMAHA YMF724 for MA30D or OAK Audia 3D (OTI-610) for some MA23D submodel */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
@@ -22747,7 +22747,7 @@ const machine_t machines[] = {
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
-        .net_device               = NULL,
+        .net_device               = NULL, /* Machine is shipped with an optional standalone NIC: NEC PK-UG-X006 (Intel 82558B chip) */
         .aliases                  = { "NEC Mate NX MA23D", "" }
     },
 
