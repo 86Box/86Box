@@ -38,6 +38,8 @@ extern const device_t *mcamem_get_device(int t);
 extern const device_t ibm_xma_mca_2mb_device;
 extern const device_t ibm_xma_mca_8mb_f7fe_device;
 extern const device_t ibm_xma_mca_8mb_f7f7_device;
+extern const device_t quadmeg_psq_4mb_76da_device;
+extern const device_t quadmeg_psq_4mb_76de_device;
 #endif
 
 #ifdef __cplusplus
