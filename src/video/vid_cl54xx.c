@@ -1972,7 +1972,7 @@ gd54xx_recalctimings(svga_t *svga)
                 svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
                 /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
-            if (!svga->scrblank && svga->attr_palette_enable)
+                if (!svga->scrblank && svga->attr_palette_enable)
                     svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
 
                 svga->monitor->mon_overscan_y = 0;
@@ -2163,8 +2163,9 @@ gd54xx_recalctimings(svga_t *svga)
                             svga->bpp = 8;
                             if (linedbl)
                                 svga->render = svga_render_8bpp_lowres;
-                            else
+                            else {
                                 svga->render = svga_render_8bpp_highres;
+                            }
                             break;
 
                         default:
@@ -2230,6 +2231,15 @@ gd54xx_recalctimings(svga_t *svga)
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) && (((svga->gdcreg[6] >> 2) & 0x03) != 0x01)) {
         svga->extra_banks[0] = 0;
         svga->extra_banks[1] = 0x8000;
+    }
+
+    if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5446) && linedbl &&
+        !svga->vertical_linedbl && (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) &&
+        (svga->render == svga_render_8bpp_lowres) && (svga->dispend == 768)) {
+        svga->render = svga_render_8bpp_highres;
+        svga->hdisp <<= 1;
+        svga->dots_per_clock <<= 1;
+        svga->clock *= 2.0;
     }
 }
 

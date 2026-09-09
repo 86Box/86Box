@@ -5,13 +5,15 @@ if(BUILD_TESTING)
 
     target_include_directories(mitsumi_cdrom_tests PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
         ${PROJECT_BINARY_DIR}/src/include
     )
     target_compile_options(mitsumi_cdrom_tests PRIVATE
-        $<$<CXX_COMPILER_ID:GNU,Clang>:-ffunction-sections;-fdata-sections>
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>
     )
     target_link_options(mitsumi_cdrom_tests PRIVATE
-        $<$<CXX_COMPILER_ID:GNU,Clang>:-Wl,--gc-sections>
+        $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip>
+        $<$<AND:$<NOT:$<PLATFORM_ID:Darwin>>,$<CXX_COMPILER_ID:GNU,Clang>>:-Wl,--gc-sections>
     )
     target_link_libraries(mitsumi_cdrom_tests PRIVATE GTest::gtest_main)
 
@@ -25,13 +27,15 @@ if(BUILD_BENCHMARKS)
     )
     target_include_directories(mitsumi_cdrom_benchmarks PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
         ${PROJECT_BINARY_DIR}/src/include
     )
     target_compile_options(mitsumi_cdrom_benchmarks PRIVATE
-        $<$<CXX_COMPILER_ID:GNU,Clang>:-ffunction-sections;-fdata-sections>
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>
     )
     target_link_options(mitsumi_cdrom_benchmarks PRIVATE
-        $<$<CXX_COMPILER_ID:GNU,Clang>:-Wl,--gc-sections>
+        $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip>
+        $<$<AND:$<NOT:$<PLATFORM_ID:Darwin>>,$<CXX_COMPILER_ID:GNU,Clang>>:-Wl,--gc-sections>
     )
     target_link_libraries(mitsumi_cdrom_benchmarks PRIVATE benchmark::benchmark_main)
 endif()

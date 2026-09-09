@@ -58,6 +58,8 @@ protected:
         dev.cdrom_dev = &cd;
         dev.irq = 10;
         dev.dma = 5;
+        tsc = 0;
+        timer_add(&dev.read_timer, mitsumi_read_callback, &dev, 0);
         mitsumi_cdrom_reset(&dev);
         mock.irq_cleared = 0;
         mock.stop_calls = 0;
@@ -68,6 +70,17 @@ protected:
         mitsumi_cdrom_out(0, cmd, &dev);
         for (uint8_t arg : args)
             mitsumi_cdrom_out(0, arg, &dev);
+    }
+
+    void run_timers()
+    {
+        // Bound callback execution so a stuck state machine fails rather than hangs.
+        for (unsigned remaining = 16; dev.read_timer.flags & TIMER_ENABLED; --remaining) {
+            ASSERT_GT(remaining, 0u) << "Read timer did not quiesce";
+            tsc = dev.read_timer.ts_integer;
+            timer_disable(&dev.read_timer);
+            dev.read_timer.callback(dev.read_timer.priv);
+        }
     }
 
     std::vector<uint8_t> response()
@@ -181,8 +194,9 @@ TEST_F(MitsumiTest, VersionUnknownStatusAndSenseCommandsReturnExpectedBytes)
 
     dev.change = 1;
     command(CMD_GET_STAT);
+    EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO | STAT_CHANGE }));
+    command(CMD_GET_STAT);
     EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO }));
-    EXPECT_EQ(dev.change, 0);
 }
 
 TEST_F(MitsumiTest, ModeVolumeLockAndControlRegistersAreProgrammable)
@@ -240,6 +254,7 @@ TEST_F(MitsumiTest, CookedPioReadFetchesSectorAndAdvancesMsf)
 {
     dev.change = 0;
     command(CMD_READ2X, { 0x00, 0x02, 0x00, 0x00, 0x00, 0x01 });
+    ASSERT_NO_FATAL_FAILURE(run_timers());
     ASSERT_EQ(dev.buf_count, COOKED_SECTOR_SIZE);
     EXPECT_EQ(dev.readcount, 0u);
     EXPECT_EQ(mock.last_seek, 0u);
@@ -252,6 +267,7 @@ TEST_F(MitsumiTest, InvalidReadAddressReturnsCommandErrorAndSenseTwo)
 {
     dev.enable_irq = IRQ_ERROR;
     command(CMD_READ2X, { 0x00, 0x01, 0x99, 0x00, 0x00, 0x01 });
+    ASSERT_NO_FATAL_FAILURE(run_timers());
     EXPECT_EQ(dev.cur_sense, 2);
     const auto bytes = response();
     ASSERT_FALSE(bytes.empty());
@@ -337,6 +353,8 @@ volatile int cpu_thread_run = 1;
 volatile int is_quit;
 int hard_reset_pending;
 
+void ui_sb_update_icon(int, int) {}
+
 void picint_common(uint16_t mask, int, int set, uint8_t *)
 {
     if (set)
@@ -361,6 +379,8 @@ void timer_add(pc_timer_t *timer, void (*callback)(void *), void *priv, int star
     timer->flags = start ? TIMER_ENABLED : 0;
 }
 void cdrom_stop(cdrom_t *) { ++mock.stop_calls; }
+int cdrom_has_data(cdrom_t *) { return 1; }
+double cdrom_seek_time(const cdrom_t *) { return 0.0; }
 int cdrom_read_toc(const cdrom_t *, uint8_t *buffer, int, uint8_t, int, int)
 {
     buffer[2] = 1;
