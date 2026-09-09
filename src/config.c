@@ -2762,8 +2762,6 @@ config_load(void)
         scale                = 1;
         machine              = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale            = 1;
-        do_auto_pause        = 0;
-        do_auto_dialog_pause = 0;
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;
