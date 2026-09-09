@@ -1572,6 +1572,7 @@ const device_t ibm_xma_mca_2mb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
+    .alias         = "IBM PS/2 80286 Memory Expansion Option",
     .config        = ibm_xma_mca_config
 };
 

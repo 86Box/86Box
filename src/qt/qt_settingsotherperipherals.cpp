@@ -142,7 +142,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         }
 
         int row = Models::AddEntry(model, name, c);
-        scRTC->addDevice(nullptr, name);
+        scRTC->addDevice(isartc_get_device(c), name);
         if (c == isartc_type)
             selectedRow = row;
 
@@ -190,7 +190,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
             for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
                 int cur = mca_bus ? mcamem_type[i] : isamem_type[i];
                 int row = Models::AddEntry(mem_models[i], name, c);
-                scMemExpCard[i]->addDevice(nullptr, name);
+                scMemExpCard[i]->addDevice(dev, name);
 
                 if (c == cur)
                     mem_selectedRows[i] = row - mem_removeRows_[i];
@@ -234,7 +234,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         if (device_is_valid(isarom_get_device(c), machineId)) {
             for (uint8_t i = 0; i < ISAROM_MAX; ++i) {
                 int row = Models::AddEntry(isarom_models[i], name, c);
-                scIsaRomCard[i]->addDevice(nullptr, name);
+                scIsaRomCard[i]->addDevice(isarom_get_device(c), name);
 
                 if (c == isarom_type[i])
                     isarom_selectedRows[i] = row - isarom_removeRows_[i];
