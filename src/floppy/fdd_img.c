@@ -92,6 +92,7 @@ static void img_seek(int drive, int track);
 
 
 const uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
+const uint8_t fdd144_r[18] = { 1, 10, 2, 11, 3, 12, 4, 13, 5, 14, 6, 15, 7, 16, 8, 17, 9, 18 };
 static const uint8_t xdf_logical_sectors[2][2] = { { 38, 6 }, { 46, 8 } };
 const uint8_t xdf_physical_sectors[2][2] = { { 16, 3 }, { 19, 4 } };
 const uint8_t xdf_gap3_sizes[2][2] = { { 60, 69 }, { 60, 50 } };
@@ -193,13 +194,12 @@ const int gap3_sizes[5][8][48] = {
     {
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [0][0] */
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        },
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [0][1] */
           0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [0][2] */
-          0x00, 0x00, 0x6C, 0x48, 0x2A, 0x08, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF9,   /* [0][2] */
+          0xC6, 0x96, 0x6C, 0x48, 0x2A, 0x08, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x83, 0x26, 0x00, 0x00, 0x00, 0x00,   /* [0][3] */
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -669,8 +669,12 @@ img_seek(int drive, int track)
                 } else {
                     if (dev->gap3_size < 68)
                         sr = interleave(sector, 1, dev->sectors);
-                    else
-                        sr = dev->dmf ? (dmf_r[sector]) : (sector + 1);
+                    else {
+                        if (dev->sectors == 18)
+                            sr = dev->dmf ? (fdd144_r[sector]) : (sector + 1);
+                        else
+                            sr = dev->dmf ? (dmf_r[sector]) : (sector + 1);
+                    }
                 }
                 if (formatted_count != dev->sectors) {
                     id[0] = track;
@@ -1282,14 +1286,24 @@ jump_if_fdf:
     }
 
     for (uint8_t i = 0; i < 6; i++) {
-        if (((dev->sectors == 18) && (maximum_sectors[dev->sector_size][i] == 17) &&
-             (fdd_is_525(drive))) ||
+        if ((dev->sectors >= 15) && (dev->sectors <= 17) &&
+            (maximum_sectors[dev->sector_size][i] == 17) &&
+            !fdd_is_525(drive) && !fdd_supports_360_rpm(drive))
+            continue;
+        if (((dev->sectors >= 15) && (dev->sectors <= 17) &&
+             (maximum_sectors[dev->sector_size][i] == 22) &&
+             !fdd_is_525(drive) && !fdd_supports_360_rpm(drive)) ||
+            ((dev->sectors == 18) && (maximum_sectors[dev->sector_size][i] == 17) &&
+             fdd_is_525(drive)) ||
             (dev->sectors <= maximum_sectors[dev->sector_size][i]) || (dev->sectors == xdf_sectors[dev->sector_size][i])) {
             bit_rate_300    = bit_rates_300[i];
             temp_rate       = rates[i];
             dev->disk_flags = holes[i] << 1;
             dev->xdf_type   = (dev->sectors == xdf_sectors[dev->sector_size][i]) ? xdf_types[dev->sector_size][i] : 0;
-            if ((bit_rate_300 == 500.0) && (dev->sectors == 21) && (dev->sector_size == 2) && (dev->tracks >= 80) && (dev->tracks <= 82) && (dev->sides == 2)) {
+            if (((dev->sectors == 18) && (maximum_sectors[dev->sector_size][i] == 17) &&
+                 fdd_is_525(drive)) ||
+                ((bit_rate_300 == 500.0) && (dev->sectors == 21) && (dev->sector_size == 2) && (dev->tracks >= 80) &&
+                 (dev->tracks <= 82) && (dev->sides == 2))) {
                 /* This is a DMF floppy, set the flag so we know to interleave the sectors. */
                 dev->dmf = 1;
             } else {

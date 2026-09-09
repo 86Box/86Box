@@ -645,6 +645,12 @@ fdd_is_525(int drive)
 }
 
 int
+fdd_supports_360_rpm(int drive)
+{
+    return fdd_get_flags(drive) & FLAG_RPM_360;
+}
+
+int
 fdd_is_dd(int drive)
 {
     return (fdd_get_flags(drive) & 0x70) == 0x10;
