@@ -55,6 +55,13 @@ FPU fpus_80286[] = {
     { .name = "287XL", .internal_name = "287xl", .type = FPU_287XL },
     { .name = NULL,    .internal_name = NULL,    .type = 0         }
 };
+FPU fpus_80286_80386[] = {
+    { .name = "None",  .internal_name = "none",  .type = FPU_NONE  },
+    { .name = "287",   .internal_name = "287",   .type = FPU_287   },
+    { .name = "287XL", .internal_name = "287xl", .type = FPU_287XL },
+    { .name = "387",   .internal_name = "387",   .type = FPU_387   },
+    { .name = NULL,    .internal_name = NULL,    .type = 0         }
+};
 FPU fpus_80386[] = {
     { .name = "None", .internal_name = "none", .type = FPU_NONE },
     { .name = "387",  .internal_name = "387",  .type = FPU_387  },
@@ -1455,7 +1462,7 @@ const cpu_family_t cpu_families[] = {
             {
                 .name               = "16",
                 .cpu_type           = CPU_386DX,
-                .fpus               = fpus_80286,
+                .fpus               = fpus_80286_80386,
                 .rspeed             = 16000000,
                 .multi              = 1,
                 .voltage            = 5000,
