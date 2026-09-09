@@ -246,7 +246,37 @@ fetch_ea_16_long(uint32_t rmdat)
 #include "386_ops.h"
 
 #ifdef USE_DEBUG_REGS_486
-#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !(dr[7] & 0xFF))
+/* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
+   fire on any access, so they still disable the recompiler outright; an
+   execution breakpoint only blocks the block covering it, and a block spans at
+   most two pages. */
+static __inline int
+dr_blocks_cache(void)
+{
+    uint32_t page;
+
+    if (!(dr[7] & 0xFF))
+        return 0;
+
+    page = (cs + cpu_state.pc) >> 12;
+
+    for (uint8_t i = 0; i < 4; i++) {
+        /* Neither Ln nor Gn set - slot is disabled. */
+        if (!((dr[7] >> (i << 1)) & 0x03))
+            continue;
+
+        /* RW 00 is execution; DR0-3 and cs + pc are both linear. */
+        if ((dr[7] >> (16 + (i << 2))) & 0x03)
+            return 1;
+
+        if (((dr[i] >> 12) == page) || ((dr[i] >> 12) == (page + 1)))
+            return 1;
+    }
+
+    return 0;
+}
+
+#    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !dr_blocks_cache())
 #else
 #    define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 #endif
