@@ -101,7 +101,6 @@ static struct ps2_t {
     uint32_t split_phys;
 
     uint8_t mem_pos_regs[8];
-    uint8_t mem_2mb_pos_regs[8];
 
     int pending_cache_miss;
 
@@ -478,6 +477,31 @@ ps55_model_50v_read(uint16_t port)
     }
     return 0xff;
 }
+
+static void
+model_50_mem_recalc(void)
+{
+    uint32_t state = (ps2.option[1] & 0x01) ?
+                     (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL):
+                     (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    uint32_t low_size = (mem_size < 640) ? (mem_size << 10) : 0x000a0000;
+    uint32_t remap_base = (mem_size >= 1024) ? mem_size : 1024;
+    uint32_t remap_size = MIN(mem_size - 640, 384);
+
+    /* 103h bit 0 = Enable System Board RAM. Clearing it makes the
+       planar RAM stop answering on the bus, then a memory adapter
+       card could fill back the conventional memory area for use. */
+    mem_set_mem_state_both(0x00000000, low_size, state);
+
+    if (mem_size > 640) {
+        /* High planar RAM above 1M, then the A0000h-FFFFFh part
+           remapped on top of it (mem_remap_top(384) at init). */
+        if (mem_size > 1024)
+            mem_set_mem_state_both(0x00100000, (mem_size - 1024) << 10, state);
+        mem_set_mem_state_both(remap_base << 10, remap_size << 10, state);
+    }
+}
+
 static void
 model_50_write(uint16_t port, uint8_t val)
 {
@@ -511,6 +535,7 @@ model_50_write(uint16_t port, uint8_t val)
             break;
         case 0x103:
             ps2.option[1] = (ps2.option[1] & 0xfe) | (val & 0x01);
+            model_50_mem_recalc();
             break;
         case 0x104:
             ps2.option[2] = val;
@@ -1226,8 +1251,9 @@ ps2_mca_board_model_50_init(void)
             break;
     }
 
-    /* Enable password function */
-    ps2.option[1] |= 0x02;
+    /* Enable password function and system board RAM (103h bit 0), so the
+       planar memory answers until a driver disables it at runtime. */
+    ps2.option[1] |= 0x02 | 0x01;
 
     if (mem_size > 2048) {
         /* Only 2 MB supported on planar, create a memory expansion card for the rest */
@@ -1273,8 +1299,9 @@ ps2_mca_board_model_60_init(void)
             break;
     }
 
-    /* Enable password function */
-    ps2.option[1] |= 0x02;
+    /* Enable password function and system board RAM (103h bit 0), so the
+       planar memory answers until a driver disables it at runtime. */
+    ps2.option[1] |= 0x02 | 0x01;
 
     if (mem_size > 4096) {
         /* Only 4 MB supported on planar, create a memory expansion card for the rest */
