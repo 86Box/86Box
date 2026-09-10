@@ -1183,6 +1183,12 @@ jump_if_fdf:
             dev->sectors     = 8;
             dev->tracks      = 77;
             dev->sector_size = 3;
+        } else if (size <= 1310720) { /*HD 1.3MB*/
+            dev->sectors = 16;
+            dev->tracks  = 80;
+        } else if (size <= 1392640) { /*HD 1.36MB*/
+            dev->sectors = 17;
+            dev->tracks  = 80;
         } else if (size <= 1474560) { /*HD 1.44MB*/
             dev->sectors = 18;
             dev->tracks  = 80;
