@@ -1428,6 +1428,11 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 
     switch (port & 7) {
         case 0: /*Command Interface Register*/
+            if (!dev->cmd_req_in_progress) {
+                /* Command block words are only accepted after an attention command request */
+                esdi_mca_log("Command word without attention request %04x.\n", val);
+                break;
+            }
             if (dev->cmd_pos >= 4)
                 fatal("CIR pos 4\n");
             dev->cmd_data[dev->cmd_pos++] = val;
@@ -1436,8 +1441,11 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
                 dev->cmd_req_in_progress = 0;
                 dev->cmd_state           = 0;
 
-                if ((dev->cmd_data[0] & CMD_DEVICE_SEL) != dev->cmd_dev)
-                    fatal("Command device mismatch with attn\n");
+                if ((dev->cmd_data[0] & CMD_DEVICE_SEL) != dev->cmd_dev) {
+                    /* The command block does not belong to the requested device */
+                    esdi_mca_log("Command device mismatch with attn %04x.\n", dev->cmd_data[0]);
+                    break;
+                }
                 dev->command = dev->cmd_data[0] & CMD_MASK;
 
                 if (dev->irq_in_progress) {
