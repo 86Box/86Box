@@ -57,17 +57,19 @@
 #define XMA_TT_ENTRIES      4096U
 #define XMA_BLOCK_SHIFT     12
 
-/* EMS page-frame scan window (A0000h-E0000h), one mapping per slot. */
-#define MXO_PF_SCAN_FIRST   (0xa0000U >> MXO_BLOCK_SHIFT)   /* 0x28 */
+/* EMS page-frame scan window (00000h-E0000h), one mapping per slot.
+   The window starts at zero so a driver can map card RAM over the
+   conventional memory area as well for Large Page Frame support. */
+#define MXO_PF_SCAN_FIRST   (0x00000U >> MXO_BLOCK_SHIFT)   /* 0x00 */
 #define MXO_PF_SCAN_LAST    (0xe0000U >> MXO_BLOCK_SHIFT)   /* 0x38 */
 #define MXO_PF_SLOTS        (MXO_PF_SCAN_LAST - MXO_PF_SCAN_FIRST) /* per-16K page-frame slots */
 
-#define PSQ_PF_SCAN_FIRST   (0xa0000U >> PSQ_BLOCK_SHIFT)   /* 0x28 */
+#define PSQ_PF_SCAN_FIRST   (0x00000U >> PSQ_BLOCK_SHIFT)   /* 0x00 */
 #define PSQ_PF_SCAN_LAST    (0xe0000U >> PSQ_BLOCK_SHIFT)   /* 0x38 */
 #define PSQ_PF_SLOTS        (PSQ_PF_SCAN_LAST - PSQ_PF_SCAN_FIRST) /* per-16K page-frame slots */
 
-#define XMA_PF_SCAN_FIRST   (0xa0000U >> XMA_BLOCK_SHIFT)   /* 0xA0 */
-#define XMA_PF_SCAN_LAST    (0xe0000U >> XMA_BLOCK_SHIFT)   /* 0xE0 */
+#define XMA_PF_SCAN_FIRST   (0x00000U >> XMA_BLOCK_SHIFT)   /* 0x000 */
+#define XMA_PF_SCAN_LAST    (0xe0000U >> XMA_BLOCK_SHIFT)   /* 0x0E0 */
 #define XMA_PF_SLOTS        (XMA_PF_SCAN_LAST - XMA_PF_SCAN_FIRST) /* per-4K page-frame slots */
 
 /* Extended-memory home; follows the planar memory size. */
@@ -95,6 +97,7 @@ typedef struct mxo_t {
     mem_mapping_t pf_map[MXO_PF_SLOTS]; /* per-16K EMS page-frame slots */
     mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
 
+    uint8_t       pf_state[MXO_PF_SLOTS]; /* last programmed pf slot state (0 = off, 1 = on) */
     uint8_t       pos_regs[8];
 } mxo_t;
 
@@ -109,6 +112,7 @@ typedef struct psq_t {
     mem_mapping_t pf_map[PSQ_PF_SLOTS]; /* per-16K EMS page-frame slots */
     mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
 
+    uint8_t       pf_state[PSQ_PF_SLOTS]; /* last programmed pf slot state (0 = off, 1 = on) */
     uint8_t       pos_regs[8];
 } psq_t;
 
@@ -118,12 +122,10 @@ typedef struct xma_t {
 
     uint16_t      tt[XMA_TT_ENTRIES];
     uint16_t      tt_ptr;  /* 12-bit translate table pointer */
+    uint8_t       tt_hi;   /* latched TT data high byte (defaults 0xff so a
+                              stray low-byte write commits an inhibit entry) */
     uint8_t       idreg;   /* selected bank/task (virtual mode) */
     uint8_t       mode;    /* 31A7 mode register */
-    uint8_t       tt_hi;   /* pending TT data high byte */
-    uint8_t       tt_lo;   /* pending TT data low byte */
-    uint8_t       tt_hv;   /* high byte latched */
-    uint8_t       tt_lv;   /* low byte latched */
 
     mem_mapping_t pf_map[XMA_PF_SLOTS]; /* per-4K EMS page-frame slots */
     mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
@@ -284,8 +286,13 @@ mxo_pf_update(mxo_t *dev)
 {
     for (uint16_t i = MXO_PF_SCAN_FIRST; i < MXO_PF_SCAN_LAST; i++) {
         uint8_t k = i - MXO_PF_SCAN_FIRST;
+        uint8_t en = mxo_tt_enabled(dev, i);
 
-        if (mxo_tt_enabled(dev, i))
+        if (en == dev->pf_state[k])
+            continue;
+
+        dev->pf_state[k] = en;
+        if (en)
             mem_mapping_enable(&dev->pf_map[k]);
         else
             mem_mapping_disable(&dev->pf_map[k]);
@@ -460,11 +467,11 @@ mxo_init(UNUSED(const device_t *info))
                     NULL,
                     NULL,
                     NULL,
-                    0,
+                    MEM_MAPPING_EXTERNAL,
                     dev);
     mxo_ext_update(dev);
 
-    /* EMS page frame slots (A0000h-E0000h), one 16K mapping per slot.
+    /* EMS page frame slots (00000h-E0000h), one 16K mapping per slot.
        mxo_pf_update() enables only the slots whose TT entry is active, 
        so a card never claims a page-frame address it has not mapped. */
     for (uint8_t k = 0; k < MXO_PF_SLOTS; k++) {
@@ -478,7 +485,7 @@ mxo_init(UNUSED(const device_t *info))
                         NULL,
                         NULL,
                         NULL,
-                        0,
+                        MEM_MAPPING_EXTERNAL,
                         dev);
         mem_mapping_disable(&dev->pf_map[k]);
     }
@@ -574,8 +581,13 @@ psq_pf_update(psq_t *dev)
 {
     for (uint16_t i = PSQ_PF_SCAN_FIRST; i < PSQ_PF_SCAN_LAST; i++) {
         uint8_t k = i - PSQ_PF_SCAN_FIRST;
+        uint8_t en = psq_tt_enabled(dev, i);
 
-        if (psq_tt_enabled(dev, i))
+        if (en == dev->pf_state[k])
+            continue;
+
+        dev->pf_state[k] = en;
+        if (en)
             mem_mapping_enable(&dev->pf_map[k]);
         else
             mem_mapping_disable(&dev->pf_map[k]);
@@ -769,7 +781,7 @@ psq_init(const device_t *info)
     /* Register the card on the MCA bus. */
     mca_add(psq_mca_read, psq_mca_write, psq_mca_feedb, psq_reset, dev);
 
-    /* EMS page frame slots (A0000h-E0000h), one 16K mapping per slot.
+    /* EMS page frame slots (00000h-E0000h), one 16K mapping per slot.
        psq_pf_update() enables only the slots whose TT entry is active,
        so a card never claims a page-frame address it has not mapped. */
     for (uint8_t k = 0; k < PSQ_PF_SLOTS; k++) {
@@ -783,7 +795,7 @@ psq_init(const device_t *info)
                         NULL,
                         NULL,
                         NULL,
-                        0,
+                        MEM_MAPPING_EXTERNAL,
                         dev);
         mem_mapping_disable(&dev->pf_map[k]);
     }
@@ -800,7 +812,7 @@ psq_init(const device_t *info)
                     NULL,
                     NULL,
                     NULL,
-                    0,
+                    MEM_MAPPING_EXTERNAL,
                     dev);
     psq_ext_update(dev);
 
@@ -1098,37 +1110,30 @@ xma_mca_write(const uint16_t port, uint8_t val, void *priv)
     xma_log("xma_mca_write: port=%04x val=%02x\n", port, val);
 
     switch (port & 7) {
-        case 0x02: /* control register: bits 7-6 (bank 4 descriptor) are
-                       read-only hardware, the rest is writable (bit 2 is
-                       the module/enable bit the init ROM toggles) */
+        case 0x02: 
+            /* control register: bits 7-6 (bank 4 descriptor) are read-only hardware,
+               the rest is writable (bit 2 is the module/enable bit init ROM toggles) */
             dev->pos_regs[2] = (uint8_t) ((dev->pos_regs[2] & 0xc0) | (val & 0x3f));
             break;
 
-        case 0x03: /* TT data low byte: finish an entry if high is pending */
-            if (dev->tt_hv) {
-                xma_tt_commit(dev, (uint16_t) ((dev->tt_hi << 8) | val));
-                dev->tt_hv = 0;
-            } else {
-                dev->tt_lo = val;
-                dev->tt_lv = 1;
-            }
+        case 0x03: 
+            /* TT data low byte: commit the entry whose high byte is latched
+               and advance the pointer. The official driver always writes the
+               high byte (104h) first, then the low byte (103h) - only low-byte 
+               write commits, so an ADF/POST sequence that touches 103h without
+               programming the table never commits an active entry erroneously. */
+            xma_tt_commit(dev, (uint16_t) ((dev->tt_hi << 8) | val));
             break;
 
-        case 0x04: /* TT data high byte: finish an entry if low is pending.
-                       The upper nibble also carries the on-board ROM space
-                       code (ADF pos[2]): 1 = none, 4-15 = spaces 1-12, so
-                       the reference disk repositions the ROM this way. */
+        case 0x04: 
+            /* TT data high byte: latch only, never commit. The upper nibble
+               also carries the on-board ROM space code (ADF pos[2]): 1 = none, 
+               4-15 = spaces 1-12, so the refdisk repositions the ROM this way. */
             if ((val >> 4) != 0) {
                 dev->rom_space = (uint8_t) (val >> 4);
                 xma_bios_update(dev);
             }
-            if (dev->tt_lv) {
-                xma_tt_commit(dev, (uint16_t) ((val << 8) | dev->tt_lo));
-                dev->tt_lv = 0;
-            } else {
-                dev->tt_hi = val;
-                dev->tt_hv = 1;
-            }
+            dev->tt_hi = val;
             break;
 
         case 0x06: /* TT pointer low byte */
@@ -1372,10 +1377,9 @@ xma_reset(void *priv)
        POST memory count at the start of every boot. */
     for (uint32_t i = 0; i < XMA_TT_ENTRIES; i++)
         dev->tt[i] = XMA_TT_INHIBIT;
-    dev->tt_ptr = 0;
-    dev->tt_hv  = 0;
-    dev->tt_lv  = 0;
     dev->idreg  = 0;
+    dev->tt_ptr = 0;
+    dev->tt_hi  = 0xff;
     dev->mode  &= ~XMA_VIRT_BIT;
 
     xma_pf_update(dev);
@@ -1442,16 +1446,19 @@ xma_init(const device_t *info)
 
     /* Default TT: every entry inhibited.  The card presents no memory
        to the system until its init ROM programs the translate table, so
-       the POST memory count does not see (and mis-size) the adapter. */
+       the POST memory count does not see (and mis-size) the adapter. Also
+       the data high-byte latch also starts at 0xff so a stray low-byte
+       write commits an inhibit entry instead of an active one. */
     for (uint32_t i = 0; i < XMA_TT_ENTRIES; i++)
         dev->tt[i] = XMA_TT_INHIBIT;
+    dev->tt_hi = 0xff;
 
     /* Register the card on the MCA bus. */
     dev->slot = mca_add(xma_mca_read, xma_mca_write, xma_mca_feedb, xma_reset, dev);
 
     /* Extended-memory home at 1M+384K; xma_mem_read/write() gate access
-       through the TT so inhibited entries simply read empty. The mapping 
-       starts out disabled - the default all-inhibited table leaves no 
+       through the TT so inhibited entries simply read empty. The mapping
+       starts out disabled - the default all-inhibited table leaves no
        window - and xma_map_update() sizes and enables it as the init
        ROM programs the table. */
     mem_mapping_add(&dev->ext_mapping,
@@ -1464,11 +1471,11 @@ xma_init(const device_t *info)
                     NULL,
                     NULL,
                     NULL,
-                    0,
+                    MEM_MAPPING_EXTERNAL,
                     dev);
     mem_mapping_disable(&dev->ext_mapping);
 
-    /* EMS page frame slots (A0000h-E0000h), one 4K mapping per slot.
+    /* EMS page frame slots (00000h-E0000h), one 4K mapping per slot.
        Only slots whose TT entry is active get enabled, so the card
        never claims an address it has not mapped. */
     for (uint8_t k = 0; k < XMA_PF_SLOTS; k++) {
@@ -1482,7 +1489,7 @@ xma_init(const device_t *info)
                         NULL,
                         NULL,
                         NULL,
-                        0,
+                        MEM_MAPPING_EXTERNAL,
                         dev);
         mem_mapping_disable(&dev->pf_map[k]);
     }
