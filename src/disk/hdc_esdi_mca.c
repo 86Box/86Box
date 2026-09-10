@@ -198,17 +198,21 @@ esdi_bios_readl(uint32_t addr, void *priv)
 #define IRQ_HOST_ADAPTER           (7 << 5)
 #define IRQ_DEVICE_0               (0 << 5)
 #define IRQ_CMD_COMPLETE_SUCCESS   0x1
+#define IRQ_ABORT_COMPLETE         0x9
 #define IRQ_RESET_COMPLETE         0xa
 #define IRQ_DATA_TRANSFER_READY    0xb
 #define IRQ_CMD_COMPLETE_FAILURE   0xc
+#define IRQ_ATTENTION_ERROR        0xf
 
 #define ATTN_DEVICE_SEL            (7 << 5)
 #define ATTN_HOST_ADAPTER          (7 << 5)
 #define ATTN_DEVICE_0              (0 << 5)
 #define ATTN_DEVICE_1              (1 << 5)
+#define ATTN_RESERVED              (1 << 4)
 #define ATTN_REQ_MASK              0x0f
 #define ATTN_CMD_REQ               1
 #define ATTN_EOI                   2
+#define ATTN_ABORT                 3
 #define ATTN_RESET                 4
 
 #define CMD_SIZE_4                 (1 << 14)
@@ -307,6 +311,26 @@ esdi_mca_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 }
 
 static void
+cmd_rejected(esdi_t *dev)
+{
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
+    dev->status_data[1] = 0x0f01; /*Attention error, invalid parameter*/
+    dev->status_data[2] = 0x1900; /*Device status*/
+    dev->status_data[3] = 0;
+    dev->status_data[4] = 0;
+    dev->status_data[5] = 0;
+    dev->status_data[6] = 0;
+
+    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+    dev->irq_status      = dev->cmd_dev | IRQ_ATTENTION_ERROR;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
+}
+
+static void
 cmd_unsupported(esdi_t *dev)
 {
     dev->status_len     = 7;
@@ -340,6 +364,42 @@ device_not_present(esdi_t *dev)
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
+}
+
+static void
+attention_error(esdi_t *dev, uint8_t devsel)
+{
+    dev->status          = STATUS_IRQ;
+    dev->irq_status      = devsel | IRQ_ATTENTION_ERROR;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
+}
+
+static void
+abort_request(esdi_t *dev, uint8_t devsel)
+{
+    /* Stop the aborted command and clear its command block transfer */
+    esdi_mca_set_callback(dev, 0.0);
+    dev->cmd_req_in_progress = 0;
+
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
+    dev->status_data[1] = 0x0900;                 /*Error bits*/
+    dev->status_data[2] = 0x1900;                 /*Device status*/
+    dev->status_data[3] = 0;                      /*Number of blocks left to do*/
+    dev->status_data[4] = dev->last_rba & 0xffff; /*Last RBA processed*/
+    dev->status_data[5] = (dev->last_rba >> 16) & 0xffff;
+    dev->status_data[6] = 0; /*Number of blocks requiring error recovery*/
+
+    dev->status_pos      = 0;
+    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+    dev->irq_status      = devsel | IRQ_ABORT_COMPLETE;
     dev->irq_in_progress = 1;
     set_irq(dev);
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
@@ -1201,12 +1261,22 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 3: /*Attention register*/
+            if (val & ATTN_RESERVED) {
+                /* Bit 4 is reserved and shall be cleared to 0 */
+                esdi_mca_log("Attention reserved bit set %02x.\n", val);
+                attention_error(dev, val & ATTN_DEVICE_SEL);
+                break;
+            }
+
             switch (val & ATTN_DEVICE_SEL) {
                 case ATTN_HOST_ADAPTER:
                     switch (val & ATTN_REQ_MASK) {
                         case ATTN_CMD_REQ:
-                            if (dev->cmd_req_in_progress)
-                                fatal("Try to start command on in_progress adapter\n");
+                            if (dev->cmd_req_in_progress) {
+                                /* Command request ignored while a command block transfer is in progress */
+                                esdi_mca_log("Command request while busy %02x.\n", val);
+                                break;
+                            }
                             dev->cmd_req_in_progress = 1;
                             dev->cmd_dev             = ATTN_HOST_ADAPTER;
                             dev->status |= STATUS_BUSY;
@@ -1220,6 +1290,10 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             clear_irq(dev);
                             break;
 
+                        case ATTN_ABORT:
+                            abort_request(dev, ATTN_HOST_ADAPTER);
+                            break;
+
                         case ATTN_RESET:
                             dev->in_reset = 1;
                             esdi_mca_set_callback(dev, ESDI_TIME * 50);
@@ -1227,7 +1301,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             break;
 
                         default:
-                            fatal("Bad attention request %02x\n", val);
+                            esdi_mca_log("Bad attention request %02x.\n", val);
+                            attention_error(dev, ATTN_HOST_ADAPTER);
+                            break;
                     }
                     break;
 
@@ -1235,8 +1311,11 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                     esdi_mca_log("ATTN Device 0.\n");
                     switch (val & ATTN_REQ_MASK) {
                         case ATTN_CMD_REQ:
-                            if (dev->cmd_req_in_progress)
-                                fatal("Try to start command on in_progress device0\n");
+                            if (dev->cmd_req_in_progress) {
+                                /* Command request ignored while a command block transfer is in progress */
+                                esdi_mca_log("Command request while busy %02x.\n", val);
+                                break;
+                            }
                             dev->cmd_req_in_progress = 1;
                             dev->cmd_dev             = ATTN_DEVICE_0;
                             dev->status |= STATUS_BUSY;
@@ -1251,16 +1330,26 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             clear_irq(dev);
                             break;
 
+                        case ATTN_ABORT:
+                            abort_request(dev, ATTN_DEVICE_0);
+                            break;
+
                         default:
-                            fatal("Bad attention request %02x\n", val);
+                            /* Reset is only accepted with the device select code for the adapter */
+                            esdi_mca_log("Bad attention request %02x.\n", val);
+                            attention_error(dev, ATTN_DEVICE_0);
+                            break;
                     }
                     break;
 
                 case ATTN_DEVICE_1:
                     switch (val & ATTN_REQ_MASK) {
                         case ATTN_CMD_REQ:
-                            if (dev->cmd_req_in_progress)
-                                fatal("Try to start command on in_progress device0\n");
+                            if (dev->cmd_req_in_progress) {
+                                /* Command request ignored while a command block transfer is in progress */
+                                esdi_mca_log("Command request while busy %02x.\n", val);
+                                break;
+                            }
                             dev->cmd_req_in_progress = 1;
                             dev->cmd_dev             = ATTN_DEVICE_1;
                             dev->status |= STATUS_BUSY;
@@ -1274,13 +1363,23 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             clear_irq(dev);
                             break;
 
+                        case ATTN_ABORT:
+                            abort_request(dev, ATTN_DEVICE_1);
+                            break;
+
                         default:
-                            fatal("Bad attention request %02x\n", val);
+                            /* Reset is only accepted with the device select code for the adapter */
+                            esdi_mca_log("Bad attention request %02x.\n", val);
+                            attention_error(dev, ATTN_DEVICE_1);
+                            break;
                     }
                     break;
 
                 default:
-                    fatal("Attention to unknown device %02x\n", val);
+                    /* Device select codes from 010 to 110 are reserved */
+                    esdi_mca_log("Attention to unknown device %02x.\n", val);
+                    attention_error(dev, val & ATTN_DEVICE_SEL);
+                    break;
             }
             break;
 
@@ -1340,6 +1439,14 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
                 if ((dev->cmd_data[0] & CMD_DEVICE_SEL) != dev->cmd_dev)
                     fatal("Command device mismatch with attn\n");
                 dev->command = dev->cmd_data[0] & CMD_MASK;
+
+                if (dev->irq_in_progress) {
+                    /* Command to a busy device is rejected */
+                    esdi_mca_log("Command to busy device %02x.\n", dev->cmd_data[0]);
+                    cmd_rejected(dev);
+                    break;
+                }
+
                 esdi_mca_set_callback(dev, ESDI_TIME);
                 dev->status   = STATUS_BUSY;
                 dev->data_pos = 0;
