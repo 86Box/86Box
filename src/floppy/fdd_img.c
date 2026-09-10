@@ -499,7 +499,8 @@ format_conditions(int drive)
 {
     const img_t *dev  = img[drive];
     /* Allow bigger sector sizes because of HD_COPY. */
-    int          temp = (fdc_get_format_sectors(img_fdc) == dev->sectors) ||
+    int          temp = (fdc_get_format_sectors(img_fdc) == 3) ||
+                        (fdc_get_format_sectors(img_fdc) == dev->sectors) ||
                         (fdc_get_format_sectors(img_fdc) == (dev->sectors + 1));
 
     temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
@@ -520,7 +521,8 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
     if ((dev == NULL) || (side < 0) || (side >= dev->sides) ||
         (dev->track < 0) || (dev->track >= 256) ||
         ((count != dev->sectors) && (count != (dev->sectors + 1))))
-        return 0;
+        /* If count is 3, return OK - HD-COPY's data rate test format. */
+        return (count == 3) ? 1 : 0;
 
     /*
      * A raw sector dump has nowhere to store CHRN fields.  Keep a faithful
@@ -1183,6 +1185,12 @@ jump_if_fdf:
             dev->sectors     = 8;
             dev->tracks      = 77;
             dev->sector_size = 3;
+        } else if (size <= 1310720) { /*HD 1.3MB*/
+            dev->sectors = 16;
+            dev->tracks  = 80;
+        } else if (size <= 1392640) { /*HD 1.36MB*/
+            dev->sectors = 17;
+            dev->tracks  = 80;
         } else if (size <= 1474560) { /*HD 1.44MB*/
             dev->sectors = 18;
             dev->tracks  = 80;
