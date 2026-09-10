@@ -467,7 +467,7 @@ mxo_init(UNUSED(const device_t *info))
                     NULL,
                     NULL,
                     NULL,
-                    0,
+                    MEM_MAPPING_EXTERNAL,
                     dev);
     mxo_ext_update(dev);
 
@@ -485,7 +485,7 @@ mxo_init(UNUSED(const device_t *info))
                         NULL,
                         NULL,
                         NULL,
-                        0,
+                        MEM_MAPPING_EXTERNAL,
                         dev);
         mem_mapping_disable(&dev->pf_map[k]);
     }
@@ -795,7 +795,7 @@ psq_init(const device_t *info)
                         NULL,
                         NULL,
                         NULL,
-                        0,
+                        MEM_MAPPING_EXTERNAL,
                         dev);
         mem_mapping_disable(&dev->pf_map[k]);
     }
@@ -812,7 +812,7 @@ psq_init(const device_t *info)
                     NULL,
                     NULL,
                     NULL,
-                    0,
+                    MEM_MAPPING_EXTERNAL,
                     dev);
     psq_ext_update(dev);
 
@@ -1471,7 +1471,7 @@ xma_init(const device_t *info)
                     NULL,
                     NULL,
                     NULL,
-                    0,
+                    MEM_MAPPING_EXTERNAL,
                     dev);
     mem_mapping_disable(&dev->ext_mapping);
 
@@ -1489,7 +1489,7 @@ xma_init(const device_t *info)
                         NULL,
                         NULL,
                         NULL,
-                        0,
+                        MEM_MAPPING_EXTERNAL,
                         dev);
         mem_mapping_disable(&dev->pf_map[k]);
     }
