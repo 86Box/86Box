@@ -1672,7 +1672,7 @@ ega_standalone_init(const device_t *info)
             ega->alt_addr = 1;
     }
 #endif
-    io_sethandler(addr - 0x20, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+    io_sethandler(addr, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
     if (ega->chipset) {
         io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
@@ -1797,12 +1797,12 @@ static const device_config_t ega_ibm_config[] = {
         .description    = "Address",
         .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 0x03c0,
+        .default_int    = 0x03a0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "0x3C0", .value = 0x03c0 },
-            { .description = "0x2C0", .value = 0x02c0 },
+            { .description = "0x3C0", .value = 0x03a0 },
+            { .description = "0x2C0", .value = 0x02a0 },
             { .description = ""                       }
         },
         .bios           = { { 0 } }
