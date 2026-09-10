@@ -1330,6 +1330,12 @@ lpt_set_next_inst(int ni)
     next_inst = ni;
 }
 
+int
+lpt_get_3bc_used(void)
+{
+    return lpt_3bc_used;
+}
+
 void
 lpt_set_3bc_used(int is_3bc_used)
 {
