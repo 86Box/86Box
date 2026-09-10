@@ -121,7 +121,8 @@ typedef struct esdi_t {
     int status_pos;
     int status_len;
 
-    uint16_t status_data[256];
+    uint16_t status_data[7];
+    uint16_t diag_status[7];
 
     int      data_pos;
     uint16_t data[256];
@@ -138,6 +139,7 @@ typedef struct esdi_t {
     pc_timer_t timer;
 
     uint32_t rba;
+    uint32_t last_rba;
 
     struct cmds {
         int req_in_progress;
@@ -196,17 +198,21 @@ esdi_bios_readl(uint32_t addr, void *priv)
 #define IRQ_HOST_ADAPTER           (7 << 5)
 #define IRQ_DEVICE_0               (0 << 5)
 #define IRQ_CMD_COMPLETE_SUCCESS   0x1
+#define IRQ_ABORT_COMPLETE         0x9
 #define IRQ_RESET_COMPLETE         0xa
 #define IRQ_DATA_TRANSFER_READY    0xb
 #define IRQ_CMD_COMPLETE_FAILURE   0xc
+#define IRQ_ATTENTION_ERROR        0xf
 
 #define ATTN_DEVICE_SEL            (7 << 5)
 #define ATTN_HOST_ADAPTER          (7 << 5)
 #define ATTN_DEVICE_0              (0 << 5)
 #define ATTN_DEVICE_1              (1 << 5)
+#define ATTN_RESERVED              (1 << 4)
 #define ATTN_REQ_MASK              0x0f
 #define ATTN_CMD_REQ               1
 #define ATTN_EOI                   2
+#define ATTN_ABORT                 3
 #define ATTN_RESET                 4
 
 #define CMD_SIZE_4                 (1 << 14)
@@ -305,18 +311,36 @@ esdi_mca_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 }
 
 static void
+cmd_rejected(esdi_t *dev)
+{
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
+    dev->status_data[1] = 0x0f01; /*Attention error, invalid parameter*/
+    dev->status_data[2] = 0x1900; /*Device status*/
+    dev->status_data[3] = 0;
+    dev->status_data[4] = 0;
+    dev->status_data[5] = 0;
+    dev->status_data[6] = 0;
+
+    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+    dev->irq_status      = dev->cmd_dev | IRQ_ATTENTION_ERROR;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
+}
+
+static void
 cmd_unsupported(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0f03; /*Attention error, command not supported*/
     dev->status_data[2] = 0x0002; /*Interface fault*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -329,16 +353,14 @@ cmd_unsupported(esdi_t *dev)
 static void
 device_not_present(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
-    dev->status_data[1] = 0x0c11; /*Command failed, internal hardware error*/
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
+    dev->status_data[1] = 0x0c00; /*Command terminated with failure*/
     dev->status_data[2] = 0x000b; /*Selection error*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -349,18 +371,52 @@ device_not_present(esdi_t *dev)
 }
 
 static void
+attention_error(esdi_t *dev, uint8_t devsel)
+{
+    dev->status          = STATUS_IRQ;
+    dev->irq_status      = devsel | IRQ_ATTENTION_ERROR;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
+}
+
+static void
+abort_request(esdi_t *dev, uint8_t devsel)
+{
+    /* Stop the aborted command and clear its command block transfer */
+    esdi_mca_set_callback(dev, 0.0);
+    dev->cmd_req_in_progress = 0;
+
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
+    dev->status_data[1] = 0x0900;                 /*Error bits*/
+    dev->status_data[2] = 0x1900;                 /*Device status*/
+    dev->status_data[3] = 0;                      /*Number of blocks left to do*/
+    dev->status_data[4] = dev->last_rba & 0xffff; /*Last RBA processed*/
+    dev->status_data[5] = (dev->last_rba >> 16) & 0xffff;
+    dev->status_data[6] = 0; /*Number of blocks requiring error recovery*/
+
+    dev->status_pos      = 0;
+    dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
+    dev->irq_status      = devsel | IRQ_ABORT_COMPLETE;
+    dev->irq_in_progress = 1;
+    set_irq(dev);
+    ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+    ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
+}
+
+static void
 rba_out_of_range(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
     dev->status_data[2] = 0x0007; /*RBA out of range*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -373,16 +429,14 @@ rba_out_of_range(esdi_t *dev)
 static void
 defective_block(esdi_t *dev)
 {
-    dev->status_len     = 9;
-    dev->status_data[0] = dev->command | STATUS_LEN(9) | dev->cmd_dev;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
     dev->status_data[1] = 0x0e01; /*Command block error, invalid parameter*/
     dev->status_data[2] = 0x0009; /*Defective block*/
     dev->status_data[3] = 0;
     dev->status_data[4] = 0;
     dev->status_data[5] = 0;
     dev->status_data[6] = 0;
-    dev->status_data[7] = 0;
-    dev->status_data[8] = 0;
 
     dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_FAILURE;
@@ -395,16 +449,13 @@ defective_block(esdi_t *dev)
 static void
 complete_command_status(esdi_t *dev)
 {
-    dev->status_len = 7;
-    if (dev->cmd_dev == ATTN_DEVICE_0)
-        dev->status_data[0] = dev->command | STATUS_LEN(7) | STATUS_DEVICE(0);
-    else
-        dev->status_data[0] = dev->command | STATUS_LEN(7) | STATUS_DEVICE(1);
-    dev->status_data[1] = 0x0000;                  /*Error bits*/
-    dev->status_data[2] = 0x1900;                  /*Device status*/
-    dev->status_data[3] = 0;                       /*Number of blocks left to do*/
-    dev->status_data[4] = (dev->rba - 1) & 0xffff; /*Last RBA processed*/
-    dev->status_data[5] = (dev->rba - 1) >> 8;
+    dev->status_len     = 7;
+    dev->status_data[0] = dev->command | STATUS_LEN(7) | dev->cmd_dev;
+    dev->status_data[1] = 0x0100;                 /*Error bits*/
+    dev->status_data[2] = 0x1900;                 /*Device status*/
+    dev->status_data[3] = 0;                      /*Number of blocks left to do*/
+    dev->status_data[4] = dev->last_rba & 0xffff; /*Last RBA processed*/
+    dev->status_data[5] = (dev->last_rba >> 16) & 0xffff;
     dev->status_data[6] = 0; /*Number of blocks requiring error recovery*/
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
     ui_sb_update_icon_write(SB_HDD | HDD_BUS_ESDI, 0);
@@ -435,9 +486,10 @@ esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
 {
     const char *model = hdd[drive->hdd_num].model;
     uint8_t    *buf   = (uint8_t *) dev->sector_buffer;
+    char        bar_code[17];
+    int         i, j;
     uint8_t     sum;
     uint32_t    rba;
-    int         i, j;
 
     memset(buf, 0xff, (size_t) blocks * 512);
 
@@ -449,13 +501,11 @@ esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
     buf[9] = 0xff;   /* Reserved */
 
     /* Drive Bar Code Number, ASCII, right justified. */
-    if (model) {
-        size_t len = strlen(model);
-
-        if (len > 16)
-            len = 16;
-        memcpy(buf + 10 + (16 - len), model, len);
-    }
+    if (model)
+        snprintf(bar_code, sizeof(bar_code), "%.16s", model);
+    else
+        snprintf(bar_code, sizeof(bar_code), "86B_HD%02u", drive->hdd_num);
+    memcpy(buf + 10 + (16 - strlen(bar_code)), bar_code, strlen(bar_code));
 
     memcpy(buf + 26, "01011980", 8); /* Date of Manufacture, MMDDYYYY */
 
@@ -486,6 +536,21 @@ esdi_build_mfg_header(esdi_t *dev, const drive_t *drive, uint16_t blocks)
             sum += buf[i * 512 + j];
         buf[i * 512 + 511] = (uint8_t) -sum;
     }
+}
+
+/* Build the diagnostic status block (spec 5.4, Figure 58) for the last
+   Run Diagnostic Test command; it is returned by the Get Diagnostic
+   Status Block command. */
+static void
+esdi_build_diag_status(esdi_t *dev, uint16_t cmd)
+{
+    dev->diag_status[0] = CMD_GET_DIAG_BLOCK | STATUS_LEN(7) | dev->cmd_dev;
+    dev->diag_status[1] = 0x0100; /* Command Status | Command Error Code */
+    dev->diag_status[2] = 0x1900; /* Device Status | Device Error Code */
+    dev->diag_status[3] = 0x0000; /* Power On Error Code | Test Error Code */
+    dev->diag_status[4] = cmd;    /* Diagnostic Command */
+    dev->diag_status[5] = 0;      /* Reserved */
+    dev->diag_status[6] = 0;      /* Reserved */
 }
 
 static void
@@ -534,7 +599,7 @@ esdi_callback(void *priv)
                     dev->sector_count = dev->cmd_data[1];
 
                     if ((dev->command != CMD_GET_MFG_HEADER) &&
-                        ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num))) {
+                        ((dev->rba + dev->sector_count) > drive->sectors)) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -588,8 +653,9 @@ esdi_callback(void *priv)
                         dev->rba++;
                     }
 
-                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
+                    dev->last_rba  = dev->rba - 1;
+                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     esdi_mca_set_callback(dev, cmd_time);
                     break;
 
@@ -621,7 +687,7 @@ esdi_callback(void *priv)
                     dev->sector_pos   = 0;
                     dev->sector_count = dev->cmd_data[1];
 
-                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                    if ((dev->rba + dev->sector_count) > drive->sectors) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -668,8 +734,9 @@ esdi_callback(void *priv)
                         dev->data_pos = 0;
                     }
 
-                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     dev->cmd_state = 2;
+                    dev->last_rba  = dev->rba - 1;
+                    dev->status    = STATUS_CMD_IN_PROGRESS;
                     esdi_mca_set_callback(dev, cmd_time);
                     break;
 
@@ -699,7 +766,8 @@ esdi_callback(void *priv)
                     dev->rba          = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
                     dev->sector_count = dev->cmd_data[1];
 
-                    if ((dev->rba + dev->sector_count) > hdd_image_get_last_sector(drive->hdd_num)) {
+                    dev->last_rba = dev->rba + dev->sector_count - 1;
+                    if ((dev->rba + dev->sector_count) > drive->sectors) {
                         rba_out_of_range(dev);
                         return;
                     }
@@ -730,14 +798,14 @@ esdi_callback(void *priv)
                 return;
             }
 
-            if (dev->rba >= hdd_image_get_last_sector(drive->hdd_num)) {
+            if (dev->rba >= drive->sectors) {
                 rba_out_of_range(dev);
                 return;
             }
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
+                    dev->last_rba = dev->rba = (dev->cmd_data[2] | (dev->cmd_data[3] << 16)) & 0x0fffffff;
                     cmd_time = hdd_seek_get_time(&hdd[drive->hdd_num], dev->rba, HDD_OP_SEEK, 0, 0.0);
                     esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
                     dev->cmd_state = 1;
@@ -766,7 +834,7 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = 0x00000000;
+                    dev->last_rba = dev->rba = 0x00000000;
                     cmd_time = hdd_seek_get_time(&hdd[drive->hdd_num], dev->rba, HDD_OP_SEEK, 0, 0.0);
                     esdi_mca_set_callback(dev, ESDI_TIME + cmd_time);
                     dev->cmd_state = 1;
@@ -796,16 +864,10 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->status_len     = 9;
-            dev->status_data[0] = CMD_GET_DEV_STATUS | STATUS_LEN(9) | STATUS_DEVICE_HOST_ADAPTER;
-            dev->status_data[1] = 0x0000; /*Error bits*/
-            dev->status_data[2] = 0x1900; /*Device status*/
-            dev->status_data[3] = 0;      /*ESDI Standard Status*/
-            dev->status_data[4] = 0;      /*ESDI Vendor Unique Status*/
-            dev->status_data[5] = 0;
-            dev->status_data[6] = 0;
-            dev->status_data[7] = 0;
-            dev->status_data[8] = 0;
+            dev->status_len     = 3;
+            dev->status_data[0] = CMD_GET_DEV_STATUS | STATUS_LEN(3) | dev->cmd_dev;
+            dev->status_data[1] = 0;
+            dev->status_data[2] = 0x1900; /*Device status | Device error code*/
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
@@ -825,10 +887,12 @@ esdi_callback(void *priv)
                 dev->status_len = 6;
                 dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
                 dev->status_data[1] = 0;
-                dev->status_data[2] = 0;
+                dev->status_data[2] = 0x0600;
                 /* bit 15-12: chip revision = 0011b, bit 11-8: sector buffer size = n * 256 bytes (n must be < 6) */
-                dev->status_data[3] = 0x3200;
-                dev->status_data[4] = 0;
+                /* If Buf_Size 1 = 0x30 (n = 0), then the buffer size is larger than 16K bytes per spec. */
+                /* Buf_size 2 = 0x36 indicates that the buffer size is 32K bytes. */
+                dev->status_data[3] = 0x3001;
+                dev->status_data[4] = 0x3600;
                 dev->status_data[5] = 0;
             }
             else
@@ -843,7 +907,7 @@ esdi_callback(void *priv)
                     fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
                 dev->status_len = 6;
-                dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | STATUS_DEVICE_HOST_ADAPTER;
+                dev->status_data[0] = CMD_GET_DEV_CONFIG | STATUS_LEN(6) | dev->cmd_dev;
                 dev->status_data[1] = 0x08; /*Zero Defect flag (ZD, bit 3), no spares per cylinder*/
                 dev->status_data[2] = drive->sectors & 0xffff;
                 dev->status_data[3] = drive->sectors >> 16;
@@ -874,8 +938,8 @@ esdi_callback(void *priv)
             dev->status_data[0] = CMD_GET_POS_INFO | STATUS_LEN(5) | STATUS_DEVICE_HOST_ADAPTER;
             dev->status_data[1] = dev->pos_regs[1] | (dev->pos_regs[0] << 8); /*MCA ID*/
             dev->status_data[2] = dev->pos_regs[3] | (dev->pos_regs[2] << 8);
-            dev->status_data[3] = 0xff;
-            dev->status_data[4] = 0xff;
+            dev->status_data[3] = dev->pos_regs[5] | (dev->pos_regs[4] << 8);
+            dev->status_data[4] = dev->pos_regs[7] | (dev->pos_regs[6] << 8);
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = IRQ_HOST_ADAPTER | IRQ_CMD_COMPLETE_SUCCESS;
@@ -1016,12 +1080,15 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->status_len     = 5;
-            dev->status_data[0] = CMD_RUN_DIAG_TEST | STATUS_LEN(5) | dev->cmd_dev;
-            dev->status_data[1] = 0;
-            dev->status_data[2] = 0;
-            dev->status_data[3] = 0;
-            dev->status_data[4] = 0;
+            /* Record the diagnostic results; they are retrieved with the
+               Get Diagnostic Status Block command (spec 4.16/5.4). These 
+               diagnostics are emulated as succeeding instantly. */
+            esdi_build_diag_status(dev, dev->cmd_data[1] & 0xff);
+
+            /* The Run Diagnostic Test command itself completes with a
+               Command Complete status block. */
+            dev->last_rba = 0;
+            complete_command_status(dev);
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
@@ -1040,15 +1107,10 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            /* Return the status block from the preceding command.  The
-               command's word count remains encoded in its first word even
-               after the status interface has been drained. */
-            dev->status_len = dev->status_data[0] >> 8;
+            /* Return the status block of the last Run Diagnostic Test command (spec 5.4). */
+            memcpy(dev->status_data, dev->diag_status, sizeof(dev->diag_status));
             dev->status_pos = 0;
-            if (!dev->status_len) {
-                cmd_unsupported(dev);
-                return;
-            }
+            dev->status_len = 7;
 
             dev->status          = STATUS_IRQ | STATUS_STATUS_OUT_FULL;
             dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
@@ -1067,7 +1129,7 @@ esdi_callback(void *priv)
 
             switch (dev->cmd_state) {
                 case 0:
-                    dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+                    dev->last_rba = dev->rba = hdd_image_get_last_sector(drive->hdd_num);
                     /* Word 1: format options in the high byte, number of
                        defective blocks to deallocate in the low byte. */
                     dev->sector_count = dev->cmd_data[1] & 0xff;
@@ -1129,7 +1191,7 @@ esdi_callback(void *priv)
             if ((dev->status & STATUS_IRQ) || dev->irq_in_progress)
                 fatal("IRQ in progress %02x %i\n", dev->status, dev->irq_in_progress);
 
-            dev->rba = hdd_image_get_last_sector(drive->hdd_num);
+            dev->last_rba = dev->rba = hdd_image_get_last_sector(drive->hdd_num);
             /* Format Prepare has no data phase; complete it immediately
                with a Command Complete status block. */
             complete_command_status(dev);
@@ -1199,12 +1261,22 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 3: /*Attention register*/
+            if (val & ATTN_RESERVED) {
+                /* Bit 4 is reserved and shall be cleared to 0 */
+                esdi_mca_log("Attention reserved bit set %02x.\n", val);
+                attention_error(dev, val & ATTN_DEVICE_SEL);
+                break;
+            }
+
             switch (val & ATTN_DEVICE_SEL) {
                 case ATTN_HOST_ADAPTER:
                     switch (val & ATTN_REQ_MASK) {
                         case ATTN_CMD_REQ:
-                            if (dev->cmd_req_in_progress)
-                                fatal("Try to start command on in_progress adapter\n");
+                            if (dev->cmd_req_in_progress) {
+                                /* Command request ignored while a command block transfer is in progress */
+                                esdi_mca_log("Command request while busy %02x.\n", val);
+                                break;
+                            }
                             dev->cmd_req_in_progress = 1;
                             dev->cmd_dev             = ATTN_HOST_ADAPTER;
                             dev->status |= STATUS_BUSY;
@@ -1218,6 +1290,10 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             clear_irq(dev);
                             break;
 
+                        case ATTN_ABORT:
+                            abort_request(dev, ATTN_HOST_ADAPTER);
+                            break;
+
                         case ATTN_RESET:
                             dev->in_reset = 1;
                             esdi_mca_set_callback(dev, ESDI_TIME * 50);
@@ -1225,7 +1301,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             break;
 
                         default:
-                            fatal("Bad attention request %02x\n", val);
+                            esdi_mca_log("Bad attention request %02x.\n", val);
+                            attention_error(dev, ATTN_HOST_ADAPTER);
+                            break;
                     }
                     break;
 
@@ -1233,8 +1311,11 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                     esdi_mca_log("ATTN Device 0.\n");
                     switch (val & ATTN_REQ_MASK) {
                         case ATTN_CMD_REQ:
-                            if (dev->cmd_req_in_progress)
-                                fatal("Try to start command on in_progress device0\n");
+                            if (dev->cmd_req_in_progress) {
+                                /* Command request ignored while a command block transfer is in progress */
+                                esdi_mca_log("Command request while busy %02x.\n", val);
+                                break;
+                            }
                             dev->cmd_req_in_progress = 1;
                             dev->cmd_dev             = ATTN_DEVICE_0;
                             dev->status |= STATUS_BUSY;
@@ -1249,16 +1330,26 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             clear_irq(dev);
                             break;
 
+                        case ATTN_ABORT:
+                            abort_request(dev, ATTN_DEVICE_0);
+                            break;
+
                         default:
-                            fatal("Bad attention request %02x\n", val);
+                            /* Reset is only accepted with the device select code for the adapter */
+                            esdi_mca_log("Bad attention request %02x.\n", val);
+                            attention_error(dev, ATTN_DEVICE_0);
+                            break;
                     }
                     break;
 
                 case ATTN_DEVICE_1:
                     switch (val & ATTN_REQ_MASK) {
                         case ATTN_CMD_REQ:
-                            if (dev->cmd_req_in_progress)
-                                fatal("Try to start command on in_progress device0\n");
+                            if (dev->cmd_req_in_progress) {
+                                /* Command request ignored while a command block transfer is in progress */
+                                esdi_mca_log("Command request while busy %02x.\n", val);
+                                break;
+                            }
                             dev->cmd_req_in_progress = 1;
                             dev->cmd_dev             = ATTN_DEVICE_1;
                             dev->status |= STATUS_BUSY;
@@ -1272,13 +1363,23 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             clear_irq(dev);
                             break;
 
+                        case ATTN_ABORT:
+                            abort_request(dev, ATTN_DEVICE_1);
+                            break;
+
                         default:
-                            fatal("Bad attention request %02x\n", val);
+                            /* Reset is only accepted with the device select code for the adapter */
+                            esdi_mca_log("Bad attention request %02x.\n", val);
+                            attention_error(dev, ATTN_DEVICE_1);
+                            break;
                     }
                     break;
 
                 default:
-                    fatal("Attention to unknown device %02x\n", val);
+                    /* Device select codes from 010 to 110 are reserved */
+                    esdi_mca_log("Attention to unknown device %02x.\n", val);
+                    attention_error(dev, val & ATTN_DEVICE_SEL);
+                    break;
             }
             break;
 
@@ -1327,6 +1428,11 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 
     switch (port & 7) {
         case 0: /*Command Interface Register*/
+            if (!dev->cmd_req_in_progress) {
+                /* Command block words are only accepted after an attention command request */
+                esdi_mca_log("Command word without attention request %04x.\n", val);
+                break;
+            }
             if (dev->cmd_pos >= 4)
                 fatal("CIR pos 4\n");
             dev->cmd_data[dev->cmd_pos++] = val;
@@ -1335,9 +1441,20 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
                 dev->cmd_req_in_progress = 0;
                 dev->cmd_state           = 0;
 
-                if ((dev->cmd_data[0] & CMD_DEVICE_SEL) != dev->cmd_dev)
-                    fatal("Command device mismatch with attn\n");
+                if ((dev->cmd_data[0] & CMD_DEVICE_SEL) != dev->cmd_dev) {
+                    /* The command block does not belong to the requested device */
+                    esdi_mca_log("Command device mismatch with attn %04x.\n", dev->cmd_data[0]);
+                    break;
+                }
                 dev->command = dev->cmd_data[0] & CMD_MASK;
+
+                if (dev->irq_in_progress) {
+                    /* Command to a busy device is rejected */
+                    esdi_mca_log("Command to busy device %02x.\n", dev->cmd_data[0]);
+                    cmd_rejected(dev);
+                    break;
+                }
+
                 esdi_mca_set_callback(dev, ESDI_TIME);
                 dev->status   = STATUS_BUSY;
                 dev->data_pos = 0;
@@ -1473,7 +1590,7 @@ esdi_integrated_mca_write(const uint16_t port, uint8_t val, void* priv)
     /* Save the new value. */
     dev->pos_regs[port & 7] = val;
 
-    io_removehandler(ESDI_IOADDR_PRI, 8,
+    io_removehandler(dev->base, 8,
         esdi_read, esdi_readw, NULL,
         esdi_write, esdi_writew, NULL, dev);
 
@@ -1504,14 +1621,20 @@ esdi_integrated_mca_write(const uint16_t port, uint8_t val, void* priv)
         break;
     }
 
+    /* Set up controller I/O address. */
+    if (dev->pos_regs[2] & 0x02)
+        dev->base = ESDI_IOADDR_SEC;
+    else
+        dev->base = ESDI_IOADDR_PRI;
+
     if (dev->pos_regs[2] & 1) {
-        io_sethandler(ESDI_IOADDR_PRI, 8,
+        io_sethandler(dev->base, 8,
             esdi_read, esdi_readw, NULL,
             esdi_write, esdi_writew, NULL, dev);
 
         /* Say hello. */
-        esdi_mca_log("ESDI: I/O=3510, IRQ=14, DMA=%d\n",
-            dev->dma);
+        esdi_mca_log("ESDI: I/O=%04X, IRQ=14, DMA=%d\n",
+            dev->base, dev->dma);
     }
 }
 
@@ -1583,7 +1706,7 @@ esdi_init(UNUSED(const device_t *info))
             drive->spt     = hdd[i].spt;
             drive->hpc     = hdd[i].hpc;
             drive->tracks  = hdd[i].tracks;
-            drive->sectors = hdd_image_get_last_sector(i);
+            drive->sectors = hdd_image_get_last_sector(i) + 1;
             drive->hdd_num = i;
 
             /* Mark drive as present. */
@@ -1603,6 +1726,9 @@ esdi_init(UNUSED(const device_t *info))
         dev->pos_regs[1] = 0xdf;
     }
 
+    /* No diagnostics have run yet. */
+    esdi_build_diag_status(dev, 0); 
+
     /* Enable the device. */
     if (info->local == ESDI_IS_INTEGRATED) {
         /* The slot number of this controller is fixed by the planar. IBM PS/55 5551-T assigns it #5. */
@@ -1616,8 +1742,8 @@ esdi_init(UNUSED(const device_t *info))
 
     /* Mark for a reset. */
     dev->in_reset = 1;
-    esdi_mca_set_callback(dev, ESDI_TIME * 50);
     dev->status = STATUS_BUSY;
+    esdi_mca_set_callback(dev, ESDI_TIME * 50);
 
     /* Set the reply timer. */
     timer_add(&dev->timer, esdi_callback, dev, 0);
