@@ -1442,7 +1442,7 @@ mfm_readw(uint16_t port, void *priv)
             break;
 
         default:
-            fatal("mfm_readw port=%04x\n", port);
+            break;
     }
 
     st506_mca_log("mfm_readw port=%04x, ret=%04x.\n", port, ret);
@@ -1501,7 +1501,7 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
             break;
 
         default:
-            fatal("mfm_writew port=%04x val=%04x\n", port, val);
+            break;
     }
 }
 
