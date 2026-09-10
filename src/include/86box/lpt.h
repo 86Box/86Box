@@ -160,6 +160,8 @@ extern void                lpt_devices_close(int soft);
 extern void                lpt_devices_reset(void);
 
 extern void                lpt_set_next_inst(int ni);
+
+extern int                 lpt_get_3bc_used(void);
 extern void                lpt_set_3bc_used(int is_3bc_used);
 
 extern void                lpt_standalone_init(void);
