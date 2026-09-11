@@ -30,3 +30,9 @@ Build the `cartridge_tests` target with `BUILD_TESTING=ON`, then run:
 ```sh
 ctest --test-dir build --output-on-failure -R '^CartridgeTest\.'
 ```
+
+# FDC Read ID
+
+Build `fdc_read_id_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^FdcReadId\.'`.
+
+The tests use the real FDC/FDD/IMG/D86F path to check immediate missing-head errors and normal bitstream Read ID completion in DMA and non-DMA modes. They adapt host timers, interrupts and file services; Read ID has no DMA payload, so this is not a DMA-transfer test. The fixture follows the C-in-C++ device-test convention and uses POSIX temporary-directory helpers.
