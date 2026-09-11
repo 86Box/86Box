@@ -754,7 +754,7 @@ static const pcjx_rom_file_t pcjx_rom_files[] = {
     { "64X9708_FE00_ROM_BIOS.BIN",        0x1e000, 0x02000, 2, 0 },
     { "5601_JBA_JFC_E000_IBASIC_102.BIN", 0x00000, 0x18000, 4, 0 },
     { "5601_JBA_JFC_F800_ROM_BIOS.BIN",   0x18000, 0x08000, 4, 0 },
-    { "5601_JBA_JFC_KANJI.BIN",           0x00000, PCJX_CG2_IMAGE_SIZE, 4, 1 }
+    { "5601_JBA_JFC_KANJI_PATCHED.BIN",   0x00000, PCJX_CG2_IMAGE_SIZE, 4, 1 }
 };
 
 /* NULL board is availability-only: no allocations, timers or mappings. */
@@ -1307,7 +1307,7 @@ static const device_config_t pcjx_config[] = {
                 .files = {
                     "roms/machines/ibmpcjx/5601_JBA_JFC_E000_IBASIC_102.BIN",
                     "roms/machines/ibmpcjx/5601_JBA_JFC_F800_ROM_BIOS.BIN",
-                    "roms/machines/ibmpcjx/5601_JBA_JFC_KANJI.BIN"
+                    "roms/machines/ibmpcjx/5601_JBA_JFC_KANJI_PATCHED.BIN"
                 }
             },
             { .files_no = 0 }
