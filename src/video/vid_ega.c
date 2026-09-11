@@ -1508,13 +1508,6 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
                         break;
                 }
         }
-
-        uint16_t base_addr = 0x03a0;
-#ifdef EGA_ALT_ADDR_SUPPORT
-        if (ega->alt_addr == 1)
-            base_addr = 0x02a0;
-#endif
-        io_sethandler(base_addr, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
     } else {
         for (uint16_t c = 0; c < 256; c++) {
             pallook64[c] = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
@@ -1671,15 +1664,15 @@ ega_standalone_init(const device_t *info)
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
     if (ega_type == EGA_TYPE_COMPAQ)
         mem_mapping_disable(&ega->mapping);
-    uint16_t addr = 0x03c0;
+    uint16_t addr = 0x03a0;
 #ifdef EGA_ALT_ADDR_SUPPORT
     if (ega_type == EGA_TYPE_IBM) {
-        addr = device_get_config_hex16("base");
-        if (addr == 0x02c0)
+        addr = device_get_config_hex16("base") - 0x0020;
+        if (addr == 0x02a0)
             ega->alt_addr = 1;
     }
 #endif
-    io_sethandler(addr - 0x20, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+    io_sethandler(addr, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
     if (ega->chipset) {
         io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
@@ -1804,12 +1797,12 @@ static const device_config_t ega_ibm_config[] = {
         .description    = "Address",
         .type           = CONFIG_HEX16,
         .default_string = NULL,
-        .default_int    = 0x03c0,
+        .default_int    = 0x03a0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "0x3C0", .value = 0x03c0 },
-            { .description = "0x2C0", .value = 0x02c0 },
+            { .description = "0x3C0", .value = 0x03a0 },
+            { .description = "0x2C0", .value = 0x02a0 },
             { .description = ""                       }
         },
         .bios           = { { 0 } }

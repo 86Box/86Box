@@ -72,15 +72,21 @@
 #define XMA_PF_SCAN_LAST    (0xe0000U >> XMA_BLOCK_SHIFT)   /* 0x0E0 */
 #define XMA_PF_SLOTS        (XMA_PF_SCAN_LAST - XMA_PF_SCAN_FIRST) /* per-4K page-frame slots */
 
-/* Extended-memory home; follows the planar memory size. */
-#define MXO_EXT_BASE        0x160000U /* 1M + 384K: default card home */
-#define MXO_EXT_FIRST_TT    (MXO_EXT_BASE >> MXO_BLOCK_SHIFT) /* 0x58 */
+/* The extended-memory window starts out at 1M, disabled, and is then
+   repositioned by the BIOS/driver through the TT. 1M is also the lowest
+   address the window may cover: the space between the page-frame window
+   and 1M is ROM and stays unmapped, but entries from 1M up are mappable
+   so a driver can move card RAM right above the planar memory - and once
+   the planar RAM is disabled (POS 103h bit 0 = 0) the card also maps the
+   remapped 384K at 1M+0..384K, and PS2EMM.SYS relies on this behavior. */
+#define MXO_EXT_BASE        0x100000U /* initial ext window address: 1M */
+#define MXO_EXT_FIRST_TT    (MXO_EXT_BASE >> MXO_BLOCK_SHIFT) /* 0x40 */
 
-#define PSQ_EXT_BASE        0x160000U /* 1M + 384K: default card home */
-#define PSQ_EXT_FIRST_TT    (PSQ_EXT_BASE >> PSQ_BLOCK_SHIFT) /* 0x58 */
+#define PSQ_EXT_BASE        0x100000U /* initial ext window address: 1M */
+#define PSQ_EXT_FIRST_TT    (PSQ_EXT_BASE >> PSQ_BLOCK_SHIFT) /* 0x40 */
 
-#define XMA_EXT_BASE        0x160000U /* 1M + 384K: default card home */
-#define XMA_EXT_FIRST_TT    (XMA_EXT_BASE >> XMA_BLOCK_SHIFT) /* 0x160 */
+#define XMA_EXT_BASE        0x100000U /* initial ext window address: 1M */
+#define XMA_EXT_FIRST_TT    (XMA_EXT_BASE >> XMA_BLOCK_SHIFT) /* 0x100 */
 
 typedef struct ram_t {
     uint32_t  size_kb;  /* RAM size in KB */
@@ -95,7 +101,7 @@ typedef struct mxo_t {
     uint8_t       tt[MXO_TT_ENTRIES];
 
     mem_mapping_t pf_map[MXO_PF_SLOTS]; /* per-16K EMS page-frame slots */
-    mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
+    mem_mapping_t ext_mapping;          /* extended memory window */
 
     uint8_t       pf_state[MXO_PF_SLOTS]; /* last programmed pf slot state (0 = off, 1 = on) */
     uint8_t       pos_regs[8];
@@ -110,7 +116,7 @@ typedef struct psq_t {
     uint16_t      tt[PSQ_TT_ENTRIES];
 
     mem_mapping_t pf_map[PSQ_PF_SLOTS]; /* per-16K EMS page-frame slots */
-    mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
+    mem_mapping_t ext_mapping;          /* extended memory window */
 
     uint8_t       pf_state[PSQ_PF_SLOTS]; /* last programmed pf slot state (0 = off, 1 = on) */
     uint8_t       pos_regs[8];
@@ -128,7 +134,7 @@ typedef struct xma_t {
     uint8_t       mode;    /* 31A7 mode register */
 
     mem_mapping_t pf_map[XMA_PF_SLOTS]; /* per-4K EMS page-frame slots */
-    mem_mapping_t ext_mapping;          /* extended memory at 1M + 384K */
+    mem_mapping_t ext_mapping;          /* extended memory window */
 
     uint8_t       pf_state[XMA_PF_SLOTS]; /* last programmed pf slot state (0 = off, 1 = on) */
     uint16_t      ext_lo;                 /* last programmed ext window base TT index */
@@ -156,9 +162,6 @@ typedef struct xma_t {
 #define PSQ_BLOCK_SIZE      (1U << PSQ_BLOCK_SHIFT)
 #define PSQ_TT_ENABLE       0x0100U  /* entry bit 8 = mapping enabled */
 #define PSQ_TT_BLOCK_MASK   0x00ffU  /* entry bits 7-0 = block number */
-
-/* Largest configuration supported by the POS capacity encoding. */
-#define PSQ_SIZE_4MB        (4U * 1024U * 1024U)
 
 /* XMA/A entries: bit 11 = no translate, bits 10-0 = 4K block pointer. */
 #define XMA_BLOCK_SIZE      (1U << XMA_BLOCK_SHIFT)
@@ -226,9 +229,9 @@ xma_log(const char *fmt, ...)
  *   105h       channel check / bank presence (read-only)
  *   106h/107h  translate table pointer (low/high byte)
  *
- * On reset the table maps the fitted memory identity-style at 1M + 384K
- * (extended-memory home); the EMS page-frame slots A0000h-E0000h can be
- * re-pointed at any 16 KB block of the card.
+ * The power-on table is empty; the system BIOS init programs it to map
+ * the fitted memory at the extended-memory home, and the EMS page-frame
+ * slots A0000h-E0000h can be re-pointed at any 16 KB block of the card.
  *
  * The register and translate table layout follow the MS-DOS 4.0 XMA2EMS 
  * device driver source (XMA2EMS.ASM / PS2_5060.INC).
@@ -299,10 +302,9 @@ mxo_pf_update(mxo_t *dev)
     }
 }
 
-/* Position the extended-memory mapping over the currently enabled home
-   entries. The card's home depends on the planar memory size (1M+384K
-   with a 1MB planar, 2M+384K with a 2MB planar, etc.), so the mapping
-   follows wherever the BIOS/driver actually sets the translate table. */
+/* Position the extended-memory mapping over the enabled TT entries at or
+   above 1M (MXO_EXT_FIRST_TT) - wherever the BIOS/driver has placed the
+   card's memory. */
 static void
 mxo_ext_update(mxo_t *dev)
 {
@@ -445,21 +447,16 @@ mxo_init(UNUSED(const device_t *info))
        a valid memory adapter, bit 0 clear (bank 1 low presence bit). */
     dev->pos_regs[5] = 0x80; /* channel check / bank-1 presence */
 
-    /* Default TT: identity-map the card's memory at its extended-memory
-       home, starting at 1M+384K. */
-    for (uint32_t i = 0; i < dev->blocks; i++)
-        dev->tt[MXO_EXT_FIRST_TT + i] = MXO_TT_ENABLE | i;
-
     /* Register the card on the MCA bus. */
     mca_add(mxo_mca_read, mxo_mca_write, mxo_mca_feedb, mxo_reset, dev);
 
-    /* Extended memory home, provided by the card through its TT.  The
-       default TT maps it at 1M+384K, so the memory is present right after
-       boot; mxo_ext_update() repositions the mapping wherever the BIOS
-       actually sets the translate table up. */
+    /* Extended memory home, provided by the card through its TT.
+       The power-on TT is empty, so the mapping starts out disabled
+       and mxo_ext_update() positions it wherever the BIOS programs
+       the translate table. */
     mem_mapping_add(&dev->ext_mapping,
                     MXO_EXT_BASE,
-                    MXO_SIZE_2MB,
+                    (uint32_t) dev->blocks << MXO_BLOCK_SHIFT,
                     mxo_mem_read,
                     NULL,
                     NULL,
@@ -469,7 +466,7 @@ mxo_init(UNUSED(const device_t *info))
                     NULL,
                     MEM_MAPPING_EXTERNAL,
                     dev);
-    mxo_ext_update(dev);
+    mem_mapping_disable(&dev->ext_mapping);
 
     /* EMS page frame slots (00000h-E0000h), one 16K mapping per slot.
        mxo_pf_update() enables only the slots whose TT entry is active, 
@@ -594,8 +591,8 @@ psq_pf_update(psq_t *dev)
     }
 }
 
-/* Position the extended-memory mapping over the currently enabled home
-   entries, in the same way the MXO does. */
+/* Position the extended-memory mapping over the enabled TT entries at or
+   above 1M (PSQ_EXT_FIRST_TT), in the same way the MXO does. */
 static void
 psq_ext_update(psq_t *dev)
 {
@@ -800,11 +797,13 @@ psq_init(const device_t *info)
         mem_mapping_disable(&dev->pf_map[k]);
     }
 
-    /* Extended-memory window at 1M+384K, enabled only by TT entries that
-       a driver programs above the page frame area (empty TT: disabled). */
+    /* Extended-memory window, starting out at 1M (PSQ_EXT_BASE) and
+       repositioned by psq_ext_update() over any TT entries a driver
+       programs at 1M (PSQ_EXT_FIRST_TT) or above - the empty
+       power-on TT leaves it disabled. */
     mem_mapping_add(&dev->ext_mapping,
                     PSQ_EXT_BASE,
-                    PSQ_SIZE_4MB,
+                    (uint32_t) dev->blocks << PSQ_BLOCK_SHIFT,
                     psq_mem_read,
                     NULL,
                     NULL,
@@ -814,7 +813,7 @@ psq_init(const device_t *info)
                     NULL,
                     MEM_MAPPING_EXTERNAL,
                     dev);
-    psq_ext_update(dev);
+    mem_mapping_disable(&dev->ext_mapping);
 
     return dev;
 }
@@ -1007,11 +1006,9 @@ xma_pf_update(xma_t *dev)
 }
 
 /* Re-map the linear extended-memory window so it covers exactly the
-   enabled (non-inhibited) TT entries at or above the card's power-on
-   home.  The init ROM repositions the card's memory by rewriting the
-   translate table (at POST the blocks live at the default 1M+384K home
-   only until the ROM moves them above the system memory), so the
-   window must follow the table instead of being fixed at xma_init.
+   enabled (non-inhibited) TT entries at or above 1M (XMA_EXT_FIRST_TT).
+   The init ROM repositions the card's memory by rewriting the translate
+   table, so the window must follow the table instead of being fixed.
 
    During the ROM's bulk table fill the window changes only once per
    reposition, so the last computed (lo, hi) pair is kept and the
@@ -1456,11 +1453,12 @@ xma_init(const device_t *info)
     /* Register the card on the MCA bus. */
     dev->slot = mca_add(xma_mca_read, xma_mca_write, xma_mca_feedb, xma_reset, dev);
 
-    /* Extended-memory home at 1M+384K; xma_mem_read/write() gate access
-       through the TT so inhibited entries simply read empty. The mapping
-       starts out disabled - the default all-inhibited table leaves no
-       window - and xma_map_update() sizes and enables it as the init
-       ROM programs the table. */
+    /* Extended-memory window, starting out at 1M (XMA_EXT_BASE);
+       xma_mem_read/write() gate access through the TT so inhibited
+       entries simply read empty. The mapping starts out disabled - the
+       default all-inhibited table leaves no window - and xma_map_update()
+       sizes and enables it over the TT entries the init ROM (or a driver)
+       programs at 1M (XMA_EXT_FIRST_TT) or above. */
     mem_mapping_add(&dev->ext_mapping,
                     XMA_EXT_BASE,
                     (uint32_t) dev->blocks << XMA_BLOCK_SHIFT,
@@ -1494,7 +1492,7 @@ xma_init(const device_t *info)
         mem_mapping_disable(&dev->pf_map[k]);
     }
     xma_pf_update(dev);
-    xma_map_update(dev); /* size the linear window to the default TT map */
+    xma_map_update(dev); /* size the linear window to the TT contents */
 
     /* Load the 8KB init ROM but keep it disabled until the reference disk
        selects a window through POS 104h bits 7-4 (xma_bios_update). The ROM 

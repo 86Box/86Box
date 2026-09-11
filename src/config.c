@@ -781,14 +781,14 @@ load_input_devices(void)
         keyboard_type = KEYBOARD_TYPE_PC_XT;
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
-    if (p != NULL)
+    if (p != NULL) {
         mouse_type = mouse_get_from_internal_name(p);
-    else
-        mouse_type = 0;
 
-    // Migration.
-    if (tablet_get_from_internal_name(p) && mouse_type == 0)
-        ini_section_set_string(cat, "tablet_type", p);
+        // Migration.
+        if (tablet_get_from_internal_name(p) && mouse_type == 0)
+            ini_section_set_string(cat, "tablet_type", p);
+    } else
+        mouse_type = 0;
 
     p = ini_section_get_string(cat, "tablet_type", NULL);
     if (p != NULL)

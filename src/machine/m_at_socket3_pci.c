@@ -417,7 +417,7 @@ static const device_config_t pb450_config[] = {
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/pb450/p4hs20.bin", "" }
+                .files         = { "roms/machines/pb450/p4hs20.BIN", "" }
             },
             { .files_no = 0 }
         }

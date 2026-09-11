@@ -186,7 +186,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         if (name.isEmpty())
             break;
 
-        if (device_is_valid(dev, machineId)) {
+        if (device_available(dev) && device_is_valid(dev, machineId)) {
             for (uint8_t i = 0; i < ISAMEM_MAX; ++i) {
                 int cur = mca_bus ? mcamem_type[i] : isamem_type[i];
                 int row = Models::AddEntry(mem_models[i], name, c);
