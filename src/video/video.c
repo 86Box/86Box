@@ -449,6 +449,14 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
     MTR_END("video", "video_blit_memtoscreen");
 }
 
+/* Character clocks from the selected HSYNC edge to the next line.
+   Pass zero for sync start, or the effective pulse width for sync end. */
+int
+video_6845_get_hsync_delay(const uint8_t *crtc, int hsync_width)
+{
+    return (crtc[0] + 1) - crtc[2] - hsync_width;
+}
+
 uint8_t
 pixels8(uint32_t *pixels)
 {

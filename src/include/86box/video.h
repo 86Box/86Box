@@ -299,6 +299,8 @@ extern void video_blit_complete_monitor(int monitor_index);
 extern void video_wait_for_blit_monitor(int monitor_index);
 extern void video_wait_for_buffer_monitor(int monitor_index);
 
+extern int video_6845_get_hsync_delay(const uint8_t *crtc, int hsync_width);
+
 extern bitmap_t *create_bitmap(int w, int h);
 extern void      destroy_bitmap(bitmap_t *b);
 extern void      cgapal_rebuild_monitor(int monitor_index);
