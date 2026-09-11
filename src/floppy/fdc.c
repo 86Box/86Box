@@ -2357,7 +2357,7 @@ void
 fdc_wrongcylinder(fdc_t *fdc)
 {
     fdc_log("FDC error: Wrong cylinder\n");
-    fdc_error(fdc, 0x00, 0x10);
+    fdc_error(fdc, 0x04, 0x10);
 }
 
 void
