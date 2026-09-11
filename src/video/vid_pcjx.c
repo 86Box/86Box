@@ -66,6 +66,37 @@ recalc_address(pcjx_video_t *video)
     video->vram = display_page < video->shared_size ? video->shared_ram + display_page : NULL;
 }
 
+/* Both onboard processors use the common 14 MHz raster. Selecting a register
+   bank for CPU I/O does not select (or disable) a display source. */
+static uint8_t
+pcjx_raster_mode(const pcjx_video_t *video)
+{
+    if (video->cg2 && (video->jx_array[0] & 8) && (video->jx_array[1] & 0x20))
+        return video->jx_array[0];
+    return video->array[0];
+}
+
+uint8_t
+pcjx_vid_font_read(const pcjx_video_t *video, uint32_t offset)
+{
+    offset &= 0x3ffff;
+    if (!video->cg2)
+        return 0xff;
+    /* This asset is a CPU-aperture capture, not four physical CG2 chips.
+       The 2 KiB SRAM is mirrored throughout 88000h-8FFFFh. */
+    if ((offset & 0x38000) == 0x8000)
+        return video->gaiji ? video->gaiji[offset & (PCJX_GAIJI_SIZE - 1)] : 0xff;
+    return offset < PCJX_CG2_IMAGE_SIZE ? video->cg2[offset] : 0xff;
+}
+
+void
+pcjx_vid_font_write(pcjx_video_t *video, uint32_t offset, uint8_t value)
+{
+    offset &= 0x3ffff;
+    if (video->cg2 && video->gaiji && (offset & 0x38000) == 0x8000)
+        video->gaiji[offset & (PCJX_GAIJI_SIZE - 1)] = value;
+}
+
 static void
 pcjx_recalc_timings(pcjx_video_t *video)
 {
@@ -73,7 +104,7 @@ pcjx_recalc_timings(pcjx_video_t *video)
     double _dispofftime;
     double disptime;
 
-    if (video->array[0] & 1) {
+    if (pcjx_raster_mode(video) & 1) {
         disptime    = video->crtc[0] + 1;
         _dispontime = video->crtc[1];
     } else {
@@ -99,7 +130,7 @@ vid_get_h_overscan_size(pcjx_video_t *video)
 {
     int ret;
 
-    if (video->array[0] & 1)
+    if (pcjx_raster_mode(video) & 1)
         ret = 128;
     else
         ret = 256;
@@ -121,7 +152,9 @@ vid_get_h_overscan_delta(pcjx_video_t *video)
     int coef;
     int ret;
 
-    switch ((video->array[0] & 0x13) | ((video->array[3] & 0x08) << 5)) {
+    switch ((pcjx_raster_mode(video) & 0x13) |
+            (((video->cg2 && (video->jx_array[0] & 8) && (video->jx_array[1] & 0x20)
+               ? video->jx_array[3] : video->array[3]) & 0x08) << 5)) {
         case 0x13: /* 320x200x16 */
         case 0x03: /* 640x200x4 */
         case 0x01: /* 80-column text */
@@ -134,7 +167,7 @@ vid_get_h_overscan_delta(pcjx_video_t *video)
 
     /* JX uses sync end, with four low-bandwidth or ten high-bandwidth
      * character clocks between sync end and the next display line. */
-    const int reference_back_porch = (video->array[0] & 1) ? 10 : 4;
+    const int reference_back_porch = (pcjx_raster_mode(video) & 1) ? 10 : 4;
 
     ret = video_6845_get_hsync_delay(video->crtc, video->crtc[3] & 0x0f) -
           reference_back_porch;
@@ -166,7 +199,7 @@ vid_blit_v_overscan(pcjx_video_t *video)
         h <<= 1;
     }
 
-    if (video->array[0] & 1)
+    if (pcjx_raster_mode(video) & 1)
         x = (video->crtc[1] << 3) + ho_s;
     else
         x = (video->crtc[1] << 4) + ho_s;
@@ -176,8 +209,8 @@ vid_blit_v_overscan(pcjx_video_t *video)
         hline(buffer32, 0, y + i, x, cols);
 
         if (video->composite) {
-            Composite_Process(video->array[0], 0, x >> 2, buffer32->line[y0 + i]);
-            Composite_Process(video->array[0], 0, x >> 2, buffer32->line[y + i]);
+            Composite_Process(pcjx_raster_mode(video), 0, x >> 2, buffer32->line[y0 + i]);
+            Composite_Process(pcjx_raster_mode(video), 0, x >> 2, buffer32->line[y + i]);
         } else {
             video_process_8(x, y0 + i);
             video_process_8(x, y + i);
@@ -188,7 +221,7 @@ vid_blit_v_overscan(pcjx_video_t *video)
 /* Decode one CRTC character clock to output color codes. The scanout and JX
    diagnostic feedback share this pixel path, including the two-plane mode A. */
 static void
-vid_cell(pcjx_video_t *video, uint16_t memaddr, int scanline, uint8_t pixels[16])
+vid_english_cell(pcjx_video_t *video, uint16_t memaddr, int scanline, uint8_t pixels[16])
 {
     uint16_t offset = 0;
     uint16_t mask = 0x1fff;
@@ -275,11 +308,169 @@ vid_cell(pcjx_video_t *video, uint16_t memaddr, int scanline, uint8_t pixels[16]
     }
 }
 
+/* Native processors supply palette indices to a common mixer, not separately
+   palette-mapped RGBI colors. Graphics row banking is independent of the CRTC
+   character height, allowing graphics behind 18-line Japanese text boxes. */
+static int
+vid_native_cell(pcjx_video_t *video, int bank, uint16_t memaddr, int scanline,
+                int width, uint8_t pixels[16])
+{
+    const uint8_t *registers = bank ? video->jx_array : video->array;
+    uint8_t mode = registers[0];
+    uint8_t *ram = bank ? video->dedicated_vram : video->shared_ram;
+    uint32_t size = bank ? 0x8000 : video->shared_size;
+    uint32_t page = bank ? (video->pg2 & 3) << 14 : (video->memctrl & 7) << 14;
+    uint32_t offset;
+    int graphics = mode & 2;
+    int banks = (mode & 1) ? 4 : 2;
+
+    if (!(mode & 8) || !(video->jx_array[1] & (0x10 << bank)) || !ram)
+        return 0;
+    if (graphics) {
+        uint16_t start = (video->crtc[13] | (video->crtc[12] << 8)) & 0x3fff;
+        unsigned column = (memaddr - start - video->vc * video->crtc[1]) & 0x3fff;
+        unsigned y = video->vc * (video->crtc[9] + 1) + scanline;
+        unsigned address = start + (y / banks) * video->crtc[1] + column;
+        page &= ~((banks == 4) ? 0x7fff : 0x3fff);
+        offset = (y % banks) * 0x2000 + ((address << 1) & 0x1fff);
+    } else
+        offset = (memaddr << 1) & 0x3fff;
+    if (page + offset + 1 >= size)
+        return 0;
+
+    uint8_t lo = ram[page + offset];
+    uint8_t hi = ram[page + offset + 1];
+    if (!graphics) {
+        uint16_t cursoraddr = (video->crtc[15] | (video->crtc[14] << 8)) & 0x3fff;
+        int cursor = (memaddr & 0x3fff) == cursoraddr && video->cursorvisible && video->cursoron;
+        uint8_t fg = hi & 15;
+        uint8_t bg = hi >> 4;
+        uint8_t glyph = 0;
+        if (bank && (mode & 0x40)) {
+            uint32_t font_offset = (uint32_t) lo << 5;
+            int right = 0;
+            fg &= 7;
+            bg &= 7;
+            if (hi & 0x80) {
+                right = !!(hi & 8);
+                uint32_t adjacent = (offset + (right ? -2 : 2)) & 0x3fff;
+                uint16_t code = right ? (ram[page + adjacent] << 8) | lo
+                                      : (lo << 8) | ram[page + adjacent];
+                /* Stored codes are already BIOS-translated internal codes:
+                   e.g. external gaiji F041h is stored as 8441h. */
+                font_offset = (code << 5) & 0x3ffe0;
+            }
+            if (scanline < 16) {
+                glyph = pcjx_vid_font_read(video, font_offset + scanline * 2 + right);
+                if ((hi & 0x80) && !right)
+                    glyph &= 0x7f; /* CG2's left bit 7 is a control bit. */
+            }
+        } else {
+            if (scanline < 8)
+                glyph = bank ? pcjx_vid_font_read(video, (lo << 5) + scanline * 2 + 1)
+                             : video->cg1[lo * 8 + scanline];
+            if (registers[3] & 2) {
+                bg &= 7;
+                if ((video->blink & 16) && (hi & 0x80) && !cursor)
+                    fg = bg;
+            }
+        }
+        if (cursor)
+            glyph = 0xff;
+        for (int c = 0; c < width; c++) {
+            uint8_t index = (glyph & (0x80 >> (c * 8 / width))) ? fg : bg;
+            pixels[c] = index & registers[1] & 15;
+        }
+    } else {
+        uint16_t dat = (lo << 8) | hi;
+        for (int c = 0; c < width; c++) {
+            uint8_t index;
+            if (mode & 0x10)
+                index = (dat >> (12 - (c * 4 / width) * 4)) & 15;
+            else if (registers[3] & 8)
+                index = (dat >> (15 - c * 16 / width)) & 1;
+            else if (mode & 1) {
+                int bit = 7 - c * 8 / width;
+                index = ((lo >> bit) & 1) | (((hi >> bit) & 1) << 1);
+            } else
+                index = (dat >> (14 - (c * 8 / width) * 2)) & 3;
+            index &= registers[1] & 15;
+            if (registers[3] & 2)
+                index = (index & 7) | ((video->blink & 16) >> 1);
+            pixels[c] = index;
+        }
+    }
+    return 1;
+}
+
+static void
+vid_cell(pcjx_video_t *video, uint16_t memaddr, int scanline, uint8_t pixels[16])
+{
+    if (!video->cg2) {
+        vid_english_cell(video, memaddr, scanline, pixels);
+        return;
+    }
+    int width = (pcjx_raster_mode(video) & 1) ? 8 : 16;
+    if (video->array[4] & 3) {
+        memset(pixels, video->array[2] & 15, width);
+        return;
+    }
+    uint8_t vp1[16], vp2[16];
+    int enabled1 = vid_native_cell(video, 0, memaddr, scanline, width, vp1);
+    int enabled2 = vid_native_cell(video, 1, memaddr, scanline, width, vp2);
+    unsigned mixer = video->array[6] & 15;
+    if ((!enabled1 && !enabled2) || (mixer == 0 && !enabled1) || (mixer == 1 && !enabled2)) {
+        memset(pixels, video->array[2] & 15, width);
+        return;
+    }
+    if (!enabled1)
+        memset(vp1, 0, width);
+    if (!enabled2)
+        memset(vp2, 0, width);
+    for (int c = 0; c < width; c++) {
+        uint8_t index;
+        if (video->jx_array[0] & 0x80)
+            index = ((vp1[c] & 3) | ((vp2[c] & 3) << 2)) ^ 0x0a;
+        else {
+            switch (mixer) {
+                case 0:
+                    index = vp1[c];
+                    break;
+                case 1:
+                    index = vp2[c];
+                    break;
+                case 2:
+                    index = vp1[c] == (video->array[5] & 15) ? vp2[c] : vp1[c];
+                    break;
+                case 3:
+                    /* VP1 alone has a transparent-index comparator. Reversed
+                       priority preserves that background in the foreground. */
+                    index = vp1[c] == (video->array[5] & 15) ? vp1[c] : vp2[c];
+                    break;
+                default:
+                    switch (video->array[6] & 12) {
+                        case 4:
+                            index = vp1[c] ^ vp2[c];
+                            break;
+                        case 8:
+                            index = vp1[c] & vp2[c];
+                            break;
+                        default:
+                            index = vp1[c] | vp2[c];
+                            break;
+                    }
+                    break;
+            }
+        }
+        pixels[c] = video->array[16 + index] & 15;
+    }
+}
+
 static void
 vid_render(pcjx_video_t *video, int line, int ho_s, int ho_d)
 {
     uint8_t pixels[16];
-    int width = (video->array[0] & 1) ? 8 : 16;
+    int width = (pcjx_raster_mode(video) & 1) ? 8 : 16;
 
     hline(buffer32, 0, line, video->crtc[1] * width + ho_s, (video->array[2] & 15) + 16);
     for (int x = 0; x < video->crtc[1]; x++) {
@@ -294,7 +485,7 @@ vid_render(pcjx_video_t *video, int line, int ho_s, int ho_d)
 static unsigned
 pcjx_raster_dot(pcjx_video_t *video)
 {
-    unsigned width = video->crtc[1] * ((video->array[0] & 1) ? 8 : 16);
+    unsigned width = video->crtc[1] * ((pcjx_raster_mode(video) & 1) ? 8 : 16);
     uint128_t remaining = timer_get_remaining_u64(&video->timer);
     if (!width || !video->dispontime || remaining >= video->dispontime)
         return 0;
@@ -313,9 +504,10 @@ pcjx_vid_in(uint16_t port, uint8_t vp_mask, void *priv)
             return 0xff;
         if (video->status & 1) {
             uint8_t pixels[16];
-            unsigned width = (video->array[0] & 1) ? 8 : 16;
+            unsigned width = (pcjx_raster_mode(video) & 1) ? 8 : 16;
             unsigned dot = pcjx_raster_dot(video);
-            int scanline = ((video->crtc[8] & 3) == 3) ? (video->scanline << 1) & 7 : video->scanline;
+            int scanline = ((video->crtc[8] & 3) == 3)
+                               ? (video->scanline << 1) & (video->cg2 ? 31 : 7) : video->scanline;
             vid_cell(video, video->memaddr + dot / width, scanline, pixels);
             color = pixels[dot % width];
         }
@@ -391,7 +583,7 @@ pcjx_vid_out(uint16_t port, uint8_t val, uint8_t vp_mask, void *priv)
             return;
         case 0x3dc:
             if (!(video->status & 2)) {
-                unsigned width = (video->array[0] & 1) ? 8 : 16;
+                unsigned width = (pcjx_raster_mode(video) & 1) ? 8 : 16;
                 uint16_t address = video->memaddr;
                 if (video->status & 1)
                     address += pcjx_raster_dot(video) / width;
@@ -429,7 +621,7 @@ pcjx_vid_out(uint16_t port, uint8_t val, uint8_t vp_mask, void *priv)
                 }
                 *phase = !*phase;
             }
-            update_cga16_color(video->array[0], video->array[2] & 15);
+            update_cga16_color(pcjx_raster_mode(video), video->array[2] & 15);
             pcjx_recalc_timings(video);
             return;
         default:
@@ -440,7 +632,7 @@ pcjx_vid_out(uint16_t port, uint8_t val, uint8_t vp_mask, void *priv)
 static void
 vid_render_blank(pcjx_video_t *video, int line, int ho_s)
 {
-    if (video->array[0] & 1)
+    if (pcjx_raster_mode(video) & 1)
         hline(buffer32, 0, line, (video->crtc[1] << 3) + ho_s, (video->array[2] & 0xf) + 16);
     else
         hline(buffer32, 0, line, (video->crtc[1] << 4) + ho_s, (video->array[2] & 0xf) + 16);
@@ -451,13 +643,13 @@ vid_render_process(pcjx_video_t *video, int line, int ho_s)
 {
     int x;
 
-    if (video->array[0] & 1)
+    if (pcjx_raster_mode(video) & 1)
         x = (video->crtc[1] << 3) + ho_s;
     else
         x = (video->crtc[1] << 4) + ho_s;
 
     if (video->composite)
-        Composite_Process(video->array[0], 0, x >> 2, buffer32->line[line]);
+        Composite_Process(pcjx_raster_mode(video), 0, x >> 2, buffer32->line[line]);
     else
         video_process_8(x, line);
 }
@@ -482,7 +674,7 @@ vid_poll(void *priv)
         video->linepos = 1;
         scanline_old         = video->scanline;
         if ((video->crtc[8] & 3) == 3)
-            video->scanline = (video->scanline << 1) & 7;
+            video->scanline = (video->scanline << 1) & (video->cg2 ? 31 : 7);
         if (video->dispon) {
             if (video->displine < video->firstline) {
                 video->firstline = video->displine;
@@ -573,8 +765,10 @@ vid_poll(void *priv)
                     video->memaddr = video->memaddr_backup = (video->crtc[13] | (video->crtc[12] << 8)) & 0x3fff;
                 if ((video->crtc[10] & 0x60) == 0x20)
                     video->cursoron = 0;
+                else if (video->cg2 && !(video->crtc[10] & 0x60))
+                    video->cursoron = 1;
                 else
-                    video->cursoron = video->blink & 16;
+                    video->cursoron = video->blink & ((video->cg2 && (video->crtc[10] & 0x60) == 0x60) ? 32 : 16);
             }
             if (video->vc == video->crtc[7]) {
                 video->dispon    = 0;
@@ -583,7 +777,7 @@ vid_poll(void *priv)
                 video->status |= 8;
                 picint(1 << 5);
                 if (video->crtc[7]) {
-                    if (video->array[0] & 1)
+                    if (pcjx_raster_mode(video) & 1)
                         x = (video->crtc[1] << 3) + ho_s;
                     else
                         x = (video->crtc[1] << 4) + ho_s;
@@ -691,11 +885,14 @@ vid_init(pcjx_video_t *video)
 
 void
 pcjx_vid_init(pcjx_video_t *video, uint8_t *shared_ram, uint32_t shared_size,
-              uint8_t *dedicated_vram, const uint8_t *cg1)
+              uint8_t *dedicated_vram, const uint8_t *cg1,
+              const uint8_t *cg2, uint8_t *gaiji)
 {
     video->shared_ram = shared_ram;
     video->shared_size = shared_size > 0x20000 ? 0x20000 : shared_size;
     video->dedicated_vram = dedicated_vram;
+    video->cg2 = cg2;
+    video->gaiji = gaiji;
     video->jx_array[3] = 0x10; /* Assumed cold-reset English memory ordering. */
     video->status = 4;
     video->firstline = 1000;

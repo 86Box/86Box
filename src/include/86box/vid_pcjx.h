@@ -18,6 +18,9 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 
+#define PCJX_CG2_IMAGE_SIZE 0x38000
+#define PCJX_GAIJI_SIZE     0x800
+
 typedef struct pcjx_video_s {
     uint8_t       crtc[32];
     int           crtcreg;
@@ -59,15 +62,20 @@ typedef struct pcjx_video_s {
     uint32_t      shared_size;
     uint8_t      *dedicated_vram;
     uint8_t       cg1[2048]; /* Immutable PCjr hardware-font compatibility copy. */
+    const uint8_t *cg2; /* NULL when native Japanese video hardware is absent. */
+    uint8_t       *gaiji;
     uint8_t       dot_component[2];
 
     uint8_t       pb; /* Board PPI port B; bit 2 selects text rather than graphics. */
 } pcjx_video_t;
 
 void pcjx_vid_init(pcjx_video_t *video, uint8_t *shared_ram, uint32_t shared_size,
-                  uint8_t *dedicated_vram, const uint8_t *cg1);
+                  uint8_t *dedicated_vram, const uint8_t *cg1,
+                  const uint8_t *cg2, uint8_t *gaiji);
 uint8_t pcjx_vid_in(uint16_t port, uint8_t vp_mask, void *priv);
 void pcjx_vid_out(uint16_t port, uint8_t value, uint8_t vp_mask, void *priv);
 void pcjx_vid_waitstates(void);
+uint8_t pcjx_vid_font_read(const pcjx_video_t *video, uint32_t offset);
+void pcjx_vid_font_write(pcjx_video_t *video, uint32_t offset, uint8_t value);
 
 extern const device_t pcjx_video_device;

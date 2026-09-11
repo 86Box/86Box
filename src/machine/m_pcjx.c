@@ -738,7 +738,6 @@ typedef struct pcjx_route_t {
     uint8_t *data;
     uint32_t nominal;
     uint8_t writable;
-    uint8_t shared;
     uint8_t cartridge;
     uint8_t base_rom;
 } pcjx_route_t;
@@ -747,6 +746,7 @@ typedef struct pcjx_page_t {
     pcjx_route_t route[14];
     uint8_t count;
     uint8_t shared;
+    uint8_t font_read, font_write;
 } pcjx_page_t;
 
 typedef struct pcjx_t {
@@ -754,13 +754,13 @@ typedef struct pcjx_t {
     mem_mapping_t mapping;
     uint8_t memory_reg[11][2];
     uint8_t io_reg[20][2];
-    uint8_t decoder_phase, decoder_selector, decoder_pending;
+    uint8_t decoder_phase, decoder_selector;
     uint8_t pa, pb, ppi_control, nmi_control;
     uint8_t keyboard_level, keyboard_latched;
     uint8_t rom_data[0x20000];
     uint8_t rom_present[32];
     uint8_t dedicated_vram[0x8000];
-    uint8_t *kanji;
+    uint8_t *font_data; /* Owned CG2 image followed by separate writable gaiji RAM. */
     uint32_t general_size;
     pcjx_page_t pages[256];
     fdc_t *fdc;
@@ -804,17 +804,18 @@ static const pcjx_rom_file_t pcjx_rom_files[] = {
     { "64X9708_FE00_ROM_BIOS.BIN",        0x1e000, 0x02000, 2, 0 },
     { "5601_JBA_JFC_E000_IBASIC_102.BIN", 0x00000, 0x18000, 4, 0 },
     { "5601_JBA_JFC_F800_ROM_BIOS.BIN",   0x18000, 0x08000, 4, 0 },
-    { "5601_JBA_JFC_KANJI.BIN",           0x00000, 0x38000, 4, 1 }
+    { "5601_JBA_JFC_KANJI.BIN",           0x00000, PCJX_CG2_IMAGE_SIZE, 0, 1 }
 };
 
 /* NULL board is availability-only: no allocations, timers or mappings. */
 static int
-pcjx_load_roms(pcjx_t *dev, unsigned profile)
+pcjx_load_roms(pcjx_t *dev, unsigned profile, int native_video)
 {
     char path[256];
     for (unsigned i = 0; i < sizeof(pcjx_rom_files) / sizeof(pcjx_rom_files[0]); i++) {
         const pcjx_rom_file_t *file = &pcjx_rom_files[i];
-        if (!(file->profiles & profile) || (i == 0 && !pcjx_1986_e000_populated))
+        if ((file->kanji ? !native_video : !(file->profiles & profile)) ||
+            (i == 0 && !pcjx_1986_e000_populated))
             continue;
         snprintf(path, sizeof(path), "roms/machines/ibmpcjx/%s", file->name);
         FILE *fp = rom_fopen(path, "rb");
@@ -822,7 +823,7 @@ pcjx_load_roms(pcjx_t *dev, unsigned profile)
         if (fp) {
             ok = !fseek(fp, 0, SEEK_END) && ftell(fp) == (long) file->size;
             if (ok && dev) {
-                uint8_t *dest = file->kanji ? dev->kanji : dev->rom_data + file->offset;
+                uint8_t *dest = file->kanji ? dev->font_data : dev->rom_data + file->offset;
                 ok = !fseek(fp, 0, SEEK_SET) && fread(dest, 1, file->size, fp) == file->size;
                 if (ok && !file->kanji)
                     memset(dev->rom_present + (file->offset >> 12), 1, file->size >> 12);
@@ -886,7 +887,6 @@ pcjx_add_route(pcjx_page_t *page, uint8_t *data, uint32_t nominal,
     route->data = data;
     route->nominal = nominal;
     route->writable = writable;
-    route->shared = shared;
     route->cartridge = cartridge;
     route->base_rom = base_rom;
     page->shared |= shared;
@@ -917,23 +917,25 @@ pcjx_rebuild_memory(pcjx_t *dev)
          * they remain probeable while selector 08 disables the shared pair. */
         if (address >= expansion_base && address - expansion_base < expansion)
             pcjx_add_route(page, ram + 0x20000 + address - expansion_base, 0, 1, 0, 0, 0);
-        if ((dev->video.jx_array[1] & 0x10) &&
-            pcjx_memory_match(dev, 8, address ^ shared_base, 0))
+        if (pcjx_memory_match(dev, 8, address ^ shared_base, 0))
             pcjx_add_route(page, ram + ((address ^ shared_base) & 0x1ffff), 0, 1, 1, 0, 0);
-        if (!(dev->video.array[4] & 3) && (dev->video.jx_array[1] & 0x10) &&
+        if (!(dev->video.array[4] & 3) &&
             pcjx_memory_match(dev, 9, address, 0)) {
             unsigned offset = pg1 + (address & pg1_mask);
             if (offset < 0x20000)
                 pcjx_add_route(page, ram + offset, 0, pcjx_memory_match(dev, 9, address, 1), 1, 0, 0);
         }
-        if (!(dev->video.array[4] & 3) && (dev->video.jx_array[1] & 0x20) &&
+        if (!(dev->video.array[4] & 3) &&
             pcjx_memory_match(dev, 10, address, 0)) {
             unsigned offset = pg2 + (address & 0x7fff);
             if (offset < sizeof(dev->dedicated_vram))
                 pcjx_add_route(page, dev->dedicated_vram + offset, 0, 1, 1, 0, 0);
         }
-        /* 07 is deliberately absent in Phase I: the separate 0x38000 Kanji
-         * capture is not evidence for an arbitrary linear CPU ROM mapping. */
+        /* KJCS is independent of CPU VRAM paging and display font access. */
+        if (dev->video.cg2) {
+            page->font_read = pcjx_memory_match(dev, 7, address, 0);
+            page->font_write = pcjx_memory_match(dev, 7, address, 1);
+        }
     }
     mem_mapping_recalc(0, 0x100000, 0);
     flushmmucache();
@@ -950,6 +952,8 @@ pcjx_readb(uint32_t address, void *priv)
     int external_rom = 0;
     if (page->shared)
         pcjx_vid_waitstates();
+    if (page->font_read)
+        value &= pcjx_vid_font_read(&dev->video, address & 0x3ffff);
     for (unsigned i = 0; i < page->count; i++) {
         const pcjx_route_t *route = &page->route[i];
         if (route->cartridge) {
@@ -974,6 +978,8 @@ pcjx_writeb(uint32_t address, uint8_t value, void *priv)
     const pcjx_page_t *page = &dev->pages[address >> 12];
     if (page->shared)
         pcjx_vid_waitstates();
+    if (page->font_write)
+        pcjx_vid_font_write(&dev->video, address & 0x3ffff, value);
     for (unsigned i = 0; i < page->count; i++) {
         const pcjx_route_t *route = &page->route[i];
         if (route->writable)
@@ -1260,19 +1266,17 @@ pcjx_decoder_write(uint16_t port, uint8_t value, void *priv)
     if (dev->decoder_phase == 0) {
         dev->decoder_selector = value;
         dev->decoder_phase = 1;
-    } else if (dev->decoder_phase == 1) {
-        dev->decoder_pending = value;
-        dev->decoder_phase = 2;
     } else {
         unsigned selector = dev->decoder_selector;
-        dev->decoder_phase = 0;
+        unsigned reg = dev->decoder_phase - 1;
+        dev->decoder_phase = reg ? 0 : 2;
+        /* REG1 takes effect without a following REG2 write. Native BIOS
+         * toggles resources this way, retaining their programmed masks. */
         if (selector <= 0x0a) {
-            dev->memory_reg[selector][0] = dev->decoder_pending;
-            dev->memory_reg[selector][1] = value;
+            dev->memory_reg[selector][reg] = value;
             pcjx_rebuild_memory(dev);
         } else if (selector >= 0x80 && selector <= 0x93) {
-            dev->io_reg[selector - 0x80][0] = dev->decoder_pending;
-            dev->io_reg[selector - 0x80][1] = value;
+            dev->io_reg[selector - 0x80][reg] = value;
             pcjx_rebuild_io(dev);
         }
     }
@@ -1306,7 +1310,7 @@ pcjx_close(void *priv)
     picintc(1 << 5);
     pcjx_active = NULL;
     nmi = 0;
-    free(dev->kanji);
+    free(dev->font_data);
     free(dev);
 }
 
@@ -1359,6 +1363,18 @@ static const device_config_t pcjx_config[] = {
             { .files_no = 0 }
         }
     },
+    {
+        .name = "native_video",
+        .description = "Native Japanese video",
+        .type = CONFIG_SELECTION,
+        .default_int = -1,
+        .selection = {
+            { .description = "Automatic (BIOS profile)", .value = -1 },
+            { .description = "Disabled", .value = 0 },
+            { .description = "Enabled", .value = 1 },
+            { .description = "" }
+        }
+    },
     { .name = "rtc_enabled", .description = "Clock option", .type = CONFIG_BINARY, .default_int = 1 },
     { .name = "", .description = "", .type = CONFIG_END }
 };
@@ -1375,7 +1391,12 @@ const device_t pcjx_device = {
 static int
 pcjx_init(const machine_t *model, unsigned profile)
 {
-    if (!pcjx_load_roms(NULL, profile))
+    device_context(model->device);
+    int native_video = device_get_config_int("native_video");
+    device_context_restore();
+    if (native_video == -1)
+        native_video = profile == 4;
+    if (!pcjx_load_roms(NULL, profile, native_video))
         return 0;
     if (bios_only)
         return 1;
@@ -1383,15 +1404,16 @@ pcjx_init(const machine_t *model, unsigned profile)
     if (!dev)
         return 0;
     memset(dev->rom_data, 0xff, sizeof(dev->rom_data));
-    if (profile == 4) {
-        dev->kanji = (uint8_t *) malloc(0x38000);
-        if (!dev->kanji) {
+    if (native_video) {
+        dev->font_data = (uint8_t *) malloc(PCJX_CG2_IMAGE_SIZE + PCJX_GAIJI_SIZE);
+        if (!dev->font_data) {
             free(dev);
             return 0;
         }
+        memset(dev->font_data + PCJX_CG2_IMAGE_SIZE, 0, PCJX_GAIJI_SIZE);
     }
-    if (!pcjx_load_roms(dev, profile)) {
-        free(dev->kanji);
+    if (!pcjx_load_roms(dev, profile, native_video)) {
+        free(dev->font_data);
         free(dev);
         return 0;
     }
@@ -1405,7 +1427,8 @@ pcjx_init(const machine_t *model, unsigned profile)
     dev->pit = pit_common_init(PIT_8253, pcjx_pit_irq0, NULL);
     pit_handler(0, 0x40, 4, dev->pit);
     video_reset(gfxcard[0]);
-    pcjx_vid_init(&dev->video, ram, 0x20000, dev->dedicated_vram, NULL);
+    pcjx_vid_init(&dev->video, ram, 0x20000, dev->dedicated_vram, NULL,
+                  dev->font_data, dev->font_data ? dev->font_data + PCJX_CG2_IMAGE_SIZE : NULL);
     device_add_ex(&pcjx_video_device, &dev->video);
     /* The PCjr font asset is a CG1 compatibility approximation, not a JX dump. */
     dev->video.jx_array[3] |= 0x10;
@@ -1444,8 +1467,6 @@ pcjx_init(const machine_t *model, unsigned profile)
     io_sethandler(0x1ff, 1, pcjx_decoder_read, NULL, NULL, pcjx_decoder_write, NULL, NULL, dev);
     /* Register last: close removes child-device handlers before they are freed. */
     device_add_ex(&pcjx_device, dev);
-    if (profile == 4)
-        pclog("PC JX: Japanese native video is not implemented (Phase II)\n");
     return 1;
 }
 

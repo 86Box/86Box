@@ -96,17 +96,21 @@ protected:
     void write(uint32_t address, uint8_t value) { pcjx_writeb(address, value, &board); }
 };
 
-TEST_F(PcjxBoard, DecoderCommitsAtomicallyAndReadAbortsOnlyPendingTriple)
+TEST_F(PcjxBoard, DecoderWritesTakeEffectIndividuallyAndReadRestartsSequence)
 {
     board.rom_data[0x10000] = 0x5a;
     EXPECT_EQ(read(0xf0000), 0x5a);
     pcjx_decoder_write(0x1ff, 0, &board);
     pcjx_decoder_write(0x1ff, 0, &board);
-    EXPECT_EQ(read(0xf0000), 0x5a);
+    EXPECT_EQ(read(0xf0000), 0xff);
     EXPECT_EQ(pcjx_decoder_read(0x1ff, &board), 0xff);
-    EXPECT_EQ(read(0xf0000), 0x5a);
+    EXPECT_EQ(read(0xf0000), 0xff);
     decode(0x7f, 0xff, 0xff);
-    EXPECT_EQ(read(0xf0000), 0x5a);
+    EXPECT_EQ(read(0xf0000), 0xff);
+    pcjx_decoder_write(0x1ff, 0, &board);
+    pcjx_decoder_write(0x1ff, 0xbe, &board);
+    EXPECT_EQ(read(0xf0000), 0x5a); // REG2 retained without a third write.
+    pcjx_decoder_read(0x1ff, &board);
     decode(0, 0, 0);
     EXPECT_EQ(read(0xf0000), 0xff);
     decode(0, 0xbe, 0x23);
@@ -134,6 +138,22 @@ TEST_F(PcjxBoard, ExpansionProbeDoesNotAliasDisabledSharedPair)
     EXPECT_EQ(read(0x20000), 0x44);
     EXPECT_EQ(read(0x40000), 0x66);
     EXPECT_EQ(read(0x60000), 0x11);
+}
+
+TEST_F(PcjxBoard, DisplayResourceMaskDoesNotDisconnectCpuMemory)
+{
+    board.video.jx_array[1] = 0;
+    decode(8, 0xa0, 0x63);
+    write(0x1234, 0x5a);
+    EXPECT_EQ(read(0x1234), 0x5a);
+    decode(9, 0xb7, 0x60);
+    write(0xb9234, 0xa5);
+    EXPECT_EQ(read(0x1234), 0xa5);
+    decode(9, 0, 0x60);
+    decode(10, 0xb7, 0x60);
+    write(0xb9234, 0x96);
+    EXPECT_EQ(read(0xb9234), 0x96);
+    EXPECT_EQ(read(0x1234), 0xa5);
 }
 
 TEST_F(PcjxBoard, WordCrossingRoutesResolvesEachByteAndProtectsRom)
@@ -278,6 +298,184 @@ TEST_F(PcjxBoard, HighBandwidthPositionUsesHorizontalWidthAndLineTotal)
 
     ++v.crtc[0];
     EXPECT_EQ(vid_get_h_overscan_delta(&v), 8);
+}
+
+class PcjxNativeVideo : public PcjxBoard {
+protected:
+    std::vector<uint8_t> fonts = std::vector<uint8_t>(PCJX_CG2_IMAGE_SIZE);
+    std::array<uint8_t, PCJX_GAIJI_SIZE> gaiji{};
+
+    void SetUp() override
+    {
+        PcjxBoard::SetUp();
+        auto &v = board.video;
+        v.cg2 = fonts.data();
+        v.gaiji = gaiji.data();
+        v.vram = memory.data();
+        v.jx_array[0] = 0x49;
+        v.jx_array[1] = 0x3f;
+        v.array[1] = 15;
+        v.array[6] = 1;
+        v.crtc[1] = 80;
+        v.crtc[9] = 17;
+        for (int i = 0; i < 16; ++i)
+            v.array[16 + i] = i;
+    }
+
+    std::array<uint8_t, 8> cell(uint16_t address, int row)
+    {
+        uint8_t pixels[16]{};
+        vid_cell(&board.video, address, row, pixels);
+        std::array<uint8_t, 8> visible;
+        std::copy_n(pixels, visible.size(), visible.begin());
+        return visible;
+    }
+};
+
+TEST_F(PcjxNativeVideo, FontDecodeProtectsRomAndAliasesOnlyGaiji)
+{
+    fonts[0x820] = 0x5a;
+    decode(7, 0xb0, 0x67);
+    EXPECT_EQ(read(0x80820), 0x5a);
+    write(0x80820, 0xa5);
+    EXPECT_EQ(read(0x80820), 0x5a);
+
+    write(0x88820, 0x69);
+    EXPECT_EQ(read(0x88020), 0x69);
+    EXPECT_EQ(read(0x8f820), 0x69);
+    EXPECT_EQ(read(0x80820), 0x5a);
+    decode(7, 0xb0, 0x27);
+    write(0x88820, 0xff);
+    EXPECT_EQ(read(0x88820), 0x69);
+    decode(7, 0, 0x67);
+    EXPECT_EQ(read(0x88820), 0xff);
+
+    board.video.cg2 = nullptr;
+    decode(7, 0xb0, 0x67);
+    EXPECT_EQ(read(0x80820), 0xff);
+    write(0x88820, 0x12);
+    board.video.cg2 = fonts.data();
+    pcjx_rebuild_memory(&board);
+    EXPECT_EQ(read(0x88820), 0x69);
+}
+
+TEST_F(PcjxNativeVideo, NativeCellsFetchPairedCodesAndDistinctFontLanes)
+{
+    auto &v = board.video;
+    board.dedicated_vram[0] = 0x82;
+    board.dedicated_vram[1] = 0xa3;
+    board.dedicated_vram[2] = 0xa0;
+    board.dedicated_vram[3] = 0xab;
+    fonts[0x5400] = 0xc0;
+    fonts[0x5401] = 1;
+    EXPECT_EQ(cell(0, 0), (std::array<uint8_t, 8>{ 2, 3, 2, 2, 2, 2, 2, 2 }));
+    EXPECT_EQ(cell(1, 0), (std::array<uint8_t, 8>{ 2, 2, 2, 2, 2, 2, 2, 3 }));
+    EXPECT_EQ(cell(0, 16), (std::array<uint8_t, 8>{ 2, 2, 2, 2, 2, 2, 2, 2 }));
+    EXPECT_EQ(cell(1, 17), (std::array<uint8_t, 8>{ 2, 2, 2, 2, 2, 2, 2, 2 }));
+
+    board.dedicated_vram[4] = 0x41;
+    board.dedicated_vram[5] = 0x54;
+    fonts[0x820] = 0x80;
+    fonts[0x821] = 1;
+    EXPECT_EQ(cell(2, 0), (std::array<uint8_t, 8>{ 4, 5, 5, 5, 5, 5, 5, 5 }));
+    v.jx_array[0] = 9;
+    board.dedicated_vram[5] = 0x1e;
+    EXPECT_EQ(cell(2, 0), (std::array<uint8_t, 8>{ 1, 1, 1, 1, 1, 1, 1, 14 }));
+}
+
+TEST_F(PcjxNativeVideo, GaijiWritesReachDisplayAfterCpuFontWindowCloses)
+{
+    // The BIOS converts external F041 to the hardware's 8441 code pair.
+    board.dedicated_vram[0] = 0x84;
+    board.dedicated_vram[1] = 0x87;
+    board.dedicated_vram[2] = 0x41;
+    board.dedicated_vram[3] = 0x8f;
+    decode(7, 0xb0, 0x67);
+    write(0x88820, 0x40);
+    write(0x88821, 1);
+    decode(7, 0, 0x67);
+    EXPECT_EQ(cell(0, 0), (std::array<uint8_t, 8>{ 0, 7, 0, 0, 0, 0, 0, 0 }));
+    EXPECT_EQ(cell(1, 0), (std::array<uint8_t, 8>{ 0, 0, 0, 0, 0, 0, 0, 7 }));
+
+    decode(7, 0xb0, 0x67);
+    write(0x88020, 0x20);
+    write(0x88021, 0x80);
+    decode(7, 0, 0x67);
+    EXPECT_EQ(cell(0, 0), (std::array<uint8_t, 8>{ 0, 0, 7, 0, 0, 0, 0, 0 }));
+    EXPECT_EQ(cell(1, 0), (std::array<uint8_t, 8>{ 7, 0, 0, 0, 0, 0, 0, 0 }));
+}
+
+TEST_F(PcjxNativeVideo, NativeDisplayPageDoesNotFollowCpuPage)
+{
+    auto &v = board.video;
+    fonts[0x820] = 0x80;
+    decode(10, 0xb7, 0x60);
+    pcjx_vid_out(0x3d9, 8, 0, &v);
+    pcjx_rebuild_memory(&board);
+    write(0xb8000, 0x41);
+    write(0xb8001, 7);
+    EXPECT_EQ(cell(0, 0), (std::array<uint8_t, 8>{}));
+    pcjx_vid_out(0x3d9, 9, 0, &v);
+    EXPECT_EQ(cell(0, 0), (std::array<uint8_t, 8>{ 7, 0, 0, 0, 0, 0, 0, 0 }));
+    decode(0x8d, 0, 0);
+    EXPECT_EQ(cell(0, 0), (std::array<uint8_t, 8>{ 7, 0, 0, 0, 0, 0, 0, 0 }));
+}
+
+TEST_F(PcjxNativeVideo, MixerUsesVp1TransparencyAndComposesBeforePalette)
+{
+    auto &v = board.video;
+    v.array[0] = 0x09;
+    v.jx_array[0] = 0x09;
+    v.cg1[0] = 0xff;
+    fonts[1] = 0xff;
+    memory[1] = 2;
+    board.dedicated_vram[1] = 5;
+    v.array[18] = 9;
+    v.array[21] = 12;
+    v.array[23] = 6;
+    v.array[16] = 3;
+    for (const auto &[mode, color] : std::array<std::array<uint8_t, 2>, 5>{
+             { { 0, 9 }, { 1, 12 }, { 4, 6 }, { 8, 3 }, { 12, 6 } } }) {
+        SCOPED_TRACE(mode);
+        v.array[6] = mode;
+        std::array<uint8_t, 8> expected;
+        expected.fill(color);
+        EXPECT_EQ(cell(0, 0), expected);
+    }
+    v.array[5] = 2;
+    v.array[6] = 2;
+    EXPECT_EQ(cell(0, 0).front(), 12);
+    v.array[6] = 3;
+    EXPECT_EQ(cell(0, 0).front(), 9);
+    v.array[5] = 5;
+    v.array[6] = 3;
+    EXPECT_EQ(cell(0, 0).front(), 12);
+}
+
+TEST_F(PcjxNativeVideo, CombinedGraphicsUsesBothBitplanesBeforePalette)
+{
+    auto &v = board.video;
+    v.pb = 0;
+    v.array[0] = 0x0b;
+    v.jx_array[0] = 0x8b;
+    v.array[1] = 3;
+    v.jx_array[1] = 0x33;
+    v.array[6] = 6;
+    v.memctrl = 0xc0;
+    v.addr_mode = 3;
+    v.crtc[1] = 80;
+    v.crtc[9] = 3;
+    memory[0] = 0x88;
+    memory[1] = 0x44;
+    board.dedicated_vram[0] = 0x22;
+    board.dedicated_vram[1] = 0x11;
+    const std::array<uint8_t, 8> expected{ 11, 8, 14, 2, 11, 8, 14, 2 };
+    EXPECT_EQ(cell(0, 0), expected);
+    v.array[6] = 4;
+    EXPECT_EQ(cell(0, 0), expected);
+    memory[0x6000] = 0x80;
+    board.dedicated_vram[0x6001] = 0x80;
+    EXPECT_EQ(cell(0, 3).front(), 3);
 }
 
 TEST_F(PcjxBoard, KeyboardMaskedEdgesLatchUntilAcknowledged)

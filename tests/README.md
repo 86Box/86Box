@@ -49,8 +49,14 @@ In the JX integration, selecting a PC JX machine explicitly enables skipped-trac
 
 # PC JX board and video
 
-Build `pcjx_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^(PcjxBoard|PcjxFloppy)\.'`.
+Build `pcjx_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^(PcjxBoard|PcjxFloppy|PcjxNativeVideo)\.'`.
 
-The board tests exercise memory decoding, cartridge routing, VP1/VP2 register and display-page separation, and emulated raster feedback. The fixture includes the board and video implementations with host-service adapters; it does not boot a BIOS.
+The board tests exercise independently effective decoder-register writes, CPU memory access while display resources are masked, cartridge routing, VP1/VP2 register and display-page separation, and emulated raster feedback. Native-video regressions cover CPU font decoding and ROM protection, gaiji aliases and display persistence, paired full-width codes, font byte lanes, independent CPU/display pages, pre-palette mixing, and combined bitplanes. The fixture includes the board and video implementations with host-service adapters and synthetic glyph data; it does not boot a BIOS or authenticate ROM images.
 
 JX video uses its own `pcjx_video_t` state and `src/video/vid_pcjx.c` implementation. Ordinary PCjr video remains in `src/video/vid_pcjr.c`, without JX-specific branches or state.
+
+The machine's **Native Japanese video** setting defaults to **Automatic (BIOS profile)**: enabled for the Japanese BIOS profile, disabled for both English-market profiles. Explicit Enabled/Disabled overrides are available. Native hardware adds VP2 rendering, CG2 font access, 2 KiB writable gaiji RAM, and VP1/VP2 mixing including combined 640×200×16 graphics. This does not add the separate optional VP3 extension card.
+
+The native loader currently accepts the existing `machines/ibmpcjx/5601_JBA_JFC_KANJI.BIN` resource as a 224 KiB CPU-aperture image. This is not the 128 KiB physical ROM layout described by IBM, and its provenance is unverified. The image ends at virtual address `B7FFFh`; the unavailable tail reads `FFh`. No host-font substitution, checksum patching, or invented ROM contents are used.
+
+Native macOS smoke runs with the local image reached I-BASIC 1.02, displayed `日本あ`, completed a BIOS gaiji write/read comparison and displayed the resulting glyph, and rendered all sixteen color bars using BASIC `SCREEN 6`. Both English BIOS profiles reached BASIC with the font device absent; explicitly enabling native hardware exposed the font resource without changing the English BIOS. The local font image fails three documented module checksums (`A6h`, `A8h`, `A6h`, expected zero), and cold POST reports `ERROR K`; a delivered Enter continues to BASIC. These observations establish exercised emulator behavior, not authentic ROM provenance or a diagnostic-clean hardware qualification.
