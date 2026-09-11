@@ -881,6 +881,17 @@ hndl_txt88(pgc_t *pgc)
 
     pgc_sto_raster(pgc, &x0, &y0);
 
+    /*
+     * TJUST places the string: horizontally by its width, vertically
+     * with the current point on the baseline (1), in the middle of the
+     * ascent (2) or on the top row (3) of the 14 + 4 row cell.
+     */
+    if (pgc->tjust_h == 2)
+        x0 -= (12 * count) / 2;
+    else if (pgc->tjust_h == 3)
+        x0 -= 12 * count - 1;
+    y0 += (pgc->tjust_v == 3) ? 0 : (pgc->tjust_v == 2) ? 7 : 13;
+
     im1024_log("IM204: TXT88 (%i) x0=%i y0=%i\n", count, x0, y0);
 
     for (n = 0; n < count; n++) {
