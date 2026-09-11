@@ -1253,12 +1253,7 @@ ps2_mca_board_model_50_init(void)
 
     /* Enable password function and system board RAM (103h bit 0), so the
        planar memory answers until a driver disables it at runtime. */
-    ps2.option[1] |= 0x02 | 0x01;
-
-    if (mem_size > 2048) {
-        /* Only 2 MB supported on planar, create a memory expansion card for the rest */
-        ps2_mca_mem_fffc_init(2);
-    }
+    ps2.option[1] |= (0x02 | 0x01);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
@@ -1301,12 +1296,7 @@ ps2_mca_board_model_60_init(void)
 
     /* Enable password function and system board RAM (103h bit 0), so the
        planar memory answers until a driver disables it at runtime. */
-    ps2.option[1] |= 0x02 | 0x01;
-
-    if (mem_size > 4096) {
-        /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-        ps2_mca_mem_fffc_init(4);
-    }
+    ps2.option[1] |= (0x02 | 0x01);
 
     device_add(&ps2_nvr_55ls_device);
 
