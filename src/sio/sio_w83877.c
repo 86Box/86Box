@@ -73,6 +73,8 @@ typedef struct w83877_t {
     lpt_t    *lpt;
 } w83877_t;
 
+static w83877_t *in530_w83877_mr_dev = NULL;
+
 static void    w83877_write(uint16_t port, uint8_t val, void *priv);
 static uint8_t w83877_read(uint16_t port, void *priv);
 
@@ -360,7 +362,24 @@ w83877_write(uint16_t port, uint8_t val, void *priv)
                 w83877_remap(dev);
             break;
         case 0x16:
-            if (valxor & 0x02) {
+            if (machines[machine].init == machine_at_in530_init) {
+                if (valxor & 0x04) {
+                    const uint8_t pnp_defaults = val & 0x04;
+
+                    dev->regs[0x20] = pnp_defaults ? 0xfc : 0x00;
+                    dev->regs[0x23] = pnp_defaults ? 0xde : 0x00;
+                    dev->regs[0x24] = pnp_defaults ? 0xfe : 0x00;
+                    dev->regs[0x25] = pnp_defaults ? 0xbe : 0x00;
+                    dev->regs[0x26] = pnp_defaults ? 0x23 : 0x00;
+                    dev->regs[0x27] = pnp_defaults ? 0x05 : 0x00;
+                    dev->regs[0x28] = pnp_defaults ? 0x43 : 0x00;
+                    dev->regs[0x29] = pnp_defaults ? 0x60 : 0x00;
+                    w83877_fdc_handler(dev);
+                    w83877_lpt_handler(dev);
+                    w83877_serial_handler(dev, 0);
+                    w83877_serial_handler(dev, 1);
+                }
+            } else if (valxor & 0x02) {
                 dev->regs[0x1e] = (val & 0x02) ? 0x81 : 0x00;
                 dev->regs[0x20] = (val & 0x02) ? 0xfc : 0x00;
                 dev->regs[0x21] = (val & 0x02) ? 0x7c : 0x00;
@@ -470,18 +489,33 @@ w83877_reset(w83877_t *dev)
     dev->regs[0x0a] = 0x1f;
     dev->regs[0x0c] = 0x28;
     dev->regs[0x0d] = 0xa3;
-    dev->regs[0x16] = (dev->reg_init & 0xff) | 0x02;
-    dev->regs[0x1e] = 0x81;
-    dev->regs[0x20] = 0xfc;
-    dev->regs[0x21] = 0x7c;
-    dev->regs[0x22] = 0xfd;
-    dev->regs[0x23] = 0xde;
-    dev->regs[0x24] = 0xfe;
-    dev->regs[0x25] = 0xbe;
-    dev->regs[0x26] = 0x23;
-    dev->regs[0x27] = 0x65;
-    dev->regs[0x28] = 0x43;
-    dev->regs[0x29] = 0x62;
+    if (machines[machine].init == machine_at_in530_init) {
+        dev->regs[0x16] = dev->reg_init & 0xff;
+        dev->regs[0x1e] = 0x81;
+        dev->regs[0x20] = (dev->regs[0x16] & 0x04) ? 0xfc : 0x00;
+        dev->regs[0x21] = 0x7c;
+        dev->regs[0x22] = 0xfd;
+        dev->regs[0x23] = (dev->regs[0x16] & 0x04) ? 0xde : 0x00;
+        dev->regs[0x24] = (dev->regs[0x16] & 0x04) ? 0xfe : 0x00;
+        dev->regs[0x25] = (dev->regs[0x16] & 0x04) ? 0xbe : 0x00;
+        dev->regs[0x26] = (dev->regs[0x16] & 0x04) ? 0x23 : 0x00;
+        dev->regs[0x27] = (dev->regs[0x16] & 0x04) ? 0x05 : 0x00;
+        dev->regs[0x28] = (dev->regs[0x16] & 0x04) ? 0x43 : 0x00;
+        dev->regs[0x29] = (dev->regs[0x16] & 0x04) ? 0x60 : 0x00;
+    } else {
+        dev->regs[0x16] = (dev->reg_init & 0xff) | 0x02;
+        dev->regs[0x1e] = 0x81;
+        dev->regs[0x20] = 0xfc;
+        dev->regs[0x21] = 0x7c;
+        dev->regs[0x22] = 0xfd;
+        dev->regs[0x23] = 0xde;
+        dev->regs[0x24] = 0xfe;
+        dev->regs[0x25] = 0xbe;
+        dev->regs[0x26] = 0x23;
+        dev->regs[0x27] = 0x65;
+        dev->regs[0x28] = 0x43;
+        dev->regs[0x29] = 0x62;
+    }
 
     w83877_fdc_handler(dev);
     fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
@@ -504,10 +538,24 @@ w83877_reset(w83877_t *dev)
     dev->rw_locked = 0;
 }
 
+void
+w83877_in530_master_reset(void)
+{
+    w83877_t *dev = in530_w83877_mr_dev;
+
+    if ((dev == NULL) || (dev->reg_init != (W83877TF | 0x0001)))
+        return;
+
+    w83877_reset(dev);
+}
+
 static void
 w83877_close(void *priv)
 {
     w83877_t *dev = (w83877_t *) priv;
+
+    if (in530_w83877_mr_dev == dev)
+        in530_w83877_mr_dev = NULL;
 
     free(dev);
 }
@@ -525,6 +573,10 @@ w83877_init(const device_t *info)
     dev->lpt = device_add_inst(&lpt_port_device, 1);
 
     dev->reg_init = info->local;
+
+    if ((machines[machine].init == machine_at_in530_init) &&
+        (dev->reg_init == (W83877TF | 0x0001)))
+        in530_w83877_mr_dev = dev;
 
     dev->has_ide = (info->local >> 16) & 0xff;
 

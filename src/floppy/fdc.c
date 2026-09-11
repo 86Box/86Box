@@ -1368,11 +1368,11 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc->head = (fdc->params[0] & 4) ? 1 : 0;
                                 fdd_set_head(real_drive(fdc, fdc->drive), (fdc->params[0] & 4) ? 1 : 0);
                                 if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
-                                    fdd_readaddress(real_drive(fdc, fdc->drive), fdc->head, fdc->rate);
                                     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
                                         fdc->stat = 0x70;
                                     else
                                         fdc->stat = 0x50;
+                                    fdd_readaddress(real_drive(fdc, fdc->drive), fdc->head, fdc->rate);
                                 } else
                                     fdc_noidam(fdc);
                                 break;
