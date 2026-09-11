@@ -542,8 +542,10 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
     d86f_format_id_t temp_ids[64] = { 0 };
 
     if ((dev == NULL) || (side < 0) || (side >= dev->sides) ||
-        (dev->track < 0) || (dev->track >= dev->tracks) || (dev->track >= 256) ||
-        ((count != dev->sectors) && (count != (dev->sectors + 1))))
+        (dev->track < 0) || (dev->track >= dev->tracks) || (dev->track >= 256))
+        return 0;
+
+    if ((count != dev->sectors) && (count != (dev->sectors + 1)))
         /* If count is 3, return OK - HD-COPY's data rate test format. */
         return (count == 3) ? 1 : 0;
 
@@ -621,15 +623,16 @@ img_seek(int drive, int track)
         return;
 
     dev->physical_track = track;
-    if (img_is_pcjx_360(drive, dev))
+    const int pcjx_360 = img_is_pcjx_360(drive, dev);
+    if (pcjx_360)
         track = ((track >= 0) && (track <= 78) && !(track & 1)) ? track / 2 : -1;
-    else if (!dev->track_width && fdd_doublestep_40(drive))
+    else if ((track >= 0) && !dev->track_width && fdd_is_525(drive) && fdd_doublestep_40(drive))
         track /= 2;
 
     dev->track = track;
-    d86f_set_cur_track(drive, dev->physical_track);
+    d86f_set_cur_track(drive, pcjx_360 ? dev->physical_track : track);
 
-    /* Retire both the flux and turbo views before any early return. */
+    /* Retire both the flux and turbo views before any early return or I/O. */
     d86f_reset_index_hole_pos(drive, 0);
     d86f_reset_index_hole_pos(drive, 1);
     d86f_destroy_linked_lists(drive, 0);

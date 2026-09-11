@@ -120,6 +120,7 @@ protected:
         controller.flags = FDC_FLAG_PCJX;
         controller.irq = 6;
         controller.rate = 2;
+        controller.densel_polarity = 1;
         controller.drv2en = 1;
         controller.max_track = 79;
         controller.fifo_p = fifo16_init();
@@ -340,13 +341,34 @@ TEST_F(PcjxFloppy, FullSizeMediaKeepsOddAndLastCylinders)
 TEST_F(PcjxFloppy, PlacementIsScopedToMachineAndEligiblePhysicalDrive)
 {
     mount(0);
-    EXPECT_TRUE(fdd_is_pcjx_360(0));
-    jx_machine = false;
-    EXPECT_FALSE(fdd_is_pcjx_360(0));
-    seek(0, 1);
-    EXPECT_EQ(read_sector(0, 0), std::vector<uint8_t>(512, pattern(0, 0, 1, 0)));
-    expect_success();
-    jx_machine = true;
+    for (const char *type : { "35_2dd", "35_2hd" }) {
+        fdd_set_type(0, fdd_get_from_internal_name(const_cast<char *>(type)));
+        for (bool turbo : { false, true }) {
+            SCOPED_TRACE(::testing::Message() << type << ", turbo=" << turbo);
+            fdd_set_turbo(0, turbo);
+            seek(0, 0);
+            jx_machine = false;
+            EXPECT_FALSE(fdd_is_pcjx_360(0));
+            seek(0, 1);
+            EXPECT_EQ(read_sector(0, 1), std::vector<uint8_t>(512, pattern(1, 0, 1, 0)));
+            expect_success();
+            seek(0, 2);
+            EXPECT_EQ(read_sector(0, 2), std::vector<uint8_t>(512, pattern(2, 0, 1, 0)));
+            expect_success();
+
+            seek(0, 0);
+            jx_machine = true;
+            EXPECT_TRUE(fdd_is_pcjx_360(0));
+            seek(0, 2);
+            EXPECT_EQ(read_sector(0, 1), std::vector<uint8_t>(512, pattern(1, 0, 1, 0)));
+            expect_success();
+            seek(0, 1);
+            EXPECT_TRUE(read_sector(0, 0).empty());
+            const auto status = result();
+            ASSERT_EQ(status.size(), 7u);
+            EXPECT_NE(status[0] & 0x40, 0);
+        }
+    }
     fdd_set_type(0, fdd_get_from_internal_name(const_cast<char *>("525_2hd")));
     EXPECT_FALSE(fdd_is_pcjx_360(0));
     fdd_set_type(0, fdd_get_from_internal_name(const_cast<char *>("35_1dd")));
