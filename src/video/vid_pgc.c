@@ -515,6 +515,25 @@ hndl_clears(pgc_t *dev)
         memset(dev->vram + y * dev->maxw, param, dev->screenw);
 }
 
+/*
+ * Fill the current viewport with a color, in replace mode, leaving the
+ * current color alone (IBM PGC Technical Reference, "Flood"; the
+ * IM-1024 firmware does the same). Unlike CLEARS it stops at the
+ * viewport, so AutoCAD's driver uses it to scroll its command area.
+ */
+static void
+hndl_flood(pgc_t *dev)
+{
+    uint8_t param = 0;
+
+    if (!pgc_param_byte(dev, &param))
+        return;
+
+    for (uint16_t y = dev->vp_y1; y <= dev->vp_y2; y++)
+        for (uint16_t x = dev->vp_x1; x <= dev->vp_x2; x++)
+            pgc_write_pixel(dev, x, y, param);
+}
+
 /* Select drawing color. */
 static void
 hndl_color(pgc_t *dev)
@@ -1471,6 +1490,8 @@ static const pgc_cmd_t pgc_commands[] = {
     { "DI",     0xd0, hndl_display, pgc_parse_bytes,  1 },
     { "ELIPSE", 0x39, hndl_ellipse, pgc_parse_coords, 2 },
     { "EL",     0x39, hndl_ellipse, pgc_parse_coords, 2 },
+    { "FLOOD",  0x07, hndl_flood,   pgc_parse_bytes,  1 },
+    { "F",      0x07, hndl_flood,   pgc_parse_bytes,  1 },
     { "IMAGEW", 0xd9, hndl_imagew,  NULL,             0 },
     { "IW",     0xd9, hndl_imagew,  NULL,             0 },
     { "LINFUN", 0xeb, hndl_linfun,  pgc_parse_bytes,  1 },
