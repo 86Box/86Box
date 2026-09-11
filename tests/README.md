@@ -1,6 +1,6 @@
 86Box tests and benchmarks
 =========================
-Last updated: 2026-09-08
+Last updated: 2026-09-11
 
 ## Overview
 
@@ -35,13 +35,13 @@ ctest --test-dir build --output-on-failure -R '^CartridgeTest\.'
 
 Build `fdc_read_id_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^FdcReadId\.'`.
 
-The tests use the real FDC/FDD/IMG/D86F path to check immediate missing-head errors and normal bitstream Read ID completion in DMA and non-DMA modes. They adapt host timers, interrupts and file services; Read ID has no DMA payload, so this is not a DMA-transfer test. The fixture follows the C-in-C++ device-test convention and uses POSIX temporary-directory helpers.
+The tests use the real FDC/FDD/IMG/D86F path to check immediate missing-head errors and normal bitstream Read ID completion in DMA and non-DMA modes. They adapt host timers, interrupts and file services; Read ID has no DMA payload, so this is not a DMA-transfer test. The fixture includes FDC/FDD as C-in-C++ for private device access, compiles IMG/D86F/FIFO/CRC as C, and uses portable filesystem temporary directories.
 
 # Raw floppy images
 
 Build `img_track_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^ImgTrack\.'`.
 
-The tests check consecutive 40-cylinder image placement in ordinary 3.5-inch 720KB/1.44MB drives, preserved 5.25-inch double stepping, physical-cylinder reload after formatting, and invalid-track/sector isolation. Both flux and turbo paths use real FDC/FDD/IMG/D86F code, with an in-memory DMA transport and host-service adapters. Backing-file comparisons verify formatted contents and unchanged neighboring sectors. The fixture follows the C-in-C++ device-test convention and uses POSIX temporary-directory helpers; it does not emulate a complete machine or physical floppy hardware.
+The tests check consecutive 40-cylinder image placement in ordinary 3.5-inch 720KB/1.44MB drives, preserved 5.25-inch double stepping, physical-cylinder reload after formatting, and invalid-track/sector isolation. Both flux and turbo paths use real FDC/FDD/IMG/D86F code, with an in-memory DMA transport and host-service adapters. Backing-file comparisons verify formatted contents and unchanged neighboring sectors. The fixture includes FDC/FDD as C-in-C++ for private device access, compiles IMG/D86F/FIFO/CRC as C, and uses portable filesystem temporary directories; it does not emulate a complete machine or physical floppy hardware.
 
 The generic raw-image path does not enable machine-specific skipped-track layouts. A 360KB image alone is not an opt-in to double stepping on 3.5-inch hardware.
 
@@ -55,8 +55,14 @@ The board tests exercise independently effective decoder-register writes, CPU me
 
 JX video uses its own `pcjx_video_t` state and `src/video/vid_pcjx.c` implementation. Ordinary PCjr video remains in `src/video/vid_pcjr.c`, without JX-specific branches or state.
 
-The machine's **Native Japanese video** setting defaults to **Automatic (BIOS profile)**: enabled for the Japanese BIOS profile, disabled for both English-market profiles. Explicit Enabled/Disabled overrides are available. Native hardware adds VP2 rendering, CG2 font access, 2 KiB writable gaiji RAM, and VP1/VP2 mixing including combined 640×200×16 graphics. This does not add the separate optional VP3 extension card.
+The single PC JX machine has three BIOS profiles with fixed video hardware: both English profiles (1985 and 1986) always omit native Japanese video and its font resource; the Japanese profile always includes them and requires the Kanji image for availability. There is no native-hardware override, and stale configuration keys cannot change the BIOS profile's hardware. The standard Display panel shows a disabled **Internal device** selector and a disabled Configure button, following the existing board-owned fixed-video convention. Native hardware adds VP2 rendering, CG2 font access, 2 KiB writable gaiji RAM, and VP1/VP2 mixing including combined 640×200×16 graphics. This does not add the separate optional VP3 extension card.
 
-The native loader currently accepts the existing `machines/ibmpcjx/5601_JBA_JFC_KANJI.BIN` resource as a 224 KiB CPU-aperture image. This is not the 128 KiB physical ROM layout described by IBM, and its provenance is unverified. The image ends at virtual address `B7FFFh`; the unavailable tail reads `FFh`. No host-font substitution, checksum patching, or invented ROM contents are used.
+The native loader currently accepts the existing `machines/ibmpcjx/5601_JBA_JFC_KANJI.BIN` resource as a 224 KiB CPU-aperture image. This is not the 128 KiB physical ROM layout described by IBM; the format alone does not establish the physical ROM revision or acquisition method. The image ends at virtual address `B7FFFh`; the unavailable tail reads `FFh`. No host-font substitution, checksum patching, or invented ROM contents are used.
 
-Native macOS smoke runs with the local image reached I-BASIC 1.02, displayed `日本あ`, completed a BIOS gaiji write/read comparison and displayed the resulting glyph, and rendered all sixteen color bars using BASIC `SCREEN 6`. Both English BIOS profiles reached BASIC with the font device absent; explicitly enabling native hardware exposed the font resource without changing the English BIOS. The local font image fails three documented module checksums (`A6h`, `A8h`, `A6h`, expected zero), and cold POST reports `ERROR K`; a delivered Enter continues to BASIC. These observations establish exercised emulator behavior, not authentic ROM provenance or a diagnostic-clean hardware qualification.
+Earlier native macOS smoke runs with the local image reached I-BASIC 1.02, displayed `日本あ`, completed a BIOS gaiji write/read comparison and displayed the resulting glyph, and rendered all sixteen color bars using BASIC `SCREEN 6`. Both English BIOS profiles reached BASIC with the font device absent. The local font image fails three documented module checksums (`A6h`, `A8h`, `A6h`, expected zero), and cold POST reports `ERROR K`; a delivered Enter continues to BASIC. These observations establish exercised emulator behavior, not authentic ROM provenance or a diagnostic-clean hardware qualification.
+
+For full-emulator profile verification, boot both English profiles with a stale `native_video = 1` entry and the Japanese profile with a stale `native_video = 0` entry in the machine's configuration section. English profiles must still omit the native font device, and Japanese must still expose it. With the Kanji image unavailable, both English profiles must remain available while Japanese must not. Check that machine configuration offers BIOS Version and Clock option but no native-video selector, and that Display shows the disabled Internal device selector and Configure button. The isolated board/video fixtures do not substitute for these profile-loading and UI checks.
+
+Delivery verification on Linux ARM64 (Debian trixie Docker, GCC 14.2) and native macOS ARM64 passed all 42 board/video, floppy, and cartridge tests. Both runs had six failures in the separate 15-test Mitsumi suite; the same six failures reproduced on untouched upstream `c9b1d449ce`. The installed Release application booted all three JX profiles with opposing stale native-video settings, and its disabled Internal device controls were checked through native accessibility and a screenshot.
+
+A live Japanese POST trace passed the first 32 KiB checksum, then failed the next module with `AL=A6h`, producing diagnostic `2701` (`ERROR K`). All 224 KiB read through the CPU aperture matched the loaded file byte-for-byte at the checksum breakpoint. This rules out byte corruption in that exercised mapping, not a font-revision or image-representation mismatch. The Technical Reference's printed page C-13 (PDF page 493), “Kanji ROM address calculation,” illustrates code `90AFh` (星) with a different raster: its row-six left byte at `A15ECh` is `1Fh`, while the image has `00h`. That comparison is not proof that one glyph causes the module checksum failure.

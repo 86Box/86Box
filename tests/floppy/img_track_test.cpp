@@ -7,22 +7,18 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
-#include <unistd.h>
 
-// Use the production controller, drive and IMG backend; D86F is compiled as C.
+// Use the production controller and drive; IMG, D86F, FIFO and CRC compile as C.
 // Only host services (timers, DMA, UI, audio and file access) are adapted below.
 extern "C" {
 #include "../../src/floppy/fdc.c"
 #define new new_track_size
 #include "../../src/floppy/fdd.c"
 #undef new
-#include "../../src/floppy/fdd_img.c"
-#define calloc(count, size) (fifo_t *) calloc(count, size)
-#include "../../src/utils/fifo.c"
-#undef calloc
-#include "../../src/utils/crc.c"
 }
 
 namespace {
@@ -34,7 +30,7 @@ size_t                      dma_output_pos;
 class ImgTrack : public ::testing::Test {
 protected:
     fdc_t       controller {};
-    std::string directory;
+    std::filesystem::path directory;
     std::string path;
     bool        engine_created = false;
 
@@ -54,10 +50,19 @@ protected:
             drives[drive].id = drive;
             timer_add(&fdd_poll_time[drive], fdd_poll, &drives[drive], 0);
         }
-        char temp[] = "/tmp/86box-img-track-XXXXXX";
-        ASSERT_NE(mkdtemp(temp), nullptr);
-        directory                  = temp;
-        path                       = directory + "/disk.img";
+        std::error_code error;
+        const auto      root = std::filesystem::temp_directory_path(error);
+        ASSERT_FALSE(error) << error.message();
+        for (unsigned i = 0; i < 1024; ++i) {
+            const auto candidate = root / ("86box-img-track-test-" + std::to_string(i));
+            if (std::filesystem::create_directory(candidate, error)) {
+                directory = candidate;
+                break;
+            }
+            ASSERT_TRUE(!error || error == std::errc::file_exists) << error.message();
+        }
+        ASSERT_FALSE(directory.empty()) << "No available IMG track test directory";
+        path                       = (directory / "disk.img").string();
         controller.flags           = FDC_FLAG_AT;
         controller.irq             = 6;
         controller.dor             = 0x0c;
@@ -90,10 +95,11 @@ protected:
         fdd_set_fdc(nullptr);
         img_set_fdc(nullptr);
         d86f_set_fdc(nullptr);
-        if (!path.empty())
-            std::remove(path.c_str());
-        if (!directory.empty())
-            rmdir(directory.c_str());
+        if (!directory.empty()) {
+            std::error_code error;
+            std::filesystem::remove_all(directory, error);
+            EXPECT_FALSE(error) << error.message();
+        }
     }
 
     static uint8_t pattern(int cylinder, int side, int sector)

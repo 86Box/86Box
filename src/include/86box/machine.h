@@ -1575,7 +1575,6 @@ extern int             machine_pcjr_init(const machine_t *);
 /* m_pcjx.c */
 #ifdef EMU_DEVICE_H
 extern const device_t  pcjx_device;
-extern const device_t  pcjx_video_device;
 #endif
 extern int             machine_pcjx_init(const machine_t *);
 extern int             machine_is_pcjx(int m);

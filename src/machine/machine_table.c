@@ -364,7 +364,7 @@ const machine_t machines[] = {
         .gpio_acpi  = 0xffffffff,
         .device     = &pcjx_device,
         .fdc_device = &fdc_pcjx_device,
-        .vid_device = &pcjx_video_device,
+        .vid_device = NULL,
         .aliases    = { "" }
     },
     {

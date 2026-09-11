@@ -3,7 +3,12 @@ add_subdirectory(floppy)
 add_subdirectory(device)
 
 if(BUILD_TESTING)
-    add_library(pcjx_floppy_engine OBJECT ../src/floppy/fdd_86f.c)
+    add_library(pcjx_floppy_engine OBJECT
+        ../src/floppy/fdd_86f.c
+        ../src/floppy/fdd_img.c
+        ../src/utils/fifo.c
+        ../src/utils/crc.c
+    )
     target_include_directories(pcjx_floppy_engine PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/src/cpu
@@ -17,11 +22,15 @@ if(BUILD_TESTING)
         timer_enable=pcjx_floppy_timer_enable timer_disable=pcjx_floppy_timer_disable
         timer_add=pcjx_floppy_timer_add random_generate=pcjx_floppy_random_generate
         fatal=pcjx_floppy_fatal pclog=pcjx_floppy_pclog pclog_ex=pcjx_floppy_pclog_ex
-        plat_fopen=pcjx_floppy_plat_fopen
+        plat_fopen=pcjx_floppy_plat_fopen path_get_extension=pcjx_floppy_path_get_extension
+        floppy_ioctl_read_sector=pcjx_floppy_floppy_ioctl_read_sector
+        floppy_ioctl_write_sector=pcjx_floppy_floppy_ioctl_write_sector
+        floppy_ioctl_close=pcjx_floppy_floppy_ioctl_close
     )
     add_executable(pcjx_tests
         machine/pcjx_test.cpp
         floppy/pcjx_floppy_test.cpp
+        ../src/machine/m_pcjx_scancodes.c
         ../src/video/video.c
         $<TARGET_OBJECTS:pcjx_floppy_engine>
     )

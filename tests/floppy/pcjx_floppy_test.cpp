@@ -7,9 +7,10 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
-#include <unistd.h>
 
 // Keep infrastructure isolated from the board tests while using the real floppy engines.
 #define TIMER_USEC pcjx_floppy_TIMER_USEC
@@ -56,11 +57,6 @@ extern "C" {
 #define new new_track_size
 #include "../../src/floppy/fdd.c"
 #undef new
-#include "../../src/floppy/fdd_img.c"
-#define calloc(count, size) (fifo_t *) calloc(count, size)
-#include "../../src/utils/fifo.c"
-#undef calloc
-#include "../../src/utils/crc.c"
 }
 
 namespace {
@@ -90,7 +86,7 @@ uint8_t read_port(uint16_t port)
 class PcjxFloppy : public ::testing::Test {
 protected:
     fdc_t controller{};
-    std::string directory;
+    std::filesystem::path directory;
     std::vector<std::string> paths;
     std::array<bool, FDD_NUM> engine_created{};
 
@@ -114,9 +110,18 @@ protected:
             drives[drive].id = drive;
             timer_add(&fdd_poll_time[drive], fdd_poll, &drives[drive], 0);
         }
-        char temp[] = "/tmp/86box-pcjx-floppy-XXXXXX";
-        ASSERT_NE(mkdtemp(temp), nullptr);
-        directory = temp;
+        std::error_code error;
+        const auto      root = std::filesystem::temp_directory_path(error);
+        ASSERT_FALSE(error) << error.message();
+        for (unsigned i = 0; i < 1024; ++i) {
+            const auto candidate = root / ("86box-pcjx-floppy-test-" + std::to_string(i));
+            if (std::filesystem::create_directory(candidate, error)) {
+                directory = candidate;
+                break;
+            }
+            ASSERT_TRUE(!error || error == std::errc::file_exists) << error.message();
+        }
+        ASSERT_FALSE(directory.empty()) << "No available PC JX floppy test directory";
         controller.flags = FDC_FLAG_PCJX;
         controller.irq = 6;
         controller.rate = 2;
@@ -139,8 +144,7 @@ protected:
         for (int drive = 0; drive < FDD_NUM; ++drive) {
             timer_disable(&fdd_poll_time[drive]);
             timer_disable(&fdd_seek_timer[drive]);
-            if (img[drive])
-                img_close(drive);
+            img_close(drive);
             if (engine_created[drive])
                 d86f_destroy(drive);
         }
@@ -150,10 +154,11 @@ protected:
         fdd_set_fdc(nullptr);
         img_set_fdc(nullptr);
         d86f_set_fdc(nullptr);
-        for (const auto &path : paths)
-            std::remove(path.c_str());
-        if (!directory.empty())
-            rmdir(directory.c_str());
+        if (!directory.empty()) {
+            std::error_code error;
+            std::filesystem::remove_all(directory, error);
+            EXPECT_FALSE(error) << error.message();
+        }
         io_handlers.clear();
     }
 
@@ -164,7 +169,7 @@ protected:
 
     void mount(int drive, int cylinders = 40, int sectors = 9, int seed = 0, bool turbo = true)
     {
-        const std::string path = directory + "/disk" + std::to_string(paths.size()) + ".img";
+        const std::string path = (directory / ("disk" + std::to_string(paths.size()) + ".img")).string();
         paths.push_back(path);
         FILE *file = std::fopen(path.c_str(), "wb");
         ASSERT_NE(file, nullptr);
@@ -184,7 +189,7 @@ protected:
             engine_created[drive] = true;
         }
         img_load(drive, const_cast<char *>(path.c_str()));
-        ASSERT_NE(img[drive], nullptr);
+        ASSERT_NE(drives[drive].seek, nullptr);
         fdd_do_seek(drive, 0);
         fdc_write(0xf2, controller.dor | (1 << drive), &controller);
     }
