@@ -198,6 +198,9 @@ extern const device_t w837x7_device;
 
 extern const device_t w83877_device;
 
+/* Reset the IN530's W83877TF through its board-level master reset path. */
+extern void w83877_in530_master_reset(void);
+
 #define W83977F             0x977100
 #define W83977TF            0x977300
 #define W83977EF            0x52f000

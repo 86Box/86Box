@@ -32,11 +32,6 @@ if(BUILD_TESTING)
     )
     target_link_libraries(fdc_read_id_tests PRIVATE GTest::gtest_main)
 
-    include(GoogleTest)
-    gtest_discover_tests(fdc_read_id_tests)
-endif()
-
-if(BUILD_TESTING)
     add_library(img_track_engine OBJECT
         ../../src/floppy/fdd_86f.c
         ../../src/floppy/fdd_img.c
@@ -71,5 +66,6 @@ if(BUILD_TESTING)
     target_link_libraries(img_track_tests PRIVATE GTest::gtest_main)
 
     include(GoogleTest)
+    gtest_discover_tests(fdc_read_id_tests)
     gtest_discover_tests(img_track_tests)
 endif()
