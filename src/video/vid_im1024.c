@@ -741,26 +741,15 @@ parse_poly(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
 }
 
 /*
- * Override the PGC RECT command to parse its
- * parameters as words rather than coordinates.
+ * Rectangle body shared by RECT and RECTR: corners in window
+ * coordinates, both inclusive, filled or outlined by PRMFIL. The
+ * IM-1024 reads the parameters as words, not PGC coordinates.
  */
 static void
-hndl_rect(pgc_t *pgc)
+rect_draw(pgc_t *pgc, int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 {
-    int16_t x0;
-    int16_t y0;
-    int16_t x1;
-    int16_t y1;
     int16_t p;
     int16_t q;
-
-    x0 = pgc->x >> 16;
-    y0 = pgc->y >> 16;
-
-    if (!pgc_param_word(pgc, &x1))
-        return;
-    if (!pgc_param_word(pgc, &y1))
-        return;
 
     /* Convert to raster coords. */
     pgc_sto_raster(pgc, &x0, &y0);
@@ -789,6 +778,42 @@ hndl_rect(pgc_t *pgc)
         p = pgc_draw_line_r(pgc, x1, y1, x0, y1, p);
         p = pgc_draw_line_r(pgc, x0, y1, x0, y0, p);
     }
+}
+
+static void
+hndl_rect(pgc_t *pgc)
+{
+    int16_t x1;
+    int16_t y1;
+
+    if (!pgc_param_word(pgc, &x1))
+        return;
+    if (!pgc_param_word(pgc, &y1))
+        return;
+
+    rect_draw(pgc, pgc->x >> 16, pgc->y >> 16, x1, y1);
+}
+
+/*
+ * RECTR: the opposite corner is an offset from the current point,
+ * both corners inclusive as with RECT, and the current point stays.
+ * AutoCAD's driver erases a character cell and highlights a screen
+ * menu item with it.
+ */
+static void
+hndl_rectr(pgc_t *pgc)
+{
+    int16_t x0 = pgc->x >> 16;
+    int16_t y0 = pgc->y >> 16;
+    int16_t dx;
+    int16_t dy;
+
+    if (!pgc_param_word(pgc, &dx))
+        return;
+    if (!pgc_param_word(pgc, &dy))
+        return;
+
+    rect_draw(pgc, x0, y0, x0 + dx, y0 + dy);
 }
 
 /*
@@ -1545,6 +1570,8 @@ static const pgc_cmd_t im1024_commands[] = {
     { "M",      0x10, hndl_move,       pgc_parse_words, 2},
     { "RECT",   0x34, hndl_rect,       NULL,            0},
     { "R",      0x34, hndl_rect,       NULL,            0},
+    { "RECTR",  0x35, hndl_rectr,      pgc_parse_words, 2},
+    { "RR",     0x35, hndl_rectr,      pgc_parse_words, 2},
     { "RESETF", 0x04, hndl_resetf,     NULL,            0},
     { "RF",     0x04, hndl_resetf,     NULL,            0},
     { "XHAIR",  0xe2, hndl_xhair,      parse_xhair,     0},
