@@ -160,7 +160,7 @@ input_byte(pgc_t *pgc, uint8_t *result)
     im1024_t *dev = (im1024_t *) pgc;
 
     /* If input buffer empty, wait for it to fill. */
-    while (!pgc->stopped && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
+    while (!pgc->stopped && !pgc->mapram[0x307] && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
         pgc->waiting_input_fifo = 1;
         pgc_sleep(pgc);
     }
@@ -171,6 +171,13 @@ input_byte(pgc_t *pgc, uint8_t *result)
     if (pgc->mapram[0x3ff]) {
         /* Reset triggered. */
         pgc_reset(pgc);
+        return 0;
+    }
+
+    if (pgc->mapram[0x307]) {
+        /* Warm restart: the fast FIFO is flushed with the ring buffer. */
+        dev->fifo_wrptr = dev->fifo_rdptr = 0;
+        pgc_warm_reset(pgc);
         return 0;
     }
 

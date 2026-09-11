@@ -141,6 +141,7 @@ extern uint8_t pgc_read(uint32_t addr, void *priv);
 extern void    pgc_recalctimings(pgc_t *);
 extern void    pgc_poll(void *priv);
 extern void    pgc_reset(pgc_t *);
+extern void    pgc_warm_reset(pgc_t *);
 extern void    pgc_wake(pgc_t *);
 extern void    pgc_sleep(pgc_t *);
 extern void    pgc_setdisplay(pgc_t *, int cga);
