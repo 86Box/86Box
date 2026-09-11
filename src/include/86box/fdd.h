@@ -49,6 +49,7 @@ extern int  fdd_getrpm(int drive);
 extern void fdd_set_densel(int densel);
 extern int  fdd_can_read_medium(int drive);
 extern int  fdd_doublestep_40(int drive);
+extern int  fdd_is_pcjx_360(int drive);
 extern int  fdd_is_525(int drive);
 extern int  fdd_supports_360_rpm(int drive);
 extern int  fdd_is_dd(int drive);

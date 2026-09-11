@@ -709,12 +709,18 @@ pic_init(void)
 }
 
 void
+pic_handler(int set, uint16_t base, int size)
+{
+    io_handler(set, base, size, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+}
+
+void
 pic_init_pcjr(void)
 {
     pic_reset_hard();
 
     shadow = 0;
-    io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+    pic_handler(1, 0x0020, 0x0008);
 }
 
 void

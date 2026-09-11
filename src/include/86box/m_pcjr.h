@@ -59,6 +59,19 @@ typedef struct pcjr_s {
     int           apply_hd;
     int           double_type;
 
+    /* JX VP2 has private 00/01/03 registers and an independent index phase.
+       array[] remains VP1 plus the common registers; CPU decode is board-owned. */
+    int           jx_profile;
+    uint8_t       jx_array[32];
+    int           jx_array_index;
+    int           jx_array_ff;
+    uint8_t       pg2;
+    uint8_t      *shared_ram;
+    uint32_t      shared_size;
+    uint8_t      *dedicated_vram;
+    uint8_t       cg1[2048]; /* Immutable PCjr hardware-font compatibility copy. */
+    uint8_t       dot_component[2];
+
     /* Keyboard Controller stuff. */
     int        latched;
     int        data;
@@ -79,3 +92,9 @@ void pcjr_recalc_timings(pcjr_t *pcjr);
 
 // Note: This is a temporary solution until the pcjr video is made its own gfx card
 void pcjr_vid_init(pcjr_t *pcjr);
+void pcjx_vid_init(pcjr_t *video, uint8_t *shared_ram, uint32_t shared_size,
+                  uint8_t *dedicated_vram, const uint8_t *cg1);
+uint8_t pcjx_vid_in(uint16_t port, uint8_t vp_mask, void *priv);
+void pcjx_vid_out(uint16_t port, uint8_t value, uint8_t vp_mask, void *priv);
+
+extern const device_t pcjx_video_device;

@@ -613,6 +613,17 @@ fdd_doublestep_40(int drive)
     return !!(drive_types[fdd[drive].type].flags & FLAG_DOUBLE_STEP);
 }
 
+int
+fdd_is_pcjx_360(int drive)
+{
+    if ((drive < 0) || (drive >= FDD_NUM) || !machine_is_pcjx(machine))
+        return 0;
+
+    const int flags = fdd_get_flags(drive);
+    return (drive_types[fdd[drive].type].max_track >= 80) &&
+           !(flags & FLAG_525) && ((flags & (FLAG_DS | FLAG_HOLE0)) == (FLAG_DS | FLAG_HOLE0));
+}
+
 void
 fdd_set_type(int drive, int type)
 {
@@ -1095,6 +1106,17 @@ fdd_format(int drive, int side, int density, uint8_t fill)
 void
 fdd_stop(int drive)
 {
+    if (fdd_fdc && (fdd_fdc->flags & FDC_FLAG_PCJX)) {
+        /* Abort the pending operation, not the physical head position. */
+        const int was_seeking = fdd_seek_in_progress[drive];
+        timer_disable(&fdd_seek_timer[drive]);
+        fdd_seek_in_progress[drive] = 0;
+        fdd_pending[drive].pending = 0;
+        fdd_pending[drive].op = FDD_OP_NONE;
+        fdd_notfound = 0;
+        if (was_seeking)
+            fdd_do_seek(drive, fdd[drive].track);
+    }
     if (drives[drive].stop)
         drives[drive].stop(drive);
 }

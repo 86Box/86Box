@@ -442,6 +442,9 @@ load_machine(void)
         const char *new;
         const char *new_bios;
     } machine_migrations[] = {
+        { .old = "ibmpcjx_1985", .new = "ibmpcjx", .new_bios = "1985" },
+        { .old = "ibmpcjx_1986", .new = "ibmpcjx", .new_bios = "1986" },
+        { .old = "ibmpcjx_japanese", .new = "ibmpcjx", .new_bios = "japanese" },
         { .old = "tandy", .new = "tandy1000sx", .new_bios = NULL },
         { .old = "mr1217", .new = "325ax", .new_bios = "mr1217" },
         { .old = "deskpro386_05_1988", .new = "deskpro386", .new_bios = "deskpro386_05_1988" },

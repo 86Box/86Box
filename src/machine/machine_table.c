@@ -342,6 +342,32 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
     {
+        .name              = "[8088] IBM PC JX",
+        .internal_name     = "ibmpcjx",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_pcjx_init,
+        .available_flag    = MACHINE_AVAILABLE,
+        .cpu               = {
+            .package = CPU_PKG_8088,
+            .block   = CPU_BLOCK_NONE,
+            .min_bus = 4772728,
+            .max_bus = 4772728
+        },
+        .bus_flags = MACHINE_CASSETTE,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC |
+                     MACHINE_GAMEPORT | MACHINE_LPT_PRI | MACHINE_CARTRIDGE,
+        .ram       = { .min = 128, .max = 512, .step = 128 },
+        .default_jumpered_ecp_dma = -1,
+        .kbc_p1     = 0xff,
+        .gpio       = 0xffffffff,
+        .gpio_acpi  = 0xffffffff,
+        .device     = &pcjx_device,
+        .fdc_device = &fdc_pcjx_device,
+        .vid_device = &pcjx_video_device,
+        .aliases    = { "" }
+    },
+    {
         .name              = "[8088] IBM XT (1982)",
         .internal_name     = "ibmxt",
         .type              = MACHINE_TYPE_8088,
