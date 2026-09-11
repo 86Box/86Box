@@ -3259,7 +3259,7 @@ image_read_sector(const void *local, uint8_t *buffer,
     const track_index_t *idx          = &(trk->idx[index]);
     const int            track_is_raw = ((trk->sector_size == RAW_SECTOR_SIZE) ||
                                          (trk->sector_size == 2448));
-    const uint64_t       seek         = ((sect + 150 - idx->start + idx->file_start) *
+    const uint64_t       seek         = ((((sect + 150) - idx->start) + idx->file_start) *
                                          trk->sector_size) + trk->skip;
 
     if (track >= 0) {
