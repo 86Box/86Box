@@ -358,21 +358,26 @@ hndl_imgsiz(pgc_t *pgc)
 }
 
 /*
- * I don't know what the IPREC command does, only that the
- * Windows driver issues it. So just parse and ignore it.
+ * IPREC sets the width of every coordinate parameter: 0 is the PGC's
+ * 16.16 value in four bytes, 1 an integer word. Anything else is an
+ * error and counts as 1. Nothing else, reset included, changes it.
  */
 static void
 hndl_iprec(pgc_t *pgc)
 {
-#if 0
-    im1024_t *dev = (im1024_t *)pgc;
-#endif
     uint8_t param;
 
     if (!pgc_param_byte(pgc, &param))
         return;
 
     im1024_log("IM1024: IPREC %i\n", param);
+
+    if (param > 1) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        param = 1;
+    }
+
+    pgc->coord_words = param;
 }
 
 /*
@@ -421,8 +426,8 @@ hndl_pan(pgc_t *pgc)
 static void
 hndl_pline(pgc_t *pgc)
 {
-    int16_t  x[257];
-    int16_t  y[257];
+    int32_t  x[257];
+    int32_t  y[257];
     uint16_t linemask = pgc->line_pattern;
     uint8_t  count;
     unsigned n;
@@ -432,16 +437,15 @@ hndl_pline(pgc_t *pgc)
 
     im1024_log("IM1024: PLINE (%i)  ", count);
     for (n = 0; n < count; n++) {
-        if (!pgc_param_word(pgc, &x[n]))
+        if (!pgc_param_coord(pgc, &x[n]))
             return;
-        if (!pgc_param_word(pgc, &y[n]))
+        if (!pgc_param_coord(pgc, &y[n]))
             return;
-        im1024_log("    (%i,%i)\n", x[n], y[n]);
+        im1024_log("    (%i,%i)\n", x[n] >> 16, y[n] >> 16);
     }
 
     for (n = 1; n < count; n++) {
-        linemask = pgc_draw_line(pgc, x[n - 1] << 16, y[n - 1] << 16,
-                                 x[n] << 16, y[n] << 16, linemask);
+        linemask = pgc_draw_line(pgc, x[n - 1], y[n - 1], x[n], y[n], linemask);
     }
 }
 
@@ -541,62 +545,57 @@ hndl_blkmov(pgc_t *pgc)
 static void
 hndl_ellipse(pgc_t *pgc)
 {
-    int16_t x;
-    int16_t y;
+    int32_t x;
+    int32_t y;
 
-    if (!pgc_param_word(pgc, &x))
+    if (!pgc_param_coord(pgc, &x))
         return;
-    if (!pgc_param_word(pgc, &y))
+    if (!pgc_param_coord(pgc, &y))
         return;
 
     im1024_log("IM1024: ELLIPSE %i,%i @ %i,%i\n",
-               x, y, pgc->x >> 16, pgc->y >> 16);
+               x >> 16, y >> 16, pgc->x >> 16, pgc->y >> 16);
 
-    pgc_draw_ellipse(pgc, x << 16, y << 16);
+    pgc_draw_ellipse(pgc, x, y);
 }
 
-/*
- * Override the PGC MOVE command to parse its
- * parameters as words rather than coordinates.
- */
+/* Override the PGC MOVE command to log it on the IM-1024 path. */
 static void
 hndl_move(pgc_t *pgc)
 {
-    int16_t x;
-    int16_t y;
+    int32_t x;
+    int32_t y;
 
-    if (!pgc_param_word(pgc, &x))
+    if (!pgc_param_coord(pgc, &x))
         return;
-    if (!pgc_param_word(pgc, &y))
+    if (!pgc_param_coord(pgc, &y))
         return;
 
-    im1024_log("IM1024: MOVE %i,%i\n", x, y);
+    im1024_log("IM1024: MOVE %i,%i\n", x >> 16, y >> 16);
 
-    pgc->x = x << 16;
-    pgc->y = y << 16;
+    pgc->x = x;
+    pgc->y = y;
 }
 
-/*
- * Override the PGC DRAW command to parse its
- * parameters as words rather than coordinates.
- */
+/* DRAW is opcode 0x28 on the IM-1024, not the PGC's 0x20. */
 static void
 hndl_draw(pgc_t *pgc)
 {
-    int16_t x;
-    int16_t y;
+    int32_t x;
+    int32_t y;
 
-    if (!pgc_param_word(pgc, &x))
+    if (!pgc_param_coord(pgc, &x))
         return;
-    if (!pgc_param_word(pgc, &y))
+    if (!pgc_param_coord(pgc, &y))
         return;
 
-    im1024_log("IM1024: DRAW %i,%i to %i,%i\n", pgc->x >> 16, pgc->y >> 16, x, y);
+    im1024_log("IM1024: DRAW %i,%i to %i,%i\n",
+               pgc->x >> 16, pgc->y >> 16, x >> 16, y >> 16);
 
-    pgc_draw_line(pgc, pgc->x, pgc->y, x << 16, y << 16, pgc->line_pattern);
+    pgc_draw_line(pgc, pgc->x, pgc->y, x, y, pgc->line_pattern);
 
-    pgc->x = x << 16;
-    pgc->y = y << 16;
+    pgc->x = x;
+    pgc->y = y;
 }
 
 /*
@@ -610,8 +609,8 @@ hndl_poly(pgc_t *pgc)
     int32_t *y;
     int32_t *nx;
     int32_t *ny;
-    int16_t  xw;
-    int16_t  yw;
+    int32_t  xw;
+    int32_t  yw;
     int16_t  mask;
     unsigned realcount = 0;
     unsigned n;
@@ -656,14 +655,14 @@ hndl_poly(pgc_t *pgc)
         }
 
         for (n = 0; n < count; n++) {
-            if (!pgc_param_word(pgc, &xw)) {
+            if (!pgc_param_coord(pgc, &xw)) {
                 if (x)
                     free(x);
                 if (y)
                     free(y);
                 return;
             }
-            if (!pgc_param_word(pgc, &yw)) {
+            if (!pgc_param_coord(pgc, &yw)) {
                 if (x)
                     free(x);
                 if (y)
@@ -672,11 +671,11 @@ hndl_poly(pgc_t *pgc)
             }
 
             /* Skip degenerate line segments. */
-            if (realcount > 0 && (xw << 16) == x[realcount - 1] && (yw << 16) == y[realcount - 1])
+            if (realcount > 0 && xw == x[realcount - 1] && yw == y[realcount - 1])
                 continue;
 
-            x[realcount] = xw << 16;
-            y[realcount] = yw << 16;
+            x[realcount] = xw;
+            y[realcount] = yw;
             realcount++;
         }
 
@@ -735,9 +734,9 @@ parse_poly(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
         return 0;
     }
 
-    im1024_log("IM1024: parse_poly: parse %i words\n", 2 * count);
+    im1024_log("IM1024: parse_poly: parse %i coordinates\n", 2 * count);
 
-    return pgc_parse_words(pgc, cl, count * 2);
+    return pgc_parse_coords(pgc, cl, count * 2);
 }
 
 /*
@@ -783,15 +782,15 @@ rect_draw(pgc_t *pgc, int16_t x0, int16_t y0, int16_t x1, int16_t y1)
 static void
 hndl_rect(pgc_t *pgc)
 {
-    int16_t x1;
-    int16_t y1;
+    int32_t x1;
+    int32_t y1;
 
-    if (!pgc_param_word(pgc, &x1))
+    if (!pgc_param_coord(pgc, &x1))
         return;
-    if (!pgc_param_word(pgc, &y1))
+    if (!pgc_param_coord(pgc, &y1))
         return;
 
-    rect_draw(pgc, pgc->x >> 16, pgc->y >> 16, x1, y1);
+    rect_draw(pgc, pgc->x >> 16, pgc->y >> 16, x1 >> 16, y1 >> 16);
 }
 
 /*
@@ -805,15 +804,15 @@ hndl_rectr(pgc_t *pgc)
 {
     int16_t x0 = pgc->x >> 16;
     int16_t y0 = pgc->y >> 16;
-    int16_t dx;
-    int16_t dy;
+    int32_t dx;
+    int32_t dy;
 
-    if (!pgc_param_word(pgc, &dx))
+    if (!pgc_param_coord(pgc, &dx))
         return;
-    if (!pgc_param_word(pgc, &dy))
+    if (!pgc_param_coord(pgc, &dy))
         return;
 
-    rect_draw(pgc, x0, y0, x0 + dx, y0 + dy);
+    rect_draw(pgc, x0, y0, x0 + (dx >> 16), y0 + (dy >> 16));
 }
 
 /*
@@ -859,13 +858,13 @@ hndl_tdefin(pgc_t *pgc)
 static void
 hndl_tsize(pgc_t *pgc)
 {
-    int16_t size;
+    int32_t size;
 
-    if (!pgc_param_word(pgc, &size))
+    if (!pgc_param_coord(pgc, &size))
         return;
-    im1024_log("IM1024: TSIZE(%i)\n", size);
+    im1024_log("IM1024: TSIZE(%i)\n", size >> 16);
 
-    pgc->tsize = size << 16;
+    pgc->tsize = size;
 }
 
 static void
@@ -1358,13 +1357,18 @@ hndl_xvmove(pgc_t *pgc)
     im1024_t *dev = (im1024_t *) pgc;
     int16_t   vx;
     int16_t   vy;
+    int32_t   cvx;
+    int32_t   cvy;
     int32_t   x;
     int32_t   y;
 
-    if (!pgc_param_word(pgc, &vx))
+    if (!pgc_param_coord(pgc, &cvx))
         return;
-    if (!pgc_param_word(pgc, &vy))
+    if (!pgc_param_coord(pgc, &cvy))
         return;
+
+    vx = cvx >> 16;
+    vy = cvy >> 16;
 
     xh_hide(dev);
 
@@ -1433,9 +1437,19 @@ hndl_locmap(pgc_t *pgc)
         pgc_error(pgc, PGC_ERROR_RANGE);
         return;
     }
-    for (int n = 0; n < 4; n++)
-        if (!pgc_param_word(pgc, &v[n]))
+    for (int n = 0; n < 4; n++) {
+        int32_t c;
+
+        /* The raster map is in PELs, the window map in coordinates. */
+        if (sub == 1) {
+            if (!pgc_param_word(pgc, &v[n]))
+                return;
+            continue;
+        }
+        if (!pgc_param_coord(pgc, &c))
             return;
+        v[n] = c >> 16;
+    }
     if (v[1] < v[0] || v[3] < v[2]) {
         pgc_error(pgc, PGC_ERROR_RANGE);
         return;
@@ -1526,7 +1540,7 @@ parse_locmap(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
         return 0;
     }
 
-    return pgc_parse_words(pgc, cl, 4);
+    return (sub == 2) ? pgc_parse_coords(pgc, cl, 4) : pgc_parse_words(pgc, cl, 4);
 }
 
 /*
@@ -1539,11 +1553,11 @@ parse_locmap(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
  */
 static const pgc_cmd_t im1024_commands[] = {
     {"BLKMOV",  0xdf, hndl_blkmov,     pgc_parse_words, 6},
-    { "DRAW",   0x28, hndl_draw,       pgc_parse_words, 2},
-    { "D",      0x28, hndl_draw,       pgc_parse_words, 2},
+    { "DRAW",   0x28, hndl_draw,       pgc_parse_coords, 2},
+    { "D",      0x28, hndl_draw,       pgc_parse_coords, 2},
     { "DOT",    0x08, hndl_dot,        NULL,            0},
-    { "ELIPSE", 0x39, hndl_ellipse,    pgc_parse_words, 2},
-    { "EL",     0x39, hndl_ellipse,    pgc_parse_words, 2},
+    { "ELIPSE", 0x39, hndl_ellipse,    pgc_parse_coords, 2},
+    { "EL",     0x39, hndl_ellipse,    pgc_parse_coords, 2},
     { "IMAGEW", 0xd9, hndl_imagew,     NULL,            0},
     { "IMAGEX", 0xda, hndl_imagex,     NULL,            0},
     { "IMGSIZ", 0x4e, hndl_imgsiz,     NULL,            0},
@@ -1566,20 +1580,20 @@ static const pgc_cmd_t im1024_commands[] = {
     { "P",      0x30, hndl_poly,       parse_poly,      0},
     { "PLINE",  0x36, hndl_pline,      NULL,            0},
     { "PL",     0x37, hndl_pline,      NULL,            0},
-    { "MOVE",   0x10, hndl_move,       pgc_parse_words, 2},
-    { "M",      0x10, hndl_move,       pgc_parse_words, 2},
+    { "MOVE",   0x10, hndl_move,       pgc_parse_coords, 2},
+    { "M",      0x10, hndl_move,       pgc_parse_coords, 2},
     { "RECT",   0x34, hndl_rect,       NULL,            0},
     { "R",      0x34, hndl_rect,       NULL,            0},
-    { "RECTR",  0x35, hndl_rectr,      pgc_parse_words, 2},
-    { "RR",     0x35, hndl_rectr,      pgc_parse_words, 2},
+    { "RECTR",  0x35, hndl_rectr,      pgc_parse_coords, 2},
+    { "RR",     0x35, hndl_rectr,      pgc_parse_coords, 2},
     { "RESETF", 0x04, hndl_resetf,     NULL,            0},
     { "RF",     0x04, hndl_resetf,     NULL,            0},
     { "XHAIR",  0xe2, hndl_xhair,      parse_xhair,     0},
     { "XH",     0xe2, hndl_xhair,      parse_xhair,     0},
     { "XMOVE",  0xe3, hndl_xmove,      pgc_parse_words, 2},
     { "XM",     0xe3, hndl_xmove,      pgc_parse_words, 2},
-    { "XVMOVE", 0x1d, hndl_xvmove,     pgc_parse_words, 2},
-    { "XV",     0x1d, hndl_xvmove,     pgc_parse_words, 2},
+    { "XVMOVE", 0x1d, hndl_xvmove,     pgc_parse_coords, 2},
+    { "XV",     0x1d, hndl_xvmove,     pgc_parse_coords, 2},
     { "LOCCUR", 0x1e, hndl_loccur,     NULL,            0},
     { "LC",     0x1e, hndl_loccur,     NULL,            0},
     { "X2CUR",  0x1e, hndl_loccur,     NULL,            0},
@@ -1602,6 +1616,9 @@ im1024_reset(pgc_t *pgc)
     im1024_t *dev = (im1024_t *) pgc;
 
     pgc->mapram[0x3fa] = 0x02;
+
+    /* Coordinates are 16.16 until a driver asks for words with IPREC. */
+    pgc->coord_words = 0;
 
     dev->img_w = 640;
     dev->img_h = 480;

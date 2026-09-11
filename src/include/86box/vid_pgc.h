@@ -108,6 +108,7 @@ typedef struct pgc {
     int waiting_output_fifo;
     int waiting_error_fifo;
     int ascii_mode;
+    int coord_words; /* hex coordinates are 16-bit integers, not 16.16 */
     int result_count;
 
     int      fontbase;

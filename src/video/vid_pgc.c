@@ -1417,29 +1417,32 @@ hndl_vwport(pgc_t *dev)
     dev->vp_y2 = y2;
 }
 
-/* WINDOW defines the coordinate system in use. */
+/*
+ * WINDOW defines the coordinate system in use. Its corners are
+ * coordinates, unlike VWPORT, whose corners are PEL counts.
+ */
 static void
 hndl_window(pgc_t *dev)
 {
-    int16_t x1;
-    int16_t x2;
-    int16_t y1;
-    int16_t y2;
+    int32_t x1;
+    int32_t x2;
+    int32_t y1;
+    int32_t y2;
 
-    if (!pgc_param_word(dev, &x1))
+    if (!pgc_param_coord(dev, &x1))
         return;
-    if (!pgc_param_word(dev, &x2))
+    if (!pgc_param_coord(dev, &x2))
         return;
-    if (!pgc_param_word(dev, &y1))
+    if (!pgc_param_coord(dev, &y1))
         return;
-    if (!pgc_param_word(dev, &y2))
+    if (!pgc_param_coord(dev, &y2))
         return;
 
-    pgc_log("PGC: WINDOW %i,%i,%i,%i\n", x1, x2, y1, y2);
-    dev->win_x1 = x1;
-    dev->win_x2 = x2;
-    dev->win_y1 = y1;
-    dev->win_y2 = y2;
+    pgc_log("PGC: WINDOW %i,%i,%i,%i\n", x1 >> 16, x2 >> 16, y1 >> 16, y2 >> 16);
+    dev->win_x1 = x1 >> 16;
+    dev->win_x2 = x2 >> 16;
+    dev->win_y1 = y1 >> 16;
+    dev->win_y2 = y2 >> 16;
 }
 
 /*
@@ -1523,8 +1526,8 @@ static const pgc_cmd_t pgc_commands[] = {
     { "TS",     0x81, hndl_tsize,   pgc_parse_coords, 1 },
     { "VWPORT", 0xb2, hndl_vwport,  pgc_parse_words,  4 },
     { "VWP",    0xb2, hndl_vwport,  pgc_parse_words,  4 },
-    { "WINDOW", 0xb3, hndl_window,  pgc_parse_words,  4 },
-    { "WI",     0xb3, hndl_window,  pgc_parse_words,  4 },
+    { "WINDOW", 0xb3, hndl_window,  pgc_parse_coords, 4 },
+    { "WI",     0xb3, hndl_window,  pgc_parse_coords, 4 },
 
     { "@@@@@@", 0x00, NULL,         NULL,             0 }
 };
@@ -1936,8 +1939,21 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
         return 1;
     }
 
-    /* If in hex mode, read in the encoded integer and fraction parts
-     * from the hex stream */
+    /*
+     * In hex mode a coordinate is an integer word and a fraction word,
+     * unless a subclass (the IM-1024, through IPREC) has narrowed it to
+     * the integer alone.
+     */
+    if (!dev->ascii_mode && dev->coord_words) {
+        for (n = 0; n < 2; n++)
+            if (!dev->inputbyte(dev, &encoded[n]))
+                return 0;
+        integer = (((int16_t) encoded[1]) << 8) | encoded[0];
+
+        *value = ((int32_t) integer) << 16;
+        return 1;
+    }
+
     if (!dev->ascii_mode) {
         for (n = 0; n < 4; n++)
             if (!dev->inputbyte(dev, &encoded[n]))
