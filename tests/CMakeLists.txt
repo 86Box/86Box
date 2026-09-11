@@ -1,4 +1,5 @@
 add_subdirectory(cdrom)
+add_subdirectory(device)
 
 if(BUILD_TESTING)
     add_library(pcjx_floppy_engine OBJECT ../src/floppy/fdd_86f.c)

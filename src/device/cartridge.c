@@ -34,13 +34,13 @@ typedef struct cart_t {
     uint32_t size;
 } cart_t;
 
-char cart_fns[2][MAX_IMAGE_PATH_LEN];
+char  cart_fns[2][MAX_IMAGE_PATH_LEN];
 char *cart_image_history[2][CART_IMAGE_HISTORY];
 
 static cart_t carts[2];
 
 static mem_mapping_t cart_mappings[2];
-static uint8_t cart_mapping_registered[2];
+static uint8_t       cart_mapping_registered[2];
 
 #ifdef ENABLE_CARTRIDGE_LOG
 int cartridge_do_log = ENABLE_CARTRIDGE_LOG;
@@ -220,11 +220,9 @@ cart_reset(void)
         return;
 
     if (!machine_is_pcjx(machine)) {
-        for (uint8_t i = 0; i < 2; i++) {
-            mem_mapping_add(&cart_mappings[i], 0x000d0000, 0x00002000,
-                            cart_read, NULL, NULL,
-                            NULL, NULL, NULL,
-                            NULL, MEM_MAPPING_EXTERNAL, &carts[i]);
+        for (unsigned int i = 0; i < 2; i++) {
+            mem_mapping_add(&cart_mappings[i], 0xd0000, 0x2000, cart_read, NULL, NULL,
+                            NULL, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &carts[i]);
             mem_mapping_disable(&cart_mappings[i]);
             cart_mapping_registered[i] = 1;
         }
