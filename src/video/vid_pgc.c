@@ -1308,7 +1308,7 @@ hndl_c(pgc_t *dev)
  * the palette and the command lists survive it (IBM PGC Technical
  * Reference, "Reset Flags"; the IM-1024 firmware behaves the same).
  */
-static void
+void
 pgc_reset_flags(pgc_t *dev)
 {
     dev->line_pattern = 0xffff;

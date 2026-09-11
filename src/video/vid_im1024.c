@@ -80,6 +80,37 @@ typedef struct {
 
     int32_t img_w; /* IMGSIZ: the image the screen is centred on */
     int32_t img_h;
+
+    /* Hardware crosshair: shape from XHAIR, position in raster coordinates. */
+    uint8_t xh_on;
+    uint8_t xh_type; /* 1 = lines xh_w by xh_h, 2 = TDEFIN character xh_ch */
+    uint8_t xh_ch;
+    int16_t xh_w;
+    int16_t xh_h;
+    int16_t xh_x;
+    int16_t xh_y;
+
+    /* What is XORed into the framebuffer right now, so it can be XORed out. */
+    int     xh_drawn;
+    uint8_t dr_type;
+    uint8_t dr_ch;
+    int16_t dr_w;
+    int16_t dr_h;
+    int16_t dr_x;
+    int16_t dr_y;
+    int16_t dr_clip[4];
+
+    /* Locator: LOCMAP rectangle (1 = raster, 2 = window coordinates), LOCXH. */
+    uint8_t locmap_mode;
+    uint8_t locxh;
+    int16_t map[4];  /* x1 x2 y1 y2 as sent */
+    int16_t rmap[4]; /* the same in raster coordinates */
+    int16_t clip[4]; /* rmap clamped to the display */
+    int16_t loc_x;   /* locator position, raster */
+    int16_t loc_y;
+    int16_t loc_vx; /* and in window coordinates when XVMOVE set it */
+    int16_t loc_vy;
+    int     loc_v_valid;
 } im1024_t;
 
 static video_timings_t timing_im1024 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
@@ -1050,6 +1081,430 @@ hndl_imagex(pgc_t *pgc)
 }
 
 /*
+ * Locator and hardware crosshair. The firmware XORs the crosshair into
+ * the framebuffer through the display processor (all planes, colour FF)
+ * inside its own clip rectangle: the locator map while LOCXH is on, else
+ * the whole display. Moving it XORs the old shape out and the new one in.
+ */
+static void
+xh_xor(pgc_t *pgc, int16_t x, int16_t y, const int16_t clip[4])
+{
+    uint8_t *p;
+
+    if (x < clip[0] || x > clip[1] || y < clip[2] || y > clip[3])
+        return;
+
+    p = pgc_vram_addr(pgc, x, y);
+    if (p)
+        *p ^= 0xff;
+}
+
+/*
+ * Shape 1 is two solid lines, w+1 and h+1 pixels long, through the point;
+ * the crossing pixel is XORed twice and so left alone. Shape 2 is a TDEFIN
+ * character with its top left at the point.
+ */
+static void
+xh_paint(im1024_t *dev, uint8_t type, uint8_t ch, int16_t w, int16_t h, int16_t x, int16_t y, const int16_t clip[4])
+{
+    pgc_t *pgc = &dev->pgc;
+
+    if (type == 1) {
+        for (int16_t n = 0; n <= w; n++)
+            xh_xor(pgc, x - w / 2 + n, y, clip);
+        for (int16_t n = 0; n <= h; n++)
+            xh_xor(pgc, x, y - h / 2 + n, clip);
+    } else if (type == 2) {
+        unsigned wb = (dev->fontx[ch] + 7) / 8;
+
+        for (uint8_t r = 0; r < dev->fonty[ch]; r++)
+            for (uint8_t c = 0; c < dev->fontx[ch]; c++)
+                if (dev->font[ch][r * wb + c / 8] & (0x80 >> (c & 7)))
+                    xh_xor(pgc, x + c, y - r, clip);
+    }
+}
+
+static void
+xh_hide(im1024_t *dev)
+{
+    if (!dev->xh_drawn)
+        return;
+
+    xh_paint(dev, dev->dr_type, dev->dr_ch, dev->dr_w, dev->dr_h, dev->dr_x, dev->dr_y, dev->dr_clip);
+    dev->xh_drawn = 0;
+}
+
+static void
+xh_show(im1024_t *dev)
+{
+    pgc_t *pgc = &dev->pgc;
+
+    if (!dev->xh_on || dev->xh_drawn)
+        return;
+
+    if (dev->locxh)
+        memcpy(dev->dr_clip, dev->clip, sizeof(dev->dr_clip));
+    else {
+        dev->dr_clip[0] = 0;
+        dev->dr_clip[1] = pgc->visw - 1;
+        dev->dr_clip[2] = 0;
+        dev->dr_clip[3] = pgc->vish - 1;
+    }
+    dev->dr_type = dev->xh_type;
+    dev->dr_ch   = dev->xh_ch;
+    dev->dr_w    = dev->xh_w;
+    dev->dr_h    = dev->xh_h;
+    dev->dr_x    = dev->xh_x;
+    dev->dr_y    = dev->xh_y;
+
+    xh_paint(dev, dev->dr_type, dev->dr_ch, dev->dr_w, dev->dr_h, dev->dr_x, dev->dr_y, dev->dr_clip);
+    dev->xh_drawn = 1;
+}
+
+static int16_t
+clamp16(int32_t v, int16_t lo, int16_t hi)
+{
+    return (v < lo) ? lo : (v > hi) ? hi : (int16_t) v;
+}
+
+/* Bytes C6322-C6329 hold the locator position for the host to read. */
+static void
+loc_publish(im1024_t *dev)
+{
+    pgc_t *pgc = &dev->pgc;
+
+    if (dev->locmap_mode == 1) {
+        pgc->mapram[0x322] = dev->loc_x & 0xff;
+        pgc->mapram[0x323] = dev->loc_x >> 8;
+        pgc->mapram[0x326] = dev->loc_y & 0xff;
+        pgc->mapram[0x327] = dev->loc_y >> 8;
+    } else {
+        pgc->mapram[0x322] = dev->loc_vx & 0xff;
+        pgc->mapram[0x323] = dev->loc_vx >> 8;
+        pgc->mapram[0x324] = 0;
+        pgc->mapram[0x325] = 0;
+        pgc->mapram[0x326] = dev->loc_vy & 0xff;
+        pgc->mapram[0x327] = dev->loc_vy >> 8;
+        pgc->mapram[0x328] = 0;
+        pgc->mapram[0x329] = 0;
+    }
+}
+
+/* Pull the locator back inside the map; with LOCXH on the crosshair sits on it. */
+static void
+loc_resync(im1024_t *dev)
+{
+    int32_t x = clamp16(dev->loc_x, dev->rmap[0], dev->rmap[1]);
+    int32_t y = clamp16(dev->loc_y, dev->rmap[2], dev->rmap[3]);
+
+    dev->loc_x = x;
+    dev->loc_y = y;
+    pgc_ito_raster(&dev->pgc, &x, &y);
+    dev->loc_vx      = dev->loc_x - (x - dev->loc_x);
+    dev->loc_vy      = dev->loc_y - (y - dev->loc_y);
+    dev->loc_v_valid = 0;
+    loc_publish(dev);
+
+    if (dev->locxh) {
+        dev->xh_x = dev->loc_x;
+        dev->xh_y = dev->loc_y;
+    }
+}
+
+/* A new map: its raster form, the clip it gives the crosshair, then loc_resync(). */
+static void
+locmap_apply(im1024_t *dev)
+{
+    pgc_t  *pgc = &dev->pgc;
+    int32_t x1  = dev->map[0];
+    int32_t x2  = dev->map[1];
+    int32_t y1  = dev->map[2];
+    int32_t y2  = dev->map[3];
+
+    if (dev->locmap_mode == 2) {
+        pgc_ito_raster(pgc, &x1, &y1);
+        pgc_ito_raster(pgc, &x2, &y2);
+    }
+    dev->rmap[0] = x1;
+    dev->rmap[1] = x2;
+    dev->rmap[2] = y1;
+    dev->rmap[3] = y2;
+
+    dev->clip[0] = (x1 < 0) ? 0 : x1;
+    dev->clip[1] = (x2 > (int32_t) pgc->visw - 1) ? pgc->visw - 1 : x2;
+    dev->clip[2] = (y1 < 0) ? 0 : y1;
+    dev->clip[3] = (y2 > (int32_t) pgc->vish - 1) ? pgc->vish - 1 : y2;
+
+    loc_resync(dev);
+}
+
+/* XHAIR 0 = off; XHAIR 1 w h = lines; XHAIR 2 c = a TDEFIN character. */
+static void
+hndl_xhair(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    uint8_t   sub;
+    uint8_t   ch;
+    int16_t   w;
+    int16_t   h;
+
+    xh_hide(dev);
+
+    if (!pgc_param_byte(pgc, &sub))
+        return;
+
+    switch (sub) {
+        case 0:
+            dev->xh_on = 0;
+            break;
+
+        case 1:
+            if (!pgc_param_word(pgc, &w))
+                return;
+            if (!pgc_param_word(pgc, &h))
+                return;
+            w &= ~1;
+            h &= ~1;
+            if (w <= 0 || h <= 0) {
+                pgc_error(pgc, PGC_ERROR_RANGE);
+                break;
+            }
+            dev->xh_type = 1;
+            dev->xh_w    = w;
+            dev->xh_h    = h;
+            dev->xh_on   = 1;
+            break;
+
+        case 2:
+            if (!pgc_param_byte(pgc, &ch))
+                return;
+            if (dev->fonty[ch]) {
+                dev->xh_type = 2;
+                dev->xh_ch   = ch;
+                dev->xh_on   = 1;
+            }
+            break;
+
+        default:
+            pgc_error(pgc, PGC_ERROR_RANGE);
+            break;
+    }
+
+    im1024_log("IM1024: XHAIR %i on=%i type=%i %ix%i\n", sub, dev->xh_on, dev->xh_type, dev->xh_w, dev->xh_h);
+    xh_show(dev);
+}
+
+/* XMOVE x y in raster coordinates; LOCXH confines it to the map and moves the locator too. */
+static void
+hndl_xmove(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    int16_t   x;
+    int16_t   y;
+
+    if (!pgc_param_word(pgc, &x))
+        return;
+    if (!pgc_param_word(pgc, &y))
+        return;
+
+    xh_hide(dev);
+
+    if (dev->locxh) {
+        x = clamp16(x, dev->rmap[0], dev->rmap[1]);
+        y = clamp16(y, dev->rmap[2], dev->rmap[3]);
+
+        dev->loc_x       = x;
+        dev->loc_y       = y;
+        dev->loc_v_valid = 0;
+        if (dev->locmap_mode == 1)
+            loc_publish(dev);
+    }
+    dev->xh_x = x;
+    dev->xh_y = y;
+
+    im1024_log("IM1024: XMOVE %i,%i\n", x, y);
+    xh_show(dev);
+}
+
+/* XVMOVE x y in window coordinates. */
+static void
+hndl_xvmove(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    int16_t   vx;
+    int16_t   vy;
+    int32_t   x;
+    int32_t   y;
+
+    if (!pgc_param_word(pgc, &vx))
+        return;
+    if (!pgc_param_word(pgc, &vy))
+        return;
+
+    xh_hide(dev);
+
+    x = vx;
+    y = vy;
+    pgc_ito_raster(pgc, &x, &y);
+    if (dev->locxh) {
+        int32_t cx = clamp16(x, dev->rmap[0], dev->rmap[1]);
+        int32_t cy = clamp16(y, dev->rmap[2], dev->rmap[3]);
+
+        vx += cx - x;
+        vy += cy - y;
+        x = cx;
+        y = cy;
+
+        dev->loc_x       = x;
+        dev->loc_y       = y;
+        dev->loc_vx      = vx;
+        dev->loc_vy      = vy;
+        dev->loc_v_valid = 1;
+        loc_publish(dev);
+    }
+    dev->xh_x = x;
+    dev->xh_y = y;
+
+    im1024_log("IM1024: XVMOVE %i,%i -> %i,%i\n", vx, vy, dev->xh_x, dev->xh_y);
+    xh_show(dev);
+}
+
+/* LOCCUR: the current point becomes the locator position. */
+static void
+hndl_loccur(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    int32_t   x   = dev->loc_x;
+    int32_t   y   = dev->loc_y;
+
+    if (dev->loc_v_valid) {
+        x = dev->loc_vx;
+        y = dev->loc_vy;
+    } else {
+        int32_t rx = x;
+        int32_t ry = y;
+
+        pgc_ito_raster(pgc, &rx, &ry);
+        x -= rx - dev->loc_x;
+        y -= ry - dev->loc_y;
+    }
+
+    im1024_log("IM1024: LOCCUR -> %i,%i\n", x, y);
+    pgc->x = x << 16;
+    pgc->y = y << 16;
+}
+
+/* LOCMAP 1 x1 x2 y1 y2 (raster) or LOCMAP 2 x1 x2 y1 y2 (window coordinates). */
+static void
+hndl_locmap(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    uint8_t   sub;
+    int16_t   v[4];
+
+    if (!pgc_param_byte(pgc, &sub))
+        return;
+    if (sub != 1 && sub != 2) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+    for (int n = 0; n < 4; n++)
+        if (!pgc_param_word(pgc, &v[n]))
+            return;
+    if (v[1] < v[0] || v[3] < v[2]) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+
+    im1024_log("IM1024: LOCMAP %i %i %i %i %i\n", sub, v[0], v[1], v[2], v[3]);
+
+    xh_hide(dev);
+    dev->locmap_mode = sub;
+    memcpy(dev->map, v, sizeof(dev->map));
+    locmap_apply(dev);
+    xh_show(dev);
+}
+
+/* LOCXH 1 ties the crosshair to the locator map, LOCXH 0 frees it. */
+static void
+hndl_locxh(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    uint8_t   on;
+
+    if (!pgc_param_byte(pgc, &on))
+        return;
+    if (on > 1) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+    if (on == dev->locxh)
+        return;
+
+    im1024_log("IM1024: LOCXH %i\n", on);
+
+    xh_hide(dev);
+    dev->locxh = on;
+    if (on)
+        loc_resync(dev);
+    xh_show(dev);
+}
+
+/* RESETF also drops the crosshair and puts the locator map over the whole display. */
+static void
+hndl_resetf(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+
+    xh_hide(dev);
+    dev->xh_on = 0;
+
+    pgc_reset_flags(pgc);
+
+    dev->locmap_mode = 1;
+    dev->map[0]      = 0;
+    dev->map[1]      = pgc->visw - 1;
+    dev->map[2]      = 0;
+    dev->map[3]      = pgc->vish - 1;
+    locmap_apply(dev);
+}
+
+/* Command-list parsers for the two variable-length locator commands. */
+static int
+parse_xhair(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
+{
+    uint8_t sub;
+
+    if (!pgc_param_byte(pgc, &sub))
+        return 0;
+    if (!pgc_cl_append(cl, sub)) {
+        pgc_error(pgc, PGC_ERROR_OVERFLOW);
+        return 0;
+    }
+    if (sub == 1)
+        return pgc_parse_words(pgc, cl, 2);
+    if (sub == 2)
+        return pgc_parse_bytes(pgc, cl, 1);
+
+    return 1;
+}
+
+static int
+parse_locmap(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
+{
+    uint8_t sub;
+
+    if (!pgc_param_byte(pgc, &sub))
+        return 0;
+    if (!pgc_cl_append(cl, sub)) {
+        pgc_error(pgc, PGC_ERROR_OVERFLOW);
+        return 0;
+    }
+
+    return pgc_parse_words(pgc, cl, 4);
+}
+
+/*
  * Commands implemented by the IM-1024.
  *
  * TODO: A lot of commands need commandlist parsers.
@@ -1090,6 +1545,21 @@ static const pgc_cmd_t im1024_commands[] = {
     { "M",      0x10, hndl_move,       pgc_parse_words, 2},
     { "RECT",   0x34, hndl_rect,       NULL,            0},
     { "R",      0x34, hndl_rect,       NULL,            0},
+    { "RESETF", 0x04, hndl_resetf,     NULL,            0},
+    { "RF",     0x04, hndl_resetf,     NULL,            0},
+    { "XHAIR",  0xe2, hndl_xhair,      parse_xhair,     0},
+    { "XH",     0xe2, hndl_xhair,      parse_xhair,     0},
+    { "XMOVE",  0xe3, hndl_xmove,      pgc_parse_words, 2},
+    { "XM",     0xe3, hndl_xmove,      pgc_parse_words, 2},
+    { "XVMOVE", 0x1d, hndl_xvmove,     pgc_parse_words, 2},
+    { "XV",     0x1d, hndl_xvmove,     pgc_parse_words, 2},
+    { "LOCCUR", 0x1e, hndl_loccur,     NULL,            0},
+    { "LC",     0x1e, hndl_loccur,     NULL,            0},
+    { "X2CUR",  0x1e, hndl_loccur,     NULL,            0},
+    { "LOCMAP", 0xb4, hndl_locmap,     parse_locmap,    0},
+    { "LM",     0xb4, hndl_locmap,     parse_locmap,    0},
+    { "LOCXH",  0x6c, hndl_locxh,      pgc_parse_bytes, 1},
+    { "LX",     0x6c, hndl_locxh,      pgc_parse_bytes, 1},
     { "******", 0x00, NULL,            NULL,            0}
 };
 
@@ -1109,6 +1579,22 @@ im1024_reset(pgc_t *pgc)
     dev->img_w = 640;
     dev->img_h = 480;
     im1024_set_origin(dev);
+
+    /* No crosshair, LOCXH on, the map over the whole display, locator centred. */
+    dev->xh_on       = 0;
+    dev->xh_type     = 0;
+    dev->xh_w        = 0;
+    dev->xh_h        = 0;
+    dev->xh_drawn    = 0;
+    dev->locxh       = 1;
+    dev->locmap_mode = 1;
+    dev->map[0]      = 0;
+    dev->map[1]      = pgc->visw - 1;
+    dev->map[2]      = 0;
+    dev->map[3]      = pgc->vish - 1;
+    dev->loc_x       = pgc->visw / 2;
+    dev->loc_y       = pgc->vish / 2;
+    locmap_apply(dev);
 }
 
 static void *
