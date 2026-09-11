@@ -1149,11 +1149,11 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *priv)
         case SST_nccTable0_Q2:
             if (!(val & (1 << 31))) {
                 if (chip & CHIP_TREX0) {
-                    voodoo->nccTable[0][0].i[2] = val;
+                    voodoo->nccTable[0][0].q[2] = val;
                     voodoo->ncc_dirty[0]        = 1;
                 }
                 if (chip & CHIP_TREX1) {
-                    voodoo->nccTable[1][0].i[2] = val;
+                    voodoo->nccTable[1][0].q[2] = val;
                     voodoo->ncc_dirty[1]        = 1;
                 }
                 break;
