@@ -915,24 +915,14 @@ hndl_twrite(pgc_t *pgc)
     }
 }
 
+/* Draw a string in the ROM font, shared by TXT88 and TEXT. */
 static void
-hndl_txt88(pgc_t *pgc)
+txt_rom_draw(pgc_t *pgc, const uint8_t *buf, unsigned count)
 {
-    uint8_t        buf[256];
-    uint8_t        count;
     uint8_t        mask;
     const uint8_t *row;
     int16_t        x0 = pgc->x >> 16;
     int16_t        y0 = pgc->y >> 16;
-    unsigned int   n;
-
-    if (!pgc_param_byte(pgc, &count))
-        return;
-
-    for (n = 0; n < count; n++)
-        if (!pgc_param_byte(pgc, &buf[n]))
-            return;
-    buf[count] = 0;
 
     pgc_sto_raster(pgc, &x0, &y0);
 
@@ -947,9 +937,9 @@ hndl_txt88(pgc_t *pgc)
         x0 -= 12 * count - 1;
     y0 += (pgc->tjust_v == 3) ? 0 : (pgc->tjust_v == 2) ? 7 : 13;
 
-    im1024_log("IM204: TXT88 (%i) x0=%i y0=%i\n", count, x0, y0);
+    im1024_log("IM1024: text (%i) x0=%i y0=%i\n", count, x0, y0);
 
-    for (n = 0; n < count; n++) {
+    for (unsigned n = 0; n < count; n++) {
         im1024_log("ch=0x%02x w=12 h=18\n", buf[n]);
 
         for (uint8_t y = 0; y < 18; y++) {
@@ -968,6 +958,53 @@ hndl_txt88(pgc_t *pgc)
 
         x0 += 12;
     }
+}
+
+static void
+hndl_txt88(pgc_t *pgc)
+{
+    uint8_t buf[256];
+    uint8_t count;
+
+    if (!pgc_param_byte(pgc, &count))
+        return;
+
+    for (unsigned n = 0; n < count; n++)
+        if (!pgc_param_byte(pgc, &buf[n]))
+            return;
+
+    im1024_log("IM1024: TXT88\n");
+
+    txt_rom_draw(pgc, buf, count);
+}
+
+/*
+ * TEXT draws a string in the hardware font, running from the quote
+ * character after the opcode to the next one like it. The PGC core
+ * carries no font, so the IM-1024 draws it, as it does TXT88.
+ */
+static void
+hndl_text(pgc_t *pgc)
+{
+    uint8_t  buf[256];
+    uint8_t  delim;
+    uint8_t  ch;
+    unsigned count = 0;
+
+    if (!pgc_param_byte(pgc, &delim))
+        return;
+
+    while (count < sizeof(buf)) {
+        if (!pgc_param_byte(pgc, &ch))
+            return;
+        if (ch == delim)
+            break;
+        buf[count++] = ch;
+    }
+
+    im1024_log("IM1024: TEXT\n");
+
+    txt_rom_draw(pgc, buf, count);
 }
 
 static void
@@ -1529,6 +1566,31 @@ parse_xhair(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
 }
 
 static int
+parse_text(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
+{
+    uint8_t delim;
+    uint8_t ch;
+
+    if (!pgc_param_byte(pgc, &delim))
+        return 0;
+    if (!pgc_cl_append(cl, delim)) {
+        pgc_error(pgc, PGC_ERROR_OVERFLOW);
+        return 0;
+    }
+
+    do {
+        if (!pgc_param_byte(pgc, &ch))
+            return 0;
+        if (!pgc_cl_append(cl, ch)) {
+            pgc_error(pgc, PGC_ERROR_OVERFLOW);
+            return 0;
+        }
+    } while (ch != delim);
+
+    return 1;
+}
+
+static int
 parse_locmap(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
 {
     uint8_t sub;
@@ -1571,6 +1633,8 @@ static const pgc_cmd_t im1024_commands[] = {
     { "L8RD",   0x53, pgc_hndl_lut8rd, NULL,            0},
     { "TDEFIN", 0x84, hndl_tdefin,     NULL,            0},
     { "TD",     0x84, hndl_tdefin,     NULL,            0},
+    { "TEXT",   0x80, hndl_text,       parse_text,      0},
+    { "T",      0x80, hndl_text,       parse_text,      0},
     { "TSIZE",  0x81, hndl_tsize,      NULL,            0},
     { "TS",     0x81, hndl_tsize,      NULL,            0},
     { "TWRITE", 0x8b, hndl_twrite,     NULL,            0},

@@ -534,6 +534,121 @@ hndl_flood(pgc_t *dev)
             pgc_write_pixel(dev, x, y, param);
 }
 
+/*
+ * CIRCLE draws a circle of the given radius around the current point,
+ * filled when PRMFIL is set. The PGC draws nothing for a radius outside
+ * -8191 to 8191 and reports it.
+ */
+static void
+hndl_circle(pgc_t *dev)
+{
+    int32_t radius = 0;
+
+    if (!pgc_param_coord(dev, &radius))
+        return;
+
+    pgc_log("PGC: CIRCLE %i\n", radius >> 16);
+
+    if (radius > (8191 << 16) || radius < -(8191 << 16)) {
+        pgc_error(dev, PGC_ERROR_RANGE);
+        return;
+    }
+
+    if (radius < 0)
+        radius = -radius;
+
+    pgc_draw_ellipse(dev, radius, radius);
+}
+
+/*
+ * AREABC fills outward from the current point in the current color
+ * until it reaches pixels of the boundary color or the edge of the
+ * viewport. The seen map keeps the fill finite in the drawing modes
+ * where a written pixel does not come back as the fill color.
+ */
+static void
+hndl_areabc(pgc_t *dev)
+{
+    static const int nx[4] = { 1, -1, 0, 0 };
+    static const int ny[4] = { 0, 0, 1, -1 };
+    uint8_t          bcolor = 0;
+    uint8_t         *seen;
+    uint32_t        *stack;
+    uint32_t         sp  = 0;
+    uint32_t         cap = 4096;
+    uint32_t         cells;
+    int16_t          x0 = dev->x >> 16;
+    int16_t          y0 = dev->y >> 16;
+
+    if (!pgc_param_byte(dev, &bcolor))
+        return;
+
+    pgc_log("PGC: AREABC(%i)\n", bcolor);
+
+    if (bcolor == dev->color) {
+        pgc_error(dev, PGC_ERROR_AREA);
+        return;
+    }
+
+    pgc_sto_raster(dev, &x0, &y0);
+    if (x0 < dev->vp_x1 || x0 > dev->vp_x2 || y0 < dev->vp_y1 || y0 > dev->vp_y2)
+        return;
+
+    cells = (uint32_t) dev->maxw * dev->maxh;
+    seen  = (uint8_t *) calloc(cells, 1);
+    stack = (uint32_t *) malloc(cap * sizeof(uint32_t));
+    if (!seen || !stack) {
+        free(seen);
+        free(stack);
+        pgc_error(dev, PGC_ERROR_MEMORY);
+        return;
+    }
+
+    seen[(uint32_t) y0 * dev->maxw + x0] = 1;
+    stack[sp++]                          = ((uint32_t) y0 << 16) | (uint16_t) x0;
+
+    while (sp) {
+        uint32_t cell = stack[--sp];
+        uint16_t x    = cell & 0xffff;
+        uint16_t y    = cell >> 16;
+
+        pgc_plot(dev, x, y);
+
+        for (uint8_t n = 0; n < 4; n++) {
+            int      px = x + nx[n];
+            int      py = y + ny[n];
+            uint32_t idx;
+
+            if (px < dev->vp_x1 || px > dev->vp_x2 || py < dev->vp_y1 || py > dev->vp_y2)
+                continue;
+
+            idx = (uint32_t) py * dev->maxw + px;
+            if (seen[idx] || pgc_read_pixel(dev, px, py) == bcolor)
+                continue;
+
+            if (sp == cap) {
+                uint32_t *grown = (uint32_t *) realloc(stack, cap * 2 * sizeof(uint32_t));
+
+                if (!grown) {
+                    pgc_error(dev, PGC_ERROR_MEMORY);
+                    free(stack);
+                    free(seen);
+                    return;
+                }
+
+                stack = grown;
+                cap *= 2;
+            }
+
+            seen[idx]   = 1;
+            stack[sp++] = ((uint32_t) py << 16) | (uint16_t) px;
+        }
+    }
+
+    free(stack);
+    free(seen);
+}
+
 /* Select drawing color. */
 static void
 hndl_color(pgc_t *dev)
@@ -1469,10 +1584,14 @@ hndl_window(pgc_t *dev)
  *
  */
 static const pgc_cmd_t pgc_commands[] = {
-    {"AREAPT",  0xe7, hndl_areapt,  pgc_parse_words,  16},
+    {"AREABC",  0xc1, hndl_areabc,  pgc_parse_bytes,  1 },
+    { "AB",     0xc1, hndl_areabc,  pgc_parse_bytes,  1 },
+    { "AREAPT", 0xe7, hndl_areapt,  pgc_parse_words,  16},
     { "AP",     0xe7, hndl_areapt,  pgc_parse_words,  16},
     { "~~~~~~", 0x43, hndl_c,       NULL,             0 },
     { "CA",     0xd2, hndl_ca,      NULL,             0 },
+    { "CIRCLE", 0x38, hndl_circle,  pgc_parse_coords, 1 },
+    { "CI",     0x38, hndl_circle,  pgc_parse_coords, 1 },
     { "CLBEG",  0x70, hndl_clbeg,   NULL,             0 },
     { "CB",     0x70, hndl_clbeg,   NULL,             0 },
     { "CLDEL",  0x74, hndl_cldel,   pgc_parse_bytes,  1 },
