@@ -756,14 +756,13 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x48: /*ADC Sample Rate*/
-                    gus->adc_srate  = val;
-                    gus->adc_freq   = 617400 / gus->adc_srate; /* (9878400 / (freq * 16) - 2 */
-                    double temp     = 1000000.0 / gus->adc_freq;
-                    if (gus->adc_freq < 4000)
-                        gus->adc_freq = 4000;
-                    if (gus->adc_freq > 44100)
-                        gus->adc_freq = 44100;
-                    gus->inputlatch = ((double) TIMER_USEC * temp);
+                    gus->adc_srate = val;
+                    /* SDK 2.6.1.6: rate = 9878400 / (16 * (FREQ + 2)) */
+                    uint32_t freq = 9878400 / (16 * (val + 2));
+                    if (freq > 44100)
+                        freq = 44100;
+                    gus->adc_freq   = freq;
+                    gus->inputlatch = ((double) TIMER_USEC * (1000000.0 / gus->adc_freq));
                     gus_log(gus->log, "GUS ADC samplerate set to %i, val = %02X\n", gus->adc_freq, gus->adc_srate);
                     break;
                 case 0x49: /*ADC Sample Control*/
