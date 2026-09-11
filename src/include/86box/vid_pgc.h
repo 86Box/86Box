@@ -130,6 +130,7 @@ typedef struct pgc {
     int drawcursor;
 
     int (*inputbyte)(struct pgc *, uint8_t *result);
+    void (*on_reset)(struct pgc *); /* subclass hook, runs at the end of pgc_reset() */
 } pgc_t;
 
 /* I/O functions and worker thread handlers. */

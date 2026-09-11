@@ -1646,6 +1646,9 @@ pgc_reset(pgc_t *dev)
     /* Default palette is 0. */
     init_lut(dev, 0);
     hndl_lutsav(dev);
+
+    if (dev->on_reset)
+        dev->on_reset(dev);
 }
 
 /* Switch between CGA mode (DISPLAY 1) and native mode (DISPLAY 0). */

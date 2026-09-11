@@ -1028,6 +1028,17 @@ static const pgc_cmd_t im1024_commands[] = {
     { "******", 0x00, NULL,            NULL,            0}
 };
 
+/*
+ * Firmware 2.21 writes the model id 02 to C63FA on every boot (06 on
+ * the IM-640). AutoCAD's DS1024.DRV reads it and refuses anything else,
+ * so it must also survive the C63FF reboot and RESETF paths.
+ */
+static void
+im1024_reset(pgc_t *pgc)
+{
+    pgc->mapram[0x3fa] = 0x02;
+}
+
 static void *
 im1024_init(UNUSED(const device_t *info))
 {
@@ -1043,6 +1054,7 @@ im1024_init(UNUSED(const device_t *info))
     dev->fifo_rdptr = 0;
 
     /* Create a 1024x1024 framebuffer with 1024x800 visible. */
+    dev->pgc.on_reset = im1024_reset;
     pgc_init(&dev->pgc, 1024, 1024, 1024, 800, input_byte, 65000000.0);
 
     dev->pgc.commands = im1024_commands;
