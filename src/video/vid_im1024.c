@@ -77,6 +77,9 @@ typedef struct {
     unsigned fifo_len,
         fifo_wrptr,
         fifo_rdptr;
+
+    int32_t img_w; /* IMGSIZ: the image the screen is centred on */
+    int32_t img_h;
 } im1024_t;
 
 static video_timings_t timing_im1024 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
@@ -251,16 +254,47 @@ im1024_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 /*
- * I don't know what the IMGSIZ command does, only that the
- * Windows driver issues it. So just parse and ignore it.
+ * Where the screen sits in the 1024x1024 framebuffer, after the firmware
+ * (routines 0x4ff1 and 0x5520): the IMGSIZ image is centred in the
+ * display and PAN moves it by up to the slack on each side. Card y
+ * counts up from the bottom; columns wrap at the framebuffer width.
+ */
+static void
+im1024_set_origin(im1024_t *dev)
+{
+    pgc_t  *pgc = &dev->pgc;
+    int32_t cx  = (int32_t) pgc->visw - (dev->img_w - 1);
+    int32_t cy  = (int32_t) pgc->vish - 1 - (dev->img_h - 1);
+    int32_t px  = 0;
+    int32_t py  = 0;
+    int32_t left;
+    int32_t top;
+
+    /* Halve towards minus infinity, as the firmware's SAR does. */
+    cx = (cx >= 0) ? cx / 2 : -((1 - cx) / 2);
+    cy = (cy >= 0) ? cy / 2 : -((1 - cy) / 2);
+
+    if (cx < 0)
+        px = (pgc->pan_x < cx) ? cx : (pgc->pan_x > -cx - 1) ? -cx - 1 : pgc->pan_x;
+    if (cy < 0)
+        py = (pgc->pan_y < cy) ? cy : (pgc->pan_y > -cy) ? -cy : pgc->pan_y;
+
+    left = (int32_t) pgc->visw - cx + px;     /* card x at the left edge */
+    top  = (int32_t) pgc->vish - 1 - cy + py; /* card y at the top row */
+
+    pgc->scan_left = ((left % (int32_t) pgc->maxw) + (int32_t) pgc->maxw) % (int32_t) pgc->maxw;
+    pgc->scan_top  = (int32_t) pgc->maxh - 1 - top;
+}
+
+/*
+ * IMGSIZ w h planes flag: the image the screen shows, also the default
+ * viewport. The last two bytes are not modelled.
  */
 static void
 hndl_imgsiz(pgc_t *pgc)
 {
-#if 0
-    im1024_t *dev = (im1024_t *)pgc;
-#endif
-    int16_t w;
+    im1024_t *dev = (im1024_t *) pgc;
+    int16_t   w;
     int16_t h;
     uint8_t a;
     uint8_t b;
@@ -275,6 +309,21 @@ hndl_imgsiz(pgc_t *pgc)
         return;
 
     im1024_log("IM1024: IMGSIZ %i,%i,%i,%i\n", w, h, a, b);
+
+    if (w < 1 || w > (int16_t) pgc->maxw || h < 1 || h > (int16_t) pgc->maxh) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+
+    dev->img_w = w;
+    dev->img_h = h;
+    pgc->vp_x1 = 0;
+    pgc->vp_y1 = 0;
+    pgc->vp_x2 = w - 1;
+    pgc->vp_y2 = h - 1;
+    pgc->pan_x = 0;
+    pgc->pan_y = 0;
+    im1024_set_origin(dev);
 }
 
 /*
@@ -318,10 +367,7 @@ hndl_linfun(pgc_t *pgc)
         pgc_error(pgc, PGC_ERROR_RANGE);
 }
 
-/*
- * I think PAN controls which part of the 1024x1024 framebuffer
- * is displayed in the 1024x800 visible screen.
- */
+/* PAN x y moves the screen within the image, clamped to the slack IMGSIZ leaves. */
 static void
 hndl_pan(pgc_t *pgc)
 {
@@ -337,6 +383,7 @@ hndl_pan(pgc_t *pgc)
 
     pgc->pan_x = x;
     pgc->pan_y = y;
+    im1024_set_origin((im1024_t *) pgc);
 }
 
 /* PLINE draws a non-filled polyline at a fixed position. */
@@ -1037,13 +1084,20 @@ static const pgc_cmd_t im1024_commands[] = {
 
 /*
  * Firmware 2.21 writes the model id 02 to C63FA on every boot (06 on
- * the IM-640). AutoCAD's DS1024.DRV reads it and refuses anything else,
- * so it must also survive the C63FF reboot and RESETF paths.
+ * the IM-640); AutoCAD's DS1024.DRV reads it and refuses anything else,
+ * so it must also survive the C63FF reboot. The card then comes up as a
+ * PGC: a 640x480 image centred on the 1024x800 display.
  */
 static void
 im1024_reset(pgc_t *pgc)
 {
+    im1024_t *dev = (im1024_t *) pgc;
+
     pgc->mapram[0x3fa] = 0x02;
+
+    dev->img_w = 640;
+    dev->img_h = 480;
+    im1024_set_origin(dev);
 }
 
 static void *

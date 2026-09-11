@@ -1664,9 +1664,11 @@ pgc_reset(pgc_t *dev)
     dev->ascii_mode = 1; /* start off in ASCII mode */
     pgc_reset_flags(dev);
 
-    /* Reset panning. */
-    dev->pan_x = 0;
-    dev->pan_y = 0;
+    /* Reset panning: the screen shows the framebuffer from its top left. */
+    dev->pan_x     = 0;
+    dev->pan_y     = 0;
+    dev->scan_left = 0;
+    dev->scan_top  = 0;
 
     /* Empty command lists. */
     for (uint16_t n = 0; n < 256; n++) {
@@ -2597,8 +2599,8 @@ pgc_cga_poll(pgc_t *dev)
 void
 pgc_poll(void *priv)
 {
-    pgc_t   *dev = (pgc_t *) priv;
-    uint32_t y;
+    pgc_t  *dev = (pgc_t *) priv;
+    int32_t y;
 
     if (dev->cga_selected) {
         pgc_cga_poll(dev);
@@ -2614,13 +2616,11 @@ pgc_poll(void *priv)
             if (dev->displine == 0)
                 video_wait_for_buffer();
 
-            /* Don't know why pan needs to be multiplied by -2, but
-             * the IM1024 driver uses PAN -112 for an offset of
-             * 224. */
-            y = dev->displine - 2 * dev->pan_y;
+            /* Rows outside the framebuffer are blank; columns wrap. */
+            y = dev->scan_top + dev->displine;
             for (uint32_t x = 0; x < dev->screenw; x++) {
-                if (x + dev->pan_x < dev->maxw)
-                    buffer32->line[dev->displine][x] = dev->palette[dev->vram[y * dev->maxw + x]];
+                if (y >= 0 && y < (int32_t) dev->maxh)
+                    buffer32->line[dev->displine][x] = dev->palette[dev->vram[y * dev->maxw + ((uint32_t) dev->scan_left + x) % dev->maxw]];
                 else
                     buffer32->line[dev->displine][x] = dev->palette[0];
             }
