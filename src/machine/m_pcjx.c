@@ -36,7 +36,7 @@
 #include <86box/snd_sn76489.h>
 #include <86box/video.h>
 #include <86box/vid_cga_comp.h>
-#include <86box/m_pcjr.h>
+#include <86box/vid_pcjx.h>
 #include <86box/m_pcjx.h>
 
 /* Private PC JX cable keyboard. Include after timer.h and keyboard.h.
@@ -750,7 +750,7 @@ typedef struct pcjx_page_t {
 } pcjx_page_t;
 
 typedef struct pcjx_t {
-    pcjr_t video;
+    pcjx_video_t video;
     mem_mapping_t mapping;
     uint8_t memory_reg[11][2];
     uint8_t io_reg[20][2];
@@ -949,7 +949,7 @@ pcjx_readb(uint32_t address, void *priv)
     uint8_t value = 0xff, base = 0xff;
     int external_rom = 0;
     if (page->shared)
-        pcjr_waitstates(&dev->video);
+        pcjx_vid_waitstates();
     for (unsigned i = 0; i < page->count; i++) {
         const pcjx_route_t *route = &page->route[i];
         if (route->cartridge) {
@@ -973,7 +973,7 @@ pcjx_writeb(uint32_t address, uint8_t value, void *priv)
     address &= 0xfffff;
     const pcjx_page_t *page = &dev->pages[address >> 12];
     if (page->shared)
-        pcjr_waitstates(&dev->video);
+        pcjx_vid_waitstates();
     for (unsigned i = 0; i < page->count; i++) {
         const pcjx_route_t *route = &page->route[i];
         if (route->writable)

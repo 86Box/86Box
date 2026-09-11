@@ -52,17 +52,6 @@ recalc_address(pcjr_t *pcjr)
 {
     uint8_t masked_memctrl = pcjr->memctrl;
 
-    if (pcjr->jx_profile) {
-        uint32_t display_page = (pcjr->memctrl & 7) << 14;
-        uint32_t cpu_page = (pcjr->memctrl & 0x38) << 11;
-        if ((pcjr->memctrl & 0xc0) == 0xc0) {
-            display_page &= ~0x4000;
-            cpu_page &= ~0x4000;
-        }
-        pcjr->vram = display_page < pcjr->shared_size ? pcjr->shared_ram + display_page : NULL;
-        pcjr->b8000 = cpu_page < pcjr->shared_size ? pcjr->shared_ram + cpu_page : NULL;
-        return;
-    }
     /* According to the Technical Reference, bits 2 and 5 are
        ignored if there is only 64k of RAM and there are only
        4 pages. */
@@ -94,14 +83,6 @@ pcjr_recalc_timings(pcjr_t *pcjr)
     }
 
     _dispofftime = disptime - _dispontime;
-    /* Unprogrammed or software-created invalid CRTC widths must still let
-       emulated time advance, rather than spinning a zero-period timer. */
-    if (pcjr->jx_profile) {
-        if (_dispontime < 1)
-            _dispontime = 1;
-        if (_dispofftime < 1)
-            _dispofftime = 1;
-    }
     _dispontime *= CGACONST;
     _dispofftime *= CGACONST;
     pcjr->dispontime  = (uint64_t) (int64_t) (_dispontime);
@@ -139,8 +120,6 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d3:
         case 0x3d5:
         case 0x3d7:
-            if (pcjr->jx_profile && pcjr->crtcreg >= 0x10)
-                return; /* Light-pen address registers are read-only. */
             old                       = pcjr->crtc[pcjr->crtcreg];
             pcjr->crtc[pcjr->crtcreg] = val & crtcmask[pcjr->crtcreg];
             if (pcjr->crtcreg == 2)
@@ -292,17 +271,8 @@ vid_get_h_overscan_delta(pcjr_t *pcjr)
             break;
     }
 
-    if (pcjr->jx_profile) {
-        /* JX uses sync end, with four low-bandwidth or ten high-bandwidth
-         * character clocks between sync end and the next display line. */
-        const int reference_back_porch = (pcjr->array[0] & 1) ? 10 : 4;
-
-        ret = video_6845_get_hsync_delay(pcjr->crtc, pcjr->crtc[3] & 0x0f) -
-              reference_back_porch;
-    } else {
-        /* Preserve PCjr sync-start alignment; raw R3 width is not a viewport offset. */
-        ret = video_6845_get_hsync_delay(pcjr->crtc, 0) - def;
-    }
+    /* Preserve PCjr sync-start alignment; raw R3 width is not a viewport offset. */
+    ret = video_6845_get_hsync_delay(pcjr->crtc, 0) - def;
 
     if (ret < -8)
         ret = -8;
@@ -350,229 +320,184 @@ vid_blit_v_overscan(pcjr_t *pcjr)
     }
 }
 
-/* Decode one CRTC character clock to output color codes. The scanout and JX
-   diagnostic feedback share this pixel path, including the two-plane mode A. */
-static void
-vid_cell(pcjr_t *pcjr, uint16_t memaddr, int scanline, uint8_t pixels[16])
-{
-    uint16_t offset = 0;
-    uint16_t mask = 0x1fff;
-    uint8_t mode = pcjr->array[0];
-    uint16_t dat;
-    uint8_t lo, hi;
-    int width = (mode & 1) ? 8 : 16;
-    int graphics;
-    int blink_bit = pcjr->jx_profile ? 2 : 4;
-
-    if (pcjr->jx_profile)
-        mode = (mode & ~2) | ((pcjr->pb & 4) ? 0 : 2);
-    graphics = mode & 2;
-
-    if (pcjr->jx_profile && (!(pcjr->array[0] & 8) ||
-        (pcjr->array[4] & 3) || !(pcjr->jx_array[1] & 0x10) || !pcjr->vram)) {
-        memset(pixels, pcjr->array[2] & 15, width);
-        return;
-    }
-
-    switch (pcjr->addr_mode) {
-        case 0:
-            mask = 0x3fff;
-            break;
-        case 1:
-            offset = (scanline & 1) * 0x2000;
-            break;
-        case 3:
-            offset = (scanline & 3) * 0x2000;
-            break;
-        default:
-            break;
-    }
-    offset += (memaddr << 1) & mask;
-    lo = pcjr->vram[offset];
-    hi = pcjr->vram[offset + 1];
-    dat = (lo << 8) | hi;
-
-    if (!graphics) {
-        uint16_t cursoraddr = (pcjr->crtc[15] | (pcjr->crtc[14] << 8)) & 0x3fff;
-        int cursor = memaddr == cursoraddr && pcjr->cursorvisible && pcjr->cursoron;
-        uint8_t fg = hi & 15;
-        uint8_t bg = hi >> 4;
-        uint8_t glyph = pcjr->jx_profile ? pcjr->cg1[lo * 8 + (scanline & 7)] :
-                                          fontdat[lo][scanline & 7];
-        if (pcjr->array[3] & blink_bit) {
-            bg &= 7;
-            if ((pcjr->blink & 16) && (hi & 0x80) && !cursor)
-                fg = bg;
-        }
-        fg = pcjr->array[16 + (fg & pcjr->array[1] & 15)] & 15;
-        bg = pcjr->array[16 + (bg & pcjr->array[1] & 15)] & 15;
-        if (scanline & 8)
-            glyph = 0;
-        for (int c = 0; c < width; c++) {
-            int dot = c / (width / 8);
-            pixels[c] = (glyph & (0x80 >> dot)) ? fg : bg;
-            if (cursor)
-                pixels[c] ^= 15;
-        }
-    } else {
-        for (int c = 0; c < width; c++) {
-            uint8_t index;
-            switch ((mode & 0x13) | ((pcjr->array[3] & 8) << 5)) {
-                case 0x13: /* 320x200x16, packed nibbles. */
-                case 0x12: /* 160x200x16, packed nibbles. */
-                    index = (dat >> (12 - (c / (width / 4)) * 4)) & 15;
-                    break;
-                case 0x03: /* 640x200x4, adjacent low/high bitplane bytes. */
-                    index = ((lo >> (7 - c)) & 1) | (((hi >> (7 - c)) & 1) << 1);
-                    break;
-                case 0x02:
-                    index = (dat >> (14 - (c / 2) * 2)) & 3;
-                    break;
-                case 0x102:
-                    index = (dat >> (15 - c)) & 1;
-                    break;
-                default:
-                    index = 0;
-                    break;
-            }
-            if (pcjr->jx_profile || (mode & 0x11))
-                index &= pcjr->array[1] & 15;
-            if (pcjr->jx_profile && (pcjr->array[3] & 2))
-                index = (index & 7) | ((pcjr->blink & 16) >> 1);
-            pixels[c] = pcjr->array[16 + index] & 15;
-        }
-    }
-}
-
 static void
 vid_render(pcjr_t *pcjr, int line, int ho_s, int ho_d)
 {
-    uint8_t pixels[16];
-    int width = (pcjr->array[0] & 1) ? 8 : 16;
+    uint16_t cursoraddr   = (pcjr->crtc[15] | (pcjr->crtc[14] << 8)) & 0x3fff;
+    int      drawcursor;
+    uint8_t  chr;
+    uint8_t  attr;
+    uint16_t dat;
+    int      cols[4];
+    uint16_t offset       = 0;
+    uint16_t mask         = 0x1fff;
+    int      x;
 
-    hline(buffer32, 0, line, pcjr->crtc[1] * width + ho_s, (pcjr->array[2] & 15) + 16);
-    for (int x = 0; x < pcjr->crtc[1]; x++) {
-        vid_cell(pcjr, pcjr->memaddr++, pcjr->scanline, pixels);
-        for (int c = 0; c < width; c++)
-            buffer32->line[line][x * width + ho_d + c] = pixels[c] + 16;
-    }
-}
+    cols[0]        = (pcjr->array[2] & 0xf) + 16;
 
-/* The active half-line ends at timer.ts. Reads sample that clock; they never
-   move the beam. CRTC addresses remain character addresses for light pen. */
-static unsigned
-pcjx_raster_dot(pcjr_t *pcjr)
-{
-    unsigned width = pcjr->crtc[1] * ((pcjr->array[0] & 1) ? 8 : 16);
-    uint128_t remaining = timer_get_remaining_u64(&pcjr->timer);
-    if (!width || !pcjr->dispontime || remaining >= pcjr->dispontime)
-        return 0;
-    unsigned dot = ((uint128_t) (pcjr->dispontime - remaining) * width) / pcjr->dispontime;
-    return dot < width ? dot : width - 1;
-}
+    if (pcjr->array[0] & 1)
+        hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, cols[0]);
+    else
+        hline(buffer32, 0, line, (pcjr->crtc[1] << 4) + ho_s, cols[0]);
 
-uint8_t
-pcjx_vid_in(uint16_t port, uint8_t vp_mask, void *priv)
-{
-    pcjr_t *pcjr = (pcjr_t *) priv;
-    if (port == 0x3da) {
-        uint8_t ret = (pcjr->status & 0x0b) | 4; /* Disconnected light-pen switch. */
-        uint8_t color = 0; /* Blanking drives all four diagnostic outputs low. */
-        if (!vp_mask)
-            return 0xff;
-        if (pcjr->status & 1) {
-            uint8_t pixels[16];
-            unsigned width = (pcjr->array[0] & 1) ? 8 : 16;
-            unsigned dot = pcjx_raster_dot(pcjr);
-            int scanline = ((pcjr->crtc[8] & 3) == 3) ? (pcjr->scanline << 1) & 7 : pcjr->scanline;
-            vid_cell(pcjr, pcjr->memaddr + dot / width, scanline, pixels);
-            color = pixels[dot % width];
-        }
-        uint8_t feedback = 0x10;
-        for (int bank = 0; bank < 2; bank++) {
-            if (!(vp_mask & (1 << bank)))
-                continue;
-            if (bank)
-                pcjr->jx_array_ff = 0;
-            else
-                pcjr->array_ff = 0;
-            feedback &= ((color >> pcjr->dot_component[bank]) & 1) << 4;
-        }
-        return ret | feedback;
-    }
-    return vid_in(port, priv);
-}
-
-void
-pcjx_vid_out(uint16_t port, uint8_t val, uint8_t vp_mask, void *priv)
-{
-    pcjr_t *pcjr = (pcjr_t *) priv;
-    switch (port) {
-        case 0x3d9:
-            pcjr->pg2 = val;
-            return;
-        case 0x3df:
-            pcjr->memctrl = val;
-            pcjr->addr_mode = val >> 6;
-            recalc_address(pcjr);
-            return;
-        case 0x3db:
-            pcjr->status &= ~2;
-            return;
-        case 0x3dc:
-            if (!(pcjr->status & 2)) {
-                unsigned width = (pcjr->array[0] & 1) ? 8 : 16;
-                uint16_t address = pcjr->memaddr;
-                if (pcjr->status & 1)
-                    address += pcjx_raster_dot(pcjr) / width;
-                address &= 0x3fff;
-                pcjr->crtc[0x10] = address >> 8;
-                pcjr->crtc[0x11] = address;
-                pcjr->status |= 2;
-            }
-            return;
-        case 0x3da:
-            for (int bank = 0; bank < 2; bank++) {
-                int *phase = bank ? &pcjr->jx_array_ff : &pcjr->array_ff;
-                int *index = bank ? &pcjr->jx_array_index : &pcjr->array_index;
-                if (!(vp_mask & (1 << bank)))
-                    continue;
-                if (!*phase) {
-                    *index = val & 31;
-                    if (val < 4)
-                        pcjr->dot_component[bank] = val;
-                } else {
-                    uint8_t *registers = pcjr->array;
-                    if (*index == 0 || *index == 1 || *index == 3)
-                        registers = bank ? pcjr->jx_array : pcjr->array;
-                    /* Register 05 exists only in VP1; undefined registers are
-                       retained bank-locally without assigning them devices. */
-                    else if (*index != 2 && *index != 4 && *index != 6 && *index < 16)
-                        registers = bank ? pcjr->jx_array : pcjr->array;
-                    if (*index != 5 || !bank) {
-                        if (*index == 4 && (val & 1) && !(registers[4] & 1)) {
-                            memset(pcjr->shared_ram, 0, pcjr->shared_size);
-                            memset(pcjr->dedicated_vram, 0, 0x8000);
-                        }
-                        registers[*index] = val;
-                    }
-                }
-                *phase = !*phase;
-            }
-            update_cga16_color(pcjr->array[0], pcjr->array[2] & 15);
-            pcjr_recalc_timings(pcjr);
-            pcjr->fullchange = changeframecount;
-            return;
+    switch (pcjr->addr_mode) {
+        case 0: /*Alpha*/
+            offset = 0;
+            mask   = 0x3fff;
+            break;
+        case 1: /*Low resolution graphics*/
+            offset = (pcjr->scanline & 1) * 0x2000;
+            break;
+        case 3: /*High resolution graphics*/
+            offset = (pcjr->scanline & 3) * 0x2000;
+            break;
         default:
-            vid_out(port, val, priv);
-            return;
+            break;
+    }
+    switch ((pcjr->array[0] & 0x13) | ((pcjr->array[3] & 0x08) << 5)) {
+        case 0x13: /*320x200x16*/
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                int ef_x = (x << 3) + ho_d;
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                buffer32->line[line][ef_x] = buffer32->line[line][ef_x + 1] =
+                    pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 2] = buffer32->line[line][ef_x + 3] =
+                    pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 4] = buffer32->line[line][ef_x + 5] =
+                    pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 6] = buffer32->line[line][ef_x + 7] =
+                    pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
+            }
+            break;
+        case 0x12: /*160x200x16*/
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                int ef_x = (x << 4) + ho_d;
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                buffer32->line[line][ef_x] = buffer32->line[line][ef_x + 1] =
+                buffer32->line[line][ef_x + 2] = buffer32->line[line][ef_x + 3] =
+                    pcjr->array[((dat >> 12) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 4] = buffer32->line[line][ef_x + 5] =
+                    buffer32->line[line][ef_x + 6] = buffer32->line[line][ef_x + 7] =
+                    pcjr->array[((dat >> 8) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 8] = buffer32->line[line][ef_x + 9] =
+                buffer32->line[line][ef_x + 10] = buffer32->line[line][ef_x + 11] =
+                    pcjr->array[((dat >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                buffer32->line[line][ef_x + 12] = buffer32->line[line][ef_x + 13] =
+                buffer32->line[line][ef_x + 14] = buffer32->line[line][ef_x + 15] =
+                    pcjr->array[(dat & pcjr->array[1] & 0x0f) + 16] + 16;
+            }
+            break;
+        case 0x03: /*640x200x4*/
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                int ef_x = (x << 3) + ho_d;
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                pcjr->memaddr++;
+                for (uint8_t c = 0; c < 8; c++) {
+                    chr = (dat >> 7) & 1;
+                    chr |= ((dat >> 14) & 2);
+                    buffer32->line[line][ef_x + c] = pcjr->array[(chr & pcjr->array[1] & 0x0f) + 16] + 16;
+                    dat <<= 1;
+                }
+            }
+            break;
+        case 0x01: /*80 column text*/
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                int ef_x = (x << 3) + ho_d;
+                chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                drawcursor = ((pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron);
+                if (pcjr->array[3] & 4) {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
+                        cols[1] = cols[0];
+                } else {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                }
+                if (pcjr->scanline & 8)
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + c] = cols[0];
+                    else for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + c] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                if (drawcursor)  for (uint8_t c = 0; c < 8; c++)
+                    buffer32->line[line][ef_x + c] ^= 15;
+                pcjr->memaddr++;
+            }
+            break;
+        case 0x00: /*40 column text*/
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                int ef_x = (x << 4) + ho_d;
+                chr        = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset];
+                attr       = pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                drawcursor = ((pcjr->memaddr == cursoraddr) && pcjr->cursorvisible && pcjr->cursoron);
+                if (pcjr->array[3] & 4) {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[(((attr >> 4) & 7) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    if ((pcjr->blink & 16) && (attr & 0x80) && !drawcursor)
+                        cols[1] = cols[0];
+                } else {
+                    cols[1] = pcjr->array[((attr & 15) & pcjr->array[1] & 0x0f) + 16] + 16;
+                    cols[0] = pcjr->array[((attr >> 4) & pcjr->array[1] & 0x0f) + 16] + 16;
+                }
+                pcjr->memaddr++;
+                if (pcjr->scanline & 8)
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + (c << 1)] =
+                        buffer32->line[line][ef_x + (c << 1) + 1] = cols[0];
+                else
+                    for (uint8_t c = 0; c < 8; c++)
+                        buffer32->line[line][ef_x + (c << 1)] =
+                        buffer32->line[line][ef_x + (c << 1) + 1] = cols[(fontdat[chr][pcjr->scanline & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                if (drawcursor)  for (uint8_t c = 0; c < 16; c++)
+                    buffer32->line[line][ef_x + c] ^= 15;
+            }
+            break;
+        case 0x02: /*320x200x4*/
+            cols[0] = pcjr->array[0 + 16] + 16;
+            cols[1] = pcjr->array[1 + 16] + 16;
+            cols[2] = pcjr->array[2 + 16] + 16;
+            cols[3] = pcjr->array[3 + 16] + 16;
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                int ef_x = (x << 4) + ho_d;
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                for (uint8_t c = 0; c < 8; c++) {
+                    buffer32->line[line][ef_x + (c << 1)] = buffer32->line[line][ef_x + (c << 1) + 1] = cols[dat >> 14];
+                    dat <<= 2;
+                }
+            }
+            break;
+        case 0x102: /*640x200x2*/
+            cols[0] = pcjr->array[0 + 16] + 16;
+            cols[1] = pcjr->array[1 + 16] + 16;
+            for (x = 0; x < pcjr->crtc[1]; x++) {
+                int ef_x = (x << 4) + ho_d;
+                dat = (pcjr->vram[((pcjr->memaddr << 1) & mask) + offset] << 8) |
+                      pcjr->vram[((pcjr->memaddr << 1) & mask) + offset + 1];
+                pcjr->memaddr++;
+                for (uint8_t c = 0; c < 16; c++) {
+                    buffer32->line[line][ef_x + c] = cols[dat >> 15];
+                    dat <<= 1;
+                }
+            }
+            break;
+
+        default:
+            break;
     }
 }
 
 static void
 vid_render_blank(pcjr_t *pcjr, int line, int ho_s)
 {
-    if (pcjr->jx_profile || (pcjr->array[3] & 4)) {
+    if (pcjr->array[3] & 4) {
         if (pcjr->array[0] & 1)
             hline(buffer32, 0, line, (pcjr->crtc[1] << 3) + ho_s, (pcjr->array[2] & 0xf) + 16);
         else
@@ -667,7 +592,7 @@ vid_poll(void *priv)
         }
 
         pcjr->scanline = scanline_old;
-        if (!pcjr->jx_profile && pcjr->vc == pcjr->crtc[7] && !pcjr->scanline) {
+        if (pcjr->vc == pcjr->crtc[7] && !pcjr->scanline) {
             pcjr->status |= 8;
         }
         pcjr->displine++;
@@ -682,8 +607,6 @@ vid_poll(void *priv)
             pcjr->vsynctime--;
             if (!pcjr->vsynctime) {
                 pcjr->status &= ~8;
-                if (pcjr->jx_profile)
-                    picintc(1 << 5);
             }
         }
         if (pcjr->scanline == (pcjr->crtc[11] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->scanline == ((pcjr->crtc[11] & 31) >> 1))) {
@@ -723,10 +646,6 @@ vid_poll(void *priv)
                 pcjr->dispon    = 0;
                 pcjr->displine  = 0;
                 pcjr->vsynctime = 16;
-                if (pcjr->jx_profile) {
-                    pcjr->vsynctime = (pcjr->crtc[3] >> 4) ? (pcjr->crtc[3] >> 4) : 16;
-                    pcjr->status |= 8;
-                }
                 picint(1 << 5);
                 if (pcjr->crtc[7]) {
                     if (pcjr->array[0] & 1)
@@ -803,18 +722,20 @@ vid_poll(void *priv)
         }
         if (pcjr->scanline == (pcjr->crtc[10] & 31) || ((pcjr->crtc[8] & 3) == 3 && pcjr->scanline == ((pcjr->crtc[10] & 31) >> 1)))
             pcjr->cursorvisible = 1;
-        if (pcjr->jx_profile)
-            pcjr->status = (pcjr->status & ~1) | (pcjr->dispon ? 1 : 0);
     }
 }
 
 
-static void
-vid_init_common(pcjr_t *pcjr)
+void
+pcjr_vid_init(pcjr_t *pcjr)
 {
     int     display_type;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_dram);
+
+    pcjr->memctrl   = -1;
+    if (mem_size < 128)
+        pcjr->memctrl &= ~0x24;
 
     display_type    = device_get_config_int("display_type");
     pcjr->composite = (display_type == PCJR_COMPOSITE);
@@ -822,6 +743,11 @@ vid_init_common(pcjr_t *pcjr)
     overscan_x = 256;
     overscan_y = 32;
 
+    mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
+                    vid_read, NULL, NULL,
+                    vid_write, NULL, NULL, NULL, 0, pcjr);
+    io_sethandler(0x03d0, 16,
+                  vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
     timer_add(&pcjr->timer, vid_poll, pcjr, 1);
 
     if (&(cga_palette) != NULL) {
@@ -837,83 +763,3 @@ vid_init_common(pcjr_t *pcjr)
 
     monitors[monitor_index_global].mon_composite = !!pcjr->composite;
 }
-
-void
-pcjr_vid_init(pcjr_t *pcjr)
-{
-    pcjr->memctrl = -1;
-    if (mem_size < 128)
-        pcjr->memctrl &= ~0x24;
-    mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
-                    vid_read, NULL, NULL, vid_write, NULL, NULL, NULL, 0, pcjr);
-    io_sethandler(0x03d0, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, pcjr);
-    vid_init_common(pcjr);
-}
-
-void
-pcjx_vid_init(pcjr_t *pcjr, uint8_t *shared_ram, uint32_t shared_size,
-              uint8_t *dedicated_vram, const uint8_t *cg1)
-{
-    pcjr->jx_profile = 1;
-    pcjr->shared_ram = shared_ram;
-    pcjr->shared_size = shared_size > 0x20000 ? 0x20000 : shared_size;
-    pcjr->dedicated_vram = dedicated_vram;
-    pcjr->jx_array[3] = 0x10; /* Assumed cold-reset English memory ordering. */
-    pcjr->status = 4;
-    pcjr->firstline = 1000;
-    if (!cg1) {
-        video_load_font(FONT_IBM_MDA_437_PATH, FONT_FORMAT_MDA, LOAD_FONT_NO_OFFSET);
-        cg1 = &fontdat[0][0];
-    }
-    /* No authentic JX CG1 dump is available: keep a private immutable copy
-       of the same hardware-font asset used by the PCjr, never CPU ROM data. */
-    memcpy(pcjr->cg1, cg1, sizeof(pcjr->cg1));
-    recalc_address(pcjr);
-    device_context(&pcjx_video_device);
-    vid_init_common(pcjr);
-    device_context_restore();
-    pcjr_recalc_timings(pcjr);
-}
-
-static void
-pcjx_vid_speed_changed(void *priv)
-{
-    pcjr_recalc_timings((pcjr_t *) priv);
-}
-
-static const device_config_t pcjx_video_config[] = {
-    {
-        .name = "display_type", .description = "Display type",
-        .type = CONFIG_SELECTION, .default_int = PCJR_RGB,
-        .selection = {
-            { .description = "RGB", .value = PCJR_RGB },
-            { .description = "Composite", .value = PCJR_COMPOSITE },
-            { .description = "RGB (no brown)", .value = PCJR_RGB_NO_BROWN },
-            { .description = "RGB (IBM 5153)", .value = PCJR_RGB_IBM_5153 },
-            { .description = "" }
-        }
-    },
-    {
-        .name = "double_type", .description = "Line doubling type",
-        .type = CONFIG_SELECTION, .default_int = DOUBLE_NONE,
-        .selection = {
-            { .description = "None", .value = DOUBLE_NONE },
-            { .description = "Simple doubling", .value = DOUBLE_SIMPLE },
-            { .description = "sRGB interpolation", .value = DOUBLE_INTERPOLATE_SRGB },
-            { .description = "Linear interpolation", .value = DOUBLE_INTERPOLATE_LINEAR },
-            { .description = "" }
-        }
-    },
-    {
-        .name = "apply_hd", .description = "Apply overscan deltas",
-        .type = CONFIG_BINARY, .default_int = 1
-    },
-    { .name = "", .description = "", .type = CONFIG_END }
-};
-
-const device_t pcjx_video_device = {
-    .name = "IBM PC JX (Video)",
-    .internal_name = "pcjx_video",
-    .speed_changed = pcjx_vid_speed_changed,
-    .config = pcjx_video_config
-};

@@ -46,3 +46,11 @@ The tests check consecutive 40-cylinder image placement in ordinary 3.5-inch 720
 The generic raw-image path does not enable machine-specific skipped-track layouts. A 360KB image alone is not an opt-in to double stepping on 3.5-inch hardware.
 
 In the JX integration, selecting a PC JX machine explicitly enables skipped-track placement for eligible 360KB media and 3.5-inch drives: image cylinders occupy even physical tracks, with odd tracks blank. `PcjxFloppy.PlacementIsScopedToMachineAndEligiblePhysicalDrive` checks the machine-selection boundary on both 720KB and 1.44MB drive types, in flux and turbo modes.
+
+# PC JX board and video
+
+Build `pcjx_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^(PcjxBoard|PcjxFloppy)\.'`.
+
+The board tests exercise memory decoding, cartridge routing, VP1/VP2 register and display-page separation, and emulated raster feedback. The fixture includes the board and video implementations with host-service adapters; it does not boot a BIOS.
+
+JX video uses its own `pcjx_video_t` state and `src/video/vid_pcjx.c` implementation. Ordinary PCjr video remains in `src/video/vid_pcjr.c`, without JX-specific branches or state.

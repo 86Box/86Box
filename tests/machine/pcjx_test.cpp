@@ -13,7 +13,7 @@ extern "C" {
 #define fdc_set_base pcjx_test_fdc_set_base
 #define fdc_pcjx_device pcjx_test_fdc_device
 #include "../../src/machine/m_pcjx.c"
-#include "../../src/video/vid_pcjr.c"
+#include "../../src/video/vid_pcjx.c"
 static int pcjx_test_cart_identity(int) { return 1; }
 #define machine_is_pcjx pcjx_test_cart_identity
 #define malloc(size) ((uint8_t *) malloc(size))
@@ -50,7 +50,7 @@ void fire(pc_timer_t &timer)
     timer_disable(&timer);
     timer.callback(timer.priv);
 }
-void gate(pcjr_t &video, uint8_t banks, uint8_t index, uint8_t value)
+void gate(pcjx_video_t &video, uint8_t banks, uint8_t index, uint8_t value)
 {
     pcjx_vid_in(0x3da, banks, &video);
     pcjx_vid_out(0x3da, index, banks, &video);
@@ -68,7 +68,6 @@ protected:
         mem_size = 512;
         tsc = 0;
         board.general_size = memory.size();
-        board.video.jx_profile = 1;
         board.video.shared_ram = ram;
         board.video.shared_size = 0x20000;
         board.video.dedicated_vram = board.dedicated_vram;
@@ -262,11 +261,6 @@ TEST_F(PcjxBoard, HorizontalPositionPreservesSyncEndAndManualAdjustment)
     // A position-only change must still move the image by one character.
     --v.crtc[2];
     EXPECT_EQ(vid_get_h_overscan_delta(&v), 16);
-
-    // The legacy PCjr positioning policy is not the JX viewport model.
-    v.jx_profile = 0;
-    v.crtc[2] = 0x2b;
-    EXPECT_EQ(vid_get_h_overscan_delta(&v), 0);
 }
 
 TEST_F(PcjxBoard, HighBandwidthPositionUsesHorizontalWidthAndLineTotal)
