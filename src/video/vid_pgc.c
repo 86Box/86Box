@@ -1302,11 +1302,41 @@ hndl_c(pgc_t *dev)
         dev->ascii_mode = 0;
 }
 
-/* RESETF resets the PGC. */
+/*
+ * Drawing flags at their power-on defaults. This is all RESETF does:
+ * the communication area, the command mode, the display selection,
+ * the palette and the command lists survive it (IBM PGC Technical
+ * Reference, "Reset Flags"; the IM-1024 firmware behaves the same).
+ */
+static void
+pgc_reset_flags(pgc_t *dev)
+{
+    dev->line_pattern = 0xffff;
+    memset(dev->fill_pattern, 0xff, sizeof(dev->fill_pattern));
+    dev->color     = 0xff;
+    dev->draw_mode = 0;
+    dev->fill_mode = 0;
+    dev->tjust_h   = 1;
+    dev->tjust_v   = 1;
+    dev->tsize     = 8 << 16;
+
+    /* Current point. */
+    dev->x = 0;
+    dev->y = 0;
+    dev->z = 0;
+
+    /* Viewport = the whole native screen. */
+    dev->vp_x1 = 0;
+    dev->vp_y1 = 0;
+    dev->vp_x2 = dev->visw - 1;
+    dev->vp_y2 = dev->vish - 1;
+}
+
+/* RESETF resets the drawing flags, nothing else. */
 static void
 hndl_resetf(pgc_t *dev)
 {
-    pgc_reset(dev);
+    pgc_reset_flags(dev);
 }
 
 /* TJUST sets text justify settings. */
@@ -1631,22 +1661,12 @@ pgc_reset(pgc_t *dev)
     dev->mapram[0x3fd] = 0x55; /* } */
     dev->mapram[0x3fe] = 0x5a; /* } */
 
-    dev->ascii_mode   = 1; /* start off in ASCII mode */
-    dev->line_pattern = 0xffff;
-    memset(dev->fill_pattern, 0xff, sizeof(dev->fill_pattern));
-    dev->color   = 0xff;
-    dev->tjust_h = 1;
-    dev->tjust_v = 1;
+    dev->ascii_mode = 1; /* start off in ASCII mode */
+    pgc_reset_flags(dev);
 
     /* Reset panning. */
     dev->pan_x = 0;
     dev->pan_y = 0;
-
-    /* Reset clipping. */
-    dev->vp_x1 = 0;
-    dev->vp_y1 = 0;
-    dev->vp_x2 = dev->visw - 1;
-    dev->vp_y2 = dev->vish - 1;
 
     /* Empty command lists. */
     for (uint16_t n = 0; n < 256; n++) {
