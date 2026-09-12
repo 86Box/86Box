@@ -915,48 +915,107 @@ hndl_twrite(pgc_t *pgc)
     }
 }
 
-/* Draw a string in the ROM font, shared by TXT88 and TEXT. */
+/*
+ * Draw a string in the ROM font, shared by TXT88 and TEXT.
+ *
+ * TSIZE is the advance from one character to the next, and every other
+ * metric is a multiple of TSIZE/8: the cell is the advance wide by an
+ * ascent of 9 units plus a descent of 3, and the string is justified on a
+ * box 7 units wide. The card keeps one ROM font per size band and stays
+ * with its own metrics inside the band; the 12x18 font 86Box carries is
+ * the TSIZE 12 one, so other sizes sample it into the derived cell.
+ */
 static void
 txt_rom_draw(pgc_t *pgc, const uint8_t *buf, unsigned count)
 {
-    uint8_t        mask;
     const uint8_t *row;
-    int16_t        x0 = pgc->x >> 16;
-    int16_t        y0 = pgc->y >> 16;
+    int16_t        x0   = pgc->x >> 16;
+    int16_t        y0   = pgc->y >> 16;
+    int32_t        unit = pgc->tsize / 8;
+    int            adv;
+    int            boxw;
+    int            ascent;
+    int            descent;
+    int            cell_h;
+    int            width;
+
+    if (count == 0)
+        return;
+
+    if (unit > (255 << 16))
+        unit = 255 << 16;
+
+    adv = (unit * 8 + 0x8000) >> 16;
+    if (adv < 1)
+        return;
+
+    if (adv >= 12 && adv < 16) {
+        boxw    = 11;
+        ascent  = 14;
+        descent = 4;
+    } else {
+        boxw    = (unit * 7 + 0x8000) >> 16;
+        ascent  = (unit * 9 + 0x8000) >> 16;
+        descent = (unit * 3 + 0x8000) >> 16;
+    }
+    cell_h = ascent + descent;
+    width  = (int) (count - 1) * adv + boxw;
 
     pgc_sto_raster(pgc, &x0, &y0);
 
     /*
      * TJUST places the string: horizontally by its width, vertically
      * with the current point on the baseline (1), in the middle of the
-     * ascent (2) or on the top row (3) of the 14 + 4 row cell.
+     * ascent (2) or on the top row (3) of the cell.
      */
     if (pgc->tjust_h == 2)
-        x0 -= (12 * count) / 2;
+        x0 -= width / 2;
     else if (pgc->tjust_h == 3)
-        x0 -= 12 * count - 1;
-    y0 += (pgc->tjust_v == 3) ? 0 : (pgc->tjust_v == 2) ? 7 : 13;
+        x0 -= width - 1;
+    y0 += (pgc->tjust_v == 3) ? 0 : (pgc->tjust_v == 2) ? (ascent / 2) : (ascent - 1);
 
-    im1024_log("IM1024: text (%i) x0=%i y0=%i\n", count, x0, y0);
+    im1024_log("IM1024: text (%i) x0=%i y0=%i adv=%i cell=%ix%i\n",
+               count, x0, y0, adv, adv, cell_h);
 
     for (unsigned n = 0; n < count; n++) {
-        im1024_log("ch=0x%02x w=12 h=18\n", buf[n]);
+        for (int y = 0; y < cell_h; y++) {
+            const int sy0 = y * 18 / cell_h;
+            int       sy1 = (y + 1) * 18 / cell_h;
 
-        for (uint8_t y = 0; y < 18; y++) {
-            mask = 0x80;
-            row  = &fontdat12x18[buf[n]][y * 2];
-            for (uint8_t x = 0; x < 12; x++) {
-                if (row[0] & mask)
-                    pgc_plot(pgc, x + x0, y0 - y);
-                mask = mask >> 1;
-                if (mask == 0) {
-                    mask = 0x80;
-                    row++;
+            if (sy1 <= sy0)
+                sy1 = sy0 + 1;
+            if (sy1 > 18)
+                sy1 = 18;
+
+            for (int x = 0; x < adv; x++) {
+                const int sx0 = x * 12 / adv;
+                int       sx1 = (x + 1) * 12 / adv;
+                int       ink = 0;
+                int       area = 0;
+
+                if (sx1 <= sx0)
+                    sx1 = sx0 + 1;
+                if (sx1 > 12)
+                    sx1 = 12;
+
+                /* The cell takes the majority of the area it covers, which
+                   keeps a stroke without closing up the counters. */
+                for (int sy = sy0; sy < sy1; sy++) {
+                    row = &fontdat12x18[buf[n]][sy * 2];
+
+                    for (int sx = sx0; sx < sx1; sx++) {
+                        area++;
+                        if (row[sx >> 3] & (0x80 >> (sx & 7)))
+                            ink++;
+                    }
                 }
+
+                if ((ink * 2) >= area)
+                    pgc_plot(pgc, x + x0, y0 - y);
             }
         }
 
-        x0 += 12;
+        x0 += adv;
     }
 }
 
