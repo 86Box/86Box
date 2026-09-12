@@ -656,6 +656,10 @@ hndl_rectr(pgc_t *dev)
  * cell scaled whole; the size is the distance from one character to the
  * next, and the justification box is that distance for all but the last
  * character plus the 7-wide figure.
+ *
+ * TSIZE is in window coordinates, so every PEL size here is its product
+ * with the window scale: the firmware works them out in the TSIZE handler
+ * and the WINDOW handler re-runs that block when the mapping moves.
  */
 static void
 hndl_text(pgc_t *dev)
@@ -666,8 +670,12 @@ hndl_text(pgc_t *dev)
     unsigned count = 0;
     int16_t  x0;
     int16_t  y0;
+    double   size;
     int      adv;
-    int      scale;
+    int      pen_x;
+    int      pen_y;
+    int      fig_w;
+    int      fig_h;
     int      width;
 
     if (!pgc_param_byte(dev, &delim))
@@ -686,17 +694,32 @@ hndl_text(pgc_t *dev)
     if (count == 0)
         return;
 
-    adv = (dev->tsize + 0x8000) >> 16;
+    /* The character advance and figure, in raster PELs. */
+    size  = dev->tsize / 65536.0;
+    adv   = (int) floor(size * dev->win_sc_x + 0.5);
+    fig_w = (int) floor(size * PGC_GLYPH_W / PGC_CELL_W * dev->win_sc_x + 0.5);
+    fig_h = (int) floor(size * PGC_ASCENT / PGC_CELL_W * dev->win_sc_y + 0.5);
     if (adv < 1)
         return;
 
-    scale = adv / PGC_CELL_W;
-    if (scale < 1)
-        scale = 1;
+    /* The pen steps whole PELs, and stops at 255 across and 48 down. */
+    pen_x = adv / PGC_CELL_W;
+    if (pen_x > 255)
+        pen_x = 255;
+    pen_y = (int) floor(pen_x * (dev->win_sc_y / dev->win_sc_x) + 0.5);
+    if (pen_y > 48)
+        pen_y = 48;
+
+    /* Below one whole PEL per step there is no room for the face, and
+       the card draws each character as its filled figure instead. */
+    if (pen_x >= 1 && pen_y >= 1) {
+        fig_w = pen_x * PGC_GLYPH_W;
+        fig_h = pen_y * PGC_ASCENT;
+    }
 
     x0    = dev->x >> 16;
     y0    = dev->y >> 16;
-    width = (int) (count - 1) * adv + PGC_GLYPH_W * scale;
+    width = (int) (count - 1) * adv + fig_w;
 
     pgc_sto_raster(dev, &x0, &y0);
 
@@ -704,9 +727,18 @@ hndl_text(pgc_t *dev)
         x0 -= width / 2;
     else if (dev->tjust_h == 3)
         x0 -= width - 1;
-    y0 += (dev->tjust_v == 3) ? 0 : (dev->tjust_v == 2) ? (PGC_ASCENT * scale / 2) : (PGC_ASCENT * scale - 1);
+    y0 += (dev->tjust_v == 3) ? 0 : (dev->tjust_v == 2) ? (fig_h / 2) : (fig_h - 1);
 
     for (unsigned n = 0; n < count; n++) {
+        if (pen_x < 1 || pen_y < 1) {
+            for (int y = 0; y < fig_h; y++)
+                for (int x = 0; x < fig_w; x++)
+                    pgc_plot(dev, x0 + x, y0 - y);
+
+            x0 += adv;
+            continue;
+        }
+
         for (int y = 0; y < PGC_CELL_H; y++) {
             uint8_t row = pgc_font[buf[n]][y];
 
@@ -714,9 +746,9 @@ hndl_text(pgc_t *dev)
                 if (!(row & (0x80 >> x)))
                     continue;
 
-                for (int sy = 0; sy < scale; sy++)
-                    for (int sx = 0; sx < scale; sx++)
-                        pgc_plot(dev, x0 + x * scale + sx, y0 - (y * scale + sy));
+                for (int sy = 0; sy < pen_y; sy++)
+                    for (int sx = 0; sx < pen_x; sx++)
+                        pgc_plot(dev, x0 + x * pen_x + sx, y0 - (y * pen_y + sy));
             }
         }
 
