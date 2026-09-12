@@ -36,7 +36,7 @@
 
 enum {
     HD44780_GENERIC = 0,
-    HD44780_QUBE3
+    HD44780_COBALT3K
 };
 
 enum {
@@ -67,7 +67,7 @@ static const struct {
 
 typedef struct hd44780_lcd_t {
     uint8_t addr;
-    uint8_t config[4];
+    uint8_t config[3];
     uint8_t cgram[64];
     uint8_t ddram[HD44780_LINE_LEN * 2];
     uint8_t shift;
@@ -87,8 +87,10 @@ typedef struct hd44780_t {
     uint8_t data;
     uint8_t ctrl;
     uint8_t buttons;
+    uint8_t e0 : 1;
+    uint8_t f0 : 1;
 
-    hd44780_lcd_t lcd[2];
+    hd44780_lcd_t lcd[7];
     int           controllers;
     int           cols;
     int           rows;
@@ -703,11 +705,21 @@ hd44780_render(hd44780_t *dev)
         hd44780_lcd_t *lcd = &dev->lcd[row >> 1];
         for (int col = 0; col < dev->cols; col++) {
             int            addr      = ((row & 1) ? HD44780_LINE_LEN : 0) + ((col + lcd->shift) % HD44780_LINE_LEN);
-            int            is_cursor = (lcd->addr == (0x80 | addr)) && (lcd->config[1] & 0x02) && (lcd->frames < 30);
+            int            at_cursor = (hd44780_ddram_index(lcd->addr & 0x7f) == addr);
+            int            is_cursor = at_cursor && (lcd->config[1] & 0x02);
+            int            is_blink  = at_cursor && (lcd->config[1] & 0x01) && (lcd->frames < 30);
             uint8_t        ch        = lcd->ddram[addr];
             const uint8_t *glyph     = ((ch & 0xf8) == 0x00) ? &lcd->cgram[(ch & 0x07) << 3] : dev->font[ch];
             for (int dy = 0; dy < CHAR_H; dy++) {
-                uint8_t bits = (lcd->config[1] & 0x04) ? (((dy == (CHAR_H - 1)) && is_cursor) ? 0xff : glyph[dy]) : 0x00; /* render blank if D cleared */
+                uint8_t bits;
+                if (!(row & 1) && !(lcd->config[2] & 0x20)) /* uninitialized state */
+                    bits = 0xff;
+                else if (!(lcd->config[1] & 0x04)) /* render blank if D cleared */
+                    bits = 0x00;
+                else if (is_blink)
+                    bits = 0xff;
+                else
+                    bits = ((dy == (CHAR_H - 1)) && is_cursor) ? 0xff : glyph[dy];
                 for (int dx = 0; dx < CHAR_W; dx++) {
                     uint32_t color = (bits & (0x10 >> dx)) ? hd44780_palettes[dev->palette].on : hd44780_palettes[dev->palette].off;
                     int      px    = dev->x_offset + (MARGIN_DOTS * LCD_SCALE) + (((col * CELL_W) + dx) * LCD_SCALE);
@@ -773,7 +785,7 @@ hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_
 {
     hd44780_log(dev->log, "clock(%X, %X, %08X)\n", rs, rw, val);
 
-    if (!(lcd->config[3] & 0x10)) { /* 4-bit mode */
+    if (!(lcd->config[2] & 0x10)) { /* 4-bit mode */
         if (!lcd->nibble) {
             lcd->latch  = val;
             lcd->nibble = 1;
@@ -808,9 +820,10 @@ hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_
         } else if (val & 0xc0) { /* set address */
             lcd->addr = val;
         } else if (val & 0x20) { /* function set */
-            lcd->config[3] = val;
-        } else if (val & 0x10) { /* cursor/display shift */
+            if (!(lcd->config[2] & 0x20))
+                dev->redraw = 1; /* exit uninitialized state */
             lcd->config[2] = val;
+        } else if (val & 0x10) { /* cursor/display shift */
             if (val & 0x08)
                 hd44780_shift(lcd, (val & 0x04) ? -1 : 1);
             else
@@ -842,11 +855,14 @@ hd44780_write_data(uint8_t val, void *priv)
 {
     hd44780_t *dev = (hd44780_t *) priv;
 
-    if (dev->wiring == HD44780_WIRING_4BIT) {                                            /* control on D[7:4] in 4-bit mode */
-        if ((dev->data & 0x40) && !(val & 0x40))                                         /* primary E on D6 */
-            hd44780_clock(dev, &dev->lcd[0], val & 0x10, val & 0x20, (val << 4) | 0x0f); /* RS on D4, R/W on D5, 4-bit data on D[3:0] */
-        if ((dev->controllers > 1) && (dev->data & 0x80) && !(val & 0x80))               /* secondary E on D7 */
-            hd44780_clock(dev, &dev->lcd[1], val & 0x10, val & 0x20, (val << 4) | 0x0f); /* same as above */
+    if (dev->wiring == HD44780_WIRING_4BIT) { /* 4-bit mode: control on D[7:4] */
+        uint8_t rw = (dev->controllers > 2) ? 0 : (val & 0x20);
+        if ((dev->data & 0x40) && !(val & 0x40))                                 /* E[0] on D6 */
+            hd44780_clock(dev, &dev->lcd[0], val & 0x10, rw, (val << 4) | 0x0f); /* RS on D4, R/W on D5 (unless 3+ controllers), 4-bit data on D[3:0] */
+        if ((dev->controllers > 1) && (dev->data & 0x80) && !(val & 0x80))       /* E[1] on D7 */
+            hd44780_clock(dev, &dev->lcd[1], val & 0x10, rw, (val << 4) | 0x0f);
+        if ((dev->controllers > 2) && (dev->data & 0x20) && !(val & 0x20)) /* E[2] on D5 */
+            hd44780_clock(dev, &dev->lcd[2], val & 0x10, 0, (val << 4) | 0x0f);
     }
 
     dev->data = val;
@@ -857,29 +873,91 @@ hd44780_write_ctrl(uint8_t val, void *priv)
 {
     hd44780_t *dev = (hd44780_t *) priv;
 
-    if (dev->wiring == HD44780_WIRING_8BIT) {               /* control on control port in 8-bit mode */
-        if ((dev->type == HD44780_QUBE3) && (val & 0x08)) { /* Cobalt Qube 3 buttons on SelectIn */
-            lpt_write_to_dat(dev->lpt, dev->buttons ? dev->buttons : 0xfe);
+    if (dev->wiring == HD44780_WIRING_8BIT) {                  /* 8-bit mode: control on control port */
+        if ((dev->type == HD44780_COBALT3K) && (val & 0x08)) { /* Cobalt buttons on SelectIn */
+            lpt_write_to_dat(dev->lpt, ~(dev->buttons | 0x01));
             return;
         }
 
-        if ((dev->ctrl & 0x01) && !(val & 0x01))                                    /* primary E on nStrobe */
-            hd44780_clock(dev, &dev->lcd[0], val & 0x04, !(val & 0x02), dev->data); /* RS on nInit, R/W on autofd, 8-bit data on D[7:0] */
-        if ((dev->controllers > 1) && (dev->ctrl & 0x08) && !(val & 0x08))          /* secondary E on SelectIn */
-            hd44780_clock(dev, &dev->lcd[1], val & 0x04, !(val & 0x02), dev->data); /* same as above */
+        uint8_t rw = (dev->controllers > 2) ? 0 : !(val & 0x02);
+        if (!(dev->ctrl & 0x01) && (val & 0x01))                           /* E[0] on strobe */
+            hd44780_clock(dev, &dev->lcd[0], val & 0x04, rw, dev->data);   /* RS on nInit, R/W on autofd (unless 3+ controllers), 8-bit data on D[7:0] */
+        if ((dev->controllers > 1) && !(dev->ctrl & 0x08) && (val & 0x08)) /* E[1] on SelectIn */
+            hd44780_clock(dev, &dev->lcd[1], val & 0x04, rw, dev->data);
+        if ((dev->controllers > 2) && !(dev->ctrl & 0x02) && (val & 0x02)) /* E[2] on autofd */
+            hd44780_clock(dev, &dev->lcd[2], val & 0x04, 0, dev->data);
+    } else {                                                               /* 4-bit mode: E[6:3] on control port */
+        if ((dev->controllers > 3) && !(dev->ctrl & 0x01) && (val & 0x01)) /* E[3] on strobe */
+            hd44780_clock(dev, &dev->lcd[3], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
+        if ((dev->controllers > 4) && !(dev->ctrl & 0x02) && (val & 0x02)) /* E[4] on autofd */
+            hd44780_clock(dev, &dev->lcd[4], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
+        if ((dev->controllers > 5) && (dev->ctrl & 0x04) && !(val & 0x04)) /* E[5] on nInit */
+            hd44780_clock(dev, &dev->lcd[5], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
+        if ((dev->controllers > 6) && !(dev->ctrl & 0x08) && (val & 0x08)) /* E[6] on SelectIn */
+            hd44780_clock(dev, &dev->lcd[6], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
     }
 
     dev->ctrl = val;
 }
 
 static void
-hd44780_qube3_keyboard_send(uint16_t val)
+hd44780_cobalt3k_keyboard_send(uint16_t val)
 {
-    hd44780_t *dev = (hd44780_t *) device_get_priv(&hd44780_qube3_device);
+    hd44780_t *dev = (hd44780_t *) device_get_priv(&hd44780_cobalt3k_device);
     if (!dev)
         return;
 
-    hd44780_log(dev->log, "keyboard_send(%04X)\n", val);
+    hd44780_log(dev->log, "cobalt3k_keyboard_send(%04X)\n", val);
+
+    if (val == 0xe0) {
+        dev->e0 = 1;
+    } else if (val == 0xf0) {
+        dev->f0 = 1;
+    } else {
+        if (dev->e0)
+            val |= 0x100;
+
+        uint8_t mask;
+        switch (val) {
+            case 0x175: /* up */
+                mask = 0x08;
+                break;
+
+            case 0x172: /* down */
+                mask = 0x10;
+                break;
+
+            case 0x16b: /* left */
+                mask = 0x04;
+                break;
+
+            case 0x174: /* right */
+                mask = 0x20;
+                break;
+
+            case 0x29:       /* space */
+                mask = 0x80; /* select */
+                break;
+
+            case 0x5a: /* enter */
+                mask = 0x40;
+                break;
+
+            case 0x76:       /* esc */
+                mask = 0x02; /* reset */
+                break;
+
+            default:
+                mask = 0x00;
+                break;
+        }
+
+        if (dev->f0)
+            dev->buttons &= ~mask;
+        else
+            dev->buttons |= mask;
+        dev->e0 = dev->f0 = 0;
+    }
 }
 
 static void
@@ -906,15 +984,15 @@ hd44780_init(const device_t *info)
 
     dev->type = info->local & 0xff;
 
-    if (dev->type == HD44780_QUBE3) {
+    if (dev->type == HD44780_COBALT3K) {
         dev->wiring   = HD44780_WIRING_8BIT;
-        dev->cols     = 20;
+        dev->cols     = 16;
         dev->rows     = 2;
         dev->font     = hd44780_font_a00;
         dev->dot_size = LCD_SCALE - 1;
         dev->lpt      = lpt_attach_ex(0, hd44780_write_data, hd44780_write_ctrl,
                                       NULL, NULL, NULL, NULL, NULL, dev);
-        keyboard_send = hd44780_qube3_keyboard_send;
+        keyboard_send = hd44780_cobalt3k_keyboard_send;
     } else {
         dev->wiring  = device_get_config_int("wiring");
         dev->cols    = device_get_config_int("width");
@@ -940,7 +1018,8 @@ hd44780_init(const device_t *info)
         memset(lcd->ddram, ' ', sizeof(lcd->ddram));
         lcd->addr      = 0x80;
         lcd->config[0] = 0x06; /* increment, no shift */
-        lcd->config[3] = 0x38; /* 8-bit, two lines, 5x8 */
+        lcd->config[1] = 0x08; /* no display, no cursor, no blink */
+        lcd->config[2] = 0x10; /* 8-bit, 1 line, 5x8 font, bit 5 not set for special uninitialized state */
     }
     dev->redraw = 1;
 
@@ -1035,7 +1114,7 @@ static const device_config_t hd44780_config[] = {
         .default_string = NULL,
         .default_int    = 2,
         .file_filter    = NULL,
-        .spinner        = { .min = 2, .max = 4, .step = 2 },
+        .spinner        = { .min = 2, .max = 14, .step = 2 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
@@ -1098,11 +1177,11 @@ const device_t hd44780_device = {
     .config        = hd44780_config
 };
 
-const device_t hd44780_qube3_device = {
-    .name          = "Cobalt Qube 3 front panel",
-    .internal_name = "hd44780_qube3",
+const device_t hd44780_cobalt3k_device = {
+    .name          = "Cobalt 3000/4000 Series LCD Console",
+    .internal_name = "hd44780_cobalt3k",
     .flags         = DEVICE_LPT,
-    .local         = HD44780_QUBE3,
+    .local         = HD44780_COBALT3K,
     .init          = hd44780_init,
     .close         = hd44780_close,
     .reset         = NULL,

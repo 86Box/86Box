@@ -251,6 +251,7 @@ typedef struct {
     /* (ru_base + ru_offset) address the RFD in the Receive Frame Area. */
     uint32_t ru_base;           /* RU base address */
     uint32_t ru_offset;         /* RU address offset */
+    uint32_t ru_rbd_address;    /* RU position in RBD list (flexible mode) */
     uint32_t statsaddr;         /* pointer to eepro100_stats_t */
 
     /* Temporary status information (no need to save these values),
@@ -615,6 +616,7 @@ nic_reset(void *opaque)
     eepro100_t *s = opaque;
     /* TODO: Clearing of hash register for selective reset, too? */
     memset(&s->mult[0], 0, sizeof(s->mult));
+    s->ru_rbd_address = 0xffffffff;
     nic_selective_reset(s);
 }
 
@@ -1481,6 +1483,7 @@ eepro100_write1(eepro100_t *s, uint32_t addr, uint8_t val)
         if (val & BIT(1)) {
             eepro100_swi_interrupt(s);
         }
+        s->mem[SCBIntmask] &= ~BIT(1); /* self-clearing */
         eepro100_interrupt(s, 0);
         break;
     case SCBPointer:
@@ -1857,7 +1860,8 @@ eepro100_do_receive(void *priv, uint8_t *buf, int size)
     uint16_t rfd_command = le16_to_cpu(rx.command);
     uint16_t rfd_size = le16_to_cpu(rx.size);
 
-    if (size > rfd_size) {
+    int rfd_flexible = ((rfd_command & COMMAND_SF) != 0);
+    if (!rfd_flexible && (size > rfd_size)) {
         i8255x_log("Receive buffer (%d bytes) too small for data (%d bytes); data truncated\n",
                    rfd_size, size);
         size = rfd_size;
@@ -1866,15 +1870,70 @@ eepro100_do_receive(void *priv, uint8_t *buf, int size)
                rfd_command, rx.link, rx.rx_buf_addr, rfd_size);
     stw_le_pci_dma(s, s->ru_base + s->ru_offset +
                 offsetof(eepro100_rx_t, status), rfd_status);
-    stw_le_pci_dma(s, s->ru_base + s->ru_offset +
-                offsetof(eepro100_rx_t, count), size);
     /* Receive CRC Transfer not supported. */
     if (s->configuration[18] & BIT(2)) {
         i8255x_log("Receive CRC Transfer\n");
         return 0;
     }
-    dma_bm_write(s->ru_base + s->ru_offset +
-                 sizeof(eepro100_rx_t), buf, size, 1);
+    if (rfd_flexible) {
+        uint16_t header    = (size < rfd_size) ? size : rfd_size;
+        uint16_t remaining = size - header;
+        uint16_t done      = header;
+        uint16_t rfd_count = header | BIT(15); /* F: count field valid */
+
+        if ((rx.rx_buf_addr != 0) && (rx.rx_buf_addr != 0xffffffff))
+            s->ru_rbd_address = rx.rx_buf_addr;
+
+        if (header > 0)
+            dma_bm_write(s->ru_base + s->ru_offset + sizeof(eepro100_rx_t),
+                         buf, header, 1);
+        if (remaining == 0)
+            rfd_count |= BIT(14); /* EOF: the whole frame fit in the header */
+        stw_le_pci_dma(s, s->ru_base + s->ru_offset +
+                    offsetof(eepro100_rx_t, count), rfd_count);
+
+        while (remaining > 0) {
+            const uint32_t rbd_address = s->ru_rbd_address;
+
+            if ((rbd_address == 0) || (rbd_address == 0xffffffff))
+                break;
+
+            const uint32_t rbd_buffer = ldl_le_pci_dma(s, rbd_address + 8);
+            const uint16_t rbd_bufsz  = lduw_le_pci_dma(s, rbd_address + 12);
+            const uint16_t rbd_size   = rbd_bufsz & 0x3fff;
+            uint16_t       chunk      = (remaining < rbd_size) ? remaining : rbd_size;
+            uint16_t       count      = chunk | BIT(15); /* F: count field valid */
+
+            if (chunk > 0)
+                dma_bm_write(rbd_buffer, buf + done, chunk, 1);
+            remaining -= chunk;
+            done      += chunk;
+            if (remaining == 0)
+                count |= BIT(14); /* EOF */
+            stw_le_pci_dma(s, rbd_address, count);
+            i8255x_log("RBD 0x%08x buffer 0x%08x size %u, stored %u\n",
+                       rbd_address, rbd_buffer, rbd_size, chunk);
+            /* The RU always moves on to the next RBD, even mid-frame. */
+            s->ru_rbd_address = ldl_le_pci_dma(s, rbd_address + 4);
+            if (rbd_bufsz & BIT(15)) {
+                /* EL bit is set, so that was the last RBD. */
+                i8255x_log("receive: Running out of RBDs\n");
+                s->ru_rbd_address = 0xffffffff;
+                set_ru_state(s, ru_no_resources);
+                eepro100_rnr_interrupt(s);
+                break;
+            }
+            if (rbd_size == 0)
+                break;
+        }
+        if (remaining > 0)
+            i8255x_log("RBD chain too short, %u bytes dropped\n", remaining);
+    } else {
+        stw_le_pci_dma(s, s->ru_base + s->ru_offset +
+                    offsetof(eepro100_rx_t, count), size | BIT(15) | BIT(14));
+        dma_bm_write(s->ru_base + s->ru_offset +
+                     sizeof(eepro100_rx_t), buf, size, 1);
+    }
     s->statistics.rx_good_frames++;
     eepro100_fr_interrupt(s);
     s->ru_offset = le32_to_cpu(rx.link);
@@ -2212,10 +2271,17 @@ nic_init(const device_t *info)
     /* Output DO is tristate, read results in 1. */
     s->eeprom->eedo = 1;
 
-    /* Intel OUI. */
-    mac_bytes[0] = 0x00;
-    mac_bytes[1] = 0xaa;
-    mac_bytes[2] = 0x00;
+    if (info->local >> 16) {
+        /* Custom OUI. */
+        mac_bytes[0] = info->local >> 32;
+        mac_bytes[1] = info->local >> 24;
+        mac_bytes[2] = info->local >> 16;
+    } else {
+        /* Intel OUI. */
+        mac_bytes[0] = 0x00;
+        mac_bytes[1] = 0xaa;
+        mac_bytes[2] = 0x00;
+    }
 
     /* Set up our BIA. */
     mac = device_get_config_mac("mac", -1);
@@ -2489,6 +2555,20 @@ const device_t i82559c_onboard_device = {
     .internal_name = "i82559c_onboard",
     .flags         = DEVICE_PCI,
     .local         = 0x0005 | 0x0100,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = eepro100_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = i8255x_onboard_config
+};
+
+const device_t i82559er_onboard_device = {
+    .name          = "Intel GD82559ER (On-Board)",
+    .internal_name = "i82559er_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 0x0006 | 0x0100,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = eepro100_reset,

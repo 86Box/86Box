@@ -68,3 +68,14 @@ For full-emulator profile verification, boot both English profiles with a stale 
 Delivery verification on Linux ARM64 (Debian trixie Docker, GCC 14.2) and native macOS ARM64 passed all 42 board/video, floppy, and cartridge tests. Both runs had six failures in the separate 15-test Mitsumi suite; the same six failures reproduced on untouched upstream `c9b1d449ce`. The installed Release application booted all three JX profiles with opposing stale native-video settings, and its disabled Internal device controls were checked through native accessibility and a screenshot.
 
 A live Japanese POST trace with the unpatched image passed the first 32 KiB checksum, then failed the next module with `AL=A6h`, producing diagnostic `2701` (`ERROR K`). All 224 KiB read through the CPU aperture matched the loaded file byte-for-byte at the checksum breakpoint. This rules out byte corruption in that exercised mapping, not a font-revision or image-representation mismatch. The Technical Reference's printed page C-13 (PDF page 493), “Kanji ROM address calculation,” illustrates code `90AFh` (星) with a different raster: its row-six left byte at `A15ECh` is `1Fh`, while the image has `00h`. That comparison is not proof that one glyph causes the module checksum failure; the illustration may be schematic rather than a byte-exact font specimen.
+The tests use the real FDC/FDD/IMG/D86F path to check immediate missing-head errors and normal bitstream Read ID completion in DMA and non-DMA modes. They adapt host timers, interrupts and file services; Read ID has no DMA payload, so this is not a DMA-transfer test. The fixture follows the C-in-C++ device-test convention and uses POSIX temporary-directory helpers.
+
+# Cartridges
+
+The cartridge tests compile `src/device/cartridge.c` as C and exercise raw and headered image loading, replacement/ejection, overlap and address bounds, and hard-reset reloads. They use real temporary image files with a small external-memory mapping adapter; they do not emulate CPU execution, RAM/BIOS arbitration, or the real memory mapping cache.
+
+Build the `cartridge_tests` target with `BUILD_TESTING=ON`, then run:
+
+```sh
+ctest --test-dir build --output-on-failure -R '^CartridgeTest\.'
+```
