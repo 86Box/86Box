@@ -855,13 +855,14 @@ hd44780_write_data(uint8_t val, void *priv)
 {
     hd44780_t *dev = (hd44780_t *) priv;
 
-    if (dev->wiring == HD44780_WIRING_4BIT) { /* 4-bit mode: control on D[7:4] */
-        uint8_t rw = (dev->controllers > 2) ? 0 : (val & 0x20);
-        if ((dev->data & 0x40) && !(val & 0x40))                                 /* E[0] on D6 */
-            hd44780_clock(dev, &dev->lcd[0], val & 0x10, rw, (val << 4) | 0x0f); /* RS on D4, R/W on D5 (unless 3+ controllers), 4-bit data on D[3:0] */
-        if ((dev->controllers > 1) && (dev->data & 0x80) && !(val & 0x80))       /* E[1] on D7 */
+    if (dev->wiring == HD44780_WIRING_4BIT) {                   /* 4-bit mode: control on D[7:4] */
+        uint8_t rw = (dev->controllers > 2) ? 0 : (val & 0x20); /* R/W on D5 (unless 3+ controllers) */
+#define E_EDGE(rw, prev, val, mask) ((rw) ? (!((prev) & (mask)) && ((val) & (mask))) : (((prev) & (mask)) && !((val) & (mask))))
+        if (E_EDGE(rw, dev->data, val, 0x40))                                    /* E[0] on D6 */
+            hd44780_clock(dev, &dev->lcd[0], val & 0x10, rw, (val << 4) | 0x0f); /* RS on D4, 4-bit data on D[3:0] */
+        if ((dev->controllers > 1) && E_EDGE(rw, dev->data, val, 0x80))          /* E[1] on D7 */
             hd44780_clock(dev, &dev->lcd[1], val & 0x10, rw, (val << 4) | 0x0f);
-        if ((dev->controllers > 2) && (dev->data & 0x20) && !(val & 0x20)) /* E[2] on D5 */
+        if ((dev->controllers > 2) && E_EDGE(rw, dev->data, val, 0x20)) /* E[2] on D5 */
             hd44780_clock(dev, &dev->lcd[2], val & 0x10, 0, (val << 4) | 0x0f);
     }
 
@@ -879,21 +880,22 @@ hd44780_write_ctrl(uint8_t val, void *priv)
             return;
         }
 
-        uint8_t rw = (dev->controllers > 2) ? 0 : !(val & 0x02);
-        if (!(dev->ctrl & 0x01) && (val & 0x01))                           /* E[0] on strobe */
-            hd44780_clock(dev, &dev->lcd[0], val & 0x04, rw, dev->data);   /* RS on nInit, R/W on autofd (unless 3+ controllers), 8-bit data on D[7:0] */
-        if ((dev->controllers > 1) && !(dev->ctrl & 0x08) && (val & 0x08)) /* E[1] on SelectIn */
+        uint8_t rw = (dev->controllers > 2) ? 0 : !(val & 0x02);         /* R/W on autofd (unless 3+ controllers) */
+        if (E_EDGE(!rw, dev->ctrl, val, 0x01))                           /* E[0] on strobe */
+            hd44780_clock(dev, &dev->lcd[0], val & 0x04, rw, dev->data); /* RS on nInit, 8-bit data on D[7:0] */
+        if ((dev->controllers > 1) && E_EDGE(!rw, dev->ctrl, val, 0x08)) /* E[1] on SelectIn */
             hd44780_clock(dev, &dev->lcd[1], val & 0x04, rw, dev->data);
-        if ((dev->controllers > 2) && !(dev->ctrl & 0x02) && (val & 0x02)) /* E[2] on autofd */
+        if ((dev->controllers > 2) && E_EDGE(!rw, dev->ctrl, val, 0x02)) /* E[2] on autofd */
             hd44780_clock(dev, &dev->lcd[2], val & 0x04, 0, dev->data);
-    } else {                                                               /* 4-bit mode: E[6:3] on control port */
-        if ((dev->controllers > 3) && !(dev->ctrl & 0x01) && (val & 0x01)) /* E[3] on strobe */
+    } else { /* 4-bit mode: E[6:3] on control port */
+        uint8_t rw = (dev->controllers > 2) ? 0 : (dev->data & 0x20);
+        if ((dev->controllers > 3) && E_EDGE(!rw, dev->ctrl, val, 0x01)) /* E[3] on strobe */
             hd44780_clock(dev, &dev->lcd[3], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
-        if ((dev->controllers > 4) && !(dev->ctrl & 0x02) && (val & 0x02)) /* E[4] on autofd */
+        if ((dev->controllers > 4) && E_EDGE(!rw, dev->ctrl, val, 0x02)) /* E[4] on autofd */
             hd44780_clock(dev, &dev->lcd[4], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
-        if ((dev->controllers > 5) && (dev->ctrl & 0x04) && !(val & 0x04)) /* E[5] on nInit */
+        if ((dev->controllers > 5) && E_EDGE(rw, dev->ctrl, val, 0x04)) /* E[5] on nInit */
             hd44780_clock(dev, &dev->lcd[5], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
-        if ((dev->controllers > 6) && !(dev->ctrl & 0x08) && (val & 0x08)) /* E[6] on SelectIn */
+        if ((dev->controllers > 6) && E_EDGE(!rw, dev->ctrl, val, 0x08)) /* E[6] on SelectIn */
             hd44780_clock(dev, &dev->lcd[6], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
     }
 
@@ -994,13 +996,11 @@ hd44780_init(const device_t *info)
                                       NULL, NULL, NULL, NULL, NULL, dev);
         keyboard_send = hd44780_cobalt3k_keyboard_send;
     } else {
-        dev->wiring  = device_get_config_int("wiring");
-        dev->cols    = device_get_config_int("width");
-        dev->rows    = device_get_config_int("height");
-        dev->font    = device_get_config_int("font") ? hd44780_font_a02 : hd44780_font_a00;
-        dev->palette = device_get_config_int("palette");
-        if ((dev->palette < 0) || (dev->palette >= (sizeof(hd44780_palettes) / sizeof(hd44780_palettes[0]))))
-            dev->palette = 0;
+        dev->wiring   = device_get_config_int("wiring");
+        dev->cols     = device_get_config_int("width");
+        dev->rows     = device_get_config_int("height");
+        dev->font     = device_get_config_int("font") ? hd44780_font_a02 : hd44780_font_a00;
+        dev->palette  = device_get_config_int("palette");
         dev->dot_size = LCD_SCALE - !!device_get_config_int("dot_gap");
         dev->lpt      = lpt_attach_ex(device_get_config_int("port"), hd44780_write_data,
                                       hd44780_write_ctrl, NULL, NULL, NULL, NULL, NULL, dev);
@@ -1011,6 +1011,8 @@ hd44780_init(const device_t *info)
 
     dev->monitor_index = monitor_index_global;
 
+    dev->cols        = MAX(MIN(dev->cols, HD44780_LINE_LEN), 1);
+    dev->rows        = MAX(MIN(dev->rows, (sizeof(dev->lcd) / sizeof(dev->lcd[0])) * 2), 1);
     dev->controllers = (dev->rows + 1) / 2;
     for (int i = 0; i < dev->controllers; i++) {
         hd44780_lcd_t *lcd = &dev->lcd[i];
@@ -1019,9 +1021,10 @@ hd44780_init(const device_t *info)
         lcd->addr      = 0x80;
         lcd->config[0] = 0x06; /* increment, no shift */
         lcd->config[1] = 0x08; /* no display, no cursor, no blink */
-        lcd->config[2] = 0x10; /* 8-bit, 1 line, 5x8 font, bit 5 not set for special uninitialized state */
+        lcd->config[2] = 0x10; /* 8-bit, 1 line, 5x8 font, bit 5 cleared for special uninitialized state */
     }
-    dev->redraw = 1;
+    dev->palette = MAX(MIN(dev->palette, sizeof(hd44780_palettes) / sizeof(hd44780_palettes[0])), 0);
+    dev->redraw  = 1;
 
     hd44780_recalc_size(dev);
 
