@@ -196,8 +196,7 @@ input_byte(pgc_t *pgc, uint8_t *result)
     im1024_t *dev = (im1024_t *) pgc;
 
     /* If input buffer empty, wait for it to fill. */
-    while (!pgc->stopped && !pgc->mapram[0x306] && !pgc->mapram[0x307] && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
-        pgc->waiting_input_fifo = 1;
+    while (!pgc->stopped && !pgc->mapram[0x3ff] && !pgc->mapram[0x306] && !pgc->mapram[0x307] && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
         pgc_sleep(pgc);
     }
 
@@ -276,10 +275,7 @@ im1024_write(uint32_t addr, uint8_t val, void *priv)
 
         im1024_log("IM1024: write(%02x)\n", val);
 
-        if (dev->pgc.waiting_input_fifo) {
-            dev->pgc.waiting_input_fifo = 0;
-            pgc_wake(&dev->pgc);
-        }
+        pgc_wake(&dev->pgc);
         return;
     }
 

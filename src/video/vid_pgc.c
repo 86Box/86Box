@@ -169,10 +169,9 @@ static int
 output_byte(pgc_t *dev, uint8_t val)
 {
     /* If output buffer full, wait for it to empty. */
-    while (!dev->stopped && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x302] == (uint8_t) (dev->mapram[0x303] - 1)) {
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x302] == (uint8_t) (dev->mapram[0x303] - 1)) {
         pgc_log("PGC: output buffer state: %02x %02x  Sleeping\n",
                 dev->mapram[0x302], dev->mapram[0x303]);
-        dev->waiting_output_fifo = 1;
         pgc_sleep(dev);
     }
 
@@ -215,8 +214,7 @@ static int
 error_byte(pgc_t *dev, uint8_t val)
 {
     /* If error buffer full, wait for it to empty. */
-    while (!dev->stopped && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x304] == dev->mapram[0x305] - 1) {
-        dev->waiting_error_fifo = 1;
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x304] == dev->mapram[0x305] - 1) {
         pgc_sleep(dev);
     }
 
@@ -261,8 +259,7 @@ static int
 input_byte(pgc_t *dev, uint8_t *result)
 {
     /* If input buffer empty, wait for it to fill. */
-    while (!dev->stopped && !dev->mapram[0x306] && !dev->mapram[0x307] && (dev->mapram[0x300] == dev->mapram[0x301])) {
-        dev->waiting_input_fifo = 1;
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && (dev->mapram[0x300] == dev->mapram[0x301])) {
         pgc_sleep(dev);
     }
 
@@ -2040,11 +2037,8 @@ void
 pgc_warm_reset(pgc_t *dev)
 {
     memset(&dev->mapram[0x300], 0x00, 6);
-    dev->mapram[0x307]       = 0;
-    dev->clcur               = NULL;
-    dev->waiting_input_fifo  = 0;
-    dev->waiting_output_fifo = 0;
-    dev->waiting_error_fifo  = 0;
+    dev->mapram[0x307] = 0;
+    dev->clcur         = NULL;
 }
 
 /* Switch between CGA mode (DISPLAY 1) and native mode (DISPLAY 0). */
@@ -2084,34 +2078,21 @@ pgc_wake(pgc_t *dev)
         timer_set_delay_u64(&dev->wake_timer, WAKE_DELAY);
 }
 
-/* Wait for more input data, or for output to drain. */
+/*
+ * Wait for the host to change something: a FIFO pointer, the fast FIFO
+ * or a restart flag. Every such change arms the wake timer whether or
+ * not this thread is asleep, and the event it sets is sticky, so a
+ * change that lands between the caller's test and this wait is not
+ * lost. The caller re-tests its whole condition after every wake.
+ */
 void
 pgc_sleep(pgc_t *dev)
 {
-    pgc_log("PGC: sleeping on %i %i %i %i 0x%02x 0x%02x\n",
-            dev->stopped,
-            dev->waiting_input_fifo, dev->waiting_output_fifo,
-            dev->waiting_error_fifo, dev->mapram[0x300], dev->mapram[0x301]);
+    pgc_log("PGC: sleeping on %i 0x%02x 0x%02x\n", dev->stopped,
+            dev->mapram[0x300], dev->mapram[0x301]);
 
-    /* Avoid entering waiting state. */
-    if (dev->stopped) {
-        dev->waiting_input_fifo  = 0;
-        dev->waiting_output_fifo = 0;
+    if (dev->stopped)
         return;
-    }
-
-    /* Race condition: If host wrote to the PGC during the that
-     * won't be noticed */
-    if (dev->waiting_input_fifo && dev->mapram[0x300] != dev->mapram[0x301]) {
-        dev->waiting_input_fifo = 0;
-        return;
-    }
-
-    /* Same if they read. */
-    if (dev->waiting_output_fifo && dev->mapram[0x302] != (uint8_t) (dev->mapram[0x303] - 1)) {
-        dev->waiting_output_fifo = 0;
-        return;
-    }
 
     thread_wait_event(dev->pgc_wake_thread, -1);
     thread_reset_event(dev->pgc_wake_thread);
@@ -2680,32 +2661,19 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
         if (addr >= 0x3f8 && addr <= 0x3fe)
             return;
 
-        /* If one of the FIFOs has been updated, this may cause
-         * the drawing thread to be woken */
-
+        /*
+         * Anything the drawing thread may be waiting on wakes it; it
+         * re-tests its own condition, so a wake it did not need is
+         * harmless, while one it needed and did not get is a hang.
+         */
         if (dev->mapram[addr] != val) {
             dev->mapram[addr] = val;
 
             switch (addr) {
                 case 0x300: /* input write pointer */
-                    if (dev->waiting_input_fifo && dev->mapram[0x300] != dev->mapram[0x301]) {
-                        dev->waiting_input_fifo = 0;
-                        pgc_wake(dev);
-                    }
-                    break;
-
                 case 0x303: /* output read pointer */
-                    if (dev->waiting_output_fifo && dev->mapram[0x302] != (uint8_t) (dev->mapram[0x303] - 1)) {
-                        dev->waiting_output_fifo = 0;
-                        pgc_wake(dev);
-                    }
-                    break;
-
                 case 0x305: /* error read pointer */
-                    if (dev->waiting_error_fifo && dev->mapram[0x304] != (uint8_t) (dev->mapram[0x305] - 1)) {
-                        dev->waiting_error_fifo = 0;
-                        pgc_wake(dev);
-                    }
+                    pgc_wake(dev);
                     break;
 
                 case 0x306: /* cold start flag: the drawing thread acknowledges it */
@@ -3053,10 +3021,8 @@ pgc_close_common(void *priv)
 #endif
     dev->stopped       = 1;
     dev->mapram[0x3ff] = 1;
-    if (dev->waiting_input_fifo || dev->waiting_output_fifo) {
-        /* Do an immediate wake-up. */
-        wake_timer(priv);
-    }
+    /* Immediate wake-up, whichever wait the thread is parked in. */
+    wake_timer(priv);
 
     /* Wait for thread to stop. */
 #ifdef ENABLE_PGC_LOG

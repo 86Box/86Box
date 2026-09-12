@@ -104,9 +104,6 @@ typedef struct pgc {
     event_t   *pgc_wake_thread;
     pc_timer_t wake_timer;
 
-    int waiting_input_fifo;
-    int waiting_output_fifo;
-    int waiting_error_fifo;
     int ascii_mode;
     int coord_words; /* hex coordinates are 16-bit integers, not 16.16 */
     int result_count;
