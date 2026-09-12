@@ -727,7 +727,6 @@ tx_command(eepro100_t *s)
         uint16_t tx_buffer_el;
 
         if (s->has_extended_tcb_support && !(s->configuration[6] & BIT(4))) {
-            /* Extended Flexible TCB. */
             for (; tbd_count < 2; tbd_count++) {
                 tx_buffer_address = ldl_le_pci_dma(s, tbd_address);
                 tx_buffer_el      = lduw_le_pci_dma(s, tbd_address + 4);
@@ -1938,15 +1937,15 @@ eepro100_do_receive(void *priv, uint8_t *buf, int size)
     eepro100_fr_interrupt(s);
     s->ru_offset = le32_to_cpu(rx.link);
     if (rfd_command & COMMAND_EL) {
-        /* EL bit is set, so this was the last frame. */
+        /* Takes precedence over S. */
         i8255x_log("receive: Running out of frames\n");
         set_ru_state(s, ru_no_resources);
-        eepro100_rnr_interrupt(s);
-    }
-    if (rfd_command & COMMAND_S) {
+    } else if (rfd_command & COMMAND_S) {
         /* S bit is set. */
         set_ru_state(s, ru_suspended);
     }
+    if (rfd_command & (COMMAND_EL | COMMAND_S))
+        eepro100_rnr_interrupt(s); /* raise RNR when RU leaves Ready */
     return size;
 }
 
