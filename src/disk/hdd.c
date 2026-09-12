@@ -1107,6 +1107,13 @@ hdd_preset_get_from_internal_name(char *s)
     return 0;
 }
 
+int
+hdd_preset_is_generic(int preset)
+{
+    return (preset >= 0 && preset < hdd_preset_get_num() &&
+            !strncmp(hdd_speed_presets[preset].name, "[Generic]", 9));
+}
+
 void
 hdd_preset_apply(int hdd_id)
 {
@@ -1132,6 +1139,14 @@ hdd_preset_apply(int hdd_id)
     hd->vendor  = preset->vendor;
     hd->model   = preset->model;
     hd->version = preset->version;
+    if (hdd_preset_is_generic(hd->speed_preset)) {
+        if (hd->custom_vendor[0])
+            hd->vendor = hd->custom_vendor;
+        if (hd->custom_model[0])
+            hd->model = hd->custom_model;
+        if (hd->custom_version[0])
+            hd->version = hd->custom_version;
+    }
 
     if (!hd->speed_preset)
         return;

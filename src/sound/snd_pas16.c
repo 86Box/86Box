@@ -239,6 +239,7 @@ typedef struct pas16_t {
     int      midi_w;
     int      midi_uart_out;
     int      midi_uart_in;
+    int      midi_used;
     int      sysex;
 
     int      irq;
@@ -823,6 +824,8 @@ pas_in(uint16_t port, void *priv)
                     if (pas16->midi_r != pas16->midi_w) {
                         pas16->midi_r++;
                         pas16->midi_r &= 0xff;
+                        if (pas16->midi_used > 0)
+                            pas16->midi_used--;
                     }
                     if (pas16->midi_r == pas16->midi_w) {
                         pas16->ym3802_reg4_banked[0x03] &= 0x7f;
@@ -955,6 +958,8 @@ pas16_in(uint16_t port, void *priv)
                     if (pas16->midi_r != pas16->midi_w) {
                         pas16->midi_r++;
                         pas16->midi_r &= 0xff;
+                        if (pas16->midi_used > 0)
+                            pas16->midi_used--;
                     }
                 }
                 pas16->midi_stat &= ~0x04;
@@ -2482,6 +2487,7 @@ pas_input_msg(void *priv, uint8_t *msg, uint32_t len)
             pas16_log("Write message %02X to queue\n", msg[i]);
             pas16->midi_queue[pas16->midi_w++] = msg[i];
             pas16->midi_w &= 0xff;
+            pas16->midi_used++;
         }
 
         if (pas16->ym3802_reg6_banked[0x00] & 0x20) /* Check if FIFO-Rx interrupt is enabled */
@@ -2503,6 +2509,7 @@ pas16_input_msg(void *priv, uint8_t *msg, uint32_t len)
         for (uint32_t i = 0; i < len; i++) {
             pas16->midi_queue[pas16->midi_w++] = msg[i];
             pas16->midi_w &= 0xff;
+            pas16->midi_used++;
         }
 
         pas16_update_irq(pas16);
@@ -2524,9 +2531,18 @@ pas16_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (int) (len - i);
         pas16->midi_queue[pas16->midi_w++] = buffer[i];
         pas16->midi_w &= 0xff;
+        pas16->midi_used++;
     }
     pas16->sysex = 0;
     return 0;
+}
+
+static int
+pas16_input_remain(void *priv)
+{
+    pas16_t  *pas16 = (pas16_t *) priv;
+
+    return (256 - pas16->midi_used);
 }
 
 static void
@@ -3160,7 +3176,7 @@ pas_init(UNUSED(const device_t *info))
         sound_set_pc_speaker_filter(pasplus_filter_pc_speaker, pas16);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, pas_input_msg, pas16_input_sysex, pas16);
+        midi_in_handler(1, pas_input_msg, pas16_input_sysex, pas16_input_remain, pas16);
 
     for (uint8_t i = 0; i < 16; i++) {
         if (i < 6)
@@ -3254,7 +3270,7 @@ pas16_init(const device_t *info)
     }
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, pas16_input_msg, pas16_input_sysex, pas16);
+        midi_in_handler(1, pas16_input_msg, pas16_input_sysex, pas16_input_remain, pas16);
 
     for (uint8_t i = 0; i < 16; i++) {
         if (i < 6)
