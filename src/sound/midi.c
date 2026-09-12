@@ -318,9 +318,11 @@ midi_raw_out_rt_byte(uint8_t val)
     if (!midi_in->midi_clockout && (val == 0xf8))
         return;
 
-    midi_in->midi_cmd_r = val << 24;
-    /* pclog("Play RT Byte msg\n"); */
-    play_msg((uint8_t *) &midi_in->midi_cmd_r);
+    if (!midi_out || !midi_out->m_out_device)
+        return;
+
+    midi_out->midi_rt_buf[0] = val;
+    play_msg(midi_out->midi_rt_buf);
 }
 
 void

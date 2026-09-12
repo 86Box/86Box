@@ -1,5 +1,10 @@
 if(BUILD_TESTING)
-    add_library(fdc_read_id_engine OBJECT ../../src/floppy/fdd_86f.c)
+    add_library(fdc_read_id_engine OBJECT
+        ../../src/floppy/fdd_86f.c
+        ../../src/floppy/fdd_img.c
+        ../../src/utils/fifo.c
+        ../../src/utils/crc.c
+    )
     target_include_directories(fdc_read_id_engine PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/src/cpu
@@ -27,6 +32,40 @@ if(BUILD_TESTING)
     )
     target_link_libraries(fdc_read_id_tests PRIVATE GTest::gtest_main)
 
+    add_library(img_track_engine OBJECT
+        ../../src/floppy/fdd_86f.c
+        ../../src/floppy/fdd_img.c
+        ../../src/utils/fifo.c
+        ../../src/utils/crc.c
+    )
+    target_include_directories(img_track_engine PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    target_compile_options(img_track_engine PRIVATE
+        $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>
+    )
+
+    add_executable(img_track_tests
+        img_track_test.cpp
+        $<TARGET_OBJECTS:img_track_engine>
+    )
+    target_include_directories(img_track_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    target_compile_options(img_track_tests PRIVATE
+        $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>
+    )
+    target_link_options(img_track_tests PRIVATE
+        $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip>
+        $<$<AND:$<NOT:$<PLATFORM_ID:Darwin>>,$<CXX_COMPILER_ID:GNU,Clang>>:-Wl,--gc-sections>
+    )
+    target_link_libraries(img_track_tests PRIVATE GTest::gtest_main)
+
     include(GoogleTest)
     gtest_discover_tests(fdc_read_id_tests)
+    gtest_discover_tests(img_track_tests)
 endif()

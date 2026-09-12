@@ -48,6 +48,8 @@ typedef struct g_axis_t {
 typedef struct _gameport_ {
     uint16_t                    addr;
     uint8_t                     len;
+    uint8_t                     read_enabled;
+    uint8_t                     write_enabled;
     struct _joystick_instance_ *joystick;
     struct _gameport_          *next;
 } gameport_t;
@@ -293,7 +295,7 @@ gameport_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
     /* Notify the interface. */
     joystick->intf->write(joystick->dat);
 
-    cycles -= ISA_CYCLES((8 << is_pcjr));
+    cycles -= ISA_CYCLES((8 << (is_pcjr || machine_is_pcjx(machine))));
 }
 
 static uint8_t
@@ -319,7 +321,7 @@ gameport_read(UNUSED(uint16_t addr), void *priv)
     const uint8_t ret     = joystick->state | buttons;
 #endif
 
-    cycles -= ISA_CYCLES((8 << is_pcjr));
+    cycles -= ISA_CYCLES((8 << (is_pcjr || machine_is_pcjx(machine))));
 
     return ret;
 }
@@ -351,6 +353,33 @@ gameport_update_joystick_type(uint8_t gp)
     }
 }
 
+static void
+gameport_handler(gameport_t *dev, int set)
+{
+    if (dev->addr && (dev->read_enabled || dev->write_enabled))
+        io_handler(set, dev->addr, dev->len,
+                   dev->read_enabled ? gameport_read : NULL, NULL, NULL,
+                   dev->write_enabled ? gameport_write : NULL, NULL, NULL, dev);
+}
+
+void
+gameport_set_decode(void *priv, int read_enabled, int write_enabled)
+{
+    gameport_t *dev = (gameport_t *) priv;
+
+    if (!dev)
+        return;
+    read_enabled  = !!read_enabled;
+    write_enabled = !!write_enabled;
+    if ((dev->read_enabled == read_enabled) && (dev->write_enabled == write_enabled))
+        return;
+
+    gameport_handler(dev, 0);
+    dev->read_enabled  = read_enabled;
+    dev->write_enabled = write_enabled;
+    gameport_handler(dev, 1);
+}
+
 void
 gameport_remap(void *priv, uint16_t address)
 {
@@ -377,8 +406,7 @@ gameport_remap(void *priv, uint16_t address)
             }
         }
 
-        io_removehandler(dev->addr, dev->len,
-                         gameport_read, NULL, NULL, gameport_write, NULL, NULL, dev);
+        gameport_handler(dev, 0);
     }
 
     dev->addr = address;
@@ -397,8 +425,7 @@ gameport_remap(void *priv, uint16_t address)
             other_dev->next = dev;
         }
 
-        io_sethandler(dev->addr, dev->len,
-                      gameport_read, NULL, NULL, gameport_write, NULL, NULL, dev);
+        gameport_handler(dev, 1);
     }
 }
 
@@ -452,6 +479,8 @@ gameport_init(const device_t *info)
     }
 
     dev->joystick = joystick_instance[joy_insn];
+    dev->read_enabled  = 1;
+    dev->write_enabled = 1;
 
     /* Map game port to the default address. Not applicable on PnP-only ports. */
     dev->len = (info->local >> 16) & 0xff;
