@@ -2057,6 +2057,11 @@ pgc_reset(pgc_t *dev)
     dev->mapram[0x30c]                    = dev->cga_enabled;
     dev->mapram[0x30d]                    = dev->cga_enabled;
 
+    if (dev->cga_enabled)
+        mem_mapping_enable(&dev->cga_mapping);
+    else
+        mem_mapping_disable(&dev->cga_mapping);
+
     dev->mapram[0x3f8] = 0x03; /* minor version */
     dev->mapram[0x3f9] = 0x01; /* minor version */
     dev->mapram[0x3fb] = 0xa5; /* } */
@@ -2108,7 +2113,12 @@ pgc_warm_reset(pgc_t *dev)
     dev->clcur         = NULL;
 }
 
-/* Switch between CGA mode (DISPLAY 1) and native mode (DISPLAY 0). */
+/*
+ * Switch between CGA mode (DISPLAY 1) and native mode (DISPLAY 0).
+ * Only the displayed screen changes: the emulator RAM is card hardware
+ * the host reaches through the bus interface whichever screen is shown,
+ * so the B8000 window stays mapped.
+ */
 void
 pgc_setdisplay(pgc_t *dev, int cga)
 {
@@ -2120,11 +2130,9 @@ pgc_setdisplay(pgc_t *dev, int cga)
         dev->displine     = 0;
 
         if (dev->cga_selected) {
-            mem_mapping_enable(&dev->cga_mapping);
             dev->screenw = PGC_CGA_WIDTH;
             dev->screenh = PGC_CGA_HEIGHT;
         } else {
-            mem_mapping_disable(&dev->cga_mapping);
             dev->screenw = dev->visw;
             dev->screenh = dev->vish;
         }
@@ -2777,7 +2785,7 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
         }
     }
 
-    if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_selected) {
+    if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_enabled) {
         addr &= 0x3fff;
         dev->cga_vram[addr] = val;
     }
@@ -2793,7 +2801,7 @@ pgc_read(uint32_t addr, void *priv)
     if (addr >= 0xc6000 && addr < 0xc6800) {
         addr &= 0x7ff;
         ret = dev->mapram[addr];
-    } else if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_selected) {
+    } else if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_enabled) {
         addr &= 0x3fff;
         ret = dev->cga_vram[addr];
     }
