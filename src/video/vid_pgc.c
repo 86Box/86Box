@@ -118,6 +118,21 @@ static const uint32_t init_palette[6][256] = {
 #include <86box/vid_pgc_palette.h>
 };
 
+/*
+ * The card's hardware text font, one row per scanline, bit 7 leftmost.
+ * The cell is 8 by 12 with the figure 7 wide, the eighth column being the
+ * gap between letters; rows 0 to 8 are the cap band and 9 to 11 the
+ * descenders, so the baseline is row 8.
+ */
+#define PGC_CELL_W   8
+#define PGC_CELL_H   12
+#define PGC_GLYPH_W  7
+#define PGC_ASCENT   9
+
+static const uint8_t pgc_font[256][PGC_CELL_H] = {
+#include <86box/vid_pgc_font.h>
+};
+
 static video_timings_t timing_pgc = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 #ifdef ENABLE_PGC_LOG
@@ -558,6 +573,81 @@ hndl_circle(pgc_t *dev)
         radius = -radius;
 
     pgc_draw_ellipse(dev, radius, radius);
+}
+
+/*
+ * TEXT draws a string in the card's own font, justified about the current
+ * point by TJUST and sized by TSIZE. The card holds the face as stroke
+ * programs and steps the pen by the size, so a character is the 8 by 12
+ * cell scaled whole; the size is the distance from one character to the
+ * next, and the justification box is that distance for all but the last
+ * character plus the 7-wide figure.
+ */
+static void
+hndl_text(pgc_t *dev)
+{
+    uint8_t  buf[640];
+    uint8_t  delim = 0;
+    uint8_t  ch    = 0;
+    unsigned count = 0;
+    int16_t  x0;
+    int16_t  y0;
+    int      adv;
+    int      scale;
+    int      width;
+
+    if (!pgc_param_byte(dev, &delim))
+        return;
+
+    while (count < sizeof(buf)) {
+        if (!pgc_param_byte(dev, &ch))
+            return;
+        if (ch == delim)
+            break;
+        buf[count++] = ch;
+    }
+
+    pgc_log("PGC: TEXT (%i chars)\n", count);
+
+    if (count == 0)
+        return;
+
+    adv = (dev->tsize + 0x8000) >> 16;
+    if (adv < 1)
+        return;
+
+    scale = adv / PGC_CELL_W;
+    if (scale < 1)
+        scale = 1;
+
+    x0    = dev->x >> 16;
+    y0    = dev->y >> 16;
+    width = (int) (count - 1) * adv + PGC_GLYPH_W * scale;
+
+    pgc_sto_raster(dev, &x0, &y0);
+
+    if (dev->tjust_h == 2)
+        x0 -= width / 2;
+    else if (dev->tjust_h == 3)
+        x0 -= width - 1;
+    y0 += (dev->tjust_v == 3) ? 0 : (dev->tjust_v == 2) ? (PGC_ASCENT * scale / 2) : (PGC_ASCENT * scale - 1);
+
+    for (unsigned n = 0; n < count; n++) {
+        for (int y = 0; y < PGC_CELL_H; y++) {
+            uint8_t row = pgc_font[buf[n]][y];
+
+            for (int x = 0; x < PGC_CELL_W; x++) {
+                if (!(row & (0x80 >> x)))
+                    continue;
+
+                for (int sy = 0; sy < scale; sy++)
+                    for (int sx = 0; sx < scale; sx++)
+                        pgc_plot(dev, x0 + x * scale + sx, y0 - (y * scale + sy));
+            }
+        }
+
+        x0 += adv;
+    }
 }
 
 /*
@@ -1668,6 +1758,8 @@ static const pgc_cmd_t pgc_commands[] = {
     { "P",      0x30, hndl_poly,    parse_poly,       0 },
     { "RESETF", 0x04, hndl_resetf,  NULL,             0 },
     { "RF",     0x04, hndl_resetf,  NULL,             0 },
+    { "TEXT",   0x80, hndl_text,    NULL,             0 },
+    { "T",      0x80, hndl_text,    NULL,             0 },
     { "TJUST",  0x85, hndl_tjust,   pgc_parse_bytes,  2 },
     { "TJ",     0x85, hndl_tjust,   pgc_parse_bytes,  2 },
     { "TSIZE",  0x81, hndl_tsize,   pgc_parse_coords, 1 },
