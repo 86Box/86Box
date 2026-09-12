@@ -727,7 +727,7 @@ tx_command(eepro100_t *s)
         uint16_t tx_buffer_el;
 
         if (s->has_extended_tcb_support && !(s->configuration[6] & BIT(4))) {
-            for (; tbd_count < 2; tbd_count++) {
+            for (; (tbd_count < 2) && (tbd_count < s->tx.tbd_count); tbd_count++) {
                 tx_buffer_address = ldl_le_pci_dma(s, tbd_address);
                 tx_buffer_el      = lduw_le_pci_dma(s, tbd_address + 4);
                 tx_buffer_size    = tx_buffer_el & 0x7fff;
