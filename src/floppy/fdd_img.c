@@ -50,6 +50,7 @@ typedef struct img_t {
     int      xdf_type; /* 0 = not XDF, 1-5 = one of the five XDF types */
     int      dmf;
     int      track;
+    int      physical_track;
     int      track_width;
     uint32_t base;
     uint8_t  gap2_size;
@@ -425,6 +426,9 @@ write_back(int drive)
     int    ssize = 128 << ((int) dev->sector_size);
     int    size;
 
+    if ((dev->track < 0) || (dev->track >= dev->tracks))
+        return;
+
     if (dev->is_ioctl) {
         for (int side = 0; side < dev->sides; side++) {
             for (int sector = 0; sector < dev->sectors; sector++) {
@@ -482,6 +486,10 @@ poll_read_data(int drive, UNUSED(int side), uint16_t pos)
 {
     const img_t *dev = img[drive];
 
+    if ((dev->current_sector_pos_side >= dev->sides) ||
+        ((uint32_t) dev->current_sector_pos + pos >= sizeof(dev->track_data[0])))
+        return 0xff;
+
     return (dev->track_data[dev->current_sector_pos_side][dev->current_sector_pos + pos]);
 }
 
@@ -489,6 +497,10 @@ static void
 poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
 {
     img_t *dev = img[drive];
+
+    if ((dev->current_sector_pos_side >= dev->sides) ||
+        ((uint32_t) dev->current_sector_pos + pos >= sizeof(dev->track_data[0])))
+        return;
 
     dev->track_data[dev->current_sector_pos_side][dev->current_sector_pos + pos] = data;
 }
@@ -504,6 +516,7 @@ format_conditions(int drive)
 
     temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);
+    temp = temp && (dev->track >= 0) && (dev->track < dev->tracks);
 
     return temp;
 }
@@ -518,8 +531,10 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
     d86f_format_id_t temp_ids[64] = { 0 };
 
     if ((dev == NULL) || (side < 0) || (side >= dev->sides) ||
-        (dev->track < 0) || (dev->track >= 256) ||
-        ((count != dev->sectors) && (count != (dev->sectors + 1))))
+        (dev->track < 0) || (dev->track >= dev->tracks) || (dev->track >= 256))
+        return 0;
+
+    if ((count != dev->sectors) && (count != (dev->sectors + 1)))
         /* If count is 3, return OK - HD-COPY's data rate test format. */
         return (count == 3) ? 1 : 0;
 
@@ -562,7 +577,7 @@ format_track(int drive, int side, const d86f_format_id_t *ids,
         memset(&dev->track_data[side][sector * ssize], fill, ssize);
 
     write_back(drive);
-    img_seek(drive, dev->track);
+    img_seek(drive, dev->physical_track);
     return 1;
 }
 
@@ -596,11 +611,27 @@ img_seek(int drive, int track)
     if (dev->fp == NULL && !dev->is_ioctl)
         return;
 
-    if (!dev->track_width && fdd_doublestep_40(drive))
+    dev->physical_track = track;
+    /* By default, only 5.25-inch drives double-step 40-track raw images. */
+    if ((track >= 0) && !dev->track_width && fdd_is_525(drive) && fdd_doublestep_40(drive))
         track /= 2;
 
     dev->track = track;
     d86f_set_cur_track(drive, track);
+
+    /* Retire both the flux and turbo views before any early return or I/O. */
+    d86f_reset_index_hole_pos(drive, 0);
+    d86f_reset_index_hole_pos(drive, 1);
+    d86f_destroy_linked_lists(drive, 0);
+    d86f_destroy_linked_lists(drive, 1);
+    d86f_zero_track(drive);
+    memset(dev->sector_pos_side, 0xff, sizeof(dev->sector_pos_side));
+    memset(dev->sector_pos, 0, sizeof(dev->sector_pos));
+    dev->current_sector_pos_side = 0xff;
+    dev->current_sector_pos = 0;
+
+    if ((track < 0) || (track >= dev->tracks))
+        return;
 
     is_t0 = (track == 0) ? 1 : 0;
 
@@ -629,19 +660,6 @@ img_seek(int drive, int track)
             cur_pos = (track * dev->sectors * ssize * dev->sides) + (side * dev->sectors * ssize);
             memcpy(dev->track_data[side], dev->disk_data + cur_pos, (size_t) dev->sectors * ssize);
         }
-    }
-
-    d86f_reset_index_hole_pos(drive, 0);
-    d86f_reset_index_hole_pos(drive, 1);
-
-    d86f_destroy_linked_lists(drive, 0);
-    d86f_destroy_linked_lists(drive, 1);
-    memset(dev->sector_pos_side, 0, sizeof(dev->sector_pos_side));
-    memset(dev->sector_pos, 0, sizeof(dev->sector_pos));
-
-    if (track > dev->tracks) {
-        d86f_zero_track(drive);
-        return;
     }
 
     if (!dev->xdf_type || dev->is_cqm) {
