@@ -164,12 +164,12 @@ if(APPLE)
     # Force using the newest library if it's installed by homebrew
     set(CMAKE_FIND_FRAMEWORK LAST)
 
-    # Default to Catalina for Qt6, Mojave for Vulkan, or High Sierra otherwise.
-    # Preserve an explicit deployment target required by the selected SDK/libraries.
-    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
-        if(USE_QT6)
-            set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
-        elseif(MOLTENVK)
+    # setting our compilation target to macOS 10.15 Catalina if targeting Qt6,
+    # macOS 10.14 Mojave for vulkan support, 10.13 High Sierra otherwise
+    if (USE_QT6)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
+    else()
+        if(MOLTENVK)
             set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
         else()
             set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
