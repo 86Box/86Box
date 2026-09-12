@@ -730,6 +730,33 @@ hndl_move(pgc_t *dev)
     dev->y = y;
 }
 
+/*
+ * DRAW draws a line from the current point to the point given and leaves
+ * the current point there. IBM Tech Ref p.108 gives the opcode as 28; the
+ * worked example on that page prints 20, but the shipping PGC drivers send
+ * 28 and the example's own parameter bytes are correct, so the example's
+ * opcode byte is a misprint.
+ */
+static void
+hndl_draw(pgc_t *dev)
+{
+    int32_t x = 0;
+    int32_t y = 0;
+
+    if (!pgc_param_coord(dev, &x))
+        return;
+    if (!pgc_param_coord(dev, &y))
+        return;
+
+    pgc_log("PGC: DRAW %x.%04x,%x.%04x\n",
+            HWORD(x), LWORD(x), HWORD(y), LWORD(y));
+
+    pgc_draw_line(dev, dev->x, dev->y, x, y, dev->line_pattern);
+
+    dev->x = x;
+    dev->y = y;
+}
+
 /* Set the 3D drawing position. */
 static void
 hndl_move3(pgc_t *dev)
@@ -1610,6 +1637,8 @@ static const pgc_cmd_t pgc_commands[] = {
     { "CX",     0xd1, hndl_cx,      NULL,             0 },
     { "DISPLA", 0xd0, hndl_display, pgc_parse_bytes,  1 },
     { "DI",     0xd0, hndl_display, pgc_parse_bytes,  1 },
+    { "DRAW",   0x28, hndl_draw,    pgc_parse_coords, 2 },
+    { "D",      0x28, hndl_draw,    pgc_parse_coords, 2 },
     { "ELIPSE", 0x39, hndl_ellipse, pgc_parse_coords, 2 },
     { "EL",     0x39, hndl_ellipse, pgc_parse_coords, 2 },
     { "FLOOD",  0x07, hndl_flood,   pgc_parse_bytes,  1 },

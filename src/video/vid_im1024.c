@@ -579,27 +579,6 @@ hndl_move(pgc_t *pgc)
     pgc->y = y;
 }
 
-/* DRAW is opcode 0x28 on the IM-1024, not the PGC's 0x20. */
-static void
-hndl_draw(pgc_t *pgc)
-{
-    int32_t x;
-    int32_t y;
-
-    if (!pgc_param_coord(pgc, &x))
-        return;
-    if (!pgc_param_coord(pgc, &y))
-        return;
-
-    im1024_log("IM1024: DRAW %i,%i to %i,%i\n",
-               pgc->x >> 16, pgc->y >> 16, x >> 16, y >> 16);
-
-    pgc_draw_line(pgc, pgc->x, pgc->y, x, y, pgc->line_pattern);
-
-    pgc->x = x;
-    pgc->y = y;
-}
-
 /*
  * Override the PGC POLY command to parse its
  * parameters as words rather than coordinates.
@@ -1711,8 +1690,6 @@ parse_locmap(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
  */
 static const pgc_cmd_t im1024_commands[] = {
     {"BLKMOV",  0xdf, hndl_blkmov,     pgc_parse_words, 6},
-    { "DRAW",   0x28, hndl_draw,       pgc_parse_coords, 2},
-    { "D",      0x28, hndl_draw,       pgc_parse_coords, 2},
     { "DOT",    0x08, hndl_dot,        NULL,            0},
     { "ELIPSE", 0x39, hndl_ellipse,    pgc_parse_coords, 2},
     { "EL",     0x39, hndl_ellipse,    pgc_parse_coords, 2},
