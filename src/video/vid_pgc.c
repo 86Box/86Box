@@ -1971,7 +1971,7 @@ pgc_result_word(pgc_t *dev, int16_t val)
 int
 pgc_error(pgc_t *dev, int err)
 {
-    if (dev->mapram[0x307]) {
+    if (dev->mapram[0x308]) {
         /* Errors enabled? */
         if (dev->ascii_mode) {
             if (err >= PGC_ERROR_RANGE && err <= PGC_ERROR_MISSING)
