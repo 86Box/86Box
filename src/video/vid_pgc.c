@@ -214,7 +214,7 @@ static int
 error_byte(pgc_t *dev, uint8_t val)
 {
     /* If error buffer full, wait for it to empty. */
-    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x304] == dev->mapram[0x305] - 1) {
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x304] == (uint8_t) (dev->mapram[0x305] - 1)) {
         pgc_sleep(dev);
     }
 
