@@ -541,58 +541,160 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, uint16_t len, void *priv)
 
 #define SB_RECORD_CLAMP(x) (((x) < -32768) ? -32768 : (((x) > 32767) ? 32767 : (x)))
 
+/* filter when sb_freq < capture rate */
+#define SB_RECORD_ANTIALIAS 1
+
+/* nyquist anti alias */
+#define SB_RECORD_AA_NYQ 0.9
+
+/* audio filter called on filter rate change */
+static void
+sb_record_aa_design(sb_dsp_t *dsp, int out_rate, int in_rate)
+{
+    const double fc    = (SB_RECORD_AA_NYQ * 0.5) * ((double) out_rate);
+    const double w0    = (2.0 * M_PI * fc) / ((double) in_rate);
+    const double cw    = cos(w0);
+    const double sw    = sin(w0);
+    const double alpha = sw / (2.0 * 0.70710678118654752);
+    const double a0    = 1.0 + alpha;
+
+    dsp->record_aa_b0_mic = ((1.0 - cw) / 2.0) / a0;
+    dsp->record_aa_b1_mic = (1.0 - cw) / a0;
+    dsp->record_aa_b2_mic = dsp->record_aa_b0_mic;
+    dsp->record_aa_a1_mic = (-2.0 * cw) / a0;
+    dsp->record_aa_a2_mic = (1.0 - alpha) / a0;
+}
+
+static double
+sb_record_aa_step(sb_dsp_t *dsp, int ch, double x)
+{
+    const double y = (dsp->record_aa_b0_mic * x) + dsp->record_aa_z1_mic[ch];
+
+    dsp->record_aa_z1_mic[ch] = (dsp->record_aa_b1_mic * x) - (dsp->record_aa_a1_mic * y)
+                                + dsp->record_aa_z2_mic[ch];
+    dsp->record_aa_z2_mic[ch] = (dsp->record_aa_b2_mic * x) - (dsp->record_aa_a2_mic * y);
+
+    return y;
+}
+
+
 static void
 sb_put_buffer_sb16_awe32(int16_t *buffer, int len, void *priv)
 {
-    sb_t                    *sb          = (sb_t *) priv;
-    const sb_ct1745_mixer_t *mixer       = &sb->mixer_sb16;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
 
+    /* divisor is rate capture device opened at*/
     const int cap_rate = al_capture_get_rate();
     const int denom    = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    const int rate     = sb->dsp.sb_freq;
 
-    if (denom != sb->dsp.record_denom_mic) {
-        sb->dsp.record_denom_mic = denom;
-        sb->dsp.record_phase_mic = 0;
+    int c;
+    int gain_l;
+    int gain_r;
+    int sel_l_mic, sel_l_linel, sel_l_liner;
+    int sel_r_mic, sel_r_linel, sel_r_liner;
+    int interp;
+    int filt;
+
+    /* sb_freq is 0 until the guest programs a rate  */
+    if (rate <= 0)
+        return;
+
+    if ((denom != sb->dsp.record_denom_mic) || (rate != sb->dsp.record_rate_mic)) {
+        sb->dsp.record_denom_mic      = denom;
+        sb->dsp.record_rate_mic       = rate;
+        sb->dsp.record_phase_mic      = 0;
+        sb->dsp.record_prev_l_mic     = 0;
+        sb->dsp.record_prev_r_mic     = 0;
+        sb->dsp.record_prev_valid_mic = 0;
+
+        sb->dsp.record_aa_z1_mic[0] = 0.0;
+        sb->dsp.record_aa_z1_mic[1] = 0.0;
+        sb->dsp.record_aa_z2_mic[0] = 0.0;
+        sb->dsp.record_aa_z2_mic[1] = 0.0;
+        sb->dsp.record_aa_active_mic = 0;
+
+#if SB_RECORD_ANTIALIAS
+        /* only when decimating */
+        if (rate < denom) {
+            sb_record_aa_design(&sb->dsp, rate, denom);
+            sb->dsp.record_aa_active_mic = 1;
+        }
+#endif
     }
 
-    for (int c = 0; c < len * 2; c += 2) {
-        const int32_t cap_l    = (int32_t) buffer[c];
-        const int32_t cap_r    = (int32_t) buffer[c + 1];
-        const int32_t mic      = (cap_l + cap_r) / 2;
-        int32_t       in_l     = 0;
-        int32_t       in_r     = 0;
+    interp = (rate != denom);
+    filt   = sb->dsp.record_aa_active_mic;
 
-        /* mic is the sum of L+R input capture */
-        if (mixer->input_selector_left & INPUT_MIC)
-            in_l += mic;
-        if (mixer->input_selector_left & INPUT_LINE_L)
-            in_l += cap_l;
-        if (mixer->input_selector_left & INPUT_LINE_R)
-            in_l += cap_r;
+    gain_l = 1 << mixer->input_gain_L;
+    gain_r = 1 << mixer->input_gain_R;
 
-        if (mixer->input_selector_right & INPUT_MIC)
-            in_r += mic;
-        if (mixer->input_selector_right & INPUT_LINE_L)
-            in_r += cap_l;
-        if (mixer->input_selector_right & INPUT_LINE_R)
-            in_r += cap_r;
+    sel_l_mic   = (mixer->input_selector_left & INPUT_MIC) != 0;
+    sel_l_linel = (mixer->input_selector_left & INPUT_LINE_L) != 0;
+    sel_l_liner = (mixer->input_selector_left & INPUT_LINE_R) != 0;
 
-        in_l = SB_RECORD_CLAMP(in_l);
-        in_r = SB_RECORD_CLAMP(in_r);
+    sel_r_mic   = (mixer->input_selector_right & INPUT_MIC) != 0;
+    sel_r_linel = (mixer->input_selector_right & INPUT_LINE_L) != 0;
+    sel_r_liner = (mixer->input_selector_right & INPUT_LINE_R) != 0;
 
-        in_l = SB_RECORD_CLAMP(in_l << mixer->input_gain_L);
-        in_r = SB_RECORD_CLAMP(in_r << mixer->input_gain_R);
+    for (c = 0; c < len * 2; c += 2) {
+        const int32_t cap_l = (int32_t) buffer[c];
+        const int32_t cap_r = (int32_t) buffer[c + 1];
 
-     
-        sb->dsp.record_phase_mic += sb->dsp.sb_freq;
+        /* mic is the mono sum of line-in. truncating division for dc symmetry */
+        const int32_t mic = (cap_l + cap_r) / 2;
+
+        int32_t mix_l = (mic * sel_l_mic) + (cap_l * sel_l_linel) + (cap_r * sel_l_liner);
+        int32_t mix_r = (mic * sel_r_mic) + (cap_l * sel_r_linel) + (cap_r * sel_r_liner);
+        int32_t in_l;
+        int32_t in_r;
+
+        /* run on every input frame*/
+        if (filt) {
+            mix_l = (int32_t) lrint(sb_record_aa_step(&sb->dsp, 0, (double) mix_l));
+            mix_r = (int32_t) lrint(sb_record_aa_step(&sb->dsp, 1, (double) mix_r));
+        }
+
+        in_l = SB_RECORD_CLAMP(mix_l * gain_l);
+        in_r = SB_RECORD_CLAMP(mix_r * gain_r);
+
+        /* start new device change with first frame in interpolartor queue */
+        if (!sb->dsp.record_prev_valid_mic) {
+            sb->dsp.record_prev_l_mic     = in_l;
+            sb->dsp.record_prev_r_mic     = in_r;
+            sb->dsp.record_prev_valid_mic = 1;
+        }
+
+        /* phase ticks this forward, while-loop for new samples so they arent dropped */
+        sb->dsp.record_phase_mic += rate;
         while (sb->dsp.record_phase_mic >= denom) {
-            sb->dsp.record_phase_mic -= denom;
+            int32_t out_l;
+            int32_t out_r;
 
-            sb->dsp.record_buffer[sb->dsp.record_pos_write_mic]                = (int16_t) in_l;
-            sb->dsp.record_buffer[(sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) in_r;
+            sb->dsp.record_phase_mic -= denom; /* denom tracks input frame vs emitted frame , (rate - phase) / rate */
+
+            if (interp) {
+                
+                const int32_t num = rate - sb->dsp.record_phase_mic;
+
+                out_l = sb->dsp.record_prev_l_mic
+                        + (int32_t) ((((int64_t) (in_l - sb->dsp.record_prev_l_mic)) * num) / rate);
+                out_r = sb->dsp.record_prev_r_mic
+                        + (int32_t) ((((int64_t) (in_r - sb->dsp.record_prev_r_mic)) * num) / rate);
+            } else {
+                out_l = in_l;
+                out_r = in_r;
+            }
+
+            sb->dsp.record_buffer[sb->dsp.record_pos_write_mic]                = (int16_t) out_l;
+            sb->dsp.record_buffer[(sb->dsp.record_pos_write_mic + 1) & 0xffff] = (int16_t) out_r;
 
             sb->dsp.record_pos_write_mic = (sb->dsp.record_pos_write_mic + 2) & 0xffff;
         }
+
+        sb->dsp.record_prev_l_mic = in_l;
+        sb->dsp.record_prev_r_mic = in_r;
     }
 }
 

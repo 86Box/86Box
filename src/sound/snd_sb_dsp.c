@@ -532,6 +532,23 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->record_phase_mic     = 0;
     dsp->record_denom_mic     = 0;
 
+    /* zero filter vals on first buffer after a reset */
+    dsp->record_rate_mic       = 0;
+    dsp->record_prev_l_mic     = 0;
+    dsp->record_prev_r_mic     = 0;
+    dsp->record_prev_valid_mic = 0;
+
+    dsp->record_aa_active_mic = 0;
+    dsp->record_aa_b0_mic     = 0.0;
+    dsp->record_aa_b1_mic     = 0.0;
+    dsp->record_aa_b2_mic     = 0.0;
+    dsp->record_aa_a1_mic     = 0.0;
+    dsp->record_aa_a2_mic     = 0.0;
+    dsp->record_aa_z1_mic[0]  = 0.0;
+    dsp->record_aa_z1_mic[1]  = 0.0;
+    dsp->record_aa_z2_mic[0]  = 0.0;
+    dsp->record_aa_z2_mic[1]  = 0.0;
+
     dsp->irq_update(dsp->irq_priv, 0);
 
     dsp->asp_data_len = 0;
