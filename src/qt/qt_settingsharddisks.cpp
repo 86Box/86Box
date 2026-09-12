@@ -24,6 +24,10 @@ extern "C" {
 }
 
 #include <QStandardItemModel>
+#include <QDialogButtonBox>
+#include <QFormLayout>
+#include <QLineEdit>
+#include <QPushButton>
 
 #include "qt_settings_completer.hpp"
 
@@ -46,8 +50,18 @@ const int DataBus                = Qt::UserRole;
 const int DataBusChannel         = Qt::UserRole + 1;
 const int DataBusPrevious        = Qt::UserRole + 2;
 const int DataBusChannelPrevious = Qt::UserRole + 3;
+const int DataCustomVendor        = Qt::UserRole + 4;
+const int DataCustomModel         = Qt::UserRole + 5;
+const int DataCustomVersion       = Qt::UserRole + 6;
 
 QIcon hard_disk_icon;
+
+static bool
+genericHDD(uint32_t bus, uint32_t speed)
+{
+    return (bus == HDD_BUS_IDE || bus == HDD_BUS_ATAPI || bus == HDD_BUS_SCSI) &&
+           hdd_preset_is_generic(speed);
+}
 
 uint64_t               ic[HDD_NUM] = { 0 };
 uint64_t               ih[HDD_NUM] = { 0 };
@@ -118,6 +132,9 @@ SettingsHarddisks::addRow(QAbstractItemModel *model, void *priv)
     auto speedIndex = model->index(row, ColumnSpeed);
     model->setData(speedIndex, QObject::tr(hdd_preset_getname(hd->speed_preset)));
     model->setData(speedIndex, hd->speed_preset, Qt::UserRole);
+    model->setData(speedIndex, QString::fromUtf8(hd->custom_vendor), DataCustomVendor);
+    model->setData(speedIndex, QString::fromUtf8(hd->custom_model), DataCustomModel);
+    model->setData(speedIndex, QString::fromUtf8(hd->custom_version), DataCustomVersion);
    
 }
 
@@ -191,6 +208,9 @@ SettingsHarddisks::changed()
         has_changed |= (hdd[i].speed_preset  != idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt());
         has_changed |= (hdd[i].audio_profile != ia[i]);
         has_changed |= (hdd[i].vhd_blocksize != ib[i]);
+        has_changed |= (QString::fromUtf8(hdd[i].custom_vendor) != idx.siblingAtColumn(ColumnSpeed).data(DataCustomVendor).toString());
+        has_changed |= (QString::fromUtf8(hdd[i].custom_model) != idx.siblingAtColumn(ColumnSpeed).data(DataCustomModel).toString());
+        has_changed |= (QString::fromUtf8(hdd[i].custom_version) != idx.siblingAtColumn(ColumnSpeed).data(DataCustomVersion).toString());
 
         QByteArray fileName  = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
         has_changed |= strcmp(hdd[i].fn, fileName.data());
@@ -224,6 +244,12 @@ SettingsHarddisks::save(int soft)
         hdd[i].speed_preset  = idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
         hdd[i].audio_profile = ia[i];
         hdd[i].vhd_blocksize = ib[i];
+        QByteArray customVendor = idx.siblingAtColumn(ColumnSpeed).data(DataCustomVendor).toString().toUtf8();
+        QByteArray customModel = idx.siblingAtColumn(ColumnSpeed).data(DataCustomModel).toString().toUtf8();
+        QByteArray customVersion = idx.siblingAtColumn(ColumnSpeed).data(DataCustomVersion).toString().toUtf8();
+        strncpy(hdd[i].custom_vendor, customVendor.constData(), sizeof(hdd[i].custom_vendor) - 1);
+        strncpy(hdd[i].custom_model, customModel.constData(), sizeof(hdd[i].custom_model) - 1);
+        strncpy(hdd[i].custom_version, customVersion.constData(), sizeof(hdd[i].custom_version) - 1);
 
         QByteArray fileName  = idx.siblingAtColumn(ColumnFilename).data(Qt::UserRole).toString().toUtf8();
         strncpy(hdd[i].fn, fileName.data(), sizeof(hdd[i].fn) - 1);
@@ -341,6 +367,44 @@ SettingsHarddisks::on_comboBoxSpeed_currentIndexChanged(int index)
     
     /* Repopulate audio profiles based on the selected speed preset's RPM */
     populateAudioProfiles();
+    onTableRowChanged(ui->treeView->selectionModel()->currentIndex());
+}
+
+void
+SettingsHarddisks::on_pushButtonConfigure_clicked()
+{
+    auto idx = ui->treeView->selectionModel()->currentIndex();
+    if (!idx.isValid())
+        return;
+
+    const uint32_t bus = idx.siblingAtColumn(ColumnBus).data(DataBus).toUInt();
+    const uint32_t speed = idx.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
+    if (!genericHDD(bus, speed))
+        return;
+
+    QDialog dialog(this);
+    dialog.setWindowTitle(tr("[Generic HDD] Device Configuration"));
+    auto *layout = new QFormLayout(&dialog);
+    auto *vendor = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomVendor).toString(), &dialog);
+    auto *model = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomModel).toString(), &dialog);
+    auto *version = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomVersion).toString(), &dialog);
+    vendor->setMaxLength(8);
+    model->setMaxLength(40);
+    version->setMaxLength(4);
+    layout->addRow(tr("Branding:"), vendor);
+    layout->addRow(tr("Model:"), model);
+    layout->addRow(tr("Revision:"), version);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);
+    layout->addRow(buttons);
+    connect(buttons, &QDialogButtonBox::accepted, &dialog, &QDialog::accept);
+    connect(buttons, &QDialogButtonBox::rejected, &dialog, &QDialog::reject);
+
+    if (dialog.exec() == QDialog::Accepted) {
+        auto *speedColumn = ui->treeView->model();
+        speedColumn->setData(idx.siblingAtColumn(ColumnSpeed), vendor->text(), DataCustomVendor);
+        speedColumn->setData(idx.siblingAtColumn(ColumnSpeed), model->text(), DataCustomModel);
+        speedColumn->setData(idx.siblingAtColumn(ColumnSpeed), version->text(), DataCustomVersion);
+    }
 }
 
 void
@@ -391,11 +455,14 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
     ui->comboBoxChannel->setHidden(hidden);
     ui->comboBoxSpeed->setHidden(hidden);
     ui->comboBoxAudio->setHidden(hidden);
+    ui->pushButtonConfigure->setHidden(hidden);
 
     uint32_t bus        = current.siblingAtColumn(ColumnBus).data(DataBus).toUInt();
     uint32_t busChannel = current.siblingAtColumn(ColumnBus).data(DataBusChannel).toUInt();
     uint32_t speed      = current.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
     uint32_t audio      = hidden ? -1 : ia[current.row()];
+    ui->pushButtonConfigure->setHidden(hidden ||
+                                       (bus != HDD_BUS_IDE && bus != HDD_BUS_ATAPI && bus != HDD_BUS_SCSI));
 
     auto *model = ui->comboBoxBus->model();
     auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);
@@ -420,6 +487,7 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
     if (!match.isEmpty())
         ui->comboBoxAudio->setCurrentIndex(match.first().row());
 
+    ui->pushButtonConfigure->setEnabled(genericHDD(bus, speed));
     reloadBusChannels();
 }
 
