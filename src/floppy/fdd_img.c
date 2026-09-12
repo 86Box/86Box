@@ -63,6 +63,7 @@ typedef struct img_t {
     d86f_format_id_t formatted_sector_ids[256][2][256];
     uint8_t  current_sector_pos_side;
     uint16_t current_sector_pos;
+    uint8_t  first_sector_id[2][4];
     uint8_t *disk_data;
     uint8_t  is_cqm;
     uint8_t  disk_at_once;
@@ -419,6 +420,16 @@ interleave(int sector, int skew, int track_spt)
     return adjusted_r;
 }
 
+/* Only the JX's 40-cylinder raw DD media leaves every other physical track blank. */
+static int
+img_is_pcjx_360(int drive, const img_t *dev)
+{
+    return fdd_is_pcjx_360(drive) && !dev->is_ioctl && !dev->is_cqm &&
+           !dev->disk_at_once && !dev->base && (dev->tracks == 40) &&
+           (dev->sides == 2) && ((dev->sectors == 8) || (dev->sectors == 9)) &&
+           (dev->sector_size == 2);
+}
+
 static void
 write_back(int drive)
 {
@@ -612,12 +623,14 @@ img_seek(int drive, int track)
         return;
 
     dev->physical_track = track;
-    /* By default, only 5.25-inch drives double-step 40-track raw images. */
-    if ((track >= 0) && !dev->track_width && fdd_is_525(drive) && fdd_doublestep_40(drive))
+    const int pcjx_360 = img_is_pcjx_360(drive, dev);
+    if (pcjx_360)
+        track = ((track >= 0) && (track <= 78) && !(track & 1)) ? track / 2 : -1;
+    else if ((track >= 0) && !dev->track_width && fdd_is_525(drive) && fdd_doublestep_40(drive))
         track /= 2;
 
     dev->track = track;
-    d86f_set_cur_track(drive, track);
+    d86f_set_cur_track(drive, pcjx_360 ? dev->physical_track : track);
 
     /* Retire both the flux and turbo views before any early return or I/O. */
     d86f_reset_index_hole_pos(drive, 0);
@@ -627,6 +640,7 @@ img_seek(int drive, int track)
     d86f_zero_track(drive);
     memset(dev->sector_pos_side, 0xff, sizeof(dev->sector_pos_side));
     memset(dev->sector_pos, 0, sizeof(dev->sector_pos));
+    memset(dev->first_sector_id, 0, sizeof(dev->first_sector_id));
     dev->current_sector_pos_side = 0xff;
     dev->current_sector_pos = 0;
 
@@ -706,8 +720,10 @@ img_seek(int drive, int track)
                     &dev->track_data[side][buf_pos], ssize,
                     dev->gap2_size, dev->gap3_size, 0);
 
-                if (sector == 0)
+                if (sector == 0) {
+                    memcpy(dev->first_sector_id[side], id, sizeof(id));
                     d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+                }
             }
         }
     } else {
@@ -762,6 +778,27 @@ img_seek(int drive, int track)
             }
         }
     }
+}
+
+static void
+img_readaddress(int drive, int side, int density)
+{
+    const img_t *dev = img[drive];
+
+    /*
+     * The common turbo engine returns its saved ID rather than scanning flux.
+     * Supply the selected side's real ID, and never reuse it on a blank track.
+     */
+    if (fdd_get_turbo(drive) && fdd_is_pcjx_360(drive) && !dev->xdf_type) {
+        if ((dev->track < 0) || (dev->track >= dev->tracks) ||
+            (side < 0) || (side >= dev->sides)) {
+            fdc_noidam(img_fdc);
+            return;
+        }
+        const uint8_t *id = dev->first_sector_id[side];
+        d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+    }
+    d86f_readaddress(drive, side, density);
 }
 
 void
@@ -1481,6 +1518,7 @@ jump_if_fdf:
     drives[drive].seek = img_seek;
 
     d86f_common_handlers(drive);
+    drives[drive].readaddress = img_readaddress;
 }
 
 void
@@ -1603,4 +1641,5 @@ img_load_raw_device(int drive, const char *device_path)
     drives[drive].seek = img_seek;
 
     d86f_common_handlers(drive);
+    drives[drive].readaddress = img_readaddress;
 }

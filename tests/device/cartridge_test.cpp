@@ -287,6 +287,13 @@ machine_has_cartridge(int)
     return 1;
 }
 
+// These loader tests use PCjr mappings; the JX decoder has separate board tests.
+int
+machine_is_pcjx(int)
+{
+    return 0;
+}
+
 FILE *
 plat_fopen(const char *path, const char *mode)
 {

@@ -68,6 +68,22 @@ cart_read(uint32_t addr, void *priv)
     return (addr >= dev->base && addr - dev->base < dev->size) ? dev->buf[addr - dev->base] : 0xff;
 }
 
+int
+cart_read_resource(uint32_t address, uint8_t *value)
+{
+    for (unsigned int i = 0; i < 2; i++) {
+        const cart_t *dev = &carts[i];
+
+        if (dev->buf && address >= dev->base && address - dev->base < dev->size) {
+            *value = dev->buf[address - dev->base];
+            return 1;
+        }
+    }
+
+    *value = 0xff;
+    return 0;
+}
+
 static void
 cart_load_error(int drive, UNUSED(char *fn))
 {
@@ -167,7 +183,7 @@ cart_load_common(int drive, char *fn, uint8_t hard_reset)
     } else if (cart_image_load(drive, fn))
         memmove(cart_fns[drive], fn, strlen(fn) + 1);
 
-    /* Inserting or removing a cartridge resets the PCjr. */
+    /* Inserting or removing a cartridge resets both PCjr and JX. */
     if (!hard_reset)
         resetx86();
 }
@@ -203,11 +219,13 @@ cart_reset(void)
     if (!machine_has_cartridge(machine))
         return;
 
-    for (unsigned int i = 0; i < 2; i++) {
-        mem_mapping_add(&cart_mappings[i], 0xd0000, 0x2000, cart_read, NULL, NULL,
-                        NULL, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &carts[i]);
-        mem_mapping_disable(&cart_mappings[i]);
-        cart_mapping_registered[i] = 1;
+    if (!machine_is_pcjx(machine)) {
+        for (unsigned int i = 0; i < 2; i++) {
+            mem_mapping_add(&cart_mappings[i], 0xd0000, 0x2000, cart_read, NULL, NULL,
+                            NULL, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &carts[i]);
+            mem_mapping_disable(&cart_mappings[i]);
+            cart_mapping_registered[i] = 1;
+        }
     }
 
     cart_load_common(0, cart_fns[0], 1);

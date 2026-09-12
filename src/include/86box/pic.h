@@ -81,6 +81,7 @@ extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
 extern void pic_init(void);
 extern void pic_init_pcjr(void);
+extern void pic_handler(int set, uint16_t base, int size);
 extern void pic2_init(void);
 extern void pic_reset(void);
 

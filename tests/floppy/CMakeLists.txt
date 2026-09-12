@@ -1,5 +1,10 @@
 if(BUILD_TESTING)
-    add_library(fdc_read_id_engine OBJECT ../../src/floppy/fdd_86f.c)
+    add_library(fdc_read_id_engine OBJECT
+        ../../src/floppy/fdd_86f.c
+        ../../src/floppy/fdd_img.c
+        ../../src/utils/fifo.c
+        ../../src/utils/crc.c
+    )
     target_include_directories(fdc_read_id_engine PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/src/cpu
@@ -27,7 +32,12 @@ if(BUILD_TESTING)
     )
     target_link_libraries(fdc_read_id_tests PRIVATE GTest::gtest_main)
 
-    add_library(img_track_engine OBJECT ../../src/floppy/fdd_86f.c)
+    add_library(img_track_engine OBJECT
+        ../../src/floppy/fdd_86f.c
+        ../../src/floppy/fdd_img.c
+        ../../src/utils/fifo.c
+        ../../src/utils/crc.c
+    )
     target_include_directories(img_track_engine PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/src/cpu

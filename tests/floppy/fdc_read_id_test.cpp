@@ -6,20 +6,16 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
-#include <unistd.h>
 
 extern "C" {
 #include "../../src/floppy/fdc.c"
 #define new new_track_size
 #include "../../src/floppy/fdd.c"
 #undef new
-#include "../../src/floppy/fdd_img.c"
-#define calloc(count, size) (fifo_t *) calloc(count, size)
-#include "../../src/utils/fifo.c"
-#undef calloc
-#include "../../src/utils/crc.c"
 }
 
 namespace {
@@ -29,7 +25,7 @@ namespace {
 class FdcReadId : public ::testing::Test {
 protected:
     fdc_t       controller {};
-    std::string directory;
+    std::filesystem::path directory;
     std::string path;
 
     void SetUp() override
@@ -61,10 +57,19 @@ protected:
         img_set_fdc(&controller);
         d86f_set_fdc(&controller);
 
-        char temp[] = "/tmp/86box-fdc-read-id-XXXXXX";
-        ASSERT_NE(mkdtemp(temp), nullptr);
-        directory  = temp;
-        path       = directory + "/single-sided.img";
+        std::error_code error;
+        const auto      root = std::filesystem::temp_directory_path(error);
+        ASSERT_FALSE(error) << error.message();
+        for (unsigned i = 0; i < 1024; ++i) {
+            const auto candidate = root / ("86box-fdc-read-id-test-" + std::to_string(i));
+            if (std::filesystem::create_directory(candidate, error)) {
+                directory = candidate;
+                break;
+            }
+            ASSERT_TRUE(!error || error == std::errc::file_exists) << error.message();
+        }
+        ASSERT_FALSE(directory.empty()) << "No available FDC Read ID test directory";
+        path       = (directory / "single-sided.img").string();
         FILE *file = std::fopen(path.c_str(), "wb");
         ASSERT_NE(file, nullptr);
         const std::array<uint8_t, 512> sector {};
@@ -81,7 +86,7 @@ protected:
         fdd_set_turbo(0, 0);
         d86f_setup(0);
         img_load(0, const_cast<char *>(path.c_str()));
-        ASSERT_NE(img[0], nullptr);
+        ASSERT_NE(drives[0].seek, nullptr);
         fdd_do_seek(0, 0);
         fdc_write(0x3f2, 0x1c, &controller);
         for (unsigned remaining = 16; timer_is_enabled(&controller.timer); --remaining) {
@@ -106,10 +111,11 @@ protected:
         fdd_set_fdc(nullptr);
         img_set_fdc(nullptr);
         d86f_set_fdc(nullptr);
-        if (!path.empty())
-            std::remove(path.c_str());
-        if (!directory.empty())
-            rmdir(directory.c_str());
+        if (!directory.empty()) {
+            std::error_code error;
+            std::filesystem::remove_all(directory, error);
+            EXPECT_FALSE(error) << error.message();
+        }
     }
 
     void command(uint8_t opcode, std::initializer_list<uint8_t> params)
@@ -193,6 +199,11 @@ const char *
 machine_getname(int)
 {
     return "IBM PC";
+}
+int
+machine_is_pcjx(int)
+{
+    return 0;
 }
 void
 timer_enable(pc_timer_t *timer)
