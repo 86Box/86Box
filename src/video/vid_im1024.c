@@ -80,9 +80,6 @@ typedef struct {
         fifo_wrptr,
         fifo_rdptr;
 
-    int32_t img_w; /* IMGSIZ: the image the screen is centred on */
-    int32_t img_h;
-
     /* Hardware crosshair: shape from XHAIR, position in raster coordinates. */
     uint8_t xh_on;
     uint8_t xh_type; /* 1 = lines xh_w by xh_h, 2 = TDEFIN character xh_ch */
@@ -292,8 +289,8 @@ static void
 im1024_set_origin(im1024_t *dev)
 {
     pgc_t  *pgc = &dev->pgc;
-    int32_t cx  = (int32_t) pgc->visw - (dev->img_w - 1);
-    int32_t cy  = (int32_t) pgc->vish - 1 - (dev->img_h - 1);
+    int32_t cx  = (int32_t) pgc->visw - (pgc->img_w - 1);
+    int32_t cy  = (int32_t) pgc->vish - 1 - (pgc->img_h - 1);
     int32_t px  = 0;
     int32_t py  = 0;
     int32_t left;
@@ -344,8 +341,8 @@ hndl_imgsiz(pgc_t *pgc)
         return;
     }
 
-    dev->img_w = w;
-    dev->img_h = h;
+    pgc->img_w = w;
+    pgc->img_h = h;
     pgc->vp_x1 = 0;
     pgc->vp_y1 = 0;
     pgc->vp_x2 = w - 1;
@@ -1676,8 +1673,8 @@ im1024_reset(pgc_t *pgc)
     /* Coordinates are 16.16 until a driver asks for words with IPREC. */
     pgc->coord_words = 0;
 
-    dev->img_w = 640;
-    dev->img_h = 480;
+    pgc->img_w = 640;
+    pgc->img_h = 480;
     im1024_set_origin(dev);
 
     /* No crosshair, LOCXH on, the map over the whole display, locator centred. */

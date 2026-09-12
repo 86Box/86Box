@@ -73,6 +73,8 @@ typedef struct pgc {
     uint32_t maxh; /* maximum framebuffer size - Height */
     uint32_t visw; /* maximum screen size - Width */
     uint32_t vish; /* maximum screen size - Height */
+    int32_t  img_w; /* the image CLEARS covers, in card coordinates: the whole */
+    int32_t  img_h; /* screen on the PGC, the IMGSIZ image on the IM-1024 */
     uint32_t screenw;
     uint32_t screenh;
     int16_t  pan_x;

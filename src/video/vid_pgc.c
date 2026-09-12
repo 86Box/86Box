@@ -514,7 +514,13 @@ hndl_cldel(pgc_t *dev)
     memset(&dev->clist[param], 0, sizeof(pgc_cl_t));
 }
 
-/* Clear the screen to a specified color. */
+/*
+ * Clear the image to a color. Both firmwares work in card coordinates and
+ * ignore the viewport and the display mode: the IM-1024 fills the IMGSIZ
+ * image (handler and FLOOD share a body), the PGC its fixed 480 rows. The
+ * framebuffer can be taller than the image, so a raster-row loop would
+ * clear rows the screen does not show.
+ */
 static void
 hndl_clears(pgc_t *dev)
 {
@@ -523,8 +529,8 @@ hndl_clears(pgc_t *dev)
     if (!pgc_param_byte(dev, &param))
         return;
 
-    for (uint32_t y = 0; y < dev->screenh; y++)
-        memset(dev->vram + y * dev->maxw, param, dev->screenw);
+    for (uint32_t y = 0; y < (uint32_t) dev->img_h; y++)
+        memset(dev->vram + (dev->maxh - 1 - y) * dev->maxw, param, (size_t) dev->img_w);
 }
 
 /*
@@ -3078,6 +3084,8 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     dev->maxh = maxh;
     dev->visw = visw;
     dev->vish = vish;
+    dev->img_w = visw;
+    dev->img_h = vish;
 
     dev->vram = (uint8_t *) calloc((size_t) maxw, maxh);
     memset(dev->vram, 0x00, (size_t) maxw * maxh);
