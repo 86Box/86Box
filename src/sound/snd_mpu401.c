@@ -210,7 +210,8 @@ MPU401_RecQueueBuffer(mpu_t *mpu, uint8_t *buf, unsigned int len)
                 break;
             }
             cnt++;
-        }
+        } else
+            break; /* Input queue full, drop the rest of the message. */
     }
     if (!mpu->queue_used) {
         if (mpu->state.rec_copy || mpu->state.irq_pending) {
