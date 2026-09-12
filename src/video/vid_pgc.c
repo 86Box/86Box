@@ -2475,6 +2475,15 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
     if (addr >= 0xc6000 && addr < 0xc6800) {
         addr &= 0x7ff;
 
+        /*
+         * The card owns its status block: both the IBM PGC ROM and IM-1024
+         * firmware 2.21 write the version, model id and self-test signature
+         * at cold boot only, so a host fill of the window must not destroy
+         * them. C63FF stays writable - that one is the host's reboot request.
+         */
+        if (addr >= 0x3f8 && addr <= 0x3fe)
+            return;
+
         /* If one of the FIFOs has been updated, this may cause
          * the drawing thread to be woken */
 
