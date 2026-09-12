@@ -510,9 +510,11 @@ mxo_close(void *priv)
  * adapter (the IBM XMA2EMS.SYS driver does not know this card):
  *
  *   100h/101h  card ID (DA|DE/76, read-only)
- *   102h       bit 0 = awake/enable (writable); bits 6 and 2 encode the
- *              fitted capacity for the driver (hardware-driven, read-only):
- *              bit6=1/bit2=0 = 512K, 1/1 = 1M, 0/0 = 2M, 0/1 = 4M
+ *   102h       bit 0 = awake/enable (writable); bits 7-1 encode the fitted
+ *              capacity (hardware-driven, read-only), which is decoded by
+ *              the ADF init program: 0xFE = 512K, 0xFA = 1M, 0xAA = 2M,
+ *              anything else = 4M (EMMXMA.SYS instead decodes bits 6/2,
+ *              which swaps 512K/1M and should be wrong on real hardware)
  *   103h       TT data: bits 6-0 = block number bits 0-6, bit 7 = enable
  *              (the commit strobe - always written last)
  *   104h       bit 0 = TT data bit 7 (the 4 MB block-number extension)
@@ -522,8 +524,12 @@ mxo_close(void *priv)
  *
  * The driver's runtime remap sequence writes 103h (block | enable) BEFORE
  * 104h (block bit 7), so a write to 104h re-commits the latched entry.
- * The card has no option ROM and the ADF POST clears the whole table at
- * power-on, so the default TT is empty (no extended-memory home mapping).
+ * The card has no option ROM; the table is empty after a reset. POS
+ * 102h write that puts the card to sleep (bit 0 = 0) fills it with a
+ * default entry for every fitted block at PSQ_EXT_FIRST_TT (1M), and
+ * the wake write (bit 0 = 1) drops it again. That report is what the
+ * reference-disk init program counts on a warm boot; it clears the
+ * whole table itself right after reading it.
  */
 
 /* Translate table entry check: enabled and a valid block number. */
@@ -683,6 +689,22 @@ psq_mca_write(const uint16_t port, uint8_t val, void *priv)
         case 0x02: /* POS 102h: only bit 0 (awake) is writable; the
                       capacity bits are driven by the fitted memory */
             dev->pos_regs[2] = (uint8_t) ((dev->pos_regs[2] & 0xfe) | (val & 0x01));
+
+            if (val & 0x01) {
+                /* Awake: the host is taking the card over - drop the
+                   default report along with any mapping it created */
+                memset(dev->tt, 0, sizeof(dev->tt));
+                psq_ext_update(dev);
+                psq_pf_update(dev);
+            } else {
+                /* Asleep: leave a default entry for every fitted 16 KB
+                   block, because the init program counts the numbers of 
+                   the enabled entries and uses this to size memory after
+                   warm reboot. Without this, init program will detect a
+                   very small memory size and QEMM will not install. */
+                for (uint16_t i = 0; i < dev->blocks; i++)
+                    dev->tt[PSQ_EXT_FIRST_TT + i] = (uint16_t) (PSQ_TT_ENABLE | i);
+            }
             return;
 
         case 0x03: /* TT data: latch the low bits + enable, then commit */
@@ -750,11 +772,14 @@ psq_init(const device_t *info)
     dev->pos_regs[1] = 0x76;
 
     /* POS 102h: bit 0 = awake/enable; bits 7-1 are the capacity code
-       the QuadMEG init program decodes as 512K (0xFE), 1M (0xFA),
-       2M (0xAA) or 4M (anything else). */
+       the ADF init program decodes as 512K (0xFE), 1M (0xFA), 2M (0xAA)
+       or 4M (anything else). EMMXMA.SYS instead decodes bits 6/2, which
+       swaps the 512K/1M codes; that interpretation is wrong, but the 4M
+       code is still picked to satisfy it (bit6 = 0, bit2 = 1) so EMMXMA
+       reports 4096K when 4MB memory is installed. */
     dev->pos_regs[2] |= 0x01;  /* awake */
     if (size_kb >= 4096)
-        dev->pos_regs[2] = 0x00;  /* 4 MB */
+        dev->pos_regs[2] = 0xae;  /* 4 MB */
     else if (size_kb >= 2048)
         dev->pos_regs[2] = 0xaa;  /* 2 MB */
     else if (size_kb >= 1024)
@@ -772,8 +797,8 @@ psq_init(const device_t *info)
        enhanced-mode enable written by EMMXMA.SYS and the ADF POST. */
     dev->pos_regs[5] = 0x80;
 
-    /* No default translate table: the card is a pure EMS adapter and the
-       ADF POST clears all entries at power-on. */
+    /* No translate table here: it is left empty by psq_reset() and stays
+       empty until POS 102h write puts the default report in it. */
 
     /* Register the card on the MCA bus. */
     mca_add(psq_mca_read, psq_mca_write, psq_mca_feedb, psq_reset, dev);
@@ -799,8 +824,7 @@ psq_init(const device_t *info)
 
     /* Extended-memory window, starting out at 1M (PSQ_EXT_BASE) and
        repositioned by psq_ext_update() over any TT entries a driver
-       programs at 1M (PSQ_EXT_FIRST_TT) or above - the empty
-       power-on TT leaves it disabled. */
+       programs at 1M (PSQ_EXT_FIRST_TT) or above. */
     mem_mapping_add(&dev->ext_mapping,
                     PSQ_EXT_BASE,
                     (uint32_t) dev->blocks << PSQ_BLOCK_SHIFT,
