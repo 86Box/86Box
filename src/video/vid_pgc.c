@@ -169,15 +169,15 @@ static int
 output_byte(pgc_t *dev, uint8_t val)
 {
     /* If output buffer full, wait for it to empty. */
-    while (!dev->stopped && !dev->mapram[0x307] && dev->mapram[0x302] == (uint8_t) (dev->mapram[0x303] - 1)) {
+    while (!dev->stopped && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x302] == (uint8_t) (dev->mapram[0x303] - 1)) {
         pgc_log("PGC: output buffer state: %02x %02x  Sleeping\n",
                 dev->mapram[0x302], dev->mapram[0x303]);
         dev->waiting_output_fifo = 1;
         pgc_sleep(dev);
     }
 
-    if (dev->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (dev->mapram[0x3ff] || dev->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(dev);
         return 0;
     }
@@ -215,13 +215,13 @@ static int
 error_byte(pgc_t *dev, uint8_t val)
 {
     /* If error buffer full, wait for it to empty. */
-    while (!dev->stopped && !dev->mapram[0x307] && dev->mapram[0x304] == dev->mapram[0x305] - 1) {
+    while (!dev->stopped && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x304] == dev->mapram[0x305] - 1) {
         dev->waiting_error_fifo = 1;
         pgc_sleep(dev);
     }
 
-    if (dev->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (dev->mapram[0x3ff] || dev->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(dev);
         return 0;
     }
@@ -261,7 +261,7 @@ static int
 input_byte(pgc_t *dev, uint8_t *result)
 {
     /* If input buffer empty, wait for it to fill. */
-    while (!dev->stopped && !dev->mapram[0x307] && (dev->mapram[0x300] == dev->mapram[0x301])) {
+    while (!dev->stopped && !dev->mapram[0x306] && !dev->mapram[0x307] && (dev->mapram[0x300] == dev->mapram[0x301])) {
         dev->waiting_input_fifo = 1;
         pgc_sleep(dev);
     }
@@ -269,8 +269,8 @@ input_byte(pgc_t *dev, uint8_t *result)
     if (dev->stopped)
         return 0;
 
-    if (dev->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (dev->mapram[0x3ff] || dev->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(dev);
         return 0;
     }
@@ -2708,9 +2708,14 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
                     }
                     break;
 
-                case 0x306: /* cold start flag */
-                    /* XXX This should be in IM-1024 specific code */
-                    dev->mapram[0x306] = 0;
+                case 0x306: /* cold start flag: the drawing thread acknowledges it */
+                    /*
+                     * Both firmwares treat it as the power-on restart
+                     * (IBM CS:f3ac, IM-1024 e004:6b67) and clear the flag
+                     * at the end of that init, so the host's spin on C6306
+                     * must last until the card state is actually reset.
+                     */
+                    pgc_wake(dev);
                     break;
 
                 case 0x307: /* warm start flag: the drawing thread acknowledges it */

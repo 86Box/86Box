@@ -196,7 +196,7 @@ input_byte(pgc_t *pgc, uint8_t *result)
     im1024_t *dev = (im1024_t *) pgc;
 
     /* If input buffer empty, wait for it to fill. */
-    while (!pgc->stopped && !pgc->mapram[0x307] && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
+    while (!pgc->stopped && !pgc->mapram[0x306] && !pgc->mapram[0x307] && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
         pgc->waiting_input_fifo = 1;
         pgc_sleep(pgc);
     }
@@ -204,8 +204,8 @@ input_byte(pgc_t *pgc, uint8_t *result)
     if (pgc->stopped)
         return 0;
 
-    if (pgc->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (pgc->mapram[0x3ff] || pgc->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(pgc);
         return 0;
     }
@@ -1673,6 +1673,9 @@ im1024_reset(pgc_t *pgc)
     im1024_t *dev = (im1024_t *) pgc;
 
     pgc->mapram[0x3fa] = 0x02;
+
+    /* The restart discards the fast FIFO with the ring buffers. */
+    dev->fifo_wrptr = dev->fifo_rdptr = 0;
 
     /* Coordinates are 16.16 until a driver asks for words with IPREC. */
     pgc->coord_words = 0;
