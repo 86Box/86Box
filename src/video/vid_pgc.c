@@ -575,6 +575,77 @@ hndl_circle(pgc_t *dev)
     pgc_draw_ellipse(dev, radius, radius);
 }
 
+/* Both corners are inclusive; filled under PRMFIL, outlined otherwise. */
+static void
+rect_draw(pgc_t *dev, int16_t x0, int16_t y0, int16_t x1, int16_t y1)
+{
+    int16_t p;
+    int16_t q;
+
+    pgc_sto_raster(dev, &x0, &y0);
+    pgc_sto_raster(dev, &x1, &y1);
+
+    if (x0 > x1) {
+        p  = x0;
+        x0 = x1;
+        x1 = p;
+    }
+    if (y0 > y1) {
+        q  = y0;
+        y0 = y1;
+        y1 = q;
+    }
+
+    pgc_log("PGC: RECT (%i,%i) -> (%i,%i)\n", x0, y0, x1, y1);
+
+    if (dev->fill_mode) {
+        for (p = y0; p <= y1; p++)
+            pgc_fill_line_r(dev, x0, x1, p);
+    } else {
+        p = dev->line_pattern;
+        p = pgc_draw_line_r(dev, x0, y0, x1, y0, p);
+        p = pgc_draw_line_r(dev, x1, y0, x1, y1, p);
+        p = pgc_draw_line_r(dev, x1, y1, x0, y1, p);
+        p = pgc_draw_line_r(dev, x0, y1, x0, y0, p);
+    }
+}
+
+/* RECT takes the corner opposite the current point. */
+static void
+hndl_rect(pgc_t *dev)
+{
+    int32_t x1 = 0;
+    int32_t y1 = 0;
+
+    if (!pgc_param_coord(dev, &x1))
+        return;
+    if (!pgc_param_coord(dev, &y1))
+        return;
+
+    rect_draw(dev, dev->x >> 16, dev->y >> 16, x1 >> 16, y1 >> 16);
+}
+
+/*
+ * RECTR takes that corner as an offset from the current point, which
+ * does not move. AutoCAD's driver highlights a screen menu item and
+ * erases a character cell with it.
+ */
+static void
+hndl_rectr(pgc_t *dev)
+{
+    int16_t x0 = dev->x >> 16;
+    int16_t y0 = dev->y >> 16;
+    int32_t dx = 0;
+    int32_t dy = 0;
+
+    if (!pgc_param_coord(dev, &dx))
+        return;
+    if (!pgc_param_coord(dev, &dy))
+        return;
+
+    rect_draw(dev, x0, y0, x0 + (dx >> 16), y0 + (dy >> 16));
+}
+
 /*
  * TEXT draws a string in the card's own font, justified about the current
  * point by TJUST and sized by TSIZE. The card holds the face as stroke
@@ -1756,6 +1827,10 @@ static const pgc_cmd_t pgc_commands[] = {
     { "PF",     0xe9, hndl_prmfil,  pgc_parse_bytes,  1 },
     { "POLY",   0x30, hndl_poly,    parse_poly,       0 },
     { "P",      0x30, hndl_poly,    parse_poly,       0 },
+    { "RECT",   0x34, hndl_rect,    pgc_parse_coords, 2 },
+    { "R",      0x34, hndl_rect,    pgc_parse_coords, 2 },
+    { "RECTR",  0x35, hndl_rectr,   pgc_parse_coords, 2 },
+    { "RR",     0x35, hndl_rectr,   pgc_parse_coords, 2 },
     { "RESETF", 0x04, hndl_resetf,  NULL,             0 },
     { "RF",     0x04, hndl_resetf,  NULL,             0 },
     { "TEXT",   0x80, hndl_text,    NULL,             0 },
