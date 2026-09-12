@@ -130,6 +130,7 @@ typedef struct pgc {
     uint64_t dispofftime;
     pc_timer_t timer;
     double     native_pixel_clock;
+    volatile uint32_t vsyncs; /* frames scanned out; WAIT counts these */
 
     int drawcursor;
 

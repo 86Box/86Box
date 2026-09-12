@@ -1445,6 +1445,29 @@ hndl_display(pgc_t *dev)
         pgc_setdisplay(dev, param);
 }
 
+/*
+ * WAIT frames: one 16-bit word whatever IPREC says (IBM CS:af8b, IM-1024
+ * image 0x8242 read two bytes). Both firmwares park the command loop
+ * until the frame interrupt has counted the word down to zero, so WAIT 1
+ * ends at the next vertical retrace. A restart flag ends it early, as in
+ * the other waits.
+ */
+static void
+hndl_wait(pgc_t *dev)
+{
+    int16_t  frames;
+    uint32_t target;
+
+    if (!pgc_param_word(dev, &frames))
+        return;
+
+    pgc_log("PGC: WAIT %i\n", frames);
+    target = dev->vsyncs + (uint16_t) frames;
+
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && (int32_t) (dev->vsyncs - target) < 0)
+        pgc_sleep(dev);
+}
+
 /* Handle the IMAGEW command (memory to screen blit). */
 static void
 hndl_imagew(pgc_t *dev)
@@ -1905,6 +1928,8 @@ static const pgc_cmd_t pgc_commands[] = {
     { "TS",     0x81, hndl_tsize,   pgc_parse_coords, 1 },
     { "VWPORT", 0xb2, hndl_vwport,  pgc_parse_words,  4 },
     { "VWP",    0xb2, hndl_vwport,  pgc_parse_words,  4 },
+    { "WAIT",   0x05, hndl_wait,    pgc_parse_words,  1 },
+    { "W",      0x05, hndl_wait,    pgc_parse_words,  1 },
     { "WINDOW", 0xb3, hndl_window,  pgc_parse_coords, 4 },
     { "WI",     0xb3, hndl_window,  pgc_parse_coords, 4 },
 
@@ -2987,6 +3012,8 @@ pgc_cga_poll(pgc_t *dev)
             }
             video_blit_memtoscreen(0, 0, xsize, ysize);
             frames++;
+            dev->vsyncs++;
+            pgc_wake(dev);
 
             /* We have a fixed 640x400 screen for CGA modes. */
             video_res_x = PGC_CGA_WIDTH;
@@ -3069,6 +3096,8 @@ pgc_poll(void *priv)
             }
             video_blit_memtoscreen(0, 0, xsize, ysize);
             frames++;
+            dev->vsyncs++;
+            pgc_wake(dev);
 
             video_res_x = dev->screenw;
             video_res_y = dev->screenh;
