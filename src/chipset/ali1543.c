@@ -1318,11 +1318,10 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0xb8:
-#ifdef FUTURE_STUFF
             if (dev->type == 1)
-                flash_e28f0xx_qube3_update(val);
+                flash_e28f0xx_cobalt3k_update(val);
             fallthrough;
-#endif
+
         case 0xb9:
             if (dev->type == 1)
                 dev->pmu_conf[addr] = val;

@@ -52,7 +52,7 @@
 typedef struct lm78_t {
     uint32_t      local;
     hwm_values_t *values;
-    device_t     *lm75[2];
+    lm75_t       *lm75[2];
     pc_timer_t    reset_timer;
 
     uint8_t regs[256];
@@ -339,7 +339,6 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
     uint8_t ret = 0;
     uint8_t masked_reg = reg;
     uint8_t bankswitched = ((reg & 0xf8) == 0x50);
-    lm75_t *lm75;
 
     if ((dev->local & LM78_AS99127F) && (bank == 3) && (reg != 0x4e)) {
         /* AS99127F additional registers */
@@ -347,7 +346,7 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
             ret = dev->as99127f.regs[0][reg & 0x7f];
     } else if (bankswitched && ((bank == 1) || (bank == 2))) {
         /* LM75 registers */
-        lm75 = device_get_priv(dev->lm75[bank - 1]);
+        lm75_t *lm75 = dev->lm75[bank - 1];
         if (lm75)
             ret = lm75_read(lm75, reg);
     } else if (bankswitched && ((bank == 4) || (bank == 5) || (bank == 6))) {
@@ -434,8 +433,6 @@ lm78_as99127f_read(void *priv, uint8_t reg)
 static uint8_t
 lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 {
-    lm75_t *lm75;
-
     lm78_log("LM78: write(%02X, %d, %02X)\n", reg, bank, val);
 
     if ((dev->local & LM78_AS99127F) && (bank == 3) && (reg != 0x4e)) {
@@ -463,7 +460,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     } else if ((reg & 0xf8) == 0x50) {
         if ((bank == 1) || (bank == 2)) {
             /* LM75 registers */
-            lm75 = device_get_priv(dev->lm75[bank - 1]);
+            lm75_t *lm75 = dev->lm75[bank - 1];
             if (lm75)
                 return lm75_write(lm75, reg, val);
             return 1;
@@ -609,7 +606,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
             /* set LM75 I2C addresses (Winbond only) */
             if (dev->local & LM78_I2C) {
                 for (uint8_t i = 0; i <= 1; i++) {
-                    lm75 = device_get_priv(dev->lm75[i]);
+                    lm75_t *lm75 = dev->lm75[i];
                     if (!lm75)
                         continue;
                     if (val & (0x08 * (0x10 * i))) /* DIS_T2 and DIS_T3 bit disable those interfaces */
@@ -730,8 +727,6 @@ lm78_reset_timer(UNUSED(void *priv))
 static void
 lm78_remap(lm78_t *dev, uint8_t addr)
 {
-    lm75_t *lm75;
-
     if (!(dev->local & LM78_I2C))
         return;
 
@@ -749,8 +744,8 @@ lm78_remap(lm78_t *dev, uint8_t addr)
     if (dev->local & LM78_AS99127F) {
         /* Store our handle on the primary LM75 device to ensure reads/writes
            to the AS99127F's proprietary registers are passed through to this side. */
-        if ((lm75 = device_get_priv(dev->lm75[0])))
-            lm75->as99127f = dev;
+        if (dev->lm75[0])
+            dev->lm75[0]->as99127f = dev;
     }
 }
 
@@ -826,17 +821,9 @@ lm78_init(const device_t *info)
     dev->values = &hwm_values;
 
     /* Initialize secondary/tertiary LM75 sensors on Winbond. */
-    for (uint8_t i = 0; i <= 1; i++) {
-        if (dev->local & LM78_WINBOND) {
-            dev->lm75[i] = (device_t *) calloc(1, sizeof(device_t));
-            memcpy(dev->lm75[i], &lm75_w83781d_device, sizeof(device_t));
-            dev->lm75[i]->local = (i + 1) << 8;
-            if (dev->local & LM78_I2C)
-                dev->lm75[i]->local |= 0x48 + i;
-            device_add(dev->lm75[i]);
-        } else {
-            dev->lm75[i] = NULL;
-        }
+    if (dev->local & LM78_WINBOND) {
+        for (uint8_t i = 0; i <= 1; i++)
+            dev->lm75[i] = device_add_inst_params(&lm75_w83781d_device, i + 1, (void *) (uintptr_t) (((i + 1) << 8) | 0x48 | i));
     }
 
     lm78_reset(dev);

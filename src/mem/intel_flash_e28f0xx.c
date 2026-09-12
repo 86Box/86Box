@@ -23,8 +23,10 @@
 #include <86box/machine.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
+#include <86box/flash.h>
 
-#define FLAG_WORD    1
+#define FLAG_WORD     1
+#define FLAG_COBALT3K 2
 
 enum {
     CMD_READ_ARRAY        = 0xff,
@@ -47,6 +49,7 @@ typedef struct flash_t {
     uint8_t  status;
     uint8_t  master_lock;
     uint8_t  flags;
+    uint8_t  ctrl;
     uint8_t *array;
 
     uint8_t  block_locks[32];
@@ -62,13 +65,40 @@ typedef struct flash_t {
 
 static char flash_path[1024];
 
+void
+flash_e28f0xx_cobalt3k_update(uint8_t val)
+{
+    flash_t *dev = (flash_t *) device_get_priv(&intel_flash_e28f0xx_cobalt3k_device);
+    if (!dev)
+        return;
+
+    dev->ctrl = val;
+
+    uint8_t *exec = (dev->ctrl & 0x40) ? NULL : &dev->array[(dev->ctrl & 0x0f) << 16];
+    mem_mapping_set_exec(&(dev->mapping[0]), exec);
+    mem_mapping_set_exec(&(dev->mapping_h[0]), exec);
+}
+
+static uint32_t
+flash_calc_addr(const flash_t *dev, uint32_t addr)
+{
+    if (dev->flags & FLAG_COBALT3K) {
+        if (dev->ctrl & 0x40) /* bank 1 absent */
+            return 0xffffffff;
+        return ((dev->ctrl & 0x0f) << 16) | (addr & 0x0000ffff);
+    }
+    return addr & biosmask;
+}
+
 static uint8_t
 flash_read(uint32_t addr, void *priv)
 {
     const flash_t *dev = (flash_t *) priv;
     uint8_t        ret;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return 0xff;
 
     switch (dev->command) {
         default:
@@ -110,7 +140,9 @@ flash_readw(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return 0xffff;
 
     if (dev->flags & FLAG_WORD)
         addr &= 0xfffffffe;
@@ -157,7 +189,9 @@ flash_readl(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return 0xffffffff;
 
     const uint32_t *q   = (uint32_t *) &(dev->array[addr]);
 
@@ -169,7 +203,9 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return;
 
     const uint32_t block_start = addr & 0xffff0000;
 
@@ -252,7 +288,9 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return;
 
     const uint32_t block_start = addr & 0xffff0000;
 
@@ -340,6 +378,22 @@ flash_add_mappings(flash_t *dev)
     uint8_t  max = 2;
     uint32_t base;
     uint32_t sub = 0x20000;
+
+    if (dev->flags & FLAG_COBALT3K) {
+        memcpy(dev->array, rom, biosmask + 1);
+
+        mem_mapping_add(&(dev->mapping[0]), 0x000f0000, 0x10000,
+                        flash_read, flash_readw, flash_readl,
+                        flash_write, flash_writew, flash_writel,
+                        dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+        mem_mapping_add(&(dev->mapping_h[0]), 0xffff0000, 0x10000,
+                        flash_read, flash_readw, flash_readl,
+                        flash_write, flash_writew, flash_writel,
+                        dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+
+        flash_e28f0xx_cobalt3k_update(0x00);
+        return;
+    }
 
     switch (biosmask) {
         default:
@@ -476,6 +530,20 @@ const device_t intel_flash_e28f0xx_device = {
     .internal_name = "intel_flash_e28f0xx",
     .flags         = DEVICE_PCI,
     .local         = 0,
+    .init          = flash_init,
+    .close         = flash_close,
+    .reset         = flash_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t intel_flash_e28f0xx_cobalt3k_device = {
+    .name          = "Intel E28F008S5 Flash BIOS (Cobalt Qube 3)",
+    .internal_name = "intel_flash_e28f0xx_cobalt3k",
+    .flags         = DEVICE_PCI,
+    .local         = FLAG_COBALT3K,
     .init          = flash_init,
     .close         = flash_close,
     .reset         = flash_reset,

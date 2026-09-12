@@ -82,6 +82,7 @@ typedef struct es137x_t {
     uint8_t  uart_status;
     uint8_t  uart_res;
     uint32_t uart_fifo[8];
+    uint8_t  uart_fifo_used;
     uint8_t  read_fifo_pos;
     uint8_t  write_fifo_pos;
 
@@ -339,6 +340,8 @@ es137x_scan_fifo(es137x_t *dev)
     if (dev->read_fifo_pos != dev->write_fifo_pos) {
         dev->uart_data     = dev->uart_fifo[dev->read_fifo_pos];
         dev->read_fifo_pos = (dev->read_fifo_pos + 1) & 7;
+        if (dev->uart_fifo_used > 0)
+            dev->uart_fifo_used--;
 
         es137x_set_rx_irq(dev, 1);
     } else
@@ -351,6 +354,7 @@ es137x_write_fifo(es137x_t *dev, uint8_t val)
     if (dev->write_fifo_pos < 8) {
         dev->uart_fifo[dev->write_fifo_pos] = val | UART_FIFO_BYTE_VALID;
         dev->write_fifo_pos                 = (dev->write_fifo_pos + 1) & 7;
+        dev->uart_fifo_used++;
     }
 }
 
@@ -361,6 +365,7 @@ es137x_reset_fifo(es137x_t *dev)
         dev->uart_fifo[i] = 0x00000000;
 
     dev->read_fifo_pos = dev->write_fifo_pos = 0;
+    dev->uart_fifo_used = 0;
 
     es137x_set_rx_irq(dev, 0);
 }
@@ -2646,6 +2651,14 @@ es137x_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     return 7 - i;
 }
 
+static int
+es137x_input_remain(void *priv)
+{
+    es137x_t *dev = (es137x_t *) priv;
+
+    return (8 - dev->uart_fifo_used);
+}
+
 static void es137x_speed_changed(void *priv);
 
 static void *
@@ -2655,7 +2668,7 @@ es1370_init(const device_t *info)
     dev->type = info->local;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, es137x_input_msg, es137x_input_sysex, dev);
+        midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
     wavetable_add_handler(es137x_get_buffer, dev);
     sound_set_cd_audio_filter(es1370_filter_cd_audio, dev);
@@ -2698,7 +2711,7 @@ es1371_init(const device_t *info)
     dev->type = info->local & 0xffffff00;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, es137x_input_msg, es137x_input_sysex, dev);
+        midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
     sound_add_handler(es137x_get_buffer, dev);
     sound_set_cd_audio_filter(es1371_filter_cd_audio, dev);

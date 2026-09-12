@@ -61,6 +61,7 @@
 #define FDC_FLAG_SMC661         0x100000 /* SM(s)C FDC37C661 - different TDR enhanced mode */
 #define FDC_FLAG_5550           0x200000 /* IBM Multistation 5550 */
 #define FDC_FLAG_NO_TDR         0x400000 /* Has no tape drive register */
+#define FDC_FLAG_PCJX           0x800000 /* IBM PC JX no-DMA adapter */
 
 typedef struct sector_id_fields_t {
     uint8_t c;
@@ -279,6 +280,7 @@ extern const device_t fdc_xt_amstrad_device;
 extern const device_t fdc_xt_umc_um8398_device;
 extern const device_t fdc_xt_5550_device;
 extern const device_t fdc_pcjr_device;
+extern const device_t fdc_pcjx_device;
 extern const device_t fdc_at_device;
 extern const device_t fdc_at_sec_device;
 extern const device_t fdc_at_ter_device;

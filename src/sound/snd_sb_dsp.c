@@ -517,6 +517,7 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->sb_irq401   = 0;
     dsp->sb_16_pause = 0;
     dsp->sb_read_wp = dsp->sb_read_rp = 0;
+    dsp->sb_read_used                 = 0;
     dsp->sb_data_stat                 = -1;
     dsp->sb_speaker                   = 0;
     dsp->sb_pausetime                 = -1LL;
@@ -579,6 +580,7 @@ sb_add_data(sb_dsp_t *dsp, uint8_t v)
 {
     dsp->sb_read_data[dsp->sb_read_wp++] = v;
     dsp->sb_read_wp &= 0xff;
+    dsp->sb_read_used++;
 }
 
 static unsigned int
@@ -2209,10 +2211,12 @@ sb_do_reset(sb_dsp_t *dsp, const uint8_t v)
     if (((v & 1) != 0) && (dsp->state != DSP_S_RESET)) {
         sb_dsp_reset(dsp);
         dsp->sb_read_rp = dsp->sb_read_wp = 0;
+        dsp->sb_read_used = 0;
         dsp->state = DSP_S_RESET;
     } else if (((v & 1) == 0) && (dsp->state == DSP_S_RESET)) {
         dsp->state = DSP_S_RESET_WAIT;
         dsp->sb_read_rp = dsp->sb_read_wp = 0;
+        dsp->sb_read_used = 0;
         sb_add_data(dsp, 0xaa);
     }
 }
@@ -2359,6 +2363,8 @@ sb_read(uint16_t addr, void *priv)
                     dsp->sbreaddat = dsp->sb_read_data[dsp->sb_read_rp];
                     dsp->sb_read_rp++;
                     dsp->sb_read_rp &= 0xff;
+                    if (dsp->sb_read_used > 0)
+                        dsp->sb_read_used--;
                 }
                 ret = dsp->sbreaddat;
             }
@@ -2459,6 +2465,14 @@ sb_read(uint16_t addr, void *priv)
     sb_dsp_log("[%04X:%08X] DSP: [R] %04X = %02X\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
+}
+
+int
+sb_dsp_input_remain(void *priv)
+{
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    return (256 - dsp->sb_read_used);
 }
 
 void

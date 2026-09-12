@@ -318,9 +318,11 @@ midi_raw_out_rt_byte(uint8_t val)
     if (!midi_in->midi_clockout && (val == 0xf8))
         return;
 
-    midi_in->midi_cmd_r = val << 24;
-    /* pclog("Play RT Byte msg\n"); */
-    play_msg((uint8_t *) &midi_in->midi_cmd_r);
+    if (!midi_out || !midi_out->m_out_device)
+        return;
+
+    midi_out->midi_rt_buf[0] = val;
+    play_msg(midi_out->midi_rt_buf);
 }
 
 void
@@ -415,7 +417,11 @@ midi_clear_buffer(void)
 }
 
 void
-midi_in_handler(int set, void (*msg)(void *priv, uint8_t *msg, uint32_t len), int (*sysex)(void *priv, uint8_t *buffer, uint32_t len, int abort), void *priv)
+midi_in_handler(int set,
+                void (*msg)(void *priv, uint8_t *msg, uint32_t len),
+                int (*sysex)(void *priv, uint8_t *buffer, uint32_t len, int abort),
+                int (*remain)(void *priv),
+                void *priv)
 {
     midi_in_handler_t *temp = NULL;
     midi_in_handler_t *next;
@@ -429,9 +435,10 @@ midi_in_handler(int set, void (*msg)(void *priv, uint8_t *msg, uint32_t len), in
             fatal("First MIDI IN handler present with no last MIDI IN handler\n");
 
         temp = (midi_in_handler_t *) calloc(1, sizeof(midi_in_handler_t));
-        temp->msg   = msg;
-        temp->sysex = sysex;
-        temp->priv  = priv;
+        temp->msg    = msg;
+        temp->sysex  = sysex;
+        temp->remain = remain;
+        temp->priv   = priv;
 
         if (mih_last == NULL)
             mih_first = mih_last = temp;
@@ -505,8 +512,14 @@ midi_in_msg(uint8_t *msg, uint32_t len)
         if (temp == NULL)
             break;
 
-        if (temp->msg)
+        if (temp->msg) {
+            while ((temp->remain == NULL) ||
+                   (temp->remain(temp->priv) < (len + 1))) {
+                plat_delay_ms(1); /* msec */
+            }
+
             temp->msg(temp->priv, msg, len);
+        }
 
         temp = temp->next;
 
@@ -625,6 +638,10 @@ midi_in_sysex(uint8_t *buffer, uint32_t len)
             /* Force abort all handlers on timeout */
             midi_in_handler_t *temp = mih_first;
             while (temp != NULL) {
+                while ((temp->remain == NULL) ||
+                       (temp->remain(temp->priv) < (len + 1))) {
+                    plat_delay_ms(1); /* msec */
+                }
                 if (temp->sysex) {
                     temp->sysex(temp->priv, NULL, 0, 1); /* Call with abort=1 */
                 }

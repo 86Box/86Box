@@ -651,6 +651,8 @@ machine_at_k6bv3p_a_init(const machine_t *model)
     return ret;
 }
 
+/* SiS 530 / 5595 */
+
 static int in530_boot_logo_enabled = 1;
 
 static const device_config_t in530_config[] = {
@@ -752,7 +754,6 @@ machine_in530_boot_logo_enabled(void)
     return in530_boot_logo_enabled;
 }
 
-/* SiS 530 / 5595 */
 int
 machine_at_in530_init(const machine_t *model)
 {
@@ -786,7 +787,8 @@ machine_at_in530_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_SOUND,           4, 1, 2, 3);
 
     device_add(&sis_530_device);
-    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
+    /* Ext func high, PNP conf low, BIOS assigns the legacy resources. */
+    device_add_params(&w83877_device, (void *) (W83877TF | (W83877_3F0 & ~0x04)));
     device_add(&amd_flash_29f002nbt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 512);
 

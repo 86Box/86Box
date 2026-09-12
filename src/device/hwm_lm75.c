@@ -59,13 +59,14 @@ uint8_t
 lm75_read(lm75_t *dev, uint8_t reg)
 {
     uint8_t ret;
+    uint8_t mask = (dev->local & 0x80) ? 0xf : 0x7;
 
-    if ((reg & 0x7) == 0x0) /* temperature high byte */
+    if ((reg & mask) == 0x0) /* temperature high byte */
         ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]) >> 8;
-    else if ((reg & 0x7) == 0x1) /* temperature low byte */
+    else if ((reg & mask) == 0x1) /* temperature low byte */
         ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]);
     else
-        ret = dev->regs[reg & 0x7];
+        ret = dev->regs[reg & mask];
 
     lm75_log("LM75: read(%02X) = %02X\n", reg, ret);
 
@@ -149,7 +150,8 @@ lm75_i2c_write(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t data, void *priv
     if ((dev->addr_register & 0x80) && dev->as99127f) {
         return lm78_as99127f_write(dev->as99127f, dev->addr_register, data);
     } else {
-        switch (dev->addr_register & 0x3) {
+        uint8_t mask = (dev->local & 0x80) ? 0x7 : 0x3;
+        switch (dev->addr_register & mask) {
             case 0x0: /* temperature */
                 lm75_write(dev, (dev->i2c_state == 1) ? 0x0 : 0x1, data);
                 break;
@@ -162,8 +164,16 @@ lm75_i2c_write(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t data, void *priv
                 lm75_write(dev, (dev->i2c_state == 1) ? 0x3 : 0x4, data);
                 break;
 
-            case 0x3: /* Tos */
+            case 0x3: /* Tos (LM75) / Tcrit (LM77) */
                 lm75_write(dev, (dev->i2c_state == 1) ? 0x5 : 0x6, data);
+                break;
+
+            case 0x4: /* Tlow (LM77) */
+                lm75_write(dev, (dev->i2c_state == 1) ? 0x7 : 0x8, data);
+                break;
+
+            case 0x5: /* Thigh (LM77) */
+                lm75_write(dev, (dev->i2c_state == 1) ? 0x9 : 0xa, data);
                 break;
 
             default:
@@ -253,6 +263,21 @@ const device_t lm75_w83781d_device = {
     .internal_name = "lm75_w83781d",
     .flags         = DEVICE_ISA,
     .local         = 0,
+    .init          = lm75_init,
+    .close         = lm75_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/* LM77 on SMBus address 48h, reporting temperatures[0]. */
+const device_t lm77_0_48_device = {
+    .name          = "National Semiconductor LM77 Temperature Sensor",
+    .internal_name = "lm77_0_48",
+    .flags         = DEVICE_ISA,
+    .local         = 0x048 | 0x80,
     .init          = lm75_init,
     .close         = lm75_close,
     .reset         = NULL,
