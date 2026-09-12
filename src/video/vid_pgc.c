@@ -1655,6 +1655,9 @@ pgc_reset_flags(pgc_t *dev)
     dev->vp_y1 = 0;
     dev->vp_x2 = dev->visw - 1;
     dev->vp_y2 = dev->vish - 1;
+
+    dev->win_sc_x = 1.0;
+    dev->win_sc_y = 1.0;
 }
 
 /* RESETF resets the drawing flags, nothing else. */
@@ -1696,6 +1699,28 @@ hndl_tsize(pgc_t *pgc)
 }
 
 /*
+ * Both WINDOW and VWPORT end by recomputing the window-to-viewport scale,
+ * one factor per axis, from the two extents. An extent of zero or less
+ * leaves the previous factor in place.
+ */
+void
+pgc_window_scale(pgc_t *dev)
+{
+    int32_t win_w = (int32_t) dev->win_x2 - (int32_t) dev->win_x1;
+    int32_t win_h = (int32_t) dev->win_y2 - (int32_t) dev->win_y1;
+    int32_t vp_w  = (int32_t) dev->vp_x2 - (int32_t) dev->vp_x1;
+    int32_t vp_h  = (int32_t) dev->vp_y2 - (int32_t) dev->vp_y1;
+
+    if (win_w > 0 && vp_w > 0)
+        dev->win_sc_x = (double) vp_w / (double) win_w;
+
+    if (win_h > 0 && vp_h > 0)
+        dev->win_sc_y = (double) vp_h / (double) win_h;
+
+    pgc_log("PGC: window scale %f, %f\n", dev->win_sc_x, dev->win_sc_y);
+}
+
+/*
  * VWPORT sets up the viewport (roughly, the clip rectangle) in
  * raster coordinates, measured from the bottom left of the screen.
  */
@@ -1721,6 +1746,8 @@ hndl_vwport(pgc_t *dev)
     dev->vp_x2 = x2;
     dev->vp_y1 = y1;
     dev->vp_y2 = y2;
+
+    pgc_window_scale(dev);
 }
 
 /*
@@ -1749,6 +1776,8 @@ hndl_window(pgc_t *dev)
     dev->win_x2 = x2 >> 16;
     dev->win_y1 = y1 >> 16;
     dev->win_y2 = y2 >> 16;
+
+    pgc_window_scale(dev);
 }
 
 /*
@@ -2502,8 +2531,13 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
     return 1;
 }
 
-/* Convert coordinates based on the current window / viewport to raster
- * coordinates. */
+/*
+ * Convert coordinates based on the current window / viewport to raster
+ * coordinates. The window maps onto the viewport, so the distance from the
+ * window origin is scaled before the viewport origin is added, and the
+ * result is rounded to the nearest PEL (IBM PGC Technical Reference,
+ * "Two-Dimensional Transformation").
+ */
 void
 pgc_dto_raster(pgc_t *dev, double *x, double *y)
 {
@@ -2511,8 +2545,8 @@ pgc_dto_raster(pgc_t *dev, double *x, double *y)
     double x0 = *x, y0 = *y;
 #endif
 
-    *x += (dev->vp_x1 - dev->win_x1);
-    *y += (dev->vp_y1 - dev->win_y1);
+    *x = floor((*x - dev->win_x1) * dev->win_sc_x + 0.5) + dev->vp_x1;
+    *y = floor((*y - dev->win_y1) * dev->win_sc_y + 0.5) + dev->vp_y1;
 
     pgc_log("PGC: coords to raster: (%f, %f) -> (%f, %f)\n", x0, y0, *x, *y);
 }

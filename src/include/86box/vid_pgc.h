@@ -89,6 +89,8 @@ typedef struct pgc {
     uint16_t vp_x2;
     uint16_t vp_y1;
     uint16_t vp_y2;
+    double   win_sc_x; /* viewport extent / window extent, per axis: the */
+    double   win_sc_y; /* firmware keeps it as a 16.16 scale factor */
     int16_t  fill_pattern[16];
     int16_t  line_pattern;
     uint8_t  draw_mode;
@@ -156,6 +158,7 @@ extern void    pgc_init(pgc_t *,
                         int (*inpbyte)(pgc_t *, uint8_t *), double npc);
 
 /* Misc support functions. */
+extern void pgc_window_scale(pgc_t *);
 extern void pgc_sto_raster(pgc_t *, int16_t *x, int16_t *y);
 extern void pgc_ito_raster(pgc_t *, int32_t *x, int32_t *y);
 extern void pgc_dto_raster(pgc_t *, double *x, double *y);

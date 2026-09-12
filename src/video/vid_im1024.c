@@ -349,6 +349,10 @@ hndl_imgsiz(pgc_t *pgc)
     pgc->vp_y2 = h - 1;
     pgc->pan_x = 0;
     pgc->pan_y = 0;
+
+    /* The firmware finishes IMGSIZ in the VWPORT handler, scale and all. */
+    pgc_window_scale(pgc);
+
     im1024_set_origin(dev);
 }
 
