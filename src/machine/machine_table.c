@@ -20760,6 +20760,102 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* ALi M1543C southbridge with unused KBC. */
+    {
+        .name              = "[ALi ALADDiN V] Cobalt Qube 3",
+        .internal_name     = "cobalt3k_carmel",
+        .type              = MACHINE_TYPE_SOCKETS7,
+        .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init              = machine_at_cobalt3k_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = { /* Socketed K6-2 300 or 450 with hardwired bus speed (BIOS assumes 100 MHz) and multiplier. */
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 100000000,
+            .max_bus     = 100000000,
+            .min_voltage = 2000,
+            .max_voltage = 2800,
+            .min_multi   = 3.0,
+            .max_multi   = 4.5
+        },
+        .bus_flags = (MACHINE_PS2_PCIONLY & ~(MACHINE_BUS_XT_KBD | MACHINE_BUS_AT_KBD | MACHINE_BUS_PS2_PORTS)) | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 (825 seen in one unit) and network: 2x NSC DP83815 */
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000000,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffff00, /* external watchdog related GPIO pulled down to identify Qube */
+        .device                   = &cobalt3k_carmel_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = &i82559er_onboard_device, /* stand-in for DP83815 (also accepted by BIOS and software) */
+        .aliases                  = { "Cobalt 4xxxWG", "Cobalt Carmel", "" }
+    },
+    /* ALi M1543C southbridge with unused KBC. */
+    {
+        .name              = "[ALi ALADDiN V] Cobalt RaQ 3/4",
+        .internal_name     = "cobalt3k_pacifica",
+        .type              = MACHINE_TYPE_SOCKETS7,
+        .chipset           = MACHINE_CHIPSET_ALI_ALADDIN_V,
+        .init              = machine_at_cobalt3k_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = { /* Socketed K6-2 300 or 450 with hardwired bus speed (BIOS assumes 100 MHz) and multiplier. */
+            .package     = CPU_PKG_SOCKET5_7,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 100000000,
+            .max_bus     = 100000000,
+            .min_voltage = 2000,
+            .max_voltage = 2800,
+            .min_multi   = 3.0,
+            .max_multi   = 4.5
+        },
+        .bus_flags = (MACHINE_PS2_PCIONLY & ~(MACHINE_BUS_XT_KBD | MACHINE_BUS_AT_KBD | MACHINE_BUS_PS2_PORTS)) | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 and network: 2x Intel 82559ER */
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000000,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffff20, /* external watchdog related GPIO pulled up to identify RaQ */
+        .device                   = &cobalt3k_pacifica_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = &i82559er_onboard_device,
+        .aliases                  = { "Cobalt 3xxxR", "Cobalt Pacifica", "" }
+    },
     /* M1534c kbc */
     {
         .name              = "[ALi ALADDiN V] Gateway Lucas",

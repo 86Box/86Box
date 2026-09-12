@@ -1179,6 +1179,11 @@ nvr_at_init(const device_t *info)
     if (nvr->is_new && (machines[machine].init == machine_at_bx6_init))
         local->flags |= FLAG_BX6_HACK;
 
+    if (machines[machine].init == machine_at_cobalt3k_init) {
+        local->def  = 0xff; /* BIOS expects FF init to load defaults on first boot... */
+        local->cent = 0xff; /* ...and uses century for storage instead */
+    }
+
     local->read_addr = 1;
 
     /* Set up any local handlers here. */
