@@ -64,7 +64,8 @@
 #include <86box/video.h>
 #include <86box/vid_pgc.h>
 
-#define BIOS_ROM_PATH "roms/video/im1024/im1024font.bin"
+#define BIOS_ROM_PATH      "roms/video/im1024/im1024font.bin"
+#define FONT_ROM_PATH_8X12 "roms/video/im1024/im1024font8x12.bin"
 
 typedef struct {
     pgc_t pgc;
@@ -72,6 +73,7 @@ typedef struct {
     uint8_t fontx[256];
     uint8_t fonty[256];
     uint8_t font[256][128];
+    uint8_t have_font8x12;
 
     uint8_t *fifo;
     unsigned fifo_len,
@@ -916,28 +918,78 @@ hndl_twrite(pgc_t *pgc)
 }
 
 /*
- * Draw a string in the ROM font, shared by TXT88 and TEXT.
+ * Sample the 12x18 face into a cell of another size. The card never does
+ * this; it is what is left when the band's own font is not installed. The
+ * cell takes the majority of the area it covers, which keeps a stroke
+ * without closing up the counters.
+ */
+static void
+txt_sample_glyph(pgc_t *pgc, uint8_t ch, int x0, int y0, int cell_w, int cell_h)
+{
+    const uint8_t *row;
+
+    for (int y = 0; y < cell_h; y++) {
+        const int sy0 = y * 18 / cell_h;
+        int       sy1 = (y + 1) * 18 / cell_h;
+
+        if (sy1 <= sy0)
+            sy1 = sy0 + 1;
+        if (sy1 > 18)
+            sy1 = 18;
+
+        for (int x = 0; x < cell_w; x++) {
+            const int sx0  = x * 12 / cell_w;
+            int       sx1  = (x + 1) * 12 / cell_w;
+            int       ink  = 0;
+            int       area = 0;
+
+            if (sx1 <= sx0)
+                sx1 = sx0 + 1;
+            if (sx1 > 12)
+                sx1 = 12;
+
+            for (int sy = sy0; sy < sy1; sy++) {
+                row = &fontdat12x18[ch][sy * 2];
+
+                for (int sx = sx0; sx < sx1; sx++) {
+                    area++;
+                    if (row[sx >> 3] & (0x80 >> (sx & 7)))
+                        ink++;
+                }
+            }
+
+            if ((ink * 2) >= area)
+                pgc_plot(pgc, x + x0, y0 - y);
+        }
+    }
+}
+
+/*
+ * Draw a string in a ROM font, shared by TXT88 and TEXT.
  *
  * TSIZE is the advance from one character to the next, and every other
- * metric is a multiple of TSIZE/8: the cell is the advance wide by an
- * ascent of 9 units plus a descent of 3, and the string is justified on a
- * box 7 units wide. The card keeps one ROM font per size band and stays
- * with its own metrics inside the band; the 12x18 font 86Box carries is
- * the TSIZE 12 one, so other sizes sample it into the derived cell.
+ * metric is a multiple of TSIZE/8: an ascent of 9 units above the baseline,
+ * a descent of 3 below it, and a justification box 7 units wide. The card
+ * does not scale a face to that cell; it keeps one font per size band and
+ * blits it at its own size, forcing the metrics inside the larger band.
  */
 static void
 txt_rom_draw(pgc_t *pgc, const uint8_t *buf, unsigned count)
 {
-    const uint8_t *row;
-    int16_t        x0   = pgc->x >> 16;
-    int16_t        y0   = pgc->y >> 16;
-    int32_t        unit = pgc->tsize / 8;
-    int            adv;
-    int            boxw;
-    int            ascent;
-    int            descent;
-    int            cell_h;
-    int            width;
+    const im1024_t *dev      = (im1024_t *) pgc;
+    const uint8_t  *face     = NULL;
+    int16_t         x0       = pgc->x >> 16;
+    int16_t         y0       = pgc->y >> 16;
+    int32_t         unit     = pgc->tsize / 8;
+    int             face_w   = 0;
+    int             face_h   = 0;
+    int             face_bpr = 0;
+    int             adv;
+    int             boxw;
+    int             ascent;
+    int             descent;
+    int             cell_h;
+    int             width;
 
     if (count == 0)
         return;
@@ -950,13 +1002,24 @@ txt_rom_draw(pgc_t *pgc, const uint8_t *buf, unsigned count)
         return;
 
     if (adv >= 12 && adv < 16) {
-        boxw    = 11;
-        ascent  = 14;
-        descent = 4;
+        boxw     = 11;
+        ascent   = 14;
+        descent  = 4;
+        face     = &fontdat12x18[0][0];
+        face_w   = 12;
+        face_h   = 18;
+        face_bpr = 2;
     } else {
         boxw    = (unit * 7 + 0x8000) >> 16;
         ascent  = (unit * 9 + 0x8000) >> 16;
         descent = (unit * 3 + 0x8000) >> 16;
+
+        if (adv >= 8 && adv < 12 && dev->have_font8x12) {
+            face     = &fontdat8x12im1024[0][0];
+            face_w   = 8;
+            face_h   = 12;
+            face_bpr = 1;
+        }
     }
     cell_h = ascent + descent;
     width  = (int) (count - 1) * adv + boxw;
@@ -978,42 +1041,16 @@ txt_rom_draw(pgc_t *pgc, const uint8_t *buf, unsigned count)
                count, x0, y0, adv, adv, cell_h);
 
     for (unsigned n = 0; n < count; n++) {
-        for (int y = 0; y < cell_h; y++) {
-            const int sy0 = y * 18 / cell_h;
-            int       sy1 = (y + 1) * 18 / cell_h;
+        if (face != NULL) {
+            for (int y = 0; y < face_h; y++) {
+                const uint8_t *row = face + (buf[n] * face_h + y) * face_bpr;
 
-            if (sy1 <= sy0)
-                sy1 = sy0 + 1;
-            if (sy1 > 18)
-                sy1 = 18;
-
-            for (int x = 0; x < adv; x++) {
-                const int sx0 = x * 12 / adv;
-                int       sx1 = (x + 1) * 12 / adv;
-                int       ink = 0;
-                int       area = 0;
-
-                if (sx1 <= sx0)
-                    sx1 = sx0 + 1;
-                if (sx1 > 12)
-                    sx1 = 12;
-
-                /* The cell takes the majority of the area it covers, which
-                   keeps a stroke without closing up the counters. */
-                for (int sy = sy0; sy < sy1; sy++) {
-                    row = &fontdat12x18[buf[n]][sy * 2];
-
-                    for (int sx = sx0; sx < sx1; sx++) {
-                        area++;
-                        if (row[sx >> 3] & (0x80 >> (sx & 7)))
-                            ink++;
-                    }
-                }
-
-                if ((ink * 2) >= area)
-                    pgc_plot(pgc, x + x0, y0 - y);
+                for (int x = 0; x < face_w; x++)
+                    if (row[x >> 3] & (0x80 >> (x & 7)))
+                        pgc_plot(pgc, x + x0, y0 - y);
             }
-        }
+        } else
+            txt_sample_glyph(pgc, buf[n], x0, y0, adv, cell_h);
 
         x0 += adv;
     }
@@ -1772,6 +1809,11 @@ im1024_init(UNUSED(const device_t *info))
     dev = (im1024_t *) calloc(1, sizeof(im1024_t));
 
     video_load_font(BIOS_ROM_PATH, FONT_FORMAT_IM1024, LOAD_FONT_NO_OFFSET);
+
+    /* The card's small font is optional; without it, TSIZE 8..11 samples. */
+    dev->have_font8x12 = rom_present(FONT_ROM_PATH_8X12);
+    if (dev->have_font8x12)
+        video_load_font(FONT_ROM_PATH_8X12, FONT_FORMAT_IM1024_8X12, LOAD_FONT_NO_OFFSET);
 
     dev->fifo_len   = 4096;
     dev->fifo       = (uint8_t *) calloc(1, dev->fifo_len);

@@ -53,7 +53,8 @@ uint8_t      fontdat[2048][8];            /* IBM CGA font */
 uint8_t      fontdatm[2048][16];          /* IBM MDA font */
 uint8_t      fontdatw[512][32];           /* Wyse700 font */
 uint8_t      fontdat8x12[256][16];        /* MDSI Genius font */
-uint8_t      fontdat12x18[256][36];       /* IM1024 font */
+uint8_t      fontdat12x18[256][36];       /* IM1024 12x18 font */
+uint8_t      fontdat8x12im1024[256][12];  /* IM1024 8x12 font */
 dbcs_font_t *fontdatksc5601       = NULL; /* Korean KSC-5601 font */
 dbcs_font_t *fontdatksc5601_user  = NULL; /* Korean KSC-5601 user defined font */
 int          herc_blend           = 0;
@@ -1080,6 +1081,11 @@ video_load_font(char *fn, int format, int offset)
         case FONT_FORMAT_IM1024: /* Image Manager 1024 native font */
             for (uint16_t c = 0; c < 256; c++)
                 (void) !fread(&fontdat12x18[c][0], 1, 36, fp);
+            break;
+
+        case FONT_FORMAT_IM1024_8X12: /* Image Manager 1024 native 8x12 font */
+            for (uint16_t c = 0; c < 256; c++)
+                (void) !fread(&fontdat8x12im1024[c][0], 1, 12, fp);
             break;
 
         case FONT_FORMAT_PRAVETZ: /* Pravetz */
