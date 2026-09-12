@@ -1439,12 +1439,13 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
                 }
                 dev->temp_buffer[7] |= 0x02;
 
-                if (dev->drv->model) {
+                if (dev->drv->model || dev->drv->vendor || dev->drv->version) {
                     /* Vendor */
                     ide_padstr8(dev->temp_buffer + 8, 8,
                                 (dev->drv->vendor) ? dev->drv->vendor : EMU_NAME);
                     /* Product */
-                    ide_padstr8(dev->temp_buffer + 16, 16, dev->drv->model);
+                    ide_padstr8(dev->temp_buffer + 16, 16,
+                                (dev->drv->model) ? dev->drv->model : device_identify);
                     /* Revision */
                     ide_padstr8(dev->temp_buffer + 32, 4,
                                 (dev->drv->version) ? dev->drv->version : EMU_VERSION_EX);
@@ -1754,11 +1755,12 @@ scsi_disk_identify(const ide_t *ide, const int ide_has_dma)
     ide_padstr((char *) (ide->buffer + 10), "", 20);               /* Serial Number */
 
     memset(model, 0, 40);
-    if (dev->drv->model) {
+    if (dev->drv->model || dev->drv->vendor || dev->drv->version) {
+        const char *drive_model = dev->drv->model ? dev->drv->model : device_identify;
         if (dev->drv->vendor)
-            snprintf(model, 40, "%s %s", dev->drv->vendor, dev->drv->model);
+            snprintf(model, 40, "%s %s", dev->drv->vendor, drive_model);
         else
-            snprintf(model, 40, "%s", dev->drv->model);
+            snprintf(model, 40, "%s", drive_model);
         ide_padstr((char *) (ide->buffer + 23),
                    (dev->drv->version) ? dev->drv->version : EMU_VERSION_EX, 8);    /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), model, 40);                         /* Model */
