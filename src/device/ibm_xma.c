@@ -702,7 +702,7 @@ psq_mca_write(const uint16_t port, uint8_t val, void *priv)
                    the enabled entries and uses this to size memory after
                    warm reboot. Without this, init program will detect a
                    very small memory size and QEMM will not install. */
-                for (uint16_t i = 0; i < dev->blocks; i++)
+                for (uint32_t i = 0; i < dev->blocks; i++)
                     dev->tt[PSQ_EXT_FIRST_TT + i] = (uint16_t) (PSQ_TT_ENABLE | i);
             }
             return;
