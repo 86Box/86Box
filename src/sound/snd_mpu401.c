@@ -1420,6 +1420,17 @@ MPU401_InputSysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     return 0;
 }
 
+int
+MPU401_InputQueueRemain(void *priv)
+{
+    mpu_t         *mpu = (mpu_t *) priv;
+
+    if (mpu->intelligent && (mpu->mode == M_INTELLIGENT))
+        return (MPU401_INPUT_QUEUE - mpu->rec_queue_used);
+    else
+        return (MPU401_QUEUE - mpu->queue_used);
+}
+
 /*Input handler for MIDI*/
 void
 MPU401_InputMsg(void *priv, uint8_t *msg, uint32_t len)
@@ -1706,7 +1717,7 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
     MPU401_Reset(mpu);
 
     if (receive_input)
-        midi_in_handler(1, MPU401_InputMsg, MPU401_InputSysex, mpu);
+        midi_in_handler(1, MPU401_InputMsg, MPU401_InputSysex, MPU401_InputQueueRemain, mpu);
 }
 
 void

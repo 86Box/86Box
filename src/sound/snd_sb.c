@@ -4698,7 +4698,7 @@ sb_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     return sb;
 }
@@ -4785,7 +4785,7 @@ sb_mcv_init(UNUSED(const device_t *info))
     sb->pos_regs[1] = 0x50;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
@@ -4874,7 +4874,7 @@ sb_pro_v1_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
@@ -4934,7 +4934,7 @@ sb_pro_v2_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
@@ -4972,7 +4972,7 @@ sb_pro_mcv_init(UNUSED(const device_t *info))
     sb->pos_regs[1] = 0x51;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
@@ -5068,7 +5068,7 @@ sb_16_init(UNUSED(const device_t *info))
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     if (info->local == FM_YMF289B) {
         sb->gameport      = gameport_add(&gameport_pnp_device);
@@ -5113,7 +5113,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     sb->gameport = gameport_add(&gameport_200_device);
 
@@ -5171,7 +5171,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
@@ -5277,7 +5277,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     switch (info->local) {
         case SB_VIBRA16C:  /* CTL7001 */
@@ -5494,7 +5494,7 @@ sb_awe32_init(UNUSED(const device_t *info))
     emu8k_init(&sb->emu8k, emu_addr, onboard_ram);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     if (device_get_config_int("gameport")) {
         sb->gameport      = gameport_add(&gameport_200_device);
@@ -5586,7 +5586,7 @@ sb_awe32_pnp_init(const device_t *info)
     emu8k_init(&sb->emu8k, 0, onboard_ram);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &sb->dsp);
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
@@ -5758,7 +5758,7 @@ ess_x488_init(UNUSED(const device_t *info))
     }
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ess->dsp);
 
     if (device_get_config_int("gameport")) {
         ess->gameport      = gameport_add(&gameport_200_device);
@@ -5846,7 +5846,7 @@ ess_x688_init(UNUSED(const device_t *info))
         sound_set_midi_filter(ess_filter_midi, ess);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ess->dsp);
 
     if (info->local) {
         ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
@@ -5923,7 +5923,7 @@ ess_x688_pnp_init(UNUSED(const device_t *info))
         sound_set_midi_filter(ess_filter_midi, ess);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ess->dsp);
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
@@ -6026,7 +6026,7 @@ ess_x688_mca_init(UNUSED(const device_t *info))
     mpu401_change_addr(ess->mpu, 0);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ess->dsp);
 
     ess->gameport_addr = 0;
     gameport_remap(ess->gameport, 0);
@@ -6099,7 +6099,7 @@ ess_1x88_onboard_init(const device_t *info)
         sound_set_pc_speaker_filter(ess_filter_pc_speaker, ess);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ess->dsp);
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
@@ -6216,7 +6216,7 @@ ess_186x_init(const device_t *info)
         sound_set_midi_filter(ess_filter_midi, ess);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ess->dsp);
 
     ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.

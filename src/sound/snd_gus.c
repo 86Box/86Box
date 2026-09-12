@@ -210,6 +210,7 @@ typedef struct gus_t {
     uint8_t midi_data;
     int     midi_r;
     int     midi_w;
+    int     midi_used;
     int     uart_in;
     int     uart_out;
     int     sysex;
@@ -484,6 +485,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                 gus->midi_status = 0;
                 gus->midi_r      = 0;
                 gus->midi_w      = 0;
+                gus->midi_used   = 0;
             } else if ((old & 3) == 3) {
                 gus->midi_status |= MIDI_INT_TRANSMIT;
             } else if (gus->midi_ctrl & MIDI_CTRL_RECEIVE) {
@@ -1066,6 +1068,8 @@ gus_read(uint16_t addr, void *priv)
                     if (gus->midi_r != gus->midi_w) {
                         gus->midi_r++;
                         gus->midi_r &= 63;
+                        if (gus->midi_used > 0)
+                            gus->midi_used--;
                     }
                 }
                 gus->midi_status &= ~MIDI_INT_RECEIVE;
@@ -1703,6 +1707,7 @@ gus_input_msg(void *priv, uint8_t *msg, uint32_t len)
         for (uint32_t i = 0; i < len; i++) {
             gus->midi_queue[gus->midi_w++] = msg[i];
             gus->midi_w &= 63;
+            gus->midi_used++;
         }
 
         gus_midi_update_int_status(gus);
@@ -1724,9 +1729,18 @@ gus_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (len - i);
         gus->midi_queue[gus->midi_w++] = buffer[i];
         gus->midi_w &= 63;
+        gus->midi_used++;
     }
     gus->sysex = 0;
     return 0;
+}
+
+static int
+gus_input_remain(void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+
+    return (64 - gus->midi_used);
 }
 
 static void
@@ -1862,6 +1876,7 @@ gus_reset(void *priv)
     gus->midi_data = 0;
     gus->midi_r = 0;
     gus->midi_w = 0;
+    gus->midi_used = 0;
     gus->uart_in = 0;
     gus->sysex = 0;
 
@@ -1980,7 +1995,7 @@ gus_init(UNUSED(const device_t *info))
     sound_add_handler(gus_get_buffer, gus);
 
     if ((gus->type != GUS_ACE) && (device_get_config_int("receive_input")))
-        midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
+        midi_in_handler(1, gus_input_msg, gus_input_sysex, gus_input_remain, gus);
 
     return gus;
 }
@@ -2022,7 +2037,7 @@ gus_extreme_init(UNUSED(const device_t *info))
     gus->ess->mixer_ess.output_filter = 1;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &gus->ess->dsp);
 
     gus->ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.

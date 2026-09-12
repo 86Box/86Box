@@ -78,6 +78,7 @@ typedef struct sb_dsp_t {
 
     int     sb_read_wp;
     int     sb_read_rp;
+    int     sb_read_used;
     int     sb_speaker;
     int     muted;
 
@@ -223,6 +224,8 @@ typedef struct sb_dsp_t {
 extern void sb_dsp_input_msg(void *priv, uint8_t *msg, uint32_t len);
 
 extern int  sb_dsp_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort);
+
+extern int  sb_dsp_input_remain(void *priv);
 
 extern void sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *src_mpu);
 

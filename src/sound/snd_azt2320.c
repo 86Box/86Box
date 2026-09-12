@@ -313,7 +313,7 @@ azt2320_init(UNUSED(const device_t *info))
         azt2320->mpu = NULL;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &azt2320->sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &azt2320->sb->dsp);
 
     azt2320->gameport = gameport_add(&gameport_pnp_device);
 

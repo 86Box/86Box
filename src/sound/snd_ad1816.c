@@ -849,7 +849,7 @@ ad1816_init(UNUSED(const device_t *info))
     mpu401_init(ad1816->mpu, ad1816->cur_mpu_addr, ad1816->cur_mpu_irq, M_UART, device_get_config_int("receive_input401"));
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ad1816->sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ad1816->sb->dsp);
 
     const char *pnp_rom_file = NULL;
     uint16_t   pnp_rom_len   = 512;
