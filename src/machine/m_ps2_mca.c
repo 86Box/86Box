@@ -1478,15 +1478,17 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
         case 0xe1:
             ps2.mem_regs[1] = val;
             break;
-        case 0xe2:
-            old             = ps2.mem_regs[2];
-            ps2.mem_regs[2] = (ps2.mem_regs[2] & 0x80) | (val & ~0x88);
+        case 0xe2: {
+            uint8_t new;
+
+            old = ps2.mem_regs[2];
+            new = (old & 0x80) | (val & ~0x88);
             if (val & 2) {
                 ps2_mca_log("Clear latch - %i\n", ps2.pending_cache_miss);
                 if (ps2.pending_cache_miss)
-                    ps2.mem_regs[2] |= 0x80;
+                    new |= 0x80;
                 else
-                    ps2.mem_regs[2] &= ~0x80;
+                    new &= ~0x80;
                 ps2.pending_cache_miss = 0;
             }
 
@@ -1494,14 +1496,21 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
                 ps2.pending_cache_miss = 1;
             if ((val & 0x21) == 0x01 && (old & 0x21) != 0x01)
                 ps2_cache_clean();
-#if 1
-            // FIXME: Look into this!!!
+
+            ps2.mem_regs[2] = new;
+
+            /* Only bits 0 and 5 affect the memory mappings and ROM wait
+               states, so skip the expensive full-range mapping recalc
+               when neither of those bits changed. */
+            if (!((new ^ old) & 0x21))
+                return;
+
             if (val & 0x01)
                 ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
             else
                 ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
-#endif
             break;
+        }
 
         default:
             break;
