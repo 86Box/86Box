@@ -2271,10 +2271,17 @@ nic_init(const device_t *info)
     /* Output DO is tristate, read results in 1. */
     s->eeprom->eedo = 1;
 
-    /* Intel OUI. */
-    mac_bytes[0] = 0x00;
-    mac_bytes[1] = 0xaa;
-    mac_bytes[2] = 0x00;
+    if (info->local >> 16) {
+        /* Custom OUI. */
+        mac_bytes[0] = info->local >> 32;
+        mac_bytes[1] = info->local >> 24;
+        mac_bytes[2] = info->local >> 16;
+    } else {
+        /* Intel OUI. */
+        mac_bytes[0] = 0x00;
+        mac_bytes[1] = 0xaa;
+        mac_bytes[2] = 0x00;
+    }
 
     /* Set up our BIA. */
     mac = device_get_config_mac("mac", -1);
@@ -2548,6 +2555,20 @@ const device_t i82559c_onboard_device = {
     .internal_name = "i82559c_onboard",
     .flags         = DEVICE_PCI,
     .local         = 0x0005 | 0x0100,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = eepro100_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = i8255x_onboard_config
+};
+
+const device_t i82559er_onboard_device = {
+    .name          = "Intel GD82559ER (On-Board)",
+    .internal_name = "i82559er_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 0x0006 | 0x0100,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = eepro100_reset,
