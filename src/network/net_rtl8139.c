@@ -407,6 +407,7 @@ struct RTL8139State {
     uint32_t RxMissed;
 
     uint16_t CSCR;
+    uint16_t CSCR_last;
 
     uint8_t Cfg9346;
     uint8_t Config0;
@@ -2298,17 +2299,16 @@ rtl8139_TSAD_read(RTL8139State *s)
 static uint16_t
 rtl8139_CSCR_read(RTL8139State *s)
 {
-    static uint16_t old_ret = 0xffff;
     uint16_t ret = s->CSCR |
                    ((net_cards_conf[s->nic->card_num].link_state & NET_LINK_DOWN) ? 0 : CSCR_Cable);
 
-    if (old_ret != 0xffff) {
+    if (s->CSCR_last != 0xffff) {
         ret &= ~CSCR_Cable_Changed;
-        if ((ret ^ old_ret) & CSCR_Cable)
+        if ((ret ^ s->CSCR_last) & CSCR_Cable)
             ret |= CSCR_Cable_Changed;
     }
 
-    old_ret = ret;
+    s->CSCR_last = ret;
 
     rtl8139_log("CSCR read val=0x%04x\n", ret);
 
