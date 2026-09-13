@@ -1128,10 +1128,10 @@ svga_recalctimings(svga_t *svga)
     crtcconst = svga->clock * (double) svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
-            if (!ATI_MACH32)
-                crtcconst8514 = svga->clock_8514 * 8;
-            else
+            if (ATI_MACH32)
                 crtcconst = svga->clock * 8;
+            else
+                crtcconst8514 = svga->clock_8514 * 8;
         }
     }
     if (xga_active && (svga->xga != NULL)) {
