@@ -1169,8 +1169,13 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x5a: /* Decode Control */
-                    if (gus->type == GUS_INTERWAVE)
+                    if (gus->type == GUS_INTERWAVE) {
                         gus->dec_ctrl = val;
+                        if (val & 0x80)
+                            ad1848_setirq(&gus->ad1848, gus->irq2);
+                        else
+                            ad1848_setirq(&gus->ad1848, gus->irq);
+                    }
                     break;
 
                 case 0x5b: /*Version Number */
