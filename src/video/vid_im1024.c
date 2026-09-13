@@ -1533,6 +1533,11 @@ hndl_resetf(pgc_t *pgc)
 
     pgc_reset_flags(pgc);
 
+    /* The viewport is the IMGSIZ image, not the display. */
+    pgc->vp_x2 = pgc->img_w - 1;
+    pgc->vp_y2 = pgc->img_h - 1;
+    pgc_window_scale(pgc);
+
     dev->locmap_mode = 1;
     dev->map[0]      = 0;
     dev->map[1]      = pgc->visw - 1;
@@ -1679,6 +1684,9 @@ im1024_reset(pgc_t *pgc)
 
     pgc->img_w = 640;
     pgc->img_h = 480;
+    pgc->vp_x2 = pgc->img_w - 1;
+    pgc->vp_y2 = pgc->img_h - 1;
+    pgc_window_scale(pgc);
     im1024_set_origin(dev);
 
     /* No crosshair, LOCXH on, the map over the whole display, locator centred. */

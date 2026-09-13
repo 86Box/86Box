@@ -1711,8 +1711,12 @@ pgc_reset_flags(pgc_t *dev)
     dev->vp_x2 = dev->visw - 1;
     dev->vp_y2 = dev->vish - 1;
 
-    dev->win_sc_x = 1.0;
-    dev->win_sc_y = 1.0;
+    /* Window centred on virtual 0,0, mapped onto the viewport. */
+    dev->win_x1 = -320;
+    dev->win_x2 = 319;
+    dev->win_y1 = -240;
+    dev->win_y2 = 239;
+    pgc_window_scale(dev);
 }
 
 /* RESETF resets the drawing flags, nothing else. */
