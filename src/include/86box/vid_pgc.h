@@ -91,6 +91,8 @@ typedef struct pgc {
     uint16_t vp_y2;
     double   win_sc_x; /* viewport extent / window extent, per axis: the */
     double   win_sc_y; /* firmware keeps it as a 16.16 scale factor */
+    uint32_t win_fx_x; /* the same factors as the firmware's own divide */
+    uint32_t win_fx_y; /* leaves them, for TEXT's width table */
     int16_t  fill_pattern[16];
     int16_t  line_pattern;
     uint8_t  draw_mode;

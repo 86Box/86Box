@@ -119,7 +119,8 @@ static const uint32_t init_palette[6][256] = {
 };
 
 /*
- * The card's hardware text font, one row per scanline, bit 7 leftmost.
+ * The card's hardware text font, one row per scanline, one nibble per
+ * cell naming the shape the card inks there, leftmost cell on top.
  * The cell is 8 by 12 with the figure 7 wide, the eighth column being the
  * gap between letters; rows 0 to 8 are the cap band and 9 to 11 the
  * descenders, so the baseline is row 8.
@@ -129,7 +130,7 @@ static const uint32_t init_palette[6][256] = {
 #define PGC_GLYPH_W  7
 #define PGC_ASCENT   9
 
-static const uint8_t pgc_font[256][PGC_CELL_H] = {
+static const uint32_t pgc_font[256][PGC_CELL_H] = {
 #include <86box/vid_pgc_font.h>
 };
 
@@ -650,10 +651,145 @@ hndl_rectr(pgc_t *dev)
 }
 
 /*
+ * The firmware's 16.16 divide. It shifts the divisor up to 16 significant
+ * bits and divides by those alone, so the low bits of the quotient are not
+ * an exact division. Overflow gives the firmware's 0x7fff.ffff.
+ */
+static uint32_t
+pgc_fw_div(uint32_t num, uint32_t den)
+{
+    uint16_t hi    = num >> 16;
+    uint16_t lo    = num & 0xffff;
+    uint16_t dhi   = den >> 16;
+    uint16_t dlo   = den & 0xffff;
+    uint16_t sign  = dhi;
+    uint16_t top;
+    uint32_t n;
+    uint32_t q;
+    int      shift = 0;
+
+    if (dhi & 0x8000) {
+        dhi = -(dhi + (dlo != 0));
+        dlo = -dlo;
+    }
+    if (hi & 0x8000) {
+        sign ^= hi;
+        hi = -(hi + (lo != 0));
+        lo = -lo;
+    }
+    n = ((uint32_t) hi << 16) | lo;
+
+    if (dhi) {
+        do {
+            shift++;
+            top = dhi >> 15;
+            dhi = (dhi << 1) | (dlo >> 15);
+            dlo <<= 1;
+        } while (((dhi >> 15) ^ top) == 0);
+
+        if (!dhi || (n / dhi) > 0xffff)
+            return 0x7fffffff;
+        q = n / dhi;
+        n = ((q << 16) | (((n % dhi) << 16) / dhi)) >> (16 - shift);
+    } else {
+        if (dlo <= hi)
+            return 0x7fffffff;
+        while (!(dlo & 0x8000)) {
+            shift++;
+            dlo <<= 1;
+        }
+        q = n / dlo;
+        n = ((q << 16) | (((n % dlo) << 16) / dlo)) << shift;
+    }
+
+    return (sign & 0x8000) ? -n : n;
+}
+
+static void
+text_span(pgc_t *dev, int x, int w, int y)
+{
+    for (int i = 0; i < w; i++)
+        pgc_plot(dev, x + i, y);
+}
+
+/*
+ * One inked cell of a glyph, drawn downward from the pen at the cell's top
+ * left: pen_h rows, each a full pen_w span or spans of the width table's
+ * entry against the left and/or right edge of the cell. 1 to 4 are wedges,
+ * 5 and 6 chevrons, 14 and 15 notches; the other codes draw nothing. Every
+ * draw mode, clipped or not, draws these same spans.
+ */
+static void
+text_ink(pgc_t *dev, int prim, int x, int y, int pen_w, int pen_h, const uint8_t *wtab)
+{
+    int half = pen_h >> 1;
+    int rest = (pen_h + 1) >> 1;
+
+    for (int k = 0; k < pen_h; k++) {
+        int idx   = 0;
+        int left  = 1;
+        int right = 0;
+
+        switch (prim) {
+            case 1:
+                idx = k + 1;
+                break;
+            case 2:
+                idx = pen_h - k;
+                break;
+            case 3:
+                idx   = k + 1;
+                left  = 0;
+                right = 1;
+                break;
+            case 4:
+                idx   = pen_h - k;
+                left  = 0;
+                right = 1;
+                break;
+            case 5:
+            case 6:
+                if (k < half)
+                    idx = pen_h - k;
+                else
+                    idx = pen_h - half + !(pen_h & 1) + (k - half);
+                left  = (prim == 6);
+                right = (prim == 5);
+                break;
+            case 9:
+                break;
+            case 14:
+                if (k < half) {
+                    idx   = k + 1;
+                    right = 1;
+                }
+                break;
+            case 15:
+                if (k >= rest) {
+                    idx   = half - (k - rest);
+                    right = 1;
+                }
+                break;
+            default:
+                return;
+        }
+
+        if (idx == 0) {
+            text_span(dev, x, pen_w, y - k);
+            continue;
+        }
+        if (left)
+            text_span(dev, x, wtab[idx], y - k);
+        if (right)
+            text_span(dev, x + pen_w - wtab[idx], wtab[idx], y - k);
+    }
+}
+
+/*
  * TEXT draws a string in the card's own font, justified about the current
  * point by TJUST and sized by TSIZE. The card holds the face as stroke
- * programs and steps the pen by the size, so a character is the 8 by 12
- * cell scaled whole; the size is the distance from one character to the
+ * programs whose pen steps across the 8 by 12 cell by the size, inking
+ * one shape per cell; the size is the distance from one character to the
  * next, and the justification box is that distance for all but the last
  * character plus the 7-wide figure.
  *
@@ -665,6 +801,7 @@ static void
 hndl_text(pgc_t *dev)
 {
     uint8_t  buf[640];
+    uint8_t  wtab[49];
     uint8_t  delim = 0;
     uint8_t  ch    = 0;
     unsigned count = 0;
@@ -729,6 +866,19 @@ hndl_text(pgc_t *dev)
         x0 -= width - 1;
     y0 += (dev->tjust_v == 3) ? 0 : (dev->tjust_v == 2) ? (fig_h / 2) : (fig_h - 1);
 
+    /* One width per pen row, stepping by x scale / y scale from half a
+       step past 1; the card keeps the low byte, and an entry of 0 draws
+       nothing here where the card's loops would wrap. */
+    if (pen_x >= 1 && pen_y >= 1) {
+        uint32_t r   = pgc_fw_div(dev->win_fx_x, dev->win_fx_y);
+        uint32_t acc = (r >> 1) + 0x10000;
+
+        for (int i = 1; i <= pen_y; i++) {
+            wtab[i] = (acc >> 16) & 0xff;
+            acc += r;
+        }
+    }
+
     for (unsigned n = 0; n < count; n++) {
         if (pen_x < 1 || pen_y < 1) {
             for (int y = 0; y < fig_h; y++)
@@ -740,15 +890,13 @@ hndl_text(pgc_t *dev)
         }
 
         for (int y = 0; y < PGC_CELL_H; y++) {
-            uint8_t row = pgc_font[buf[n]][y];
+            uint32_t row = pgc_font[buf[n]][y];
 
             for (int x = 0; x < PGC_CELL_W; x++) {
-                if (!(row & (0x80 >> x)))
-                    continue;
+                int prim = (row >> ((PGC_CELL_W - 1 - x) * 4)) & 0x0f;
 
-                for (int sy = 0; sy < pen_y; sy++)
-                    for (int sx = 0; sx < pen_x; sx++)
-                        pgc_plot(dev, x0 + x * pen_x + sx, y0 - (y * pen_y + sy));
+                if (prim)
+                    text_ink(dev, prim, x0 + x * pen_x, y0 - y * pen_y, pen_x, pen_y, wtab);
             }
         }
 
@@ -1770,11 +1918,15 @@ pgc_window_scale(pgc_t *dev)
     int32_t vp_w  = (int32_t) dev->vp_x2 - (int32_t) dev->vp_x1;
     int32_t vp_h  = (int32_t) dev->vp_y2 - (int32_t) dev->vp_y1;
 
-    if (win_w > 0 && vp_w > 0)
+    if (win_w > 0 && vp_w > 0) {
         dev->win_sc_x = (double) vp_w / (double) win_w;
+        dev->win_fx_x = pgc_fw_div((uint32_t) vp_w << 16, (uint32_t) win_w << 16);
+    }
 
-    if (win_h > 0 && vp_h > 0)
+    if (win_h > 0 && vp_h > 0) {
         dev->win_sc_y = (double) vp_h / (double) win_h;
+        dev->win_fx_y = pgc_fw_div((uint32_t) vp_h << 16, (uint32_t) win_h << 16);
+    }
 
     pgc_log("PGC: window scale %f, %f\n", dev->win_sc_x, dev->win_sc_y);
 }
