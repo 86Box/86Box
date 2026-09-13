@@ -118,21 +118,23 @@ static const uint32_t init_palette[6][256] = {
 #include <86box/vid_pgc_palette.h>
 };
 
+/* The program ROM pair; the hardware text font lives inside it. */
+#define PGC_ROM_LOW  "roms/video/pgc/59x7355.bin"
+#define PGC_ROM_HIGH "roms/video/pgc/59x7354.bin"
+
 /*
  * The card's hardware text font, one row per scanline, one nibble per
  * cell naming the shape the card inks there, leftmost cell on top.
  * The cell is 8 by 12 with the figure 7 wide, the eighth column being the
  * gap between letters; rows 0 to 8 are the cap band and 9 to 11 the
- * descenders, so the baseline is row 8.
+ * descenders, so the baseline is row 8. Built from the ROM at init.
  */
 #define PGC_CELL_W   8
 #define PGC_CELL_H   12
 #define PGC_GLYPH_W  7
 #define PGC_ASCENT   9
 
-static const uint32_t pgc_font[256][PGC_CELL_H] = {
-#include <86box/vid_pgc_font.h>
-};
+static uint32_t pgc_font[256][PGC_CELL_H];
 
 static video_timings_t timing_pgc = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
@@ -3395,6 +3397,85 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     timer_add(&dev->wake_timer, wake_timer, dev, 0);
 }
 
+/*
+ * Walk the font's stroke programs in the program ROM: a 256-entry pointer
+ * table at CS:4E60 (CS = 0025h, so linear = offset + 250h), one byte per
+ * step, the high nibble moving the pen, a non-zero low nibble naming the
+ * shape inked at the new position. At the default size a pen unit is a PEL.
+ */
+static void
+pgc_load_font(void)
+{
+    uint8_t *rom = (uint8_t *) calloc(1, 0x10000);
+
+    memset(pgc_font, 0x00, sizeof(pgc_font));
+
+    if (!rom_load_linear(PGC_ROM_LOW, 0x0000, 0x8000, 0, rom) ||
+        !rom_load_linear(PGC_ROM_HIGH, 0x8000, 0x8000, 0, rom)) {
+        free(rom);
+        return;
+    }
+
+    for (int ch = 0; ch < 256; ch++) {
+        uint32_t addr = 0x250 + rom[0x50b0 + 2 * ch] + (rom[0x50b1 + 2 * ch] << 8);
+        int      x    = 0;
+        int      y    = 0;
+        int      done = 0;
+
+        while (!done && addr < 0xfffd) {
+            uint8_t op = rom[addr++];
+
+            switch (op >> 4) {
+                case 0x1:
+                    x = y = 0;
+                    break;
+                case 0x2:
+                    x++;
+                    break;
+                case 0x3:
+                    y++;
+                    break;
+                case 0x4:
+                    x--;
+                    break;
+                case 0x5:
+                    y--;
+                    break;
+                case 0x6:
+                    x++;
+                    y++;
+                    break;
+                case 0x7:
+                    x--;
+                    y++;
+                    break;
+                case 0x8:
+                    x++;
+                    y--;
+                    break;
+                case 0x9:
+                    x--;
+                    y--;
+                    break;
+                case 0xa:
+                    x += (int8_t) rom[addr];
+                    y -= (int8_t) rom[addr + 1];
+                    addr += 2;
+                    break;
+                default:
+                    /* 0 and B end the program. */
+                    done = 1;
+                    continue;
+            }
+
+            if ((op & 0x0f) && (x >= 0) && (x < PGC_CELL_W) && (y >= 0) && (y < PGC_CELL_H))
+                pgc_font[ch][y] |= (uint32_t) (op & 0x0f) << ((PGC_CELL_W - 1 - x) * 4);
+        }
+    }
+
+    free(rom);
+}
+
 static void *
 pgc_standalone_init(const device_t *info)
 {
@@ -3403,12 +3484,20 @@ pgc_standalone_init(const device_t *info)
     dev = (pgc_t *) calloc(1, sizeof(pgc_t));
     dev->type = info->local;
 
+    pgc_load_font();
+
     /* Framebuffer and screen are both 640x480. */
     pgc_init(dev, 640, 480, 640, 480, input_byte, 25175000.0);
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pgc);
 
     return dev;
+}
+
+static int
+pgc_available(void)
+{
+    return rom_present(PGC_ROM_LOW) && rom_present(PGC_ROM_HIGH);
 }
 
 const device_t pgc_device = {
@@ -3419,7 +3508,7 @@ const device_t pgc_device = {
     .init          = pgc_standalone_init,
     .close         = pgc_close,
     .reset         = NULL,
-    .available     = NULL,
+    .available     = pgc_available,
     .speed_changed = pgc_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL
