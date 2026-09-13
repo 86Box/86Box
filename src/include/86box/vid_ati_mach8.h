@@ -93,6 +93,7 @@ typedef struct mach_t {
         uint8_t  pix_trans[2];
         uint8_t  alu_bg_fn;
         uint8_t  alu_fg_fn;
+        uint8_t  dp_compat;
         uint16_t eeprom_control;
         uint16_t clip_left;
         uint16_t clip_right;
@@ -146,6 +147,7 @@ typedef struct mach_t {
         int16_t  dx_start;
         int16_t  dy_start;
         int16_t  cy;
+        int16_t  sx_first_row_start;
         int16_t  sx_start;
         int16_t  sx_end;
         int16_t  sx;
