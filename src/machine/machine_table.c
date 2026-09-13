@@ -20784,7 +20784,7 @@ const machine_t machines[] = {
         .bus_flags = (MACHINE_PS2_NOISA & ~(MACHINE_BUS_XT_KBD | MACHINE_BUS_AT_KBD | MACHINE_BUS_PS2_PORTS)) | MACHINE_BUS_USB,
         .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 (825 seen in one unit) and network: 2x NSC DP83815 */
         .ram       = {
-            .min  = 8192,
+            .min  = 32768,
             .max  = 1048576,
             .step = 8192
         },
@@ -20832,7 +20832,7 @@ const machine_t machines[] = {
         .bus_flags = (MACHINE_PS2_NOISA & ~(MACHINE_BUS_XT_KBD | MACHINE_BUS_AT_KBD | MACHINE_BUS_PS2_PORTS)) | MACHINE_BUS_USB,
         .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_NIC_PRI | MACHINE_NIC_SEC | MACHINE_USB, /* Machine has internal SCSI: NCR 53C875 and network: 2x Intel 82559ER */
         .ram       = {
-            .min  = 8192,
+            .min  = 32768,
             .max  = 1048576,
             .step = 8192
         },
