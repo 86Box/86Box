@@ -2549,16 +2549,16 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
             temp_l = (double) gus->buffer[0][c >> 1];
             temp_r = (double) gus->buffer[1][c >> 1];
             ad1848_filter_channel(&gus->ad1848, AD1848_AUX1, &temp_l, &temp_r);
-            temp_l += (gus->ad1848.buffer[c] / 8);
-            temp_r += (gus->ad1848.buffer[c + 1] / 8);
+            temp_l += (gus->ad1848.buffer[c] / 16);
+            temp_r += (gus->ad1848.buffer[c + 1] / 16);
             if (gus->ad1848.regs[25] & 0x80)
                 temp_l = 0;
             else
-                temp_l *= (iw_vols_5bits_aux_gain[gus->ad1848.regs[25] & 0x1f]) / 131072.0; /* L master vol */
+                temp_l *= (iw_vols_5bits_aux_gain[gus->ad1848.regs[25] & 0x1f]) / 65536.0; /* L master vol */
             if (gus->ad1848.regs[27] & 0x80)
                 temp_r = 0;
             else
-                temp_r *= (iw_vols_5bits_aux_gain[gus->ad1848.regs[27] & 0x1f]) / 131072.0; /* R master vol */
+                temp_r *= (iw_vols_5bits_aux_gain[gus->ad1848.regs[27] & 0x1f]) / 65536.0; /* R master vol */
             buffer[c]     += (int32_t) temp_l;
             buffer[c + 1] += (int32_t) temp_r;
         } else {
