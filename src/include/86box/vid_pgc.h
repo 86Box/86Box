@@ -81,10 +81,10 @@ typedef struct pgc {
     int16_t  pan_y;
     int32_t  scan_left; /* framebuffer column shown at the left edge of the screen */
     int32_t  scan_top;  /* framebuffer row shown at the top edge of the screen */
-    uint16_t win_x1;
-    uint16_t win_x2;
-    uint16_t win_y1;
-    uint16_t win_y2;
+    int16_t  win_x1; /* window corners are signed coordinates: */
+    int16_t  win_x2; /* Windows 1.x puts its y range below zero */
+    int16_t  win_y1;
+    int16_t  win_y2;
     uint16_t vp_x1;
     uint16_t vp_x2;
     uint16_t vp_y1;
