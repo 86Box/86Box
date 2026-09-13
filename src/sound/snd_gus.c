@@ -313,6 +313,10 @@ typedef struct gus_t {
     uint8_t  lfo_cur_ramp_voice  : 5;
     uint8_t  lfo_cur_ramp_mode   : 1;
 
+    /* InterWave memory banking */
+    uint32_t iw_bank_mask[4];
+    uint8_t  iw_mem_512;
+
     /* CD-ROM enable */
     uint8_t  iw_atapi;
 
@@ -948,6 +952,32 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                         gus_addr = (gus->dmaaddr & 0xc0000) |
                                                    ((gus->dmaaddr & 0x1ffff) << 1);
 
+                                    if (gus->type == GUS_INTERWAVE && gus->iw_enhanced) {
+                                        switch (gus_addr & 0xc00000) {
+                                            case 0:
+                                                gus_addr &= gus->iw_bank_mask[0];
+                                                break;
+                                            case 0x400000:
+                                                if (!gus->iw_bank_mask[1])
+                                                    gus_addr = gus->gus_end_ram;
+                                                else
+                                                    gus_addr &= (0x400000 | gus->iw_bank_mask[1]);
+                                                break;
+                                            case 0x800000:
+                                                if (!gus->iw_bank_mask[2])
+                                                    gus_addr = gus->gus_end_ram;
+                                                else
+                                                    gus_addr &= (0x800000 | gus->iw_bank_mask[2]);
+                                                break;
+                                            case 0xc00000:
+                                                if (!gus->iw_bank_mask[3])
+                                                    gus_addr = gus->gus_end_ram;
+                                                else
+                                                    gus_addr &= (0xc00000 | gus->iw_bank_mask[3]);
+                                                break;
+                                        }
+                                    }
+
                                     if (gus_addr < gus->gus_end_ram)
                                         d                 = gus->ram[gus_addr];
                                     else
@@ -960,6 +990,31 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                     if (dma_result == DMA_NODATA)
                                         break;
                                 } else {
+                                    if (gus->type == GUS_INTERWAVE && gus->iw_enhanced) {
+                                        switch (gus->dmaaddr & 0xc00000) {
+                                            case 0:
+                                                gus->dmaaddr &= gus->iw_bank_mask[0];
+                                                break;
+                                            case 0x400000:
+                                                if (!gus->iw_bank_mask[1])
+                                                    gus->dmaaddr = gus->gus_end_ram;
+                                                else
+                                                    gus->dmaaddr &= (0x400000 | gus->iw_bank_mask[1]);
+                                                break;
+                                            case 0x800000:
+                                                if (!gus->iw_bank_mask[2])
+                                                    gus->dmaaddr = gus->gus_end_ram;
+                                                else
+                                                    gus->dmaaddr &= (0x800000 | gus->iw_bank_mask[2]);
+                                                break;
+                                            case 0xc00000:
+                                                if (!gus->iw_bank_mask[3])
+                                                    gus->dmaaddr = gus->gus_end_ram;
+                                                else
+                                                    gus->dmaaddr &= (0xc00000 | gus->iw_bank_mask[3]);
+                                                break;
+                                        }
+                                    }
                                     if (gus->dmaaddr < gus->gus_end_ram)
                                         d = gus->ram[gus->dmaaddr];
                                     else
@@ -1627,6 +1682,31 @@ gus_read(uint16_t addr, void *priv)
                 case 0x51: /* LMC 16-bit access */
                     if (gus->type == GUS_INTERWAVE) {
                         uint32_t addr16 = gus->addr & 0xfffffe;
+                        if (!(gus->lmc_ctrl & 0x02)) {
+                            switch (addr16 & 0xc00000) {
+                                case 0:
+                                    addr16 &= gus->iw_bank_mask[0];
+                                    break;
+                                case 0x400000:
+                                    if (!gus->iw_bank_mask[1])
+                                        addr16 = gus->gus_end_ram;
+                                    else
+                                        addr16 &= (0x400000 | gus->iw_bank_mask[1]);
+                                    break;
+                                case 0x800000:
+                                    if (!gus->iw_bank_mask[2])
+                                        addr16 = gus->gus_end_ram;
+                                    else
+                                        addr16 &= (0x800000 | gus->iw_bank_mask[2]);
+                                    break;
+                                case 0xc00000:
+                                    if (!gus->iw_bank_mask[3])
+                                        addr16 = gus->gus_end_ram;
+                                    else
+                                        addr16 &= (0xc00000 | gus->iw_bank_mask[3]);
+                                    break;
+                            }
+                        }
                         if (gus->lmc_ctrl & 0x02 && (addr16) <= gus->gus_end_rom)
                             val = gus->rom[addr16];
                         else if (addr16 < gus->gus_end_ram)
@@ -1803,6 +1883,31 @@ gus_read(uint16_t addr, void *priv)
                 case 0x51: /* LMC 16-bit access */
                     if (gus->type == GUS_INTERWAVE) {
                         uint32_t addr16 = gus->addr & 0xfffffe;
+                        if (!(gus->lmc_ctrl & 0x02)) {
+                            switch (addr16 & 0xc00000) {
+                                case 0:
+                                    addr16 &= gus->iw_bank_mask[0];
+                                    break;
+                                case 0x400000:
+                                    if (!gus->iw_bank_mask[1])
+                                        addr16 = gus->gus_end_ram;
+                                    else
+                                        addr16 &= (0x400000 | gus->iw_bank_mask[1]);
+                                    break;
+                                case 0x800000:
+                                    if (!gus->iw_bank_mask[2])
+                                        addr16 = gus->gus_end_ram;
+                                    else
+                                        addr16 &= (0x800000 | gus->iw_bank_mask[2]);
+                                    break;
+                                case 0xc00000:
+                                    if (!gus->iw_bank_mask[3])
+                                        addr16 = gus->gus_end_ram;
+                                    else
+                                        addr16 &= (0xc00000 | gus->iw_bank_mask[3]);
+                                    break;
+                            }
+                        }
                         if (gus->lmc_ctrl & 0x02 && (addr16 + 1) <= gus->gus_end_rom)
                             val = gus->rom[addr16 + 1];
                         else if (addr16 + 1 < gus->gus_end_ram)
@@ -1919,13 +2024,37 @@ gus_read(uint16_t addr, void *priv)
             break;
 
         case 0x307: /*DRAM access*/
-            if (gus->type == GUS_INTERWAVE && gus->iw_enhanced && !(gus->lmc_ctrl & 0x02))
+            if (gus->type == GUS_INTERWAVE && gus->iw_enhanced && !(gus->lmc_ctrl & 0x02)) {
                 gus->addr &= (gus->gus_end_ram - 1);
+                switch (gus->addr & 0xc00000) {
+                    case 0:
+                        gus->addr &= gus->iw_bank_mask[0];
+                        break;
+                    case 0x400000:
+                        if (!gus->iw_bank_mask[1])
+                            gus->addr = gus->gus_end_ram;
+                        else
+                            gus->addr &= (0x400000 | gus->iw_bank_mask[1]);
+                        break;
+                    case 0x800000:
+                        if (!gus->iw_bank_mask[2])
+                            gus->addr = gus->gus_end_ram;
+                        else
+                            gus->addr &= (0x800000 | gus->iw_bank_mask[2]);
+                        break;
+                    case 0xc00000:
+                        if (!gus->iw_bank_mask[3])
+                            gus->addr = gus->gus_end_ram;
+                        else
+                            gus->addr &= (0xc00000 | gus->iw_bank_mask[3]);
+                        break;
+                }
+            }
             else if (!(gus->lmc_ctrl & 0x02))
                 gus->addr &= 0xfffff;
             if (gus->type == GUS_INTERWAVE && gus->lmc_ctrl & 0x02  && gus->addr <= gus->gus_end_rom)
                 val = gus->rom[gus->addr];
-            else if (gus->addr < gus->gus_end_ram)
+            else if ((gus->iw_enhanced && gus->addr < gus->gus_end_ram) || (!gus->iw_mem_512 && gus->addr < gus->gus_end_ram) || (!gus->iw_enhanced && gus->iw_mem_512 && gus->addr < 0x80000))
                 val = gus->ram[gus->addr];
             else
                 val = 0;
@@ -3241,13 +3370,48 @@ gus_pnp_init(const device_t *info)
     gus->gus_end_rom = 1048576;
 
     if (gus_ram != 0)
-        gus->gus_end_ram = 1 << (18 + gus_ram);
+        gus->gus_end_ram = 1 << 24; /* InterWave uses variable-size DRAM banks */
     else
         gus->gus_end_ram = 0;
 
     gus_log(gus->log, "GUS RAM initialized, end address = %08X\n", gus->gus_end_ram);
 
     gus->ram         = (uint8_t *) calloc(1, gus->gus_end_ram);
+
+    for (uint16_t i = 0; i < 4; i++)
+        gus->iw_bank_mask[i] = 0;
+    gus->iw_mem_512 = 0;
+    switch (gus_ram) {
+        case 0:
+            break;
+        case 1: /* 512KB: 256KB in banks 0/1 */
+            gus->iw_bank_mask[0] = gus->iw_bank_mask[1] = 0x3ffff;
+            gus->iw_mem_512 = 1;
+            break;
+        case 2: /* 1MB: 1MB in bank 0 */
+            gus->iw_bank_mask[0] = 0xfffff;
+            break;
+        case 3: /* 2MB: 1MB in banks 0/1 */
+            gus->iw_bank_mask[0] = gus->iw_bank_mask[1] = 0xfffff;
+            break;
+        case 4: /* 4MB: 4MB in bank 0 */
+            gus->iw_bank_mask[0] = 0x3fffff;
+            break;
+        case 5: /* 8MB: 4MB in banks 0/1 */
+            gus->iw_bank_mask[0] = gus->iw_bank_mask[1] = 0x3fffff;
+            break;
+        case 6: /* 16MB: 4MB in banks 0-3 */
+            gus->iw_bank_mask[0] = gus->iw_bank_mask[1] = gus->iw_bank_mask[2] = gus->iw_bank_mask[3] = 0x3fffff;
+            break;
+        case 8: /* 1.5MB: 256KB in banks 0/1, 1MB in bank 2 */
+            gus->iw_bank_mask[0] = gus->iw_bank_mask[1] = 0x3ffff;
+            gus->iw_bank_mask[2] = 0xfffff;
+            break;
+        case 9: /* 2.5MB: 256KB in banks 0/1, 1MB in banks 2/3 */
+            gus->iw_bank_mask[0] = gus->iw_bank_mask[1] = 0x3ffff;
+            gus->iw_bank_mask[2] = gus->iw_bank_mask[3] = 0xfffff;
+            break;
+    }
 
     for (c = 0; c < 32; c++) {
         gus->ctrl[c]  = 1;
@@ -3709,7 +3873,9 @@ static const device_config_t gus_pnp_config[] = {
             { .description = "None",   .value = 0 },
             { .description = "512 KB", .value = 1 },
             { .description = "1 MB",   .value = 2 },
+            { .description = "1.5 MB", .value = 8 },
             { .description = "2 MB",   .value = 3 },
+            { .description = "2.5 MB", .value = 9 },
             { .description = "4 MB",   .value = 4 },
             { .description = "8 MB",   .value = 5 },
             { .description = "16 MB",  .value = 6 },
