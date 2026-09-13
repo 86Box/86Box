@@ -62,7 +62,8 @@ static const struct {
     uint32_t on;
 } hd44780_palettes[] = {
     { .panel = 0x66f26a, .off = 0x5ee562, .on = 0x000000 }, /* black on green */
-    { .panel = 0x102f96, .off = 0x1a3ea8, .on = 0xeef4ff }  /* white on blue */
+    { .panel = 0x102f96, .off = 0x1a3ea8, .on = 0xeef4ff }, /* white on blue */
+    { .panel = 0xa0a0a0, .off = 0x909090, .on = 0x000000 }  /* unbacklit */
 };
 
 typedef struct hd44780_lcd_t {
@@ -991,6 +992,7 @@ hd44780_init(const device_t *info)
         dev->cols     = 16;
         dev->rows     = 2;
         dev->font     = hd44780_font_a00;
+        dev->palette  = info->local >> 8;
         dev->dot_size = LCD_SCALE - 1;
         dev->lpt      = lpt_attach_ex(0, hd44780_write_data, hd44780_write_ctrl,
                                       NULL, NULL, NULL, NULL, NULL, dev);
@@ -1052,7 +1054,7 @@ hd44780_speed_changed(void *priv)
     hd44780_t *dev = (hd44780_t *) priv;
 
     timer_disable(&dev->timer);
-    timer_set_delay_u64(&dev->timer, (uint64_t) ((TIMER_USEC * 1000000.0) / 60.0));
+    timer_set_delay_u64(&dev->timer, (uint64_t) ((TIMER_USEC * 1000000ULL) / 60));
 }
 
 static void
@@ -1147,6 +1149,7 @@ static const device_config_t hd44780_config[] = {
         .selection      = {
             { .description = "Green", .value = 0 },
             { .description = "Blue",  .value = 1 },
+            { .description = "None",  .value = 2 },
             { .description = ""                  }
         },
         .bios           = { { 0 } }
