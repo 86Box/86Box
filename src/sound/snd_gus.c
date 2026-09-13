@@ -886,8 +886,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                         gus->pan_l[gus->voice] = 0xFFF - (gus->l_offset[gus->voice] >> 4);
                     break;
                 case 0x14: /* Synthesizer Effects Output Accumulator Select */
-                    if (gus->type == GUS_INTERWAVE)
+                    if (gus->type == GUS_INTERWAVE && gus->iw_enhanced)
                         gus->effects_accum[gus->voice] = val;
+                    else
+                        gus->effects_accum[gus->voice] = 0;
                     break;
                 case 0x15: /* Synthesizer Mode */
                     if (gus->type == GUS_INTERWAVE) {
