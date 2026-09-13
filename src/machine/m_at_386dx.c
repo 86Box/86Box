@@ -61,7 +61,7 @@ static const device_config_t deskpro386_config[] = {
     // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS Date",
+        .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
         .default_string = "deskpro386",
         .default_int    = 0,
@@ -70,7 +70,7 @@ static const device_config_t deskpro386_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "September 1986",
+                .name          = "4 September 1986",
                 .internal_name = "deskpro386_09_1986",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -79,7 +79,7 @@ static const device_config_t deskpro386_config[] = {
                 .files         = { "roms/machines/deskpro386/1986-09-04-HI.json.bin", "" }
             },
             {
-                .name          = "May 1988",
+                .name          = "10 May 1988",
                 .internal_name = "deskpro386",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
