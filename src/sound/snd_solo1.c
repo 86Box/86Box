@@ -1095,8 +1095,14 @@ static void
 solo1_close(void *priv)
 {
     solo1_t *dev = (solo1_t *) priv;
+    sb_t *   ess = (sb_t *) dev->legacy;
     dev->pci_regs[0x04] &= ~0x01;
     dev->pci_regs[0x60] &= ~0x01;
+    /*
+       Null the pointer because at this point, it has already been
+       freed by the gameport device.
+     */
+    ess->gameport = NULL;
     solo1_update_native_mappings(dev);
     if (dev->legacy != NULL)
         ess_solo1_legacy_close(dev->legacy);
