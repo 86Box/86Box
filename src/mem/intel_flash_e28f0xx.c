@@ -55,7 +55,7 @@ typedef struct flash_t {
     uint8_t  block_locks[32];
 
     uint16_t flash_id;
-    uint16_t pad16;
+    uint16_t dirty;
 
     uint32_t program_addr;
 
@@ -128,7 +128,6 @@ flash_read(uint32_t addr, void *priv)
 
         case CMD_READ_STATUS:
             ret = dev->status;
-            pclog("Read status: %02X\n", ret);
             break;
     }
 
@@ -209,8 +208,6 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 
     const uint32_t block_start = addr & 0xffff0000;
 
-    pclog("Write %02X at %08X\n", val, addr);
-
     switch (dev->command) {
         case CMD_SPECIAL:
             switch (val) {
@@ -235,8 +232,8 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
             if (val == CMD_ERASE_CONFIRM) {
                 if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
                     !((addr ^ dev->program_addr) & 0xffff0000)) {
-                    pclog("Erasing block %02X\n", block_start >> 16);
                     memset(&(dev->array[block_start]), 0xff, 0x00010000);
+                    dev->dirty = 1;
                 }
                 if ((dev->master_lock || dev->block_locks[block_start >> 16]) &&
                     !((addr ^ dev->program_addr) & 0xffff0000))
@@ -251,10 +248,11 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 
         case CMD_PROGRAM_SETUP:
         case CMD_PROGRAM_SETUP_ALT:
-            pclog("Programming value %02X in block %02X\n", val, block_start >> 16);
             if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
-                (addr == dev->program_addr))
+                (addr == dev->program_addr)) {
                 dev->array[addr] = val;
+                dev->dirty = 1;
+            }
             dev->command = CMD_READ_STATUS;
             if ((addr == dev->program_addr) &&
                 (dev->master_lock || dev->block_locks[block_start >> 16]))
@@ -319,8 +317,8 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
                 if (val == CMD_ERASE_CONFIRM) {
                     if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
                         !((addr ^ dev->program_addr) & 0xffff0000)) {
-                        pclog("Erasing block %02X\n", block_start >> 16);
                         memset(&(dev->array[block_start]), 0xff, 0x00010000);
+                        dev->dirty = 1;
                     }
                     if ((dev->master_lock || dev->block_locks[block_start >> 16]) &&
                         !((addr ^ dev->program_addr) & 0xffff0000))
@@ -336,8 +334,10 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
             case CMD_PROGRAM_SETUP:
             case CMD_PROGRAM_SETUP_ALT:
                 if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
-                    (addr == dev->program_addr))
+                    (addr == dev->program_addr)) {
                     *(uint16_t *) (&dev->array[addr]) = val;
+                    dev->dirty = 1;
+                }
                 dev->command = CMD_READ_STATUS;
                 if ((addr == dev->program_addr) &&
                     (dev->master_lock || dev->block_locks[block_start >> 16]))
@@ -431,22 +431,17 @@ flash_add_mappings(flash_t *dev)
 
         uint32_t fbase = base & biosmask;
 
-        pclog("From ROM @ %08X to array @ %08X\n", base & biosmask, fbase);
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
-        if ((max == 2) || (i >= 2)) {
-            pclog("Low  mapping %2i at %08X-%08X\n", i, base, base + 0x0000ffff);
+        if ((max == 2) || (i >= 2))
             mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
                             flash_read, flash_readw, flash_readl,
                             flash_write, flash_writew, flash_writel,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        }
-        pclog("High mapping %2i at %08X-%08X\n", i, (base | 0xfff00000) - sub, (base | 0xfff00000) - sub + 0x0000ffff);
         mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - sub, 0x10000,
                         flash_read, flash_readw, flash_readl,
                         flash_write, flash_writew, flash_writel,
                         dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        pclog("High mapping %2i at %08X-%08X\n", i + max, (base | 0xfff00000), (base | 0xfff00000) + 0x0000ffff);
         mem_mapping_add(&(dev->mapping_h[i + max]), (base | 0xfff00000), 0x10000,
                         flash_read, flash_readw, flash_readl,
                         flash_write, flash_writew, flash_writel,
@@ -499,11 +494,16 @@ flash_init(const device_t *info)
     dev->command = CMD_READ_ARRAY;
     dev->status  = 0;
 
-    fp = nvr_fopen(flash_path, "rb");
-    if (!dump_missing && (fp != NULL)) {
-        (void) !fread(dev->array, biosmask + 1, 1, fp);
-        fclose(fp);
-    }
+    if (strlen(flash_path) > 0) {
+        fp = nvr_fopen(flash_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                (void) !fread(dev->array, biosmask + 1, 1, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            dev->dirty = 1;
+    } else
+        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
 
     return dev;
 }
@@ -514,10 +514,18 @@ flash_close(void *priv)
     FILE    *fp;
     flash_t *dev = (flash_t *) priv;
 
-    fp = nvr_fopen(flash_path, "wb");
-    if (!dump_missing)
-        fwrite(dev->array, biosmask + 1, 1, fp);
-    fclose(fp);
+    if (dev->dirty) {
+        if (strlen(flash_path) > 0) {
+            fp = nvr_fopen(flash_path, "wb");
+            if (fp != NULL) {
+                if (!dump_missing)
+                    fwrite(dev->array, biosmask + 1, 1, fp);
+                fclose(fp);
+            } else if (!dump_missing)
+                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", flash_path);
+        } else
+            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
+    }
 
     free(dev->array);
     dev->array = NULL;

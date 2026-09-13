@@ -1478,15 +1478,17 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
         case 0xe1:
             ps2.mem_regs[1] = val;
             break;
-        case 0xe2:
-            old             = ps2.mem_regs[2];
-            ps2.mem_regs[2] = (ps2.mem_regs[2] & 0x80) | (val & ~0x88);
+        case 0xe2: {
+            uint8_t new;
+
+            old = ps2.mem_regs[2];
+            new = (old & 0x80) | (val & ~0x88);
             if (val & 2) {
                 ps2_mca_log("Clear latch - %i\n", ps2.pending_cache_miss);
                 if (ps2.pending_cache_miss)
-                    ps2.mem_regs[2] |= 0x80;
+                    new |= 0x80;
                 else
-                    ps2.mem_regs[2] &= ~0x80;
+                    new &= ~0x80;
                 ps2.pending_cache_miss = 0;
             }
 
@@ -1494,14 +1496,29 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
                 ps2.pending_cache_miss = 1;
             if ((val & 0x21) == 0x01 && (old & 0x21) != 0x01)
                 ps2_cache_clean();
-#if 1
-            // FIXME: Look into this!!!
+
+            ps2.mem_regs[2] = new;
+
+            /* Only bits 0 and 5 affect the memory mappings and ROM wait
+               states, so skip the expensive full-range mapping recalc
+               when neither of those bits changed. */
+            if (!((new ^ old) & 0x21))
+                return;
+
+            /* Force interpreter if the cache is disabled, which is
+               required by model 70 type 4 BIOS to pass PIT tests. */
             if (val & 0x01)
+            {
                 ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
+                cpu_override_dynarec   = 1;
+            }
             else
+            {
                 ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
-#endif
+                cpu_override_dynarec   = 0;
+            }
             break;
+        }
 
         default:
             break;
@@ -1534,7 +1551,13 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* Give the memory encoding registers a defined state on warm reset.
+       The model 70 type 3/4 BIOS performs its cache diagnostics assuming
+       the cache is disabled (and thus ROM wait states are in effect) until
+       it explicitly enables it. */
+    ps2.mem_regs[0] = 0x00;
+    ps2.mem_regs[1] = 0x02;
+    ps2.mem_regs[2] = 0x01;
 
     switch (mem_size / 1024) {
         case 2:
@@ -1586,6 +1609,10 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
                     MEM_MAPPING_INTERNAL,
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
+
+    /* Shadowed ROM areas use ROM timings until the cache is
+       enabled, which is required by model 70 type 3 BIOS. */
+    ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
 
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */
@@ -1695,7 +1722,13 @@ ps2_mca_board_model_80_type3_init(void)
     ps2.option[2] &= ~0x01;
     ps2.has_e0000_hole = 1;
 
-    ps2.mem_regs[1] = 2;
+    /* Give the memory encoding registers a defined state on warm reset.
+       The model 80 type 3 BIOS performs its cache diagnostics assuming
+       the cache is disabled (and thus ROM wait states are in effect)
+       until it explicitly enables it. */
+    ps2.mem_regs[0] = 0x00;
+    ps2.mem_regs[1] = 0x02;
+    ps2.mem_regs[2] = 0x01;
 
     switch (mem_size / 1024) {
         case 4:
@@ -1736,6 +1769,10 @@ ps2_mca_board_model_80_type3_init(void)
                     MEM_MAPPING_INTERNAL,
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
+
+    /* Shadowed ROM areas use ROM timings until the cache is
+       enabled, which is required by model 80 type 3 BIOS. */
+    ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
 
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */
@@ -1813,7 +1850,14 @@ ps55_mca_board_model_50v_init(void)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* Give the memory encoding registers a defined state on warm reset.
+       The PS/55 model 5550-V BIOS performs its cache diagnostics assuming
+       the cache is disabled (and thus ROM wait states are in effect) until
+       it explicitly enables it. */
+    ps2.mem_regs[0] = 0x00;
+    ps2.mem_regs[1] = 0x02;
+    ps2.mem_regs[2] = 0x01;
+
     ps2.option[2] &= 0xf2; /*   Bit 3-2: -Cache IDs, Bit 1: Reserved
                                 Bit 0: Disable E0000-E0FFFh (4 KB) */
     ps2.has_e0000_hole = 1;
@@ -1845,6 +1889,10 @@ ps55_mca_board_model_50v_init(void)
                     MEM_MAPPING_INTERNAL,
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
+
+    /* Shadowed ROM areas use ROM timings until the cache is
+       enabled, which is required by PS/55 model 5550-V BIOS. */
+    ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
 
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */

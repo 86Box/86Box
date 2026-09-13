@@ -6511,7 +6511,8 @@ ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enable,
     sb_dsp_setaddr(&ess->dsp, 0);
     mpu401_change_addr(ess->mpu, 0);
     mpu401_setirq(ess->mpu, -1);
-    gameport_remap(ess->gameport, 0);
+    if (ess->gameport != NULL)
+        gameport_remap(ess->gameport, 0);
 
     sb_dsp_setirq(&ess->dsp, sb_enable ? sb_irq : 0);
     sb_dsp_setdma8(&ess->dsp, sb_enable ? dma : ISAPNP_DMA_DISABLED);
@@ -6573,7 +6574,8 @@ ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enable,
         ess->midi_addr = 0;
 
     ess->gameport_addr = game_addr;
-    gameport_remap(ess->gameport, ess->gameport_addr);
+    if (ess->gameport != NULL)
+        gameport_remap(ess->gameport, ess->gameport_addr);
 }
 
 void

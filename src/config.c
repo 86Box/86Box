@@ -535,7 +535,7 @@ load_machine(void)
     p                        = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
         /* Migrate CPU family changes. */
-        if (machines[machine].init == machine_at_deskpro386_init)
+        if ((machines[machine].init == machine_at_deskpro386_init) && !strcmp(p, "i386dx"))
             cpu_f = cpu_get_family("i386dx_deskpro386");
         else
             cpu_f = cpu_get_family(p);
@@ -2762,8 +2762,6 @@ config_load(void)
         scale                = 1;
         machine              = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale            = 1;
-        do_auto_pause        = 0;
-        do_auto_dialog_pause = 0;
         force_constant_mouse = 0;
 
         cpu_override_interpreter = 0;

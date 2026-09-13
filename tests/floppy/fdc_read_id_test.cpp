@@ -19,6 +19,8 @@ extern "C" {
 }
 
 namespace {
+uint16_t asserted_irqs;
+
 
 // Exercise the real FDC -> FDD -> IMG/D86F path. Only host services are adapted;
 // in particular, no adapter synthesizes a controller completion or media error.
@@ -182,6 +184,29 @@ TEST_F(FdcReadId, PresentHeadCompletesThroughRealBitstream)
     }
 }
 
+TEST_F(FdcReadId, NoMovementSeekInterruptIsOptInAndRespectsDorGate)
+{
+    for (bool enabled : { false, true }) {
+        for (bool irq_gate : { false, true }) {
+            SCOPED_TRACE(::testing::Message() << "option=" << enabled << " DOR IRQ gate=" << irq_gate);
+            controller.flags = enabled ? FDC_FLAG_IRQ_ON_NOOP_SEEK : 0;
+            controller.reset_stat = 0;
+            fdc_write(0x3f2, irq_gate ? 0x1c : 0x14, &controller);
+            asserted_irqs = 0;
+
+            command(0x0f, { 0, 0 });
+            EXPECT_EQ(asserted_irqs & (1 << 6), enabled && irq_gate ? (1 << 6) : 0);
+            EXPECT_EQ(fdc_read(0x3f4, &controller) & 0xf0, 0x80);
+            command(0x08, {});
+            const auto status = result();
+            ASSERT_EQ(status.size(), 2u);
+            EXPECT_EQ(status[0], 0x20);
+            EXPECT_EQ(status[1], 0);
+            EXPECT_EQ(fdd_current_track(0), 0);
+        }
+    }
+}
+
 } // namespace
 
 // Host adapters: deterministic clock, no PIC/DMA bus or UI/audio, ordinary files.
@@ -223,8 +248,9 @@ timer_add(pc_timer_t *timer, void (*callback)(void *), void *priv, int start)
     timer->flags    = start ? TIMER_ENABLED : 0;
 }
 void
-picint_common(uint16_t, int, int, uint8_t *)
+picint_common(uint16_t mask, int, int, uint8_t *)
 {
+    asserted_irqs |= mask;
 }
 void
 dma_set_drq(int, int)

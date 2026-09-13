@@ -60,7 +60,7 @@ enum {
 typedef struct flash_t {
     uint8_t  command;
     uint8_t  status;
-    uint8_t  pad;
+    uint8_t  dirty;
     uint8_t  flags;
     uint8_t *array;
 
@@ -180,8 +180,10 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
         case CMD_ERASE_SETUP:
             if (val == CMD_ERASE_CONFIRM) {
                 for (uint8_t i = 0; i < 6; i++) {
-                    if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+                    if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i])) {
                         memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
+                        dev->dirty = 1;
+                    }
                 }
 
                 dev->status = 0x80;
@@ -191,8 +193,10 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 
         case CMD_PROGRAM_SETUP:
         case CMD_PROGRAM_SETUP_ALT:
-            if (((addr & bb_mask) != (dev->block_start[6] & bb_mask)) && (addr == dev->program_addr))
+            if (((addr & bb_mask) != (dev->block_start[6] & bb_mask)) && (addr == dev->program_addr)) {
                 dev->array[addr] = val;
+                dev->dirty = 1;
+            }
             dev->command = CMD_READ_STATUS;
             dev->status  = 0x80;
             break;
@@ -238,8 +242,10 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
             case CMD_ERASE_SETUP:
                 if (val == CMD_ERASE_CONFIRM) {
                     for (uint8_t i = 0; i < 6; i++) {
-                        if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+                        if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i])) {
                             memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
+                            dev->dirty = 1;
+                        }
                     }
 
                     dev->status = 0x80;
@@ -263,8 +269,10 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
                         break;
                     case CMD_ERASE_SETUP:
                         for (uint8_t i = 0; i < 7; i++) {
-                            if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+                            if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i])) {
                                 dev->program_addr = i;
+                                dev->dirty = 1;
+                            }
                         }
                         break;
                     case CMD_PROGRAM_SETUP:
@@ -529,20 +537,26 @@ intel_flash_init(const device_t *info)
     dev->command = CMD_READ_ARRAY;
     dev->status  = 0;
 
-    fp = nvr_fopen(flash_path, "rb");
-    if (!dump_missing && (fp != NULL)) {
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
-        if (dev->block_len[BLOCK_MAIN2])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
-        if (dev->block_len[BLOCK_MAIN3])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
-        if (dev->block_len[BLOCK_MAIN4])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
+    if (strlen(flash_path) != 0) {
+        fp = nvr_fopen(flash_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing) {
+                (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
+                if (dev->block_len[BLOCK_MAIN2])
+                    (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
+                if (dev->block_len[BLOCK_MAIN3])
+                    (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
+                if (dev->block_len[BLOCK_MAIN4])
+                    (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
 
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
-        fclose(fp);
-    }
+                (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
+                (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+            }
+            fclose(fp);
+        } else if (!dump_missing)
+            dev->dirty = 1;
+    } else
+        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
 
     return dev;
 }
@@ -550,23 +564,30 @@ intel_flash_init(const device_t *info)
 static void
 intel_flash_close(void *priv)
 {
-    FILE    *fp;
     flash_t *dev = (flash_t *) priv;
 
-    fp = nvr_fopen(flash_path, "wb");
-    if (!dump_missing) {
-        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
-        if (dev->block_len[BLOCK_MAIN2])
-            fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
-        if (dev->block_len[BLOCK_MAIN3])
-            fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
-        if (dev->block_len[BLOCK_MAIN4])
-            fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
+    if (dev->dirty) {
+        if (strlen(flash_path) > 0) {
+            FILE *fp = nvr_fopen(flash_path, "wb");
+            if (fp != NULL) {
+                if (!dump_missing) {
+                    fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
+                    if (dev->block_len[BLOCK_MAIN2])
+                        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
+                    if (dev->block_len[BLOCK_MAIN3])
+                        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
+                    if (dev->block_len[BLOCK_MAIN4])
+                        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
 
-        fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
-        fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+                    fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
+                    fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+                }
+                fclose(fp);
+            } else if (!dump_missing)
+                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", flash_path);
+        } else
+            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
     }
-    fclose(fp);
 
     free(dev->array);
     dev->array = NULL;

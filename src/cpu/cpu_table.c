@@ -55,6 +55,13 @@ FPU fpus_80286[] = {
     { .name = "287XL", .internal_name = "287xl", .type = FPU_287XL },
     { .name = NULL,    .internal_name = NULL,    .type = 0         }
 };
+FPU fpus_80286_80386[] = {
+    { .name = "None",  .internal_name = "none",  .type = FPU_NONE  },
+    { .name = "287",   .internal_name = "287",   .type = FPU_287   },
+    { .name = "287XL", .internal_name = "287xl", .type = FPU_287XL },
+    { .name = "387",   .internal_name = "387",   .type = FPU_387   },
+    { .name = NULL,    .internal_name = NULL,    .type = 0         }
+};
 FPU fpus_80386[] = {
     { .name = "None", .internal_name = "none", .type = FPU_NONE },
     { .name = "387",  .internal_name = "387",  .type = FPU_387  },
@@ -1455,7 +1462,7 @@ const cpu_family_t cpu_families[] = {
             {
                 .name               = "16",
                 .cpu_type           = CPU_386DX,
-                .fpus               = fpus_80286,
+                .fpus               = fpus_80286_80386,
                 .rspeed             = 16000000,
                 .multi              = 1,
                 .voltage            = 5000,
@@ -1502,6 +1509,92 @@ const cpu_family_t cpu_families[] = {
                 .cache_read_cycles  = 2,
                 .cache_write_cycles = 2,
                 .atclk_div          = 3
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
+        .package       = CPU_PKG_386DX_DESKPRO386,
+        .manufacturer  = "Cyrix",
+        .name          = "Cx486DLC",
+        .internal_name = "cx486dlc_deskpro386",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "25",
+                .cpu_type           = CPU_486DLC,
+                .fpus               = fpus_80386,
+                .rspeed             = 25000000,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0x401,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0x0001,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 4,
+                .mem_write_cycles   = 4,
+                .cache_read_cycles  = 2,
+                .cache_write_cycles = 3,
+                .atclk_div          = 3
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
+        .package       = CPU_PKG_386DX_DESKPRO386,
+        .manufacturer  = "Cyrix",
+        .name          = "Cx486DRx2",
+        .internal_name = "cx486drx2_deskpro386",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "32",
+                .cpu_type           = CPU_486DLC,
+                .fpus               = fpus_80386,
+                .rspeed             = 32000000,
+                .multi              = 2,
+                .voltage            = 5000,
+                .edx_reset          = 0x407,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0x0007,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 6,
+                .mem_write_cycles   = 6,
+                .cache_read_cycles  = 6,
+                .cache_write_cycles = 6,
+                .atclk_div          = 4
+            },
+            {
+                .name               = "40",
+                .cpu_type           = CPU_486DLC,
+                .fpus               = fpus_80386,
+                .rspeed             = 40000000,
+                .multi              = 2,
+                .voltage            = 5000,
+                .edx_reset          = 0x407,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0x0007,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 8,
+                .mem_write_cycles   = 8,
+                .cache_read_cycles  = 6,
+                .cache_write_cycles = 6,
+                .atclk_div          = 6
+            },
+            {
+                .name               = "50",
+                .cpu_type           = CPU_486DLC,
+                .fpus               = fpus_80386,
+                .rspeed             = 50000000,
+                .multi              = 2,
+                .voltage            = 5000,
+                .edx_reset          = 0x407,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0x0007,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 8,
+                .mem_write_cycles   = 8,
+                .cache_read_cycles  = 6,
+                .cache_write_cycles = 6,
+                .atclk_div          = 6
             },
             { .name = "", 0 }
         }

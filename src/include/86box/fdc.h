@@ -62,6 +62,7 @@
 #define FDC_FLAG_5550           0x200000 /* IBM Multistation 5550 */
 #define FDC_FLAG_NO_TDR         0x400000 /* Has no tape drive register */
 #define FDC_FLAG_PCJX           0x800000 /* IBM PC JX no-DMA adapter */
+#define FDC_FLAG_IRQ_ON_NOOP_SEEK 0x1000000 /* Interrupt on zero-step SEEK completion */
 
 typedef struct sector_id_fields_t {
     uint8_t c;
