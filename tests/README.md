@@ -27,6 +27,8 @@ Build `fdc_read_id_tests` with `BUILD_TESTING=ON`, then run `ctest --test-dir bu
 
 The tests use the real FDC/FDD/IMG/D86F path to check immediate missing-head errors and normal bitstream Read ID completion in DMA and non-DMA modes. They adapt host timers, interrupts and file services; Read ID has no DMA payload, so this is not a DMA-transfer test. The fixture includes FDC/FDD as C-in-C++ for private device access, compiles IMG/D86F/FIFO/CRC as C, and uses portable filesystem temporary directories.
 
+The same fixture checks zero-step SEEK completion with `FDC_FLAG_IRQ_ON_NOOP_SEEK` enabled and disabled, including the DOR interrupt gate and successful Sense Interrupt Status without head movement. The default retains the polled compatibility behavior introduced by commit `e140db7d1` for 386BSD and 1B/V3. The Convertible opts into interrupts because its BIOS power-on recovery waits for IRQ6 even when restoring cylinder zero.
+
 # Cartridges
 
 The cartridge tests compile `src/device/cartridge.c` as C and exercise raw and headered image loading, replacement/ejection, overlap and address bounds, and hard-reset reloads. They use real temporary image files with a small external-memory mapping adapter; they do not emulate CPU execution, RAM/BIOS arbitration, or the real memory mapping cache.
