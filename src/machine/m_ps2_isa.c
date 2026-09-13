@@ -607,7 +607,8 @@ ps2_isa_setup(int model, int cpu_type)
         ps1_hdc_inform(priv, &ps2->ps2_91);
     }
 
-    device_add(&ps1vga_device);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&ps1vga_device);
 }
 
 static void
