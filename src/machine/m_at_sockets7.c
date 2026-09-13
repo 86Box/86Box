@@ -141,7 +141,7 @@ const device_t cobalt3k_carmel_device = {
     .name          = "Cobalt Qube 3",
     .internal_name = "cobalt3k_carmel",
     .flags         = 0,
-    .local         = 0,
+    .local         = 2 << 8, /* unbacklit LCD */
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
@@ -155,7 +155,7 @@ const device_t cobalt3k_pacifica_device = {
     .name          = "Cobalt RaQ 3/4",
     .internal_name = "cobalt3k_pacifica",
     .flags         = 0,
-    .local         = 0,
+    .local         = 0, /* green LCD */
     .init          = NULL,
     .close         = NULL,
     .reset         = NULL,
@@ -201,7 +201,7 @@ machine_at_cobalt3k_init(const machine_t *model)
     device_add(&ncr53c875_onboard_pci_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
     device_add(&lm77_0_48_device);
-    device_add(&hd44780_cobalt3k_device);
+    device_add_params(&hd44780_cobalt3k_device, (void *) (uintptr_t) model->device->local);
 
     if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine)) {
         net_card_current = 0;
