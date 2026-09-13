@@ -1522,9 +1522,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
                                         fdc_log("Failed seek\n");
                                         fdc->st0 = 0x20 | (fdc->params[0] & 3);
-                                        /* Always use the PCjr code, so both 386BSD and 1B/V3 work. */
+                                        /* Default to polled completion for 386BSD and 1B/V3 compatibility. */
                                         fdc->fintr     = 1;
                                         fdc->interrupt = -4;
+                                        if (fdc->flags & FDC_FLAG_IRQ_ON_NOOP_SEEK) {
+                                            fdc->interrupt = -3;
+                                            fdc_callback(fdc);
+                                        }
                                         break;
                                     }
                                     if (fdc->params[1] > fdc->pcn[fdc->params[0] & 3])
