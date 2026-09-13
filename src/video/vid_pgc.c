@@ -1934,6 +1934,9 @@ pgc_window_scale(pgc_t *dev)
 /*
  * VWPORT sets up the viewport (roughly, the clip rectangle) in
  * raster coordinates, measured from the bottom left of the screen.
+ * Both firmwares check the whole rectangle against the image with
+ * unsigned compares before storing any of it; a rejected one raises a
+ * range error and leaves the old viewport and scale in place.
  */
 static void
 hndl_vwport(pgc_t *dev)
@@ -1953,6 +1956,13 @@ hndl_vwport(pgc_t *dev)
         return;
 
     pgc_log("PGC: VWPORT %i,%i,%i,%i\n", x1, x2, y1, y2);
+
+    if ((uint16_t) x2 <= (uint16_t) x1 || (uint16_t) x2 > dev->img_w - 1 ||
+        (uint16_t) y2 <= (uint16_t) y1 || (uint16_t) y2 > dev->img_h - 1) {
+        pgc_error(dev, PGC_ERROR_RANGE);
+        return;
+    }
+
     dev->vp_x1 = x1;
     dev->vp_x2 = x2;
     dev->vp_y1 = y1;
@@ -1963,7 +1973,8 @@ hndl_vwport(pgc_t *dev)
 
 /*
  * WINDOW defines the coordinate system in use. Its corners are
- * coordinates, unlike VWPORT, whose corners are PEL counts.
+ * coordinates, unlike VWPORT, whose corners are PEL counts. A window
+ * with an extent of zero or less is rejected whole, as VWPORT is.
  */
 static void
 hndl_window(pgc_t *dev)
@@ -1983,6 +1994,12 @@ hndl_window(pgc_t *dev)
         return;
 
     pgc_log("PGC: WINDOW %i,%i,%i,%i\n", x1 >> 16, x2 >> 16, y1 >> 16, y2 >> 16);
+
+    if (x2 <= x1 || y2 <= y1) {
+        pgc_error(dev, PGC_ERROR_RANGE);
+        return;
+    }
+
     dev->win_x1 = x1 >> 16;
     dev->win_x2 = x2 >> 16;
     dev->win_y1 = y1 >> 16;
