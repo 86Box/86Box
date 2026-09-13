@@ -2233,8 +2233,9 @@ pgc_error(pgc_t *dev, int err)
     if (dev->mapram[0x308]) {
         /* Errors enabled? */
         if (dev->ascii_mode) {
+            /* Codes are 1-based; the ROM table starts at RANGE. */
             if (err >= PGC_ERROR_RANGE && err <= PGC_ERROR_MISSING)
-                return error_string(dev, pgc_err_msgs[err]);
+                return error_string(dev, pgc_err_msgs[err - 1]);
             return error_string(dev, "Unknown error\r");
         } else {
             return error_byte(dev, err);
