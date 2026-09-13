@@ -85,16 +85,16 @@ typedef union {
             (r) = (double) (float) (r);       \
     } while (0)
 
-/* Dynarec blocks are keyed on PC=24, but FLDCW/FLDENV/FRSTOR/FSAVE run
-   as helper calls inside a block: a precision change must end the block
-   so the ops after it are compiled under the new precision. */
-#define x87_set_control_word(w)                                              \
-    do {                                                                     \
-        uint16_t old_npxc_ = cpu_state.npxc;                                 \
-        cpu_state.npxc     = (w);                                            \
-        codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);               \
-        if ((!(old_npxc_ & 0x300)) != (!(cpu_state.npxc & 0x300)))           \
-            CPU_BLOCK_END();                                                 \
+/* Dynarec blocks are keyed on PC=24 and RC!=nearest, but FLDCW/FLDENV/
+   FRSTOR/FSAVE run as helper calls inside a block: a change to either must
+   end the block so the ops after it are compiled under the new value. */
+#define x87_set_control_word(w)                                                                                                 \
+    do {                                                                                                                        \
+        uint16_t old_npxc_ = cpu_state.npxc;                                                                                    \
+        cpu_state.npxc     = (w);                                                                                               \
+        codegen_set_rounding_mode((cpu_state.npxc >> 10) & 3);                                                                  \
+        if (((!(old_npxc_ & 0x300)) != (!(cpu_state.npxc & 0x300))) || ((!(old_npxc_ & 0xc00)) != (!(cpu_state.npxc & 0xc00)))) \
+            CPU_BLOCK_END();                                                                                                    \
     } while (0)
 
 #ifdef FPU_8087

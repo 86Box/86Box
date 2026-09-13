@@ -1,7 +1,10 @@
 #include "codegen_backend_x86-64_defs.h"
 
-#define BLOCK_SIZE  0x4000
-#define BLOCK_MASK  0x3fff
+/* Raised from 0x4000 - too small to hold both status variants (16/32-bit,
+   flat/non-flat) of hot code at once, causing recompile thrash. This is the
+   max: block indices are uint16_t. */
+#define BLOCK_SIZE  0x10000
+#define BLOCK_MASK  0xffff
 #define BLOCK_START 0
 
 #define HASH_SIZE   0x20000
