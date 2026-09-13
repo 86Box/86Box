@@ -1505,10 +1505,18 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
             if (!((new ^ old) & 0x21))
                 return;
 
+            /* Force interpreter if the cache is disabled, which is
+               required by model 70 type 4 BIOS to pass PIT tests. */
             if (val & 0x01)
+            {
                 ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
+                cpu_override_dynarec   = 1;
+            }
             else
+            {
                 ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
+                cpu_override_dynarec   = 0;
+            }
             break;
         }
 
