@@ -50,8 +50,8 @@ static uint8_t  dma_command[2];
 static uint8_t  dma_req_is_soft;
 static uint8_t  dma_advanced;
 static uint8_t  dma_at;
-static uint8_t  dma_convertible;
-static uint8_t  dma_convertible_diag;
+static uint8_t  dma_ibm5140;
+static uint8_t  dma_ibm5140_diag;
 static uint8_t  dma_buffer[65536];
 static uint16_t dma_sg_base;
 static uint16_t dma16_buffer[65536];
@@ -130,7 +130,7 @@ dma_page_is_xt(void)
 int
 dma_xt8237_active(void)
 {
-    if (dma_convertible)
+    if (dma_ibm5140)
         return 1;
 #ifdef DMA_FORCE_REWRITE
     if (dma_force_xt)
@@ -338,7 +338,7 @@ dma_xt8237_master_clear(void)
 
     memset(&dma_xt8237, 0, sizeof(dma_xt8237));
     dma_xt8237.last_service = 3;
-    if (dma_convertible) {
+    if (dma_ibm5140) {
         /* The integrated controller clears its standard channel registers,
          * unlike the discrete 8237 whose mode registers survive master clear. */
         for (int channel = 1; channel < 4; channel++) {
@@ -475,7 +475,7 @@ dma_set_drq(int channel, int set)
     dma_stat_rq_pc &= ~bit;
     if (set)
         dma_stat_rq_pc |= bit;
-    if (dma_convertible && set && channel > 0 && channel < 4)
+    if (dma_ibm5140 && set && channel > 0 && channel < 4)
         ibm5140_clock_wake();
 
     if (dma_xt8237_active() && (channel < 4) && !set &&
@@ -873,17 +873,17 @@ static uint8_t dma_read_legacy(uint16_t addr, void *priv);
 static void dma_write_legacy(uint16_t addr, uint8_t val, void *priv);
 
 static uint8_t
-dma_convertible_diag_read(void)
+dma_ibm5140_diag_read(void)
 {
-    switch (dma_convertible_diag) {
+    switch (dma_ibm5140_diag) {
         case 0: case 1: case 2:
-            return dma[dma_convertible_diag + 1].page & 0x0f;
+            return dma[dma_ibm5140_diag + 1].page & 0x0f;
         case 3:
             return dma_m & 0x0e;
         case 7:
             return dma_command[0] & 0xc4;
         case 8: case 9: case 10:
-            return dma[dma_convertible_diag - 7].mode & 0xec;
+            return dma[dma_ibm5140_diag - 7].mode & 0xec;
         case 11:
             return dma_xt8237.sw_request & 0x0e;
         default:
@@ -892,7 +892,7 @@ dma_convertible_diag_read(void)
 }
 
 static void
-dma_convertible_service(void)
+dma_ibm5140_service(void)
 {
     int channel;
     uint8_t requests = dma_xt8237.sw_request;
@@ -925,8 +925,8 @@ dma_read(uint16_t addr, void *priv)
 {
     uint8_t ret;
 
-    if (dma_convertible && ((addr & 0x0f) < 2))
-        return (addr & 1) ? dma_convertible_diag_read() : 0xff;
+    if (dma_ibm5140 && ((addr & 0x0f) < 2))
+        return (addr & 1) ? dma_ibm5140_diag_read() : 0xff;
 
     if (!dma_xt8237_active())
         return dma_read_legacy(addr, priv);
@@ -951,10 +951,10 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
     int channel;
     uint8_t bit;
 
-    if (dma_convertible) {
+    if (dma_ibm5140) {
         switch (addr & 0x0f) {
             case 0:
-                dma_convertible_diag = val & 0x0f;
+                dma_ibm5140_diag = val & 0x0f;
                 return;
             case 1:
                 return;
@@ -994,7 +994,7 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
                 dma_xt8237.sw_request |= bit;
                 if ((channel == 0) && (dma_command[0] & 0x01))
                     (void)dma_xt8237_mem_to_mem();
-                else if (!dma_convertible)
+                else if (!dma_ibm5140)
                     dma_block_transfer(channel);
             } else {
                 dma_xt8237.sw_request &= (uint8_t)~bit;
@@ -1051,9 +1051,9 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
     /* The previous dispatcher returned from every arm, so its refresh retry
      * was unreachable. Reconcile after every programming write. */
     dma_xt_refresh_reconcile();
-    if (dma_convertible) {
+    if (dma_ibm5140) {
         dma_m |= 1;
-        dma_convertible_service();
+        dma_ibm5140_service();
     }
 }
 
@@ -1877,7 +1877,7 @@ void
 dma_reset(void)
 {
     dma_reset_legacy();
-    if (dma_convertible)
+    if (dma_ibm5140)
         dma_e = 0x0e; /* RESET cannot create the absent refresh channel. */
 
     dma_command[0] = dma_command[1] = 0;
@@ -1902,7 +1902,7 @@ dma_reset(void)
 void
 dma_init(void)
 {
-    dma_convertible = dma_convertible_diag = 0;
+    dma_ibm5140 = dma_ibm5140_diag = 0;
     dma_ps2.is_ps2 = 0;
     dma_reset();
 
@@ -1913,10 +1913,10 @@ dma_init(void)
 }
 
 void
-dma_init_convertible(void)
+dma_init_ibm5140(void)
 {
-    dma_convertible = 1;
-    dma_convertible_diag = 0;
+    dma_ibm5140 = 1;
+    dma_ibm5140_diag = 0;
     dma_e = 0x0e;
     io_removehandler(0x0080, 8,
                      dma_page_read, NULL, NULL, dma_page_write, NULL, NULL, NULL);

@@ -86,7 +86,7 @@ ibm5140_wake_pending(void)
 static void
 ibm5140_update_clock(ibm5140_power_t *dev)
 {
-    pic_convertible_diag_enable(!dev->powered_off && (dev->port72 & 0x80));
+    pic_ibm5140_diag_enable(!dev->powered_off && (dev->port72 & 0x80));
     cpu_clock_gated = dev->powered_off || !(dev->port72 & 7);
     /* Close the check-then-sleep race with a request already asserted. */
     if (!dev->powered_off && ibm5140_wake_pending())
@@ -723,7 +723,7 @@ ibm5140_read(uint16_t port, void *priv)
             value = ibm5140_sources(dev);
             return value | (pit_devs[0].get_outlevel(pit_devs[0].data, 2) ? 0x20 : 0);
         case 0x63:
-            return pic_convertible_diag_read(dev->port72);
+            return pic_ibm5140_diag_read(dev->port72);
         case 0x70:
             return dev->rtc_index;
         case 0x71:
@@ -809,7 +809,7 @@ ibm5140_write(uint16_t port, uint8_t value, void *priv)
             break;
         case 0x63:
             dev->interrupt_simulation = value;
-            pic_convertible_diag_write(value);
+            pic_ibm5140_diag_write(value);
             ibm5140_update_nmi(dev);
             break;
         case 0x70:

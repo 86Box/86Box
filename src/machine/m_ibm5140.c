@@ -302,9 +302,9 @@ ibm5140_chipset_reset(void)
     if (!dev)
         return;
     pic_reset();
-    pic_init_convertible(ibm5140_clock_wake);
+    pic_init_ibm5140(ibm5140_clock_wake);
     dma_reset();
-    dma_init_convertible();
+    dma_init_ibm5140();
     dev->disk_control = dev->dor = dev->memory_control = 0;
     timer_disable(&dev->printer_timer);
     dev->printer_divisor = dev->printer_shift = 0;
@@ -363,8 +363,8 @@ machine_ibm5140_init(const machine_t *model)
     pit_mode = 0; /* The native suspend interface needs the classic counters. */
     machine_common_init(model);
     pit_mode = configured_pit;
-    pic_init_convertible(ibm5140_clock_wake);
-    dma_init_convertible();
+    pic_init_ibm5140(ibm5140_clock_wake);
+    dma_init_ibm5140();
     /* No timer1 refresh callback: all installed working memory is SRAM. */
     pit_devs[0].set_using_timer(pit_devs[0].data, 1, 0);
 

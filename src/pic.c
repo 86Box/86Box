@@ -61,10 +61,10 @@ static int force_xt_imr_timing = 0;
 static int pic_pci = 0;
 static int kbd_latch = 0;
 static int mouse_latch = 0;
-static uint8_t convertible_diag_value;
-static uint8_t convertible_diag_enabled;
-static uint8_t convertible_diag_lines[8];
-static void (*convertible_wake)(void);
+static uint8_t ibm5140_diag_value;
+static uint8_t ibm5140_diag_enabled;
+static uint8_t ibm5140_diag_lines[8];
+static void (*ibm5140_wake)(void);
 
 static uint16_t smi_irq_mask   = 0x0000;
 static uint16_t smi_irq_status = 0x0000;
@@ -195,7 +195,7 @@ pic_elcr_io_handler(int set)
 static uint8_t
 pic_cascade_mode(pic_t *dev)
 {
-    return !(dev->flags & PIC_CONVERTIBLE) && !(dev->icw1 & 2);
+    return !(dev->flags & PIC_IBM5140) && !(dev->icw1 & 2);
 }
 
 static __inline uint8_t
@@ -219,7 +219,7 @@ find_best_interrupt(pic_t *dev)
         b = 1 << j;
 
         if ((dev->isr & b) &&
-            !((dev->flags & PIC_CONVERTIBLE) && dev->special_mask_mode && (dev->imr & b)))
+            !((dev->flags & PIC_IBM5140) && dev->special_mask_mode && (dev->imr & b)))
             break;
         else if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b)) {
             ret = j;
@@ -245,8 +245,8 @@ pic_update_pending_xt(void)
 {
     if (!(pic.interrupt & 0x20))
         pic.int_pending = (find_best_interrupt(&pic) != -1);
-    if (pic.int_pending && (pic.flags & PIC_CONVERTIBLE) && convertible_wake)
-        convertible_wake();
+    if (pic.int_pending && (pic.flags & PIC_IBM5140) && ibm5140_wake)
+        ibm5140_wake();
 }
 
 /* Only check if PIC 1 frozen, because it should not happen
@@ -278,7 +278,7 @@ pic_reset(void)
     int is_at     = IS_AT(machine);
     int is_zenith = machine_has_flags(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
-    const uint8_t board_flags = pic.flags & PIC_CONVERTIBLE;
+    const uint8_t board_flags = pic.flags & PIC_IBM5140;
 
     memset(&pic, 0, sizeof(pic_t));
     memset(&pic2, 0, sizeof(pic_t));
@@ -395,7 +395,7 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
     if (irq != 0xff) {
         if (eoi)
             dev->isr &= ~b;
-        if (rotate && !(dev->flags & PIC_CONVERTIBLE))
+        if (rotate && !(dev->flags & PIC_IBM5140))
             dev->priority = (irq + 1) & 7;
 
         update_pending();
@@ -513,9 +513,9 @@ pic_read(uint16_t addr, void *priv)
         /* Put the IRR on to the data bus by default until the real PIC is probed. */
         dev->data_bus = dev->irr;
 #endif
-        if ((dev->ocw3 & 0x04) && (!(dev->flags & PIC_CONVERTIBLE) || !(addr & 1))) {
+        if ((dev->ocw3 & 0x04) && (!(dev->flags & PIC_IBM5140) || !(addr & 1))) {
             dev->interrupt &= ~0x20; /* Freeze the interrupt until the poll is over. */
-            if (dev->flags & PIC_CONVERTIBLE) {
+            if (dev->flags & PIC_IBM5140) {
                 const int irq = find_best_interrupt(dev);
                 dev->interrupt = irq < 0 ? 0x17 : irq;
                 dev->int_pending = irq >= 0;
@@ -526,7 +526,7 @@ pic_read(uint16_t addr, void *priv)
                 dev->int_pending = 0;
                 update_pending();
             } else
-                dev->data_bus = (dev->flags & PIC_CONVERTIBLE) ? (dev->interrupt & 7) : 0x00;
+                dev->data_bus = (dev->flags & PIC_IBM5140) ? (dev->interrupt & 7) : 0x00;
             dev->ocw3 &= ~0x04;
         } else if (addr & 0x0001)
             dev->data_bus = dev->imr;
@@ -560,7 +560,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
         switch (dev->state) {
             case STATE_ICW2:
                 dev->icw2 = val;
-                if (dev->flags & PIC_CONVERTIBLE)
+                if (dev->flags & PIC_IBM5140)
                     dev->state = STATE_ICW4;
                 else if (pic_cascade_mode(dev))
                     dev->state = STATE_ICW3;
@@ -574,12 +574,12 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             case STATE_ICW4:
                 dev->icw4  = val;
                 dev->state = STATE_NONE;
-                if (dev->flags & PIC_CONVERTIBLE)
+                if (dev->flags & PIC_IBM5140)
                     update_pending();
                 break;
             case STATE_NONE:
                 dev->imr = val;
-                if ((dev->flags & PIC_CONVERTIBLE) || (is286 && !force_xt_imr_timing) || dev->zenith)
+                if ((dev->flags & PIC_IBM5140) || (is286 && !force_xt_imr_timing) || dev->zenith)
                     update_pending();
                 else if (force_xt_imr_timing)
                     /* Deliberately small but non-zero, unlike the stock formula below (which
@@ -611,7 +611,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             dev->irr              = 0x00;
             for (uint8_t i = 0; i <= 7; i++) {
                 if (dev->lines[i] > 0 &&
-                    (!(dev->flags & PIC_CONVERTIBLE) || pic_level_triggered(dev, i)))
+                    (!(dev->flags & PIC_IBM5140) || pic_level_triggered(dev, i)))
                     dev->irr              |= (1 << i);
             }
             dev->imr = dev->isr = 0x00;
@@ -624,7 +624,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
         } else if (val & 0x08) {
             /* RR is a command strobe: a poll or special-mask command must not
              * replace the integrated controller's current ISR/IRR selection. */
-            dev->ocw3 = ((dev->flags & PIC_CONVERTIBLE) && !(val & 2))
+            dev->ocw3 = ((dev->flags & PIC_IBM5140) && !(val & 2))
                 ? (val & ~3) | (dev->ocw3 & 3) : val;
             if (dev->ocw3 & 0x04)
                 dev->interrupt |= 0x20; /* Freeze the interrupt until the poll is over. */
@@ -683,8 +683,8 @@ static void
 pic_reset_hard(void)
 {
     /* Full machine initialization must not inherit the previous board type. */
-    pic.flags &= ~PIC_CONVERTIBLE;
-    convertible_wake = NULL;
+    pic.flags &= ~PIC_IBM5140;
+    ibm5140_wake = NULL;
     pic_reset();
 
     /* Explicitly reset the latches. */
@@ -737,16 +737,16 @@ pic_init(void)
 /* The Convertible implements a single-controller subset and exposes its
    configuration through the board's 63h/72h diagnostic multiplexer. */
 void
-pic_init_convertible(void (*wake)(void))
+pic_init_ibm5140(void (*wake)(void))
 {
-    pic.flags |= PIC_CONVERTIBLE;
-    convertible_wake = wake;
-    convertible_diag_value = convertible_diag_enabled = 0;
-    memset(convertible_diag_lines, 0, sizeof(convertible_diag_lines));
+    pic.flags |= PIC_IBM5140;
+    ibm5140_wake = wake;
+    ibm5140_diag_value = ibm5140_diag_enabled = 0;
+    memset(ibm5140_diag_lines, 0, sizeof(ibm5140_diag_lines));
 }
 
 uint8_t
-pic_convertible_diag_read(uint8_t selector)
+pic_ibm5140_diag_read(uint8_t selector)
 {
     if (!(selector & 0x40))
         return (pic.icw2 & 0xf8) | (pic.ocw2 & 7);
@@ -758,31 +758,31 @@ pic_convertible_diag_read(uint8_t selector)
 }
 
 static void
-pic_convertible_diag_update(void)
+pic_ibm5140_diag_update(void)
 {
     /* IRQ1 comes from the keyboard output latch, not this diagnostic port.
      * Simulation bit1 drives IRQ0; bit0 is the board's I/O-check NMI input. */
-    const uint8_t requests = (convertible_diag_value & 0xfc) |
-                             ((convertible_diag_value & 2) >> 1);
+    const uint8_t requests = (ibm5140_diag_value & 0xfc) |
+                             ((ibm5140_diag_value & 2) >> 1);
     for (unsigned i = 0; i < 8; i++) {
-        const int asserted = convertible_diag_enabled && (requests & (1 << i));
-        if (!!asserted != convertible_diag_lines[i])
-            picint_common(1 << i, PIC_IRQ_LEVEL, !!asserted, &convertible_diag_lines[i]);
+        const int asserted = ibm5140_diag_enabled && (requests & (1 << i));
+        if (!!asserted != ibm5140_diag_lines[i])
+            picint_common(1 << i, PIC_IRQ_LEVEL, !!asserted, &ibm5140_diag_lines[i]);
     }
 }
 
 void
-pic_convertible_diag_write(uint8_t value)
+pic_ibm5140_diag_write(uint8_t value)
 {
-    convertible_diag_value = value;
-    pic_convertible_diag_update();
+    ibm5140_diag_value = value;
+    pic_ibm5140_diag_update();
 }
 
 void
-pic_convertible_diag_enable(int enabled)
+pic_ibm5140_diag_enable(int enabled)
 {
-    convertible_diag_enabled = !!enabled;
-    pic_convertible_diag_update();
+    ibm5140_diag_enabled = !!enabled;
+    pic_ibm5140_diag_update();
 }
 
 void
@@ -935,7 +935,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 static uint8_t
 pic_i86_mode(pic_t *dev)
 {
-    return (dev->flags & PIC_CONVERTIBLE) || (dev->icw4 & 1);
+    return (dev->flags & PIC_IBM5140) || (dev->icw4 & 1);
 }
 
 static uint8_t
