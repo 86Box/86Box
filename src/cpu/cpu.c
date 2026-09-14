@@ -218,6 +218,7 @@ int cpu_use_exec = 0;
 int cpu_override_interpreter;
 int CPUID;
 
+int is80c88;
 int is186;
 int is_mazovia;
 int is_nec;
@@ -559,7 +560,8 @@ cpu_set(void)
     unmask_a20_in_smm = 0;
 
     CPUID       = cpu_s->cpuid_model;
-    is8086      = (cpu_s->cpu_type > CPU_8088) && (cpu_s->cpu_type != CPU_V20) && (cpu_s->cpu_type != CPU_188);
+    is80c88     = (cpu_s->cpu_type == CPU_80C88);
+    is8086      = (cpu_s->cpu_type > CPU_8088) && !is80c88 && (cpu_s->cpu_type != CPU_V20) && (cpu_s->cpu_type != CPU_188);
     is_mazovia  = (cpu_s->cpu_type == CPU_8086_MAZOVIA);
     is_nec      = (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
     is186       = (cpu_s->cpu_type == CPU_186) || (cpu_s->cpu_type == CPU_188) || (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
@@ -815,6 +817,7 @@ cpu_set(void)
 
     switch (cpu_s->cpu_type) {
         case CPU_8088:
+        case CPU_80C88:
         case CPU_8086:
         case CPU_8086_MAZOVIA:
             break;
