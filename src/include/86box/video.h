@@ -136,6 +136,8 @@ typedef struct monitor_t {
     int                      mon_efscrnsz_y;
     int                      mon_unscaled_size_x;
     int                      mon_unscaled_size_y;
+    int                      mon_device_aspect_x;
+    int                      mon_device_aspect_y;
     double                   mon_res_x;
     double                   mon_res_y;
     int                      mon_bpp;
@@ -242,6 +244,7 @@ extern uint32_t    *video_15to32;
 extern uint32_t    *video_16to32;
 extern int          enable_overscan;
 extern int          force_43;
+extern int          force_device_aspect;
 extern int          vid_resize;
 extern int          herc_blend;
 extern int          vid_cga_contrast;

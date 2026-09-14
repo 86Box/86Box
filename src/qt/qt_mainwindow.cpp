@@ -346,6 +346,7 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
+        refreshDisplayRatioActions();
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
         ui_update_force_interpreter();
         updateMouseStrings();
@@ -852,9 +853,7 @@ MainWindow::MainWindow(QWidget *parent)
         if (action == ui->action4_3_Integer_scale_gl)
             video_gl_input_scale_mode = FULLSCR_SCALE_INT43;
     });
-    if (force_43 > 0) {
-        ui->actionForce_4_3_display_ratio->setChecked(true);
-    }
+    refreshDisplayRatioActions();
     if (force_constant_mouse > 0) {
         ui->actionUpdate_mouse_every_CPU_frame->setChecked(true);
     }
@@ -1879,6 +1878,23 @@ MainWindow::refreshMediaMenu()
     }
 
     ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
+    refreshDisplayRatioActions();
+}
+
+void
+MainWindow::refreshDisplayRatioActions()
+{
+    ui->actionForce_4_3_display_ratio->setChecked(force_43 > 0);
+    ui->actionForce_device_aspect_ratio->setChecked(force_device_aspect > 0);
+
+    const int dev_x = monitors[0].mon_device_aspect_x;
+    const int dev_y = monitors[0].mon_device_aspect_y;
+    const bool has_device_aspect = dev_x > 0 && dev_y > 0;
+    ui->actionForce_device_aspect_ratio->setVisible(has_device_aspect);
+    if (has_device_aspect) {
+        ui->actionForce_device_aspect_ratio->setText(
+            tr("Force &%1:%2 display ratio").arg(dev_x).arg(dev_y));
+    }
 }
 
 void
@@ -2248,7 +2264,31 @@ MainWindow::on_actionDocumentation_triggered()
 void
 MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
+    if (!force_43) {
+        force_device_aspect = 0;
+        ui->actionForce_device_aspect_ratio->setChecked(false);
+    }
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
+    if (vid_resize) {
+        const auto widget = ui->stackedWidget->currentWidget();
+        ui->stackedWidget->onResize(widget->width(), widget->height());
+
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (renderers[i])
+                renderers[i]->onResize(renderers[i]->width(), renderers[i]->height());
+        }
+    }
+    config_save();
+}
+
+void
+MainWindow::on_actionForce_device_aspect_ratio_triggered()
+{
+    if (!force_device_aspect) {
+        force_43 = 0;
+        ui->actionForce_4_3_display_ratio->setChecked(false);
+    }
+    video_toggle_option(ui->actionForce_device_aspect_ratio, &force_device_aspect);
     if (vid_resize) {
         const auto widget = ui->stackedWidget->currentWidget();
         ui->stackedWidget->onResize(widget->width(), widget->height());

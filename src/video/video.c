@@ -32,6 +32,7 @@
 #include "cpu.h"
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/config.h>
@@ -606,6 +607,10 @@ video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
     monitor_t *monitor       = &monitors[monitor_index];
     monitor->mon_vid_type    = type;
     monitor->mon_vid_timings = ptr;
+    /* The built-in panel belongs to the machine, not to a video controller
+     * that may also drive displays in other machines or secondary monitors. */
+    monitor->mon_device_aspect_x = (monitor_index == 0) ? machines[machine].display_aspect_x : 0;
+    monitor->mon_device_aspect_y = (monitor_index == 0) ? machines[machine].display_aspect_y : 0;
 }
 
 int
