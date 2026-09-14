@@ -617,7 +617,7 @@ mitsumi_rearm_dma_timeout(mcd_t *dev)
         timer_disable(&dev->dma_timeout_timer);
 
     timer_set_delay_u64(&dev->dma_timeout_timer,
-                        (uint64_t) dev->dma_timeout_ms * 1000ULL * TIMER_USEC);
+                        (uint64_t) dev->dma_timeout_ms * 2000ULL * TIMER_USEC);
 }
 
 static void
