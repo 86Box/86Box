@@ -194,8 +194,8 @@ enum {
     MACHINE_TYPE_SOCKET2,
     MACHINE_TYPE_SOCKET3,
     MACHINE_TYPE_SOCKET3_PCI,
-    MACHINE_TYPE_STPC,
     MACHINE_TYPE_SOCKET3_4,
+    MACHINE_TYPE_STPC,
     MACHINE_TYPE_SOCKET4,
     MACHINE_TYPE_SOCKET4_5,
     MACHINE_TYPE_SOCKET5,
@@ -1429,6 +1429,7 @@ extern const device_t  ga686_device;
 #endif
 extern int             machine_at_ga686_init(const machine_t *);
 #ifdef EMU_DEVICE_H
+extern int             machine_at_se440bx2_init(const machine_t *);
 extern const device_t  ms6117_device;
 #endif
 extern int             machine_at_ms6117_init(const machine_t *);

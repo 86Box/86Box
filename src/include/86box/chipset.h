@@ -115,6 +115,7 @@ extern const device_t piix_device;
 extern const device_t piix_no_mirq_device;
 extern const device_t piix_old_device;
 extern const device_t piix_rev02_device;
+extern void           piix_extsmi_raise(void);
 extern const device_t piix3_device;
 extern const device_t piix3_ioapic_device;
 extern const device_t piix4_device;
