@@ -791,7 +791,7 @@ machine_at_k6bv3p_a_init(const machine_t *model)
 
 /* SiS 530 / 5595 */
 
-static int in530_boot_logo_enabled = 1;
+static int in530_boot_logo = 1;
 
 static const device_config_t in530_config[] = {
     // clang-format off
@@ -856,18 +856,32 @@ static const device_config_t in530_config[] = {
             { .files_no = 0 }
         }
     },
-	/* Boot logo toggle doesn't work yet for the NEC, so disabling until it does */
-    /*{
+	
+	/* Logo module selector:
+	0 = 40 (33 in NEC)
+	1 = 33
+	2 = 3E
+	3 = 3F
+	4 = 3D (missing in all BIOSes so used to disable NEC)
+	5 = 3C
+	*/
+    {
         .name           = "boot_logo",
-        .description    = "Enable Boot Logo",
-        .type           = CONFIG_BINARY,
+        .description    = "Boot Logo",
+        .type           = CONFIG_SELECTION,
         .default_string = NULL,
         .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
-        .selection      = { { 0 } },
+        .selection      = {
+            { .description = "Disabled", .value = 4 },
+            { .description = "Enabled",  .value = 1 },
+            { .description = "Logo 2",   .value = 2 },
+            { .description = "Logo 3",   .value = 3 },
+            { .description = "" }
+        },
         .bios           = { { 0 } }
-    },*/
+    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -887,9 +901,9 @@ const device_t in530_device = {
 };
 
 int
-machine_in530_boot_logo_enabled(void)
+machine_in530_boot_logo(void)
 {
-    return in530_boot_logo_enabled;
+    return in530_boot_logo;
 }
 
 int
@@ -905,8 +919,7 @@ machine_at_in530_init(const machine_t *model)
     device_context(model->device);
     fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
-	/* Force full screen boot logo on for now */
-    /* in530_boot_logo_enabled = device_get_config_int("boot_logo"); */
+    in530_boot_logo = device_get_config_int("boot_logo");
     device_context_restore();
 
     machine_at_common_init(model);
