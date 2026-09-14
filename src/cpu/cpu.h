@@ -550,6 +550,10 @@ extern int    cpu_cyrix_alignment; /* Cyrix 5x86/6x86 only has data misalignment
                                       penalties when crossing 8-byte boundaries. */
 extern int    cpu_cpurst_on_sr;    /* SiS 551x and 5571: Issue CPURST on soft reset. */
 
+/* 80C88 only: board-supplied stoppable-clock control. See cpu.c. */
+extern int  cpu_clock_gated;
+extern int (*cpu_clock_stop_query)(void);
+
 extern int is8086;
 extern int is80c88;
 extern int is186;
