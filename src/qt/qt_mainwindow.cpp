@@ -1853,9 +1853,10 @@ MainWindow::refreshMediaMenu()
     status->setDynarecMenu(dynarecMenu);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-    if (acpi_enabled) {
-        ui->actionACPI_Shutdown->setText(tr("ACP&I shutdown"));
-        ui->actionACPI_Shutdown->setToolTip(tr("ACPI shutdown"));
+    const bool has_power_button = device_has_power_button();
+    if (acpi_enabled || has_power_button) {
+        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Asks the machine's BIOS to power itself off."));
     } else {
         ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
         ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
@@ -2734,6 +2735,16 @@ MainWindow::on_actionACPI_Shutdown_triggered()
         return;
     }
 
+    if (device_has_power_button()) {
+        const int was_paused = dopause;
+        plat_pause(1); /* Wait for CPU acknowledgement before changing device state. */
+        device_power_button();
+        plat_pause(was_paused);
+        return;
+    }
+
+    /* Without a soft-power method the only way to power the machine off is to
+     * stop the emulator: a hard power off is equivalent to exiting 86Box. */
     if (confirm_exit && confirm_exit_cmdl) {
         QMessageBox questionbox(QMessageBox::Icon::Warning, EMU_NAME, tr("Powering off the emulated machine may cause data loss. Are you sure you want to continue?"), QMessageBox::Yes | QMessageBox::No, this);
         questionbox.setDefaultButton(QMessageBox::No);
