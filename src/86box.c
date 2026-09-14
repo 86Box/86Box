@@ -1890,7 +1890,10 @@ pc_reset_hard_init(void)
     if (novell_keycard_enabled)
         device_add(&novell_keycard_device);
 
-    if (IS_ARCH(machine, MACHINE_BUS_PCI)) {
+    if (IS_ARCH(machine, MACHINE_BUS_PCI) ||
+        IS_ARCH(machine, MACHINE_BUS_AGP) ||
+        machine_has_flags(machine, MACHINE_PCI_INTERNAL) ||
+        machine_has_flags(machine, MACHINE_AGP_INTERNAL)) {
         pci_register_cards();
         device_reset_all(DEVICE_PCI);
     }
