@@ -19375,7 +19375,7 @@ const machine_t machines[] = {
     /* 430TX */
     /* The BIOS sends KBC command B8, CA, and CB, so it has an AMI KBC firmware. */
     {
-        .name              = "[i430TX] ADLink NuPRO-591/592",
+        .name              = "[i430TX] ADLink NuPRO-592",
         .internal_name     = "nupro592",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -19419,7 +19419,7 @@ const machine_t machines[] = {
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
         .net_device               = &i82559c_onboard_device,
-        .aliases                  = { "ADLink NuPRO-590", "" }
+        .aliases                  = { "ADLink NuPRO-590", "ADLink NuPRO-591", "" }
     },
     /* This has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
     {
