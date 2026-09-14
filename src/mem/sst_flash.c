@@ -564,15 +564,13 @@ sst_init(const device_t *info)
     } else
         fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
 
-    /* This is currently forced on until the NEC variant can be fixed */
-    /* Edit the rom to enable/disable the full screen logo */
+    /* Set the requested logo display */
     if ((machines[machine].init == machine_at_in530_init) &&
         (info->local == (AMD | AMD29F002NBT | SIZE_2M))) {
         const uint8_t old = dev->array[0x3af70];
 
         dev->array[0x3af70] &= 0xf0;
-        if (machine_in530_boot_logo_enabled())
-            dev->array[0x3af70] |= 0x01;
+        dev->array[0x3af70] |= machine_in530_boot_logo() & 0x0f;
 
         if (dev->array[0x3af70] != old)
             dev->dirty = 1;
