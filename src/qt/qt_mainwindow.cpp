@@ -172,15 +172,15 @@ keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 static BMessageFilter *filter;
 #endif
 
-extern int      cpu_force_interpreter;
+extern int cpu_force_interpreter;
 
 extern void     qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 extern MainWindow *main_window;
 
-int                main_window_blocked = 0;
-int                exiting_manually    = 0;
+int main_window_blocked = 0;
+int exiting_manually    = 0;
 
 #ifdef Q_OS_WINDOWS
 static bool
@@ -278,7 +278,7 @@ MainWindow::MainWindow(QWidget *parent)
     ledKeyboardTimer->setInterval(100);
     connect(ledKeyboardTimer, &QTimer::timeout, this, [this]() {
         static uint8_t prev_caps = 255, prev_num = 255, prev_scroll = 255, prev_kana = 255;
-        uint8_t caps, num, scroll, kana;
+        uint8_t        caps, num, scroll, kana;
         keyboard_get_states(&caps, &num, &scroll, &kana);
 
         if (num_label->isVisible() && prev_num != num)
@@ -334,12 +334,9 @@ MainWindow::MainWindow(QWidget *parent)
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::forceInterpretationCompleted, this, [this]() {
-        const auto fi_icon      = cpu_force_interpreter ? QIcon(":/menuicons/qt/icons/recompiler.ico") :
-                                                          QIcon(":/menuicons/qt/icons/interpreter.ico");
-        const auto tooltip_text = cpu_force_interpreter ? QString(tr("Allow recompilation")) :
-                                                          QString(tr("Force interpretation"));
-        const auto menu_text    = cpu_force_interpreter ? QString(tr("&Allow recompilation")) :
-                                                          QString(tr("&Force interpretation"));
+        const auto fi_icon      = cpu_force_interpreter ? QIcon(":/menuicons/qt/icons/recompiler.ico") : QIcon(":/menuicons/qt/icons/interpreter.ico");
+        const auto tooltip_text = cpu_force_interpreter ? QString(tr("Allow recompilation")) : QString(tr("Force interpretation"));
+        const auto menu_text    = cpu_force_interpreter ? QString(tr("&Allow recompilation")) : QString(tr("&Force interpretation"));
 
         ui->actionForce_interpretation->setIcon(fi_icon);
         ui->actionForce_interpretation->setToolTip(tooltip_text);
@@ -430,7 +427,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         const int old_mouse_capture = mouse_capture;
-        mouse_capture = state ? 1 : 0;
+        mouse_capture               = state ? 1 : 0;
 
         if (mouse_capture == old_mouse_capture)
             return;
@@ -912,9 +909,9 @@ MainWindow::MainWindow(QWidget *parent)
     setContextMenuPolicy(Qt::PreventContextMenu);
     /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    connect(new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F10), this), &QShortcut::activated, this, []() {});
+    connect(new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F10), this), &QShortcut::activated, this, []() { });
 #else
-    connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, []() {});
+    connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, []() { });
 #endif
 
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
@@ -1178,8 +1175,8 @@ void
 MainWindow::resizeEvent(QResizeEvent *event)
 {
 #ifdef MOVE_WINDOW
-    //qDebug() << pos().x() + event->size().width();
-    //qDebug() << pos().y() + event->size().height();
+    // qDebug() << pos().x() + event->size().width();
+    // qDebug() << pos().y() + event->size().height();
     if (vid_resize == 1 || video_fullscreen)
         return;
 
@@ -1202,7 +1199,6 @@ MainWindow::resizeEvent(QResizeEvent *event)
 #endif /*MOVE_WINDOW*/
 
     toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
-
 }
 
 void
@@ -1326,7 +1322,7 @@ MainWindow::on_actionHard_Reset_triggered()
 {
     if (confirm_reset) {
         QMessageBox questionbox(QMessageBox::Icon::Question, EMU_NAME, tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::Yes | QMessageBox::No, this);
-        const auto chkbox    = new QCheckBox(tr("Don't show this message again"));
+        const auto  chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_reset);
 
@@ -1817,7 +1813,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         if (event->type() == QEvent::WindowBlocked) {
             if (qt_osd_is_visible())
                 qt_osd_toggle();
-            window_blocked = true;
+            window_blocked     = true;
             mouse_was_captured = (mouse_capture != 0);
             if (do_auto_dialog_pause > 0) {
                 curdopause = dopause;
@@ -1836,8 +1832,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
             }
             main_window_blocked = 0;
         } else if (event->type() == QEvent::WindowStateChange) {
-            if ((this->isFullScreen() && (video_fullscreen == 0)) ||
-                (!this->isFullScreen() && (video_fullscreen == 1)))
+            if ((this->isFullScreen() && (video_fullscreen == 0)) || (!this->isFullScreen() && (video_fullscreen == 1)))
                 this->on_actionFullscreen_triggered();
         }
     }
@@ -1853,9 +1848,10 @@ MainWindow::refreshMediaMenu()
     status->setDynarecMenu(dynarecMenu);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-    if (acpi_enabled) {
-        ui->actionACPI_Shutdown->setText(tr("ACP&I shutdown"));
-        ui->actionACPI_Shutdown->setToolTip(tr("ACPI shutdown"));
+    const bool has_power_button = device_has_power_button();
+    if (acpi_enabled || has_power_button) {
+        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
     } else {
         ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
         ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
@@ -1923,8 +1919,8 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
         box.setIcon(QMessageBox::Critical);
     } else if (flags & MBX_WARNING) {
         box.setIcon(QMessageBox::Warning);
-//    } else if (flags & MBX_QUESTION) {
-//        box.setIcon(QMessageBox::Question);
+        //    } else if (flags & MBX_QUESTION) {
+        //        box.setIcon(QMessageBox::Question);
     }
     if (richText)
         box.setTextFormat(Qt::TextFormat::RichText);
@@ -2698,7 +2694,7 @@ MainWindow::on_actionCursor_Puck_triggered()
 void
 MainWindow::on_actionMouse_triggered()
 {
-    mouse_input_mode = 0;
+    mouse_input_mode         = 0;
     mouse_input_mode_initial = 0;
     config_save();
 }
@@ -2706,7 +2702,7 @@ MainWindow::on_actionMouse_triggered()
 void
 MainWindow::on_actionTablet_triggered()
 {
-    mouse_input_mode = 1;
+    mouse_input_mode         = 1;
     mouse_input_mode_initial = 1;
     config_save();
 }
@@ -2714,7 +2710,7 @@ MainWindow::on_actionTablet_triggered()
 void
 MainWindow::on_actionTablet_Crosshair_triggered()
 {
-    mouse_input_mode = 2;
+    mouse_input_mode         = 2;
     mouse_input_mode_initial = 2;
     config_save();
 }
@@ -2734,6 +2730,16 @@ MainWindow::on_actionACPI_Shutdown_triggered()
         return;
     }
 
+    if (device_has_power_button()) {
+        const int was_paused = dopause;
+        plat_pause(1); /* Wait for CPU acknowledgement before changing device state. */
+        device_power_button();
+        plat_pause(was_paused);
+        return;
+    }
+
+    /* Without a soft-power method the only way to power the machine off is to
+     * stop the emulator: a hard power off is equivalent to exiting 86Box. */
     if (confirm_exit && confirm_exit_cmdl) {
         QMessageBox questionbox(QMessageBox::Icon::Warning, EMU_NAME, tr("Powering off the emulated machine may cause data loss. Are you sure you want to continue?"), QMessageBox::Yes | QMessageBox::No, this);
         questionbox.setDefaultButton(QMessageBox::No);
