@@ -195,6 +195,8 @@ Settings::Settings(QWidget *parent)
             &SettingsStorageControllers::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,
             &SettingsOtherPeripherals::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, floppyCdrom,
+            &SettingsFloppyCDROM::onCurrentMachineChanged);
     connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, harddisks,
             &SettingsHarddisks::reloadBusChannels);
     connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
