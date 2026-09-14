@@ -309,7 +309,9 @@ cpu_io(int bits, int out, uint16_t port)
 {
     int cycs = 4;
 
-    if (is_mazovia)
+    if (machines[machine].cpu_io_cycles)
+        cycs = machines[machine].cpu_io_cycles;
+    else if (is_mazovia)
         cycs = 5;
     else if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
              (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0))
@@ -3417,6 +3419,17 @@ execx86(int cycs)
 
     while (cycles > 0) {
         cycdiff = cycles;
+
+        /* A board may hold the CPU clock on a part that supports it. Keep
+         * continuous peripherals running; the CPU does not execute. */
+        if (is80c88 && cpu_clock_gated && (cpu_clock_stop_query != NULL)) {
+            if (cpu_clock_stop_query()) {
+                cycles -= cycles > 64 ? 64 : cycles;
+                clock_end();
+                continue;
+            }
+            check_interrupts(0);
+        }
 
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;
