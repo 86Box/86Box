@@ -1314,8 +1314,8 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 while (p != &src[size])
                     CRC(fcs, *p++);
 
-                /* FCS at the end of the packet */
-                ((uint32_t *) &src[size])[0] = htonl(fcs);
+                /* FCS at the end of the packet, one's complement in little endian */
+                ((uint32_t *) &src[size])[0] = cpu_to_le32(~fcs);
                 size += 4;
             }
 

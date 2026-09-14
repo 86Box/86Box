@@ -2935,8 +2935,14 @@ msgstr "[Стандартный] 1989 (3500 RPM)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Стандартный] 1992 (3600 RPM)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Стандартный] 1993 (4000 RPM)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Стандартный] 1994 (4500 RPM)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Стандартный] 1995 (5200 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Стандартный] 1996 (5400 RPM)"
@@ -2949,6 +2955,9 @@ msgstr "[Стандартный] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Стандартный] 2000 (7200 RPM)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Стандартный] 2004 (10000 RPM)"
 
 msgid "IBM 8514/A clone"
 msgstr "Клон IBM 8514/A"

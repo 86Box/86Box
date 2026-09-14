@@ -210,6 +210,32 @@ const cpu_family_t cpu_families[] = {
         }
     },
     {
+        .package       = CPU_PKG_80C88,
+        .manufacturer  = "Intel",
+        .name          = "80C88",
+        .internal_name = "80c88",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "4.77",
+                .cpu_type           = CPU_80C88,
+                .fpus               = fpus_8088,
+                .rspeed             = 4772728,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 0,
+                .mem_write_cycles   = 0,
+                .cache_read_cycles  = 0,
+                .cache_write_cycles = 0,
+                .atclk_div          = 1
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
         .package       = CPU_PKG_8088_EUROPC,
         .manufacturer  = "Intel",
         .name          = "8088",

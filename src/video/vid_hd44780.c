@@ -743,7 +743,7 @@ hd44780_poll(void *priv)
 {
     hd44780_t *dev = (hd44780_t *) priv;
 
-    timer_advance_u64(&dev->timer, (uint64_t) ((TIMER_USEC * 1000000.0) / 60.0));
+    timer_advance_u64(&dev->timer, (uint64_t) ((TIMER_USEC * 1000000ULL) / 60));
 
     dev->prev_monitor_index = monitor_index_global;
     monitor_index_global    = dev->monitor_index;
