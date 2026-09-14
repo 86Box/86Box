@@ -1301,7 +1301,7 @@ extern int             machine_at_ms5169_init(const machine_t *);
 
 /* SiS 530/5595 */
 extern int             machine_at_in530_init(const machine_t *);
-extern int             machine_in530_boot_logo_enabled(void);
+extern int             machine_in530_boot_logo(void);
 #ifdef EMU_DEVICE_H
 extern const device_t  in530_device;
 #endif

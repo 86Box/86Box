@@ -123,15 +123,17 @@ enumerateSerialDevices()
     return serialDevices;
 }
 
-QComboBox *cbox_memory   = nullptr;
-QComboBox *cbox_memory_2 = nullptr;
+QComboBox *cbox_memory         = nullptr;
+QComboBox *cbox_memory_2       = nullptr;
 
-QComboBox *cbox_bios     = nullptr;
+QComboBox *cbox_bios           = nullptr;
+QComboBox *cbox_in530_bootlogo = nullptr;
 
-const _device_config_ *cfg_memory    = nullptr;
-const _device_config_ *cfg_memory_2  = nullptr;
+const _device_config_ *cfg_memory         = nullptr;
+const _device_config_ *cfg_memory_2       = nullptr;
 
-const _device_config_ *cfg_bios      = nullptr;
+const _device_config_ *cfg_bios           = nullptr;
+const _device_config_ *cfg_in530_bootlogo = nullptr;
 
 int bios_rows = 0;
 
@@ -269,6 +271,11 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     if (!strcmp(config->name, "texture_memory")) {
                         cbox_memory_2 = cbox;
                         cfg_memory_2  = config;
+                    }
+                    if (!strcmp(config->name, "boot_logo") &&
+                        (cfg_dev != nullptr) && !strcmp(cfg_dev->internal_name, "in530")) {
+                        cbox_in530_bootlogo = cbox;
+                        cfg_in530_bootlogo  = config;
                     }
                     break;
                 }
@@ -441,7 +448,9 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
         ++config;
     }
 
-    if ((cfg_memory != nullptr) && (cfg_bios != nullptr) && (bios != -1))
+    if ((cbox_bios != nullptr) && (cfg_bios != nullptr) && (bios != -1) &&
+        (((cfg_memory != nullptr) && (cbox_memory != nullptr)) ||
+         ((cfg_in530_bootlogo != nullptr) && (cbox_in530_bootlogo != nullptr))))
         connect(cbox_bios, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &DeviceConfig::on_comboIndexChanged);
 
     on_comboIndexChanged(bios);
@@ -456,15 +465,17 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
 
     cfg_dev = (device_t *) device;
 
-    cbox_memory   = nullptr;
-    cbox_memory_2 = nullptr;
+    cbox_memory         = nullptr;
+    cbox_memory_2       = nullptr;
 
-    cbox_bios     = nullptr;
+    cbox_bios           = nullptr;
+    cbox_in530_bootlogo = nullptr;
 
-    cfg_memory    = nullptr;
-    cfg_memory_2  = nullptr;
+    cfg_memory          = nullptr;
+    cfg_memory_2        = nullptr;
 
-    cfg_bios      = nullptr;
+    cfg_bios            = nullptr;
+    cfg_in530_bootlogo  = nullptr;
 
     bios_rows     = 0;
 
@@ -769,5 +780,42 @@ DeviceConfig::on_comboIndexChanged(int index)
             cbox_memory_2->setEnabled(true);
         else
             cbox_memory_2->setEnabled(false);
+    }
+
+    if ((cbox_in530_bootlogo != nullptr) && (cbox_bios != nullptr) &&
+        (cfg_in530_bootlogo != nullptr) && (cfg_bios != nullptr) &&
+        (cfg_dev != nullptr) && !strcmp(cfg_dev->internal_name, "in530") &&
+        (cbox_bios->currentIndex() >= 0)) {
+        const int   bios_idx  = cbox_bios->currentData().toInt();
+        const char *bios_name = cfg_bios->bios[bios_idx].internal_name;
+        const int   selector  = (cbox_in530_bootlogo->currentIndex() >= 0)
+                                   ? cbox_in530_bootlogo->currentData().toInt()
+                                   : cfg_in530_bootlogo->default_int;
+
+        cbox_in530_bootlogo->clear();
+
+        auto add_logo = [this](const char *description, int value) {
+            Models::AddEntry(cbox_in530_bootlogo->model(), tr(description), value);
+        };
+
+        add_logo("Disabled", 4);
+
+        if (!strcmp(bios_name, "in530_pb_111j")) {
+            add_logo("Packard Bell", 1);
+            add_logo("NEC",          2);
+            add_logo("PowerMate",    3);
+        } else if (!strcmp(bios_name, "in530_pb_129")) {
+            add_logo("Packard Bell", 1);
+            add_logo("Japaq",        2);
+            add_logo("PowerMate",    3);
+        } else  {
+			/* Only one logo */
+            add_logo("Enabled", 1);
+        }
+
+        int current_index = cbox_in530_bootlogo->findData(selector);
+        if (current_index < 0)
+            current_index = cbox_in530_bootlogo->findData(cfg_in530_bootlogo->default_int);
+        cbox_in530_bootlogo->setCurrentIndex(current_index);
     }
 }
