@@ -2928,8 +2928,14 @@ msgstr "[Všeobecný] 1989 (3500 ot./m)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Všeobecný] 1992 (3600 ot./m)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Všeobecný] 1993 (4000 ot./m)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Všeobecný] 1994 (4500 ot./m)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Všeobecný] 1995 (5200 ot./m)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Všeobecný] 1996 (5400 ot./m)"
@@ -2942,6 +2948,9 @@ msgstr "[Všeobecný] 1998 (5400 ot./m)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Všeobecný] 2000 (7200 ot./m)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Všeobecný] 2004 (10000 ot./m)"
 
 msgid "IBM 8514/A clone"
 msgstr "Klon IBM 8514/A"
