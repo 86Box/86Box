@@ -319,6 +319,7 @@ load_general(void)
     video_filter_method = ini_section_get_int(cat, "video_filter_method", 1);
 
     force_43 = !!ini_section_get_int(cat, "force_43", 0);
+    force_device_aspect = !force_43 && !!ini_section_get_int(cat, "force_device_aspect", 0);
     scale    = ini_section_get_int(cat, "scale", 1);
     if (scale > 9)
         scale = 9;
@@ -3060,6 +3061,11 @@ save_general(void)
         ini_section_delete_var(cat, "force_43");
     else
         ini_section_set_int(cat, "force_43", force_43);
+
+    if (force_device_aspect == 0)
+        ini_section_delete_var(cat, "force_device_aspect");
+    else
+        ini_section_set_int(cat, "force_device_aspect", force_device_aspect);
 
     if (scale == 1)
         ini_section_delete_var(cat, "scale");

@@ -218,6 +218,15 @@ int cpu_use_exec = 0;
 int cpu_override_interpreter;
 int CPUID;
 
+/* Board-supplied control of a stoppable CPU clock. Consulted only for the
+ * 80C88, the only supported part with a static clock that can be halted and
+ * resumed without losing state. A board that can hold the clock sets
+ * cpu_clock_gated while it does so, and may install a query reporting whether
+ * the clock is currently stopped; the query may wake the clock as a side
+ * effect. The board clears both when it is removed. */
+int  cpu_clock_gated              = 0;
+int (*cpu_clock_stop_query)(void) = NULL;
+
 int is80c88;
 int is186;
 int is_mazovia;

@@ -51,13 +51,87 @@
 
 #define SOFTPOWER_CTRL_MASK   0x0f
 
+struct softpower_control_t {
+    uint8_t ctrl;
+    unsigned delay_ms;
+    void (*suspend)(void *);
+    void (*power_off)(void *);
+    void (*reset)(void *);
+    void *priv;
+    pc_timer_t timer;
+};
+
 typedef struct softpower_t {
-    uint8_t   ctrl;
-    uint16_t  base;
-    int       nmi_enabled;
-    int       delay_ms;
-    pc_timer_t power_off_timer;
+    uint16_t base;
+    int nmi_enabled;
+    softpower_control_t *control;
 } softpower_t;
+
+static void
+softpower_control_expire(void *priv)
+{
+    softpower_control_t *control = priv;
+
+    control->power_off(control->priv);
+}
+
+softpower_control_t *
+softpower_control_create(unsigned delay_ms, void (*suspend)(void *),
+                         void (*power_off)(void *), void (*reset)(void *), void *priv)
+{
+    softpower_control_t *control = calloc(1, sizeof(*control));
+
+    control->delay_ms = delay_ms;
+    control->suspend = suspend;
+    control->power_off = power_off;
+    control->reset = reset;
+    control->priv = priv;
+    timer_add(&control->timer, softpower_control_expire, control, 0);
+    return control;
+}
+
+void
+softpower_control_reset(softpower_control_t *control)
+{
+    control->ctrl = 0;
+    timer_stop(&control->timer);
+}
+
+void
+softpower_control_destroy(softpower_control_t *control)
+{
+    timer_stop(&control->timer);
+    free(control);
+}
+
+uint8_t
+softpower_control_read(const softpower_control_t *control)
+{
+    return control->ctrl;
+}
+
+void
+softpower_control_write(softpower_control_t *control, uint8_t value)
+{
+    uint8_t old = control->ctrl;
+
+    control->ctrl = value & SOFTPOWER_CTRL_MASK;
+    if ((control->ctrl & SOFTPOWER_HDWR_RESET) && !(old & SOFTPOWER_HDWR_RESET)) {
+        softpower_control_reset(control);
+        control->reset(control->priv);
+        return;
+    }
+    if ((control->ctrl & SOFTPOWER_REQ_POFF) && !(old & SOFTPOWER_REQ_POFF)) {
+        if ((control->ctrl & SOFTPOWER_EN_SUS_NMI) && control->suspend)
+            control->suspend(control->priv);
+        /* The split-timer API also handles the ISA card's 30-second setting. */
+        timer_stop(&control->timer);
+        if (control->delay_ms)
+            timer_on_auto(&control->timer, (double) control->delay_ms * 1000.0);
+        else
+            timer_set_delay_u64(&control->timer, 0);
+    }
+}
 
 static void
 softpower_power_off(UNUSED(void *priv))
@@ -66,39 +140,35 @@ softpower_power_off(UNUSED(void *priv))
 }
 
 static void
-softpower_write(uint16_t port, uint8_t val, void *priv)
+softpower_suspend(void *priv)
 {
-    softpower_t *dev = (softpower_t *) priv;
-    const uint8_t old = dev->ctrl;
+    const softpower_t *dev = priv;
 
-    dev->ctrl = val & SOFTPOWER_CTRL_MASK;
+    if (dev->nmi_enabled)
+        nmi_raise();
+}
 
-    if ((dev->ctrl & SOFTPOWER_HDWR_RESET) && !(old & SOFTPOWER_HDWR_RESET)) {
-        /* Cause a power-on reset. */
-        dev->ctrl = 0x00;
-        timer_disable(&dev->power_off_timer);
-        softresetx86();
-        return;
-    }
+static void
+softpower_cpu_reset(UNUSED(void *priv))
+{
+    softresetx86();
+}
 
-    if ((dev->ctrl & SOFTPOWER_REQ_POFF) && !(old & SOFTPOWER_REQ_POFF)) {
-        if (dev->nmi_enabled && (dev->ctrl & SOFTPOWER_EN_SUS_NMI))
-            nmi_raise(); /* System suspend NMI. */
+static void
+softpower_write(UNUSED(uint16_t port), uint8_t val, void *priv)
+{
+    softpower_t *dev = priv;
 
-        /* The power supply shuts the system down ~2 seconds after the
-           request, giving the NMI handler time to save system state. */
-        timer_set_delay_u64(&dev->power_off_timer,
-                            (uint64_t) dev->delay_ms * 1000ULL * TIMER_USEC);
-    }
+    softpower_control_write(dev->control, val);
 }
 
 static uint8_t
-softpower_read(uint16_t port, void *priv)
+softpower_read(UNUSED(uint16_t port), void *priv)
 {
     const softpower_t *dev = (const softpower_t *) priv;
 
     /* Bit 6 is always set: the emulated system is on external power. */
-    return SOFTPOWER_EXLPWR | dev->ctrl;
+    return SOFTPOWER_EXLPWR | softpower_control_read(dev->control);
 }
 
 static void
@@ -106,8 +176,7 @@ softpower_reset(void *priv)
 {
     softpower_t *dev = (softpower_t *) priv;
 
-    dev->ctrl = 0x00;
-    timer_disable(&dev->power_off_timer);
+    softpower_control_reset(dev->control);
 }
 
 static void *
@@ -116,10 +185,11 @@ softpower_init(UNUSED(const device_t *info))
     softpower_t *dev = (softpower_t *) calloc(1, sizeof(softpower_t));
 
     dev->base       = device_get_config_hex16("base");
-    dev->delay_ms   = device_get_config_int("delay");
+    const unsigned delay_ms = device_get_config_int("delay");
     dev->nmi_enabled = !!device_get_config_int("nmi");
 
-    timer_add(&dev->power_off_timer, softpower_power_off, dev, 0);
+    dev->control = softpower_control_create(delay_ms, softpower_suspend,
+                                            softpower_power_off, softpower_cpu_reset, dev);
     io_sethandler(dev->base, 1,
                   softpower_read, NULL, NULL,
                   softpower_write, NULL, NULL, dev);
@@ -135,7 +205,7 @@ softpower_close(void *priv)
     io_removehandler(dev->base, 1,
                      softpower_read, NULL, NULL,
                      softpower_write, NULL, NULL, dev);
-    timer_disable(&dev->power_off_timer);
+    softpower_control_destroy(dev->control);
     free(dev);
 }
 

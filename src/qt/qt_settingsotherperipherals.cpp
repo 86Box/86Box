@@ -70,6 +70,7 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 
     unittester_cfg_changed     = 0;
     softpower_cfg_changed      = 0;
+    softpower_card_enabled     = softpower_enabled > 0;
     novell_keycard_cfg_changed = 0;
 
     onCurrentMachineChanged(machine);
@@ -95,6 +96,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
 
     bool machineHasIsa          = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
     bool machineHasIsaOrSidecar = hasIsaOrSidecarBus(machineId);
+    const bool nativeSoftPower = machines[machineId].init == machine_ibm5140_init;
 
     ui->pushButtonConfigureRTC->setEnabled(machineHasIsaOrSidecar);
     ui->comboBoxRTC->setEnabled(machineHasIsaOrSidecar);
@@ -102,14 +104,15 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     ui->pushButtonConfigureUT->setEnabled(unittester_enabled > 0);
     ui->checkBoxKeyCard->setEnabled(machineHasIsa);
     ui->pushButtonConfigureKeyCard->setEnabled(novell_keycard_enabled > 0);
-    ui->checkBoxSoftPower->setEnabled(machineHasIsa);
-    ui->pushButtonConfigureSoftPower->setEnabled((machineHasIsa && (softpower_enabled > 0)));
+    ui->checkBoxSoftPower->setEnabled(machineHasIsa && !nativeSoftPower);
+    ui->pushButtonConfigureSoftPower->setEnabled(machineHasIsa && !nativeSoftPower && softpower_card_enabled);
 
     ui->checkBoxISABugger->setChecked((machineHasIsa && (bugger_enabled > 0)) ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
     ui->checkBoxUnitTester->setChecked(unittester_enabled > 0 ? true : false);
     ui->checkBoxKeyCard->setChecked((machineHasIsa && (novell_keycard_enabled > 0)) ? true : false);
-    ui->checkBoxSoftPower->setChecked((machineHasIsa && (softpower_enabled > 0)) ? true : false);
+    /* Native power hardware must not overwrite the optional card preference. */
+    ui->checkBoxSoftPower->setChecked(nativeSoftPower || (machineHasIsa && softpower_card_enabled));
 
     scRTC->removeRows();
     ui->comboBoxRTC->clear();
@@ -264,7 +267,7 @@ SettingsOtherPeripherals::changed()
     has_changed |= (postcard_enabled       != (ui->checkBoxPOSTCard->isChecked() ? 1 : 0));
     has_changed |= (unittester_enabled     != (ui->checkBoxUnitTester->isChecked() ? 1 : 0));
     has_changed |= unittester_cfg_changed;
-    has_changed |= (softpower_enabled       != (ui->checkBoxSoftPower->isChecked() ? 1 : 0));
+    has_changed |= (softpower_enabled      != (softpower_card_enabled ? 1 : 0));
     has_changed |= softpower_cfg_changed;
     has_changed |= (novell_keycard_enabled != (ui->checkBoxKeyCard->isChecked() ? 1 : 0));
     has_changed |= novell_keycard_cfg_changed;
@@ -309,7 +312,7 @@ SettingsOtherPeripherals::save(int soft)
     bugger_enabled         = ui->checkBoxISABugger->isChecked() ? 1 : 0;
     postcard_enabled       = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
     unittester_enabled     = ui->checkBoxUnitTester->isChecked() ? 1 : 0;
-    softpower_enabled       = ui->checkBoxSoftPower->isChecked() ? 1 : 0;
+    softpower_enabled      = softpower_card_enabled ? 1 : 0;
     novell_keycard_enabled = ui->checkBoxKeyCard->isChecked() ? 1 : 0;
 
     /* Memory expansion boards (shared slots; write the active family and
@@ -510,7 +513,11 @@ SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
 void
 SettingsOtherPeripherals::on_checkBoxSoftPower_stateChanged(int arg1)
 {
-    ui->pushButtonConfigureSoftPower->setEnabled(arg1 != 0);
+    const bool optionalCard = (machines[machineId].init != machine_ibm5140_init) &&
+                              (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
+    if (optionalCard)
+        softpower_card_enabled = arg1 != 0;
+    ui->pushButtonConfigureSoftPower->setEnabled(optionalCard && (arg1 != 0));
 }
 
 void

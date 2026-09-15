@@ -352,11 +352,17 @@ typedef struct _machine_ {
     uintptr_t              available_flag;
     uint32_t             (*gpio_acpi_handler)(uint8_t write, uint32_t val);
     const machine_cpu_t    cpu;
+    /* Boards that stretch I/O cycles beyond the CPU's standard count declare
+     * it here; 0 means use the CPU default. */
+    int                    cpu_io_cycles;
     uintptr_t              bus_flags;
     uintptr_t              flags;
     const machine_memory_t ram;
     int                    ram_granularity;
     int                    nvrmask;
+    /* Physical primary display aspect; zero leaves pixel geometry unchanged. */
+    int                    display_aspect_x;
+    int                    display_aspect_y;
     int                    jumpered_ecp_dma;
     int                    default_jumpered_ecp_dma;
 #ifdef EMU_DEVICE_H
@@ -478,6 +484,10 @@ extern uint32_t        machine_handle_gpio_acpi(uint8_t write, uint32_t val);
 
 /* Initialization functions for boards and systems. */
 extern void            machine_common_init(const machine_t *);
+extern int             machine_ibm5140_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ibm5140_device;
+#endif
 
 /* m_amstrad.c */
 #ifdef EMU_DEVICE_H

@@ -368,6 +368,35 @@ const machine_t machines[] = {
         .aliases    = { "" }
     },
     {
+        .name              = "[8088] IBM PC Convertible",
+        .internal_name     = "ibm5140",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ibm5140_init,
+        .available_flag    = MACHINE_AVAILABLE,
+        .cpu               = {
+            .package = CPU_PKG_80C88,
+            .block   = CPU_BLOCK_NONE,
+            .min_bus = 4772728,
+            .max_bus = 4772728
+        },
+        /* Technical Reference B-5: I/O cycles are 1.05 us, 5T at 4.77 MHz. */
+        .cpu_io_cycles = 5,
+        .bus_flags = MACHINE_BUS_NONE,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC |
+                     MACHINE_UART_PRI | MACHINE_LPT_PRI,
+        .ram       = { .min = 256, .max = 640, .step = 128 },
+        .display_aspect_x = 16,
+        .display_aspect_y = 5,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_p1     = 0xff,
+        .gpio       = 0xffffffff,
+        .gpio_acpi  = 0xffffffff,
+        .device     = &ibm5140_device,
+        .fdc_device = &fdc_ibm5140_device,
+        .aliases    = { "" }
+    },
+    {
         .name              = "[8088] IBM XT (1982)",
         .internal_name     = "ibmxt",
         .type              = MACHINE_TYPE_8088,
@@ -3458,6 +3487,8 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask                  = 127,
+        .display_aspect_x         = 16,
+        .display_aspect_y         = 5,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
@@ -3844,6 +3875,8 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask                  = 127,
+        .display_aspect_x         = 21,
+        .display_aspect_y         = 13,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
@@ -19375,7 +19408,7 @@ const machine_t machines[] = {
     /* 430TX */
     /* The BIOS sends KBC command B8, CA, and CB, so it has an AMI KBC firmware. */
     {
-        .name              = "[i430TX] ADLink NuPRO-591/592",
+        .name              = "[i430TX] ADLink NuPRO-592",
         .internal_name     = "nupro592",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -19419,7 +19452,7 @@ const machine_t machines[] = {
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
         .net_device               = &i82559c_onboard_device,
-        .aliases                  = { "ADLink NuPRO-590", "" }
+        .aliases                  = { "ADLink NuPRO-590", "ADLink NuPRO-591", "" }
     },
     /* This has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
     {

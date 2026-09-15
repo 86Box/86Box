@@ -26,6 +26,7 @@ extern "C" {
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
@@ -265,6 +266,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     ui->comboBoxCDROMType->setEnabled(eligibleRows > 1);
     ui->comboBoxCDROMType->setCurrentIndex(-1);
     ui->comboBoxCDROMType->setCurrentIndex(selectedTypeRow);
+    onCurrentMachineChanged(machine);
 }
 
 SettingsFloppyCDROM::~SettingsFloppyCDROM()
@@ -273,6 +275,26 @@ SettingsFloppyCDROM::~SettingsFloppyCDROM()
     delete scFloppyType;
 
     delete ui;
+}
+
+void
+SettingsFloppyCDROM::onCurrentMachineChanged(int machineId)
+{
+    const bool fixed = machines[machineId].init == machine_ibm5140_init;
+    auto *model = ui->treeViewFloppy->model();
+    ui->comboBoxFloppyType->setEnabled(!fixed);
+    ui->checkBoxTurboTimings->setEnabled(!fixed);
+    for (int i = 0; i < FDD_NUM; i++) {
+        ui->treeViewFloppy->setRowHidden(i, QModelIndex(), fixed && i >= 2);
+        if (fixed) {
+            const auto idx = model->index(i, 0);
+            setFloppyType(model, idx, i < 2 ? fdd_get_from_internal_name((char *) "35_2dd") : 0);
+            model->setData(idx.siblingAtColumn(1), tr("Off"));
+        }
+    }
+    if (fixed)
+        ui->treeViewFloppy->setCurrentIndex(model->index(0, 0));
+    onFloppyRowChanged(ui->treeViewFloppy->currentIndex());
 }
 
 int

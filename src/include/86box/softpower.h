@@ -15,6 +15,8 @@
 #ifndef SOFTPOWER_H
 #define SOFTPOWER_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -22,7 +24,17 @@ extern "C" {
 /* Global variables. */
 extern const device_t softpower_device;
 
-/* Functions. */
+/* Shared control/deadline logic; the board supplies its own NMI and rail actions.
+   No I/O handler is installed by this interface. */
+typedef struct softpower_control_t softpower_control_t;
+extern softpower_control_t *softpower_control_create(unsigned delay_ms,
+                                                    void (*suspend)(void *),
+                                                    void (*power_off)(void *),
+                                                    void (*reset)(void *), void *priv);
+extern void softpower_control_destroy(softpower_control_t *control);
+extern void softpower_control_reset(softpower_control_t *control);
+extern void softpower_control_write(softpower_control_t *control, uint8_t value);
+extern uint8_t softpower_control_read(const softpower_control_t *control);
 
 #ifdef __cplusplus
 }

@@ -940,13 +940,27 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
 
                 mach->accel.src_stepx = 0;
                 /*Source Width*/
-                dev->accel.cx = mach->accel.src_x;
-                if (mach->accel.src_x >= 0x600)
-                    dev->accel.cx |= ~0x5ff;
+                /* The blit source pointer is only reloaded from SRC_X/SRC_Y when the
+                   blit source has been halted and its FIFO flushed, which happens when
+                   a blit source register or DP_CONFIG is written, or the engine is
+                   reset (see "Blit Source Data FIFO", register guide p. 9-41).  A blit
+                   that touches neither carries on consuming the same source stream -
+                   that is how the ATI Windows 3.x driver's SaveScreenBitmap splits a
+                   linearized save into a run of full rows plus a remainder row. */
+                if (mach->accel.src_reload) {
+                    mach->accel.src_cur_x = mach->accel.src_x;
+                    if (mach->accel.src_x >= 0x600)
+                        mach->accel.src_cur_x |= ~0x5ff;
 
-                dev->accel.cy = mach->accel.src_y;
-                if (mach->accel.src_y >= 0x600)
-                    dev->accel.cy |= ~0x5ff;
+                    mach->accel.src_cur_y = mach->accel.src_y;
+                    if (mach->accel.src_y >= 0x600)
+                        mach->accel.src_cur_y |= ~0x5ff;
+
+                    mach->accel.src_cur_sx = 0;
+                }
+
+                dev->accel.cx = mach->accel.src_cur_x;
+                dev->accel.cy = mach->accel.src_cur_y;
 
                 mach->accel.sx_first_row_start = mach->accel.src_x;
                 if (mach->accel.src_x >= 0x600)
@@ -966,13 +980,14 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 } else if (mach->accel.sx_end < mach->accel.sx_start) {
                     mach->accel.src_width = (mach->accel.sx_start - mach->accel.sx_end);
                     mach->accel.src_stepx = -1;
-                    if (dev->accel.cx > 0)
+                    if (mach->accel.src_reload && (dev->accel.cx > 0))
                         dev->accel.cx--;
                 } else {
                     mach->accel.src_stepx = 1;
                     mach->accel.src_width = 0;
                 }
-                mach->accel.sx = 0;
+                mach->accel.sx = mach->accel.src_cur_sx;
+                mach->accel.src_reload = 0;
                 if (mach->accel.patt_data_idx < 0x10)
                     mach->accel.color_pattern_idx = mach->accel.patt_idx;
                 else
@@ -1323,6 +1338,11 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         dev->accel.cmd_back = 1;
                         if (mach->accel.dp_config == 0x6011)
                             mach_log(mach->log,"SRCCX update=%d, cy=%d, srcwidth=%d, srcoffset=0x%08x, vram_size=0x%08x.\n", dev->accel.cx, dev->accel.cy, mach->accel.width, dev->accel.src + dev->accel.cx, dev->vram_size);
+
+                        /*Where the source trajectory got to, for a blit that continues it.*/
+                        mach->accel.src_cur_x = dev->accel.cx;
+                        mach->accel.src_cur_y = dev->accel.cy;
+                        mach->accel.src_cur_sx = mach->accel.sx;
 
                         if (mach->accel.dp_config != 0x6011) {
                             if ((mono_src == 2) || (mono_src == 3) || (frgd_sel == 3) || (bkgd_sel == 3) || (mach->accel.dp_config & 0x02))
@@ -4235,6 +4255,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 WRITE8(port, dev->subsys_cntl, val);
             }
             dev->subsys_stat &= ~val;
+            if (dev->subsys_cntl & 0x9000)
+                mach->accel.src_reload = 1;
             if ((dev->subsys_cntl & 0xc000) == 0x8000) {
                 mach->force_busy = 0;
                 dev->force_busy = 0;
@@ -4294,6 +4316,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 2) {
                 mach->accel.src_y = val & 0x07ff;
                 mach->accel.src_y_scan = ((int64_t)(val & 0x07ff));
+                mach->accel.src_reload = 1;
             }
             break;
 
@@ -4303,6 +4326,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 2) {
                 mach->accel.src_x = val & 0x07ff;
                 mach->accel.src_x_scan = ((int64_t)(val & 0x07ff));
+                mach->accel.src_reload = 1;
             }
             break;
 
@@ -4322,6 +4346,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                from the 8514/A register view (FRGD_MIX/BKGD_MIX/PIX_CNTL), leaving
                whatever DP_CONFIG happens to hold stale. */
             mach->accel.dp_compat = 1;
+            mach->accel.src_reload = 1;
             ibm8514_accel_out_fifo(svga, port, val, len);
             break;
 
@@ -5063,8 +5088,10 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xb2ee:
-            if (len == 2)
+            if (len == 2) {
                 mach->accel.src_x_start = val & 0x7ff;
+                mach->accel.src_reload = 1;
+            }
             break;
 
         case 0xb6ee:
@@ -5080,12 +5107,15 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
 
         case 0xbeee:
-            if (len == 2)
+            if (len == 2) {
                 mach->accel.src_x_end = val & 0x7ff;
+                mach->accel.src_reload = 1;
+            }
             break;
 
         case 0xc2ee:
             mach->accel.src_y_dir = val & 0x01;
+            mach->accel.src_reload = 1;
             mach_log(mach->log,"Source Y Direction=%x.\n", val);
             break;
 
@@ -5144,6 +5174,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 dev->data_available2 = 0;
                 mach->accel.dp_config = val;
                 mach->accel.dp_compat = 0;
+                mach->accel.src_reload = 1;
             }
             break;
 
@@ -8190,6 +8221,7 @@ mach_reset(void *priv)
         mach->force_busy      = 0;
         dev->force_busy       = 0;
         dev->force_busy2      = 0;
+        mach->accel.src_reload = 1;
         mach->accel.src_y_dir = 0x01;
         dev->data_available  = 0;
         dev->data_available2 = 0;
@@ -8399,6 +8431,7 @@ mach8_init(const device_t *info)
     mach->accel.cmd_type = -2;
     dev->accel.cmd_back = 1;
     dev->mode = IBM_MODE;
+    mach->accel.src_reload = 1;
     mach->accel.src_y_dir = 0x01;
     svga->vga_enabled = 0;
 
@@ -8457,6 +8490,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
     dev->rowoffset = 0x80;
     dev->accel.cmd_back = 1;
     dev->mode = IBM_MODE;
+    mach->accel.src_reload = 1;
     mach->accel.src_y_dir = 0x01;
 
     mach->log = log_open("ATI Mach8 (8514 Ultra)");

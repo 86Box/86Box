@@ -68,6 +68,7 @@
 #    include <sys/ioctl.h>
 #    ifdef Q_OS_LINUX
 #        include <linux/fs.h>
+#        include "../unix/gamemode/gamemode_client.h"
 #    endif
 #    ifdef Q_OS_MACOS
 #        include <sys/disk.h>
@@ -769,6 +770,13 @@ plat_pause(int p)
         enter_pause();
     else
         exit_pause();
+#endif
+
+#ifdef Q_OS_LINUX
+    if (p)
+        gamemode_request_end();
+    else
+        gamemode_request_start();
 #endif
 
     do_pause(p);
