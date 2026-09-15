@@ -983,6 +983,9 @@ nvr_start(nvr_t *nvr)
     if (default_found == nvr->size)
         nvr->regs[0x0e] = 0xff; /* If load failed or it loaded an uninitialized NVR,
                                    mark everything as bad. */
+    else if (!nvr->is_new)
+        nvr->regs[0x0d] = REGD_VRT; /* If it is not new then set the VRT bit to
+                                       valid. */
 
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
