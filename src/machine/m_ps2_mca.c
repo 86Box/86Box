@@ -1551,13 +1551,11 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    /* Give the memory encoding registers a defined state on warm reset.
-       The model 70 type 3/4 BIOS performs its cache diagnostics assuming
-       the cache is disabled (and thus ROM wait states are in effect) until
-       it explicitly enables it. */
-    ps2.mem_regs[0] = 0x00;
-    ps2.mem_regs[1] = 0x02;
-    ps2.mem_regs[2] = 0x01;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+    ps2.mem_regs[2] = 0x01; /* Cache disabled and flushed at power-on */
 
     switch (mem_size / 1024) {
         case 2:
@@ -1642,7 +1640,11 @@ ps2_mca_board_model_80_type2_init(void)
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = 0xc0 | ((mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f));
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0xca : 0xc2; /* -ENSPLIT = 1 */
+
     /* Note: Based on the information on ardent-tool.com website,
        IBM PS/2 model 80 type 2 supports 1/2/4 MB memory cards on
        real machines, so memory encodings should be set as is. */
@@ -1671,8 +1673,6 @@ ps2_mca_board_model_80_type2_init(void)
             ps2.option[1] = 0x9a; /* 10 01 10 10 = 4 4 */
             break;
     }
-
-    ps2.mem_regs[0] |= ((mem_size / 1024) & 0x0f);
 
     mem_mapping_add(&ps2.split_mapping,
                     (mem_size + 256) * 1024,
@@ -1718,17 +1718,14 @@ ps2_mca_board_model_80_type3_init(void)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    /* Disable/Enable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
-    ps2.option[2] &= ~0x01;
-    ps2.has_e0000_hole = 1;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+    ps2.mem_regs[2] = 0x01; /* Cache disabled and flushed at power-on */
 
-    /* Give the memory encoding registers a defined state on warm reset.
-       The model 80 type 3 BIOS performs its cache diagnostics assuming
-       the cache is disabled (and thus ROM wait states are in effect)
-       until it explicitly enables it. */
-    ps2.mem_regs[0] = 0x00;
-    ps2.mem_regs[1] = 0x02;
-    ps2.mem_regs[2] = 0x01;
+    ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
+    ps2.has_e0000_hole = 1;
 
     switch (mem_size / 1024) {
         case 4:
@@ -1803,7 +1800,11 @@ ps55_mca_board_model_50t_init(void)
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+
     ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
     ps2.has_e0000_hole = 1;
 
@@ -1850,13 +1851,11 @@ ps55_mca_board_model_50v_init(void)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    /* Give the memory encoding registers a defined state on warm reset.
-       The PS/55 model 5550-V BIOS performs its cache diagnostics assuming
-       the cache is disabled (and thus ROM wait states are in effect) until
-       it explicitly enables it. */
-    ps2.mem_regs[0] = 0x00;
-    ps2.mem_regs[1] = 0x02;
-    ps2.mem_regs[2] = 0x01;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+    ps2.mem_regs[2] = 0x01; /* Cache disabled and flushed at power-on */
 
     ps2.option[2] &= 0xf2; /*   Bit 3-2: -Cache IDs, Bit 1: Reserved
                                 Bit 0: Disable E0000-E0FFFh (4 KB) */
