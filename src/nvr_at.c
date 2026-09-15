@@ -637,7 +637,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
         case RTC_REGD: /* R/O */
             /* This is needed for VIA, where writing to this register changes a write-only
                bit whose value is read from power management register 42. */
-            nvr->regs[RTC_REGD] = val & 0x80;
+            nvr->regs[RTC_REGD] = (nvr->regs[RTC_REGD] & 0xbf) | ((val & 0x80) >> 1);
             break;
 
         case 0x32:
@@ -752,8 +752,11 @@ nvr_read(uint16_t addr, void *priv)
                    (VRT): it can only be set by reading Register D and only cleared by
                    pulling the PS pin low, so a battery/power-loss event is reported
                    for exactly once. */
-                ret = nvr->regs[RTC_REGD];
-                nvr->regs[RTC_REGD] = REGD_VRT;
+                ret = nvr->regs[RTC_REGD] & REGD_VRT;
+                if ((nvr->regs[RTC_REGD] & REGD_VRT) != REGD_VRT) {
+                    nvr->regs[RTC_REGD] = (nvr->regs[RTC_REGD] & 0x7f) | REGD_VRT;
+                    nvr_dosave          = 1;
+                }
                 break;
 
             case 0x11:
