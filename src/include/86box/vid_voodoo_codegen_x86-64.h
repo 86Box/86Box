@@ -147,9 +147,9 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addlong(offsetof(voodoo_state_t, tex_t));
         addbyte(0x89); /*MOV ECX, EDX*/
         addbyte(0xd1);
-        addbyte(0x83); /*SUB EDX, 19*/
+        addbyte(0x83); /*SUB EDX, W_RECIPROCAL_LOG2_OFFSET*/
         addbyte(0xea);
-        addbyte(19);
+        addbyte(W_RECIPROCAL_LOG2_OFFSET);
         addbyte(0x48); /*SHR RAX, CL*/
         addbyte(0xd3);
         addbyte(0xe8);
