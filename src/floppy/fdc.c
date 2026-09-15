@@ -342,6 +342,16 @@ fdc_get_format_sectors(fdc_t *fdc)
     return (int) fdc->format_sectors;
 }
 
+static int
+fdc_track0(fdc_t *fdc, int drive)
+{
+    /* The Convertible isolates the controller's drive inputs as well as STEP.
+     * TRK0 is asserted while isolated, allowing PCN reinitialization without
+     * moving the head. The motherboard's position/DIR sense stays physical. */
+    return ((fdc->flags & FDC_FLAG_IBM5140) && fdc->drive_interface_gated) ||
+           fdd_track0(drive);
+}
+
 static void
 fdc_int(fdc_t *fdc, int set_fintr)
 {
@@ -894,7 +904,7 @@ fdc_pcjx_dor(fdc_t *fdc, uint8_t val)
     fdc->dor = val;
 }
 
-static void
+void
 fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
@@ -1419,7 +1429,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                    as a result line, so none of these apply.
                                  */
                                 if (!fdd_tape_present(drive_num) &&
-                                    ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdd_track0(drive_num))) {
+                                    ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num] || fdc_track0(fdc, drive_num))) {
                                     fdc_log("Failed recalibrate\n");
                                     if ((drive_num >= FDD_NUM) || !fdd_get_flags(drive_num) || !motoron[drive_num])
                                         fdc->st0 = 0x70 | (fdc->params[0] & 3);
@@ -1603,7 +1613,7 @@ fdc_read(uint16_t addr, void *priv)
                         ret |= 0x02;
                     if (!fdd_get_head(drive))          /* nHDSEL */
                         ret |= 0x08;
-                    if (fdd_track0(drive))             /* TRK0 */
+                    if (fdc_track0(fdc, drive))         /* TRK0 */
                         ret |= 0x10;
                     if (fdc->step)                     /* STEP */
                         ret |= 0x20;
@@ -1622,7 +1632,7 @@ fdc_read(uint16_t addr, void *priv)
                         ret |= 0x02;
                     if (fdd_get_head(drive))           /* HDSEL */
                         ret |= 0x08;
-                    if (!fdd_track0(drive))            /* nTRK0 */
+                    if (!fdc_track0(fdc, drive))        /* nTRK0 */
                         ret |= 0x10;
                     if (fdc->step)                     /* STEP */
                         ret |= 0x20;
@@ -1952,7 +1962,7 @@ fdc_callback(void *priv)
             if (fdd_is_double_sided(real_drive(fdc, fdc->drive)))
                 fdc->res[10] |= 0x08;
             if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
-                if (fdd_track0(real_drive(fdc, fdc->drive)))
+                if (fdc_track0(fdc, real_drive(fdc, fdc->drive)))
                     fdc->res[10] |= 0x10;
             }
             if (writeprot[fdc->drive])
@@ -2118,7 +2128,7 @@ fdc_callback(void *priv)
             drive_num                    = real_drive(fdc, fdc->rw_drive);
             fdc->st0                     = 0x20 | (fdc->params[0] & 3);
             fdd_set_head(fdc->rw_drive, 0);
-            if (!fdd_track0(drive_num))
+            if (!fdc_track0(fdc, drive_num))
                 fdc->st0 |= 0x50;
             fdc->stat = 0x10 | (1 << fdc->rw_drive);
             if (fdd_get_turbo(drive_num)) {
@@ -2777,7 +2787,7 @@ fdc_reset(void *priv)
     fdc->max_track = (fdc->flags & FDC_FLAG_MORE_TRACKS) ? 85 : 79;
 
     /* The JX motherboard owns every programmable decode alias. */
-    if (!(fdc->flags & FDC_FLAG_PCJX)) {
+    if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140))) {
         fdc_remove(fdc);
         if (fdc->flags & FDC_FLAG_SEC)
             fdc_set_base(fdc, FDC_SECONDARY_ADDR);
@@ -2787,7 +2797,7 @@ fdc_reset(void *priv)
             fdc_set_base(fdc, FDC_QUATERNARY_ADDR);
         else
             fdc_set_base(fdc, (fdc->flags & FDC_FLAG_PCJR) ? FDC_PRIMARY_PCJR_ADDR : FDC_PRIMARY_ADDR);
-    } else {
+    } else if (fdc->flags & FDC_FLAG_PCJX) {
         fdc_pcjx_dor(fdc, 0);
     }
 
@@ -2887,6 +2897,16 @@ const device_t fdc_xt_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+const device_t fdc_ibm5140_device = {
+    .name          = "IBM PC Convertible FDC",
+    .internal_name = "fdc_ibm5140",
+    .flags         = 0,
+    .local         = FDC_FLAG_IBM5140 | FDC_FLAG_NEC | FDC_FLAG_NO_TDR | FDC_FLAG_IRQ_ON_NOOP_SEEK,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset
 };
 
 const device_t fdc_xt_sec_device = {

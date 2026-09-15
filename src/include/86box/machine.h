@@ -484,6 +484,10 @@ extern uint32_t        machine_handle_gpio_acpi(uint8_t write, uint32_t val);
 
 /* Initialization functions for boards and systems. */
 extern void            machine_common_init(const machine_t *);
+extern int             machine_ibm5140_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  ibm5140_device;
+#endif
 
 /* m_amstrad.c */
 #ifdef EMU_DEVICE_H

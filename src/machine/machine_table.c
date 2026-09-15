@@ -368,6 +368,35 @@ const machine_t machines[] = {
         .aliases    = { "" }
     },
     {
+        .name              = "[8088] IBM PC Convertible",
+        .internal_name     = "ibm5140",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_ibm5140_init,
+        .available_flag    = MACHINE_AVAILABLE,
+        .cpu               = {
+            .package = CPU_PKG_80C88,
+            .block   = CPU_BLOCK_NONE,
+            .min_bus = 4772728,
+            .max_bus = 4772728
+        },
+        /* Technical Reference B-5: I/O cycles are 1.05 us, 5T at 4.77 MHz. */
+        .cpu_io_cycles = 5,
+        .bus_flags = MACHINE_BUS_NONE,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC |
+                     MACHINE_UART_PRI | MACHINE_LPT_PRI,
+        .ram       = { .min = 256, .max = 640, .step = 128 },
+        .display_aspect_x = 16,
+        .display_aspect_y = 5,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_p1     = 0xff,
+        .gpio       = 0xffffffff,
+        .gpio_acpi  = 0xffffffff,
+        .device     = &ibm5140_device,
+        .fdc_device = &fdc_ibm5140_device,
+        .aliases    = { "" }
+    },
+    {
         .name              = "[8088] IBM XT (1982)",
         .internal_name     = "ibmxt",
         .type              = MACHINE_TYPE_8088,

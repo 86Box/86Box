@@ -65,6 +65,7 @@
 #include <86box/postcard.h>
 #include <86box/unittester.h>
 #include <86box/softpower.h>
+#include <86box/ibm5140_power.h>
 #include <86box/novell_cardkey.h>
 #include <86box/mcamem.h>
 #include <86box/isamem.h>
@@ -1885,7 +1886,7 @@ pc_reset_hard_init(void)
         device_add(&postcard_device);
     if (unittester_enabled)
         device_add(&unittester_device);
-    if (softpower_enabled)
+    if (softpower_enabled && (machines[machine].init != machine_ibm5140_init))
         device_add(&softpower_device);
 
     if (novell_keycard_enabled)
@@ -2021,6 +2022,7 @@ pc_run(void)
     /* Trigger a hard reset if one is pending. */
     if (hard_reset_pending) {
         hard_reset_pending = 0;
+        ibm5140_power_hard_off();
         pc_reset_hard_close();
         pc_reset_hard_init();
     }
