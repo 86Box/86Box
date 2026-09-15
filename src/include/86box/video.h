@@ -71,6 +71,7 @@ typedef enum video_font_format_e
     FONT_FORMAT_PC1512_T1000 = 8,
     FONT_FORMAT_IM1024 = 9,
     FONT_FORMAT_PRAVETZ = 10,
+    FONT_FORMAT_IM1024_8X12 = 11,
 } video_font_format;
 
 #define VIDEO_FLAG_TYPE_CGA     0
@@ -234,7 +235,8 @@ extern uint8_t      fontdat[2048][8];      /* IBM CGA font */
 extern uint8_t      fontdatm[2048][16];    /* IBM MDA font */
 extern uint8_t      fontdatw[512][32];     /* Wyse700 font */
 extern uint8_t      fontdat8x12[256][16];  /* MDSI Genius font */
-extern uint8_t      fontdat12x18[256][36]; /* IM1024 font */
+extern uint8_t      fontdat12x18[256][36]; /* IM1024 12x18 font */
+extern uint8_t      fontdat8x12im1024[256][12]; /* IM1024 8x12 font */
 extern dbcs_font_t *fontdatksc5601;        /* Korean KSC-5601 font */
 extern dbcs_font_t *fontdatksc5601_user;   /* Korean KSC-5601 user defined font */
 extern uint32_t    *video_6to8;
