@@ -748,9 +748,12 @@ nvr_read(uint16_t addr, void *priv)
                 break;
 
             case RTC_REGD:
-                /* Bits 6-0 of this register always read 0. Bit 7 is battery state,
-                   we should always return it set, as that means the battery is OK. */
-                ret = REGD_VRT;
+                /* Bits 6-0 of this register always read 0. Bit 7 is the battery state
+                   (VRT): it can only be set by reading Register D and only cleared by
+                   pulling the PS pin low, so a battery/power-loss event is reported
+                   for exactly once. */
+                ret = nvr->regs[RTC_REGD];
+                nvr->regs[RTC_REGD] = REGD_VRT;
                 break;
 
             case 0x11:
@@ -957,7 +960,10 @@ nvr_reset(nvr_t *nvr)
     if (local->cent != 0xFF)
         nvr->regs[local->cent] = RTC_BCD(19);
 
-    nvr->regs[RTC_REGD] = REGD_VRT;
+    /* A power loss pulls the PS pin low, which clears VRT on real hardware; the first
+       read of Register D latches it back to 1, so a machine with no saved NVR reports
+       a battery/configuration error exactly once. */
+    nvr->regs[RTC_REGD] = 0x00;
 }
 
 /* Process after loading from file. */

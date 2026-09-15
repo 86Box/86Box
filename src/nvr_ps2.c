@@ -132,6 +132,7 @@ ps2_nvr_init(const device_t *info)
     fp = nvr_fopen(nvr->fn, "rb");
 
     nvr->ram = (uint8_t *) calloc(1, nvr->size);
+    memset(nvr->ram, 0xff, nvr->size);
     if (fp != NULL) {
         nvr->loaded = 1;
         if ((cpu_s != NULL) && (fread(nvr->ram, 1, nvr->size, fp) != nvr->size))
