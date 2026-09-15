@@ -55,6 +55,8 @@
 #include <86box/isapnp.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/i2c.h>
+#include <86box/filters.h>
 
 #define GUS_PNP_ROM   "roms/sound/gravis/ultrasound_pnp.bin" /* Beavis Ultrasound ROM */
 #define GUS_PNP_NOCD  "roms/sound/gravis/GRAVNOCD.ROM" /* Gravis UltraSound PnP ROM, ATAPI CD-ROM disabled */
@@ -319,6 +321,16 @@ typedef struct gus_t {
 
     /* CD-ROM enable */
     uint8_t  iw_atapi;
+
+    /* TEA6330T */
+    uint16_t cur_tea6330_addr;
+    void    *i2c;
+    void    *tea6330t;
+    uint8_t  tea6330t_data[8];
+    uint8_t  tval;
+    uint8_t  bval;
+    double   tea6330t_bass[16];
+    double   tea6330t_treble[16];
 
     void *   log; /* New logging system */
 } gus_t;
@@ -2695,6 +2707,24 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
                 temp_r = 0;
             else
                 temp_r *= (iw_vols_5bits_aux_gain[gus->ad1848.regs[27] & 0x1f]) / 65536.0; /* R master vol */
+            if (gus->cur_tea6330_addr) {
+                if (gus->bval >= 8) {
+                    temp_l += (low_iir(0, 0, temp_l)) * (gus->tea6330t_bass[gus->bval]);
+                    temp_r += (low_iir(0, 1, temp_r)) * (gus->tea6330t_bass[gus->bval]);
+                } else if (gus->bval <= 6) {
+                    temp_l = (temp_l *gus->tea6330t_bass[gus->bval] + low_cut_iir(0, 0, temp_l)) * (1.0 + gus->tea6330t_bass[gus->bval]);
+                    temp_r = (temp_r *gus->tea6330t_bass[gus->bval] + low_cut_iir(0, 1, temp_r)) * (1.0 + gus->tea6330t_bass[gus->bval]);
+                }
+                if (gus->tval >= 8) {
+                    temp_l += (high_iir(0, 0, temp_l)) * (gus->tea6330t_treble[gus->tval]);
+                    temp_r += (high_iir(0, 1, temp_r)) * (gus->tea6330t_treble[gus->tval]);
+                } else if (gus->tval <= 6) {
+                    temp_l = (temp_l *gus->tea6330t_treble[gus->tval] + high_cut_iir(0, 0, temp_l)) * (1.0 + gus->tea6330t_treble[gus->tval]);
+                    temp_r = (temp_r *gus->tea6330t_treble[gus->tval] + high_cut_iir(0, 1, temp_r)) * (1.0 + gus->tea6330t_treble[gus->tval]);
+                }
+                temp_l *= 2;
+                temp_r *= 2;
+            }
             buffer[c]     += (int32_t) temp_l;
             buffer[c + 1] += (int32_t) temp_r;
         } else {
@@ -2833,6 +2863,34 @@ gus_reloc_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
     }
+}
+
+void
+tea6330_write(uint16_t addr, uint8_t val, void *priv)
+{
+    gus_t    *gus = (gus_t *) priv;
+
+    /* bit 1 = data, bit 0 = clock */
+
+    i2c_gpio_set(gus->i2c, val & 0x01, (val & 0x02) >> 1);
+
+    gus->bval = gus->tea6330t_data[2];
+    gus->tval = gus->tea6330t_data[3];
+
+    printf("TEA6330T I2C write, current treble = %02X, current bass = %02X\n", gus->tval, gus->bval);
+}
+
+uint8_t
+tea6330_read(uint16_t addr, void *priv)
+{
+    gus_t    *gus = (gus_t *) priv;
+    uint8_t val = 0xff;
+
+    val &= i2c_gpio_get_scl(gus->i2c) ? 0xff : 0xfe;
+    val &= i2c_gpio_get_sda(gus->i2c) ? 0xff : 0xfd;
+
+
+    return val;
 }
 
 static void
@@ -3018,6 +3076,18 @@ gus_pnp_config_changed(const uint8_t ld, isapnp_device_config_t *config, void *p
                 if (config->irq[0].irq != ISAPNP_IRQ_DISABLED) {
                     gus->cur_mpu_irq = config->irq[0].irq;
                     gus_log(gus->log, "Updating InterWave MPU401 IRQ to %i\n", gus->cur_mpu_irq);
+                }
+            }
+            break;
+        case 5: /* TEA6330T Tone Control (Compaq/STB UltraSound 32) */
+            if (gus->cur_tea6330_addr) {
+                io_removehandler(gus->cur_tea6330_addr, 1, tea6330_read, NULL, NULL, tea6330_write, NULL, NULL, gus);
+                gus->cur_tea6330_addr = 0;
+            }
+            if (config->activate) {
+                if (config->io[0].base != ISAPNP_IO_DISABLED) {
+                    gus->cur_tea6330_addr = config->io[0].base;
+                    io_sethandler(gus->cur_tea6330_addr, 1, tea6330_read, NULL, NULL, tea6330_write, NULL, NULL, gus);
                 }
             }
             break;
@@ -3520,6 +3590,24 @@ gus_pnp_init(const device_t *info)
     /* NOTE: Windows NT beta drivers bluescreen on Rev C due to a bug */
     gus->iw_rev = is_compaq ? 0x20 : 0x10;
 
+    /* Initialize TEA6330T */
+    if (is_compaq) {
+        gus->i2c      = i2c_gpio_init("tea6330t");
+        gus->tea6330t = i2c_eeprom_init(i2c_gpio_get_bus(gus->i2c), 0x40, gus->tea6330t_data, sizeof(gus->tea6330t_data), 1);
+    }
+
+    /* Calculate bass/treble for TEA6330T */
+    int8_t bass[16] = {-12, -12, -12, -12, -9, -6, -3, 0, 3, 6, 9, 12, 15, 15, 15, 15};
+    int8_t treble[16] = {-12, -12, -12, -12, -9, -6, -3, 0, 3, 6, 9, 12, 12, 12, 12, 12};
+
+    for (c = 0; c < 16; c++) {
+        double attenuation = 0;
+        attenuation = pow(10, bass[c] / 10);
+        gus->tea6330t_bass[c] = (attenuation);
+        attenuation = pow(10, treble[c] / 10);
+        gus->tea6330t_treble[c] = (attenuation);
+    }
+
     return gus;
 }
 
@@ -3531,6 +3619,11 @@ gus_close(void *priv)
     if (gus->log != NULL) {
         log_close(gus->log);
         gus->log = NULL;
+    }
+
+    if (gus->i2c != NULL) {
+        i2c_eeprom_close(gus->tea6330t);
+        i2c_gpio_close(gus->i2c);
     }
 
     if (gus->rom)
