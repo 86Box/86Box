@@ -3458,6 +3458,8 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask                  = 127,
+        .display_aspect_x         = 16,
+        .display_aspect_y         = 5,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_xt_device,
@@ -3844,6 +3846,8 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask                  = 127,
+        .display_aspect_x         = 21,
+        .display_aspect_y         = 13,
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,

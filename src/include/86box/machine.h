@@ -360,6 +360,9 @@ typedef struct _machine_ {
     const machine_memory_t ram;
     int                    ram_granularity;
     int                    nvrmask;
+    /* Physical primary display aspect; zero leaves pixel geometry unchanged. */
+    int                    display_aspect_x;
+    int                    display_aspect_y;
     int                    jumpered_ecp_dma;
     int                    default_jumpered_ecp_dma;
 #ifdef EMU_DEVICE_H

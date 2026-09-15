@@ -162,6 +162,7 @@ int      video_fullscreen_scale                 = 0;              /* (C) video *
 int      fullscreen_ui_visible                  = 0;              /* (C) video */
 int      enable_overscan                        = 0;              /* (C) video */
 int      force_43                               = 0;              /* (C) video */
+int      force_device_aspect                    = 0;              /* (C) video */
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
@@ -2157,6 +2158,11 @@ set_screen_size_monitor(int x, int y, int monitor_index)
                 dy = (dx / 4.0) * 3.0;
         }
         monitors[monitor_index].mon_unscaled_size_y = (int) dy;
+    } else if (force_device_aspect && monitors[monitor_index].mon_device_aspect_x > 0 &&
+               monitors[monitor_index].mon_device_aspect_y > 0) {
+        monitors[monitor_index].mon_unscaled_size_y =
+            x * monitors[monitor_index].mon_device_aspect_y /
+            monitors[monitor_index].mon_device_aspect_x;
     } else
         monitors[monitor_index].mon_unscaled_size_y = monitors[monitor_index].mon_efscrnsz_y;
 

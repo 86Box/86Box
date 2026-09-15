@@ -131,7 +131,16 @@ RendererCommon::onResize(int width, int height)
     width  = round(pixelRatio * width);
     height = round(pixelRatio * height);
 
-    if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1) && !(force_43 && vid_resize))
+    const auto &monitor = monitors[r_monitor_index];
+    if (!force_43 && force_device_aspect && monitor.mon_device_aspect_x > 0 && monitor.mon_device_aspect_y > 0) {
+        int dw = width;
+        int dh = qRound((double) width * monitor.mon_device_aspect_y / monitor.mon_device_aspect_x);
+        if (dh > height) {
+            dh = height;
+            dw = qRound((double) height * monitor.mon_device_aspect_x / monitor.mon_device_aspect_y);
+        }
+        destination.setRect((width - dw) / 2, (height - dh) / 2, dw, dh);
+    } else if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1) && !(force_43 && vid_resize))
         destination.setRect(0, 0, width, height);
     else {
         auto   temp_fullscreen_scale = video_fullscreen_scale;
