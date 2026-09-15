@@ -283,6 +283,7 @@ extern const device_t gus_ace_device;
 extern const device_t gus_extreme_device;
 extern const device_t gus_vipermax_device;
 extern const device_t gus_pnp_device;
+extern const device_t gus_pnp_new_device;
 extern const device_t gus_pnp_nocd_device;
 extern const device_t gus_pnp_compaq_device;
 
