@@ -101,6 +101,7 @@ static const NETWORK_CARD net_cards[] = {
     /* COM */
     { &modem_device               },
     /* LPT */
+    { &pe3_device                 },
     { &plip_device                },
     /* ISA16 */
     { &pcnet_am79c960_device      },
