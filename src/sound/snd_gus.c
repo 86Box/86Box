@@ -58,7 +58,8 @@
 #include <86box/i2c.h>
 #include <86box/filters.h>
 
-#define GUS_PNP_ROM   "roms/sound/gravis/ultrasound_pnp.bin" /* Beavis Ultrasound ROM */
+#define GUS_PNP_ROM   "roms/sound/gravis/OLDGRAV.ROM" /* Gravis UltraSound PnP ROM, old with MPU401 IRQ */
+#define GUS_PNP_ROM_N "roms/sound/gravis/GRAVIS.ROM" /* Gravis UltraSound PnP ROM, new with no MPU401 IRQ */
 #define GUS_PNP_NOCD  "roms/sound/gravis/GRAVNOCD.ROM" /* Gravis UltraSound PnP ROM, ATAPI CD-ROM disabled */
 #define GUS_COMPAQ_N  "roms/sound/gravis/COMPNEW.ROM" /* Compaq/STB UltraSound 32 ROM */
 #define IW_SAMPLE_ROM "roms/sound/gravis/IWROM.BIN" /* 1MB InterWave sample ROM */
@@ -110,6 +111,13 @@ enum {
     GUS_VIPERMAX   = 5,
     GUS_EXTREME    = 6,
     GUS_INTERWAVE  = 7
+};
+
+enum {
+    IW_GUS_PNP_OLD  = 0,
+    IW_GUS_PNP_NEW  = 1,
+    IW_GUS_PNP_NOCD = 2,
+    IW_GUS_COMPAQ   = 3
 };
 
 enum {
@@ -3522,7 +3530,7 @@ gus_pnp_init(const device_t *info)
 
     gus->uart_out = 1;
 
-    gus->type = info->local & 0x0f;
+    gus->type = GUS_INTERWAVE;
 
     gus->jumper = 0x06;
 
@@ -3547,21 +3555,31 @@ gus_pnp_init(const device_t *info)
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
 
-    uint8_t pnp_nocd  = info->local & 0x10;
-    uint8_t is_compaq = info->local & 0x20;
+    uint8_t pnp_type  = info->local;
+    uint8_t is_compaq = 0;
 
     const char *pnp_rom_file = NULL;
-    uint16_t pnp_rom_len;
-    if (is_compaq) {
-        pnp_rom_len  = 338;
-        pnp_rom_file = GUS_COMPAQ_N;
-    } else if (pnp_nocd) {
-        pnp_rom_len  = 500;
-        pnp_rom_file = GUS_PNP_NOCD;
-    } else {
-        pnp_rom_len  = 512;
-        pnp_rom_file = GUS_PNP_ROM;
-        gus->iw_atapi = 1;
+    uint16_t pnp_rom_len = 0;
+    switch (pnp_type) {
+        case IW_GUS_PNP_OLD:
+            pnp_rom_len  = 504;
+            pnp_rom_file = GUS_PNP_ROM;
+            gus->iw_atapi = 1;
+            break;
+        case IW_GUS_PNP_NEW:
+            pnp_rom_len  = 506;
+            pnp_rom_file = GUS_PNP_ROM_N;
+            gus->iw_atapi = 1;
+            break;
+        case IW_GUS_PNP_NOCD:
+            pnp_rom_len  = 500;
+            pnp_rom_file = GUS_PNP_NOCD;
+            break;
+        case IW_GUS_COMPAQ:
+            pnp_rom_len  = 338;
+            pnp_rom_file = GUS_COMPAQ_N;
+            is_compaq = 1;
+            break;
     }
 
     uint8_t *pnp_rom = NULL;
@@ -3630,6 +3648,30 @@ gus_close(void *priv)
         free(gus->rom);
     free(gus->ram);
     free(gus);
+}
+
+static int
+gus_pnp_available(void)
+{
+    return rom_present(GUS_PNP_ROM);
+}
+
+static int
+gus_pnp_new_available(void)
+{
+    return rom_present(GUS_PNP_ROM_N);
+}
+
+static int
+gus_pnp_nocd_available(void)
+{
+    return rom_present(GUS_PNP_NOCD);
+}
+
+static int
+gus_pnp_compaq_available(void)
+{
+    return rom_present(GUS_COMPAQ_N);
 }
 
 void
@@ -4126,28 +4168,42 @@ const device_t gus_vipermax_device = {
 };
 
 const device_t gus_pnp_device = {
-    .name          = "Gravis UltraSound PNP",
+    .name          = "Gravis UltraSound PnP (Old PnP ROM)",
     .internal_name = "guspnp",
     .flags         = DEVICE_ISA16,
-    .local         = GUS_INTERWAVE,
+    .local         = IW_GUS_PNP_OLD,
     .init          = gus_pnp_init,
     .close         = gus_close,
     .reset         = gus_reset,
-    .available     = NULL,
+    .available     = gus_pnp_available,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_pnp_config
+};
+
+const device_t gus_pnp_new_device = {
+    .name          = "Gravis UltraSound PnP (New PnP ROM)",
+    .internal_name = "guspnp_new",
+    .flags         = DEVICE_ISA16,
+    .local         = IW_GUS_PNP_NEW,
+    .init          = gus_pnp_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = gus_pnp_new_available,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_pnp_config
 };
 
 const device_t gus_pnp_nocd_device = {
-    .name          = "Gravis UltraSound PNP (No CD-ROM)",
+    .name          = "Gravis UltraSound PnP (No CD-ROM)",
     .internal_name = "guspnp_nocd",
     .flags         = DEVICE_ISA16,
-    .local         = GUS_INTERWAVE | 0x10,
+    .local         = IW_GUS_PNP_NOCD,
     .init          = gus_pnp_init,
     .close         = gus_close,
     .reset         = gus_reset,
-    .available     = NULL,
+    .available     = gus_pnp_nocd_available,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_pnp_config
@@ -4157,11 +4213,11 @@ const device_t gus_pnp_compaq_device = {
     .name          = "Compaq/STB UltraSound 32",
     .internal_name = "guspnp_compaq",
     .flags         = DEVICE_ISA16,
-    .local         = GUS_INTERWAVE | 0x20,
+    .local         = IW_GUS_COMPAQ,
     .init          = gus_pnp_init,
     .close         = gus_close,
     .reset         = gus_reset,
-    .available     = NULL,
+    .available     = gus_pnp_compaq_available,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_pnp_compaq_config
