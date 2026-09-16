@@ -220,11 +220,22 @@ pe3_update_irq(pe3_t *dev)
     }
 }
 
-static int
-pe3_rx(void *priv, uint8_t *buf, int io_len)
+static void
+pe3_rx_flush(pe3_t *dev)
 {
-    pe3_t *dev = (pe3_t *) priv;
+    dev->rx_head    = 0;
+    dev->rx_count   = 0;
+    dev->rx_active  = 0;
+    dev->rx_hdr_ptr = 0;
+    dev->rx_ptr     = 0;
+    dev->rx_left    = 0;
+    dev->isr1 &= ~PE3_ISR1_RXOK;
+    pe3_update_irq(dev);
+}
 
+static int
+pe3_rx_queue(pe3_t *dev, uint8_t *buf, int io_len)
+{
     if ((dev->rxmode == PE3_RX_OFF) || (dev->control & PE3_CONTROL_STOP))
         return 0;
 
@@ -263,6 +274,17 @@ pe3_rx(void *priv, uint8_t *buf, int io_len)
     pe3_update_irq(dev);
 
     return 1;
+}
+
+static int
+pe3_rx(void *priv, uint8_t *buf, int io_len)
+{
+    pe3_t *dev = (pe3_t *) priv;
+
+    if (!(dev->mode & PE3_MODE_NOLOOP)) /* cut off from the network during loopback */
+        return 0;
+
+    return pe3_rx_queue(dev, buf, io_len);
 }
 
 static void
@@ -343,7 +365,7 @@ pe3_transmit(pe3_t *dev)
             network_tx(dev->card, dev->tx_pkt, len);
         } else { /* loopback */
             pe3_log(dev->log, "Looping back %d-byte packet\n", len);
-            pe3_rx(dev, dev->tx_pkt, len);
+            pe3_rx_queue(dev, dev->tx_pkt, len);
         }
     }
 
@@ -436,8 +458,10 @@ pe3_write_reg(pe3_t *dev, uint8_t reg, uint8_t val)
             break;
 
         case PE3_REG_CONTROL:
-            if ((val & PE3_CONTROL_STOP) && !(dev->control & PE3_CONTROL_STOP)) /* any ongoing packet read is expected to be discarded */
-                pe3_rx_close(dev);
+            if ((val & PE3_CONTROL_STOP) && !(dev->control & PE3_CONTROL_STOP)) {
+                pe3_rx_close(dev); /* any ongoing packet read is expected to be discarded... */
+                pe3_rx_flush(dev); /* ...and so is anything still waiting behind it */
+            }
             dev->control = val;
             break;
 
