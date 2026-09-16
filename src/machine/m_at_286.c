@@ -961,7 +961,7 @@ machine_at_n8810m30_init(const machine_t *model) /* Onboard SCSI not yet emulate
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/n8810m30/at286bios_53889.00.0.17jr.BIN",
+    ret = bios_load_linear("roms/machines/n8810m30/at286bios_53889.00.0.17jr.bin",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

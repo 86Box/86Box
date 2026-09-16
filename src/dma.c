@@ -32,6 +32,7 @@
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/dma.h>
+#include <86box/m_ibm5140.h>
 #include "808x_marty_86box.h"
 #include <86box/plat_unused.h>
 
@@ -49,6 +50,8 @@ static uint8_t  dma_command[2];
 static uint8_t  dma_req_is_soft;
 static uint8_t  dma_advanced;
 static uint8_t  dma_at;
+static uint8_t  dma_ibm5140;
+static uint8_t  dma_ibm5140_diag;
 static uint8_t  dma_buffer[65536];
 static uint16_t dma_sg_base;
 static uint16_t dma16_buffer[65536];
@@ -127,6 +130,8 @@ dma_page_is_xt(void)
 int
 dma_xt8237_active(void)
 {
+    if (dma_ibm5140)
+        return 1;
 #ifdef DMA_FORCE_REWRITE
     if (dma_force_xt)
         return !dma_advanced && !dma_ps2.is_ps2;
@@ -154,7 +159,8 @@ dma_xt8237_priority_pick(uint8_t requests)
     int i;
     uint8_t owner;
 
-    requests &= (uint8_t) ~(dma_m & 0x0f);
+    /* Software requests bypass the DREQ mask, but retain normal priority. */
+    requests &= (uint8_t) (~dma_m | dma_xt8237.sw_request);
     requests &= dma_e & 0x0f;
 
     if (!requests || (dma_command[0] & 0x04))
@@ -196,7 +202,7 @@ dma_xt8237_can_service(int channel)
         return 0;
     if (!(dma_e & (1 << channel)))
         return 0;
-    if (dma_m & (1 << channel))
+    if ((dma_m & ~dma_xt8237.sw_request) & (1 << channel))
         return 0;
 
     requests = dma_xt8237_service_requests();
@@ -332,6 +338,15 @@ dma_xt8237_master_clear(void)
 
     memset(&dma_xt8237, 0, sizeof(dma_xt8237));
     dma_xt8237.last_service = 3;
+    if (dma_ibm5140) {
+        /* The integrated controller clears its standard channel registers,
+         * unlike the discrete 8237 whose mode registers survive master clear. */
+        for (int channel = 1; channel < 4; channel++) {
+            dma[channel].mode = 0;
+            dma[channel].ab = dma[channel].ac = 0;
+            dma[channel].cb = dma[channel].cc = 0;
+        }
+    }
 
     /* Master clear resets the 8237, not external DREQ pins. Keep the physical
      * request bitmap and PIT1 latch intact; the caller reconciles/cancels any
@@ -460,6 +475,8 @@ dma_set_drq(int channel, int set)
     dma_stat_rq_pc &= ~bit;
     if (set)
         dma_stat_rq_pc |= bit;
+    if (dma_ibm5140 && set && channel > 0 && channel < 4)
+        ibm5140_clock_wake();
 
     if (dma_xt8237_active() && (channel < 4) && !set &&
         (dma_xt8237.demand_active & bit)) {
@@ -470,6 +487,19 @@ dma_set_drq(int channel, int set)
      * pre-DACK schedule. Reconcile both directions, not only retries. */
     if (dma_xt8237_active() && dma_xt_refresh_queued)
         dma_xt_refresh_reconcile();
+}
+
+static void (*dma_service_handler[8])(void *);
+static void  *dma_service_priv[8];
+
+void
+dma_set_service_handler(int channel, void (*handler)(void *), void *priv)
+{
+    if ((channel < 0) || (channel > 7))
+        return;
+
+    dma_service_handler[channel] = handler;
+    dma_service_priv[channel]    = priv;
 }
 
 void
@@ -843,9 +873,60 @@ static uint8_t dma_read_legacy(uint16_t addr, void *priv);
 static void dma_write_legacy(uint16_t addr, uint8_t val, void *priv);
 
 static uint8_t
+dma_ibm5140_diag_read(void)
+{
+    switch (dma_ibm5140_diag) {
+        case 0: case 1: case 2:
+            return dma[dma_ibm5140_diag + 1].page & 0x0f;
+        case 3:
+            return dma_m & 0x0e;
+        case 7:
+            return dma_command[0] & 0xc4;
+        case 8: case 9: case 10:
+            return dma[dma_ibm5140_diag - 7].mode & 0xec;
+        case 11:
+            return dma_xt8237.sw_request & 0x0e;
+        default:
+            return 0xff;
+    }
+}
+
+static void
+dma_ibm5140_service(void)
+{
+    int channel;
+    uint8_t requests = dma_xt8237.sw_request;
+    /* Software initiation is defined only for block-mode channels. Keep
+     * other request bits latched and visible through the diagnostic port. */
+    for (channel = 1; channel < 4; channel++)
+        if ((dma[channel].mode & 0xc0) != 0x80)
+            requests &= ~(1 << channel);
+    dma_req_is_soft = 1;
+    while ((channel = dma_xt8237_priority_pick(requests)) >= 0) {
+        const int type = dma[channel].mode & 0x0c;
+        int result;
+        if (type == 0x0c)
+            break;
+        /* Verify advances the same address/count/TC state without touching
+           memory. With no peripheral driving a software write, D0..7 float. */
+        if (type == 4)
+            result = dma_channel_write(channel, 0xff);
+        else
+            result = dma_channel_read(channel);
+        if (result == DMA_NODATA)
+            break;
+        requests &= dma_xt8237.sw_request;
+    }
+    dma_req_is_soft = 0;
+}
+
+static uint8_t
 dma_read(uint16_t addr, void *priv)
 {
     uint8_t ret;
+
+    if (dma_ibm5140 && ((addr & 0x0f) < 2))
+        return (addr & 1) ? dma_ibm5140_diag_read() : 0xff;
 
     if (!dma_xt8237_active())
         return dma_read_legacy(addr, priv);
@@ -869,6 +950,25 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 {
     int channel;
     uint8_t bit;
+
+    if (dma_ibm5140) {
+        switch (addr & 0x0f) {
+            case 0:
+                dma_ibm5140_diag = val & 0x0f;
+                return;
+            case 1:
+                return;
+            case 8:
+                val &= 0xc4; /* No memory-to-memory, rotation, or compression. */
+                break;
+            case 9: case 10: case 11:
+                if (!(val & 3))
+                    return; /* Channel zero does not exist on the 5140. */
+                if ((addr & 0x0f) == 11)
+                    val &= ~0x10; /* No automatic reinitialization. */
+                break;
+        }
+    }
 
     if (!dma_xt8237_active()) {
         dma_write_legacy(addr, val, priv);
@@ -894,7 +994,7 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
                 dma_xt8237.sw_request |= bit;
                 if ((channel == 0) && (dma_command[0] & 0x01))
                     (void)dma_xt8237_mem_to_mem();
-                else
+                else if (!dma_ibm5140)
                     dma_block_transfer(channel);
             } else {
                 dma_xt8237.sw_request &= (uint8_t)~bit;
@@ -951,6 +1051,10 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
     /* The previous dispatcher returned from every arm, so its refresh retry
      * was unreachable. Reconcile after every programming write. */
     dma_xt_refresh_reconcile();
+    if (dma_ibm5140) {
+        dma_m |= 1;
+        dma_ibm5140_service();
+    }
 }
 
 static uint8_t
@@ -985,6 +1089,14 @@ dma_read_legacy(uint16_t addr, UNUSED(void *priv))
             break;
 
         case 8: /*Status register*/
+            /* A peripheral with DRQ asserted may complete its transfer while
+               software polls terminal count.  Service it before returning
+               the controller status so the completion is visible at once. */
+            for (channel = 0; channel < 4; channel++) {
+                if ((dma_stat_rq_pc & (1 << channel)) &&
+                    !(dma_m & (1 << channel)) && dma_service_handler[channel])
+                    dma_service_handler[channel](dma_service_priv[channel]);
+            }
             if (dma_ps2.is_ps2) {
                 ret = (dma_stat_rq & 0x0f) << 4;
                 ret |= dma_stat & 0x0f;
@@ -1366,6 +1478,12 @@ dma16_read(uint16_t addr, UNUSED(void *priv))
             break;
 
         case 8: /*Status register*/
+            /* See the primary-controller status path above. */
+            for (channel = 4; channel < 8; channel++) {
+                if ((dma_stat_rq_pc & (1 << channel)) &&
+                    !(dma_m & (1 << channel)) && dma_service_handler[channel])
+                    dma_service_handler[channel](dma_service_priv[channel]);
+            }
             if (dma_ps2.is_ps2) {
                 ret = dma_stat_rq & 0xf0;
                 ret |= (dma_stat & 0xf0) >> 4;
@@ -1759,6 +1877,8 @@ void
 dma_reset(void)
 {
     dma_reset_legacy();
+    if (dma_ibm5140)
+        dma_e = 0x0e; /* RESET cannot create the absent refresh channel. */
 
     dma_command[0] = dma_command[1] = 0;
     memset(&dma_xt8237, 0, sizeof(dma_xt8237));
@@ -1782,12 +1902,25 @@ dma_reset(void)
 void
 dma_init(void)
 {
+    dma_ibm5140 = dma_ibm5140_diag = 0;
     dma_ps2.is_ps2 = 0;
     dma_reset();
 
     io_sethandler(0x0000, 16,
                   dma_read, NULL, NULL, dma_write, NULL, NULL, NULL);
     io_sethandler(0x0080, 8,
+                  dma_page_read, NULL, NULL, dma_page_write, NULL, NULL, NULL);
+}
+
+void
+dma_init_ibm5140(void)
+{
+    dma_ibm5140 = 1;
+    dma_ibm5140_diag = 0;
+    dma_e = 0x0e;
+    io_removehandler(0x0080, 8,
+                     dma_page_read, NULL, NULL, dma_page_write, NULL, NULL, NULL);
+    io_sethandler(0x0081, 3,
                   dma_page_read, NULL, NULL, dma_page_write, NULL, NULL, NULL);
 }
 

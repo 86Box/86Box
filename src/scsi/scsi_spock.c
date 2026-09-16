@@ -524,6 +524,10 @@ spock_process_imm_cmd(spock_t *scsi)
             spock_log("Run selected self test.\n");
             spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
             break;
+        case CMD_FORMAT_PREPARE:
+            spock_log("Format prepare.\n");
+            spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
+            break;
         case CMD_RESET:
             scsi->id_connected = 0;
             spock_log("Reset command, attention=%02x.\n", scsi->attention & 0x0f);
@@ -765,6 +769,23 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 
                         dma_bm_read(scsi->scb_addr + 0x18, scsi->cdb, 12, 2);
                         spock_log("Send Other SCSI, SCB ID=%d, PHYS ID=%d, LUN=%d, CDB[0]=%02x, CDB_ID=%d, ID Present=%d.\n", scsi->scb_id, scsi->dev_id[scsi->scb_id].phys_id, scsi->dev_id[scsi->scb_id].lun_id, scsi->cdb[0], scsi->cdb_id, scsi->dev_id[scsi->scb_id].phys_id != -1);
+                        scsi->cdb[1]     = (scsi->cdb[1] & 0x1f) | (scsi->dev_id[scsi->scb_id].lun_id << 5); /*Patch correct LUN into command*/
+                        scsi->cdb_len    = (scb->lba_addr & 0xff) ? (scb->lba_addr & 0xff) : 6;
+                        scsi->scsi_state = SCSI_STATE_SELECT;
+                        scsi->scb_state  = 2;
+                        return;
+
+                    case CMD_FORMAT_UNIT:
+                        if (scsi->scb_id != 15) {
+                            if (scsi->dev_id[scsi->scb_id].phys_id != -1)
+                                scsi->cdb_id = scsi->dev_id[scsi->scb_id].phys_id;
+                            else
+                                scsi->cdb_id = 0xff;
+                        } else
+                            scsi->cdb_id = scsi->dev_id[scsi->scb_id].phys_id;
+
+                        dma_bm_read(scsi->scb_addr + 0x18, scsi->cdb, 12, 2);
+                        spock_log("Format Unit, SCB ID=%d, PHYS ID=%d, LUN=%d, CDB[0]=%02x, CDB_ID=%d, ID Present=%d.\n", scsi->scb_id, scsi->dev_id[scsi->scb_id].phys_id, scsi->dev_id[scsi->scb_id].lun_id, scsi->cdb[0], scsi->cdb_id, scsi->dev_id[scsi->scb_id].phys_id != -1);
                         scsi->cdb[1]     = (scsi->cdb[1] & 0x1f) | (scsi->dev_id[scsi->scb_id].lun_id << 5); /*Patch correct LUN into command*/
                         scsi->cdb_len    = (scb->lba_addr & 0xff) ? (scb->lba_addr & 0xff) : 6;
                         scsi->scsi_state = SCSI_STATE_SELECT;
@@ -1128,6 +1149,7 @@ spock_callback(void *priv)
                         case CMD_ASSIGN:
                         case CMD_DMA_PACING_CONTROL:
                         case CMD_FEATURE_CONTROL:
+                        case CMD_FORMAT_PREPARE:
                         case CMD_RUN_DIAG_TEST:
                         case CMD_RUN_SELF_TEST:
                         case CMD_RESET:

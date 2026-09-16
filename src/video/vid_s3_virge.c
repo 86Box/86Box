@@ -61,7 +61,7 @@ static int dither[4][4] = {
 };
 
 #define ROM_VIRGE_325                 "roms/video/s3virge/86c325.bin"
-#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.BIN"
+#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.bin"
 #define ROM_MIROCRYSTAL_3D            "roms/video/s3virge/miro Crystal 3D 1.02.bin"
 #define ROM_DIAMOND_STEALTH3D_3000    "roms/video/s3virge/diamondstealth3000.vbi"
 #define ROM_STB_VELOCITY_3D           "roms/video/s3virge/stb_velocity3d_110.BIN"
@@ -920,15 +920,15 @@ s3_virge_recalctimings(svga_t *svga)
         svga_set_ramdac_type(svga, (svga->seqregs[0x1b] & 0x10) ? RAMDAC_8BIT : RAMDAC_6BIT);
         svga->lut_map = !!(svga->seqregs[0x1b] & 0x8);
     }
-    if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
-        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
-        svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
-    }
 
-    if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0x0c) == 0x0c)) {
-        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
-        if (!svga->scrblank && svga->attr_palette_enable)
-            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+    if (!svga->scrblank) {
+        if (svga->crtc[0x43] & 0x80)
+            /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+                svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+
+        if ((svga->crtc[0x33] & 0x20) || ((svga->crtc[0x67] & 0x0c) == 0x0c))
+            /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+                svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
     }
 
     svga->htotal = svga->crtc[0] + ((svga->crtc[0x5d] & 0x01) ? 0x100 : 0);
@@ -5616,6 +5616,10 @@ s3_virge_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             ret = virge->pci_regs[PCI_REG_COMMAND] & 0x27;
             break;
 
+        case 0x06:
+            ret = (virge->chip >= S3_VIRGEGX2) ? PCI_STATUS_L_CAPAB : 0x00;
+            break;
+
         case 0x07:
             ret = virge->pci_regs[0x07] & 0x36;
             break;
@@ -5775,8 +5779,10 @@ s3_virge_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             return;
 
         case PCI_REG_COMMAND:
-            io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+            io_removehandler(0x03a0, 0x0040, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
             if (val & PCI_COMMAND_IO) {
+                if (!(svga->miscout & 0x01))
+                    io_sethandler(0x03a0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
                 io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
                 if (!(svga->crtc[0x6f] & 0x04))
                     io_sethandler((svga->crtc[0x6f] & 0x02) ? 0x00e2 : 0x00e8, 0x0002, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
@@ -5853,7 +5859,7 @@ s3_virge_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
 static void
 s3_virge_disable_handlers(virge_t *dev)
 {
-    io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL,
+    io_removehandler(0x03a0, 0x0040, s3_virge_in, NULL, NULL,
                      s3_virge_out, NULL, NULL, dev);
 
     mem_mapping_disable(&dev->linear_mapping);
@@ -6031,7 +6037,7 @@ s3_virge_init(const device_t *info)
                     MEM_MAPPING_EXTERNAL,
                     virge);
 
-    io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+    io_sethandler(0x03a0, 0x0040, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
 
     virge->pci_regs[PCI_REG_COMMAND] = 7;
     virge->pci_regs[0x05]            = 0;
@@ -6151,8 +6157,10 @@ s3_virge_init(const device_t *info)
             default:
                 break;
         }
-        if (virge->type == S3_VIRGE_GX)
+        if (virge->type == S3_VIRGE_GX) {
             virge->svga.crtc[0x36] |= (1 << 2);
+            virge->svga.crtc[0x6f] |= 1;
+        }
     }
 
     virge->svga.crtc[0x37] = 1 | (7 << 5);

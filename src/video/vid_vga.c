@@ -116,7 +116,7 @@ vga_in(uint16_t addr, void *priv)
 {
     vga_t  *vga  = (vga_t *) priv;
     svga_t *svga = &vga->svga;
-    uint8_t temp;
+    uint8_t temp = 0xff;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -129,10 +129,21 @@ vga_in(uint16_t addr, void *priv)
             temp = svga->crtcreg;
             break;
         case 0x3D5:
-            if (svga->crtcreg & 0x20)
-                temp = 0xff;
-            else
-                temp = svga->crtc[svga->crtcreg];
+            switch (svga->crtcreg) {
+                default:
+                    break;
+                case 0x00 ... 0x1f:
+                    temp = svga->crtc[svga->crtcreg];
+                    break;
+                case 0x22:
+                    temp = svga->latch.b[svga->gdcreg[0x04] & 0x03];
+                    break;
+                case 0x24:
+                    /* TODO: Palette Address Source in bit 2. */
+                    temp = (svga->attrff & 0x01) |
+                           ((svga->attraddr & 0x1f) << 3);
+                    break;
+            }
             break;
         default:
             temp = svga_in(addr, svga);
@@ -220,7 +231,7 @@ vga_init(const device_t *info, vga_t *vga, int enabled)
               NULL);
 
     vga->svga.bpp     = 8;
-    vga->svga.miscout = 1;
+    vga->svga.miscout = 0;
 
     vga->svga.vga_enabled = enabled;
 }
@@ -236,7 +247,7 @@ vga_standalone_init(const device_t *info)
 
     vga_init(info, vga, 0);
 
-    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+    io_sethandler(0x03a0, 0x0040, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
 
     if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
         (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0)) {
@@ -262,7 +273,7 @@ ps1vga_init(const device_t *info)
 
     vga_init(info, vga, 1);
 
-    io_sethandler(0x03c0, 0x0020, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
+    io_sethandler(0x03a0, 0x0040, vga_in, NULL, NULL, vga_out, NULL, NULL, vga);
 
     return vga;
 }

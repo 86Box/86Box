@@ -36,6 +36,7 @@
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/plat_unused.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/port_92.h>
 #include <86box/sio.h>
 #include <86box/smbus.h>
@@ -44,6 +45,8 @@
 #include <86box/acpi.h>
 
 #include <86box/chipset.h>
+#include <86box/flash.h>
+#include <86box/machine.h>
 
 typedef struct ali1543_t {
     uint8_t mirq_states[8];
@@ -70,6 +73,7 @@ typedef struct ali1543_t {
     smbus_ali7101_t *smbus;
     usb_t           *usb;
 
+    pc_timer_t wdt_timer;
 } ali1543_t;
 
 int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
@@ -562,10 +566,10 @@ ali5229_ide_handler(ali1543_t *dev)
 {
     uint32_t ch = 0;
 
-    uint16_t native_base_pri_addr = (dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8) & 0xfffe;
-    uint16_t native_side_pri_addr = (dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8) & 0xfffe;
-    uint16_t native_base_sec_addr = (dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8) & 0xfffe;
-    uint16_t native_side_sec_addr = (dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8) & 0xfffe;
+    uint16_t native_base_pri_addr = (dev->ide_conf[0x10] | dev->ide_conf[0x11] << 8) & 0xfffe;
+    uint16_t native_side_pri_addr = ((dev->ide_conf[0x14] | dev->ide_conf[0x15] << 8) & 0xfffe) | 0x0002;
+    uint16_t native_base_sec_addr = (dev->ide_conf[0x18] | dev->ide_conf[0x19] << 8) & 0xfffe;
+    uint16_t native_side_sec_addr = ((dev->ide_conf[0x1c] | dev->ide_conf[0x1d] << 8) & 0xfffe) | 0x0002;
 
     uint16_t comp_base_pri_addr = 0x01f0;
     uint16_t comp_side_pri_addr = 0x03f6;
@@ -1267,6 +1271,18 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 dev->pmu_conf[addr] = val & 0x02;
             break;
 
+        case 0x92:
+            if (dev->type == 1) {
+                if (val & 0x01) {
+                    if (!(dev->pmu_conf[addr] & 0x01))
+                        timer_set_delay_u64(&dev->wdt_timer, (uint64_t) (((val & 0x02) ? 1000000 : 1000) * TIMER_USEC));
+                } else if (dev->pmu_conf[addr] & 0x01) {
+                    timer_disable(&dev->wdt_timer);
+                }
+                dev->pmu_conf[addr] = val & 0x07;
+            }
+            break;
+
         case 0x94:
             dev->pmu_conf[addr] = val & 0xf0;
             break;
@@ -1303,6 +1319,10 @@ ali7101_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0xb8:
+            if (dev->type == 1)
+                flash_e28f0xx_cobalt3k_update(val);
+            fallthrough;
+
         case 0xb9:
             if (dev->type == 1)
                 dev->pmu_conf[addr] = val;
@@ -1429,7 +1449,10 @@ ali7101_read(int func, int addr, UNUSED(int len), void *priv)
                     ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
                     break;
                 case 0x7f:
-                    ret = 0x80;
+                    if (machines[machine].init == machine_at_cobalt3k_init) /* TODO: proper machine table ACPI GPIO plumbing */
+                        ret = machine_get_gpio_acpi_default();
+                    else
+                        ret = 0x80;
                     break;
                 case 0xbc:
                     ret = inb(0x70);
@@ -1477,6 +1500,17 @@ ali7101_read(int func, int addr, UNUSED(int len), void *priv)
     ali1543_log("M7101: [R] dev->pmu_conf[%02x] = %02x\n", addr, ret);
 
     return ret;
+}
+
+static void
+ali7101_wdt_timer(void *priv)
+{
+    const ali1543_t *dev = (ali1543_t *) priv;
+
+    if (dev->pmu_conf[0x92] & 0x01) {
+        ali1543_log("M7101: watchdog expired, resetting\n");
+        pci_write(0xcf9, 0x06, NULL);
+    }
 }
 
 static void
@@ -1605,6 +1639,7 @@ ali1543_init(const device_t *info)
     /* ACPI */
     dev->acpi = device_add(&acpi_ali_device);
     dev->nvr  = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_PIIX4);
+    timer_add(&dev->wdt_timer, ali7101_wdt_timer, dev, 0);
 
     /* DMA */
     dma_alias_set();
@@ -1645,7 +1680,7 @@ ali1543_init(const device_t *info)
     pci_enable_mirq(6);
 
     /* Super I/O chip */
-    device_add(&ali5123_device);
+    device_add_params(&ali5123_device, (void *) (uintptr_t) ((info->local & ALI1543_SIO_370) ? ALI5123_370 : 0));
 
     ali1543_reset(dev);
 

@@ -11,6 +11,10 @@ extern void osd_deinit(void);
 extern int osd_open(SDL_Event event);
 extern int osd_close(SDL_Event event);
 
+// Complete a close the OSD requested while drawing. Returns 1 when it closed,
+// so the caller can drop its own "OSD is open" state in the same step.
+extern int osd_take_pending_close(void);
+
 // keyboard event handler
 extern int osd_handle(SDL_Event event);
 

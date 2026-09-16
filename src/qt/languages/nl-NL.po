@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-28 22:12+0000\n"
+"PO-Revision-Date: 2026-09-01 17:51+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -733,10 +733,10 @@ msgid "Removable disks:"
 msgstr "Verwisselbare schijven:"
 
 msgid "Tape drives"
-msgstr "Band-schijfstations"
+msgstr "Tapestations"
 
 msgid "Tape drives:"
-msgstr "Band-schijfstations:"
+msgstr "Tapestations:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -2919,8 +2919,14 @@ msgstr "[Generiek] 1989 (3500 RPM)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Generiek] 1992 (3600 RPM)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Generiek] 1993 (4000 RPM)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Generiek] 1994 (4500 RPM)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Generiek] 1995 (5200 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Generiek] 1996 (5400 RPM)"
@@ -2933,6 +2939,9 @@ msgstr "[Generiek] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Generiek] 2000 (7200 RPM)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Generiek] 2004 (10000 RPM)"
 
 msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A-kloon"

@@ -190,6 +190,7 @@ static const SOUND_CARD sound_cards[] = {
     { &ess_1868_device              },
     { &ess_1869_device              },
     { &gus_device                   },
+    { &gus_v34_device               },
     { &gus_v37_device               },
     { &gus_max_device               },
     { &gus_ace_device               },
@@ -234,10 +235,11 @@ static const SOUND_CARD sound_cards[] = {
     /* PCI */
     { &cmi8338_device               },
     { &cmi8738_device               },
-    { &es1370_device                },
-    { &es1371_device                },
     { &es1373_device                },
     { &ct5880_device                },
+    { &es1370_device                },
+    { &es1371_device                },
+    { &ess_solo1_device             },
     /* AC97 */
     { &ad1881_device                },
     { &cs4297a_device               },
@@ -977,8 +979,6 @@ void
 sound_cd_thread_reset(void)
 {
     int available_cdrom_drives = 0;
-
-    timer_disable(&cd_poll_timer);
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_stop(&(cdrom[i]));

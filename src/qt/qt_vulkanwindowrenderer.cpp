@@ -21,9 +21,9 @@
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #include "qt_vulkanwindowrenderer.hpp"
 #include "qt_vulkanshadermanagerdialog.hpp"
+#include "qt_util.hpp"
 
 #include <QApplication>
-#include <QClipboard>
 #include <QMessageBox>
 #include <QWindow>
 
@@ -1017,8 +1017,8 @@ VulkanWindowRenderer::render()
     info.viewMask = 0;
     info.layerCount = 1;
     fn_vkCmdBeginRendering(cmdBufs, &info);
-    
-    if (qt_osd_is_visible()) {
+
+    if (qt_osd_needs_render()) {
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
         qt_osd_render(width(), height(), devicePixelRatio(), (void*)cmdBufs);
     }
@@ -1209,8 +1209,7 @@ VulkanWindowRenderer::render()
             }
 
             QImage image((uchar*)rgb, width, height, (scrShotImagePitch / 4) * 3, QImage::Format_RGB888);
-            QClipboard *clipboard = QApplication::clipboard();
-            clipboard->setImage(image.rgbSwapped(), QClipboard::Clipboard);
+            util::copyImageToClipboard(image.rgbSwapped());
             free(rgb);
             monitors[r_monitor_index].mon_screenshots_clipboard--;
         }

@@ -2027,6 +2027,10 @@ d86f_format_track(int drive, int side, int do_write)
     dtl          = 128 << fdc_get_format_n(d86f_fdc);
     gap_fill     = mfm ? 0x4E : 0xFF;
 
+    /* HD-COPY's "Is the data rate correct?" format. */
+    if ((dev->version == 0x0063) && (fdc_get_format_n(d86f_fdc) == 3) && (sc == 2))
+        do_write = 0;
+
     switch (dev->format_state) {
         case FMT_POSTTRK_GAP4:
             max_len = 60000;
@@ -2326,6 +2330,10 @@ d86f_turbo_format(int drive, int side, int nop)
     sc  = fdc_get_format_sectors(d86f_fdc);
     dtl = 128 << fdc_get_format_n(d86f_fdc);
 
+    /* HD-COPY's "Is the data rate correct?" format. */
+    if ((dev->version == 0x0063) && (fdc_get_format_n(d86f_fdc) == 3) && (sc == 2))
+        nop = 1;
+
     if (dev->datac <= 3) {
         dat = fdc_getdata(d86f_fdc, 0);
         if (dat != -1)
@@ -2362,7 +2370,7 @@ d86f_turbo_format(int drive, int side, int nop)
             fdc_request_next_sector_id(d86f_fdc);
         } else {
             dev->state = STATE_IDLE;
-            d86f_format_turbo_finish(drive, side, nop);
+            d86f_format_turbo_finish(drive, side, !nop);
         }
     }
 }

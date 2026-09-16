@@ -262,6 +262,8 @@ extern const device_t ess_1888_compaq_device;
 extern const device_t ess_1887_device;
 extern const device_t ess_1868_device;
 extern const device_t ess_1869_device;
+extern const device_t ess_solo1_device;
+extern const device_t ess_solo1_onboard_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1370_device;
@@ -274,6 +276,7 @@ extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound family */
 extern const device_t gus_device;
+extern const device_t gus_v34_device;
 extern const device_t gus_v37_device;
 extern const device_t gus_max_device;
 extern const device_t gus_ace_device;

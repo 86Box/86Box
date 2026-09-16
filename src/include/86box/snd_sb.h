@@ -164,6 +164,7 @@ typedef struct ess_mixer_t {
     int input_filter;
     int in_filter_freq;
     int output_filter;
+    int output_filter_dac2;
 
     int stereo;
     int stereo_isleft;
@@ -287,5 +288,18 @@ extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
 extern void ess_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void ess_filter_pc_speaker(int channel, double *buffer, void *priv);
 extern void ess_filter_midi(int channel, double *buffer, void *priv);
+
+extern void   *ess_solo1_legacy_init(void);
+extern void    ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len);
+extern void    ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enable,
+                                       int fm_enable, int fm_legacy_alias,
+                                       uint16_t mpu_addr, int mpu_enable,
+                                       int sb_irq, int mpu_irq, int dma, uint16_t game_addr);
+extern uint8_t ess_solo1_legacy_fm_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val);
+extern uint8_t ess_solo1_legacy_mpu_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_close(void *priv);
 
 #endif /*SOUND_SND_SB_H*/

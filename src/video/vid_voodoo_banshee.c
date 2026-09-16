@@ -3103,6 +3103,10 @@ banshee_pci_read(int func, int addr, UNUSED(int len), void *priv)
             ret = banshee->pci_regs[0x04] & 0x27;
             break;
 
+        case 0x06:
+            ret = PCI_STATUS_L_CAPAB | (banshee->agp ? PCI_STATUS_L_66MHZ : 0);
+            break;
+
         case 0x07:
             ret = banshee->pci_regs[0x07] & 0x36;
             break;
@@ -3309,15 +3313,17 @@ banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
         case PCI_REG_COMMAND:
             if (val & PCI_COMMAND_IO) {
-                io_removehandler(0x03c0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
+                io_removehandler(0x03a0, 0x0040, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
                 if (banshee->ioBaseAddr)
                     io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
 
+                if (!(banshee->svga.miscout & 0x01))
+                    io_sethandler(0x03a0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
                 io_sethandler(0x03c0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
                 if (banshee->ioBaseAddr)
                     io_sethandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
             } else {
-                io_removehandler(0x03c0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
+                io_removehandler(0x03a0, 0x0040, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
                 io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
             }
             banshee->pci_regs[PCI_REG_COMMAND] = val & 0x27;
@@ -3484,12 +3490,8 @@ banshee_init_common(const device_t *info, const char *fn, const int has_sgram,
 
     banshee->svga.vblank_start = banshee_vblank_start;
 
-#if 0
-    io_sethandler(0x03c0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
-#endif
-
     banshee->svga.bpp     = 8;
-    banshee->svga.miscout = 1;
+    banshee->svga.miscout = 0;
 
     banshee->dramInit0 = 1 << 27;
     if (has_sgram && mem_size == 16)

@@ -3837,10 +3837,10 @@ svga_xga_init(const device_t *info)
               NULL,
               NULL);
 
-    io_sethandler(0x03c0, 0x0020, svga_xga_in, NULL, NULL, svga_xga_out, NULL, NULL, svga);
+    io_sethandler(0x03a0, 0x0040, svga_xga_in, NULL, NULL, svga_xga_out, NULL, NULL, svga);
 
     svga->bpp     = 8;
-    svga->miscout = 1;
+    svga->miscout = 0;
     xga_active    = 1;
 
     return xga_init(info);

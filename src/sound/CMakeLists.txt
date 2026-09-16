@@ -44,6 +44,7 @@ add_library(snd OBJECT
     snd_cms.c
     snd_csm.c
     snd_cmi8x38.c
+    snd_solo1.c
     snd_covox.c
     snd_cs423x.c
     snd_imfc.cpp

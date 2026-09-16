@@ -852,7 +852,7 @@ et4000_init(const device_t *info)
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
-            io_sethandler(0x03c0, 32,
+            io_sethandler(0x03a0, 64,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
             bios_ver      = (char *) device_get_config_bios("bios");
             fn            = (char *) device_get_bios_file(info, bios_ver, 0);
@@ -864,7 +864,7 @@ et4000_init(const device_t *info)
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
-            io_sethandler(0x03c0, 32,
+            io_sethandler(0x03a0, 64,
                           et4000_in, NULL, NULL, et4000_out, NULL, NULL, dev);
             dev->pos_regs[0]                    = 0xf2; /* ET4000 MCA board ID */
             dev->pos_regs[1]                    = 0x80;
@@ -887,7 +887,7 @@ et4000_init(const device_t *info)
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_recalctimings, et4000k_in, et4000k_out,
                       NULL, NULL);
-            io_sethandler(0x03c0, 32,
+            io_sethandler(0x03a0, 64,
                           et4000k_in, NULL, NULL, et4000k_out, NULL, NULL, dev);
             io_sethandler(0x22cb, 1,
                           et4000k_in, NULL, NULL, et4000k_out, NULL, NULL, dev);
@@ -925,7 +925,7 @@ et4000_init(const device_t *info)
             svga_init(info, &dev->svga, dev, dev->vram_size,
                       et4000_kasan_recalctimings, et4000_in, et4000_out,
                       NULL, NULL);
-            io_sethandler(0x03c0, 32,
+            io_sethandler(0x03a0, 64,
                           et4000k_in, NULL, NULL, et4000k_out, NULL, NULL, dev);
             io_sethandler(0x0250, 8,
                           et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, dev);

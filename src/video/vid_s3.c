@@ -2925,7 +2925,7 @@ s3_io_remove_alt(s3_t *s3)
 static void
 s3_io_remove(s3_t *s3)
 {
-    io_removehandler(0x03c0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
+    io_removehandler(0x03a0, 0x0040, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
     io_removehandler(0x82ec, 0x0002, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
 
     io_removehandler(0x02e8, 0x0002, s3_in, NULL, NULL, NULL, NULL, NULL, s3);
@@ -3024,6 +3024,8 @@ s3_io_set(s3_t *s3)
 
     s3_io_remove(s3);
 
+    if (!(svga->miscout & 0x01))
+        io_sethandler(0x03a0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
     io_sethandler(0x03c0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
 
     if ((s3->chip == S3_VISION968 || s3->chip == S3_VISION868) && (svga->seqregs[9] & 0x80)) {
@@ -5030,7 +5032,11 @@ s3_trio64v_recalctimings(svga_t *svga)
 
     if (is_vga_mode) {
         svga->hoverride = 0;
-        if (enhanced_8bpp_modes)
+        /* Preserve the first character when blanking ends at line rollover.
+           A zero end value can also match before rollover on longer lines. */
+        if (enhanced_8bpp_modes || ((svga->hblank_end_val == 0) &&
+                                   ((svga->hblankstart + 1) == svga->hdisp_time) &&
+                                   ((svga->hblankstart >> 6) == ((svga->htotal - 1) >> 6))))
             svga->hoverride = 1;
     } else
         svga->hoverride = 1;
@@ -12372,16 +12378,6 @@ static const device_config_t s3_vision864_pci_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
-                .name          = "Digital (DEC) PCXAG-AL",
-                .internal_name = "dec_vision864_pci",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = S3_DEC_VISION864,
-                .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
-                .files         = { ROM_DEC_VISION864, "" }
-            },
-            {
                 .name          = "Diamond Stealth64 Graphics 2000",
                 .internal_name = "stealth64d_864_pci",
                 .bios_type     = BIOS_NORMAL,
@@ -12390,6 +12386,16 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_864, "" }
+            },
+            {
+                .name          = "Digital (DEC) PCXAG-AL",
+                .internal_name = "dec_vision864_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DEC_VISION864,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DEC_VISION864, "" }
             },
             {
                 .name          = "Leadtek WinFast S430", /* Also known as: ASUS VideoMagic PCI-V864 */

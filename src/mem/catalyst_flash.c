@@ -57,8 +57,8 @@ enum {
 typedef struct flash_t {
     uint8_t command;
     uint8_t is_amd;
+    uint8_t dirty;
     uint8_t pad;
-    uint8_t pad0;
     uint8_t *array;
 
     mem_mapping_t mapping;
@@ -143,12 +143,15 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 
     switch (dev->command) {
         case CMD_ERASE:
-            if (val == CMD_ERASE_CONFIRM)
+            if (val == CMD_ERASE_CONFIRM) {
                 memset(dev->array, 0xff, biosmask + 1);
+                dev->dirty = 1;
+            }
             break;
 
         case CMD_PROGRAM:
             dev->array[addr] = val;
+            dev->dirty = 1;
             break;
 
         default:
@@ -218,11 +221,16 @@ catalyst_flash_init(UNUSED(const device_t *info))
     dev->command = CMD_RESET;
     dev->is_amd  = info->local;
 
-    fp = nvr_fopen(flash_path, "rb");
-    if (!dump_missing && (fp != NULL)) {
-        (void) !fread(dev->array, 0x20000, 1, fp);
-        fclose(fp);
-    }
+    if (strlen(flash_path) > 0) {
+        fp = nvr_fopen(flash_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                (void) !fread(dev->array, 0x20000, 1, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            dev->dirty = 1;
+    } else
+        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
 
     return dev;
 }
@@ -233,10 +241,18 @@ catalyst_flash_close(void *priv)
     FILE    *fp;
     flash_t *dev = (flash_t *) priv;
 
-    fp = nvr_fopen(flash_path, "wb");
-    if (!dump_missing)
-        fwrite(dev->array, 0x20000, 1, fp);
-    fclose(fp);
+    if (dev->dirty) {
+        if (strlen(flash_path) > 0) {
+            fp = nvr_fopen(flash_path, "wb");
+            if (fp != NULL) {
+                if (!dump_missing)
+                    fwrite(dev->array, 0x20000, 1, fp);
+                fclose(fp);
+            } else if (!dump_missing)
+                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", flash_path);
+        } else
+            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
+    }
 
     free(dev->array);
     dev->array = NULL;

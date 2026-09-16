@@ -1120,9 +1120,12 @@ mystique_recalc_mapping(mystique_t *mystique)
     svga_t *svga = &mystique->svga;
     xga_t  *xga  = (xga_t *) svga->xga;
 
-    io_removehandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
-    if ((mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) && (mystique->pci_regs[0x41] & 1))
+    io_removehandler(0x03a0, 0x0040, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
+    if ((mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) && (mystique->pci_regs[0x41] & 1)) {
+        if (!(svga->miscout & 0x01))
+            io_sethandler(0x03a0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
         io_sethandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
+    }
 
     if (!(mystique->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
         mem_mapping_disable(&svga->mapping);
@@ -6382,7 +6385,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 break;
 
             case 0x06:
-                ret = 0x80;
+                ret = PCI_STATUS_L_FAST_B2B | (mystique->is_agp ? PCI_STATUS_L_CAPAB : 0);
                 break;
             case 0x07:
                 ret = mystique->pci_regs[0x07];
@@ -6483,7 +6486,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 break;
 
             case 0x34:
-                ret = (mystique->type == MGA_G100 || mystique->is_agp) ? 0xdc : 0x00;
+                ret = mystique->is_agp ? 0xdc : 0x00;
                 break;
 
             case 0x3c:
@@ -6849,7 +6852,7 @@ mystique_init(const device_t *info)
             mystique->svga.decode_mask = 0xffffff;
     }
 
-    io_sethandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
+    io_sethandler(0x03a0, 0x0040, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
     mem_mapping_add(&mystique->ctrl_mapping, 0, 0,
                     mystique_ctrl_read_b, NULL, mystique_ctrl_read_l,
                     mystique_ctrl_write_b, NULL, mystique_ctrl_write_l,

@@ -21,6 +21,9 @@ public:
     void restore();
     void save(int soft);
 
+public slots:
+    void onCurrentMachineChanged(int machineId);
+
 signals:
     void cdromChannelChanged();
 

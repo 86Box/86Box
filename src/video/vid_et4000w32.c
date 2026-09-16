@@ -2627,7 +2627,7 @@ et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 static void
 et4000w32p_io_remove(et4000w32p_t *et4000)
 {
-    io_removehandler(0x03c0, 0x0020, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
+    io_removehandler(0x03a0, 0x0040, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
 
     io_removehandler(0x210a, 0x0002, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
     io_removehandler(0x211a, 0x0002, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
@@ -2644,6 +2644,8 @@ et4000w32p_io_set(et4000w32p_t *et4000)
 {
     et4000w32p_io_remove(et4000);
 
+    if (!(et4000->svga.miscout & 0x01))
+        io_sethandler(0x03a0, 0x0020, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
     io_sethandler(0x03c0, 0x0020, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);
 
     io_sethandler(0x210a, 0x0002, et4000w32p_in, NULL, NULL, et4000w32p_out, NULL, NULL, et4000);

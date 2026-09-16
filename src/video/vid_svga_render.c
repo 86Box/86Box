@@ -152,8 +152,8 @@ svga_render_text_40(svga_t *svga)
     uint8_t   attr;
     uint8_t   dat;
     uint32_t  charaddr;
-    int       fg;
-    int       bg;
+    uint32_t  fg;
+    uint32_t  bg;
     uint32_t  addr = 0;
 
     if (svga->render_override) {
@@ -194,14 +194,14 @@ svga_render_text_40(svga_t *svga)
                 charaddr = svga->charseta + (chr * 128);
 
             if (drawcursor) {
-                bg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                fg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                bg = svga->pallook[svga->egapal[(attr & 15) & svga->plane_mask] & svga->dac_mask];
+                fg = svga->pallook[svga->egapal[(attr >> 4) & svga->plane_mask] & svga->dac_mask];
             } else {
-                fg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                bg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                fg = svga->pallook[svga->egapal[(attr & 15) & svga->plane_mask] & svga->dac_mask];
+                bg = svga->pallook[svga->egapal[(attr >> 4) & svga->plane_mask] & svga->dac_mask];
 
                 if (attr & 0x80 && svga->attrregs[0x10] & 8) {
-                    bg = svga->pallook[svga->egapal[(attr >> 4) & 7] & svga->dac_mask];
+                    bg = svga->pallook[svga->egapal[((attr >> 4) & 7) & svga->plane_mask] & svga->dac_mask];
                     if (svga->blink & 16)
                         fg = bg;
                 }
@@ -237,8 +237,8 @@ svga_render_text_80(svga_t *svga)
     uint8_t   attr;
     uint8_t   dat;
     uint32_t  charaddr;
-    int       fg;
-    int       bg;
+    uint32_t  fg;
+    uint32_t  bg;
     uint32_t  addr = 0;
 
     if (svga->render_override) {
@@ -331,18 +331,18 @@ svga_render_text_80(svga_t *svga)
                 if (svga->seqregs[1] & 1) {
                     for (xx = 0; xx < 8; xx++) {
                         col = (col << 4) | ((dat & (0x80 >> xx)) ? fg : bg);
-                        p[xx] = svga->pallook[svga->egapal[col & 0x0f] & svga->dac_mask];
+                        p[xx] = svga->pallook[svga->egapal[col & svga->plane_mask] & svga->dac_mask];
                     }
                 } else {
                     for (xx = 0; xx < 8; xx++) {
                         col = (col << 4) | ((dat & (0x80 >> xx)) ? fg : bg);
-                        p[xx] = svga->pallook[svga->egapal[col & 0x0f] & svga->dac_mask];
+                        p[xx] = svga->pallook[svga->egapal[col & svga->plane_mask] & svga->dac_mask];
                     }
                     if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
                         col = (col << 4) | bg;
                     else
                         col = (col << 4) | ((dat & 1) ? fg : bg);
-                    p[8] = svga->pallook[svga->egapal[col & 0x0f] & svga->dac_mask];
+                    p[8] = svga->pallook[svga->egapal[col & svga->plane_mask] & svga->dac_mask];
                 }
             }
 
@@ -366,8 +366,8 @@ svga_render_text_80_ksc5601(svga_t *svga)
     uint8_t   dat;
     uint8_t   nextchr;
     uint32_t  charaddr;
-    int       fg;
-    int       bg;
+    uint32_t  fg;
+    uint32_t  bg;
 
     if (((svga->displine + svga->y_add) < 0) ||
         (svga->monitor->target_buffer == NULL) ||
@@ -391,13 +391,13 @@ svga_render_text_80_ksc5601(svga_t *svga)
             attr          = svga->vram[addr + 1];
 
             if (drawcursor) {
-                bg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                fg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                bg = svga->pallook[svga->egapal[(attr & 15) & svga->plane_mask] & svga->dac_mask];
+                fg = svga->pallook[svga->egapal[(attr >> 4) & svga->plane_mask] & svga->dac_mask];
             } else {
-                fg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                bg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                fg = svga->pallook[svga->egapal[(attr & 15) & svga->plane_mask] & svga->dac_mask];
+                bg = svga->pallook[svga->egapal[(attr >> 4) & svga->plane_mask] & svga->dac_mask];
                 if (attr & 0x80 && svga->attrregs[0x10] & 8) {
-                    bg = svga->pallook[svga->egapal[(attr >> 4) & 7] & svga->dac_mask];
+                    bg = svga->pallook[svga->egapal[((attr >> 4) & 7) & svga->plane_mask] & svga->dac_mask];
                     if (svga->blink & 16)
                         fg = bg;
                 }
@@ -446,13 +446,13 @@ svga_render_text_80_ksc5601(svga_t *svga)
                 attr = svga->vram[((svga->memaddr << 1) + 1) & svga->vram_display_mask];
 
                 if (drawcursor) {
-                    bg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                    fg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                    bg = svga->pallook[svga->egapal[(attr & 15) & svga->plane_mask] & svga->dac_mask];
+                    fg = svga->pallook[svga->egapal[(attr >> 4) & svga->plane_mask] & svga->dac_mask];
                 } else {
-                    fg = svga->pallook[svga->egapal[attr & 15] & svga->dac_mask];
-                    bg = svga->pallook[svga->egapal[attr >> 4] & svga->dac_mask];
+                    fg = svga->pallook[svga->egapal[(attr & 15) & svga->plane_mask] & svga->dac_mask];
+                    bg = svga->pallook[svga->egapal[(attr >> 4) & svga->plane_mask] & svga->dac_mask];
                     if (attr & 0x80 && svga->attrregs[0x10] & 8) {
-                        bg = svga->pallook[svga->egapal[(attr >> 4) & 7] & svga->dac_mask];
+                        bg = svga->pallook[svga->egapal[((attr >> 4) & 7) & svga->plane_mask] & svga->dac_mask];
                         if (svga->blink & 16)
                             fg = bg;
                     }

@@ -772,7 +772,7 @@ ymf71x_init(const device_t *info)
     mpu401_init(ymf71x->mpu, ymf71x->cur_mpu401_addr, ymf71x->cur_mpu401_irq, M_UART, device_get_config_int("receive_input401"));
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ymf71x->sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ymf71x->sb->dsp);
 
     if (!(info->local & YMF71X_NO_EEPROM)) {
         const char *pnp_rom_file = NULL;

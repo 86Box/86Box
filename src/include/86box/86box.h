@@ -188,6 +188,7 @@ extern int      video_fullscreen;           /* (C) video */
 extern int      video_fullscreen_scale;     /* (C) video */
 extern int      enable_overscan;            /* (C) video */
 extern int      force_43;                   /* (C) video */
+extern int      force_device_aspect;        /* (C) video */
 extern int      video_filter_method;        /* (C) video */
 extern int      video_vsync;                /* (C) video */
 extern int      video_framerate;            /* (C) video */
@@ -199,7 +200,9 @@ extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key card emulation. */
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
+extern int      softpower_enabled;            /* (C) enable PC Convertible-style soft power card */
 extern int      gameport_type[];            /* (C) enable gameports */
+extern int      mcamem_type[];              /* (C) enable MCA mem cards */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isarom_type[];              /* (C) enable ISA ROM cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */

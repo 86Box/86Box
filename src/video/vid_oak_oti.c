@@ -363,11 +363,14 @@ oti_pos_out(UNUSED(uint16_t addr), uint8_t val, void *priv)
     oti_t *oti = (oti_t *) priv;
 
     if ((val ^ oti->pos) & 8) {
-        if (val & 8)
+        if (val & 8) {
+            if (!(oti->svga.miscout & 0x01))
+                io_sethandler(0x03a0, 32, oti_in, NULL, NULL,
+                              oti_out, NULL, NULL, oti);
             io_sethandler(0x03c0, 32, oti_in, NULL, NULL,
                           oti_out, NULL, NULL, oti);
-        else
-            io_removehandler(0x03c0, 32, oti_in, NULL, NULL,
+        } else
+            io_removehandler(0x03a0, 64, oti_in, NULL, NULL,
                              oti_out, NULL, NULL, oti);
     }
 
@@ -458,9 +461,11 @@ oti_recalctimings(svga_t *svga)
     if (svga->bpp == 16) {
         svga->render = svga_render_16bpp_highres;
         svga->hdisp >>= 1;
+        svga->dots_per_clock /= 2;
     } else if (svga->bpp == 15) {
         svga->render = svga_render_15bpp_highres;
         svga->hdisp >>= 1;
+        svga->dots_per_clock /= 2;
     }
 }
 
@@ -479,10 +484,6 @@ oti_init(const device_t *info)
             romfn          = BIOS_037C_PATH;
             oti->vram_size = 256;
             oti->regs[0]   = 0x08; /* FIXME: The BIOS wants to read this at index 0? This index is undocumented. */
-#if 0
-            io_sethandler(0x03c0, 32,
-                          oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
-#endif
             break;
 
         case OTI_037_PBL300SX:
@@ -563,10 +564,10 @@ oti_init(const device_t *info)
         (oti->chip_id == OTI_077_PCS44C) || (oti->chip_id == OTI_077_PB400))
         oti->svga.ramdac = device_add(&sc11487_ramdac_device); /*Actually a 82c487, probably a clone.*/
 
-    io_sethandler(0x03c0, 32,
+    io_sethandler(0x03a0, 64,
                   oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
 
-    oti->svga.miscout       = 1;
+    oti->svga.miscout       = 0;
     oti->svga.packed_chain4 = 1;
 
     return oti;

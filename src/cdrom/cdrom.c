@@ -28,9 +28,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
-#ifdef USE_CDROM_MITSUMI
 #include <86box/cdrom_mitsumi.h>
-#endif
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
 #include <86box/log.h>
@@ -128,9 +126,7 @@ static const struct {
 } controllers[] = {
     // clang-format off
     { &cdrom_interface_none_device  },
-#ifdef USE_CDROM_MITSUMI
     { &mitsumi_cdrom_device         },
-#endif
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
     { NULL                          }
@@ -772,7 +768,8 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
     cdrom_log(dev->log, "read_toc_raw(%016" PRIXPTR ", %016" PRIXPTR ", %02X)\n",
               (uintptr_t) dev, (uintptr_t) b, start_track);
 
-    dev->ops->get_raw_track_info(dev->local, &num, rti);
+    if ((dev != NULL) && (dev->ops != NULL) && (dev->ops->get_raw_track_info != NULL))
+        dev->ops->get_raw_track_info(dev->local, &num, rti);
 
     /* Bytes 2 and 3 = Number of first and last sessions */
     read_toc_identify_sessions((raw_track_info_t *) rti, num, b);
@@ -1242,6 +1239,26 @@ cdrom_get_model(const int type, char *name, const int id)
 }
 
 char *
+cdrom_get_inquiry_vendor(const int type)
+{
+    if (cdrom_drive_types[type].inquiry_vendor != NULL)
+        return (char *) cdrom_drive_types[type].inquiry_vendor;
+
+    return (char *) cdrom_drive_types[type].vendor;
+}
+
+void
+cdrom_get_inquiry_model(const int type, char *name, const int id)
+{
+    if (cdrom_drive_types[type].inquiry_model != NULL) {
+        sprintf(name, "%s", cdrom_drive_types[type].inquiry_model);
+        return;
+    }
+
+    cdrom_get_model(type, name, id);
+}
+
+char *
 cdrom_get_revision(const int type)
 {
     return (char *) cdrom_drive_types[type].revision;
@@ -1340,6 +1357,11 @@ void
 cdrom_get_identify_model(const int type, char *name, const int id)
 {
     char  elements[3][512] = { 0 };
+
+    if (cdrom_drive_types[type].identify_model != NULL) {
+        sprintf(name, "%s", cdrom_drive_types[type].identify_model);
+        return;
+    }
 
     memcpy(elements[0], cdrom_drive_types[type].vendor,
            strlen(cdrom_drive_types[type].vendor) + 1);
@@ -1544,6 +1566,17 @@ cdrom_seek(cdrom_t *dev, const uint32_t pos, const uint8_t vendor_type)
 
     dev->cached_sector = -1;
     dev->subc_sector = -1;
+}
+
+int
+cdrom_has_data(cdrom_t *dev)
+{
+    int ret = 0;
+
+    if ((dev != NULL) && (dev->ops != NULL) && (dev->ops->has_data != NULL))
+        ret = dev->ops->has_data(dev->local);
+
+    return ret;
 }
 
 #include <86box/filters.h>
@@ -2300,7 +2333,6 @@ cdrom_read_toc_sony(const cdrom_t *dev, uint8_t *b, const uint8_t start_track,
     return len;
 }
 
-#ifdef USE_CDROM_MITSUMI
 /* New API calls for Mitsumi CD-ROM. */
 void
 cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
@@ -2333,9 +2365,9 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
 
     if (last != -1) {
         buf[1] = trti[last].point;
-        buf[5] = trti[first].pm;
-        buf[6] = trti[first].ps;
-        buf[7] = trti[first].pf;
+        buf[5] = trti[last].pm;
+        buf[6] = trti[last].ps;
+        buf[7] = trti[last].pf;
     } else {
         buf[1] = 0x01;
         buf[5] = 0x00;
@@ -2355,7 +2387,11 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 
     if (!mode) {
         const subchannel_t *subc = &dev->cached_subc;
-        cdrom_get_subchannel(dev, dev->seek_pos, 0);
+
+        if (dev->cached_sector == -1)
+            cdrom_get_subchannel(dev, dev->seek_pos, 0);
+        else
+            cdrom_get_subchannel(dev, dev->cached_sector, 0);
 
         buf[0] = subc->attr;
         buf[1] = subc->track;
@@ -2371,6 +2407,11 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
     }
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
+
+    if (num <= 0) {
+        memset(buf, 0x00, 10);
+        return 0;
+    }
 
     if (curtoctrk < 0)
         curtoctrk = 0;
@@ -2393,54 +2434,6 @@ cdrom_get_q(cdrom_t *dev, uint8_t *buf, int curtoctrk, uint8_t mode)
 
     return curtoctrk;
 }
-
-uint8_t
-cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len)
-{
-    track_info_t ti;
-    int          ret = 0;
-
-    if (dev->cd_status & CD_STATUS_HAS_AUDIO) {
-        cdrom_log(dev->log, "Play Mitsumi audio - %08X %08X\n", pos, len);
-
-        ret = dev->ops->get_track_info(dev->local, pos, 0, &ti);
-
-        if (ret) {
-            pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
-            ret = dev->ops->get_track_info(dev->local, len, 1, &ti);
-
-            if (ret) {
-                len = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
-
-                /*
-                   Do this at this point, since it's at this point that we know the
-                   actual LBA position to start playing from.
-                 */
-                ret = (dev->ops->get_track_type(dev->local, pos) == CD_TRACK_AUDIO);
-
-                if (ret) {
-                    dev->seek_pos  = pos;
-                    dev->cd_end    = len;
-                    dev->cd_status = CD_STATUS_PLAYING;
-                    dev->cd_buflen = 0;
-                } else {
-                    cdrom_log(dev->log, "LBA %08X not on an audio track\n", pos);
-                    cdrom_stop(dev);
-                }
-            } else {
-                cdrom_log(dev->log, "Unable to get the ending position for track %08X\n",
-                          len);
-                cdrom_stop(dev);
-            }
-        } else {
-            cdrom_log(dev->log, "Unable to get the starting position for track %08X\n", pos);
-            cdrom_stop(dev);
-        }
-    }
-
-    return ret;
-}
-#endif
 
 uint8_t
 cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
@@ -3671,10 +3664,9 @@ cdrom_reload(const uint8_t id)
     dev->ops = NULL;
     memset(dev->image_path, 0, sizeof(dev->image_path));
 
-    if (strlen(dev->image_path) > 0) {
+    if (strlen(dev->prev_image_path) > 0) {
         /* Reload a previous image. */
-        if (strlen(dev->prev_image_path) > 0)
-            strcpy(dev->image_path, dev->prev_image_path);
+        strcpy(dev->image_path, dev->prev_image_path);
 
 #ifdef _WIN32
         if ((strlen(dev->prev_image_path) > 0) && (strlen(dev->image_path) >= 1) &&

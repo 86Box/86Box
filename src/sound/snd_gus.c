@@ -93,11 +93,12 @@ enum {
 
 enum {
     GUS_CLASSIC    = 0,
-    GUS_CLASSIC_37 = 1,
-    GUS_MAX        = 2,
-    GUS_ACE        = 3,
-    GUS_VIPERMAX   = 4,
-    GUS_EXTREME    = 5
+    GUS_CLASSIC_34 = 1,
+    GUS_CLASSIC_37 = 2,
+    GUS_MAX        = 3,
+    GUS_ACE        = 4,
+    GUS_VIPERMAX   = 5,
+    GUS_EXTREME    = 6
 };
 
 enum {
@@ -209,14 +210,19 @@ typedef struct gus_t {
     uint8_t midi_data;
     int     midi_r;
     int     midi_w;
+    int     midi_used;
     int     uart_in;
     int     uart_out;
     int     sysex;
 
-    uint8_t  gp1;
-    uint8_t  gp2;
+    uint8_t  gp1_in;
+    uint8_t  gp1_out;
+    uint8_t  gp2_in;
+    uint8_t  gp2_out;
     uint16_t gp1_addr;
     uint16_t gp2_addr;
+    uint16_t cur_gp1;
+    uint16_t cur_gp2;
 
     uint8_t usrr;
 
@@ -366,16 +372,16 @@ gus_input_poll(void *priv)
     if (gus->adc_ctrl & 0x01) {
         if (gus->adc_ctrl & 0x02) {
             if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x8080);
             else {
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
             }
         } else {
             if (gus->adc_ctrl & 0x04)
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x0000 : 0x0080);
             else
-                dma_result = dma_channel_write(gus->dma, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
+                dma_result = dma_channel_write(gus->dma2, (gus->adc_ctrl & 0x80) ? 0x00 : 0x80);
         }
         if (dma_result & DMA_OVER) {
             gus->adc_ctrl &= 0xfe;
@@ -387,6 +393,64 @@ gus_input_poll(void *priv)
     } else {
         timer_disable(&gus->sample_timer);
     }
+}
+
+void
+gus_gp_write(uint16_t addr, uint8_t val, void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+
+    uint8_t port = addr & 1;
+
+    gus_log(gus->log, "GUS GP write: port = %i, val = %02X\n", port, val);
+
+    if (gus->reg_ctrl & 0x40) {
+        switch (port) {
+            case 0:
+                gus->gp1_in = val;
+                if (gus->reg_ctrl & 0x08)
+                    nmi_raise();
+                gus->usrr |= 0x08;
+                break;
+            case 1:
+                gus->gp2_in = val;
+                if (gus->reg_ctrl & 0x10)
+                    nmi_raise();
+                gus->usrr |= 0x20;
+                break;
+        }
+    }
+}
+
+uint8_t
+gus_gp_read(uint16_t addr, void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+    uint8_t ret = 0;
+
+    uint8_t port = addr & 1;
+
+    if (gus->reg_ctrl & 0x40) {
+        switch (port) {
+            case 0:
+                if (gus->reg_ctrl & 0x08)
+                    nmi_raise();
+                ret = gus->gp1_out;
+                gus->usrr |= 0x10;
+                break;
+            case 1:
+                if (gus->reg_ctrl & 0x10)
+                    nmi_raise();
+                ret = gus->gp2_out;
+                gus->usrr |= 0x40;
+                break;
+        }
+    } else
+        ret = 0xff;
+
+    gus_log(gus->log, "GUS GP read: port = %i, val = %02X\n", port, ret);
+
+    return ret;
 }
 
 void
@@ -421,6 +485,7 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                 gus->midi_status = 0;
                 gus->midi_r      = 0;
                 gus->midi_w      = 0;
+                gus->midi_used   = 0;
             } else if ((old & 3) == 3) {
                 gus->midi_status |= MIDI_INT_TRANSMIT;
             } else if (gus->midi_ctrl & MIDI_CTRL_RECEIVE) {
@@ -594,8 +659,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                     if ((gus_addr + 1) < gus->gus_end_ram)
                                         d                 |= (gus->ram[gus_addr + 1] << 8);
 
-                                    if (val & 0x80)
-                                        d ^= 0x8080;
                                     dma_result = dma_channel_write(gus->dma, d);
                                     if (dma_result == DMA_NODATA)
                                         break;
@@ -605,8 +668,6 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                                     else
                                         d = 0x00;
 
-                                    if (val & 0x80)
-                                        d ^= 0x80;
                                     dma_result = dma_channel_write(gus->dma, d);
                                     if (dma_result == DMA_NODATA)
                                         break;
@@ -697,19 +758,19 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x48: /*ADC Sample Rate*/
-                    gus->adc_srate  = val;
-                    gus->adc_freq   = 617400 / gus->adc_srate; /* (9878400 / (freq * 16) - 2 */
-                    double temp     = 1000000.0 / gus->adc_freq;
-                    if (gus->adc_freq < 4000)
-                        gus->adc_freq = 4000;
-                    if (gus->adc_freq > 44100)
-                        gus->adc_freq = 44100;
-                    gus->inputlatch = ((double) TIMER_USEC * temp);
+                    gus->adc_srate = val;
+                    /* SDK 2.6.1.6: rate = 9878400 / (16 * (FREQ + 2)) */
+                    uint32_t freq = 9878400 / (16 * (val + 2));
+                    if (freq > 44100)
+                        freq = 44100;
+                    gus->adc_freq   = freq;
+                    gus->inputlatch = ((double) TIMER_USEC * (1000000.0 / gus->adc_freq));
                     gus_log(gus->log, "GUS ADC samplerate set to %i, val = %02X\n", gus->adc_freq, gus->adc_srate);
                     break;
                 case 0x49: /*ADC Sample Control*/
                     /* This is the ADC equivalent of index 41h DMA Control and is relied on by MegaEM 3.x */
                     gus->adc_ctrl = val;
+                    gus->adc_ctrl &= ~0x40;
                     if (val & 1)
                         timer_set_delay_u64(&gus->sample_timer, (uint64_t) gus->inputlatch);
                     gus_log(gus->log, "GUS DMA Control write! new val = %02X\n", val);
@@ -824,16 +885,32 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
                 case 1:
-                    gus->gp1 = val;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->gp1_out = val;
                     break;
                 case 2:
-                    gus->gp2 = val;
+                    if (gus->type > GUS_CLASSIC)
+                        gus->gp2_out = val;
                     break;
                 case 3:
-                    gus->gp1_addr = val;
+                    if (gus->type > GUS_CLASSIC) {
+                        if (gus->cur_gp1)
+                            io_removehandler(0x300 + gus->gp1_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->gp1_addr = val;
+                        io_sethandler(0x300 + gus->gp1_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->cur_gp1 = 0x300 + gus->gp1_addr;
+                        gus_log(gus->log, "GUS GP 1 address change: new addr = %04X\n", gus->cur_gp1);
+                    }
                     break;
                 case 4:
-                    gus->gp2_addr = val;
+                    if (gus->type > GUS_CLASSIC) {
+                        if (gus->cur_gp2)
+                            io_removehandler(0x300 + gus->gp2_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->gp2_addr = val;
+                        io_sethandler(0x300 + gus->gp2_addr, 0x0001, gus_gp_read, NULL, NULL, gus_gp_write, NULL, NULL, gus);
+                        gus->cur_gp2 = 0x300 + gus->gp2_addr;
+                        gus_log(gus->log, "GUS GP 2 address change: new addr = %04X\n", gus->cur_gp2);
+                    }
                     break;
                 case 5:
                     if (gus->type > GUS_CLASSIC)
@@ -991,6 +1068,8 @@ gus_read(uint16_t addr, void *priv)
                     if (gus->midi_r != gus->midi_w) {
                         gus->midi_r++;
                         gus->midi_r &= 63;
+                        if (gus->midi_used > 0)
+                            gus->midi_used--;
                     }
                 }
                 gus->midi_status &= ~MIDI_INT_RECEIVE;
@@ -1018,7 +1097,7 @@ gus_read(uint16_t addr, void *priv)
 
         case 0x20F:
             if (gus->type > GUS_CLASSIC)
-                val = gus->jumper;
+                val = gus->usrr;
             else
                 val = 0xff;
             break;
@@ -1205,10 +1284,10 @@ gus_read(uint16_t addr, void *priv)
             if (gus->type > GUS_CLASSIC) {
                 switch (gus->reg_ctrl & 0x07) {
                     case 1:
-                        val = gus->gp1;
+                        val = gus->gp1_in;
                         break;
                     case 2:
-                        val = gus->gp2;
+                        val = gus->gp2_in;
                         break;
                     case 3:
                         val = gus->gp1_addr;
@@ -1226,7 +1305,7 @@ gus_read(uint16_t addr, void *priv)
         case 0x20c:
             val = gus->sb_2xc;
             if (gus->reg_ctrl & 0x20)
-                gus->sb_2xc &= 0x80;
+                gus->sb_2xc ^= 0x80;
             break;
         case 0x20e:
             gus_log(gus->log, "GUS read: port = %04X, val = %02X\n", addr, gus->sb_2xe);
@@ -1628,6 +1707,7 @@ gus_input_msg(void *priv, uint8_t *msg, uint32_t len)
         for (uint32_t i = 0; i < len; i++) {
             gus->midi_queue[gus->midi_w++] = msg[i];
             gus->midi_w &= 63;
+            gus->midi_used++;
         }
 
         gus_midi_update_int_status(gus);
@@ -1649,9 +1729,18 @@ gus_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (len - i);
         gus->midi_queue[gus->midi_w++] = buffer[i];
         gus->midi_w &= 63;
+        gus->midi_used++;
     }
     gus->sysex = 0;
     return 0;
+}
+
+static int
+gus_input_remain(void *priv)
+{
+    gus_t   *gus = (gus_t *) priv;
+
+    return (64 - gus->midi_used);
 }
 
 static void
@@ -1787,12 +1876,14 @@ gus_reset(void *priv)
     gus->midi_data = 0;
     gus->midi_r = 0;
     gus->midi_w = 0;
+    gus->midi_used = 0;
     gus->uart_in = 0;
-    gus->uart_out = 0;
     gus->sysex = 0;
 
-    gus->gp1 = 0;
-    gus->gp2 = 0;
+    gus->gp1_in = 0;
+    gus->gp1_out = 0;
+    gus->gp2_in = 0;
+    gus->gp2_out = 0;
     gus->gp1_addr = 0;
     gus->gp2_addr = 0;
 
@@ -1824,7 +1915,7 @@ gus_init(UNUSED(const device_t *info))
 
     gus->log = log_open("GUS");
 
-    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_37))
+    if ((info->local == GUS_CLASSIC) || (info->local == GUS_CLASSIC_34) || (info->local == GUS_CLASSIC_37))
         gus->gus_end_ram = gus_ram * 262144;
     else
         gus->gus_end_ram = 1 << (18 + gus_ram);
@@ -1891,8 +1982,6 @@ gus_init(UNUSED(const device_t *info))
     if (gus->type == GUS_MAX) {
         ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
         ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
-        ad1848_setirq(&gus->ad1848, 5);
-        ad1848_setdma(&gus->ad1848, 3);
         gus->cur_codec_addr = gus->base + 0x10C;
         io_sethandler(0x10C + gus->base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
@@ -1906,7 +1995,7 @@ gus_init(UNUSED(const device_t *info))
     sound_add_handler(gus_get_buffer, gus);
 
     if ((gus->type != GUS_ACE) && (device_get_config_int("receive_input")))
-        midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
+        midi_in_handler(1, gus_input_msg, gus_input_sysex, gus_input_remain, gus);
 
     return gus;
 }
@@ -1948,7 +2037,7 @@ gus_extreme_init(UNUSED(const device_t *info))
     gus->ess->mixer_ess.output_filter = 1;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &gus->ess->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &gus->ess->dsp);
 
     gus->ess->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     /* NOTE: The MPU is initialized disabled and with no IRQ assigned.
@@ -2370,6 +2459,20 @@ const device_t gus_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_config
+};
+
+const device_t gus_v34_device = {
+    .name          = "Gravis UltraSound (rev 3.4)",
+    .internal_name = "gusv34",
+    .flags         = DEVICE_ISA16,
+    .local         = GUS_CLASSIC_34,
+    .init          = gus_init,
+    .close         = gus_close,
+    .reset         = gus_reset,
+    .available     = NULL,
+    .speed_changed = gus_speed_changed,
+    .force_redraw  = NULL,
+    .config        = gus_v37_config
 };
 
 const device_t gus_v37_device = {

@@ -260,9 +260,8 @@ machine_at_opti560l_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL,      4, 4, 3, 3);
-    pci_register_slot(0x07, PCI_CARD_NORMAL,      1, 4, 3, 2);
-    pci_register_slot(0x08, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_VIDEO, 3, 3, 3, 3);
+    pci_register_slot(0x07, PCI_CARD_NORMAL, 1, 4, 3, 2);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     device_add(&i430lx_device);
@@ -270,6 +269,9 @@ machine_at_opti560l_init(const machine_t *model)
     device_add(&sio_zb_device);
     device_add_params(&i82091aa_device, (void *) I82091AA_022);
     device_add(&intel_flash_bxt_ami_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5430_onboard_pci_device);
 
     return ret;
 }
