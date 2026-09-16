@@ -2898,7 +2898,7 @@ tea6330_write(uint16_t addr, uint8_t val, void *priv)
     gus->bval = gus->tea6330t_data[2];
     gus->tval = gus->tea6330t_data[3];
 
-    printf("TEA6330T I2C write, current treble = %02X, current bass = %02X\n", gus->tval, gus->bval);
+    gus_log(gus->log, "TEA6330T I2C write, current treble = %02X, current bass = %02X\n", gus->tval, gus->bval);
 }
 
 uint8_t
