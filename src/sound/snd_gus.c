@@ -3567,7 +3567,7 @@ gus_pnp_init(const device_t *info)
     sound_add_handler(gus_get_buffer, gus);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, gus_input_msg, gus_input_sysex, gus);
+        midi_in_handler(1, gus_input_msg, gus_input_sysex, gus_input_remain, gus);
 
     uint8_t pnp_type  = info->local;
     uint8_t is_compaq = 0;
