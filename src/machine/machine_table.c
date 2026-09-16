@@ -24972,7 +24972,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
         .ram       = {
-            .min  = 16384, /* Machine does not start (hang) with 8mb memory */
+            .min  = 32768, /* temporary higher limit set due to a DRB(?) issue that prevents POST with less than this amount */
             .max  = 524288,
             .step = 8192
         },
