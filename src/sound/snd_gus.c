@@ -361,7 +361,7 @@ double ics2101_pan[] = { 0.35481, 0.35481, 0.35481, 0.37584, 0.47315, 0.53088, 0
                          0.70795,
                          0.74989, 0.79433, 0.84140, 0.89125, 0.94406, 1.00000, 1.00000, 1.00000 };
 
-static double iw_vols_5bits_aux_gain[32];
+static double iw_vols_5bits_master_gain[32];
 
 void    gus_write(uint16_t addr, uint8_t val, void *priv);
 uint8_t gus_read(uint16_t addr, void *priv);
@@ -2713,11 +2713,11 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
             if (gus->ad1848.regs[25] & 0x80)
                 temp_l = 0;
             else
-                temp_l *= (iw_vols_5bits_aux_gain[gus->ad1848.regs[25] & 0x1f]) / 65536.0; /* L master vol */
+                temp_l *= (iw_vols_5bits_master_gain[gus->ad1848.regs[25] & 0x1f]) / 16384.0; /* L master vol */
             if (gus->ad1848.regs[27] & 0x80)
                 temp_r = 0;
             else
-                temp_r *= (iw_vols_5bits_aux_gain[gus->ad1848.regs[27] & 0x1f]) / 65536.0; /* R master vol */
+                temp_r *= (iw_vols_5bits_master_gain[gus->ad1848.regs[27] & 0x1f]) / 16384.0; /* R master vol */
             if (gus->cur_tea6330_addr) {
                 if (gus->bval >= 8) {
                     temp_l += (low_iir(0, 0, temp_l)) * (gus->tea6330t_bass[gus->bval]);
@@ -2780,6 +2780,17 @@ gus_filter_cd_audio(int channel, double *buffer, void *priv)
         *buffer *= gus->ics2101.channels[GUS_ICS2101_CD_IN].level[channel] * gus->ics2101.channels[GUS_ICS2101_MASTER].level[channel];
     else
         *buffer *= 0.0;
+}
+
+void
+gus_pnp_filter_cd_audio(int channel, double *buffer, void *priv)
+{
+    const gus_t *gus = (gus_t *) priv;
+    const double cd_vol = channel ? gus->ad1848.cd_vol_r : gus->ad1848.cd_vol_l;
+    double       master = channel ? iw_vols_5bits_master_gain[gus->ad1848.regs[27] & 0x1f] : iw_vols_5bits_master_gain[gus->ad1848.regs[25] & 0x1f];
+    double       c      = ((*buffer * cd_vol) * (master / 131072.0)) / 131072.0;
+
+    *buffer = c;
 }
 
 static void
@@ -3519,7 +3530,7 @@ gus_pnp_init(const device_t *info)
     }
 
     for (c = 0; c < 32; c++) {
-        attenuation = 12.0;
+        attenuation = 0.0;
         if (c & 0x01)
             attenuation -= 1.5;
         if (c & 0x02)
@@ -3533,7 +3544,7 @@ gus_pnp_init(const device_t *info)
 
         attenuation = pow(10, attenuation / 10);
 
-        iw_vols_5bits_aux_gain[c] = (attenuation * 65536);
+        iw_vols_5bits_master_gain[c] = (attenuation * 65536);
     }
 
     gus->voices = 14;
@@ -3555,6 +3566,8 @@ gus_pnp_init(const device_t *info)
 
     ad1848_init(&gus->ad1848, AD1848_TYPE_INTERWAVE);
     ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
+    sound_set_cd_audio_filter(NULL, NULL); /* Seems to be necessary for the filter below to apply */
+    sound_set_cd_audio_filter(gus_pnp_filter_cd_audio, gus);
     ad1848_setirq(&gus->ad1848, 0);
     ad1848_setdma(&gus->ad1848, 0);
 
