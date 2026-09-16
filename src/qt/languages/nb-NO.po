@@ -82,6 +82,9 @@ msgstr "Angi &dimensjoner…"
 msgid "Force &4:3 display ratio"
 msgstr "Tving &4:3-bildeforhold"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Tving &%1:%2-bildeforhold"
+
 msgid "&Window scale factor"
 msgstr "&Vinduets skaleringsfaktor"
 

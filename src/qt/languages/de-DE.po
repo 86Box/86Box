@@ -81,6 +81,9 @@ msgstr "Fenstergröße &einstellen…"
 msgid "Force &4:3 display ratio"
 msgstr "&4:3-Seitenverhältnis erzwingen"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "&%1:%2-Seitenverhältnis erzwingen"
+
 msgid "&Window scale factor"
 msgstr "&Fensterskalierungsfaktor"
 

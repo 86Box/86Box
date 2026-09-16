@@ -82,6 +82,9 @@ msgstr "Określ wymiary…"
 msgid "Force &4:3 display ratio"
 msgstr "Wymuś proporcje wyświetlania &4:3"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Wymuś proporcje wyświetlania &%1:%2"
+
 msgid "&Window scale factor"
 msgstr "Współ&czynnik skalowania okna"
 

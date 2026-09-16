@@ -82,6 +82,9 @@ msgstr "Especificar as dime&nsões…"
 msgid "Force &4:3 display ratio"
 msgstr "Forçar proporção de tela em &4:3"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Forçar proporção de tela em &%1:%2"
+
 msgid "&Window scale factor"
 msgstr "F&ator de redimensionamento da janela"
 

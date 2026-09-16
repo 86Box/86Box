@@ -75,6 +75,9 @@ msgstr ""
 msgid "Force &4:3 display ratio"
 msgstr ""
 
+msgid "Force &%1:%2 display ratio"
+msgstr ""
+
 msgid "&Window scale factor"
 msgstr ""
 
