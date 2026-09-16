@@ -63,6 +63,7 @@ private:
     int                           unittester_cfg_changed     = 0;
     int                           novell_keycard_cfg_changed = 0;
     int                           softpower_cfg_changed      = 0;
+    bool                          softpower_card_enabled     = false;
 
     SettingsCompleter            *scRTC;
 

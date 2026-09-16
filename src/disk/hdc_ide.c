@@ -655,6 +655,7 @@ static void
 ide_hd_identify(const ide_t *ide)
 {
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
+    char model[41];
     const ide_bm_t *bm      = ide_boards[ide->board]->bm;
     uint64_t full_size      = (((uint64_t) hdd[ide->hdd_num].tracks) *
                               hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
@@ -701,9 +702,15 @@ ide_hd_identify(const ide_t *ide)
     else
         ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);
     /* Model */
-    if (hdd[ide->hdd_num].model)
-        ide_padstr((char *) (ide->buffer + 27), hdd[ide->hdd_num].model, 40);
-    else
+    if (hdd[ide->hdd_num].vendor || hdd[ide->hdd_num].model) {
+        if (hdd[ide->hdd_num].vendor && hdd[ide->hdd_num].model)
+            snprintf(model, sizeof(model), "%s %s", hdd[ide->hdd_num].vendor, hdd[ide->hdd_num].model);
+        else if (hdd[ide->hdd_num].vendor)
+            snprintf(model, sizeof(model), "%s %s", hdd[ide->hdd_num].vendor, device_identify);
+        else
+            snprintf(model, sizeof(model), "%s", hdd[ide->hdd_num].model);
+        ide_padstr((char *) (ide->buffer + 27), model, 40);
+    } else
         ide_padstr((char *) (ide->buffer + 27), device_identify, 40);
     /* Fixed drive */
     ide->buffer[0]  = (1 << 6);

@@ -74,6 +74,12 @@ mca_set_index(const uint8_t index)
 }
 
 uint8_t
+mca_get_index(void)
+{
+    return mca_index;
+}
+
+uint8_t
 mca_read(const uint16_t port)
 {
     if ((mca_index >= mca_nr_cards) || (!mca_slots[mca_index].read))
@@ -141,7 +147,7 @@ mca_reset(void)
     }
 }
 
-void
+uint8_t
 mca_add(uint8_t (*read)(uint16_t port, void *priv),
         void (*write)(uint16_t port, uint8_t val, void *priv),
         uint8_t (*feedb)(void *priv),
@@ -157,9 +163,11 @@ mca_add(uint8_t (*read)(uint16_t port, void *priv),
                 .reset = reset,
                 .priv  = priv
             };
-            return;
+            return slot;
         }
     }
+
+    return 0xff;
 }
 
 void

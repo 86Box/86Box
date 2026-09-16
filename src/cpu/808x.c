@@ -309,7 +309,9 @@ cpu_io(int bits, int out, uint16_t port)
 {
     int cycs = 4;
 
-    if (is_mazovia)
+    if (machines[machine].cpu_io_cycles)
+        cycs = machines[machine].cpu_io_cycles;
+    else if (is_mazovia)
         cycs = 5;
     else if ((strcmp(machine_get_internal_name(), "ibmps2_m25") == 0) ||
              (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0))
@@ -1237,7 +1239,9 @@ irq_pending(int nec_hlt)
     uint8_t temp;
     int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
-    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || (i_flag && pic.int_pending && !noint);
+    /* Isolate Convertible IRET compatibility; this is not a proven CMOS-only
+     * instruction difference. Other CPU models retain the upstream predicates. */
+    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint));
 
     return temp;
 }
@@ -1249,7 +1253,7 @@ check_interrupts(int nec_hlt)
     int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
     if (irq_pending(nec_hlt)) {
-        if ((cpu_state.flags & T_FLAG) && !(noint & 1)) {
+        if ((cpu_state.flags & T_FLAG) && (is80c88 ? !noint : !(noint & 1))) {
             interrupt(1);
             return;
         }
@@ -1264,7 +1268,7 @@ check_interrupts(int nec_hlt)
 #endif
             return;
         }
-        if (i_flag && pic.int_pending && !noint) {
+        if (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint)) {
             repeating = 0;
             completed = 1;
             ovr_seg   = NULL;
@@ -1327,6 +1331,16 @@ jump(uint16_t delta)
     cpu_808x_access(67, 8);
     if (is_new_biu)
         biu_suspend_fetch();
+    else if (is80c88) {
+        /* Retain Convertible branch timing only on its model, not as a proven
+         * CMOS-only difference: finish SUSP's outstanding fetch before CORR. */
+        if (prefetching && (pfq_pos < pfq_size))
+            wait_cycs((4 - (biu_cycles & 3)) & 3, 0);
+        pfq_clear();
+        /* CORR occupies the address adder for two clocks; the shared
+         * microcode delay below already includes one of them. */
+        wait_cycs(1, 0);
+    }
     else
         pfq_clear();
     wait_cycs(5, 0);
@@ -1334,6 +1348,8 @@ jump(uint16_t delta)
     set_ip((cpu_state.pc + delta) & 0xffff);
     if (is_new_biu)
         biu_queue_flush();
+    else if (is80c88)
+        biu_cycles = 0; /* The target starts a new T1, not an old fetch phase. */
     return old_ip;
 }
 
@@ -2880,6 +2896,8 @@ execx86_instruction(void)
                 else
                     cpu_state.flags = pop() | 0x0002;
                 wait_cycs(5, 0);
+                /* The 80C88 compatibility predicates delay TF, not INTR;
+                 * legacy models keep their upstream interpretation of noint. */
                 noint      = 2;
                 nmi_enable = 1;
                 break;
@@ -3401,6 +3419,17 @@ execx86(int cycs)
 
     while (cycles > 0) {
         cycdiff = cycles;
+
+        /* A board may hold the CPU clock on a part that supports it. Keep
+         * continuous peripherals running; the CPU does not execute. */
+        if (is80c88 && cpu_clock_gated && (cpu_clock_stop_query != NULL)) {
+            if (cpu_clock_stop_query()) {
+                cycles -= cycles > 64 ? 64 : cycles;
+                clock_end();
+                continue;
+            }
+            check_interrupts(0);
+        }
 
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;

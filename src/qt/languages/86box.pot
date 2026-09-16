@@ -936,6 +936,9 @@ msgstr ""
 msgid "Press %1 or middle button to release mouse"
 msgstr ""
 
+msgid "Press %1 or thumb button to release mouse"
+msgstr ""
+
 msgid "Bus"
 msgstr ""
 
@@ -2906,7 +2909,13 @@ msgstr ""
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr ""
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr ""
+
 msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1995 (5200 RPM)"
 msgstr ""
 
 msgid "[Generic] 1996 (5400 RPM)"
@@ -2919,6 +2928,9 @@ msgid "[Generic] 1998 (5400 RPM)"
 msgstr ""
 
 msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
+
+msgid "[Generic] 2004 (10000 RPM)"
 msgstr ""
 
 msgid "IBM 8514/A clone"

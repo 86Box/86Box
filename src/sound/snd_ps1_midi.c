@@ -36,6 +36,7 @@ typedef struct ps1midi_t {
     //uint8_t    buffer[2048];
     Fifo8      fifo;
     int        irq_pend;
+    int        fifo_used;
 } ps1midi_t;
 
 static int
@@ -46,12 +47,21 @@ ps1midi_in_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     for (int i = 0; i < len; i++) {
         //ps1midi->buffer[ps1midi->pos++] = buffer[i];
         fifo8_push(&ps1midi->fifo, buffer[i]);
+        ps1midi->fifo_used++;
     }
     if ((ps1midi->ctrl & 1)) {
         ps1midi->irq_pend = 1;
         picint(1 << 7);
     }
     return 0;
+}
+
+static int
+ps1midi_in_remain(void *priv)
+{
+    ps1midi_t *ps1midi = priv;
+
+    return (2048 - ps1midi->fifo_used);
 }
 
 static void
@@ -61,6 +71,7 @@ ps1midi_rx(void *priv, uint8_t* bytes, uint32_t size)
 
     for (int i = 0; i < size; i++) {
         fifo8_push(&ps1midi->fifo, bytes[i]);
+        ps1midi->fifo_used++;
     }
     if ((ps1midi->ctrl & 1)) {
         ps1midi->irq_pend = 1;
@@ -75,6 +86,8 @@ ps1midi_read(uint16_t addr, void *priv)
 
     switch (addr & 0x7) {
         case 0:
+            if (ps1midi->fifo_used > 0)
+                ps1midi->fifo_used++;
             return fifo8_pop(&ps1midi->fifo);
         case 1:
             return ps1midi->ctrl;
@@ -125,7 +138,7 @@ ps1midi_init(UNUSED(const device_t *info))
 
     fifo8_create(&ps1midi->fifo, 2048);
 
-    midi_in_handler(1, ps1midi_rx, ps1midi_in_sysex, ps1midi);
+    midi_in_handler(1, ps1midi_rx, ps1midi_in_sysex, ps1midi_in_remain, ps1midi);
 
     return ps1midi;
 }

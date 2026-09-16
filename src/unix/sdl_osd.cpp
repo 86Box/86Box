@@ -176,6 +176,8 @@ void osd_init(void)
 
     ImGuiIO &io = ImGui::GetIO();
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    /* Leave the host cursor to the emulator; the OSD never sets it. */
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
     io.IniFilename = nullptr; /* don't save layout */
 
     osd_set_scale(1.0f);
@@ -235,6 +237,20 @@ int osd_close(SDL_Event event)
     return 1;
 }
 
+int osd_take_pending_close(void)
+{
+    if (!pending_close)
+        return 0;
+
+    pending_close = false;
+
+    /* osd_close() ignores the event; it only takes one to mirror osd_open(). */
+    SDL_Event dummy {};
+    osd_close(dummy);
+
+    return 1;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Public API: event handling                                         */
 /* ------------------------------------------------------------------ */
@@ -259,11 +275,6 @@ int osd_handle(SDL_Event event)
         return 1; /* consume */
     }
 
-    if (pending_close) {
-        pending_close = false;
-        return 0;
-    }
-
 #ifdef USE_SDL2_LIB
     ImGui_ImplSDL2_ProcessEvent(&event);
 #else
@@ -277,7 +288,11 @@ int osd_handle(SDL_Event event)
 /* ------------------------------------------------------------------ */
 void osd_present(int output_w, int output_h)
 {
-    if (!osd_visible || !osd_inited)
+    if (!osd_inited)
+        return;
+
+    /* Keep rendering while the core still has an overlay to draw. */
+    if (!osd_visible && !osd_core_needs_render())
         return;
 
 #ifdef USE_SDL_SHADER_PIPELINE
@@ -303,8 +318,10 @@ void osd_present(int output_w, int output_h)
     ImGui_ImplSDL3_NewFrame();
 #endif
     ImGui::NewFrame();
-    if (!osd_core_build_ui())
+    if (osd_visible && !osd_core_build_ui())
         pending_close = true;
+    osd_core_draw_indicators();
+    osd_core_draw_message();
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 #else
@@ -321,8 +338,10 @@ void osd_present(int output_w, int output_h)
     ImGui_ImplSDL3_NewFrame();
 #endif
     ImGui::NewFrame();
-    if (!osd_core_build_ui())
+    if (osd_visible && !osd_core_build_ui())
         pending_close = true;
+    osd_core_draw_indicators();
+    osd_core_draw_message();
     ImGui::Render();
 #ifdef USE_SDL2_LIB
     ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), sdl_render);

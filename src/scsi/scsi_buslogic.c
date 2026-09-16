@@ -1669,7 +1669,7 @@ buslogic_init(const device_t *info)
             break;
         case CHIP_BUSLOGIC_ISA_545C_1994_12_01: /*Dated December 1st, 1994*/
             strcpy(dev->name, "BT-545C");
-            bios_rom_name     = "roms/scsi/buslogic/BT-545C_BIOS.rom";
+            bios_rom_name     = "roms/scsi/buslogic/BT-545C_BIOS.ROM";
             bios_rom_size     = 0x4000;
             bios_rom_mask     = 0x3fff;
             has_autoscsi_rom  = 1;
@@ -1709,7 +1709,7 @@ buslogic_init(const device_t *info)
             break;
         case CHIP_BUSLOGIC_VLB_445C_1994_12_01: /*Dated December 1st, 1994*/
             strcpy(dev->name, "BT-445C");
-            bios_rom_name     = "roms/scsi/buslogic/BT-445C_BIOS.rom";
+            bios_rom_name     = "roms/scsi/buslogic/BT-445C_BIOS.ROM";
             bios_rom_size     = 0x4000;
             bios_rom_mask     = 0x3fff;
             has_autoscsi_rom  = 1;

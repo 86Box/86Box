@@ -1924,7 +1924,7 @@ azt_init(const device_t *info)
         azt2316a->mpu = NULL;
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &azt2316a->sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &azt2316a->sb->dsp);
 
     /* Restore SBPro mixer settings from EEPROM on AZT2316A cards */
     if ((azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) || (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316R_0X12)) {

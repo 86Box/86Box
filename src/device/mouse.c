@@ -762,6 +762,29 @@ mouse_get_buttons(void)
     return mouse_nbut;
 }
 
+/*
+   Returns the host mouse buttons that release the mouse capture, as a
+   mouse_get_buttons_ex() mask.
+
+   The middle button is used as long as the guest can not see it. Once it can,
+   the thumb buttons take over, and once the guest can see those as well, there
+   is no button left to spare and only the keyboard shortcut remains.
+
+   The returned masks are mutually exclusive by construction.
+ */
+int
+mouse_get_release_buttons(void)
+{
+    int ret = 0x00;
+
+    if (mouse_nbut < 3)
+        ret = MOUSE_RELEASE_MIDDLE;
+    else if (mouse_nbut < 5)
+        ret = MOUSE_RELEASE_THUMB;
+
+    return ret;
+}
+
 /* Return number of MOUSE types we know about. */
 int
 mouse_get_ndev(void)

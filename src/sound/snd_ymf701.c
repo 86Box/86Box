@@ -464,7 +464,7 @@ ymf701_init(const device_t *info)
     mpu401_init(ymf701->mpu, ymf701->cur_mpu401_addr, ymf701->cur_mpu401_irq, M_UART, device_get_config_int("receive_input401"));
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &ymf701->sb->dsp);
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, sb_dsp_input_remain, &ymf701->sb->dsp);
 
     return ymf701;
 }

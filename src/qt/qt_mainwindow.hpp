@@ -119,6 +119,7 @@ private slots:
     void on_actionAbout_86Box_triggered();
     void on_actionAbout_Qt_triggered();
     void on_actionForce_4_3_display_ratio_triggered();
+    void on_actionForce_device_aspect_ratio_triggered();
     void on_actionRemember_size_and_position_triggered();
     void on_actionSpecify_dimensions_triggered();
     void on_actionHiDPI_scaling_triggered();
@@ -179,8 +180,10 @@ private:
     Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
+    QMenu                         *dynarecMenu = nullptr;
 
     void updateShortcuts();
+    void refreshDisplayRatioActions();
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;

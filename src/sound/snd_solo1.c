@@ -1084,7 +1084,7 @@ solo1_init(const device_t *info)
     dev->legacy = ess_solo1_legacy_init();
     sound_add_handler(solo1_get_buffer, dev);
 
-    pci_add_card(PCI_ADD_SOUND, solo1_pci_read, solo1_pci_write,
+    pci_add_card((info->local & 1) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, solo1_pci_read, solo1_pci_write,
                  dev, &dev->pci_slot);
     solo1_reset(dev);
 
@@ -1095,8 +1095,14 @@ static void
 solo1_close(void *priv)
 {
     solo1_t *dev = (solo1_t *) priv;
+    sb_t *   ess = (sb_t *) dev->legacy;
     dev->pci_regs[0x04] &= ~0x01;
     dev->pci_regs[0x60] &= ~0x01;
+    /*
+       Null the pointer because at this point, it has already been
+       freed by the gameport device.
+     */
+    ess->gameport = NULL;
     solo1_update_native_mappings(dev);
     if (dev->legacy != NULL)
         ess_solo1_legacy_close(dev->legacy);
@@ -1104,7 +1110,7 @@ solo1_close(void *priv)
 }
 
 const device_t ess_solo1_device = {
-    .name          = "ESS Solo-1",
+    .name          = "ESS Solo-1 ES1938S",
     .internal_name = "ess_solo1",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -1119,7 +1125,7 @@ const device_t ess_solo1_device = {
 };
 
 const device_t ess_solo1_onboard_device = {
-    .name          = "ESS Solo-1 (On-Board)",
+    .name          = "ESS Solo-1 ES1938S (On-Board)",
     .internal_name = "ess_solo1_onboard",
     .flags         = DEVICE_PCI,
     .local         = 1,

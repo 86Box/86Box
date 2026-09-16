@@ -23,6 +23,10 @@ add_library(mch OBJECT
     m_xt_jukost.c
     m_xt_xi8088.c
     m_pcjr.c
+    m_pcjx.c
+    m_pcjx_scancodes.c
+    m_ibm5140.c
+    m_ibm5140_power.c
     m_amstrad.c
     m_europc.c
     m_elt.c

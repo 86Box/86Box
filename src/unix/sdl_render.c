@@ -705,8 +705,17 @@ plat_resize(int w, int h, UNUSED(int monitor_index))
 void
 update_mouse_msg(void)
 {
-    char  cpufamily[128];
-    char *cp;
+    char        cpufamily[128];
+    char       *cp;
+    const int   release_buttons = mouse_get_release_buttons();
+    const char *release_msg;
+
+    if (release_buttons & MOUSE_RELEASE_MIDDLE)
+        release_msg = "Press CTRL-SHIFT-G or middle button to release mouse";
+    else if (release_buttons & MOUSE_RELEASE_THUMB)
+        release_msg = "Press CTRL-SHIFT-G or thumb button to release mouse";
+    else
+        release_msg = "Press CTRL-SHIFT-G to release mouse";
 
     if (!cpu_override)
         strncpy(cpufamily, cpu_f->name, sizeof(cpufamily) - 1);
@@ -721,7 +730,7 @@ update_mouse_msg(void)
              "Click to capture mouse");
     snprintf(mouse_msg[1], sizeof(mouse_msg[1]), "%s v%s - %%i%%%% - %s - %s/%s - %s",
              EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name,
-             (mouse_get_buttons() > 2) ? "Press CTRL-SHIFT-G to release mouse" : "Press CTRL-SHIFT-G or middle button to release mouse");
+             release_msg);
     snprintf(mouse_msg[2], sizeof(mouse_msg[2]), "%s v%s - %%i%%%% - %s - %s/%s",
              EMU_NAME, EMU_VERSION_FULL, machine_getname(machine), cpufamily, cpu_s->name);
 }

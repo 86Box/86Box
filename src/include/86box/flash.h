@@ -20,6 +20,9 @@
 #define AMD_FLAG_LEGACY           0x01
 
 extern const device_t intel_flash_e28f0xx_device;
+extern const device_t intel_flash_e28f0xx_cobalt3k_device;
+
+extern void flash_e28f0xx_cobalt3k_update(uint8_t val);
 
 extern const device_t amd_flash_am29f016d_device;
 

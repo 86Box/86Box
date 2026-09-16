@@ -93,6 +93,7 @@ typedef struct sensation_t {
     uint8_t midi_queue[16];
     int     midi_r;
     int     midi_w;
+    int     midi_used;
     int     uart_in;
     int     uart_out;
     int     sysex;
@@ -690,10 +691,11 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
 
                     if ((dev->sensation_midi_ctrl & 0x0f) != 0x0f) {
                         if ((dev->sensation_midi_ctrl & 0x0f) == 0x00) {
-                            dev->uart_out = 0;
-                            dev->uart_in  = 0;
-                            dev->midi_w   = 0;
-                            dev->midi_r   = 0;
+                            dev->uart_out  = 0;
+                            dev->uart_in   = 0;
+                            dev->midi_w    = 0;
+                            dev->midi_r    = 0;
+                            dev->midi_used = 0;
                             dev->sensation_mma_status &= ~0x8c;
                         } else {
                             if (dev->sensation_midi_ctrl & 0x01)
@@ -701,9 +703,10 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                             if (dev->sensation_midi_ctrl & 0x04)
                                 dev->uart_out = 1;
                             if (dev->sensation_midi_ctrl & 0x02) {
-                                dev->uart_in = 0;
-                                dev->midi_w  = 0;
-                                dev->midi_r  = 0;
+                                dev->uart_in   = 0;
+                                dev->midi_w    = 0;
+                                dev->midi_r    = 0;
+                                dev->midi_used = 0;
                             }
                             if (dev->sensation_midi_ctrl & 0x08)
                                 dev->uart_out = 0;
@@ -908,6 +911,8 @@ sensation_mma_read(uint16_t addr, void *priv)
                         if (dev->midi_r != dev->midi_w) {
                             dev->midi_r++;
                             dev->midi_r &= 0x0f;
+                            if (dev->midi_used > 0)
+                                dev->midi_used--;
                         }
                         dev->sensation_mma_status &= ~0x04;
                         sensation_update_mma_irq_status(dev);
@@ -1119,6 +1124,7 @@ sensation_input_msg(void *priv, uint8_t *msg, uint32_t len)
         for (uint32_t i = 0; i < len; i++) {
             dev->midi_queue[dev->midi_w++] = msg[i];
             dev->midi_w &= 0x0f;
+            dev->midi_used++;
         }
 
         sensation_update_mma_irq_status(dev);
@@ -1140,9 +1146,18 @@ sensation_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (len - i);
         dev->midi_queue[dev->midi_w++] = buffer[i];
         dev->midi_w &= 0x0f;
+        dev->midi_used++;
     }
     dev->sysex = 0;
     return 0;
+}
+
+static int
+sensation_input_remain(void *priv)
+{
+    sensation_t *dev = (sensation_t *) priv;
+
+    return (16 - dev->midi_used);
 }
 
 void *
@@ -1174,7 +1189,7 @@ sensation_init(UNUSED(const device_t *info))
     sound_add_handler(sensation_get_buffer, dev);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, sensation_input_msg, sensation_input_sysex, dev);
+        midi_in_handler(1, sensation_input_msg, sensation_input_sysex, sensation_input_remain, dev);
 
     /* Calculate attenuation values for the 6-bit volume control */
     double attenuation;

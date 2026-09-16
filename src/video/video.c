@@ -32,6 +32,7 @@
 #include "cpu.h"
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/config.h>
@@ -52,7 +53,8 @@ uint8_t      fontdat[2048][8];            /* IBM CGA font */
 uint8_t      fontdatm[2048][16];          /* IBM MDA font */
 uint8_t      fontdatw[512][32];           /* Wyse700 font */
 uint8_t      fontdat8x12[256][16];        /* MDSI Genius font */
-uint8_t      fontdat12x18[256][36];       /* IM1024 font */
+uint8_t      fontdat12x18[256][36];       /* IM1024 12x18 font */
+uint8_t      fontdat8x12im1024[256][12];  /* IM1024 8x12 font */
 dbcs_font_t *fontdatksc5601       = NULL; /* Korean KSC-5601 font */
 dbcs_font_t *fontdatksc5601_user  = NULL; /* Korean KSC-5601 user defined font */
 int          herc_blend           = 0;
@@ -449,6 +451,14 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
     MTR_END("video", "video_blit_memtoscreen");
 }
 
+/* Character clocks from the selected HSYNC edge to the next line.
+   Pass zero for sync start, or the effective pulse width for sync end. */
+int
+video_6845_get_hsync_delay(const uint8_t *crtc, int hsync_width)
+{
+    return (crtc[0] + 1) - crtc[2] - hsync_width;
+}
+
 uint8_t
 pixels8(uint32_t *pixels)
 {
@@ -598,6 +608,10 @@ video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index)
     monitor_t *monitor       = &monitors[monitor_index];
     monitor->mon_vid_type    = type;
     monitor->mon_vid_timings = ptr;
+    /* The built-in panel belongs to the machine, not to a video controller
+     * that may also drive displays in other machines or secondary monitors. */
+    monitor->mon_device_aspect_x = (monitor_index == 0) ? machines[machine].display_aspect_x : 0;
+    monitor->mon_device_aspect_y = (monitor_index == 0) ? machines[machine].display_aspect_y : 0;
 }
 
 int
@@ -1067,6 +1081,11 @@ video_load_font(char *fn, int format, int offset)
         case FONT_FORMAT_IM1024: /* Image Manager 1024 native font */
             for (uint16_t c = 0; c < 256; c++)
                 (void) !fread(&fontdat12x18[c][0], 1, 36, fp);
+            break;
+
+        case FONT_FORMAT_IM1024_8X12: /* Image Manager 1024 native 8x12 font */
+            for (uint16_t c = 0; c < 256; c++)
+                (void) !fread(&fontdat8x12im1024[c][0], 1, 12, fp);
             break;
 
         case FONT_FORMAT_PRAVETZ: /* Pravetz */

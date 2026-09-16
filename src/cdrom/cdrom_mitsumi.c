@@ -31,6 +31,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_mitsumi.h>
 #include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/timer.h>
 
 #define RAW_SECTOR_SIZE    2352
@@ -136,6 +137,7 @@ typedef struct mcd_t {
     uint8_t  early_status;
     uint8_t  state;
     uint8_t  first;
+    uint8_t  dma_timeout_ms;
     int8_t   status;
     uint16_t dmalen;
     uint32_t readmsf;
@@ -147,9 +149,8 @@ typedef struct mcd_t {
     int      cur_toc_track;
     int      tray_open;
     uint32_t dma_retries;
-    pc_timer_t pio_timer;
-    pc_timer_t dma_timer;
     pc_timer_t read_timer;
+    pc_timer_t dma_timeout_timer;
     uint8_t  last_flags;
 
     uint8_t  cur_control;
@@ -167,6 +168,8 @@ typedef struct mcd_t {
 
     cdrom_t *cdrom_dev;
 } mcd_t;
+
+static void    mitsumi_read_callback(void *priv);
 
 #define CD_DCB(x)         ((((x) &0xf0) >> 4) * 10 + ((x) &0x0f))
 
@@ -206,18 +209,50 @@ mitsumi_set_irq(const mcd_t *dev, const uint8_t mask)
     }
 }
 
+static int
+mitsumi_msf_to_lba(const uint32_t msf, uint32_t *lba)
+{
+    const uint8_t minute_bcd = (msf >> 16) & 0xff;
+    const uint8_t second_bcd = (msf >> 8) & 0xff;
+    const uint8_t frame_bcd  = msf & 0xff;
+
+    if (((minute_bcd & 0x0f) > 9) || ((minute_bcd >> 4) > 9) ||
+        ((second_bcd & 0x0f) > 9) || ((second_bcd >> 4) > 9) ||
+        ((frame_bcd & 0x0f) > 9) || ((frame_bcd >> 4) > 9))
+        return 0;
+
+    const uint8_t minute = CD_DCB(minute_bcd);
+    const uint8_t second = CD_DCB(second_bcd);
+    const uint8_t frame  = CD_DCB(frame_bcd);
+    const uint32_t absolute_lba = MSFtoLBA(minute, second, frame);
+
+    if ((second >= 60) || (frame >= 75) || (absolute_lba < 150))
+        return 0;
+
+    *lba = absolute_lba - 150;
+    return 1;
+}
+
 static uint8_t
 mitsumi_status(mcd_t *dev)
 {
-    uint8_t status = 0;
+    uint8_t  status = 0;
+    uint32_t lba    = 0;
 
     if (dev->tray_open)
         status |= STAT_OPEN;
     if (mitsumi_cdrom_is_ready(dev) && (dev->change != 2)) {
         status |= STAT_READY | STAT_SERVO;
-        if ((dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO) &&
-            !cdrom_has_data(dev->cdrom_dev))
-            status |= STAT_DISK_CDDA;
+        if (dev->cdrom_dev->cd_status & CD_STATUS_HAS_AUDIO) {
+            if (!cdrom_has_data(dev->cdrom_dev))
+                status |= STAT_DISK_CDDA;
+            else if ((dev->cdrom_dev != NULL) && (dev->cdrom_dev->ops != NULL) &&
+                     (dev->cdrom_dev->ops->get_track_type != NULL)) {
+                if (mitsumi_msf_to_lba(dev->readmsf, &lba) &&
+                    dev->cdrom_dev->ops->get_track_type(dev->cdrom_dev->local, lba) == CD_TRACK_AUDIO)
+                    status |= STAT_DISK_CDDA;
+            }
+        }
     }
     if (dev->change > 0) {
         status |= STAT_CHANGE;
@@ -244,7 +279,12 @@ mitsumi_error_status(const mcd_t *dev, const int sense)
 static void
 mitsumi_abort_read(mcd_t *dev)
 {
-    timer_disable(&dev->read_timer);
+    if (timer_is_enabled(&dev->dma_timeout_timer))
+        timer_disable(&dev->dma_timeout_timer);
+
+    if (timer_is_enabled(&dev->read_timer))
+        timer_disable(&dev->read_timer);
+
     dev->state      = STATE_IDLE;
     if ((dev->dma >= 0) && (dev->dma < 8))
         dma_set_drq(dev->dma, 0);
@@ -255,30 +295,7 @@ mitsumi_abort_read(mcd_t *dev)
     dev->readbuflen = 0;
     dev->data       = 0;
     dev->drvmode    = DRV_MODE_STOP;
-}
-
-static int
-mitsumi_msf_to_lba(const uint32_t msf, uint32_t *lba)
-{
-    const uint8_t minute_bcd = (msf >> 16) & 0xff;
-    const uint8_t second_bcd = (msf >> 8) & 0xff;
-    const uint8_t frame_bcd  = msf & 0xff;
-
-    if (((minute_bcd & 0x0f) > 9) || ((minute_bcd >> 4) > 9) ||
-        ((second_bcd & 0x0f) > 9) || ((second_bcd >> 4) > 9) ||
-        ((frame_bcd & 0x0f) > 9) || ((frame_bcd >> 4) > 9))
-        return 0;
-
-    const uint8_t minute = CD_DCB(minute_bcd);
-    const uint8_t second = CD_DCB(second_bcd);
-    const uint8_t frame  = CD_DCB(frame_bcd);
-    const uint32_t absolute_lba = MSFtoLBA(minute, second, frame);
-
-    if ((second >= 60) || (frame >= 75) || (absolute_lba < 150))
-        return 0;
-
-    *lba = absolute_lba - 150;
-    return 1;
+    ui_sb_update_icon(SB_CDROM | dev->cdrom_dev->id, 0);
 }
 
 static uint32_t
@@ -349,35 +366,36 @@ mitsumi_cdrom_reset(mcd_t *dev)
 {
     picintc(1 << dev->irq);
     cdrom_stop(dev->cdrom_dev);
-    dev->cmdrd_count   = 0;
-    dev->cmdbuf_count  = 0;
-    dev->cmdbuf_idx    = 0;
+    dev->dma_timeout_ms  = 18;
+    dev->cmdrd_count     = 0;
+    dev->cmdbuf_count    = 0;
+    dev->cmdbuf_idx      = 0;
     mitsumi_abort_read(dev);
-    dev->cur_toc_track = 0;
-    dev->enable_dma    = 0;
-    dev->enable_irq    = 0;
-    dev->early_status  = 0;
-    dev->mode          = 0;
-    dev->cmd           = 0;
-    dev->conf          = 0;
-    dev->dmalen        = COOKED_SECTOR_SIZE + MITSUMI_DMA_COUNT_BIAS;
-    dev->readmsf       = 0;
-    dev->audio_end_msf = 0;
-    dev->dma_retries   = 0;
-    dev->locked        = 0;
-    dev->change        = 1;
-    dev->data          = 0;
-    dev->smode         = 1;
-    dev->cur_control   = 0x0c;
-    dev->cur_sense     = 0;
-    dev->last_flags    = 0xff;
-    dev->tray_open     = !mitsumi_cdrom_is_ready(dev);
+    dev->cur_toc_track   = 0;
+    dev->enable_dma      = 0;
+    dev->enable_irq      = 0;
+    dev->early_status    = 0;
+    dev->mode            = 0;
+    dev->cmd             = 0;
+    dev->conf            = 0;
+    dev->dmalen          = COOKED_SECTOR_SIZE + MITSUMI_DMA_COUNT_BIAS;
+    dev->readmsf         = 0;
+    dev->audio_end_msf   = 0;
+    dev->dma_retries     = 0;
+    dev->locked          = 0;
+    dev->change          = 1;
+    dev->data            = 0;
+    dev->smode           = 1;
+    dev->cur_control     = 0x0c;
+    dev->cur_sense       = 0;
+    dev->last_flags      = 0xff;
+    dev->tray_open       = !mitsumi_cdrom_is_ready(dev);
 
     dev->cdrom_vols.att0 = 255;
     dev->cdrom_vols.att1 = 0;
     dev->cdrom_vols.att2 = 255;
     dev->cdrom_vols.att3 = 0;
-    dev->stat = mitsumi_status(dev);
+    dev->stat            = mitsumi_status(dev);
 }
 
 uint8_t
@@ -502,8 +520,8 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     }
     ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 3 : 2, (dev->mode & 0x40) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
 
-    mitsumi_cdrom_log("Mitsumi read sector @ %u, ret = %d, readlen = %u, blocklen = %u\n",
-                       dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev));
+    mitsumi_cdrom_log("Mitsumi read sector @ %u, ret = %d, readlen = %u, blocklen = %u, mode = %02X, smode = %02X, dmalen = %04X\n",
+                       dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev), dev->mode, dev->smode, dev->dmalen);
     if (ret <= 0)
         return -3;
     const uint32_t next_msf = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
@@ -512,11 +530,18 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
                    bin2bcd(next_msf & 0xff);
     dev->buf_idx   = 0;
 
+    if ((dev->readbuflen == 2048) && (dev->mode & 0x80))
+        dev->readbuflen = 2050;
+
     available       = MIN(dev->readbuflen, RAW_SECTOR_SIZE);
     dev->buf_idx    = offset;
     available      -= offset;
-    if (!(dev->mode & MODE_DATA))
-        available = MIN(available, COOKED_SECTOR_SIZE);
+    if (!(dev->mode & MODE_DATA)) {
+        if (dev->mode & 0x80)
+            available = MIN(available, COOKED_SECTOR_SIZE + 2);
+        else
+            available = MIN(available, COOKED_SECTOR_SIZE);
+    }
     dev->real_count = available;
     dev->buf_count  = MIN(mitsumi_dma_length(dev), available);
     if (dev->buf_count == 0)
@@ -548,7 +573,7 @@ mitsumi_start_status_phase(mcd_t *dev, const int from_callback, const int status
     if (from_callback)
         timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
     else
-        timer_set_delay_u64(&dev->read_timer, 10 * TIMER_USEC);
+        mitsumi_read_callback(dev);
     dev->status = (int8_t) status;
     if ((dev->status == STATUS_OK) && dev->early_status) {
         /* Report no data while we are delivering the status. */
@@ -577,6 +602,7 @@ mitsumi_start_seek_phase(mcd_t *dev, const int from_callback)
 static void
 mitsumi_start_read_phase(mcd_t *dev)
 {
+    ui_sb_update_icon(SB_CDROM | dev->cdrom_dev->id, 1);
     dev->state = STATE_READ_SECTOR;
     timer_advance_u64(&dev->read_timer, ((dev->cmd == CMD_READ2X) ?
                       MITSUMI_2X_SECTOR_TIME_US :
@@ -585,9 +611,20 @@ mitsumi_start_read_phase(mcd_t *dev)
 }
 
 static void
+mitsumi_rearm_dma_timeout(mcd_t *dev)
+{
+    if (timer_is_enabled(&dev->dma_timeout_timer))
+        timer_disable(&dev->dma_timeout_timer);
+
+    timer_set_delay_u64(&dev->dma_timeout_timer,
+                        (uint64_t) dev->dma_timeout_ms * 2000ULL * TIMER_USEC);
+}
+
+static void
 mitsumi_start_data_ready_phase(mcd_t *dev, const int from_callback)
 {
     if (dev->enable_dma) {
+        mitsumi_rearm_dma_timeout(dev);
         dev->state = STATE_WRITE_DMA;
         timer_advance_u64(&dev->read_timer, 1ULL << 32);
         mitsumi_cdrom_log("Mitsumi: [OK] state advanced to STATE_WRITE_DMA\n");
@@ -633,6 +670,8 @@ mitsumi_dma_transfer(mcd_t *dev)
 
         if (dma_result & DMA_OVER) {
             mitsumi_cdrom_log("Mitsumi: DMA terminal count at buffer offset %d\n", dev->buf_idx);
+            if (timer_is_enabled(&dev->dma_timeout_timer))
+                timer_disable(&dev->dma_timeout_timer);
             dma_set_drq(dev->dma, 0);
             dev->buf_count  = 0;
             dev->buf_idx    = 0;
@@ -643,6 +682,7 @@ mitsumi_dma_transfer(mcd_t *dev)
                 (dev->drvmode == DRV_MODE_READ)) {
                 const int buf_len = mitsumi_dma_length(dev);
                 if (dev->real_count > buf_len) {
+                    mitsumi_rearm_dma_timeout(dev);
                     dev->real_count -= buf_len;
                     memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                     dev->buf_idx     = 0;
@@ -668,6 +708,14 @@ mitsumi_dma_transfer(mcd_t *dev)
 }
 
 static void
+mitsumi_dma_timeout_callback(void *priv)
+{
+    mcd_t    *dev      = (mcd_t *) priv;
+
+    mitsumi_abort_read(dev);
+}
+
+static void
 mitsumi_read_callback(void *priv)
 {
     mcd_t    *dev      = (mcd_t *) priv;
@@ -689,7 +737,7 @@ mitsumi_read_callback(void *priv)
             break;
         case STATE_SEEK:
             mitsumi_cdrom_log("Mitsumi: state STATE_SEEK\n");
-            if (!dev->readcount && (dev->enable_dma || dev->early_status)) {
+            if (!dev->readcount && dev->early_status) {
                 /*
                   For DMA and early-status PIO reads,
                   readcount = 0 means read until TC.
@@ -725,6 +773,7 @@ mitsumi_read_callback(void *priv)
             }
             break;
         case STATE_STATUS:
+            mitsumi_cdrom_log("Mitsumi: state STATE_STATUS\n");
             dev->cmdbuf_count = 1;
             dev->cmdbuf_idx = 0;
 
@@ -736,6 +785,8 @@ mitsumi_read_callback(void *priv)
         case STATE_READ_SECTOR:
             mitsumi_cdrom_log("Mitsumi: state STATE_READ_SECTOR\n");
             read_res = mitsumi_cdrom_read_sector(dev, dev->first);
+
+            ui_sb_update_icon(SB_CDROM | dev->cdrom_dev->id, 0);
 
             switch (read_res) {
                 default:
@@ -773,6 +824,7 @@ mitsumi_read_callback(void *priv)
                 dev->first = 0;
             break;
         case STATE_DATA_READY:
+            mitsumi_cdrom_log("Mitsumi: state STATE_DATA_READY\n");
             mitsumi_set_irq(dev, IRQ_DATAREADY);
             dev->state = STATE_IDLE;
             mitsumi_cdrom_log("Mitsumi: [DR OK] state advanced to STATE_IDLE\n");
@@ -790,6 +842,8 @@ mitsumi_read_callback(void *priv)
         case STATE_WRITE_DMA:
             mitsumi_cdrom_log("Mitsumi: state STATE_WRITE_DMA\n");
             read_res = mitsumi_dma_transfer(dev);
+            if ((read_res > 1) && (timer_is_enabled(&dev->dma_timeout_timer)))
+                timer_disable(&dev->dma_timeout_timer);
             switch (read_res) {
                 default:
                     break;
@@ -833,6 +887,7 @@ mitsumi_read_callback(void *priv)
                         if (dev->readcount > 0) {
                             /* Another sector to read or more data from the buffer. */
                             if (dev->real_count > buf_len) {
+                                mitsumi_rearm_dma_timeout(dev);
                                 dev->real_count -= buf_len;
                                 memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                                 dev->buf_idx     = 0;
@@ -847,14 +902,17 @@ mitsumi_read_callback(void *priv)
                         } else
                             /* Exhausted everything and early status. */
                             dev->state = STATE_IDLE;
-                    } else
+                    } else {
                         /* Buffer not (yet) exhausted. */
+                        mitsumi_rearm_dma_timeout(dev);
                         timer_advance_u64(&dev->read_timer, 10 * TIMER_USEC);
+                    }
                     break;
                 case 3:
                     dev->dma_retries = 0;
                     if (dev->readcount > 0) {
                         if (dev->real_count > buf_len) {
+                            mitsumi_rearm_dma_timeout(dev);
                             dev->real_count -= buf_len;
                             memcpy(dev->buf, &(dev->buf[buf_len]), dev->real_count);
                             dev->buf_idx     = 0;
@@ -1084,6 +1142,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                             dma_set_drq(dev->dma, 1);
                                         }
                                         break;
+                                    case 0x08:
+                                        dev->dma_timeout_ms = val;
+                                        mitsumi_cdrom_log("Mitsumi: DMA timeout=%i ms\n",
+                                                          dev->dma_timeout_ms);
+                                        break;
                                     case 0x10:
                                         dev->enable_irq = val;
                                         mitsumi_cdrom_log("Mitsumi: IRQ mask=%02x, line=%d\n",
@@ -1208,8 +1271,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     }
                     break;
                 case CMD_GET_STAT:
-                    dev->stat   = mitsumi_status(dev);
-                    dev->cmdbuf[0] = dev->stat;
+                    /* The command prelude already captured and consumed status. */
                     break;
                 case CMD_SET_MODE:
                     dev->cmdrd_count = 1;
@@ -1364,7 +1426,9 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     io_sethandler(dev->base, 4,
                   mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
 
+    timer_add(&dev->dma_timeout_timer, mitsumi_dma_timeout_callback, dev, 0);
     timer_add(&dev->read_timer, mitsumi_read_callback, dev, 0);
+
     mitsumi_cdrom_reset(dev);
 
     return dev;

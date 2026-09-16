@@ -446,6 +446,7 @@ extern void mem_debug_check_addr(uint32_t addr, int write);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
+extern void mem_a20_reset_vector_bypass_once(void);
 
 extern void mem_init(void);
 extern void mem_close(void);

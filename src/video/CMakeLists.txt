@@ -64,8 +64,10 @@ add_library(vid OBJECT
     vid_cga_toshiba_t3100e.c
     vid_cga_v6355.c
 
-    # PCJr/Tandy
+    # PCjr/PC JX/Tandy
     vid_pcjr.c
+    vid_pcjx.c
+    vid_ibm5140.c
     vid_tandy.c
     vid_mda.c
 
@@ -147,6 +149,7 @@ add_library(vid OBJECT
 
     # Generic
     vid_bochs_vbe.c
+    vid_hd44780.c
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")

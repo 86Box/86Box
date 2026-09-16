@@ -660,7 +660,7 @@ device_available(const device_t *dev)
 
     if (ret == 0) {
         /* No CONFIG_BIOS field present, use the classic available(). */
-        if (dev->available != NULL)
+        if ((dev != NULL) && (dev->available != NULL))
             ret = (dev->available());
         else
             ret = (dev != NULL);
@@ -928,6 +928,28 @@ device_force_redraw(void)
         if (devices[c] != NULL) {
             if (devices[c]->force_redraw != NULL)
                 devices[c]->force_redraw(device_priv[c]);
+        }
+    }
+}
+
+int
+device_has_power_button(void)
+{
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
+        if ((devices[c] != NULL) && (devices[c]->power_button != NULL))
+            return 1;
+    }
+
+    return 0;
+}
+
+void
+device_power_button(void)
+{
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
+        if (devices[c] != NULL) {
+            if (devices[c]->power_button != NULL)
+                devices[c]->power_button(device_priv[c]);
         }
     }
 }

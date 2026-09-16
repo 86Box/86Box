@@ -520,13 +520,16 @@ am29f016d_init(const device_t *info)
 
     am29f016d_add_mappings(dev);
 
-    FILE *fp = nvr_fopen(dev->flash_path, "rb");
-    if (fp) {
-        if (!dump_missing && (fread(&(dev->array[0x00000]), 1, 0x00200000, fp) != 0x00200000))
-            pclog("Less than %i bytes read from the Am29F016D Flash ROM file\n", dev->size);
-        fclose(fp);
+    if (strlen(dev->flash_path) > 0) {
+        FILE *fp = nvr_fopen(dev->flash_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                (void) !fread(&(dev->array[0x00000]), 1, 0x00200000, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            dev->dirty = 1; /* It is by definition dirty on creation. */
     } else
-        dev->dirty = 1; /* It is by definition dirty on creation. */
+        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
 
     return dev;
 }
@@ -537,11 +540,16 @@ am29f016d_close(void *priv)
     am29f016d_t *dev = (am29f016d_t *) priv;
 
     if (dev->dirty) {
-        FILE *fp = nvr_fopen(dev->flash_path, "wb");
-        if (!dump_missing && (fp != NULL)) {
-            fwrite(&(dev->array[0x00000]), 0x00200000, 1, fp);
-            fclose(fp);
-        }
+        if (strlen(dev->flash_path) > 0) {
+            FILE *fp = nvr_fopen(dev->flash_path, "wb");
+            if (fp != NULL) {
+                if (!dump_missing)
+                    fwrite(&(dev->array[0x00000]), 0x00200000, 1, fp);
+                fclose(fp);
+            } else if (!dump_missing)
+                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", dev->flash_path);
+        } else
+            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
     }
 
     free(dev);

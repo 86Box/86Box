@@ -12378,16 +12378,6 @@ static const device_config_t s3_vision864_pci_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
-                .name          = "Digital (DEC) PCXAG-AL",
-                .internal_name = "dec_vision864_pci",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = S3_DEC_VISION864,
-                .size          = 32768,
-                .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
-                .files         = { ROM_DEC_VISION864, "" }
-            },
-            {
                 .name          = "Diamond Stealth64 Graphics 2000",
                 .internal_name = "stealth64d_864_pci",
                 .bios_type     = BIOS_NORMAL,
@@ -12396,6 +12386,16 @@ static const device_config_t s3_vision864_pci_config[] = {
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_864, "" }
+            },
+            {
+                .name          = "Digital (DEC) PCXAG-AL",
+                .internal_name = "dec_vision864_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_DEC_VISION864,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_DEC_VISION864, "" }
             },
             {
                 .name          = "Leadtek WinFast S430", /* Also known as: ASUS VideoMagic PCI-V864 */

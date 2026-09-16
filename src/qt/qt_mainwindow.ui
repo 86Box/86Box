@@ -212,6 +212,7 @@
     <addaction name="actionRemember_size_and_position"/>
     <addaction name="actionSpecify_dimensions"/>
     <addaction name="actionForce_4_3_display_ratio"/>
+    <addaction name="actionForce_device_aspect_ratio"/>
     <addaction name="separator"/>
     <addaction name="menuFullscreen_stretch_mode"/>
     <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
@@ -459,6 +460,17 @@
    </property>
    <property name="text">
     <string>Force &amp;4:3 display ratio</string>
+   </property>
+  </action>
+  <action name="actionForce_device_aspect_ratio">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Force &amp;machine display ratio</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
   </action>
   <action name="actionHiDPI_scaling">

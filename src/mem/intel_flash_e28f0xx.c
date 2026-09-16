@@ -23,8 +23,10 @@
 #include <86box/machine.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
+#include <86box/flash.h>
 
-#define FLAG_WORD    1
+#define FLAG_WORD     1
+#define FLAG_COBALT3K 2
 
 enum {
     CMD_READ_ARRAY        = 0xff,
@@ -47,12 +49,13 @@ typedef struct flash_t {
     uint8_t  status;
     uint8_t  master_lock;
     uint8_t  flags;
+    uint8_t  ctrl;
     uint8_t *array;
 
     uint8_t  block_locks[32];
 
     uint16_t flash_id;
-    uint16_t pad16;
+    uint16_t dirty;
 
     uint32_t program_addr;
 
@@ -62,13 +65,40 @@ typedef struct flash_t {
 
 static char flash_path[1024];
 
+void
+flash_e28f0xx_cobalt3k_update(uint8_t val)
+{
+    flash_t *dev = (flash_t *) device_get_priv(&intel_flash_e28f0xx_cobalt3k_device);
+    if (!dev)
+        return;
+
+    dev->ctrl = val;
+
+    uint8_t *exec = (dev->ctrl & 0x40) ? NULL : &dev->array[(dev->ctrl & 0x0f) << 16];
+    mem_mapping_set_exec(&(dev->mapping[0]), exec);
+    mem_mapping_set_exec(&(dev->mapping_h[0]), exec);
+}
+
+static uint32_t
+flash_calc_addr(const flash_t *dev, uint32_t addr)
+{
+    if (dev->flags & FLAG_COBALT3K) {
+        if (dev->ctrl & 0x40) /* bank 1 absent */
+            return 0xffffffff;
+        return ((dev->ctrl & 0x0f) << 16) | (addr & 0x0000ffff);
+    }
+    return addr & biosmask;
+}
+
 static uint8_t
 flash_read(uint32_t addr, void *priv)
 {
     const flash_t *dev = (flash_t *) priv;
     uint8_t        ret;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return 0xff;
 
     switch (dev->command) {
         default:
@@ -98,7 +128,6 @@ flash_read(uint32_t addr, void *priv)
 
         case CMD_READ_STATUS:
             ret = dev->status;
-            pclog("Read status: %02X\n", ret);
             break;
     }
 
@@ -110,7 +139,9 @@ flash_readw(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return 0xffff;
 
     if (dev->flags & FLAG_WORD)
         addr &= 0xfffffffe;
@@ -157,7 +188,9 @@ flash_readl(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return 0xffffffff;
 
     const uint32_t *q   = (uint32_t *) &(dev->array[addr]);
 
@@ -169,11 +202,11 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return;
 
     const uint32_t block_start = addr & 0xffff0000;
-
-    pclog("Write %02X at %08X\n", val, addr);
 
     switch (dev->command) {
         case CMD_SPECIAL:
@@ -199,8 +232,8 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
             if (val == CMD_ERASE_CONFIRM) {
                 if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
                     !((addr ^ dev->program_addr) & 0xffff0000)) {
-                    pclog("Erasing block %02X\n", block_start >> 16);
                     memset(&(dev->array[block_start]), 0xff, 0x00010000);
+                    dev->dirty = 1;
                 }
                 if ((dev->master_lock || dev->block_locks[block_start >> 16]) &&
                     !((addr ^ dev->program_addr) & 0xffff0000))
@@ -215,10 +248,11 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 
         case CMD_PROGRAM_SETUP:
         case CMD_PROGRAM_SETUP_ALT:
-            pclog("Programming value %02X in block %02X\n", val, block_start >> 16);
             if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
-                (addr == dev->program_addr))
+                (addr == dev->program_addr)) {
                 dev->array[addr] = val;
+                dev->dirty = 1;
+            }
             dev->command = CMD_READ_STATUS;
             if ((addr == dev->program_addr) &&
                 (dev->master_lock || dev->block_locks[block_start >> 16]))
@@ -252,7 +286,9 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
 
-    addr &= biosmask;
+    addr = flash_calc_addr(dev, addr);
+    if (addr == 0xffffffff)
+        return;
 
     const uint32_t block_start = addr & 0xffff0000;
 
@@ -281,8 +317,8 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
                 if (val == CMD_ERASE_CONFIRM) {
                     if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
                         !((addr ^ dev->program_addr) & 0xffff0000)) {
-                        pclog("Erasing block %02X\n", block_start >> 16);
                         memset(&(dev->array[block_start]), 0xff, 0x00010000);
+                        dev->dirty = 1;
                     }
                     if ((dev->master_lock || dev->block_locks[block_start >> 16]) &&
                         !((addr ^ dev->program_addr) & 0xffff0000))
@@ -298,8 +334,10 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
             case CMD_PROGRAM_SETUP:
             case CMD_PROGRAM_SETUP_ALT:
                 if (!dev->master_lock && !dev->block_locks[block_start >> 16] &&
-                    (addr == dev->program_addr))
+                    (addr == dev->program_addr)) {
                     *(uint16_t *) (&dev->array[addr]) = val;
+                    dev->dirty = 1;
+                }
                 dev->command = CMD_READ_STATUS;
                 if ((addr == dev->program_addr) &&
                     (dev->master_lock || dev->block_locks[block_start >> 16]))
@@ -341,6 +379,22 @@ flash_add_mappings(flash_t *dev)
     uint32_t base;
     uint32_t sub = 0x20000;
 
+    if (dev->flags & FLAG_COBALT3K) {
+        memcpy(dev->array, rom, biosmask + 1);
+
+        mem_mapping_add(&(dev->mapping[0]), 0x000f0000, 0x10000,
+                        flash_read, flash_readw, flash_readl,
+                        flash_write, flash_writew, flash_writel,
+                        dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+        mem_mapping_add(&(dev->mapping_h[0]), 0xffff0000, 0x10000,
+                        flash_read, flash_readw, flash_readl,
+                        flash_write, flash_writew, flash_writel,
+                        dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+
+        flash_e28f0xx_cobalt3k_update(0x00);
+        return;
+    }
+
     switch (biosmask) {
         default:
             fatal("Invalid BIOS mask for Intel E82F0xx flash: %08X!\n", biosmask);
@@ -377,22 +431,17 @@ flash_add_mappings(flash_t *dev)
 
         uint32_t fbase = base & biosmask;
 
-        pclog("From ROM @ %08X to array @ %08X\n", base & biosmask, fbase);
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
-        if ((max == 2) || (i >= 2)) {
-            pclog("Low  mapping %2i at %08X-%08X\n", i, base, base + 0x0000ffff);
+        if ((max == 2) || (i >= 2))
             mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
                             flash_read, flash_readw, flash_readl,
                             flash_write, flash_writew, flash_writel,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        }
-        pclog("High mapping %2i at %08X-%08X\n", i, (base | 0xfff00000) - sub, (base | 0xfff00000) - sub + 0x0000ffff);
         mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - sub, 0x10000,
                         flash_read, flash_readw, flash_readl,
                         flash_write, flash_writew, flash_writel,
                         dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        pclog("High mapping %2i at %08X-%08X\n", i + max, (base | 0xfff00000), (base | 0xfff00000) + 0x0000ffff);
         mem_mapping_add(&(dev->mapping_h[i + max]), (base | 0xfff00000), 0x10000,
                         flash_read, flash_readw, flash_readl,
                         flash_write, flash_writew, flash_writel,
@@ -445,11 +494,16 @@ flash_init(const device_t *info)
     dev->command = CMD_READ_ARRAY;
     dev->status  = 0;
 
-    fp = nvr_fopen(flash_path, "rb");
-    if (!dump_missing && (fp != NULL)) {
-        (void) !fread(dev->array, biosmask + 1, 1, fp);
-        fclose(fp);
-    }
+    if (strlen(flash_path) > 0) {
+        fp = nvr_fopen(flash_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                (void) !fread(dev->array, biosmask + 1, 1, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            dev->dirty = 1;
+    } else
+        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
 
     return dev;
 }
@@ -460,10 +514,18 @@ flash_close(void *priv)
     FILE    *fp;
     flash_t *dev = (flash_t *) priv;
 
-    fp = nvr_fopen(flash_path, "wb");
-    if (!dump_missing)
-        fwrite(dev->array, biosmask + 1, 1, fp);
-    fclose(fp);
+    if (dev->dirty) {
+        if (strlen(flash_path) > 0) {
+            fp = nvr_fopen(flash_path, "wb");
+            if (fp != NULL) {
+                if (!dump_missing)
+                    fwrite(dev->array, biosmask + 1, 1, fp);
+                fclose(fp);
+            } else if (!dump_missing)
+                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", flash_path);
+        } else
+            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
+    }
 
     free(dev->array);
     dev->array = NULL;
@@ -476,6 +538,20 @@ const device_t intel_flash_e28f0xx_device = {
     .internal_name = "intel_flash_e28f0xx",
     .flags         = DEVICE_PCI,
     .local         = 0,
+    .init          = flash_init,
+    .close         = flash_close,
+    .reset         = flash_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t intel_flash_e28f0xx_cobalt3k_device = {
+    .name          = "Intel E28F008S5 Flash BIOS (Cobalt Qube 3)",
+    .internal_name = "intel_flash_e28f0xx_cobalt3k",
+    .flags         = DEVICE_PCI,
+    .local         = FLAG_COBALT3K,
     .init          = flash_init,
     .close         = flash_close,
     .reset         = flash_reset,

@@ -2924,8 +2924,14 @@ msgstr "[Allmän] 1989 (3500 varv/min)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Allmän] 1992 (3600 varv/min)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Allmän] 1993 (4000 varv/min)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Allmän] 1994 (4500 varv/min)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Allmän] 1995 (5200 varv/min)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Allmän] 1996 (5400 varv/min)"
@@ -2938,6 +2944,9 @@ msgstr "[Allmän] 1998 (5400 varv/min)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Allmän] 2000 (7200 varv/min)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Allmän] 2004 (10000 varv/min)"
 
 msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A-klon"

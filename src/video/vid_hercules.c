@@ -613,10 +613,12 @@ hercules_init(UNUSED(const device_t *info))
 
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_hercules);
 
-    /* Force the LPT3 port to be enabled. */
-    dev->lpt = device_add_inst(&lpt_port_device, -1);
-    lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
-    lpt_set_3bc_used(1);
+    if (!lpt_get_3bc_used()) {
+        /* Force the LPT3 port to be enabled. */
+        dev->lpt = device_add_inst(&lpt_port_device, -1);
+        lpt_port_setup(dev->lpt, LPT_MDA_ADDR);
+        lpt_set_3bc_used(1);
+    }
 
     return dev;
 }

@@ -89,6 +89,8 @@ kbc_at_log(const char* fmt, ...)
 #endif
 
 void (*keyboard_send)(uint16_t val);
+static void (*keyboard_input_handler)(uint16_t scan, int down, void *priv);
+static void *keyboard_input_priv;
 
 static int recv_key[768] = { 0 }; /* keyboard input buffer */
 static int recv_key_ui[768] = { 0 }; /* keyboard input buffer */
@@ -163,6 +165,7 @@ keyboard_init(void)
 
     keyboard_scan = 1;
     scan_table    = NULL;
+    keyboard_set_input_handler(NULL, NULL);
 
     memset(keyboard_set3_flags, 0x00, sizeof(keyboard_set3_flags));
     keyboard_set3_all_repeat = 0;
@@ -173,6 +176,13 @@ void
 keyboard_set_table(const scancode *ptr)
 {
     scan_table = (scancode *) ptr;
+}
+
+void
+keyboard_set_input_handler(void (*handler)(uint16_t scan, int down, void *priv), void *priv)
+{
+    keyboard_input_handler = handler;
+    keyboard_input_priv    = handler ? priv : NULL;
 }
 
 static uint8_t
@@ -203,13 +213,19 @@ key_process(uint16_t scan, int down)
     const scancode *codes = scan_table;
     int             c;
 
-    if (!codes)
-        return;
-
-    if (!keyboard_scan || (keyboard_send == NULL))
+    if (!keyboard_scan)
         return;
 
     scan = scancode_config_map[scan];
+
+    if (keyboard_input_handler) {
+        oldkey[scan] = down;
+        keyboard_input_handler(scan, down, keyboard_input_priv);
+        return;
+    }
+
+    if (!codes || !keyboard_send)
+        return;
 
     oldkey[scan] = down;
 
@@ -397,7 +413,7 @@ keyboard_all_up(void)
 
         if (recv_key[i]) {
             recv_key[i] = 0;
-            if (kbd_in_reset)
+            if (kbd_in_reset && !keyboard_input_handler)
                 oldkey[i] = 0;
             else
                 key_process(i, 0);

@@ -2929,8 +2929,14 @@ msgstr "[Generični] 1989 (3500 okr./min)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Generični] 1992 (3600 okr./min)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Generični] 1993 (4000 okr./min)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Generični] 1994 (4500 okr./min)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Generični] 1995 (5200 okr./min)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Generični] (5400 okr./min)"
@@ -2943,6 +2949,9 @@ msgstr "[Generični] (5400 okr./min)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Generični] (7200 okr./min)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Generični] 2004 (10000 okr./min)"
 
 msgid "IBM 8514/A clone"
 msgstr "Klon IBM 8514/A"
