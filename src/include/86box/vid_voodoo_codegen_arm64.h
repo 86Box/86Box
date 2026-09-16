@@ -1345,8 +1345,8 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         /* MOV w12, w11 -- save BSR result for shift */
         addlong(ARM64_MOV_REG(12, 11));
 
-        /* SUB w11, w11, #19 -- exp = BSR - 19 */
-        addlong(ARM64_SUB_IMM(11, 11, 19));
+        /* SUB w11, w11, #W_RECIPROCAL_LOG2_OFFSET -- exp = BSR - 16 = log2(1 / W) */
+        addlong(ARM64_SUB_IMM(11, 11, W_RECIPROCAL_LOG2_OFFSET));
 
         /* LSR x4, x4, x12 -- shift quotient by BSR amount (64-bit) */
         addlong(ARM64_LSR_REG_X(4, 4, 12));
