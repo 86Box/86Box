@@ -3066,7 +3066,7 @@ msgstr ""
 msgid "Revision:"
 msgstr ""
 
-msgid "Customize Generic HDD"
+msgid "[Generic HDD] Device Configuration"
 msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."

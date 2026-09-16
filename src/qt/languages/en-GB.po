@@ -141,6 +141,3 @@ msgstr "Colour scheme"
 
 msgid "PC-CM (Color)"
 msgstr "PC-CM (Colour)"
-
-msgid "Customize Generic HDD"
-msgstr "Customise Generic HDD"
