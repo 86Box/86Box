@@ -339,6 +339,11 @@ ad1848_read(uint16_t addr, void *priv)
 
         case 2:
             ret = ad1848->status;
+            if (ad1848->regs[11] & 0xc0) {
+                ret |= 0x10;
+                ad1848->regs[11] &= 0x3f;
+                ad1848->regs[24] &= 0xfa;
+            }
             break;
 
         default:
@@ -965,11 +970,11 @@ ad1848_pio_poll(void *priv)
 
     if (ad1848->fifo_enable) {
         if (fifo_get_empty(ad1848->play_fifo)) {
+            ad1848->regs[11] |= 0x40;
             ad1848->regs[24] |= 0x01;
-            ad1848->status |= 0x10;
         } else {
+            ad1848->regs[11] &= 0xbf;
             ad1848->regs[24] &= 0xfe;
-            ad1848->status &= 0x10;
         }
 
         int32_t temp;
