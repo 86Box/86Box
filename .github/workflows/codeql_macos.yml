@@ -81,7 +81,7 @@ jobs:
             runner: macos-15-intel
 #          - arch: arm64
 #            slug: -arm64
-#            runner: macos-14
+#            runner: macos-15
 #        exclude:
 #          - dynarec:
 #              new: off
@@ -104,15 +104,15 @@ jobs:
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install Build Wrapper
-        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@v6
+        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
+        uses: github/codeql-action/init@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
@@ -132,14 +132,14 @@ jobs:
           build-wrapper-macosx-x86 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
+        uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38
         with:
           category: "/language:${{matrix.language}}"
 
       - name: SonarQube Scan
 #        if: matrix.build.preset == 'dev_debug' && matrix.dynarec.new == 'on' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
         if: 0
-        uses: SonarSource/sonarqube-scan-action@v6
+        uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
