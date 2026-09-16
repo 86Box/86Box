@@ -22095,7 +22095,8 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7880U */
         .ram       = {
-            .min  = 40960, /* does not POST with lower than 40MB; Award and AMI retail BIOSes not affected(?) */
+            .min  = 40960,  /* temporary higher limit set due to a DRB(?) issue that prevents POST with less than this amount
+                               on PhoenixBIOS */
             .max  = 524288,
             .step = 8192
         },
@@ -22586,7 +22587,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB, /* Has onboard sound: Yamaha YMF711-S/YMF704C-S */
         .ram       = {
-            .min  = 8192,
+            .min  = 40960, /* temporary higher limit set due to a DRB(?) issue that prevents POST with less than this amount */
             .max  = 1048576,
             .step = 8192
         },
@@ -22826,7 +22827,7 @@ const machine_t machines[] = {
             .max_bus     = 75000000,
             .min_voltage = 1800,
             .max_voltage = 3500,
-            .min_multi   = 2.0,
+            .min_multi   = 1.5,
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
@@ -24971,7 +24972,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, 
         .ram       = {
-            .min  = 16384, /* Machine does not start (hang) with 8mb memory */
+            .min  = 32768, /* temporary higher limit set due to a DRB(?) issue that prevents POST with less than this amount */
             .max  = 524288,
             .step = 8192
         },
