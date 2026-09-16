@@ -2997,6 +2997,15 @@ msgstr "型号"
 msgid "Model:"
 msgstr "型号："
 
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan 渲染器初始化失败。"
 

@@ -3033,6 +3033,15 @@ msgstr "Μοντέλο"
 msgid "Model:"
 msgstr "Μοντέλο:"
 
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Αποτυχία αρχικοποίησης απεικονιστή Vulkan."
 

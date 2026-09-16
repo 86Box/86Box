@@ -2993,6 +2993,15 @@ msgstr "Mẫu máy"
 msgid "Model:"
 msgstr "Mẫu máy:"
 
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Không thể khởi tạo renderer Vulkan."
 

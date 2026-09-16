@@ -3001,6 +3001,15 @@ msgstr "Malli"
 msgid "Model:"
 msgstr "Malli:"
 
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan-rendereriä ei voitu alustaa."
 

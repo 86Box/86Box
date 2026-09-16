@@ -3060,6 +3060,15 @@ msgstr "모델"
 msgid "Model:"
 msgstr "모델:"
 
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan 렌더러 초기화 실패."
 

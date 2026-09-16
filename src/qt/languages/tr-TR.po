@@ -3050,6 +3050,15 @@ msgstr "Model"
 msgid "Model:"
 msgstr "Model:"
 
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan derleyicisi başlatılamadı."
 
