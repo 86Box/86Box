@@ -22826,7 +22826,7 @@ const machine_t machines[] = {
             .max_bus     = 75000000,
             .min_voltage = 1800,
             .max_voltage = 3500,
-            .min_multi   = 2.0,
+            .min_multi   = 1.5,
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
