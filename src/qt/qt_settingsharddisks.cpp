@@ -383,7 +383,7 @@ SettingsHarddisks::on_pushButtonConfigure_clicked()
         return;
 
     QDialog dialog(this);
-    dialog.setWindowTitle(tr("Customize Generic HDD"));
+    dialog.setWindowTitle(tr("[Generic HDD] Device Configuration"));
     auto *layout = new QFormLayout(&dialog);
     auto *vendor = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomVendor).toString(), &dialog);
     auto *model = new QLineEdit(idx.siblingAtColumn(ColumnSpeed).data(DataCustomModel).toString(), &dialog);
