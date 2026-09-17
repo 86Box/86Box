@@ -14835,6 +14835,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
+        /* The user manual says up to 768 MB of RAM can be installed. Meanwhile, the 430NX
+           chipset only supports up to 512 MB. In practice, this machine can't even detect
+           more than 256 MB due to what is suspected to be an early AwardBIOS v4.5x bug. */
             .min  = 2048,
             .max  = 262144,
             .step = 2048
@@ -14883,8 +14886,11 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* BIOS setup cannot detect more than 128 MB and displays any higher amount as such.
+           Although, this is just a visual quirk, as the POST memory counter and MS-DOS can
+           seemingly utilize the maximum amount supported by the chipset without issues. */
             .min  = 2048,
-            .max  = 131072,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -14932,7 +14938,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: TLI ET4000/w32p */
         .ram       = {
             .min  = 2048,
-            .max  = 131072,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -14980,7 +14986,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
         .ram       = {
             .min  = 2048,
-            .max  = 262144,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -16459,10 +16465,10 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* The user manual says up to 512 MB of RAM can be installed. However; in practice,
+           this machine suffers from the same problem as the Gigabyte GA-586IP, where no
+           more than 256 MB can be detected likely due to an early AwardBIOS v4.5x bug. */
             .min  = 4096,
-            /* The user manual says up to 512 MB of RAM can be installed. However, in practice,
-            the BIOS only recognizes up to 256 MB. Since AOpen AP61 also does this same behavior,
-            I suspect it to be an early AwardBIOS v4.5x limitation. */
             .max  = 262144,
             .step = 4096
         },
@@ -21600,9 +21606,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* Like with the Gigabyte GA-586IP and DFI G586VPM, this machine also can't detect
+           more than 256 MB RAM likely due to an early AwardBIOS v4.5x bug. */
             .min  = 8192,
-            /* As also noted in the DFI G586VPM entry, the BIOS unusually only recognizes up
-            to 256 MB of RAM. This is likely a limitation of early AwardBIOS v4.5x instances. */
             .max  = 262144,
             .step = 8192
         },
