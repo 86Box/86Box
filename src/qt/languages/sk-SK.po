@@ -81,6 +81,9 @@ msgstr "&Zadať veľkosť…"
 msgid "Force &4:3 display ratio"
 msgstr "Zachovať pomer strán &4:3"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Zachovať pomer strán &%1:%2"
+
 msgid "&Window scale factor"
 msgstr "&Násobné zväčšenie okna"
 
@@ -3002,6 +3005,15 @@ msgstr "Model"
 
 msgid "Model:"
 msgstr "Model:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Inicializácia renderera Vulkan zlyhala."
