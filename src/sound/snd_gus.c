@@ -1274,14 +1274,18 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x60: /* Emulation IRQ */
                     if (gus->type == GUS_INTERWAVE) {
                         gus->emuirq = val & 0xbf;
-                        if (val & 0x01)
-                            picint(1 << gus->cur_sb_irq);
-                        else
-                            picintc(1 << gus->cur_sb_irq);
-                        if (val & 0x02)
-                            picint(1 << gus->cur_mpu_irq);
-                        else
-                            picintc(1 << gus->cur_mpu_irq);
+                        if (gus->cur_sb_irq != 0) {
+                            if (val & 0x01)
+                                picint(1 << gus->cur_sb_irq);
+                            else
+                                picintc(1 << gus->cur_sb_irq);
+                        }
+                        if (gus->cur_mpu_irq != 0) {
+                            if (val & 0x02)
+                                picint(1 << gus->cur_mpu_irq);
+                            else
+                                picintc(1 << gus->cur_mpu_irq);
+                        }
                     }
                     break;
 
