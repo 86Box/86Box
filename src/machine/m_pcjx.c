@@ -1267,12 +1267,12 @@ pcjx_close(void *priv)
 static const device_config_t pcjx_config[] = {
     {
         .name = "bios",
-        .description = "BIOS Version",
+        .description = "BIOS Language",
         .type = CONFIG_BIOS,
         .default_string = "1986",
         .bios = {
             {
-                .name = "1985 English (5601JDA, 360KB BIOS)",
+                .name = "English (1985, 5601JDA, 360KB BIOS)",
                 .internal_name = "1985",
                 .bios_type = BIOS_NORMAL,
                 .files_no = 4,
@@ -1285,7 +1285,7 @@ static const device_config_t pcjx_config[] = {
                 }
             },
             {
-                .name = "1986 English (64X9708, 720KB BIOS)",
+                .name = "English (1986, 64X9708, 720KB BIOS)",
                 .internal_name = "1986",
                 .bios_type = BIOS_NORMAL,
                 .files_no = 5,
