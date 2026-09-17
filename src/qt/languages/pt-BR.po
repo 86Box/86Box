@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-27 13:01+0000\n"
+"PO-Revision-Date: 2026-09-16 15:16+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -2998,6 +2998,15 @@ msgstr "Modelo"
 
 msgid "Model:"
 msgstr "Modelo:"
+
+msgid "Brand:"
+msgstr "Marca:"
+
+msgid "Revision:"
+msgstr "Revisão:"
+
+msgid "[Generic HDD] Device Configuration"
+msgstr "Configuração do dispositivo [HDD Genérico]"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Falha ao inicializar o renderizador Vulkan."
