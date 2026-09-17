@@ -261,6 +261,9 @@ extern const device_t wd8013ebt_device;
 extern const device_t wd8003eta_device;
 extern const device_t wd8003ea_device;
 extern const device_t wd8013epa_device;
+
+/* IBM Token Ring */
+extern const device_t ibm_token_ring_device;
 #endif
 
 #ifdef __cplusplus

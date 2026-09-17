@@ -124,6 +124,7 @@ static const NETWORK_CARD net_cards[] = {
     { &rtl8029as_device           },
     { &rtl8139c_plus_device       },
     { &smc_epic100_device         },
+    { &ibm_token_ring_device      },
     { NULL                        }
     // clang-format on
 };

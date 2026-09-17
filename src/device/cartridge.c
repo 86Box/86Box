@@ -40,6 +40,7 @@ static cart_t carts[2];
 
 static mem_mapping_t cart_mappings[2];
 
+#define ENABLE_CARTRIDGE_LOG 1
 #ifdef ENABLE_CARTRIDGE_LOG
 int cartridge_do_log = ENABLE_CARTRIDGE_LOG;
 
