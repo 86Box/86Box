@@ -252,7 +252,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Gravis UltraSound PnP (Old PnP ROM)", .new = "Gravis UltraSound PnP (Old)" },
         { .old = "Gravis UltraSound PnP (New PnP ROM)", .new = "Gravis UltraSound PnP (New)" },
         { .old = "Gravis UltraSound PnP (No CD-ROM)", .new = "Gravis UltraSound PnP (No CD)" },
-        { .old = "Compaq/STB UltraSound 32", .new = "STB SoundRage 32" },
+        { .old = "Compaq/STB UltraSound 32", .new = "Compaq UltraSound 32" },
         { 0 }
     };
 

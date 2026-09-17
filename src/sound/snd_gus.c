@@ -4241,7 +4241,7 @@ const device_t gus_pnp_nocd_device = {
 };
 
 const device_t gus_pnp_compaq_device = {
-    .name          = "STB SoundRage 32",
+    .name          = "Compaq UltraSound 32",
     .internal_name = "guspnp_compaq",
     .flags         = DEVICE_ISA16,
     .local         = IW_GUS_COMPAQ,
@@ -4252,5 +4252,5 @@ const device_t gus_pnp_compaq_device = {
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
     .config        = gus_pnp_compaq_config,
-    .alias         = "Compaq UltraSound 32"
+    .alias         = "STB UltraSound 32"
 };
