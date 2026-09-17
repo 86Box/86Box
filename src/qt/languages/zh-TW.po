@@ -82,6 +82,9 @@ msgstr "指定視窗大小(&D)…"
 msgid "Force &4:3 display ratio"
 msgstr "強制 4:3 顯示比例(&4)"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "強制 &%1:%2 顯示比例(&%1)"
+
 msgid "&Window scale factor"
 msgstr "視窗縮放係數(&W)"
 

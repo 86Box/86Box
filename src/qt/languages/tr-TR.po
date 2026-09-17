@@ -81,6 +81,9 @@ msgstr "Pencere &boyutunu belirle…"
 msgid "Force &4:3 display ratio"
 msgstr "&4:3 görüntü oranına zorla"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "&%1:%2 görüntü oranına zorla"
+
 msgid "&Window scale factor"
 msgstr "Pencere &boyut ölçeği"
 

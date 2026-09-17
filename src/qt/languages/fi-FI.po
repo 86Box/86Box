@@ -81,6 +81,9 @@ msgstr "&Määritä koko…"
 msgid "Force &4:3 display ratio"
 msgstr "Pakota &4:3-kuvasuhde"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Pakota &%1:%2-kuvasuhde"
+
 msgid "&Window scale factor"
 msgstr "&Ikkunan kokokerroin"
 
