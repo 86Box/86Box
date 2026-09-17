@@ -8999,7 +8999,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Golden Star Technology 486WB", "" }
     },
     /* Uses Phoenix keyboard controller firmware. */
     {
