@@ -11358,8 +11358,10 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_VLB,
         .flags     = MACHINE_IDE, /* Has internal video: Western Digital WD90C33-ZZ */
         .ram       = {
+        /* In theory, this machine should support up to 128 MB RAM. In practice, likely 
+           due to a BIOS bug, it does not detect more than 64 MB at all. */
             .min  = 1024,
-            .max  = 131072,
+            .max  = 65536,
             .step = 1024
         },
         .nvrmask                  = 127,
