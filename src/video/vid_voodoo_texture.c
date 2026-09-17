@@ -246,6 +246,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
     uint32_t addr = 0;
     uint32_t addr_end;
     uint32_t palette_checksum;
+    uint32_t tex_key;
 
     lod_min = (params->tLOD[tmu] >> 2) & 15;
     lod_max = (params->tLOD[tmu] >> 8) & 15;
@@ -269,9 +270,15 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
     else
         addr = params->texBaseAddr[tmu];
 
+    /*The cache key carries the tLOD bits that shape the per-level layout (lod range,
+      split/odd, aspect) plus the trilinear bit of textureMode, which switches
+      voodoo_recalc_tex3 to the even/odd level mapping. The same texture drawn first
+      without and then with trilinear must not reuse the old decoded layout.*/
+    tex_key = (params->tLOD[tmu] & 0xfc0fff) | (params->textureMode[tmu] & TEXTUREMODE_TRILINEAR);
+
     /*Try to find texture in cache*/
     for (c = 0; c < TEX_CACHE_MAX; c++) {
-        if (voodoo->texture_cache[tmu][c].base == addr && voodoo->texture_cache[tmu][c].tLOD == (params->tLOD[tmu] & 0xf00fff) && voodoo->texture_cache[tmu][c].palette_checksum == palette_checksum) {
+        if (voodoo->texture_cache[tmu][c].base == addr && voodoo->texture_cache[tmu][c].tLOD == tex_key && voodoo->texture_cache[tmu][c].palette_checksum == palette_checksum) {
             params->tex_entry[tmu] = c;
             voodoo->texture_cache[tmu][c].refcount++;
             return;
@@ -298,7 +305,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr1[tmu];
     else
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr[tmu];
-    voodoo->texture_cache[tmu][c].tLOD = params->tLOD[tmu] & 0xf00fff;
+    voodoo->texture_cache[tmu][c].tLOD = tex_key;
 
     lod_min = (params->tLOD[tmu] >> 2) & 15;
     lod_max = (params->tLOD[tmu] >> 8) & 15;
