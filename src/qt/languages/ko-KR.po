@@ -82,7 +82,7 @@ msgid "Force &4:3 display ratio"
 msgstr "4:3 화면 비율로 고정(&4)"
 
 msgid "Force &%1:%2 display ratio"
-msgstr "4:3 화면 비율로 고정(&%1)"
+msgstr "&%1:%2 화면 비율로 고정(&%1)"
 
 msgid "&Window scale factor"
 msgstr "창 표시 배율(&W)"
