@@ -988,9 +988,13 @@ writememwl(uint32_t addr, uint16_t val)
         if ((addr & 0xfff) > 0xffe) {
             if (cr0 >> 31) {
                 for (uint8_t i = 0; i < 2; i++) {
-                    /* Do not translate a page that has a valid lookup, as that is by definition valid
-                       and the whole purpose of the lookup is to avoid repeat identical translations. */
-                    if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+                    /* A page with a valid lookup is already translated: take its physical
+                       address from the lookup, since writing the first half can recycle
+                       the entry and the second half then falls back to addr64a[]. */
+                    if (page_lookup[(addr + i) >> 12] && page_lookup[(addr + i) >> 12]->write_b) {
+                        a          = ((uint64_t) (page_lookup[(addr + i) >> 12] - pages) << 12) | ((addr + i) & 0xfff);
+                        addr64a[i] = (uint32_t) a;
+                    } else {
                         a          = mmutranslate_write(addr + i);
                         addr64a[i] = (uint32_t) a;
 
@@ -1246,9 +1250,13 @@ writememll(uint32_t addr, uint32_t val)
         if ((addr & 0xfff) > 0xffc) {
             if (cr0 >> 31) {
                 for (i = 0; i < 4; i++) {
-                    /* Do not translate a page that has a valid lookup, as that is by definition valid
-                       and the whole purpose of the lookup is to avoid repeat identical translations. */
-                    if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+                    /* A page with a valid lookup is already translated: take its physical
+                       address from the lookup, since writing the first part can recycle
+                       the entry and the rest then falls back to addr64a[]. */
+                    if (page_lookup[(addr + i) >> 12] && page_lookup[(addr + i) >> 12]->write_b) {
+                        a          = ((uint64_t) (page_lookup[(addr + i) >> 12] - pages) << 12) | ((addr + i) & 0xfff);
+                        addr64a[i] = (uint32_t) a;
+                    } else {
                         if (i == 0) {
                             a          = mmutranslate_write(addr + i);
                             addr64a[i] = (uint32_t) a;
@@ -1539,9 +1547,13 @@ writememql(uint32_t addr, uint64_t val)
         if ((addr & 0xfff) > 0xff8) {
             if (cr0 >> 31) {
                 for (i = 0; i < 8; i++) {
-                    /* Do not translate a page that has a valid lookup, as that is by definition valid
-                       and the whole purpose of the lookup is to avoid repeat identical translations. */
-                    if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+                    /* A page with a valid lookup is already translated: take its physical
+                       address from the lookup, since writing the first part can recycle
+                       the entry and the rest then falls back to addr64a[]. */
+                    if (page_lookup[(addr + i) >> 12] && page_lookup[(addr + i) >> 12]->write_b) {
+                        a          = ((uint64_t) (page_lookup[(addr + i) >> 12] - pages) << 12) | ((addr + i) & 0xfff);
+                        addr64a[i] = (uint32_t) a;
+                    } else {
                         if (i == 0) {
                             a          = mmutranslate_write(addr + i);
                             addr64a[i] = (uint32_t) a;
