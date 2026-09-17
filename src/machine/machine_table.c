@@ -11358,9 +11358,11 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_VLB,
         .flags     = MACHINE_IDE, /* Has internal video: Western Digital WD90C33-ZZ */
         .ram       = {
-            .min  = 4096,
-            .max  = 40960,
-            .step = 4096
+        /* In theory, this machine should support up to 128 MB RAM. In practice, likely 
+           due to a BIOS bug, it does not detect more than 64 MB at all. */
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -14835,6 +14837,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
+        /* The user manual says up to 768 MB of RAM can be installed. Meanwhile, the 430NX
+           chipset only supports up to 512 MB. In practice, this machine can't even detect
+           more than 256 MB due to what is suspected to be an early AwardBIOS v4.5x bug. */
             .min  = 2048,
             .max  = 262144,
             .step = 2048
@@ -14883,8 +14888,11 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* BIOS setup cannot detect more than 128 MB and displays any higher amount as such.
+           Although, this is just a visual quirk, as the POST memory counter and MS-DOS can
+           seemingly utilize the maximum amount supported by the chipset without issues. */
             .min  = 2048,
-            .max  = 131072,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -14932,7 +14940,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: TLI ET4000/w32p */
         .ram       = {
             .min  = 2048,
-            .max  = 131072,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -14980,7 +14988,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
         .ram       = {
             .min  = 2048,
-            .max  = 262144,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -16459,10 +16467,10 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* The user manual says up to 512 MB of RAM can be installed. However; in practice,
+           this machine suffers from the same problem as the Gigabyte GA-586IP, where no
+           more than 256 MB can be detected likely due to an early AwardBIOS v4.5x bug. */
             .min  = 4096,
-            /* The user manual says up to 512 MB of RAM can be installed. However, in practice,
-            the BIOS only recognizes up to 256 MB. Since AOpen AP61 also does this same behavior,
-            I suspect it to be an early AwardBIOS v4.5x limitation. */
             .max  = 262144,
             .step = 4096
         },
@@ -21600,9 +21608,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* Like with the Gigabyte GA-586IP and DFI G586VPM, this machine also can't detect
+           more than 256 MB RAM likely due to an early AwardBIOS v4.5x bug. */
             .min  = 8192,
-            /* As also noted in the DFI G586VPM entry, the BIOS unusually only recognizes up
-            to 256 MB of RAM. This is likely a limitation of early AwardBIOS v4.5x instances. */
             .max  = 262144,
             .step = 8192
         },
@@ -24411,18 +24419,22 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SLOT1 | CPU_PKG_SLOT2,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 100000000,
+            .min_bus     = 66666667,
             .max_bus     = 150000000,
             .min_voltage = 1800,
             .max_voltage = 3500,
-            .min_multi   = 3.0,
+            .min_multi   = 1.5,
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
+        /* In theory, this machine should support up to 2 GB RAM. However, due to a BIOS bug, 
+           the machine counts exactly 2048 MB RAM as 0 MB in the POST screen, while MS-DOS 
+           incorrectly detects 4 GB RAM, hence the max. size is reduced to the best realistically
+           best possible size, which would be 512+512+512+256 MB sticks for approx. 1.75 GB */
             .min  = 16384,
-            .max  = 2097152,
+            .max  = 1835008,
             .step = 16384
         },
         .nvrmask                  = 511,

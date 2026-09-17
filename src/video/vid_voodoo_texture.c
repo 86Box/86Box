@@ -56,6 +56,19 @@ voodoo_texture_log(const char *fmt, ...)
 #    define voodoo_texture_log(fmt, ...)
 #endif
 
+/*A cache entry is in use until every active render worker has consumed as many
+  references as were queued: worker i counts its share in refcount_r[i]. Checking
+  only the first two workers left entries reusable under workers 2 and 3.*/
+static int
+voodoo_texture_in_use(const voodoo_t *voodoo, const texture_t *tex)
+{
+    for (int i = 0; i < voodoo->render_threads; i++) {
+        if (tex->refcount != tex->refcount_r[i])
+            return 1;
+    }
+    return 0;
+}
+
 void
 voodoo_recalc_tex12(voodoo_t *voodoo, int tmu)
 {
@@ -246,6 +259,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
     uint32_t addr = 0;
     uint32_t addr_end;
     uint32_t palette_checksum;
+    uint32_t tex_key;
 
     lod_min = (params->tLOD[tmu] >> 2) & 15;
     lod_max = (params->tLOD[tmu] >> 8) & 15;
@@ -269,9 +283,15 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
     else
         addr = params->texBaseAddr[tmu];
 
+    /*The cache key carries the tLOD bits that shape the per-level layout (lod range,
+      split/odd, aspect) plus the trilinear bit of textureMode, which switches
+      voodoo_recalc_tex3 to the even/odd level mapping. The same texture drawn first
+      without and then with trilinear must not reuse the old decoded layout.*/
+    tex_key = (params->tLOD[tmu] & 0xfc0fff) | (params->textureMode[tmu] & TEXTUREMODE_TRILINEAR);
+
     /*Try to find texture in cache*/
     for (c = 0; c < TEX_CACHE_MAX; c++) {
-        if (voodoo->texture_cache[tmu][c].base == addr && voodoo->texture_cache[tmu][c].tLOD == (params->tLOD[tmu] & 0xf00fff) && voodoo->texture_cache[tmu][c].palette_checksum == palette_checksum) {
+        if (voodoo->texture_cache[tmu][c].base == addr && voodoo->texture_cache[tmu][c].tLOD == tex_key && voodoo->texture_cache[tmu][c].palette_checksum == palette_checksum) {
             params->tex_entry[tmu] = c;
             voodoo->texture_cache[tmu][c].refcount++;
             return;
@@ -283,7 +303,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
         for (c = 0; c < TEX_CACHE_MAX; c++) {
             voodoo->texture_last_removed++;
             voodoo->texture_last_removed &= (TEX_CACHE_MAX - 1);
-            if (voodoo->texture_cache[tmu][voodoo->texture_last_removed].refcount == voodoo->texture_cache[tmu][voodoo->texture_last_removed].refcount_r[0] && (voodoo->render_threads == 1 || voodoo->texture_cache[tmu][voodoo->texture_last_removed].refcount == voodoo->texture_cache[tmu][voodoo->texture_last_removed].refcount_r[1]))
+            if (!voodoo_texture_in_use(voodoo, &voodoo->texture_cache[tmu][voodoo->texture_last_removed]))
                 break;
         }
         if (c == TEX_CACHE_MAX)
@@ -298,7 +318,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr1[tmu];
     else
         voodoo->texture_cache[tmu][c].base = params->texBaseAddr[tmu];
-    voodoo->texture_cache[tmu][c].tLOD = params->tLOD[tmu] & 0xf00fff;
+    voodoo->texture_cache[tmu][c].tLOD = tex_key;
 
     lod_min = (params->tLOD[tmu] >> 2) & 15;
     lod_max = (params->tLOD[tmu] >> 8) & 15;
@@ -574,7 +594,7 @@ flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
                         voodoo_texture_log("  Evict texture %i %08x\n", c, voodoo->texture_cache[tmu][c].base);
 #endif
 
-                        if (voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[0] || (voodoo->render_threads == 2 && voodoo->texture_cache[tmu][c].refcount != voodoo->texture_cache[tmu][c].refcount_r[1]))
+                        if (voodoo_texture_in_use(voodoo, &voodoo->texture_cache[tmu][c]))
                             wait_for_idle = 1;
 
                         voodoo->texture_cache[tmu][c].base = -1;

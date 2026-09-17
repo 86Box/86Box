@@ -1421,7 +1421,7 @@ load_storage_controllers(void)
         if (p != NULL)
             hdc_current[c] = hdc_get_from_internal_name(p);
         else
-            hdc_current[c] = 0;
+            hdc_current[c] = -1;
     }
 
     /* Backwards compatibility for single HDC and standalone tertiary/quaternary IDE from v4.2 and older. */
@@ -1431,10 +1431,13 @@ load_storage_controllers(void)
         if (!legacy_cards[i] || (ini_section_get_int(cat, legacy_cards[i], 0) == 1)) {
             /* Migrate to the first available HDC slot. */
             for (; j < (sizeof(hdc_current) / sizeof(hdc_current[0])); j++) {
-                if (!hdc_current[j]) {
+                if (hdc_current[j] == -1) {
                     if (!legacy_cards[i]) {
                         if (!p) {
-                            hdc_current[j] = hdc_get_from_internal_name((j == 0) ? "internal" : "none");
+                            if ((j == 0) && machine_has_flags(machine, MACHINE_HDC))
+                                hdc_current[j] = 1;
+                            else
+                                hdc_current[j] = 0;
                         } else if (!strcmp(p, "xtide_plus")) {
                             hdc_current[j] = hdc_get_from_internal_name("xtide");
                             sprintf(temp, "PC/XT XTIDE #%i", j + 1);
