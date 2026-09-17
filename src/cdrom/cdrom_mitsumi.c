@@ -712,7 +712,13 @@ mitsumi_dma_timeout_callback(void *priv)
 {
     mcd_t    *dev      = (mcd_t *) priv;
 
+    dev->cur_sense    = 3;
+    dev->stat         = mitsumi_error_status(dev, dev->cur_sense);
     mitsumi_abort_read(dev);
+    mitsumi_set_irq(dev, IRQ_ERROR);
+    dev->cmdbuf_idx   = 0;
+    dev->cmdbuf_count = 1;
+    dev->cmdbuf[0]    = dev->stat;
 }
 
 static void

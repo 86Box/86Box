@@ -1828,6 +1828,12 @@ codegen_timing_p6_block_start(void)
         reg_available_timestamp[c] = 0;
     for (c = 0; c < 8; c++)
         fpu_st_timestamp[c] = 0;
+
+    /* A block that ended on the abort path was never flushed: drop its
+       pending uops and dependency-chain timestamp so they cannot carry
+       into this block and inflate its unit timestamps without bound. */
+    decode_buffer.nr_uops = 0;
+    last_uop_timestamp    = 0;
 }
 
 void

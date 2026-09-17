@@ -391,7 +391,7 @@ SettingsHarddisks::on_pushButtonConfigure_clicked()
     vendor->setMaxLength(8);
     model->setMaxLength(40);
     version->setMaxLength(4);
-    layout->addRow(tr("Branding:"), vendor);
+    layout->addRow(tr("Brand:"), vendor);
     layout->addRow(tr("Model:"), model);
     layout->addRow(tr("Revision:"), version);
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, &dialog);

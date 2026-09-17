@@ -82,6 +82,9 @@ msgstr "&Указать размеры главного окна…"
 msgid "Force &4:3 display ratio"
 msgstr "Установить соотношение сторон &4:3"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Установить соотношение сторон &%1:%2"
+
 msgid "&Window scale factor"
 msgstr "&Масштаб окна"
 
@@ -3009,6 +3012,15 @@ msgstr "Модель"
 
 msgid "Model:"
 msgstr "Модель:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Не удалось инициализировать рендерер Vulkan."
