@@ -24419,18 +24419,22 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SLOT1 | CPU_PKG_SLOT2,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 100000000,
+            .min_bus     = 66666667,
             .max_bus     = 150000000,
             .min_voltage = 1800,
             .max_voltage = 3500,
-            .min_multi   = 3.0,
+            .min_multi   = 1.5,
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
+        /* In theory, this machine should support up to 2 GB RAM. However, due to a BIOS bug, 
+           the machine counts exactly 2048 MB RAM as 0 MB in the POST screen, while MS-DOS 
+           incorrectly detects 4 GB RAM, hence the max. size is reduced to the best realistically
+           best possible size, which would be 512+512+512+256 MB sticks for approx. 1.75 GB */
             .min  = 16384,
-            .max  = 2097152,
+            .max  = 1835008,
             .step = 16384
         },
         .nvrmask                  = 511,
