@@ -11358,9 +11358,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_VLB,
         .flags     = MACHINE_IDE, /* Has internal video: Western Digital WD90C33-ZZ */
         .ram       = {
-            .min  = 4096,
-            .max  = 40960,
-            .step = 4096
+            .min  = 1024,
+            .max  = 131072,
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
