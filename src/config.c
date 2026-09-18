@@ -1461,6 +1461,15 @@ load_storage_controllers(void)
     }
     ini_section_delete_var(cat, "hdc");
 
+    for (int c = min; c < HDC_MAX; c++) {
+        if (hdc_current[c] == 1) {
+            if ((c == 0) && machine_has_flags(machine, MACHINE_HDC))
+                hdc_current[c] = 1;
+            else
+                hdc_current[c] = 0;
+        }
+    }
+
     p = ini_section_get_string(cat, "cdrom_interface", NULL);
     if (p != NULL)
         cdrom_interface_current = cdrom_interface_get_from_internal_name(p);
