@@ -181,6 +181,7 @@ typedef struct {
 
 #define RF_FLAG    0x0001 /* in EFLAGS */
 #define VM_FLAG    0x0002 /* in EFLAGS */
+#define AC_FLAG    0x0004 /* in EFLAGS */
 #define VIF_FLAG   0x0008 /* in EFLAGS */
 #define VIP_FLAG   0x0010 /* in EFLAGS */
 #define VID_FLAG   0x0020 /* in EFLAGS */
