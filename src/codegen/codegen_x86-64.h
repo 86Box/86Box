@@ -1,5 +1,5 @@
-#define BLOCK_SIZE        0x4000
-#define BLOCK_MASK        0x3fff
+#define BLOCK_SIZE        0x10000
+#define BLOCK_MASK        0xffff
 #define BLOCK_START       0
 
 #define HASH_SIZE         0x20000
