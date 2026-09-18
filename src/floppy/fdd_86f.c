@@ -2016,6 +2016,8 @@ d86f_format_track(int drive, int side, int do_write)
     uint16_t dataam_fm     = 0x6FF5;
     uint16_t gap_fill      = 0x4E;
 
+    static int id_count    = 4;
+
     mfm          = d86f_is_mfm(drive);
     am_len       = mfm ? 4 : 1;
     gap_sizes[0] = mfm ? 80 : 40;
@@ -2032,6 +2034,28 @@ d86f_format_track(int drive, int side, int do_write)
         do_write = 0;
 
     switch (dev->format_state) {
+        case FMT_PRETRK_GAP0:
+            id_count = 4;
+            break;
+    }
+
+    if (id_count < 4) {
+        if (fdc_data_available(d86f_fdc)) {
+            data = fdc_getdata(d86f_fdc, 0);
+            if (data != -1)
+                data &= 0xff;
+            if ((data == -1) && (id_count < 3))
+                data = 0;
+            d86f_fdc->format_sector_id.byte_array[id_count] = data & 0xff;
+            if (id_count == 3)
+                fdc_stop_id_request(d86f_fdc);
+            else
+                fdc_request_next_sector_id(d86f_fdc);
+            id_count++;
+        }
+    }
+
+    switch (dev->format_state) {
         case FMT_POSTTRK_GAP4:
             max_len = 60000;
             if (do_write)
@@ -2045,19 +2069,6 @@ d86f_format_track(int drive, int side, int do_write)
             break;
 
         case FMT_SECTOR_ID_SYNC:
-            max_len = sync_len;
-            if (dev->datac <= 3) {
-                data = fdc_getdata(d86f_fdc, 0);
-                if (data != -1)
-                    data &= 0xff;
-                if ((data == -1) && (dev->datac < 3))
-                    data = 0;
-                d86f_fdc->format_sector_id.byte_array[dev->datac] = data & 0xff;
-                if (dev->datac == 3)
-                    fdc_stop_id_request(d86f_fdc);
-            }
-            fallthrough;
-
         case FMT_PRETRK_SYNC:
         case FMT_SECTOR_DATA_SYNC:
             max_len = sync_len;
@@ -2172,10 +2183,6 @@ d86f_format_track(int drive, int side, int do_write)
         dev->format_state++;
 
         switch (dev->format_state) {
-            case FMT_SECTOR_ID_SYNC:
-                fdc_request_next_sector_id(d86f_fdc);
-                break;
-
             case FMT_SECTOR_IDAM:
             case FMT_SECTOR_DATAAM:
                 dev->calc_crc.word = 0xffff;
@@ -2190,10 +2197,20 @@ d86f_format_track(int drive, int side, int do_write)
                 if (dev->sector_count < sc) {
                     /* Sector within allotted amount, change state to SECTOR_ID_SYNC. */
                     dev->format_state = FMT_SECTOR_ID_SYNC;
-                    fdc_request_next_sector_id(d86f_fdc);
                 } else {
                     dev->format_state = FMT_POSTTRK_GAP4;
                     dev->sector_count = 0;
+                }
+                break;
+
+            case FMT_SECTOR_GAP3:
+                if ((dev->sector_count + 1) >= sc)
+                    break;
+                fallthrough;
+            case FMT_PRETRK_GAP1:
+                if (id_count == 4) {
+                    id_count = 0;
+                    fdc_request_next_sector_id(d86f_fdc);
                 }
                 break;
 
