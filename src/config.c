@@ -1462,7 +1462,7 @@ load_storage_controllers(void)
     ini_section_delete_var(cat, "hdc");
 
     for (int c = min; c < HDC_MAX; c++) {
-        if (hdc_current[c] == 1) {
+        if (hdc_current[c] == -1) {
             if ((c == 0) && machine_has_flags(machine, MACHINE_HDC))
                 hdc_current[c] = 1;
             else
