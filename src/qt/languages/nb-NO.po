@@ -82,6 +82,9 @@ msgstr "Angi &dimensjoner…"
 msgid "Force &4:3 display ratio"
 msgstr "Tving &4:3-bildeforhold"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Tving &%1:%2-bildeforhold"
+
 msgid "&Window scale factor"
 msgstr "&Vinduets skaleringsfaktor"
 
@@ -2923,8 +2926,14 @@ msgstr "[Generisk] 1989 (3500 RPM)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Generisk] 1992 (3600 RPM)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Generisk] 1993 (4000 RPM)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Generisk] 1994 (4500 RPM)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Generisk] 1995 (5200 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Generisk] 1996 (5400 RPM)"
@@ -2937,6 +2946,9 @@ msgstr "[Generisk] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Generisk] 2000 (7200 RPM)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Generisk] 2004 (10000 RPM)"
 
 msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A-klone"
@@ -2988,6 +3000,15 @@ msgstr "Modell"
 
 msgid "Model:"
 msgstr "Modell:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Kunne ikke initialisere Vulkan-gjengiver."

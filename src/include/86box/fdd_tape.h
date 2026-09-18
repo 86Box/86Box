@@ -25,7 +25,7 @@
 #define EMU_FDD_TAPE_H
 
 /* For logging detailed QIC-117 debugging into the emulator log. */
-#if 0
+#if 1
 #    define ENABLE_FDD_TAPE_LOG 1
 #endif
 
@@ -61,11 +61,8 @@
 extern "C" {
 #endif
 
-extern int  fdd_tape_enabled;                   /* drive fitted to the cable */
-extern int  fdd_tape_unit;                      /* drive select line, 0..3 */
-extern char fdd_tape_fn[MAX_IMAGE_PATH_LEN];    /* cartridge image */
-
-/* Attaches or detaches the drive according to the configuration above. */
+/* Attaches or detaches the drive according to its tape_drives[] entry
+   (TAPE_BUS_FDC). */
 extern void fdd_tape_init(void);
 extern void fdd_tape_close(void);
 

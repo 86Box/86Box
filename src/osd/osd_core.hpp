@@ -51,7 +51,20 @@ bool osd_core_escape(void);
 void osd_core_install_log_hook(void);
 void osd_core_remove_log_hook(void);
 
-/* Draw OSD indicators */
+/* Draw the persistent indicator layer. */
 void osd_core_draw_indicators(void);
+
+/* Draw the transient message overlay, if one is still on screen. */
+void osd_core_draw_message(void);
+
+/* Show a non-blocking message that expires after a fixed duration. The text is
+ * a printf-style format string for any additional arguments. Posting a message
+ * closes the OSD, so the machine keeps running while the message is read. */
+void osd_core_show_message(const char *text, ...) __attribute__((format(printf, 1, 2)));
+
+/* True when the core has something to draw with the OSD closed: an active
+ * indicator layer, or a message still fading out. Frontends gate their
+ * rendering on this. */
+bool osd_core_needs_render(void);
 
 #endif /* OSD_CORE_HPP */

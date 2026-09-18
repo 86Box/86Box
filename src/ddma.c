@@ -59,6 +59,7 @@ ddma_reg_read(uint16_t addr, void *priv)
     uint8_t               ret  = 0xff;
     uint8_t               ch   = dev->channel;
     uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
+    uint8_t               dmas = (ch >= 4) ? 0x01 : 0x00;
 
     switch (addr & 0x0f) {
         case 0x00:
@@ -76,8 +77,8 @@ ddma_reg_read(uint16_t addr, void *priv)
         case 0x05:
             ret = (dma[ch].cc >> 8) & 0xff;
             break;
-        case 0x09:
-            ret = inb(dmab + 0x08);
+        case 0x08:
+            ret = inb(dmab + (0x08 << dmas));
             break;
 
         default:
@@ -94,6 +95,7 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t               ch           = dev->channel;
     uint8_t               page_regs[4] = { 7, 3, 1, 2 };
     uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
+    uint8_t               dmas = (ch >= 4) ? 0x01 : 0x00;
 
     switch (addr & 0x0f) {
         case 0x00:
@@ -119,26 +121,25 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
             dma[ch].cc = dma[ch].cb;
             break;
         case 0x08:
-            outb(dmab + 0x08, val);
+            outb(dmab + (0x08 << dmas), val);
             break;
         case 0x09:
-            outb(dmab + 0x09, val);
+            outb(dmab + (0x09 << dmas), val);
             break;
         case 0x0a:
-            outb(dmab + 0x0a, val);
+            outb(dmab + (0x0a << dmas), val);
             break;
         case 0x0b:
-            outb(dmab + 0x0b, val);
+            outb(dmab + (0x0b << dmas), val);
             break;
         case 0x0d:
-            outb(dmab + 0x0d, val);
+            outb(dmab + (0x0d << dmas), val);
             break;
         case 0x0e:
-            for (uint8_t i = 0; i < 4; i++)
-                outb(dmab + 0x0a, i);
+            outb(dmab + (0x0e << dmas), val);
             break;
         case 0x0f:
-            outb(dmab + 0x0a, (val << 2) | (ch & 3));
+            outb(dmab + (0x0f << dmas), val);
             break;
 
         default:

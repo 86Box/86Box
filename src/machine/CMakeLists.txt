@@ -23,6 +23,10 @@ add_library(mch OBJECT
     m_xt_jukost.c
     m_xt_xi8088.c
     m_pcjr.c
+    m_pcjx.c
+    m_pcjx_scancodes.c
+    m_ibm5140.c
+    m_ibm5140_power.c
     m_amstrad.c
     m_europc.c
     m_elt.c
@@ -52,6 +56,7 @@ add_library(mch OBJECT
     m_at_socket5.c
     m_at_socket7_3v.c
     m_at_socket7.c
+    m_at_ibm_pc700.c
     m_at_sockets7.c
     m_at_socket8.c
     m_at_slot1.c

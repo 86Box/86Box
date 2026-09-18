@@ -30,12 +30,14 @@ extern void mca_init(const uint8_t nr_cards);
  * @param priv   Pointer to the adapter's private state/context.
  * @note This function iterates through all slots and assigns the adapter to
  * the first one where both read and write callbacks are NULL.
+ * @return The slot index (0 to MCA_MAX_CARDS-1) the adapter was assigned,
+ * or 0xFF if no slot was available.
  */
-extern void mca_add(uint8_t (*read)(uint16_t port, void *priv),
-                    void (*write)(uint16_t port, uint8_t val, void *priv),
-                    uint8_t (*feedb)(void *priv),
-                    void (*reset)(void *priv),
-                    void *priv);
+extern uint8_t mca_add(uint8_t (*read)(uint16_t port, void *priv),
+                       void (*write)(uint16_t port, uint8_t val, void *priv),
+                       uint8_t (*feedb)(void *priv),
+                       void (*reset)(void *priv),
+                       void *priv);
 
 /**
  * @brief Registers an MCA adapter into a specific hardware slot.
@@ -62,6 +64,14 @@ extern void mca_add_to_slot(uint8_t (*read)(uint16_t port, void *priv),
  * @param index The slot index to select (0-indexed).
  */
 extern void mca_set_index(const uint8_t index);
+
+/**
+ * @brief Returns the index of the currently selected slot.
+ *
+ * @return uint8_t The slot index currently selected via the MCA slot select
+ * port (0x96); the value latched by the last mca_set_index() call.
+ */
+extern uint8_t mca_get_index(void);
 
 /**
  * @brief Performs a POS read operation from the currently selected slot.

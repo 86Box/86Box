@@ -707,7 +707,7 @@ else
         grep -q " trixie " /etc/apt/sources.list.d/debian.sources || echo [!] WARNING: System not running the expected Debian version
 
 	# Establish general dependencies.
-	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools curl"
+	pkgs="cmake ninja-build pkg-config git wget p7zip-full wayland-protocols tar gzip file appstream qttranslations5-l10n python3-pip python3-venv squashfs-tools curl"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"

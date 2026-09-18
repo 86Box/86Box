@@ -116,7 +116,7 @@ vga_in(uint16_t addr, void *priv)
 {
     vga_t  *vga  = (vga_t *) priv;
     svga_t *svga = &vga->svga;
-    uint8_t temp;
+    uint8_t temp = 0xff;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -129,10 +129,21 @@ vga_in(uint16_t addr, void *priv)
             temp = svga->crtcreg;
             break;
         case 0x3D5:
-            if (svga->crtcreg & 0x20)
-                temp = 0xff;
-            else
-                temp = svga->crtc[svga->crtcreg];
+            switch (svga->crtcreg) {
+                default:
+                    break;
+                case 0x00 ... 0x1f:
+                    temp = svga->crtc[svga->crtcreg];
+                    break;
+                case 0x22:
+                    temp = svga->latch.b[svga->gdcreg[0x04] & 0x03];
+                    break;
+                case 0x24:
+                    /* TODO: Palette Address Source in bit 2. */
+                    temp = (svga->attrff & 0x01) |
+                           ((svga->attraddr & 0x1f) << 3);
+                    break;
+            }
             break;
         default:
             temp = svga_in(addr, svga);

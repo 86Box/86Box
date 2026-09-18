@@ -28,6 +28,7 @@ private slots:
     void on_comboBoxChannel_currentIndexChanged(int index);
     void on_comboBoxSpeed_currentIndexChanged(int index);
     void on_comboBoxAudio_currentIndexChanged(int index);
+    void on_pushButtonConfigure_clicked();
 
     void on_pushButtonNew_clicked();
     void on_pushButtonExisting_clicked();

@@ -286,6 +286,8 @@ ps2_m30_a1_read(uint16_t port, void *priv)
     return dev->port_a1 | 0xfe;
 }
 
+#define PS2_SETUP_IO 0x80
+
 static void
 ps2_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -297,7 +299,7 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x0102:
-            if (!(ps2->ps2_94 & 0x80)) {
+            if (!(ps2->ps2_94 & PS2_SETUP_IO)) {
                 lpt_port_remove(ps2->lpt);
                 serial_remove(ps2->uart);
                 if (val & 0x04) {
@@ -327,15 +329,18 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x0103:
-            ps2->ps2_103 = val;
+            if (!(ps2->ps2_94 & PS2_SETUP_IO))
+                ps2->ps2_103 = val;
             break;
 
         case 0x0104:
-            ps2->ps2_104 = val;
+            if (!(ps2->ps2_94 & PS2_SETUP_IO))
+                ps2->ps2_104 = val;
             break;
 
         case 0x0105:
-            ps2->ps2_105 = val;
+            if (!(ps2->ps2_94 & PS2_SETUP_IO))
+                ps2->ps2_105 = val;
             break;
 
         case 0x0190:
@@ -607,7 +612,8 @@ ps2_isa_setup(int model, int cpu_type)
         ps1_hdc_inform(priv, &ps2->ps2_91);
     }
 
-    device_add(&ps1vga_device);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&ps1vga_device);
 }
 
 static void

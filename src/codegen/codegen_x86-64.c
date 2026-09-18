@@ -825,14 +825,6 @@ fpu_sf_check_exceptions(void)
     }
 }
 
-static void
-fpu_postamble(void)
-{
-    cpu_state.fpu_DS = cpu_state.ea_seg->seg;
-    cpu_state.fpu_ds = cpu_state.ea_seg->base;
-    cpu_state.fpu_ea = cpu_state.eaaddr;
-}
-
 void
 codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc)
 {

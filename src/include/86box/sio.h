@@ -20,6 +20,9 @@ extern const device_t acc3221_device;
 
 /* Acer / ALi */
 extern const device_t ali5113_device;
+
+#define ALI5123_370 0x00100
+
 extern const device_t ali5123_device;
 
 /* Chips & Technologies */
@@ -194,6 +197,9 @@ extern const device_t w837x7_device;
 #define W83877_250           0x00004
 
 extern const device_t w83877_device;
+
+/* Reset the IN530's W83877TF through its board-level master reset path. */
+extern void w83877_in530_master_reset(void);
 
 #define W83977F             0x977100
 #define W83977TF            0x977300

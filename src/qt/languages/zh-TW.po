@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-28 02:07+0000\n"
+"PO-Revision-Date: 2026-09-18 03:56+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -71,7 +71,7 @@ msgid "Open&GL"
 msgstr "OpenGL(&G)"
 
 msgid "&Vulkan"
-msgstr "&Vulkan(&V)"
+msgstr "Vulkan(&V)"
 
 msgid "V&NC"
 msgstr "VNC(&N)"
@@ -81,6 +81,9 @@ msgstr "指定視窗大小(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "強制 4:3 顯示比例(&4)"
+
+msgid "Force &%1:%2 display ratio"
+msgstr "強制 %1:%2 顯示比例(&%1)"
 
 msgid "&Window scale factor"
 msgstr "視窗縮放係數(&W)"
@@ -269,10 +272,10 @@ msgid "&Play"
 msgstr "播放(&P)"
 
 msgid "&Rewind to the beginning"
-msgstr "倒轉至起點(&R)"
+msgstr "倒迴至起頭(&R)"
 
 msgid "&Fast forward to the end"
-msgstr "快轉至終點(&F)"
+msgstr "快進至結尾(&F)"
 
 msgid "E&ject"
 msgstr "退出(&J)"
@@ -428,7 +431,7 @@ msgid "Dynamic recompiler"
 msgstr "動態重編譯器"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr "動態重編譯時精確的 FPU 模擬"
+msgstr "動態重編譯時精確的浮點運算器模擬"
 
 msgid "CPU frame size"
 msgstr "CPU 執行期框架大小"
@@ -491,7 +494,7 @@ msgid "&Tablet"
 msgstr "平板(&T)"
 
 msgid "Tablet (&Crosshair)"
-msgstr "平板 十字線(&C)"
+msgstr "平板 (十字線)(&C)"
 
 msgid "Joystick:"
 msgstr "搖桿:"
@@ -554,7 +557,7 @@ msgid "Floppy disk controller:"
 msgstr "軟碟控制器:"
 
 msgid "CD-ROM controller:"
-msgstr "CD-ROM 控制器:"
+msgstr "光碟機控制器:"
 
 msgid "Mitsumi interface"
 msgstr "Mitsumi 介面"
@@ -581,7 +584,7 @@ msgid "PC/AT XTIDE (Primary Only)"
 msgstr "PC/AT XTIDE (僅主通道)"
 
 msgid "PS/2 AT XTIDE (1.1.5) (Primary Only)"
-msgstr "PC/AT XTIDE (1.1.5) (僅主通道)"
+msgstr "PS/2 AT XTIDE (1.1.5) (僅主通道)"
 
 msgid "CMD PCI-0646 (Tertiary and Quaternary)"
 msgstr "CMD PCI-0646 (第三及第四)"
@@ -928,7 +931,7 @@ msgid "Controllers:"
 msgstr "控制器:"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "軟碟/光碟機"
+msgstr "軟碟機/光碟機"
 
 msgid "Other removable devices"
 msgstr "其他抽取式裝置"
@@ -1028,22 +1031,22 @@ msgid "6-button gamepad"
 msgstr "6 鍵遊戲手把"
 
 msgid "2-button flight yoke"
-msgstr "2 按鈕飛行搖桿"
+msgstr "2 按鈕飛行控制器"
 
 msgid "3-button flight yoke"
-msgstr "3 按鈕飛行搖桿"
+msgstr "3 按鈕飛行控制器"
 
 msgid "4-button flight yoke"
-msgstr "4 按鈕飛行搖桿"
+msgstr "4 按鈕飛行控制器"
 
 msgid "2-button flight yoke with throttle"
-msgstr "2 按鈕帶油門飛行搖桿"
+msgstr "2 按鈕帶油門飛行控制器"
 
 msgid "3-button flight yoke with throttle"
-msgstr "3 按鈕帶油門飛行搖桿"
+msgstr "3 按鈕帶油門飛行控制器"
 
 msgid "4-button flight yoke with throttle"
-msgstr "4 按鈕帶油門飛行搖桿"
+msgstr "4 按鈕帶油門飛行控制器"
 
 msgid "Steering wheel (3-axis, 2-button)"
 msgstr "方向盤 (3 軸, 2 鍵)"
@@ -1055,10 +1058,10 @@ msgid "Steering wheel (3-axis, 4-button)"
 msgstr "方向盤 (3 軸, 4 鍵)"
 
 msgid "Thrustmaster Formula T1/T2 with adapter"
-msgstr "Thrustmaster Formula T1/T2 附轉接器"
+msgstr "Thrustmaster Formula T1/T2 帶轉接器"
 
 msgid "Thrustmaster Formula T1/T2 without adapter"
-msgstr "Thrustmaster Formula T1/T2 不附轉接器"
+msgstr "Thrustmaster Formula T1/T2 無轉接器"
 
 msgid "None"
 msgstr "無"
@@ -1154,7 +1157,7 @@ msgid "%1 Device Configuration"
 msgstr "%1 裝置組態"
 
 msgid "Monitor in sleep mode"
-msgstr "監視器處在睡眠狀態"
+msgstr "監視器處於睡眠模式"
 
 msgid "GLSL shaders"
 msgstr "GLSL 著色器"
@@ -1293,7 +1296,7 @@ msgid "Complete"
 msgstr "完成"
 
 msgid "The wizard will now launch the configuration for the new system."
-msgstr "精靈現在會啟動新系統的組態。"
+msgstr "精靈現在將啟動新系統的組態。"
 
 msgid "Use existing configuration"
 msgstr "使用現有組態"
@@ -1896,7 +1899,7 @@ msgstr "退回到軟體渲染。"
 
 msgid "<html><head/><body><p>When selecting media images (CD-ROM, floppy, etc.) the open dialog will start in the same directory as the 86Box configuration file. This setting will likely only make a difference on macOS.</p></body></html>"
 msgstr ""
-"<html><head/><body><p>當選擇媒體映像 (CD-ROM、軟碟等) 時，開啟對話框會在與 "
+"<html><head/><body><p>當選擇媒體映像 (光碟、軟碟等) 時，開啟對話框會在與 "
 "86Box 組態檔相同的目錄中開始。此設定可能只會在 macOS "
 "上有所影響。</p></body></html>"
 
@@ -2929,8 +2932,14 @@ msgstr "[通用] 1989 (3500 轉速)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[通用] 1992 (3600 轉速)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[通用] 1993 (4000 轉速)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[通用] 1994 (4500 轉速)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[通用] 1995 (5200 轉速)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[通用] 1996 (5400 轉速)"
@@ -2943,6 +2952,9 @@ msgstr "[通用] 1998 (5400 轉速)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[通用] 2000 (7200 轉速)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[通用] 2004 (10000 轉速)"
 
 msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A 相容品"
@@ -2996,6 +3008,15 @@ msgstr "型號"
 
 msgid "Model:"
 msgstr "型號:"
+
+msgid "Brand:"
+msgstr "品牌:"
+
+msgid "Revision:"
+msgstr "修訂版號:"
+
+msgid "[Generic HDD] Device Configuration"
+msgstr "[通用硬碟機] 裝置組態"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "初始化 Vulkan 渲染器失敗。"
@@ -3425,7 +3446,7 @@ msgid "Auto LF"
 msgstr "自動送行"
 
 msgid "Tandy PSSJ Clone"
-msgstr "Tandy PSSJ 相容"
+msgstr "Tandy PSSJ 相容品"
 
 msgid "PC-CM (Color)"
 msgstr "PC-CM (彩色)"

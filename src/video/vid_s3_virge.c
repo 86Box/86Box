@@ -61,7 +61,7 @@ static int dither[4][4] = {
 };
 
 #define ROM_VIRGE_325                 "roms/video/s3virge/86c325.bin"
-#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.BIN"
+#define ROM_DIAMOND_STEALTH3D_2000    "roms/video/s3virge/s3virge.bin"
 #define ROM_MIROCRYSTAL_3D            "roms/video/s3virge/miro Crystal 3D 1.02.bin"
 #define ROM_DIAMOND_STEALTH3D_3000    "roms/video/s3virge/diamondstealth3000.vbi"
 #define ROM_STB_VELOCITY_3D           "roms/video/s3virge/stb_velocity3d_110.BIN"
@@ -5616,6 +5616,10 @@ s3_virge_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             ret = virge->pci_regs[PCI_REG_COMMAND] & 0x27;
             break;
 
+        case 0x06:
+            ret = (virge->chip >= S3_VIRGEGX2) ? PCI_STATUS_L_CAPAB : 0x00;
+            break;
+
         case 0x07:
             ret = virge->pci_regs[0x07] & 0x36;
             break;
@@ -6153,8 +6157,10 @@ s3_virge_init(const device_t *info)
             default:
                 break;
         }
-        if (virge->type == S3_VIRGE_GX)
+        if (virge->type == S3_VIRGE_GX) {
             virge->svga.crtc[0x36] |= (1 << 2);
+            virge->svga.crtc[0x6f] |= 1;
+        }
     }
 
     virge->svga.crtc[0x37] = 1 | (7 << 5);

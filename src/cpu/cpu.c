@@ -218,6 +218,16 @@ int cpu_use_exec = 0;
 int cpu_override_interpreter;
 int CPUID;
 
+/* Board-supplied control of a stoppable CPU clock. Consulted only for the
+ * 80C88, the only supported part with a static clock that can be halted and
+ * resumed without losing state. A board that can hold the clock sets
+ * cpu_clock_gated while it does so, and may install a query reporting whether
+ * the clock is currently stopped; the query may wake the clock as a side
+ * effect. The board clears both when it is removed. */
+int  cpu_clock_gated              = 0;
+int (*cpu_clock_stop_query)(void) = NULL;
+
+int is80c88;
 int is186;
 int is_mazovia;
 int is_nec;
@@ -413,6 +423,10 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     if (((cpu_s->cyrix_id & 0xff00) == 0x0400) && (machine_s->init == machine_at_nupro592_init))
         return 0;
 
+    /* Hardwired multipliers on Cobalt machines. */
+    if ((machine_s->init == machine_at_cobalt3k_init) && (cpu_s->multi != machine_s->cpu.min_multi) && (cpu_s->multi != machine_s->cpu.max_multi))
+        return 0;
+
     /* Check CPU blocklist. */
     if (machine_s->cpu.block) {
         i = 0;
@@ -424,6 +438,10 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     }
 
     bus_speed = cpu_s->rspeed / cpu_s->multi;
+
+    /* The IBM PC 700 firmware has no speed entry for the 50 MHz / 2x setting. */
+    if ((machine_s->init == machine_at_ibm_pc700_init) && (bus_speed == 50000000) && (cpu_s->multi == 2.0))
+        return 0;
 
     /* Minimum bus speed with ~0.84 MHz (for 8086) tolerance. */
     if (machine_s->cpu.min_bus && (bus_speed < (machine_s->cpu.min_bus - 840907)))
@@ -551,7 +569,8 @@ cpu_set(void)
     unmask_a20_in_smm = 0;
 
     CPUID       = cpu_s->cpuid_model;
-    is8086      = (cpu_s->cpu_type > CPU_8088) && (cpu_s->cpu_type != CPU_V20) && (cpu_s->cpu_type != CPU_188);
+    is80c88     = (cpu_s->cpu_type == CPU_80C88);
+    is8086      = (cpu_s->cpu_type > CPU_8088) && !is80c88 && (cpu_s->cpu_type != CPU_V20) && (cpu_s->cpu_type != CPU_188);
     is_mazovia  = (cpu_s->cpu_type == CPU_8086_MAZOVIA);
     is_nec      = (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
     is186       = (cpu_s->cpu_type == CPU_186) || (cpu_s->cpu_type == CPU_188) || (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);
@@ -807,6 +826,7 @@ cpu_set(void)
 
     switch (cpu_s->cpu_type) {
         case CPU_8088:
+        case CPU_80C88:
         case CPU_8086:
         case CPU_8086_MAZOVIA:
             break;

@@ -235,43 +235,44 @@ vid_read(uint32_t addr, void *priv)
 static int
 vid_get_h_overscan_delta(pcjr_t *pcjr)
 {
-    int def;
+    int def; /* Reference sync-start-to-display delay from the PCjr BIOS. */
     int coef;
     int ret;
 
     switch ((pcjr->array[0] & 0x13) | ((pcjr->array[3] & 0x08) << 5)) {
         case 0x13: /*320x200x16*/
-            def = 0x56;
+            def = 28;
             coef = 8;
             break;
         case 0x12: /*160x200x16*/
-            def = 0x2c; /* I'm going to assume a datasheet erratum here. */
+            def = 14;
             coef = 16;
             break;
         case 0x03: /*640x200x4*/
-            def = 0x56;
+            def = 28;
             coef = 8;
             break;
         case 0x01: /*80 column text*/
-            def = 0x5a;
+            def = 24;
             coef = 8;
             break;
         case 0x00: /*40 column text*/
         default:
-            def = 0x2c;
+            def = 13;
             coef = 16;
             break;
         case 0x02: /*320x200x4*/
-            def = 0x2b;
+            def = 14;
             coef = 16;
             break;
         case 0x102: /*640x200x2*/
-            def = 0x2b;
+            def = 14;
             coef = 16;
             break;
     }
 
-    ret = def - pcjr->crtc[0x02];
+    /* Preserve PCjr sync-start alignment; raw R3 width is not a viewport offset. */
+    ret = video_6845_get_hsync_delay(pcjr->crtc, 0) - def;
 
     if (ret < -8)
         ret = -8;

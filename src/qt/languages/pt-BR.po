@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-27 13:01+0000\n"
+"PO-Revision-Date: 2026-09-16 15:16+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -81,6 +81,9 @@ msgstr "Especificar as dime&nsões…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Forçar proporção de tela em &4:3"
+
+msgid "Force &%1:%2 display ratio"
+msgstr "Forçar proporção de tela em &%1:%2"
 
 msgid "&Window scale factor"
 msgstr "F&ator de redimensionamento da janela"
@@ -2924,8 +2927,14 @@ msgstr "[Genérico] 1989 (3500 RPM)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Genérico] 1992 (3600 RPM)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Genérico] 1993 (4000 RPM)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Genérico] 1994 (4500 RPM)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Genérico] 1995 (5200 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Genérico] 1996 (5400 RPM)"
@@ -2938,6 +2947,9 @@ msgstr "[Genérico] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Genérico] 2000 (7200 RPM)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Genérico] 2004 (10000 RPM)"
 
 msgid "IBM 8514/A clone"
 msgstr "Clone IBM 8514/A"
@@ -2989,6 +3001,15 @@ msgstr "Modelo"
 
 msgid "Model:"
 msgstr "Modelo:"
+
+msgid "Brand:"
+msgstr "Marca:"
+
+msgid "Revision:"
+msgstr "Revisão:"
+
+msgid "[Generic HDD] Device Configuration"
+msgstr "Configuração do dispositivo [HDD Genérico]"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Falha ao inicializar o renderizador Vulkan."

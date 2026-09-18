@@ -516,6 +516,10 @@ cga_render_process(cga_t *cga, int line)
 
     if (cga->composite) {
         border = ((cga->cgamode & highres_graphics_flag) == highres_graphics_flag) ? 0 : (cga->cgacol & 0b1111);
+        /* Match vid_pcjr.c's converter boundary without pretending that
+         * passing revision 2 to the boolean old/new filter selects PCjr. */
+        if (cga->revision == CGA_COMPOSITE_PCJR)
+            border = 0;
 
         Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[line]);
     } else

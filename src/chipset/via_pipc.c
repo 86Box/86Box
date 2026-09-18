@@ -974,7 +974,7 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
     else if (func == pm_func) { /* Power */
         ret = dev->power_regs[addr];
         if (addr == 0x42) {
-            if (dev->nvr->regs[0x0d] & 0x80)
+            if (dev->nvr->regs[0x0d] & 0x40)
                 ret |= 0x10;
             else
                 ret &= ~0x10;

@@ -93,6 +93,7 @@ typedef struct mach_t {
         uint8_t  pix_trans[2];
         uint8_t  alu_bg_fn;
         uint8_t  alu_fg_fn;
+        uint8_t  dp_compat;
         uint16_t eeprom_control;
         uint16_t clip_left;
         uint16_t clip_right;
@@ -114,6 +115,10 @@ typedef struct mach_t {
         uint16_t dst_pitch;
         uint16_t dest_cmp_fn;
         uint16_t dp_config;
+        uint8_t  src_reload;
+        int      src_cur_x;
+        int      src_cur_y;
+        int      src_cur_sx;
         uint16_t ext_ge_config;
         uint16_t crt_offset_lo;
         uint16_t crt_offset_hi;
@@ -146,6 +151,7 @@ typedef struct mach_t {
         int16_t  dx_start;
         int16_t  dy_start;
         int16_t  cy;
+        int16_t  sx_first_row_start;
         int16_t  sx_start;
         int16_t  sx_end;
         int16_t  sx;

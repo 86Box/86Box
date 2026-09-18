@@ -6385,7 +6385,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 break;
 
             case 0x06:
-                ret = 0x80;
+                ret = PCI_STATUS_L_FAST_B2B | (mystique->is_agp ? PCI_STATUS_L_CAPAB : 0);
                 break;
             case 0x07:
                 ret = mystique->pci_regs[0x07];
@@ -6486,7 +6486,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 break;
 
             case 0x34:
-                ret = (mystique->type == MGA_G100 || mystique->is_agp) ? 0xdc : 0x00;
+                ret = mystique->is_agp ? 0xdc : 0x00;
                 break;
 
             case 0x3c:

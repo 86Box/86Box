@@ -19,9 +19,14 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/timer.h>
 #include <86box/hdd.h>
 #include <86box/scsi.h>
 #include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
+#include <86box/device.h>
+#include <86box/lpt.h>
 }
 
 #include <QAbstractItemModel>
@@ -161,6 +166,16 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             busRows = 4;
             busesToCheck.append(CDROM_BUS_MKE);
             break;
+        case TAPE_BUS_FDC:
+            busRows = 4;
+            busesToCheck.append(TAPE_BUS_FDC);
+            break;
+        case TAPE_BUS_LPT:
+            shifter = 0;
+            orer    = 0;
+            busRows = 4;
+            busesToCheck.append(TAPE_BUS_LPT);
+            break;
         default:
             break;
     }
@@ -173,12 +188,18 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
     model->insertRows(0, busRows);
     for (int i = 0; i < busRows; ++i) {
         auto idx = model->index(i, 0);
-        model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
+        if (bus == TAPE_BUS_LPT)
+            model->setData(idx, QString("LPT%1").arg(i + 1));
+        else
+            model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
         model->setData(idx, ((i >> shifter) << shifter) | (i & orer), Qt::UserRole);
         const auto *channelModel = qobject_cast<QStandardItemModel *>(model);
         auto       *channelItem  = channelModel->item(i);
         if (channelItem) {
-            channelItem->setEnabled(!channelsInUse.contains(i));
+            bool enabled = !channelsInUse.contains(i);
+            if ((bus == TAPE_BUS_LPT) && (i < PARALLEL_MAX) && !lpt_ports[i].enabled)
+                enabled = false;
+            channelItem->setEnabled(enabled);
         }
     }
 }
@@ -214,6 +235,12 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
             break;
         case CDROM_BUS_MKE:
             busName = QString("Panasonic/MKE (%1:%2)").arg(channel >> 2).arg(channel & 3);
+            break;
+        case TAPE_BUS_FDC:
+            busName = QString("FDC (%1:%2)").arg(channel >> 1).arg(channel & 1);
+            break;
+        case TAPE_BUS_LPT:
+            busName = QString("LPT%1").arg(channel + 1);
             break;
     }
 

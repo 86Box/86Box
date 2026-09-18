@@ -88,7 +88,12 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                     }
                 case NSEventTypeOtherMouseUp:
                     {
-                        if (mouse_get_buttons() < 3) {
+                        /*
+                           AppKit reports every non-left/right button as NSEventTypeOtherMouse*,
+                           and buttonNumber is not consulted here, so the thumb buttons are seen
+                           as the middle one and cannot act as release buttons on this platform.
+                         */
+                        if (mouse_get_release_buttons() & MOUSE_RELEASE_MIDDLE) {
                             plat_mouse_capture(0);
                             return true;
                         }
