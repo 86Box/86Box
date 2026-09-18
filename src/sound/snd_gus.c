@@ -4199,7 +4199,7 @@ const device_t gus_vipermax_device = {
 };
 
 const device_t gus_pnp_device = {
-    .name          = "Gravis UltraSound PnP (Old PnP ROM)",
+    .name          = "Gravis UltraSound PnP (Old)",
     .internal_name = "guspnp",
     .flags         = DEVICE_ISA16,
     .local         = IW_GUS_PNP_OLD,
@@ -4213,7 +4213,7 @@ const device_t gus_pnp_device = {
 };
 
 const device_t gus_pnp_new_device = {
-    .name          = "Gravis UltraSound PnP (New PnP ROM)",
+    .name          = "Gravis UltraSound PnP (New)",
     .internal_name = "guspnp_new",
     .flags         = DEVICE_ISA16,
     .local         = IW_GUS_PNP_NEW,
@@ -4227,7 +4227,7 @@ const device_t gus_pnp_new_device = {
 };
 
 const device_t gus_pnp_nocd_device = {
-    .name          = "Gravis UltraSound PnP (No CD-ROM)",
+    .name          = "Gravis UltraSound PnP (No CD)",
     .internal_name = "guspnp_nocd",
     .flags         = DEVICE_ISA16,
     .local         = IW_GUS_PNP_NOCD,
@@ -4241,7 +4241,7 @@ const device_t gus_pnp_nocd_device = {
 };
 
 const device_t gus_pnp_compaq_device = {
-    .name          = "Compaq/STB UltraSound 32",
+    .name          = "Compaq UltraSound 32",
     .internal_name = "guspnp_compaq",
     .flags         = DEVICE_ISA16,
     .local         = IW_GUS_COMPAQ,
@@ -4251,5 +4251,6 @@ const device_t gus_pnp_compaq_device = {
     .available     = gus_pnp_compaq_available,
     .speed_changed = gus_speed_changed,
     .force_redraw  = NULL,
-    .config        = gus_pnp_compaq_config
+    .config        = gus_pnp_compaq_config,
+    .alias         = "STB UltraSound 32"
 };

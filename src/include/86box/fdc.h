@@ -230,6 +230,7 @@ extern int         fdc_is_dma(fdc_t *fdc);
 extern double      fdc_get_hut(fdc_t *fdc);
 extern double      fdc_get_hlt(fdc_t *fdc);
 extern void        fdc_request_next_sector_id(fdc_t *fdc);
+extern int         fdc_data_available(const fdc_t *fdc);
 extern void        fdc_stop_id_request(fdc_t *fdc);
 extern int         fdc_get_gap(fdc_t *fdc);
 extern int         fdc_get_gap2(fdc_t *fdc, int drive);

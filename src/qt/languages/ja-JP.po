@@ -83,7 +83,7 @@ msgid "Force &4:3 display ratio"
 msgstr "4:3の縦横比を強制表示(&4)"
 
 msgid "Force &%1:%2 display ratio"
-msgstr "&%1:%2の縦横比を強制表示(&%1)"
+msgstr "%1:%2の縦横比を強制表示(&%1)"
 
 msgid "&Window scale factor"
 msgstr "ウィンドウの表示倍率(&W)"

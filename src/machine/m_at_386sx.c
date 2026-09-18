@@ -688,7 +688,7 @@ static const device_config_t dells333sl_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
-                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision J01 (Jostens Learning Corporation OEM)",
+                .name          = "Phoenix ROM BIOS PLUS 1.10 - Revision J01 (Jostens OEM)",
                 .internal_name = "dells333sl_j01",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

@@ -249,6 +249,10 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Sound Blaster PCI 128 (ES1373) (On-Board)", .new = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)" },
         { .old = "Sound Blaster PCI 4.1 (CT5880)", .new = "Creative Sound Blaster PCI 4.1 (CT5880)" },
         { .old = "Sound Blaster PCI 4.1 (CT5880) (On-Board)", .new = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)" },
+        { .old = "Gravis UltraSound PnP (Old PnP ROM)", .new = "Gravis UltraSound PnP (Old)" },
+        { .old = "Gravis UltraSound PnP (New PnP ROM)", .new = "Gravis UltraSound PnP (New)" },
+        { .old = "Gravis UltraSound PnP (No CD-ROM)", .new = "Gravis UltraSound PnP (No CD)" },
+        { .old = "Compaq/STB UltraSound 32", .new = "Compaq UltraSound 32" },
         { 0 }
     };
 

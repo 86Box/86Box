@@ -83,7 +83,7 @@ msgid "Force &4:3 display ratio"
 msgstr "强制 4:3 显示比例(&4)"
 
 msgid "Force &%1:%2 display ratio"
-msgstr "强制 &%1:%2 显示比例(&%1)"
+msgstr "强制 %1:%2 显示比例(&%1)"
 
 msgid "&Window scale factor"
 msgstr "窗口缩放系数(&W)"
