@@ -239,7 +239,6 @@ machine_at_svc486wb_init(const machine_t *model)
     device_add(&opti493_device);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-    device_add(&ide_isa_device);
 
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_device);
