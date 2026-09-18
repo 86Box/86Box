@@ -83,6 +83,9 @@ msgstr "Odrediti veličinu…"
 msgid "Force &4:3 display ratio"
 msgstr "&4:3 omjer prikaza"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "&%1:%2 omjer prikaza"
+
 msgid "&Window scale factor"
 msgstr "&Faktor skaliranja prozora"
 
@@ -3003,6 +3006,15 @@ msgstr "Model"
 
 msgid "Model:"
 msgstr "Model:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nije uspjelo inicijaliziranje renderera Vulkan."

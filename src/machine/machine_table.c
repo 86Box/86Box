@@ -444,6 +444,53 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    {
+        .name              = "[8088] IBM XT (1986)",
+        .internal_name     = "ibmxt86",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_ibmxt86_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8088,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 256,
+            .max  = 640,
+            .step = 64
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_xt86_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ibmxt86_device,
+        .kbd_device               = &keyboard_pc_xt_device,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* The IBM 3270 PC is an XT planar carrying the 3270 display adapter and
        keyboard controller cards.  The adapter provides its own video BIOS, so
        the planar video switches must read as neither MDA nor CGA -- the card
@@ -494,53 +541,6 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "IBM 5271", "" }
-    },
-    {
-        .name              = "[8088] IBM XT (1986)",
-        .internal_name     = "ibmxt86",
-        .type              = MACHINE_TYPE_8088,
-        .chipset           = MACHINE_CHIPSET_DISCRETE,
-        .init              = machine_ibmxt86_init,
-        .p1_handler        = NULL,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_8088,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 0,
-            .max_bus     = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_FLAGS_NONE,
-        .ram       = {
-            .min  = 256,
-            .max  = 640,
-            .step = 64
-        },
-        .nvrmask                  = 0,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_xt86_device,
-        .kbc_params               = 0x00000000,
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0xff,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = &ibmxt86_device,
-        .kbd_device               = &keyboard_pc_xt_device,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "" }
     },
     {
         .name              = "[8088] American XT Computer",
@@ -7642,54 +7642,6 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has Phoenix MultiKey/42 KBC firmware. */
-    {
-        .name              = "[ISA] Micronics 386 I-CACHE (Tandon BIOS)",
-        .internal_name     = "micronics386",
-        .type              = MACHINE_TYPE_386DX,
-        .chipset           = MACHINE_CHIPSET_DISCRETE,
-        .init              = machine_at_micronics386_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_386DX,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 20000000,
-            .max_bus     = 33333333,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_FLAGS_NONE,
-        .ram       = {
-            .min  = 512,
-            .max  = 8192,
-            .step = 128
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "Micronics 09-00021 (Tandon BIOS)", "" }
-    },
     /* Has IBM AT KBC firmware. */
     {
         .name              = "[ISA] Micronics 386 I-CACHE (Phoenix BIOS)",
@@ -7737,6 +7689,54 @@ const machine_t machines[] = {
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "Micronics 09-00021 (Phoenix BIOS)", "" }
+    },
+    /* Has Phoenix MultiKey/42 KBC firmware. */
+    {
+        .name              = "[ISA] Micronics 386 I-CACHE (Tandon BIOS)",
+        .internal_name     = "micronics386",
+        .type              = MACHINE_TYPE_386DX,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_at_micronics386_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386DX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 20000000,
+            .max_bus     = 33333333,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_FLAGS_NONE,
+        .ram       = {
+            .min  = 512,
+            .max  = 8192,
+            .step = 128
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_PHOENIX | 0x00012900, /* Guess. */
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "Micronics 09-00021 (Tandon BIOS)", "" }
     },
     /* Has a Jetkey V3, which we currently lack a probe of, but an
        old test by Carlos showed it as being 'F'. */
@@ -8976,7 +8976,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_PS2_KBC | MACHINE_IDE,
+        .flags     = MACHINE_PS2_KBC, /* The real machine does not have onboard IDE controller */
         .ram       = {
             .min  = 1024,
             .max  = 32768,
@@ -9000,7 +9000,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "Golden Star Technology 486WB", "" }
     },
     /* Uses Phoenix keyboard controller firmware. */
     {
@@ -10801,7 +10801,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "" }
+        .aliases                  = { "A-Trend 4GPV3", "" }
     },
     /* Has AMIKey F KBC firmware. */
     {
@@ -11359,9 +11359,11 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_VLB,
         .flags     = MACHINE_IDE, /* Has internal video: Western Digital WD90C33-ZZ */
         .ram       = {
-            .min  = 4096,
-            .max  = 40960,
-            .step = 4096
+        /* In theory, this machine should support up to 128 MB RAM. In practice, likely 
+           due to a BIOS bug, it does not detect more than 64 MB at all. */
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
         },
         .nvrmask                  = 127,
         .jumpered_ecp_dma         = 0,
@@ -11433,7 +11435,7 @@ const machine_t machines[] = {
     },
     /* Uses the AMIKey 'F' keyboard controller firmware. */
     {
-        .name              = "[Symphony SL82C460] Young Micro Systems VEGA VS486F-3VL",
+        .name              = "[Symphony SL82C460] Y.M.S. VEGA VS486F-3VL",
         .internal_name     = "vs486f3vl",
         .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
@@ -14836,6 +14838,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCI,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
+        /* The user manual says up to 768 MB of RAM can be installed. Meanwhile, the 430NX
+           chipset only supports up to 512 MB. In practice, this machine can't even detect
+           more than 256 MB due to what is suspected to be an early AwardBIOS v4.5x bug. */
             .min  = 2048,
             .max  = 262144,
             .step = 2048
@@ -14884,8 +14889,11 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* BIOS setup cannot detect more than 128 MB and displays any higher amount as such.
+           Although, this is just a visual quirk, as the POST memory counter and MS-DOS can
+           seemingly utilize the maximum amount supported by the chipset without issues. */
             .min  = 2048,
-            .max  = 131072,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -14933,7 +14941,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has onboard video: TLI ET4000/w32p */
         .ram       = {
             .min  = 2048,
-            .max  = 131072,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -14981,7 +14989,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_PS2_KBC | MACHINE_IDE | MACHINE_APM,
         .ram       = {
             .min  = 2048,
-            .max  = 262144,
+            .max  = 524288,
             .step = 2048
         },
         .nvrmask                  = 127,
@@ -15448,7 +15456,7 @@ const machine_t machines[] = {
         .vid_device               = &gd5434_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Packard Bell PB580", "Packard Bell PB590", "Packard Bell PB620", "Packard Bell PB630", "Packard Bell PB650", "Packard Bell Hillary", "" }
+        .aliases                  = { "Packard Bell PB580", "Packard Bell PB590", "Packard Bell PB620", "Packard Bell PB630", "Packard Bell PB650", "Packard Bell Hillary", "Intel Hillary", "" }
     },
     /* Has AMIKEY-2 KBC firmware. */
     {
@@ -16460,10 +16468,10 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* The user manual says up to 512 MB of RAM can be installed. However; in practice,
+           this machine suffers from the same problem as the Gigabyte GA-586IP, where no
+           more than 256 MB can be detected likely due to an early AwardBIOS v4.5x bug. */
             .min  = 4096,
-            /* The user manual says up to 512 MB of RAM can be installed. However, in practice,
-            the BIOS only recognizes up to 256 MB. Since AOpen AP61 also does this same behavior,
-            I suspect it to be an early AwardBIOS v4.5x limitation. */
             .max  = 262144,
             .step = 4096
         },
@@ -19409,7 +19417,7 @@ const machine_t machines[] = {
     /* 430TX */
     /* The BIOS sends KBC command B8, CA, and CB, so it has an AMI KBC firmware. */
     {
-        .name              = "[i430TX] ADLink NuPRO-592",
+        .name              = "[i430TX] ADLink NuPRO-59x",
         .internal_name     = "nupro592",
         .type              = MACHINE_TYPE_SOCKET7,
         .chipset           = MACHINE_CHIPSET_INTEL_430TX,
@@ -19453,7 +19461,7 @@ const machine_t machines[] = {
         .vid_device               = &chips_69000_onboard_device,
         .snd_device               = NULL,
         .net_device               = &i82559c_onboard_device,
-        .aliases                  = { "ADLink NuPRO-590", "ADLink NuPRO-591", "" }
+        .aliases                  = { "ADLink NuPRO-590", "ADLink NuPRO-591", "ADLink NuPRO-592", "" }
     },
     /* This has a Holtek HT6542B with AMIKey-2 ('H') KBC firmware. */
     {
@@ -21601,9 +21609,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram       = {
+        /* Like with the Gigabyte GA-586IP and DFI G586VPM, this machine also can't detect
+           more than 256 MB RAM likely due to an early AwardBIOS v4.5x bug. */
             .min  = 8192,
-            /* As also noted in the DFI G586VPM entry, the BIOS unusually only recognizes up
-            to 256 MB of RAM. This is likely a limitation of early AwardBIOS v4.5x instances. */
             .max  = 262144,
             .step = 8192
         },
@@ -22708,7 +22716,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL, /* not yet emulated */
-        .snd_device               = &cs4236b_device,
+        .snd_device               = &cs4236b_onboard_device,
         .net_device               = NULL, /* not yet emulated */
         .aliases                  = { "Dell System Tabasco", "" }
     },
@@ -23052,7 +23060,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL, /* not yet emulated */
-        .snd_device               = &cs4236b_device,
+        .snd_device               = &cs4236b_onboard_device,
         .net_device               = NULL, /* not yet emulated */
         .aliases                  = { "Dell System Apex", "" }
     },
@@ -23550,7 +23558,7 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL, /* not yet emulated */
-        .snd_device               = &cs4236b_device,
+        .snd_device               = &cs4236b_onboard_device,
         .net_device               = NULL, /* not yet emulated */
         .aliases                  = { "Dell System Banff", "" }
     },
@@ -24413,18 +24421,22 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_SLOT1 | CPU_PKG_SLOT2,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 100000000,
+            .min_bus     = 66666667,
             .max_bus     = 150000000,
             .min_voltage = 1800,
             .max_voltage = 3500,
-            .min_multi   = 3.0,
+            .min_multi   = 1.5,
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_NOISA | MACHINE_BUS_USB,
         .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB,
         .ram       = {
+        /* In theory, this machine should support up to 2 GB RAM. However, due to a BIOS bug, 
+           the machine counts exactly 2048 MB RAM as 0 MB in the POST screen, while MS-DOS 
+           incorrectly detects 4 GB RAM, hence the max. size is reduced to the best realistically
+           best possible size, which would be 512+512+512+256 MB sticks for approx. 1.75 GB */
             .min  = 16384,
-            .max  = 2097152,
+            .max  = 1835008,
             .step = 16384
         },
         .nvrmask                  = 511,

@@ -81,6 +81,9 @@ msgstr "Ange &mått…"
 msgid "Force &4:3 display ratio"
 msgstr "Tvinga &4:3 bildförhållande"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Tvinga &%1:%2 bildförhållande"
+
 msgid "&Window scale factor"
 msgstr "&Skalningsfaktor för fönster"
 
@@ -2998,6 +3001,15 @@ msgstr "Modell"
 
 msgid "Model:"
 msgstr "Modell:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Kunde inte initialisera Vulkan-renderaren."

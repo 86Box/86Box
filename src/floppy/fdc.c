@@ -307,21 +307,33 @@ fdc_is_dma(fdc_t *fdc)
 void
 fdc_request_next_sector_id(fdc_t *fdc)
 {
-    if (fdc->flags & FDC_FLAG_PCJX)
+    if ((fdc->flags & FDC_FLAG_PCJX) || (fdc->flags & FDC_FLAG_PCJR) ||
+             !fdc->dma)
         fdc->stat = 0xb0;
-    else if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
-        fdc->stat = 0xf0;
     else {
         fdc_log("FDC command %02X: Raise DRQ on request next sector ID\n", fdc->processed_cmd);
         dma_set_drq(fdc->dma_ch, 1);
-        fdc->stat = 0x50;
+        fdc->stat = 0x10;
     }
+}
+
+int
+fdc_data_available(const fdc_t *fdc)
+{
+    int ret = 1;
+
+    if ((fdc->flags & FDC_FLAG_PCJX) || (fdc->flags & FDC_FLAG_PCJR) ||
+        !fdc->dma)
+        ret = !(fdc->stat & 0x80);
+
+    return ret;
 }
 
 void
 fdc_stop_id_request(fdc_t *fdc)
 {
-    fdc->stat &= 0x7f;
+    if (!fdc->dma)
+        fdc->stat &= 0x7f;
 }
 
 int

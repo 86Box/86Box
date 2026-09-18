@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-03 20:04+0000\n"
+"PO-Revision-Date: 2026-09-17 04:35+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Japanese <https://weblate.86box.net/projects/86box/86box/ja/>"
 "\n"
@@ -81,6 +81,9 @@ msgstr "ディメンションを指定(&D)…"
 
 msgid "Force &4:3 display ratio"
 msgstr "4:3の縦横比を強制表示(&4)"
+
+msgid "Force &%1:%2 display ratio"
+msgstr "%1:%2の縦横比を強制表示(&%1)"
 
 msgid "&Window scale factor"
 msgstr "ウィンドウの表示倍率(&W)"
@@ -2983,7 +2986,7 @@ msgid "Ask for confirmation before quitting"
 msgstr "終了する前に確認を求めます"
 
 msgid "Precache CHD files into memory"
-msgstr ""
+msgstr "CHDファイルをメモリにプリキャッシュ"
 
 msgid "Options"
 msgstr "オプション"
@@ -2993,6 +2996,15 @@ msgstr "モデル"
 
 msgid "Model:"
 msgstr "モデル:"
+
+msgid "Brand:"
+msgstr "ブランド:"
+
+msgid "Revision:"
+msgstr "リビジョン:"
+
+msgid "[Generic HDD] Device Configuration"
+msgstr "[汎用HDD] デバイス設定"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkanレンダラーの初期化に失敗しました。"
@@ -3500,4 +3512,4 @@ msgid "CGA lightpen"
 msgstr "CGA ライトペン"
 
 msgid "Luminance threshold (%)"
-msgstr ""
+msgstr "輝度しきい値 (%)"

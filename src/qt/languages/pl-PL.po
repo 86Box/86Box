@@ -82,6 +82,9 @@ msgstr "Określ wymiary…"
 msgid "Force &4:3 display ratio"
 msgstr "Wymuś proporcje wyświetlania &4:3"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "Wymuś proporcje wyświetlania &%1:%2"
+
 msgid "&Window scale factor"
 msgstr "Współ&czynnik skalowania okna"
 
@@ -3002,6 +3005,15 @@ msgstr "Model"
 
 msgid "Model:"
 msgstr "Model:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Nie udało się zainicjować renderera Vulkan."
