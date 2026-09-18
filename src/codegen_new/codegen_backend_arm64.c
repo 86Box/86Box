@@ -295,7 +295,7 @@ codegen_backend_init(void)
     if (large_block)
         pclog("Allocated %" PRIu64 " bytes of large pages for codeblock pointers\n", (uint64_t) (BLOCK_SIZE * sizeof(codeblock_t)));
     if (large_hash)
-        pclog("Allocated %" PRIu64 " bytes of large pages for codeblock hashes\n", HASH_SIZE * CODEBLOCK_HASH_WAYS * sizeof(uint16_t));
+        pclog("Allocated %" PRIu64 " bytes of large pages for codeblock hashes\n", (uint64_t) (HASH_SIZE * sizeof(codeblock_t *)));
 
     for (int c = 0; c < BLOCK_SIZE; c++) {
         codeblock[c].valid = 0;
