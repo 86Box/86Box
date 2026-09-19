@@ -25,6 +25,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/mouse.h>
 #include <86box/chipset.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
@@ -25853,6 +25854,15 @@ machine_get_vid_device(int m)
 {
     if (machines[m].vid_device)
         return (machines[m].vid_device);
+
+    return (NULL);
+}
+
+const device_t *
+machine_get_tablet_device(int m)
+{
+    if (machines[m].tablet_device)
+        return (machines[m].tablet_device);
 
     return (NULL);
 }
