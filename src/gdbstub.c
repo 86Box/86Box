@@ -1541,6 +1541,7 @@ gdbstub_cpu_exec(int32_t cycs)
             }
             stop_reason[stop_reason_len++] = ';';
         }
+        stop_reason[stop_reason_len] = '\0';
 
         /* Don't execute the CPU any further if single-stepping. */
         gdbstub_step = GDBSTUB_BREAK;
