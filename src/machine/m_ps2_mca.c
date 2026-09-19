@@ -1559,20 +1559,20 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     switch (mem_size / 1024) {
         case 2:
-            ps2.option[1] = 0xa6;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xfe;
+            ps2.option[2] = 0xe3;
             break;
         case 4:
-            ps2.option[1] = 0xaa;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xfa;
+            ps2.option[2] = 0xc3;
             break;
         case 6:
-            ps2.option[1] = 0xca;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xda;
+            ps2.option[2] = 0x83;
             break;
         case 8:
         default:
-            ps2.option[1] = 0xca;
+            ps2.option[1] = 0xda;
             ps2.option[2] = 0x02;
             break;
     }
@@ -1724,20 +1724,21 @@ ps2_mca_board_model_80_type3_init(void)
     ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
     ps2.mem_regs[2] = 0x01; /* Cache disabled and flushed at power-on */
 
-    ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
-    ps2.has_e0000_hole = 1;
-
     switch (mem_size / 1024) {
         case 4:
-            ps2.option[1] = 0x86;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xde;
+            ps2.option[2] = 0xe2;
             break;
         case 8:
         default:
-            ps2.option[1] = 0x8a;
-            ps2.option[2] = 0x02;
+            ps2.option[1] = 0x9a;
+            ps2.option[2] = 0xc2;
             break;
     }
+
+    ps2.option[1] |= 0x10; /* Bit 4: Security Override not grounded */
+    ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
+    ps2.has_e0000_hole = 1;
 
     mem_mapping_add(&ps2.split_mapping,
                     (mem_size + 256) * 1024,
