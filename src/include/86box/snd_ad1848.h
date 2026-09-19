@@ -89,6 +89,7 @@ typedef struct ad1848_t {
     uint64_t   rec_timer_latch;
 
     pc_timer_t cs4231a_irq_timer;
+    int        irq_timer_count;
 
     /* Playback FIFO */
     void      *play_fifo;

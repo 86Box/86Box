@@ -470,7 +470,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                             ad1848_log("Timer Enable\n");
                             ad1848_log("Timer value: %04X\n", ((ad1848->regs[21] << 8) + (ad1848->regs[20])));
                             i8_timebase = (ad1848->regs[8] & 1) ? 9.92 : 9.969;
-                            timer_set_delay_u64(&ad1848->cs4231a_irq_timer, (((ad1848->regs[21] << 8) + (ad1848->regs[20])) * i8_timebase * TIMER_USEC));
+                            ad1848->irq_timer_count = (ad1848->regs[21] << 8) + ad1848->regs[20];
+                            timer_set_delay_u64(&ad1848->cs4231a_irq_timer, (i8_timebase * TIMER_USEC));
                         }
                         else {
                             ad1848_log("Timer Disable\n");
@@ -1221,10 +1222,19 @@ void
 cs4231a_irq_poll(void *priv)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
-    ad1848_log("Firing timer IRQ\n");
-    picint(1 << ad1848->irq);
-    ad1848_log("Setting timer interrupt bit in I24\n");
-    ad1848->regs[24] |= 0x40;
+
+    timer_advance_u64(&ad1848->cs4231a_irq_timer, (((ad1848->regs[8] & 1) ? 9.92 : 9.969) * TIMER_USEC));
+    ad1848->irq_timer_count--;
+
+    if (ad1848->irq_timer_count < 0) {
+        ad1848_log("Firing timer IRQ\n");
+        picint(1 << ad1848->irq);
+        ad1848_log("Setting timer interrupt bit in I24\n");
+        ad1848->regs[24] |= 0x40;
+        ad1848_log("Setting global interrupt bit in Status\n");
+        ad1848->status |= 0x01;
+        ad1848->irq_timer_count = (ad1848->regs[21] << 8) + ad1848->regs[20];
+    }
 }
 
 void
