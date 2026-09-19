@@ -12,8 +12,19 @@
  * proprietary gate arrays provide CGA-compatible text and graphics modes
  * plus 640x480 monochrome and 320x200 256-colour modes. Register and storage
  * behaviour follows the IBM Personal System/2 Model 25 Technical Reference,
- * first edition (June 1987).
+ * first edition (June 1987) and the IBM 7690 Clinical Workstation Technical
+ * Reference.
+ *
+ * This virtual device driver offers both a CRT and an LCD mode; the CRT is
+ * modelled over the PS/2 Model 25/30 with an analog VGA style monitor
+ * attachde, and the IBM 7690 with an LCD attached.
+ *
+ * Authors: Josh Rodd, <josh@rodd.us>
+ *
+ *          Copyright (C) 2026 Simplebooks Foundation
+ *          Copyright (C) 2026 Josh Rodd
  */
+#include <math.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -31,9 +42,45 @@
 #include "cpu.h"
 #include "808x_marty_86box.h"
 
+
 #define MCGA_VRAM_SIZE      0x10000
 #define MCGA_FONT_RAM_SIZE  0x02000
 #define MCGA_CRTC_REGS      0x15
+
+/*
+ * The 7690's panel has a fixed 640x480 raster. Everything a mode does not
+ * cover is panel background; 400-line modes are centered vertically.
+ *
+ * Presentation uses off/on endpoints plus their RGB midpoint for two-bit
+ * graphics. This intentionally departs from the reference's C1-only rule.
+ * Each pel approaches its target with a quantized exponential response of
+ * about 100 ms, using RGB interpolation between the selected endpoints.
+ */
+#define MCGA_LCD_WIDTH      640
+#define MCGA_LCD_HEIGHT     480
+#define MCGA_LCD_PICTURE    400
+#define MCGA_LCD_LEVELS     65 /* Includes an exact halfway response state. */
+#define MCGA_LCD_TAU_MS     100.0
+
+/*
+ * Panel colour sets, taken from the IBM 7690 reference's LCD appearance
+ * presets. Pixel 0 (background) first, pixel 1 (foreground) second.
+ */
+static const uint8_t mcga_lcd_sets[2][2][3] = {
+    { { 0x29, 0x2e, 0x47 }, { 0xb5, 0xc8, 0xc4 } }, /* dark field,    pale marks */
+    { { 0xe8, 0xdb, 0x9b }, { 0x55, 0x4b, 0x4a } }  /* warm yellow,   dark marks */
+};
+
+/* The panel's memory is the Convertible's slower LCD timing, not the CRT's. */
+static const video_timings_t mcga_lcd_timings = {
+    .type    = VIDEO_ISA,
+    .write_b = 4,
+    .write_w = 8,
+    .write_l = 16,
+    .read_b  = 4,
+    .read_w  = 8,
+    .read_l  = 16
+};
 
 #define MCGA_MODE_TEXT      0
 #define MCGA_MODE_CGA4      4
@@ -71,6 +118,17 @@ typedef struct mcga_t {
     uint8_t linepos;
     uint8_t font_pending;
     uint8_t irq_latch;
+    uint8_t lcd;
+    uint8_t lcd_set;
+    uint8_t lcd_index;
+    uint8_t lcd_regs[16];
+    uint8_t lcd_next[3][MCGA_LCD_LEVELS];
+    int     lcd_top;
+
+    uint32_t lcd_color[MCGA_LCD_LEVELS];
+    uint8_t *lcd_level;
+    uint32_t *lcd_picture;
+    uint8_t (*lcd_ram)[0x8000];
 
     int displine;
     int blink;
@@ -81,6 +139,17 @@ typedef struct mcga_t {
     pc_timer_t   timer;
     mem_mapping_t mapping;
 } mcga_t;
+
+/*
+ * Where a picture row is drawn. The panel keeps the picture in its own
+ * buffer, so that composing the raster cannot disturb what the mode is
+ * drawing, and the picture row still indexes the mode's raster, which is
+ * what the renderers use it for.
+ */
+#define MCGA_PICTURE_ROW(dev, y) ((y) + (dev)->lcd_top)
+#define MCGA_LINE(dev, y) ((dev)->lcd ? \
+    ((dev)->lcd_picture + ((size_t) MCGA_PICTURE_ROW(dev, y) * MCGA_LCD_WIDTH)) : \
+    buffer32->line[y])
 
 static const video_timings_t mcga_timings = {
     .type    = VIDEO_ISA,
@@ -168,6 +237,108 @@ mcga_height(const mcga_t *dev)
     return ((((dev->crtc[0x10]) & 0x40) ? 0x000 : 0x100) | dev->crtc[0x06]) + 1;
 }
 
+/*
+ * The picture height the panel letterboxes. Every mode the formatter
+ * produces is a 400-line picture - 200-line modes are doubled and a text
+ * screen is 25 sixteen-line rows - except mode 11H, which is the panel's own
+ * 480-line raster. The CRTC's own figure is not used: it carries a few lines
+ * of vertical retrace with it.
+ */
+static int
+mcga_panel_content(const mcga_t *dev)
+{
+    return (mcga_mode(dev) == MCGA_MODE_11) ? mcga_height(dev) : MCGA_LCD_PICTURE;
+}
+
+/* First panel line the mode's picture is drawn on; 0 when it fills the panel. */
+static int
+mcga_panel_top(const mcga_t *dev)
+{
+    const int content = mcga_panel_content(dev);
+
+    if (!dev->lcd || (content >= MCGA_LCD_HEIGHT))
+        return 0;
+
+    return (MCGA_LCD_HEIGHT - content) / 2;
+}
+
+static void
+ibm7690_lcd_reset(mcga_t *dev)
+{
+    /* Master/system reset preserves the two position registers, index 0Ch,
+       and image SRAM (Technical Reference, 1-67). */
+    memset(&dev->lcd_regs[0x02], 0, 0x0a);
+    memset(&dev->lcd_regs[0x0d], 0, 0x03);
+}
+
+static unsigned
+ibm7690_lcd_address(const mcga_t *dev)
+{
+    /* Provisional 15-bit SRAM decode: eight row and seven column bits.
+       The diagnostic establishes distinct rows 01h..80h and columns
+       00h..40h, but not the wiring outside that subset. In particular,
+       column 40h must not alias the zero-column disturbance writes. */
+    return ((unsigned) dev->lcd_regs[0x05] << 7) | (dev->lcd_regs[0x04] & 0x7f);
+}
+
+/*
+ * LCD controller index 0Bh: the diagnostic synchronises on this one and counts
+ * line-phase edges over a frame, expecting 390..410 of them, so the bits come
+ * from the panel's own raster rather than from a stored value. The reference
+ * infers bit 7 as line/display phase and bit 1 as vertical phase; the polarity
+ * is not documented, so the active phases are reported as ones.
+ */
+static uint8_t
+ibm7690_lcd_status(const mcga_t *dev)
+{
+    uint8_t ret = 0x00;
+
+    /* One horizontal blanking pulse per line. */
+    if (dev->linepos == 0)
+        ret |= 0x80;
+
+    /* Vertical blanking bounds the active-line count. The diagnostic waits
+       for clear->set twice, then counts horizontal pulses while clear. */
+    if (dev->displine >= mcga_height(dev))
+        ret |= 0x02;
+
+    return ret;
+}
+
+/* The LCD controller's index/data ports are independent of the tablet. */
+static uint8_t
+ibm7690_lcd_read(uint16_t addr, void *priv)
+{
+    mcga_t *dev = (mcga_t *) priv;
+
+    if ((addr & 1) == 0)
+        return dev->lcd_index;
+    if (dev->lcd_index >= sizeof(dev->lcd_regs))
+        return 0xff;
+    if ((dev->lcd_index == 0x06) || (dev->lcd_index == 0x07))
+        return dev->lcd_ram[dev->lcd_index - 0x06][ibm7690_lcd_address(dev)];
+    if ((dev->lcd_index == 0x0b) && (dev->lcd_regs[0x0e] & 0x01))
+        return ibm7690_lcd_status(dev);
+    return dev->lcd_regs[dev->lcd_index];
+}
+
+static void
+ibm7690_lcd_write(uint16_t addr, uint8_t val, void *priv)
+{
+    mcga_t *dev = (mcga_t *) priv;
+
+    if ((addr & 1) == 0) {
+        dev->lcd_index = val;
+    } else if (dev->lcd_index == 0xff) {
+        ibm7690_lcd_reset(dev);
+    } else if (dev->lcd_index < sizeof(dev->lcd_regs)) {
+        if ((dev->lcd_index == 0x06) || (dev->lcd_index == 0x07))
+            dev->lcd_ram[dev->lcd_index - 0x06][ibm7690_lcd_address(dev)] = val;
+        else
+            dev->lcd_regs[dev->lcd_index] = val;
+    }
+}
+
 static int
 mcga_total_lines(const mcga_t *dev)
 {
@@ -195,12 +366,69 @@ mcga_vsync_width(const mcga_t *dev)
     return width ? width : 16;
 }
 
+/* RGB interpolation makes the halfway state the arithmetic mean of the
+   off/on pixels, rounded to the nearest channel value. */
+static void
+mcga_lcd_build_colors(mcga_t *dev)
+{
+    const int last = MCGA_LCD_LEVELS - 1;
+
+    for (int level = 0; level <= last; level++) {
+        uint32_t col = 0;
+
+        for (unsigned channel = 0; channel < 3; channel++) {
+            const unsigned value =
+                (mcga_lcd_sets[dev->lcd_set][0][channel] * (last - level) +
+                 mcga_lcd_sets[dev->lcd_set][1][channel] * level + last / 2) / last;
+
+            col |= value << (16 - (8 * channel));
+        }
+
+        dev->lcd_color[level] = col | 0xff000000;
+    }
+}
+
+/* Advance toward off, midpoint or on. Force progress when quantization
+   would otherwise stall short of the target. */
+static void
+mcga_lcd_build_response(mcga_t *dev, double step_usec)
+{
+    const int    last  = MCGA_LCD_LEVELS - 1;
+    const double step  = step_usec / 1000.0;
+    const double decay = exp(-step / MCGA_LCD_TAU_MS);
+
+    for (unsigned target = 0; target < 3; target++) {
+        const int goal = target * (last / 2);
+
+        for (int level = 0; level <= last; level++) {
+            int next = (int) lround(goal + ((level - goal) * decay));
+
+            if ((next == level) && (level != goal))
+                next += (level < goal) ? 1 : -1;
+            dev->lcd_next[target][level] = (uint8_t) next;
+        }
+    }
+}
+
+/*
+ * CRT palette entries follow the DAC. The LCD text and two-bit
+ * graphics conversions bypass this palette; the other graphics paths retain
+ * their provisional binary conversion here.
+ */
 static void
 mcga_rebuild_color(mcga_t *dev, uint8_t index)
 {
-    dev->palette[index] = makecol32(video_6to8[dev->dac[index][0] & 0x3f],
-                                    video_6to8[dev->dac[index][1] & 0x3f],
-                                    video_6to8[dev->dac[index][2] & 0x3f]);
+    const uint32_t col = makecol32(video_6to8[dev->dac[index][0] & 0x3f],
+                                   video_6to8[dev->dac[index][1] & 0x3f],
+                                   video_6to8[dev->dac[index][2] & 0x3f]);
+
+    if (!dev->lcd) {
+        dev->palette[index] = col;
+        return;
+    }
+
+    dev->palette[index] = (getcolr(col) | getcolg(col) | getcolb(col)) ?
+                              dev->lcd_color[MCGA_LCD_LEVELS - 1] : dev->lcd_color[0];
 }
 
 static void
@@ -370,6 +598,7 @@ mcga_io_read(uint16_t addr, void *priv)
 
         case 0x03da:
             ret = 0x00;
+
             if ((dev->displine >= mcga_vsync_start(dev)) &&
                 (dev->displine < (mcga_vsync_start(dev) + mcga_vsync_width(dev))))
                 ret |= 0x08;
@@ -568,6 +797,13 @@ mcga_render_text(mcga_t *dev, int y)
         if ((dev->cga_mode & MCGA_CGA_BLINK) && (attr & 0x80) && (dev->blink & 0x10))
             fg = bg;
 
+        /* The LCD takes digital RGBI before the DAC: odd text colors are
+           white, even colors black (Technical Reference, 1-41). */
+        const uint32_t fg_color = dev->lcd ?
+            dev->lcd_color[(fg & 1) * (MCGA_LCD_LEVELS - 1)] : dev->palette[fg];
+        const uint32_t bg_color = dev->lcd ?
+            dev->lcd_color[(bg & 1) * (MCGA_LCD_LEVELS - 1)] : dev->palette[bg];
+
         /*
          * Cursor scan-line values are 0 through 7.  The Model 25
          * formatter double-scans the cursor over its 16-line text box.
@@ -584,13 +820,13 @@ mcga_render_text(mcga_t *dev, int y)
         /* Double-width. */
         if (mcga_is_double_width(dev, 0))
             for (int bit = 0; bit < 8; bit++)
-                buffer32->line[y][(column * 16) + (bit << 1)] =
-                buffer32->line[y][(column * 16) + (bit << 1) + 1] =
-                    dev->palette[(bits & (0x80 >> bit)) ? fg : bg];
+                MCGA_LINE(dev, y)[(column * 16) + (bit << 1)] =
+                MCGA_LINE(dev, y)[(column * 16) + (bit << 1) + 1] =
+                    (bits & (0x80 >> bit)) ? fg_color : bg_color;
         else
             for (int bit = 0; bit < 8; bit++)
-                buffer32->line[y][(column * 8) + bit] =
-                    dev->palette[(bits & (0x80 >> bit)) ? fg : bg];
+                MCGA_LINE(dev, y)[(column * 8) + bit] =
+                    (bits & (0x80 >> bit)) ? fg_color : bg_color;
     }
 }
 
@@ -601,23 +837,32 @@ mcga_render_cga4(mcga_t *dev, int y)
     const uint16_t start = ((dev->crtc[0x0c] << 8) | dev->crtc[0x0d]) << 1;
     const uint32_t row = start + ((source_y & 1) * 0x2000) +
                          ((source_y >> 1) * 80);
+    uint32_t colors[4];
+
+    /* Assumed LCD mode-4/5 mapping: 00 off, 01/10 midpoint, 11 on.
+       Independent of the CGA palette and DAC; overrides the reference's
+       C1-only rule rather than changing the CRT color interpretation. */
+    for (unsigned pixel = 0; pixel < 4; pixel++)
+        colors[pixel] = dev->lcd ?
+            dev->lcd_color[((pixel & 1) + (pixel >> 1)) * ((MCGA_LCD_LEVELS - 1) / 2)] :
+            dev->palette[mcga_cga4_color(dev, pixel)];
 
     /* Double-width. */
     for (int byte = 0; byte < 80; byte++) {
         uint8_t data = dev->vram[0x8000 + ((row + byte) & 0x7fff)];
         if (mcga_is_double_width(dev, 0))
             for (int pixel = 0; pixel < 8; pixel += 2) {
-                const uint8_t color = mcga_cga4_color(dev, data >> 6);
-                buffer32->line[y][(byte * 8) + pixel] =
-                buffer32->line[y][(byte * 8) + pixel + 1] =
-                    dev->palette[color];
+                const uint32_t color = colors[data >> 6];
+                MCGA_LINE(dev, y)[(byte * 8) + pixel] =
+                MCGA_LINE(dev, y)[(byte * 8) + pixel + 1] =
+                    color;
                 data <<= 2;
             }
         else
             for (int pixel = 0; pixel < 4; pixel++) {
-                const uint8_t color = mcga_cga4_color(dev, data >> 6);
-                buffer32->line[y][(byte * 4) + pixel] =
-                    dev->palette[color];
+                const uint32_t color = colors[data >> 6];
+                MCGA_LINE(dev, y)[(byte * 4) + pixel] =
+                    color;
                 data <<= 2;
             }
     }
@@ -635,7 +880,7 @@ mcga_render_cga6(mcga_t *dev, int y)
     for (int byte = 0; byte < 80; byte++) {
         const uint8_t data = dev->vram[0x8000 + ((row + byte) & 0x7fff)];
         for (int pixel = 0; pixel < 8; pixel++)
-            buffer32->line[y][(byte * 8) + pixel] =
+            MCGA_LINE(dev, y)[(byte * 8) + pixel] =
                 dev->palette[(data & (0x80 >> pixel)) ? fg : 0];
     }
 }
@@ -650,7 +895,7 @@ mcga_render_mode11(mcga_t *dev, int y)
     for (int byte = 0; byte < 80; byte++) {
         const uint8_t data = dev->vram[(row + byte) & 0xffff];
         for (int pixel = 0; pixel < 8; pixel++)
-            buffer32->line[y][(byte * 8) + pixel] =
+            MCGA_LINE(dev, y)[(byte * 8) + pixel] =
                 dev->palette[(data & (0x80 >> pixel)) ? fg : 0];
     }
 }
@@ -665,11 +910,11 @@ mcga_render_mode13(mcga_t *dev, int y)
     /* Double-width. */
     if (mcga_is_double_width(dev, 0))
         for (int x = 0; x < 640; x += 2)
-            buffer32->line[y][x] = buffer32->line[y][x + 1] =
+            MCGA_LINE(dev, y)[x] = MCGA_LINE(dev, y)[x + 1] =
                 dev->palette[dev->vram[(row + (x >> 1)) & 0xffff]];
     else
         for (int x = 0; x < 320; x++)
-            buffer32->line[y][x] = dev->palette[dev->vram[(row + (x >> 1)) & 0xffff]];
+            MCGA_LINE(dev, y)[x] = dev->palette[dev->vram[(row + (x >> 1)) & 0xffff]];
 }
 
 static void
@@ -679,7 +924,7 @@ mcga_render_line(mcga_t *dev, int y)
 
     if (!(dev->cga_mode & MCGA_CGA_ENABLE)) {
         for (int x = 0; x < width; x++)
-            buffer32->line[y][x] = dev->palette[0];
+            MCGA_LINE(dev, y)[x] = dev->palette[0];
         return;
     }
 
@@ -706,9 +951,112 @@ mcga_render_line(mcga_t *dev, int y)
     }
 }
 
+/* Fill the whole picture buffer with a colour. */
+static void
+mcga_lcd_fill(mcga_t *dev, uint32_t colour)
+{
+    uint32_t *picture = dev->lcd_picture;
+
+    for (size_t i = 0; i < ((size_t) MCGA_LCD_WIDTH * MCGA_LCD_HEIGHT); i++)
+        picture[i] = colour;
+}
+
+/*
+ * A mode change moves where the picture sits in the raster. Everything the
+ * picture does not cover is panel background, so put the background back
+ * where the previous mode drew.
+ */
+static void
+mcga_lcd_set_top(mcga_t *dev)
+{
+    const int top    = mcga_panel_top(dev);
+    const int bottom = top + mcga_panel_content(dev);
+
+    if (top == dev->lcd_top)
+        return;
+
+    dev->lcd_top = top;
+
+    for (int y = 0; y < MCGA_LCD_HEIGHT; y++) {
+        if ((y >= top) && (y < bottom))
+            continue;
+
+        uint32_t *line = dev->lcd_picture + ((size_t) y * MCGA_LCD_WIDTH);
+
+        for (int x = 0; x < MCGA_LCD_WIDTH; x++)
+            line[x] = dev->lcd_color[0];
+    }
+}
+
+/*
+ * How long one presented frame lasts. The reference gives no panel scan rate
+ * - the interface's LP period has no documented unit or equation - so the
+ * optics advance with the MCGA's own frame, which is the timing the guest
+ * programs and the only one this machine documents.
+ */
+static double
+mcga_lcd_step(const mcga_t *dev)
+{
+    return (double) ((dev->disp_on_time + dev->disp_off_time) *
+                     (uint64_t) mcga_total_lines(dev)) / (double) TIMER_USEC;
+}
+
+/*
+ * One panel frame: walk the whole 640x480 raster, step each pel's optical
+ * level toward what the picture says, and compose the result. That raster is
+ * all the renderer ever sees of this machine's video.
+ */
+static void
+mcga_lcd_present(mcga_t *dev)
+{
+    const uint32_t off = dev->lcd_color[0];
+    const uint32_t on  = dev->lcd_color[MCGA_LCD_LEVELS - 1];
+
+    mcga_lcd_build_response(dev, mcga_lcd_step(dev));
+
+    video_wait_for_buffer();
+
+    for (int y = 0; y < MCGA_LCD_HEIGHT; y++) {
+        const uint32_t *picture = dev->lcd_picture + ((size_t) y * MCGA_LCD_WIDTH);
+        uint8_t        *level   = &dev->lcd_level[(size_t) y * MCGA_LCD_WIDTH];
+        uint32_t       *line    = buffer32->line[y];
+
+        for (int x = 0; x < MCGA_LCD_WIDTH; x++) {
+            const unsigned target = (picture[x] != off) + (picture[x] == on);
+            const uint8_t next = dev->lcd_next[target][level[x]];
+
+            level[x] = next;
+            line[x]  = dev->lcd_color[next];
+        }
+    }
+
+    if ((xsize != MCGA_LCD_WIDTH) || (ysize != MCGA_LCD_HEIGHT) || video_force_resize_get()) {
+        xsize = MCGA_LCD_WIDTH;
+        ysize = MCGA_LCD_HEIGHT;
+        set_screen_size(MCGA_LCD_WIDTH, MCGA_LCD_HEIGHT);
+        video_force_resize_set(0);
+    }
+
+    video_blit_memtoscreen(0, 0, MCGA_LCD_WIDTH, MCGA_LCD_HEIGHT);
+    frames++;
+
+    /* The panel is a 640x480 display in every mode. */
+    video_res_x = MCGA_LCD_WIDTH;
+    video_res_y = MCGA_LCD_HEIGHT;
+    video_bpp   = (mcga_mode(dev) == MCGA_MODE_CGA4) ? 2 : 1;
+}
+
 static void
 mcga_present(mcga_t *dev)
 {
+    if (dev->lcd) {
+        if (dev->enabled) {
+            mcga_lcd_set_top(dev);
+            mcga_lcd_present(dev);
+        }
+        return;
+    }
+
     const int width  = mcga_width(dev);
     const int height = mcga_height(dev);
 
@@ -741,11 +1089,25 @@ mcga_poll(void *priv)
         timer_advance_u64(&dev->timer, dev->disp_on_time);
         dev->linepos = 1;
 
-        if (dev->enabled && (dev->displine < mcga_height(dev))) {
-            if (dev->displine == 0)
-                video_wait_for_buffer();
-            mcga_render_line(dev, dev->displine);
-            video_lightpen_check_trigger_strobe(0, dev->displine, 0, 0, 1. / (VGACONST1 / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
+        if (dev->enabled) {
+            const int y = dev->displine - dev->lcd_top;
+
+            if (dev->displine == 0) {
+                /* The panel composes from its own picture buffer, so the
+                   mode's rendering never touches the frame it presents. */
+                if (!dev->lcd)
+                    video_wait_for_buffer();
+            }
+
+            /* Only the picture is rendered here; everything the picture does
+               not cover stays at the panel's background level. */
+            const int content = dev->lcd ? mcga_panel_content(dev) : mcga_height(dev);
+
+            if ((y >= 0) && (y < content) &&
+                ((y + dev->lcd_top) < MCGA_LCD_HEIGHT)) {
+                mcga_render_line(dev, y);
+                video_lightpen_check_trigger_strobe(0, y, 0, 0, 1. / (VGACONST1 / (cpuclock * (double) (1ULL << 32))), monitor_index_global);
+            }
         }
         return;
     }
@@ -854,6 +1216,15 @@ mcga_reset(void *priv)
         memcpy(dev->dac[i], mcga_default_palette[i], 3);
     for (unsigned i = 0; i < 256; i++)
         mcga_rebuild_color(dev, i);
+
+    if (dev->lcd) {
+        dev->lcd_index = 0x00;
+        ibm7690_lcd_reset(dev);
+        memset(dev->lcd_level, 0, (size_t) MCGA_LCD_WIDTH * MCGA_LCD_HEIGHT);
+        mcga_lcd_fill(dev, dev->lcd_color[0]);
+        dev->lcd_top = -1;
+        mcga_lcd_set_top(dev);
+    }
 }
 
 static void *
@@ -897,6 +1268,13 @@ mcga_close(void *priv)
     if (dev->enabled)
         mcga_set_enabled(dev, 0);
     timer_disable(&dev->timer);
+    if (dev->lcd)
+        io_removehandler(0xF304, 2,
+                         ibm7690_lcd_read, NULL, NULL,
+                         ibm7690_lcd_write, NULL, NULL, dev);
+    free(dev->lcd_ram);
+    free(dev->lcd_picture);
+    free(dev->lcd_level);
     free(dev->font_ram);
     free(dev->vram);
     free(dev);
@@ -915,3 +1293,104 @@ const device_t mcga_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+/*
+ * The 7690's internal video is the same MCGA subsystem as the other 8086
+ * PS/2 machines and runs the same code; it is a separate device so that the
+ * machine can name the panel it is wired to instead of a monitor and offer
+ * the panel's colour sets. The machine init maps the D4000 firmware segment.
+ */
+static const device_config_t ibm7690_video_config[] = {
+    // clang-format off
+    {
+        .name           = "display",
+        .description    = "Panel",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Dark background, bright text",      .value = 0 },
+            { .description = "Bright background, dark text",     .value = 1 },
+            { .description = "" }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static void *
+ibm7690_video_init(const device_t *info)
+{
+    mcga_t *dev = (mcga_t *) mcga_init(info);
+
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &mcga_lcd_timings);
+    mcga_set_lcd(dev, device_get_config_int("display"));
+
+    return dev;
+}
+
+const device_t ibm7690_video_device = {
+    .name          = "7690 LCD panel",
+    .internal_name = "ibm7690_video",
+    .flags         = DEVICE_ISA | DEVICE_ONBOARD,
+    .local         = 0,
+    .init          = ibm7690_video_init,
+    .close         = mcga_close,
+    .reset         = mcga_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibm7690_video_config
+};
+
+void
+mcga_set_lcd(void *priv, int colour_set)
+{
+    mcga_t *dev = (mcga_t *) priv;
+
+    if (dev == NULL)
+        return;
+
+    dev->lcd     = 1;
+    dev->lcd_set = (colour_set > 0) ? 1 : 0;
+
+    dev->lcd_level   = (uint8_t *) calloc(1, (size_t) MCGA_LCD_WIDTH * MCGA_LCD_HEIGHT);
+    dev->lcd_picture = (uint32_t *) calloc(1, sizeof(uint32_t) * (size_t) MCGA_LCD_WIDTH * MCGA_LCD_HEIGHT);
+    dev->lcd_ram     = (uint8_t (*)[0x8000]) calloc(2, sizeof(*dev->lcd_ram));
+    if ((dev->lcd_level == NULL) || (dev->lcd_picture == NULL) || (dev->lcd_ram == NULL))
+        fatal("mcga_set_lcd(): Unable to allocate the panel's state\n");
+
+    mcga_lcd_build_colors(dev);
+    mcga_lcd_build_response(dev, mcga_lcd_step(dev));
+    mcga_lcd_fill(dev, dev->lcd_color[0]);
+
+    dev->lcd_top = -1;
+    mcga_lcd_set_top(dev);
+
+    io_sethandler(0xF304, 2,
+                  ibm7690_lcd_read, NULL, NULL,
+                  ibm7690_lcd_write, NULL, NULL, dev);
+
+    for (unsigned index = 0; index < 256; index++)
+        mcga_rebuild_color(dev, (uint8_t) index);
+}
+
+void
+mcga_get_lcd_geometry(void *priv, int *top, int *content)
+{
+    const mcga_t *dev = (const mcga_t *) priv;
+
+    *top     = ((dev != NULL) && dev->lcd) ? mcga_panel_top(dev) : 0;
+    *content = ((dev != NULL) && dev->lcd) ? mcga_panel_content(dev) : MCGA_LCD_HEIGHT;
+}
+
+int
+mcga_get_lcd_power(void *priv)
+{
+    const mcga_t *dev = (const mcga_t *) priv;
+
+    return (dev != NULL) && dev->lcd && (dev->lcd_regs[0x0d] & 0x01);
+}
