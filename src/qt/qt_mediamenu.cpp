@@ -1267,6 +1267,28 @@ MediaMenu::tapeMount(int i, const QString &filename, bool wp)
     const auto dev       = static_cast<tape_t *>(tape_drives[i].priv);
     int        was_empty = (tape_drives[i].fp == NULL);
 
+    if ((tape_drives[i].bus_type == TAPE_BUS_FDC) || (tape_drives[i].bus_type == TAPE_BUS_LPT)) {
+        /* The floppy-tape and Ditto cores take care of their own
+           image handling through the bus-agnostic dispatch. */
+        if (!filename.isEmpty()) {
+            QByteArray filenameBytes = filename.toUtf8();
+            if (wp && (filename.left(5) != "wp://"))
+                filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
+            tape_drive_mount(i, filenameBytes.data(), wp);
+        } else
+            tape_drive_eject(i);
+
+        mhm.addImageToHistory(i, ui::MediaType::Tape, tape_drives[i].prev_image_path, tape_drives[i].image_path);
+
+        ui_sb_update_icon_state(SB_TAPE | i, strlen(tape_drives[i].image_path) == 0);
+        ui_sb_update_icon_wp(SB_TAPE | i, tape_drives[i].read_only);
+        tapeUpdateMenu(i);
+        ui_sb_update_tip(SB_TAPE | i);
+
+        config_save();
+        return;
+    }
+
     tape_disk_close(dev);
     tape_drives[i].read_only = wp;
     if (!filename.isEmpty()) {
@@ -1301,6 +1323,18 @@ MediaMenu::tapeEject(int i)
 {
     const auto dev = static_cast<tape_t *>(tape_drives[i].priv);
 
+    if ((tape_drives[i].bus_type == TAPE_BUS_FDC) || (tape_drives[i].bus_type == TAPE_BUS_LPT)) {
+        mhm.addImageToHistory(i, ui::MediaType::Tape, tape_drives[i].image_path, QString());
+        tape_drive_eject(i);
+
+        ui_sb_update_icon_state(SB_TAPE | i, 1);
+        ui_sb_update_icon_wp(SB_TAPE | i, 0);
+        tapeUpdateMenu(i);
+        ui_sb_update_tip(SB_TAPE | i);
+        config_save();
+        return;
+    }
+
     mhm.addImageToHistory(i, ui::MediaType::Tape, tape_drives[i].image_path, QString());
     tape_disk_close(dev);
     tape_drives[i].image_path[0] = 0;
@@ -1319,6 +1353,29 @@ void
 MediaMenu::tapeReloadPrev(int i)
 {
     const auto dev = static_cast<tape_t *>(tape_drives[i].priv);
+
+    if ((tape_drives[i].bus_type == TAPE_BUS_FDC) || (tape_drives[i].bus_type == TAPE_BUS_LPT)) {
+        /* Re-mount whatever is still configured on the drive. */
+        if (tape_drives[i].image_path[0] != 0x00) {
+            char fn[MAX_IMAGE_PATH_LEN + 8];
+
+            if (tape_drives[i].read_only)
+                snprintf(fn, sizeof(fn), "wp://%s", tape_drives[i].image_path);
+            else
+                snprintf(fn, sizeof(fn), "%s", tape_drives[i].image_path);
+            tape_drive_mount(i, fn, tape_drives[i].read_only);
+        } else
+            tape_drive_eject(i);
+
+        ui_sb_update_icon_state(SB_TAPE | i, strlen(tape_drives[i].image_path) == 0);
+        ui_sb_update_icon_wp(SB_TAPE | i, tape_drives[i].read_only);
+
+        tapeUpdateMenu(i);
+        ui_sb_update_tip(SB_TAPE | i);
+
+        config_save();
+        return;
+    }
 
     tape_disk_reload(dev);
     if (strlen(tape_drives[i].image_path) == 0) {
@@ -1366,6 +1423,12 @@ MediaMenu::tapeUpdateMenu(int i)
             break;
         case TAPE_BUS_SCSI:
             busName = "SCSI";
+            break;
+        case TAPE_BUS_FDC:
+            busName = "FDC";
+            break;
+        case TAPE_BUS_LPT:
+            busName = "LPT";
             break;
     }
 

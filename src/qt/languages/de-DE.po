@@ -81,6 +81,9 @@ msgstr "Fenstergröße &einstellen…"
 msgid "Force &4:3 display ratio"
 msgstr "&4:3-Seitenverhältnis erzwingen"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "&%1:%2-Seitenverhältnis erzwingen"
+
 msgid "&Window scale factor"
 msgstr "&Fensterskalierungsfaktor"
 
@@ -2922,8 +2925,14 @@ msgstr "[Generisch] 1989 (3500 U/min)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Generisch] 1992 (3600 U/min)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Generisch] 1993 (4000 U/min)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Generisch] 1994 (4500 U/min)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Generisch] 1995 (5200 U/min)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Generisch] 1996 (5400 U/min)"
@@ -2936,6 +2945,9 @@ msgstr "[Generisch] 1998 (5400 U/min)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Generisch] 2000 (7200 U/min)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Generisch] 2004 (10000 U/min"
 
 msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A-Klon"
@@ -2987,6 +2999,15 @@ msgstr "Modell"
 
 msgid "Model:"
 msgstr "Modell:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Fehler bei der Initialisierung des Vulkan-Renderers."

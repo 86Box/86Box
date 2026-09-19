@@ -64,7 +64,8 @@
 #include <86box/video.h>
 #include <86box/vid_pgc.h>
 
-#define BIOS_ROM_PATH "roms/video/im1024/im1024font.bin"
+#define BIOS_ROM_PATH      "roms/video/im1024/im1024font.bin"
+#define FONT_ROM_PATH_8X12 "roms/video/im1024/im1024font8x12.bin"
 
 typedef struct {
     pgc_t pgc;
@@ -72,11 +73,43 @@ typedef struct {
     uint8_t fontx[256];
     uint8_t fonty[256];
     uint8_t font[256][128];
+    uint8_t have_font8x12;
 
     uint8_t *fifo;
     unsigned fifo_len,
         fifo_wrptr,
         fifo_rdptr;
+
+    /* Hardware crosshair: shape from XHAIR, position in raster coordinates. */
+    uint8_t xh_on;
+    uint8_t xh_type; /* 1 = lines xh_w by xh_h, 2 = TDEFIN character xh_ch */
+    uint8_t xh_ch;
+    int16_t xh_w;
+    int16_t xh_h;
+    int16_t xh_x;
+    int16_t xh_y;
+
+    /* What is XORed into the framebuffer right now, so it can be XORed out. */
+    int     xh_drawn;
+    uint8_t dr_type;
+    uint8_t dr_ch;
+    int16_t dr_w;
+    int16_t dr_h;
+    int16_t dr_x;
+    int16_t dr_y;
+    int16_t dr_clip[4];
+
+    /* Locator: LOCMAP rectangle (1 = raster, 2 = window coordinates), LOCXH. */
+    uint8_t locmap_mode;
+    uint8_t locxh;
+    int16_t map[4];  /* x1 x2 y1 y2 as sent */
+    int16_t rmap[4]; /* the same in raster coordinates */
+    int16_t clip[4]; /* rmap clamped to the display */
+    int16_t loc_x;   /* locator position, raster */
+    int16_t loc_y;
+    int16_t loc_vx; /* and in window coordinates when XVMOVE set it */
+    int16_t loc_vy;
+    int     loc_v_valid;
 } im1024_t;
 
 static video_timings_t timing_im1024 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
@@ -160,17 +193,23 @@ input_byte(pgc_t *pgc, uint8_t *result)
     im1024_t *dev = (im1024_t *) pgc;
 
     /* If input buffer empty, wait for it to fill. */
-    while (!pgc->stopped && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
-        pgc->waiting_input_fifo = 1;
+    while (!pgc->stopped && !pgc->mapram[0x3ff] && !pgc->mapram[0x306] && !pgc->mapram[0x307] && (dev->fifo_wrptr == dev->fifo_rdptr) && (pgc->mapram[0x300] == pgc->mapram[0x301])) {
         pgc_sleep(pgc);
     }
 
     if (pgc->stopped)
         return 0;
 
-    if (pgc->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (pgc->mapram[0x3ff] || pgc->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(pgc);
+        return 0;
+    }
+
+    if (pgc->mapram[0x307]) {
+        /* Warm restart: the fast FIFO is flushed with the ring buffer. */
+        dev->fifo_wrptr = dev->fifo_rdptr = 0;
+        pgc_warm_reset(pgc);
         return 0;
     }
 
@@ -233,10 +272,7 @@ im1024_write(uint32_t addr, uint8_t val, void *priv)
 
         im1024_log("IM1024: write(%02x)\n", val);
 
-        if (dev->pgc.waiting_input_fifo) {
-            dev->pgc.waiting_input_fifo = 0;
-            pgc_wake(&dev->pgc);
-        }
+        pgc_wake(&dev->pgc);
         return;
     }
 
@@ -244,16 +280,47 @@ im1024_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 /*
- * I don't know what the IMGSIZ command does, only that the
- * Windows driver issues it. So just parse and ignore it.
+ * Where the screen sits in the 1024x1024 framebuffer, after the firmware
+ * (routines 0x4ff1 and 0x5520): the IMGSIZ image is centred in the
+ * display and PAN moves it by up to the slack on each side. Card y
+ * counts up from the bottom; columns wrap at the framebuffer width.
+ */
+static void
+im1024_set_origin(im1024_t *dev)
+{
+    pgc_t  *pgc = &dev->pgc;
+    int32_t cx  = (int32_t) pgc->visw - (pgc->img_w - 1);
+    int32_t cy  = (int32_t) pgc->vish - 1 - (pgc->img_h - 1);
+    int32_t px  = 0;
+    int32_t py  = 0;
+    int32_t left;
+    int32_t top;
+
+    /* Halve towards minus infinity, as the firmware's SAR does. */
+    cx = (cx >= 0) ? cx / 2 : -((1 - cx) / 2);
+    cy = (cy >= 0) ? cy / 2 : -((1 - cy) / 2);
+
+    if (cx < 0)
+        px = (pgc->pan_x < cx) ? cx : (pgc->pan_x > -cx - 1) ? -cx - 1 : pgc->pan_x;
+    if (cy < 0)
+        py = (pgc->pan_y < cy) ? cy : (pgc->pan_y > -cy) ? -cy : pgc->pan_y;
+
+    left = (int32_t) pgc->visw - cx + px;     /* card x at the left edge */
+    top  = (int32_t) pgc->vish - 1 - cy + py; /* card y at the top row */
+
+    pgc->scan_left = ((left % (int32_t) pgc->maxw) + (int32_t) pgc->maxw) % (int32_t) pgc->maxw;
+    pgc->scan_top  = (int32_t) pgc->maxh - 1 - top;
+}
+
+/*
+ * IMGSIZ w h planes flag: the image the screen shows, also the default
+ * viewport. The last two bytes are not modelled.
  */
 static void
 hndl_imgsiz(pgc_t *pgc)
 {
-#if 0
-    im1024_t *dev = (im1024_t *)pgc;
-#endif
-    int16_t w;
+    im1024_t *dev = (im1024_t *) pgc;
+    int16_t   w;
     int16_t h;
     uint8_t a;
     uint8_t b;
@@ -268,24 +335,48 @@ hndl_imgsiz(pgc_t *pgc)
         return;
 
     im1024_log("IM1024: IMGSIZ %i,%i,%i,%i\n", w, h, a, b);
+
+    if (w < 1 || w > (int16_t) pgc->maxw || h < 1 || h > (int16_t) pgc->maxh) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+
+    pgc->img_w = w;
+    pgc->img_h = h;
+    pgc->vp_x1 = 0;
+    pgc->vp_y1 = 0;
+    pgc->vp_x2 = w - 1;
+    pgc->vp_y2 = h - 1;
+    pgc->pan_x = 0;
+    pgc->pan_y = 0;
+
+    /* The firmware finishes IMGSIZ in the VWPORT handler, scale and all. */
+    pgc_window_scale(pgc);
+
+    im1024_set_origin(dev);
 }
 
 /*
- * I don't know what the IPREC command does, only that the
- * Windows driver issues it. So just parse and ignore it.
+ * IPREC sets the width of every coordinate parameter: 0 is the PGC's
+ * 16.16 value in four bytes, 1 an integer word. Anything else is an
+ * error and counts as 1. Nothing else, reset included, changes it.
  */
 static void
 hndl_iprec(pgc_t *pgc)
 {
-#if 0
-    im1024_t *dev = (im1024_t *)pgc;
-#endif
     uint8_t param;
 
     if (!pgc_param_byte(pgc, &param))
         return;
 
     im1024_log("IM1024: IPREC %i\n", param);
+
+    if (param > 1) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        param = 1;
+    }
+
+    pgc->coord_words = param;
 }
 
 /*
@@ -311,10 +402,7 @@ hndl_linfun(pgc_t *pgc)
         pgc_error(pgc, PGC_ERROR_RANGE);
 }
 
-/*
- * I think PAN controls which part of the 1024x1024 framebuffer
- * is displayed in the 1024x800 visible screen.
- */
+/* PAN x y moves the screen within the image, clamped to the slack IMGSIZ leaves. */
 static void
 hndl_pan(pgc_t *pgc)
 {
@@ -330,14 +418,15 @@ hndl_pan(pgc_t *pgc)
 
     pgc->pan_x = x;
     pgc->pan_y = y;
+    im1024_set_origin((im1024_t *) pgc);
 }
 
 /* PLINE draws a non-filled polyline at a fixed position. */
 static void
 hndl_pline(pgc_t *pgc)
 {
-    int16_t  x[257];
-    int16_t  y[257];
+    int32_t  x[257];
+    int32_t  y[257];
     uint16_t linemask = pgc->line_pattern;
     uint8_t  count;
     unsigned n;
@@ -347,16 +436,15 @@ hndl_pline(pgc_t *pgc)
 
     im1024_log("IM1024: PLINE (%i)  ", count);
     for (n = 0; n < count; n++) {
-        if (!pgc_param_word(pgc, &x[n]))
+        if (!pgc_param_coord(pgc, &x[n]))
             return;
-        if (!pgc_param_word(pgc, &y[n]))
+        if (!pgc_param_coord(pgc, &y[n]))
             return;
-        im1024_log("    (%i,%i)\n", x[n], y[n]);
+        im1024_log("    (%i,%i)\n", x[n] >> 16, y[n] >> 16);
     }
 
     for (n = 1; n < count; n++) {
-        linemask = pgc_draw_line(pgc, x[n - 1] << 16, y[n - 1] << 16,
-                                 x[n] << 16, y[n] << 16, linemask);
+        linemask = pgc_draw_line(pgc, x[n - 1], y[n - 1], x[n], y[n], linemask);
     }
 }
 
@@ -456,62 +544,36 @@ hndl_blkmov(pgc_t *pgc)
 static void
 hndl_ellipse(pgc_t *pgc)
 {
-    int16_t x;
-    int16_t y;
+    int32_t x;
+    int32_t y;
 
-    if (!pgc_param_word(pgc, &x))
+    if (!pgc_param_coord(pgc, &x))
         return;
-    if (!pgc_param_word(pgc, &y))
+    if (!pgc_param_coord(pgc, &y))
         return;
 
     im1024_log("IM1024: ELLIPSE %i,%i @ %i,%i\n",
-               x, y, pgc->x >> 16, pgc->y >> 16);
+               x >> 16, y >> 16, pgc->x >> 16, pgc->y >> 16);
 
-    pgc_draw_ellipse(pgc, x << 16, y << 16);
+    pgc_draw_ellipse(pgc, x, y);
 }
 
-/*
- * Override the PGC MOVE command to parse its
- * parameters as words rather than coordinates.
- */
+/* Override the PGC MOVE command to log it on the IM-1024 path. */
 static void
 hndl_move(pgc_t *pgc)
 {
-    int16_t x;
-    int16_t y;
+    int32_t x;
+    int32_t y;
 
-    if (!pgc_param_word(pgc, &x))
+    if (!pgc_param_coord(pgc, &x))
         return;
-    if (!pgc_param_word(pgc, &y))
-        return;
-
-    im1024_log("IM1024: MOVE %i,%i\n", x, y);
-
-    pgc->x = x << 16;
-    pgc->y = y << 16;
-}
-
-/*
- * Override the PGC DRAW command to parse its
- * parameters as words rather than coordinates.
- */
-static void
-hndl_draw(pgc_t *pgc)
-{
-    int16_t x;
-    int16_t y;
-
-    if (!pgc_param_word(pgc, &x))
-        return;
-    if (!pgc_param_word(pgc, &y))
+    if (!pgc_param_coord(pgc, &y))
         return;
 
-    im1024_log("IM1024: DRAW %i,%i to %i,%i\n", pgc->x >> 16, pgc->y >> 16, x, y);
+    im1024_log("IM1024: MOVE %i,%i\n", x >> 16, y >> 16);
 
-    pgc_draw_line(pgc, pgc->x, pgc->y, x << 16, y << 16, pgc->line_pattern);
-
-    pgc->x = x << 16;
-    pgc->y = y << 16;
+    pgc->x = x;
+    pgc->y = y;
 }
 
 /*
@@ -525,8 +587,8 @@ hndl_poly(pgc_t *pgc)
     int32_t *y;
     int32_t *nx;
     int32_t *ny;
-    int16_t  xw;
-    int16_t  yw;
+    int32_t  xw;
+    int32_t  yw;
     int16_t  mask;
     unsigned realcount = 0;
     unsigned n;
@@ -571,14 +633,14 @@ hndl_poly(pgc_t *pgc)
         }
 
         for (n = 0; n < count; n++) {
-            if (!pgc_param_word(pgc, &xw)) {
+            if (!pgc_param_coord(pgc, &xw)) {
                 if (x)
                     free(x);
                 if (y)
                     free(y);
                 return;
             }
-            if (!pgc_param_word(pgc, &yw)) {
+            if (!pgc_param_coord(pgc, &yw)) {
                 if (x)
                     free(x);
                 if (y)
@@ -587,11 +649,11 @@ hndl_poly(pgc_t *pgc)
             }
 
             /* Skip degenerate line segments. */
-            if (realcount > 0 && (xw << 16) == x[realcount - 1] && (yw << 16) == y[realcount - 1])
+            if (realcount > 0 && xw == x[realcount - 1] && yw == y[realcount - 1])
                 continue;
 
-            x[realcount] = xw << 16;
-            y[realcount] = yw << 16;
+            x[realcount] = xw;
+            y[realcount] = yw;
             realcount++;
         }
 
@@ -650,60 +712,9 @@ parse_poly(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
         return 0;
     }
 
-    im1024_log("IM1024: parse_poly: parse %i words\n", 2 * count);
+    im1024_log("IM1024: parse_poly: parse %i coordinates\n", 2 * count);
 
-    return pgc_parse_words(pgc, cl, count * 2);
-}
-
-/*
- * Override the PGC RECT command to parse its
- * parameters as words rather than coordinates.
- */
-static void
-hndl_rect(pgc_t *pgc)
-{
-    int16_t x0;
-    int16_t y0;
-    int16_t x1;
-    int16_t y1;
-    int16_t p;
-    int16_t q;
-
-    x0 = pgc->x >> 16;
-    y0 = pgc->y >> 16;
-
-    if (!pgc_param_word(pgc, &x1))
-        return;
-    if (!pgc_param_word(pgc, &y1))
-        return;
-
-    /* Convert to raster coords. */
-    pgc_sto_raster(pgc, &x0, &y0);
-    pgc_sto_raster(pgc, &x1, &y1);
-
-    if (x0 > x1) {
-        p  = x0;
-        x0 = x1;
-        x1 = p;
-    }
-    if (y0 > y1) {
-        q  = y0;
-        y0 = y1;
-        y1 = q;
-    }
-    im1024_log("IM1024: RECT (%i,%i) -> (%i,%i)\n", x0, y0, x1, y1);
-
-    if (pgc->fill_mode) {
-        for (p = y0; p <= y1; p++)
-            pgc_fill_line_r(pgc, x0, x1, p);
-    } else {
-        /* Outline: 4 lines. */
-        p = pgc->line_pattern;
-        p = pgc_draw_line_r(pgc, x0, y0, x1, y0, p);
-        p = pgc_draw_line_r(pgc, x1, y0, x1, y1, p);
-        p = pgc_draw_line_r(pgc, x1, y1, x0, y1, p);
-        p = pgc_draw_line_r(pgc, x0, y1, x0, y0, p);
-    }
+    return pgc_parse_coords(pgc, cl, count * 2);
 }
 
 /*
@@ -749,13 +760,13 @@ hndl_tdefin(pgc_t *pgc)
 static void
 hndl_tsize(pgc_t *pgc)
 {
-    int16_t size;
+    int32_t size;
 
-    if (!pgc_param_word(pgc, &size))
+    if (!pgc_param_coord(pgc, &size))
         return;
-    im1024_log("IM1024: TSIZE(%i)\n", size);
+    im1024_log("IM1024: TSIZE(%i)\n", size >> 16);
 
-    pgc->tsize = size << 16;
+    pgc->tsize = size;
 }
 
 static void
@@ -806,48 +817,190 @@ hndl_twrite(pgc_t *pgc)
     }
 }
 
+/*
+ * Sample the 12x18 face into a cell of another size. The card never does
+ * this; it is what is left when the band's own font is not installed. The
+ * cell takes the majority of the area it covers, which keeps a stroke
+ * without closing up the counters.
+ */
+static void
+txt_sample_glyph(pgc_t *pgc, uint8_t ch, int x0, int y0, int cell_w, int cell_h)
+{
+    const uint8_t *row;
+
+    for (int y = 0; y < cell_h; y++) {
+        const int sy0 = y * 18 / cell_h;
+        int       sy1 = (y + 1) * 18 / cell_h;
+
+        if (sy1 <= sy0)
+            sy1 = sy0 + 1;
+        if (sy1 > 18)
+            sy1 = 18;
+
+        for (int x = 0; x < cell_w; x++) {
+            const int sx0  = x * 12 / cell_w;
+            int       sx1  = (x + 1) * 12 / cell_w;
+            int       ink  = 0;
+            int       area = 0;
+
+            if (sx1 <= sx0)
+                sx1 = sx0 + 1;
+            if (sx1 > 12)
+                sx1 = 12;
+
+            for (int sy = sy0; sy < sy1; sy++) {
+                row = &fontdat12x18[ch][sy * 2];
+
+                for (int sx = sx0; sx < sx1; sx++) {
+                    area++;
+                    if (row[sx >> 3] & (0x80 >> (sx & 7)))
+                        ink++;
+                }
+            }
+
+            if ((ink * 2) >= area)
+                pgc_plot(pgc, x + x0, y0 - y);
+        }
+    }
+}
+
+/*
+ * Draw a string in a ROM font, shared by TXT88 and TEXT.
+ *
+ * TSIZE is the advance from one character to the next, and every other
+ * metric is a multiple of TSIZE/8: an ascent of 9 units above the baseline,
+ * a descent of 3 below it, and a justification box 7 units wide. The card
+ * does not scale a face to that cell; it keeps one font per size band and
+ * blits it at its own size, forcing the metrics inside the larger band.
+ */
+static void
+txt_rom_draw(pgc_t *pgc, const uint8_t *buf, unsigned count)
+{
+    const im1024_t *dev      = (im1024_t *) pgc;
+    const uint8_t  *face     = NULL;
+    int16_t         x0       = pgc->x >> 16;
+    int16_t         y0       = pgc->y >> 16;
+    int32_t         unit     = pgc->tsize / 8;
+    int             face_w   = 0;
+    int             face_h   = 0;
+    int             face_bpr = 0;
+    int             adv;
+    int             boxw;
+    int             ascent;
+    int             descent;
+    int             cell_h;
+    int             width;
+
+    if (count == 0)
+        return;
+
+    if (unit > (255 << 16))
+        unit = 255 << 16;
+
+    adv = (unit * 8 + 0x8000) >> 16;
+    if (adv < 1)
+        return;
+
+    if (adv >= 12 && adv < 16) {
+        boxw     = 11;
+        ascent   = 14;
+        descent  = 4;
+        face     = &fontdat12x18[0][0];
+        face_w   = 12;
+        face_h   = 18;
+        face_bpr = 2;
+    } else {
+        boxw    = (unit * 7 + 0x8000) >> 16;
+        ascent  = (unit * 9 + 0x8000) >> 16;
+        descent = (unit * 3 + 0x8000) >> 16;
+
+        if (adv >= 8 && adv < 12 && dev->have_font8x12) {
+            face     = &fontdat8x12im1024[0][0];
+            face_w   = 8;
+            face_h   = 12;
+            face_bpr = 1;
+        }
+    }
+    cell_h = ascent + descent;
+    width  = (int) (count - 1) * adv + boxw;
+
+    pgc_sto_raster(pgc, &x0, &y0);
+
+    /*
+     * TJUST places the string: horizontally by its width, vertically
+     * with the current point on the baseline (1), in the middle of the
+     * ascent (2) or on the top row (3) of the cell.
+     */
+    if (pgc->tjust_h == 2)
+        x0 -= width / 2;
+    else if (pgc->tjust_h == 3)
+        x0 -= width - 1;
+    y0 += (pgc->tjust_v == 3) ? 0 : (pgc->tjust_v == 2) ? (ascent / 2) : (ascent - 1);
+
+    im1024_log("IM1024: text (%i) x0=%i y0=%i adv=%i cell=%ix%i\n",
+               count, x0, y0, adv, adv, cell_h);
+
+    for (unsigned n = 0; n < count; n++) {
+        if (face != NULL) {
+            for (int y = 0; y < face_h; y++) {
+                const uint8_t *row = face + (buf[n] * face_h + y) * face_bpr;
+
+                for (int x = 0; x < face_w; x++)
+                    if (row[x >> 3] & (0x80 >> (x & 7)))
+                        pgc_plot(pgc, x + x0, y0 - y);
+            }
+        } else
+            txt_sample_glyph(pgc, buf[n], x0, y0, adv, cell_h);
+
+        x0 += adv;
+    }
+}
+
 static void
 hndl_txt88(pgc_t *pgc)
 {
-    uint8_t        buf[256];
-    uint8_t        count;
-    uint8_t        mask;
-    const uint8_t *row;
-    int16_t        x0 = pgc->x >> 16;
-    int16_t        y0 = pgc->y >> 16;
-    unsigned int   n;
+    uint8_t buf[256];
+    uint8_t count;
 
     if (!pgc_param_byte(pgc, &count))
         return;
 
-    for (n = 0; n < count; n++)
+    for (unsigned n = 0; n < count; n++)
         if (!pgc_param_byte(pgc, &buf[n]))
             return;
-    buf[count] = 0;
 
-    pgc_sto_raster(pgc, &x0, &y0);
+    im1024_log("IM1024: TXT88\n");
 
-    im1024_log("IM204: TXT88 (%i) x0=%i y0=%i\n", count, x0, y0);
+    txt_rom_draw(pgc, buf, count);
+}
 
-    for (n = 0; n < count; n++) {
-        im1024_log("ch=0x%02x w=12 h=18\n", buf[n]);
+/*
+ * TEXT draws a string in the hardware font, running from the quote
+ * character after the opcode to the next one like it. The PGC core
+ * carries no font, so the IM-1024 draws it, as it does TXT88.
+ */
+static void
+hndl_text(pgc_t *pgc)
+{
+    uint8_t  buf[256];
+    uint8_t  delim;
+    uint8_t  ch;
+    unsigned count = 0;
 
-        for (uint8_t y = 0; y < 18; y++) {
-            mask = 0x80;
-            row  = &fontdat12x18[buf[n]][y * 2];
-            for (uint8_t x = 0; x < 12; x++) {
-                if (row[0] & mask)
-                    pgc_plot(pgc, x + x0, y0 - y);
-                mask = mask >> 1;
-                if (mask == 0) {
-                    mask = 0x80;
-                    row++;
-                }
-            }
-        }
+    if (!pgc_param_byte(pgc, &delim))
+        return;
 
-        x0 += 12;
+    while (count < sizeof(buf)) {
+        if (!pgc_param_byte(pgc, &ch))
+            return;
+        if (ch == delim)
+            break;
+        buf[count++] = ch;
     }
+
+    im1024_log("IM1024: TEXT\n");
+
+    txt_rom_draw(pgc, buf, count);
 }
 
 static void
@@ -985,6 +1138,475 @@ hndl_imagex(pgc_t *pgc)
 }
 
 /*
+ * Locator and hardware crosshair. The firmware XORs the crosshair into
+ * the framebuffer through the display processor (all planes, colour FF)
+ * inside its own clip rectangle: the locator map while LOCXH is on, else
+ * the whole display. Moving it XORs the old shape out and the new one in.
+ */
+static void
+xh_xor(pgc_t *pgc, int16_t x, int16_t y, const int16_t clip[4])
+{
+    uint8_t *p;
+
+    if (x < clip[0] || x > clip[1] || y < clip[2] || y > clip[3])
+        return;
+
+    p = pgc_vram_addr(pgc, x, y);
+    if (p)
+        *p ^= 0xff;
+}
+
+/*
+ * Shape 1 is two solid lines, w+1 and h+1 pixels long, through the point;
+ * the crossing pixel is XORed twice and so left alone. Shape 2 is a TDEFIN
+ * character with its top left at the point.
+ */
+static void
+xh_paint(im1024_t *dev, uint8_t type, uint8_t ch, int16_t w, int16_t h, int16_t x, int16_t y, const int16_t clip[4])
+{
+    pgc_t *pgc = &dev->pgc;
+
+    if (type == 1) {
+        for (int16_t n = 0; n <= w; n++)
+            xh_xor(pgc, x - w / 2 + n, y, clip);
+        for (int16_t n = 0; n <= h; n++)
+            xh_xor(pgc, x, y - h / 2 + n, clip);
+    } else if (type == 2) {
+        unsigned wb = (dev->fontx[ch] + 7) / 8;
+
+        for (uint8_t r = 0; r < dev->fonty[ch]; r++)
+            for (uint8_t c = 0; c < dev->fontx[ch]; c++)
+                if (dev->font[ch][r * wb + c / 8] & (0x80 >> (c & 7)))
+                    xh_xor(pgc, x + c, y - r, clip);
+    }
+}
+
+static void
+xh_hide(im1024_t *dev)
+{
+    if (!dev->xh_drawn)
+        return;
+
+    xh_paint(dev, dev->dr_type, dev->dr_ch, dev->dr_w, dev->dr_h, dev->dr_x, dev->dr_y, dev->dr_clip);
+    dev->xh_drawn = 0;
+}
+
+static void
+xh_show(im1024_t *dev)
+{
+    pgc_t *pgc = &dev->pgc;
+
+    if (!dev->xh_on || dev->xh_drawn)
+        return;
+
+    if (dev->locxh)
+        memcpy(dev->dr_clip, dev->clip, sizeof(dev->dr_clip));
+    else {
+        dev->dr_clip[0] = 0;
+        dev->dr_clip[1] = pgc->visw - 1;
+        dev->dr_clip[2] = 0;
+        dev->dr_clip[3] = pgc->vish - 1;
+    }
+    dev->dr_type = dev->xh_type;
+    dev->dr_ch   = dev->xh_ch;
+    dev->dr_w    = dev->xh_w;
+    dev->dr_h    = dev->xh_h;
+    dev->dr_x    = dev->xh_x;
+    dev->dr_y    = dev->xh_y;
+
+    xh_paint(dev, dev->dr_type, dev->dr_ch, dev->dr_w, dev->dr_h, dev->dr_x, dev->dr_y, dev->dr_clip);
+    dev->xh_drawn = 1;
+}
+
+static int16_t
+clamp16(int32_t v, int16_t lo, int16_t hi)
+{
+    return (v < lo) ? lo : (v > hi) ? hi : (int16_t) v;
+}
+
+/* Bytes C6322-C6329 hold the locator position for the host to read. */
+static void
+loc_publish(im1024_t *dev)
+{
+    pgc_t *pgc = &dev->pgc;
+
+    if (dev->locmap_mode == 1) {
+        pgc->mapram[0x322] = dev->loc_x & 0xff;
+        pgc->mapram[0x323] = dev->loc_x >> 8;
+        pgc->mapram[0x326] = dev->loc_y & 0xff;
+        pgc->mapram[0x327] = dev->loc_y >> 8;
+    } else {
+        pgc->mapram[0x322] = dev->loc_vx & 0xff;
+        pgc->mapram[0x323] = dev->loc_vx >> 8;
+        pgc->mapram[0x324] = 0;
+        pgc->mapram[0x325] = 0;
+        pgc->mapram[0x326] = dev->loc_vy & 0xff;
+        pgc->mapram[0x327] = dev->loc_vy >> 8;
+        pgc->mapram[0x328] = 0;
+        pgc->mapram[0x329] = 0;
+    }
+}
+
+/* Pull the locator back inside the map; with LOCXH on the crosshair sits on it. */
+static void
+loc_resync(im1024_t *dev)
+{
+    int32_t x = clamp16(dev->loc_x, dev->rmap[0], dev->rmap[1]);
+    int32_t y = clamp16(dev->loc_y, dev->rmap[2], dev->rmap[3]);
+
+    dev->loc_x = x;
+    dev->loc_y = y;
+    pgc_ito_raster(&dev->pgc, &x, &y);
+    dev->loc_vx      = dev->loc_x - (x - dev->loc_x);
+    dev->loc_vy      = dev->loc_y - (y - dev->loc_y);
+    dev->loc_v_valid = 0;
+    loc_publish(dev);
+
+    if (dev->locxh) {
+        dev->xh_x = dev->loc_x;
+        dev->xh_y = dev->loc_y;
+    }
+}
+
+/* A new map: its raster form, the clip it gives the crosshair, then loc_resync(). */
+static void
+locmap_apply(im1024_t *dev)
+{
+    pgc_t  *pgc = &dev->pgc;
+    int32_t x1  = dev->map[0];
+    int32_t x2  = dev->map[1];
+    int32_t y1  = dev->map[2];
+    int32_t y2  = dev->map[3];
+
+    if (dev->locmap_mode == 2) {
+        pgc_ito_raster(pgc, &x1, &y1);
+        pgc_ito_raster(pgc, &x2, &y2);
+    }
+    dev->rmap[0] = x1;
+    dev->rmap[1] = x2;
+    dev->rmap[2] = y1;
+    dev->rmap[3] = y2;
+
+    dev->clip[0] = (x1 < 0) ? 0 : x1;
+    dev->clip[1] = (x2 > (int32_t) pgc->visw - 1) ? pgc->visw - 1 : x2;
+    dev->clip[2] = (y1 < 0) ? 0 : y1;
+    dev->clip[3] = (y2 > (int32_t) pgc->vish - 1) ? pgc->vish - 1 : y2;
+
+    loc_resync(dev);
+}
+
+/* XHAIR 0 = off; XHAIR 1 w h = lines; XHAIR 2 c = a TDEFIN character. */
+static void
+hndl_xhair(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    uint8_t   sub;
+    uint8_t   ch;
+    int16_t   w;
+    int16_t   h;
+
+    xh_hide(dev);
+
+    if (!pgc_param_byte(pgc, &sub))
+        return;
+
+    switch (sub) {
+        case 0:
+            dev->xh_on = 0;
+            break;
+
+        case 1:
+            if (!pgc_param_word(pgc, &w))
+                return;
+            if (!pgc_param_word(pgc, &h))
+                return;
+            w &= ~1;
+            h &= ~1;
+            if (w <= 0 || h <= 0) {
+                pgc_error(pgc, PGC_ERROR_RANGE);
+                break;
+            }
+            dev->xh_type = 1;
+            dev->xh_w    = w;
+            dev->xh_h    = h;
+            dev->xh_on   = 1;
+            break;
+
+        case 2:
+            if (!pgc_param_byte(pgc, &ch))
+                return;
+            if (dev->fonty[ch]) {
+                dev->xh_type = 2;
+                dev->xh_ch   = ch;
+                dev->xh_on   = 1;
+            }
+            break;
+
+        default:
+            pgc_error(pgc, PGC_ERROR_RANGE);
+            break;
+    }
+
+    im1024_log("IM1024: XHAIR %i on=%i type=%i %ix%i\n", sub, dev->xh_on, dev->xh_type, dev->xh_w, dev->xh_h);
+    xh_show(dev);
+}
+
+/* XMOVE x y in raster coordinates; LOCXH confines it to the map and moves the locator too. */
+static void
+hndl_xmove(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    int16_t   x;
+    int16_t   y;
+
+    if (!pgc_param_word(pgc, &x))
+        return;
+    if (!pgc_param_word(pgc, &y))
+        return;
+
+    xh_hide(dev);
+
+    if (dev->locxh) {
+        x = clamp16(x, dev->rmap[0], dev->rmap[1]);
+        y = clamp16(y, dev->rmap[2], dev->rmap[3]);
+
+        dev->loc_x       = x;
+        dev->loc_y       = y;
+        dev->loc_v_valid = 0;
+        if (dev->locmap_mode == 1)
+            loc_publish(dev);
+    }
+    dev->xh_x = x;
+    dev->xh_y = y;
+
+    im1024_log("IM1024: XMOVE %i,%i\n", x, y);
+    xh_show(dev);
+}
+
+/* XVMOVE x y in window coordinates. */
+static void
+hndl_xvmove(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    int16_t   vx;
+    int16_t   vy;
+    int32_t   cvx;
+    int32_t   cvy;
+    int32_t   x;
+    int32_t   y;
+
+    if (!pgc_param_coord(pgc, &cvx))
+        return;
+    if (!pgc_param_coord(pgc, &cvy))
+        return;
+
+    vx = cvx >> 16;
+    vy = cvy >> 16;
+
+    xh_hide(dev);
+
+    x = vx;
+    y = vy;
+    pgc_ito_raster(pgc, &x, &y);
+    if (dev->locxh) {
+        int32_t cx = clamp16(x, dev->rmap[0], dev->rmap[1]);
+        int32_t cy = clamp16(y, dev->rmap[2], dev->rmap[3]);
+
+        vx += cx - x;
+        vy += cy - y;
+        x = cx;
+        y = cy;
+
+        dev->loc_x       = x;
+        dev->loc_y       = y;
+        dev->loc_vx      = vx;
+        dev->loc_vy      = vy;
+        dev->loc_v_valid = 1;
+        loc_publish(dev);
+    }
+    dev->xh_x = x;
+    dev->xh_y = y;
+
+    im1024_log("IM1024: XVMOVE %i,%i -> %i,%i\n", vx, vy, dev->xh_x, dev->xh_y);
+    xh_show(dev);
+}
+
+/* LOCCUR: the current point becomes the locator position. */
+static void
+hndl_loccur(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    int32_t   x   = dev->loc_x;
+    int32_t   y   = dev->loc_y;
+
+    if (dev->loc_v_valid) {
+        x = dev->loc_vx;
+        y = dev->loc_vy;
+    } else {
+        int32_t rx = x;
+        int32_t ry = y;
+
+        pgc_ito_raster(pgc, &rx, &ry);
+        x -= rx - dev->loc_x;
+        y -= ry - dev->loc_y;
+    }
+
+    im1024_log("IM1024: LOCCUR -> %i,%i\n", x, y);
+    pgc->x = x << 16;
+    pgc->y = y << 16;
+}
+
+/* LOCMAP 1 x1 x2 y1 y2 (raster) or LOCMAP 2 x1 x2 y1 y2 (window coordinates). */
+static void
+hndl_locmap(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    uint8_t   sub;
+    int16_t   v[4];
+
+    if (!pgc_param_byte(pgc, &sub))
+        return;
+    if (sub != 1 && sub != 2) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+    for (int n = 0; n < 4; n++) {
+        int32_t c;
+
+        /* The raster map is in PELs, the window map in coordinates. */
+        if (sub == 1) {
+            if (!pgc_param_word(pgc, &v[n]))
+                return;
+            continue;
+        }
+        if (!pgc_param_coord(pgc, &c))
+            return;
+        v[n] = c >> 16;
+    }
+    if (v[1] < v[0] || v[3] < v[2]) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+
+    im1024_log("IM1024: LOCMAP %i %i %i %i %i\n", sub, v[0], v[1], v[2], v[3]);
+
+    xh_hide(dev);
+    dev->locmap_mode = sub;
+    memcpy(dev->map, v, sizeof(dev->map));
+    locmap_apply(dev);
+    xh_show(dev);
+}
+
+/* LOCXH 1 ties the crosshair to the locator map, LOCXH 0 frees it. */
+static void
+hndl_locxh(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+    uint8_t   on;
+
+    if (!pgc_param_byte(pgc, &on))
+        return;
+    if (on > 1) {
+        pgc_error(pgc, PGC_ERROR_RANGE);
+        return;
+    }
+    if (on == dev->locxh)
+        return;
+
+    im1024_log("IM1024: LOCXH %i\n", on);
+
+    xh_hide(dev);
+    dev->locxh = on;
+    if (on)
+        loc_resync(dev);
+    xh_show(dev);
+}
+
+/* RESETF also drops the crosshair and puts the locator map over the whole display. */
+static void
+hndl_resetf(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+
+    xh_hide(dev);
+    dev->xh_on = 0;
+
+    pgc_reset_flags(pgc);
+
+    /* The viewport is the IMGSIZ image, not the display. */
+    pgc->vp_x2 = pgc->img_w - 1;
+    pgc->vp_y2 = pgc->img_h - 1;
+    pgc_window_scale(pgc);
+
+    dev->locmap_mode = 1;
+    dev->map[0]      = 0;
+    dev->map[1]      = pgc->visw - 1;
+    dev->map[2]      = 0;
+    dev->map[3]      = pgc->vish - 1;
+    locmap_apply(dev);
+}
+
+/* Command-list parsers for the two variable-length locator commands. */
+static int
+parse_xhair(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
+{
+    uint8_t sub;
+
+    if (!pgc_param_byte(pgc, &sub))
+        return 0;
+    if (!pgc_cl_append(cl, sub)) {
+        pgc_error(pgc, PGC_ERROR_OVERFLOW);
+        return 0;
+    }
+    if (sub == 1)
+        return pgc_parse_words(pgc, cl, 2);
+    if (sub == 2)
+        return pgc_parse_bytes(pgc, cl, 1);
+
+    return 1;
+}
+
+static int
+parse_text(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
+{
+    uint8_t delim;
+    uint8_t ch;
+
+    if (!pgc_param_byte(pgc, &delim))
+        return 0;
+    if (!pgc_cl_append(cl, delim)) {
+        pgc_error(pgc, PGC_ERROR_OVERFLOW);
+        return 0;
+    }
+
+    do {
+        if (!pgc_param_byte(pgc, &ch))
+            return 0;
+        if (!pgc_cl_append(cl, ch)) {
+            pgc_error(pgc, PGC_ERROR_OVERFLOW);
+            return 0;
+        }
+    } while (ch != delim);
+
+    return 1;
+}
+
+static int
+parse_locmap(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
+{
+    uint8_t sub;
+
+    if (!pgc_param_byte(pgc, &sub))
+        return 0;
+    if (!pgc_cl_append(cl, sub)) {
+        pgc_error(pgc, PGC_ERROR_OVERFLOW);
+        return 0;
+    }
+
+    return (sub == 2) ? pgc_parse_coords(pgc, cl, 4) : pgc_parse_words(pgc, cl, 4);
+}
+
+/*
  * Commands implemented by the IM-1024.
  *
  * TODO: A lot of commands need commandlist parsers.
@@ -994,11 +1616,9 @@ hndl_imagex(pgc_t *pgc)
  */
 static const pgc_cmd_t im1024_commands[] = {
     {"BLKMOV",  0xdf, hndl_blkmov,     pgc_parse_words, 6},
-    { "DRAW",   0x28, hndl_draw,       pgc_parse_words, 2},
-    { "D",      0x28, hndl_draw,       pgc_parse_words, 2},
     { "DOT",    0x08, hndl_dot,        NULL,            0},
-    { "ELIPSE", 0x39, hndl_ellipse,    pgc_parse_words, 2},
-    { "EL",     0x39, hndl_ellipse,    pgc_parse_words, 2},
+    { "ELIPSE", 0x39, hndl_ellipse,    pgc_parse_coords, 2},
+    { "EL",     0x39, hndl_ellipse,    pgc_parse_coords, 2},
     { "IMAGEW", 0xd9, hndl_imagew,     NULL,            0},
     { "IMAGEX", 0xda, hndl_imagex,     NULL,            0},
     { "IMGSIZ", 0x4e, hndl_imgsiz,     NULL,            0},
@@ -1012,6 +1632,8 @@ static const pgc_cmd_t im1024_commands[] = {
     { "L8RD",   0x53, pgc_hndl_lut8rd, NULL,            0},
     { "TDEFIN", 0x84, hndl_tdefin,     NULL,            0},
     { "TD",     0x84, hndl_tdefin,     NULL,            0},
+    { "TEXT",   0x80, hndl_text,       parse_text,      0},
+    { "T",      0x80, hndl_text,       parse_text,      0},
     { "TSIZE",  0x81, hndl_tsize,      NULL,            0},
     { "TS",     0x81, hndl_tsize,      NULL,            0},
     { "TWRITE", 0x8b, hndl_twrite,     NULL,            0},
@@ -1021,12 +1643,68 @@ static const pgc_cmd_t im1024_commands[] = {
     { "P",      0x30, hndl_poly,       parse_poly,      0},
     { "PLINE",  0x36, hndl_pline,      NULL,            0},
     { "PL",     0x37, hndl_pline,      NULL,            0},
-    { "MOVE",   0x10, hndl_move,       pgc_parse_words, 2},
-    { "M",      0x10, hndl_move,       pgc_parse_words, 2},
-    { "RECT",   0x34, hndl_rect,       NULL,            0},
-    { "R",      0x34, hndl_rect,       NULL,            0},
+    { "MOVE",   0x10, hndl_move,       pgc_parse_coords, 2},
+    { "M",      0x10, hndl_move,       pgc_parse_coords, 2},
+    { "RESETF", 0x04, hndl_resetf,     NULL,            0},
+    { "RF",     0x04, hndl_resetf,     NULL,            0},
+    { "XHAIR",  0xe2, hndl_xhair,      parse_xhair,     0},
+    { "XH",     0xe2, hndl_xhair,      parse_xhair,     0},
+    { "XMOVE",  0xe3, hndl_xmove,      pgc_parse_words, 2},
+    { "XM",     0xe3, hndl_xmove,      pgc_parse_words, 2},
+    { "XVMOVE", 0x1d, hndl_xvmove,     pgc_parse_coords, 2},
+    { "XV",     0x1d, hndl_xvmove,     pgc_parse_coords, 2},
+    { "LOCCUR", 0x1e, hndl_loccur,     NULL,            0},
+    { "LC",     0x1e, hndl_loccur,     NULL,            0},
+    { "X2CUR",  0x1e, hndl_loccur,     NULL,            0},
+    { "LOCMAP", 0xb4, hndl_locmap,     parse_locmap,    0},
+    { "LM",     0xb4, hndl_locmap,     parse_locmap,    0},
+    { "LOCXH",  0x6c, hndl_locxh,      pgc_parse_bytes, 1},
+    { "LX",     0x6c, hndl_locxh,      pgc_parse_bytes, 1},
     { "******", 0x00, NULL,            NULL,            0}
 };
+
+/*
+ * Firmware 2.21 writes the model id 02 to C63FA on every boot (06 on
+ * the IM-640); AutoCAD's DS1024.DRV reads it and refuses anything else,
+ * so it must also survive the C63FF reboot. The card then comes up as a
+ * PGC: a 640x480 image centred on the 1024x800 display.
+ */
+static void
+im1024_reset(pgc_t *pgc)
+{
+    im1024_t *dev = (im1024_t *) pgc;
+
+    pgc->mapram[0x3fa] = 0x02;
+
+    /* The restart discards the fast FIFO with the ring buffers. */
+    dev->fifo_wrptr = dev->fifo_rdptr = 0;
+
+    /* Coordinates are 16.16 until a driver asks for words with IPREC. */
+    pgc->coord_words = 0;
+
+    pgc->img_w = 640;
+    pgc->img_h = 480;
+    pgc->vp_x2 = pgc->img_w - 1;
+    pgc->vp_y2 = pgc->img_h - 1;
+    pgc_window_scale(pgc);
+    im1024_set_origin(dev);
+
+    /* No crosshair, LOCXH on, the map over the whole display, locator centred. */
+    dev->xh_on       = 0;
+    dev->xh_type     = 0;
+    dev->xh_w        = 0;
+    dev->xh_h        = 0;
+    dev->xh_drawn    = 0;
+    dev->locxh       = 1;
+    dev->locmap_mode = 1;
+    dev->map[0]      = 0;
+    dev->map[1]      = pgc->visw - 1;
+    dev->map[2]      = 0;
+    dev->map[3]      = pgc->vish - 1;
+    dev->loc_x       = pgc->visw / 2;
+    dev->loc_y       = pgc->vish / 2;
+    locmap_apply(dev);
+}
 
 static void *
 im1024_init(UNUSED(const device_t *info))
@@ -1037,12 +1715,18 @@ im1024_init(UNUSED(const device_t *info))
 
     video_load_font(BIOS_ROM_PATH, FONT_FORMAT_IM1024, LOAD_FONT_NO_OFFSET);
 
+    /* The card's small font is optional; without it, TSIZE 8..11 samples. */
+    dev->have_font8x12 = rom_present(FONT_ROM_PATH_8X12);
+    if (dev->have_font8x12)
+        video_load_font(FONT_ROM_PATH_8X12, FONT_FORMAT_IM1024_8X12, LOAD_FONT_NO_OFFSET);
+
     dev->fifo_len   = 4096;
     dev->fifo       = (uint8_t *) calloc(1, dev->fifo_len);
     dev->fifo_wrptr = 0;
     dev->fifo_rdptr = 0;
 
     /* Create a 1024x1024 framebuffer with 1024x800 visible. */
+    dev->pgc.on_reset = im1024_reset;
     pgc_init(&dev->pgc, 1024, 1024, 1024, 800, input_byte, 65000000.0);
 
     dev->pgc.commands = im1024_commands;

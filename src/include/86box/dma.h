@@ -79,6 +79,7 @@ extern uint8_t dma_e;
 extern uint8_t dma_m;
 
 extern void dma_init(void);
+extern void dma_init_ibm5140(void);
 extern void dma16_init(void);
 extern void ps2_dma_init(void);
 extern void dma_reset(void);

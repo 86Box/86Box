@@ -81,6 +81,9 @@ msgstr "Pencere &boyutunu belirle…"
 msgid "Force &4:3 display ratio"
 msgstr "&4:3 görüntü oranına zorla"
 
+msgid "Force &%1:%2 display ratio"
+msgstr "&%1:%2 görüntü oranına zorla"
+
 msgid "&Window scale factor"
 msgstr "Pencere &boyut ölçeği"
 
@@ -2975,8 +2978,14 @@ msgstr "[Genel] 1989 (3500 RPM)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Genel] 1992 (3600 RPM)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Genel] 1993 (4000 RPM)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Genel] 1994 (4500 RPM)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Genel] 1995 (5200 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Genel] 1996 (5400 RPM)"
@@ -2989,6 +2998,9 @@ msgstr "[Genel] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Genel] 2000 (7200 RPM)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Genel] 2004 (10000 RPM)"
 
 msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A klonu"
@@ -3040,6 +3052,15 @@ msgstr "Model"
 
 msgid "Model:"
 msgstr "Model:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Vulkan derleyicisi başlatılamadı."

@@ -170,7 +170,7 @@ start_tx:
         case PLIP_TX_DATA_LOW:
             if (!(val & 0x10))
                 return; /* D4==!nBusy not asserted yet */
-            if (LIKELY(dev->tx_ptr) < sizeof(dev->tx_pkt))
+            if (LIKELY(dev->tx_ptr < sizeof(dev->tx_pkt)))
                 dev->tx_pkt[dev->tx_ptr] = val & 0x0f;
             dev->state = PLIP_TX_DATA_HIGH;
             dev->status &= ~0x80;
@@ -179,7 +179,7 @@ start_tx:
         case PLIP_TX_DATA_HIGH:
             if (val & 0x10)
                 return; /* !D4==nBusy not asserted yet */
-            if (LIKELY(dev->tx_ptr) < sizeof(dev->tx_pkt)) {
+            if (LIKELY(dev->tx_ptr < sizeof(dev->tx_pkt))) {
                 dev->tx_pkt[dev->tx_ptr] |= val << 4;
                 dev->tx_checksum_calc    += dev->tx_pkt[dev->tx_ptr];
                 plip_log(dev->log, 2, "tx_pkt[%d] = %02X\n", dev->tx_ptr, dev->tx_pkt[dev->tx_ptr]);
@@ -425,6 +425,13 @@ plip_init(const device_t *info)
     plip_log(dev->log, 1, "init()\n");
 
     dev->lpt  = lpt_attach_ex(device_get_config_int("port"), plip_write_data, plip_write_ctrl, NULL, plip_read_status, NULL, NULL, NULL, dev);
+    if (dev->lpt == NULL) {
+        /* Another device (e.g. a parallel-port tape drive) already has this port. */
+        plip_log(dev->log, 1, "parallel port already claimed by another device\n");
+        log_close(dev->log);
+        free(dev);
+        return NULL;
+    }
     dev->card = network_attach(dev, dev->mac, plip_rx, NULL);
 
     memset(dev->mac, 0xfc, 6); /* static MAC used by Linux; just a placeholder */

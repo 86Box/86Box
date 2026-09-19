@@ -101,6 +101,7 @@ static const NETWORK_CARD net_cards[] = {
     /* COM */
     { &modem_device               },
     /* LPT */
+    { &pe3_device                 },
     { &plip_device                },
     /* ISA16 */
     { &pcnet_am79c960_device      },
@@ -113,6 +114,9 @@ static const NETWORK_CARD net_cards[] = {
     { &wd8003ea_device            },
     { &wd8003eta_device           },
     { &wd8013epa_device           },
+    { &ibm_ethernet_efe5_device   },
+    { &ibm_ethernet_efd5_device   },
+    { &ibm_ethernet_efd4_device   },
     /* VLB */
     { &pcnet_am79c960_vlb_device  },
     /* PCI */

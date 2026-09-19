@@ -26,6 +26,8 @@
 #include <86box/ui.h>
 #include <86box/hdd.h>
 #include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
 #include <86box/video.h>
 #include <86box/hdd_audio.h>
 #include "cpu.h"
@@ -65,12 +67,19 @@ hdd_string_to_bus(char *str, int cdrom)
 
     if (!strcmp(str, "scsi"))
         return HDD_BUS_SCSI;
-    
+
     if (!strcmp(str, "mitsumi") && cdrom)
         return CDROM_BUS_MITSUMI;
 
     if (!strcmp(str, "mke") && cdrom)
         return CDROM_BUS_MKE;
+
+    /* Removable-mode only: the QIC-117 tape buses. */
+    if (!strcmp(str, "lpt") && cdrom)
+        return TAPE_BUS_LPT;
+
+    if (!strcmp(str, "fdc") && cdrom)
+        return TAPE_BUS_FDC;
 
     return HDD_BUS_DISABLED;
 }
@@ -119,6 +128,17 @@ hdd_bus_to_string(int bus, int cdrom)
         case CDROM_BUS_MKE:
             if (cdrom)
                 s = "mke";
+            break;
+
+        /* Removable-mode only: the QIC-117 tape buses. */
+        case TAPE_BUS_LPT:
+            if (cdrom)
+                s = "lpt";
+            break;
+
+        case TAPE_BUS_FDC:
+            if (cdrom)
+                s = "fdc";
             break;
     }
 
@@ -1087,6 +1107,13 @@ hdd_preset_get_from_internal_name(char *s)
     return 0;
 }
 
+int
+hdd_preset_is_generic(int preset)
+{
+    return (preset >= 0 && preset < hdd_preset_get_num() &&
+            !strncmp(hdd_speed_presets[preset].name, "[Generic]", 9));
+}
+
 void
 hdd_preset_apply(int hdd_id)
 {
@@ -1112,6 +1139,14 @@ hdd_preset_apply(int hdd_id)
     hd->vendor  = preset->vendor;
     hd->model   = preset->model;
     hd->version = preset->version;
+    if (hdd_preset_is_generic(hd->speed_preset)) {
+        if (hd->custom_vendor[0])
+            hd->vendor = hd->custom_vendor;
+        if (hd->custom_model[0])
+            hd->model = hd->custom_model;
+        if (hd->custom_version[0])
+            hd->version = hd->custom_version;
+    }
 
     if (!hd->speed_preset)
         return;

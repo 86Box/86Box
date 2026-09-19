@@ -3103,6 +3103,10 @@ banshee_pci_read(int func, int addr, UNUSED(int len), void *priv)
             ret = banshee->pci_regs[0x04] & 0x27;
             break;
 
+        case 0x06:
+            ret = PCI_STATUS_L_CAPAB | (banshee->agp ? PCI_STATUS_L_66MHZ : 0);
+            break;
+
         case 0x07:
             ret = banshee->pci_regs[0x07] & 0x36;
             break;

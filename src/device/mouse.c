@@ -73,6 +73,22 @@ static const device_t mouse_none_device = {
     .config        = NULL
 };
 
+/* The machine supplies its own device when this is selected, the way the
+   internal mouse does; tablet_reset() has nothing to add. */
+static const device_t tablet_internal_device = {
+    .name          = "Internal",
+    .internal_name = "internal",
+    .flags         = 0,
+    .local         = TABLET_TYPE_INTERNAL,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 static const device_t mouse_internal_device = {
     .name          = "Internal",
     .internal_name = "internal",
@@ -112,11 +128,13 @@ static mouse_t mouse_devices[] = {
 
 static mouse_t tablet_devices[] = {
     { &mouse_none_device                },
+    { &tablet_internal_device           },
 #ifdef USE_WACOM
     { &mouse_wacom_tablet_device        },
     { &mouse_wacom_artpad_tablet_device },
 #endif
     { &mouse_mtouch_device              },
+    { &mouse_ibm7690_touch_device        },
     { &mouse_cga_lightpen_device        },
     { &mouse_pxl_380_device             },
     { NULL                              }
@@ -762,6 +780,29 @@ mouse_get_buttons(void)
     return mouse_nbut;
 }
 
+/*
+   Returns the host mouse buttons that release the mouse capture, as a
+   mouse_get_buttons_ex() mask.
+
+   The middle button is used as long as the guest can not see it. Once it can,
+   the thumb buttons take over, and once the guest can see those as well, there
+   is no button left to spare and only the keyboard shortcut remains.
+
+   The returned masks are mutually exclusive by construction.
+ */
+int
+mouse_get_release_buttons(void)
+{
+    int ret = 0x00;
+
+    if (mouse_nbut < 3)
+        ret = MOUSE_RELEASE_MIDDLE;
+    else if (mouse_nbut < 5)
+        ret = MOUSE_RELEASE_THUMB;
+
+    return ret;
+}
+
 /* Return number of MOUSE types we know about. */
 int
 mouse_get_ndev(void)
@@ -799,7 +840,12 @@ tablet_reset(void)
     /* Poll at 100 Hz. */
     tablet_set_sample_rate(100.0);
 
-    if ((tablet_type > 0) && (tablet_devices[tablet_type].device != NULL))
+    /* The internal slot is the machine's to fill, as the internal mouse is; a
+       machine that supplies none falls back to the slot's own device. */
+    if (tablet_type == TABLET_TYPE_INTERNAL) {
+        if (machine_get_tablet_device(machine) == NULL)
+            mouse_ex_priv = device_add(tablet_devices[TABLET_TYPE_INTERNAL].device);
+    } else if (tablet_devices[tablet_type].device != NULL)
         mouse_ex_priv = device_add(tablet_devices[tablet_type].device);
 
     if (!mouse_both_enabled()) {

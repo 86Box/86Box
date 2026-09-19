@@ -47,8 +47,6 @@ private slots:
     void on_comboBoxSCSI4_currentIndexChanged(int index);
     void on_pushButtonSCSI4_clicked();
 
-    void on_checkBoxFloppyTape_stateChanged(int state);
-
 private:
     Ui::SettingsStorageControllers *ui;
     int                             machineId = 0;

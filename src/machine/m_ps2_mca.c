@@ -101,7 +101,6 @@ static struct ps2_t {
     uint32_t split_phys;
 
     uint8_t mem_pos_regs[8];
-    uint8_t mem_2mb_pos_regs[8];
 
     int pending_cache_miss;
 
@@ -478,6 +477,31 @@ ps55_model_50v_read(uint16_t port)
     }
     return 0xff;
 }
+
+static void
+model_50_mem_recalc(void)
+{
+    uint32_t state = (ps2.option[1] & 0x01) ?
+                     (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL):
+                     (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    uint32_t low_size = (mem_size < 640) ? (mem_size << 10) : 0x000a0000;
+    uint32_t remap_base = (mem_size >= 1024) ? mem_size : 1024;
+    uint32_t remap_size = MIN(mem_size - 640, 384);
+
+    /* 103h bit 0 = Enable System Board RAM. Clearing it makes the
+       planar RAM stop answering on the bus, then a memory adapter
+       card could fill back the conventional memory area for use. */
+    mem_set_mem_state_both(0x00000000, low_size, state);
+
+    if (mem_size > 640) {
+        /* High planar RAM above 1M, then the A0000h-FFFFFh part
+           remapped on top of it (mem_remap_top(384) at init). */
+        if (mem_size > 1024)
+            mem_set_mem_state_both(0x00100000, (mem_size - 1024) << 10, state);
+        mem_set_mem_state_both(remap_base << 10, remap_size << 10, state);
+    }
+}
+
 static void
 model_50_write(uint16_t port, uint8_t val)
 {
@@ -511,6 +535,7 @@ model_50_write(uint16_t port, uint8_t val)
             break;
         case 0x103:
             ps2.option[1] = (ps2.option[1] & 0xfe) | (val & 0x01);
+            model_50_mem_recalc();
             break;
         case 0x104:
             ps2.option[2] = val;
@@ -1226,13 +1251,9 @@ ps2_mca_board_model_50_init(void)
             break;
     }
 
-    /* Enable password function */
-    ps2.option[1] |= 0x02;
-
-    if (mem_size > 2048) {
-        /* Only 2 MB supported on planar, create a memory expansion card for the rest */
-        ps2_mca_mem_fffc_init(2);
-    }
+    /* Enable password function and system board RAM (103h bit 0), so the
+       planar memory answers until a driver disables it at runtime. */
+    ps2.option[1] |= (0x02 | 0x01);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
@@ -1273,13 +1294,9 @@ ps2_mca_board_model_60_init(void)
             break;
     }
 
-    /* Enable password function */
-    ps2.option[1] |= 0x02;
-
-    if (mem_size > 4096) {
-        /* Only 4 MB supported on planar, create a memory expansion card for the rest */
-        ps2_mca_mem_fffc_init(4);
-    }
+    /* Enable password function and system board RAM (103h bit 0), so the
+       planar memory answers until a driver disables it at runtime. */
+    ps2.option[1] |= (0x02 | 0x01);
 
     device_add(&ps2_nvr_55ls_device);
 
@@ -1461,15 +1478,17 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
         case 0xe1:
             ps2.mem_regs[1] = val;
             break;
-        case 0xe2:
-            old             = ps2.mem_regs[2];
-            ps2.mem_regs[2] = (ps2.mem_regs[2] & 0x80) | (val & ~0x88);
+        case 0xe2: {
+            uint8_t new;
+
+            old = ps2.mem_regs[2];
+            new = (old & 0x80) | (val & ~0x88);
             if (val & 2) {
                 ps2_mca_log("Clear latch - %i\n", ps2.pending_cache_miss);
                 if (ps2.pending_cache_miss)
-                    ps2.mem_regs[2] |= 0x80;
+                    new |= 0x80;
                 else
-                    ps2.mem_regs[2] &= ~0x80;
+                    new &= ~0x80;
                 ps2.pending_cache_miss = 0;
             }
 
@@ -1477,14 +1496,29 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
                 ps2.pending_cache_miss = 1;
             if ((val & 0x21) == 0x01 && (old & 0x21) != 0x01)
                 ps2_cache_clean();
-#if 1
-            // FIXME: Look into this!!!
+
+            ps2.mem_regs[2] = new;
+
+            /* Only bits 0 and 5 affect the memory mappings and ROM wait
+               states, so skip the expensive full-range mapping recalc
+               when neither of those bits changed. */
+            if (!((new ^ old) & 0x21))
+                return;
+
+            /* Force interpreter if the cache is disabled, which is
+               required by model 70 type 4 BIOS to pass PIT tests. */
             if (val & 0x01)
+            {
                 ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
+                cpu_override_dynarec   = 1;
+            }
             else
+            {
                 ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
-#endif
+                cpu_override_dynarec   = 0;
+            }
             break;
+        }
 
         default:
             break;
@@ -1517,24 +1551,28 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+    ps2.mem_regs[2] = 0x01; /* Cache disabled and flushed at power-on */
 
     switch (mem_size / 1024) {
         case 2:
-            ps2.option[1] = 0xa6;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xfe;
+            ps2.option[2] = 0xe3;
             break;
         case 4:
-            ps2.option[1] = 0xaa;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xfa;
+            ps2.option[2] = 0xc3;
             break;
         case 6:
-            ps2.option[1] = 0xca;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xda;
+            ps2.option[2] = 0x83;
             break;
         case 8:
         default:
-            ps2.option[1] = 0xca;
+            ps2.option[1] = 0xda;
             ps2.option[2] = 0x02;
             break;
     }
@@ -1570,6 +1608,10 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
 
+    /* Shadowed ROM areas use ROM timings until the cache is
+       enabled, which is required by model 70 type 3 BIOS. */
+    ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
+
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */
         if (mem_size > 16384)
@@ -1598,7 +1640,11 @@ ps2_mca_board_model_80_type2_init(void)
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = 0xc0 | ((mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f));
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0xca : 0xc2; /* -ENSPLIT = 1 */
+
     /* Note: Based on the information on ardent-tool.com website,
        IBM PS/2 model 80 type 2 supports 1/2/4 MB memory cards on
        real machines, so memory encodings should be set as is. */
@@ -1627,8 +1673,6 @@ ps2_mca_board_model_80_type2_init(void)
             ps2.option[1] = 0x9a; /* 10 01 10 10 = 4 4 */
             break;
     }
-
-    ps2.mem_regs[0] |= ((mem_size / 1024) & 0x0f);
 
     mem_mapping_add(&ps2.split_mapping,
                     (mem_size + 256) * 1024,
@@ -1674,23 +1718,27 @@ ps2_mca_board_model_80_type3_init(void)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    /* Disable/Enable E0000 - E0FFF (Make 2 KB hole for Display Adapter) */
-    ps2.option[2] &= ~0x01;
-    ps2.has_e0000_hole = 1;
-
-    ps2.mem_regs[1] = 2;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+    ps2.mem_regs[2] = 0x01; /* Cache disabled and flushed at power-on */
 
     switch (mem_size / 1024) {
         case 4:
-            ps2.option[1] = 0x86;
-            ps2.option[2] = 0x01;
+            ps2.option[1] = 0xde;
+            ps2.option[2] = 0xe2;
             break;
         case 8:
         default:
-            ps2.option[1] = 0x8a;
-            ps2.option[2] = 0x02;
+            ps2.option[1] = 0x9a;
+            ps2.option[2] = 0xc2;
             break;
     }
+
+    ps2.option[1] |= 0x10; /* Bit 4: Security Override not grounded */
+    ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
+    ps2.has_e0000_hole = 1;
 
     mem_mapping_add(&ps2.split_mapping,
                     (mem_size + 256) * 1024,
@@ -1719,6 +1767,10 @@ ps2_mca_board_model_80_type3_init(void)
                     MEM_MAPPING_INTERNAL,
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
+
+    /* Shadowed ROM areas use ROM timings until the cache is
+       enabled, which is required by model 80 type 3 BIOS. */
+    ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
 
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */
@@ -1749,7 +1801,11 @@ ps55_mca_board_model_50t_init(void)
 
     io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+
     ps2.option[2] &= 0xfe; /* Bit 0: Disable E0000-E0FFFh (4 KB) */
     ps2.has_e0000_hole = 1;
 
@@ -1796,7 +1852,12 @@ ps55_mca_board_model_50v_init(void)
 
     io_sethandler(0x00e0, 0x0003, mem_encoding_read_cached, NULL, NULL, mem_encoding_write_cached, NULL, NULL, NULL);
 
-    ps2.mem_regs[1] = 2;
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = (mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f);
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+    ps2.mem_regs[2] = 0x01; /* Cache disabled and flushed at power-on */
+
     ps2.option[2] &= 0xf2; /*   Bit 3-2: -Cache IDs, Bit 1: Reserved
                                 Bit 0: Disable E0000-E0FFFh (4 KB) */
     ps2.has_e0000_hole = 1;
@@ -1828,6 +1889,10 @@ ps55_mca_board_model_50v_init(void)
                     MEM_MAPPING_INTERNAL,
                     NULL);
     mem_mapping_disable(&ps2.cache_mapping);
+
+    /* Shadowed ROM areas use ROM timings until the cache is
+       enabled, which is required by PS/55 model 5550-V BIOS. */
+    ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
 
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */

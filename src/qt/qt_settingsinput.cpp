@@ -249,7 +249,17 @@ SettingsInput::onCurrentMachineChanged(int machineId)
         if (!has_cga_pen && !strcmp(tablet_get_internal_name(i), "cga_lightpen"))
             continue;
 
-        QString name = DeviceConfig::DeviceName(dev, tablet_get_internal_name(i), 0);
+        /* Allow tablet types other than the "internal device" to be chosen. */
+        QString name;
+        if (i == TABLET_TYPE_INTERNAL) {
+            const device_t *mdev = machine_get_tablet_device(machineId);
+            /* Use the device name instead of hardcoding it here. */
+            if (mdev != nullptr)
+                name = tr("Internal device (%1)").arg(QString::fromUtf8(mdev->name));
+            else
+                name = QString::fromUtf8(dev->name);
+        } else
+            name = DeviceConfig::DeviceName(dev, tablet_get_internal_name(i), 0);
         int     row  = tabletModel->rowCount();
         tabletModel->insertRow(row);
         auto idx = tabletModel->index(row, 0);

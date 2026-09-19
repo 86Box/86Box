@@ -26,9 +26,12 @@ extern "C" {
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/scsi_tape.h>
 #include <86box/fdd_audio.h>
 }
 
@@ -163,6 +166,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 #else
         ifa[i] = 0;
 #endif
+        Harddrives::busTrackClass->device_track(fdd_get_type(i) ? 1 : 0, DEV_FDD, TAPE_BUS_FDC, i);
     }
 
     for (int i = 0; i < model->columnCount(); i++)
@@ -262,6 +266,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     ui->comboBoxCDROMType->setEnabled(eligibleRows > 1);
     ui->comboBoxCDROMType->setCurrentIndex(-1);
     ui->comboBoxCDROMType->setCurrentIndex(selectedTypeRow);
+    onCurrentMachineChanged(machine);
 }
 
 SettingsFloppyCDROM::~SettingsFloppyCDROM()
@@ -270,6 +275,26 @@ SettingsFloppyCDROM::~SettingsFloppyCDROM()
     delete scFloppyType;
 
     delete ui;
+}
+
+void
+SettingsFloppyCDROM::onCurrentMachineChanged(int machineId)
+{
+    const bool fixed = machines[machineId].init == machine_ibm5140_init;
+    auto *model = ui->treeViewFloppy->model();
+    ui->comboBoxFloppyType->setEnabled(!fixed);
+    ui->checkBoxTurboTimings->setEnabled(!fixed);
+    for (int i = 0; i < FDD_NUM; i++) {
+        ui->treeViewFloppy->setRowHidden(i, QModelIndex(), fixed && i >= 2);
+        if (fixed) {
+            const auto idx = model->index(i, 0);
+            setFloppyType(model, idx, i < 2 ? fdd_get_from_internal_name((char *) "35_2dd") : 0);
+            model->setData(idx.siblingAtColumn(1), tr("Off"));
+        }
+    }
+    if (fixed)
+        ui->treeViewFloppy->setCurrentIndex(model->index(0, 0));
+    onFloppyRowChanged(ui->treeViewFloppy->currentIndex());
 }
 
 int
@@ -498,7 +523,9 @@ SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index)
 {
     auto currentIndex = ui->treeViewFloppy->selectionModel()->currentIndex();
     auto typeIndex    = currentIndex.siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_FDD, TAPE_BUS_FDC, currentIndex.row());
     setFloppyType(ui->treeViewFloppy->model(), typeIndex, index);
+    Harddrives::busTrackClass->device_track(index ? 1 : 0, DEV_FDD, TAPE_BUS_FDC, currentIndex.row());
     ui->treeViewFloppy->resizeColumnToContents(0);
 
     // Trigger row changed to rebuild audio profile list

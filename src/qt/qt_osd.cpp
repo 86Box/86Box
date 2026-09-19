@@ -367,6 +367,12 @@ qt_osd_is_visible(void)
     return g_visible;
 }
 
+bool
+qt_osd_needs_render(void)
+{
+    return g_visible || osd_core_needs_render();
+}
+
 void
 qt_osd_toggle(void)
 {
@@ -442,6 +448,7 @@ qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf)
             osd_close();
     }
     osd_core_draw_indicators();
+    osd_core_draw_message();
 
     ImGui::Render();
     if (g_vk_enabled)
@@ -475,6 +482,7 @@ qt_osd_render_software(int logical_w, int logical_h, float dpr)
             osd_close();
     }
     osd_core_draw_indicators();
+    osd_core_draw_message();
     ImGui::Render();
 
     osd_raster_render(ImGui::GetDrawData(), g_software_surface, dpr);

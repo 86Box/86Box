@@ -1972,7 +1972,7 @@ gd54xx_recalctimings(svga_t *svga)
                 svga->hblank_end_val = svga->htotal - 1 /* + ((svga->crtc[3] >> 5) & 3)*/;
 
                 /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
-            if (!svga->scrblank && svga->attr_palette_enable)
+                if (!svga->scrblank && svga->attr_palette_enable)
                     svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
 
                 svga->monitor->mon_overscan_y = 0;
@@ -2163,8 +2163,9 @@ gd54xx_recalctimings(svga_t *svga)
                             svga->bpp = 8;
                             if (linedbl)
                                 svga->render = svga_render_8bpp_lowres;
-                            else
+                            else {
                                 svga->render = svga_render_8bpp_highres;
+                            }
                             break;
 
                         default:
@@ -2230,6 +2231,15 @@ gd54xx_recalctimings(svga_t *svga)
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) && (((svga->gdcreg[6] >> 2) & 0x03) != 0x01)) {
         svga->extra_banks[0] = 0;
         svga->extra_banks[1] = 0x8000;
+    }
+
+    if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5446) && linedbl &&
+        !svga->vertical_linedbl && (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) &&
+        (svga->render == svga_render_8bpp_lowres) && (svga->dispend == 768)) {
+        svga->render = svga_render_8bpp_highres;
+        svga->hdisp <<= 1;
+        svga->dots_per_clock <<= 1;
+        svga->clock *= 2.0;
     }
 }
 
@@ -2368,8 +2378,15 @@ gd54xx_mem_sys_pos_adj(gd54xx_t *gd54xx, uint8_t ap, uint32_t pos)
 {
     uint32_t ret = pos;
 
-    if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
-        !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)) {
+    /*
+       Apertures 1 and 2 swap the byte lanes (16-bit and 32-bit swap
+       respectively). That is a property of the memory window itself, so it
+       applies to the blitter's system source data regardless of the color
+       expansion granularity - the Windows 3.1x driver feeds dword granularity
+       color expands through aperture 2 and byte granularity ones through
+       aperture 1.
+    */
+    if (gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) {
         switch (ap) {
             case 1:
                 ret ^= 1;
@@ -2463,9 +2480,6 @@ gd54xx_writew(uint32_t addr, uint16_t val, void *priv)
 
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest &&
         !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY))
-            val = (val >> 8) | (val << 8);
-
         gd54xx_write(addr, val, svga);
         gd54xx_write(addr + 1, val >> 8, svga);
         return;
@@ -2498,9 +2512,6 @@ gd54xx_writel(uint32_t addr, uint32_t val, void *priv)
 
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest &&
         !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && (gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY))
-            val = ((val & 0xff000000) >> 24) | ((val & 0x00ff0000) >> 8) | ((val & 0x0000ff00) << 8) | ((val & 0x000000ff) << 24);
-
         gd54xx_write(addr, val, svga);
         gd54xx_write(addr + 1, val >> 8, svga);
         gd54xx_write(addr + 2, val >> 16, svga);
@@ -4242,6 +4253,18 @@ gd54xx_mem_sys_src(gd54xx_t *gd54xx, uint32_t cpu_dat, uint32_t count)
             mask_shift = 31 - byte_pos;
             if (!(gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND))
                 cpu_dat >>= byte_pos;
+            else
+                /*
+                   The dword has been assembled from the host byte stream in little
+                   endian order, but the color expansion consumes it from the most
+                   significant bit downwards, and "the most-significant bit of the
+                   first source byte is expanded to the first pixel in the
+                   destination" (CL-GD5446 TRM, GR30 bit 7). Swap the bytes so the
+                   first byte written by the host is the first one expanded - this
+                    also makes the GR2F[6:5] source byte skip select the correct byte.
+                */
+                cpu_dat = (cpu_dat >> 24) | ((cpu_dat >> 8) & 0x0000ff00) |
+                          ((cpu_dat << 8) & 0x00ff0000) | (cpu_dat << 24);
         } else
             mask_shift = 7;
 

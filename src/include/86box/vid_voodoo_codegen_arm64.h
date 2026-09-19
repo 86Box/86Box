@@ -1061,6 +1061,7 @@ arm64_codegen_check_branch_offset(const char *kind, int32_t off, int imm_bits)
 #define STATE_x_tiled      568
 #define STATE_w_depth      572
 #define STATE_ebp_store    580
+#define STATE_tex_lod      440  /* int *[2], stride 8: stored mip level per LOD index */
 #define STATE_lod_frac     588  /* [2] array, stride 4 */
 #define STATE_stipple      596
 
@@ -1092,6 +1093,7 @@ arm64_codegen_check_branch_offset(const char *kind, int32_t off, int imm_bits)
 #define STATE_tex_a_n(tmu)       (STATE_tex_a + (tmu) * 4)
 #define STATE_tex_n(tmu)         (STATE_tex + (tmu) * 72)
 #define STATE_lod_frac_n(tmu)    (STATE_lod_frac + (tmu) * 4)
+#define STATE_tex_lod_n(tmu)     (STATE_tex_lod + (tmu) * 8)
 
 #define PARAMS_tmu_dSdX(tmu)     ((tmu) ? PARAMS_tmu1_dSdX : PARAMS_tmu0_dSdX)
 #define PARAMS_tmu_dWdX(tmu)     ((tmu) ? PARAMS_tmu1_dWdX : PARAMS_tmu0_dWdX)
@@ -1136,6 +1138,8 @@ VOODOO_ASSERT_OFFSET(voodoo_state_t, x_tiled,    STATE_x_tiled);
 VOODOO_ASSERT_OFFSET(voodoo_state_t, w_depth,    STATE_w_depth);
 VOODOO_ASSERT_OFFSET(voodoo_state_t, ebp_store,  STATE_ebp_store);
 VOODOO_ASSERT_OFFSET(voodoo_state_t, lod_frac[0], STATE_lod_frac);
+VOODOO_ASSERT_OFFSET(voodoo_state_t, tex_lod[0],  STATE_tex_lod);
+VOODOO_ASSERT_OFFSET(voodoo_state_t, tex_lod[1],  STATE_tex_lod_n(1));
 VOODOO_ASSERT_OFFSET(voodoo_state_t, stipple,     STATE_stipple);
 
 VOODOO_ASSERT_OFFSET(voodoo_params_t, dBdX,            PARAMS_dBdX);
@@ -1250,7 +1254,7 @@ static uint32_t          i_00_ff_w[2] = { 0, 0xff };
  *
  * Register usage within this function:
  *   x0 = state, x1 = params (pinned)
- *   x4-x7, x10-x15 = scratch GPR
+ *   x4-x7, x10-x16 = scratch GPR (x16 = stored mip level in the texture fetch)
  *   x19 = logtable pointer (pinned)
  *   x25 = bilinear_lookup pointer (pinned)
  *   v0-v7, v16-v17 = scratch NEON
@@ -1345,8 +1349,8 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         /* MOV w12, w11 -- save BSR result for shift */
         addlong(ARM64_MOV_REG(12, 11));
 
-        /* SUB w11, w11, #19 -- exp = BSR - 19 */
-        addlong(ARM64_SUB_IMM(11, 11, 19));
+        /* SUB w11, w11, #W_RECIPROCAL_LOG2_OFFSET -- exp = BSR - 16 = log2(1 / W) */
+        addlong(ARM64_SUB_IMM(11, 11, W_RECIPROCAL_LOG2_OFFSET));
 
         /* LSR x4, x4, x12 -- shift quotient by BSR amount (64-bit) */
         addlong(ARM64_LSR_REG_X(4, 4, 12));
@@ -1378,6 +1382,11 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addlong(ARM64_LDR_W(10, 0, STATE_lod_max_n(tmu)));
         addlong(ARM64_CMP_REG(4, 10));
         addlong(ARM64_CSEL(4, 10, 4, COND_GE));  /* if lod >= max, lod = max */
+
+        /* lod_frac[tmu] = lod & 0xff: the LOD_FRAC trilinear blend weight,
+         * taken from the clamped 8.8 LOD before it is reduced to the level index. */
+        addlong(ARM64_UXTB(10, 4));
+        addlong(ARM64_STR_W(10, 0, STATE_lod_frac_n(tmu)));
 
         /* LSR w4, w4, #8 -- integer LOD */
         addlong(ARM64_LSR_IMM(4, 4, 8));
@@ -1447,16 +1456,21 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
 
             /* MOV w7, #8  (initial tex_shift) */
             addlong(ARM64_MOVZ_W(7, 8));
-            /* w6 = LOD (cached, no reload needed) */
+            /* w6 = LOD index (cached, no reload needed): indexes tex[], the mask
+             * arrays and tex_lod[]. The coordinate shifts use the STORED mip
+             * level w16 = state->tex_lod[tmu][lod], which differs from the index
+             * for split (odd/even levels on different TMUs) textures. */
+            addlong(ARM64_LDR_X(16, 0, STATE_tex_lod_n(tmu)));
+            addlong(ARM64_LDR_W_REG_LSL2(16, 16, 6));
             /* MOV w10, #1 */
             addlong(ARM64_MOVZ_W(10, 1));
-            /* SUB w7, w7, w6  (tex_shift = 8 - lod) */
-            addlong(ARM64_SUB_REG(7, 7, 6));
-            /* LSL w10, w10, w6  (1 << lod) */
-            addlong(ARM64_LSL_REG(10, 10, 6));
+            /* SUB w7, w7, w16  (tex_shift = 8 - tex_lod) */
+            addlong(ARM64_SUB_REG(7, 7, 16));
+            /* LSL w10, w10, w16  (1 << tex_lod) */
+            addlong(ARM64_LSL_REG(10, 10, 16));
             /* LDP w4, w5, [x0, #STATE_tex_s] -- load tex_s and tex_t */
             addlong(ARM64_LDP_OFF_W(4, 5, 0, STATE_tex_s));
-            /* LSL w10, w10, #3  ((1 << lod) << 3 = 1 << (lod+3)) */
+            /* LSL w10, w10, #3  ((1 << tex_lod) << 3 = 1 << (tex_lod+3)) */
             addlong(ARM64_LSL_IMM(10, 10, 3));
 
             /* Mirror S */
@@ -1476,14 +1490,14 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
                 PATCH_FORWARD_TBxZ(mirror_t_skip);
             }
 
-            /* SUB w4, w4, w10  (S -= (1 << (lod+3))) */
+            /* SUB w4, w4, w10  (S -= (1 << (tex_lod+3))) */
             addlong(ARM64_SUB_REG(4, 4, 10));
-            /* SUB w5, w5, w10  (T -= (1 << (lod+3))) */
+            /* SUB w5, w5, w10  (T -= (1 << (tex_lod+3))) */
             addlong(ARM64_SUB_REG(5, 5, 10));
-            /* ASR w4, w4, w6  (S >>= lod) */
-            addlong(ARM64_ASR_REG(4, 4, 6));
-            /* ASR w5, w5, w6  (T >>= lod) */
-            addlong(ARM64_ASR_REG(5, 5, 6));
+            /* ASR w4, w4, w16  (S >>= tex_lod) */
+            addlong(ARM64_ASR_REG(4, 4, 16));
+            /* ASR w5, w5, w16  (T >>= tex_lod) */
+            addlong(ARM64_ASR_REG(5, 5, 16));
 
             /* Extract sub-texel fractions for bilinear weight lookup.
              * frac_s = S & 0xF, frac_t = (T & 0xF) << 4
@@ -1759,16 +1773,20 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
             addlong(ARM64_ADD_IMM_X(11, 0, STATE_tex_n(tmu)));
             addlong(ARM64_LDR_X_REG_LSL3(12, 11, 6));
 
-            /* SUB w7, w7, w6  (tex_shift = 8 - lod) */
-            addlong(ARM64_SUB_REG(7, 7, 6));
-            /* Save original LOD in w11 before we destroy w6 with +4.
-             * The clamp/wrap sections need the original LOD for array indexing
+            /* w16 = state->tex_lod[tmu][lod], the STORED mip level; the shifts
+             * use it, the mask arrays keep the LOD index (split textures). */
+            addlong(ARM64_LDR_X(16, 0, STATE_tex_lod_n(tmu)));
+            addlong(ARM64_LDR_W_REG_LSL2(16, 16, 6));
+            /* SUB w7, w7, w16  (tex_shift = 8 - tex_lod) */
+            addlong(ARM64_SUB_REG(7, 7, 16));
+            /* Save the LOD index in w11 before w6 becomes the shift count.
+             * The clamp/wrap sections need the index for array indexing
              * into tex_w_mask/tex_h_mask. */
             addlong(ARM64_MOV_REG(11, 6));
-            /* ADD w6, w6, #4  -- point-sample uses a larger shift than bilinear:
-             * bilinear shifts by 'lod' (integer texel step), but point-sample
-             * needs to strip the 4-bit sub-texel fraction too, hence lod+4. */
-            addlong(ARM64_ADD_IMM(6, 6, 4));
+            /* ADD w6, w16, #4  -- point-sample uses a larger shift than bilinear:
+             * bilinear shifts by 'tex_lod' (integer texel step), but point-sample
+             * needs to strip the 4-bit sub-texel fraction too, hence tex_lod+4. */
+            addlong(ARM64_ADD_IMM(6, 16, 4));
 
             /* LDP w4, w5, [x0, #STATE_tex_s] -- load tex_s and tex_t */
             addlong(ARM64_LDP_OFF_W(4, 5, 0, STATE_tex_s));
@@ -1788,9 +1806,9 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
                 PATCH_FORWARD_TBxZ(mirror_t_skip);
             }
 
-            /* LSR w4, w4, w6  (S >> (lod + 4)) */
+            /* LSR w4, w4, w6  (S >> (tex_lod + 4)) */
             addlong(ARM64_LSR_REG(4, 4, 6));
-            /* LSR w5, w5, w6  (T >> (lod + 4)) */
+            /* LSR w5, w5, w6  (T >> (tex_lod + 4)) */
             addlong(ARM64_LSR_REG(5, 5, 6));
 
             /* Clamp or wrap S */

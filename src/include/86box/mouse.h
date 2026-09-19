@@ -24,6 +24,7 @@
 
 #define MOUSE_TYPE_NONE     0 /* no mouse configured */
 #define MOUSE_TYPE_INTERNAL 1 /* machine has internal mouse */
+#define TABLET_TYPE_INTERNAL 1 /* machine has an internal touch screen */
 #define MOUSE_TYPE_LOGIBUS  2 /* Logitech/ATI Bus Mouse */
 #define MOUSE_TYPE_INPORT   3 /* Microsoft InPort Mouse */
 #if 0
@@ -44,6 +45,10 @@
 
 #define MOUSE_TYPE_QPORT     0x40 /* Mouse is an on-board version of one of the above. */
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
+
+/* Masks returned by mouse_get_release_buttons(). */
+#define MOUSE_RELEASE_MIDDLE 0x04 /* Middle button */
+#define MOUSE_RELEASE_THUMB  0x18 /* Thumb buttons (buttons 4 and 5) */
 
 
 #ifdef __cplusplus
@@ -84,6 +89,8 @@ extern const device_t mouse_wacom_tablet_device;
 extern const device_t mouse_wacom_artpad_tablet_device;
 #    endif
 extern const device_t mouse_mtouch_device;
+/* The IBM 7690 optical touch panel at interface-adapter ports F300h-F303h. */
+extern const device_t mouse_ibm7690_touch_device;
 extern const device_t mouse_cga_lightpen_device;
 #endif
 
@@ -133,6 +140,7 @@ extern const device_t *mouse_get_device(int mouse);
 extern const device_t *tablet_get_device(int mouse);
 #endif
 extern int             mouse_get_buttons(void);
+extern int             mouse_get_release_buttons(void);
 extern int             mouse_get_ndev(void);
 extern int             tablet_get_ndev(void);
 extern void            mouse_set_raw(int raw);

@@ -1,3 +1,19 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Implementation of PS/2 series Mouse devices.
+ *
+ * Authors: Josh Rodd, <josh@rodd.us>
+ *
+ *          Copyright (C) 2026 Simplebooks Foundation
+ *          Copyright (C) 2026 Josh Rodd
+ */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -31,6 +47,7 @@
 #include <86box/video.h>
 #include <86box/vid_mcga.h>
 #include <86box/machine.h>
+#include <86box/mouse.h>
 
 typedef struct {
     uint8_t port_61;
@@ -47,6 +64,7 @@ typedef struct {
     lpt_t    *lpt;
 
     mem_mapping_t ram_mapping;
+    rom_t         vid_rom;
 } ps2_m25_t;
 
 typedef struct {
@@ -286,6 +304,8 @@ ps2_m30_a1_read(uint16_t port, void *priv)
     return dev->port_a1 | 0xfe;
 }
 
+#define PS2_SETUP_IO 0x80
+
 static void
 ps2_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -297,7 +317,7 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x0102:
-            if (!(ps2->ps2_94 & 0x80)) {
+            if (!(ps2->ps2_94 & PS2_SETUP_IO)) {
                 lpt_port_remove(ps2->lpt);
                 serial_remove(ps2->uart);
                 if (val & 0x04) {
@@ -327,15 +347,18 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0x0103:
-            ps2->ps2_103 = val;
+            if (!(ps2->ps2_94 & PS2_SETUP_IO))
+                ps2->ps2_103 = val;
             break;
 
         case 0x0104:
-            ps2->ps2_104 = val;
+            if (!(ps2->ps2_94 & PS2_SETUP_IO))
+                ps2->ps2_104 = val;
             break;
 
         case 0x0105:
-            ps2->ps2_105 = val;
+            if (!(ps2->ps2_94 & PS2_SETUP_IO))
+                ps2->ps2_105 = val;
             break;
 
         case 0x0190:
@@ -516,6 +539,49 @@ const device_t ps2_m30_device = {
     .config        = ps2_m30_config
 };
 
+static const device_config_t ibm7690_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ibmps2_m30_rev4",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Revision 4 (33F4498/33F4499, 01/31/89)",
+                .internal_name = "ibmps2_m30_rev4",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { "roms/machines/ibmps2_m30/33F4498.BIN",
+                                   "roms/machines/ibmps2_m30/33F4499.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ibm7690_device = {
+    .name          = "IBM 7690 Clinical Workstation (8086)",
+    .internal_name = "ibm7690",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibm7690_config
+};
+
 static const device_config_t ps2_m30_286_config[] = {
     // clang-format off
     {
@@ -607,7 +673,8 @@ ps2_isa_setup(int model, int cpu_type)
         ps1_hdc_inform(priv, &ps2->ps2_91);
     }
 
-    device_add(&ps1vga_device);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&ps1vga_device);
 }
 
 static void
@@ -721,18 +788,48 @@ machine_ps2_8086_init(const machine_t *model)
     if (hdc_current[0] == HDC_INTERNAL)
         dev->hdc = device_add(&ps2_m25_hdc_device);
 
-    if ((gfxcard[0] == VID_INTERNAL) ||
-        ((gfxcard[0] >= VID_INTERNAL) &&
-         (strcmp(video_get_internal_name(gfxcard[0]), "vga") == 0)))
-        dev->mcga = device_add(&mcga_device);
+    /*
+     * The integrated video is whatever the machine names: the Model 25/30
+     * MCGA, or the 7690's own panel.
+     */
+    const int internal_video = (gfxcard[0] == VID_INTERNAL) ||
+                               ((gfxcard[0] >= VID_INTERNAL) &&
+                                (strcmp(video_get_internal_name(gfxcard[0]), "vga") == 0));
+
+    /*
+     * The 7690 has its own MCGA BIOS, mapped at C0000 (16K in size). If the
+     * main ROM BIOS sees a ROM at C0000, it uses it instead; it sits on the
+     * adapter card used to connect to the LCD panel's infrared LEDs.
+     *
+     * We do not yet have a good copy of the option ROM, so for now a fake
+     * dummy is used that doesn't do anything.
+     */
+    if (internal_video) {
+        dev->mcga = device_add(machine_get_vid_device(machine));
+
+        if (strcmp(machine_get_internal_name(), "ibm7690") == 0) {
+            if (rom_init(&dev->vid_rom, "roms/video/mcga/IBM7690_D4000_FAKE_OPTION_ROM.BIN",
+                         0x000d4000, 0x4000, 0x3fff, 0, 0) != 0)
+                fatal("machine_ps2_8086_init(): Unable to load the IBM 7690 D4000 segment\n");
+        }
+    }
+
+    if (tablet_type == TABLET_TYPE_INTERNAL) {
+        if (machine_get_tablet_device(machine) != NULL)
+            device_add(machine_get_tablet_device(machine));
+    }
 
     /* All integrated chip selects and the parallel output drivers power up on. */
     dev->port_65 = 0x9f;
 
-    if (strcmp(machine_get_internal_name(), "ibmps2_m30") == 0) {
-        /* PS/2 Mod. 30 has an MM58167 RTC with some quirks. Its alarm
-         * is wired to IRQ1 and can be masked off by the gate away (the
-         * chipset). */
+    /*
+     * PS/2 Mod. 30 has an MM58167 RTC with some quirks. Its alarm
+     * is wired to IRQ1 and can be masked off by the gate array (the
+     * chipset). The 7690 is a PS/2 Mod. 25 planar, but has the same
+     * RTC added on the riser card.
+     */
+    if ((strcmp(machine_get_internal_name(), "ibmps2_m30") == 0) ||
+        (strcmp(machine_get_internal_name(), "ibm7690") == 0)) {
         dev->rtc = device_add(&ibmps2m30_rtc_device);
         ibmps2m30_rtc_inform(dev->rtc, &dev->port_a1);
         io_sethandler(0x00a1, 1,

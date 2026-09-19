@@ -280,6 +280,8 @@ extern const device_t ess_1888_compaq_device;
 extern const device_t ess_1887_device;
 extern const device_t ess_1868_device;
 extern const device_t ess_1869_device;
+extern const device_t ess_solo1_device;
+extern const device_t ess_solo1_onboard_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1370_device;
@@ -298,6 +300,10 @@ extern const device_t gus_max_device;
 extern const device_t gus_ace_device;
 extern const device_t gus_extreme_device;
 extern const device_t gus_vipermax_device;
+extern const device_t gus_pnp_device;
+extern const device_t gus_pnp_new_device;
+extern const device_t gus_pnp_nocd_device;
+extern const device_t gus_pnp_compaq_device;
 
 /* IBM Music Feature Card */
 extern const device_t imfc_device;

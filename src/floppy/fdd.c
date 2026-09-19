@@ -463,8 +463,11 @@ fdd_seek(int drive, int track_diff)
     }
 
     int old_track = fdd[drive].track;
+    const int ibm5140 = fdd_fdc && (fdd_fdc->flags & FDC_FLAG_IBM5140);
+    const int degated = ibm5140 && fdd_fdc->drive_interface_gated;
 
-    fdd[drive].track += track_diff;
+    if (!degated)
+        fdd[drive].track += track_diff;
 
     if (fdd[drive].track < 0)
         fdd[drive].track = 0;
@@ -472,7 +475,8 @@ fdd_seek(int drive, int track_diff)
     if (fdd[drive].track > drive_types[fdd[drive].type].max_track)
         fdd[drive].track = drive_types[fdd[drive].type].max_track;
 
-    fdd_changed[drive] = 0;
+    if (!degated && (!ibm5140 || !drive_empty[drive]))
+        fdd_changed[drive] = 0;
 
     if (fdd[drive].turbo) {
         fdd_do_seek_ex(drive, fdd[drive].track);
@@ -494,7 +498,11 @@ fdd_seek(int drive, int track_diff)
         int is_seek_down = (fdd[drive].track < old_track);
 
         /* Get seek timings from audio profile configuration with direction awareness */
-        double   seek_time_us = fdd_audio_get_seek_time(drive, actual_track_diff, is_seek_down);
+        const int step_count = ibm5140 && !degated &&
+                               ((fdd_fdc->command & 0x1f) == 0x07) ?
+                               actual_track_diff : abs(track_diff);
+        double seek_time_us = ibm5140 ? 6000.0 * step_count :
+                              fdd_audio_get_seek_time(drive, actual_track_diff, is_seek_down);
         if (seek_time_us < 1) {
             seek_time_us = DEFAULT_SEEK_TIME_MS * 1000;
         }
@@ -542,9 +550,14 @@ fdd_type_invert_densel(int type)
 {
     int ret;
 
-    if (drive_types[type].flags & FLAG_PS2)
-        ret = (!!strstr(machine_getname(machine), "PS/1")) || (!!strstr(machine_getname(machine), "PS/2")) || (!!strstr(machine_getname(machine), "PS/55"));
-    else
+    if (drive_types[type].flags & FLAG_PS2) {
+        /* The Model 25/30 planar also belongs to the 7690, whose display
+           name does not contain "PS/2". Its drive wiring is unchanged. */
+        ret = (machines[machine].init == machine_ps2_8086_init) ||
+              (!!strstr(machine_getname(machine), "PS/1")) ||
+              (!!strstr(machine_getname(machine), "PS/2")) ||
+              (!!strstr(machine_getname(machine), "PS/55"));
+    } else
         ret = drive_types[type].flags & FLAG_INVERT_DENSEL;
 
     return ret;
@@ -613,6 +626,17 @@ fdd_doublestep_40(int drive)
     return !!(drive_types[fdd[drive].type].flags & FLAG_DOUBLE_STEP);
 }
 
+int
+fdd_is_pcjx_360(int drive)
+{
+    if ((drive < 0) || (drive >= FDD_NUM) || !machine_is_pcjx(machine))
+        return 0;
+
+    const int flags = fdd_get_flags(drive);
+    return (drive_types[fdd[drive].type].max_track >= 80) &&
+           !(flags & FLAG_525) && ((flags & (FLAG_DS | FLAG_HOLE0)) == (FLAG_DS | FLAG_HOLE0));
+}
+
 void
 fdd_set_type(int drive, int type)
 {
@@ -642,6 +666,12 @@ int
 fdd_is_525(int drive)
 {
     return fdd_get_flags(drive) & FLAG_525;
+}
+
+int
+fdd_supports_360_rpm(int drive)
+{
+    return fdd_get_flags(drive) & FLAG_RPM_360;
 }
 
 int
@@ -1089,6 +1119,17 @@ fdd_format(int drive, int side, int density, uint8_t fill)
 void
 fdd_stop(int drive)
 {
+    if (fdd_fdc && (fdd_fdc->flags & FDC_FLAG_PCJX)) {
+        /* Abort the pending operation, not the physical head position. */
+        const int was_seeking = fdd_seek_in_progress[drive];
+        timer_disable(&fdd_seek_timer[drive]);
+        fdd_seek_in_progress[drive] = 0;
+        fdd_pending[drive].pending = 0;
+        fdd_pending[drive].op = FDD_OP_NONE;
+        fdd_notfound = 0;
+        if (was_seeking)
+            fdd_do_seek(drive, fdd[drive].track);
+    }
     if (drives[drive].stop)
         drives[drive].stop(drive);
 }

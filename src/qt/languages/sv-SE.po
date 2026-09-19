@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-17 19:26+0000\n"
+"PO-Revision-Date: 2026-09-05 10:56+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -80,6 +80,9 @@ msgstr "Ange &mått…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Tvinga &4:3 bildförhållande"
+
+msgid "Force &%1:%2 display ratio"
+msgstr "Tvinga &%1:%2 bildförhållande"
 
 msgid "&Window scale factor"
 msgstr "&Skalningsfaktor för fönster"
@@ -427,7 +430,7 @@ msgid "Dynamic recompiler"
 msgstr "Dynamisk omkompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
 
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
@@ -1490,16 +1493,18 @@ msgid "ACP&I shutdown"
 msgstr "ACP&I-avstängning"
 
 msgid "Power off"
-msgstr ""
+msgstr "Stäng av"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "Stäng &av…"
 
 msgid "Power &off"
-msgstr ""
+msgstr "Stäng &av"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
+"Avstängning av den emulerade maskinen kan orsaka dataförlust. Är du säker på "
+"att du vill fortsätta?"
 
 msgid "Hard disk (%1)"
 msgstr "Hårddisk (%1)"
@@ -1708,10 +1713,10 @@ msgid "3.5\" 640 MB (ISO 15498)"
 msgstr "3.5\" 640 MB (ISO 15498)"
 
 msgid "3.5\" 1.3 GB (GigaMO)"
-msgstr "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5-tums 1.3 GB (GigaMO)"
 
 msgid "3.5\" 2.3 GB (GigaMO 2)"
-msgstr "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5-tums 2.3 GB (GigaMO 2)"
 
 msgid "5.25\" 600 MB"
 msgstr "5.25\" 600 MB"
@@ -2922,8 +2927,14 @@ msgstr "[Allmän] 1989 (3500 varv/min)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Allmän] 1992 (3600 varv/min)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Allmän] 1993 (4000 varv/min)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Allmän] 1994 (4500 varv/min)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Allmän] 1995 (5200 varv/min)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Allmän] 1996 (5400 varv/min)"
@@ -2936,6 +2947,9 @@ msgstr "[Allmän] 1998 (5400 varv/min)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Allmän] 2000 (7200 varv/min)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Allmän] 2004 (10000 varv/min)"
 
 msgid "IBM 8514/A clone"
 msgstr "IBM 8514/A-klon"
@@ -2987,6 +3001,15 @@ msgstr "Modell"
 
 msgid "Model:"
 msgstr "Modell:"
+
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Kunde inte initialisera Vulkan-renderaren."

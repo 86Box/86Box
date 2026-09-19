@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-08-27 20:33+0000\n"
+"PO-Revision-Date: 2026-09-17 04:35+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -80,6 +80,9 @@ msgstr "Ορισμός &διαστάσεων…"
 
 msgid "Force &4:3 display ratio"
 msgstr "Εξαναγκασμός &αναλογίας οθόνης 4:3"
+
+msgid "Force &%1:%2 display ratio"
+msgstr "Εξαναγκασμός &αναλογίας οθόνης &%1:%2"
 
 msgid "&Window scale factor"
 msgstr "&Συντελεστής κλίμακας παραθύρου"
@@ -2958,8 +2961,14 @@ msgstr "[Γενικό] 1989 (3500 RPM)"
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr "[Γενικό] 1992 (3600 RPM)"
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr "[Γενικό] 1993 (4000 RPM)"
+
 msgid "[Generic] 1994 (4500 RPM)"
 msgstr "[Γενικό] 1994 (4500 RPM)"
+
+msgid "[Generic] 1995 (5200 RPM)"
+msgstr "[Γενικό] 1995 (5200 RPM)"
 
 msgid "[Generic] 1996 (5400 RPM)"
 msgstr "[Γενικό] 1996 (5400 RPM)"
@@ -2972,6 +2981,9 @@ msgstr "[Γενικό] 1998 (5400 RPM)"
 
 msgid "[Generic] 2000 (7200 RPM)"
 msgstr "[Γενικό] 2000 (7200 RPM)"
+
+msgid "[Generic] 2004 (10000 RPM)"
+msgstr "[Γενικό] 2004 (10000 RPM)"
 
 msgid "IBM 8514/A clone"
 msgstr "Κλώνος IBM 8514/A"
@@ -3023,6 +3035,15 @@ msgstr "Μοντέλο"
 
 msgid "Model:"
 msgstr "Μοντέλο:"
+
+msgid "Brand:"
+msgstr "Μάρκα:"
+
+msgid "Revision:"
+msgstr "Επανέκδοση:"
+
+msgid "[Generic HDD] Device Configuration"
+msgstr "[Γενικό HDD] Προσαρμογή Συσκευής"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Αποτυχία αρχικοποίησης απεικονιστή Vulkan."

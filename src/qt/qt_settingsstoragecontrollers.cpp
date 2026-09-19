@@ -30,7 +30,6 @@ extern "C" {
 #include <86box/scsi_device.h>
 #include <86box/cassette.h>
 #include <86box/fdd.h>
-#include <86box/fdd_tape.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -66,9 +65,6 @@ SettingsStorageControllers::SettingsStorageControllers(QWidget *parent)
 
     fdc_cfg_changed             = 0;
     cdrom_interface_cfg_changed = 0;
-
-    ui->fileFieldFloppyTape->setFilter(tr("Tape images") % util::DlgFilter({ "img", "tape", "qic" }) % tr("All files") % util::DlgFilter({ "*" }, true));
-    ui->fileFieldFloppyTape->setFileName(QString::fromUtf8(fdd_tape_fn));
 
     onCurrentMachineChanged(machine);
 }
@@ -110,10 +106,6 @@ SettingsStorageControllers::changed()
     has_changed |= cdrom_interface_cfg_changed;
     has_changed |= (cassette_enable         != (ui->checkBoxCassette->isChecked() ? 1 : 0));
 
-    has_changed |= (fdd_tape_enabled        != (ui->checkBoxFloppyTape->isChecked() ? 1 : 0));
-    has_changed |= (fdd_tape_unit           != ui->comboBoxFloppyTapeUnit->currentData().toInt());
-    has_changed |= (QString::fromUtf8(fdd_tape_fn) != ui->fileFieldFloppyTape->fileName());
-
     return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
 }
 
@@ -142,13 +134,6 @@ SettingsStorageControllers::save(int soft)
     fdc_current[0]          = ui->comboBoxFD->currentData().toInt();
     cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
     cassette_enable         = ui->checkBoxCassette->isChecked() ? 1 : 0;
-
-    fdd_tape_enabled        = ui->checkBoxFloppyTape->isChecked() ? 1 : 0;
-    fdd_tape_unit           = ui->comboBoxFloppyTapeUnit->currentData().toInt();
-
-    const QByteArray tapeFn = ui->fileFieldFloppyTape->fileName().toUtf8();
-    memset(fdd_tape_fn, 0x00, sizeof(fdd_tape_fn));
-    strncpy(fdd_tape_fn, tapeFn.constData(), sizeof(fdd_tape_fn) - 1);
 }
 
 void
@@ -333,35 +318,6 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
         ui->checkBoxCassette->setChecked(false);
         ui->checkBoxCassette->setEnabled(false);
     }
-
-    /* Floppy tape drive */
-    auto *tapeModel = ui->comboBoxFloppyTapeUnit->model();
-    tapeModel->removeRows(0, tapeModel->rowCount());
-
-    int tapeSelectedRow = 0;
-    for (int i = 0; i < FDD_NUM; ++i) {
-        const int row = Models::AddEntry(tapeModel, tr("Drive %1:").arg(QChar('A' + i)), i);
-        if (i == fdd_tape_unit)
-            tapeSelectedRow = row;
-    }
-
-    ui->checkBoxFloppyTape->setChecked(fdd_tape_enabled > 0);
-    ui->comboBoxFloppyTapeUnit->setCurrentIndex(-1);
-    ui->comboBoxFloppyTapeUnit->setCurrentIndex(tapeSelectedRow);
-    ui->fileFieldFloppyTape->setFileName(QString::fromUtf8(fdd_tape_fn));
-
-    on_checkBoxFloppyTape_stateChanged(ui->checkBoxFloppyTape->isChecked() ? Qt::Checked : Qt::Unchecked);
-}
-
-void
-SettingsStorageControllers::on_checkBoxFloppyTape_stateChanged(int state)
-{
-    const bool enabled = (state != Qt::Unchecked);
-
-    ui->labelFloppyTapeUnit->setEnabled(enabled);
-    ui->comboBoxFloppyTapeUnit->setEnabled(enabled);
-    ui->labelFloppyTapeFile->setEnabled(enabled);
-    ui->fileFieldFloppyTape->setEnabled(enabled);
 }
 
 void

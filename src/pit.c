@@ -942,6 +942,10 @@ ctr_tick(ctr_t *ctr, void *priv)
             if ((ctr->gate != 0) || (ctr->m != 4)) {
                 switch (state) {
                     case 0:
+                        /* A mode control word inhibits counting until reload. */
+                        if (ctr->null_count)
+                            break;
+                        /* fallthrough */
                     case 6:
                         ctr_decrease_count(ctr);
                         break;

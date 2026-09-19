@@ -96,7 +96,7 @@ static const device_config_t ibmpc_config[] = {
 
             // GLaBIOS for IBM PC
             {
-                .name          = "GLaBIOS 0.4.0 (8088)",
+                .name          = "GLaBIOS - Revision 0.4.0 (8088)",
                 .internal_name = "glabios_040_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -105,7 +105,7 @@ static const device_config_t ibmpc_config[] = {
                 .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" }
             },
             {
-                .name          = "GLaBIOS 0.4.0 (V20)",
+                .name          = "GLaBIOS - Revision 0.4.0 (V20)",
                 .internal_name = "glabios_040_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -275,7 +275,7 @@ static const device_config_t ibmpc82_config[] = {
 
             // GLaBIOS for IBM PC
             {
-                .name          = "GLaBIOS 0.4.0 (8088)",
+                .name          = "GLaBIOS - Revision 0.4.0 (8088)",
                 .internal_name = "glabios_040_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -284,7 +284,7 @@ static const device_config_t ibmpc82_config[] = {
                 .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8P.ROM", "" }
             },
             {
-                .name          = "GLaBIOS 0.4.0 (V20)",
+                .name          = "GLaBIOS - Revision 0.4.0 (V20)",
                 .internal_name = "glabios_040_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -466,7 +466,7 @@ static const device_config_t ibmxt_config[] = {
 
             // GLaBIOS for IBM XT
             {
-                .name          = "GLaBIOS 0.4.0 (8088)",
+                .name          = "GLaBIOS - Revision 0.4.0 (8088)",
                 .internal_name = "glabios_040_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -476,7 +476,7 @@ static const device_config_t ibmxt_config[] = {
                                    "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
-                .name          = "GLaBIOS 0.4.0 (V20)",
+                .name          = "GLaBIOS - Revision 0.4.0 (V20)",
                 .internal_name = "glabios_040_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -792,13 +792,6 @@ machine_ibmxt_inboard386_init(const machine_t *model)
 
     device_add(&inboard386_xt_device); /* The Inboard 386/PC accelerator card itself. */
 
-    /* Intek21 TK9901 ECP/EPP parallel card (slot 7, IRQ 7 on the real machine). Standard
-       (non-ECP/EPP) parallel port - was present in this project's own local fork but never
-       included in PR #7626 (this file wasn't fully ported - the function returned early). */
-    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
-    lpt_port_setup(lpt, LPT1_ADDR);
-    lpt_port_irq(lpt, LPT1_IRQ);
-
     return ret;
 }
 
@@ -897,7 +890,7 @@ static const device_config_t ibmxt86_config[] = {
 
             // GLaBIOS for IBM XT
             {
-                .name          = "GLaBIOS 0.4.0 (8088)",
+                .name          = "GLaBIOS - Revision 0.4.0 (8088)",
                 .internal_name = "glabios_040_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -907,7 +900,7 @@ static const device_config_t ibmxt86_config[] = {
                                    "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
-                .name          = "GLaBIOS 0.4.0 (V20)",
+                .name          = "GLaBIOS - Revision 0.4.0 (V20)",
                 .internal_name = "glabios_040_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -1156,9 +1149,11 @@ machine_xt_compaq_portable_init(const machine_t *model)
     if (joystick_type[0])
         device_add(&gameport_200_device);
 
-    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
-    lpt_port_setup(lpt, LPT_MDA_ADDR);
-    lpt_set_3bc_used(1);
+    if (!lpt_get_3bc_used()) {
+        lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+        lpt_port_setup(lpt, LPT_MDA_ADDR);
+        lpt_set_3bc_used(1);
+    }
 
     return ret;
 }
@@ -1176,7 +1171,7 @@ static const device_config_t dtk_config[] = {
         .selection      = { { 0 } },
         .bios = {
             {
-                .name          = "2.39",
+                .name          = "DTK ERSO BIOS - Revision 2.39",
                 .internal_name = "dtk_239",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1185,7 +1180,7 @@ static const device_config_t dtk_config[] = {
                 .files         = { "roms/machines/dtk/PIM-TB10-Z.BIN", ""}
             },
             {
-                .name          = "2.42",
+                .name          = "DTK ERSO BIOS - Revision 2.42",
                 .internal_name = "dtk",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1972,7 +1967,7 @@ static const device_config_t vendex_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "Bios 2.03C",
+                .name          = "Phoenix ROM BIOS - Revision 2.03C",
                 .internal_name = "vendex",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1983,7 +1978,7 @@ static const device_config_t vendex_config[] = {
 
             // GLaBIOS for Vendex
             {
-                .name          = "GLaBIOS 0.4.0 (8088)",
+                .name          = "GLaBIOS - Revision 0.4.0 (8088)",
                 .internal_name = "glabios_040_8088",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1992,7 +1987,7 @@ static const device_config_t vendex_config[] = {
                 .files         = { "roms/machines/glabios/GLABIOS_0.4.0_8TV.ROM", "" }
             },
             {
-                .name          = "GLaBIOS 0.4.0 (V20)",
+                .name          = "GLaBIOS - Revision 0.4.0 (V20)",
                 .internal_name = "glabios_040_v20",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -2291,9 +2286,11 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
     nmi_init();
     standalone_gameport_type = &gameport_200_device;
 
-    lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
-    lpt_port_setup(lpt, LPT_MDA_ADDR);
-    lpt_set_3bc_used(1);
+    if (!lpt_get_3bc_used()) {
+        lpt_t *lpt = device_add_inst(&lpt_port_device, 1);
+        lpt_port_setup(lpt, LPT_MDA_ADDR);
+        lpt_set_3bc_used(1);
+    }
 
     return ret;
 }
