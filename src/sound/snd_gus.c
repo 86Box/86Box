@@ -373,6 +373,7 @@ gus_update_int_status(gus_t *gus)
     int midi_irq_pending  = 0;
     int intr_pending      = 0;
     int midi_intr_pending = 0;
+    int codec_irq_active  = 0;
 
     gus->irqstatus &= ~0x60;
     gus->irqstatus2 = 0xE0;
@@ -420,10 +421,13 @@ gus_update_int_status(gus_t *gus)
             midi_intr_pending = 0;
     }
 
+    if (gus->type == GUS_MAX || gus->type == GUS_INTERWAVE)
+        codec_irq_active = (gus->ad1848.regs[24] & 0x70) ? 1 : 0;
+
     if (gus->irq != -1) {
         if (intr_pending)
             picint(1 << gus->irq);
-        else
+        else if (!codec_irq_active)
             picintc(1 << gus->irq);
     }
 
