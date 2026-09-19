@@ -247,7 +247,8 @@ kbc_translate(atkbc_t *dev, uint8_t val)
 {
     int      xt_mode   = (dev->mem[0x20] & 0x20) && !(dev->misc_flags & FLAG_PS2);
     /* The IBM AT keyboard controller firmware does not apply translation in XT mode. */
-    int      translate = !xt_mode && ((dev->mem[0x20] & 0x40) || (dev->is_type2));
+    /* PS/2 (type 2) keyboard controllers never translate, the XLAT bit is ignored. */
+    int      translate = !xt_mode && !(dev->is_type2) && (dev->mem[0x20] & 0x40);
     uint8_t  kbc_ven   = dev->flags & KBC_VEN_MASK;
     int      ret       = - 1;
 
@@ -2535,6 +2536,10 @@ kbc_at_process_cmd(void *priv)
 
             case 0xf0 ... 0xff: /* pulse P2 */
                 kbc_at_log("ATkbc: pulse %01X\n", dev->ib & 0x0f);
+                /* The 8042 sets the system flag when it receives the 0xFE command,
+                   which pulses the CPU reset line. */
+                if (dev->ib == 0xfe)
+                    dev->status |= STAT_SYSFLAG;
                 pulse_output(dev, dev->ib & 0x0f);
                 break;
         }
@@ -2801,6 +2806,13 @@ kbc_at_reset(void *priv)
     dev->aux_delay = AUX_ENABLE_DELAY;
 
     kbc_at_queue_reset(dev);
+
+    /* Also reset the attached device ports, so that keystrokes queued before the reset
+       are discarded instead of being sent to the output buffer afterwards. */
+    for (uint8_t i = 0; i < 2; i++) {
+        if ((dev->ports[i] != NULL) && (dev->ports[i]->priv != NULL))
+            kbc_at_dev_reset((atkbc_dev_t *) dev->ports[i]->priv, 0);
+    }
 
     dev->sc_or = 0;
 
