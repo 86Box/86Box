@@ -8249,7 +8249,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_MCA,
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
         .flags     = MACHINE_VIDEO,
         .ram       = {
             .min  = 1024,
@@ -8297,7 +8297,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_MCA,
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
         .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 2048,
@@ -8588,7 +8588,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_MCA,
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
         .flags     = MACHINE_VIDEO,
         .ram       = {
             .min  = 2048,
@@ -8636,7 +8636,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_MCA,
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
         .flags     = MACHINE_VIDEO,
         .ram       = {
             .min  = 4096,
@@ -8684,7 +8684,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_MCA,
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
         .flags     = MACHINE_VIDEO | MACHINE_KEYBOARD_JIS,
         .ram       = {
             .min  = 4096,
@@ -9802,7 +9802,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2_MCA,
+        .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
         .flags     = MACHINE_VIDEO | MACHINE_SOFTFLOAT_ONLY,
         .ram       = {
             .min  = 2048,
