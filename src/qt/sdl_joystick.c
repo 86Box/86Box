@@ -26,8 +26,12 @@
 #define SDL_GetJoystickAxis SDL_JoystickGetAxis
 #define SDL_GetJoystickButton SDL_JoystickGetButton
 #define SDL_GetJoystickHat SDL_JoystickGetHat
+/* SDL2's SDL_InitSubSystem() returns 0 on success, negative on failure. */
+#define SDL_INITSUBSYSTEM_FAILED(ret) ((ret) != 0)
 #else
 #include <SDL3/SDL.h>
+/* SDL3's SDL_InitSubSystem() returns bool: true on success, false on failure. */
+#define SDL_INITSUBSYSTEM_FAILED(ret) (!(ret))
 #endif
 
 #include <stdarg.h>
@@ -63,9 +67,9 @@ joystick_init(void)
 #endif
 
 #ifdef __APPLE__
-    if (SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK) != 0)
+    if (SDL_INITSUBSYSTEM_FAILED(SDL_InitSubSystem(SDL_INIT_VIDEO | SDL_INIT_JOYSTICK)))
 #else
-    if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0)
+    if (SDL_INITSUBSYSTEM_FAILED(SDL_InitSubSystem(SDL_INIT_JOYSTICK)))
 #endif
         return;
 
@@ -74,7 +78,21 @@ joystick_init(void)
 #else
     joysticks_present = 0;
 
-    SDL_JoystickID* ids = SDL_GetJoysticks(&joysticks_present);
+    /* SDL3's HIDAPI-based joystick backend enumerates devices on a background
+     * thread; right after SDL_InitSubSystem() returns, that scan may not have
+     * completed yet and SDL_GetJoysticks() can report zero devices even though
+     * a controller is plugged in. Pump events for up to half a second to give
+     * it a chance to finish before giving up. */
+    SDL_JoystickID *ids = NULL;
+    for (int wait_ms = 0; wait_ms < 500; wait_ms += 10) {
+        SDL_PumpEvents();
+        if (ids)
+            SDL_free(ids);
+        ids = SDL_GetJoysticks(&joysticks_present);
+        if (joysticks_present > 0)
+            break;
+        SDL_Delay(10);
+    }
 #endif
     memset(sdl_joy, 0, sizeof(sdl_joy));
     for (int js = 0; js < joysticks_present; js++) {
