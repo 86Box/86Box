@@ -38,6 +38,8 @@ typedef struct ps2_m25_kbc_t {
     uint8_t diagnostic_irqs;
     uint8_t tx_ready[2];
     uint8_t rx_data[2];
+    uint8_t rx_full[2];
+    uint8_t rx_bits[2];
     uint8_t irq_source;
 
     pc_timer_t poll_timer;
@@ -59,8 +61,9 @@ ps2_m25_kbc_ack_port(ps2_m25_kbc_t *dev, unsigned port)
 {
     kbc_at_port_t *iface = ps2_m25_kbc_interface(port);
 
-    if ((iface != NULL) && (iface->out_new != -1)) {
+    if ((iface != NULL) && dev->rx_full[port]) {
         iface->out_new = -1;
+        dev->rx_full[port] = 0;
         if (dev->irq_source) {
             picintc(1 << 1);
             dev->irq_source = 0;
@@ -112,14 +115,7 @@ ps2_m25_kbc_read(uint16_t addr, void *priv)
 
         case 0x0067:
         case 0x0068:
-            {
-                const unsigned port = addr - 0x0067;
-                kbc_at_port_t *iface = ps2_m25_kbc_interface(port);
-
-                if ((iface != NULL) && (iface->out_new != -1))
-                    dev->rx_data[port] = iface->out_new;
-                return dev->rx_data[port];
-            }
+            return dev->rx_data[addr - 0x0067];
 
         case 0x0069:
             return dev->port_69;
@@ -129,20 +125,16 @@ ps2_m25_kbc_read(uint16_t addr, void *priv)
              * The Model 25 BIOS waits on bit 5 for data at 67h and bit 2
              * for data at 68h.
              */
-            return ((ps2_m25_kbc_interface(0) != NULL) &&
-                    (ps2_m25_kbc_interface(0)->out_new != -1) ? 0x20 : 0x00) |
-                   ((ps2_m25_kbc_interface(1) != NULL) &&
-                    (ps2_m25_kbc_interface(1)->out_new != -1) ? 0x04 : 0x00);
+            return (dev->rx_full[0] ? 0x20 : 0x00) |
+                   (dev->rx_full[1] ? 0x04 : 0x00);
 
         case 0x00a0:
             /*
              * Internal IRQ1 source status: bit 2 is interface 1 (67h),
              * and bit 3 is interface 2 (68h).
              */
-            return ((ps2_m25_kbc_interface(0) != NULL) &&
-                    (ps2_m25_kbc_interface(0)->out_new != -1) ? 0x04 : 0x00) |
-                   ((ps2_m25_kbc_interface(1) != NULL) &&
-                    (ps2_m25_kbc_interface(1)->out_new != -1) ? 0x08 : 0x00);
+            return (dev->rx_full[0] ? 0x04 : 0x00) |
+                   (dev->rx_full[1] ? 0x08 : 0x00);
 
         default:
             return 0xff;
@@ -242,13 +234,26 @@ ps2_m25_kbc_poll(void *priv)
         kbc_at_port_t *iface = ps2_m25_kbc_interface(port);
 
         if ((iface != NULL) && (iface->priv != NULL)) {
-            const int old_out = iface->out_new;
-
             iface->poll(iface->priv);
-            newly_ready |= ((old_out == -1) && (iface->out_new != -1));
-            if (iface->out_new != -1)
-                dev->rx_data[port] = iface->out_new;
-            pending |= (iface->out_new != -1);
+            if (iface->out_new == -1) {
+                dev->rx_bits[port] = 0;
+                dev->rx_full[port] = 0;
+            } else if (!dev->rx_full[port]) {
+                /*
+                 * Mode 2 frames have start, eight data, parity and stop
+                 * bits. Each timer tick is one bit at a nominal 10 kHz;
+                 * the exact 7690 keyboard clock has not been measured.
+                 * A queued byte is not a completed receive latch.
+                 */
+                if (!dev->rx_bits[port])
+                    dev->rx_bits[port] = 11;
+                else if (--dev->rx_bits[port] == 0) {
+                    dev->rx_data[port] = iface->out_new;
+                    dev->rx_full[port] = 1;
+                    newly_ready = 1;
+                }
+            }
+            pending |= dev->rx_full[port];
         }
     }
 
@@ -269,9 +274,11 @@ ps2_m25_kbc_poll(void *priv)
          * interface interrupt while a pointing-device byte remains pending.
          * Interface 2 has priority when both receive buffers are full.
          */
-        dev->irq_source = ((ps2_m25_kbc_interface(1) != NULL) &&
-                           (ps2_m25_kbc_interface(1)->out_new != -1)) ? 2 : 1;
+        dev->irq_source = dev->rx_full[1] ? 2 : 1;
         picint(1 << 1);
+    } else if (!pending && dev->irq_source) {
+        picintc(1 << 1);
+        dev->irq_source = 0;
     }
 }
 
@@ -292,6 +299,8 @@ ps2_m25_kbc_reset(void *priv)
     nmi_mask = 0x80;
     memset(dev->tx_ready, 0x00, sizeof(dev->tx_ready));
     memset(dev->rx_data, 0x00, sizeof(dev->rx_data));
+    memset(dev->rx_full, 0x00, sizeof(dev->rx_full));
+    memset(dev->rx_bits, 0x00, sizeof(dev->rx_bits));
     picintc(1 << 1);
 
     for (unsigned port = 0; port < 2; port++) {
