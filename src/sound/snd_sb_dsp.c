@@ -43,6 +43,7 @@
 
 /* The recording safety margin is intended for uneven "len" calls to the get_buffer mixer calls on sound_sb. */
 #define SB_DSP_REC_SAFEFTY_MARGIN 4096
+#define SB_DSP_REC_MAX_MARGIN (SB_DSP_REC_SAFEFTY_MARGIN * 2)
 
 enum {
     DSP_S_NORMAL = 0,
@@ -526,8 +527,28 @@ sb_dsp_reset(sb_dsp_t *dsp)
 
     dsp->sbreset = 0;
 
-    dsp->record_pos_read  = 0;
-    dsp->record_pos_write = SB_DSP_REC_SAFEFTY_MARGIN;
+    dsp->record_pos_read      = 0;
+    dsp->record_pos_write     = SB_DSP_REC_SAFEFTY_MARGIN;
+    dsp->record_pos_write_mic = SB_DSP_REC_SAFEFTY_MARGIN;
+    dsp->record_phase_mic     = 0;
+    dsp->record_denom_mic     = 0;
+
+    /* zero filter vals on first buffer after a reset */
+    dsp->record_rate_mic       = 0;
+    dsp->record_prev_l_mic     = 0;
+    dsp->record_prev_r_mic     = 0;
+    dsp->record_prev_valid_mic = 0;
+
+    dsp->record_aa_active_mic = 0;
+    dsp->record_aa_b0_mic     = 0.0;
+    dsp->record_aa_b1_mic     = 0.0;
+    dsp->record_aa_b2_mic     = 0.0;
+    dsp->record_aa_a1_mic     = 0.0;
+    dsp->record_aa_a2_mic     = 0.0;
+    dsp->record_aa_z1_mic[0]  = 0.0;
+    dsp->record_aa_z1_mic[1]  = 0.0;
+    dsp->record_aa_z2_mic[0]  = 0.0;
+    dsp->record_aa_z2_mic[1]  = 0.0;
 
     dsp->irq_update(dsp->irq_priv, 0);
 
@@ -3194,6 +3215,19 @@ pollsb(void *priv)
     }
 }
 
+static void
+sb_dsp_record_resync(sb_dsp_t *dsp)
+{
+    int pos = (dsp->record_pos_write_mic - SB_DSP_REC_SAFEFTY_MARGIN) & 0xFFFF;
+
+    dsp->record_pos_read = pos;
+
+    for (int i = 0; i < SB_DSP_REC_SAFEFTY_MARGIN; i++) {
+        dsp->record_buffer[pos] = 0;
+        pos                     = (pos + 1) & 0xFFFF;
+    }
+}
+
 void
 sb_poll_i(void *priv)
 {
@@ -3201,6 +3235,14 @@ sb_poll_i(void *priv)
     int       processed = 0;
 
     timer_advance_u64(&dsp->input_timer, (uint64_t) dsp->sblatchi);
+
+    if ((dsp->sb_8_enable && !dsp->sb_8_pause && (dsp->sb_pausetime < 0LL) && !dsp->sb_8_output)
+        || (dsp->sb_16_enable && !dsp->sb_16_pause && (dsp->sb_pausetime < 0LL) && !dsp->sb_16_output)) {
+        const int diff = (int) (int16_t) (dsp->record_pos_write_mic - dsp->record_pos_read);
+
+        if ((diff <= 0) || (diff > SB_DSP_REC_MAX_MARGIN))
+            sb_dsp_record_resync(dsp);
+    }
 
     if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && !dsp->sb_8_output) {
         switch (dsp->sb_8_format) {

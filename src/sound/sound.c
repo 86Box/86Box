@@ -46,6 +46,11 @@ typedef struct {
     void *priv;
 } sound_handler_t;
 
+typedef struct {
+    void (*put_buffer)(int16_t *buffer, int len, void *priv);
+    void *priv;
+} sound_in_handler_t;
+
 int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int  sound_pos_global                   = 0;
 static int sound_buf_len                = SOUNDBUFLEN;
@@ -66,8 +71,15 @@ unsigned long long src_freqs[I_MAX] = {
 #define NUM_MUSIC_HANDLERS 16
 #define NUM_YM2151_HANDLERS 16
 #define NUM_WAVETABLE_HANDLERS 16
+#define NUM_SOUND_IN_HANDLERS 16
+#define SNDIN_OUTAGE_TICKS 5
+#define SNDIN_REOPEN_TICKS 10
+#define SNDIN_WEDGED_TICKS 500
+#define SNDIN_HEALTHY_TICKS 250
+#define SNDIN_MAX_WEDGE_ATTEMPTS 3
 
 static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS];
+static sound_in_handler_t sound_in_handlers[NUM_SOUND_IN_HANDLERS];
 static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS];
 static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS];
 static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS];
@@ -90,6 +102,8 @@ static int32_t   *outbuffer_w;
 static float     *outbuffer_w_ex;
 static int16_t   *outbuffer_w_ex_int16;
 static uint8_t    sound_handlers_num;
+static uint8_t    sound_in_handlers_num;
+static uint8_t    sound_in_started_input;
 static uint8_t    music_handlers_num;
 static uint8_t    ym2151_handlers_num;
 static uint8_t    wavetable_handlers_num;
@@ -113,6 +127,14 @@ static unsigned int cd_vol_l;
 static unsigned int cd_vol_r;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
+
+static int sound_in_empty_reads = 0;
+static int sound_in_reopen_ticks = 0;
+static int sound_in_had_data = 0;
+static int sound_in_recover_attempts = 0;
+static int sound_in_good_ticks = 0;
+static int sound_in_wedge_attempts = 0;
+static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
 
 static thread_t     *sound_fdd_thread_h;
 static event_t      *sound_fdd_event;
@@ -293,6 +315,14 @@ sound_card_has_config(int card)
     if (sound_cards[card].device == NULL)
         return 0;
     return device_has_config(sound_cards[card].device) ? 1 : 0;
+}
+
+int
+sound_card_has_input(int card)
+{
+    if (sound_cards[card].device == NULL)
+        return 0;
+    return (sound_cards[card].device->flags & DEVICE_AUDIO_IN) ? 1 : 0;
 }
 
 const char *
@@ -674,6 +704,88 @@ wavetable_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *pr
 }
 
 void
+sound_in_add_handler(void (*put_buffer)(int16_t *buffer, int len, void *priv), void *priv)
+{
+    if (sound_in_handlers_num >= NUM_SOUND_IN_HANDLERS) {
+        sound_log("sound_in_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    sound_in_handlers[sound_in_handlers_num].put_buffer = put_buffer;
+    sound_in_handlers[sound_in_handlers_num].priv        = priv;
+    sound_in_handlers_num++;
+}
+
+void
+sound_in_start_input(void)
+{
+    const uint8_t old = sound_in_started_input;
+
+    if (!old)
+        al_capture_open();
+
+    sound_in_started_input++;
+    if (!old && al_capture_available())
+        al_capture_start();
+}
+
+
+static int
+sound_capture_suspend(void)
+{
+    const int was_capturing = (sound_in_started_input > 0);
+
+    if (al_capture_available())
+        al_capture_stop();
+    al_capture_close();
+
+    return was_capturing;
+}
+
+static void
+sound_capture_resume(const int was_capturing)
+{
+    if (was_capturing && sound_input_enabled) {
+        sound_in_had_data = 0;
+        al_capture_open();
+        if (al_capture_available())
+            al_capture_start();
+        else
+            /* recovery retry on next tick */
+            sound_in_reopen_ticks = SNDIN_REOPEN_TICKS;
+    }
+}
+
+void
+sound_reopen_input(void)
+{
+    /* al_capture_open()/al_capture_close() mutex-guarded in sound_poll()*/
+    sound_capture_resume(sound_capture_suspend());
+}
+
+void
+sound_reopen_output(void)
+{
+    const int was_capturing = sound_capture_suspend();
+
+    closeal();
+    inital();
+
+    sound_capture_resume(was_capturing);
+}
+
+void
+sound_in_stop_input(void)
+{
+    const uint8_t old = sound_in_started_input;
+
+    if (sound_in_started_input)
+        sound_in_started_input--;
+    if (old && !sound_in_started_input && al_capture_available())
+        al_capture_stop();
+}
+
+void
 sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
 {
     if ((filter_cd_audio == NULL) || (filter == NULL)) {
@@ -730,6 +842,79 @@ sound_poll(UNUSED(void *priv))
         for (uint8_t c = 0; c < handler_count; c++)
             if (sound_handlers[c].get_buffer != NULL)
                 sound_handlers[c].get_buffer(outbuffer, sound_buf_len, sound_handlers[c].priv);
+
+        if (sound_in_started_input) {
+            size_t in_len = (size_t) SOUNDBUFLEN;
+
+            /* recover a failed device capture */
+            if (sound_input_enabled) {
+                const int dead = !al_capture_available();
+                const int wedged = !dead && sound_in_had_data
+                                && (sound_in_wedge_attempts < SNDIN_MAX_WEDGE_ATTEMPTS)
+                                && (sound_in_empty_reads >= SNDIN_WEDGED_TICKS);
+
+                if (dead || wedged) {
+                    const int shift = (sound_in_recover_attempts < 6) ? sound_in_recover_attempts : 6;
+                    const int wait  = SNDIN_REOPEN_TICKS << shift;
+
+                    if (++sound_in_reopen_ticks >= wait) {
+                        sound_in_reopen_ticks = 0;
+                        sound_in_empty_reads  = 0;
+                        sound_in_had_data     = 0;
+                        sound_in_good_ticks   = 0;
+                        sound_in_recover_attempts++;
+
+                        if (wedged) {
+                            sound_in_wedge_attempts++;
+                            al_capture_stop();
+                            al_capture_close();
+                        }
+
+                        al_capture_open();
+                        if (al_capture_available())
+                            al_capture_start();
+                    }
+                } else {
+                    sound_in_reopen_ticks = 0;
+                }
+            }
+
+            /* use SOUND_FREQ when device not open */
+            const int cap_rate = al_capture_get_rate();
+            const int fill_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+            size_t    want      = (size_t) fill_rate / 50;
+
+            if (want > (size_t) SOUNDBUFLEN)
+                want = (size_t) SOUNDBUFLEN;
+
+            al_capture_get_data(sound_input_buffer, &in_len);
+
+            if (in_len == 0) {
+                sound_in_empty_reads++;
+                sound_in_good_ticks = 0;
+                if (sound_in_empty_reads >= SNDIN_OUTAGE_TICKS) {
+                    memset(sound_input_buffer, 0x00,
+                           want * 2 * sizeof(int16_t));
+                    in_len = want;
+                }
+            } else {
+                sound_in_empty_reads = 0;
+                sound_in_had_data    = 1;
+
+                /* sustained delivery clears the backoff */
+                if (++sound_in_good_ticks >= SNDIN_HEALTHY_TICKS) {
+                    sound_in_recover_attempts = 0;
+                    sound_in_wedge_attempts   = 0;
+                    sound_in_good_ticks       = 0;
+                }
+            }
+
+            if (in_len > 0) {
+                for (uint8_t c = 0; c < sound_in_handlers_num; c++)
+                    if (sound_in_handlers[c].put_buffer != NULL)
+                        sound_in_handlers[c].put_buffer(sound_input_buffer, (int) in_len, sound_in_handlers[c].priv);
+            }
+        }
 
         for (uint32_t c = 0; c < (uint32_t) (sound_buf_len * 2); c++) {
             if (sound_is_float)
@@ -912,6 +1097,10 @@ sound_reset(void)
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+    sound_in_handlers_num = 0;
+    sound_in_started_input = 0;
+    memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
+    al_capture_close();
 
     memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&music_poll_timer, music_poll, NULL, 1);
@@ -1148,6 +1337,9 @@ sound_close(void)
     timer_disable(&sound_poll_timer);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+    sound_in_handlers_num = 0;
+    sound_in_started_input = 0;
+    memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
 
     timer_disable(&music_poll_timer);
     music_handlers_num = 0;
