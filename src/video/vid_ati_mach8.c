@@ -998,6 +998,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         mach->accel.src_width = 0;
                     }
                 }
+
                 mach->accel.sx = mach->accel.src_cur_sx;
                 mach->accel.src_reload = 0;
                 if (mach->accel.patt_data_idx < 0x10)
@@ -1127,12 +1128,15 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
             }
             if (src_wrap_row && (dev->accel.sy == 0)) {
                 if (mach->accel.sx_end > mach->accel.sx_first_row_start)
-                    src_row_width = (mach->accel.sx_end - mach->accel.sx_first_row_start) + 1;
+                    src_row_width = (mach->accel.sx_end - mach->accel.sx_first_row_start) + (mach->accel.src_width & 1);
                 else if (mach->accel.sx_end < mach->accel.sx_first_row_start)
-                    src_row_width = (mach->accel.sx_first_row_start - mach->accel.sx_end) + 1;
+                    src_row_width = (mach->accel.sx_first_row_start - mach->accel.sx_end) + (mach->accel.src_width & 1);
                 else
-                    src_row_width = 1;
+                    src_row_width = mach->accel.src_width & 1;
             }
+
+            mach_log(mach->log, "DST WrapRow=%d, SRC WrapRow=%d, SY=%d, height=%d, dst_row_width=%d, src_row_width=%d, dstwidth=%d, srcwidth=%d, dpconfig=%04x, srcstepx=%d, frgdcol=%04x, bkgdcol=%04x.\n",
+                    dst_wrap_row, src_wrap_row, dev->accel.sy, mach->accel.height, dst_row_width, src_row_width, mach->accel.width, mach->accel.src_width, mach->accel.dp_config, mach->accel.src_stepx, frgd_color, bkgd_color);
 
             while (count--) {
                 switch (mono_src) {
@@ -1296,7 +1300,8 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                 dev->accel.cx--;
                         }
 
-                        src_row_width = mach->accel.src_width + (src_wrap_row ? 1 : 0);
+                        mach_log(mach->log, "SRC RowWidth=%d end of blit, original width=%d.\n", src_row_width, mach->accel.src_width);
+                        src_row_width = mach->accel.src_width + ((((mach->accel.src_width & 1)) && src_wrap_row) ? 1 : 0);
 
                         dev->accel.cy += (mach->accel.src_y_dir ? 1 : -1);
                         dev->accel.src = mach->accel.src_ge_offset + (dev->accel.cy * mach->accel.src_pitch);
@@ -1352,7 +1357,6 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         mach->accel.src_cur_x = dev->accel.cx;
                         mach->accel.src_cur_y = dev->accel.cy;
                         mach->accel.src_cur_sx = mach->accel.sx;
-
                         if (mach->accel.dp_config != 0x6011) {
                             if ((mono_src == 2) || (mono_src == 3) || (frgd_sel == 3) || (bkgd_sel == 3) || (mach->accel.dp_config & 0x02))
                                 return;
@@ -3006,38 +3010,26 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
     mach_log(mach->log,"ATI Mode: on=%d, set=%02x, disp_cntl=%02x, h_total=%02x, hdisp=%d, realh=%d, vdisp=%d, realv=%d, v_total=%04x, v_syncstart=%04x, hsync_start=%d, hsync_width=%d, clocksel=%02x, advancedcntl=%02x, shadow_cntl=%02x.\n", dev->on, mach->shadow_set & 0x03, dev->disp_cntl, dev->h_total, dev->hdisp, (dev->hdisped + 1) << 3, dev->vdisp, (dev->v_disp + 1) >> 1, dev->v_total, dev->v_syncstart, dev->hsync_start, dev->hsync_width, mach->accel.clock_sel & 0xff, dev->accel.advfunc_cntl & 0x05, mach->shadow_cntl);
     if (ATI_8514A_ULTRA) {
         if (((dev->hdisp == 1024) && (dev->vdisp == 768) && !(dev->accel.advfunc_cntl & 0x04) && !(mach->accel.clock_sel & 0x01)) ||
-            ((dev->hdisp == 640) && (dev->vdisp == 480) && (mach->accel.clock_sel & 0x01))) {
+            ((dev->hdisp == 640) && (dev->vdisp == 480) && !(dev->accel.advfunc_cntl & 0x04))) {
             dev->hdisp = 640;
             dev->vdisp = 480;
 
             /*If the registers are zero, make sure we read the initialized values from the EEPROM in the case of the add-on mach8*/
-            if (!dev->htotal)
+            if (!(mach->accel.clock_sel & 0xfe)) {
                 dev->h_total = (mach->eeprom.data[0x11] & 0xff) + 1;
-
-            if (!dev->v_total_reg)
                 dev->v_total = mach->eeprom.data[0x0d] + 1;
-
-            if (!dev->v_sync_start)
                 dev->v_syncstart = mach->eeprom.data[9] + 1;
-
-            if (!(mach->accel.clock_sel & 0xfe))
                 mach->accel.clock_sel_mode = (mach->eeprom.data[4] & 0xff) << 2;
-
+            }
             mach_log(mach->log,"640x480: EEPROM11=%02x, EEPROMD=%04x, EEPROM9=%04x, EEPROM4=%02x.\n", mach->eeprom.data[0x11] & 0xff, mach->eeprom.data[0x0d], mach->eeprom.data[9], mach->eeprom.data[4] & 0xff);
         } else if ((dev->hdisp == 800) && (dev->vdisp == 600)) {
             /*If the registers are zero, make sure we read the initialized values from the EEPROM in the case of the add-on mach8*/
-            if (!dev->htotal)
+            if (!(mach->accel.clock_sel & 0xfe)) {
                 dev->h_total = (mach->eeprom.data[0x1e] & 0xff) + 1;
-
-            if (!dev->v_total_reg)
                 dev->v_total = mach->eeprom.data[0x1a] + 1;
-
-            if (!dev->v_sync_start)
                 dev->v_syncstart = mach->eeprom.data[0x18] + 1;
-
-            if (!(mach->accel.clock_sel & 0xfe))
                 mach->accel.clock_sel_mode = (mach->eeprom.data[0x14] & 0xff) << 2;
-
+            }
             mach_log(mach->log,"800x600: EEPROM1E=%02x, EEPROM1A=%04x, EEPROM18=%04x, EEPROM14=%02x.\n", mach->eeprom.data[0x1e] & 0xff, mach->eeprom.data[0x1a], mach->eeprom.data[0x18], mach->eeprom.data[0x14] & 0xff);
         } else if (((dev->hdisp == 1024) && (dev->vdisp == 768)) ||
             ((dev->hdisp == 640) && (dev->vdisp == 480) &&
@@ -3047,29 +3039,24 @@ mach_set_resolution(mach_t *mach, svga_t *svga)
 
             /*If the registers are zero, make sure we read the initialized values from the EEPROM in the case of the add-on mach8, and, if the EEPROM is not initialized yet
               just default to 1024x768 87hz Interlaced*/
-            if (!dev->htotal) {
+            if (!(mach->accel.clock_sel & 0xfe)) {
                 dev->h_total = ((mach->eeprom.data[0x11] >> 8) & 0xff) + 1;
                 if (mach->eeprom.data[0x11] == 0xffff)
                     dev->h_total = 0x9e;
-            }
-            if (!dev->v_total_reg) {
+
                 dev->v_total = mach->eeprom.data[0x0c] + 1;
                 if (mach->eeprom.data[0x0c] == 0xffff)
                     dev->v_total = 0x0669;
-            }
 
-            if (!dev->v_sync_start) {
                 dev->v_syncstart = mach->eeprom.data[8] + 1;
                 if (mach->eeprom.data[8] == 0xffff)
                     dev->v_syncstart = 0x0601;
-            }
 
-            if (!(mach->accel.clock_sel & 0xfe)) {
                 mach->accel.clock_sel_mode = ((mach->eeprom.data[4] >> 8) & 0xff) << 2;
                 if (mach->eeprom.data[4] == 0xffff)
                     mach->accel.clock_sel_mode = 0x1c;
             }
-            mach_log(mach->log, "1024x768: EEPROM1E=%02x, EEPROM1A=%04x, EEPROM18=%04x, EEPROM4=%02x, h_total=%02x.\n", mach->eeprom.data[0x1e] & 0xff, mach->eeprom.data[0x1a], mach->eeprom.data[0x18], (mach->eeprom.data[4] >> 8) & 0xff, dev->h_total);
+            mach_log(mach->log, "1024x768: EEPROM11=%04x, EEPROMC=%04x, EEPROM8=%04x, EEPROM4=%02x, h_total=%02x, clk_sel=%02x.\n", (mach->eeprom.data[0x11] >> 8) & 0xff, mach->eeprom.data[0x0c], mach->eeprom.data[8], (mach->eeprom.data[4] >> 8) & 0xff, dev->h_total, mach->accel.clock_sel & 0xfe);
         }
         svga_recalctimings(svga);
     } else {
@@ -3778,7 +3765,7 @@ mach32_recalctimings(svga_t *svga)
 
         _8514_clock_sel = (dev->ven_clock >> 2) & 0x0f;
 
-        mach_log(mach->log "Mach32: Clock=%02x, double=%02x, h_total=%02x, rowcount=%d, clk_sel=%02x.\n", _8514_clock_sel, dev->ven_clock & 0x40, dev->h_total, svga->rowcount, mach->accel.clock_sel & 0x40);
+        mach_log(mach->log, "Mach32: Clock=%02x, double=%02x, h_total=%02x, rowcount=%d, clk_sel=%02x.\n", _8514_clock_sel, dev->ven_clock & 0x40, dev->h_total, svga->rowcount, mach->accel.clock_sel & 0x40);
         svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(_8514_clock_sel, svga->clock_gen) / 2.0;
 
         if ((dev->ven_clock & 0x40) || dev->double_clock)
@@ -4281,6 +4268,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 mach->force_busy = 0;
                 dev->force_busy = 0;
                 dev->force_busy2 = 0;
+                mach->accel.line_idx = 0;
             }
             break;
 
@@ -5555,6 +5543,7 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                         bkgd_sel = (mach->accel.dp_config >> 7) & 3;
                         mono_src = (mach->accel.dp_config >> 5) & 3;
 
+                        mach_log(mach->log, "%04x read pixtrans DPCONFIG=%04x.\n", port, mach->accel.dp_config);
                         switch (mach->accel.dp_config & 0x200) {
                             case 0x000: /*8-bit size*/
                                 if (mono_src == 2) {
@@ -8533,7 +8522,7 @@ ati8514_init(svga_t *svga, void *ext8514, void *dev8514)
 
     dev->accel_out_fifo       = ati8514_accel_out_fifo;
     dev->vblank_start         = ati8514_vblank_start;
-    svga->clock_gen8514       = device_add_inst(&ati18811_1_mach32_device, ibm8514_active);
+    svga->clock_gen8514       = device_add_inst(&ati18811_1_mach32_device, ibm8514_active++);
     svga->getclock8514        = ics2494_getclock;
 }
 
