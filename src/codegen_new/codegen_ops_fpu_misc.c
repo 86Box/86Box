@@ -6,6 +6,7 @@
 
 #include "x86.h"
 #include "x86_flags.h"
+#include "x86_ops.h"
 #include "x86seg_common.h"
 #include "x86seg.h"
 #include "386_common.h"
@@ -17,6 +18,7 @@
 #include "codegen_ops.h"
 #include "codegen_ops_fpu_misc.h"
 #include "codegen_ops_helpers.h"
+#include "codegen_ops_setcc.h"
 
 uint32_t
 ropFFREE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
@@ -105,6 +107,59 @@ ropFSTSW_AX(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
 
     return op_pc;
 }
+
+/*FCMOVcc only exists on 686-class CPUs, but the recompiler uses one set of x87
+  tables for every CPU. cpu.c installs the FCMOV-capable interpreter tables for
+  exactly the CPUs that have it, so key off those instead of duplicating the CPU
+  list here - without this the recompiler would execute FCMOV on (for example) a
+  486, where it should raise an illegal opcode exception instead.*/
+static int
+fcmov_present(void)
+{
+    return (x86_dynarec_opcodes_da_a16 == dynarec_ops_fpu_686_da_a16);
+}
+
+static uint32_t
+ropFCMOV_common(ir_data_t *ir, uint32_t fetchdat, uint32_t op_pc,
+                void (*gen_cond)(ir_data_t *ir, int invert), int invert)
+{
+    int src_reg = fetchdat & 7;
+
+    if (!fcmov_present())
+        return 0;
+
+    /*FP_ENTER is a barrier, so it has to come before the condition is
+      evaluated - a flush would otherwise discard IREG_temp0*/
+    uop_FP_ENTER(ir);
+    gen_cond(ir, invert);
+    uop_CMOVNZ(ir, IREG_ST(0), IREG_ST(0), IREG_ST(src_reg), IREG_temp0);
+    uop_CMOVNZ(ir, IREG_ST_i64(0), IREG_ST_i64(0), IREG_ST_i64(src_reg), IREG_temp0);
+    uop_CMOVNZ(ir, IREG_tag(0), IREG_tag(0), IREG_tag(src_reg), IREG_temp0);
+
+    return op_pc;
+}
+
+// clang-format off
+#define ropFCMOV(cond, gen, invert)                                     \
+    uint32_t ropFCMOV##cond(UNUSED(codeblock_t *block),                 \
+                            ir_data_t *ir,                              \
+                            UNUSED(uint8_t opcode),                     \
+                            uint32_t fetchdat,                          \
+                            UNUSED(uint32_t op_32),                     \
+                            uint32_t op_pc)                             \
+    {                                                                   \
+        return ropFCMOV_common(ir, fetchdat, op_pc, gen, invert);       \
+    }
+
+ropFCMOV(B,   setcc_gen_B,  0)
+ropFCMOV(E,   setcc_gen_E,  0)
+ropFCMOV(BE,  setcc_gen_BE, 0)
+ropFCMOV(U,   setcc_gen_P,  0)
+ropFCMOV(NB,  setcc_gen_B,  1)
+ropFCMOV(NE,  setcc_gen_E,  1)
+ropFCMOV(NBE, setcc_gen_BE, 1)
+ropFCMOV(NU,  setcc_gen_P,  1)
+// clang-format on
 
 uint32_t
 ropFXCH(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)

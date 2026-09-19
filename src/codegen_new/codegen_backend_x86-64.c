@@ -50,7 +50,9 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
   them across funcion calls*/
     {REG_EAX,  0},
     { REG_EBX, 0},
-    { REG_EDX, 0}
+    { REG_EDX, 0},
+    { REG_R14, 0},
+    { REG_R15, 0}
 };
 
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {

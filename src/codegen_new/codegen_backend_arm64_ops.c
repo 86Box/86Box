@@ -101,7 +101,9 @@
 #    define OPCODE_ORR_LSL            (0x150 << 21)
 #    define OPCODE_ORR_LSR            (0x152 << 21)
 #    define OPCODE_ORR_ROR            (0x156 << 21)
+#    define OPCODE_ORRX_ASR           (0x554 << 21)
 #    define OPCODE_ORRX_LSL           (0x550 << 21)
+#    define OPCODE_ORRX_LSR           (0x552 << 21)
 #    define OPCODE_SUB_LSL            (0x258 << 21)
 #    define OPCODE_SUB_LSR            (0x25a << 21)
 #    define OPCODE_SUBX_LSL           (0x658 << 21)
@@ -135,6 +137,7 @@
 #    define OPCODE_FCMGE_V2S          (0x2e20e400)
 #    define OPCODE_FCMGT_V2S          (0x2ea0e400)
 #    define OPCODE_FCMP_D             (0x1e602000)
+#    define OPCODE_FCSEL_D            (0x1e600c00)
 #    define OPCODE_FCVT_D_S           (0x1e22c000)
 #    define OPCODE_FCVT_S_D           (0x1e624000)
 #    define OPCODE_FCVTMS_W_D         (0x1e700000)
@@ -176,6 +179,9 @@
 #    define OPCODE_LSR                (0x1ac02400)
 #    define OPCODE_MSR_FPCR           (0xd51b4400)
 #    define OPCODE_MUL_V4H            (0x0e609c00)
+#    define OPCODE_MUL                (0x1b007c00)
+#    define OPCODE_SMULL              (0x9b207c00)
+#    define OPCODE_UMULL              (0x9ba07c00)
 #    define OPCODE_NOP                (0xd503201f)
 #    define OPCODE_ORR_V              (0x0ea01c00)
 #    define OPCODE_RET                (0xd65f0000)
@@ -917,6 +923,14 @@ host_arm64_FCMP_D(codeblock_t *block, int src_n_reg, int src_m_reg)
     codegen_addlong(block, OPCODE_FCMP_D | Rn(src_n_reg) | Rm(src_m_reg));
 }
 
+/*FCSEL only copies the 64-bit pattern across, so this is also usable to select
+  between two integer values held in the low half of a vector register*/
+void
+host_arm64_FCSEL_D_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_FCSEL_D | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+
 void
 host_arm64_FCVT_D_S(codeblock_t *block, int dst_reg, int src_reg)
 {
@@ -1212,6 +1226,16 @@ host_arm64_MOVX_REG(codeblock_t *block, int dst_reg, int src_m_reg, int shift)
     if (dst_reg != src_m_reg)
         codegen_addlong(block, OPCODE_ORRX_LSL | Rd(dst_reg) | Rn(REG_XZR) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
+void
+host_arm64_MOVX_REG_ASR(codeblock_t *block, int dst_reg, int src_m_reg, int shift)
+{
+    codegen_addlong(block, OPCODE_ORRX_ASR | Rd(dst_reg) | Rn(REG_XZR) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
+}
+void
+host_arm64_MOVX_REG_LSR(codeblock_t *block, int dst_reg, int src_m_reg, int shift)
+{
+    codegen_addlong(block, OPCODE_ORRX_LSR | Rd(dst_reg) | Rn(REG_XZR) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
+}
 
 void
 host_arm64_MOVZ_IMM(codeblock_t *block, int reg, uint32_t imm_data)
@@ -1253,6 +1277,24 @@ void
 host_arm64_MUL_V4H(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_MUL_V4H | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+
+void
+host_arm64_MUL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_MUL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+
+void
+host_arm64_SMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_SMULL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+
+void
+host_arm64_UMULL(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_UMULL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 
 void
