@@ -743,6 +743,8 @@ svga_render_2bpp_headland_highres(svga_t *svga)
     }
 }
 
+#include <inttypes.h>
+
 static void
 svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
 {
@@ -1018,7 +1020,16 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     if (svga->render_line_offset < 0) {
         uint32_t *orig_line = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
         memmove(orig_line, orig_line + (charwidth * -svga->render_line_offset), (svga->hdisp) * 4);
-        memset((orig_line + svga->hdisp) - (charwidth * -svga->render_line_offset), svga->overscan_color, (size_t) charwidth * -svga->render_line_offset * 4);
+        uintptr_t b = (uintptr_t) (orig_line + svga->hdisp) - (charwidth * -svga->render_line_offset);
+        size_t    s = (size_t) charwidth * -svga->render_line_offset * 4;
+        if (b < (uintptr_t) svga->monitor->target_buffer->line[0]) {
+            s -= ((uintptr_t) svga->monitor->target_buffer->line[0] - b);
+            b = (uintptr_t) svga->monitor->target_buffer->line[0];
+            if (s < 0)
+                s = 0;
+        }
+        if (s > 0)
+            memset((void *) b, svga->overscan_color, s);
     }
 }
 
