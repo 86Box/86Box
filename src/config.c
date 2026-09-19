@@ -794,6 +794,8 @@ load_input_devices(void)
     p = ini_section_get_string(cat, "tablet_type", NULL);
     if (p != NULL)
         tablet_type = tablet_get_from_internal_name(p);
+    else if (machine_get_tablet_device(machine) != NULL)
+        tablet_type = TABLET_TYPE_INTERNAL;   /* machine supplies one */
     else
         tablet_type = 0;
 
