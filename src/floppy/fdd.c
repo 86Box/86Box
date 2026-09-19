@@ -550,9 +550,14 @@ fdd_type_invert_densel(int type)
 {
     int ret;
 
-    if (drive_types[type].flags & FLAG_PS2)
-        ret = (!!strstr(machine_getname(machine), "PS/1")) || (!!strstr(machine_getname(machine), "PS/2")) || (!!strstr(machine_getname(machine), "PS/55"));
-    else
+    if (drive_types[type].flags & FLAG_PS2) {
+        /* The Model 25/30 planar also belongs to the 7690, whose display
+           name does not contain "PS/2". Its drive wiring is unchanged. */
+        ret = (machines[machine].init == machine_ps2_8086_init) ||
+              (!!strstr(machine_getname(machine), "PS/1")) ||
+              (!!strstr(machine_getname(machine), "PS/2")) ||
+              (!!strstr(machine_getname(machine), "PS/55"));
+    } else
         ret = drive_types[type].flags & FLAG_INVERT_DENSEL;
 
     return ret;

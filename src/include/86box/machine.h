@@ -392,6 +392,7 @@ typedef struct _machine_ {
     const device_t        *kbd_device;
     const device_t        *fdc_device;
     const device_t        *vid_device;
+    const device_t        *tablet_device;
     const device_t        *snd_device;
     const device_t        *net_device;
 #else
@@ -399,6 +400,7 @@ typedef struct _machine_ {
     void                  *kbd_device;
     void                  *fdc_device;
     void                  *vid_device;
+    void                  *tablet_device;
     void                  *snd_device;
     void                  *net_device;
 #endif
@@ -428,6 +430,7 @@ extern const device_t *machine_get_sio_device(int m);
 extern const device_t *machine_get_device(int m);
 extern const device_t *machine_get_fdc_device(int m);
 extern const device_t *machine_get_vid_device(int m);
+extern const device_t *machine_get_tablet_device(int m);
 extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
 #endif
@@ -1614,6 +1617,7 @@ extern const device_t  ps2_m25_hdc_device;
 extern const device_t  ps2_m25_device;
 extern const device_t  ps2_m30_device;
 extern const device_t  ps2_m30_286_device;
+extern const device_t  ibm7690_device;
 #endif
 extern int             machine_ps2_8086_init(const machine_t *);
 extern int             machine_ps2_m30_286_init(const machine_t *);

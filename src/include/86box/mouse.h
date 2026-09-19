@@ -24,6 +24,7 @@
 
 #define MOUSE_TYPE_NONE     0 /* no mouse configured */
 #define MOUSE_TYPE_INTERNAL 1 /* machine has internal mouse */
+#define TABLET_TYPE_INTERNAL 1 /* machine has an internal touch screen */
 #define MOUSE_TYPE_LOGIBUS  2 /* Logitech/ATI Bus Mouse */
 #define MOUSE_TYPE_INPORT   3 /* Microsoft InPort Mouse */
 #if 0
@@ -88,6 +89,8 @@ extern const device_t mouse_wacom_tablet_device;
 extern const device_t mouse_wacom_artpad_tablet_device;
 #    endif
 extern const device_t mouse_mtouch_device;
+/* The IBM 7690 optical touch panel at interface-adapter ports F300h-F303h. */
+extern const device_t mouse_ibm7690_touch_device;
 extern const device_t mouse_cga_lightpen_device;
 #endif
 
