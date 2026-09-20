@@ -1969,6 +1969,12 @@ load_floppy_and_cdrom_drives(void)
 
             if (cdrom[c].ide_channel > 7)
                 cdrom[c].ide_channel = 7;
+        } else if (cdrom[c].bus_type == CDROM_BUS_LPT) {
+            sprintf(temp, "cdrom_%02i_lpt_port", c + 1);
+            cdrom[c].res = ini_section_get_int(cat, temp, 0);
+
+            if (cdrom[c].res >= PARALLEL_MAX)
+                cdrom[c].res = PARALLEL_MAX - 1;
         } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
             sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c & 3);
