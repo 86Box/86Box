@@ -21,6 +21,44 @@
 
 #define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
+typedef struct _sound_backend_ {
+    const char *name;
+    const char *internal_name;
+
+    void        (*give_buffer)(void *priv, void *src, const void *buf, int size, int gain);
+    void *      (*init_source)(void *priv, int sample_rate, int buffer_size);
+    void        (*close_source)(void *priv, void *src);
+    const char *(*get_output_devices)(void);
+    void       *(*init)(void);
+    void        (*close)(void *priv);
+} sound_backend_t;
+
+extern sound_backend_t       sound_cur_backend;
+
+#ifdef AUDIO4
+extern const sound_backend_t sound_backend_audio4;
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
+extern const sound_backend_t sound_backend_openal;
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
+extern const sound_backend_t sound_backend_xaudio2;
+#endif
+#ifdef SNDIO
+extern const sound_backend_t sound_backend_sndio;
+#endif
+
+extern void                  sound_backend_give_buffer(void *src, const void *buf,
+                                                       int size, int gain);
+extern void                  sound_backend_close_source(void *src);
+extern void *                sound_backend_init_source(int sample_rate, int buffer_size);
+extern const char *          sound_backend_get_output_devices(void);
+extern void                  sound_backend_close(void);
+extern void                  sound_backend_init(void);
+
+extern void            sound_source_close_all(void);
+extern void            sound_source_reopen_all(void);
+
 extern int  sound_gain;
 extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
 
