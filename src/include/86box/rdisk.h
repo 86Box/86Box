@@ -36,6 +36,10 @@
 
 #define SUPERDISK_240_SECTORS     (469504)
 
+/* Last LBA of 2,929,799 (i.e. 2,929,800 sectors) per the SyQuest SyJet SCSI
+   Technical Reference (1997, P/N 112857-001A), section "Read Capacity (25H)". */
+#define SYJET_SECTORS       (2929800)
+
 #define RDISK_IMAGE_HISTORY       10
 
 enum {
@@ -44,6 +48,7 @@ enum {
     RDISK_TYPE_ZIP_250,
     RDISK_TYPE_JAZ_1GB,
     RDISK_TYPE_JAZ_2GB,
+    RDISK_TYPE_SYJET_1_5GB,
 #if 0
     RDISK_TYPE_ZIP_750,
     RDISK_TYPE_SUPERDISK_120,
@@ -56,12 +61,13 @@ typedef struct rdisk_type_t {
     uint16_t bytes_per_sector;
 } rdisk_type_t;
 
-#define KNOWN_RDISK_TYPES 4
+#define KNOWN_RDISK_TYPES 5
 static const rdisk_type_t rdisk_types[KNOWN_RDISK_TYPES] = {
     { ZIP_SECTORS,           512 },
     { ZIP_250_SECTORS,       512 },
     { JAZ_1GB_SECTORS,       512 },
     { JAZ_2GB_SECTORS,       512 },
+    { SYJET_SECTORS,         512 },
 #if 0
     { ZIP_750_SECTORS,       512 },
     { SUPERDISK_SECTORS,     512 },
@@ -76,13 +82,17 @@ typedef struct rdisk_drive_type_t {
     int8_t      supported_media[KNOWN_RDISK_TYPES];
 } rdisk_drive_type_t;
 
-#define KNOWN_RDISK_DRIVE_TYPES 5
+#define KNOWN_RDISK_DRIVE_TYPES 6
 static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
-    { "86BOX",    "REMOVABLE DISK",             "5.00", { 1, 1, 1, 1 /*, 0, 0, 0*/ }},
-    { "IOMEGA",   "ZIP 100",                    "E.08", { 1, 0, 0, 0 /*, 0, 0, 0*/ }},
-    { "IOMEGA",   "ZIP 250",                    "42.S", { 1, 1, 0, 0 /*, 1, 0, 0*/ }},
-    { "IOMEGA",   "JAZ 1GB",                    "H.72", { 0, 0, 1, 0 /*, 0, 0, 0*/ }},
-    { "IOMEGA",   "JAZ 2GB",                    "E.17", { 0, 0, 1, 1 /*, 0, 0, 1*/ }},
+    { "86BOX",    "REMOVABLE DISK",             "5.00", { 1, 1, 1, 1, 0 /*, 0, 0, 0*/ }},
+    { "IOMEGA",   "ZIP 100",                    "E.08", { 1, 0, 0, 0, 0 /*, 0, 0, 0*/ }},
+    { "IOMEGA",   "ZIP 250",                    "42.S", { 1, 1, 0, 0, 0 /*, 1, 0, 0*/ }},
+    { "IOMEGA",   "JAZ 1GB",                    "H.72", { 0, 0, 1, 0, 0 /*, 0, 0, 0*/ }},
+    { "IOMEGA",   "JAZ 2GB",                    "E.17", { 0, 0, 1, 1, 0 /*, 0, 0, 1*/ }},
+    /* Firmware revision "1.06" is a placeholder: the real SyJet's revision
+       string could not be confirmed from the SCSI Technical Reference or
+       any real-world SCSI probe log. Correct it if a real value surfaces. */
+    { "SYQUEST",  "SyJet 1.5GB",                "1.06", { 0, 0, 0, 0, 1 }},
 #if 0
     { "IOMEGA",   "ZIP 750",                    "42.S", { 1, 1, 1, 0, 0 }}, /* Guess */
     { "IMATION",  "SUPERDISK 120 ATAPI",        "04"    { 0, 0, 0, 1, 0 }},
