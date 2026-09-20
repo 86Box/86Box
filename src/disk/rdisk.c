@@ -40,6 +40,9 @@
 
 rdisk_drive_t rdisk_drives[RDISK_NUM];
 
+/* Drives reached through a parallel-port bridge, indexed by LPT port. */
+static scsi_device_t lpt_rdisk_devices[PARALLEL_MAX];
+
 // clang-format off
 /*
    Table of all SCSI commands and their flags, needed for the new disc change /
@@ -157,6 +160,10 @@ rdisk_max_medium_size(const rdisk_t *dev)
             return JAZ_1GB_SECTORS;
         case RDISK_TYPE_JAZ_2GB:
             return JAZ_2GB_SECTORS;
+        case RDISK_TYPE_SUPERDISK_120:
+            return SUPERDISK_SECTORS;
+        case RDISK_TYPE_SUPERDISK_240:
+            return SUPERDISK_240_SECTORS;
         default:
             return ZIP_250_SECTORS;
     }
@@ -174,6 +181,11 @@ rdisk_supports_medium_size(const rdisk_t *dev, const uint32_t sectors)
             return sectors == JAZ_1GB_SECTORS;
         case RDISK_TYPE_JAZ_2GB:
             return (sectors == JAZ_1GB_SECTORS) || (sectors == JAZ_2GB_SECTORS);
+        /* An LS-240 drive reads LS-120 media, so accept both there. */
+        case RDISK_TYPE_SUPERDISK_120:
+            return sectors == SUPERDISK_SECTORS;
+        case RDISK_TYPE_SUPERDISK_240:
+            return (sectors == SUPERDISK_SECTORS) || (sectors == SUPERDISK_240_SECTORS);
         default:
             return (sectors == ZIP_SECTORS) || (sectors == ZIP_250_SECTORS) ||
                    (sectors == JAZ_1GB_SECTORS) || (sectors == JAZ_2GB_SECTORS);
@@ -360,7 +372,12 @@ rdisk_disk_close(const rdisk_t *dev)
 static void
 rdisk_set_callback(const rdisk_t *dev)
 {
-    if (dev->drv->bus_type != RDISK_BUS_SCSI)
+    /*
+     * A parallel-port drive has no IDE channel, so ide_channel is meaningless
+     * here and indexing ide_drives with it would set a callback on an unrelated
+     * drive. The bridge paces its own transfers.
+     */
+    if ((dev->drv->bus_type != RDISK_BUS_SCSI) && (dev->drv->bus_type != RDISK_BUS_LPT))
         ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
 }
 
@@ -2353,6 +2370,25 @@ rdisk_drive_reset(const int c)
 
             ide_atapi_attach(id);
         }
+    } else if (rdisk_drives[c].bus_type == RDISK_BUS_LPT) {
+        /*
+         * Parallel-port drive, reached through a bridge such as the Shuttle
+         * EPAT. There is no bus to attach to: the bridge fetches the drive
+         * from lpt_rdisk_devices[] by its own port number, and drives it with
+         * the same entry points a SCSI drive uses.
+         */
+        if (dev->tf == NULL)
+            dev->tf        = (ide_tf_t *) calloc(1, sizeof(ide_tf_t));
+
+        scsi_device_t *sd = &lpt_rdisk_devices[rdisk_drives[c].res & (PARALLEL_MAX - 1)];
+
+        sd->sc             = (scsi_common_t *) dev;
+        sd->command        = rdisk_command;
+        sd->request_sense  = rdisk_request_sense_for_scsi;
+        sd->reset          = rdisk_reset;
+        sd->phase_data_out = rdisk_phase_data_out;
+        sd->command_stop   = rdisk_command_stop;
+        sd->type           = SCSI_REMOVABLE_DISK;
     }
 }
 
@@ -2360,7 +2396,9 @@ void
 rdisk_hard_reset(void)
 {
     for (uint8_t c = 0; c < RDISK_NUM; c++) {
-        if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) || (rdisk_drives[c].bus_type == RDISK_BUS_SCSI)) {
+        if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) ||
+            (rdisk_drives[c].bus_type == RDISK_BUS_SCSI)  ||
+            (rdisk_drives[c].bus_type == RDISK_BUS_LPT)) {
 
             if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI) {
                 const uint8_t scsi_bus = (rdisk_drives[c].scsi_device_id >> 4) & 0x0f;
@@ -2404,8 +2442,24 @@ rdisk_hard_reset(void)
             else if (rdisk_drives[c].bus_type == RDISK_BUS_ATAPI)
                 rdisk_log(dev->log, "ATAPI RDISK drive %i attached to IDE channel %i\n",
                         c, rdisk_drives[c].ide_channel);
+            else if (rdisk_drives[c].bus_type == RDISK_BUS_LPT)
+                rdisk_log(dev->log, "LPT RDISK drive %i attached to LPT port %i\n",
+                        c, rdisk_drives[c].res);
         }
     }
+}
+
+/*
+ * Hand a parallel-port bridge the drive assigned to its port, or NULL if
+ * none is. The bridge owns the wire protocol; the drive owns ATAPI.
+ */
+scsi_device_t *
+rdisk_get_lpt_device(const uint8_t port)
+{
+    if (port >= PARALLEL_MAX)
+        return NULL;
+
+    return (lpt_rdisk_devices[port].sc == NULL) ? NULL : &lpt_rdisk_devices[port];
 }
 
 void

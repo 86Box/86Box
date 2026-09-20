@@ -44,11 +44,9 @@ enum {
     RDISK_TYPE_ZIP_250,
     RDISK_TYPE_JAZ_1GB,
     RDISK_TYPE_JAZ_2GB,
-#if 0
     RDISK_TYPE_ZIP_750,
     RDISK_TYPE_SUPERDISK_120,
     RDISK_TYPE_SUPERDISK_240,
-#endif
 };
 
 typedef struct rdisk_type_t {
@@ -203,6 +201,9 @@ extern void rdisk_reset(scsi_common_t *sc);
 extern int  rdisk_is_empty(const uint8_t id);
 extern void rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert);
 extern void rdisk_close(void);
+#ifdef SCSI_DEVICE_H
+extern scsi_device_t *rdisk_get_lpt_device(const uint8_t port);
+#endif
 
 #ifdef __cplusplus
 }

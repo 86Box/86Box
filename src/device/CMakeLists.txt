@@ -51,6 +51,7 @@ add_library(dev OBJECT
     keyboard_xt.c
     lpt.c
     lpt_ditto.c
+    lpt_epat.c
     mouse.c
     mouse_bus.c
     mouse_ibm7690_tablet.c
