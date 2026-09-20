@@ -10365,7 +10365,7 @@ const machine_t machines[] = {
     },
     /* Uses an Intel KBC with Phoenix MultiKey 2.03 KBC firmware and has a early PhoenixBIOS (known as Phoenix DragonBIOS) 4.00. */
     {
-        .name              = "[SiS 461] Auva Compter CAM/SG0",
+        .name              = "[SiS 461] Auva Computer CAM/SG0",
         .internal_name     = "auvacam",
         .type              = MACHINE_TYPE_SOCKET2,
         .chipset           = MACHINE_CHIPSET_SIS_461,
