@@ -185,8 +185,6 @@ typedef struct bpck_s {
 #define BPCK_REG_VERSION   0xFD
 #define BPCK_CHIP_VERSION  0xC0
 
-
-
 /*
  * The identity EEPROM of a real pod, read off the hardware with
  * tools/gen_bpckee.py: a BackPack Bantam, model 180100, E/N 00749, serial
@@ -409,12 +407,10 @@ bpck_busy_done(void *priv)
 }
 
 /*
- * Does this command move the mechanism? INQUIRY, REQUEST SENSE and MODE SENSE
- * are answered out of drive firmware and come back promptly on the real LS-120;
- * anything that reads, writes or positions the medium pays the spin-up. Modelling
- * one latency for every command stalls enumeration, which the drive does not do -
- * on the real 5160 it enumerates and gets a drive letter, then hangs on the first
- * read. Keeping INQUIRY fast is what reproduces that.
+ * Does this command move the mechanism? INQUIRY, REQUEST SENSE and MODE SENSE are
+ * answered out of drive firmware and return promptly; anything that reads or
+ * positions the medium pays the spin-up. Charging one latency to every command
+ * would stall enumeration, which a real drive does not do.
  */
 static int
 bpck_cdb_touches_media(uint8_t op)
@@ -453,9 +449,9 @@ bpck_atapi_callback(bpck_t *dev)
             dev->tf->atastat = BUSY_STAT | (dev->tf->atastat & ERR_STAT);
             dev->sd->command(sc, sc->atapi_cdb);
             /*
-             * Whatever delay the drive asked for is discarded, and the phase it
-             * moved to is acted on now. rdisk_set_callback() is a no-op for an
-             * LPT drive, so nothing else would ever run this.
+             * Whatever delay the drive asked for is discarded and the phase it
+             * moved to is acted on now: there is no bus master behind a parallel
+             * bridge to run a deferred callback.
              */
             sc->callback = 0.0;
             if (sc->packet_status != PHASE_COMMAND)
@@ -531,13 +527,10 @@ bpck_pio_request(bpck_t *dev, const int out)
 
         sc->callback = 0.0;
         /*
-         * rdisk_phase_data_out() calls command_stop() itself and returns 1 on
-         * success, but its failure path returns 0 having left the phase at
-         * PHASE_ERROR. Firing the callback only for PHASE_COMPLETE therefore
-         * stranded every failed write: the data moved, the device never
-         * reported, DRQ stayed asserted and the driver polled status forever.
-         * Observed 2026-09-13 - a WRITE(10) to LBA 1 followed by 11,000+
-         * status reads of 48h (DRDY|DRQ) and no completion.
+         * A failed data-out phase leaves PHASE_ERROR without calling
+         * command_stop(). Completing on PHASE_ERROR as well as PHASE_COMPLETE is
+         * what stops a failure stranding the host: otherwise DRQ stays asserted
+         * and the driver polls status forever.
          */
         if ((sc->packet_status == PHASE_COMPLETE) ||
             (sc->packet_status == PHASE_ERROR)) {
@@ -580,17 +573,6 @@ bpck_data_read(bpck_t *dev)
     dev->tf->pos++;
     sc->request_pos++;
 
-    /* DIAGNOSTIC 2026-09-13 - remove once LBA 0 is settled. */
-    if (dev->tf->pos == 16)
-        bpck_log("BPCK: DATA IN  head %02X %02X %02X %02X %02X %02X %02X %02X "
-                           "%02X %02X %02X %02X %02X %02X %02X %02X\n",
-                 sc->temp_buffer[0],  sc->temp_buffer[1],  sc->temp_buffer[2],
-                 sc->temp_buffer[3],  sc->temp_buffer[4],  sc->temp_buffer[5],
-                 sc->temp_buffer[6],  sc->temp_buffer[7],  sc->temp_buffer[8],
-                 sc->temp_buffer[9],  sc->temp_buffer[10], sc->temp_buffer[11],
-                 sc->temp_buffer[12], sc->temp_buffer[13], sc->temp_buffer[14],
-                 sc->temp_buffer[15]);
-
     if ((sc->request_pos >= sc->max_transfer_len) || (dev->tf->pos >= sc->packet_len))
         bpck_pio_request(dev, 0);
 
@@ -615,14 +597,6 @@ bpck_data_write(bpck_t *dev, const uint8_t val)
     buf[dev->tf->pos] = val;
     dev->tf->pos++;
     sc->request_pos++;
-
-    /* DIAGNOSTIC 2026-09-13 - remove once LBA 0 is settled. */
-    if ((sc->packet_status == PHASE_DATA_OUT) && (dev->tf->pos == 16))
-        bpck_log("BPCK: DATA OUT head %02X %02X %02X %02X %02X %02X %02X %02X "
-                           "%02X %02X %02X %02X %02X %02X %02X %02X\n",
-                 buf[0],  buf[1],  buf[2],  buf[3],  buf[4],  buf[5],  buf[6],
-                 buf[7],  buf[8],  buf[9],  buf[10], buf[11], buf[12], buf[13],
-                 buf[14], buf[15]);
 
     if (sc->packet_status == PHASE_DATA_OUT) {
         if ((sc->request_pos >= sc->max_transfer_len) ||
@@ -777,20 +751,18 @@ bpck_device_reset(bpck_t *dev)
     dev->tf_regs[BPCK_REG_TASKFILE + ATA_BCHI]   = ATAPI_SIG_HI;
 
     /*
-     * A real drive sets its own signature here. rdisk_reset() writes
-     * request_length = 0xEB14, which is that signature, so the values above
-     * only apply when the bridge is running without a drive.
+     * A real drive sets its own signature here; the drive's reset writes it
+     * into request_length, so the values above only apply when the bridge is
+     * running with no drive attached.
      */
     if (bpck_attach_drive(dev)) {
         dev->sd->reset(dev->sd->sc);
 
         /*
-         * A real drive raises a unit attention when it is reset, and the
-         * physical LS-120 demonstrably does: after this same SRST it answers
-         * the next READ with sense key 6. rdisk_reset() clears the flag, so
-         * without this the emulated drive is more forgiving than the real one
-         * and a driver that mishandles the condition would pass here and fail
-         * on hardware. rdisk already implements the rest, ALLOW_UA included.
+         * A real drive raises a unit attention when it is reset. The drive's
+         * own reset clears the flag, so without this the emulated drive would
+         * be more forgiving than hardware, and a driver that mishandles the
+         * condition would pass here and fail on a real one.
          */
         ((scsi_cdrom_t *) dev->sd->sc)->unit_attention = 1;
     }
