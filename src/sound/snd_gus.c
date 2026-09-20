@@ -2525,7 +2525,7 @@ gus_poll_wave(void *priv)
             else
                 v = (int16_t) (float) (v) *24.0 * vol16bit[(temp_rcur >> 10) & 4095];
 
-            if (gus->type == GUS_INTERWAVE && (gus->synth_mode[gus->voice] & 0x20)) {
+            if (gus->type == GUS_INTERWAVE && (gus->synth_mode[d] & 0x20)) {
                 gus->out_l += (v * vol16bit[gus->pan_l[d]]);
                 gus->out_r += (v * vol16bit[gus->pan_r[d]]);
 
