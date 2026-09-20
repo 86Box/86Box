@@ -5830,7 +5830,7 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
     /* 286 machines that utilize the MCA bus */
-    /* Has IBM PS/2 Type 2 KBC firmware. */
+    /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/2 model 50",
         .internal_name     = "ibmps2_m50",
@@ -5878,7 +5878,7 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has IBM PS/2 Type 2 KBC firmware. */
+    /* Has IBM PS/2 Type 1 KBC firmware. */
     {
         .name              = "[MCA] IBM PS/2 model 60",
         .internal_name     = "ibmps2_m60",
