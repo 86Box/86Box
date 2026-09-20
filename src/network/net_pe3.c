@@ -683,6 +683,9 @@ pe3_write_ctrl(uint8_t val, void *priv)
         return;
     }
 
+    if (val & PE3_CTRL_SELECT) /* no data cycles while SelectIn held (i.e. LPT probes) */
+        return;
+
     /* Work out which line the driver settled on as the data strobe. */
     uint8_t moved = (prev ^ val) & dev->strobe_cand;
     if (moved && !(moved & (moved - 1)))
