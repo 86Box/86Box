@@ -38,18 +38,6 @@
 #include <86box/plat_unused.h>
 #include <86box/log.h>
 
-/*
- * The whole reason for modelling this bridge is VISIBILITY. On real hardware a
- * driver bug surfaces as "36 zeros" or "media is not formatted" and costs a
- * boot to narrow. Here the bridge is on both sides of the conversation, so it
- * can say what the host asked for AND what the protocol expected - which turns
- * a day of bisecting into one log line.
- *
- * Every failure this project spent 2026-09-11 on is a one-liner from in here:
- * the CDB written as twelve register writes instead of a block write; a command
- * refused with a unit attention nobody had cleared; a host reading the length
- * it asked for rather than the count the device offered.
- */
 #define ENABLE_EPAT_LOG 1
 #ifdef ENABLE_EPAT_LOG
 int epat_do_log = ENABLE_EPAT_LOG;
@@ -927,10 +915,7 @@ epat_write_data(uint8_t val, void *priv)
      * status reads and a nibble merge. MEASURED on the real 5160 2026-09-18:
      * byte mode and nibble return the same byte for the same register, and a
      * whole ATAPI INQUIRY through this path is byte-identical to the nibble
-     * one - docs/captures/2026-09-18_ls120/BM1_*, BM2_*.
-     *
-     * This is modelled so the driver's byte-mode build can be traced in the
-     * bed, which is the only place the trace ring survives.
+     * one.
      *
      * ORDER MATTERS. EPAT_WRITE_TAG is 0x60 and EPAT_BYTE_TAG is 0x20, so a
      * loose `val & EPAT_WRITE_TAG` is TRUE for a byte-mode tag as well and
