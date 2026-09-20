@@ -133,6 +133,7 @@ extern const device_t      lpt_epat_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
+extern const device_t      lpt_bpck_device;
 extern const device_t      lpt_ditto_device;
 
 extern const device_t      lpt_loopback_device;
