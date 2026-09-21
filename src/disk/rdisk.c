@@ -33,6 +33,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/hdc_ide.h>
+#include <86box/lpt.h>
 #include <86box/rdisk.h>
 #include <86box/version.h>
 
@@ -2445,6 +2446,15 @@ rdisk_hard_reset(void)
             else if (rdisk_drives[c].bus_type == RDISK_BUS_LPT)
                 rdisk_log(dev->log, "LPT RDISK drive %i attached to LPT port %i\n",
                         c, rdisk_drives[c].res);
+
+            /*
+             * A parallel-port drive is reached through a bridge, and the bridge is not
+             * something the user picks: assigning the drive to an LPT port is the whole
+             * configuration. Instantiate it here and let it claim the port with
+             * lpt_attach() - first claim wins against any other LPT device.
+             */
+            if (rdisk_drives[c].bus_type == RDISK_BUS_LPT)
+                device_add_inst(&lpt_epat_device, rdisk_drives[c].res + 1);
         }
     }
 }
