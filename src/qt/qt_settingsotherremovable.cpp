@@ -118,7 +118,7 @@ SettingsOtherRemovable::setRDiskBus(QAbstractItemModel *model, const QModelIndex
             break;
         case RDISK_BUS_ATAPI:
         case RDISK_BUS_SCSI:
-            icon = ((type == RDISK_TYPE_ZIP_100) || (type == RDISK_TYPE_ZIP_250)) ? zip_icon : ((type == RDISK_TYPE_JAZ_1GB) || (type == RDISK_TYPE_JAZ_2GB)) ? jaz_icon : ((type == RDISK_TYPE_SYJET_1_5GB) || (type == RDISK_TYPE_SPARQ_1GB)) ? syquest_icon : rdisk_icon;
+            icon = ((type == RDISK_TYPE_ZIP_100) || (type == RDISK_TYPE_ZIP_250)) ? zip_icon : ((type == RDISK_TYPE_JAZ_1GB) || (type == RDISK_TYPE_JAZ_2GB)) ? jaz_icon : ((type == RDISK_TYPE_SYJET_1_5GB) || (type == RDISK_TYPE_SPARQ_1GB)) ? syquest_icon : rdisk_icon);
             break;
 
         default:
