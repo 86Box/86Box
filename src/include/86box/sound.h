@@ -21,6 +21,44 @@
 
 #define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
+typedef struct _sound_backend_ {
+    const char *name;
+    const char *internal_name;
+
+    void        (*give_buffer)(void *priv, void *src, const void *buf, int size, int gain);
+    void *      (*init_source)(void *priv, int sample_rate, int buffer_size);
+    void        (*close_source)(void *priv, void *src);
+    const char *(*get_output_devices)(void);
+    void       *(*init)(void);
+    void        (*close)(void *priv);
+} sound_backend_t;
+
+extern sound_backend_t       sound_cur_backend;
+
+#ifdef AUDIO4
+extern const sound_backend_t sound_backend_audio4;
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
+extern const sound_backend_t sound_backend_openal;
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
+extern const sound_backend_t sound_backend_xaudio2;
+#endif
+#ifdef SNDIO
+extern const sound_backend_t sound_backend_sndio;
+#endif
+
+extern void                  sound_backend_give_buffer(void *src, const void *buf,
+                                                       int size, int gain);
+extern void                  sound_backend_close_source(void *src);
+extern void *                sound_backend_init_source(int sample_rate, int buffer_size);
+extern const char *          sound_backend_get_output_devices(void);
+extern void                  sound_backend_close(void);
+extern void                  sound_backend_init(void);
+
+extern void            sound_source_close_all(void);
+extern void            sound_source_reopen_all(void);
+
 extern int  sound_gain;
 extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
 
@@ -244,6 +282,8 @@ extern const device_t cs4237b_device;
 extern const device_t cs4238b_device;
 
 /* ESS Technology */
+extern const device_t ess_488_device;
+extern const device_t ess_1488_device;
 extern const device_t ess_688_device;
 extern const device_t ess_ess0100_pnp_device;
 extern const device_t ess_ess0968_pnp_688_device;
@@ -260,6 +300,8 @@ extern const device_t ess_1888_compaq_device;
 extern const device_t ess_1887_device;
 extern const device_t ess_1868_device;
 extern const device_t ess_1869_device;
+extern const device_t ess_solo1_device;
+extern const device_t ess_solo1_onboard_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1370_device;
@@ -272,9 +314,16 @@ extern const device_t ct5880_onboard_device;
 
 /* Gravis UltraSound family */
 extern const device_t gus_device;
+extern const device_t gus_v34_device;
 extern const device_t gus_v37_device;
 extern const device_t gus_max_device;
 extern const device_t gus_ace_device;
+extern const device_t gus_extreme_device;
+extern const device_t gus_vipermax_device;
+extern const device_t gus_pnp_device;
+extern const device_t gus_pnp_new_device;
+extern const device_t gus_pnp_nocd_device;
+extern const device_t gus_pnp_compaq_device;
 
 /* IBM Music Feature Card */
 extern const device_t imfc_device;
@@ -289,8 +338,9 @@ extern const device_t entertainer_device;
 /* Mindscape Music Board */
 extern const device_t mmb_device;
 
-/* MediaVision ThunderBoard */
+/* Media Vision */
 extern const device_t thunderboard_device;
+extern const device_t jazz16_device;
 
 /* OPTi 82c93x */
 extern const device_t acermagic_s20_device;

@@ -402,6 +402,7 @@ enum {
 };
 
 enum {
+    TEXTUREMODE_TPERSP_ST = (1 << 0),
     TEXTUREMODE_NCC_SEL   = (1 << 5),
     TEXTUREMODE_TCLAMPS   = (1 << 6),
     TEXTUREMODE_TCLAMPT   = (1 << 7),

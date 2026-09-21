@@ -144,6 +144,7 @@ static void CallInterruptHandler();
 
 int midiin_r;
 int midiin_w;
+int midiin_used;
 int midiin_sysex;
 uint8_t midiin_queue[256];
 
@@ -5423,6 +5424,8 @@ public:
 		if (midiin_r != midiin_w) {
 			midiin_r++;
 			midiin_r &= 0xff;
+		    if (midiin_used > 0)
+		        midiin_used--;
 		}
 		return ret;
 	}
@@ -13656,6 +13659,7 @@ imfc_input_msg(void *priv, uint8_t *msg, uint32_t len)
     for (uint32_t i = 0; i < len; i++) {
         midiin_queue[midiin_w++] = msg[i];
         midiin_w &= 0xff;
+        midiin_used++;
     }
 }
 
@@ -13672,9 +13676,16 @@ imfc_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (int) (len -i);
         midiin_queue[midiin_w++] = buffer[i];
         midiin_w &= 0xff;
+        midiin_used++;
     }
     midiin_sysex = 0;
     return 0;
+}
+
+static int
+imfc_input_remain(void *priv)
+{
+    return (256 - midiin_used);
 }
 
 void*
@@ -13683,7 +13694,12 @@ imfc_card_init(const device_t *info)
     imfc = std::make_unique<MusicFeatureCard>(device_get_config_hex16("base"), device_get_config_int("irq"));
     wavetable_add_handler(imfc_get_buffer, imfc.get());
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, imfc_input_msg, imfc_input_sysex, imfc.get());
+        midi_in_handler(1, imfc_input_msg, imfc_input_sysex, imfc_input_remain, imfc.get());
+
+    memset(midiin_queue, 0x00, sizeof(midiin_queue));
+    midiin_r = 0;
+    midiin_w = 0;
+    midiin_used = 0;
 
     return imfc.get();
 }

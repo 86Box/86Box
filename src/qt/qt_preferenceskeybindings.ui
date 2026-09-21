@@ -40,21 +40,27 @@
       <number>0</number>
      </property>
      <item row="0" column="0" colspan="3">
-      <widget class="QTableWidget" name="tableKeys">
+      <widget class="QTreeView" name="treeViewKeys">
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::SingleSelection</enum>
+       </property>
+       <attribute name="verticalHeaderVisible">
+        <bool>false</bool>
+       </attribute>
+       <property name="alternatingRowColors">
+        <bool>true</bool>
        </property>
        <property name="tabKeyNavigation">
         <bool>false</bool>
        </property>
-       <property name="showDropIndicator" stdset="0">
+       <property name="rootIsDecorated">
         <bool>false</bool>
        </property>
-       <property name="alternatingRowColors">
+       <property name="allColumnsShowFocus">
         <bool>true</bool>
-       </property>
-       <property name="selectionBehavior">
-        <enum>QAbstractItemView::SelectRows</enum>
        </property>
       </widget>
      </item>
@@ -75,9 +81,6 @@
        </item>
        <item>
         <widget class="QPushButton" name="pushButtonClearBind">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
          <property name="minimumSize">
           <size>
            <width>100</width>
@@ -91,9 +94,6 @@
        </item>
        <item>
         <widget class="QPushButton" name="pushButtonBind">
-         <property name="enabled">
-          <bool>false</bool>
-         </property>
          <property name="minimumSize">
           <size>
            <width>100</width>

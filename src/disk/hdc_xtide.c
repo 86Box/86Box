@@ -176,6 +176,10 @@ xtide_init(const device_t *info)
 {
     xtide_t *xtide = calloc(1, sizeof(xtide_t));
 
+#ifdef ENABLE_XTIDE_LOG
+    xtide->log = log_open("XTIDE");
+#endif
+
     rom_init(&xtide->bios_rom,
              device_get_bios_file(info, device_get_config_bios("bios"), 0),
              device_get_config_hex20("bios_addr"), 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);

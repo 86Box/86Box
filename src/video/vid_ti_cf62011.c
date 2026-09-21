@@ -246,11 +246,11 @@ vid_init(const device_t *info)
               NULL, vid_in, vid_out, NULL, NULL);
 
     io_sethandler(0x0100, 2, vid_in, NULL, NULL, NULL, NULL, NULL, ti);
-    io_sethandler(0x03c0, 32, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
+    io_sethandler(0x03a0, 64, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
     io_sethandler(0x2100, 16, vid_in, NULL, NULL, vid_out, NULL, NULL, ti);
 
     ti->svga.bpp     = 8;
-    ti->svga.miscout = 1;
+    ti->svga.miscout = 0;
 
     return ti;
 }

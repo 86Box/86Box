@@ -315,6 +315,23 @@ machine_at_portableiii_init(const machine_t *model)
 }
 
 int
+machine_at_ft286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ft286/286-Access methods-ROM2.BIN",
+                                "roms/machines/ft286/286-Access methods-ROM4.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ibm_common_init(model);
+
+    return ret;
+}
+
+int
 machine_at_grid1520_init(const machine_t *model)
 {
     int ret = 0;
@@ -351,7 +368,7 @@ static const device_config_t pc900_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
-                .name           = "BIOS V2.07A",
+                .name           = "AwardBIOS - Revision V2.07A (Commodore)",
                 .internal_name  = "pc900",
                 .bios_type      = BIOS_NORMAL,
                 .files_no       = 1,
@@ -360,7 +377,7 @@ static const device_config_t pc900_config[] = {
                 .files          = { "roms/machines/pc900/mpf_pc900_v207a.bin", "" }
             },
             {
-                .name           = "BIOS V2.07A.XC",
+                .name           = "AwardBIOS - Revision V2.07A.XC (Commodore)",
                 .internal_name  = "pc900_v207a_xc",
                 .bios_type      = BIOS_NORMAL,
                 .files_no       = 1,
@@ -369,7 +386,7 @@ static const device_config_t pc900_config[] = {
                 .files          = { "roms/machines/pc900/cbm_pc40_v207a_xc.bin", "" }
             },
             {
-                .name           = "BIOS V2.07B",
+                .name           = "AwardBIOS - Revision V2.07B",
                 .internal_name  = "pc900_v207b",
                 .bios_type      = BIOS_NORMAL,
                 .files_no       = 1,
@@ -378,7 +395,7 @@ static const device_config_t pc900_config[] = {
                 .files          = { "roms/machines/pc900/mpf_pc900_v207b.bin", "" }
             },
             {
-                .name           = "BIOS V3.01B",
+                .name           = "AwardBIOS - Revision V3.01B",
                 .internal_name  = "pc900_v301b",
                 .bios_type      = BIOS_NORMAL,
                 .files_no       = 1,
@@ -690,6 +707,23 @@ machine_at_dells200_init(const machine_t *model)
 }
 
 int
+machine_at_ftbaby286_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ftbaby286/AMI286_u17.bin",
+                                "roms/machines/ftbaby286/AMI286_u18.bin",
+                                0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_ctat_common_init(model);
+
+    return ret;
+}
+
+int
 machine_at_super286c_init(const machine_t *model)
 {
     int ret;
@@ -927,7 +961,7 @@ machine_at_n8810m30_init(const machine_t *model) /* Onboard SCSI not yet emulate
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/n8810m30/at286bios_53889.00.0.17jr.BIN",
+    ret = bios_load_linear("roms/machines/n8810m30/at286bios_53889.00.0.17jr.bin",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

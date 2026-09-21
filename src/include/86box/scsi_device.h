@@ -17,6 +17,8 @@
 #ifndef SCSI_DEVICE_H
 #define SCSI_DEVICE_H
 
+#define EMU_VERSION_EX    "3.50" /* frozen due to IDE re-detection behavior on Windows */
+
 /* Configuration. */
 #define SCSI_NUM         (SCSI_BUS_MAX * SCSI_ID_MAX)
 
@@ -95,6 +97,8 @@
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10            0x49
 #define GPCMD_GET_EVENT_STATUS_NOTIFICATION           0x4a
 #define GPCMD_PAUSE_RESUME                            0x4b
+#define GPCMD_LOG_SELECT                              0x4c
+#define GPCMD_LOG_SENSE                               0x4d
 #define GPCMD_STOP_PLAY_SCAN                          0x4e
 #define GPCMD_READ_DISC_INFORMATION                   0x51
 #define GPCMD_READ_TRACK_INFORMATION                  0x52
@@ -160,15 +164,20 @@
 #define GPCMD_STOP_PIONEER                            0xcb /* Pioneer Vendor Unique command */
 #define GPCMD_PLAYBACK_STATUS_PIONEER                 0xcc /* Pioneer Vendor Unique command */
 #define GPCMD_SCAN_PIONEER                            0xcd /* Should be equivalent to 0xba */
+#define GPCMD_READ_CDDA_NEC                           0xd4 /* NEC Vendor Unique command */
 #define GPCMD_READ_CD_MSF_OLD                         0xd5 /* Should be equivalent to 0xb9 */
+#define GPCMD_READ_CDDA                               0xd8
 #define GPCMD_AUDIO_TRACK_SEARCH_NEC                  0xd8 /* NEC Vendor Unique command */
+#define GPCMD_READ_CDDA_MSF                           0xd9
 #define GPCMD_PLAY_AUDIO_NEC                          0xd9 /* NEC Vendor Unique command */
 #define GPCMD_SET_SPEED_ALT                           0xda /* Should be equivalent to 0xbb */
 #define GPCMD_STILL_NEC                               0xda /* NEC Vendor Unique command */
 #define GPCMD_SET_STOP_TIME_NEC                       0xdb /* NEC Vendor Unique command */
+#define GPCMD_READ_CDXA_PIONEER                       0xdb /* Pioneer Vendor Unique command */
 #define GPCMD_CADDY_EJECT_NEC                         0xdc /* NEC Vendor Unique command */
 #define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC        0xdd /* NEC Vendor Unique command */
 #define GPCMD_READ_DISC_INFORMATION_NEC               0xde /* NEC Vendor Unique command */
+#define GPCMD_READ_ALL_SUBCODES_PIONEER               0xdf /* Pioneer Vendor Unique command */
 #define GPCMD_DRIVE_STATUS_PIONEER                    0xe0 /* Pioneer Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_12_MATSUSHITA                0xe5 /* Matsushita Vendor Unique command */
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
@@ -226,6 +235,7 @@
 #define SENSE_UNIT_ATTENTION  6
 #define SENSE_DATA_PROTECT    7
 #define SENSE_BLANK_CHECK     8
+#define SENSE_VOLUME_OVERFLOW 13
 
 /* SCSI Additional Sense Codes */
 #define ASC_NONE                               0x00

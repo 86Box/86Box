@@ -22,6 +22,8 @@ public:
 
     void save(int soft);
 
+    bool isLightPenUsable();
+
 public slots:
     void onCurrentMachineChanged(int machineId);
 

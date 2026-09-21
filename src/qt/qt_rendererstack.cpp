@@ -36,7 +36,6 @@
 #include <stdexcept>
 
 #include <QApplication>
-#include <QClipboard>
 
 #include <QScreen>
 #include <QMessageBox>
@@ -236,13 +235,29 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         isMouseDown &= ~1;
         return;
     }
-    if (mouse_capture && (event->button() == Qt::MiddleButton) && (mouse_get_buttons() < 3)) {
+    if (mouse_capture && (event->button() & mouse_get_release_buttons())) {
+        /*
+           On Windows the raw input thread sets the button bit behind our back and
+           stops processing as soon as the capture drops, so clear it here to keep it
+           from staying stuck down. Elsewhere the press was already consumed above.
+         */
+        mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
         plat_mouse_capture(0);
         this->unsetCursor();
         isMouseDown &= ~1;
         return;
     }
     if (mouse_capture || (mouse_input_mode >= 1)) {
+        Qt::MouseButton button = event->button();
+#ifdef __APPLE__
+        if ((button == Qt::LeftButton) && control_click_active) {
+            control_click_active = false;
+            button = right_button_active ? Qt::NoButton : Qt::RightButton;
+        } else if (button == Qt::RightButton) {
+            right_button_active = false;
+            button = control_click_active ? Qt::NoButton : Qt::RightButton;
+        }
+#endif
 #ifdef Q_OS_WINDOWS
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
@@ -252,7 +267,7 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
 #    endif
 #endif
-            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~button);
     }
     isMouseDown &= ~1;
 }
@@ -261,7 +276,21 @@ void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
+    /* A button that releases the capture is consumed, not sent to the guest. */
+    if (mouse_capture && (event->button() & mouse_get_release_buttons())) {
+        event->accept();
+        return;
+    }
     if (mouse_capture || (mouse_input_mode >= 1)) {
+        Qt::MouseButton button = event->button();
+#ifdef __APPLE__
+        if ((button == Qt::LeftButton) && (event->modifiers() & Qt::ControlModifier)) {
+            control_click_active = true;
+            button = Qt::RightButton;
+        } else if (button == Qt::RightButton) {
+            right_button_active = true;
+        }
+#endif
 #ifdef Q_OS_WINDOWS
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
@@ -271,7 +300,7 @@ RendererStack::mousePressEvent(QMouseEvent *event)
         if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) || (m_monitor_index < 1))
 #    endif
 #endif
-            mouse_set_buttons_ex(mouse_get_buttons_ex() | event->button());
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | button);
     }
     event->accept();
 }
@@ -346,7 +375,7 @@ RendererStack::enterEvent(QEvent *event)
     mousedata.mouse_tablet_in_proximity = m_monitor_index + 1;
 
     if (mouse_input_mode == 1)
-        QApplication::setOverrideCursor(Qt::BlankCursor);
+        QApplication::setOverrideCursor((tablet_get_device(tablet_type) && !memcmp(tablet_get_device(tablet_type)->internal_name, "wacom", 5)) ? Qt::BlankCursor : Qt::ArrowCursor);
     else if (mouse_input_mode == 2)
         QApplication::setOverrideCursor(Qt::CrossCursor);
 }
@@ -448,12 +477,16 @@ RendererStack::createRenderer(Renderer renderer)
                     imagebufs        = rendererWindow->getBuffers();
                     switchInProgress = false;
                     emit rendererChanged();
+                    if (m_monitor_index != 0 && show_second_monitors)
+                        this->show();
+
+                    QTimer::singleShot(1000, [this] {
+                        if (m_monitor_index != 0 && show_second_monitors)
+                            this->show();
+                    });
                 });
                 connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
                     /* Renderer could not initialize, fallback to software. */
-                    auto msgBox = new QMessageBox(QMessageBox::Critical, QString(), tr("Failed to initialize Vulkan renderer.") % QStringLiteral("\n") % tr("Falling back to software rendering."), QMessageBox::Ok);
-                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
-                    msgBox->show();
                     imagebufs = {};
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                 });
@@ -473,6 +506,8 @@ RendererStack::createRenderer(Renderer renderer)
 
     this->setStyleSheet("background-color: black");
     boxLayout->addWidget(current.get());
+    if (m_monitor_index > 0)
+        current->show();
 
     rendererWindow->r_monitor_index = m_monitor_index;
 
@@ -506,8 +541,7 @@ take_screenshot_clipboard_monitor(int sx, int sy, int sw, int sh, int i)
     }
 
     QImage image(screenshot_rgb, sw, sh, sw * 3, QImage::Format_RGB888);
-    QClipboard *clipboard = QApplication::clipboard();
-    clipboard->setImage(image, QClipboard::Clipboard);
+    util::copyImageToClipboard(image);
     monitors[i].mon_screenshots_raw_clipboard--;
 }
 
@@ -630,6 +664,10 @@ RendererStack::event(QEvent *event)
                 mouse_x_abs = 1;
             if (mouse_y_abs > 1)
                 mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif
@@ -662,6 +700,10 @@ RendererStack::event(QEvent *event)
 
             if (mouse_x_abs > 1) mouse_x_abs = 1;
             if (mouse_y_abs > 1) mouse_y_abs = 1;
+
+            if (mouse_both_enabled())
+                mouse_tablet_in_proximity = 0;
+
             return QWidget::event(event);
         }
 #endif

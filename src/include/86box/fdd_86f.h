@@ -84,6 +84,8 @@ extern int      d86f_is_40_track(int drive);
 extern void     d86f_reset_index_hole_pos(int drive, int side);
 extern uint16_t d86f_prepare_pretrack(int drive, int side, int iso);
 extern void     d86f_set_track_pos(int drive, uint32_t track_pos);
+extern uint32_t d86f_get_track_pos(int drive);
+extern uint32_t d86f_get_raw_size(int drive, int side);
 extern void     d86f_set_cur_track(int drive, int track);
 extern void     d86f_zero_track(int drive);
 extern void     d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n);

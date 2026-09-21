@@ -118,6 +118,24 @@ static const uint32_t init_palette[6][256] = {
 #include <86box/vid_pgc_palette.h>
 };
 
+/* The program ROM pair; the hardware text font lives inside it. */
+#define PGC_ROM_LOW  "roms/video/pgc/59x7355.bin"
+#define PGC_ROM_HIGH "roms/video/pgc/59x7354.bin"
+
+/*
+ * The card's hardware text font, one row per scanline, one nibble per
+ * cell naming the shape the card inks there, leftmost cell on top.
+ * The cell is 8 by 12 with the figure 7 wide, the eighth column being the
+ * gap between letters; rows 0 to 8 are the cap band and 9 to 11 the
+ * descenders, so the baseline is row 8. Built from the ROM at init.
+ */
+#define PGC_CELL_W   8
+#define PGC_CELL_H   12
+#define PGC_GLYPH_W  7
+#define PGC_ASCENT   9
+
+static uint32_t pgc_font[256][PGC_CELL_H];
+
 static video_timings_t timing_pgc = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 #ifdef ENABLE_PGC_LOG
@@ -154,16 +172,21 @@ static int
 output_byte(pgc_t *dev, uint8_t val)
 {
     /* If output buffer full, wait for it to empty. */
-    while (!dev->stopped && dev->mapram[0x302] == (uint8_t) (dev->mapram[0x303] - 1)) {
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x302] == (uint8_t) (dev->mapram[0x303] - 1)) {
         pgc_log("PGC: output buffer state: %02x %02x  Sleeping\n",
                 dev->mapram[0x302], dev->mapram[0x303]);
-        dev->waiting_output_fifo = 1;
         pgc_sleep(dev);
     }
 
-    if (dev->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (dev->mapram[0x3ff] || dev->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(dev);
+        return 0;
+    }
+
+    if (dev->mapram[0x307]) {
+        /* Warm restart requested. */
+        pgc_warm_reset(dev);
         return 0;
     }
 
@@ -194,14 +217,19 @@ static int
 error_byte(pgc_t *dev, uint8_t val)
 {
     /* If error buffer full, wait for it to empty. */
-    while (!dev->stopped && dev->mapram[0x304] == dev->mapram[0x305] - 1) {
-        dev->waiting_error_fifo = 1;
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && dev->mapram[0x304] == (uint8_t) (dev->mapram[0x305] - 1)) {
         pgc_sleep(dev);
     }
 
-    if (dev->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (dev->mapram[0x3ff] || dev->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(dev);
+        return 0;
+    }
+
+    if (dev->mapram[0x307]) {
+        /* Warm restart requested. */
+        pgc_warm_reset(dev);
         return 0;
     }
 
@@ -234,17 +262,22 @@ static int
 input_byte(pgc_t *dev, uint8_t *result)
 {
     /* If input buffer empty, wait for it to fill. */
-    while (!dev->stopped && (dev->mapram[0x300] == dev->mapram[0x301])) {
-        dev->waiting_input_fifo = 1;
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && (dev->mapram[0x300] == dev->mapram[0x301])) {
         pgc_sleep(dev);
     }
 
     if (dev->stopped)
         return 0;
 
-    if (dev->mapram[0x3ff]) {
-        /* Reset triggered. */
+    if (dev->mapram[0x3ff] || dev->mapram[0x306]) {
+        /* Reboot or cold restart. */
         pgc_reset(dev);
+        return 0;
+    }
+
+    if (dev->mapram[0x307]) {
+        /* Warm restart requested. */
+        pgc_warm_reset(dev);
         return 0;
     }
 
@@ -484,7 +517,13 @@ hndl_cldel(pgc_t *dev)
     memset(&dev->clist[param], 0, sizeof(pgc_cl_t));
 }
 
-/* Clear the screen to a specified color. */
+/*
+ * Clear the image to a color. Both firmwares work in card coordinates and
+ * ignore the viewport and the display mode: the IM-1024 fills the IMGSIZ
+ * image (handler and FLOOD share a body), the PGC its fixed 480 rows. The
+ * framebuffer can be taller than the image, so a raster-row loop would
+ * clear rows the screen does not show.
+ */
 static void
 hndl_clears(pgc_t *dev)
 {
@@ -493,8 +532,467 @@ hndl_clears(pgc_t *dev)
     if (!pgc_param_byte(dev, &param))
         return;
 
-    for (uint32_t y = 0; y < dev->screenh; y++)
-        memset(dev->vram + y * dev->maxw, param, dev->screenw);
+    for (uint32_t y = 0; y < (uint32_t) dev->img_h; y++)
+        memset(dev->vram + (dev->maxh - 1 - y) * dev->maxw, param, (size_t) dev->img_w);
+}
+
+/*
+ * Fill the current viewport with a color, in replace mode, leaving the
+ * current color alone (IBM PGC Technical Reference, "Flood"; the
+ * IM-1024 firmware does the same). Unlike CLEARS it stops at the
+ * viewport, so AutoCAD's driver uses it to scroll its command area.
+ */
+static void
+hndl_flood(pgc_t *dev)
+{
+    uint8_t param = 0;
+
+    if (!pgc_param_byte(dev, &param))
+        return;
+
+    for (uint16_t y = dev->vp_y1; y <= dev->vp_y2; y++)
+        for (uint16_t x = dev->vp_x1; x <= dev->vp_x2; x++)
+            pgc_write_pixel(dev, x, y, param);
+}
+
+/*
+ * CIRCLE draws a circle of the given radius around the current point,
+ * filled when PRMFIL is set. The PGC draws nothing for a radius outside
+ * -8191 to 8191 and reports it.
+ */
+static void
+hndl_circle(pgc_t *dev)
+{
+    int32_t radius = 0;
+
+    if (!pgc_param_coord(dev, &radius))
+        return;
+
+    pgc_log("PGC: CIRCLE %i\n", radius >> 16);
+
+    if (radius > (8191 << 16) || radius < -(8191 << 16)) {
+        pgc_error(dev, PGC_ERROR_RANGE);
+        return;
+    }
+
+    if (radius < 0)
+        radius = -radius;
+
+    pgc_draw_ellipse(dev, radius, radius);
+}
+
+/* Both corners are inclusive; filled under PRMFIL, outlined otherwise. */
+static void
+rect_draw(pgc_t *dev, int16_t x0, int16_t y0, int16_t x1, int16_t y1)
+{
+    int16_t p;
+    int16_t q;
+
+    pgc_sto_raster(dev, &x0, &y0);
+    pgc_sto_raster(dev, &x1, &y1);
+
+    if (x0 > x1) {
+        p  = x0;
+        x0 = x1;
+        x1 = p;
+    }
+    if (y0 > y1) {
+        q  = y0;
+        y0 = y1;
+        y1 = q;
+    }
+
+    pgc_log("PGC: RECT (%i,%i) -> (%i,%i)\n", x0, y0, x1, y1);
+
+    if (dev->fill_mode) {
+        for (p = y0; p <= y1; p++)
+            pgc_fill_line_r(dev, x0, x1, p);
+    } else {
+        p = dev->line_pattern;
+        p = pgc_draw_line_r(dev, x0, y0, x1, y0, p);
+        p = pgc_draw_line_r(dev, x1, y0, x1, y1, p);
+        p = pgc_draw_line_r(dev, x1, y1, x0, y1, p);
+        p = pgc_draw_line_r(dev, x0, y1, x0, y0, p);
+    }
+}
+
+/* RECT takes the corner opposite the current point. */
+static void
+hndl_rect(pgc_t *dev)
+{
+    int32_t x1 = 0;
+    int32_t y1 = 0;
+
+    if (!pgc_param_coord(dev, &x1))
+        return;
+    if (!pgc_param_coord(dev, &y1))
+        return;
+
+    rect_draw(dev, dev->x >> 16, dev->y >> 16, x1 >> 16, y1 >> 16);
+}
+
+/*
+ * RECTR takes that corner as an offset from the current point, which
+ * does not move. AutoCAD's driver highlights a screen menu item and
+ * erases a character cell with it.
+ */
+static void
+hndl_rectr(pgc_t *dev)
+{
+    int16_t x0 = dev->x >> 16;
+    int16_t y0 = dev->y >> 16;
+    int32_t dx = 0;
+    int32_t dy = 0;
+
+    if (!pgc_param_coord(dev, &dx))
+        return;
+    if (!pgc_param_coord(dev, &dy))
+        return;
+
+    rect_draw(dev, x0, y0, x0 + (dx >> 16), y0 + (dy >> 16));
+}
+
+/*
+ * The firmware's 16.16 divide. It shifts the divisor up to 16 significant
+ * bits and divides by those alone, so the low bits of the quotient are not
+ * an exact division. Overflow gives the firmware's 0x7fff.ffff.
+ */
+static uint32_t
+pgc_fw_div(uint32_t num, uint32_t den)
+{
+    uint16_t hi    = num >> 16;
+    uint16_t lo    = num & 0xffff;
+    uint16_t dhi   = den >> 16;
+    uint16_t dlo   = den & 0xffff;
+    uint16_t sign  = dhi;
+    uint16_t top;
+    uint32_t n;
+    uint32_t q;
+    int      shift = 0;
+
+    if (dhi & 0x8000) {
+        dhi = -(dhi + (dlo != 0));
+        dlo = -dlo;
+    }
+    if (hi & 0x8000) {
+        sign ^= hi;
+        hi = -(hi + (lo != 0));
+        lo = -lo;
+    }
+    n = ((uint32_t) hi << 16) | lo;
+
+    if (dhi) {
+        do {
+            shift++;
+            top = dhi >> 15;
+            dhi = (dhi << 1) | (dlo >> 15);
+            dlo <<= 1;
+        } while (((dhi >> 15) ^ top) == 0);
+
+        if (!dhi || (n / dhi) > 0xffff)
+            return 0x7fffffff;
+        q = n / dhi;
+        n = ((q << 16) | (((n % dhi) << 16) / dhi)) >> (16 - shift);
+    } else {
+        if (dlo <= hi)
+            return 0x7fffffff;
+        while (!(dlo & 0x8000)) {
+            shift++;
+            dlo <<= 1;
+        }
+        q = n / dlo;
+        n = ((q << 16) | (((n % dlo) << 16) / dlo)) << shift;
+    }
+
+    return (sign & 0x8000) ? -n : n;
+}
+
+static void
+text_span(pgc_t *dev, int x, int w, int y)
+{
+    for (int i = 0; i < w; i++)
+        pgc_plot(dev, x + i, y);
+}
+
+/*
+ * One inked cell of a glyph, drawn downward from the pen at the cell's top
+ * left: pen_h rows, each a full pen_w span or spans of the width table's
+ * entry against the left and/or right edge of the cell. 1 to 4 are wedges,
+ * 5 and 6 chevrons, 14 and 15 notches; the other codes draw nothing. Every
+ * draw mode, clipped or not, draws these same spans.
+ */
+static void
+text_ink(pgc_t *dev, int prim, int x, int y, int pen_w, int pen_h, const uint8_t *wtab)
+{
+    int half = pen_h >> 1;
+    int rest = (pen_h + 1) >> 1;
+
+    for (int k = 0; k < pen_h; k++) {
+        int idx   = 0;
+        int left  = 1;
+        int right = 0;
+
+        switch (prim) {
+            case 1:
+                idx = k + 1;
+                break;
+            case 2:
+                idx = pen_h - k;
+                break;
+            case 3:
+                idx   = k + 1;
+                left  = 0;
+                right = 1;
+                break;
+            case 4:
+                idx   = pen_h - k;
+                left  = 0;
+                right = 1;
+                break;
+            case 5:
+            case 6:
+                if (k < half)
+                    idx = pen_h - k;
+                else
+                    idx = pen_h - half + !(pen_h & 1) + (k - half);
+                left  = (prim == 6);
+                right = (prim == 5);
+                break;
+            case 9:
+                break;
+            case 14:
+                if (k < half) {
+                    idx   = k + 1;
+                    right = 1;
+                }
+                break;
+            case 15:
+                if (k >= rest) {
+                    idx   = half - (k - rest);
+                    right = 1;
+                }
+                break;
+            default:
+                return;
+        }
+
+        if (idx == 0) {
+            text_span(dev, x, pen_w, y - k);
+            continue;
+        }
+        if (left)
+            text_span(dev, x, wtab[idx], y - k);
+        if (right)
+            text_span(dev, x + pen_w - wtab[idx], wtab[idx], y - k);
+    }
+}
+
+/*
+ * TEXT draws a string in the card's own font, justified about the current
+ * point by TJUST and sized by TSIZE. The card holds the face as stroke
+ * programs whose pen steps across the 8 by 12 cell by the size, inking
+ * one shape per cell; the size is the distance from one character to the
+ * next, and the justification box is that distance for all but the last
+ * character plus the 7-wide figure.
+ *
+ * TSIZE is in window coordinates, so every PEL size here is its product
+ * with the window scale: the firmware works them out in the TSIZE handler
+ * and the WINDOW handler re-runs that block when the mapping moves.
+ */
+static void
+hndl_text(pgc_t *dev)
+{
+    uint8_t  buf[640];
+    uint8_t  wtab[49];
+    uint8_t  delim = 0;
+    uint8_t  ch    = 0;
+    unsigned count = 0;
+    int16_t  x0;
+    int16_t  y0;
+    double   size;
+    int      adv;
+    int      pen_x;
+    int      pen_y;
+    int      fig_w;
+    int      fig_h;
+    int      width;
+
+    if (!pgc_param_byte(dev, &delim))
+        return;
+
+    while (count < sizeof(buf)) {
+        if (!pgc_param_byte(dev, &ch))
+            return;
+        if (ch == delim)
+            break;
+        buf[count++] = ch;
+    }
+
+    pgc_log("PGC: TEXT (%i chars)\n", count);
+
+    if (count == 0)
+        return;
+
+    /* The character advance and figure, in raster PELs. */
+    size  = dev->tsize / 65536.0;
+    adv   = (int) floor(size * dev->win_sc_x + 0.5);
+    fig_w = (int) floor(size * PGC_GLYPH_W / PGC_CELL_W * dev->win_sc_x + 0.5);
+    fig_h = (int) floor(size * PGC_ASCENT / PGC_CELL_W * dev->win_sc_y + 0.5);
+    if (adv < 1)
+        return;
+
+    /* The pen steps whole PELs, and stops at 255 across and 48 down. */
+    pen_x = adv / PGC_CELL_W;
+    if (pen_x > 255)
+        pen_x = 255;
+    pen_y = (int) floor(pen_x * (dev->win_sc_y / dev->win_sc_x) + 0.5);
+    if (pen_y > 48)
+        pen_y = 48;
+
+    /* Below one whole PEL per step there is no room for the face, and
+       the card draws each character as its filled figure instead. */
+    if (pen_x >= 1 && pen_y >= 1) {
+        fig_w = pen_x * PGC_GLYPH_W;
+        fig_h = pen_y * PGC_ASCENT;
+    }
+
+    x0    = dev->x >> 16;
+    y0    = dev->y >> 16;
+    width = (int) (count - 1) * adv + fig_w;
+
+    pgc_sto_raster(dev, &x0, &y0);
+
+    if (dev->tjust_h == 2)
+        x0 -= width / 2;
+    else if (dev->tjust_h == 3)
+        x0 -= width - 1;
+    y0 += (dev->tjust_v == 3) ? 0 : (dev->tjust_v == 2) ? (fig_h / 2) : (fig_h - 1);
+
+    /* One width per pen row, stepping by x scale / y scale from half a
+       step past 1; the card keeps the low byte, and an entry of 0 draws
+       nothing here where the card's loops would wrap. */
+    if (pen_x >= 1 && pen_y >= 1) {
+        uint32_t r   = pgc_fw_div(dev->win_fx_x, dev->win_fx_y);
+        uint32_t acc = (r >> 1) + 0x10000;
+
+        for (int i = 1; i <= pen_y; i++) {
+            wtab[i] = (acc >> 16) & 0xff;
+            acc += r;
+        }
+    }
+
+    for (unsigned n = 0; n < count; n++) {
+        if (pen_x < 1 || pen_y < 1) {
+            for (int y = 0; y < fig_h; y++)
+                for (int x = 0; x < fig_w; x++)
+                    pgc_plot(dev, x0 + x, y0 - y);
+
+            x0 += adv;
+            continue;
+        }
+
+        for (int y = 0; y < PGC_CELL_H; y++) {
+            uint32_t row = pgc_font[buf[n]][y];
+
+            for (int x = 0; x < PGC_CELL_W; x++) {
+                int prim = (row >> ((PGC_CELL_W - 1 - x) * 4)) & 0x0f;
+
+                if (prim)
+                    text_ink(dev, prim, x0 + x * pen_x, y0 - y * pen_y, pen_x, pen_y, wtab);
+            }
+        }
+
+        x0 += adv;
+    }
+}
+
+/*
+ * AREABC fills outward from the current point in the current color
+ * until it reaches pixels of the boundary color or the edge of the
+ * viewport. The seen map keeps the fill finite in the drawing modes
+ * where a written pixel does not come back as the fill color.
+ */
+static void
+hndl_areabc(pgc_t *dev)
+{
+    static const int nx[4] = { 1, -1, 0, 0 };
+    static const int ny[4] = { 0, 0, 1, -1 };
+    uint8_t          bcolor = 0;
+    uint8_t         *seen;
+    uint32_t        *stack;
+    uint32_t         sp  = 0;
+    uint32_t         cap = 4096;
+    uint32_t         cells;
+    int16_t          x0 = dev->x >> 16;
+    int16_t          y0 = dev->y >> 16;
+
+    if (!pgc_param_byte(dev, &bcolor))
+        return;
+
+    pgc_log("PGC: AREABC(%i)\n", bcolor);
+
+    if (bcolor == dev->color) {
+        pgc_error(dev, PGC_ERROR_AREA);
+        return;
+    }
+
+    pgc_sto_raster(dev, &x0, &y0);
+    if (x0 < dev->vp_x1 || x0 > dev->vp_x2 || y0 < dev->vp_y1 || y0 > dev->vp_y2)
+        return;
+
+    cells = (uint32_t) dev->maxw * dev->maxh;
+    seen  = (uint8_t *) calloc(cells, 1);
+    stack = (uint32_t *) malloc(cap * sizeof(uint32_t));
+    if (!seen || !stack) {
+        free(seen);
+        free(stack);
+        pgc_error(dev, PGC_ERROR_MEMORY);
+        return;
+    }
+
+    seen[(uint32_t) y0 * dev->maxw + x0] = 1;
+    stack[sp++]                          = ((uint32_t) y0 << 16) | (uint16_t) x0;
+
+    while (sp) {
+        uint32_t cell = stack[--sp];
+        uint16_t x    = cell & 0xffff;
+        uint16_t y    = cell >> 16;
+
+        pgc_plot(dev, x, y);
+
+        for (uint8_t n = 0; n < 4; n++) {
+            int      px = x + nx[n];
+            int      py = y + ny[n];
+            uint32_t idx;
+
+            if (px < dev->vp_x1 || px > dev->vp_x2 || py < dev->vp_y1 || py > dev->vp_y2)
+                continue;
+
+            idx = (uint32_t) py * dev->maxw + px;
+            if (seen[idx] || pgc_read_pixel(dev, px, py) == bcolor)
+                continue;
+
+            if (sp == cap) {
+                uint32_t *grown = (uint32_t *) realloc(stack, cap * 2 * sizeof(uint32_t));
+
+                if (!grown) {
+                    pgc_error(dev, PGC_ERROR_MEMORY);
+                    free(stack);
+                    free(seen);
+                    return;
+                }
+
+                stack = grown;
+                cap *= 2;
+            }
+
+            seen[idx]   = 1;
+            stack[sp++] = ((uint32_t) py << 16) | (uint16_t) px;
+        }
+    }
+
+    free(stack);
+    free(seen);
 }
 
 /* Select drawing color. */
@@ -574,6 +1072,33 @@ hndl_move(pgc_t *dev)
 
     pgc_log("PCG: MOVE %x.%04x,%x.%04x\n",
             HWORD(x), LWORD(x), HWORD(y), LWORD(y));
+    dev->x = x;
+    dev->y = y;
+}
+
+/*
+ * DRAW draws a line from the current point to the point given and leaves
+ * the current point there. IBM Tech Ref p.108 gives the opcode as 28; the
+ * worked example on that page prints 20, but the shipping PGC drivers send
+ * 28 and the example's own parameter bytes are correct, so the example's
+ * opcode byte is a misprint.
+ */
+static void
+hndl_draw(pgc_t *dev)
+{
+    int32_t x = 0;
+    int32_t y = 0;
+
+    if (!pgc_param_coord(dev, &x))
+        return;
+    if (!pgc_param_coord(dev, &y))
+        return;
+
+    pgc_log("PGC: DRAW %x.%04x,%x.%04x\n",
+            HWORD(x), LWORD(x), HWORD(y), LWORD(y));
+
+    pgc_draw_line(dev, dev->x, dev->y, x, y, dev->line_pattern);
+
     dev->x = x;
     dev->y = y;
 }
@@ -1070,6 +1595,29 @@ hndl_display(pgc_t *dev)
         pgc_setdisplay(dev, param);
 }
 
+/*
+ * WAIT frames: one 16-bit word whatever IPREC says (IBM CS:af8b, IM-1024
+ * image 0x8242 read two bytes). Both firmwares park the command loop
+ * until the frame interrupt has counted the word down to zero, so WAIT 1
+ * ends at the next vertical retrace. A restart flag ends it early, as in
+ * the other waits.
+ */
+static void
+hndl_wait(pgc_t *dev)
+{
+    int16_t  frames;
+    uint32_t target;
+
+    if (!pgc_param_word(dev, &frames))
+        return;
+
+    pgc_log("PGC: WAIT %i\n", frames);
+    target = dev->vsyncs + (uint16_t) frames;
+
+    while (!dev->stopped && !dev->mapram[0x3ff] && !dev->mapram[0x306] && !dev->mapram[0x307] && (int32_t) (dev->vsyncs - target) < 0)
+        pgc_sleep(dev);
+}
+
 /* Handle the IMAGEW command (memory to screen blit). */
 static void
 hndl_imagew(pgc_t *dev)
@@ -1284,11 +1832,48 @@ hndl_c(pgc_t *dev)
         dev->ascii_mode = 0;
 }
 
-/* RESETF resets the PGC. */
+/*
+ * Drawing flags at their power-on defaults. This is all RESETF does:
+ * the communication area, the command mode, the display selection,
+ * the palette and the command lists survive it (IBM PGC Technical
+ * Reference, "Reset Flags"; the IM-1024 firmware behaves the same).
+ */
+void
+pgc_reset_flags(pgc_t *dev)
+{
+    dev->line_pattern = 0xffff;
+    memset(dev->fill_pattern, 0xff, sizeof(dev->fill_pattern));
+    dev->color     = 0xff;
+    dev->draw_mode = 0;
+    dev->fill_mode = 0;
+    dev->tjust_h   = 1;
+    dev->tjust_v   = 1;
+    dev->tsize     = 8 << 16;
+
+    /* Current point. */
+    dev->x = 0;
+    dev->y = 0;
+    dev->z = 0;
+
+    /* Viewport = the whole native screen. */
+    dev->vp_x1 = 0;
+    dev->vp_y1 = 0;
+    dev->vp_x2 = dev->visw - 1;
+    dev->vp_y2 = dev->vish - 1;
+
+    /* Window centred on virtual 0,0, mapped onto the viewport. */
+    dev->win_x1 = -320;
+    dev->win_x2 = 319;
+    dev->win_y1 = -240;
+    dev->win_y2 = 239;
+    pgc_window_scale(dev);
+}
+
+/* RESETF resets the drawing flags, nothing else. */
 static void
 hndl_resetf(pgc_t *dev)
 {
-    pgc_reset(dev);
+    pgc_reset_flags(dev);
 }
 
 /* TJUST sets text justify settings. */
@@ -1323,8 +1908,37 @@ hndl_tsize(pgc_t *pgc)
 }
 
 /*
+ * Both WINDOW and VWPORT end by recomputing the window-to-viewport scale,
+ * one factor per axis, from the two extents. An extent of zero or less
+ * leaves the previous factor in place.
+ */
+void
+pgc_window_scale(pgc_t *dev)
+{
+    int32_t win_w = (int32_t) dev->win_x2 - (int32_t) dev->win_x1;
+    int32_t win_h = (int32_t) dev->win_y2 - (int32_t) dev->win_y1;
+    int32_t vp_w  = (int32_t) dev->vp_x2 - (int32_t) dev->vp_x1;
+    int32_t vp_h  = (int32_t) dev->vp_y2 - (int32_t) dev->vp_y1;
+
+    if (win_w > 0 && vp_w > 0) {
+        dev->win_sc_x = (double) vp_w / (double) win_w;
+        dev->win_fx_x = pgc_fw_div((uint32_t) vp_w << 16, (uint32_t) win_w << 16);
+    }
+
+    if (win_h > 0 && vp_h > 0) {
+        dev->win_sc_y = (double) vp_h / (double) win_h;
+        dev->win_fx_y = pgc_fw_div((uint32_t) vp_h << 16, (uint32_t) win_h << 16);
+    }
+
+    pgc_log("PGC: window scale %f, %f\n", dev->win_sc_x, dev->win_sc_y);
+}
+
+/*
  * VWPORT sets up the viewport (roughly, the clip rectangle) in
  * raster coordinates, measured from the bottom left of the screen.
+ * Both firmwares check the whole rectangle against the image with
+ * unsigned compares before storing any of it; a rejected one raises a
+ * range error and leaves the old viewport and scale in place.
  */
 static void
 hndl_vwport(pgc_t *dev)
@@ -1344,35 +1958,56 @@ hndl_vwport(pgc_t *dev)
         return;
 
     pgc_log("PGC: VWPORT %i,%i,%i,%i\n", x1, x2, y1, y2);
+
+    if ((uint16_t) x2 <= (uint16_t) x1 || (uint16_t) x2 > dev->img_w - 1 ||
+        (uint16_t) y2 <= (uint16_t) y1 || (uint16_t) y2 > dev->img_h - 1) {
+        pgc_error(dev, PGC_ERROR_RANGE);
+        return;
+    }
+
     dev->vp_x1 = x1;
     dev->vp_x2 = x2;
     dev->vp_y1 = y1;
     dev->vp_y2 = y2;
+
+    pgc_window_scale(dev);
 }
 
-/* WINDOW defines the coordinate system in use. */
+/*
+ * WINDOW defines the coordinate system in use. Its corners are
+ * coordinates, unlike VWPORT, whose corners are PEL counts. A window
+ * with an extent of zero or less is rejected whole, as VWPORT is.
+ */
 static void
 hndl_window(pgc_t *dev)
 {
-    int16_t x1;
-    int16_t x2;
-    int16_t y1;
-    int16_t y2;
+    int32_t x1;
+    int32_t x2;
+    int32_t y1;
+    int32_t y2;
 
-    if (!pgc_param_word(dev, &x1))
+    if (!pgc_param_coord(dev, &x1))
         return;
-    if (!pgc_param_word(dev, &x2))
+    if (!pgc_param_coord(dev, &x2))
         return;
-    if (!pgc_param_word(dev, &y1))
+    if (!pgc_param_coord(dev, &y1))
         return;
-    if (!pgc_param_word(dev, &y2))
+    if (!pgc_param_coord(dev, &y2))
         return;
 
-    pgc_log("PGC: WINDOW %i,%i,%i,%i\n", x1, x2, y1, y2);
-    dev->win_x1 = x1;
-    dev->win_x2 = x2;
-    dev->win_y1 = y1;
-    dev->win_y2 = y2;
+    pgc_log("PGC: WINDOW %i,%i,%i,%i\n", x1 >> 16, x2 >> 16, y1 >> 16, y2 >> 16);
+
+    if (x2 <= x1 || y2 <= y1) {
+        pgc_error(dev, PGC_ERROR_RANGE);
+        return;
+    }
+
+    dev->win_x1 = x1 >> 16;
+    dev->win_x2 = x2 >> 16;
+    dev->win_y1 = y1 >> 16;
+    dev->win_y2 = y2 >> 16;
+
+    pgc_window_scale(dev);
 }
 
 /*
@@ -1399,10 +2034,14 @@ hndl_window(pgc_t *dev)
  *
  */
 static const pgc_cmd_t pgc_commands[] = {
-    {"AREAPT",  0xe7, hndl_areapt,  pgc_parse_words,  16},
+    {"AREABC",  0xc1, hndl_areabc,  pgc_parse_bytes,  1 },
+    { "AB",     0xc1, hndl_areabc,  pgc_parse_bytes,  1 },
+    { "AREAPT", 0xe7, hndl_areapt,  pgc_parse_words,  16},
     { "AP",     0xe7, hndl_areapt,  pgc_parse_words,  16},
     { "~~~~~~", 0x43, hndl_c,       NULL,             0 },
     { "CA",     0xd2, hndl_ca,      NULL,             0 },
+    { "CIRCLE", 0x38, hndl_circle,  pgc_parse_coords, 1 },
+    { "CI",     0x38, hndl_circle,  pgc_parse_coords, 1 },
     { "CLBEG",  0x70, hndl_clbeg,   NULL,             0 },
     { "CB",     0x70, hndl_clbeg,   NULL,             0 },
     { "CLDEL",  0x74, hndl_cldel,   pgc_parse_bytes,  1 },
@@ -1421,8 +2060,12 @@ static const pgc_cmd_t pgc_commands[] = {
     { "CX",     0xd1, hndl_cx,      NULL,             0 },
     { "DISPLA", 0xd0, hndl_display, pgc_parse_bytes,  1 },
     { "DI",     0xd0, hndl_display, pgc_parse_bytes,  1 },
+    { "DRAW",   0x28, hndl_draw,    pgc_parse_coords, 2 },
+    { "D",      0x28, hndl_draw,    pgc_parse_coords, 2 },
     { "ELIPSE", 0x39, hndl_ellipse, pgc_parse_coords, 2 },
     { "EL",     0x39, hndl_ellipse, pgc_parse_coords, 2 },
+    { "FLOOD",  0x07, hndl_flood,   pgc_parse_bytes,  1 },
+    { "F",      0x07, hndl_flood,   pgc_parse_bytes,  1 },
     { "IMAGEW", 0xd9, hndl_imagew,  NULL,             0 },
     { "IW",     0xd9, hndl_imagew,  NULL,             0 },
     { "LINFUN", 0xeb, hndl_linfun,  pgc_parse_bytes,  1 },
@@ -1446,16 +2089,24 @@ static const pgc_cmd_t pgc_commands[] = {
     { "PF",     0xe9, hndl_prmfil,  pgc_parse_bytes,  1 },
     { "POLY",   0x30, hndl_poly,    parse_poly,       0 },
     { "P",      0x30, hndl_poly,    parse_poly,       0 },
+    { "RECT",   0x34, hndl_rect,    pgc_parse_coords, 2 },
+    { "R",      0x34, hndl_rect,    pgc_parse_coords, 2 },
+    { "RECTR",  0x35, hndl_rectr,   pgc_parse_coords, 2 },
+    { "RR",     0x35, hndl_rectr,   pgc_parse_coords, 2 },
     { "RESETF", 0x04, hndl_resetf,  NULL,             0 },
     { "RF",     0x04, hndl_resetf,  NULL,             0 },
+    { "TEXT",   0x80, hndl_text,    NULL,             0 },
+    { "T",      0x80, hndl_text,    NULL,             0 },
     { "TJUST",  0x85, hndl_tjust,   pgc_parse_bytes,  2 },
     { "TJ",     0x85, hndl_tjust,   pgc_parse_bytes,  2 },
     { "TSIZE",  0x81, hndl_tsize,   pgc_parse_coords, 1 },
     { "TS",     0x81, hndl_tsize,   pgc_parse_coords, 1 },
     { "VWPORT", 0xb2, hndl_vwport,  pgc_parse_words,  4 },
     { "VWP",    0xb2, hndl_vwport,  pgc_parse_words,  4 },
-    { "WINDOW", 0xb3, hndl_window,  pgc_parse_words,  4 },
-    { "WI",     0xb3, hndl_window,  pgc_parse_words,  4 },
+    { "WAIT",   0x05, hndl_wait,    pgc_parse_words,  1 },
+    { "W",      0x05, hndl_wait,    pgc_parse_words,  1 },
+    { "WINDOW", 0xb3, hndl_window,  pgc_parse_coords, 4 },
+    { "WI",     0xb3, hndl_window,  pgc_parse_coords, 4 },
 
     { "@@@@@@", 0x00, NULL,         NULL,             0 }
 };
@@ -1581,11 +2232,12 @@ pgc_result_word(pgc_t *dev, int16_t val)
 int
 pgc_error(pgc_t *dev, int err)
 {
-    if (dev->mapram[0x307]) {
+    if (dev->mapram[0x308]) {
         /* Errors enabled? */
         if (dev->ascii_mode) {
+            /* Codes are 1-based; the ROM table starts at RANGE. */
             if (err >= PGC_ERROR_RANGE && err <= PGC_ERROR_MISSING)
-                return error_string(dev, pgc_err_msgs[err]);
+                return error_string(dev, pgc_err_msgs[err - 1]);
             return error_string(dev, "Unknown error\r");
         } else {
             return error_byte(dev, err);
@@ -1606,6 +2258,11 @@ pgc_reset(pgc_t *dev)
     dev->mapram[0x30c]                    = dev->cga_enabled;
     dev->mapram[0x30d]                    = dev->cga_enabled;
 
+    if (dev->cga_enabled)
+        mem_mapping_enable(&dev->cga_mapping);
+    else
+        mem_mapping_disable(&dev->cga_mapping);
+
     dev->mapram[0x3f8] = 0x03; /* minor version */
     dev->mapram[0x3f9] = 0x01; /* minor version */
     dev->mapram[0x3fb] = 0xa5; /* } */
@@ -1613,22 +2270,14 @@ pgc_reset(pgc_t *dev)
     dev->mapram[0x3fd] = 0x55; /* } */
     dev->mapram[0x3fe] = 0x5a; /* } */
 
-    dev->ascii_mode   = 1; /* start off in ASCII mode */
-    dev->line_pattern = 0xffff;
-    memset(dev->fill_pattern, 0xff, sizeof(dev->fill_pattern));
-    dev->color   = 0xff;
-    dev->tjust_h = 1;
-    dev->tjust_v = 1;
+    dev->ascii_mode = 1; /* start off in ASCII mode */
+    pgc_reset_flags(dev);
 
-    /* Reset panning. */
-    dev->pan_x = 0;
-    dev->pan_y = 0;
-
-    /* Reset clipping. */
-    dev->vp_x1 = 0;
-    dev->vp_y1 = 0;
-    dev->vp_x2 = dev->visw - 1;
-    dev->vp_y2 = dev->vish - 1;
+    /* Reset panning: the screen shows the framebuffer from its top left. */
+    dev->pan_x     = 0;
+    dev->pan_y     = 0;
+    dev->scan_left = 0;
+    dev->scan_top  = 0;
 
     /* Empty command lists. */
     for (uint16_t n = 0; n < 256; n++) {
@@ -1646,9 +2295,31 @@ pgc_reset(pgc_t *dev)
     /* Default palette is 0. */
     init_lut(dev, 0);
     hndl_lutsav(dev);
+
+    if (dev->on_reset)
+        dev->on_reset(dev);
 }
 
-/* Switch between CGA mode (DISPLAY 1) and native mode (DISPLAY 0). */
+/*
+ * Warm restart, requested by the host writing nonzero to C6307. The
+ * firmware abandons the command in progress, zeroes the six FIFO
+ * pointers and clears the flag; drawing state, command mode and the
+ * rest of the communication area are left alone.
+ */
+void
+pgc_warm_reset(pgc_t *dev)
+{
+    memset(&dev->mapram[0x300], 0x00, 6);
+    dev->mapram[0x307] = 0;
+    dev->clcur         = NULL;
+}
+
+/*
+ * Switch between CGA mode (DISPLAY 1) and native mode (DISPLAY 0).
+ * Only the displayed screen changes: the emulator RAM is card hardware
+ * the host reaches through the bus interface whichever screen is shown,
+ * so the B8000 window stays mapped.
+ */
 void
 pgc_setdisplay(pgc_t *dev, int cga)
 {
@@ -1660,11 +2331,9 @@ pgc_setdisplay(pgc_t *dev, int cga)
         dev->displine     = 0;
 
         if (dev->cga_selected) {
-            mem_mapping_enable(&dev->cga_mapping);
             dev->screenw = PGC_CGA_WIDTH;
             dev->screenh = PGC_CGA_HEIGHT;
         } else {
-            mem_mapping_disable(&dev->cga_mapping);
             dev->screenw = dev->visw;
             dev->screenh = dev->vish;
         }
@@ -1685,34 +2354,21 @@ pgc_wake(pgc_t *dev)
         timer_set_delay_u64(&dev->wake_timer, WAKE_DELAY);
 }
 
-/* Wait for more input data, or for output to drain. */
+/*
+ * Wait for the host to change something: a FIFO pointer, the fast FIFO
+ * or a restart flag. Every such change arms the wake timer whether or
+ * not this thread is asleep, and the event it sets is sticky, so a
+ * change that lands between the caller's test and this wait is not
+ * lost. The caller re-tests its whole condition after every wake.
+ */
 void
 pgc_sleep(pgc_t *dev)
 {
-    pgc_log("PGC: sleeping on %i %i %i %i 0x%02x 0x%02x\n",
-            dev->stopped,
-            dev->waiting_input_fifo, dev->waiting_output_fifo,
-            dev->waiting_error_fifo, dev->mapram[0x300], dev->mapram[0x301]);
+    pgc_log("PGC: sleeping on %i 0x%02x 0x%02x\n", dev->stopped,
+            dev->mapram[0x300], dev->mapram[0x301]);
 
-    /* Avoid entering waiting state. */
-    if (dev->stopped) {
-        dev->waiting_input_fifo  = 0;
-        dev->waiting_output_fifo = 0;
+    if (dev->stopped)
         return;
-    }
-
-    /* Race condition: If host wrote to the PGC during the that
-     * won't be noticed */
-    if (dev->waiting_input_fifo && dev->mapram[0x300] != dev->mapram[0x301]) {
-        dev->waiting_input_fifo = 0;
-        return;
-    }
-
-    /* Same if they read. */
-    if (dev->waiting_output_fifo && dev->mapram[0x302] != (uint8_t) (dev->mapram[0x303] - 1)) {
-        dev->waiting_output_fifo = 0;
-        return;
-    }
 
     thread_wait_event(dev->pgc_wake_thread, -1);
     thread_reset_event(dev->pgc_wake_thread);
@@ -1855,8 +2511,21 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
         return 1;
     }
 
-    /* If in hex mode, read in the encoded integer and fraction parts
-     * from the hex stream */
+    /*
+     * In hex mode a coordinate is an integer word and a fraction word,
+     * unless a subclass (the IM-1024, through IPREC) has narrowed it to
+     * the integer alone.
+     */
+    if (!dev->ascii_mode && dev->coord_words) {
+        for (n = 0; n < 2; n++)
+            if (!dev->inputbyte(dev, &encoded[n]))
+                return 0;
+        integer = (((int16_t) encoded[1]) << 8) | encoded[0];
+
+        *value = ((int32_t) integer) << 16;
+        return 1;
+    }
+
     if (!dev->ascii_mode) {
         for (n = 0; n < 4; n++)
             if (!dev->inputbyte(dev, &encoded[n]))
@@ -2103,8 +2772,13 @@ pgc_parse_coords(pgc_t *dev, pgc_cl_t *cl, int count)
     return 1;
 }
 
-/* Convert coordinates based on the current window / viewport to raster
- * coordinates. */
+/*
+ * Convert coordinates based on the current window / viewport to raster
+ * coordinates. The window maps onto the viewport, so the distance from the
+ * window origin is scaled before the viewport origin is added, and the
+ * result is rounded to the nearest PEL (IBM PGC Technical Reference,
+ * "Two-Dimensional Transformation").
+ */
 void
 pgc_dto_raster(pgc_t *dev, double *x, double *y)
 {
@@ -2112,8 +2786,8 @@ pgc_dto_raster(pgc_t *dev, double *x, double *y)
     double x0 = *x, y0 = *y;
 #endif
 
-    *x += (dev->vp_x1 - dev->win_x1);
-    *y += (dev->vp_y1 - dev->win_y1);
+    *x = floor((*x - dev->win_x1) * dev->win_sc_x + 0.5) + dev->vp_x1;
+    *y = floor((*y - dev->win_y1) * dev->win_sc_y + 0.5) + dev->vp_y1;
 
     pgc_log("PGC: coords to raster: (%f, %f) -> (%f, %f)\n", x0, y0, *x, *y);
 }
@@ -2259,37 +2933,42 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
     if (addr >= 0xc6000 && addr < 0xc6800) {
         addr &= 0x7ff;
 
-        /* If one of the FIFOs has been updated, this may cause
-         * the drawing thread to be woken */
+        /*
+         * The card owns its status block: both the IBM PGC ROM and IM-1024
+         * firmware 2.21 write the version, model id and self-test signature
+         * at cold boot only, so a host fill of the window must not destroy
+         * them. C63FF stays writable - that one is the host's reboot request.
+         */
+        if (addr >= 0x3f8 && addr <= 0x3fe)
+            return;
 
+        /*
+         * Anything the drawing thread may be waiting on wakes it; it
+         * re-tests its own condition, so a wake it did not need is
+         * harmless, while one it needed and did not get is a hang.
+         */
         if (dev->mapram[addr] != val) {
             dev->mapram[addr] = val;
 
             switch (addr) {
                 case 0x300: /* input write pointer */
-                    if (dev->waiting_input_fifo && dev->mapram[0x300] != dev->mapram[0x301]) {
-                        dev->waiting_input_fifo = 0;
-                        pgc_wake(dev);
-                    }
-                    break;
-
                 case 0x303: /* output read pointer */
-                    if (dev->waiting_output_fifo && dev->mapram[0x302] != (uint8_t) (dev->mapram[0x303] - 1)) {
-                        dev->waiting_output_fifo = 0;
-                        pgc_wake(dev);
-                    }
-                    break;
-
                 case 0x305: /* error read pointer */
-                    if (dev->waiting_error_fifo && dev->mapram[0x304] != (uint8_t) (dev->mapram[0x305] - 1)) {
-                        dev->waiting_error_fifo = 0;
-                        pgc_wake(dev);
-                    }
+                    pgc_wake(dev);
                     break;
 
-                case 0x306: /* cold start flag */
-                    /* XXX This should be in IM-1024 specific code */
-                    dev->mapram[0x306] = 0;
+                case 0x306: /* cold start flag: the drawing thread acknowledges it */
+                    /*
+                     * Both firmwares treat it as the power-on restart
+                     * (IBM CS:f3ac, IM-1024 e004:6b67) and clear the flag
+                     * at the end of that init, so the host's spin on C6306
+                     * must last until the card state is actually reset.
+                     */
+                    pgc_wake(dev);
+                    break;
+
+                case 0x307: /* warm start flag: the drawing thread acknowledges it */
+                    pgc_wake(dev);
                     break;
 
                 case 0x30c: /* display type */
@@ -2307,7 +2986,7 @@ pgc_write(uint32_t addr, uint8_t val, void *priv)
         }
     }
 
-    if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_selected) {
+    if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_enabled) {
         addr &= 0x3fff;
         dev->cga_vram[addr] = val;
     }
@@ -2323,7 +3002,7 @@ pgc_read(uint32_t addr, void *priv)
     if (addr >= 0xc6000 && addr < 0xc6800) {
         addr &= 0x7ff;
         ret = dev->mapram[addr];
-    } else if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_selected) {
+    } else if (addr >= 0xb8000 && addr < 0xc0000 && dev->cga_enabled) {
         addr &= 0x3fff;
         ret = dev->cga_vram[addr];
     }
@@ -2509,6 +3188,8 @@ pgc_cga_poll(pgc_t *dev)
             }
             video_blit_memtoscreen(0, 0, xsize, ysize);
             frames++;
+            dev->vsyncs++;
+            pgc_wake(dev);
 
             /* We have a fixed 640x400 screen for CGA modes. */
             video_res_x = PGC_CGA_WIDTH;
@@ -2535,8 +3216,8 @@ pgc_cga_poll(pgc_t *dev)
 void
 pgc_poll(void *priv)
 {
-    pgc_t   *dev = (pgc_t *) priv;
-    uint32_t y;
+    pgc_t  *dev = (pgc_t *) priv;
+    int32_t y;
 
     if (dev->cga_selected) {
         pgc_cga_poll(dev);
@@ -2552,13 +3233,11 @@ pgc_poll(void *priv)
             if (dev->displine == 0)
                 video_wait_for_buffer();
 
-            /* Don't know why pan needs to be multiplied by -2, but
-             * the IM1024 driver uses PAN -112 for an offset of
-             * 224. */
-            y = dev->displine - 2 * dev->pan_y;
+            /* Rows outside the framebuffer are blank; columns wrap. */
+            y = dev->scan_top + dev->displine;
             for (uint32_t x = 0; x < dev->screenw; x++) {
-                if (x + dev->pan_x < dev->maxw)
-                    buffer32->line[dev->displine][x] = dev->palette[dev->vram[y * dev->maxw + x]];
+                if (y >= 0 && y < (int32_t) dev->maxh)
+                    buffer32->line[dev->displine][x] = dev->palette[dev->vram[y * dev->maxw + ((uint32_t) dev->scan_left + x) % dev->maxw]];
                 else
                     buffer32->line[dev->displine][x] = dev->palette[0];
             }
@@ -2593,6 +3272,8 @@ pgc_poll(void *priv)
             }
             video_blit_memtoscreen(0, 0, xsize, ysize);
             frames++;
+            dev->vsyncs++;
+            pgc_wake(dev);
 
             video_res_x = dev->screenw;
             video_res_y = dev->screenh;
@@ -2625,10 +3306,8 @@ pgc_close_common(void *priv)
 #endif
     dev->stopped       = 1;
     dev->mapram[0x3ff] = 1;
-    if (dev->waiting_input_fifo || dev->waiting_output_fifo) {
-        /* Do an immediate wake-up. */
-        wake_timer(priv);
-    }
+    /* Immediate wake-up, whichever wait the thread is parked in. */
+    wake_timer(priv);
 
     /* Wait for thread to stop. */
 #ifdef ENABLE_PGC_LOG
@@ -2684,6 +3363,8 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     dev->maxh = maxh;
     dev->visw = visw;
     dev->vish = vish;
+    dev->img_w = visw;
+    dev->img_h = vish;
 
     dev->vram = (uint8_t *) calloc((size_t) maxw, maxh);
     memset(dev->vram, 0x00, (size_t) maxw * maxh);
@@ -2716,6 +3397,85 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     timer_add(&dev->wake_timer, wake_timer, dev, 0);
 }
 
+/*
+ * Walk the font's stroke programs in the program ROM: a 256-entry pointer
+ * table at CS:4E60 (CS = 0025h, so linear = offset + 250h), one byte per
+ * step, the high nibble moving the pen, a non-zero low nibble naming the
+ * shape inked at the new position. At the default size a pen unit is a PEL.
+ */
+static void
+pgc_load_font(void)
+{
+    uint8_t *rom = (uint8_t *) calloc(1, 0x10000);
+
+    memset(pgc_font, 0x00, sizeof(pgc_font));
+
+    if (!rom_load_linear(PGC_ROM_LOW, 0x0000, 0x8000, 0, rom) ||
+        !rom_load_linear(PGC_ROM_HIGH, 0x8000, 0x8000, 0, rom)) {
+        free(rom);
+        return;
+    }
+
+    for (int ch = 0; ch < 256; ch++) {
+        uint32_t addr = 0x250 + rom[0x50b0 + 2 * ch] + (rom[0x50b1 + 2 * ch] << 8);
+        int      x    = 0;
+        int      y    = 0;
+        int      done = 0;
+
+        while (!done && addr < 0xfffd) {
+            uint8_t op = rom[addr++];
+
+            switch (op >> 4) {
+                case 0x1:
+                    x = y = 0;
+                    break;
+                case 0x2:
+                    x++;
+                    break;
+                case 0x3:
+                    y++;
+                    break;
+                case 0x4:
+                    x--;
+                    break;
+                case 0x5:
+                    y--;
+                    break;
+                case 0x6:
+                    x++;
+                    y++;
+                    break;
+                case 0x7:
+                    x--;
+                    y++;
+                    break;
+                case 0x8:
+                    x++;
+                    y--;
+                    break;
+                case 0x9:
+                    x--;
+                    y--;
+                    break;
+                case 0xa:
+                    x += (int8_t) rom[addr];
+                    y -= (int8_t) rom[addr + 1];
+                    addr += 2;
+                    break;
+                default:
+                    /* 0 and B end the program. */
+                    done = 1;
+                    continue;
+            }
+
+            if ((op & 0x0f) && (x >= 0) && (x < PGC_CELL_W) && (y >= 0) && (y < PGC_CELL_H))
+                pgc_font[ch][y] |= (uint32_t) (op & 0x0f) << ((PGC_CELL_W - 1 - x) * 4);
+        }
+    }
+
+    free(rom);
+}
+
 static void *
 pgc_standalone_init(const device_t *info)
 {
@@ -2724,12 +3484,20 @@ pgc_standalone_init(const device_t *info)
     dev = (pgc_t *) calloc(1, sizeof(pgc_t));
     dev->type = info->local;
 
+    pgc_load_font();
+
     /* Framebuffer and screen are both 640x480. */
     pgc_init(dev, 640, 480, 640, 480, input_byte, 25175000.0);
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pgc);
 
     return dev;
+}
+
+static int
+pgc_available(void)
+{
+    return rom_present(PGC_ROM_LOW) && rom_present(PGC_ROM_HIGH);
 }
 
 const device_t pgc_device = {
@@ -2740,7 +3508,7 @@ const device_t pgc_device = {
     .init          = pgc_standalone_init,
     .close         = pgc_close,
     .reset         = NULL,
-    .available     = NULL,
+    .available     = pgc_available,
     .speed_changed = pgc_speed_changed,
     .force_redraw  = NULL,
     .config        = NULL

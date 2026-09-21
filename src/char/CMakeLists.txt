@@ -19,6 +19,7 @@
 add_library(char OBJECT
     char.c
     char_file.c
+    char_fujinet.c
     char_loopback.c
     char_pipe.c
     char_serial.c

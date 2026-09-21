@@ -232,6 +232,7 @@ extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
 
 extern void    ide_hard_reset(void);
+extern void    ide_wait_for_async_reads(void);
 
 /* Legacy #define's. */
 #define ide_irq_raise(ide) ide_irq(ide, 1, 1)

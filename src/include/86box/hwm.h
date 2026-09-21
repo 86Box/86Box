@@ -29,7 +29,7 @@ typedef struct lm75_t {
     hwm_values_t *values;
     void         *as99127f;
 
-    uint8_t regs[8];
+    uint8_t regs[16];
     uint8_t addr_register;
     uint8_t i2c_addr : 7;
     uint8_t i2c_state : 2;
@@ -56,8 +56,10 @@ extern hwm_values_t hwm_values;
 
 extern const device_t lm75_1_4a_device;
 extern const device_t lm75_w83781d_device;
+extern const device_t lm77_0_48_device;
 
 extern const device_t lm78_device;
+extern const device_t lm78_al440lx_device;
 extern const device_t w83781d_device;
 extern const device_t w83781d_p5a_device;
 extern const device_t as99127f_device;

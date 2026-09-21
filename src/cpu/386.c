@@ -246,10 +246,8 @@ exec386_2386(int32_t cycs)
             int ins_fetch_fault = 0;
             ins_cycles = cycles;
 
-#ifndef USE_NEW_DYNAREC
             oldcs  = CS;
             oldcpl = CPL;
-#endif
             cpu_state.oldpc = cpu_state.pc;
             cpu_state.op32  = use32;
 
@@ -260,20 +258,33 @@ exec386_2386(int32_t cycs)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+            if (inboard386_present)
+                inboard_post_fixups();
+
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
             ol = opcode_length[fetchdat & 0xff];
             if ((ol == 3) && opcode_has_modrm[fetchdat & 0xff] && (((fetchdat >> 14) & 0x03) == 0x03))
                 ol = 2;
 
-            if (is386)
-                ins_fetch_fault = cpu_386_check_instruction_fault();
-
-            /* Breakpoint fault has priority over other faults. */
-            if ((cpu_state.abrt == 0) & ins_fetch_fault) {
+            /* Breakpoint fault has priority over other faults. x86gen() delivers
+               #DB right away, so fold any still-pending trap into the same DR6
+               image and clear it, otherwise the epilogue raises a second #DB. A
+               pending BS is always stale here - trap's TF bit is only set further
+               down, once an instruction is about to retire - so it is dropped. */
+            if ((cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
+                if (trap & 2)
+                    dr[6] |= 0x8000;
+                if (trap & 16)
+                    dr[6] |= 0x2000;
+                trap = 0;
+                /* RF must be set in the EFLAGS image x86gen() pushes, so the
+                handler's IRET resumes the instruction instead of faulting on it
+                again; delivery itself leaves RF clear for the handler. */
+                cpu_state.eflags |= RF_FLAG;
                 x86gen();
-                ins_fetch_fault = 0;
+                cpu_state.eflags &= ~RF_FLAG;
                 /* No instructions executed at this point. */
-                goto block_ended;
+                break;
             } else if (cpu_16bitbus) {
                 CHECK_READ_CS(MIN(ol, 2));
             } else {
@@ -281,6 +292,11 @@ exec386_2386(int32_t cycs)
             }
 
             if (!cpu_state.abrt) {
+                /* Temp variables for FPU exception reporting. */
+                cpu_state.temp_CS = CS;
+                cpu_state.temp_cs = cs;
+                cpu_state.temp_pc = cpu_state.pc;
+
 #ifdef ENABLE_386_LOG
                 if (in_smm)
                     x386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
@@ -317,7 +333,6 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
-block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -346,9 +361,7 @@ block_ended:
             } else if (new_ne) {
                 flags_rebuild();
                 new_ne = 0;
-#ifndef USE_NEW_DYNAREC
                 oldcs = CS;
-#endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(16);
             } else if (trap) {
@@ -357,9 +370,7 @@ block_ended:
                 if (trap & 1) dr[6] |= 0x4000;
                 if (trap & 16) dr[6] |= 0x2000;
                 trap = 0;
-#ifndef USE_NEW_DYNAREC
                 oldcs = CS;
-#endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(1);
             }
@@ -367,9 +378,7 @@ block_ended:
             if (smi_line)
                 enter_smm_check(0);
             else if (nmi && nmi_enable && nmi_mask) {
-#ifndef USE_NEW_DYNAREC
                 oldcs = CS;
-#endif
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
                 nmi_enable = 0;

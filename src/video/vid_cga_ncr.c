@@ -364,6 +364,7 @@ nga_poll(void *priv)
                 x = (nga->cga.crtc[CGA_CRTC_HDISP] << 4) + 16;
 
             video_process_8(x, nga->cga.displine);
+            video_lightpen_check_trigger_strobe(8, nga->cga.displine * (nga->cga.double_type ? 2 : 1), 0, nga->cga.firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), nga->cga.monitor_used);
 
             nga->cga.scanline = scanline_old;
             /* vertical sync */
@@ -374,6 +375,7 @@ nga_poll(void *priv)
                 nga->cga.displine = 0;
         } else {
             timer_advance_u64(&nga->cga.timer, nga->cga.dispontime);
+            video_lightpen_hsync();
             if (nga->cga.cgadispon)
                 nga->cga.cgastat &= ~1;
             nga->cga.linepos = 0;
@@ -451,6 +453,7 @@ nga_poll(void *priv)
                         nga->cga.displine  = 0;
                         /* nga specific */
                         nga->cga.vsynctime = 16;
+                        video_lightpen_vsync();
                         /* vsync pos */
                         if (nga->cga.crtc[CGA_CRTC_VSYNC]) {
                             if (nga->cga.cgamode & CGA_MODE_FLAG_HIGHRES)

@@ -1296,10 +1296,43 @@ tulip_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case 0x41:
             ret = s->pci_conf[addr & 0xff];
             break;
+
+        /* The Windows 7 dc21x4vm.sys driver (designed for the Virtual PC / Hyper-V emulated 21140
+           only) refuses to load if neither virtualizer is detected through their special instructions,
+           unless PCI[7F:7C] reads DEADDEED, presumably a debug bypass left in the code inadvertently. */
+        case 0x7C:
+            if (s->local == 2)
+                ret = 0xed;
+            break;
+        case 0x7D:
+            if (s->local == 2)
+                ret = 0xde;
+            break;
+        case 0x7E:
+            if (s->local == 2)
+                ret = 0xad;
+            break;
+        case 0x7F:
+            if (s->local == 2)
+                ret = 0xde;
+            break;
     }
 
     //pclog("PCI read=%02x, ret=%02x.\n", addr, ret);
     return ret;
+}
+
+static void
+tulip_mmio_update(TULIPState *s)
+{
+    mem_mapping_disable(&s->memory);
+
+    if ((s->pci_conf[0x04] & PCI_COMMAND_MEM) && (s->MMIOBase != 0x00000000))
+#ifdef USE_128_BYTE_BAR
+        mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
+#else
+        mem_mapping_set_addr(&s->memory, s->MMIOBase, 4096);
+#endif
 }
 
 static void
@@ -1322,9 +1355,7 @@ tulip_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
                          tulip_writeb_io, tulip_writew_io, tulip_writel_io,
                          priv);
             //pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
-            mem_mapping_disable(&s->memory);
-            if ((s->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
-                mem_mapping_enable(&s->memory);
+            tulip_mmio_update(s);
             break;
         case 0x05:
             s->pci_conf[0x05] = val & 1;
@@ -1355,7 +1386,6 @@ tulip_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
         case 0x15:
         case 0x16:
         case 0x17:
-            mem_mapping_disable(&s->memory);
             s->tulip_pci_bar[1].addr_regs[addr & 3] = val;
 #ifdef USE_128_BYTE_BAR
             s->tulip_pci_bar[1].addr &= 0xffffff80;
@@ -1363,15 +1393,7 @@ tulip_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
             s->tulip_pci_bar[1].addr &= 0xfffff000;
 #endif
             s->MMIOBase = s->tulip_pci_bar[1].addr;
-            if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
-                //pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
-                if (s->MMIOBase != 0)
-#ifdef USE_128_BYTE_BAR
-                    mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
-#else
-                    mem_mapping_set_addr(&s->memory, s->MMIOBase, 4096);
-#endif
-            }
+            tulip_mmio_update(s);
             break;
         case 0x30: /* PCI_ROMBAR */
         case 0x31: /* PCI_ROMBAR */
@@ -1411,7 +1433,7 @@ nic_init(const device_t *info)
 
     s->local = info->local;
     if (s->local == 0xff)
-        s->local = device_get_bios_local(info, device_get_config_bios("bios"));
+        s->local = device_get_bios_local(info, device_get_config_bios("variant"));
 
     if (!s)
         return NULL;
@@ -1479,16 +1501,14 @@ nic_init(const device_t *info)
         /*Controller Count*/
         s->eeprom_data[19] = 0x01;
 
-        /*DEC OID*/
-        s->eeprom_data[20] = 0x00;
-        s->eeprom_data[21] = 0x00;
-        s->eeprom_data[22] = 0xf8;
-
-        if (s->local == 2) {
-            /* Microsoft VPC DEC Tulip. */
+        if (s->local == 2) { /* Connectix/Microsoft OUI */
             s->eeprom_data[20] = 0x00;
             s->eeprom_data[21] = 0x03;
-            s->eeprom_data[22] = 0x0f;
+            s->eeprom_data[22] = 0xff;
+        } else { /* DEC OUI */
+            s->eeprom_data[20] = 0x00;
+            s->eeprom_data[21] = 0x00;
+            s->eeprom_data[22] = 0xf8;
         }
 
         /* See if we have a local MAC address configured. */

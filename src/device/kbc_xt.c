@@ -75,6 +75,7 @@ enum {
 typedef struct xtkbd_t {
     int want_irq;
     int blocked;
+    int blocked_ticks;
     int tandy;
 
     uint8_t pa;
@@ -154,6 +155,29 @@ kbd_poll(void *priv)
 
     if (!(kbd->pb & 0x40) && (kbd->type != KBD_TYPE_TANDY))
         return;
+
+    /* Bounded self-heal for a genuine XT keyboard interface's own acknowledgment protocol:
+       real XT keyboard ISRs (BIOS, DOS, and third-party ones alike - see e.g. FastDoom's
+       I_KeyboardISR_XT, github.com/viti95/FastDoom) read port 60h, then explicitly toggle
+       port 61h bit 7 (0x80) to acknowledge/clear the keyboard strobe, before EOI-ing the PIC.
+       kbd_write()'s port-0x61 handler below only clears `blocked` on exactly that
+       acknowledgment, so any guest keyboard handler that never performs this specific,
+       XT-only acknowledgment (plausible for anything written assuming AT-style hardware,
+       where this quirk doesn't exist) leaves `blocked` set forever after the very first key,
+       silently dropping every subsequent one even though queueing/IRQ delivery both keep
+       working correctly. If nothing acknowledges within ~50 poll ticks (~50ms, kbd_poll()
+       advances 1ms of emulated time per call), auto-clear `blocked` as if the guest had
+       acknowledged it itself. Real, correctly-acking software never notices - it always
+       clears `blocked` well within this window on its own. */
+    if (kbd->blocked) {
+        kbd->blocked_ticks++;
+        if (kbd->blocked_ticks > 50) {
+            kbd->blocked       = 0;
+            kbd->blocked_ticks = 0;
+        }
+    } else {
+        kbd->blocked_ticks = 0;
+    }
 
     if (kbd->want_irq) {
         kbd->want_irq = 0;

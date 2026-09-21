@@ -30,6 +30,7 @@ thread_wait(thread_t *arg)
         return 0;
     auto thread = reinterpret_cast<std::thread *>(arg);
     thread->join();
+    delete thread;
     return 0;
 }
 

@@ -194,6 +194,13 @@ opPOPF_286(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+#if 0
+    if ((tempw & I_FLAG) && !(cpu_state.flags & I_FLAG))
+        /*First instruction after STI will always execute, regardless of whether
+          there is a pending interrupt*/
+        cpu_end_block_after_ins = 2;
+#endif
+
     if (!(msw & 1))
         cpu_state.flags = (cpu_state.flags & 0x7000) | (tempw & 0x0fd5) | 2;
     else if (!(CPL))

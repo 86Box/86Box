@@ -627,6 +627,7 @@ quadcolor_poll(void *priv)
                 quadcolor_render_process(quadcolor, quadcolor->displine);
                 break;
         }
+        video_lightpen_check_trigger_strobe(8, quadcolor->displine, 0, quadcolor->firstline + 8, 16. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), 0);
 
         quadcolor->scanline = scanline_old;
         if (quadcolor->vc == quadcolor->crtc[CGA_CRTC_VSYNC] && !quadcolor->scanline)
@@ -636,6 +637,7 @@ quadcolor_poll(void *priv)
             quadcolor->displine = 0;
     } else {
         timer_advance_u64(&quadcolor->timer, quadcolor->dispontime);
+        video_lightpen_hsync();
         quadcolor->linepos = 0;
         if (quadcolor->vsynctime) {
             quadcolor->vsynctime--;
@@ -695,6 +697,7 @@ quadcolor_poll(void *priv)
                 quadcolor->cgadispon = 0;
                 quadcolor->displine  = 0;
                 quadcolor->vsynctime = 16;
+                video_lightpen_vsync();
                 if (quadcolor->crtc[CGA_CRTC_VSYNC]) {
                     if (quadcolor->cgamode & CGA_MODE_FLAG_HIGHRES)
                         x = (quadcolor->crtc[CGA_CRTC_HDISP] << 3) + 16;

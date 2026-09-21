@@ -20,6 +20,7 @@
 #include <QDesktopServices>
 #include <QMenu>
 #include <QMessageBox>
+#include <QStringBuilder>
 #include <QStringListModel>
 #include <QTimer>
 #include <QProgressDialog>
@@ -772,15 +773,34 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
 void
 VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
 {
-    QMessageBox msgbox(QMessageBox::Icon::Warning, tr("Warning"), tr("Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!").arg(sysconfig->displayName), QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, qobject_cast<QWidget *>(this->parent()));
+    auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    int trash = config->getStringValue("delete_to_trash").toInt();
+#endif
+    QString msgboxText = tr("Do you really want to delete the virtual machine \"%1\" and all its files?").arg(sysconfig->displayName);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    if (!trash)
+#endif
+        msgboxText.append(QStringLiteral(" ") % tr("This action cannot be undone!"));
+    QMessageBox msgbox(QMessageBox::Icon::Warning, tr("Warning"), msgboxText, QMessageBox::StandardButton::Yes | QMessageBox::StandardButton::No, qobject_cast<QWidget *>(this->parent()));
     msgbox.exec();
     if (msgbox.result() == QMessageBox::Yes) {
-        auto qrmdir = new QDir(sysconfig->config_dir);
-        if (const bool rmdirResult = qrmdir->removeRecursively(); !rmdirResult) {
+        bool rmdirResult;
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+        if (trash) {
+            auto qrmdir = new QFile(sysconfig->config_dir);
+            rmdirResult = qrmdir->moveToTrash();
+        } else
+#endif
+        {
+            auto qrmdir = new QDir(sysconfig->config_dir);
+            rmdirResult = qrmdir->removeRecursively();
+        }
+
+        if (!rmdirResult) {
             QMessageBox::critical(this, tr("Remove directory failed"), tr("Some files in the machine's directory were unable to be deleted. Please delete them manually."));
             return;
         }
-        auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
         config->remove(sysconfig->uuid);
         vm_model->removeConfigFromModel(sysconfig);
         delete sysconfig;

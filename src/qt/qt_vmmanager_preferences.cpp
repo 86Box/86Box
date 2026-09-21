@@ -77,6 +77,12 @@ VMManagerPreferences::
     ui->regexSearchCheckBox->setChecked(useRegexSearch);
     const auto rememberSizePosition = config->getStringValue("window_remember").toInt();
     ui->rememberSizePositionCheckBox->setChecked(rememberSizePosition);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    const auto deleteToTrash = config->getStringValue("delete_to_trash").toInt();
+    ui->deleteToTrashCheckBox->setChecked(deleteToTrash);
+#else
+    ui->deleteToTrashCheckBox->setVisible(false);
+#endif
 
     ui->radioButtonSystem->setChecked(color_scheme == 0);
     ui->radioButtonLight->setChecked(color_scheme == 1);
@@ -94,7 +100,11 @@ VMManagerPreferences::~VMManagerPreferences()
 void
 VMManagerPreferences::chooseDirectoryLocation()
 {
-    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), ui->systemDirectory->text());
+    QFileDialog::Options options = QFileDialog::ShowDirsOnly;
+#ifdef Q_OS_LINUX
+    options |= QFileDialog::DontUseNativeDialog;
+#endif
+    const auto directory = QFileDialog::getExistingDirectory(this, tr("Choose directory"), ui->systemDirectory->text(), options);
     if (!directory.isEmpty())
         ui->systemDirectory->setText(QDir::toNativeSeparators(directory));
 }
@@ -128,6 +138,9 @@ VMManagerPreferences::accept()
 #endif
     config->setStringValue("window_remember", ui->rememberSizePositionCheckBox->isChecked() ? "1" : "0");
     config->setStringValue("regex_search", ui->regexSearchCheckBox->isChecked() ? "1" : "0");
+#if QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+    config->setStringValue("delete_to_trash", ui->deleteToTrashCheckBox->isChecked() ? "1" : "0");
+#endif
     QDialog::accept();
 }
 

@@ -4180,6 +4180,24 @@ FP_LOAD_REG_INT_Q(int reg, int *host_reg1, UNUSED(int *host_reg2))
 #define FPU_SUB  2
 #define FPU_SUBR 3
 
+/* x87 precision control = 24: round the double result in xmm_reg to
+   single and back. npxc is fixed for the block (CPU_STATUS_FPU_PC24 is in
+   the block key), so the test resolves at compile time. */
+static __inline void
+FP_ROUND_PC(int xmm_reg)
+{
+    if (cpu_state.npxc & 0x300)
+        return;
+    addbyte(0xf2); /*CVTSD2SS xmm_reg, xmm_reg*/
+    addbyte(0x0f);
+    addbyte(0x5a);
+    addbyte(0xc0 | (xmm_reg << 3) | xmm_reg);
+    addbyte(0xf3); /*CVTSS2SD xmm_reg, xmm_reg*/
+    addbyte(0x0f);
+    addbyte(0x5a);
+    addbyte(0xc0 | (xmm_reg << 3) | xmm_reg);
+}
+
 static __inline void
 FP_OP_REG(int op, int dst, int src)
 {
@@ -4274,6 +4292,7 @@ FP_OP_REG(int op, int dst, int src)
             addbyte((uint8_t) cpu_state_offset(ST));
             break;
     }
+    FP_ROUND_PC(0);
     addbyte(0x66); /*MOVQ [RSI+RAX*8], XMM0*/
     addbyte(0x0f);
     addbyte(0xd6);
@@ -4339,6 +4358,7 @@ FP_OP_MEM(int op)
             break;
     }
     if (op == FPU_DIVR || op == FPU_SUBR) {
+        FP_ROUND_PC(1);
         addbyte(0x66); /*MOVQ ST[RAX*8], XMM1*/
         addbyte(0x0f);
         addbyte(0xd6);
@@ -4346,6 +4366,7 @@ FP_OP_MEM(int op)
         addbyte(0xc5);
         addbyte((uint8_t) cpu_state_offset(ST));
     } else {
+        FP_ROUND_PC(0);
         addbyte(0x66); /*MOVQ ST[RAX*8], XMM0*/
         addbyte(0x0f);
         addbyte(0xd6);

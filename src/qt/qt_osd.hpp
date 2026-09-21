@@ -23,6 +23,10 @@ void qt_osd_shutdown(void);
 
 bool qt_osd_is_visible(void);
 
+/* Visible, or the core still has an overlay to draw. Gates rendering only:
+   input keeps following qt_osd_is_visible(). */
+bool qt_osd_needs_render(void);
+
 void qt_osd_toggle(void);
 
 void qt_osd_set_layout_scale_hint(float scale);
@@ -31,7 +35,7 @@ void qt_osd_render(int output_w, int output_h, float dpr, void* cmd_buf = nullpt
 
 const QImage *qt_osd_render_software(int logical_w, int logical_h, float dpr);
 
-bool qt_osd_key(int qt_key, int qt_modifiers, bool down, bool repeat);
+bool qt_osd_key(int qt_key, int qt_modifiers, bool down, bool repeat, char* utf8text);
 
 void qt_osd_mouse_pos(float x, float y);
 void qt_osd_mouse_button(int qt_button, bool down);

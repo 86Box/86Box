@@ -489,6 +489,7 @@ t1000_poll(void *priv)
             }
         }
         t1000->displine++;
+        video_lightpen_check_trigger_strobe(8, t1000->cga.displine * (t1000->cga.double_type ? 2 : 1), 0, t1000->cga.firstline + 8, 8. * (1. / (xt_cpu_multi / (cpuclock * (double) (1ULL << 32)))), t1000->cga.monitor_used);
         /* Hardcode a fixed refresh rate and VSYNC timing */
         if (t1000->displine == 200) /* Start of VSYNC */
         {
@@ -505,10 +506,12 @@ t1000_poll(void *priv)
         if (t1000->dispon) {
             t1000->cga.cgastat &= ~1;
         }
+        video_lightpen_hsync();
         timer_advance_u64(&t1000->cga.timer, t1000->dispontime);
         t1000->linepos = 0;
 
         if (t1000->displine == 200) {
+            video_lightpen_vsync();
             /* Hardcode 640x200 window size */
             if ((T1000_XSIZE != xsize) || (T1000_YSIZE != ysize) || video_force_resize_get()) {
                 xsize = T1000_XSIZE;
