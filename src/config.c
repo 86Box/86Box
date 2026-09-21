@@ -1982,6 +1982,12 @@ load_floppy_and_cdrom_drives(void)
 
             if (cdrom[c].ide_channel > 7)
                 cdrom[c].ide_channel = 7;
+        } else if (cdrom[c].bus_type == CDROM_BUS_LPT) {
+            sprintf(temp, "cdrom_%02i_lpt_port", c + 1);
+            cdrom[c].res = ini_section_get_int(cat, temp, 0);
+
+            if (cdrom[c].res >= PARALLEL_MAX)
+                cdrom[c].res = PARALLEL_MAX - 1;
         } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
             sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c & 3);
@@ -2221,6 +2227,12 @@ load_other_removable_devices(void)
 
             if (rdisk_drives[c].ide_channel > 7)
                 rdisk_drives[c].ide_channel = 7;
+        } else if (rdisk_drives[c].bus_type == RDISK_BUS_LPT) {
+            sprintf(temp, "rdisk_%02i_lpt_port", c + 1);
+            rdisk_drives[c].res = ini_section_get_int(cat, temp, 0);
+
+            if (rdisk_drives[c].res >= PARALLEL_MAX)
+                rdisk_drives[c].res = PARALLEL_MAX - 1;
         } else if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI) {
             sprintf(temp, "rdisk_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
@@ -2247,6 +2259,11 @@ load_other_removable_devices(void)
 
         if (rdisk_drives[c].bus_type != RDISK_BUS_SCSI) {
             sprintf(temp, "rdisk_%02i_scsi_location", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
+
+        if (rdisk_drives[c].bus_type != RDISK_BUS_LPT) {
+            sprintf(temp, "rdisk_%02i_lpt_port", c + 1);
             ini_section_delete_var(cat, temp);
         }
 
@@ -4468,6 +4485,12 @@ save_other_removable_devices(void)
                     rdisk_drives[c].scsi_device_id & 15);
             ini_section_set_string(cat, temp, tmp2);
         }
+
+        sprintf(temp, "rdisk_%02i_lpt_port", c + 1);
+        if (rdisk_drives[c].bus_type != RDISK_BUS_LPT)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, rdisk_drives[c].res);
 
         sprintf(temp, "rdisk_%02i_image_path", c + 1);
         if ((rdisk_drives[c].bus_type == 0) || (strlen(rdisk_drives[c].image_path) == 0))
