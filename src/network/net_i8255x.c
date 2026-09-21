@@ -270,7 +270,8 @@ typedef struct {
     uint8_t configuration[22];
 
     /* Quasi static device properties (no need to save them). */
-    uint16_t stats_size;
+    uint16_t stats_size;        /* size of the statistical counters dump */
+    uint16_t max_stats_size;    /* largest dump this chip supports */
     bool has_extended_tcb_support;
 
     uint32_t link_state;
@@ -662,6 +663,23 @@ set_ru_state(eepro100_t *s, ru_state_t state)
 }
 
 static void
+update_stats_size(eepro100_t *s)
+{
+    if (s->max_stats_size == 80) {
+        if (s->configuration[6] & BIT(2)) /* TCO statistical counters */
+            s->stats_size = 80;
+        else if (s->configuration[6] & BIT(5)) /* no extended statistical counters (82557-compatible) */
+            s->stats_size = 64;
+        else /* 82558-compatible */
+            s->stats_size = 76;
+    } else if (s->configuration[6] & BIT(5)) { /* no extended statistical counters */
+        s->stats_size = 64;
+    } else {
+        s->stats_size = s->max_stats_size;
+    }
+}
+
+static void
 dump_statistics(eepro100_t *s)
 {
     /* Dump statistical data. Most data is never changed by the emulation
@@ -832,6 +850,7 @@ action_command(eepro100_t *s, uint32_t *cu_offset)
                        s->configuration[6], s->configuration[7],
                        s->configuration[8], s->configuration[9],
                        s->configuration[10]);
+            update_stats_size(s);
             break;
         case CmdMulticastList:
             set_multicast_list(s);
@@ -1978,7 +1997,7 @@ e100_pci_reset(eepro100_t *s, e100_device_info_t *info)
     /* Maximum Latency */
     pci_conf[PCI_REG_MAX_LAT] = 0x18;
 
-    s->stats_size = info->stats_size;
+    s->max_stats_size = info->stats_size;
     s->has_extended_tcb_support = info->has_extended_tcb_support;
 
     switch (device) {
@@ -2005,6 +2024,7 @@ e100_pci_reset(eepro100_t *s, e100_device_info_t *info)
 
     /* Standard statistical counters. */
     s->configuration[6] |= BIT(5);
+    update_stats_size(s);
 
     if (info->power_management) {
         /* Power Management Capabilities */
