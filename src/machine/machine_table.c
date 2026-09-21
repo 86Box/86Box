@@ -8421,9 +8421,9 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Has IBM PS/55 5551-Txx stage 2 firmware. */
+    /* Has IBM PS/55 5551-Sxx, Txx stage 2 firmware. */
     {
-        .name              = "[MCA] IBM PS/55 model 5550-T Stage II",
+        .name              = "[MCA] IBM PS/55 model 5550-S/T Stage II",
         .internal_name     = "ibmps55_m50t",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,
@@ -8435,7 +8435,7 @@ const machine_t machines[] = {
         .cpu               = {
             .package     = CPU_PKG_386DX | CPU_PKG_486BL,
             .block       = CPU_BLOCK_NONE,
-            .min_bus     = 20000000,
+            .min_bus     = 0,
             .max_bus     = 0,
             .min_voltage = 0,
             .max_voltage = 0,
