@@ -219,12 +219,11 @@ fifo_read(void *priv)
 
         count = fifo_get_count(fifo);
 
-        if (count < fifo->trigger_len) {
+        if (count < fifo->trigger_len)
             fifo->ready = 0;
 
-            if (count == 0)
-                fifo->empty = 1;
-        }
+        if (count == 0)
+            fifo->empty = 1;
     }
 
     return ret;
@@ -247,12 +246,11 @@ fifo_read_tagged(uint8_t *tag, void *priv)
 
         count = fifo_get_count(fifo);
 
-        if (count < fifo->trigger_len) {
+        if (count < fifo->trigger_len)
             fifo->ready = 0;
 
-            if (count == 0)
-                fifo->empty = 1;
-        }
+        if (count == 0)
+            fifo->empty = 1;
     } else
         *tag        = 0x00;
 

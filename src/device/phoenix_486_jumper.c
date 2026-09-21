@@ -60,10 +60,31 @@
     Bit 2 = CMOS clear: 1 = normal, 0 = clear CMOS
 */
 
+/*
+    PB400 bit meanings:
+    Bit 7 = ????
+    Bit 6 = ????
+    Bit 5 = ????
+    Bit 4 = ????
+    Bit 3 = Graphics card: 1 = on-board, 0 = standalone
+    Bit 2 = On-board graphics mode: 0 = normal, 1 = VESA
+    Bit 1 = ????
+    Bit 0 = ????
+*/
+
 typedef struct phoenix_486_jumper_t {
     uint8_t type;
     uint8_t jumper;
 } phoenix_486_jumper_t;
+
+enum {
+    PHOENIX_JUMPER_DEFAULT = 0,
+    PHOENIX_JUMPER_PCI     = 1,
+    PHOENIX_JUMPER_PB600   = 2,
+    PHOENIX_JUMPER_MONSOON = 3,
+    PHOENIX_JUMPER_PB400   = 4,
+    PHOENIX_JUMPER_PB430   = 5
+};
 
 #ifdef ENABLE_PHOENIX_486_JUMPER_LOG
 int phoenix_486_jumper_do_log = ENABLE_PHOENIX_486_JUMPER_LOG;
@@ -88,15 +109,19 @@ phoenix_486_jumper_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) priv;
     phoenix_486_jumper_log("Phoenix 486 Jumper: Write %02x\n", val);
-    if (dev->type == 1)
+    if (dev->type == PHOENIX_JUMPER_PCI)
         dev->jumper = val & 0xbf;
-    else if (dev->type == 2) /* PB600 */
+    else if (dev->type == PHOENIX_JUMPER_PB600) /* PB600 */
         dev->jumper = ((val & 0xbf) | 0x02);
-    else if (dev->type == 3) { /* Intel Monsoon */
+    else if (dev->type == PHOENIX_JUMPER_MONSOON) { /* Intel Monsoon */
         dev->jumper = ((val & 0xef) | 0x2c);
         if (gfxcard[0] != 0x01)
             dev->jumper |= 0x10;
-    } else
+    } else if (dev->type == PHOENIX_JUMPER_PB400)
+        dev->jumper = val & 0xfb;
+    else if (dev->type == PHOENIX_JUMPER_PB430)
+        dev->jumper = (val & 0xdf) | 0x9f;
+    else
         dev->jumper = val;
 }
 
@@ -114,14 +139,22 @@ phoenix_486_jumper_reset(void *priv)
 {
     phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) priv;
 
-    if (dev->type == 1)
+    if (dev->type == PHOENIX_JUMPER_PCI)
         dev->jumper = 0x00;
-    else if (dev->type == 2) /* PB600 */
+    else if (dev->type == PHOENIX_JUMPER_PB600) /* PB600 */
         dev->jumper = 0x02;
-    else if (dev->type == 3) { /* Intel Monsoon */
+    else if (dev->type == PHOENIX_JUMPER_MONSOON) { /* Intel Monsoon */
         dev->jumper = 0x2c;
         if (gfxcard[0] != 0x01)
             dev->jumper |= 0x10;
+    } else if (dev->type == PHOENIX_JUMPER_PB400) {
+        dev->jumper = 0xfb;
+        if (gfxcard[0] != 0x01)
+            dev->jumper &= 0xf3;
+    } else if (dev->type == PHOENIX_JUMPER_PB430) {
+        dev->jumper = 0x9f;
+        if (gfxcard[0] != 0x01)
+            dev->jumper |= 0x40;
     } else {
         dev->jumper = 0x9f;
         if (gfxcard[0] != 0x01)
@@ -155,7 +188,7 @@ const device_t phoenix_486_jumper_device = {
     .name          = "Phoenix 486 Jumper Readout",
     .internal_name = "phoenix_486_jumper",
     .flags         = 0,
-    .local         = 0,
+    .local         = PHOENIX_JUMPER_DEFAULT,
     .init          = phoenix_486_jumper_init,
     .close         = phoenix_486_jumper_close,
     .reset         = phoenix_486_jumper_reset,
@@ -169,7 +202,7 @@ const device_t phoenix_486_jumper_pci_device = {
     .name          = "Phoenix 486 Jumper Readout (PCI machines)",
     .internal_name = "phoenix_486_jumper_pci",
     .flags         = 0,
-    .local         = 1,
+    .local         = PHOENIX_JUMPER_PCI,
     .init          = phoenix_486_jumper_init,
     .close         = phoenix_486_jumper_close,
     .reset         = phoenix_486_jumper_reset,
@@ -183,7 +216,7 @@ const device_t phoenix_486_jumper_pci_pb600_device = {
     .name          = "Phoenix 486 Jumper Readout (PB600)",
     .internal_name = "phoenix_486_jumper_pci_pb600",
     .flags         = 0,
-    .local         = 2,
+    .local         = PHOENIX_JUMPER_PB600,
     .init          = phoenix_486_jumper_init,
     .close         = phoenix_486_jumper_close,
     .reset         = phoenix_486_jumper_reset,
@@ -197,7 +230,35 @@ const device_t phoenix_486_jumper_monsoon_device = {
     .name          = "Phoenix 486 Jumper Readout (Monsoon)",
     .internal_name = "phoenix_486_jumper_monsoon",
     .flags         = 0,
-    .local         = 3,
+    .local         = PHOENIX_JUMPER_MONSOON,
+    .init          = phoenix_486_jumper_init,
+    .close         = phoenix_486_jumper_close,
+    .reset         = phoenix_486_jumper_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t phoenix_486_jumper_pb400_device = {
+    .name          = "Phoenix 486 Jumper Readout (PB400)",
+    .internal_name = "phoenix_486_jumper_pb400",
+    .flags         = 0,
+    .local         = PHOENIX_JUMPER_PB400,
+    .init          = phoenix_486_jumper_init,
+    .close         = phoenix_486_jumper_close,
+    .reset         = phoenix_486_jumper_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t phoenix_486_jumper_pb430_device = {
+    .name          = "Phoenix 486 Jumper Readout (PB430)",
+    .internal_name = "phoenix_486_jumper_pb430",
+    .flags         = 0,
+    .local         = PHOENIX_JUMPER_PB430,
     .init          = phoenix_486_jumper_init,
     .close         = phoenix_486_jumper_close,
     .reset         = phoenix_486_jumper_reset,

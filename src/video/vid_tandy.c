@@ -790,6 +790,8 @@ vid_poll(void *priv)
                 break;
         }
 
+        video_lightpen_check_trigger_strobe(8, vid->displine * (vid->double_type ? 2 : 1), 0, vid->firstline + 8, 8. * (1. / (CGACONST / (cpuclock * (double) (1ULL << 32)))), 0);
+
         vid->scanline = scanline_old;
         if (vid->vc == vid->crtc[7] && !vid->scanline)
             vid->status |= 8;
@@ -798,6 +800,7 @@ vid_poll(void *priv)
             vid->displine = 0;
     } else {
         timer_advance_u64(&vid->timer, vid->dispontime);
+        video_lightpen_hsync();
         if (vid->dispon)
             vid->status &= ~1;
         vid->linepos = 0;
@@ -850,6 +853,7 @@ vid_poll(void *priv)
                     vid->cursoron = vid->blink & 16;
             }
             if (vid->vc == vid->crtc[7]) {
+                video_lightpen_vsync();
                 vid->vsync_offset = vid->vsync_offset_pending;
                 vid->dispon    = 0;
                 vid->displine  = 0;

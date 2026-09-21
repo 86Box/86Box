@@ -2698,7 +2698,7 @@ const device_t ncr53c810_onboard_pci_device = {
     .name          = "NCR 53c810 On-Board",
     .internal_name = "ncr53c810_onboard",
     .flags         = DEVICE_PCI,
-    .local         = 0x8001,
+    .local         = CHIP_810 | 0x8000,
     .init          = ncr53c8xx_init,
     .close         = ncr53c8xx_close,
     .reset         = NULL,
@@ -2776,4 +2776,18 @@ const device_t ncr53c875_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = ncr53c8xx_pci_config
+};
+
+const device_t ncr53c875_onboard_pci_device = {
+    .name          = "NCR 53c875 On-Board",
+    .internal_name = "ncr53c875_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = CHIP_875 | 0x8000,
+    .init          = ncr53c8xx_init,
+    .close         = ncr53c8xx_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

@@ -14,39 +14,26 @@
  */
 #include <inttypes.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <wchar.h>
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/device.h>
-#include <86box/pci.h>
-#include <86box/pic.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
-#include <86box/hdc.h>
-#include <86box/hdc_ide.h>
-#include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
-#include <86box/machine.h>
 #include <86box/nvr.h>
-#include <86box/apm.h>
-#include <86box/plat.h>
 #include <86box/plat_unused.h>
-#include <86box/video.h>
 #include <86box/sio.h>
-#include "cpu.h"
 
 typedef struct w83977_gpio_t {
     uint8_t       id;
     uint8_t       reg;
     uint8_t       pulldn;
-    uint8_t       pad;
 
-    uint8_t       alt[4];
+    uint8_t       alt[5];
 
     uint16_t      base;
 
@@ -59,16 +46,13 @@ typedef struct w83977_t {
     uint8_t       has_nvr;
     uint8_t       tries;
     uint8_t       lockreg;
-    uint8_t       gpio_reg;
     uint8_t       regs[48];
     uint8_t       ld_regs[11][256];
     uint16_t      kbc_type;
     uint16_t      superio_base;
     uint16_t      fdc_base;
-    uint16_t      lpt_base;
     uint16_t      nvr_base;
     uint16_t      kbc_base[2];
-    uint16_t      gpio_base; /* Set to EA */
     uint16_t      uart_base[2];
     int           locked;
     int           cur_reg;
@@ -98,10 +82,10 @@ make_port(const w83977_t *dev, const uint8_t ld)
 }
 
 static uint16_t
-make_port_sec(const w83977_t *dev, const uint8_t ld)
+make_port_sec(const w83977_t *dev)
 {
-    const uint16_t r0 = dev->ld_regs[ld][0x62];
-    const uint16_t r1 = dev->ld_regs[ld][0x63];
+    const uint16_t r0 = dev->ld_regs[5][0x62];
+    const uint16_t r1 = dev->ld_regs[5][0x63];
 
     const uint16_t p = (r0 << 8) + r1;
 
@@ -109,25 +93,25 @@ make_port_sec(const w83977_t *dev, const uint8_t ld)
 }
 
 static __inline uint8_t
-w83977_do_read_gp(w83977_gpio_t *dev, int reg, int bit)
+w83977_do_read_gp(const w83977_gpio_t *dev, const int bit)
 {
     return dev->reg & dev->pulldn & (1 << bit);
 }
 
 static __inline uint8_t
-w83977_do_read_alt(const w83977_gpio_t *dev, int alt, int reg, int bit)
+w83977_do_read_alt(const w83977_gpio_t *dev, const int alt, const int bit)
 {
     return dev->alt[alt] & (1 << bit);
 }
 
 static uint8_t
-w83977_read_gp(const w83977_gpio_t *dev, int bit)
+w83977_read_gp(const w83977_gpio_t *dev, const int bit)
 {
-    uint8_t   reg         = dev->id;
-    w83977_t *sio         = (w83977_t *) dev->parent;
-    uint8_t   gp_func_reg = sio->ld_regs[0x07 + reg - 1][0xe0 + ((((reg - 1) << 3) + bit) & 0x0f)];
-    uint8_t   gp_func;
-    uint8_t   ret         = 1 << bit;
+    const uint8_t   reg         = dev->id;
+    const w83977_t *sio         = (w83977_t *) dev->parent;
+    const uint8_t   gp_func_reg = sio->ld_regs[0x07 + reg - 1][0xe0 + ((((reg - 1) << 3) + bit) & 0x0f)];
+    uint8_t         gp_func;
+    uint8_t         ret         = 1 << bit;
 
     if (gp_func_reg & 0x01)  switch (reg) {
         default:
@@ -138,25 +122,25 @@ w83977_read_gp(const w83977_gpio_t *dev, int bit)
                default:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, reg - 1, bit);
+                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, bit);
                     else
-                        ret = w83977_do_read_alt(dev, gp_func - 1, reg - 1, bit);
+                        ret = w83977_do_read_alt(dev, gp_func - 1, bit);
                     break;
                 case 0: case 1:
                     gp_func = (gp_func_reg >> 3) & 0x01;
                     if (gp_func == 0x00)
-                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, reg - 1, bit);
+                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, bit);
                     else
-                        ret = w83977_do_read_alt(dev, 0, reg - 1, bit);
+                        ret = w83977_do_read_alt(dev, 0, bit);
                     break;
                case 4:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, reg - 1, bit);
+                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, bit);
                     else if (gp_func == 0x02)
                         ret = kbc_at_read_p(sio->kbc, 1, 0x80) ? (1 << bit) : 0x00;
                     else
-                        ret = w83977_do_read_alt(dev, gp_func - 1, reg - 1, bit);
+                        ret = w83977_do_read_alt(dev, gp_func - 1, bit);
                     break;
             }
             break;
@@ -167,25 +151,25 @@ w83977_read_gp(const w83977_gpio_t *dev, int bit)
                case 0:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, reg - 1, bit);
+                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, bit);
                     else if (gp_func == 0x02)
                         ret = kbc_at_read_p(sio->kbc, 2, 0x01) ? (1 << bit) : 0x00;
                     else
-                        ret = w83977_do_read_alt(dev, gp_func - 1, reg - 1, bit);
+                        ret = w83977_do_read_alt(dev, gp_func - 1, bit);
                     break;
                case 1 ... 4:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, reg - 1, bit);
+                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, bit);
                     else if (gp_func == 0x02)
                         ret = kbc_at_read_p(sio->kbc, 1, 1 << (bit + 2)) ? (1 << bit) : 0x00;
                     else
-                        ret = w83977_do_read_alt(dev, gp_func - 1, reg - 1, bit);
+                        ret = w83977_do_read_alt(dev, gp_func - 1, bit);
                     break;
                 case 5:
                     gp_func = (gp_func_reg >> 3) & 0x01;
                     if (gp_func == 0x00)
-                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, reg, bit);
+                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, bit);
                     else
                         ret = kbc_at_read_p(sio->kbc, 2, 0x02) ? (1 << bit) : 0x00;
                     break;
@@ -201,9 +185,9 @@ w83977_read_gp(const w83977_gpio_t *dev, int bit)
                case 0 ... 4:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, reg - 1, bit);
+                        ret = w83977_do_read_gp((w83977_gpio_t *) dev, bit);
                     else
-                        ret = w83977_do_read_alt(dev, gp_func - 1, reg - 1, bit);
+                        ret = w83977_do_read_alt(dev, gp_func - 1, bit);
                     break;
                 case 5 ... 7:
                     /* Do nothing, these bits have no function. */
@@ -219,24 +203,24 @@ w83977_read_gp(const w83977_gpio_t *dev, int bit)
 }
 
 static __inline void
-w83977_do_write_gp(w83977_gpio_t *dev, int reg, int bit, int set)
+w83977_do_write_gp(w83977_gpio_t *dev, const int bit, const int set)
 {
     dev->reg = (dev->reg & ~(1 << bit)) | (set << bit);
 }
 
 static __inline void
-w83977_do_write_alt(w83977_gpio_t *dev, int alt, int reg, int bit, int set)
+w83977_do_write_alt(w83977_gpio_t *dev, const int alt, const int bit, const int set)
 {
     dev->alt[alt] = (dev->alt[alt] & ~(1 << bit)) | (set << bit);
 }
 
 static void
-w83977_write_gp(w83977_gpio_t *dev, int bit, int set)
+w83977_write_gp(w83977_gpio_t *dev, const int bit, int set)
 {
-    uint8_t   reg         = dev->id;
-    w83977_t *sio         = (w83977_t *) dev->parent;
-    uint8_t   gp_func_reg = sio->ld_regs[0x07 + reg - 1][0xe0 + ((((reg - 1) << 3) + bit) & 0x0f)];
-    uint8_t   gp_func;
+    const uint8_t   reg         = dev->id;
+    const w83977_t *sio         = (w83977_t *) dev->parent;
+    const uint8_t   gp_func_reg = sio->ld_regs[0x07 + reg - 1][0xe0 + ((((reg - 1) << 3) + bit) & 0x0f)];
+    uint8_t         gp_func;
 
     if (gp_func_reg & 0x02)
         set = !set;
@@ -250,25 +234,25 @@ w83977_write_gp(w83977_gpio_t *dev, int bit, int set)
                default:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        w83977_do_write_gp(dev, reg - 1, bit, set);
+                        w83977_do_write_gp(dev, bit, set);
                     else
-                        w83977_do_write_alt(dev, gp_func - 1, reg - 1, bit, set);
+                        w83977_do_write_alt(dev, gp_func - 1, bit, set);
                     break;
                 case 0: case 1:
                     gp_func = (gp_func_reg >> 3) & 0x01;
                     if (gp_func == 0x00)
-                        w83977_do_write_gp(dev, reg - 1, bit, set);
+                        w83977_do_write_gp(dev, bit, set);
                     else
-                        w83977_do_write_alt(dev, 0, reg - 1, bit, set);
+                        w83977_do_write_alt(dev, 0, bit, set);
                     break;
                case 4:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        w83977_do_write_gp(dev, reg - 1, bit, set);
+                        w83977_do_write_gp(dev, bit, set);
                     else if (gp_func == 0x02)
                         kbc_at_write_p(sio->kbc, 1, 0x7f, set << 7);
                     else
-                        w83977_do_write_alt(dev, gp_func - 1, reg - 1, bit, set);
+                        w83977_do_write_alt(dev, gp_func - 1, bit, set);
                     break;
             }
             break;
@@ -279,25 +263,25 @@ w83977_write_gp(w83977_gpio_t *dev, int bit, int set)
                case 0:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        w83977_do_write_gp(dev, reg - 1, bit, set);
+                        w83977_do_write_gp(dev, bit, set);
                     else if (gp_func == 0x02)
                         kbc_at_write_p(sio->kbc, 2, 0xfe, set);
                     else
-                        w83977_do_write_alt(dev, gp_func - 1, reg - 1, bit, set);
+                        w83977_do_write_alt(dev, gp_func - 1, bit, set);
                     break;
                case 1 ... 4:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        w83977_do_write_gp(dev, reg - 1, bit, set);
+                        w83977_do_write_gp(dev, bit, set);
                     else if (gp_func == 0x02)
                         kbc_at_write_p(sio->kbc, 1, ~(1 << (bit + 2)), set << (bit + 2));
                     else
-                        w83977_do_write_alt(dev, gp_func - 1, reg - 1, bit, set);
+                        w83977_do_write_alt(dev, gp_func - 1, bit, set);
                     break;
                 case 5:
                     gp_func = (gp_func_reg >> 3) & 0x01;
                     if (gp_func == 0x00)
-                        w83977_do_write_gp(dev, reg - 1, bit, set);
+                        w83977_do_write_gp(dev, bit, set);
                     else
                         kbc_at_write_p(sio->kbc, 2, 0xfd, set << 1);
                     break;
@@ -313,9 +297,9 @@ w83977_write_gp(w83977_gpio_t *dev, int bit, int set)
                case 0 ... 4:
                     gp_func = (gp_func_reg >> 3) & 0x03;
                     if (gp_func == 0x00)
-                        w83977_do_write_gp(dev, reg - 1, bit, set);
+                        w83977_do_write_gp(dev, bit, set);
                     else
-                        w83977_do_write_alt(dev, gp_func - 1, reg - 1, bit, set);
+                        w83977_do_write_alt(dev, gp_func - 1, bit, set);
                     break;
                 case 5 ... 7:
                     /* Do nothing, these bits have no function. */
@@ -326,7 +310,7 @@ w83977_write_gp(w83977_gpio_t *dev, int bit, int set)
 }
 
 static uint8_t
-w83977_gpio_read(uint16_t port, void *priv)
+w83977_gpio_read(UNUSED(uint16_t port), void *priv)
 {
     const w83977_gpio_t *dev = (w83977_gpio_t *) priv;
     uint8_t              ret = 0x00;
@@ -338,7 +322,7 @@ w83977_gpio_read(uint16_t port, void *priv)
 }
 
 static void
-w83977_gpio_write(uint16_t port, uint8_t val, void *priv)
+w83977_gpio_write(UNUSED(uint16_t port), const uint8_t val, void *priv)
 {
     w83977_gpio_t *dev = (w83977_gpio_t *) priv;
 
@@ -351,12 +335,14 @@ w83977_superio_handler(w83977_t *dev)
 {
     if (dev->superio_base != 0x0000)
         io_removehandler(dev->superio_base, 0x0002,
-                         w83977_read, NULL, NULL, w83977_write, NULL, NULL, dev);
+                         w83977_read, NULL, NULL,
+                         w83977_write, NULL, NULL, dev);
 
     dev->superio_base = (dev->regs[0x26] & 0x40) ? 0x0370 : 0x03f0;
 
     io_sethandler(dev->superio_base, 0x0002,
-                  w83977_read, NULL, NULL, w83977_write, NULL, NULL, dev);
+                  w83977_read, NULL, NULL,
+                  w83977_write, NULL, NULL, dev);
 }
 
 static void
@@ -371,27 +357,26 @@ w83977_fdc_handler(w83977_t *dev)
     if (global_enable && local_enable)
         dev->fdc_base = make_port(dev, 0) & 0xfff8;
 
-    if (dev->fdc_base != old_base) {
-        if ((dev->id != 1) && (old_base >= 0x0100) && (old_base <= 0x0ff8))
-            fdc_remove(dev->fdc);
+    if ((dev->id != 1) && ((dev->fdc_base != old_base) ||
+                           (dev->fdc_base == 0x0000)))
+        fdc_remove(dev->fdc);
 
-        if ((dev->id != 1) && (dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
-            fdc_set_base(dev->fdc, dev->fdc_base);
-    }
+    if ((dev->id != 1) && (dev->fdc_base != old_base) &&
+        (dev->fdc_base >= 0x0100) && (dev->fdc_base <= 0x0ff8))
+        fdc_set_base(dev->fdc, dev->fdc_base);
 }
 
 static void
-w83977_lpt_handler(w83977_t *dev)
+w83977_lpt_handler(const w83977_t *dev)
 {
-    uint16_t ld_port         = 0x0000;
-    uint16_t mask            = 0xfffc;
-    uint8_t  global_enable   = !!(dev->regs[0x22] & (1 << 3));
-    uint8_t  local_enable    = !!dev->ld_regs[1][0x30];
-    uint8_t  lpt_irq         = dev->ld_regs[1][0x70];
-    uint8_t  lpt_dma         = dev->ld_regs[1][0x74];
-    uint8_t  lpt_mode        = dev->ld_regs[1][0xf0] & 0x07;
-    uint8_t  irq_readout[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x00, 0x08,
-                                 0x00, 0x10, 0x18, 0x20, 0x00, 0x00, 0x28, 0x30 };
+    const uint8_t  global_enable   = !!(dev->regs[0x22] & (1 << 3));
+    const uint8_t  local_enable    = !!dev->ld_regs[1][0x30];
+    const uint8_t  lpt_mode        = dev->ld_regs[1][0xf0] & 0x07;
+    const uint8_t  irq_readout[16] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x38, 0x00, 0x08,
+                                       0x00, 0x10, 0x18, 0x20, 0x00, 0x00, 0x28, 0x30 };
+    uint16_t       mask            = 0xfffc;
+    uint8_t        lpt_irq         = dev->ld_regs[1][0x70];
+    uint8_t        lpt_dma         = dev->ld_regs[1][0x74];
 
     if (lpt_irq > 15)
         lpt_irq = 0xff;
@@ -432,7 +417,7 @@ w83977_lpt_handler(w83977_t *dev)
             break;
     }
     if (global_enable && local_enable) {
-        ld_port = (make_port(dev, 1) & 0xfffc) & mask;
+        const uint16_t ld_port = (make_port(dev, 1) & 0xfffc) & mask;
         if ((ld_port >= 0x0100) && (ld_port <= (0x0ffc & mask)))
             lpt_port_setup(dev->lpt, ld_port);
     }
@@ -513,36 +498,38 @@ w83977_nvr_handler(w83977_t *dev)
 static void
 w83977_kbc_handler(w83977_t *dev)
 {
-    const uint8_t  local_enable = !!dev->ld_regs[5][0x30];
-    const uint16_t old_base = dev->kbc_base[0];
-    const uint16_t old_base2 = dev->kbc_base[1];
+    if (dev->kbc != NULL) {
+        const uint8_t  local_enable = !!dev->ld_regs[5][0x30];
+        const uint16_t old_base = dev->kbc_base[0];
+        const uint16_t old_base2 = dev->kbc_base[1];
 
-    dev->kbc_base[0] = dev->kbc_base[1] = 0x0000;
+        dev->kbc_base[0] = dev->kbc_base[1] = 0x0000;
 
-    if (local_enable) {
-        dev->kbc_base[0] = make_port(dev, 5);
-        dev->kbc_base[1] = make_port_sec(dev, 5);
-    }
+        if (local_enable) {
+            dev->kbc_base[0] = make_port(dev, 5);
+            dev->kbc_base[1] = make_port_sec(dev);
+        }
 
-    if (dev->kbc_base[0] != old_base) {
-        if ((dev->id != 1) && (dev->kbc != NULL) && (old_base >= 0x0100) && (old_base <= 0x0ff8))
-            kbc_at_port_handler(0, 0, old_base, dev->kbc);
+        if (dev->kbc_base[0] != old_base) {
+            if ((dev->id != 1) && (old_base >= 0x0100) && (old_base <= 0x0ff8))
+                kbc_at_port_handler(0, 0, old_base, dev->kbc);
 
-        if ((dev->id != 1) && (dev->kbc != NULL) && (dev->kbc_base[0] >= 0x0100) && (dev->kbc_base[0] <= 0x0ff8))
-            kbc_at_port_handler(0, 1, dev->kbc_base[0], dev->kbc);
-    }
+            if ((dev->id != 1) && (dev->kbc_base[0] >= 0x0100) && (dev->kbc_base[0] <= 0x0ff8))
+                kbc_at_port_handler(0, 1, dev->kbc_base[0], dev->kbc);
+        }
 
-    if (dev->kbc_base[1] != old_base2) {
-        if ((dev->id != 1) && (dev->kbc != NULL) && (old_base2 >= 0x0100) && (old_base2 <= 0x0ff8))
-            kbc_at_port_handler(1, 0, old_base2, dev->kbc);
+        if (dev->kbc_base[1] != old_base2) {
+            if ((dev->id != 1) && (old_base2 >= 0x0100) && (old_base2 <= 0x0ff8))
+                kbc_at_port_handler(1, 0, old_base2, dev->kbc);
 
-        if ((dev->id != 1) && (dev->kbc != NULL) && (dev->kbc_base[1] >= 0x0100) && (dev->kbc_base[1] <= 0x0ff8))
-            kbc_at_port_handler(1, 1, dev->kbc_base[1], dev->kbc);
-    }
+            if ((dev->id != 1) && (dev->kbc_base[1] >= 0x0100) && (dev->kbc_base[1] <= 0x0ff8))
+                kbc_at_port_handler(1, 1, dev->kbc_base[1], dev->kbc);
+        }
 
-    if ((dev->id != 1) && (dev->kbc != NULL)) {
-        kbc_at_set_irq(0, dev->ld_regs[5][0x70], dev->kbc);
-        kbc_at_set_irq(1, dev->ld_regs[5][0x72], dev->kbc);
+        if ((dev->id != 1)) {
+            kbc_at_set_irq(0, dev->ld_regs[5][0x70], dev->kbc);
+            kbc_at_set_irq(1, dev->ld_regs[5][0x72], dev->kbc);
+        }
     }
 }
 
@@ -677,8 +664,12 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
             valxor = val ^ dev->ld_regs[dev->regs[7]][dev->cur_reg];
 
             if (dev->regs[7] <= 0x0a)  switch (dev->regs[7]) {
+                default:
+                    break;
                 case 0x00:    /* FDD */
                     switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70:
@@ -694,7 +685,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
 
                             if ((valxor & 0x01) && (val & 0x01)) {
-                                uint8_t reg_f2 = dev->ld_regs[dev->regs[7]][0xf2];
+                                const uint8_t reg_f2 = dev->ld_regs[dev->regs[7]][0xf2];
 
                                 fdc_update_rwc(dev->fdc, 3, (reg_f2 & 0xc0) >> 6);
                                 fdc_update_rwc(dev->fdc, 2, (reg_f2 & 0x30) >> 4);
@@ -709,6 +700,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             if (valxor & 0x0c) {
                                 fdc_clear_flags(dev->fdc, FDC_FLAG_PS2 | FDC_FLAG_PS2_MCA);
                                 switch (val & 0x0c) {
+                                    default:
+                                        break;
                                     case 0x00:
                                         fdc_set_flags(dev->fdc, FDC_FLAG_PS2);
                                         break;
@@ -755,6 +748,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x01:    /* Parallel Port */
                     switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70:
@@ -786,6 +781,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x02:    /* Serial port 1 */
                     switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70:
@@ -806,6 +803,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x03:    /* Serial port 2 */
                     switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70:
@@ -834,6 +833,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x04:    /* Real Time Clock */
                     if (dev->type == W83977F)  switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70:
@@ -858,6 +859,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x05:    /* KBC */
                     switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x62: case 0x63:
@@ -872,13 +875,15 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xc7;
                             else
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0x83;
-                            if (valxor & 0x01)
+                            if ((dev->kbc != NULL) && (valxor & 0x01))
                                 kbc_at_set_fast_reset(val & 0x01);
                             break;
                     }
                     break;
                 case 0x06:    /* IR */
                     if (dev->type == W83977F)  switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70:
@@ -892,6 +897,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x07:    /* GP I/O Port I */
                     switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x62: case 0x63:
@@ -912,6 +919,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x08:    /* GP I/O Port II */
                     switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x70: case 0x72:
@@ -943,6 +952,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x09:    /* GP I/O Port III */
                     if (dev->type == W83977TF)  switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x60: case 0x61:
                         case 0x62: case 0x63:
@@ -963,6 +974,8 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                     break;
                 case 0x0a:    /* ACPI */
                     if (dev->type != W83977F)  switch (dev->cur_reg) {
+                        default:
+                            break;
                         case 0x30:
                         case 0x70:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
@@ -1050,11 +1063,11 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
 } 
 
 static uint8_t
-w83977_read(uint16_t port, void *priv)
+w83977_read(const uint16_t port, void *priv)
 {
-    w83977_t *dev   = (w83977_t *) priv;
-    uint8_t      index = (port & 1) ? 0 : 1;
-    uint8_t      ret   = 0xff;
+    w83977_t *    dev   = (w83977_t *) priv;
+    const uint8_t index = (port & 1) ? 0 : 1;
+    uint8_t       ret   = 0xff;
 
     if (dev->locked) {
         if (index)
@@ -1230,10 +1243,12 @@ w83977_reset(void *priv)
             w83977_nvr_handler(dev);
             nvr_bank_set(0, 0, dev->nvr);
 
-            nvr_lock_set(0x80, 0x20, 0, dev->nvr);
-            nvr_lock_set(0xa0, 0x20, 0, dev->nvr);
-            nvr_lock_set(0xc0, 0x20, 0, dev->nvr);
-            nvr_lock_set(0xe0, 0x20, 0, dev->nvr);
+            if (!dump_missing) {
+                nvr_lock_set(0x80, 0x20, 0, dev->nvr);
+                nvr_lock_set(0xa0, 0x20, 0, dev->nvr);
+                nvr_lock_set(0xc0, 0x20, 0, dev->nvr);
+                nvr_lock_set(0xe0, 0x20, 0, dev->nvr);
+            }
         }
 
         w83977_kbc_handler(dev);
@@ -1275,10 +1290,18 @@ w83977_init(const device_t *info)
     else
         dev->fdc       = device_add(&fdc_at_smc_device);
 
-    dev->uart[0]   = device_add_inst(&ns16550_device, (next_id << 1) + 1);
-    dev->uart[1]   = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+    if (info->local & W83977_UART_FORCE_SEC) {
+        dev->uart[0]   = device_add_inst(&ns16550_device, 3);
+        dev->uart[1]   = device_add_inst(&ns16550_device, 4);
+    } else {
+        dev->uart[0]   = device_add_inst(&ns16550_device, (next_id << 1) + 1);
+        dev->uart[1]   = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+    }
 
-    dev->lpt       = device_add_inst(&lpt_port_device, next_id + 1);
+    if (info->local & W83977_LPT_FORCE_SEC)
+        dev->lpt       = device_add_inst(&lpt_port_device, 2);
+    else
+        dev->lpt       = device_add_inst(&lpt_port_device, next_id + 1);
 
     dev->type      = info->local & W83977_TYPE;
 
@@ -1293,6 +1316,8 @@ w83977_init(const device_t *info)
     }
 
     switch (dev->kbc_type) {
+        default:
+            break;
         case W83977_AMI:
             dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_AMI | 0x00004800));
             break;
@@ -1300,15 +1325,6 @@ w83977_init(const device_t *info)
             dev->kbc = device_add_params(&kbc_at_device, (void *) (KBC_VEN_PHOENIX | 0x00041900));
             break;
     }
-
-    /* Set the defaults here so the ports can be removed by w83977_reset(). */
-    dev->fdc_base     = (dev->id == 1) ? 0x0000 : 0x03f0;
-    dev->lpt_base     = (dev->id == 1) ? 0x0278 : 0x0378;
-    dev->uart_base[0] = (dev->id == 1) ? 0x03e8 : 0x03f8;
-    dev->uart_base[1] = (dev->id == 1) ? 0x02e8 : 0x02f8;
-    dev->nvr_base     = (dev->id == 1) ? 0x0000 : 0x0070;
-    dev->kbc_base[0]  = (dev->id == 1) ? 0x0000 : 0x0060;
-    dev->kbc_base[1]  = (dev->id == 1) ? 0x0000 : 0x0064;
 
     for (int i = 0; i < 3; i++) {
         dev->gpio[i].id     = i + 1;

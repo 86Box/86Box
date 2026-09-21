@@ -170,6 +170,7 @@ extern const char *joystick_get_pov_name(int js, int id);
 
 extern void  gameport_update_joystick_type(uint8_t gp);
 extern void  gameport_remap(void *priv, uint16_t address);
+extern void  gameport_set_decode(void *priv, int read_enabled, int write_enabled);
 extern void *gameport_add(const device_t *gameport_type);
 
 // Paddle Controllers

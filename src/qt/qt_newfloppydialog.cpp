@@ -30,6 +30,7 @@ extern "C" {
 #include <86box/disksizes.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
+#include <86box/scsi_tape.h>
 }
 
 #include <cstdio>
@@ -67,6 +68,10 @@ static const QStringList floppyTypes = {
 static const QStringList rdiskTypes = {
     "ZIP 100",
     "ZIP 250",
+    "Jaz 1 GB",
+    "Jaz 2 GB",
+    "SyJet 1.5 GB",
+    "SparQ 1.0 GB",
 #if 0
     "ZIP 750",
     "LS-120",
@@ -87,7 +92,7 @@ static const QStringList moTypes = {
     "5.25\" 1.3 GB",
 };
 
-NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
+NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent, int tape_drive_type)
     : QDialog(parent)
     , ui(new Ui::NewFloppyDialog)
     , mediaType_(type)
@@ -102,14 +107,14 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
                 Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
             }
             ui->fileField->setFilter(
-                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "img", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }, true));
+                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "img", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
             break;
         case MediaType::RDisk:
             for (int i = 0; i < rdiskTypes.size(); ++i) {
                 Models::AddEntry(model, tr(rdiskTypes[i].toUtf8().data()), i);
             }
-            ui->fileField->setFilter(tr("Removable disk images") % util::DlgFilter({ "im?", "img", "rdi", "zdi" }, true));
+            ui->fileField->setFilter(tr("Removable disk images") % util::DlgFilter({ "im?", "img", "rdi", "zdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
         case MediaType::Mo:
             for (int i = 0; i < moTypes.size(); ++i) {
@@ -117,7 +122,25 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
             }
             ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "img", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
+        case MediaType::Tape:
+            ui->labelSize->setText(tr("Tape type:"));
+            for (int i = 0; i < KNOWN_TAPE_TYPES; ++i) {
+                if ((tape_drive_type < 0) || (tape_drive_type >= KNOWN_TAPE_DRIVE_TYPES) ||
+                    tape_drive_types[tape_drive_type].supported_media[i])
+                    Models::AddEntry(model, tr(tape_types[i].name), i);
+            }
+            if ((tape_drive_type >= 0) && (tape_drive_type < KNOWN_TAPE_DRIVE_TYPES)) {
+                const auto matches = model->match(model->index(0, 0), Qt::UserRole,
+                                                  tape_drive_types[tape_drive_type].default_media);
+                if (!matches.isEmpty())
+                    ui->comboBoxSize->setCurrentIndex(matches.first().row());
+            }
+            ui->fileField->setFilter(tr("Tape images") % util::DlgFilter({ "tap" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+            break;
     }
+
+    if (model->rowCount() <= 1)
+        ui->comboBoxSize->setEnabled(false);
 
     model = ui->comboBoxRpm->model();
     for (int i = 0; i < rpmModes.size(); ++i) {
@@ -152,6 +175,12 @@ NewFloppyDialog::fileName() const
     return ui->fileField->fileName();
 }
 
+int
+NewFloppyDialog::mediaTypeIndex() const
+{
+    return ui->comboBoxSize->currentData().toInt();
+}
+
 void
 NewFloppyDialog::onCreate()
 {
@@ -183,7 +212,9 @@ NewFloppyDialog::onCreate()
 
                 std::atomic_bool res;
                 std::thread      t([this, &res, filename, fileType, &progress] {
-                    res = createRDiskSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex() + 12], fileType, progress);
+                    res = createRDiskSectorImage(filename,
+                                                  rdisk_types[ui->comboBoxSize->currentIndex()].sectors,
+                                                  fileType, progress);
                 });
                 progress.exec();
                 t.join();
@@ -200,6 +231,21 @@ NewFloppyDialog::onCreate()
                 std::atomic_bool res;
                 std::thread      t([this, &res, filename, fileType, &progress] {
                     res = createMoSectorImage(filename, ui->comboBoxSize->currentIndex(), fileType, progress);
+                });
+                progress.exec();
+                t.join();
+
+                if (res) {
+                    return;
+                }
+            }
+            break;
+        case MediaType::Tape:
+            {
+                std::atomic_bool res;
+                const int        tape_type = mediaTypeIndex();
+                std::thread      t([this, &res, filename, tape_type, &progress] {
+                    res = createTapeSectorImage(filename, tape_type, progress);
                 });
                 progress.exec();
                 t.join();
@@ -540,11 +586,10 @@ NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &d
 }
 
 bool
-NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar)
+NewFloppyDialog::createRDiskSectorImage(const QString &filename, uint32_t total_sectors, FileType type, QProgressDialog &pbar)
 {
     uint64_t total_size    = 0;
-    uint32_t total_sectors = 0;
-    uint32_t sector_bytes  = 0;
+    const uint32_t sector_bytes = 512;
     uint16_t base          = 0x1000;
     uint64_t pbar_max      = 0;
 
@@ -555,17 +600,9 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
     QDataStream stream(&file);
     stream.setByteOrder(QDataStream::LittleEndian);
 
-    sector_bytes  = (128 << disk_size.sector_len);
-    total_sectors = disk_size.sides * disk_size.tracks * disk_size.sectors;
-    if (total_sectors > ZIP_SECTORS)
-        total_sectors = ZIP_250_SECTORS;
     total_size = (uint64_t) total_sectors * sector_bytes;
 
-    pbar_max = total_size;
-    if (type == FileType::Zdi) {
-        pbar_max += base;
-    }
-    pbar_max >>= 11;
+    pbar_max = (total_size + 1048575) >> 20;
 
     if (type == FileType::Zdi) {
         QByteArray data(base, 0);
@@ -574,15 +611,14 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
         *(uint32_t *) &(empty[0x08]) = (uint32_t) base;
         *(uint32_t *) &(empty[0x0C]) = total_size;
         *(uint16_t *) &(empty[0x10]) = (uint16_t) sector_bytes;
-        *(uint8_t *) &(empty[0x14])  = (uint8_t) disk_size.sectors;
-        *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sides;
-        *(uint8_t *) &(empty[0x1C])  = (uint8_t) disk_size.tracks;
+        *(uint8_t *) &(empty[0x14])  = 63;
+        *(uint8_t *) &(empty[0x18])  = 255;
+        *(uint8_t *) &(empty[0x1C])  = (uint8_t) (total_sectors / (63 * 255));
 
         stream.writeRawData(empty, base);
-        pbar_max -= 2;
     }
 
-    QByteArray bytes(total_size, 0);
+    QByteArray bytes(1048576, 0);
     auto       empty = bytes.data();
 
     if (total_sectors == ZIP_SECTORS) {
@@ -639,7 +675,7 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
 
         /* Root directory = 0x35000
         Data = 0x39000 */
-    } else {
+    } else if (total_sectors == ZIP_250_SECTORS) {
         /* ZIP 250 */
         /* MBR */
         *(uint64_t *) &(empty[0x0000]) = 0x2054524150492EEBLL;
@@ -713,8 +749,13 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, const disk_size
     }
 
     pbar.setMaximum(pbar_max);
-    for (uint32_t i = 0; i < pbar_max; i++) {
-        stream.writeRawData(&empty[i << 11], 2048);
+    uint64_t written = 0;
+    for (uint32_t i = 0; written < total_size; i++) {
+        const qint64 count = (qint64) MIN((uint64_t) bytes.size(), total_size - written);
+        stream.writeRawData(empty, count);
+        written += count;
+        if (i == 0)
+            bytes.fill(0);
         fileProgress(i);
     }
     fileProgress(pbar_max);
@@ -784,6 +825,32 @@ NewFloppyDialog::createMoSectorImage(const QString &filename, int8_t disk_size, 
         stream.writeRawData(extra_bytes.data(), total_size2);
     }
     fileProgress(blocks_num);
+
+    return true;
+}
+
+bool
+NewFloppyDialog::createTapeSectorImage(const QString &filename, UNUSED(int8_t disk_size), QProgressDialog &pbar)
+{
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly)) {
+        return false;
+    }
+    QDataStream stream(&file);
+    stream.setByteOrder(QDataStream::LittleEndian);
+
+    if (disk_size >= 7) {
+        /* QIC-117 floppy-tape / Ditto cartridges: the cores create and
+           format their own blank images (a zero-length file), so keep
+           the cartridge byte-identical to an auto-created one. */
+        pbar.setMaximum(1);
+        fileProgress(1);
+        return true;
+    }
+
+    stream << (uint32_t) TAPE_SIMH_EOD;
+    pbar.setMaximum(1);
+    fileProgress(1);
 
     return true;
 }

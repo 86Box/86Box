@@ -64,7 +64,10 @@
 #include <86box/bugger.h>
 #include <86box/postcard.h>
 #include <86box/unittester.h>
+#include <86box/softpower.h>
+#include <86box/ibm5140_power.h>
 #include <86box/novell_cardkey.h>
+#include <86box/mcamem.h>
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/isartc.h>
@@ -160,6 +163,7 @@ int      video_fullscreen_scale                 = 0;              /* (C) video *
 int      fullscreen_ui_visible                  = 0;              /* (C) video */
 int      enable_overscan                        = 0;              /* (C) video */
 int      force_43                               = 0;              /* (C) video */
+int      force_device_aspect                    = 0;              /* (C) video */
 int      video_filter_method                    = 1;              /* (C) video */
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
@@ -168,7 +172,9 @@ int      bugger_enabled                         = 0;              /* (C) enable 
 int      novell_keycard_enabled                 = 0;              /* (C) enable Novell NetWare 2.x key card emulation. */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
+int      softpower_enabled                      = 0;              /* (C) enable PC Convertible-style soft power card */
 int      gameport_type[GAMEPORT_MAX]            = { 0, 0 };       /* (C) enable gameports */
+int      mcamem_type[MCAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable MCA mem cards */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isarom_type[ISAROM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA ROM cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
@@ -191,6 +197,7 @@ int      time_sync                              = 0;              /* (C) enable 
 int      confirm_reset                          = 1;              /* (G) enable reset confirmation */
 int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
 int      confirm_save                           = 1;              /* (G) enable save confirmation */
+int      chd_precache_level                     = 0;              /* (G) CHD precache level */
 int      enable_discord                         = 0;              /* (C) enable Discord integration */
 int      pit_mode                               = -1;             /* (C) force setting PIT mode */
 int      fm_driver                              = 0;              /* (C) select FM sound driver */
@@ -229,6 +236,9 @@ double   video_gl_input_scale = 1.0;                              /* (C) OpenGL 
 int      video_gl_input_scale_mode = FULLSCR_SCALE_FULL;          /* (C) OpenGL 3.x input stretch mode */
 int      color_scheme = 0;                                        /* (C) Color scheme of UI (Windows-only) */
 int      fdd_sounds_enabled = 1;                                  /* (C) Floppy drive sounds enabled */
+int      is_new_808x = 0;                                         /* (C) Use the new 808x code. */
+
+int      gdbstub_port = 12345;                                    /* (C) The GDB stub port. */
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
@@ -278,37 +288,48 @@ struct accelKey def_acc_keys[NUM_ACCELS] = {
     {
         .name="fast_forward",
         .desc="Fast forward",
-        .seq="Ctrl+Alt+F"
+        .seq="Ctrl+Shift+F"
     },
     {
         .name="release_mouse",
         .desc="Release mouse pointer",
-        .seq="Ctrl+End"
+        .seq="Ctrl+Shift+G"
     },
     {
         .name="hard_reset",
         .desc="Hard reset",
-        .seq="Ctrl+Alt+F12"
+        .seq="Ctrl+Shift+F12"
     },
     {
         .name="pause",
         .desc="Toggle pause",
-        .seq="Ctrl+Alt+P"
+        .seq="Ctrl+Shift+P"
     },
     {
         .name="mute",
         .desc="Toggle mute",
-        .seq="Ctrl+Alt+M"
+        .seq="Ctrl+Shift+M"
     },
     {
         .name="force_interpretation",
         .desc="Force interpretation",
-        .seq="Ctrl+Alt+I"
+        .seq="Ctrl+Shift+I"
+    },
+    {
+        .name="nmi",
+        .desc="Non-maskable interrupt",
+        .seq=""
     },
     {
         .name="toggle_osd",
         .desc="Toggle on-screen display",
-        .seq="Ctrl+Alt+O"
+        .seq="Ctrl+Shift+O"
+    }
+,
+    {
+        .name="exit",
+        .desc="Exit",
+        .seq=""
     }
 };
 
@@ -1382,10 +1403,12 @@ usage:
 void
 pc_speed_changed(void)
 {
-    if (cpu_s->cpu_type >= CPU_286)
-        pit_set_clock(cpu_s->rspeed);
-    else
-        pit_set_clock((uint32_t) 14318184.0);
+    if (cpu_s != NULL) {
+        if (cpu_s->cpu_type >= CPU_286)
+            pit_set_clock(cpu_s->rspeed);
+        else
+            pit_set_clock((uint32_t) 14318184.0);
+    }
 }
 
 void
@@ -1407,8 +1430,6 @@ pc_init_roms(void)
     char    tempc[512];
 
     if (dump_missing) {
-        dump_missing = 0;
-
         c = 0;
         while (machine_get_internal_name_ex(c) != NULL) {
             m = machine_available(c);
@@ -1428,6 +1449,8 @@ pc_init_roms(void)
                 pclog("Missing video card: %s\n", tempc);
             c++;
         }
+
+        dump_missing = 0;
     }
 
     pc_log("Scanning for ROM images:\n");
@@ -1575,49 +1598,52 @@ pc_send_ca(uint16_t sc)
         /* Use R-Alt because PS/55 DOS and OS/2 assign L-Alt Kanji */
         keyboard_input(1, 0x1D);  /*  Ctrl key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, 0x138); /* R-Alt key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         usleep(50000);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x138); /* R-Alt key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x1D);  /*  Ctrl key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
     } else {
         keyboard_input(1, 0x1D); /* Ctrl key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, 0x38); /* Alt key pressed */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(1, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         usleep(50000);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, sc);
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x38); /* Alt key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
         keyboard_input(0, 0x1D); /* Ctrl key released */
         if (keyboard_get_in_reset())
-            return;
+            goto cleanup;
     }
 
+cleanup:
+    if (keyboard_get_in_reset())
+        keyboard_all_up();
     keyboard_toggle_override();
 }
 
@@ -1790,6 +1816,9 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
 
+    /* Reset and reconfigure the MCA memory expansion boards. */
+    mcamem_reset();
+
     /*
      * Reset the mouse, this will attach it to any port needed.
      */
@@ -1857,11 +1886,16 @@ pc_reset_hard_init(void)
         device_add(&postcard_device);
     if (unittester_enabled)
         device_add(&unittester_device);
+    if (softpower_enabled && (machines[machine].init != machine_ibm5140_init))
+        device_add(&softpower_device);
 
     if (novell_keycard_enabled)
         device_add(&novell_keycard_device);
 
-    if (IS_ARCH(machine, MACHINE_BUS_PCI)) {
+    if (IS_ARCH(machine, MACHINE_BUS_PCI) ||
+        IS_ARCH(machine, MACHINE_BUS_AGP) ||
+        machine_has_flags(machine, MACHINE_PCI_INTERNAL) ||
+        machine_has_flags(machine, MACHINE_AGP_INTERNAL)) {
         pci_register_cards();
         device_reset_all(DEVICE_PCI);
     }
@@ -1988,6 +2022,7 @@ pc_run(void)
     /* Trigger a hard reset if one is pending. */
     if (hard_reset_pending) {
         hard_reset_pending = 0;
+        ibm5140_power_hard_off();
         pc_reset_hard_close();
         pc_reset_hard_init();
     }
@@ -2125,6 +2160,11 @@ set_screen_size_monitor(int x, int y, int monitor_index)
                 dy = (dx / 4.0) * 3.0;
         }
         monitors[monitor_index].mon_unscaled_size_y = (int) dy;
+    } else if (force_device_aspect && monitors[monitor_index].mon_device_aspect_x > 0 &&
+               monitors[monitor_index].mon_device_aspect_y > 0) {
+        monitors[monitor_index].mon_unscaled_size_y =
+            x * monitors[monitor_index].mon_device_aspect_y /
+            monitors[monitor_index].mon_device_aspect_x;
     } else
         monitors[monitor_index].mon_unscaled_size_y = monitors[monitor_index].mon_efscrnsz_y;
 

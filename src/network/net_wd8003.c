@@ -676,8 +676,11 @@ wd_init(const device_t *info)
         dev->maclocal[5] = (mac & 0xff);
     }
 
-    if ((dev->board == WD8003ETA) || (dev->board == WD8003EA) || dev->board == WD8013EPA) {
-        if (dev->board == WD8013EPA)
+    if ((dev->board == WD8003ETA) || (dev->board == WD8003EA) ||
+        (dev->board == WD8013EPA) || (dev->board == WD8013WPA_IBM) ||
+        (dev->board == WD8013EPA_IBM) || (dev->board == WD8003EA_IBM)) {
+        if ((dev->board == WD8013EPA) || (dev->board == WD8013WPA_IBM) ||
+            (dev->board == WD8013EPA_IBM))
             mca_add(wd_mca_read, wd_8013epa_mca_write, wd_mca_feedb, NULL, dev);
         else
             mca_add(wd_mca_read, wd_mca_write, wd_mca_feedb, NULL, dev);
@@ -748,6 +751,33 @@ wd_init(const device_t *info)
             dev->ram_size    = device_get_config_int("ram_size");
             dev->pos_regs[0] = 0xC8;
             dev->pos_regs[1] = 0x61;
+            dev->bit16       = 3;
+            break;
+
+        /* IBM EFE5: ENA 03E / WD8003E/A (AUI/BNC), with the older WD8003-style POS layout. */
+        case WD8003EA_IBM:
+            dev->board_chip  = WE_TYPE_WD8003EB | WE_ID_BUS_MCA;
+            dev->ram_size    = 0x4000;
+            dev->pos_regs[0] = 0xe5;
+            dev->pos_regs[1] = 0xef;
+            dev->bit16       = 3;
+            break;
+
+        /* IBM EFD5: ENA 13E / WD8013EP/A (AUI/BNC), with the 594-style POS layout. */
+        case WD8013EPA_IBM:
+            dev->board_chip  = WE_TYPE_WD8013EP | WE_ID_BUS_MCA;
+            dev->ram_size    = 0x4000;
+            dev->pos_regs[0] = 0xd5;
+            dev->pos_regs[1] = 0xef;
+            dev->bit16       = 3;
+            break;
+
+        /* IBM EFD4: ENA 13W / WD8013WP/A (AUI/RJ-45), FRU 92F0046, with the 594-style POS layout. */
+        case WD8013WPA_IBM:
+            dev->board_chip  = WE_TYPE_WD8013W | WE_ID_BUS_MCA;
+            dev->ram_size    = 0x4000;
+            dev->pos_regs[0] = 0xd4;
+            dev->pos_regs[1] = 0xef;
             dev->bit16       = 3;
             break;
 
@@ -1187,4 +1217,46 @@ const device_t wd8013epa_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = wd8013epa_config
+};
+
+const device_t ibm_ethernet_efd4_device = {
+    .name          = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013WP/A, AUI/RJ-45, EFD4/92F0046)",
+    .internal_name = "ibm_ethernet_92f0046",
+    .flags         = DEVICE_MCA,
+    .local         = WD8013WPA_IBM,
+    .init          = wd_init,
+    .close         = wd_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mca_mac_config
+};
+
+const device_t ibm_ethernet_efd5_device = {
+    .name          = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013EP/A, AUI/BNC, EFD5)",
+    .internal_name = "ibm_ethernet_efd5",
+    .flags         = DEVICE_MCA,
+    .local         = WD8013EPA_IBM,
+    .init          = wd_init,
+    .close         = wd_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mca_mac_config
+};
+
+const device_t ibm_ethernet_efe5_device = {
+    .name          = "IBM PS/2 Adapter/A for Ethernet Networks (WD8003E/A, AUI/BNC, EFE5)",
+    .internal_name = "ibm_ethernet_efe5",
+    .flags         = DEVICE_MCA,
+    .local         = WD8003EA_IBM,
+    .init          = wd_init,
+    .close         = wd_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = mca_mac_config
 };

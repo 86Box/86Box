@@ -63,13 +63,11 @@ jobs:
               qt@5
         environment:
           - arch: x86_64
-            toolchain: ./cmake/flags-gcc-x86_64.cmake
             slug: -x86_64
             runner: macos-15-intel
           - arch: arm64
-            toolchain: ./cmake/llvm-macos-aarch64.cmake
             slug: -arm64
-            runner: macos-14
+            runner: macos-15
         exclude:
           - dynarec:
               new: off
@@ -80,7 +78,7 @@ jobs:
       - name: Install dependencies
         run: >-
           brew install
-          sdl2
+          sdl3
           rtmidi
           openal-soft
           fluidsynth
@@ -88,17 +86,17 @@ jobs:
           vde
           libserialport
           vulkan-headers
+          zstd
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
-          --toolchain ${{ matrix.environment.toolchain }}
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D Qt5_ROOT=$(brew --prefix qt@5)
@@ -113,7 +111,7 @@ jobs:
         run: cmake --install build
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**

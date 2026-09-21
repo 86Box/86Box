@@ -142,14 +142,19 @@ postcard_reset(void)
 static void
 postcard_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
-    if (postcard_written[port & POSTCARD_MASK] &&
-        (val == postcard_codes[port & POSTCARD_MASK]))
+    /* Index relative to the base port: unlike `port & POSTCARD_MASK`, this
+       also works for ports whose low bits are not zero (e.g. the IBM 5550
+       diagnostics on port A1h). */
+    uint8_t idx = port - postcard_port;
+
+    if (postcard_written[idx] &&
+        (val == postcard_codes[idx]))
         return;
 
-    postcard_prev_codes[port & POSTCARD_MASK] = postcard_codes[port & POSTCARD_MASK];
-    postcard_codes[port & POSTCARD_MASK]      = val;
-    if (postcard_written[port & POSTCARD_MASK] < 2)
-        postcard_written[port & POSTCARD_MASK]++;
+    postcard_prev_codes[idx] = postcard_codes[idx];
+    postcard_codes[idx]      = val;
+    if (postcard_written[idx] < 2)
+        postcard_written[idx]++;
 
     postcard_setui();
 }
@@ -192,7 +197,7 @@ postcard_init(UNUSED(const device_t *info))
         postcard_port = 0x680; /* MCA machines */
     else if (strstr(machines[machine].name, " PS/2 ") ||
              strstr(machine_getname(machine), " PS/1 "))
-        postcard_port = 0x190; /* ISA PS/2 machines */
+        postcard_port = is286 ? 0x190 : 0x90; /* ISA PS/2 machines */
     else if (strstr(machines[machine].name, " IBM XT "))
         postcard_port = 0x60; /* IBM XT */
     else if (strstr(machines[machine].name, " Multistation "))

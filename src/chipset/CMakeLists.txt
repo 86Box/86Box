@@ -70,6 +70,8 @@ add_library(chipset OBJECT
     sis_85c50x.c
     sis_5511.c
     sis_5571.c
+    sis_530.c
+    sis_530_h2p.c
     sis_5581.c
     sis_5591.c
     sis_5600.c
@@ -90,6 +92,7 @@ add_library(chipset OBJECT
     umc_8886.c
     umc_hb4.c
     umc_8890.c
+    ut85c50x.c
     via_apollo.c
     via_pipc.c
     vl82c480.c

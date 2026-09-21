@@ -974,7 +974,7 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
     else if (func == pm_func) { /* Power */
         ret = dev->power_regs[addr];
         if (addr == 0x42) {
-            if (dev->nvr->regs[0x0d] & 0x80)
+            if (dev->nvr->regs[0x0d] & 0x40)
                 ret |= 0x10;
             else
                 ret &= ~0x10;
@@ -986,9 +986,12 @@ pipc_read(int func, int addr, UNUSED(int len), void *priv)
                 ret |= 0x10;
         }
     } else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) { /* AC97 / MC97 */
-        if (addr == 0x40)
-            ret = ac97_via_read_status(dev->ac97);
-        else
+        if (addr == 0x40) {
+            if (dev->local >= VIA_PIPC_686A)
+                ret = ac97_via_read_status(dev->ac97);
+            else
+                ret = 0x00;
+        } else
             ret = dev->ac97_regs[func - pm_func - 1][addr];
     }
 

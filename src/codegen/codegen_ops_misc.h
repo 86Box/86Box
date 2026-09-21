@@ -20,7 +20,7 @@ ropSTD(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32)
 static uint32_t
 ropCLI(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
-    if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
+    if (cpu_cur_status & CPU_STATUS_PMODE)
         return 0;
     CLEAR_BITS((uintptr_t) &cpu_state.flags, I_FLAG);
 #ifdef CHECK_INT
@@ -31,7 +31,7 @@ ropCLI(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32)
 static uint32_t
 ropSTI(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
-    if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
+    if (cpu_cur_status & CPU_STATUS_PMODE)
         return 0;
     SET_BITS((uintptr_t) &cpu_state.flags, I_FLAG);
     return op_pc;

@@ -79,7 +79,7 @@ machine_at_icop6021_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&ali5113_device);
+    device_add_params(&ali5113_device, (void *) 0x03f1);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add(&ali6117d_device);
 

@@ -155,7 +155,7 @@ static const device_config_t arb1479_config[] = {
                 .files         = { "roms/machines/arb1479/1479b.rom", "" }
             },
             {
-                .name          = "Phoenix - AwardBIOS v6.00PG - Revision 1.2 (AR-B1479D)",
+                .name          = "AwardBIOS v6.00PG - Revision 1.2 (AR-B1479D)",
                 .internal_name = "arb1479d12",
                 .bios_type     = BIOS_NORMAL, 
                 .files_no      = 1,
@@ -290,7 +290,7 @@ machine_at_pcm5330_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,          1, 2, 3, 4);
 
     device_add(&stpc_serial_device);
-    device_add_params(&w83977_device, (void *) (W83977F | W83977_370 | W83977_AMI));
+    device_add_params(&w83977_device, (void *) (W83977F | W83977_370 | W83977_AMI | W83977_UART_FORCE_SEC));
     device_add(&stpc_atlas_device);
     device_add(&sst_flash_29ee020_device);
 

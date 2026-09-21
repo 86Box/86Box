@@ -22,6 +22,8 @@
 #include <string.h>
 #include <stdarg.h>
 
+#define SHA3_BYTEORDER 1234
+
 /******************************************************************************
 ** The Hash Engine
 */
@@ -38,7 +40,8 @@
 # if defined(i386)     || defined(__i386__)   || defined(_M_IX86) ||    \
      defined(__x86_64) || defined(__x86_64__) || defined(_M_X64)  ||    \
      defined(_M_AMD64) || defined(_M_ARM)     || defined(__x86)   ||    \
-     defined(__arm__)  || (defined(__riscv) && (__SIZEOF_POINTER__ == 8))
+     defined(__arm__)  || (defined(__riscv) && (__SIZEOF_POINTER__ == 8)) || \
+     defined(__loongarch_lp64)
 #   define SHA3_BYTEORDER    1234
 # elif defined(sparc)    || defined(__ppc__)
 #   define SHA3_BYTEORDER    4321

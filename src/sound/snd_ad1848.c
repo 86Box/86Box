@@ -88,6 +88,13 @@ ad1848_setdma(ad1848_t *ad1848, int newdma)
 }
 
 void
+ad1848_setdma2(ad1848_t *ad1848, int newdma)
+{
+    ad1848_log("AD1848: setdma2(%d)\n", newdma);
+    ad1848->dma2 = newdma;
+}
+
+void
 ad1848_updatevolmask(ad1848_t *ad1848)
 {
     if ((ad1848->type == AD1848_TYPE_CS4236B) && !(ad1848->xregs[4] & 0x10) && !ad1848->wten)
@@ -137,10 +144,51 @@ ad1848_get_default_freq(ad1848_t *ad1848)
     return freq;
 }
 
+static double
+ad1848_get_default_rec_freq(ad1848_t *ad1848)
+{
+    double freq = (ad1848->regs[28] & 1) ? 16934400.0 : 24576000.0;
+
+    switch ((ad1848->regs[28] >> 1) & 7) {
+        default:
+            break;
+
+        case 0:
+            freq /= 3072.0;
+            break;
+        case 1:
+            freq /= 1536.0;
+            break;
+        case 2:
+            freq /= 896.0;
+            break;
+        case 3:
+            freq /= 768.0;
+            break;
+        case 4:
+            freq /= 448.0;
+            break;
+        case 5:
+            freq /= 384.0;
+            break;
+        case 6:
+            freq /= 512.0;
+            break;
+        case 7:
+            freq /= 2560.0;
+            break;
+    }
+
+    ad1848_log("AD1848: Record frequency %f through InterWave Mode3 path\n", freq);
+
+    return freq;
+}
+
 static void
 ad1848_updatefreq(ad1848_t *ad1848)
 {
     double  freq;
+    double  rec_freq = 0; /* InterWave Mode3 record frequency */
 
     if (ad1848->type >= AD1848_TYPE_CS4232) {
         if (ad1848->xregs[11] & 0x20) { /* CS4236B+ only */
@@ -194,11 +242,23 @@ ad1848_updatefreq(ad1848_t *ad1848)
             ad1848_log("AD1848: Frequency %f through CS4232+ path\n", freq);
         } else
             freq = ad1848_get_default_freq(ad1848);
+    } else if (ad1848->type == AD1848_TYPE_INTERWAVE && ad1848->iw_mode3) {
+        if (!(ad1848->regs[17] & 0x04))
+            freq = ad1848_get_default_freq(ad1848);
+        else {
+            uint32_t pcs = (ad1848->regs[8] & 1) ? 16934400.0 : 24576000.0;
+            freq = pcs / (16 * (48+ad1848->regs[29]));
+        }
+        rec_freq = ad1848_get_default_rec_freq(ad1848);
     } else
         freq = ad1848_get_default_freq(ad1848);
 
     ad1848->freq        = (int) trunc(freq);
     ad1848->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1848->freq));
+    if (ad1848->type == AD1848_TYPE_INTERWAVE && ad1848->iw_mode3) {
+        ad1848->rec_freq        = (int) trunc(rec_freq);
+        ad1848->rec_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1848->rec_freq));
+    }
 }
 
 uint8_t
@@ -279,6 +339,11 @@ ad1848_read(uint16_t addr, void *priv)
 
         case 2:
             ret = ad1848->status;
+            if (ad1848->regs[11] & 0xc0) {
+                ret |= 0x10;
+                ad1848->regs[11] &= 0x3f;
+                ad1848->regs[24] &= 0xfa;
+            }
             break;
 
         default:
@@ -332,11 +397,45 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                         else
                             timer_set_delay_u64(&ad1848->timer_count, TIMER_USEC);
                     }
+                    if (!ad1848->fifo_enable && (val & 0x41) == 0x41) {
+                        ad1848->adpcm_pos = 0;
+                        ad1848->adpcm_predictor[0] = ad1848->adpcm_predictor[1] = 0;
+                        ad1848->adpcm_step_index[0] = ad1848->adpcm_step_index[1] = 0;
+                        ad1848->dma_ff = 0;
+                        if (ad1848->timer_latch)
+                            timer_set_delay_u64(&ad1848->fifo_play_timer, ad1848->timer_latch);
+                        else
+                            timer_set_delay_u64(&ad1848->fifo_play_timer, TIMER_USEC);
+                    }
                     ad1848->enable = ((val & 0x41) == 0x01);
+                    ad1848->fifo_enable = ((val & 0x41) == 0x41);
+                    if (!ad1848->rec_enable && (val & 0x82) == 0x02) {
+                        ad1848->adpcm_pos = 0;
+                        ad1848->adpcm_predictor[0] = ad1848->adpcm_predictor[1] = 0;
+                        ad1848->adpcm_step_index[0] = ad1848->adpcm_step_index[1] = 0;
+                        ad1848->dma_ff = 0;
+                        if (!ad1848->iw_mode3) {
+                            if (ad1848->timer_latch)
+                                timer_set_delay_u64(&ad1848->rec_timer_count, ad1848->timer_latch);
+                            else
+                                timer_set_delay_u64(&ad1848->rec_timer_count, TIMER_USEC);
+                        } else {
+                            if (ad1848->rec_timer_latch)
+                                timer_set_delay_u64(&ad1848->rec_timer_count, ad1848->rec_timer_latch);
+                            else
+                                timer_set_delay_u64(&ad1848->rec_timer_count, TIMER_USEC);
+                        }
+                    }
+                    ad1848->rec_enable = ((val & 0x82) == 0x02);
                     if (!ad1848->enable) {
                         timer_disable(&ad1848->timer_count);
-                        ad1848->out_l = ad1848->out_r = 0;
                     }
+                    if (!ad1848->fifo_enable)
+                        timer_disable(&ad1848->fifo_play_timer);
+                    if (!ad1848->fifo_enable && !ad1848->enable)
+                        ad1848->out_l = ad1848->out_r = 0;
+                    if (!ad1848->rec_enable)
+                        timer_disable(&ad1848->rec_timer_count);
                     break;
 
                 case 11:
@@ -352,10 +451,17 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                                 ad1848->fmt_mask &= ~0x80;
                         }
                     }
+                    if ((ad1848->type == AD1848_TYPE_INTERWAVE) && ((val & 0x60) == 0x60))
+                        ad1848->iw_mode3 = 1;
+                    else
+                        ad1848->iw_mode3 = 0;
                     goto readonly_i;
 
                 case 14:
                     ad1848->count = ad1848->regs[15] | (val << 8);
+                    /* Record and playback counters are shared in MODE1 */
+                    if ((!((ad1848->regs[12] & 0x40) && (ad1848->type >= AD1848_TYPE_CS4231)) && !((ad1848->type == AD1848_TYPE_OPTI930) && (ad1848->opti930_mode2))) || (ad1848->regs[9] & 0x04))
+                        ad1848->rec_count = ad1848->count;
                     break;
 
                 case 16:
@@ -364,7 +470,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                             ad1848_log("Timer Enable\n");
                             ad1848_log("Timer value: %04X\n", ((ad1848->regs[21] << 8) + (ad1848->regs[20])));
                             i8_timebase = (ad1848->regs[8] & 1) ? 9.92 : 9.969;
-                            timer_set_delay_u64(&ad1848->cs4231a_irq_timer, (((ad1848->regs[21] << 8) + (ad1848->regs[20])) * i8_timebase * TIMER_USEC));
+                            ad1848->irq_timer_count = (ad1848->regs[21] << 8) + ad1848->regs[20];
+                            timer_set_delay_u64(&ad1848->cs4231a_irq_timer, (i8_timebase * TIMER_USEC));
                         }
                         else {
                             ad1848_log("Timer Disable\n");
@@ -521,14 +628,19 @@ readonly_x:
                     break;
 
                 case 25:
-                    goto readonly_i;
+                    if (ad1848->type != AD1848_TYPE_INTERWAVE)
+                        goto readonly_i;
                 case 27:
-                    if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236))
+                    if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236) && (ad1848->type != AD1848_TYPE_INTERWAVE))
                         goto readonly_i;
                     break;
                 case 29:
-                    if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236))
+                    if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236) && (ad1848->type != AD1848_TYPE_INTERWAVE))
                         goto readonly_i;
+                    break;
+
+                case 30:
+                    ad1848->rec_count = ad1848->regs[31] | (val << 8);
                     break;
 
                 default:
@@ -559,6 +671,11 @@ readonly_i:
             ad1848->regs[24] &= 0x0f;
             break;
 
+        case 3:
+            if (!fifo_get_full(ad1848->play_fifo))
+                fifo_write(val, ad1848->play_fifo);
+            break;
+
         default:
             break;
     }
@@ -570,6 +687,8 @@ void
 ad1848_speed_changed(ad1848_t *ad1848)
 {
     ad1848->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1848->freq));
+    if (ad1848->type == AD1848_TYPE_INTERWAVE && ad1848->iw_mode3)
+        ad1848->rec_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1848->rec_freq));
 }
 
 void
@@ -650,7 +769,10 @@ ad1848_process_adpcm(ad1848_t *ad1848, int channel)
     if (ad1848->adpcm_pos++ & 1) {
         temp = ad1848->adpcm_data >> 4;
     } else {
-        ad1848->adpcm_data = ad1848_dma_channel_read(ad1848, ad1848->dma);
+        if ((ad1848->regs[9] & 0x41) == 0x41)
+            ad1848->adpcm_data = fifo_read(ad1848->play_fifo);
+        else
+            ad1848->adpcm_data = ad1848_dma_channel_read(ad1848, ad1848->dma);
         temp               = ad1848->adpcm_data & 0x0f;
     }
 
@@ -671,6 +793,312 @@ ad1848_process_adpcm(ad1848_t *ad1848, int channel)
     ad1848->adpcm_step_index[channel] = step_index;
 
     return (int16_t) predictor;
+}
+
+static void
+ad1848_input_poll(void *priv)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+
+    uint8_t mode2_en   = ((ad1848->regs[12] & 0x40) && (ad1848->type >= AD1848_TYPE_CS4231)) || ((ad1848->type == AD1848_TYPE_OPTI930) && (ad1848->opti930_mode2));
+    uint8_t fullduplex = mode2_en && !(ad1848->regs[9] & 0x04);
+    uint8_t channel    = fullduplex ? ad1848->dma2 : ad1848->dma;
+    uint8_t rec_format = mode2_en ? (ad1848->regs[28] & ad1848->fmt_mask) : (ad1848->regs[8] & ad1848->fmt_mask);
+
+    if (!ad1848->iw_mode3) {
+        if (ad1848->timer_latch)
+            timer_advance_u64(&ad1848->rec_timer_count, ad1848->timer_latch);
+        else
+            timer_advance_u64(&ad1848->rec_timer_count, TIMER_USEC * 1000);
+    } else {
+        if (ad1848->rec_timer_latch)
+            timer_advance_u64(&ad1848->rec_timer_count, ad1848->rec_timer_latch);
+        else
+            timer_advance_u64(&ad1848->rec_timer_count, TIMER_USEC * 1000);
+    }
+
+    if (ad1848->rec_enable) {
+
+        switch (rec_format) {
+            case 0x00: /* Mono, 8-bit PCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0x10: /* Stereo, 8-bit PCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x20: /* Mono, 8-bit Mu-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0x30: /* Stereo, 8-bit Mu-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x40: /* Mono, 16-bit PCM little endian */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x50: /* Stereo, 16-bit PCM little endian */
+                if (channel >= 4) {
+                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, 0x0000);
+                } else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0x60: /* Mono, 8-bit A-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0x70: /* Stereo, 8-bit A-Law */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+                /* 0x80 and 0x90 reserved */
+
+            case 0xa0: /* Mono, 4-bit ADPCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else
+                    dma_channel_write(channel, 0x00);
+                break;
+
+            case 0xb0: /* Stereo, 4-bit ADPCM */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0xc0: /* Mono, 16-bit PCM big endian */
+                if (channel >= 4)
+                    dma_channel_write(channel, 0x0000);
+                else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+            case 0xd0: /* Stereo, 16-bit PCM big endian */
+                if (channel >= 4) {
+                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, 0x0000);
+                } else {
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, 0x00);
+                }
+                break;
+
+                /* 0xe0 and 0xf0 reserved */
+
+            default:
+                break;
+        }
+
+        if (ad1848->rec_count < 0) {
+            if (fullduplex)
+                ad1848->rec_count = ad1848->regs[31] | (ad1848->regs[30] << 8);
+            else
+                ad1848->rec_count = ad1848->regs[15] | (ad1848->regs[14] << 8);
+            ad1848->adpcm_pos = 0;
+            if (!(ad1848->status & 0x01)) {
+                ad1848->status |= 0x01;
+                ad1848->regs[24] |= 0x20;
+            }
+            if (ad1848->regs[10] & 2)
+                picint(1 << ad1848->irq);
+            else
+                picintc(1 << ad1848->irq);
+        }
+
+        if (!(ad1848->adpcm_pos & 7)) { /* ADPCM counts down every 4 bytes */
+            if (ad1848->type != AD1848_TYPE_INTERWAVE || !ad1848->iw_mode3 || (ad1848->iw_mode3 && !(ad1848->regs[16] & 0x20)))
+                ad1848->rec_count--;
+        }
+    }
+}
+
+static void
+ad1848_pio_poll(void *priv)
+{
+    ad1848_t *ad1848 = (ad1848_t *) priv;
+
+    if (ad1848->timer_latch)
+        timer_advance_u64(&ad1848->fifo_play_timer, ad1848->timer_latch);
+    else
+        timer_advance_u64(&ad1848->fifo_play_timer, TIMER_USEC * 1000);
+
+    ad1848_update(ad1848);
+
+    if (ad1848->fifo_enable) {
+        if (fifo_get_empty(ad1848->play_fifo)) {
+            ad1848->regs[11] |= 0x40;
+            ad1848->regs[24] |= 0x01;
+        } else {
+            ad1848->regs[11] &= 0xbf;
+            ad1848->regs[24] &= 0xfe;
+        }
+
+        int32_t temp;
+
+        switch (ad1848->regs[8] & ad1848->fmt_mask) {
+            case 0x00: /* Mono, 8-bit PCM */
+                if (!fifo_get_empty(ad1848->play_fifo))
+                    ad1848->out_l = ad1848->out_r = (int16_t) ((fifo_read(ad1848->play_fifo) ^ 0x80) << 8);
+                else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0x10: /* Stereo, 8-bit PCM */
+                if (fifo_get_count(ad1848->play_fifo) >= 2) {
+                    ad1848->out_l = (int16_t) ((fifo_read(ad1848->play_fifo) ^ 0x80) << 8);
+                    ad1848->out_r = (int16_t) ((fifo_read(ad1848->play_fifo) ^ 0x80) << 8);
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0x20: /* Mono, 8-bit Mu-Law */
+                if (!fifo_get_empty(ad1848->play_fifo))
+                    ad1848->out_l = ad1848->out_r = ad1848_process_mulaw(fifo_read(ad1848->play_fifo));
+                else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0x30: /* Stereo, 8-bit Mu-Law */
+                if (fifo_get_count(ad1848->play_fifo) >= 2) {
+                    ad1848->out_l = ad1848_process_mulaw(fifo_read(ad1848->play_fifo));
+                    ad1848->out_r = ad1848_process_mulaw(fifo_read(ad1848->play_fifo));
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0x40: /* Mono, 16-bit PCM little endian */
+                if (fifo_get_count(ad1848->play_fifo) >= 2) {
+                    temp          = (int32_t) fifo_read(ad1848->play_fifo);
+                    ad1848->out_l = ad1848->out_r = (int16_t) ((fifo_read(ad1848->play_fifo) << 8) | temp);
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0x50: /* Stereo, 16-bit PCM little endian */
+                if (fifo_get_count(ad1848->play_fifo) >= 4) {
+                    temp          = (int32_t) fifo_read(ad1848->play_fifo);
+                    ad1848->out_l = (int16_t) ((fifo_read(ad1848->play_fifo) << 8) | temp);
+                    temp          = (int32_t) fifo_read(ad1848->play_fifo);
+                    ad1848->out_r = (int16_t) ((fifo_read(ad1848->play_fifo) << 8) | temp);
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0x60: /* Mono, 8-bit A-Law */
+                if (!fifo_get_empty(ad1848->play_fifo))
+                    ad1848->out_l = ad1848->out_r = ad1848_process_alaw(fifo_read(ad1848->play_fifo));
+                else
+                    ad1848->out_l = ad1848->out_r = 0;
+
+                break;
+
+            case 0x70: /* Stereo, 8-bit A-Law */
+                if (fifo_get_count(ad1848->play_fifo) >= 2) {
+                    ad1848->out_l = ad1848_process_alaw(fifo_read(ad1848->play_fifo));
+                    ad1848->out_r = ad1848_process_alaw(fifo_read(ad1848->play_fifo));
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+                /* 0x80 and 0x90 reserved */
+
+            case 0xa0: /* Mono, 4-bit ADPCM */
+                if (!fifo_get_empty(ad1848->play_fifo))
+                    ad1848->out_l = ad1848->out_r = ad1848_process_adpcm(ad1848, 0);
+                else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0xb0: /* Stereo, 4-bit ADPCM */
+                if (fifo_get_count(ad1848->play_fifo) >= 2) {
+                    ad1848->out_l = ad1848_process_adpcm(ad1848, 0);
+                    ad1848->out_r = ad1848_process_adpcm(ad1848, 1);
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0xc0: /* Mono, 16-bit PCM big endian */
+                if (fifo_get_count(ad1848->play_fifo) >= 2) {
+                    temp          = (int32_t) fifo_read(ad1848->play_fifo);
+                    ad1848->out_l = ad1848->out_r = (int16_t) (fifo_read(ad1848->play_fifo) | (temp << 8));
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+            case 0xd0: /* Stereo, 16-bit PCM big endian */
+                if (fifo_get_count(ad1848->play_fifo) >= 4) {
+                    temp          = (int32_t) fifo_read(ad1848->play_fifo);
+                    ad1848->out_l = (int16_t) (fifo_read(ad1848->play_fifo) | (temp << 8));
+                    temp          = (int32_t) fifo_read(ad1848->play_fifo);
+                    ad1848->out_r = (int16_t) (fifo_read(ad1848->play_fifo) | (temp << 8));
+                } else
+                    ad1848->out_l = ad1848->out_r = 0;
+                break;
+
+                /* 0xe0 and 0xf0 reserved */
+
+            default:
+                break;
+        }
+
+        if (ad1848->regs[6] & 0x80)
+            ad1848->out_l = 0;
+        else
+            ad1848->out_l = (int16_t) ((ad1848->out_l * ad1848_vols_7bits[ad1848->regs[6] & ad1848->wave_vol_mask]) >> 16);
+
+        if (ad1848->regs[7] & 0x80)
+            ad1848->out_r = 0;
+        else
+            ad1848->out_r = (int16_t) ((ad1848->out_r * ad1848_vols_7bits[ad1848->regs[7] & ad1848->wave_vol_mask]) >> 16);
+    } else {
+        ad1848->out_l = ad1848->out_r = 0;
+        ad1848->cd_vol_l = ad1848->cd_vol_r = 0;
+    }
 }
 
 static void
@@ -780,8 +1208,10 @@ ad1848_poll(void *priv)
                 picintc(1 << ad1848->irq);
         }
 
-        if (!(ad1848->adpcm_pos & 7)) /* ADPCM counts down every 4 bytes */
-            ad1848->count--;
+        if (!(ad1848->adpcm_pos & 7)) { /* ADPCM counts down every 4 bytes */
+            if (ad1848->type != AD1848_TYPE_INTERWAVE || !ad1848->iw_mode3 || (ad1848->iw_mode3 && !(ad1848->regs[16] & 0x10)))
+                ad1848->count--;
+        }
     } else {
         ad1848->out_l = ad1848->out_r = 0;
         ad1848->cd_vol_l = ad1848->cd_vol_r = 0;
@@ -792,10 +1222,19 @@ void
 cs4231a_irq_poll(void *priv)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
-    ad1848_log("Firing timer IRQ\n");
-    picint(1 << ad1848->irq);
-    ad1848_log("Setting timer interrupt bit in I24\n");
-    ad1848->regs[24] |= 0x40;
+
+    timer_advance_u64(&ad1848->cs4231a_irq_timer, (((ad1848->regs[8] & 1) ? 9.92 : 9.969) * TIMER_USEC));
+    ad1848->irq_timer_count--;
+
+    if (ad1848->irq_timer_count < 0) {
+        ad1848_log("Firing timer IRQ\n");
+        picint(1 << ad1848->irq);
+        ad1848_log("Setting timer interrupt bit in I24\n");
+        ad1848->regs[24] |= 0x40;
+        ad1848_log("Setting global interrupt bit in Status\n");
+        ad1848->status |= 0x01;
+        ad1848->irq_timer_count = (ad1848->regs[21] << 8) + ad1848->regs[20];
+    }
 }
 
 void
@@ -965,6 +1404,10 @@ ad1848_init(ad1848_t *ad1848, uint8_t type)
     ad1848->type = type;
 
     timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
+    timer_add(&ad1848->rec_timer_count, ad1848_input_poll, ad1848, 0);
+
+    ad1848->play_fifo = (void *) fifo16_init();
+    timer_add(&ad1848->fifo_play_timer, ad1848_pio_poll, ad1848, 0);
 
     if ((ad1848->type != AD1848_TYPE_DEFAULT) && (ad1848->type != AD1848_TYPE_CS4248))
         sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);
