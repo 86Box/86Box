@@ -402,6 +402,20 @@ typedef struct aic7880_t {
     uint8_t  sp;
     uint8_t  stack_rd;
     uint8_t  seqram[SEQ_INSNS * 4];
+#ifdef ENABLE_AIC7880_LOG
+    /* The last instructions executed, for saying how the sequencer came to
+       raise an interrupt without logging every instruction it ever runs. */
+    struct {
+        uint16_t pc;
+        uint32_t insn;
+        uint32_t stcnt;
+        uint32_t hcnt;
+        uint16_t fifo;
+        uint8_t  sstat1;
+        uint8_t  dfcntrl;
+    } trail[256];
+    uint8_t trail_at;
+#endif
     uint8_t  in_seq;    /* guards against re-entering the interpreter */
     uint8_t  progress;  /* the sequencer did something since last asked */
     uint8_t  asleep;    /* it is spinning on something only an event changes */
@@ -2152,6 +2166,18 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
         case INTSTAT:
             /* The sequencer writes its interrupt code here. */
             aic_log("seq: intstat %02x at %03x\n", val, dev->pc);
+#ifdef ENABLE_AIC7880_LOG
+            /* Anything but a plain command complete or the delay timer:
+               say how it got here. */
+            if ((val & SEQINT) && ((val & 0xf0) != 0x00)) {
+                for (int t = 0; t < 256; t++) {
+                    uint8_t k = (uint8_t) (dev->trail_at + t);
+                    aic_log("  trail %03x: %08x stcnt %06x hcnt %06x fifo %u sstat1 %02x dfcntrl %02x\n",
+                            dev->trail[k].pc, dev->trail[k].insn, dev->trail[k].stcnt, dev->trail[k].hcnt,
+                            dev->trail[k].fifo, dev->trail[k].sstat1, dev->trail[k].dfcntrl);
+                }
+            }
+#endif
             /* The low four bits are interrupts, and writing one sets it:
                only CLRINT takes one away. A command complete the host has
                not collected yet must survive the sequencer interrupt that
@@ -2385,6 +2411,17 @@ aic_seq_step(aic7880_t *dev)
     }
     if (dev->host_wait && (--dev->host_wait == 0))
         aic_pump(dev);
+
+#ifdef ENABLE_AIC7880_LOG
+    dev->trail[dev->trail_at].pc      = dev->pc;
+    dev->trail[dev->trail_at].insn    = insn;
+    dev->trail[dev->trail_at].stcnt   = dev->stcnt;
+    dev->trail[dev->trail_at].hcnt    = dev->hcnt;
+    dev->trail[dev->trail_at].fifo    = dev->fifo_cnt;
+    dev->trail[dev->trail_at].sstat1  = dev->sstat1;
+    dev->trail[dev->trail_at].dfcntrl = dev->dfcntrl;
+    dev->trail_at++;
+#endif
 
     if (AIC7880_LOG_SEQ) {
         aic_log("seq %03x: %08x op %x imm %02x src %02x dst %02x%s\n", dev->pc,
@@ -3085,11 +3122,18 @@ aic_init(const device_t *info)
     dev->pci_regs[0x0e] = 0x00;
     dev->pci_regs[0x10] = 0x01; /* BAR0 in I/O space */
     dev->pci_regs[0x14] = 0x00; /* BAR1 in memory space */
+    /* The cards carry a subsystem ID of their own, and it is not the
+       device ID over again: it is 78, for the chip family, over the board
+       number, so an AHA-2940U/UW is 9004:7881. Adaptec's DOS ASPI manager
+       reads this before anything else and walks past a card whose
+       subsystem ID is set but does not begin with 78 (or 75). The bare
+       chip on a motherboard leaves it at zero, which the same driver
+       takes as "go by the device ID". */
     if (dev->board != BOARD_7880) {
         dev->pci_regs[0x2c] = 0x04;
         dev->pci_regs[0x2d] = 0x90;
-        dev->pci_regs[0x2e] = devid & 0xff;
-        dev->pci_regs[0x2f] = (devid >> 8) & 0xff;
+        dev->pci_regs[0x2e] = (devid >> 8) & 0xff;
+        dev->pci_regs[0x2f] = 0x78;
     }
     dev->pci_regs[0x3d] = PCI_INTA;
     dev->pci_regs[0x3e] = 0x08; /* min grant */
