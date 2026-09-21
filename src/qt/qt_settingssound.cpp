@@ -43,6 +43,7 @@ SettingsSound::SettingsSound(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::SettingsSound)
 {
+    inMachineChange = true;
     ui->setupUi(this);
 
     for (uint8_t i = 0; i < SOUND_CARD_MAX; ++i) {
@@ -56,12 +57,12 @@ SettingsSound::SettingsSound(QWidget *parent)
     midi_output_device_cfg_changed = 0;
     midi_input_device_cfg_changed  = 0;
 
-    scMidiOut              = new SettingsCompleter(ui->comboBoxMidiOut, nullptr);
-    scMidiIn               = new SettingsCompleter(ui->comboBoxMidiIn, nullptr);
-
     midiOutCurrent = midi_output_device_current;
     midiInCurrent  = midi_input_device_current;
     mpu401Enabled  = mpu401_standalone_enable;
+
+    scMidiOut              = new SettingsCompleter(ui->comboBoxMidiOut, nullptr);
+    scMidiIn               = new SettingsCompleter(ui->comboBoxMidiIn, nullptr);
 
     ui->checkBoxFloat32->setChecked(sound_is_float > 0);
 
@@ -207,6 +208,7 @@ allowMpu401(Ui::SettingsSound *ui)
 void
 SettingsSound::onCurrentMachineChanged(const int machineId)
 {
+    inMachineChange = true;
     this->machineId = machineId;
 
     int c;
@@ -319,6 +321,13 @@ SettingsSound::onCurrentMachineChanged(const int machineId)
     // Standalone MPU401
     ui->checkBoxMPU401->setChecked(mpu401Enabled > 0 && allowMpu401(ui));
     mpu401Enabled = ui->checkBoxMPU401->isChecked();
+    midiInCurrent       = ui->comboBoxMidiIn->currentData().toInt();
+    midiOutCurrent      = ui->comboBoxMidiOut->currentData().toInt();
+    soundCardCurrent[0] = ui->comboBoxSoundCard1->currentData().toInt();
+    soundCardCurrent[1] = ui->comboBoxSoundCard2->currentData().toInt();
+    soundCardCurrent[2] = ui->comboBoxSoundCard3->currentData().toInt();
+    soundCardCurrent[3] = ui->comboBoxSoundCard4->currentData().toInt();
+    inMachineChange = false;
 }
 
 void
@@ -333,6 +342,8 @@ SettingsSound::on_comboBoxSoundCard1_currentIndexChanged(int index)
         ui->pushButtonConfigureSoundCard1->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) && device_has_config(machine_get_snd_device(machineId)));
     else
         ui->pushButtonConfigureSoundCard1->setEnabled(sound_card_has_config(sndCard));
+    if (!inMachineChange)
+        soundCardCurrent[0] = sndCard;
 }
 
 void
@@ -347,7 +358,6 @@ SettingsSound::on_pushButtonConfigureSoundCard1_clicked()
     } else
         sound_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 
-    soundCardCurrent[0] = sndCard;
 }
 
 void
@@ -359,7 +369,8 @@ SettingsSound::on_comboBoxSoundCard2_currentIndexChanged(int index)
     int sndCard = ui->comboBoxSoundCard2->currentData().toInt();
 
     ui->pushButtonConfigureSoundCard2->setEnabled(sound_card_has_config(sndCard));
-    soundCardCurrent[1] = sndCard;
+    if (!inMachineChange)
+        soundCardCurrent[1] = sndCard;
 }
 
 void
@@ -379,7 +390,8 @@ SettingsSound::on_comboBoxSoundCard3_currentIndexChanged(int index)
     int sndCard = ui->comboBoxSoundCard3->currentData().toInt();
 
     ui->pushButtonConfigureSoundCard3->setEnabled(sound_card_has_config(sndCard));
-    soundCardCurrent[2] = sndCard;
+    if (!inMachineChange)
+        soundCardCurrent[2] = sndCard;
 }
 
 void
@@ -400,7 +412,8 @@ SettingsSound::on_comboBoxSoundCard4_currentIndexChanged(int index)
     int sndCard = ui->comboBoxSoundCard4->currentData().toInt();
 
     ui->pushButtonConfigureSoundCard4->setEnabled(sound_card_has_config(sndCard));
-    soundCardCurrent[3] = sndCard;
+    if (!inMachineChange)
+        soundCardCurrent[3] = sndCard;
 }
 
 void
@@ -453,7 +466,8 @@ SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index)
     ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
     ui->pushButtonConfigureMPU401->setEnabled(allowMpu401(ui) && ui->checkBoxMPU401->isChecked());
 
-    midiOutCurrent = ui->comboBoxMidiOut->currentData().toInt();
+    if (!inMachineChange)
+        midiOutCurrent = ui->comboBoxMidiOut->currentData().toInt();
 }
 
 void
@@ -472,7 +486,8 @@ SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index)
     ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
     ui->pushButtonConfigureMPU401->setEnabled(allowMpu401(ui) && ui->checkBoxMPU401->isChecked());
 
-    midiInCurrent = ui->comboBoxMidiIn->currentData().toInt();
+    if (!inMachineChange)
+        midiInCurrent = ui->comboBoxMidiIn->currentData().toInt();
 }
 
 void
