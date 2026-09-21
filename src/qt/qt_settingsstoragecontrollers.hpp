@@ -65,6 +65,8 @@ private:
     int scsiCardCurrent[4];
     int fdcCurrent[2];
     int cdromInterfaceCurrent;
+
+    bool inMachineChange;
 };
 
 #endif // QT_SETTINGSSTORAGECONTROLLERS_HPP

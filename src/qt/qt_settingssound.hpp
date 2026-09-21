@@ -64,6 +64,8 @@ private:
     int mpu401Enabled;
     int midiOutCurrent;
     int midiInCurrent;
+
+    bool inMachineChange;
 };
 
 #endif // QT_SETTINGSSOUND_HPP
