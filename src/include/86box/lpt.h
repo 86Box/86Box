@@ -1,0 +1,202 @@
+#ifndef EMU_LPT_H
+#define EMU_LPT_H
+
+#define LPT1_ADDR 0x0378
+#define LPT1_IRQ  7
+#define LPT2_ADDR 0x0278
+#define LPT2_IRQ  5
+// LPT 1 on machines when installed
+#define LPT_MDA_ADDR 0x03bc
+#define LPT_MDA_IRQ  7
+#define LPT4_ADDR    0x0268
+#define LPT4_IRQ     5
+#if 0
+#define LPT5_ADDR 0x027c
+#define LPT5_IRQ  7
+#define LPT6_ADDR 0x026c
+#define LPT6_IRQ  5
+#endif
+
+typedef struct lpt_device_s {
+    void          (*write_data)(uint8_t val, void *priv);
+    void          (*write_ctrl)(uint8_t val, void *priv);
+    void          (*strobe)(uint8_t old, uint8_t val,void *priv);
+    uint8_t       (*read_status)(void *priv);
+    uint8_t       (*read_ctrl)(void *priv);
+    void          (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv);
+    void          (*epp_request_read)(uint8_t is_addr, void *priv);
+    /*
+     * ECP reverse transfer. The ECP FIFO is filled only by the chardev
+     * passthrough, so an emulated device had no way to supply bytes and an
+     * ECP read from one returned 0xFF forever. A device that sets this
+     * supplies a byte on demand when the FIFO is empty.
+     */
+    uint8_t       (*ecp_read_data)(void *priv);
+    /*
+     * ECP forward transfer. The FIFO drain hands bytes to write_data(),
+     * but a device that frames SPP block writes separately cannot tell an
+     * ECP byte from a stray one there. A device that sets this receives
+     * ECP payload on its own path.
+     */
+    void          (*ecp_write_data)(uint8_t val, void *priv);
+    /*
+     * ECP forward ADDRESS cycle - a write to base+0 while the ECR is in an
+     * ECP mode, which the standard calls the address/command FIFO. The EPAT
+     * bridge is commanded this way: 0x80 arms a block read, 0xC0 a block
+     * write, 0xA0 the last byte of a read. Without it an emulated device
+     * cannot tell a framed block from stray payload.
+     */
+    void          (*ecp_write_addr)(uint8_t val, void *priv);
+
+    void *        priv;
+} lpt_device_t;
+
+#ifdef _TIMER_H_
+#include <86box/char.h>
+typedef struct lpt_t {
+    uint8_t       enabled;
+    uint8_t       output_enabled;
+    uint8_t       irq;
+    uint8_t       irq_state;
+    uint8_t       dma;
+    uint8_t       dat;
+    uint8_t       ctrl;
+    uint8_t       ext;
+    uint8_t       epp;
+    uint8_t       ecp;
+    uint8_t       ecr;
+    uint8_t       ret_ecr;
+    uint8_t       in_dat;
+    uint8_t       fifo_stat;
+    uint8_t       dma_stat;
+    uint8_t       state;
+    uint8_t       autofeed;
+    uint8_t       strobe;
+    uint8_t       lv2;
+    uint8_t       cnfga_readout;
+    uint8_t       cnfgb_readout;
+    uint8_t       cfg_regs_enabled;
+    uint8_t       inst;
+    uint8_t       eir;
+    uint8_t       enable_irq;
+    uint8_t       ext_regs[8];
+    uint16_t      addr;
+    uint16_t      id;
+    uint8_t       char_read;
+    uint8_t       char_write;
+    uint8_t       char_pti_mode;
+    uint8_t       char_pti_readout;
+    uint32_t      char_control;
+    unsigned int  char_spin_count;
+    lpt_device_t *dt;
+#ifdef FIFO_H
+    fifo16_t *    fifo;
+#else
+    void *        fifo;
+#endif
+    char_port_t   char_port;
+
+    pc_timer_t    fifo_out_timer;
+    pc_timer_t    char_timer;
+} lpt_t;
+#endif /* _TIMER_H_ */
+
+typedef struct lpt_port_s {
+    uint8_t       enabled;
+
+    uint8_t       hotunplug;
+    int           device;
+
+    lpt_t        *lpt;
+} lpt_port_t;
+
+extern lpt_port_t lpt_ports[PARALLEL_MAX];
+
+typedef enum {
+    LPT_STATE_IDLE = 0,
+    LPT_STATE_READ_DMA,
+    LPT_STATE_WRITE_FIFO
+} lpt_state_t;
+
+extern const device_t      lpt_dac_device;
+extern const device_t      lpt_dac_stereo_device;
+extern const device_t      lpt_dac_ftl_device;
+extern const device_t      lpt_dac_soundjr_device;
+
+extern const device_t      dss_device;
+
+extern const device_t      lpt_adlipt_device;
+extern const device_t      lpt_opl3_device;
+extern const device_t      lpt_cms_device;
+extern const device_t      lpt_tnd_device;
+extern const device_t      lpt_epat_device;
+
+extern const device_t      lpt_hasp_savquest_device;
+
+extern const device_t      lpt_bpck_device;
+extern const device_t      lpt_ditto_device;
+
+extern const device_t      lpt_loopback_device;
+
+extern void                lpt_write(uint16_t port, uint8_t val, void *priv);
+
+extern void                lpt_write_to_fifo(void *priv, uint8_t val);
+
+extern void                lpt_write_to_dat(void *priv, uint8_t val);
+
+extern uint8_t             lpt_read(uint16_t port, void *priv);
+
+extern uint8_t             lpt_read_port(lpt_t *dev, uint16_t reg);
+
+extern uint8_t             lpt_read_status(lpt_t *dev);
+extern uint8_t             lpt_read_ecp_mode(lpt_t *dev);
+
+extern void                lpt_irq(void *priv, int raise);
+
+extern void                lpt_set_ext(lpt_t *dev, uint8_t ext);
+extern void                lpt_set_output_enabled(lpt_t *dev, uint8_t enabled);
+extern void                lpt_set_ecp(lpt_t *dev, uint8_t ecp);
+extern void                lpt_set_epp(lpt_t *dev, uint8_t epp);
+extern void                lpt_set_lv2(lpt_t *dev, uint8_t lv2);
+extern void                lpt_set_cfg_regs_enabled(lpt_t *dev, uint8_t cfg_regs_enabled);
+extern void                lpt_set_fifo_threshold(lpt_t *dev, int threshold);
+extern void                lpt_set_cnfga_readout(lpt_t *dev, const uint8_t cnfga_readout);
+extern void                lpt_set_cnfgb_readout(lpt_t *dev, const uint8_t cnfgb_readout);
+extern void                lpt_port_setup(lpt_t *dev, uint16_t port);
+extern void                lpt_port_irq(lpt_t *dev, uint8_t irq);
+extern void                lpt_port_dma(lpt_t *dev, uint8_t dma);
+extern void                lpt1_dma(const uint8_t dma);
+extern void                lpt_port_remove(lpt_t *dev);
+extern void                lpt1_remove_ams(lpt_t *dev);
+
+extern void                lpt_devices_init(void);
+extern void *              lpt_attach_ex(int     port,
+                                         void    (*write_data)(uint8_t val, void *priv),
+                                         void    (*write_ctrl)(uint8_t val, void *priv),
+                                         void    (*strobe)(uint8_t old, uint8_t val,void *priv),
+                                         uint8_t (*read_status)(void *priv),
+                                         uint8_t (*read_ctrl)(void *priv),
+                                         void    (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv),
+                                         void    (*epp_request_read)(uint8_t is_addr, void *priv),
+                                         void    *priv);
+#define lpt_attach(...) lpt_attach_ex(device_get_instance() - 1, __VA_ARGS__)
+extern void                lpt_devices_close(int soft);
+extern void                lpt_devices_reset(void);
+
+extern void                lpt_set_ecp_read_data(lpt_t *dev,
+                                                 uint8_t (*ecp_read_data)(void *priv));
+extern void                lpt_set_ecp_write_data(lpt_t *dev,
+                                                  void (*ecp_write_data)(uint8_t val, void *priv));
+extern void                lpt_set_ecp_write_addr(lpt_t *dev,
+                                                  void (*ecp_write_addr)(uint8_t val, void *priv));
+extern void                lpt_set_next_inst(int ni);
+
+extern int                 lpt_get_3bc_used(void);
+extern void                lpt_set_3bc_used(int is_3bc_used);
+
+extern void                lpt_standalone_init(void);
+extern void                lpt_ports_reset(void);
+
+extern const device_t      lpt_port_device;
+
+#endif /*EMU_LPT_H*/

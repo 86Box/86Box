@@ -1,0 +1,1014 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Implementation of Super Socket 7 machines.
+ *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2016-2025 Miran Grca.
+ */
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
+#include <86box/86box.h>
+#include <86box/mem.h>
+#include <86box/io.h>
+#include <86box/rom.h>
+#include <86box/pci.h>
+#include <86box/device.h>
+#include <86box/chipset.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/keyboard.h>
+#include <86box/flash.h>
+#include <86box/sio.h>
+#include <86box/spd.h>
+#include <86box/hwm.h>
+#include <86box/video.h>
+#include "cpu.h"
+#include <86box/machine.h>
+#include <86box/sound.h>
+#include <86box/snd_ac97.h>
+#include <86box/clock.h>
+#include <86box/timer.h>
+#include <86box/thread.h>
+#include <86box/network.h>
+#include <86box/scsi_ncr53c8xx.h>
+
+/* ALi ALADDiN V */
+int
+machine_at_p5a_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/p5a/1011.005",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x06, PCI_CARD_SOUND,           3, 4, 1, 2);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+    device_add(&w83781d_p5a_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+static const device_config_t cobalt3k_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "cobalt3k",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            { /* Final version with no CMOS checksum, suitable for RaQ 3 and Qube 3 restore discs. */
+                .name          = "2.3.39",
+                .internal_name = "cobalt3k",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 1048576,
+                .files         = { "roms/machines/cobalt3k/2.3.39.rom", "" }
+            },
+            { /* Final version with working network boot (transition from Cobalt to community ROMs), suitable for RaQ (4?/)XTR/550 restore discs. */
+                .name          = "2.10.2",
+                .internal_name = "cobalt3k_2102",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 1048576,
+                .files         = { "roms/machines/cobalt3k/cobalt-2.10.2-1M.rom", "" }
+            },
+            { /* Community ROM for booting other Linux distros, a kernel command line truncation issue breaks network boot. */
+                .name          = "2.10.3-ext3",
+                .internal_name = "cobalt3k_2103ext3",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 1048576,
+                .files         = { "roms/machines/cobalt3k/cobalt-2.10.3-ext3-1M.rom", "" }
+            },
+            { /* Same as above. */
+                .name          = "2.10.3-xfs",
+                .internal_name = "cobalt3k_2103xfs",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 1048576,
+                .files         = { "roms/machines/cobalt3k/cobalt-2.10.3-xfs-1M.rom", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t cobalt3k_carmel_device = {
+    .name          = "Cobalt Qube 3",
+    .internal_name = "cobalt3k_carmel",
+    .flags         = 0,
+    .local         = 2 << 8, /* unbacklit LCD */
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = cobalt3k_config
+};
+
+const device_t cobalt3k_pacifica_device = {
+    .name          = "Cobalt RaQ 3/4",
+    .internal_name = "cobalt3k_pacifica",
+    .flags         = 0,
+    .local         = 0, /* green LCD */
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = cobalt3k_config
+};
+
+int
+machine_at_cobalt3k_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    int size = device_get_bios_file_size(machine_get_device(machine), device_get_config_bios("bios"));
+    ret = bios_load_linear(fn, 0x00100000 - size, size, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0); /* AGP enabled according to logs, but physically inaccessible */
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_SCSI,            4, 1, 2, 3); /* IRQs for this and following slots taken from BIOS steering code */
+    pci_register_slot(0x10, PCI_CARD_NETWORK,         3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NETWORK,         2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,          1, 2, 3, 4);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&intel_flash_e28f0xx_cobalt3k_device);
+    device_add(&ncr53c875_onboard_pci_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+    device_add(&lm77_0_48_device);
+    device_add_params(&hd44780_cobalt3k_device, (void *) (uintptr_t) model->device->local);
+
+    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine)) {
+        net_card_current = 0;
+        device_add_inst_params(machine_get_net_device(machine), 1, (void *) (uintptr_t) (0x0010e0ULL << 16)); /* Cobalt OUI */
+    }
+    if ((net_cards_conf[1].device_num == NET_INTERNAL) && machine_get_net_device(machine)) {
+        net_card_current = 1;
+        device_add_inst_params(machine_get_net_device(machine), 2, (void *) (uintptr_t) (0x0010e0ULL << 16));
+    }
+    net_card_current = 0;
+
+    return ret;
+}
+
+int
+machine_at_m579_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/m579/MS6260S_Socket7_ALi_M1542_AMI.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,          1, 2, 3, 4);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    return ret;
+}
+
+int
+machine_at_gwlucas_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/gwlucas/gw2kboot.rom",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUND,           1, 2, 3, 4); // ES1373
+    pci_register_slot(0x14, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,          4, 1, 2, 3);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        device_add(machine_get_snd_device(machine));
+        device_add(&cs4297_device);
+    }
+
+    return ret;
+}
+
+int
+machine_at_5aa_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/5aa/GA-5AA.F7b",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          3, 4, 1, 2);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    return ret;
+}
+
+static const device_config_t g5x_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "5ax",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision F4",
+                .internal_name = "5ax",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/5ax/5AX.F4", "" }
+            },
+            {
+                .name          = "AwardBIOS v6.00PG - Release 4.1 (by eSupport)",
+                .internal_name = "5ax_600pg",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/5ax/6Z5KKG09.bin", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t g5x_device = {
+    .name          = "Gigabyte GA-5AX",
+    .internal_name = "5ax",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = g5x_config
+};
+
+int
+machine_at_g5x_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          1, 2, 3, 4);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    return ret;
+}
+
+static const device_config_t ms5169_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ms5169",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.1 (Simplified Chinese)",
+                .internal_name = "ms5169v11",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569C311.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.4",
+                .internal_name = "ms5169v14",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS14.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 2.0",
+                .internal_name = "ms5169v20",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS20.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 2.7",
+                .internal_name = "ms5169v27",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS27.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (051499) - Revision 3.1",
+                .internal_name = "ms5169v31",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/A569MS31.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071599) - Revision 3.7",
+                .internal_name = "ms5169v37",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/a5169ams.370", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 3.8 B3 (Beta)",
+                .internal_name = "ms5169",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ms5169/5169.rom", "" }
+            }, 
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ms5169_device = {
+    .name          = "MSI MS-5169",
+    .internal_name = "ms5169",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ms5169_config
+};
+
+int
+machine_at_ms5169_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,       1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_SOUTHBRIDGE_PMU, 1, 2, 3, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,          1, 2, 3, 4);
+
+    device_add(&ali1541_device);
+    device_add(&ali1543c_device); /* +0 */
+    device_add(&winbond_flash_w29c010_device); /* assumed */
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+
+    return ret;
+}
+
+/* VIA MVP3 */
+int
+machine_at_ax59pro_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ax59pro/AX59P236.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_mvp3_device);
+    device_add(&via_vt82c586b_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_250));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
+static const device_config_t delhi3_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "delhi3",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.01",
+                .internal_name = "delhi3_nonoem",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/delhi3/DELHI3_nonoem.ROM", "" }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.20 (eMachines eTower 3__k)",
+                .internal_name = "delhi3",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/delhi3/DELHI3.ROM", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t delhi3_device = {
+    .name          = "TriGem Delhi-III",
+    .internal_name = "delhi3",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = delhi3_config
+};
+
+int
+machine_at_delhi3_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+
+    device_add(&via_mvp3_device);
+    device_add(&via_vt82c596a_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_250));
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine))
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
+machine_at_mvp3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ficva503p/je4333.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_mvp3_device);
+    device_add(&via_vt82c586b_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
+    device_add(&sst_flash_39sf010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+int
+machine_at_ficva503a_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ficva503a/jn4116.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_mvp3_device);
+    device_add(&via_vt82c686a_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0;  /* unused */
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
+machine_at_5emapro_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/5emapro/5emo1aa2.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
+    device_add(&via_mvp3_device); /* Rebranded as EQ82C6638 */
+    device_add(&via_vt82c686a_device);
+    device_add(&sst_flash_39sf010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    hwm_values.temperatures[0] += 2;      /* CPU offset */
+    hwm_values.temperatures[1] += 2;      /* System offset */
+    hwm_values.temperatures[2] = 0;       /* unused */
+
+    return ret;
+}
+
+int
+machine_at_k6bv3p_a_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/k6bv3p_a/KB3A0805.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 1, 2, 3, 5);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 5);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 5);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 5, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 5, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      5, 1, 2, 3);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 5);
+
+    device_add(&via_mvp3_device);
+    device_add(&via_vt82c586b_device);
+    device_add_params(&fdc37c669_device, (void *) 0); /* jmi2k: what's that param? */
+    device_add(&winbond_flash_w29c011a_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
+/* SiS 530 / 5595 */
+
+static int in530_boot_logo = 1;
+
+static const device_config_t in530_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "in530_pb_129",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.11J (Packard Bell)",
+                .internal_name = "in530_pb_111j",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/88200111.rom",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.28 (Monorail)",
+                .internal_name = "in530_mono_128",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/20888128.ROM",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.29 (Packard Bell)",
+                .internal_name = "in530_pb_129",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/52000129.rom",
+                    ""
+                }
+            },
+            {
+                .name          = "AMIBIOS 6 (071595) - Revision 1.36J (NEC)",
+                .internal_name = "in530_nec_136j",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = {
+                    "roms/machines/in530/0136J.ROM",
+                    ""
+                }
+            },
+            { .files_no = 0 }
+        }
+    },
+	
+	/* Logo module selector:
+	0 = 40 (33 in NEC)
+	1 = 33
+	2 = 3E
+	3 = 3F
+	4 = 3D (missing in all BIOSes so used to disable NEC)
+	5 = 3C
+	*/
+    {
+        .name           = "boot_logo",
+        .description    = "Boot Logo",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 4 },
+            { .description = "Enabled",  .value = 1 },
+            { .description = "Logo 2",   .value = 2 },
+            { .description = "Logo 3",   .value = 3 },
+            { .description = "" }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t in530_device = {
+    .name          = "BCM IN530",
+    .internal_name = "in530",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = in530_config
+};
+
+int
+machine_in530_boot_logo(void)
+{
+    return in530_boot_logo;
+}
+
+int
+machine_at_in530_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000c0000, 262144, 0);
+    in530_boot_logo = device_get_config_int("boot_logo");
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    /* Physical FR520 / IN530 PCI topology verified with PCITool:
+         device 09h - PCI slot 1
+         device 0Ah - PCI slot 2
+         device 0Bh - PCI slot 3
+         device 0Ch - on-board ESS ES1938S Solo-1                 */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_SOUND,           4, 1, 2, 3);
+
+    device_add(&sis_530_device);
+    /* Ext func high, PNP conf low, BIOS assigns the legacy resources. */
+    device_add_params(&w83877_device, (void *) (W83877TF | (W83877_3F0 & ~0x04)));
+    device_add(&amd_flash_29f002nbt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+int
+machine_at_aptiva2187_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/aptiva2187/tp110320.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 5);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_VIDEO,           1, 2, 3, 4); /* guess */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_SOUND,           1, 2, 3, 4);
+
+    device_add(&sis_530_device);
+    device_add(&it8661f_device); /* guess */
+    device_add(&sst_flash_29ee020_device); /* guess */
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        device_add(machine_get_snd_device(machine));
+
+    return ret;
+}
+
+/* SiS 5591 */
+int
+machine_at_5sg100_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/5sg100/5sg.20g",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,   0, 0, 0, 0);
+
+    device_add(&sis_5591_1997_device);
+    device_add_params(&w83877_device, (void *) (W83877TF | W83877_3F0));
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}

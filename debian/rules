@@ -1,0 +1,31 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+ifeq ($(ARCH), $(filter $(ARCH), amd64))
+	NDR=off
+else
+	NDR=on
+endif
+
+%:
+	dh $@ --buildsystem cmake+ninja
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem cmake+ninja -- --preset regular -DNEW_DYNAREC=$(NDR) -B .
+
+override_dh_auto_build:
+	dh_auto_build --buildsystem cmake+ninja
+
+override_dh_auto_test:
+
+override_dh_auto_install:
+	dh_auto_install --buildsystem cmake+ninja
+	sed 's/^Exec.*/Exec=86Box -P .local\/share\/86Box/' "src/unix/assets/net.86box.86Box.desktop" > "debian/86box/usr/share/applications/net.86box.86Box.desktop"
+
+override_dh_installdocs:
+
+override_dh_installman:

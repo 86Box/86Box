@@ -1,0 +1,1047 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>724</width>
+    <height>427</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>86Box</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="RendererStack" name="stackedWidget">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>724</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuAction">
+    <property name="title">
+     <string>&amp;Action</string>
+    </property>
+    <widget class="QMenu" name="menuTablet_tool">
+     <property name="title">
+      <string>&amp;Tablet tool</string>
+     </property>
+     <addaction name="actionPen"/>
+     <addaction name="actionCursor_Puck"/>
+    </widget>
+    <widget class="QMenu" name="menuInput_device">
+     <property name="title">
+      <string>Input &amp;device</string>
+     </property>
+     <addaction name="actionMouse"/>
+     <addaction name="actionTablet"/>
+     <addaction name="actionTablet_Crosshair"/>
+    </widget>
+    <addaction name="actionKeyboard_requires_capture"/>
+    <addaction name="actionRight_CTRL_is_left_ALT"/>
+    <addaction name="separator"/>
+    <addaction name="actionUpdate_mouse_every_CPU_frame"/>
+    <addaction name="menuInput_device"/>
+    <addaction name="menuTablet_tool"/>
+    <addaction name="separator"/>
+    <addaction name="actionPause"/>
+    <addaction name="separator"/>
+    <addaction name="actionFullscreen"/>
+    <addaction name="actionToggle_OSD"/>
+    <addaction name="separator"/>
+    <addaction name="actionFast_forward"/>
+    <addaction name="actionForce_interpretation"/>
+    <addaction name="separator"/>
+    <addaction name="actionHard_Reset"/>
+    <addaction name="actionCtrl_Alt_Del"/>
+    <addaction name="separator"/>
+    <addaction name="actionCtrl_Alt_Esc"/>
+    <addaction name="actionNon_maskable_interrupt"/>
+    <addaction name="separator"/>
+    <addaction name="actionACPI_Shutdown"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>&amp;Tools</string>
+    </property>
+    <widget class="QMenu" name="menuSound">
+     <property name="title">
+      <string>S&amp;ound</string>
+     </property>
+     <addaction name="actionMute_Unmute"/>
+     <addaction name="separator"/>
+     <addaction name="actionSound_gain"/>
+    </widget>
+    <addaction name="actionSettings"/>
+    <addaction name="actionUpdate_status_bar_icons"/>
+    <addaction name="separator"/>
+    <addaction name="actionEnable_Discord_integration"/>
+    <addaction name="separator"/>
+    <addaction name="actionTake_screenshot"/>
+    <addaction name="actionTake_raw_screenshot"/>
+    <addaction name="actionCopy_screenshot"/>
+    <addaction name="actionCopy_raw_screenshot"/>
+    <addaction name="separator"/>
+    <addaction name="menuSound"/>
+    <addaction name="separator"/>
+    <addaction name="actionPreferences"/>
+    <addaction name="separator"/>
+    <addaction name="actionBegin_trace"/>
+    <addaction name="actionEnd_trace"/>
+    <addaction name="separator"/>
+    <addaction name="actionMCA_devices"/>
+    <addaction name="separator"/>
+    <addaction name="actionOpen_printer_tray"/>
+    <addaction name="actionOpen_screenshots_folder"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>&amp;View</string>
+    </property>
+    <widget class="QMenu" name="menuRenderer">
+     <property name="title">
+      <string>Re&amp;nderer</string>
+     </property>
+     <addaction name="actionSoftware_Renderer"/>
+     <addaction name="actionOpenGL"/>
+     <addaction name="actionVulkan"/>
+     <addaction name="actionVNC"/>
+    </widget>
+    <widget class="QMenu" name="menuWindow_scale_factor">
+     <property name="title">
+      <string>&amp;Window scale factor</string>
+     </property>
+     <addaction name="action0_5x"/>
+     <addaction name="action1x"/>
+     <addaction name="action1_5x"/>
+     <addaction name="action2x"/>
+     <addaction name="action3x"/>
+     <addaction name="action4x"/>
+     <addaction name="action5x"/>
+     <addaction name="action6x"/>
+     <addaction name="action7x"/>
+     <addaction name="action8x"/>
+    </widget>
+    <widget class="QMenu" name="menuFilter_method">
+     <property name="title">
+      <string>Fi&amp;lter method</string>
+     </property>
+     <addaction name="actionNearest"/>
+     <addaction name="actionLinear"/>
+    </widget>
+    <widget class="QMenu" name="menuFullscreen_stretch_mode">
+     <property name="title">
+      <string>Fullscreen &amp;stretch mode</string>
+     </property>
+     <addaction name="actionFullScreen_stretch"/>
+     <addaction name="actionFullScreen_43"/>
+     <addaction name="actionFullScreen_keepRatio"/>
+     <addaction name="actionFullScreen_int"/>
+     <addaction name="actionFullScreen_int43"/>
+    </widget>
+    <widget class="QMenu" name="menuOpenGL_input_stretch_mode">
+     <property name="title">
+      <string>OpenGL input stretch mode</string>
+     </property>
+     <addaction name="action_Full_screen_stretch_gl"/>
+     <addaction name="action_4_3_gl"/>
+     <addaction name="action_Square_pixels_keep_ratio_gl"/>
+     <addaction name="action_Integer_scale_gl"/>
+     <addaction name="action4_3_Integer_scale_gl"/>
+    </widget>
+    <widget class="QMenu" name="menuOpenGL_input_scale">
+     <property name="title">
+      <string>OpenGL input scale</string>
+     </property>
+     <addaction name="action_0_5x_2"/>
+     <addaction name="action_1x_2"/>
+     <addaction name="action1_5x_2"/>
+     <addaction name="action_2x_2"/>
+     <addaction name="action_3x_2"/>
+     <addaction name="action_4x_2"/>
+     <addaction name="action_5x_2"/>
+     <addaction name="action_6x_2"/>
+     <addaction name="action_7x_2"/>
+     <addaction name="action_8x_2"/>
+    </widget>
+    <addaction name="actionHide_tool_bar"/>
+    <addaction name="actionHide_status_bar"/>
+    <addaction name="actionShow_non_primary_monitors"/>
+    <addaction name="separator"/>
+    <addaction name="actionResizable_window"/>
+    <addaction name="actionRemember_size_and_position"/>
+    <addaction name="actionSpecify_dimensions"/>
+    <addaction name="actionForce_4_3_display_ratio"/>
+    <addaction name="actionForce_device_aspect_ratio"/>
+    <addaction name="separator"/>
+    <addaction name="menuFullscreen_stretch_mode"/>
+    <addaction name="actionApply_fullscreen_stretch_mode_when_maximized"/>
+    <addaction name="actionCGA_composite_settings"/>
+    <addaction name="separator"/>
+    <addaction name="menuWindow_scale_factor"/>
+    <addaction name="actionHiDPI_scaling"/>
+    <addaction name="separator"/>
+    <addaction name="menuFilter_method"/>
+    <addaction name="separator"/>
+    <addaction name="menuRenderer"/>
+    <addaction name="actionRenderer_options"/>
+    <addaction name="menuOpenGL_input_stretch_mode"/>
+    <addaction name="menuOpenGL_input_scale"/>
+   </widget>
+   <widget class="QMenu" name="menuMedia">
+    <property name="title">
+     <string>&amp;Media</string>
+    </property>
+   </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionDocumentation"/>
+    <addaction name="actionAbout_86Box"/>
+    <addaction name="actionAbout_Qt"/>
+   </widget>
+   <addaction name="menuAction"/>
+   <addaction name="menuView"/>
+   <addaction name="menuMedia"/>
+   <addaction name="menuTools"/>
+   <addaction name="menuAbout"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="contextMenuPolicy">
+    <enum>Qt::PreventContextMenu</enum>
+   </property>
+   <property name="windowTitle">
+    <string notr="true">toolBar</string>
+   </property>
+   <property name="autoFillBackground">
+    <bool>true</bool>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="allowedAreas">
+    <set>Qt::TopToolBarArea</set>
+   </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonIconOnly</enum>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionPause"/>
+   <addaction name="actionFast_forward"/>
+   <addaction name="actionHard_Reset"/>
+   <addaction name="actionACPI_Shutdown"/>
+   <addaction name="separator"/>
+   <addaction name="actionCtrl_Alt_Del"/>
+   <addaction name="actionCtrl_Alt_Esc"/>
+   <addaction name="separator"/>
+   <addaction name="actionSettings"/>
+   <addaction name="separator"/>
+   <addaction name="actionTake_screenshot"/>
+   <addaction name="actionCopy_screenshot"/>
+  </widget>
+  <action name="actionForce_interpretation">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/interpreter.ico</normaloff>:/menuicons/qt/icons/interpreter.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Force interpretation</string>
+   </property>
+  </action>
+  <action name="actionUpdate_mouse_every_CPU_frame">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Update mouse every CPU frame</string>
+   </property>
+  </action>
+  <action name="actionKeyboard_requires_capture">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Keyboard requires capture</string>
+   </property>
+  </action>
+  <action name="actionRight_CTRL_is_left_ALT">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Right CTRL is left ALT</string>
+   </property>
+  </action>
+  <action name="actionHard_Reset">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/hard_reset.ico</normaloff>:/menuicons/qt/icons/hard_reset.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Hard reset</string>
+   </property>
+   <property name="toolTip">
+    <string>Hard reset</string>
+   </property>
+  </action>
+  <action name="actionCtrl_Alt_Del">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/send_cad.ico</normaloff>:/menuicons/qt/icons/send_cad.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Ctrl+Alt+Del</string>
+   </property>
+   <property name="toolTip">
+    <string>Press Ctrl+Alt+Del</string>
+   </property>
+  </action>
+  <action name="actionCtrl_Alt_Esc">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/send_cae.ico</normaloff>:/menuicons/qt/icons/send_cae.ico</iconset>
+   </property>
+   <property name="text">
+    <string>Ctrl+Alt+&amp;Esc</string>
+   </property>
+   <property name="toolTip">
+    <string>Press Ctrl+Alt+Esc</string>
+   </property>
+  </action>
+  <action name="actionNon_maskable_interrupt">
+   <property name="text">
+    <string>&amp;Non-maskable interrupt</string>
+   </property>
+   <property name="toolTip">
+    <string>Non-maskable interrupt</string>
+   </property>
+  </action>
+  <action name="actionPause">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/pause.ico</normaloff>:/menuicons/qt/icons/pause.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Pause</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>E&amp;xit</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::QuitRole</enum>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/settings.ico</normaloff>:/menuicons/qt/icons/settings.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Settings…</string>
+   </property>
+   <property name="toolTip">
+    <string>Settings…</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionFullscreen">
+   <property name="text">
+    <string>&amp;Fullscreen</string>
+   </property>
+  </action>
+  <action name="actionToggle_OSD">
+   <property name="text">
+    <string>Toggle &amp;on-screen display</string>
+   </property>
+  </action>
+  <action name="actionSoftware_Renderer">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Qt (Software)</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>0</number>
+   </property>
+  </action>
+  <action name="actionHide_status_bar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Hide status bar</string>
+   </property>
+  </action>
+  <action name="actionResizable_window">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Resizeable window</string>
+   </property>
+  </action>
+  <action name="actionRemember_size_and_position">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>R&amp;emember size &amp;&amp; position</string>
+   </property>
+  </action>
+  <action name="actionSpecify_dimensions">
+   <property name="text">
+    <string>Specify &amp;dimensions…</string>
+   </property>
+  </action>
+  <action name="actionForce_4_3_display_ratio">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Force &amp;4:3 display ratio</string>
+   </property>
+  </action>
+  <action name="actionForce_device_aspect_ratio">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Force &amp;machine display ratio</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionHiDPI_scaling">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hi&amp;DPI scaling</string>
+   </property>
+  </action>
+  <action name="action0_5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;0.5x</string>
+   </property>
+  </action>
+  <action name="action1x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;1x</string>
+   </property>
+  </action>
+  <action name="action1_5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>1.&amp;5x</string>
+   </property>
+  </action>
+  <action name="action2x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;2x</string>
+   </property>
+  </action>
+  <action name="action3x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;3x</string>
+   </property>
+  </action>
+  <action name="action4x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4x</string>
+   </property>
+  </action>
+  <action name="action5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;5x</string>
+   </property>
+  </action>
+  <action name="action6x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;6x</string>
+   </property>
+  </action>
+  <action name="action7x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;7x</string>
+   </property>
+  </action>
+  <action name="action8x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;8x</string>
+   </property>
+  </action>
+  <action name="actionNearest">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Nearest</string>
+   </property>
+  </action>
+  <action name="actionLinear">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Linear</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_stretch">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Full screen stretch</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_43">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4:3</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_keepRatio">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Square pixels (Keep ratio)</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_int">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Integer scale</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_int43">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4:&amp;3 Integer scale</string>
+   </property>
+  </action>
+  <action name="actionAbout_Qt">
+   <property name="text">
+    <string>About &amp;Qt</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutQtRole</enum>
+   </property>
+  </action>
+  <action name="actionAbout_86Box">
+   <property name="text">
+    <string>&amp;About 86Box…</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionDocumentation">
+   <property name="text">
+    <string>&amp;Documentation…</string>
+   </property>
+  </action>
+  <action name="actionUpdate_status_bar_icons">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Update status bar icons</string>
+   </property>
+  </action>
+  <action name="actionTake_screenshot">
+   <property name="text">
+    <string>Take s&amp;creenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Take screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/take_screenshot.ico</normaloff>:/menuicons/qt/icons/take_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionTake_raw_screenshot">
+   <property name="text">
+    <string>Take &amp;raw screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Take raw screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/take_raw_screenshot.ico</normaloff>:/menuicons/qt/icons/take_raw_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionCopy_screenshot">
+   <property name="text">
+    <string>C&amp;opy screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/copy_screenshot.ico</normaloff>:/menuicons/qt/icons/copy_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionCopy_raw_screenshot">
+   <property name="text">
+    <string>Copy r&amp;aw screenshot</string>
+   </property>
+   <property name="toolTip">
+    <string>Copy raw screenshot</string>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/copy_raw_screenshot.ico</normaloff>:/menuicons/qt/icons/copy_raw_screenshot.ico</iconset>
+   </property>
+  </action>
+  <action name="actionMute_Unmute">
+   <property name="text">
+    <string>&amp;Mute</string>
+   </property>
+  </action>
+  <action name="actionSound_gain">
+   <property name="text">
+    <string>Sound &amp;gain…</string>
+   </property>
+  </action>
+  <action name="actionOpenGL">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Open&amp;GL</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>1</number>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>&amp;Preferences…</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::PreferencesRole</enum>
+   </property>
+  </action>
+  <action name="actionEnable_Discord_integration">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Enable &amp;Discord integration</string>
+   </property>
+  </action>
+  <action name="actionHide_tool_bar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hide &amp;toolbar</string>
+   </property>
+  </action>
+  <action name="actionACPI_Shutdown">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</normaloff>:/menuicons/qt/icons/acpi_shutdown.ico</iconset>
+   </property>
+   <property name="text">
+    <string>ACP&amp;I shutdown</string>
+   </property>
+   <property name="toolTip">
+    <string>ACPI shutdown</string>
+   </property>
+   <property name="visible">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionBegin_trace">
+   <property name="text">
+    <string>Begin trace</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionEnd_trace">
+   <property name="text">
+    <string>End trace</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+T</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
+   </property>
+  </action>
+  <action name="actionRenderer_options">
+   <property name="text">
+    <string>Renderer &amp;options…</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionVulkan">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Vulkan</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>2</number>
+   </property>
+  </action>
+  <action name="actionMCA_devices">
+   <property name="text">
+    <string>&amp;MCA devices…</string>
+   </property>
+  </action>
+  <action name="actionShow_non_primary_monitors">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show non-&amp;primary monitors</string>
+   </property>
+  </action>
+  <action name="actionVNC">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>V&amp;NC</string>
+   </property>
+   <property name="vid_api" stdset="0">
+    <number>3</number>
+   </property>
+  </action>
+  <action name="actionOpen_printer_tray">
+   <property name="text">
+    <string>Open p&amp;rinter tray…</string>
+   </property>
+  </action>
+  <action name="actionOpen_screenshots_folder">
+   <property name="text">
+    <string>Open screenshots &amp;folder…</string>
+   </property>
+  </action>
+  <action name="actionApply_fullscreen_stretch_mode_when_maximized">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Appl&amp;y fullscreen stretch mode when maximized</string>
+   </property>
+  </action>
+  <action name="actionCursor_Puck">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Cursor/Puck</string>
+   </property>
+  </action>
+  <action name="actionPen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Pen</string>
+   </property>
+  </action>
+  <action name="actionCGA_composite_settings">
+   <property name="text">
+    <string>&amp;CGA composite settings…</string>
+   </property>
+  </action>
+  <action name="action_Full_screen_stretch_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Full screen stretch</string>
+   </property>
+  </action>
+  <action name="action_4_3_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4:3</string>
+   </property>
+  </action>
+  <action name="action_Square_pixels_keep_ratio_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Square pixels (Keep ratio)</string>
+   </property>
+  </action>
+  <action name="action_Integer_scale_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Integer scale</string>
+   </property>
+  </action>
+  <action name="action4_3_Integer_scale_gl">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4:&amp;3 Integer scale</string>
+   </property>
+  </action>
+  <action name="action_1x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;1x</string>
+   </property>
+  </action>
+  <action name="action_0_5x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;0.5x</string>
+   </property>
+  </action>
+  <action name="action_1x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;1x</string>
+   </property>
+  </action>
+  <action name="action1_5x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>1.&amp;5x</string>
+   </property>
+  </action>
+  <action name="action_2x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;2x</string>
+   </property>
+  </action>
+  <action name="action_3x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;3x</string>
+   </property>
+  </action>
+  <action name="action_4x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4x</string>
+   </property>
+  </action>
+  <action name="action_5x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;5x</string>
+   </property>
+  </action>
+  <action name="action_6x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;6x</string>
+   </property>
+  </action>
+  <action name="action_7x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;7x</string>
+   </property>
+  </action>
+  <action name="action_8x_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;8x</string>
+   </property>
+  </action>
+  <action name="actionFast_forward">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/settings/qt/icons/fast_forward.ico</normaloff>:/settings/qt/icons/fast_forward.ico</iconset>
+   </property>
+   <property name="text">
+    <string>&amp;Fast forward</string>
+   </property>
+   <property name="toolTip">
+    <string>Fast forward</string>
+   </property>
+  </action>
+  <action name="actionMouse">
+   <property name="text">
+    <string>&amp;Mouse</string>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionTablet">
+   <property name="text">
+    <string>&amp;Tablet</string>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+  </action>
+  <action name="actionTablet_Crosshair">
+   <property name="text">
+    <string>Tablet (&amp;Crosshair)</string>
+   </property>
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RendererStack</class>
+   <extends>QWidget</extends>
+   <header>qt_rendererstack.hpp</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../qt_resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>

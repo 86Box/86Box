@@ -1,0 +1,4937 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Emulation of the 8514/A card from IBM for the MCA bus and
+ *          ISA bus clones.
+ *
+ * Authors: TheCollector1995.
+ *
+ *          Copyright 2022-2024 TheCollector1995.
+ */
+#include <inttypes.h>
+#ifdef ENABLE_IBM8514_LOG
+#include <stdarg.h>
+#endif
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <wchar.h>
+#include <stdatomic.h>
+#define HAVE_STDARG_H
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/log.h>
+#include <86box/machine.h>
+#include <86box/mem.h>
+#include <86box/timer.h>
+#include <86box/mca.h>
+#include <86box/rom.h>
+#include <86box/plat.h>
+#include <86box/video.h>
+#include <86box/vid_8514a.h>
+#include <86box/vid_8514a_device.h>
+#include <86box/vid_xga.h>
+#include <86box/vid_svga.h>
+#include <86box/vid_svga_render.h>
+#include <86box/vid_ati_eeprom.h>
+#include <86box/vid_ati_mach8.h>
+#include "cpu.h"
+
+#ifdef CLAMP
+#    undef CLAMP
+#endif
+
+#define BIOS_MACH8_ROM_PATH  "roms/video/mach8/11301113140_4k.BIN"
+
+/* Subsystem Status Register (42E8h) MONITORID field (bits 4-6) */
+#define MONITORID_8507 1 /* 001: IBM 8507 (1024x768) Monochrome */
+#define MONITORID_8514 2 /* 010: IBM 8514 (1024x768) Color */
+#define MONITORID_8503 5 /* 101: IBM 8503 (640x480) Monochrome */
+#define MONITORID_8512 6 /* 110: IBM 8512/13 (640x480) Color */
+
+static void     ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv);
+static void     ibm8514_accel_outw(uint16_t port, uint16_t val, void *priv);
+static uint8_t  ibm8514_accel_inb(uint16_t port, void *priv);
+static uint16_t ibm8514_accel_inw(uint16_t port, void *priv);
+
+#ifdef ENABLE_IBM8514_LOG
+int ibm8514_do_log = ENABLE_IBM8514_LOG;
+
+static void
+ibm8514_log(void *priv, const char *format, ...)
+{
+    if (ibm8514_do_log) {
+        va_list ap;
+        va_start(ap, format);
+        log_out(priv, format, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define ibm8514_log(priv, format, ...)
+#endif
+
+static int16_t
+CLAMP(int16_t in, int16_t min, int16_t max)
+{
+    if (in < min)
+        return min;
+    if (in > max)
+        return max;
+
+    return in;
+}
+
+#define SATURATE_B(val)     (((val) < 0) ? 0 : (((val) > 0xff) ? 0xff : (val)))
+#define SATURATE_W(val)     (((val) < 0) ? 0 : (((val) > 0xffff) ? 0xffff : (val)))
+
+#define WRITE8(addr, var, val)                   \
+    switch ((addr) & 1) {                        \
+        case 0:                                  \
+            var = (var & 0xff00) | (val);        \
+            break;                               \
+        case 1:                                  \
+            var = (var & 0x00ff) | ((val) << 8); \
+            break;                               \
+    }
+
+#define READ8(addr, var)                \
+    switch ((addr) & 1) {               \
+        case 0:                         \
+            temp = (var) & 0xff;        \
+            break;                      \
+        case 1:                         \
+            temp = ((var) >> 8) & 0xff; \
+            break;                      \
+    }
+
+
+#define READ_PIXTRANS_WORD(cx, n)                                                                   \
+    if ((cmd <= 1) || (cmd == 5)) {                                                                 \
+        temp = dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n)) & dev->vram_mask];             \
+        temp |= (dev->vram[((dev->accel.cy * dev->pitch) + (cx) + (n + 1)) & dev->vram_mask] << 8); \
+    } else {                                                                                        \
+        temp = dev->vram[(dev->accel.dest + (cx) + (n)) & dev->vram_mask];                          \
+        temp |= (dev->vram[(dev->accel.dest + (cx) + (n + 1)) & dev->vram_mask] << 8);              \
+    }                                                                                               \
+
+#define READ(addr, dat)                                         \
+    if (ATI_MACH32) {                                           \
+        if (dev->bpp)                                           \
+            dat = vga_vram_w[(addr) & (svga->vram_mask >> 1)];  \
+        else                                                    \
+            dat = svga->vram[(addr) & svga->vram_mask];         \
+    } else {                                                    \
+        dat = (dev->vram[(addr) & (dev->vram_mask)]);           \
+    }
+
+#define READ_HIGH(addr, dat)                            \
+    dat |= (dev->vram[(addr) & (dev->vram_mask)] << 8);
+
+#define MIX(mixmode, dest_dat, src_dat)                                                                \
+    {                                                                                                  \
+        switch ((mixmode) ? dev->accel.frgd_mix : dev->accel.bkgd_mix) {                               \
+            case 0x00:                                                                                 \
+                dest_dat = ~dest_dat;                                                                  \
+                break;                                                                                 \
+            case 0x01:                                                                                 \
+                dest_dat = 0;                                                                          \
+                break;                                                                                 \
+            case 0x02:                                                                                 \
+                dest_dat = ~0;                                                                         \
+                break;                                                                                 \
+            case 0x03:                                                                                 \
+                dest_dat = dest_dat;                                                                   \
+                break;                                                                                 \
+            case 0x04:                                                                                 \
+                dest_dat = ~src_dat;                                                                   \
+                break;                                                                                 \
+            case 0x05:                                                                                 \
+                dest_dat = src_dat ^ dest_dat;                                                         \
+                break;                                                                                 \
+            case 0x06:                                                                                 \
+                dest_dat = ~(src_dat ^ dest_dat);                                                      \
+                break;                                                                                 \
+            case 0x07:                                                                                 \
+                dest_dat = src_dat;                                                                    \
+                break;                                                                                 \
+            case 0x08:                                                                                 \
+                dest_dat = ~(src_dat & dest_dat);                                                      \
+                break;                                                                                 \
+            case 0x09:                                                                                 \
+                dest_dat = ~src_dat | dest_dat;                                                        \
+                break;                                                                                 \
+            case 0x0a:                                                                                 \
+                dest_dat = src_dat | ~dest_dat;                                                        \
+                break;                                                                                 \
+            case 0x0b:                                                                                 \
+                dest_dat = src_dat | dest_dat;                                                         \
+                break;                                                                                 \
+            case 0x0c:                                                                                 \
+                dest_dat = src_dat & dest_dat;                                                         \
+                break;                                                                                 \
+            case 0x0d:                                                                                 \
+                dest_dat = src_dat & ~dest_dat;                                                        \
+                break;                                                                                 \
+            case 0x0e:                                                                                 \
+                dest_dat = ~src_dat & dest_dat;                                                        \
+                break;                                                                                 \
+            case 0x0f:                                                                                 \
+                dest_dat = ~(src_dat | dest_dat);                                                      \
+                break;                                                                                 \
+            case 0x10:                                                                                 \
+                dest_dat = MIN(src_dat, dest_dat);                                                     \
+                break;                                                                                 \
+            case 0x11:                                                                                 \
+                dest_dat = dest_dat - src_dat;                                                         \
+                break;                                                                                 \
+            case 0x12:                                                                                 \
+                dest_dat = src_dat - dest_dat;                                                         \
+                break;                                                                                 \
+            case 0x13:                                                                                 \
+                dest_dat = src_dat + dest_dat;                                                         \
+                break;                                                                                 \
+            case 0x14:                                                                                 \
+                dest_dat = MAX(src_dat, dest_dat);                                                     \
+                break;                                                                                 \
+            case 0x15:                                                                                 \
+                dest_dat = (dest_dat - src_dat) >> 1;                                                  \
+                break;                                                                                 \
+            case 0x16:                                                                                 \
+                dest_dat = (src_dat - dest_dat) >> 1;                                                  \
+                break;                                                                                 \
+            case 0x17:                                                                                 \
+                dest_dat = (src_dat + dest_dat) >> 1;                                                  \
+                break;                                                                                 \
+            case 0x18:                                                                                 \
+            case 0x19:                                                                                 \
+                if (dev->bpp)                                                                          \
+                    dest_dat = SATURATE_W(dest_dat - src_dat);                                         \
+                else                                                                                   \
+                    dest_dat = SATURATE_B(dest_dat - src_dat);                                         \
+                break;                                                                                 \
+            case 0x1a:                                                                                 \
+                if (dev->bpp)                                                                          \
+                    dest_dat = SATURATE_W(src_dat - dest_dat);                                         \
+                else                                                                                   \
+                    dest_dat = SATURATE_B(src_dat - dest_dat);                                         \
+                break;                                                                                 \
+            case 0x1b:                                                                                 \
+                if (dev->bpp)                                                                          \
+                    dest_dat = SATURATE_W(src_dat + dest_dat);                                         \
+                else                                                                                   \
+                    dest_dat = SATURATE_B(src_dat + dest_dat);                                         \
+                break;                                                                                 \
+            case 0x1c:                                                                                 \
+            case 0x1d:                                                                                 \
+                if (dev->bpp)                                                                          \
+                    dest_dat = SATURATE_W((dest_dat - src_dat) >> 1);                                  \
+                else                                                                                   \
+                    dest_dat = SATURATE_B((dest_dat - src_dat) >> 1);                                  \
+                break;                                                                                 \
+            case 0x1e:                                                                                 \
+                if (dev->bpp)                                                                          \
+                    dest_dat = SATURATE_W((src_dat - dest_dat) >> 1);                                  \
+                else                                                                                   \
+                    dest_dat = SATURATE_B((src_dat - dest_dat) >> 1);                                  \
+                break;                                                                                 \
+            case 0x1f:                                                                                 \
+                if (dev->bpp)                                                                          \
+                    dest_dat = SATURATE_W((src_dat + dest_dat) >> 1);                                  \
+                else                                                                                   \
+                    dest_dat = SATURATE_B((src_dat + dest_dat) >> 1);                                  \
+                break;                                                                                 \
+        }                                                                                              \
+    }
+
+#define WRITE(addr, dat)                                                                                        \
+    if (ATI_MACH32) {                                                                                           \
+        if (dev->bpp) {                                                                                         \
+            vga_vram_w[(addr) & (svga->vram_mask >> 1)]           = dat;                                        \
+            svga->changedvram[(((addr)) & (svga->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
+        } else {                                                                                                \
+            svga->vram[(addr) & svga->vram_mask]                  = dat;                                        \
+            svga->changedvram[((addr) & svga->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
+        }                                                                                                       \
+    } else {                                                                                                    \
+            dev->vram[((addr)) & (dev->vram_mask)]                = dat;                                        \
+            dev->changedvram[(((addr)) & (dev->vram_mask)) >> 12] = svga->monitor->mon_changeframecount;        \
+    }
+
+int ibm8514_active = 0;
+
+int
+ibm8514_cpu_src(svga_t *svga)
+{
+    const ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if (dev->accel.cmd_back)
+        return 0;
+
+    if (dev->accel.cmd & 1)
+        return 1;
+
+    return 0;
+}
+
+int
+ibm8514_cpu_dest(svga_t *svga)
+{
+    const ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if (dev->accel.cmd_back)
+        return 0;
+
+    if (dev->accel.cmd & 1)
+        return 0;
+
+    return 1;
+}
+
+void
+ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, int len)
+{
+    ibm8514_t *dev       = (ibm8514_t *) svga->dev8514;
+    uint8_t    nibble    = 0x0000;
+    uint32_t   pixelxfer = 0x00000000;
+    uint32_t   monoxfer  = 0xffffffff;
+    int        pixcnt    = 0;
+    int        pixcntl   = (dev->accel.multifunc[0x0a] >> 6) & 3;
+    int        frgd_mix  = dev->accel.frgd_sel;
+    int        bkgd_mix  = dev->accel.bkgd_sel;
+    int        cmd       = dev->accel.cmd >> 13;
+
+    if (!dev->accel.cmd_back) {
+        if (len == 2) {
+            /*Bus size*/
+            if (dev->accel.cmd & 0x200) /*16-bit*/
+                pixcnt = 16;
+            else /*8-bit*/
+                pixcnt = 8;
+
+            /*Pixel transfer data mode, can't be the same as Foreground/Background CPU data*/
+            if (pixcntl == 2) {
+                if ((frgd_mix == 2) || (bkgd_mix == 2))
+                    pixelxfer = val;
+                else {
+                    if (dev->accel.cmd & 0x02) {
+                        if (pixcnt == 16) {
+                            if ((cmd >= 2) && (dev->accel.cmd & 0x1000))
+                                val = (val >> 8) | (val << 8);
+                        }
+                        if ((cmd <= 2) || (cmd == 4) || (cmd == 6)) {
+                            if ((dev->accel.cmd & 0x08) && (pixcnt == 8)) {
+                                if (val & 0x02)
+                                    nibble |= 0x08;
+                                if (val & 0x04)
+                                    nibble |= 0x04;
+                                if (val & 0x08)
+                                    nibble |= 0x02;
+                                if (val & 0x10)
+                                    nibble |= 0x01;
+                                if (val & 0x200)
+                                    nibble |= 0x80;
+                                if (val & 0x400)
+                                    nibble |= 0x40;
+                                if (val & 0x800)
+                                    nibble |= 0x20;
+                                if (val & 0x1000)
+                                    nibble |= 0x10;
+                            } else {
+                                if (val & 0x02)
+                                    nibble |= 0x80;
+                                if (val & 0x04)
+                                    nibble |= 0x40;
+                                if (val & 0x08)
+                                    nibble |= 0x20;
+                                if (val & 0x10)
+                                    nibble |= 0x10;
+                                if (val & 0x200)
+                                    nibble |= 0x08;
+                                if (val & 0x400)
+                                    nibble |= 0x04;
+                                if (val & 0x800)
+                                    nibble |= 0x02;
+                                if (val & 0x1000)
+                                    nibble |= 0x01;
+                            }
+                            monoxfer = nibble;
+                        } else
+                            monoxfer = val;
+                    } else
+                        monoxfer = val;
+                }
+            } else
+                pixelxfer = val;
+
+            if (dev->accel.input || dev->accel.input3 || dev->accel.output3)
+                ibm8514_accel_start(pixcnt >> 1, 1, monoxfer & 0xff, pixelxfer & 0xff, svga, len);
+            else
+                ibm8514_accel_start(pixcnt, 1, monoxfer & 0xffff, pixelxfer & 0xffff, svga, len);
+        }
+    }
+}
+
+void
+ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if (dev == NULL)
+        return;
+
+    if (port & 0x8000) {
+        if ((port != 0xe2e8) && (port != 0xe2e9) && (port != 0xe6e8) && (port != 0xe6e9)) {
+            if (port & 0x4000)
+                port &= ~0x4000;
+        }
+    }
+
+    switch (port) {
+        case 0x2e8:
+            WRITE8(port, dev->htotal, val);
+            ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): htotal=0x%02x.\n", port, val);
+            svga_recalctimings(svga);
+            break;
+
+        case 0x6e8:
+            /*In preparation to switch from VGA to 8514/A mode*/
+            WRITE8(port, dev->hdisped, val);
+            ibm8514_log(dev->log,"[%04X:%08X]: IBM 8514/A: (0x%04x): hdisp=0x%02x.\n", CS, cpu_state.pc, port, val);
+            svga_recalctimings(svga);
+            break;
+
+        case 0x6e9:
+            WRITE8(port - 1, dev->htotal, val);
+            ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): htotal=0x%02x.\n", port, val);
+            svga_recalctimings(svga);
+            break;
+
+        case 0xae8:
+            WRITE8(port, dev->hsync_start, val);
+            ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_start=%d.\n", port, val, (val + 1) << 3);
+            svga_recalctimings(svga);
+            break;
+
+        case 0xee8:
+            WRITE8(port, dev->hsync_width, val);
+            ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): val=0x%02x, hsync_width=%d, hsyncpol=%02x.\n", port, val & 0x1f, ((val & 0x1f) + 1) << 3, val & 0x20);
+            svga_recalctimings(svga);
+            break;
+
+        case 0x12e8:
+            /*In preparation to switch from VGA to 8514/A mode*/
+            if (len == 2) {
+                dev->v_total_reg = val;
+                dev->v_total_reg &= 0x1fff;
+                ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): vtotal=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
+            } else {
+                WRITE8(port, dev->v_total_reg, val);
+            }
+            break;
+        case 0x12e9:
+            /*In preparation to switch from VGA to 8514/A mode*/
+            if (len == 1) {
+                WRITE8(port, dev->v_total_reg, val >> 8);
+                dev->v_total_reg &= 0x1fff;
+                ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): vtotal=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
+            }
+            break;
+
+        case 0x16e8:
+            /*In preparation to switch from VGA to 8514/A mode*/
+            if (len == 2) {
+                dev->v_disp = val;
+                dev->v_disp &= 0x1fff;
+                ibm8514_log(dev->log,"IBM 8514/A: V_DISP write 16E8 = %d\n", dev->v_disp);
+                ibm8514_log(dev->log,"IBM 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
+            } else {
+                WRITE8(port, dev->v_disp, val);
+            }
+            break;
+        case 0x16e9:
+            /*In preparation to switch from VGA to 8514/A mode*/
+            if (len == 1) {
+                WRITE8(port, dev->v_disp, val >> 8);
+                dev->v_disp &= 0x1fff;
+                ibm8514_log(dev->log,"IBM 8514/A: V_DISP write 16E8 = %d\n", dev->v_disp);
+                ibm8514_log(dev->log,"IBM 8514/A: (0x%04x): vdisp=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
+            }
+            break;
+
+        case 0x1ae8:
+            /*In preparation to switch from VGA to 8514/A mode*/
+            if (len == 2) {
+                dev->v_sync_start = val;
+                dev->v_sync_start &= 0x1fff;
+                ibm8514_log(dev->log,"IBM 8514/A compatible: V_SYNCSTART write 1AE8 = %d\n", dev->v_syncstart);
+                ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): vsyncstart=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
+            } else {
+                WRITE8(port, dev->v_sync_start, val);
+            }
+            break;
+        case 0x1ae9:
+            /*In preparation to switch from VGA to 8514/A mode*/
+            if (len == 1) {
+                WRITE8(port, dev->v_sync_start, val >> 8);
+                dev->v_sync_start &= 0x1fff;
+                dev->v_syncstart = dev->v_sync_start + 1;
+                if (dev->interlace)
+                    dev->v_syncstart >>= 1;
+
+                ibm8514_log(dev->log,"IBM 8514/A compatible: V_SYNCSTART write 1AE8 = %d\n", dev->v_syncstart);
+                ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): vsyncstart=0x%02x.\n", port, val);
+                svga_recalctimings(svga);
+            }
+            break;
+
+        case 0x22e8:
+            dev->disp_cntl = val;
+            dev->interlace = !!(dev->disp_cntl & 0x10);
+            ibm8514_log(dev->log,"IBM 8514/A compatible: DISP_CNTL write %04x=%02x, interlace=%d.\n", port, dev->disp_cntl, dev->interlace);
+            svga_recalctimings(svga);
+            break;
+
+        case 0x1ee8:
+        case 0x1ee9:
+            ibm8514_log(dev->log,"IBM 8514/A compatible: V_SYNC_WID write 1EE8 = %02x\n", val);
+            ibm8514_log(dev->log,"IBM 8514/A compatible: (0x%04x): vsyncwidth=0x%02x.\n", port, val);
+            svga_recalctimings(svga);
+            break;
+
+        case 0x42e8:
+            ibm8514_log(dev->log,"VBLANK status=%02x, val=%02x.\n", dev->subsys_stat, val);
+            if (len == 2) {
+                dev->subsys_cntl = val;
+                dev->subsys_stat &= ~val;
+                if ((val & 0xc000) == 0x8000) {
+                    dev->force_busy = 0;
+                    dev->force_busy2 = 0;
+                }
+            } else {
+                WRITE8(port, dev->subsys_cntl, val);
+                dev->subsys_stat &= ~val;
+            }
+            break;
+        case 0x42e9:
+            if (len == 1) {
+                WRITE8(port, dev->subsys_cntl, val);
+                if ((val & 0xc0) == 0x80) {
+                    dev->force_busy = 0;
+                    dev->force_busy2 = 0;
+                }
+            }
+            break;
+
+        case 0x4ae8:
+            WRITE8(port, dev->accel.advfunc_cntl, val);
+            dev->on = dev->accel.advfunc_cntl & 0x01;
+            ibm8514_log(dev->log,"[%04X:%08X]: IBM 8514/A: (0x%04x): ON=%d, shadow crt=%x, hdisp=%d, vdisp=%d.\n", CS, cpu_state.pc, port, dev->on, dev->accel.advfunc_cntl & 0x04, dev->hdisp, dev->vdisp);
+            ibm8514_log(dev->log,"IBM mode set %s resolution.\n", (dev->accel.advfunc_cntl & 0x04) ? "2: 1024x768" : "1: 640x480");
+            svga_recalctimings(svga);
+            break;
+
+        case 0x82e8:
+            if (len == 2)
+                dev->accel.cur_y = val & 0x7ff;
+            break;
+
+        case 0x86e8:
+            if (len == 2)
+                dev->accel.cur_x = val & 0x7ff;
+            break;
+
+        case 0x8ae8:
+            if (len == 2) {
+                dev->accel.desty       = val & 0x7ff;
+                dev->accel.desty_axstp = val & 0x3fff;
+                if (val & 0x2000)
+                    dev->accel.desty_axstp |= ~0x1fff;
+            }
+            break;
+
+        case 0x8ee8:
+            if (len == 2) {
+                dev->accel.destx       = val & 0x7ff;
+                dev->accel.destx_distp = val & 0x3fff;
+                if (val & 0x2000)
+                    dev->accel.destx_distp |= ~0x1fff;
+            }
+            break;
+
+        case 0x92e8:
+            if (len == 2) {
+                dev->test = val;
+                dev->accel.err_term = val & 0x3fff;
+                if (val & 0x2000)
+                    dev->accel.err_term |= ~0x1fff;
+            }
+            break;
+
+        case 0x96e8:
+            if (len == 2) {
+                dev->accel.maj_axis_pcnt = val & 0x7ff;
+                dev->accel.maj_axis_pcnt_no_limit = val;
+            }
+            break;
+
+        case 0x9ae8:
+            dev->accel.ssv_state = 0;
+            if (len == 2) {
+                dev->data_available  = 0;
+                dev->data_available2 = 0;
+                dev->accel.cmd       = val;
+
+                dev->fifo_idx = 0;
+                dev->accel.cmd_back  = 1;
+                if (dev->accel.cmd & 0x100)
+                    dev->accel.cmd_back = 0;
+
+                ibm8514_log(dev->log,"8514A CMDflags=%04x, frgd color=%04x, frgdmix=%02x, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.frgd_color, dev->accel.frgd_mix, dev->accel.multifunc[0x0a]);
+                ibm8514_accel_start(-1, 0, -1, 0, svga, len);
+            }
+            break;
+
+        case 0x9ee8:
+            dev->accel.ssv_state = 1;
+            if (len == 2) {
+                dev->accel.short_stroke = val;
+
+                dev->accel.cx = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    dev->accel.cx |= ~0x5ff;
+
+                dev->accel.cy = dev->accel.cur_y;
+                if (dev->accel.cur_y >= 0x600)
+                    dev->accel.cy |= ~0x5ff;
+
+                if (dev->accel.cmd & 0x1000) {
+                    ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke & 0xff, len);
+                    ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke >> 8, len);
+                } else {
+                    ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke >> 8, len);
+                    ibm8514_short_stroke_start(-1, 0, -1, 0, svga, dev->accel.short_stroke & 0xff, len);
+                }
+            }
+            break;
+
+        case 0xa2e8:
+        case 0xe2e8:
+            if (port == 0xe2e8) {
+                if (len == 2) {
+                    if (dev->accel.cmd_back)
+                        dev->accel.bkgd_color = val;
+                    else {
+                        if (ibm8514_cpu_dest(svga))
+                            break;
+
+                        if (dev->accel.output3) {
+                            ibm8514_accel_out_pixtrans(svga, port, val & 0xff, len);
+                            ibm8514_accel_out_pixtrans(svga, port, (val >> 8) & 0xff, len);
+                        } else
+                            ibm8514_accel_out_pixtrans(svga, port, val, len);
+                    }
+                }
+            } else {
+                if (len == 2)
+                    dev->accel.bkgd_color = val;
+            }
+            break;
+
+        case 0xa6e8:
+        case 0xe6e8:
+            if (port == 0xe6e8) {
+                if (len == 2) {
+                    if (dev->accel.cmd_back)
+                        dev->accel.frgd_color = val;
+                    else {
+                        if (ibm8514_cpu_dest(svga))
+                            break;
+
+                        if (dev->accel.output3) {
+                            ibm8514_accel_out_pixtrans(svga, port, val & 0xff, len);
+                            ibm8514_accel_out_pixtrans(svga, port, (val >> 8) & 0xff, len);
+                        } else
+                            ibm8514_accel_out_pixtrans(svga, port, val, len);
+                    }
+                }
+            } else {
+                if (len == 2)
+                    dev->accel.frgd_color = val;
+            }
+            break;
+
+        case 0xaae8:
+            if (len == 2)
+                dev->accel.wrt_mask = val;
+            break;
+
+        case 0xaee8:
+            if (len == 2)
+                dev->accel.rd_mask = val;
+            break;
+
+        case 0xb2e8:
+            if (len == 2)
+                dev->accel.color_cmp = val;
+            break;
+
+        case 0xb6e8:
+            dev->accel.bkgd_mix = val & 0x1f;
+            dev->accel.bkgd_sel = (val >> 5) & 3;
+            ibm8514_log(dev->log,"Standard Background MIX=%02x.\n", val & 0x1f);
+            break;
+
+        case 0xbae8:
+            dev->accel.frgd_mix = val & 0x1f;
+            dev->accel.frgd_sel = (val >> 5) & 3;
+            ibm8514_log(dev->log, "Standard Foreground MIX=%02x.\n", val & 0x1f);
+            break;
+
+        case 0xbee8:
+            if (len == 2) {
+                dev->accel.multifunc_cntl                             = val;
+                dev->accel.multifunc[dev->accel.multifunc_cntl >> 12] = dev->accel.multifunc_cntl & 0xfff;
+
+                if ((dev->accel.multifunc_cntl >> 12) == 1) {
+                    dev->accel.clip_top = dev->accel.multifunc[1] & 0x3ff;
+                    if (dev->accel.multifunc[1] & 0x400)
+                        dev->accel.clip_top |= ~0x3ff;
+                }
+
+                if ((dev->accel.multifunc_cntl >> 12) == 2) {
+                    dev->accel.clip_left = dev->accel.multifunc[2] & 0x3ff;
+                    if (dev->accel.multifunc[2] & 0x400)
+                        dev->accel.clip_left |= ~0x3ff;
+                }
+                if ((dev->accel.multifunc_cntl >> 12) == 3)
+                    dev->accel.clip_bottom = dev->accel.multifunc[3] & 0x7ff;
+
+                if ((dev->accel.multifunc_cntl >> 12) == 4)
+                    dev->accel.clip_right = dev->accel.multifunc[4] & 0x7ff;
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+void
+ibm8514_ramdac_out(uint16_t port, uint8_t val, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+
+    svga_out(port, val, svga);
+}
+
+uint8_t
+ibm8514_ramdac_in(uint16_t port, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+    uint8_t ret;
+
+    ret = svga_in(port, svga);
+    return ret;
+}
+
+static void
+ibm8514_io_set(svga_t *svga)
+{
+    io_sethandler(0x2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x2ea, 0x0004, ibm8514_ramdac_in, NULL, NULL, ibm8514_ramdac_out, NULL, NULL, svga);
+    io_sethandler(0x6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x12e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x16e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x1ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x1ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x22e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x26e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x2ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x42e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x4ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x52e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x56e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x5ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x5ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x82e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x86e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x8ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x8ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x92e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x96e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x9ae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0x9ee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xa2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xa6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xaae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xaee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xb2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xb6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xbae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xbee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xe2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+
+    io_sethandler(0xc2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xc6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xcae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xcee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xd2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xd6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xdae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xdee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xe6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xeae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xeee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xf2e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xf6e8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xfae8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+    io_sethandler(0xfee8, 0x0002, ibm8514_accel_inb, ibm8514_accel_inw, NULL, ibm8514_accel_outb, ibm8514_accel_outw, NULL, svga);
+}
+
+void
+ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if (dev == NULL)
+        return;
+
+    if (port & 0x8000) {
+        if (dev->accel.cmd_back) {
+            dev->fifo_idx++;
+            if (dev->fifo_idx > 8)
+                dev->fifo_idx = 8;
+        }
+    }
+
+    ibm8514_accel_out_fifo(svga, port, val, len);
+}
+
+static void
+ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+
+    ibm8514_accel_out(port, val, svga, 1);
+}
+
+static void
+ibm8514_accel_outw(uint16_t port, uint16_t val, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+
+    ibm8514_accel_out(port, val, svga, 2);
+}
+
+uint16_t
+ibm8514_accel_in_fifo(svga_t *svga, uint16_t port, int len)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint16_t temp = 0;
+    int      cmd  = 0;
+
+    if (dev == NULL)
+        return 0xffff;
+
+    switch (port) {
+        case 0x82e8:
+            if (len == 2)
+                temp = dev->accel.cur_y;
+            break;
+
+        case 0x86e8:
+            if (len == 2)
+                temp = dev->accel.cur_x;
+            break;
+
+        case 0x92e8:
+            if (len == 2)
+                temp = dev->test;
+            break;
+
+        case 0x96e8:
+            if (len == 2)
+                temp = dev->accel.maj_axis_pcnt;
+            break;
+
+        case 0x9ae8:
+            if (len == 2) {
+                if (dev->fifo_idx <= 7)
+                    temp |= (((1 << dev->fifo_idx) - 1) << (8 - dev->fifo_idx));
+                else
+                    temp = 0x00ff;
+
+                dev->fifo_idx = 0;
+
+                if (dev->force_busy) {
+                    temp |= 0x0200; /*Hardware busy*/
+                    switch (dev->accel.cmd >> 13) {
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 6:
+                            if (dev->accel.sy < 0)
+                                dev->force_busy = 0;
+                            break;
+                        default:
+                            if (!dev->accel.sy)
+                                dev->force_busy = 0;
+                            break;
+                    }
+                }
+
+                if (dev->data_available) {
+                    temp |= 0x0100; /*Read Data available*/
+                    switch (dev->accel.cmd >> 13) {
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 6:
+                            if (dev->accel.sy < 0)
+                                dev->data_available = 0;
+                            break;
+                        default:
+                            if (!dev->accel.sy)
+                                dev->data_available = 0;
+                            break;
+                    }
+                }
+            }
+            break;
+        case 0x9ae9:
+            if (len == 1) {
+                dev->fifo_idx = 0;
+
+                if (dev->force_busy2)
+                    temp |= 0x02; /*Hardware busy*/
+
+                dev->force_busy2 = 0;
+
+                if (dev->data_available2) {
+                    temp |= 0x01; /*Read Data available*/
+                    switch (dev->accel.cmd >> 13) {
+                        case 2:
+                        case 3:
+                        case 4:
+                        case 6:
+                            if (dev->accel.sy < 0)
+                                dev->data_available2 = 0;
+                            break;
+                        default:
+                            if (!dev->accel.sy)
+                                dev->data_available2 = 0;
+                            break;
+                    }
+                }
+            }
+            break;
+
+        case 0xe2e8:
+        case 0xe6e8:
+            if (ibm8514_cpu_dest(svga)) {
+                if (len == 2) {
+                    cmd = (dev->accel.cmd >> 13);
+                    READ_PIXTRANS_WORD(dev->accel.cx, 0);
+                    if (dev->accel.input || dev->accel.input3) {
+                        ibm8514_accel_out_pixtrans(svga, port, temp & 0xff, len);
+                        if (dev->accel.odd_in) { /*WORDs on odd destination scan lengths.*/
+                            dev->accel.odd_in = 0;
+                            temp &= ~0xff00;
+                            READ_HIGH(dev->accel.dest + dev->accel.cx, temp);
+                        }
+                        ibm8514_accel_out_pixtrans(svga, port, (temp >> 8) & 0xff, len);
+                    } else {
+                        ibm8514_accel_out_pixtrans(svga, port, temp, len);
+                    }
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+    return temp;
+}
+
+uint8_t
+ibm8514_accel_in(uint16_t port, svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint8_t   temp = 0;
+    int16_t clip_t = dev->accel.clip_top;
+    int16_t clip_l = dev->accel.clip_left;
+    uint16_t clip_b_ibm = dev->accel.clip_bottom;
+    uint16_t clip_r_ibm = dev->accel.clip_right;
+    int cmd = dev->accel.cmd >> 13;
+
+    switch (port) {
+        case 0x2e8:
+            if (dev->vc == dev->dispend) {
+                if (dev->accel.advfunc_cntl & 0x04)
+                    temp |= 0x02;
+            }
+
+            if (((dev->_8514pal[0].r + dev->_8514pal[0].g + dev->_8514pal[0].b) >= 0x4e) ||
+                (dev->_8514pal[0].r >= 0x26) || (dev->_8514pal[0].g >= 0x26) ||
+                (dev->_8514pal[0].b >= 0x26))
+                temp |= 0x00;
+            else
+                temp |= 0x01;
+
+            ibm8514_log(dev->log,"Read: Display Status1=%02x.\n", temp);
+            break;
+
+        case 0x6e8:
+            temp = dev->hdisped;
+            break;
+
+        case 0x22e8:
+            temp = dev->disp_cntl;
+            break;
+
+        case 0x26e8:
+        case 0x26e9:
+            READ8(port, dev->htotal);
+            break;
+
+        case 0x2ee8:
+            temp = dev->subsys_cntl;
+            break;
+        case 0x2ee9:
+            temp = 0xff;
+            break;
+
+        case 0x42e8:
+        case 0x42e9:
+            if (!(port & 1)) {
+                if ((dev->subsys_cntl & INT_VSY) && !(dev->subsys_stat & INT_VSY) && (dev->vc == dev->dispend))
+                    temp |= INT_VSY;
+
+                if (cmd == 6) {
+                    if ((dev->subsys_cntl & INT_GE_BSY) &&
+                        !(dev->subsys_stat & INT_GE_BSY) &&
+                        (dev->accel.dx >= clip_l) &&
+                        (dev->accel.dx <= clip_r_ibm) &&
+                        (dev->accel.dy >= clip_t) &&
+                        (dev->accel.dy <= clip_b_ibm))
+                        temp |= INT_GE_BSY;
+                } else {
+                    if ((dev->subsys_cntl & INT_GE_BSY) &&
+                        !(dev->subsys_stat & INT_GE_BSY) &&
+                        (dev->accel.cx >= clip_l) &&
+                        (dev->accel.cx <= clip_r_ibm) &&
+                        (dev->accel.cy >= clip_t) &&
+                        (dev->accel.cy <= clip_b_ibm))
+                        temp |= INT_GE_BSY;
+                }
+
+                if (!dev->fifo_idx && !dev->on) {
+                    dev->force_busy = 0;
+                    dev->force_busy2 = 0;
+                    dev->data_available = 0;
+                    dev->data_available2 = 0;
+                    temp |= INT_FIFO_EMP;
+                }
+                if (!dev->fifo_idx) {
+                    if (dev->accel.cmd_back)
+                        temp |= 0x800;
+                }
+                temp |= (dev->subsys_stat | (dev->vram_512k_8514 ? 0x00 : 0x80));
+                temp |= (dev->monitorid << 4);
+            }
+            break;
+
+        default:
+            break;
+    }
+    return temp;
+}
+
+static uint8_t
+ibm8514_accel_inb(uint16_t port, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+    uint8_t temp;
+
+    if (port & 0x8000)
+        temp = ibm8514_accel_in_fifo(svga, port, 1);
+    else
+        temp = ibm8514_accel_in(port, svga);
+
+    return temp;
+}
+
+static uint16_t
+ibm8514_accel_inw(uint16_t port, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+    uint16_t temp;
+
+    if (port & 0x8000)
+        temp = ibm8514_accel_in_fifo(svga, port, 2);
+    else {
+        temp = ibm8514_accel_in(port, svga);
+        temp |= (ibm8514_accel_in(port + 1, svga) << 8);
+    }
+    return temp;
+}
+
+void
+ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if (!cpu_input) {
+        dev->accel.ssv_len  = ssv & 0x0f;
+        dev->accel.ssv_dir  = ssv & 0xe0;
+        dev->accel.ssv_draw = ssv & 0x10;
+        dev->accel.ssv_len_back = dev->accel.ssv_len;
+
+        if (ibm8514_cpu_src(svga)) {
+            dev->force_busy = 1;
+            dev->force_busy2 = 1;
+            dev->data_available  = 0;
+            dev->data_available2 = 0;
+            return; /*Wait for data from CPU*/
+        }
+    }
+
+    ibm8514_accel_start(count, cpu_input, mix_dat, cpu_dat, svga, len);
+}
+
+void
+ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, UNUSED(int len))
+{
+    ibm8514_t *dev     = (ibm8514_t *) svga->dev8514;
+    uint16_t  *vga_vram_w = (uint16_t *) svga->vram;
+    uint16_t   src_dat = 0;
+    uint16_t   dest_dat;
+    uint16_t   old_dest_dat;
+    int        frgd_mix;
+    int        bkgd_mix;
+    int16_t    clip_t          = dev->accel.clip_top;
+    int16_t    clip_l          = dev->accel.clip_left;
+    uint16_t   clip_b          = dev->accel.clip_bottom;
+    uint16_t   clip_r          = dev->accel.clip_right;
+    int        pixcntl         = (dev->accel.multifunc[0x0a] >> 6) & 3;
+    uint16_t   mix_mask        = dev->bpp ? 0x8000 : 0x80;
+    uint16_t   compare         = dev->accel.color_cmp;
+    int        compare_mode    = dev->accel.multifunc[0x0a] & 0x38;
+    int        cmd             = dev->accel.cmd >> 13;
+    uint16_t   wrt_mask        = dev->accel.wrt_mask;
+    uint16_t   rd_mask         = dev->accel.rd_mask;
+    uint16_t   rd_mask_polygon = dev->accel.rd_mask;
+    uint16_t   frgd_color      = dev->accel.frgd_color;
+    uint16_t   bkgd_color      = dev->accel.bkgd_color;
+    uint32_t   old_mix_dat;
+    int        and3            = dev->accel.cur_x & 3;
+    int        and3_blt        = dev->accel.destx & 3;
+    int        poly_src;
+
+    if (!dev->bpp) {
+        compare &= 0xff;
+        frgd_color &= 0xff;
+        bkgd_color &= 0xff;
+        rd_mask = ((dev->accel.rd_mask & 0x01) << 7) | ((dev->accel.rd_mask & 0xfe) >> 1);
+        rd_mask &= 0xff;
+        rd_mask_polygon &= 0xff;
+    }
+
+    frgd_mix = dev->accel.frgd_sel;
+    bkgd_mix = dev->accel.bkgd_sel;
+
+    if (cpu_input) {
+        if ((dev->accel.cmd & 0x02) || (pixcntl == 2)) {
+            if ((frgd_mix == 2) || (bkgd_mix == 2))
+                count >>= 3;
+            else if (pixcntl == 2) {
+                if (dev->accel.cmd & 0x02)
+                    count >>= 1;
+                else
+                    count >>= 3;
+            }
+        } else
+            count >>= 3;
+
+        if (dev->bpp) {
+            if ((dev->accel.cmd & 0x200) && (count == 2))
+                count >>= 1;
+        }
+    }
+
+    if (pixcntl == 1) {
+        mix_dat = 0;
+        if (cmd == 6) {
+            if (and3_blt == 3) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x04;
+            }
+            if (and3_blt == 2) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x02;
+            }
+            if (and3_blt == 1) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x01;
+            }
+            if (and3_blt == 0) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x80;
+            }
+        } else {
+            if (and3 == 3) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x04;
+            }
+            if (and3 == 2) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x02;
+            }
+            if (and3 == 1) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x80;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x01;
+            }
+            if (and3 == 0) {
+                if (dev->accel.multifunc[8] & 0x02)
+                    mix_dat |= 0x01;
+                if (dev->accel.multifunc[8] & 0x04)
+                    mix_dat |= 0x02;
+                if (dev->accel.multifunc[8] & 0x08)
+                    mix_dat |= 0x04;
+                if (dev->accel.multifunc[8] & 0x10)
+                    mix_dat |= 0x08;
+                if (dev->accel.multifunc[9] & 0x02)
+                    mix_dat |= 0x10;
+                if (dev->accel.multifunc[9] & 0x04)
+                    mix_dat |= 0x20;
+                if (dev->accel.multifunc[9] & 0x08)
+                    mix_dat |= 0x40;
+                if (dev->accel.multifunc[9] & 0x10)
+                    mix_dat |= 0x80;
+            }
+        }
+    }
+
+    old_mix_dat = mix_dat;
+
+    ibm8514_log(dev->log, "CMD=%d, full=%04x, pixcntl=%d, filling=%02x, ssvdraw=%02x, rw=%d, curx=%d, cury=%d.\n", cmd, dev->accel.cmd, pixcntl, dev->accel.multifunc[0x0a] & 0x06, dev->accel.ssv_draw, dev->accel.cmd & 0x01, dev->accel.cur_x, dev->accel.cur_y);
+
+    /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
+      When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
+      the NOP command)*/
+    switch (cmd) {
+        case 0: /*NOP (Short Stroke Vectors)*/
+            if (dev->accel.ssv_state == 0)
+                break;
+
+            if (dev->accel.cmd & 0x08) {
+                while (count-- && dev->accel.ssv_len >= 0) {
+                    if ((dev->accel.cx >= clip_l) &&
+                        (dev->accel.cx <= clip_r) &&
+                        (dev->accel.cy >= clip_t) &&
+                        (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= INT_GE_BSY;
+                        if (ibm8514_cpu_src(svga) || !cpu_input) {
+                            switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
+                                case 1:
+                                    src_dat = frgd_color;
+                                    break;
+                                case 2:
+                                    src_dat = cpu_dat;
+                                    break;
+                                case 3:
+                                    src_dat = 0;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                            if ((compare_mode == 0) ||
+                                ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                if (dev->accel.ssv_draw) {
+                                    if ((dev->accel.cmd & 0x04) && dev->accel.ssv_len) {
+                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                    } else if (!(dev->accel.cmd & 0x04)) {
+                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    mix_dat <<= 1;
+                    mix_dat |= 1;
+                    if (dev->bpp)
+                        cpu_dat >>= 16;
+                    else
+                        cpu_dat >>= 8;
+
+                    if (!dev->accel.ssv_len) {
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                        }
+                        dev->fifo_idx = 0;
+                        dev->accel.cmd_back = 1;
+                        break;
+                    }
+
+                    switch (dev->accel.ssv_dir & 0xe0) {
+                        case 0x00:
+                            dev->accel.cx++;
+                            break;
+                        case 0x20:
+                            dev->accel.cx++;
+                            dev->accel.cy--;
+                            break;
+                        case 0x40:
+                            dev->accel.cy--;
+                            break;
+                        case 0x60:
+                            dev->accel.cx--;
+                            dev->accel.cy--;
+                            break;
+                        case 0x80:
+                            dev->accel.cx--;
+                            break;
+                        case 0xa0:
+                            dev->accel.cx--;
+                            dev->accel.cy++;
+                            break;
+                        case 0xc0:
+                            dev->accel.cy++;
+                            break;
+                        case 0xe0:
+                            dev->accel.cx++;
+                            dev->accel.cy++;
+                            break;
+
+                        default:
+                            break;
+                    }
+
+                    dev->accel.ssv_len--;
+                }
+            } else {
+                while (count-- && (dev->accel.ssv_len >= 0)) {
+                    if ((dev->accel.cx >= clip_l) &&
+                        (dev->accel.cx <= clip_r) &&
+                        (dev->accel.cy >= clip_t) &&
+                        (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= INT_GE_BSY;
+                        if (ibm8514_cpu_src(svga) || !cpu_input) {
+                            switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
+                                case 1:
+                                    src_dat = frgd_color;
+                                    break;
+                                case 2:
+                                    src_dat = cpu_dat;
+                                    break;
+                                case 3:
+                                    src_dat = 0;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                            if ((compare_mode == 0) ||
+                                ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+
+                                if (dev->accel.ssv_draw) {
+                                    if ((dev->accel.cmd & 0x04) && dev->accel.ssv_len) {
+                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                    } else if (!(dev->accel.cmd & 0x04)) {
+                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    mix_dat <<= 1;
+                    mix_dat |= 1;
+                    if (dev->bpp)
+                        cpu_dat >>= 16;
+                    else
+                        cpu_dat >>= 8;
+
+                    if (!dev->accel.ssv_len) {
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                            dev->fifo_idx = 0;
+                        }
+                        dev->accel.cmd_back = 1;
+                        break;
+                    }
+
+                    if (dev->accel.cmd & 0x40) {
+                        if (dev->accel.cmd & 0x80)
+                            dev->accel.cy++;
+                        else
+                            dev->accel.cy--;
+
+                        if (dev->accel.err_term >= dev->accel.ssv_len_back) {
+                            dev->accel.err_term += dev->accel.destx_distp;
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx++;
+                            else
+                                dev->accel.cx--;
+                        } else
+                            dev->accel.err_term += dev->accel.desty_axstp;
+                    } else {
+                        if (dev->accel.cmd & 0x20)
+                            dev->accel.cx++;
+                        else
+                            dev->accel.cx--;
+
+                        if (dev->accel.err_term >= dev->accel.ssv_len_back) {
+                            dev->accel.err_term += dev->accel.destx_distp;
+                            if (dev->accel.cmd & 0x80)
+                                dev->accel.cy++;
+                            else
+                                dev->accel.cy--;
+                        } else
+                            dev->accel.err_term += dev->accel.desty_axstp;
+                    }
+
+                    dev->accel.ssv_len--;
+                }
+            }
+            dev->accel.cur_x = dev->accel.cx;
+            dev->accel.cur_y = dev->accel.cy;
+            break;
+
+        case 1: /*Draw line*/
+            if (!cpu_input) {
+                dev->accel.x_count = 0;
+
+                dev->accel.cx = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    dev->accel.cx |= ~0x5ff;
+
+                dev->accel.cy = dev->accel.cur_y;
+                if (dev->accel.cur_y >= 0x600)
+                    dev->accel.cy |= ~0x5ff;
+
+                dev->accel.sy = dev->accel.maj_axis_pcnt;
+
+                ibm8514_log(dev->log,"CMD=%d, full=%04x, curx=%d, cury=%d, pixcntl=%x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, bkgdmix=%02x, and3=%d, sy=%d, polygon=%02x.\n",
+                          cmd, dev->accel.cmd, dev->accel.cx, dev->accel.cy, pixcntl, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.bkgd_mix, and3, dev->accel.sy, dev->accel.multifunc[0x0a] & 0x06);
+
+                ibm8514_log(dev->log,"Line Draw 8514/A CMD=%04x, frgdmix=%d, bkgdmix=%d, c(%d,%d), pixcntl=%d, sy=%d, polyfill=%x, selfrmix=%02x, selbkmix=%02x, bkgdcol=%02x, frgdcol=%02x, clipt=%d, clipb=%d.\n", dev->accel.cmd, frgd_mix, bkgd_mix, dev->accel.cx, dev->accel.cy, pixcntl, dev->accel.sy, dev->accel.multifunc[0x0a] & 6, dev->accel.frgd_mix & 0x1f, dev->accel.bkgd_mix & 0x1f, bkgd_color, frgd_color, dev->accel.clip_top, clip_b);
+                if (ibm8514_cpu_src(svga)) {
+                    if (dev->accel.cmd & 0x02) {
+                        if (!(dev->accel.cmd & 0x1000)) {
+                            if (dev->accel.cmd & 0x08) {
+                                if (and3) {
+                                    dev->accel.sy += and3;
+                                    switch (dev->accel.cmd & 0xe0) {
+                                        case 0x00:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x20:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x60:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0x80:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xa0:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xe0:
+                                            dev->accel.cx -= and3;
+                                            break;
+
+                                        default:
+                                            break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 0;
+                    dev->data_available2 = 0;
+                    return; /*Wait for data from CPU*/
+                } else if (ibm8514_cpu_dest(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 1;
+                    dev->data_available2 = 1;
+                    return; /*Wait for data from CPU*/
+                }
+            }
+
+            if (dev->accel.cmd & 0x08) { /*Vector Line*/
+                if (ibm8514_cpu_dest(svga)) {
+                    if (dev->accel.cmd & 0x02)
+                        count >>= 1;
+
+                    if ((dev->accel.multifunc[0x0a] & 0x06) == 0x04) {
+                        ibm8514_log(dev->log,"Destination Vector Line CNT=%d.\n", count);
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if ((dev->accel.cx >= clip_l) &&
+                                (dev->accel.cx <= clip_r) &&
+                                (dev->accel.cy >= clip_t) &&
+                                (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= INT_GE_BSY;
+                            } else
+                                ibm8514_log(dev->log,"Scissor out of bounds.\n");
+
+                            if (!dev->accel.sy) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
+                                break;
+                            }
+
+                            switch (dev->accel.cmd & 0xe0) {
+                                case 0x00:
+                                    dev->accel.cx++;
+                                    break;
+                                case 0x20:
+                                    dev->accel.cx++;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x40:
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x60:
+                                    dev->accel.cx--;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x80:
+                                    dev->accel.cx--;
+                                    break;
+                                case 0xa0:
+                                    dev->accel.cx--;
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xc0:
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xe0:
+                                    dev->accel.cx++;
+                                    dev->accel.cy++;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            dev->accel.sy--;
+                        }
+                    } else {
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if ((dev->accel.cx >= clip_l) &&
+                                (dev->accel.cx <= clip_r) &&
+                                (dev->accel.cy >= clip_t) &&
+                                (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= INT_GE_BSY;
+                            }
+
+                            if (!dev->accel.sy) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
+                                break;
+                            }
+
+                            switch (dev->accel.cmd & 0xe0) {
+                                case 0x00:
+                                    dev->accel.cx++;
+                                    break;
+                                case 0x20:
+                                    dev->accel.cx++;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x40:
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x60:
+                                    dev->accel.cx--;
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x80:
+                                    dev->accel.cx--;
+                                    break;
+                                case 0xa0:
+                                    dev->accel.cx--;
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xc0:
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xe0:
+                                    dev->accel.cx++;
+                                    dev->accel.cy++;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            dev->accel.sy--;
+                        }
+                    }
+                } else {
+                    if (ibm8514_cpu_src(svga)) {
+                        if ((dev->accel.cmd & 0x02) && (pixcntl != 2))
+                            count >>= 1;
+                    }
+
+                    while (count-- && (dev->accel.sy >= 0)) {
+                        ibm8514_log(dev->log,"CurrentX=%d, CurrentY=%d, Count=%d.\n", dev->accel.cx, dev->accel.cy, count);
+                        if ((dev->accel.cx >= clip_l) &&
+                            (dev->accel.cx <= clip_r) &&
+                            (dev->accel.cy >= clip_t) &&
+                            (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= INT_GE_BSY;
+                            switch ((mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
+                                case 0:
+                                    src_dat = bkgd_color;
+                                    break;
+                                case 1:
+                                    src_dat = frgd_color;
+                                    break;
+                                case 2:
+                                    src_dat = cpu_dat;
+                                    break;
+                                case 3:
+                                    src_dat = 0;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                            if ((compare_mode == 0) ||
+                                ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                if ((dev->accel.cmd & 0x02) && ibm8514_cpu_src(svga)) {
+                                    if (!(dev->accel.cmd & 0x1000)) {
+                                        if (dev->accel.x_count >= and3) {
+                                            if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
+                                                WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                            } else if (!(dev->accel.cmd & 0x04)) {
+                                                WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                            }
+                                        }
+                                    } else {
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        }
+                                    }
+                                } else {
+                                    if (ibm8514_cpu_src(svga) || !cpu_input) {
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (!dev->accel.sy) {
+                            if (cpu_input) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                            }
+                            dev->accel.cmd_back = 1;
+                            if (!cpu_input) {
+                                dev->accel.cur_x = dev->accel.cx;
+                                dev->accel.cur_y = dev->accel.cy;
+                            }
+                            break;
+                        }
+
+                        if (dev->bpp)
+                            cpu_dat >>= 16;
+                        else
+                            cpu_dat >>= 8;
+
+                        switch (dev->accel.cmd & 0xe0) {
+                            case 0x00:
+                                dev->accel.cx++;
+                                break;
+                            case 0x20:
+                                dev->accel.cx++;
+                                dev->accel.cy--;
+                                break;
+                            case 0x40:
+                                dev->accel.cy--;
+                                break;
+                            case 0x60:
+                                dev->accel.cx--;
+                                dev->accel.cy--;
+                                break;
+                            case 0x80:
+                                dev->accel.cx--;
+                                break;
+                            case 0xa0:
+                                dev->accel.cx--;
+                                dev->accel.cy++;
+                                break;
+                            case 0xc0:
+                                dev->accel.cy++;
+                                break;
+                            case 0xe0:
+                                dev->accel.cx++;
+                                dev->accel.cy++;
+                                break;
+
+                            default:
+                                break;
+                        }
+
+                        if (dev->accel.cmd & 0x02) {
+                            if (pixcntl != 0)
+                                mix_dat >>= 1;
+                        } else {
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
+                        }
+                        dev->accel.sy--;
+                        dev->accel.x_count++;
+                    }
+                }
+            } else { /*Bresenham Line*/
+                if (pixcntl == 1) {
+                    dev->accel.temp_cnt = 8;
+                    while (count-- && (dev->accel.sy >= 0)) {
+                        if (!dev->accel.temp_cnt) {
+                            dev->accel.temp_cnt = 8;
+                            mix_dat = old_mix_dat;
+                        }
+                        if ((dev->accel.cx >= clip_l) &&
+                            (dev->accel.cx <= clip_r) &&
+                            (dev->accel.cy >= clip_t) &&
+                            (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= INT_GE_BSY;
+                            if (ibm8514_cpu_dest(svga)) {
+                                READ((dev->accel.cy * dev->pitch) + dev->accel.cx, src_dat);
+                            } else
+                                switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = cpu_dat;
+                                        break;
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                            READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                            if ((compare_mode == 0) ||
+                                ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & 0x01, dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                if ((dev->accel.cmd & 0x04) && dev->accel.sy) {
+                                    WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                } else if (!(dev->accel.cmd & 0x04)) {
+                                    WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                }
+                            }
+                        }
+
+                        dev->accel.temp_cnt--;
+                        mix_dat >>= 1;
+                        if (dev->bpp)
+                            cpu_dat >>= 16;
+                        else
+                            cpu_dat >>= 8;
+
+                        if (!dev->accel.sy) {
+                            if (cpu_input) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                            }
+                            dev->accel.cmd_back = 1;
+                            break;
+                        }
+
+                        if (dev->accel.cmd & 0x40) {
+                            if (dev->accel.cmd & 0x80)
+                                dev->accel.cy++;
+                            else
+                                dev->accel.cy--;
+
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
+                                dev->accel.err_term += dev->accel.destx_distp;
+                                if (dev->accel.cmd & 0x20)
+                                    dev->accel.cx++;
+                                else
+                                    dev->accel.cx--;
+                            } else
+                                dev->accel.err_term += dev->accel.desty_axstp;
+                        } else {
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx++;
+                            else
+                                dev->accel.cx--;
+
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
+                                dev->accel.err_term += dev->accel.destx_distp;
+                                if (dev->accel.cmd & 0x80)
+                                    dev->accel.cy++;
+                                else
+                                    dev->accel.cy--;
+                            } else
+                                dev->accel.err_term += dev->accel.desty_axstp;
+                        }
+
+                        dev->accel.sy--;
+                    }
+                } else {
+                    while (count-- && (dev->accel.sy >= 0)) {
+                        if ((dev->accel.cx >= clip_l) &&
+                            (dev->accel.cx <= clip_r) &&
+                            (dev->accel.cy >= clip_t) &&
+                            (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= INT_GE_BSY;
+                            if (ibm8514_cpu_src(svga) || !cpu_input) {
+                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = cpu_dat;
+                                        break;
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                    WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                }
+                            }
+                        }
+
+                        mix_dat <<= 1;
+                        mix_dat |= 1;
+                        if (dev->bpp)
+                            cpu_dat >>= 16;
+                        else
+                            cpu_dat >>= 8;
+
+                        if (!dev->accel.sy) {
+                            if (cpu_input) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                            }
+                            dev->accel.cmd_back = 1;
+                            if (!cpu_input) {
+                                dev->accel.cur_x = dev->accel.cx;
+                                dev->accel.cur_y = dev->accel.cy;
+                            }
+                            break;
+                        }
+
+                        if (dev->accel.cmd & 0x40) {
+                            if (dev->accel.cmd & 0x80)
+                                dev->accel.cy++;
+                            else
+                                dev->accel.cy--;
+
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
+                                dev->accel.err_term += dev->accel.destx_distp;
+                                if (dev->accel.cmd & 0x20)
+                                    dev->accel.cx++;
+                                else
+                                    dev->accel.cx--;
+                            } else
+                                dev->accel.err_term += dev->accel.desty_axstp;
+                        } else {
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx++;
+                            else
+                                dev->accel.cx--;
+
+                            if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
+                                dev->accel.err_term += dev->accel.destx_distp;
+                                if (dev->accel.cmd & 0x80)
+                                    dev->accel.cy++;
+                                else
+                                    dev->accel.cy--;
+                            } else
+                                dev->accel.err_term += dev->accel.desty_axstp;
+                        }
+
+                        dev->accel.sy--;
+                    }
+                }
+            }
+            break;
+
+        case 2: /*Rectangle fill (X direction)*/
+        case 3: /*Rectangle fill (Y direction)*/
+        case 4: /*Rectangle fill (Y direction using nibbles)*/
+            if (!cpu_input) {
+                dev->accel.x_count = 0;
+                dev->accel.output = 0;
+                dev->accel.output2 = 0;
+                dev->accel.output3 = 0;
+                dev->accel.input = 0;
+                dev->accel.input2 = 0;
+                dev->accel.input3 = 0;
+                dev->accel.odd_in = 0;
+
+                dev->accel.cx = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    dev->accel.cx |= ~0x5ff;
+
+                dev->accel.cy = dev->accel.cur_y;
+                if (dev->accel.cur_y >= 0x600)
+                    dev->accel.cy |= ~0x5ff;
+
+                dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+                dev->accel.sy = dev->accel.multifunc[0] & 0x7ff;
+
+                ibm8514_log(dev->log,"CMD=%d, full=%04x, curx=%d, cury=%d, pixcntl=%x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, bkgdmix=%02x.\n",
+                          cmd, dev->accel.cmd, dev->accel.cx, dev->accel.cy, pixcntl, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.bkgd_mix);
+
+                dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+
+                if (cmd == 4)
+                    dev->accel.cmd |= 0x02;
+                else if (cmd == 3)
+                    dev->accel.cmd &= ~0x02;
+
+                if (ibm8514_cpu_src(svga)) {
+                    if (dev->accel.cmd & 0x02) {
+                        if (!(dev->accel.cmd & 0x1000)) {
+                            if (!(dev->accel.cmd & 0x08)) {
+                                if (and3) {
+                                    if (dev->accel.cmd & 0x20)
+                                        dev->accel.cx -= and3;
+                                    else
+                                        dev->accel.cx += and3;
+
+                                    dev->accel.sx += 8;
+                                }
+                            } else {
+                                if (and3) {
+                                    dev->accel.sx += and3;
+                                    dev->accel.output2 = 1;
+                                    switch (dev->accel.cmd & 0xe0) {
+                                        case 0x00:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x20:
+                                            dev->accel.cx -= and3;
+                                            break;
+                                        case 0x60:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0x80:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xa0:
+                                            dev->accel.cx += and3;
+                                            break;
+                                        case 0xe0:
+                                            dev->accel.cx -= and3;
+                                            break;
+
+                                        default:
+                                            break;
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        if (dev->accel.cmd & 0x1000) {
+                            if (dev->accel.cmd & 0x200) {
+                                if (dev->accel.cmd & 0x40) {
+                                    dev->accel.output3 = 1;
+                                } else {
+                                    if (dev->accel.cmd & 0x04) {
+                                        dev->accel.output = 1;
+                                        dev->accel.sx -= 2;
+                                    } else {
+                                        if (!(dev->accel.maj_axis_pcnt & 0x01))
+                                            dev->accel.output3 = 1;
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 0;
+                    dev->data_available2 = 0;
+                    return; /*Wait for data from CPU*/
+                } else if (ibm8514_cpu_dest(svga)) {
+                    if (!(dev->accel.cmd & 0x02)) {
+                        if (dev->accel.cmd & 0x1000) {
+                            if (dev->accel.cmd & 0x200) {
+                                if (dev->accel.cmd & 0x40) {
+                                    dev->accel.input3 = 1;
+                                } else {
+                                    if (!(dev->accel.sx & 1) && !(dev->accel.cmd & 0x04)) {
+                                        dev->accel.input = 1;
+                                    } else if (dev->accel.cmd & 0x04) {
+                                        dev->accel.input2 = 1;
+                                        dev->accel.sx -= 2;
+                                    }
+                                }
+
+                            }
+                        }
+                    }
+                    ibm8514_log(dev->log,"INPUT1=%d, INPUT2=%d.\n", dev->accel.input, dev->accel.input2);
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 1;
+                    dev->data_available2 = 1;
+                    return; /*Wait for data from CPU*/
+                }
+            }
+
+            ibm8514_log(dev->log,"Rectangle %d: flags=%04x, odd=%d, c(%d,%d), frgdmix=%d, bkgdmix=%d, xcount=%d, and3=%d, len(%d,%d), CURX=%d, Width=%d, pixcntl=%d, mix_dat=%08x, count=%d, cpu_data=%08x, cpu_input=%d.\n", cmd, dev->accel.cmd, dev->accel.input, dev->accel.cx, dev->accel.cy, frgd_mix, bkgd_mix, dev->accel.x_count, and3, dev->accel.sx, dev->accel.sy, dev->accel.cur_x, dev->accel.maj_axis_pcnt, pixcntl, mix_dat, count, cpu_dat, cpu_input);
+
+            if (dev->accel.cmd & 0x08) { /*Vectored Rectangle*/
+                if (cpu_input) {
+                    while (count-- && (dev->accel.sy >= 0)) {
+                        if ((dev->accel.cx >= clip_l) &&
+                            (dev->accel.cx <= clip_r) &&
+                            (dev->accel.cy >= clip_t) &&
+                            (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= INT_GE_BSY;
+                            ibm8514_log(dev->log,"RectRadial: MIXDATA=%08x, mask=%04x, frgdcol=%02x, bkgdcol=%02x, cpudat=%08x.\n", mix_dat, mix_mask, frgd_color, bkgd_color, cpu_dat);
+                            if (ibm8514_cpu_src(svga)) {
+                                switch ((mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = cpu_dat;
+                                        break;
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.cx, dest_dat);
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
+                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                    if (dev->accel.cmd & 0x02) {
+                                        if (dev->accel.cmd & 0x1000) {
+                                            if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                                WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                            } else if (!(dev->accel.cmd & 0x04)) {
+                                                WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                            }
+                                        } else {
+                                            if (dev->accel.x_count >= and3) {
+                                                if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                                    WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                                } else if (!(dev->accel.cmd & 0x04)) {
+                                                    WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        switch (dev->accel.cmd & 0xe0) {
+                            case 0x00:
+                                dev->accel.cx++;
+                                break;
+                            case 0x20:
+                                dev->accel.cx++;
+                                break;
+                            case 0x60:
+                                dev->accel.cx--;
+                                break;
+                            case 0x80:
+                                dev->accel.cx--;
+                                break;
+                            case 0xa0:
+                                dev->accel.cx--;
+                                break;
+                            case 0xe0:
+                                dev->accel.cx++;
+                                break;
+
+                            default:
+                                break;
+                        }
+
+                        if (dev->bpp)
+                            cpu_dat >>= 16;
+                        else
+                            cpu_dat >>= 8;
+
+                        if (dev->accel.cmd & 0x02)
+                            mix_dat >>= 1;
+                        else {
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
+                        }
+                        dev->accel.sx--;
+                        if (ibm8514_cpu_src(svga)) {
+                            if ((dev->accel.cmd & 0x02) && !(dev->accel.cmd & 0x1000))
+                                dev->accel.x_count++;
+                        }
+                        if (dev->accel.sx < 0) {
+                            dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+                            dev->accel.x_count = 0;
+                            if (dev->accel.output2)
+                                dev->accel.sx += and3;
+
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx -= (dev->accel.sx + 1);
+                            else
+                                dev->accel.cx += (dev->accel.sx + 1);
+
+                            switch (dev->accel.cmd & 0xe0) {
+                                case 0x20:
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x40:
+                                    dev->accel.cy--;
+                                    break;
+                                case 0x60:
+                                    dev->accel.cy--;
+                                    break;
+                                case 0xa0:
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xc0:
+                                    dev->accel.cy++;
+                                    break;
+                                case 0xe0:
+                                    dev->accel.cy++;
+                                    break;
+
+                                default:
+                                    break;
+                            }
+
+                            dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+
+                            dev->accel.sy--;
+
+                            if (dev->accel.sy < 0) {
+                                dev->force_busy = 0;
+                                dev->force_busy2 = 0;
+                                dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
+                            }
+                            return;
+                        }
+                    }
+                } else
+                    ibm8514_log(dev->log,"Vectored Rectangle with normal processing (TODO).\n");
+            } else { /*Normal Rectangle*/
+                if (cpu_input) {
+                    ibm8514_log(dev->log,"Normal Pixel Rectangle Fill Transfer SY=%d, fullcmd=%04x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, polygontype=%02x, pixcntl=%x, curx=%d, cury=%d.\n", dev->accel.sy, dev->accel.cmd, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.multifunc[0x0a] & 0x06, pixcntl, dev->accel.cx, dev->accel.cy);
+                    while (count-- && (dev->accel.sy >= 0)) {
+                        if ((dev->accel.cx >= clip_l) &&
+                            (dev->accel.cx <= clip_r) &&
+                            (dev->accel.cy >= clip_t) &&
+                            (dev->accel.cy <= clip_b)) {
+                            dev->subsys_stat |= INT_GE_BSY;
+                            if (ibm8514_cpu_src(svga)) {
+                                switch ((mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = cpu_dat;
+                                        break;
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.cx, dest_dat);
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
+                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                    if (dev->accel.cmd & 0x02) {
+                                        if (dev->accel.cmd & 0x1000) {
+                                            if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                                WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                            } else if (!(dev->accel.cmd & 0x04)) {
+                                                WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                            }
+                                        } else {
+                                            if (dev->accel.x_count >= and3) {
+                                                if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                                    WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                                } else if (!(dev->accel.cmd & 0x04)) {
+                                                    WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        if ((dev->accel.cmd & 0x04) && dev->accel.sx) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        } else if (!(dev->accel.cmd & 0x04)) {
+                                            WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (dev->accel.cmd & 0x20)
+                            dev->accel.cx++;
+                        else
+                            dev->accel.cx--;
+
+                        if (dev->accel.cmd & 0x02)
+                            mix_dat >>= 1;
+                        else {
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
+                        }
+
+                        if (dev->bpp)
+                            cpu_dat >>= 16;
+                        else
+                            cpu_dat >>= 8;
+
+                        dev->accel.sx--;
+                        if (ibm8514_cpu_src(svga)) {
+                            if ((dev->accel.cmd & 0x02) && !(dev->accel.cmd & 0x1000))
+                                dev->accel.x_count++;
+                        }
+
+                        if (dev->accel.sx < 0) {
+                            dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+                            dev->accel.x_count = 0;
+                            if (dev->accel.input)
+                                dev->accel.odd_in = 1;
+
+                            if (dev->accel.output || dev->accel.input2)
+                                dev->accel.sx -= 2;
+
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx -= (dev->accel.sx + 1);
+                            else
+                                dev->accel.cx += (dev->accel.sx + 1);
+
+                            if (dev->accel.cmd & 0x80)
+                                dev->accel.cy++;
+                            else
+                                dev->accel.cy--;
+
+                            dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+
+                            dev->accel.sy--;
+
+                            if (dev->accel.sy < 0) {
+                                dev->fifo_idx = 0;
+                                dev->accel.cmd_back = 1;
+                            }
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                            return;
+                        }
+                    }
+                } else {
+                    if (pixcntl == 1) {
+                        if (dev->accel.cmd & 0x40) {
+                            count = (dev->accel.maj_axis_pcnt & 0x7ff) + 1;
+                            dev->accel.temp_cnt = 8;
+                            while (count-- && dev->accel.sy >= 0) {
+                                if (!dev->accel.temp_cnt) {
+                                    mix_dat >>= 8;
+                                    dev->accel.temp_cnt = 8;
+                                }
+                                if ((dev->accel.cx >= clip_l) &&
+                                    (dev->accel.cx <= clip_r) &&
+                                    (dev->accel.cy >= clip_t) &&
+                                    (dev->accel.cy <= clip_b)) {
+                                    dev->subsys_stat |= INT_GE_BSY;
+                                    switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                        case 0:
+                                            src_dat = bkgd_color;
+                                            break;
+                                        case 1:
+                                            src_dat = frgd_color;
+                                            break;
+                                        case 2:
+                                        case 3:
+                                            src_dat = 0;
+                                            break;
+
+                                        default:
+                                            break;
+                                    }
+
+                                    READ(dev->accel.dest + dev->accel.cx, dest_dat);
+
+                                    if ((compare_mode == 0) ||
+                                        ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                        ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                        ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                        ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                        ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                        ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                        old_dest_dat = dest_dat;
+                                        MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                        dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                    }
+                                }
+
+                                if (dev->accel.temp_cnt > 0) {
+                                    dev->accel.temp_cnt--;
+                                    mix_dat <<= 1;
+                                    mix_dat |= 1;
+                                }
+
+                                if (dev->accel.cmd & 0x20)
+                                    dev->accel.cx++;
+                                else
+                                    dev->accel.cx--;
+
+                                dev->accel.sx--;
+                                if (dev->accel.sx < 0) {
+                                    dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                                    if (dev->accel.cmd & 0x20) {
+                                        dev->accel.cx -= (dev->accel.sx + 1);
+                                    } else
+                                        dev->accel.cx += (dev->accel.sx + 1);
+
+                                    if (dev->accel.cmd & 0x80)
+                                        dev->accel.cy++;
+                                    else
+                                        dev->accel.cy--;
+
+                                    dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+
+                                    dev->accel.sy--;
+
+                                    if (dev->accel.sy < 0) {
+                                        dev->fifo_idx = 0;
+                                        dev->accel.cmd_back = 1;
+                                    }
+                                    return;
+                                }
+                            }
+                        } else {
+                            dev->accel.temp_cnt = 8;
+                            while (count-- && (dev->accel.sy >= 0)) {
+                                if (!dev->accel.temp_cnt) {
+                                    dev->accel.temp_cnt = 8;
+                                    mix_dat = old_mix_dat;
+                                }
+                                if ((dev->accel.cx >= clip_l) &&
+                                    (dev->accel.cx <= clip_r) &&
+                                    (dev->accel.cy >= clip_t) &&
+                                    (dev->accel.cy <= clip_b)) {
+                                    dev->subsys_stat |= INT_GE_BSY;
+                                    switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
+                                        case 0:
+                                            src_dat = bkgd_color;
+                                            break;
+                                        case 1:
+                                            src_dat = frgd_color;
+                                            break;
+                                        case 2:
+                                        case 3:
+                                            src_dat = 0;
+                                            break;
+
+                                        default:
+                                            break;
+                                    }
+
+                                    READ(dev->accel.dest + dev->accel.cx, dest_dat);
+
+                                    if ((compare_mode == 0) ||
+                                        ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                        ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                        ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                        ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                        ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                        ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                        old_dest_dat = dest_dat;
+                                        MIX(mix_dat & 0x01, dest_dat, src_dat);
+                                        dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                    }
+                                }
+
+                                dev->accel.temp_cnt--;
+                                mix_dat >>= 1;
+
+                                if (dev->accel.cmd & 0x20)
+                                    dev->accel.cx++;
+                                else
+                                    dev->accel.cx--;
+
+                                dev->accel.sx--;
+                                if (dev->accel.sx < 0) {
+                                    dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                                    if (dev->accel.cmd & 0x20) {
+                                        dev->accel.cx -= (dev->accel.sx + 1);
+                                    } else
+                                        dev->accel.cx += (dev->accel.sx + 1);
+
+                                    if (dev->accel.cmd & 0x80)
+                                        dev->accel.cy++;
+                                    else
+                                        dev->accel.cy--;
+
+                                    dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+
+                                    dev->accel.sy--;
+
+                                    if (dev->accel.sy < 0) {
+                                        if (cmd != 4) {
+                                            dev->accel.cur_x = dev->accel.cx;
+                                            dev->accel.cur_y = dev->accel.cy;
+                                        }
+                                        dev->fifo_idx = 0;
+                                        dev->accel.cmd_back = 1;
+                                        return;
+                                    }
+                                }
+                            }
+                        }
+                    } else if ((dev->accel.multifunc[0x0a] & 0x06) == 0x04) { /*Polygon Draw Type A*/
+                        ibm8514_log(dev->log,"Polygon Draw Type A: Clipping: L=%d, R=%d, T=%d, B=%d, C(%d,%d), sx=%d, sy=%d.\n", clip_l, clip_r, clip_t, clip_b, dev->accel.cx, dev->accel.cy, dev->accel.sx, dev->accel.sy);
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if ((dev->accel.cx >= clip_l) &&
+                                (dev->accel.cx <= clip_r) &&
+                                (dev->accel.cy >= clip_t) &&
+                                (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= INT_GE_BSY;
+                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.cx, poly_src);
+                                if ((poly_src & rd_mask_polygon) == rd_mask_polygon)
+                                    dev->accel.fill_state ^= 1;
+
+                                READ(dev->accel.dest + dev->accel.cx, dest_dat);
+
+                                old_dest_dat = dest_dat;
+                                if (dev->accel.fill_state) {
+                                    if (rd_mask_polygon & 0x01) {
+                                        if (wrt_mask & 0x01) {
+                                            dest_dat &= ~(rd_mask_polygon & wrt_mask); /*Fill State On, Write Mask 1, Read Mask 1.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
+                                    } else {
+                                        if (wrt_mask & 0x01) {
+                                            MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                            dest_dat &= ~rd_mask_polygon; /*Fill State On, Write Mask 1, Read Mask 0.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
+                                    }
+                                } else {
+                                    if (rd_mask_polygon & 0x01) {
+                                        if (wrt_mask & 0x01) {
+                                            dest_dat &= ~(rd_mask_polygon & wrt_mask); /*Fill State Off, Write Mask 1, Read Mask 1.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
+                                    } else {
+                                        if (wrt_mask & 0x01) {
+                                            dest_dat &= ~rd_mask_polygon; /*Fill State Off, Write Mask 1, Read Mask 0.*/
+                                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                        }
+                                    }
+                                }
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    ibm8514_log(dev->log,"Results c(%d,%d):rdmask=%02x, wrtmask=%02x, mix=%02x, destdat=%02x, nowrite=%d.\n", dev->accel.cx, dev->accel.cy, rd_mask_polygon, wrt_mask, mix_dat, dest_dat, dev->accel.cx_back);
+                                    WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                }
+                            } else
+                                ibm8514_log(dev->log,"Out of bounds DrawA C(%d,%d).\n", dev->accel.cx, dev->accel.cy);
+
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
+
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx++;
+                            else
+                                dev->accel.cx--;
+
+                            dev->accel.sx--;
+                            if (dev->accel.sx < 0) {
+                                dev->accel.fill_state = 0;
+                                dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                                if (dev->accel.cmd & 0x20)
+                                    dev->accel.cx -= (dev->accel.sx + 1);
+                                else
+                                    dev->accel.cx += (dev->accel.sx + 1);
+
+                                if (dev->accel.cmd & 0x80)
+                                    dev->accel.cy++;
+                                else
+                                    dev->accel.cy--;
+
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+
+                                dev->accel.sy--;
+
+                                if (dev->accel.sy < 0) {
+                                    ibm8514_log(dev->log,".\n");
+                                    dev->accel.cur_x = dev->accel.cx;
+                                    dev->accel.cur_y = dev->accel.cy;
+                                    dev->accel.cmd_back = 1;
+                                    return;
+                                }
+                            }
+                        }
+                    } else {
+                        ibm8514_log(dev->log,"Polygon Draw Type=%02x, CX=%d, CY=%d, SY=%d, CL=%d, CR=%d, frgdmix=%d, bkgdmix=%d, cmpmode=%02x, pitch=%d.\n", dev->accel.multifunc[0x0a] & 0x06, dev->accel.cx, dev->accel.cy, dev->accel.sy, clip_l, clip_r, frgd_mix, bkgd_mix, compare_mode, dev->pitch);
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if ((dev->accel.cx >= clip_l) &&
+                                (dev->accel.cx <= clip_r) &&
+                                (dev->accel.cy >= clip_t) &&
+                                (dev->accel.cy <= clip_b)) {
+                                dev->subsys_stat |= INT_GE_BSY;
+                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                    case 3:
+                                        src_dat = 0;
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.cx, dest_dat);
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+
+                                    if (dev->accel.cmd & 0x10) {
+                                        WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
+                                    }
+                                }
+                            } else
+                                ibm8514_log(dev->log,"Outside clipping.\n");
+
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
+
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx++;
+                            else
+                                dev->accel.cx--;
+
+                            dev->accel.sx--;
+                            if (dev->accel.sx < 0) {
+                                dev->accel.fill_state = 0;
+                                dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                                if (dev->accel.cmd & 0x20)
+                                    dev->accel.cx -= (dev->accel.sx + 1);
+                                else
+                                    dev->accel.cx += (dev->accel.sx + 1);
+
+                                if (dev->accel.cmd & 0x80)
+                                    dev->accel.cy++;
+                                else
+                                    dev->accel.cy--;
+
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+
+                                dev->accel.sy--;
+                                if (dev->accel.sy < 0) {
+                                    if (cmd != 4) {
+                                        dev->accel.cur_x = dev->accel.cx;
+                                        dev->accel.cur_y = dev->accel.cy;
+                                    }
+                                    dev->accel.cmd_back = 1;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+
+        case 5: /*Draw Polygon Boundary Line*/ {
+            if (!cpu_input) {
+                dev->accel.sy = dev->accel.maj_axis_pcnt_no_limit;
+
+                dev->accel.cx = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    dev->accel.cx |= ~0x5ff;
+
+                dev->accel.cy = dev->accel.cur_y;
+                if (dev->accel.cur_y >= 0x600)
+                    dev->accel.cy |= ~0x5ff;
+
+                if (dev->accel.cmd & 0x80)
+                    dev->accel.oldcy = dev->accel.cy + 1;
+                else
+                    dev->accel.oldcy = dev->accel.cy - 1;
+
+                ibm8514_log(dev->log,"Polygon Boundary activated=%04x, len=%d, cur(%d,%d), frgdmix=%02x, err=%d, clipping: l=%d, r=%d, t=%d, b=%d, pixcntl=%02x.\n", dev->accel.cmd, dev->accel.sy, dev->accel.cx, dev->accel.cy, dev->accel.frgd_mix & 0x1f, dev->accel.err_term, clip_l, clip_r, clip_t, clip_b, dev->accel.multifunc[0x0a]);
+
+                if (ibm8514_cpu_src(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 0;
+                    dev->data_available2 = 0;
+                    return; /*Wait for data from CPU*/
+                } else if (ibm8514_cpu_dest(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 1;
+                    dev->data_available2 = 1;
+                    return;
+                }
+            }
+
+            if (dev->accel.cmd & 0x08) { /*Vectored Boundary Line*/
+                while (count-- && (dev->accel.sy >= 0)) {
+                    dev->accel.cx = CLAMP(dev->accel.cx, clip_l, clip_r);
+
+                    if ((dev->accel.cx >= clip_l) &&
+                        (dev->accel.cx <= clip_r) &&
+                        (dev->accel.cy >= clip_t) &&
+                        (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= INT_GE_BSY;
+                        switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                            case 0:
+                                src_dat = bkgd_color;
+                                break;
+                            case 1:
+                                src_dat = frgd_color;
+                                break;
+                            case 2:
+                                src_dat = cpu_dat;
+                                break;
+                            case 3:
+                                src_dat = 0;
+                                break;
+
+                            default:
+                                break;
+                        }
+
+
+                        READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                        if ((compare_mode == 0) ||
+                            ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                            ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                            ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                            ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                            ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                            ((compare_mode == 0x38) && (dest_dat > compare))) {
+                            old_dest_dat = dest_dat;
+                            MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                            if (dev->accel.cmd & 0x10) {
+                                if (dev->accel.sy && (dev->accel.cmd & 0x04)) {
+                                    if (dev->accel.oldcy != dev->accel.cy) {
+                                        WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                                    }
+                                } else if (!(dev->accel.cmd & 0x04)) {
+                                    if (dev->accel.oldcy != dev->accel.cy) {
+                                        WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    mix_dat <<= 1;
+                    mix_dat |= 1;
+                    if (dev->bpp)
+                        cpu_dat >>= 16;
+                    else
+                        cpu_dat >>= 8;
+
+                    if (!dev->accel.sy) {
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                            dev->fifo_idx = 0;
+                        }
+                        dev->accel.cmd_back = 1;
+                        break;
+                    }
+
+                    switch (dev->accel.cmd & 0xe0) {
+                        case 0x00:
+                            dev->accel.cx++;
+                            break;
+                        case 0x20:
+                            dev->accel.cx++;
+                            dev->accel.oldcy = dev->accel.cy;
+                            dev->accel.cy--;
+                            break;
+                        case 0x40:
+                            dev->accel.oldcy = dev->accel.cy;
+                            dev->accel.cy--;
+                            break;
+                        case 0x60:
+                            dev->accel.cx--;
+                            dev->accel.oldcy = dev->accel.cy;
+                            dev->accel.cy--;
+                            break;
+                        case 0x80:
+                            dev->accel.cx--;
+                            break;
+                        case 0xa0:
+                            dev->accel.cx--;
+                            dev->accel.oldcy = dev->accel.cy;
+                            dev->accel.cy++;
+                            break;
+                        case 0xc0:
+                            dev->accel.oldcy = dev->accel.cy;
+                            dev->accel.cy++;
+                            break;
+                        case 0xe0:
+                            dev->accel.cx++;
+                            dev->accel.oldcy = dev->accel.cy;
+                            dev->accel.cy++;
+                            break;
+
+                        default:
+                            break;
+                    }
+
+                    dev->accel.sy--;
+                }
+            } else { /*Vectored Bresenham*/
+                while (count-- && (dev->accel.sy >= 0)) {
+                    dev->accel.cx = CLAMP(dev->accel.cx, clip_l, clip_r);
+
+                    if ((dev->accel.cx >= clip_l) &&
+                        (dev->accel.cx <= clip_r) &&
+                        (dev->accel.cy >= clip_t) &&
+                        (dev->accel.cy <= clip_b)) {
+                        dev->subsys_stat |= INT_GE_BSY;
+                        switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                            case 0:
+                                src_dat = bkgd_color;
+                                break;
+                            case 1:
+                                src_dat = frgd_color;
+                                break;
+                            case 2:
+                                src_dat = cpu_dat;
+                                break;
+                            case 3:
+                                src_dat = 0;
+                                break;
+
+                            default:
+                                break;
+                        }
+
+                        READ((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+
+                        if ((compare_mode == 0) ||
+                            ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                            ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                            ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                            ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                            ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                            ((compare_mode == 0x38) && (dest_dat > compare))) {
+                            old_dest_dat = dest_dat;
+                            MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+
+                            if ((dev->accel.cmd & 0x14) == 0x14) {
+                                if (dev->accel.sy) {
+                                    if (dev->accel.oldcy != dev->accel.cy) {
+                                        WRITE((dev->accel.cy * dev->pitch) + dev->accel.cx, dest_dat);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    mix_dat <<= 1;
+                    mix_dat |= 1;
+                    if (dev->bpp)
+                        cpu_dat >>= 16;
+                    else
+                        cpu_dat >>= 8;
+
+                    if (!dev->accel.sy) {
+                        if (cpu_input) {
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                            dev->fifo_idx = 0;
+                        }
+                        dev->accel.cmd_back = 1;
+                        break;
+                    }
+
+                    if (dev->accel.cmd & 0x40) {
+                        dev->accel.oldcy = dev->accel.cy;
+                        if (dev->accel.cmd & 0x80)
+                            dev->accel.cy++;
+                        else
+                            dev->accel.cy--;
+
+                        if (dev->accel.err_term >= dev->accel.maj_axis_pcnt_no_limit) {
+                            dev->accel.err_term += dev->accel.destx_distp;
+                            if (dev->accel.cmd & 0x20)
+                                dev->accel.cx++;
+                            else
+                                dev->accel.cx--;
+                        } else
+                            dev->accel.err_term += dev->accel.desty_axstp;
+                    } else {
+                        if (dev->accel.cmd & 0x20)
+                            dev->accel.cx++;
+                        else
+                            dev->accel.cx--;
+
+                        dev->accel.oldcy = dev->accel.cy;
+                        if (dev->accel.err_term >= dev->accel.maj_axis_pcnt_no_limit) {
+                            dev->accel.err_term += dev->accel.destx_distp;
+                            if (dev->accel.cmd & 0x80)
+                                dev->accel.cy++;
+                            else
+                                dev->accel.cy--;
+                        } else
+                            dev->accel.err_term += dev->accel.desty_axstp;
+                    }
+
+                    dev->accel.sy--;
+                }
+            }
+        }
+        break;
+
+        case 6: /*BitBlt*/
+            if (!cpu_input) /*!cpu_input is trigger to start operation*/
+            {
+                dev->accel.x_count = 0;
+
+                dev->accel.dx = dev->accel.destx;
+                if (dev->accel.destx >= 0x600)
+                    dev->accel.dx |= ~0x5ff;
+
+                dev->accel.dy = dev->accel.desty;
+                if (dev->accel.desty >= 0x600)
+                    dev->accel.dy |= ~0x5ff;
+
+                dev->accel.cx = dev->accel.cur_x;
+                if (dev->accel.cur_x >= 0x600)
+                    dev->accel.cx |= ~0x5ff;
+
+                dev->accel.cy = dev->accel.cur_y;
+                if (dev->accel.cur_y >= 0x600)
+                    dev->accel.cy |= ~0x5ff;
+
+                dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+                dev->accel.sy = dev->accel.multifunc[0] & 0x7ff;
+
+                ibm8514_log(dev->log,"CMD=%d, full=%04x, curx=%d, cury=%d, destx=%d, desty=%d, pixcntl=%x, frgdsel=%d, bkgdsel=%d, frgdmix=%02x, bkgdmix=%02x.\n",
+                          cmd, dev->accel.cmd, dev->accel.cx, dev->accel.cy, dev->accel.dx, dev->accel.dy, pixcntl, frgd_mix, bkgd_mix, dev->accel.frgd_mix, dev->accel.bkgd_mix);
+
+                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
+                dev->accel.fill_state = 0;
+
+                if (ibm8514_cpu_src(svga)) {
+                    if (dev->accel.cmd & 0x02) {
+                        if (!(dev->accel.cmd & 0x1000)) {
+                            if (and3_blt) {
+                                if (dev->accel.cmd & 0x20)
+                                    dev->accel.dx -= and3_blt;
+                                else
+                                    dev->accel.dx += and3_blt;
+
+                                dev->accel.sx += 8;
+                            }
+                        }
+                    }
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 0;
+                    dev->data_available2 = 0;
+                    return; /*Wait for data from CPU*/
+                } else if (ibm8514_cpu_dest(svga)) {
+                    dev->force_busy = 1;
+                    dev->force_busy2 = 1;
+                    dev->data_available  = 1;
+                    dev->data_available2 = 1;
+                    return; /*Wait for data from CPU*/
+                } else
+                    ibm8514_log(dev->log,"BitBLT normal: Parameters: DX=%d, DY=%d, CX=%d, CY=%d, dstwidth=%d, dstheight=%d, clipl=%d, clipr=%d, clipt=%d, clipb=%d.\n", dev->accel.dx, dev->accel.dy, dev->accel.cx, dev->accel.cy, dev->accel.sx, dev->accel.sy, clip_l, clip_r, clip_t, clip_b);
+            }
+
+            if (cpu_input) {
+                while (count-- && (dev->accel.sy >= 0)) {
+                    if ((dev->accel.dx >= clip_l) &&
+                        (dev->accel.dx <= clip_r) &&
+                        (dev->accel.dy >= clip_t) &&
+                        (dev->accel.dy <= clip_b)) {
+                        if (pixcntl == 3) {
+                            if (!(dev->accel.cmd & 0x10) && ((frgd_mix != 3) || (bkgd_mix != 3))) {
+                                READ(dev->accel.src + dev->accel.cx, mix_dat);
+                                mix_dat = ((mix_dat & rd_mask) == rd_mask);
+                                if (dev->accel.cmd & 0x02)
+                                    mix_dat = mix_dat ? 0x01 : 0x00;
+                                else
+                                    mix_dat = mix_dat ? mix_mask : 0x00;
+                            } else if (dev->accel.cmd & 0x10) {
+                                READ(dev->accel.src + dev->accel.cx, mix_dat);
+                                mix_dat = ((mix_dat & rd_mask) == rd_mask);
+                                if (dev->accel.cmd & 0x02)
+                                    mix_dat = mix_dat ? 0x01 : 0x00;
+                                else
+                                    mix_dat = mix_dat ? mix_mask : 0x00;
+                            }
+                        }
+
+                        switch (((mix_dat & (dev->accel.cmd & 0x02) ? 0x01 : mix_mask)) ? frgd_mix : bkgd_mix) {
+                            case 0:
+                                src_dat = bkgd_color;
+                                break;
+                            case 1:
+                                src_dat = frgd_color;
+                                break;
+                            case 2:
+                                src_dat = cpu_dat;
+                                break;
+                            case 3:
+                                READ(dev->accel.src + dev->accel.cx, src_dat);
+                                if (pixcntl == 3) {
+                                    if (dev->accel.cmd & 0x10)
+                                        src_dat = ((src_dat & rd_mask) == rd_mask);
+                                }
+                                break;
+
+                            default:
+                                break;
+                        }
+
+                        READ(dev->accel.dest + dev->accel.dx, dest_dat);
+
+                        if ((compare_mode == 0) ||
+                            ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                            ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                            ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                            ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                            ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                            ((compare_mode == 0x38) && (dest_dat > compare))) {
+                            old_dest_dat = dest_dat;
+                            MIX(mix_dat & ((dev->accel.cmd & 0x02) ? 0x01 : mix_mask), dest_dat, src_dat);
+                            dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                            if (dev->accel.cmd & 0x02) {
+                                if (dev->accel.cmd & 0x1000) {
+                                    WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                } else {
+                                    if (dev->accel.x_count >= and3_blt) {
+                                        WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                    }
+                                }
+                            } else {
+                                WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                            }
+                        }
+                    }
+
+                    if (dev->accel.cmd & 0x20) {
+                        dev->accel.dx++;
+                        dev->accel.cx++;
+                    } else {
+                        dev->accel.dx--;
+                        dev->accel.cx--;
+                    }
+
+                    if (dev->accel.cmd & 0x02)
+                        mix_dat >>= 1;
+                    else {
+                        mix_dat <<= 1;
+                        mix_dat |= 1;
+                    }
+
+                    if (dev->bpp)
+                        cpu_dat >>= 16;
+                    else
+                        cpu_dat >>= 8;
+
+                    dev->accel.sx--;
+                    dev->accel.x_count++;
+                    if (dev->accel.sx < 0) {
+                        dev->accel.x_count = 0;
+                        dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                        if (dev->accel.cmd & 0x20) {
+                            dev->accel.dx -= (dev->accel.sx + 1);
+                            dev->accel.cx -= (dev->accel.sx + 1);
+                        } else {
+                            dev->accel.dx += (dev->accel.sx + 1);
+                            dev->accel.cx += (dev->accel.sx + 1);
+                        }
+
+                        if (dev->accel.cmd & 0x80) {
+                            dev->accel.dy++;
+                            dev->accel.cy++;
+                        } else {
+                            dev->accel.dy--;
+                            dev->accel.cy--;
+                        }
+
+                        dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                        dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
+
+                        dev->accel.sy--;
+
+                        if (dev->accel.sy < 0) {
+                            dev->accel.cmd_back = 1;
+                            dev->force_busy = 0;
+                            dev->force_busy2 = 0;
+                            dev->fifo_idx = 0;
+                        }
+                        return;
+                    }
+                }
+            } else {
+                if (pixcntl == 1) {
+                    if (dev->accel.cmd & 0x40) {
+                        count = (dev->accel.maj_axis_pcnt & 0x7ff) + 1;
+                        dev->accel.temp_cnt = 8;
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if (!dev->accel.temp_cnt) {
+                                mix_dat >>= 8;
+                                dev->accel.temp_cnt = 8;
+                            }
+                            if ((dev->accel.dx >= clip_l) &&
+                                (dev->accel.dx <= clip_r) &&
+                                (dev->accel.dy >= clip_t) &&
+                                (dev->accel.dy <= clip_b)) {
+                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = 0;
+                                        break;
+                                    case 3:
+                                        READ(dev->accel.src + dev->accel.cx, src_dat);
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.dx, dest_dat);
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                    WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                }
+                            }
+
+                            if (dev->accel.temp_cnt > 0) {
+                                dev->accel.temp_cnt--;
+                                mix_dat <<= 1;
+                                mix_dat |= 1;
+                            }
+
+                            if (dev->accel.cmd & 0x20) {
+                                dev->accel.dx++;
+                                dev->accel.cx++;
+                            } else {
+                                dev->accel.dx--;
+                                dev->accel.cx--;
+                            }
+
+                            dev->accel.sx--;
+                            if (dev->accel.sx < 0) {
+                                dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                                if (dev->accel.cmd & 0x20) {
+                                    dev->accel.dx -= (dev->accel.sx + 1);
+                                    dev->accel.cx -= (dev->accel.sx + 1);
+                                } else {
+                                    dev->accel.dx += (dev->accel.sx + 1);
+                                    dev->accel.cx += (dev->accel.sx + 1);
+                                }
+
+                                if (dev->accel.cmd & 0x80) {
+                                    dev->accel.dy++;
+                                    dev->accel.cy++;
+                                } else {
+                                    dev->accel.dy--;
+                                    dev->accel.cy--;
+                                }
+
+                                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
+
+                                dev->accel.sy--;
+
+                                if (dev->accel.sy < 0)
+                                    dev->accel.cmd_back = 1;
+
+                                return;
+                            }
+                        }
+                    } else {
+                        dev->accel.temp_cnt = 8;
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if (!dev->accel.temp_cnt) {
+                                dev->accel.temp_cnt = 8;
+                                mix_dat = old_mix_dat;
+                            }
+                            if ((dev->accel.dx >= clip_l) &&
+                                (dev->accel.dx <= clip_r) &&
+                                (dev->accel.dy >= clip_t) &&
+                                (dev->accel.dy <= clip_b)) {
+                                switch ((mix_dat & 0x01) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = 0;
+                                        break;
+                                    case 3:
+                                        READ(dev->accel.src + dev->accel.cx, src_dat);
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.dx, dest_dat);
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & 0x01, dest_dat, src_dat);
+                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                    WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                }
+                            }
+
+                            dev->accel.temp_cnt--;
+                            mix_dat >>= 1;
+
+                            if (dev->accel.cmd & 0x20) {
+                                dev->accel.dx++;
+                                dev->accel.cx++;
+                            } else {
+                                dev->accel.dx--;
+                                dev->accel.cx--;
+                            }
+
+                            dev->accel.sx--;
+                            if (dev->accel.sx < 0) {
+                                dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                                if (dev->accel.cmd & 0x20) {
+                                    dev->accel.dx -= (dev->accel.sx + 1);
+                                    dev->accel.cx -= (dev->accel.sx + 1);
+                                } else {
+                                    dev->accel.dx += (dev->accel.sx + 1);
+                                    dev->accel.cx += (dev->accel.sx + 1);
+                                }
+
+                                if (dev->accel.cmd & 0x80) {
+                                    dev->accel.dy++;
+                                    dev->accel.cy++;
+                                } else {
+                                    dev->accel.dy--;
+                                    dev->accel.cy--;
+                                }
+
+                                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
+
+                                dev->accel.sy--;
+
+                                if (dev->accel.sy < 0) {
+                                    dev->accel.destx = dev->accel.dx;
+                                    dev->accel.desty = dev->accel.dy;
+                                    dev->accel.cmd_back = 1;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    if ((dev->accel_bpp == 24) && (dev->accel.cmd == 0xc2b5)) {
+                        int64_t cx;
+                        int64_t dx;
+
+                        cx = (int64_t) dev->accel.cx;
+                        dx = (int64_t) dev->accel.dx;
+
+                        dev->accel.src  = dev->accel.src_ge_offset + (dev->accel.cy * dev->accel.src_pitch);
+                        dev->accel.dest = dev->accel.dst_ge_offset + (dev->accel.dy * dev->accel.dst_pitch);
+
+                        while (1) {
+                            if ((dx >= (((int64_t)clip_l) * 3)) &&
+                                (dx <= (((uint64_t)clip_r) * 3)) &&
+                                (dev->accel.dy >= (clip_t << 1)) &&
+                                (dev->accel.dy <= (clip_b << 1))) {
+                                READ(dev->accel.src + cx, src_dat);
+                                READ(dev->accel.dest + dx, dest_dat);
+                                old_dest_dat = dest_dat;
+                                MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                WRITE(dev->accel.dest + dx, dest_dat);
+                            }
+
+                            cx++;
+                            dx++;
+
+                            dev->accel.sx--;
+                            if (dev->accel.sx < 0) {
+                                dev->accel.cmd_back = 1;
+                                return;
+                            }
+                        }
+                    } else {
+                        while (count-- && (dev->accel.sy >= 0)) {
+                            if ((dev->accel.dx >= clip_l) &&
+                                (dev->accel.dx <= clip_r) &&
+                                (dev->accel.dy >= clip_t) &&
+                                (dev->accel.dy <= clip_b)) {
+                                if (pixcntl == 3) {
+                                    if (!(dev->accel.cmd & 0x10) && ((frgd_mix != 3) || (bkgd_mix != 3))) {
+                                        READ(dev->accel.src + dev->accel.cx, mix_dat);
+                                        mix_dat = ((mix_dat & rd_mask) == rd_mask);
+                                        mix_dat = mix_dat ? mix_mask : 0;
+                                    } else if (dev->accel.cmd & 0x10) {
+                                        READ(dev->accel.src + dev->accel.cx, mix_dat);
+                                        mix_dat = ((mix_dat & rd_mask) == rd_mask);
+                                        mix_dat = mix_dat ? mix_mask : 0;
+                                    }
+                                }
+                                switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    case 0:
+                                        src_dat = bkgd_color;
+                                        break;
+                                    case 1:
+                                        src_dat = frgd_color;
+                                        break;
+                                    case 2:
+                                        src_dat = 0;
+                                        break;
+                                    case 3:
+                                        READ(dev->accel.src + dev->accel.cx, src_dat);
+                                        if (pixcntl == 3) {
+                                            if ((dev->accel.cmd & 0x10) && !(dev->accel.cmd & 0x40))
+                                                src_dat = ((src_dat & rd_mask) == rd_mask);
+                                        }
+                                        break;
+
+                                    default:
+                                        break;
+                                }
+
+                                READ(dev->accel.dest + dev->accel.dx, dest_dat);
+
+                                if ((compare_mode == 0) ||
+                                    ((compare_mode == 0x10) && (dest_dat >= compare)) ||
+                                    ((compare_mode == 0x18) && (dest_dat < compare)) ||
+                                    ((compare_mode == 0x20) && (dest_dat != compare)) ||
+                                    ((compare_mode == 0x28) && (dest_dat == compare)) ||
+                                    ((compare_mode == 0x30) && (dest_dat <= compare)) ||
+                                    ((compare_mode == 0x38) && (dest_dat > compare))) {
+                                    old_dest_dat = dest_dat;
+                                    MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                    dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
+                                    WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
+                                }
+                            }
+
+                            mix_dat <<= 1;
+                            mix_dat |= 1;
+
+                            if (dev->accel.cmd & 0x20) {
+                                dev->accel.dx++;
+                                dev->accel.cx++;
+                            } else {
+                                dev->accel.dx--;
+                                dev->accel.cx--;
+                            }
+
+                            dev->accel.sx--;
+                            if (dev->accel.sx < 0) {
+                                dev->accel.fill_state = 0;
+                                dev->accel.sx = dev->accel.maj_axis_pcnt & 0x7ff;
+
+                                if (dev->accel.cmd & 0x20) {
+                                    dev->accel.dx -= (dev->accel.sx + 1);
+                                    dev->accel.cx -= (dev->accel.sx + 1);
+                                } else {
+                                    dev->accel.dx += (dev->accel.sx + 1);
+                                    dev->accel.cx += (dev->accel.sx + 1);
+                                }
+
+                                if (dev->accel.cmd & 0x80) {
+                                    dev->accel.dy++;
+                                    dev->accel.cy++;
+                                } else {
+                                    dev->accel.dy--;
+                                    dev->accel.cy--;
+                                }
+
+                                dev->accel.src  = dev->accel.ge_offset + (dev->accel.cy * dev->pitch);
+                                dev->accel.dest = dev->accel.ge_offset + (dev->accel.dy * dev->pitch);
+
+                                dev->accel.sy--;
+
+                                if (dev->accel.sy < 0) {
+                                    dev->accel.destx = dev->accel.dx;
+                                    dev->accel.desty = dev->accel.dy;
+                                    dev->accel.cmd_back = 1;
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+
+        default:
+            break;
+    }
+}
+
+void
+ibm8514_render_blank(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->firstline_draw == 2000)
+            svga->firstline_draw = svga->displine;
+
+        svga->lastline_draw = svga->displine;
+
+        uint32_t *line_ptr   = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+        uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
+
+        if (dev->h_disp > 0)
+            memset(line_ptr, 0, line_width);
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->firstline_draw == 2000)
+            dev->firstline_draw = dev->displine;
+        dev->lastline_draw = dev->displine;
+
+        uint32_t *line_ptr   = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+        uint32_t  line_width = (uint32_t)(dev->h_disp) * sizeof(uint32_t);
+
+        if (dev->h_disp > 0)
+            memset(line_ptr, 0, line_width);
+    }
+}
+
+void
+ibm8514_render_8bpp(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+
+            if (svga->firstline_draw == 2000)
+                svga->firstline_draw = svga->displine;
+            svga->lastline_draw = svga->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 8) {
+                dat  = *(uint32_t *) (&svga->vram[svga->memaddr & svga->vram_mask]);
+                p[0] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[1] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[2] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[3] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+
+                dat  = *(uint32_t *) (&svga->vram[(svga->memaddr + 4) & svga->vram_mask]);
+                p[4] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[5] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[6] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[7] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+
+                svga->memaddr += 8;
+                p += 8;
+            }
+            svga->memaddr &= svga->vram_mask;
+        }
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 8) {
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
+                p[0] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[1] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[2] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[3] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + 4) & dev->vram_mask]);
+                p[4] = dev->pallook[dat & dev->dac_mask & 0xff];
+                p[5] = dev->pallook[(dat >> 8) & dev->dac_mask & 0xff];
+                p[6] = dev->pallook[(dat >> 16) & dev->dac_mask & 0xff];
+                p[7] = dev->pallook[(dat >> 24) & dev->dac_mask & 0xff];
+
+                dev->memaddr += 8;
+                p += 8;
+            }
+            dev->memaddr &= dev->vram_mask;
+        }
+    }
+}
+
+void
+ibm8514_render_15bpp(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+
+            if (svga->firstline_draw == 2000)
+                svga->firstline_draw = svga->displine;
+            svga->lastline_draw = svga->displine;
+
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1)) & svga->vram_mask]);
+                p[x]     = video_15to32[dat & 0xffff];
+                p[x + 1] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 4) & svga->vram_mask]);
+                p[x + 2] = video_15to32[dat & 0xffff];
+                p[x + 3] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 8) & svga->vram_mask]);
+                p[x + 4] = video_15to32[dat & 0xffff];
+                p[x + 5] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 12) & svga->vram_mask]);
+                p[x + 6] = video_15to32[dat & 0xffff];
+                p[x + 7] = video_15to32[dat >> 16];
+            }
+            svga->memaddr += (x << 1);
+            svga->memaddr &= svga->vram_mask;
+        }
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1)) & dev->vram_mask]);
+                p[x]     = video_15to32[dat & 0xffff];
+                p[x + 1] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 4) & dev->vram_mask]);
+                p[x + 2] = video_15to32[dat & 0xffff];
+                p[x + 3] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 8) & dev->vram_mask]);
+                p[x + 4] = video_15to32[dat & 0xffff];
+                p[x + 5] = video_15to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 12) & dev->vram_mask]);
+                p[x + 6] = video_15to32[dat & 0xffff];
+                p[x + 7] = video_15to32[dat >> 16];
+            }
+            dev->memaddr += (x << 1);
+            dev->memaddr &= dev->vram_mask;
+        }
+    }
+}
+
+void
+ibm8514_render_16bpp(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->changedvram[svga->memaddr >> 12] || svga->changedvram[(svga->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+
+            if (svga->firstline_draw == 2000)
+                svga->firstline_draw = svga->displine;
+            svga->lastline_draw = svga->displine;
+
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1)) & svga->vram_mask]);
+                p[x]     = video_16to32[dat & 0xffff];
+                p[x + 1] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 4) & svga->vram_mask]);
+                p[x + 2] = video_16to32[dat & 0xffff];
+                p[x + 3] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 8) & svga->vram_mask]);
+                p[x + 4] = video_16to32[dat & 0xffff];
+                p[x + 5] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&svga->vram[(svga->memaddr + (x << 1) + 12) & svga->vram_mask]);
+                p[x + 6] = video_16to32[dat & 0xffff];
+                p[x + 7] = video_16to32[dat >> 16];
+            }
+            svga->memaddr += (x << 1);
+            svga->memaddr &= svga->vram_mask;
+        }
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x += 8) {
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1)) & dev->vram_mask]);
+                p[x]     = video_16to32[dat & 0xffff];
+                p[x + 1] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 4) & dev->vram_mask]);
+                p[x + 2] = video_16to32[dat & 0xffff];
+                p[x + 3] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 8) & dev->vram_mask]);
+                p[x + 4] = video_16to32[dat & 0xffff];
+                p[x + 5] = video_16to32[dat >> 16];
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 1) + 12) & dev->vram_mask]);
+                p[x + 6] = video_16to32[dat & 0xffff];
+                p[x + 7] = video_16to32[dat >> 16];
+            }
+            dev->memaddr += (x << 1);
+            dev->memaddr &= dev->vram_mask;
+        }
+    }
+}
+
+void
+ibm8514_render_24bpp(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint32_t *p;
+    uint32_t  dat;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&svga->vram[dev->memaddr & svga->vram_mask]);
+                p[x] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 3) & svga->vram_mask]);
+                p[x + 1] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 6) & svga->vram_mask]);
+                p[x + 2] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 9) & svga->vram_mask]);
+                p[x + 3] = dat & 0xffffff;
+
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= svga->vram_mask;
+        }
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
+                p[x] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
+                p[x + 1] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
+                p[x + 2] = dat & 0xffffff;
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
+                p[x + 3] = dat & 0xffffff;
+
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= dev->vram_mask;
+        }
+    }
+}
+
+void
+ibm8514_render_BGR(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&svga->vram[dev->memaddr & svga->vram_mask]);
+                p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 3) & svga->vram_mask]);
+                p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 6) & svga->vram_mask]);
+                p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&svga->vram[(dev->memaddr + 9) & svga->vram_mask]);
+                p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= svga->vram_mask;
+        }
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (int x = 0; x <= dev->h_disp; x += 4) {
+                dat  = *(uint32_t *) (&dev->vram[dev->memaddr & dev->vram_mask]);
+                p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 3) & dev->vram_mask]);
+                p[x + 1] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 6) & dev->vram_mask]);
+                p[x + 2] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dat      = *(uint32_t *) (&dev->vram[(dev->memaddr + 9) & dev->vram_mask]);
+                p[x + 3] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+
+                dev->memaddr += 12;
+            }
+            dev->memaddr &= dev->vram_mask;
+        }
+    }
+}
+
+void
+ibm8514_render_ABGR8888(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&svga->vram[(dev->memaddr + (x << 2)) & svga->vram_mask]);
+                *p++ = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= svga->vram_mask;
+        }
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
+                *p++ = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= dev->vram_mask;
+        }
+    }
+}
+
+void
+ibm8514_render_32bpp(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->changedvram[dev->memaddr >> 12] || svga->changedvram[(dev->memaddr >> 12) + 1] || svga->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&svga->vram[(dev->memaddr + (x << 2)) & svga->vram_mask]);
+                p[x] = dat & 0xffffff;
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= svga->vram_mask;
+        }
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (dev->changedvram[dev->memaddr >> 12] || dev->changedvram[(dev->memaddr >> 12) + 1] || dev->changedvram[(dev->memaddr >> 12) + 2] || svga->fullchange) {
+            p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
+
+            if (dev->firstline_draw == 2000)
+                dev->firstline_draw = dev->displine;
+            dev->lastline_draw = dev->displine;
+
+            for (x = 0; x <= dev->h_disp; x++) {
+                dat  = *(uint32_t *) (&dev->vram[(dev->memaddr + (x << 2)) & dev->vram_mask]);
+                p[x] = dat & 0xffffff;
+            }
+            dev->memaddr += (x * 4);
+            dev->memaddr &= dev->vram_mask;
+        }
+    }
+}
+
+static void
+ibm8514_render_overscan_left(ibm8514_t *dev, svga_t *svga)
+{
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->scrblank || (dev->h_disp == 0))
+            return;
+
+        for (int i = 0; i < svga->x_add; i++)
+            buffer32->line[svga->displine + svga->y_add][i] = svga->overscan_color;
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->scrblank || (dev->h_disp == 0))
+            return;
+
+        for (int i = 0; i < svga->x_add; i++)
+            buffer32->line[dev->displine + svga->y_add][i] = svga->overscan_color;
+    }
+}
+
+static void
+ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
+{
+    int right;
+
+    if (ATI_MACH32) {
+        if ((svga->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->scrblank || (dev->h_disp == 0))
+            return;
+
+        right = (overscan_x >> 1);
+        for (int i = 0; i < right; i++)
+            buffer32->line[svga->displine + svga->y_add][svga->x_add + svga->hdisp + i] = svga->overscan_color;
+    } else {
+        if ((dev->displine + svga->y_add) < 0)
+            return;
+
+        if (svga->scrblank || (dev->h_disp == 0))
+            return;
+
+        right = (overscan_x >> 1);
+        for (int i = 0; i < right; i++)
+            buffer32->line[dev->displine + svga->y_add][svga->x_add + dev->h_disp + i] = svga->overscan_color;
+    }
+}
+
+void
+ibm8514_set_poll(svga_t *svga)
+{
+    timer_set_callback(&svga->timer, ibm8514_poll);
+}
+
+void
+ibm8514_poll(void *priv)
+{
+    svga_t *svga = (svga_t *)priv;
+    ibm8514_t *dev = (ibm8514_t *)svga->dev8514;
+    uint32_t x;
+    uint32_t blink_delay;
+    int      wx;
+    int      wy;
+
+    ibm8514_log(dev->log,"IBM 8514/A poll=%x offtime=%" PRIu64 ", ontime=%" PRIu64 ".\n", dev->on, dev->dispofftime, dev->dispontime);
+    if (dev->on) {
+        ibm8514_log(dev->log, "ON!\n");
+        if (svga->override)
+            svga_set_poll(svga);
+        else if (ATI_MACH32) {
+            if (!svga->linepos) {
+                if (svga->displine == ((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) && svga->hwcursor_latch.ena) {
+                    svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - svga->hwcursor_latch.yoff;
+                    svga->hwcursor_oddeven = 0;
+                }
+
+                if (svga->displine == (((svga->hwcursor_latch.y < 0) ? 0 : svga->hwcursor_latch.y) + 1) && svga->hwcursor_latch.ena && svga->interlace) {
+                    svga->hwcursor_on      = svga->hwcursor_latch.cur_ysize - (svga->hwcursor_latch.yoff + 1);
+                    svga->hwcursor_oddeven = 1;
+                }
+
+                timer_advance_u64(&svga->timer, svga->dispofftime);
+                svga->cgastat |= 1;
+                svga->linepos = 1;
+
+                if (svga->dispon) {
+                    svga->hdisp_on = 1;
+
+                    svga->memaddr &= svga->vram_display_mask;
+                    if (svga->firstline == 2000) {
+                        svga->firstline = svga->displine;
+                        video_wait_for_buffer_monitor(svga->monitor_index);
+                    }
+
+                    if (svga->hwcursor_on)
+                        svga->changedvram[svga->memaddr >> 12] = svga->changedvram[(svga->memaddr >> 12) + 1] = svga->interlace ? 3 : 2;
+
+                    svga->render8514(svga);
+
+                    svga->x_add = svga->left_overscan;
+                    ibm8514_render_overscan_left(dev, svga);
+                    ibm8514_render_overscan_right(dev, svga);
+                    svga->x_add = svga->left_overscan;
+
+                    if (svga->hwcursor_on) {
+                        if (svga->hwcursor_draw)
+                            svga->hwcursor_draw(svga, (svga->displine + svga->y_add + ((svga->hwcursor_latch.y >= 0) ? 0 : svga->hwcursor_latch.y)) & 2047);
+
+                        svga->hwcursor_on--;
+                        if (svga->hwcursor_on && svga->interlace)
+                            svga->hwcursor_on--;
+                    }
+
+                    if (svga->lastline < svga->displine)
+                        svga->lastline = svga->displine;
+                }
+
+                svga->displine++;
+                video_lightpen_check_trigger_strobe(svga->x_add, svga->displine, 0, svga->firstline, 1. / (svga->clock / (cpuclock * (double) (1ULL << 32))), svga->monitor_index);
+                if (svga->interlace)
+                    svga->displine++;
+                if ((svga->cgastat & 8) && ((svga->displine & 15) == (svga->crtc[0x11] & 15)) && svga->vslines)
+                    svga->cgastat &= ~8;
+                svga->vslines++;
+                if (svga->displine > 2000)
+                    svga->displine = 0;
+            } else {
+                timer_advance_u64(&svga->timer, svga->dispontime);
+                video_lightpen_hsync();
+
+                if (svga->dispon)
+                    svga->cgastat &= ~1;
+                svga->hdisp_on = 0;
+
+                svga->linepos = 0;
+                if ((svga->scanline == (svga->crtc[11] & 31)) || (svga->scanline == svga->rowcount))
+                    svga->cursorvisible = 0;
+                if (svga->dispon) {
+                    if (svga->scanline == svga->rowcount) {
+                        svga->scanline          = 0;
+
+                        svga->memaddr_backup += (svga->rowoffset << 3);
+                        if (svga->interlace)
+                            svga->memaddr_backup += (svga->rowoffset << 3);
+
+                        svga->memaddr_backup &= svga->vram_display_mask;
+                        svga->memaddr = svga->memaddr_backup;
+                    } else {
+                        svga->scanline++;
+                        svga->scanline &= 0x1f;
+                        svga->memaddr = svga->memaddr_backup;
+                    }
+                }
+
+                svga->hsync_divisor ^= 1;
+
+                if (svga->hsync_divisor && (svga->crtc[0x17] & 4))
+                    return;
+
+                dev->vc++;
+                dev->vc &= 0xfff;
+
+                if (dev->vc == svga->split) {
+                    if (svga->interlace && svga->oddeven)
+                        svga->memaddr = svga->memaddr_backup = (svga->rowoffset << 1);
+                    else
+                        svga->memaddr = svga->memaddr_backup = 0;
+
+                    svga->memaddr     = (svga->memaddr << 2);
+                    svga->memaddr_backup = (svga->memaddr_backup << 2);
+
+                    svga->scanline = 0;
+                    if (svga->attrregs[0x10] & 0x20) {
+                        svga->scrollcache   = 0;
+                        svga->half_pixel    = 0;
+                        svga->x_add         = svga->left_overscan;
+                    }
+                }
+                if (dev->vc == svga->dispend) {
+                    dev->vblank_start(svga);
+                    svga->dispon = 0;
+                    blink_delay  = (svga->crtc[11] & 0x60) >> 5;
+                    if (svga->crtc[10] & 0x20)
+                        svga->cursoron = 0;
+                    else if (blink_delay == 2)
+                        svga->cursoron = ((svga->blink % 96) >= 48);
+                    else
+                        svga->cursoron = svga->blink & (16 + (16 * blink_delay));
+
+                    if (!(svga->blink & 15))
+                        svga->fullchange = 2;
+
+                    svga->blink = (svga->blink + 1) & 0x7f;
+
+                    for (x = 0; x < ((svga->vram_mask + 1) >> 12); x++) {
+                        if (svga->changedvram[x])
+                            svga->changedvram[x]--;
+                    }
+
+                    if (svga->fullchange)
+                        svga->fullchange--;
+                }
+                if (dev->vc == svga->vsyncstart) {
+                    svga->dispon = 0;
+                    svga->cgastat |= 8;
+                    x = dev->h_disp;
+
+                    if (svga->interlace && !svga->oddeven)
+                        svga->lastline++;
+                    if (svga->interlace && svga->oddeven)
+                        svga->firstline--;
+
+                    wx = x;
+                    wy = svga->lastline - svga->firstline;
+                    svga->vdisp = wy + 1;
+                    svga_doblit(wx, wy, svga);
+
+                    svga->firstline = 2000;
+                    svga->lastline  = 0;
+
+                    svga->firstline_draw = 2000;
+                    svga->lastline_draw  = 0;
+
+                    svga->oddeven ^= 1;
+
+                    svga->monitor->mon_changeframecount = svga->interlace ? 3 : 2;
+                    svga->vslines                       = 0;
+
+                    if (svga->interlace && svga->oddeven)
+                        svga->memaddr = svga->memaddr_backup = svga->memaddr_latch + (svga->rowoffset << 1);
+                    else
+                        svga->memaddr = svga->memaddr_backup = svga->memaddr_latch;
+
+                    svga->cursoraddr     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
+                    svga->memaddr     = (svga->memaddr << 2);
+                    svga->memaddr_backup = (svga->memaddr_backup << 2);
+                    svga->cursoraddr     = (svga->cursoraddr << 2);
+
+                    video_lightpen_vsync();
+
+                    svga->start_retrace_latch = svga->crtc[0x4];
+                }
+                if (dev->vc == svga->vtotal) {
+                    dev->vc       = 0;
+                    svga->scanline       = (svga->crtc[0x8] & 0x1f);
+                    svga->dispon   = 1;
+                    svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
+
+                    svga->scrollcache = 0;
+                    svga->half_pixel  = 0;
+
+                    svga->x_add = svga->left_overscan;
+
+                    svga->hwcursor_on    = 0;
+                    svga->hwcursor_latch = svga->hwcursor;
+                }
+                if (svga->scanline == (svga->crtc[10] & 31))
+                    svga->cursorvisible = 1;
+            }
+        } else {
+            if (!dev->linepos) {
+                if ((dev->displine == ((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y)) && dev->hwcursor_latch.ena) {
+                    dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - dev->hwcursor_latch.yoff;
+                    dev->hwcursor_oddeven = 0;
+                }
+
+                if ((dev->displine == (((dev->hwcursor_latch.y < 0) ? 0 : dev->hwcursor_latch.y) + 1)) && dev->hwcursor_latch.ena && dev->interlace) {
+                    dev->hwcursor_on      = dev->hwcursor_latch.cur_ysize - (dev->hwcursor_latch.yoff + 1);
+                    dev->hwcursor_oddeven = 1;
+                }
+
+                timer_advance_u64(&svga->timer, dev->dispofftime);
+                svga->cgastat |= 1;
+                dev->linepos = 1;
+
+                if (dev->dispon) {
+                    dev->hdisp_on = 1;
+
+                    dev->memaddr &= dev->vram_mask;
+
+                    if (dev->firstline == 2000) {
+                        dev->firstline = dev->displine;
+                        video_wait_for_buffer_monitor(svga->monitor_index);
+                    }
+
+                    if (dev->hwcursor_on)
+                        dev->changedvram[dev->memaddr >> 12] = dev->changedvram[(dev->memaddr >> 12) + 1] = dev->interlace ? 3 : 2;
+
+                    svga->render8514(svga);
+
+                    svga->x_add = svga->left_overscan;
+                    ibm8514_render_overscan_left(dev, svga);
+                    ibm8514_render_overscan_right(dev, svga);
+                    svga->x_add = svga->left_overscan;
+
+                    if (dev->hwcursor_on) {
+                        if (svga->hwcursor_draw)
+                            svga->hwcursor_draw(svga, (dev->displine + svga->y_add + ((dev->hwcursor_latch.y >= 0) ? 0 : dev->hwcursor_latch.y)) & 2047);
+
+                        dev->hwcursor_on--;
+                        if (dev->hwcursor_on && dev->interlace)
+                            dev->hwcursor_on--;
+                    }
+
+                    if (dev->lastline < dev->displine)
+                        dev->lastline = dev->displine;
+                }
+
+                dev->displine++;
+                video_lightpen_check_trigger_strobe(svga->x_add, dev->displine, 0, dev->firstline, 1. / (svga->clock / (svga->clock_8514 * (double) (1ULL << 32))), svga->monitor_index);
+                if (dev->interlace)
+                    dev->displine++;
+                if ((svga->cgastat & 8) && ((dev->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
+                    svga->cgastat &= ~8;
+                svga->vslines++;
+                if (dev->displine > 2000)
+                    dev->displine = 0;
+            } else {
+                timer_advance_u64(&svga->timer, dev->dispontime);
+                video_lightpen_hsync();
+
+                if (dev->dispon)
+                    svga->cgastat &= ~1;
+                dev->hdisp_on = 0;
+
+                dev->linepos = 0;
+                if (dev->dispon) {
+                    if (dev->scanline == dev->rowcount) {
+                        dev->scanline = 0;
+                        dev->memaddr_backup += (dev->rowoffset << 3);
+                        if (dev->interlace)
+                            dev->memaddr_backup += (dev->rowoffset << 3);
+
+                        dev->memaddr_backup &= dev->vram_mask;
+
+                        dev->memaddr = dev->memaddr_backup;
+                    } else {
+                        dev->scanline++;
+                        dev->scanline &= 0x1f;
+                        dev->memaddr = dev->memaddr_backup;
+                    }
+                }
+
+                dev->vc++;
+                dev->vc &= 0xfff;
+
+                if (dev->vc == dev->dispend) {
+                    dev->vblank_start(svga);
+                    ibm8514_log(dev->log,"VBLANK irq.\n");
+                    dev->dispon = 0;
+
+                    for (x = 0; x < ((dev->vram_mask + 1) >> 12); x++) {
+                        if (dev->changedvram[x])
+                            dev->changedvram[x]--;
+                    }
+
+                    if (svga->fullchange)
+                        svga->fullchange--;
+                }
+                if (dev->vc == dev->v_syncstart) {
+                    dev->dispon = 0;
+                    svga->cgastat |= 8;
+                    x           = dev->h_disp;
+
+                    if (dev->interlace && !dev->oddeven)
+                        dev->lastline++;
+                    if (dev->interlace && dev->oddeven)
+                        dev->firstline--;
+
+                    wx = x;
+                    wy = dev->lastline - dev->firstline;
+                    svga_doblit(wx, wy, svga);
+
+                    dev->firstline = 2000;
+                    dev->lastline  = 0;
+
+                    dev->firstline_draw = 2000;
+                    dev->lastline_draw  = 0;
+
+                    dev->oddeven ^= 1;
+
+                    svga->monitor->mon_changeframecount = dev->interlace ? 3 : 2;
+                    svga->vslines    = 0;
+
+                    if (dev->interlace && dev->oddeven)
+                        dev->memaddr = dev->memaddr_backup = (dev->rowoffset << 1);
+                    else
+                        dev->memaddr = dev->memaddr_backup = 0;
+
+                    dev->memaddr     = (dev->memaddr << 2);
+                    dev->memaddr_backup = (dev->memaddr_backup << 2);
+
+                    video_lightpen_vsync();
+                }
+                if (dev->vc == dev->v_total) {
+                    dev->vc       = 0;
+                    dev->scanline       = (svga->crtc[0x8] & 0x1f);
+                    dev->dispon   = 1;
+                    dev->displine = (dev->interlace && dev->oddeven) ? 1 : 0;
+
+                    svga->x_add = svga->left_overscan;
+
+                    dev->hwcursor_on    = 0;
+                    dev->hwcursor_latch = dev->hwcursor;
+                }
+            }
+        }
+    }
+}
+
+void
+ibm8514_recalctimings(svga_t *svga)
+{
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    svga->render8514 = ibm8514_render_blank;
+    if (dev->extensions) {
+        if (svga->ext8514 != NULL)
+            ati8514_recalctimings(svga);
+    } else {
+        if (dev->on) {
+            dev->hdisp = (dev->hdisped + 1) << 3;
+            dev->h_total = dev->htotal + 1;
+
+            if (dev->h_total == 1) /*Default to 1024x768 87hz 8514/A htotal timings if it goes to 0.*/
+                dev->h_total = 0x9e;
+
+            dev->vdisp = (dev->v_disp + 1) >> 1;
+            if ((dev->vdisp == 478) || (dev->vdisp == 766))
+                dev->vdisp += 2;
+
+            dev->v_total = dev->v_total_reg + 1;
+            if (dev->v_total == 1)
+                dev->v_total = 0x0669;
+            if (dev->interlace)
+                dev->v_total >>= 1;
+
+            dev->v_syncstart = dev->v_sync_start + 1;
+            if (dev->v_syncstart == 1)
+                dev->v_syncstart = 0x0601;
+            if (dev->interlace)
+                dev->v_syncstart >>= 1;
+
+            dev->rowcount = !!(dev->disp_cntl & 0x08);
+
+            if ((dev->hdisp != 640) && (dev->hdisp != 1024)) {
+                if (dev->accel.advfunc_cntl & 0x04) {
+                    dev->hdisp = 1024;
+                    dev->vdisp = 768;
+                } else {
+                    dev->hdisp = 640;
+                    dev->vdisp = 480;
+                }
+            }
+
+            dev->h_disp = dev->hdisp;
+            dev->dispend = dev->vdisp;
+            dev->h_disp_time = dev->hdisp >> 3;
+
+            if (dev->accel.advfunc_cntl & 0x04)
+                svga->clock_8514 = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+            else
+                svga->clock_8514 = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
+
+            if ((dev->dispend == 478) || (dev->dispend == 766))
+                dev->dispend += 2;
+
+            if (dev->interlace)
+                dev->dispend >>= 1;
+
+            dev->pitch = 1024;
+            dev->rowoffset = 0x80;
+            if (dev->vram_512k_8514) {
+                if (dev->h_disp == 640)
+                    dev->pitch = 640;
+            }
+            dev->accel_bpp = 8;
+            svga->render8514 = ibm8514_render_8bpp;
+            ibm8514_log(dev->log,"BPP=%d, Pitch = %d, rowoffset = %d, crtc13 = %02x, highres bit = %02x, has_vga? = %d.\n", dev->bpp, dev->pitch, dev->rowoffset, svga->crtc[0x13], dev->accel.advfunc_cntl & 4, !ibm8514_standalone_enabled);
+        }
+    }
+    ibm8514_log(dev->log,"8514 enabled, hdisp=%d, vtotal=%d, htotal=%d, dispend=%d, rowoffset=%d, split=%d, vsyncstart=%d, split=%08x\n", dev->hdisp, dev->vtotal, dev->htotal, dev->dispend, dev->rowoffset, dev->split, dev->vsyncstart, dev->split);
+}
+
+static uint8_t
+ibm8514_mca_read(const uint16_t port, void *priv)
+{
+    const svga_t    *svga = (svga_t *) priv;
+    const ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
+
+    return (dev->pos_regs[port & 7]);
+}
+
+static void
+ibm8514_mca_write(const uint16_t port, uint8_t val, void *priv)
+{
+    svga_t    *svga = (svga_t *) priv;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
+
+    /* MCA does not write registers below 0x0100. */
+    if (port < 0x0102)
+        return;
+
+    /* Save the MCA register value. */
+    dev->pos_regs[port & 7] = val;
+}
+
+static uint8_t
+ibm8514_mca_feedb(void *priv)
+{
+    const svga_t    *svga = (svga_t *) priv;
+    const ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
+
+    return dev->pos_regs[2] & 1;
+}
+
+static void
+ibm8514_mca_reset(void *priv)
+{
+    svga_t          *svga = (svga_t *) priv;
+    ibm8514_t       *dev  = (ibm8514_t *) svga->dev8514;
+
+    ibm8514_log(dev->log,"MCA reset.\n");
+    dev->on = 0;
+    if (dev->extensions == ATI)
+        ati8514_mca_write(0x102, 0, svga);
+    else
+        ibm8514_mca_write(0x102, 0, svga);
+
+    svga_set_poll(svga);
+}
+
+static void
+ibm8514_vblank_start(void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+
+    dev->subsys_stat |= INT_VSY;
+}
+
+static void *
+ibm8514_init(const device_t *info)
+{
+    FILE *fp = NULL;
+    uint16_t bios_rom_eeprom = 0x0000;
+    uint32_t bios_addr;
+
+    if (svga_get_pri() == NULL)
+        return NULL;
+
+    svga_t    *svga  = svga_get_pri();
+    ibm8514_t *dev   = (ibm8514_t *) calloc(1, sizeof(ibm8514_t));
+
+    svga->dev8514    = dev;
+    svga->ext8514    = NULL;
+
+    dev->vram_amount = device_get_config_int("memory");
+    dev->vram_512k_8514 = dev->vram_amount == 512;
+    dev->vram_size   = dev->vram_amount << 10;
+    dev->vram        = calloc(dev->vram_size, 1);
+    dev->changedvram = calloc((dev->vram_size >> 12) + 1, 1);
+    dev->vram_mask   = dev->vram_size - 1;
+    dev->map8        = dev->pallook;
+    dev->local       = 0;
+    dev->accel_bpp   = 8;
+    dev->on          = 0;
+
+    dev->type     = info->flags;
+    dev->bpp      = 0;
+
+    dev->extensions = device_get_config_int("extensions");
+    dev->bios_addr = device_get_config_hex20("bios_addr");
+    dev->monitorid = device_get_config_int("montype");
+    if (dev->type & DEVICE_MCA)
+        dev->bios_addr = 0xc6800;
+
+    dev->log = log_open("IBM 8514/A");
+
+    switch (dev->extensions) {
+        case ATI:
+            if (rom_present(BIOS_MACH8_ROM_PATH)) {
+                mach_t * mach = (mach_t *) calloc(1, sizeof(mach_t));
+                svga->ext8514 = mach;
+                bios_addr = dev->bios_addr & 0x0800;
+
+                dev->bios_rom.rom = (uint8_t *)calloc(1, 0x2000);
+
+                fp = rom_fopen(BIOS_MACH8_ROM_PATH, "rb");
+
+                if (fseek(fp, 0x0800, SEEK_SET) == -1)
+                    fatal("ibm8514_init(): Error seeking to the beginning of the file\n");
+                if (fread(dev->bios_rom.rom + bios_addr, 1, 0x2000, fp) > 0x2000)
+                    fatal("ibm8514_init(): Error reading data\n");
+
+                (void) fclose(fp);
+
+                dev->bios_rom.sz = 0x2000;
+                dev->bios_rom.mask = 0x1fff;
+
+                mem_mapping_add(&dev->bios_rom.mapping, dev->bios_addr, dev->bios_rom.sz,
+                                ati8514_bios_rom_readb, ati8514_bios_rom_readw, ati8514_bios_rom_readl,
+                                NULL, NULL, NULL,
+                                dev->bios_rom.rom, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM_WS, dev);
+
+                ati8514_init(svga, svga->ext8514, svga->dev8514);
+                if (dev->type & DEVICE_MCA) {
+                    mach->accel.scratch0 = (((dev->bios_addr >> 7) - 0x1000) >> 4);
+                    mach->accel.scratch0 |= ((mach->accel.scratch0 + 0x01) << 8);
+                    bios_rom_eeprom = mach->accel.scratch0;
+                    dev->pos_regs[0] = 0x88;
+                    dev->pos_regs[1] = 0x80;
+                    mach->eeprom.data[1] = bios_rom_eeprom;
+                    mca_add(ati8514_mca_read, ati8514_mca_write, ibm8514_mca_feedb, ibm8514_mca_reset, svga);
+                    ati_eeprom_load_mach8(&mach->eeprom, "ati8514_mca.nvr", 1);
+                    mem_mapping_disable(&dev->bios_rom.mapping);
+                } else {
+                    mach->accel.scratch0 = ((dev->bios_addr >> 7) - 0x1000) >> 4;
+                    mach->accel.scratch0 |= ((mach->accel.scratch0 + 0x01) << 8);
+                    ibm8514_log(dev->log,"Scratch0 init val=%04x, bios=%06x, base=%06x.\n", mach->accel.scratch0, dev->bios_addr, dev->bios_rom.mapping.base);
+                    ati_eeprom_load_mach8(&mach->eeprom, "ati8514.nvr", 0);
+                }
+                break;
+            }
+
+            fallthrough;
+        default:
+            dev->extensions = 0;
+            ibm8514_io_set(svga);
+            dev->accel.cmd_back = 1;
+
+            if (dev->type & DEVICE_MCA) {
+                dev->pos_regs[0] = 0x7f;
+                dev->pos_regs[1] = 0xef;
+                mca_add(ibm8514_mca_read, ibm8514_mca_write, ibm8514_mca_feedb, ibm8514_mca_reset, svga);
+            }
+
+            dev->vblank_start = ibm8514_vblank_start;
+            break;
+    }
+
+    return svga;
+}
+
+static void
+ibm8514_close(void *priv)
+{
+    svga_t    *svga = (svga_t *) priv;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
+    mach_t    *mach = (mach_t *) svga->ext8514;
+
+    if (mach) {
+        if (mach->log != NULL) {
+            log_close(mach->log);
+            mach->log = NULL;
+        }
+
+        free(mach);
+    }
+    if (dev) {
+        if (dev->log != NULL) {
+            log_close(dev->log);
+            dev->log = NULL;
+        }
+
+        free(dev->vram);
+        free(dev->changedvram);
+
+        free(dev);
+    }
+}
+
+static void
+ibm8514_speed_changed(void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+
+    svga_recalctimings(svga);
+}
+
+static void
+ibm8514_force_redraw(void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+
+    svga->fullchange = svga->monitor->mon_changeframecount;
+}
+
+// clang-format off
+static const device_config_t isa_ext8514_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "extensions",
+        .description    = "Vendor",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = IBM,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM", .value = IBM },
+            { .description = "ATI", .value = ATI },
+            { .description = ""                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xc8800,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800h", .value = 0xc8000 },
+            { .description = "C880h", .value = 0xc8800 },
+            { .description = "CA00h", .value = 0xca000 },
+            { .description = "CA80h", .value = 0xca800 },
+            { .description = "CC00h", .value = 0xcc000 },
+            { .description = "CC80h", .value = 0xcc800 },
+            { .description = "CE00h", .value = 0xce000 },
+            { .description = "CE80h", .value = 0xce800 },
+            { .description = "D000h", .value = 0xd0000 },
+            { .description = "D080h", .value = 0xd0800 },
+            { .description = "D200h", .value = 0xd2000 },
+            { .description = "D280h", .value = 0xd2800 },
+            { .description = "D400h", .value = 0xd4000 },
+            { .description = "D480h", .value = 0xd4800 },
+            { .description = "D600h", .value = 0xd6000 },
+            { .description = "D680h", .value = 0xd6800 },
+            { .description = "D800h", .value = 0xd8000 },
+            { .description = "D880h", .value = 0xd8800 },
+            { .description = "DA00h", .value = 0xda000 },
+            { .description = "DA80h", .value = 0xda800 },
+            { .description = "DC00h", .value = 0xdc000 },
+            { .description = "DC80h", .value = 0xdc800 },
+            { .description = "DE00h", .value = 0xde000 },
+            { .description = ""                        }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = MONITORID_8514,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM 8507 (1024x768, Monochrome)", .value = MONITORID_8507 },
+            { .description = "IBM 8514 (1024x768, Color)",      .value = MONITORID_8514 },
+            { .description = "IBM 8503 (640x480, Monochrome)",  .value = MONITORID_8503 },
+            { .description = "IBM 8512/13 (640x480, Color)",    .value = MONITORID_8512 },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+// clang-format off
+static const device_config_t mca_ext8514_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "512 KB", .value =  512 },
+            { .description = "1 MB",   .value = 1024 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "extensions",
+        .description    = "Vendor",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = IBM,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM", .value = IBM },
+            { .description = "ATI", .value = ATI },
+            { .description = ""                }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "montype",
+        .description    = "Monitor type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = MONITORID_8514,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "IBM 8507 (1024x768, Monochrome)", .value = MONITORID_8507 },
+            { .description = "IBM 8514 (1024x768, Color)",      .value = MONITORID_8514 },
+            { .description = "IBM 8503 (640x480, Monochrome)",  .value = MONITORID_8503 },
+            { .description = "IBM 8512/13 (640x480, Color)",    .value = MONITORID_8512 },
+            { .description = ""                                                         }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+// clang-format off
+const device_t gen8514_isa_device = {
+    .name          = "IBM 8514/A clone (ISA)",
+    .internal_name = "8514_isa",
+    .flags         = DEVICE_ISA16,
+    .local         = IBM_8514A_TYPE,
+    .init          = ibm8514_init,
+    .close         = ibm8514_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = ibm8514_speed_changed,
+    .force_redraw  = ibm8514_force_redraw,
+    .config        = isa_ext8514_config
+};
+
+const device_t ibm8514_mca_device = {
+    .name          = "IBM 8514/A (MCA)",
+    .internal_name = "8514_mca",
+    .flags         = DEVICE_MCA,
+    .local         = IBM_8514A_TYPE,
+    .init          = ibm8514_init,
+    .close         = ibm8514_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = ibm8514_speed_changed,
+    .force_redraw  = ibm8514_force_redraw,
+    .config        = mca_ext8514_config
+};
+
+void
+ibm8514_device_add(void)
+{
+    if (!ibm8514_standalone_enabled)
+        return;
+
+    if (machine_has_bus(machine, MACHINE_BUS_MCA))
+        device_add(&ibm8514_mca_device);
+    else
+        device_add(&gen8514_isa_device);
+}

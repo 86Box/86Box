@@ -1,0 +1,75 @@
+{
+	"vcpkg-configuration": {
+		"default-registry": {
+			"kind": "git",
+			"repository": "https://github.com/Microsoft/vcpkg",
+			"baseline": "9b965a116838c6cdcd36bca60d1b81b030c8ab8d",
+			"reference": "9b965a116838c6cdcd36bca60d1b81b030c8ab8d"
+		}
+	},
+    "name": "86box",
+    "version-string": "7.0",
+    "homepage": "https://86box.net/",
+    "documentation": "https://86box.readthedocs.io/",
+    "license": "GPL-2.0-or-later",
+    "dependencies": [
+        "freetype",
+        "libpng",
+        "sdl3",
+        "rtmidi",
+        "libslirp",
+        "fluidsynth",
+        "libsndfile"
+    ],
+    "features": {
+        "qt-ui": {
+            "description": "Qt User Interface",
+            "dependencies": [
+                {
+                    "name": "qtbase",
+                    "default-features": false,
+                    "features": [
+                        "thread",
+                        "gui",
+                        "opengl",
+                        "harfbuzz",
+                        "network",
+                        "vulkan",
+                        "widgets",
+                        "png",
+                        "zstd",
+                        {
+                            "name": "windeployqt",
+                            "platform": "windows & !static"
+                        }
+                    ]
+                },
+                {
+                    "name": "qtbase",
+                    "default-features": false,
+                    "host": true
+                },
+                {
+                    "name": "qttools",
+                    "default-features": false,
+                    "features": [
+                        "linguist"
+                    ],
+                    "host": true
+                }
+            ]
+        },
+        "munt": {
+            "description": "Roland MT-32 emulation",
+            "dependencies": [
+                "libmt32emu"
+            ]
+        },
+        "openal": {
+            "description": "OpenAL sound backend",
+            "dependencies": [
+                "openal-soft"
+            ]
+        }
+    }
+}

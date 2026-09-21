@@ -1,0 +1,1172 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Sound emulation core.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2026 Jasmine Iwanek.
+ */
+#include <math.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define HAVE_STDARG_H
+
+#include <86box/86box.h>
+#include <86box/cdrom.h>
+#include <86box/device.h>
+#include <86box/midi.h>
+#include <86box/plat.h>
+#include <86box/thread.h>
+#include <86box/snd_ac97.h>
+#include <86box/timer.h>
+#include <86box/snd_mpu401.h>
+#include <86box/sound.h>
+#include <86box/fdd_audio.h>
+#include <86box/hdd_audio.h>
+
+typedef struct {
+    const device_t *device;
+} SOUND_CARD;
+
+typedef struct {
+    void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv);
+    void *priv;
+} sound_handler_t;
+
+int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
+int  sound_pos_global                   = 0;
+static int sound_buf_len                = SOUNDBUFLEN;
+int  music_pos_global                   = 0;
+int  ym2151_pos_global                  = 0;
+int  wavetable_pos_global               = 0;
+int  sound_gain                         = 0;
+char sound_output_device[512]           = { 0 };
+
+int  midi_freq                          = 44100;
+int  midi_buf_size                      = 4410;
+
+unsigned long long src_freqs[I_MAX] = {
+    0, MUSIC_FREQ, WT_FREQ, CD_FREQ, 0, 0, YM2151_FREQ, 0
+};
+
+#define NUM_SOUND_HANDLERS 16
+#define NUM_MUSIC_HANDLERS 16
+#define NUM_YM2151_HANDLERS 16
+#define NUM_WAVETABLE_HANDLERS 16
+
+static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS];
+static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS];
+static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS];
+static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS];
+
+static double     cd_audio_volume_lut[256];
+
+static thread_t  *sound_cd_thread_h;
+static event_t   *sound_cd_event;
+static event_t   *sound_cd_start_event;
+static int32_t   *outbuffer;
+static float     *outbuffer_ex;
+static int16_t   *outbuffer_ex_int16;
+static int32_t   *outbuffer_m;
+static float     *outbuffer_m_ex;
+static int16_t   *outbuffer_m_ex_int16;
+static int32_t   *outbuffer_y;
+static float     *outbuffer_y_ex;
+static int16_t   *outbuffer_y_ex_int16;
+static int32_t   *outbuffer_w;
+static float     *outbuffer_w_ex;
+static int16_t   *outbuffer_w_ex_int16;
+static uint8_t    sound_handlers_num;
+static uint8_t    music_handlers_num;
+static uint8_t    ym2151_handlers_num;
+static uint8_t    wavetable_handlers_num;
+static pc_timer_t cd_poll_timer;
+static uint64_t   cd_poll_latch;
+static pc_timer_t midi_poll_timer;
+static uint64_t   midi_poll_latch;
+static pc_timer_t sound_poll_timer;
+static uint64_t   sound_poll_latch;
+static pc_timer_t music_poll_timer;
+static uint64_t   music_poll_latch;
+static pc_timer_t ym2151_poll_timer;
+static uint64_t   ym2151_poll_latch;
+static pc_timer_t wavetable_poll_timer;
+static uint64_t   wavetable_poll_latch;
+
+static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
+static float        cd_out_buffer[CD_BUFLEN * 2];
+static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
+static unsigned int cd_vol_l;
+static unsigned int cd_vol_r;
+static volatile int cdaudioon        = 0;
+static int          cd_thread_enable = 0;
+
+static thread_t     *sound_fdd_thread_h;
+static event_t      *sound_fdd_event;
+static event_t      *sound_fdd_start_event;
+static volatile int fddaudioon = 0;
+static int          fdd_thread_enable = 0;
+
+static thread_t     *sound_hdd_thread_h;
+static event_t      *sound_hdd_event;
+static event_t      *sound_hdd_start_event;
+static volatile int hddaudioon = 0;
+static int          hdd_thread_enable = 0;
+
+static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
+static void *filter_cd_audio_p                                          = NULL;
+
+void (*filter_pc_speaker)(int channel, double *buffer, void *priv) = NULL;
+void *filter_pc_speaker_p                                          = NULL;
+
+void (*filter_midi)(int channel, double *buffer, void *priv) = NULL;
+void *filter_midi_p                                          = NULL;
+
+static const SOUND_CARD sound_cards[] = {
+    // clang-format off
+    { &device_none                  },
+    { &device_internal              },
+    /* ISA */
+    { &adgold_device                },
+    { &soundmaster_device           },
+    { &cms_device                   },
+    { &ess_488_device               },
+    { &ess_1488_device              },
+    { &imfc_device                  },
+    { &ssi2001_device               },
+    { &thunderboard_device          },
+    { &mmb_device                   },
+#ifdef USE_LIBSERIALPORT /*The following devices required LIBSERIALPORT*/
+    { &opl2board_device             },
+#endif
+    { &pas_device                   },
+    { &sb_1_device                  },
+    { &sb_15_device                 },
+    { &sb_2_device                  },
+    { &sb_pro_v1_device             },
+    { &sb_pro_v2_device             },
+    { &entertainer_device           },
+    { &pssj_isa_device              },
+    { &saaym_device                 },
+    { &tndy_device                  },
+    /* ISA/Sidecar */
+    { &adlib_device                 },
+    { &soundmasterplus_device       },
+    { &voicemasterkey_device        },
+    { &isadacr0_device              },
+    { &isadacr1_device              },
+    { &soundman_device              },
+    /* ISA16 */
+    { &acermagic_s20_device         },
+    { &ad1816_device                },
+    { &aztpr16_device               },
+    { &azt1605_device               },
+    { &azt2316a_device              },
+    { &azt2316r_device              },
+    { &gus_pnp_compaq_device        },
+    { &sb_goldfinch_device          },
+    { &cs4232_device                },
+    { &cs4235_device                },
+    { &cs4236b_device               },
+    { &ess_688_device               },
+    { &ess_ess0100_pnp_device       },
+    { &ess_ess0968_pnp_688_device   },
+    { &ess_1688_device              },
+    { &ess_ess0102_pnp_device       },
+    { &ess_ess0968_pnp_device       },
+    { &ess_1788_device              },
+    { &ess_1868_device              },
+    { &ess_1869_device              },
+    { &gus_device                   },
+    { &gus_v34_device               },
+    { &gus_v37_device               },
+    { &gus_max_device               },
+    { &gus_ace_device               },
+    { &gus_extreme_device           },
+    { &gus_pnp_device               },
+    { &gus_pnp_new_device           },
+    { &gus_pnp_nocd_device          },
+    { &azt2320_device               },
+    { &pasplus_device               },
+    { &pas16_device                 },
+    { &pas16d_device                },
+    { &jazz16_device                },
+    { &mirosound_pcm10_device       },
+    { &opti_82c930_device           },
+    { &opti_82c931_device           },
+    { &sb_16_device                 },
+    { &sb_16_pnp_device             },
+    { &sb_16_pnp_ide_device         },
+    { &sb_32_pnp_device             },
+    { &sb_awe32_device              },
+    { &sb_awe32_pnp_device          },
+    { &sb_awe32_ide_pnp_device      },
+    { &sb_awe64_value_device        },
+    { &sb_awe64_device              },
+    { &sb_awe64_ide_device          },
+    { &sb_awe64_gold_device         },
+    { &sb_vibra16c_device           },
+    { &sb_vibra16cl_device          },
+    { &sb_vibra16s_device           },
+    { &sb_vibra16xv_device          },
+    { &gus_vipermax_device          },
+    { &wss_device                   },
+    { &ymf701_device                },
+    { &ymf718_device                },
+    { &ymf719_device                },
+    /* MCA */
+    { &adlib_mca_device             },
+    { &ess_chipchat_16_mca_device   },
+    { &ncr_business_audio_device    },
+    { &sb_mcv_device                },
+    { &sb_pro_mcv_device            },
+    { &sb_16_reply_mca_device       },
+    { &ess_soundpiper_16_mca_device },
+    { &ess_soundpiper_32_mca_device },
+    /* PCI */
+    { &cmi8338_device               },
+    { &cmi8738_device               },
+    { &es1373_device                },
+    { &ct5880_device                },
+    { &es1370_device                },
+    { &es1371_device                },
+    { &ess_solo1_device             },
+    /* AC97 */
+    { &ad1881_device                },
+    { &cs4297a_device               },
+#ifdef USE_SOFTMODEM
+    { &si3036_device                },
+#endif
+    { NULL                          }
+    // clang-format on
+};
+
+#ifdef ENABLE_SOUND_LOG
+int sound_do_log = ENABLE_SOUND_LOG;
+
+static void
+sound_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (sound_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define sound_log(fmt, ...)
+#endif
+
+int
+sound_card_available(int card)
+{
+    if (sound_cards[card].device)
+        return device_available(sound_cards[card].device);
+
+    return 1;
+}
+
+const device_t *
+sound_card_getdevice(int card)
+{
+    return sound_cards[card].device;
+}
+
+int
+sound_card_has_config(int card)
+{
+    if (sound_cards[card].device == NULL)
+        return 0;
+    return device_has_config(sound_cards[card].device) ? 1 : 0;
+}
+
+const char *
+sound_card_get_internal_name(int card)
+{
+    return device_get_internal_name(sound_cards[card].device);
+}
+
+int
+sound_card_get_from_internal_name(const char *s)
+{
+    int c = 0;
+
+    while (sound_cards[c].device != NULL) {
+        if (!strcmp(sound_cards[c].device->internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+void
+sound_card_init(void)
+{
+    for (uint8_t i = 0; i < SOUND_CARD_MAX; i++)
+        if ((sound_card_current[i] > SOUND_INTERNAL) && (sound_cards[sound_card_current[i]].device))
+            device_add_inst(sound_cards[sound_card_current[i]].device, i + 1);
+}
+
+void
+sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r)
+{
+    cd_vol_l = vol_l;
+    cd_vol_r = vol_r;
+}
+
+static void
+sound_cd_clean_buffers(void)
+{
+    if (sound_is_float)
+        memset(cd_out_buffer, 0, (CD_BUFLEN * 2) * sizeof(float));
+    else
+        memset(cd_out_buffer_int16, 0, (CD_BUFLEN * 2) * sizeof(int16_t));
+}
+
+static void
+sound_cd_thread(UNUSED(void *param))
+{
+    int16_t  temp_buffer[2];
+    int      channel_select[2];
+    double   audio_vol_ll;
+    double   audio_vol_rr;
+    double   audio_vol_lr;
+    double   audio_vol_rl;
+    double   cd_buffer_temp[2] = { 0.0, 0.0 };
+
+    thread_set_event(sound_cd_start_event);
+
+    while (cdaudioon) {
+        thread_wait_event(sound_cd_event, -1);
+        thread_reset_event(sound_cd_event);
+
+        if (!cdaudioon)
+            return;
+
+        sound_cd_clean_buffers();
+
+        temp_buffer[0] = temp_buffer[1] = 0;
+
+        for (uint8_t i = 0; i < CDROM_NUM; i++) {
+            /* Just in case the thread is in a loop when it gets terminated. */
+            if (!cdaudioon)
+                break;
+
+            if ((cdrom[i].bus_type == CDROM_BUS_DISABLED) ||
+                (cdrom[i].cd_status != CD_STATUS_PLAYING))
+                continue;
+            const int ret = cdrom_audio_callback(&(cdrom[i]), cd_buffer[i],
+                                                 CD_BUFLEN * 2);
+
+            if (ret) {
+                if (cdrom[i].get_volume) {
+                    audio_vol_ll = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 0)];
+                    audio_vol_rr = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 1)];
+                    audio_vol_lr = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 2)];
+                    audio_vol_rl = cd_audio_volume_lut[cdrom[i].get_volume(cdrom[i].priv, 3)];
+                } else {
+                    audio_vol_ll = cd_audio_volume_lut[255];
+                    audio_vol_rr = cd_audio_volume_lut[255];
+                    audio_vol_lr = cd_audio_volume_lut[255];
+                    audio_vol_rl = cd_audio_volume_lut[255];
+                }
+
+                if (cdrom[i].get_channel) {
+                    channel_select[0] = (int) cdrom[i].get_channel(cdrom[i].priv, 0);
+                    channel_select[1] = (int) cdrom[i].get_channel(cdrom[i].priv, 1);
+                } else {
+                    channel_select[0] = 1;
+                    channel_select[1] = 2;
+                }
+
+                // uint16_t *cddab = (uint16_t *) cdrom[i].raw_buffer;
+                for (int c = 0; c < CD_BUFLEN * 2; c += 2) {
+                    /* Apply ATAPI channel select */
+                    cd_buffer_temp[0] = cd_buffer_temp[1] = 0.0;
+
+                    if (((audio_vol_ll + audio_vol_lr) != 0.0) && (channel_select[0] != 0)) {
+                        /* Multiply Port 0 by the volumes in the process */
+                        if (channel_select[0] & 1)
+                            /* Channel 0 => Port 0 */
+                            cd_buffer_temp[0] += ((double) cd_buffer[i][c]) * audio_vol_ll;
+                        if (channel_select[0] & 2)
+                            /* Channel 1 => Port 0 */
+                            cd_buffer_temp[0] += ((double) cd_buffer[i][c + 1]) * audio_vol_lr;
+                    }
+
+                    if (((audio_vol_rl + audio_vol_rr) != 0.0) && (channel_select[1] != 0)) {
+                        /* Multiply Port 1 by the volumes in the process */
+                        if (channel_select[1] & 1)
+                            /* Channel 0 => Port 1 */
+                            cd_buffer_temp[1] += ((double) cd_buffer[i][c]) * audio_vol_rl;
+                        if (channel_select[1] & 2)
+                            /* Channel 1 => Port 1 */
+                            cd_buffer_temp[1] += ((double) cd_buffer[i][c + 1]) * audio_vol_rr;
+                    }
+
+                    /* Apply sound card CD volume and filters */
+                    if (filter_cd_audio != NULL) {
+                        filter_cd_audio(0, &(cd_buffer_temp[0]),
+                                        filter_cd_audio_p);
+                        filter_cd_audio(1, &(cd_buffer_temp[1]),
+                                        filter_cd_audio_p);
+                    }
+
+                    if (sound_is_float) {
+                        cd_out_buffer[c] += (float) (cd_buffer_temp[0] / 32768.0);
+                        cd_out_buffer[c + 1] += (float) (cd_buffer_temp[1] / 32768.0);
+                    } else {
+                        if (cd_buffer_temp[0] > 32767.0)
+                            temp_buffer[0] = 32767;
+                        else if (cd_buffer_temp[0] < -32768.0)
+                            temp_buffer[0] = -32768;
+                        else
+                            temp_buffer[0] = (int16_t) trunc(cd_buffer_temp[0]);
+
+                        if (cd_buffer_temp[1] > 32767.0)
+                            temp_buffer[1] = 32767;
+                        else if (cd_buffer_temp[1] < -32768.0)
+                            temp_buffer[1] = -32768;
+                        else
+                            temp_buffer[1] = (int16_t) trunc(cd_buffer_temp[1]);
+
+                        cd_out_buffer_int16[c]     = (int16_t) (cd_out_buffer_int16[c] + temp_buffer[0]);
+                        cd_out_buffer_int16[c + 1] = (int16_t) (cd_out_buffer_int16[c + 1] + temp_buffer[1]);
+                    }
+                }
+            }
+        }
+
+        if (sound_is_float)
+            givealbuffer_cd(cd_out_buffer);
+        else
+            givealbuffer_cd(cd_out_buffer_int16);
+    }
+}
+
+static void
+sound_realloc_buffers(void)
+{
+    if (outbuffer_ex != NULL) {
+        free(outbuffer_ex);
+        outbuffer_ex = NULL;
+    }
+
+    if (outbuffer_ex_int16 != NULL) {
+        free(outbuffer_ex_int16);
+        outbuffer_ex_int16 = NULL;
+    }
+
+    const int buf_len = sound_sample_rate / 50;
+
+    if (sound_is_float) {
+        outbuffer_ex = calloc(buf_len * 2, sizeof(float));
+        memset(outbuffer_ex, 0x00, buf_len * 2 * sizeof(float));
+    } else {
+        outbuffer_ex_int16 = calloc(buf_len * 2, sizeof(int16_t));
+        memset(outbuffer_ex_int16, 0x00, buf_len * 2 * sizeof(int16_t));
+    }
+}
+
+static void
+music_realloc_buffers(void)
+{
+    if (outbuffer_m_ex != NULL) {
+        free(outbuffer_m_ex);
+        outbuffer_m_ex = NULL;
+    }
+
+    if (outbuffer_m_ex_int16 != NULL) {
+        free(outbuffer_m_ex_int16);
+        outbuffer_m_ex_int16 = NULL;
+    }
+
+    if (sound_is_float) {
+        outbuffer_m_ex = calloc(MUSICBUFLEN * 2, sizeof(float));
+        memset(outbuffer_m_ex, 0x00, MUSICBUFLEN * 2 * sizeof(float));
+    } else {
+        outbuffer_m_ex_int16 = calloc(MUSICBUFLEN * 2, sizeof(int16_t));
+        memset(outbuffer_m_ex_int16, 0x00, MUSICBUFLEN * 2 * sizeof(int16_t));
+    }
+}
+
+static void
+ym2151_realloc_buffers(void)
+{
+    if (outbuffer_y_ex != NULL) {
+        free(outbuffer_y_ex);
+        outbuffer_y_ex = NULL;
+    }
+
+    if (outbuffer_y_ex_int16 != NULL) {
+        free(outbuffer_y_ex_int16);
+        outbuffer_y_ex_int16 = NULL;
+    }
+
+    if (sound_is_float) {
+        outbuffer_y_ex = calloc(YM2151BUFLEN * 2, sizeof(float));
+        memset(outbuffer_y_ex, 0x00, YM2151BUFLEN * 2 * sizeof(float));
+    } else {
+        outbuffer_y_ex_int16 = calloc(YM2151BUFLEN * 2, sizeof(int16_t));
+        memset(outbuffer_y_ex_int16, 0x00, YM2151BUFLEN * 2 * sizeof(int16_t));
+    }
+}
+
+static void
+wavetable_realloc_buffers(void)
+{
+    if (outbuffer_w_ex != NULL) {
+        free(outbuffer_w_ex);
+        outbuffer_w_ex = NULL;
+    }
+
+    if (outbuffer_w_ex_int16 != NULL) {
+        free(outbuffer_w_ex_int16);
+        outbuffer_w_ex_int16 = NULL;
+    }
+
+    if (sound_is_float) {
+        outbuffer_w_ex = calloc(WTBUFLEN * 2, sizeof(float));
+        memset(outbuffer_w_ex, 0x00, WTBUFLEN * 2 * sizeof(float));
+    } else {
+        outbuffer_w_ex_int16 = calloc(WTBUFLEN * 2, sizeof(int16_t));
+        memset(outbuffer_w_ex_int16, 0x00, WTBUFLEN * 2 * sizeof(int16_t));
+    }
+}
+
+void
+sound_init(void)
+{
+    int available_cdrom_drives = 0;
+
+    outbuffer_ex       = NULL;
+    outbuffer_ex_int16 = NULL;
+
+    outbuffer_m_ex       = NULL;
+    outbuffer_m_ex_int16 = NULL;
+
+    outbuffer_y_ex       = NULL;
+    outbuffer_y_ex_int16 = NULL;
+
+    outbuffer_w_ex       = NULL;
+    outbuffer_w_ex_int16 = NULL;
+
+    const int init_buf_len = sound_sample_rate / 50;
+
+    outbuffer = NULL;
+    outbuffer = calloc(init_buf_len * 2, sizeof(int32_t));
+    memset(outbuffer, 0x00, init_buf_len * 2 * sizeof(int32_t));
+
+    outbuffer_m = NULL;
+    outbuffer_m = calloc(MUSICBUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer_m, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
+
+    outbuffer_y = NULL;
+    outbuffer_y = calloc(YM2151BUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer_y, 0x00, YM2151BUFLEN * 2 * sizeof(int32_t));
+
+    outbuffer_w = NULL;
+    outbuffer_w = calloc(WTBUFLEN * 2, sizeof(int32_t));
+    memset(outbuffer_w, 0x00, WTBUFLEN * 2 * sizeof(int32_t));
+
+    for (uint16_t i = 0; i < 256; i++) {
+        double di = (double) i;
+
+        if (di >= 255.0)
+            di = 1.0;
+        else if (di > 0.0)
+            di = (48.0 + (20.0 * log(di / 256.0))) / 48.0;
+        else
+            di = 0.0;
+
+        cd_audio_volume_lut[i] = di;
+    }
+
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
+        if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
+            available_cdrom_drives++;
+    }
+
+    if (available_cdrom_drives) {
+        cdaudioon = 1;
+
+        sound_cd_start_event = thread_create_event();
+
+        sound_cd_event    = thread_create_event();
+        sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+
+        sound_log("Waiting for CD start event...\n");
+        thread_wait_event(sound_cd_start_event, -1);
+        thread_reset_event(sound_cd_start_event);
+        sound_log("Done!\n");
+    } else
+        cdaudioon = 0;
+
+    cd_thread_enable = available_cdrom_drives ? 1 : 0;
+}
+
+void
+sound_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    if (sound_handlers_num >= NUM_SOUND_HANDLERS) {
+        sound_log("sound_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    sound_handlers[sound_handlers_num].get_buffer = get_buffer;
+    sound_handlers[sound_handlers_num].priv       = priv;
+    sound_handlers_num++;
+}
+
+void
+music_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    if (music_handlers_num >= NUM_MUSIC_HANDLERS) {
+        sound_log("music_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    music_handlers[music_handlers_num].get_buffer = get_buffer;
+    music_handlers[music_handlers_num].priv       = priv;
+    music_handlers_num++;
+}
+
+void
+ym2151_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    if (ym2151_handlers_num >= NUM_YM2151_HANDLERS) {
+        sound_log("ym2151_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    ym2151_handlers[ym2151_handlers_num].get_buffer = get_buffer;
+    ym2151_handlers[ym2151_handlers_num].priv       = priv;
+    ym2151_handlers_num++;
+}
+
+void
+wavetable_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    if (wavetable_handlers_num >= NUM_WAVETABLE_HANDLERS) {
+        sound_log("wavetable_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    wavetable_handlers[wavetable_handlers_num].get_buffer = get_buffer;
+    wavetable_handlers[wavetable_handlers_num].priv       = priv;
+    wavetable_handlers_num++;
+}
+
+void
+sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
+{
+    if ((filter_cd_audio == NULL) || (filter == NULL)) {
+        filter_cd_audio   = filter;
+        filter_cd_audio_p = priv;
+    }
+}
+
+void
+sound_set_pc_speaker_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
+{
+    if ((filter_pc_speaker == NULL) || (filter == NULL)) {
+        filter_pc_speaker   = filter;
+        filter_pc_speaker_p = priv;
+    }
+}
+
+void
+sound_set_midi_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
+{
+    if ((filter_midi == NULL) || (filter == NULL)) {
+        filter_midi   = filter;
+        filter_midi_p = priv;
+    }
+}
+
+void
+cd_poll(UNUSED(void *priv))
+{
+    timer_advance_u64(&cd_poll_timer, cd_poll_latch * CD_BUFLEN);
+
+    thread_set_event(sound_cd_event);
+}
+
+void
+midi_poll_ex(UNUSED(void *priv))
+{
+    timer_advance_u64(&midi_poll_timer, midi_poll_latch * 480);
+
+    midi_poll();
+}
+
+void
+sound_poll(UNUSED(void *priv))
+{
+    const uint8_t handler_count = (sound_handlers_num < NUM_SOUND_HANDLERS) ? sound_handlers_num : NUM_SOUND_HANDLERS;
+
+    timer_advance_u64(&sound_poll_timer, sound_poll_latch);
+
+    sound_pos_global++;
+    if (sound_pos_global == sound_buf_len) {
+        memset(outbuffer, 0x00, sound_buf_len * 2 * sizeof(int32_t));
+
+        for (uint8_t c = 0; c < handler_count; c++)
+            if (sound_handlers[c].get_buffer != NULL)
+                sound_handlers[c].get_buffer(outbuffer, sound_buf_len, sound_handlers[c].priv);
+
+        for (uint32_t c = 0; c < (uint32_t) (sound_buf_len * 2); c++) {
+            if (sound_is_float)
+                outbuffer_ex[c] = ((float) outbuffer[c]) / (float) 32768.0;
+            else {
+                if (outbuffer[c] > 32767)
+                    outbuffer[c] = 32767;
+                if (outbuffer[c] < -32768)
+                    outbuffer[c] = -32768;
+
+                outbuffer_ex_int16[c] = (int16_t) outbuffer[c];
+            }
+        }
+
+        if (sound_is_float)
+            givealbuffer(outbuffer_ex);
+        else
+            givealbuffer(outbuffer_ex_int16);
+
+        if (fdd_thread_enable) {
+            thread_set_event(sound_fdd_event);
+        }
+
+        if (hdd_thread_enable) {
+            thread_set_event(sound_hdd_event);
+        }
+        sound_pos_global = 0;
+    }
+}
+
+void
+music_poll(UNUSED(void *priv))
+{
+    const uint8_t handler_count = (music_handlers_num < NUM_MUSIC_HANDLERS) ? music_handlers_num : NUM_MUSIC_HANDLERS;
+
+    timer_advance_u64(&music_poll_timer, music_poll_latch);
+
+    music_pos_global++;
+    if (music_pos_global == MUSICBUFLEN) {
+        memset(outbuffer_m, 0x00, MUSICBUFLEN * 2 * sizeof(int32_t));
+
+        for (uint8_t c = 0; c < handler_count; c++)
+            if (music_handlers[c].get_buffer != NULL)
+                music_handlers[c].get_buffer(outbuffer_m, MUSICBUFLEN, music_handlers[c].priv);
+
+        for (uint32_t c = 0; c < MUSICBUFLEN * 2; c++) {
+            if (sound_is_float)
+                outbuffer_m_ex[c] = ((float) outbuffer_m[c]) / (float) 32768.0;
+            else {
+                if (outbuffer_m[c] > 32767)
+                    outbuffer_m[c] = 32767;
+                if (outbuffer_m[c] < -32768)
+                    outbuffer_m[c] = -32768;
+
+                outbuffer_m_ex_int16[c] = (int16_t) outbuffer_m[c];
+            }
+        }
+
+        if (sound_is_float)
+            givealbuffer_music(outbuffer_m_ex);
+        else
+            givealbuffer_music(outbuffer_m_ex_int16);
+
+        music_pos_global = 0;
+    }
+}
+
+void
+ym2151_poll(UNUSED(void *priv))
+{
+    const uint8_t handler_count = (ym2151_handlers_num < NUM_YM2151_HANDLERS) ? ym2151_handlers_num : NUM_YM2151_HANDLERS;
+
+    timer_advance_u64(&ym2151_poll_timer, ym2151_poll_latch);
+
+    ym2151_pos_global++;
+    if (ym2151_pos_global == YM2151BUFLEN) {
+        memset(outbuffer_y, 0x00, YM2151BUFLEN * 2 * sizeof(int32_t));
+
+        for (uint8_t c = 0; c < handler_count; c++)
+            if (ym2151_handlers[c].get_buffer != NULL)
+                ym2151_handlers[c].get_buffer(outbuffer_y, YM2151BUFLEN, ym2151_handlers[c].priv);
+
+        for (uint32_t c = 0; c < YM2151BUFLEN * 2; c++) {
+            if (sound_is_float)
+                outbuffer_y_ex[c] = ((float) outbuffer_y[c]) / (float) 32768.0;
+            else {
+                if (outbuffer_y[c] > 32767)
+                    outbuffer_y[c] = 32767;
+                if (outbuffer_y[c] < -32768)
+                    outbuffer_y[c] = -32768;
+
+                outbuffer_y_ex_int16[c] = (int16_t) outbuffer_y[c];
+            }
+        }
+
+        if (sound_is_float)
+            givealbuffer_ym2151(outbuffer_y_ex);
+        else
+            givealbuffer_ym2151(outbuffer_y_ex_int16);
+
+        ym2151_pos_global = 0;
+    }
+}
+
+void
+wavetable_poll(UNUSED(void *priv))
+{
+    const uint8_t handler_count = (wavetable_handlers_num < NUM_WAVETABLE_HANDLERS) ? wavetable_handlers_num : NUM_WAVETABLE_HANDLERS;
+
+    timer_advance_u64(&wavetable_poll_timer, wavetable_poll_latch);
+
+    wavetable_pos_global++;
+    if (wavetable_pos_global == WTBUFLEN) {
+        memset(outbuffer_w, 0x00, WTBUFLEN * 2 * sizeof(int32_t));
+
+        for (uint8_t c = 0; c < handler_count; c++)
+            if (wavetable_handlers[c].get_buffer != NULL)
+                wavetable_handlers[c].get_buffer(outbuffer_w, WTBUFLEN, wavetable_handlers[c].priv);
+
+        for (uint32_t c = 0; c < WTBUFLEN * 2; c++) {
+            if (sound_is_float)
+                outbuffer_w_ex[c] = ((float) outbuffer_w[c]) / (float) 32768.0;
+            else {
+                if (outbuffer_w[c] > 32767)
+                    outbuffer_w[c] = 32767;
+                if (outbuffer_w[c] < -32768)
+                    outbuffer_w[c] = -32768;
+
+                outbuffer_w_ex_int16[c] = (int16_t) outbuffer_w[c];
+            }
+        }
+
+        if (sound_is_float)
+            givealbuffer_wt(outbuffer_w_ex);
+        else
+            givealbuffer_wt(outbuffer_w_ex_int16);
+
+        wavetable_pos_global = 0;
+    }
+}
+
+void
+sound_speed_changed(void)
+{
+    sound_buf_len = sound_sample_rate / 50;
+
+    cd_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) FREQ_44100));
+
+    midi_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) FREQ_48000));
+
+    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) sound_sample_rate));
+
+    music_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) MUSIC_FREQ));
+
+    ym2151_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) YM2151_FREQ));
+
+    wavetable_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) WT_FREQ));
+}
+
+void
+sound_reset(void)
+{
+    sound_realloc_buffers();
+
+    music_realloc_buffers();
+
+    ym2151_realloc_buffers();
+
+    wavetable_realloc_buffers();
+
+    midi_out_device_init();
+    midi_in_device_init();
+
+    inital();
+
+    memset(&midi_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&midi_poll_timer, midi_poll_ex, NULL, 1);
+
+    memset(&sound_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&sound_poll_timer, sound_poll, NULL, 1);
+    sound_handlers_num = 0;
+    memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+
+    memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&music_poll_timer, music_poll, NULL, 1);
+    music_handlers_num = 0;
+    memset(music_handlers, 0x00, NUM_MUSIC_HANDLERS * sizeof(sound_handler_t));
+
+    memset(&ym2151_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&ym2151_poll_timer, ym2151_poll, NULL, 1);
+    ym2151_handlers_num = 0;
+    memset(ym2151_handlers, 0x00, NUM_YM2151_HANDLERS * sizeof(sound_handler_t));
+
+    memset(&wavetable_poll_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&wavetable_poll_timer, wavetable_poll, NULL, 1);
+    wavetable_handlers_num = 0;
+    memset(wavetable_handlers, 0x00, NUM_WAVETABLE_HANDLERS * sizeof(sound_handler_t));
+
+    filter_cd_audio   = NULL;
+    filter_cd_audio_p = NULL;
+
+    filter_pc_speaker   = NULL;
+    filter_pc_speaker_p = NULL;
+
+    filter_midi   = NULL;
+    filter_midi_p = NULL;
+
+    sound_set_cd_volume(65535, 65535);
+
+    /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
+    midi_in_handlers_clear();
+}
+
+void
+sound_card_reset(void)
+{
+    device_add(&speaker_device);
+
+    sound_card_init();
+
+    if (mpu401_standalone_enable)
+        mpu401_device_add();
+}
+
+void
+sound_cd_thread_end(void)
+{
+    if (cdaudioon) {
+        cdaudioon = 0;
+
+        sound_log("Waiting for CD Audio thread to terminate...\n");
+        thread_set_event(sound_cd_event);
+        thread_wait(sound_cd_thread_h);
+        sound_log("CD Audio thread terminated...\n");
+
+        if (sound_cd_event) {
+            thread_destroy_event(sound_cd_event);
+            sound_cd_event = NULL;
+        }
+
+        sound_cd_thread_h = NULL;
+
+        if (sound_cd_start_event) {
+            thread_destroy_event(sound_cd_start_event);
+            sound_cd_event = NULL;
+        }
+    }
+}
+
+void
+sound_cd_thread_reset(void)
+{
+    int available_cdrom_drives = 0;
+
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
+        cdrom_stop(&(cdrom[i]));
+
+        if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
+            available_cdrom_drives++;
+    }
+
+    if (available_cdrom_drives && !cd_thread_enable) {
+        cdaudioon = 1;
+
+        sound_cd_start_event = thread_create_event();
+
+        sound_cd_event    = thread_create_event();
+        sound_cd_thread_h = thread_create(sound_cd_thread, NULL);
+
+        thread_wait_event(sound_cd_start_event, -1);
+        thread_reset_event(sound_cd_start_event);
+    } else if (!available_cdrom_drives && cd_thread_enable)
+        sound_cd_thread_end();
+
+    cd_thread_enable = available_cdrom_drives ? 1 : 0;
+
+    if (cd_thread_enable) {
+        memset(&cd_poll_timer, 0x00, sizeof(pc_timer_t));
+        timer_add(&cd_poll_timer, cd_poll, NULL, 1);
+    }
+}
+
+static void
+sound_fdd_thread(UNUSED(void *param))
+{
+    thread_set_event(sound_fdd_start_event);
+    while (fddaudioon) {
+        thread_wait_event(sound_fdd_event, -1);
+        thread_reset_event(sound_fdd_event);
+
+        if (!fddaudioon)
+            break;
+
+        static float fdd_float_buffer[SOUNDBUFLEN * 2];
+        memset(fdd_float_buffer, 0, sizeof(fdd_float_buffer));
+        fdd_audio_callback((int16_t*)fdd_float_buffer, SOUNDBUFLEN * 2);
+        givealbuffer_fdd(fdd_float_buffer, SOUNDBUFLEN * 2);
+    }
+}
+
+void
+sound_fdd_thread_init(void)
+{
+    if (!fddaudioon) {
+        fddaudioon = 1;
+        fdd_thread_enable = 1;
+
+        sound_fdd_start_event = thread_create_event();
+        sound_fdd_event = thread_create_event();
+        sound_fdd_thread_h = thread_create(sound_fdd_thread, NULL);
+
+        thread_wait_event(sound_fdd_start_event, -1);
+        thread_reset_event(sound_fdd_start_event);
+    }
+}
+
+void
+sound_fdd_thread_end(void)
+{
+    if (fddaudioon) {
+        fddaudioon = 0;
+        fdd_thread_enable = 0;
+
+        thread_set_event(sound_fdd_event);
+        thread_wait(sound_fdd_thread_h);
+
+        if (sound_fdd_event) {
+            thread_destroy_event(sound_fdd_event);
+            sound_fdd_event = NULL;
+        }
+
+        sound_fdd_thread_h = NULL;
+
+        if (sound_fdd_start_event) {
+            thread_destroy_event(sound_fdd_start_event);
+            sound_fdd_start_event = NULL;
+        }
+    }
+}
+
+static void
+sound_hdd_thread(UNUSED(void *param))
+{
+    thread_set_event(sound_hdd_start_event);
+    while (hddaudioon) {
+        thread_wait_event(sound_hdd_event, -1);
+        thread_reset_event(sound_hdd_event);
+
+        if (!hddaudioon)
+            break;
+
+        static float hdd_float_buffer[SOUNDBUFLEN * 2];
+        memset(hdd_float_buffer, 0, sizeof(hdd_float_buffer));
+        hdd_audio_callback((int16_t*)hdd_float_buffer, SOUNDBUFLEN * 2);
+        givealbuffer_hdd(hdd_float_buffer, SOUNDBUFLEN * 2);
+    }
+}
+
+void
+sound_hdd_thread_init(void)
+{
+    if (!hddaudioon) {
+        hddaudioon = 1;
+        hdd_thread_enable = 1;
+        sound_hdd_start_event = thread_create_event();
+        sound_hdd_event = thread_create_event();
+        sound_hdd_thread_h = thread_create(sound_hdd_thread, NULL);
+
+        thread_wait_event(sound_hdd_start_event, -1);
+        thread_reset_event(sound_hdd_start_event);
+    }
+}
+
+void
+sound_hdd_thread_end(void)
+{
+    if (hddaudioon) {
+        hddaudioon = 0;
+        hdd_thread_enable = 0;
+        thread_set_event(sound_hdd_event);
+        thread_wait(sound_hdd_thread_h);
+
+        if (sound_hdd_event) {
+            thread_destroy_event(sound_hdd_event);
+            sound_hdd_event = NULL;
+        }
+
+        sound_hdd_thread_h = NULL;
+        if (sound_hdd_start_event) {
+            thread_destroy_event(sound_hdd_start_event);
+            sound_hdd_start_event = NULL;
+        }
+    }
+}
+
+void
+sound_recalc_timers(void)
+{
+    if (music_handlers_num == 0)
+        timer_disable(&music_poll_timer);
+
+    if (ym2151_handlers_num == 0)
+        timer_disable(&ym2151_poll_timer);
+
+    if (wavetable_handlers_num == 0)
+        timer_disable(&wavetable_poll_timer);
+}
+
+void
+sound_close(void)
+{
+    timer_disable(&cd_poll_timer);
+
+    timer_disable(&midi_poll_timer);
+
+    timer_disable(&sound_poll_timer);
+    sound_handlers_num = 0;
+    memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&music_poll_timer);
+    music_handlers_num = 0;
+    memset(music_handlers, 0x00, NUM_MUSIC_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&ym2151_poll_timer);
+    ym2151_handlers_num = 0;
+    memset(ym2151_handlers, 0x00, NUM_YM2151_HANDLERS * sizeof(sound_handler_t));
+
+    timer_disable(&wavetable_poll_timer);
+    wavetable_handlers_num = 0;
+    memset(wavetable_handlers, 0x00, NUM_WAVETABLE_HANDLERS * sizeof(sound_handler_t));
+
+    filter_cd_audio   = NULL;
+    filter_cd_audio_p = NULL;
+
+    filter_pc_speaker   = NULL;
+    filter_pc_speaker_p = NULL;
+
+    filter_midi   = NULL;
+    filter_midi_p = NULL;
+}

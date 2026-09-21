@@ -1,0 +1,305 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Sound Blaster emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2024-2026 Jasmine Iwanek.
+ */
+#ifndef SOUND_SND_SB_H
+#define SOUND_SND_SB_H
+
+#include <86box/snd_cms.h>
+#include <86box/snd_emu8k.h>
+#include <86box/snd_mpu401.h>
+#include <86box/snd_opl.h>
+#include <86box/snd_sb_dsp.h>
+#include <86box/isapnp.h>
+
+enum {
+    SADLIB  = 1,     /* No DSP */
+    SB_DSP_103,      /* DSP v1.03, "killer card" prototype (Also known as CT1310) */
+    SB_DSP_105,      /* DSP v1.05, Original CT1320 */
+    SB_DSP_200,      /* DSP v2.00 */
+    SB_DSP_201,      /* DSP v2.01 - needed for high-speed DMA, Seen on CT1350B with CT1336 */
+    SB_DSP_202,      /* DSP v2.02 - Seen on CT1350B with CT1336A */
+    SBPRO_DSP_300,   /* DSP v3.00 */
+    SBPRO_DSP_301,   /* DSP v3.01 */
+    SBPRO_DSP_302,   /* DSP v3.02 */
+    SB16_DSP_404,    /* DSP v4.05 + OPL3 */
+    SB16_DSP_405,    /* DSP v4.05 + OPL3 */
+    SB16_DSP_406,    /* DSP v4.06 + OPL3 */
+    SB16_DSP_411,    /* DSP v4.11 + OPL3 */
+    SBAWE32_DSP_412, /* DSP v4.12 + OPL3 */
+    SBAWE32_DSP_413, /* DSP v4.13 + OPL3 */
+    SBAWE64_DSP_416  /* DSP v4.16 + OPL3 */
+};
+
+/* SB 2.0 CD version */
+typedef struct sb_ct1335_mixer_t {
+    double master;
+    double voice;
+    double fm;
+    double cd;
+
+    uint8_t index;
+    uint8_t regs[256];
+} sb_ct1335_mixer_t;
+
+/* SB PRO */
+typedef struct sb_ct1345_mixer_t {
+    double master_l;
+    double master_r;
+    double voice_l;
+    double voice_r;
+    double fm_l;
+    double fm_r;
+    double cd_l;
+    double cd_r;
+    double line_l;
+    double line_r;
+    double mic;
+    /*see sb_ct1745_mixer for values for input selector*/
+    int32_t input_selector;
+
+    int input_filter;
+    int in_filter_freq;
+    int output_filter;
+
+    int stereo;
+    int stereo_isleft;
+
+    uint8_t index;
+    uint8_t regs[256];
+} sb_ct1345_mixer_t;
+
+/* SB16 and AWE32 */
+typedef struct sb_ct1745_mixer_t {
+    double master_l;
+    double master_r;
+    double voice_l;
+    double voice_r;
+    double fm_l;
+    double fm_r;
+    double cd_l;
+    double cd_r;
+    double line_l;
+    double line_r;
+    double mic;
+    double speaker;
+
+    int bass_l;
+    int bass_r;
+    int treble_l;
+    int treble_r;
+
+    int output_selector;
+#define OUTPUT_MIC    1
+#define OUTPUT_CD_R   2
+#define OUTPUT_CD_L   4
+#define OUTPUT_LINE_R 8
+#define OUTPUT_LINE_L 16
+
+    int input_selector_left;
+    int input_selector_right;
+#define INPUT_MIC    1
+#define INPUT_CD_R   2
+#define INPUT_CD_L   4
+#define INPUT_LINE_R 8
+#define INPUT_LINE_L 16
+#define INPUT_MIDI_R 32
+#define INPUT_MIDI_L 64
+
+    int mic_agc;
+
+    int32_t input_gain_L;
+    int32_t input_gain_R;
+    double  output_gain_L;
+    double  output_gain_R;
+
+    uint8_t index;
+    uint8_t regs[256];
+
+    int output_filter; /* for clones */
+} sb_ct1745_mixer_t;
+
+/* ESS AudioDrive */
+typedef struct ess_mixer_t {
+    double master_l;
+    double master_r;
+    double voice_l;
+    double voice_r;
+    double fm_l;
+    double fm_r;
+    double cd_l;
+    double cd_r;
+    double line_l;
+    double line_r;
+    double mic_l;
+    double mic_r;
+    double auxb_l;
+    double auxb_r;
+    double speaker;
+    /*see sb_ct1745_mixer for values for input selector*/
+    int32_t input_selector;
+    /* extra values for input selector */
+    #define INPUT_MIXER_L 128
+    #define INPUT_MIXER_R 256
+
+    /* ESS ES188x+ DAC2 volume */
+    double dac2_l;
+    double dac2_r;
+
+    int input_filter;
+    int in_filter_freq;
+    int output_filter;
+    int output_filter_dac2;
+
+    int stereo;
+    int stereo_isleft;
+
+    uint8_t index;
+    uint8_t regs[256];
+
+    uint8_t ess_id_str[4];
+    uint8_t ess_id_str_pos;
+} ess_mixer_t;
+
+typedef struct sb_t {
+    uint8_t  cms_enabled;
+    uint8_t  opl_enabled;
+    uint8_t  mixer_enabled;
+    cms_t    cms;
+    fm_drv_t opl;
+    fm_drv_t opl2;
+    sb_dsp_t dsp;
+    union {
+        sb_ct1335_mixer_t mixer_sb2;
+        sb_ct1345_mixer_t mixer_sbpro;
+        sb_ct1745_mixer_t mixer_sb16;
+        ess_mixer_t       mixer_ess;
+    };
+    mpu_t  *mpu;
+    emu8k_t emu8k;
+    void   *gameport;
+
+    int pnp;
+    int has_ide;
+    int has_dualopl2;
+
+    uint8_t pos_regs[8];
+    uint8_t pnp_rom[512];
+
+    uint16_t opl_pnp_addr;
+
+    uint16_t midi_addr;
+    uint16_t gameport_addr;
+
+    /* Output gain required for the Pro Sonic 16 so PCM sounds are volume adjusted
+	to similar levels produced by the external midi and PC speaker */
+    double mvd_1216_output_gain;
+
+    uint8_t  ess_scr_locked;
+    uint8_t  es1688_rsk_enable;
+    uint8_t  ess_readseq_state;
+    uint8_t  ess_readseq_mode;
+    uint16_t ess_dsp_addr;
+    uint16_t es186x_ctrl_addr;
+    uint8_t  es186x_id_state;
+    uint8_t  es186x_ctrl_regs[8];
+    uint8_t  es186x_ctrl_iregs[256];
+    void     *pnp_card;
+    uint8_t  es186x_key_pos : 5;
+    uint8_t  es186x_bypass;
+    uint8_t  es186x_bypass_state;
+    uint16_t es186x_confaddr;
+    uint16_t es186x_rom_pos;
+    isapnp_device_config_t *es186x_bypass_conf;
+
+    /* ESS ES188x secondary DAC */
+    int        ess_dac2_freq;
+    double     ess_dac2_latcho;
+    int        ess_dac2_timeo;
+    int        ess_dac2_autolen;
+    int        ess_dac2_counter;
+    uint8_t    ess_dac2_autoinit;
+    uint8_t    ess_dac2_stereo;
+    uint8_t    ess_dac2_signed;
+    uint8_t    ess_dac2_16bit;
+    uint8_t    ess_dac2_irq;
+    uint8_t    ess_dac2_dma;
+    pc_timer_t ess_dac2_timer;
+    uint16_t   ess_dac2_datl;
+    uint16_t   ess_dac2_datr;
+    int        ess_dac2_pos;
+    uint8_t    ess_dac2_enable;
+    uint8_t    ess_dac2_suspend;
+    int16_t    ess_dac2_buffer[SOUNDBUFLEN * 2];
+    int        ess_dac2_dmadat;
+    uint8_t    ess_dac2_dmaff;
+    uint8_t    ess_dac2_dmacount;
+
+    void   *opl_mixer;
+    void  (*opl_mix)(void*, double*, double*);
+} sb_t;
+
+typedef struct goldfinch_t {
+    emu8k_t emu8k;
+
+    uint8_t pnp_rom[512];
+} goldfinch_t;
+
+extern void    sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t sb_ct1345_mixer_read(uint16_t addr, void *priv);
+extern void    sb_ct1345_mixer_reset(sb_t *sb);
+
+extern void    sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t sb_ct1745_mixer_read(uint16_t addr, void *priv);
+extern void    sb_ct1745_mixer_reset(sb_t *sb);
+
+extern void    sb_ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
+extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
+extern void    sb_ess_mixer_reset(sb_t *sb);
+
+extern void sb_get_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
+extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
+extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
+extern void sb_close(void *priv);
+extern void sb_speed_changed(void *priv);
+
+extern void ess_mixer_reset(sb_t *ess);
+extern void ess_rsk_reset(void *priv);
+extern void ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
+
+extern void sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void ess_filter_cd_audio(int channel, double *buffer, void *priv);
+extern void ess_filter_pc_speaker(int channel, double *buffer, void *priv);
+extern void ess_filter_midi(int channel, double *buffer, void *priv);
+
+extern void   *ess_solo1_legacy_init(void);
+extern void    ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len);
+extern void    ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enable,
+                                       int fm_enable, int fm_legacy_alias,
+                                       uint16_t mpu_addr, int mpu_enable,
+                                       int sb_irq, int mpu_irq, int dma, uint16_t game_addr);
+extern uint8_t ess_solo1_legacy_fm_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val);
+extern uint8_t ess_solo1_legacy_mpu_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_close(void *priv);
+
+#endif /*SOUND_SND_SB_H*/

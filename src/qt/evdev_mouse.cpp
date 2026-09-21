@@ -1,0 +1,113 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Linux/FreeBSD libevdev mouse input module.
+ *
+ * Authors: Cacodemon345
+ *
+ *          Copyright 2021-2022 Cacodemon345
+ */
+#include "evdev_mouse.hpp"
+#include <libevdev/libevdev.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include <vector>
+#include <atomic>
+#include <string>
+#include <tuple>
+
+#include <QThread>
+
+extern "C" {
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/mouse.h>
+#include <poll.h>
+}
+
+static std::vector<std::pair<int, libevdev *>> evdev_mice;
+static std::atomic<bool>                       stopped = false;
+static QThread                                *evdev_thread;
+
+void
+evdev_thread_func()
+{
+    struct pollfd *pfds = (struct pollfd *) calloc(evdev_mice.size(), sizeof(struct pollfd));
+    for (unsigned int i = 0; i < evdev_mice.size(); i++) {
+        pfds[i].fd     = libevdev_get_fd(evdev_mice[i].second);
+        pfds[i].events = POLLIN;
+    }
+
+    while (!stopped) {
+        poll(pfds, evdev_mice.size(), 500);
+        for (unsigned int i = 0; i < evdev_mice.size(); i++) {
+            struct input_event ev;
+            if (pfds[i].revents & POLLIN) {
+                while (libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev) == 0) {
+                    if (evdev_mice.size() && (ev.type == EV_REL) && mouse_capture) {
+                        if (ev.code == REL_X)
+                            mouse_scale_x(ev.value);
+                        if (ev.code == REL_Y)
+                            mouse_scale_y(ev.value);
+                    }
+                }
+            }
+        }
+    }
+
+    for (unsigned int i = 0; i < evdev_mice.size(); i++) {
+        libevdev_free(evdev_mice[i].second);
+        evdev_mice[i].second = nullptr;
+        close(evdev_mice[i].first);
+    }
+    free(pfds);
+    evdev_mice.clear();
+}
+
+void
+evdev_stop()
+{
+    if (evdev_thread) {
+        stopped = true;
+        evdev_thread->wait();
+        evdev_thread = nullptr;
+    }
+}
+
+void
+evdev_init()
+{
+    if (evdev_thread)
+        return;
+    for (int i = 0; i < 256; i++) {
+        std::string evdev_device_path = "/dev/input/event" + std::to_string(i);
+        int         fd                = open(evdev_device_path.c_str(), O_NONBLOCK | O_RDONLY);
+        if (fd != -1) {
+            libevdev *input_struct = nullptr;
+            int       rc           = libevdev_new_from_fd(fd, &input_struct);
+            if (rc <= -1) {
+                close(fd);
+                continue;
+            } else {
+                if (!libevdev_has_event_type(input_struct, EV_REL) || !libevdev_has_event_code(input_struct, EV_KEY, BTN_LEFT)) {
+                    libevdev_free(input_struct);
+                    close(fd);
+                    continue;
+                }
+                evdev_mice.push_back(std::make_pair(fd, input_struct));
+            }
+        } else if (errno == ENOENT)
+            break;
+    }
+    if (evdev_mice.size() != 0) {
+        evdev_thread = QThread::create(evdev_thread_func);
+        evdev_thread->start();
+        atexit(evdev_stop);
+    }
+}

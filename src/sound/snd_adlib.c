@@ -1,0 +1,187 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Adlib emulation.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2025 Miran Grca.
+ *          Copyright 2024-2026 Jasmine Iwanek.
+ */
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <wchar.h>
+#define HAVE_STDARG_H
+
+#include <86box/86box.h>
+#include <86box/device.h>
+#include <86box/io.h>
+#include <86box/mca.h>
+#include <86box/sound.h>
+#include <86box/timer.h>
+#include <86box/snd_opl.h>
+#include <86box/snd_adlib.h>
+#include <86box/plat_unused.h>
+
+#ifdef ENABLE_ADLIB_LOG
+uint8_t adlib_do_log = ENABLE_ADLIB_LOG;
+
+static void
+adlib_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (adlib_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define adlib_log(fmt, ...)
+#endif
+
+void
+adlib_get_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    adlib_t *const adlib = (adlib_t *) priv;
+
+    const int32_t *const opl_buf = adlib->opl.update(adlib->opl.priv);
+
+    for (uint16_t c = 0; c < len * 2; c++)
+        buffer[c] += opl_buf[c];
+
+    adlib->opl.reset_buffer(adlib->opl.priv);
+}
+
+uint8_t
+adlib_mca_read(const uint16_t port, void *priv)
+{
+    const adlib_t *const adlib = (adlib_t *) priv;
+
+    adlib_log("adlib_mca_read: port=%04x\n", port);
+
+    return adlib->pos_regs[port & 7];
+}
+
+void
+adlib_mca_write(const uint16_t port, const uint8_t val, void *priv)
+{
+    adlib_t *const adlib = (adlib_t *) priv;
+
+    if (port < 0x102)
+        return;
+
+    adlib_log("adlib_mca_write: port=%04x val=%02x\n", port, val);
+
+    switch (port) {
+        case 0x102:
+            if ((adlib->pos_regs[2] & 1) && !(val & 1))
+                io_removehandler(0x0388, 0x0002,
+                                 adlib->opl.read, NULL, NULL,
+                                 adlib->opl.write, NULL, NULL,
+                                 adlib->opl.priv);
+            else if (!(adlib->pos_regs[2] & 1) && (val & 1))
+                io_sethandler(0x0388, 0x0002,
+                              adlib->opl.read, NULL, NULL,
+                              adlib->opl.write, NULL, NULL,
+                              adlib->opl.priv);
+            break;
+
+        default:
+            break;
+    }
+    adlib->pos_regs[port & 7] = val;
+}
+
+uint8_t
+adlib_mca_feedb(void *priv)
+{
+    const adlib_t *const adlib = (adlib_t *) priv;
+
+    return (adlib->pos_regs[2] & 1);
+}
+
+void *
+adlib_init(UNUSED(const device_t *info))
+{
+    adlib_t *const adlib = calloc(1, sizeof(adlib_t));
+
+    adlib_log("adlib_init\n");
+    fm_driver_get(FM_YM3812, &adlib->opl);
+    io_sethandler(0x0388, 0x0002,
+                  adlib->opl.read, NULL, NULL,
+                  adlib->opl.write, NULL, NULL,
+                  adlib->opl.priv);
+    music_add_handler(adlib_get_buffer, adlib);
+    return adlib;
+}
+
+void *
+adlib_mca_init(const device_t *info)
+{
+    adlib_t *const adlib = adlib_init(info);
+
+    io_removehandler(0x0388, 0x0002,
+                     adlib->opl.read, NULL, NULL,
+                     adlib->opl.write, NULL, NULL,
+                     adlib->opl.priv);
+    mca_add(adlib_mca_read,
+            adlib_mca_write,
+            adlib_mca_feedb,
+            NULL,
+            adlib);
+    adlib->pos_regs[0] = 0xd7;
+    adlib->pos_regs[1] = 0x70;
+
+    return adlib;
+}
+
+void
+adlib_close(void *priv)
+{
+    adlib_t *const adlib = (adlib_t *) priv;
+
+    adlib_log("adlib_close\n");
+
+    free(adlib);
+}
+
+const device_t adlib_device = {
+    .name          = "AdLib",
+    .internal_name = "adlib",
+    .flags         = DEVICE_ISA | DEVICE_SIDECAR,
+    .local         = 0,
+    .init          = adlib_init,
+    .close         = adlib_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t adlib_mca_device = {
+    .name          = "AdLib (MCA)",
+    .internal_name = "adlib_mca",
+    .flags         = DEVICE_MCA,
+    .local         = 0,
+    .init          = adlib_mca_init,
+    .close         = adlib_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
