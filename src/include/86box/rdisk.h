@@ -92,23 +92,23 @@ typedef struct rdisk_drive_type_t {
 
 #define KNOWN_RDISK_DRIVE_TYPES 9
 static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
-    { "86BOX",    "REMOVABLE DISK",             "5.00", { 1, 1, 1, 1, 0, 0 /*, 0, 0, 0*/ }},
-    { "IOMEGA",   "ZIP 100",                    "E.08", { 1, 0, 0, 0, 0, 0 /*, 0, 0, 0*/ }},
-    { "IOMEGA",   "ZIP 250",                    "42.S", { 1, 1, 0, 0, 0, 0 /*, 1, 0, 0*/ }},
+    { "86BOX",    "REMOVABLE DISK",             "5.00", { 1, 1, 1, 1, 1, 1, 1, 1 }},
+    { "IOMEGA",   "ZIP 100",                    "E.08", { 1, 0, 0, 0, 0, 0, 0, 0 }},
+    { "IOMEGA",   "ZIP 250",                    "42.S", { 1, 1, 0, 0, 0, 0, 0, 0 }},
 #if 0
     { "IOMEGA",   "ZIP 750",                    "42.S", { 1, 1, 1, 0, 0 }}, /* Guess */
 #endif
-    { "IOMEGA",   "JAZ 1GB",                    "H.72", { 0, 0, 1, 0, 0, 0 /*, 0, 0, 0*/ }},
-    { "IOMEGA",   "JAZ 2GB",                    "E.17", { 0, 0, 1, 1, 0, 0 /*, 0, 0, 1*/ }},
+    { "IOMEGA",   "JAZ 1GB",                    "H.72", { 0, 0, 1, 0, 0, 0, 0, 0 }},
+    { "IOMEGA",   "JAZ 2GB",                    "E.17", { 0, 0, 1, 1, 0, 0, 0 ,0 }},
     /* Firmware revision "1.06" is a placeholder: the real SyJet's revision
        string could not be confirmed from the SCSI Technical Reference or
        any real-world SCSI probe log. Correct it if a real value surfaces. */
-    { "SYQUEST",  "SyJet 1.5GB",                "1.06", { 0, 0, 0, 0, 1, 0 }},
+    { "SYQUEST",  "SyJet 1.5GB",                "1.06", { 0, 0, 0, 0, 1, 0, 0, 0 }},
     /* Firmware revision "1.03" is likewise an unconfirmed placeholder - the
        SparQ's EIDE Technical Reference doesn't give a real example string. */
-    { "SYQUEST",  "SparQ 1.0GB",                "1.03", { 0, 0, 0, 0, 0, 1 }},
-    { "IMATION",  "SUPERDISK 120 ATAPI",        "04"    { 0, 0, 0, 1, 0 }},
-    { "IMATION",  "SUPERDISK  240       ATAPI", "04"    { 0, 0, 0, 1, 1 }}
+    { "SYQUEST",  "SparQ 1.0GB",                "1.03", { 0, 0, 0, 0, 0, 1, 0, 0 }},
+    { "IMATION",  "SUPERDISK 120 ATAPI",        "04",   { 0, 0, 0, 0, 0, 0, 1, 0 }},
+    { "IMATION",  "SUPERDISK  240       ATAPI", "04",   { 0, 0, 0, 0, 0, 0, 1, 1 }}
 };
 
 enum {
