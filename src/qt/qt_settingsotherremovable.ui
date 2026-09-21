@@ -44,7 +44,7 @@
       <layout class="QVBoxLayout" name="verticalLayoutMO">
 
        <item>
-        <widget class="QTableView" name="tableViewMO">
+        <widget class="QTreeView" name="treeViewMO">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -57,12 +57,12 @@
          <property name="tabKeyNavigation">
           <bool>false</bool>
          </property>
-         <property name="showGrid">
+         <property name="rootIsDecorated">
           <bool>false</bool>
          </property>
-         <attribute name="verticalHeaderVisible">
-          <bool>false</bool>
-         </attribute>
+         <property name="allColumnsShowFocus">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
@@ -145,7 +145,7 @@
       <layout class="QVBoxLayout" name="verticalLayoutRDisk">
 
        <item>
-        <widget class="QTableView" name="tableViewRDisk">
+        <widget class="QTreeView" name="treeViewRDisk">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -158,12 +158,12 @@
          <property name="tabKeyNavigation">
           <bool>false</bool>
          </property>
-         <property name="showGrid">
+         <property name="rootIsDecorated">
           <bool>false</bool>
          </property>
-         <attribute name="verticalHeaderVisible">
-          <bool>false</bool>
-         </attribute>
+         <property name="allColumnsShowFocus">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
@@ -246,7 +246,7 @@
       <layout class="QVBoxLayout" name="verticalLayoutTape">
 
        <item>
-        <widget class="QTableView" name="tableViewTape">
+        <widget class="QTreeView" name="treeViewTape">
          <property name="editTriggers">
           <set>QAbstractItemView::NoEditTriggers</set>
          </property>
@@ -259,12 +259,12 @@
          <property name="tabKeyNavigation">
           <bool>false</bool>
          </property>
-         <property name="showGrid">
+         <property name="rootIsDecorated">
           <bool>false</bool>
          </property>
-         <attribute name="verticalHeaderVisible">
-          <bool>false</bool>
-         </attribute>
+         <property name="allColumnsShowFocus">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item>
@@ -342,15 +342,15 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>tableViewMO</tabstop>
+  <tabstop>treeViewMO</tabstop>
   <tabstop>comboBoxMOBus</tabstop>
   <tabstop>comboBoxMOChannel</tabstop>
   <tabstop>comboBoxMOType</tabstop>
-  <tabstop>tableViewRDisk</tabstop>
+  <tabstop>treeViewRDisk</tabstop>
   <tabstop>comboBoxRDiskBus</tabstop>
   <tabstop>comboBoxRDiskChannel</tabstop>
   <tabstop>comboBoxRDiskType</tabstop>
-  <tabstop>tableViewTape</tabstop>
+  <tabstop>treeViewTape</tabstop>
   <tabstop>comboBoxTapeBus</tabstop>
   <tabstop>comboBoxTapeChannel</tabstop>
   <tabstop>comboBoxTapeType</tabstop>

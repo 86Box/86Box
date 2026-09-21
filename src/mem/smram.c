@@ -180,42 +180,44 @@ smram_recalc_all(int ret)
 void
 smram_del(smram_t *smr)
 {
-    /* Do a sanity check */
-    if ((base_smram == NULL) && (last_smram != NULL)) {
-        fatal("smram_del(): NULL base SMRAM with non-NULL last SMRAM\n");
-        return;
-    } else if ((base_smram != NULL) && (last_smram == NULL)) {
-        fatal("smram_del(): Non-NULL base SMRAM with NULL last SMRAM\n");
-        return;
-    } else if ((base_smram != NULL) && (base_smram->prev != NULL)) {
-        fatal("smram_del(): Base SMRAM with a preceding SMRAM\n");
-        return;
-    } else if ((last_smram != NULL) && (last_smram->next != NULL)) {
-        fatal("smram_del(): Last SMRAM with a following SMRAM\n");
-        return;
+    if (smr != NULL) {
+        /* Do a sanity check */
+        if ((base_smram == NULL) && (last_smram != NULL)) {
+            fatal("smram_del(): NULL base SMRAM with non-NULL last SMRAM\n");
+            return;
+        } else if ((base_smram != NULL) && (last_smram == NULL)) {
+            fatal("smram_del(): Non-NULL base SMRAM with NULL last SMRAM\n");
+            return;
+        } else if ((base_smram != NULL) && (base_smram->prev != NULL)) {
+            fatal("smram_del(): Base SMRAM with a preceding SMRAM\n");
+            return;
+        } else if ((last_smram != NULL) && (last_smram->next != NULL)) {
+            fatal("smram_del(): Last SMRAM with a following SMRAM\n");
+            return;
+        }
+
+        if (smr == NULL) {
+            fatal("smram_del(): Invalid SMRAM mapping\n");
+            return;
+        }
+
+        /* Disable the entry. */
+        smram_disable(smr);
+
+        /* Zap it from the list. */
+        if (smr->prev != NULL)
+            smr->prev->next = smr->next;
+        if (smr->next != NULL)
+            smr->next->prev = smr->prev;
+
+        /* Check if it's the first or the last mapping. */
+        if (base_smram == smr)
+            base_smram = smr->next;
+        if (last_smram == smr)
+            last_smram = smr->prev;
+
+        free(smr);
     }
-
-    if (smr == NULL) {
-        fatal("smram_del(): Invalid SMRAM mapping\n");
-        return;
-    }
-
-    /* Disable the entry. */
-    smram_disable(smr);
-
-    /* Zap it from the list. */
-    if (smr->prev != NULL)
-        smr->prev->next = smr->next;
-    if (smr->next != NULL)
-        smr->next->prev = smr->prev;
-
-    /* Check if it's the first or the last mapping. */
-    if (base_smram == smr)
-        base_smram = smr->next;
-    if (last_smram == smr)
-        last_smram = smr->prev;
-
-    free(smr);
 }
 
 /* Add a SMRAM mapping. */
@@ -223,6 +225,9 @@ smram_t *
 smram_add(void)
 {
     smram_t *temp_smram;
+
+    if (dump_missing)
+        return NULL;
 
     /* Do a sanity check */
     if ((base_smram == NULL) && (last_smram != NULL)) {
@@ -293,7 +298,8 @@ void
 smram_disable(smram_t *smr)
 {
     if (smr == NULL) {
-        fatal("smram_disable(): Invalid SMRAM mapping\n");
+        if (!dump_missing)
+            fatal("smram_disable(): Invalid SMRAM mapping\n");
         return;
     }
 
@@ -330,7 +336,8 @@ smram_enable_ex(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t si
                 int flags_normal, int flags_normal_bus, int flags_smm, int flags_smm_bus)
 {
     if (smr == NULL) {
-        fatal("smram_add(): Invalid SMRAM mapping\n");
+        if (!dump_missing)
+            fatal("smram_add(): Invalid SMRAM mapping\n");
         return;
     }
 

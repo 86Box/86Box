@@ -63,6 +63,7 @@ extern void     pic_reset_smi_irq_mask(void);
 extern void     pic_set_smi_irq_mask(int irq, int set);
 extern uint16_t pic_get_smi_irq_status(void);
 extern void     pic_clear_smi_irq_status(int irq);
+extern void     pic_set_irq_callback(void (*callback)(uint16_t, int, void *), void *priv);
 
 extern int     pic_elcr_get_enabled(void);
 extern void    pic_elcr_set_enabled(int enabled);
@@ -71,13 +72,20 @@ extern void    pic_elcr_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t pic_elcr_read(uint16_t port, void *priv);
 
 extern void pic_set_shadow(int sh);
+extern void pic_set_force_xt_imr_timing(int enable);
 extern int  pic_get_pci_flag(void);
 extern void pic_set_pci_flag(int pci);
 extern void pic_set_pci(void);
+extern void pic_set_vector_override(uint8_t irq, int vector);
 extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
 extern void pic_init(void);
 extern void pic_init_pcjr(void);
+extern void pic_init_ibm5140(void (*wake)(void));
+extern uint8_t pic_ibm5140_diag_read(uint8_t selector);
+extern void pic_ibm5140_diag_write(uint8_t value);
+extern void pic_ibm5140_diag_enable(int enabled);
+extern void pic_handler(int set, uint16_t base, int size);
 extern void pic2_init(void);
 extern void pic_reset(void);
 
@@ -93,6 +101,7 @@ extern int     picinterrupt(void);
 #define PIC_SLAVE_PENDING               0x01
 #define PIC_FREEZE                      0x02
 #define PIC_MASTER_CLEAR                0x04
+#define PIC_IBM5140                 0x08
 
 /* Legacy defines. */
 #define picint(num)                     picint_common(num, PIC_IRQ_EDGE,  1, NULL)

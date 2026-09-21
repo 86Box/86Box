@@ -755,6 +755,7 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
             sb_dsp_setirq(&dev->sb->dsp, 0);
 
             ad1848_setdma(&dev->ad1848, 0);
+            ad1848_setdma2(&dev->ad1848, 0);
             sb_dsp_setdma8(&dev->sb->dsp, 0);
 
             if (config->activate) {
@@ -787,6 +788,8 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
                     ad1848_setdma(&dev->ad1848, config->dma[0].dma);
                     sb_dsp_setdma8(&dev->sb->dsp, config->dma[0].dma);
                 }
+                if (config->dma[1].dma != ISAPNP_DMA_DISABLED)
+                    ad1848_setdma2(&dev->ad1848, config->dma[1].dma);
             }
             break;
 

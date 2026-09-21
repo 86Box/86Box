@@ -69,6 +69,7 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
     ui->checkBoxConfirmExit->setChecked(confirm_exit);
     ui->checkBoxConfirmSave->setChecked(confirm_save);
     ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
+    ui->checkBoxCHDPrecache->setChecked(chd_precache_level > 0);
 
     ui->radioButtonSystem->setChecked(color_scheme == 0);
     ui->radioButtonLight->setChecked(color_scheme == 1);
@@ -86,6 +87,13 @@ PreferencesEmulator::~PreferencesEmulator()
     delete ui;
 }
 
+int
+PreferencesEmulator::changed()
+{
+    return ((lang_id != ui->comboBoxLanguage->currentData().toInt()) ? 1 : 0);
+}
+
+
 void
 PreferencesEmulator::save()
 {
@@ -97,8 +105,9 @@ PreferencesEmulator::save()
     confirm_exit            = ui->checkBoxConfirmExit->isChecked() ? 1 : 0;
     confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
     confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
+    chd_precache_level      = ui->checkBoxCHDPrecache->isChecked() ? 1 : 0;
 
-    color_scheme = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
+    color_scheme       = (ui->radioButtonSystem->isChecked()) ? 0 : (ui->radioButtonLight->isChecked() ? 1 : 2);
 
 #ifdef Q_OS_WINDOWS
     extern void selectDarkMode();

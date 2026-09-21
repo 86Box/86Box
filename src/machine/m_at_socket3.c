@@ -48,6 +48,33 @@
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
 
+/* ACC 2168 */
+int
+machine_at_pb430_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pb430/PB430-Dump-2.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    device_add(&acc3221_device);
+    device_add(&acc2168_device);
+
+    device_add(&phoenix_486_jumper_pb430_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    return ret;
+}
+
 /* ALi M1429G */
 int
 machine_at_atc1762_init(const machine_t *model)
@@ -237,7 +264,7 @@ static const device_config_t j403tg_config[] = {
                 .files         = { "roms/machines/403tg/J403TGRevD.BIN", "" }
             },
             {
-                .name          = "Award Modular BIOS v4.50G",
+                .name          = "AwardBIOS v4.50G",
                 .internal_name = "403tg_award",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -330,6 +357,39 @@ machine_at_acerv10_init(const machine_t *model)
 }
 
 /* SiS 471 */
+static const device_config_t win471t_config[] = {
+    // clang-format off
+    {
+        .name        = "cache_size",
+        .description = "External cache",
+        .type        = CONFIG_SELECTION,
+        .default_int = 3,
+        .selection   = {
+            { .description = "128 KB",  .value = 2 },
+            { .description = "256 KB",  .value = 3 },
+            { .description = "512 KB",  .value = 4 },
+            { .description = "1 MB",    .value = 5 },
+            { .description = "" }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t win471t_device = {
+    .name          = "ABIT AB-AH4T",
+    .internal_name = "win471t",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = win471t_config
+};
+
 static void
 machine_at_sis_85c471_common_init(const machine_t *model)
 {
@@ -370,7 +430,17 @@ machine_at_win471t_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_sis_85c471_common_init(model);
+    machine_at_common_init(model);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    /* SiS 85C471 register 51h bits 6:4 are the external cache size.
+     * Store the selected code in bits 18:16 of the device local value and
+     * set bit 24 to indicate that this board should force those bits. */
+    uint8_t cache_size_code = machine_get_config_int("cache_size");
+    uintptr_t sis_params = ((uintptr_t) 1 << 24) | ((uintptr_t) cache_size_code << 16);
+    device_add_params(&sis_85c471_device, (void *) sis_params);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
@@ -519,6 +589,28 @@ machine_at_tg486g_init(const machine_t *model)
     }
     mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
     mem_mapping_set_exec(&bios_mapping, rom);
+
+    return ret;
+}
+
+int
+machine_at_vs486f3vl_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vs486f3vl/vega-vs486f-3vl-060692.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sl82c461_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }

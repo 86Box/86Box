@@ -520,14 +520,17 @@ t3100e_poll(void *priv)
             t3100e->cga.cgastat &= ~8;
             t3100e->dispon = 1;
         }
+        video_lightpen_check_trigger_strobe(8, t3100e->displine, 0, 0, VID_CLOCK, 0);
     } else {
         if (t3100e->dispon) {
             t3100e->cga.cgastat &= ~1;
         }
+        video_lightpen_hsync();
         timer_advance_u64(&t3100e->cga.timer, t3100e->dispontime);
         t3100e->linepos = 0;
 
         if (t3100e->displine == 400) {
+            video_lightpen_vsync();
             /* Hardcode 640x400 window size */
             if ((T3100E_XSIZE != xsize) || (T3100E_YSIZE != ysize) || video_force_resize_get()) {
                 xsize = T3100E_XSIZE;

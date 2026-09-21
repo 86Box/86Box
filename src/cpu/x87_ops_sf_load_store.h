@@ -236,9 +236,9 @@ sf_FBLD_PACKED_BCD_a32(uint32_t fetchdat)
 
     FP_ENTER();
     FPU_check_pending_exceptions();
-    fetch_ea_16(fetchdat);
+    fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
-    load_reg_hi = readmemw(easeg, (cpu_state.eaaddr + 8) & 0xffff);
+    load_reg_hi = readmemw(easeg, cpu_state.eaaddr + 8);
     load_reg_lo = readmemq(easeg, cpu_state.eaaddr);
     if (cpu_state.abrt)
         return 1;

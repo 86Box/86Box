@@ -49,6 +49,7 @@ typedef struct adgold_t {
     uint8_t midi_queue[16];
     int     midi_r;
     int     midi_w;
+    int     midi_used;
     int     uart_in;
     int     uart_out;
     int     sysex;
@@ -440,10 +441,11 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
 
                     if ((adgold->adgold_midi_ctrl & 0x0f) != 0x0f) {
                         if ((adgold->adgold_midi_ctrl & 0x0f) == 0x00) {
-                            adgold->uart_out = 0;
-                            adgold->uart_in  = 0;
-                            adgold->midi_w   = 0;
-                            adgold->midi_r   = 0;
+                            adgold->uart_out  = 0;
+                            adgold->uart_in   = 0;
+                            adgold->midi_w    = 0;
+                            adgold->midi_r    = 0;
+                            adgold->midi_used = 0;
                             adgold->adgold_mma_status &= ~0x8c;
                         } else {
                             if (adgold->adgold_midi_ctrl & 0x01)
@@ -451,9 +453,10 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                             if (adgold->adgold_midi_ctrl & 0x04)
                                 adgold->uart_out = 1;
                             if (adgold->adgold_midi_ctrl & 0x02) {
-                                adgold->uart_in = 0;
-                                adgold->midi_w  = 0;
-                                adgold->midi_r  = 0;
+                                adgold->uart_in   = 0;
+                                adgold->midi_w    = 0;
+                                adgold->midi_r    = 0;
+                                adgold->midi_used = 0;
                             }
                             if (adgold->adgold_midi_ctrl & 0x08)
                                 adgold->uart_out = 0;
@@ -617,6 +620,8 @@ adgold_read(uint16_t addr, void *priv)
                         if (adgold->midi_r != adgold->midi_w) {
                             adgold->midi_r++;
                             adgold->midi_r &= 0x0f;
+                            if (adgold->midi_used > 0)
+                                adgold->midi_used--;
                         }
                         adgold->adgold_mma_status &= ~0x04;
                         adgold_update_irq_status(adgold);
@@ -916,6 +921,7 @@ adgold_input_msg(void *priv, uint8_t *msg, uint32_t len)
         for (uint32_t i = 0; i < len; i++) {
             adgold->midi_queue[adgold->midi_w++] = msg[i];
             adgold->midi_w &= 0x0f;
+            adgold->midi_used++;
         }
 
         adgold_update_irq_status(adgold);
@@ -937,9 +943,18 @@ adgold_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (len - i);
         adgold->midi_queue[adgold->midi_w++] = buffer[i];
         adgold->midi_w &= 0x0f;
+        adgold->midi_used++;
     }
     adgold->sysex = 0;
     return 0;
+}
+
+static int
+adgold_input_remain(void *priv)
+{
+    adgold_t *adgold = (adgold_t *) priv;
+
+    return (16 - adgold->midi_used);
 }
 
 void *
@@ -1050,7 +1065,7 @@ adgold_init(UNUSED(const device_t *info))
     sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
 
     if (device_get_config_int("receive_input"))
-        midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold);
+        midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold_input_remain, adgold);
 
     return adgold;
 }

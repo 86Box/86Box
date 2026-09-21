@@ -241,29 +241,10 @@ xga_updatemapping(svga_t *svga)
                         mem_mapping_disable(&xga->linear_mapping);
 
                     xga->test_stage = 0;
-                    mem_mapping_set_handler(&svga->mapping, svga->read, svga->readw, svga->readl, svga->write, svga->writew, svga->writel);
-                    switch (svga->gdcreg[6] & 0xc) {
-                        case 0x0: /*128k at A0000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
-                            svga->banked_mask = 0xffff;
-                            break;
-                        case 0x4: /*64k at A0000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
-                            svga->banked_mask = 0xffff;
-                            break;
-                        case 0x8: /*32k at B0000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
-                            svga->banked_mask = 0x7fff;
-                            break;
-                        case 0xC: /*32k at B8000*/
-                            mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
-                            svga->banked_mask = 0x7fff;
-                            break;
-
-                        default:
-                            break;
-                    }
-                    xga->mapping_base = svga->mapping.base;
+                    /* In extended graphics mode with no 64KB aperture, the
+                       VGA-compatible A0000/B0000 window is not exposed. */
+                    mem_mapping_disable(&svga->mapping);
+                    xga->mapping_base = 0;
                     break;
                 case 1:
                     mem_mapping_disable(&xga->linear_mapping);
@@ -427,6 +408,9 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
     uint8_t index;
 
     switch (idx) {
+        case 0x00:
+            xga_updatemapping(svga);
+            break;
         case 0x10:
             xga->htotal = (xga->htotal & 0xff00) | val;
             break;
@@ -569,6 +553,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             xga->disp_cntl_2 = val;
             xga->on          = ((val & 0x07) >= 0x02);
             svga_recalctimings(svga);
+            xga_updatemapping(svga);
             break;
 
         case 0x54:
@@ -689,6 +674,7 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
         case 0:
             xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
             xga->op_mode = val;
+            xga_updatemapping(svga);
             break;
         case 1:
             xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
@@ -3791,6 +3777,7 @@ xga_init(const device_t *info)
     xga->vram_mask             = xga->vram_size - 1;
     xga->vram                  = calloc(xga->vram_size, 1);
     xga->changedvram           = calloc((xga->vram_size >> 12) + 1, 1);
+    xga->op_mode               = 0x01; /* VGA mode enabled (bit 0) for instance scan */
     xga->on                    = 0;
     xga->hwcursor.cur_xsize    = 64;
     xga->hwcursor.cur_ysize    = 64;
@@ -3850,10 +3837,10 @@ svga_xga_init(const device_t *info)
               NULL,
               NULL);
 
-    io_sethandler(0x03c0, 0x0020, svga_xga_in, NULL, NULL, svga_xga_out, NULL, NULL, svga);
+    io_sethandler(0x03a0, 0x0040, svga_xga_in, NULL, NULL, svga_xga_out, NULL, NULL, svga);
 
     svga->bpp     = 8;
-    svga->miscout = 1;
+    svga->miscout = 0;
     xga_active    = 1;
 
     return xga_init(info);

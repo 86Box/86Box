@@ -444,8 +444,6 @@ spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t
         drb = reg_min + row;
 
         /* Write DRB register, adding the previous DRB's value. */
-        if (row == 0)
-            row_val = 0;
         if (size)
             row_val += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
         regs[drb] = row_val & 0xff;
@@ -464,7 +462,7 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
     uint8_t  dimm;
     uint8_t  drb;
     uint16_t size;
-    uint16_t size_acc = 0;
+    uint16_t size_acc = (drb_unit == 1) ? -1 : 0; /* M1531/M1541 = boundary - 1 */
     uint16_t rows[SPD_MAX_SLOTS];
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
@@ -496,10 +494,7 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
         drb = reg_min + row;
 
         /* Calculate previous and new size. */
-        if (row == 0)
-            size_acc = 0;
-        else
-            size_acc += (size / drb_unit);
+        size_acc += (size / drb_unit);
 
         /* Write DRB register, adding the previous DRB's value. */
         regs[drb]     = size_acc & 0xff;

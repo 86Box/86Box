@@ -164,6 +164,7 @@ typedef struct ess_mixer_t {
     int input_filter;
     int in_filter_freq;
     int output_filter;
+    int output_filter_dac2;
 
     int stereo;
     int stereo_isleft;
@@ -205,11 +206,15 @@ typedef struct sb_t {
     uint16_t midi_addr;
     uint16_t gameport_addr;
 
+    /* Output gain required for the Pro Sonic 16 so PCM sounds are volume adjusted
+	to similar levels produced by the external midi and PC speaker */
+    double mvd_1216_output_gain;
+
     uint8_t  ess_scr_locked;
     uint8_t  es1688_rsk_enable;
-    uint8_t  es188x_readseq_state;
-    uint8_t  es188x_readseq_mode;
-    uint16_t es188x_dsp_addr;
+    uint8_t  ess_readseq_state;
+    uint8_t  ess_readseq_mode;
+    uint16_t ess_dsp_addr;
     uint16_t es186x_ctrl_addr;
     uint8_t  es186x_id_state;
     uint8_t  es186x_ctrl_regs[8];
@@ -273,5 +278,28 @@ extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb_close(void *priv);
 extern void sb_speed_changed(void *priv);
+
+extern void ess_mixer_reset(sb_t *ess);
+extern void ess_rsk_reset(void *priv);
+extern void ess_mixer_write(uint16_t addr, uint8_t val, void *priv);
+
+extern void sb_get_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
+extern void ess_filter_cd_audio(int channel, double *buffer, void *priv);
+extern void ess_filter_pc_speaker(int channel, double *buffer, void *priv);
+extern void ess_filter_midi(int channel, double *buffer, void *priv);
+
+extern void   *ess_solo1_legacy_init(void);
+extern void    ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len);
+extern void    ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enable,
+                                       int fm_enable, int fm_legacy_alias,
+                                       uint16_t mpu_addr, int mpu_enable,
+                                       int sb_irq, int mpu_irq, int dma, uint16_t game_addr);
+extern uint8_t ess_solo1_legacy_fm_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val);
+extern uint8_t ess_solo1_legacy_mpu_read(void *priv, uint16_t addr);
+extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val);
+extern void    ess_solo1_legacy_close(void *priv);
 
 #endif /*SOUND_SND_SB_H*/

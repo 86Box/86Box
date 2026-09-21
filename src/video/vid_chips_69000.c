@@ -2222,13 +2222,16 @@ chips_69000_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, 
     switch (addr) {
         case 0x04:
             chips->pci_conf_status = val;
-            io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+            io_removehandler(0x03b0, 0x0040, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
             mem_mapping_disable(&chips->linear_mapping);
             mem_mapping_disable(&chips->svga.mapping);
             if (!chips->on_board)
                 mem_mapping_disable(&chips->bios_rom.mapping);
-            if (val & PCI_COMMAND_IO)
+            if (val & PCI_COMMAND_IO) {
+                if (!(chips->svga.miscout & 0x01))
+                    io_sethandler(0x03a0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
                 io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+            }
             if (val & PCI_COMMAND_MEM) {
                 if (!chips->on_board && (chips->pci_rom_enable & 1))
                     mem_mapping_set_addr(&chips->bios_rom.mapping, chips->rom_addr << 16, 0x10000);
@@ -2777,7 +2780,7 @@ chips_69000_line_compare(svga_t* svga)
 static void
 chips_69000_disable_handlers(chips_69000_t *chips)
 {
-    io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+    io_removehandler(0x03a0, 0x0040, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
     mem_mapping_disable(&chips->linear_mapping);
     mem_mapping_disable(&chips->svga.mapping);
@@ -2830,7 +2833,7 @@ chips_69000_init(const device_t *info)
               chips_69000_hwcursor_draw,
               NULL);
 
-    io_sethandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+    io_sethandler(0x03a0, 0x0040, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 
     pci_add_card(info->local ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, chips_69000_pci_read, chips_69000_pci_write, chips, &chips->slot);
 
@@ -2863,7 +2866,7 @@ chips_69000_init(const device_t *info)
     chips->subsys_vid      = 0x102c;
     chips->subsys_pid      = 0x00c0;
 
-    io_removehandler(0x03c0, 0x0020, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
+    io_removehandler(0x03a0, 0x0040, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
     mem_mapping_disable(&chips->linear_mapping);
     mem_mapping_disable(&chips->svga.mapping);
     if (!chips->on_board)

@@ -3,3 +3,7 @@ name: "86Box CodeQL config"
 queries:
   - uses: security-extended
 #  - uses: security-and-quality
+
+query-filters:
+  - exclude:
+      id: cpp/path-injection

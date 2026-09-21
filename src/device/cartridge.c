@@ -31,14 +31,16 @@
 typedef struct cart_t {
     uint8_t *buf;
     uint32_t base;
+    uint32_t size;
 } cart_t;
 
-char cart_fns[2][MAX_IMAGE_PATH_LEN];
+char  cart_fns[2][MAX_IMAGE_PATH_LEN];
 char *cart_image_history[2][CART_IMAGE_HISTORY];
 
 static cart_t carts[2];
 
 static mem_mapping_t cart_mappings[2];
+static uint8_t       cart_mapping_registered[2];
 
 #ifdef ENABLE_CARTRIDGE_LOG
 int cartridge_do_log = ENABLE_CARTRIDGE_LOG;
@@ -63,7 +65,23 @@ cart_read(uint32_t addr, void *priv)
 {
     const cart_t *dev = (cart_t *) priv;
 
-    return dev->buf[addr - dev->base];
+    return (addr >= dev->base && addr - dev->base < dev->size) ? dev->buf[addr - dev->base] : 0xff;
+}
+
+int
+cart_read_resource(uint32_t address, uint8_t *value)
+{
+    for (unsigned int i = 0; i < 2; i++) {
+        const cart_t *dev = &carts[i];
+
+        if (dev->buf && address >= dev->base && address - dev->base < dev->size) {
+            *value = dev->buf[address - dev->base];
+            return 1;
+        }
+    }
+
+    *value = 0xff;
+    return 0;
 }
 
 static void
@@ -77,81 +95,97 @@ cart_load_error(int drive, UNUSED(char *fn))
 static void
 cart_image_close(int drive)
 {
-    if (carts[drive].buf != NULL) {
-        free(carts[drive].buf);
-        carts[drive].buf = NULL;
-    }
+    if (cart_mapping_registered[drive])
+        mem_mapping_disable(&cart_mappings[drive]);
 
-    carts[drive].base = 0x00000000;
-
-    mem_mapping_disable(&cart_mappings[drive]);
+    free(carts[drive].buf);
+    memset(&carts[drive], 0, sizeof(carts[drive]));
 }
 
-static void
+static int
 cart_image_load(int drive, char *fn)
 {
-    FILE    *fp   = NULL;
-    uint32_t size = 0;
-    uint32_t base = 0x00000000;
+    FILE         *fp;
+    uint8_t      *buf = NULL;
+    uint8_t       header[512];
+    uint32_t      size;
+    uint32_t      base;
+    long          length;
+    const cart_t *other = &carts[drive ^ 1];
 
     cart_image_close(drive);
 
-    fp = fopen(fn, "rb");
-    if (fseek(fp, 0, SEEK_END) == -1)
-        fatal("cart_image_load(): Error seeking to the end of the file\n");
-    size = ftell(fp);
-    if (size < 0x1200) {
-        cartridge_log("cart_image_load(): File size %i is too small\n", size);
-        cart_load_error(drive, fn);
-        fclose(fp);
-        return;
-    }
-    if (size & 0x00000fff) {
-        size -= 0x00000200;
-        fseek(fp, 0x000001ce, SEEK_SET);
-        (void) !fread(&base, 1, 2, fp);
-        base <<= 4;
-        fseek(fp, 0x00000200, SEEK_SET);
-        carts[drive].buf = (uint8_t *) calloc(1, size);
-        (void) !fread(carts[drive].buf, 1, size, fp);
-        fclose(fp);
-    } else {
+    fp = plat_fopen(fn, "rb");
+    if (!fp)
+        goto fail;
+    if (fseek(fp, 0, SEEK_END) != 0)
+        goto fail;
+    length = ftell(fp);
+    if (length < 0x1200 || length > 0x100200 || fseek(fp, 0, SEEK_SET) != 0)
+        goto fail;
+
+    size = (uint32_t) length;
+    if ((size & 0xfff) == 0x200) {
+        if (fread(header, 1, sizeof(header), fp) != sizeof(header))
+            goto fail;
+        size -= sizeof(header);
+        base = ((uint32_t) header[0x1ce] | ((uint32_t) header[0x1cf] << 8)) << 4;
+    } else if (!(size & 0xfff)) {
         base = drive ? 0xe0000 : 0xd0000;
-        if (size == 32768)
+        if (size == 0x8000)
             base += 0x8000;
-        fseek(fp, 0x00000000, SEEK_SET);
-        carts[drive].buf = (uint8_t *) calloc(1, size);
-        (void) !fread(carts[drive].buf, 1, size, fp);
-        fclose(fp);
+    } else
+        goto fail;
+
+    if (base >= 0x100000 || size > 0x100000 - base)
+        goto fail;
+    if (other->buf && base < other->base + other->size && other->base < base + size)
+        goto fail;
+
+    buf = malloc(size);
+    if (!buf || fread(buf, 1, size, fp) != size || fgetc(fp) != EOF || ferror(fp))
+        goto fail;
+    if (fclose(fp) != 0) {
+        fp = NULL;
+        goto fail;
     }
 
     cartridge_log("cart_image_load(): %s at %08X-%08X\n", fn, base, base + size - 1);
+    carts[drive].buf  = buf;
     carts[drive].base = base;
-    mem_mapping_set_addr(&cart_mappings[drive], base, size);
-    mem_mapping_set_exec(&cart_mappings[drive], carts[drive].buf);
-    mem_mapping_set_p(&cart_mappings[drive], &(carts[drive]));
+    carts[drive].size = size;
+    if (cart_mapping_registered[drive]) {
+        mem_mapping_set_addr(&cart_mappings[drive], base, size);
+        mem_mapping_set_exec(&cart_mappings[drive], buf);
+        mem_mapping_set_p(&cart_mappings[drive], &carts[drive]);
+    }
+    return 1;
+
+fail:
+    if (fp)
+        fclose(fp);
+    free(buf);
+    cart_load_error(drive, fn);
+    return 0;
 }
 
 static void
 cart_load_common(int drive, char *fn, uint8_t hard_reset)
 {
-    FILE *fp = NULL;
+    if (drive < 0 || drive >= 2 || !fn || !fn[0])
+        return;
 
     cartridge_log("Cartridge: loading drive %d with '%s'\n", drive, fn);
 
-    if (!fn)
-        return;
-    fp = plat_fopen(fn, "rb");
-    if (fp) {
-        fclose(fp);
-        strcpy(cart_fns[drive], fn);
-        cart_image_load(drive, cart_fns[drive]);
-        /* On the real PCjr, inserting a cartridge causes a reset
-           in order to boot from the cartridge. */
-        if (!hard_reset)
-            resetx86();
-    } else
+    if (strlen(fn) >= sizeof(cart_fns[drive])) {
+        cart_image_close(drive);
         cart_load_error(drive, fn);
+    } else if (cart_image_load(drive, fn))
+        memmove(cart_fns[drive], fn, strlen(fn) + 1);
+
+    /* Inserting or removing a cartridge resets both PCjr and JX. */
+    if (!hard_reset)
+        resetx86();
 }
 
 void
@@ -163,6 +197,9 @@ cart_load(int drive, char *fn)
 void
 cart_close(int drive)
 {
+    if (drive < 0 || drive >= 2)
+        return;
+
     cartridge_log("Cartridge: closing drive %d\n", drive);
 
     cart_image_close(drive);
@@ -174,18 +211,21 @@ cart_close(int drive)
 void
 cart_reset(void)
 {
+    /* mem_reset has already discarded the previous machine's mappings. */
+    memset(cart_mapping_registered, 0, sizeof(cart_mapping_registered));
     cart_image_close(1);
     cart_image_close(0);
 
     if (!machine_has_cartridge(machine))
         return;
 
-    for (uint8_t i = 0; i < 2; i++) {
-        mem_mapping_add(&cart_mappings[i], 0x000d0000, 0x00002000,
-                        cart_read, NULL, NULL,
-                        NULL, NULL, NULL,
-                        NULL, MEM_MAPPING_EXTERNAL, NULL);
-        mem_mapping_disable(&cart_mappings[i]);
+    if (!machine_is_pcjx(machine)) {
+        for (unsigned int i = 0; i < 2; i++) {
+            mem_mapping_add(&cart_mappings[i], 0xd0000, 0x2000, cart_read, NULL, NULL,
+                            NULL, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, &carts[i]);
+            mem_mapping_disable(&cart_mappings[i]);
+            cart_mapping_registered[i] = 1;
+        }
     }
 
     cart_load_common(0, cart_fns[0], 1);

@@ -34,5 +34,8 @@ typedef struct track_file_t {
 } track_file_t;
 
 extern void *image_open(cdrom_t *dev, const char *path);
+extern void *aaru_image_open(cdrom_t *dev, const char *path);
+extern void *chd_image_open(cdrom_t *dev, const char *path);
+extern void *ccd_image_open(cdrom_t *dev, const char *path);
 
 #endif /*CDROM_IMAGE_H*/

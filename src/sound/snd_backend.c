@@ -36,8 +36,16 @@ typedef struct {
 static const SOUND_BACKEND sound_backends[] = {
     // clang-format off
     { &sound_backend_none                  },
+#ifdef AUDIO4
+    { &sound_backend_audio4                },
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
     { &sound_backend_openal                },
-#ifdef ANY_BACKENDS
+#endif
+#ifdef SNDIO
+    { &sound_backend_sndio                 },
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
     { &sound_backend_xaudio2               },
 #endif
     { NULL                                 }

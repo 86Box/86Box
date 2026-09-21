@@ -333,7 +333,7 @@ static const device_config_t ps1_2011_config[] = {
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 524288,
-                .files         = { "roms/machines/ibmps1es/F80000_ES.bin", "" }
+                .files         = { "roms/machines/ibmps1es/F80000_ES.BIN", "" }
             },
             { .files_no = 0 }
         }

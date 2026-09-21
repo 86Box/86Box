@@ -46,12 +46,16 @@ slang_shader* slangp_parse(const char* path)
         char *errmsg = nullptr;
 #ifndef LIBRASHADER_STATIC
         librashader_inst.error_write(err, &errmsg);
-        QMessageBox::critical(main_window, QObject::tr("Error"), QString::fromUtf8(path) + "\n\n" + errmsg);
+        auto msgBox = new QMessageBox(QMessageBox::Critical, QObject::tr("Error"), QString::fromUtf8(path) + "\n\n" + errmsg, QMessageBox::Ok, main_window);
+        msgBox->setAttribute(Qt::WA_DeleteOnClose);
+        msgBox->show();
         librashader_inst.error_free_string(&errmsg);
         librashader_inst.error_free(&err);
 #else
         libra_error_write(err, &errmsg);
-        QMessageBox::critical(main_window, QObject::tr("Error"), QString::fromUtf8(path) + "\n\n" + errmsg);
+        auto msgBox = new QMessageBox(QMessageBox::Critical, QObject::tr("Error"), QString::fromUtf8(path) + "\n\n" + errmsg, QMessageBox::Ok, main_window);
+        msgBox->setAttribute(Qt::WA_DeleteOnClose);
+        msgBox->show();
         libra_error_free_string(&errmsg);
         libra_error_free(&err);
 #endif
