@@ -16,18 +16,21 @@
  *          Copyright 2018-2020 TheCollector1995.
  *          Copyright 2021-2025 RichardG.
  */
+#include <86box/fifo8.h>
+#include <86box/fifo.h>
 #ifndef SOUND_AD1848_H
 #define SOUND_AD1848_H
 
 enum {
-    AD1848_TYPE_DEFAULT = 0,
-    AD1848_TYPE_CS4248  = 1,
-    AD1848_TYPE_OPTI930 = 2,
-    AD1848_TYPE_CS4231  = 3,
-    AD1848_TYPE_CS4232  = 4,
-    AD1848_TYPE_CS4236  = 5,
-    AD1848_TYPE_CS4236B = 6,
-    AD1848_TYPE_CS4235  = 7
+    AD1848_TYPE_DEFAULT   = 0,
+    AD1848_TYPE_CS4248    = 1,
+    AD1848_TYPE_OPTI930   = 2,
+    AD1848_TYPE_CS4231    = 3,
+    AD1848_TYPE_INTERWAVE = 4,
+    AD1848_TYPE_CS4232    = 5,
+    AD1848_TYPE_CS4236    = 6,
+    AD1848_TYPE_CS4236B   = 7,
+    AD1848_TYPE_CS4235    = 8
 };
 
 enum {
@@ -46,8 +49,10 @@ typedef struct ad1848_t {
     uint8_t xregs[32];
     uint8_t status; /* 16 original registers + 16 CS4231A extensions + 32 CS4236 extensions */
     uint8_t opti930_mode2;
+    uint8_t iw_mode3;
 
     int     count;
+    int     rec_count;
     uint8_t trd;
     uint8_t mce;
     uint8_t wten : 1;
@@ -63,11 +68,15 @@ typedef struct ad1848_t {
     uint8_t wave_vol_mask;
 
     uint8_t enable : 1;
+    uint8_t fifo_enable : 1;
+    uint8_t rec_enable : 1;
     uint8_t irq    : 4;
     uint8_t dma    : 3;
+    uint8_t dma2   : 3;
     int     adpcm_predictor[2];
     int16_t adpcm_step_index[2];
     int     freq;
+    int     rec_freq;
     uint8_t adpcm_data;
     int     adpcm_pos;
 
@@ -75,9 +84,17 @@ typedef struct ad1848_t {
     uint32_t dma_data;
 
     pc_timer_t timer_count;
+    pc_timer_t rec_timer_count;
     uint64_t   timer_latch;
+    uint64_t   rec_timer_latch;
 
     pc_timer_t cs4231a_irq_timer;
+    int        irq_timer_count;
+
+    /* Playback FIFO */
+    void      *play_fifo;
+    pc_timer_t fifo_play_timer;
+
 
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
@@ -89,6 +106,7 @@ typedef struct ad1848_t {
 
 extern void ad1848_setirq(ad1848_t *ad1848, int irq);
 extern void ad1848_setdma(ad1848_t *ad1848, int dma);
+extern void ad1848_setdma2(ad1848_t *ad1848, int dma);
 extern void ad1848_updatevolmask(ad1848_t *ad1848);
 
 extern uint8_t ad1848_read(uint16_t addr, void *priv);

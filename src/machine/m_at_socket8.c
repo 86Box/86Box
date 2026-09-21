@@ -72,6 +72,155 @@ machine_at_ap61_init(const machine_t *model)
     return ret;
 }
 
+static const device_config_t aurora_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "aurora",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0Q (AST Bravo MS-T 6___)",
+                .internal_name = "bravomst6xxx",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1001CG0Q.BIO", "roms/machines/aurora/1001CG0Q.BI1",
+                                   "roms/machines/aurora/1001CG0Q.BI2", "roms/machines/aurora/1001CG0Q.BI3",
+                                   "roms/machines/aurora/1001CG0Q.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.01.CG0P (Compaq ProLinea 6___e)",
+                .internal_name = "prolinea6xxxe",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1001CG0P.BIO", "roms/machines/aurora/1001CG0P.BI1",
+                                   "roms/machines/aurora/1001CG0P.BI2", "roms/machines/aurora/1001CG0P.BI3",
+                                   "roms/machines/aurora/1001CG0P.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.05.CG0T (Gateway MBDSAC02_A_WW)",
+                .internal_name = "aurora_gateway",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1005CG0T.BIO", "roms/machines/aurora/1005CG0T.BI1",
+                                   "roms/machines/aurora/1005CG0T.BI2", "roms/machines/aurora/1005CG0T.BI3",
+                                   "roms/machines/aurora/1005CG0T.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.06.CG0",
+                .internal_name = "aurora_06",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1006CG0_.BIO", "roms/machines/aurora/1006CG0_.BI1",
+                                   "roms/machines/aurora/1006CG0_.BI2", "roms/machines/aurora/1006CG0_.BI3",
+                                   "roms/machines/aurora/1006CG0_.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision 1.00.09.CG0",
+                .internal_name = "aurora",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1009CG0_.BIO", "roms/machines/aurora/1009CG0_.BI1",
+                                   "roms/machines/aurora/1009CG0_.BI2", "roms/machines/aurora/1009CG0_.BI3",
+                                   "roms/machines/aurora/1009CG0_.RCV", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision A01 (Dell Dimension XPS Pro___)",
+                .internal_name = "dimensionxpspro",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/DELL.ROM", "" }
+            },
+            {
+                .name          = "Intel AMIBIOS - Revision LTKT16AUS [IBM PC 360 S___ (Type 6598)]",
+                .internal_name = "pc360_6598",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/aurora/1B14CG0M.BIO", "roms/machines/aurora/1B14CG0M.BI1",
+                                   "roms/machines/aurora/1B14CG0M.BI2", "roms/machines/aurora/1B14CG0M.BI3",
+                                   "roms/machines/aurora/1B14CG0M.RCV", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t aurora_device = {
+    .name          = "Intel Performance/AU",
+    .internal_name = "aurora",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = aurora_config
+};
+
+int
+machine_at_aurora_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn[5];
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    int is_dell = !strcmp(device_get_config_bios("bios"), "dimensionxpspro");
+    for (uint8_t i = 0; i < 5; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+
+    if (is_dell)
+        ret = bios_load_linear_inverted(fn[0], 0x000c0000, 262144, 0);
+    else {
+        ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
+    }
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x19, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x14, PCI_CARD_NORTHBRIDGE_SEC, 0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,          1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,          4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,          3, 4, 1, 2);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,          2, 3, 4, 1);
+
+    device_add(&i450kx_device);
+    device_add(&piix_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
 /* i450GX */
 int
 machine_at_p6rp4_init(const machine_t *model)
@@ -96,7 +245,7 @@ machine_at_p6rp4_init(const machine_t *model)
     pci_register_slot(0x05, PCI_CARD_NORMAL,          3, 4, 1, 2);
     pci_register_slot(0x04, PCI_CARD_NORMAL,          4, 1, 2, 3);
 
-    device_add(&i450kx_device);
+    device_add(&i450kx_device); /* 450GX is a superset of the 450KX */
     device_add(&sio_zb_device);
     device_add(&ide_cmd646_device);
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
@@ -375,6 +524,17 @@ static const device_config_t vs440fx_config[] = {
                                    "roms/machines/vs440fx/1006CS1J.RCV", "" }
             },
             {
+                .name          = "Intel AMIBIOS - Revision 1.00.07.CS15 (Micron Millennia Pro 1/ClientPro XVI)",
+                .internal_name = "millenniapro1",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 5,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/vs440fx/1007cs15.bio", "roms/machines/vs440fx/1007cs15.bi1",
+                                   "roms/machines/vs440fx/1007cs15.bi2", "roms/machines/vs440fx/1007cs15.bi3",
+                                   "roms/machines/vs440fx/1007cs15.rcv", "" }
+            },
+            {
                 .name          = "Intel AMIBIOS - Revision 1.00.11.CS1T (Gateway 2000)",
                 .internal_name = "gw2kvenus",
                 .bios_type     = BIOS_NORMAL,
@@ -540,6 +700,92 @@ machine_at_mb600n_init(const machine_t *model)
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c669_device, (void *) 0);
     device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+static const device_config_t zida6dxp_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "6dxp",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.02",
+                .internal_name = "6dxp102",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/6dxp/6dxp102e.bin", "" }
+            },
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1.1",
+                .internal_name = "6dxp",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/6dxp/6DXP_11.BIN", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t zida6dxp_device = {
+    .name          = "Zida 6DXP",
+    .internal_name = "6dxp",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = zida6dxp_config
+};
+
+int
+machine_at_6dxp_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
+
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&um8669f_device, (void *) 0);
+    device_add(&intel_flash_bxt_device); /* guess */
 
     return ret;
 }

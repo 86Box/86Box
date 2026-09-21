@@ -58,6 +58,7 @@ namespace Display {
         NIC,
         Keyboard,
         Mouse,
+        Tablet,
         IsaRtc,
         IsaMem,
         IsaRom,

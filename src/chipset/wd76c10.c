@@ -1339,7 +1339,8 @@ wd76c10_reset(void *priv)
         dev->ems_pages[i].phys = 0x00000000;
     }
 
-    nvr_lock_set(0x38, 0x08, 0x00, dev->nvr);
+    if (!dump_missing)
+        nvr_lock_set(0x38, 0x08, 0x00, dev->nvr);
 
     wd73c30_reset(dev);
 

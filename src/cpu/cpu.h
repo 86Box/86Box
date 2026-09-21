@@ -34,6 +34,7 @@ enum {
 
 enum {
     CPU_8088 = 1, /* 808x class CPUs */
+    CPU_80C88,
     CPU_8086,
     CPU_8086_MAZOVIA,
     CPU_V20, /* NEC 808x class CPUs */
@@ -86,6 +87,7 @@ enum {
 
 enum {
     CPU_PKG_8088             = (1 << 0),
+    CPU_PKG_80C88            = (1 << 28),
     CPU_PKG_8088_EUROPC      = (1 << 1),
     CPU_PKG_8088_VTECH       = (1 << 2),
     CPU_PKG_8086             = (1 << 3),
@@ -179,6 +181,7 @@ typedef struct {
 
 #define RF_FLAG    0x0001 /* in EFLAGS */
 #define VM_FLAG    0x0002 /* in EFLAGS */
+#define AC_FLAG    0x0004 /* in EFLAGS */
 #define VIF_FLAG   0x0008 /* in EFLAGS */
 #define VIP_FLAG   0x0010 /* in EFLAGS */
 #define VID_FLAG   0x0020 /* in EFLAGS */
@@ -414,6 +417,33 @@ typedef struct {
     uint32_t _smbase;
 
     uint32_t x87_op;
+
+    uint16_t temp_CS;
+    uint16_t fpu_CS;
+
+    uint32_t temp_cs;
+    uint32_t temp_pc;
+
+    uint32_t fpu_cs;
+    uint32_t fpu_pc;
+
+    uint16_t fpu_op;
+    uint16_t fpu_DS;
+    uint32_t fpu_ds;
+    uint32_t fpu_ea;
+
+#ifdef USE_DYNAREC
+    /* uint16_t dyn_CS;
+    uint16_t dyn_op;
+    uint32_t dyn_cs;
+    uint32_t dyn_pc;
+
+    uint16_t dyn_DS;
+    uint32_t dyn_ds;
+    uint32_t dyn_ea; */
+
+    int sf_exc;
+#endif
 } cpu_state_t;
 
 #define in_smm   cpu_state._in_smm
@@ -428,6 +458,14 @@ typedef struct {
 #define CPU_STATUS_PMODE   (1 << 2)
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
+/* x87 precision control = 24-bit: the double-based FPU must round
+   ADD/SUB/MUL/DIV/SQRT results to single, so such blocks are compiled
+   with a round-to-single uop after each of those ops. */
+#define CPU_STATUS_FPU_PC24 (1 << 5)
+/* x87 rounding control != nearest: only FADD's memory-operand form
+   bails to the interpreter for it (other FPU arith always rounds to
+   nearest); such blocks must not be reused once RC changes. */
+#define CPU_STATUS_FPU_RC_NZ (1 << 6)
 #ifdef USE_NEW_DYNAREC
 #    define CPU_STATUS_FLAGS 0xff
 #else
@@ -513,7 +551,12 @@ extern int    cpu_cyrix_alignment; /* Cyrix 5x86/6x86 only has data misalignment
                                       penalties when crossing 8-byte boundaries. */
 extern int    cpu_cpurst_on_sr;    /* SiS 551x and 5571: Issue CPURST on soft reset. */
 
+/* 80C88 only: board-supplied stoppable-clock control. See cpu.c. */
+extern int  cpu_clock_gated;
+extern int (*cpu_clock_stop_query)(void);
+
 extern int is8086;
+extern int is80c88;
 extern int is186;
 extern int is286;
 extern int is386;
@@ -641,6 +684,8 @@ extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
 extern int cpu_rom_prefetch_cycles;
 extern int cpu_waitstates;
+extern int io_waitstates;
+extern int reg_op_waitstates;
 extern int cpu_flush_pending;
 extern int cpu_old_paging;
 extern int cpu_cache_int_enabled;
@@ -714,19 +759,25 @@ extern void cpu_CPUID(void);
 extern void cpu_RDMSR(void);
 extern void cpu_WRMSR(void);
 
-extern int  checkio(uint32_t port, int mask);
+// extern int  checkio(uint32_t port, int mask);
 extern void codegen_block_end(void);
 extern void codegen_reset(void);
 extern void cpu_set_edx(void);
 extern int  divl(uint32_t val);
 extern void execx86(int32_t cycs);
+extern void execx86_new(int32_t cycs);
 extern void execvx0(int32_t cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
 extern void exec386_2386(int32_t cycs);
+/* Intel Inboard 386/PC POST fix-ups - shared by both interpreter loops, and gated
+   on the card actually being present (inboard386.c). */
+extern int  inboard386_present;
+extern void inboard_post_fixups(void);
 extern void exec386(int32_t cycs);
 extern void exec386_dynarec(int32_t cycs);
+extern int  is_dynarec_active(void);
 extern int  idivl(int32_t val);
 extern void resetmcr(void);
 extern void resetx86(void);
@@ -848,17 +899,32 @@ extern int new_ne;
 extern int in_lock;
 extern int cpu_override_interpreter;
 
+extern int cpu_dyn_accurate_fpu_env;
+
 extern int is_lock_legal(uint32_t fetchdat);
 
-extern void     prefetch_queue_set_pos(int pos);
-extern void     prefetch_queue_set_ip(uint16_t ip);
-extern void     prefetch_queue_set_prefetching(int p);
-extern int      prefetch_queue_get_pos(void);
-extern uint16_t prefetch_queue_get_ip(void);
-extern int      prefetch_queue_get_prefetching(void);
-extern int      prefetch_queue_get_size(void);
+extern void     (*prefetch_queue_set_pos)(int pos);
+extern void     (*prefetch_queue_set_ip)(uint16_t ip);
+extern void     (*prefetch_queue_set_prefetching)(int p);
+extern int      (*prefetch_queue_get_pos)(void);
+extern uint16_t (*prefetch_queue_get_ip)(void);
+extern int      (*prefetch_queue_get_prefetching)(void);
+extern int      (*prefetch_queue_get_size)(void);
+
+extern void    i808x_hook_prefetch_queue(void     (*pf_set_pos)(int pos),
+                                         void     (*pf_set_ip)(uint16_t ip),
+                                         void     (*pf_set_prefetching)(int p),
+                                         int      (*pf_get_pos)(void),
+                                         uint16_t (*pf_get_ip)(void),
+                                         int      (*pf_get_prefetching)(void),
+                                         int      (*pf_get_size)(void),
+                                         void     (*c_wait)(int c, int bus));
+
+extern void    wait_cycs(int c, int bus);
 
 #define prefetch_queue_set_suspended(s) prefetch_queue_set_prefetching(!s)
 #define prefetch_queue_get_suspended !prefetch_queue_get_prefetching
+
+extern void    fpu_postamble(void);
 
 #endif /*EMU_CPU_H*/

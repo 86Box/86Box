@@ -34,19 +34,28 @@ add_library(dev OBJECT
     i2c.c
     i2c_gpio.c
     ibm_5161.c
+    inboard386.c
+    ibm_xma.c
+    mcamem.c
     isamem.c
     isarom.c
     isartc.c
     isapnp.c
+    kbc_3270pc.c
     kbc_at.c
     kbc_at_dev.c
+    kbc_ps2_m25.c
     kbc_xt.c
     keyboard.c
     keyboard_at.c
     keyboard_xt.c
     lpt.c
+    lpt_bpck.c
+    lpt_ditto.c
+    lpt_epat.c
     mouse.c
     mouse_bus.c
+    mouse_ibm7690_tablet.c
     mouse_microtouch_touchscreen.c
     mouse_ps2.c
     mouse_serial.c
@@ -58,12 +67,14 @@ add_library(dev OBJECT
     postcard.c
     radisys_config.c
     serial.c
+    softpower.c
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c
     tulip_jumper.c
     unittester.c
     zenith_scratchpad.c
+    lightpen_pxl380.c
 )
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)

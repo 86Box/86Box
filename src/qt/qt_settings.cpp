@@ -153,8 +153,11 @@ Settings::Settings(QWidget *parent)
     auto *model = new SettingsModel(this);
     ui->listView->setModel(model);
 
+    Settings::settings = this;
+
     Harddrives::busTrackClass = new SettingsBusTracking;
     machine                   = new SettingsMachine(this);
+    input                     = nullptr;
     display                   = new SettingsDisplay(this);
     input                     = new SettingsInput(this);
     sound                     = new SettingsSound(this);
@@ -192,6 +195,8 @@ Settings::Settings(QWidget *parent)
             &SettingsStorageControllers::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,
             &SettingsOtherPeripherals::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, floppyCdrom,
+            &SettingsFloppyCDROM::onCurrentMachineChanged);
     connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, harddisks,
             &SettingsHarddisks::reloadBusChannels);
     connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
@@ -239,8 +244,6 @@ Settings::Settings(QWidget *parent)
             });
 
     ui->listView->setCurrentIndex(model->index(0, 0));
-
-    Settings::settings = this;
 }
 
 Settings::~Settings()

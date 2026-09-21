@@ -103,6 +103,7 @@ extern const device_t scsi_rt1000b_device;
 extern const device_t scsi_rt1000mc_device;
 extern const device_t scsi_t128_device;
 extern const device_t scsi_t228_device;
+extern const device_t scsi_t130_device;
 extern const device_t scsi_t130b_device;
 extern const device_t scsi_ls2000_device;
 #endif

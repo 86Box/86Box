@@ -214,8 +214,8 @@ wacom_process_settings_dword(mouse_wacom_t *wacom, uint32_t dword)
         default:
             break;
     }
-
-    mouse_input_mode = !wacom->settings_bits.coord_sys;
+    if (!mouse_both_enabled())
+        mouse_input_mode = !wacom->settings_bits.coord_sys;
     wacom->x_res = wacom->y_res = wacom_resolution_values[wacom->settings_bits.resolution];
 }
 
@@ -235,7 +235,8 @@ wacom_reset(mouse_wacom_t *wacom)
     wacom->settings_bits.remote_mode = wacom->remote_req = 0;
     wacom->settings_bits.out_of_range_data               = 0;
 
-    mouse_input_mode = 1;
+    if (!mouse_both_enabled())
+        mouse_input_mode = 1;
     wacom_process_settings_dword(wacom, 0xA21BC800);
 }
 
@@ -257,7 +258,8 @@ wacom_reset_artpad(mouse_wacom_t *wacom)
     wacom->settings_bits.out_of_range_data = 0;
 
     wacom_process_settings_dword(wacom, 0xE203C000);
-    mouse_input_mode = 1;
+    if (!mouse_both_enabled())
+        mouse_input_mode = 1;
 }
 
 static void
@@ -364,9 +366,13 @@ wacom_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
         } else if (!memcmp(wacom->data_rec, "IT", 2)) {
             sscanf((const char *) wacom->data_rec, "IT%d", &wacom->interval);
         } else if (!memcmp(wacom->data_rec, "DE", 2) && wacom->settings_bits.cmd_set == WACOM_CMDSET_IIS) {
-            sscanf((const char *) wacom->data_rec, "DE%d", &mouse_input_mode);
-            mouse_input_mode = !mouse_input_mode;
-            plat_mouse_capture(0);
+            int scan_res = 0;
+            sscanf((const char *) wacom->data_rec, "DE%d", &scan_res);
+            wacom->settings_bits.coord_sys = scan_res;
+            if (!mouse_both_enabled()) {
+                mouse_input_mode = !wacom->settings_bits.coord_sys;
+                plat_mouse_capture(0);
+            }
         } else if (!memcmp(wacom->data_rec, "SU", 2)) {
             sscanf((const char *) wacom->data_rec, "SU%d", &wacom->suppressed_increment);
             wacom->settings_bits.transfer_mode = wacom->mode = WACOM_MODE_SUPPRESSED;
@@ -429,7 +435,7 @@ wacom_poll(void *priv)
     mouse_wacom_t *wacom = (mouse_wacom_t *) priv;
     int delta_x;
     int delta_y;
-    int b = mouse_get_buttons_ex();
+    int b = (mouse_input_mode >= 1) ? tablet_get_buttons_ex() : mouse_get_buttons_ex();
     double abs_x;
     double abs_y;
 
@@ -520,7 +526,7 @@ wacom_transmit_prepare(mouse_wacom_t *wacom, int x, int y)
         data[1] = ((x & 0x3F80) >> 7) & 0x7F;
         data[0] |= (((x & 0xC000) >> 14) & 3);
 
-        if (mouse_input_mode == 0 && wacom->settings_bits.cmd_set == WACOM_CMDSET_IIS) {
+        if (wacom->settings_bits.coord_sys && wacom->settings_bits.cmd_set == WACOM_CMDSET_IIS) {
             data[0] |= (!!(x < 0)) << 2;
             data[3] |= (!!(y < 0)) << 2;
         }
@@ -563,7 +569,7 @@ wacom_report_timer(void *priv)
 {
     mouse_wacom_t *wacom           = (mouse_wacom_t *) priv;
     double         milisecond_diff = ((double) (tsc - wacom->old_tsc)) / cpuclock * 1000.0;
-    int            relative_mode   = (mouse_input_mode == 0);
+    int            relative_mode   = wacom->settings_bits.coord_sys;
     int            x               = (relative_mode ? wacom->rel_x : wacom->abs_x);
     int            y               = (relative_mode ? wacom->rel_y : wacom->abs_y);
     int            x_diff          = abs(relative_mode ? wacom->rel_x : (wacom->abs_x - wacom->last_abs_x));
@@ -639,7 +645,7 @@ transmit:
 }
 
 static void *
-wacom_init(const device_t *info)
+wacom_init_tablet(const device_t *info)
 {
     mouse_wacom_t *dev;
 
@@ -666,7 +672,7 @@ wacom_init(const device_t *info)
     } else
         wacom_reset(dev);
 
-    mouse_set_poll(wacom_poll, dev);
+    mouse_set_poll_ex(wacom_poll, dev);
 
     return dev;
 }
@@ -716,12 +722,12 @@ static const device_config_t wacom_config[] = {
   // clang-format on
 };
 
-const device_t mouse_wacom_device = {
+const device_t mouse_wacom_tablet_device = {
     .name          = "Wacom SD-510C",
-    .internal_name = "wacom_serial",
+    .internal_name = "wacom_serial_tablet",
     .flags         = DEVICE_COM,
     .local         = 0,
-    .init          = wacom_init,
+    .init          = wacom_init_tablet,
     .close         = wacom_close,
     .reset         = NULL,
     .available     = NULL,
@@ -730,12 +736,12 @@ const device_t mouse_wacom_device = {
     .config        = wacom_config
 };
 
-const device_t mouse_wacom_artpad_device = {
+const device_t mouse_wacom_artpad_tablet_device = {
     .name          = "Wacom ArtPad",
-    .internal_name = "wacom_serial_artpad",
+    .internal_name = "wacom_serial_artpad_tablet",
     .flags         = DEVICE_COM,
     .local         = (uintptr_t) &artpad_id,
-    .init          = wacom_init,
+    .init          = wacom_init_tablet,
     .close         = wacom_close,
     .reset         = NULL,
     .available     = NULL,

@@ -1,7 +1,11 @@
 #ifndef UNIX_SDL_SHADER_H
 #define UNIX_SDL_SHADER_H
 
+#ifdef USE_SDL2_LIB
 #include <SDL.h>
+#else
+#include <SDL3/SDL.h>
+#endif
 
 #ifdef __cplusplus
 extern "C" {

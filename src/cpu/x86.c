@@ -419,3 +419,14 @@ hardresetx86(void)
 
     resetx86();
 }
+
+void
+fpu_postamble(void)
+{
+    if (cpu_state.ea_seg != NULL) {
+        cpu_state.fpu_DS = cpu_state.ea_seg->seg;
+        cpu_state.fpu_ds = cpu_state.ea_seg->base;
+    }
+
+    cpu_state.fpu_ea = cpu_state.eaaddr;
+}

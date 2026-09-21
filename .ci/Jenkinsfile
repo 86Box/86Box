@@ -326,7 +326,7 @@ pipeline {
 						def result = currentBuild.currentResult.toLowerCase()
 						discordSend webhookURL: DISCORD_WEBHOOK_URL,
 							    title: "${env.JOB_BASE_NAME} #${env.BUILD_NUMBER}",
-							    link: env.BUILD_URL,
+							    link: "https://86box.net/builds#${env.BUILD_NUMBER}",
 							    result: currentBuild.currentResult,
 							    description: "**Status:** ${result}\n\u2060", /* word joiner character forces a blank line */
 							    enableArtifactsList: false,

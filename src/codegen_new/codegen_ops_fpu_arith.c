@@ -18,13 +18,25 @@
 #include "codegen_ops_fpu_arith.h"
 #include "codegen_ops_helpers.h"
 
+/* Precision control 24-bit: the chip rounds every ADD/SUB/MUL/DIV/SQRT
+   result to single. npxc is fixed for the block (CPU_STATUS_FPU_PC24 is
+   part of the block key), so this resolves at compile time. */
+#define uop_FROUND_PC(ir, reg)                \
+    do {                                      \
+        if (!(cpu_state.npxc & 0x300))        \
+            uop_FROUND_S(ir, reg, reg);       \
+    } while (0)
+
 uint32_t
 ropFADD(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int src_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FADD(ir, IREG_ST(0), IREG_ST(0), IREG_ST(src_reg));
+    uop_FROUND_PC(ir, IREG_ST(0));
     uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
 
     return op_pc;
@@ -34,8 +46,11 @@ ropFADDr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FADD(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
 
     return op_pc;
@@ -45,8 +60,11 @@ ropFADDP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FADD(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
     fpu_POP(block, ir);
 
@@ -95,8 +113,11 @@ ropFDIV(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint3
 {
     int src_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FDIV(ir, IREG_ST(0), IREG_ST(0), IREG_ST(src_reg));
+    uop_FROUND_PC(ir, IREG_ST(0));
     uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
 
     return op_pc;
@@ -106,8 +127,11 @@ ropFDIVR(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 {
     int src_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FDIV(ir, IREG_ST(0), IREG_ST(src_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(0));
     uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
 
     return op_pc;
@@ -117,8 +141,11 @@ ropFDIVr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FDIV(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
 
     return op_pc;
@@ -128,8 +155,11 @@ ropFDIVRr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uin
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FDIV(ir, IREG_ST(dest_reg), IREG_ST(0), IREG_ST(dest_reg));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
 
     return op_pc;
@@ -139,8 +169,11 @@ ropFDIVP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FDIV(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
     fpu_POP(block, ir);
 
@@ -151,8 +184,11 @@ ropFDIVRP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FDIV(ir, IREG_ST(dest_reg), IREG_ST(0), IREG_ST(dest_reg));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
     fpu_POP(block, ir);
 
@@ -164,8 +200,11 @@ ropFMUL(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint3
 {
     int src_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FMUL(ir, IREG_ST(0), IREG_ST(0), IREG_ST(src_reg));
+    uop_FROUND_PC(ir, IREG_ST(0));
     uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
 
     return op_pc;
@@ -175,8 +214,11 @@ ropFMULr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FMUL(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
 
     return op_pc;
@@ -186,8 +228,11 @@ ropFMULP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FMUL(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
     fpu_POP(block, ir);
 
@@ -199,8 +244,11 @@ ropFSUB(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint3
 {
     int src_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FSUB(ir, IREG_ST(0), IREG_ST(0), IREG_ST(src_reg));
+    uop_FROUND_PC(ir, IREG_ST(0));
     uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
 
     return op_pc;
@@ -210,8 +258,11 @@ ropFSUBR(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 {
     int src_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FSUB(ir, IREG_ST(0), IREG_ST(src_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(0));
     uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
 
     return op_pc;
@@ -221,8 +272,11 @@ ropFSUBr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FSUB(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
 
     return op_pc;
@@ -232,8 +286,11 @@ ropFSUBRr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uin
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FSUB(ir, IREG_ST(dest_reg), IREG_ST(0), IREG_ST(dest_reg));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
 
     return op_pc;
@@ -243,8 +300,11 @@ ropFSUBP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FSUB(ir, IREG_ST(dest_reg), IREG_ST(dest_reg), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
     fpu_POP(block, ir);
 
@@ -255,8 +315,11 @@ ropFSUBRP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
 {
     int dest_reg = fetchdat & 7;
 
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FSUB(ir, IREG_ST(dest_reg), IREG_ST(0), IREG_ST(dest_reg));
+    uop_FROUND_PC(ir, IREG_ST(dest_reg));
     uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_VALID);
     fpu_POP(block, ir);
 
@@ -315,6 +378,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
         codegen_check_seg_read(block, ir, target_seg);                                         \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_FADD(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -359,6 +423,8 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -366,6 +432,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
         codegen_check_seg_read(block, ir, target_seg);                                         \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_FDIV(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -375,6 +442,8 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -382,6 +451,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
         codegen_check_seg_read(block, ir, target_seg);                                         \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_FDIV(ir, IREG_ST(0), IREG_temp0_D, IREG_ST(0));                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -391,6 +461,8 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -398,6 +470,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
         codegen_check_seg_read(block, ir, target_seg);                                         \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_FMUL(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -407,6 +480,8 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -414,6 +489,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
         codegen_check_seg_read(block, ir, target_seg);                                         \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_FSUB(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -423,6 +499,8 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -430,6 +508,7 @@ ropFUCOMPP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uin
         codegen_check_seg_read(block, ir, target_seg);                                         \
         load_uop(ir, IREG_temp0_D, ireg_seg_base(target_seg), IREG_eaaddr);                    \
         uop_FSUB(ir, IREG_ST(0), IREG_temp0_D, IREG_ST(0));                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -446,6 +525,8 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -454,6 +535,7 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
         uop_MEM_LOAD_REG(ir, temp_reg, ireg_seg_base(target_seg), IREG_eaaddr);                \
         uop_MOV_DOUBLE_INT(ir, IREG_temp0_D, temp_reg);                                        \
         uop_FADD(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -500,6 +582,8 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -508,6 +592,7 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
         uop_MEM_LOAD_REG(ir, temp_reg, ireg_seg_base(target_seg), IREG_eaaddr);                \
         uop_MOV_DOUBLE_INT(ir, IREG_temp0_D, temp_reg);                                        \
         uop_FDIV(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -517,6 +602,8 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -525,6 +612,7 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
         uop_MEM_LOAD_REG(ir, temp_reg, ireg_seg_base(target_seg), IREG_eaaddr);                \
         uop_MOV_DOUBLE_INT(ir, IREG_temp0_D, temp_reg);                                        \
         uop_FDIV(ir, IREG_ST(0), IREG_temp0_D, IREG_ST(0));                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -534,6 +622,8 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -542,6 +632,7 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
         uop_MEM_LOAD_REG(ir, temp_reg, ireg_seg_base(target_seg), IREG_eaaddr);                \
         uop_MOV_DOUBLE_INT(ir, IREG_temp0_D, temp_reg);                                        \
         uop_FMUL(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -551,6 +642,8 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -559,6 +652,7 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
         uop_MEM_LOAD_REG(ir, temp_reg, ireg_seg_base(target_seg), IREG_eaaddr);                \
         uop_MOV_DOUBLE_INT(ir, IREG_temp0_D, temp_reg);                                        \
         uop_FSUB(ir, IREG_ST(0), IREG_ST(0), IREG_temp0_D);                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -568,6 +662,8 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
     {                                                                                          \
         x86seg *target_seg;                                                                    \
                                                                                                \
+        if ((cpu_state.npxc >> 10) & 3)                                                        \
+            return 0;                                                                          \
         uop_FP_ENTER(ir);                                                                      \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         op_pc--;                                                                               \
@@ -576,6 +672,7 @@ ropF_arith_mem(d, uop_MEM_LOAD_DOUBLE)
         uop_MEM_LOAD_REG(ir, temp_reg, ireg_seg_base(target_seg), IREG_eaaddr);                \
         uop_MOV_DOUBLE_INT(ir, IREG_temp0_D, temp_reg);                                        \
         uop_FSUB(ir, IREG_ST(0), IREG_temp0_D, IREG_ST(0));                                    \
+        uop_FROUND_PC(ir, IREG_ST(0));                                                         \
         uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);                                               \
                                                                                                \
         return op_pc + 1;                                                                      \
@@ -608,8 +705,11 @@ ropFCHS(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
 uint32_t
 ropFSQRT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if ((cpu_state.npxc >> 10) & 3)
+        return 0;
     uop_FP_ENTER(ir);
     uop_FSQRT(ir, IREG_ST(0), IREG_ST(0));
+    uop_FROUND_PC(ir, IREG_ST(0));
     uop_MOV_IMM(ir, IREG_tag(0), TAG_VALID);
 
     return op_pc;

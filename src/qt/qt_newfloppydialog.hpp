@@ -1,6 +1,8 @@
 #ifndef QT_NEWFLOPPYDIALOG_HPP
 #define QT_NEWFLOPPYDIALOG_HPP
 
+#include <cstdint>
+
 #include <QDialog>
 
 namespace Ui {
@@ -18,6 +20,7 @@ public:
         Floppy,
         RDisk,
         Mo,
+        Tape,
     };
     enum class FileType {
         Img,
@@ -26,10 +29,11 @@ public:
         Zdi,
         Mdi,
     };
-    explicit NewFloppyDialog(MediaType type, QWidget *parent = nullptr);
+    explicit NewFloppyDialog(MediaType type, QWidget *parent = nullptr, int tape_drive_type = -1);
     ~NewFloppyDialog();
 
     QString fileName() const;
+    int mediaTypeIndex() const;
 
 signals:
     void fileProgress(int i);
@@ -43,8 +47,9 @@ private:
 
     bool create86f(const QString &filename, const disk_size_t &disk_size, uint8_t rpm_mode);
     bool createSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type);
-    bool createRDiskSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type, QProgressDialog &pbar);
+    bool createRDiskSectorImage(const QString &filename, uint32_t total_sectors, FileType type, QProgressDialog &pbar);
     bool createMoSectorImage(const QString &filename, int8_t disk_size, FileType type, QProgressDialog &pbar);
+    bool createTapeSectorImage(const QString &filename, int8_t disk_size, QProgressDialog &pbar);
 };
 
 #endif // QT_NEWFLOPPYDIALOG_HPP

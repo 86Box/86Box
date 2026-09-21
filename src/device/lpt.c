@@ -451,9 +451,24 @@ lpt_get_ctrl(const lpt_t *dev)
     return ret;
 }
 
+static void lpt_fifo_deliver(lpt_t *dev);
+
 static void
 lpt_write_fifo(lpt_t *dev, const uint8_t val, const uint8_t tag)
 {
+    /*
+     * Real ECP hardware holds the ISA cycle until the FIFO has room, so a host
+     * `rep outsb` cannot outrun it. Nothing here models that stall, and without
+     * this a full FIFO would silently discard the byte. Deliver one queued byte
+     * instead: the same thing the drain timer does, at the moment the stall
+     * would have happened. Narrowed to a device implementing the ECP forward
+     * path, so chardev and DMA behaviour are unchanged.
+     */
+    if (fifo_get_full(dev->fifo) && dev->ecp && dev->dt && dev->dt->priv &&
+        (dev->dt->ecp_write_data != NULL)) {
+        lpt_fifo_deliver(dev);
+    }
+
     if (!fifo_get_full(dev->fifo)) {
         fifo_write_evt_tagged(tag, val, dev->fifo);
 
@@ -476,10 +491,51 @@ lpt_ecp_update_irq(lpt_t *dev)
 static void
 lpt_strobe(lpt_t *dev, const uint8_t val)
 {
-    if (dev->dt && dev->dt->strobe && dev->dt->priv)
+    if (dev->output_enabled && dev->dt && dev->dt->strobe && dev->dt->priv)
         dev->dt->strobe(dev->strobe, val, dev->dt->priv);
 
     dev->strobe = val;
+}
+
+/* Hand one queued FIFO byte to the attached device. Called from the drain
+   timer and, when the FIFO is full, straight from the port write. */
+static void
+lpt_fifo_deliver(lpt_t *dev)
+{
+    uint8_t       tag = 0x00;
+    const uint8_t val = fifo_read_evt_tagged(&tag, dev->fifo);
+
+    lpt_log("FIFO: %02X, TAG = %02X\n", val, tag);
+
+    /*
+     * Tag 0x00 is an ECP ADDRESS cycle - the byte the host wrote to base+0
+     * while in an ECP mode. A device that offers ecp_write_addr is commanded
+     * through it; the EPAT bridge takes 0x80/0xC0/0xA0 there and will not
+     * move a byte of payload until it has seen one.
+     */
+    if ((tag == 0x00) && dev->output_enabled && dev->dt &&
+        dev->dt->priv && dev->ecp && dev->dt->ecp_write_addr) {
+        dev->dt->ecp_write_addr(val, dev->dt->priv);
+    }
+
+    if (tag == 0x01) {
+        /*
+         * In an ECP FIFO mode a device that offers ecp_write_data gets the
+         * byte there instead: its write_data() path is framed for SPP block
+         * transfers and cannot recognise an ECP payload byte arriving
+         * without that framing.
+         */
+        if (dev->output_enabled && dev->dt && dev->dt->priv &&
+            dev->ecp && ((dev->ecr & 0xe0) != 0x00) &&
+            dev->dt->ecp_write_data) {
+            dev->dt->ecp_write_data(val, dev->dt->priv);
+        } else if (dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv) {
+            dev->dt->write_data(val, dev->dt->priv);
+        }
+
+        lpt_strobe(dev, 1);
+        lpt_strobe(dev, 0);
+    }
 }
 
 static void
@@ -518,21 +574,8 @@ lpt_fifo_out_callback(void *priv)
             break;
 
         case LPT_STATE_WRITE_FIFO:
-            if (!fifo_get_empty(dev->fifo)) {
-                uint8_t tag = 0x00;
-                const uint8_t val = fifo_read_evt_tagged(&tag, dev->fifo);
-
-                lpt_log("FIFO: %02X, TAG = %02X\n", val, tag);
-
-                /* We do not currently support sending commands. */
-                if (tag == 0x01) {
-                    if (dev->dt && dev->dt->write_data && dev->dt->priv)
-                        dev->dt->write_data(val, dev->dt->priv);
-
-                    lpt_strobe(dev, 1);
-                    lpt_strobe(dev, 0);
-                }
-            }
+            if (!fifo_get_empty(dev->fifo))
+                lpt_fifo_deliver(dev);
 
             if (((dev->ecr & 0xe0) != 0xc0) && (dev->ecr & 0x08)) {
                 if (fifo_get_empty(dev->fifo)) {
@@ -593,13 +636,14 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                     /* AFIFO */
                     lpt_write_fifo(dev, val, 0x00);
                 else if (!(dev->ecr & 0xc0) && (!(dev->ecr & 0x20) || !(lpt_get_ctrl_raw(dev) & 0x20)) &&
-                           dev->dt && dev->dt->write_data && dev->dt->priv)
+                           dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv)
                     /* DATAR */
                     dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
             } else {
                 /* DTR */
-                if ((!(dev->ext || dev->epp) || !(lpt_get_ctrl_raw(dev) & 0x20)) && dev->dt &&
+                if (dev->output_enabled &&
+                    (!(dev->ext || dev->epp) || !(lpt_get_ctrl_raw(dev) & 0x20)) && dev->dt &&
                     dev->dt->write_data && dev->dt->priv)
                     dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
@@ -610,7 +654,14 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             break;
 
         case 0x0002:
-            if (dev->dt && dev->dt->write_ctrl && dev->dt->priv)
+            /* A bidirectional port still latches DTR writes while its pins are
+               inputs. Drive that latched byte before an output-mode strobe. */
+            if (dev->output_enabled && (dev->ext || dev->epp) &&
+                (dev->ctrl & 0x20) && !(val & 0x20) && dev->dt &&
+                dev->dt->write_data && dev->dt->priv)
+                dev->dt->write_data(dev->dat, dev->dt->priv);
+
+            if (dev->output_enabled && dev->dt && dev->dt->write_ctrl && dev->dt->priv)
                 dev->dt->write_ctrl(val, dev->dt->priv);
             dev->ctrl       = val;
             dev->strobe     = val & 0x01;
@@ -623,14 +674,14 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
 
         case 0x0003:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_write_data && dev->dt->priv)
+                if (dev->output_enabled && dev->dt && dev->dt->epp_write_data && dev->dt->priv)
                     dev->dt->epp_write_data(1, val, dev->dt->priv);
             }
             break;
 
         case 0x0004 ... 0x0007:
             if (lpt_is_epp(dev)) {
-                if (dev->dt && dev->dt->epp_write_data && dev->dt->priv)
+                if (dev->output_enabled && dev->dt && dev->dt->epp_write_data && dev->dt->priv)
                     dev->dt->epp_write_data(0, val, dev->dt->priv);
             }
             break;
@@ -894,8 +945,22 @@ lpt_read(const uint16_t port, void *priv)
                 default:
                     break;
                 case 3:
-                    if (lpt_get_ctrl_raw(dev) & 0x20)
-                        ret = lpt_read_fifo(dev);
+                    if (lpt_get_ctrl_raw(dev) & 0x20) {
+                        /*
+                         * Real FIFO content first - that is the chardev
+                         * passthrough. An attached emulated device supplies a
+                         * byte on demand when the FIFO has none, which is the
+                         * only route it has: nothing fills the FIFO on its
+                         * behalf.
+                         */
+                        if (!fifo_get_empty(dev->fifo))
+                            ret = lpt_read_fifo(dev);
+                        else if ((dev->dt != NULL) &&
+                                 (dev->dt->ecp_read_data != NULL) &&
+                                 (dev->dt->priv != NULL)) {
+                            ret = dev->dt->ecp_read_data(dev->dt->priv);
+                        }
+                    }
                     break;
                 case 6:
                     /* TFIFO */
@@ -1004,6 +1069,12 @@ lpt_set_ext(lpt_t *dev, const uint8_t ext)
 {
     if (lpt_ports[dev->id].enabled)
         dev->ext = ext;
+}
+
+void
+lpt_set_output_enabled(lpt_t *dev, const uint8_t enabled)
+{
+    dev->output_enabled = !!enabled;
 }
 
 void
@@ -1155,6 +1226,7 @@ lpt_port_zero(lpt_t *dev)
     memset(dev, 0x00, sizeof(lpt_t));
 
     dev->addr           = 0xffff;
+    dev->output_enabled = 1;
     dev->irq            = temp.irq;
     dev->id             = temp.id;
     dev->dt             = temp.dt;
@@ -1310,9 +1382,36 @@ lpt_init(const device_t *info)
 }
 
 void
+lpt_set_ecp_read_data(lpt_t *dev, uint8_t (*ecp_read_data)(void *priv))
+{
+    if ((dev != NULL) && (dev->dt != NULL))
+        dev->dt->ecp_read_data = ecp_read_data;
+}
+
+void
+lpt_set_ecp_write_data(lpt_t *dev, void (*ecp_write_data)(uint8_t val, void *priv))
+{
+    if ((dev != NULL) && (dev->dt != NULL))
+        dev->dt->ecp_write_data = ecp_write_data;
+}
+
+void
+lpt_set_ecp_write_addr(lpt_t *dev, void (*ecp_write_addr)(uint8_t val, void *priv))
+{
+    if ((dev != NULL) && (dev->dt != NULL))
+        dev->dt->ecp_write_addr = ecp_write_addr;
+}
+
+void
 lpt_set_next_inst(int ni)
 {
     next_inst = ni;
+}
+
+int
+lpt_get_3bc_used(void)
+{
+    return lpt_3bc_used;
 }
 
 void

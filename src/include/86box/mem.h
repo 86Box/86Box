@@ -266,10 +266,9 @@ extern uint8_t *rom;
 extern uint32_t biosmask;
 extern uint32_t biosaddr;
 
-extern int        readlookup[256];
+extern int        readlookup[512];
 extern uintptr_t  old_rl2;
-extern uint8_t    uncached;
-extern int        readlnext;
+extern int        readlnext[2];
 extern int        writelookup[256];
 
 extern int        writelnext;
@@ -289,7 +288,7 @@ extern page_t  *pages;
 
 /* The lookup tables. */
 extern page_t *page_lookup[1048576];
-extern uintptr_t readlookup2[1048576];
+extern uintptr_t readlookup2[2097152];
 extern uintptr_t writelookup2[1048576];
 
 extern uint32_t get_phys_virt;
@@ -313,6 +312,8 @@ extern int mem_a20_state;
 extern int mem_a20_alt;
 extern int mem_a20_chipset;
 extern int mem_a20_key;
+
+extern int is_compare;
 
 extern uint8_t  read_mem_b(uint32_t addr);
 extern uint16_t read_mem_w(uint32_t addr);
@@ -451,6 +452,7 @@ extern void mem_debug_check_addr(uint32_t addr, int write);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
+extern void mem_a20_reset_vector_bypass_once(void);
 
 extern void mem_init(void);
 extern void mem_close(void);
