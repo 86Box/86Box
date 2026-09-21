@@ -794,7 +794,7 @@ DeviceConfig::on_comboIndexChanged(int index)
 
         cbox_in530_bootlogo->clear();
 
-        auto add_logo = [this](const char *description, int value) {
+        auto add_logo = [](const char *description, int value) {
             Models::AddEntry(cbox_in530_bootlogo->model(), tr(description), value);
         };
 
