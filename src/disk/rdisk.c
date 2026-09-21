@@ -83,6 +83,17 @@ static uint64_t zip_100_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODE
 static uint64_t zip_250_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_FLEXIBLE_DISK_PAGE |
                                                  GPMODEP_CACHING_PAGE | GPMODEP_IOMEGA_PAGE |
                                                  GPMODEP_ALL_PAGES);
+/* Unlike the Iomega-made Zip/Jaz drives above, the SyJet is a SyQuest drive and
+   its SCSI Technical Reference documents no Iomega-style vendor page or vendor
+   EJECT command, so it gets its own (non-Iomega) standard SCSI-2 page set. */
+static uint64_t syjet_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_FORMAT_DEVICE_PAGE |
+                                                GPMODEP_RIGID_DISK_PAGE | GPMODEP_ALL_PAGES);
+/* The SparQ never shipped as a real SCSI drive at all (IDE/EIDE and parallel
+   port only) - this page set exists only so 86Box's generic rdisk framework
+   behaves sensibly if a SparQ is attached to a SCSI bus, and mirrors SyJet's
+   page set since both are SyQuest drives of the same generation. */
+static uint64_t sparq_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_FORMAT_DEVICE_PAGE |
+                                                GPMODEP_RIGID_DISK_PAGE | GPMODEP_ALL_PAGES);
 
 static const mode_sense_pages_t zip_100_mode_sense_pages_default = {
     { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
@@ -140,6 +151,115 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_changeable = {
                  0xff,                                0xff, 0xff, 0xff                         },
       [0x2f] = { GPMODE_IOMEGA_PAGE,                  0x04, 0xff, 0xff, 0xff, 0xff             } }
 };
+
+/*
+   SyJet mode-sense pages, transcribed from the SyQuest SyJet SCSI Technical
+   Reference (1997, P/N 112857-001A):
+     - Page 1 (R/W Error Recovery): standard SCSI-2 layout; AWRE=1 and ARRE=1
+       are the documented SyJet defaults (flags byte 0xc8), remaining bytes
+       follow the same convention already used for zip_100's page 1 above.
+     - Page 3 (Format Device): bytes-per-physical-sector = 512 (0x0200) and
+       interleave = 1 (1:1) are documented SyJet values; RMB bit set in the
+       flags byte (removable medium, per Table 6-25). Sectors-per-track has
+       no single real value (SyJet uses zone-bit recording, "varies based on
+       the notch page selected" per the manual) so it uses the same 256
+       placeholder scsi_disk.c's page 3 already uses for the same reason.
+     - Page 4 (Rigid Disk Geometry): cylinders = 5258 (0x148A), heads = 4,
+       and medium rotation rate = 5400 RPM (0x1518) are the real documented
+       values (Table 6-31/6-36). Write-precomp/step-rate/landing-zone/RPL
+       fields are explicitly "Not supported" per the manual, encoded as 0xff
+       (or 0 for RPL, where 0 means "not supported" per SCSI-2) following
+       the same not-applicable convention scsi_disk.c's page 4 already uses
+       for its landing-zone field.
+ */
+static const mode_sense_pages_t syjet_mode_sense_pages_default = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
+                 0x5a,                                0x00, 0x50, 0x20                         },
+      [0x03] = { GPMODE_FORMAT_DEVICE_PAGE,           0x16, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+                 0x00,                                0x01, 0x01, 0x00, 0x02, 0x00, 0x00, 0x01,
+                 0x00,                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 },
+      [0x04] = { GPMODE_RIGID_DISK_PAGE,              0x16, 0x00, 0x14, 0x8a, 0x04, 0xff, 0xff,
+                 0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff,                                0x00, 0x00, 0x00, 0x15, 0x18, 0x00, 0x00 } }
+};
+
+static const mode_sense_pages_t syjet_mode_sense_pages_default_scsi = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
+                 0x5a,                                0x00, 0x50, 0x20                         },
+      [0x03] = { GPMODE_FORMAT_DEVICE_PAGE,           0x16, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+                 0x00,                                0x01, 0x01, 0x00, 0x02, 0x00, 0x00, 0x01,
+                 0x00,                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 },
+      [0x04] = { GPMODE_RIGID_DISK_PAGE,              0x16, 0x00, 0x14, 0x8a, 0x04, 0xff, 0xff,
+                 0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff,                                0x00, 0x00, 0x00, 0x15, 0x18, 0x00, 0x00 } }
+};
+
+static const mode_sense_pages_t syjet_mode_sense_pages_changeable = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xff, 0xff, 0x00, 0x00, 0x00, 0xff,
+                 0x5a,                                0xff, 0xff, 0xff                         },
+      [0x03] = { GPMODE_FORMAT_DEVICE_PAGE,           0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x04] = { GPMODE_RIGID_DISK_PAGE,              0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } }
+};
+
+/*
+   SparQ mode-sense pages. The SparQ never shipped as a real SCSI drive, so
+   unlike SyJet these can't be transcribed from an OEM SCSI reference - they
+   mirror SyJet's page layout/style (same vendor, same drive generation) with
+   SparQ's own real values substituted in from the SyQuest SparQ Internal
+   EIDE Technical Reference (1997, P/N 113277-001A):
+     - Page 1 (R/W Error Recovery): identical to SyJet's - generic SCSI-2
+       defaults, not SparQ-specific (no SCSI reference to source it from).
+     - Page 3 (Format Device): bytes-per-physical-sector = 512 and RMB set,
+       as with SyJet. Sectors-per-track = 63 (0x3F) is a *real* documented
+       SparQ value here (unlike SyJet, whose zoned recording had no single
+       real value) - it's the fixed divisor used in the manual's own
+       LBA = ((cylinder * heads + head) * sectors_per_track) + sector - 1
+       formula (section "Identify Device (ECh)"). Interleave = 1 (1:1) is
+       assumed by SyQuest product-family convention (SyJet's manual confirms
+       1:1 explicitly; SparQ's EIDE reference doesn't discuss interleave at
+       all since ATA CHS addressing doesn't expose the concept).
+     - Page 4 (Rigid Disk Geometry): cylinders = 2906 (0x0B5A) and heads = 16
+       are the real documented default ATA CHS translation (same section).
+       Medium rotation rate = 5400 RPM (0x1518) is assumed by SyQuest
+       product-family convention (confirmed for SyJet; not stated in the
+       SparQ EIDE reference, which has no SCSI rotation-rate page).
+ */
+static const mode_sense_pages_t sparq_mode_sense_pages_default = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
+                 0x5a,                                0x00, 0x50, 0x20                         },
+      [0x03] = { GPMODE_FORMAT_DEVICE_PAGE,           0x16, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+                 0x00,                                0x01, 0x00, 0x3f, 0x02, 0x00, 0x00, 0x01,
+                 0x00,                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 },
+      [0x04] = { GPMODE_RIGID_DISK_PAGE,              0x16, 0x00, 0x0b, 0x5a, 0x10, 0xff, 0xff,
+                 0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff,                                0x00, 0x00, 0x00, 0x15, 0x18, 0x00, 0x00 } }
+};
+
+static const mode_sense_pages_t sparq_mode_sense_pages_default_scsi = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xc8, 0x16, 0x00, 0x00, 0x00, 0x00,
+                 0x5a,                                0x00, 0x50, 0x20                         },
+      [0x03] = { GPMODE_FORMAT_DEVICE_PAGE,           0x16, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01,
+                 0x00,                                0x01, 0x00, 0x3f, 0x02, 0x00, 0x00, 0x01,
+                 0x00,                                0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00 },
+      [0x04] = { GPMODE_RIGID_DISK_PAGE,              0x16, 0x00, 0x0b, 0x5a, 0x10, 0xff, 0xff,
+                 0xff,                                0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
+                 0xff,                                0x00, 0x00, 0x00, 0x15, 0x18, 0x00, 0x00 } }
+};
+
+static const mode_sense_pages_t sparq_mode_sense_pages_changeable = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x0a, 0xff, 0xff, 0x00, 0x00, 0x00, 0xff,
+                 0x5a,                                0xff, 0xff, 0xff                         },
+      [0x03] = { GPMODE_FORMAT_DEVICE_PAGE,           0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x04] = { GPMODE_RIGID_DISK_PAGE,              0x16, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                 0x00,                                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 } }
+};
 // clang-format on
 
 static void rdisk_command_complete(rdisk_t *dev);
@@ -157,6 +277,10 @@ rdisk_max_medium_size(const rdisk_t *dev)
             return JAZ_1GB_SECTORS;
         case RDISK_TYPE_JAZ_2GB:
             return JAZ_2GB_SECTORS;
+        case RDISK_TYPE_SYJET_1_5GB:
+            return SYJET_SECTORS;
+        case RDISK_TYPE_SPARQ_1GB:
+            return SPARQ_SECTORS;
         default:
             return ZIP_250_SECTORS;
     }
@@ -174,6 +298,10 @@ rdisk_supports_medium_size(const rdisk_t *dev, const uint32_t sectors)
             return sectors == JAZ_1GB_SECTORS;
         case RDISK_TYPE_JAZ_2GB:
             return (sectors == JAZ_1GB_SECTORS) || (sectors == JAZ_2GB_SECTORS);
+        case RDISK_TYPE_SYJET_1_5GB:
+            return sectors == SYJET_SECTORS;
+        case RDISK_TYPE_SPARQ_1GB:
+            return sectors == SPARQ_SECTORS;
         default:
             return (sectors == ZIP_SECTORS) || (sectors == ZIP_250_SECTORS) ||
                    (sectors == JAZ_1GB_SECTORS) || (sectors == JAZ_2GB_SECTORS);
@@ -434,6 +562,16 @@ rdisk_mode_sense_load(rdisk_t *dev)
             memcpy(&dev->ms_pages_saved, &zip_100_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
         else
             memcpy(&dev->ms_pages_saved, &zip_100_mode_sense_pages_default, sizeof(mode_sense_pages_t));
+    } else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB) {
+        if (rdisk_drives[dev->id].bus_type == RDISK_BUS_SCSI)
+            memcpy(&dev->ms_pages_saved, &syjet_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
+        else
+            memcpy(&dev->ms_pages_saved, &syjet_mode_sense_pages_default, sizeof(mode_sense_pages_t));
+    } else if (dev->drv->type == RDISK_TYPE_SPARQ_1GB) {
+        if (rdisk_drives[dev->id].bus_type == RDISK_BUS_SCSI)
+            memcpy(&dev->ms_pages_saved, &sparq_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
+        else
+            memcpy(&dev->ms_pages_saved, &sparq_mode_sense_pages_default, sizeof(mode_sense_pages_t));
     } else {
         if (rdisk_drives[dev->id].bus_type == RDISK_BUS_SCSI)
             memcpy(&dev->ms_pages_saved, &zip_250_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
@@ -469,6 +607,32 @@ rdisk_mode_sense_save(const rdisk_t *dev)
     }
 }
 
+static uint64_t
+rdisk_mode_sense_page_flags(const rdisk_t *dev)
+{
+    if (dev->drv->type == RDISK_TYPE_ZIP_100)
+        return zip_100_mode_sense_page_flags;
+    else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB)
+        return syjet_mode_sense_page_flags;
+    else if (dev->drv->type == RDISK_TYPE_SPARQ_1GB)
+        return sparq_mode_sense_page_flags;
+    else
+        return zip_250_mode_sense_page_flags;
+}
+
+static const mode_sense_pages_t *
+rdisk_mode_sense_pages_changeable(const rdisk_t *dev)
+{
+    if (dev->drv->type == RDISK_TYPE_ZIP_100)
+        return &zip_100_mode_sense_pages_changeable;
+    else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB)
+        return &syjet_mode_sense_pages_changeable;
+    else if (dev->drv->type == RDISK_TYPE_SPARQ_1GB)
+        return &sparq_mode_sense_pages_changeable;
+    else
+        return &zip_250_mode_sense_pages_changeable;
+}
+
 /* SCSI Mode Sense 6/10. */
 static uint8_t
 zip_mode_sense_read(const rdisk_t *dev, const uint8_t pgctl,
@@ -482,16 +646,23 @@ zip_mode_sense_read(const rdisk_t *dev, const uint8_t pgctl,
                 return 0x60;
             return dev->ms_pages_saved.pages[page][pos];
         case 1:
-            if (dev->drv->type == RDISK_TYPE_ZIP_100)
-                return zip_100_mode_sense_pages_changeable.pages[page][pos];
-            else
-                return zip_250_mode_sense_pages_changeable.pages[page][pos];
+            return rdisk_mode_sense_pages_changeable(dev)->pages[page][pos];
         case 2:
             if (dev->drv->type == RDISK_TYPE_ZIP_100) {
                 if (dev->drv->bus_type == RDISK_BUS_SCSI)
                     return zip_100_mode_sense_pages_default_scsi.pages[page][pos];
                 else
                     return zip_100_mode_sense_pages_default.pages[page][pos];
+            } else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB) {
+                if (dev->drv->bus_type == RDISK_BUS_SCSI)
+                    return syjet_mode_sense_pages_default_scsi.pages[page][pos];
+                else
+                    return syjet_mode_sense_pages_default.pages[page][pos];
+            } else if (dev->drv->type == RDISK_TYPE_SPARQ_1GB) {
+                if (dev->drv->bus_type == RDISK_BUS_SCSI)
+                    return sparq_mode_sense_pages_default_scsi.pages[page][pos];
+                else
+                    return sparq_mode_sense_pages_default.pages[page][pos];
             } else {
                 if ((page == 5) && (pos == 9) && (dev->drv->medium_size == ZIP_SECTORS))
                     return 0x60;
@@ -515,10 +686,7 @@ rdisk_mode_sense(const rdisk_t *dev, uint8_t *buf, uint32_t pos,
     uint64_t       pf;
     const uint8_t  pgctl = (page >> 6) & 3;
 
-    if (dev->drv->type == RDISK_TYPE_ZIP_100)
-        pf = zip_100_mode_sense_page_flags;
-    else
-        pf = zip_250_mode_sense_page_flags;
+    pf = rdisk_mode_sense_page_flags(dev);
 
     page &= 0x3f;
 
@@ -1623,7 +1791,7 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                 rdisk_buf_alloc(dev, 65536);
             }
 
-            if (zip_100_mode_sense_page_flags & (1LL << (uint64_t) (cdb[2] & 0x3f))) {
+            if (rdisk_mode_sense_page_flags(dev) & (1LL << (uint64_t) (cdb[2] & 0x3f))) {
                 memset(dev->buffer, 0, len);
                 alloc_length = len;
 
@@ -1751,6 +1919,8 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                         /* Vendor */
                         if (dev->drv->type == RDISK_TYPE_JAZ_1GB || dev->drv->type == RDISK_TYPE_JAZ_2GB)
                             ide_padstr8(dev->buffer + idx, 8, "iomega  ");
+                        else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB || dev->drv->type == RDISK_TYPE_SPARQ_1GB)
+                            ide_padstr8(dev->buffer + idx, 8, "SyQuest ");
                         else if (dev->drv->type >= RDISK_TYPE_ZIP_100)
                             ide_padstr8(dev->buffer + idx, 8, "IOMEGA  ");
                         else
@@ -1765,6 +1935,10 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                             ide_padstr8(dev->buffer + idx, 40, "jaz 2GB         ");
                         else if (dev->drv->type == RDISK_TYPE_JAZ_1GB)
                             ide_padstr8(dev->buffer + idx, 40, "jaz 1GB         ");
+                        else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB)
+                            ide_padstr8(dev->buffer + idx, 40, "SyJet           ");
+                        else if (dev->drv->type == RDISK_TYPE_SPARQ_1GB)
+                            ide_padstr8(dev->buffer + idx, 40, "SparQ           ");
                         else
                             ide_padstr8(dev->buffer + 16, 40, device_identify);      /* Product */
                         idx += 40;
@@ -1802,10 +1976,12 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
 
                 if (dev->drv->type == RDISK_TYPE_JAZ_2GB || dev->drv->type == RDISK_TYPE_JAZ_1GB) {
                     ide_padstr8(dev->buffer + 8, 8, "iomega  ");    /* Vendor */
+                } else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB || dev->drv->type == RDISK_TYPE_SPARQ_1GB) {
+                    ide_padstr8(dev->buffer + 8, 8, "SyQuest ");    /* Vendor */
                 } else {
                     ide_padstr8(dev->buffer + 8, 8, "IOMEGA  ");    /* Vendor */
                 }
-                    
+
                 if (dev->drv->type == RDISK_TYPE_ZIP_250) {
                     /* Product */
                     ide_padstr8(dev->buffer + 16, 16, "ZIP 250         ");
@@ -1827,6 +2003,16 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                 } else if (dev->drv->type == RDISK_TYPE_JAZ_1GB) {
                     ide_padstr8(dev->buffer + 16, 16, "jaz 1GB         ");
                     ide_padstr8(dev->buffer + 32, 4, "H.72");
+                } else if (dev->drv->type == RDISK_TYPE_SYJET_1_5GB) {
+                    /* Product */
+                    ide_padstr8(dev->buffer + 16, 16, "SyJet           ");
+                    /* Revision - not confirmed real, see rdisk.h comment. */
+                    ide_padstr8(dev->buffer + 32, 4, "1.06");
+                } else if (dev->drv->type == RDISK_TYPE_SPARQ_1GB) {
+                    /* Product */
+                    ide_padstr8(dev->buffer + 16, 16, "SparQ           ");
+                    /* Revision - not confirmed real, see rdisk.h comment. */
+                    ide_padstr8(dev->buffer + 32, 4, "1.03");
                 } else {
                     ide_padstr8(dev->buffer + 8, 8,
                                 EMU_NAME);          /* Vendor */
@@ -1925,8 +2111,10 @@ atapi_out:
 
             /* Current/Maximum capacity header */
             if ((dev->drv->type == RDISK_TYPE_ZIP_100) ||
-                (dev->drv->type == RDISK_TYPE_JAZ_1GB)) {
-                /* ZIP 100 only supports ZIP 100 media, so we always return the ZIP 100 size. Same for the Jaz 1GB, so we return the Jaz 1GB size. */
+                (dev->drv->type == RDISK_TYPE_JAZ_1GB) ||
+                (dev->drv->type == RDISK_TYPE_SYJET_1_5GB) ||
+                (dev->drv->type == RDISK_TYPE_SPARQ_1GB)) {
+                /* ZIP 100 only supports ZIP 100 media, so we always return the ZIP 100 size. Same for the Jaz 1GB, so we return the Jaz 1GB size. SyJet and SparQ each only ever had one cartridge size, so likewise. */
                 const uint32_t medium_size = rdisk_max_medium_size(dev);
                 dev->buffer[pos++] = (medium_size >> 24) & 0xff;
                 dev->buffer[pos++] = (medium_size >> 16) & 0xff;
@@ -2101,11 +2289,11 @@ rdisk_phase_data_out(scsi_common_t *sc)
 
                 pos += 2;
 
-                if (!(zip_100_mode_sense_page_flags & (1LL << ((uint64_t) page))))
+                if (!(rdisk_mode_sense_page_flags(dev) & (1LL << ((uint64_t) page))))
                     error |= 1;
                 else for (i = 0; i < page_len; i++) {
                     const uint8_t old_val = dev->ms_pages_saved.pages[page][i + 2];
-                    const uint8_t ch      = zip_100_mode_sense_pages_changeable.pages[page][i + 2];
+                    const uint8_t ch      = rdisk_mode_sense_pages_changeable(dev)->pages[page][i + 2];
                     val                   = dev->buffer[pos + i];
                     if (val != old_val) {
                         if (ch)
@@ -2266,6 +2454,51 @@ rdisk_jaz_2gb_identify(const ide_t *ide, const int ide_has_dma)
     }
 }
 
+/*
+   The real SyJet only ever shipped as a SCSI drive - there is no real ATAPI
+   SyJet to match. This exists so that attaching a "SyJet" drive type to an
+   IDE/ATAPI bus (which 86Box's generic rdisk framework otherwise permits)
+   reports the real SyQuest/SyJet strings instead of silently falling back to
+   the generic 86Box-branded identify block.
+ */
+static void
+rdisk_syjet_identify(const ide_t *ide, const int ide_has_dma)
+{
+    /* Firmware - not confirmed real, see rdisk.h comment. */
+    ide_padstr((char *) (ide->buffer + 23), "1.06", 8);
+    /* Model */
+    ide_padstr((char *) (ide->buffer + 27), "SyQuest SyJet 1.5GB", 40);
+
+    if (ide_has_dma) {
+        ide->buffer[80] = 0x70;    /* took from the ZIP 250 config, fix if wrong */
+        ide->buffer[81] = 0x19;
+    }
+}
+
+/*
+   Unlike the other rdisk types' IDE story, the real SparQ's IDE/EIDE
+   interface used genuine ATA IDENTIFY DEVICE (ECh) and CHS/LBA hard-disk
+   commands, not the ATAPI packet interface this function (and 86Box's rdisk
+   framework generally, which only implements ATAPI-packet and SCSI command
+   sets - RDISK_BUS_IDE exists in the enum but isn't wired to a native-ATA
+   command path anywhere) actually emulates. This is the closest available
+   approximation for attaching a SparQ to an IDE/ATAPI bus in 86Box today,
+   not a byte-accurate reproduction of the real drive's native-ATA behavior.
+ */
+static void
+rdisk_sparq_identify(const ide_t *ide, const int ide_has_dma)
+{
+    /* Firmware - not confirmed real, see rdisk.h comment. */
+    ide_padstr((char *) (ide->buffer + 23), "1.03", 8);
+    /* Model */
+    ide_padstr((char *) (ide->buffer + 27), "SyQuest SparQ 1.0GB", 40);
+
+    if (ide_has_dma) {
+        ide->buffer[80] = 0x70;    /* took from the ZIP 250 config, fix if wrong */
+        ide->buffer[81] = 0x19;
+    }
+}
+
 static void
 rdisk_identify(const ide_t *ide, const int ide_has_dma)
 {
@@ -2291,6 +2524,10 @@ rdisk_identify(const ide_t *ide, const int ide_has_dma)
         rdisk_jaz_1gb_identify(ide, ide_has_dma);
     else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_JAZ_2GB)
         rdisk_jaz_2gb_identify(ide, ide_has_dma);
+    else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_SYJET_1_5GB)
+        rdisk_syjet_identify(ide, ide_has_dma);
+    else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_SPARQ_1GB)
+        rdisk_sparq_identify(ide, ide_has_dma);
     else
         rdisk_generic_identify(ide, ide_has_dma, rdisk);
 }
