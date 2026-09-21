@@ -115,6 +115,7 @@ struct Pixmaps {
     PixmapSetEmptyActive rdisk;
     PixmapSetEmptyActive zip;
     PixmapSetEmptyActive jaz;
+    PixmapSetEmptyActive syquest;
     PixmapSetEmptyActive mo;
     PixmapSetEmptyActive tape;
     PixmapSetActive      hd;
@@ -348,6 +349,7 @@ struct MachineStatus::States {
         pixmaps.rdisk.load(QIcon(":/settings/qt/icons/rdisk.ico"));
         pixmaps.zip.load(QIcon(":/settings/qt/icons/zip.ico"));
         pixmaps.jaz.load(QIcon(":/settings/qt/icons/jaz.ico"));
+        pixmaps.syquest.load(QIcon(":/settings/qt/icons/syquest.ico"));
         pixmaps.mo.load(QIcon(":/settings/qt/icons/mo.ico"));
         pixmaps.tape.load(QIcon(":/settings/qt/icons/tape.ico"));
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
@@ -864,6 +866,8 @@ MachineStatus::refresh(QStatusBar *sbar)
             d->rdisk[i].pixmaps = &d->pixmaps.zip;
         else if ((t == RDISK_TYPE_JAZ_1GB) || (t == RDISK_TYPE_JAZ_2GB))
             d->rdisk[i].pixmaps = &d->pixmaps.jaz;
+		else if ((t == RDISK_TYPE_SYJET_1_5GB) || (t == RDISK_TYPE_SPARQ_1GB))
+            d->rdisk[i].pixmaps = &d->pixmaps.syquest;
         else
             d->rdisk[i].pixmaps = &d->pixmaps.rdisk;
         d->rdisk[i].label = std::make_unique<ClickableLabel>();
