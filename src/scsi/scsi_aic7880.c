@@ -35,7 +35,13 @@
  *
  *          Not modelled: target mode (the chip answering selection as a
  *          target), SCAM, parity errors on either bus, external SCB SRAM,
- *          and the timing of anything but selection and media access.
+ *          and the pace of the SCSI bus itself. Selection is timed, but
+ *          only nominally: what the firmware cares about is that a target
+ *          that is there is quick and one that is not is not. Two options
+ *          ask for more than that. Sequencer timing runs the program at
+ *          the clock rate the chip would have; device timing makes a
+ *          target take as long over a command as 86Box says the device
+ *          does. The data itself still crosses the bus at once.
  *
  * Authors: Michael Pratte, <mpratte@makefox.group>
  *
@@ -334,7 +340,9 @@ typedef struct aic_cmd_t {
     uint8_t *data;
     uint32_t data_len;
     uint32_t data_pos;
-    double   delay;
+    double   delay;    /* how long the device takes over this command, in microseconds */
+    double   ready_at; /* when a disconnected target has its answer and may come back */
+    uint8_t  delayed;  /* the wait for the medium has been served */
 } aic_cmd_t;
 
 #define AIC_CMDS 64
@@ -386,7 +394,12 @@ typedef struct aic7880_t {
     uint8_t  sblkctl;
     uint8_t  scsitest;
     uint8_t  sleepctl;
-    uint8_t  must_step; /* PAUSE was just released: one instruction runs whatever else is pending */
+    uint8_t  must_step;  /* PAUSE was just released: one instruction runs whatever else is pending */
+    uint8_t  timed_seq;  /* the sequencer runs at its own clock rate, not as fast as the host allows */
+    uint8_t  timed_dev;  /* a device takes as long over a command as 86Box says it does */
+    uint8_t  seq_idle;   /* the sequencer was stopped or parked when last looked at */
+    double   seq_last;   /* when its clock was last advanced, in microseconds */
+    double   seq_credit; /* instructions it is owed */
 
     /* sequencer */
     uint8_t  seqctl;
@@ -488,6 +501,15 @@ static const char *aic_phase_name(uint8_t phase);
 #endif
 static uint8_t aic_read(aic7880_t *dev, uint8_t addr, int seq);
 static void    aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq);
+
+/* Emulated time, in microseconds. It moves a translated block at a time
+   and not an instruction at a time, which is as fine as anything here
+   needs. */
+static double
+aic_now_us(void)
+{
+    return (double) tsc * 4294967296.0 / (double) TIMER_USEC;
+}
 
 /* ---- interrupts and pausing --------------------------------------------- */
 
@@ -675,11 +697,23 @@ aic_cmd_free(aic7880_t *dev, aic_cmd_t *c)
 static aic_cmd_t *
 aic_find_reselect(aic7880_t *dev)
 {
+    double now = aic_now_us();
+
     for (uint8_t i = 0; i < AIC_CMDS; i++) {
-        if (dev->cmds[i].used && dev->cmds[i].waited)
+        if (dev->cmds[i].used && dev->cmds[i].waited && (now >= dev->cmds[i].ready_at))
             return &dev->cmds[i];
     }
     return NULL;
+}
+
+static int
+aic_any_disconnected(const aic7880_t *dev)
+{
+    for (uint8_t i = 0; i < AIC_CMDS; i++) {
+        if (dev->cmds[i].used && dev->cmds[i].waited)
+            return 1;
+    }
+    return 0;
 }
 
 static void
@@ -765,6 +799,13 @@ aic_tgt_schedule(aic7880_t *dev)
    bytes. A program that reads DFDAT without waiting for HDONE reads what
    has not arrived. */
 #define AIC_HOST_INSNS 4
+
+/* How long a disconnected target is off the bus at the very least: the
+   bus free delay and an arbitration it has to win. The real numbers are
+   400ns and 2.4us; what matters here is only that the sequencer gets to
+   finish with the connection it has just lost before the next one
+   arrives. */
+#define AIC_RESELECT_US 4.0
 
 /* The target asks for the next byte of the phase it is already in. Under
    the DMA engine the handshake is the hardware's own and costs nothing
@@ -856,10 +897,39 @@ aic_tgt_next(aic7880_t *dev)
         /* A target with work to do and permission to go away takes it,
            once, so that reselection gets exercised. */
         if (c->disc_ok && dev->disconnects && !c->waited && (c->data_len > 0)) {
-            static const uint8_t disc = 0x04;
-            c->waited                 = 1;
-            aic_msgin(dev, &disc, 1, AFTER_DISC);
+            /* SAVE DATA POINTERS, then DISCONNECT. A target sends both,
+               in that order, and the sequencer needs the first: it is
+               what tells the program to write the transfer's address and
+               count into the block it is about to park. Sending only the
+               disconnect leaves those fields holding whatever the last
+               command left there, and the transfer resumes into it. */
+            static const uint8_t disc[2] = { 0x02, 0x04 };
+            c->waited                    = 1;
+            c->delayed                   = 1;
+            /* A target cannot come straight back. The bus has to be seen
+               free -- four hundred nanoseconds of BSY and SEL both
+               negated -- and then arbitrated for, and only then may it
+               reselect. Coming back inside that window puts SELDI on top
+               of BUSFREE before the sequencer has run its bus free
+               handler, and the program loses the command it had just
+               parked. Waiting is not a nicety: it is what the bus does. */
+            c->ready_at = aic_now_us() + AIC_RESELECT_US + (dev->timed_dev ? c->delay : 0.0);
+            aic_msgin(dev, disc, 2, AFTER_DISC);
             aic_bus_changed(dev);
+            return;
+        }
+    }
+
+    /* The device takes as long over the command as 86Box's own model of
+       it says: the seek, the rotation, the transfer off the medium. A
+       target that stays connected simply holds the bus with REQ down
+       until it has something to say. */
+    if (dev->timed_dev && !c->delayed) {
+        c->delayed = 1;
+        if (c->delay > 1.0) {
+            dev->tgt_req = 0;
+            aic_bus_changed(dev);
+            timer_on_auto(&dev->tgt_timer, c->delay);
             return;
         }
     }
@@ -2564,22 +2634,52 @@ aic_seq_step(aic7880_t *dev)
    of those costs a timer period instead of a few instructions. */
 #define SEQ_PARK 16
 
+/* The most instructions it can be owed at once: what it would run in two
+   hundred microseconds. Emulated time moves in steps, and without a limit
+   one long step would be paid back as a burst nothing could interrupt. */
+#define SEQ_CREDIT_MAX 2000.0
+
 static void
 aic_seq_run(aic7880_t *dev)
 {
     uint16_t last_pc = 0xffff;
     int      same    = 0;
+    int      limit   = SEQ_BURST;
+    int      stopped = 0;
     int      n;
 
     if (dev->in_seq)
         return;
     dev->in_seq = 1;
 
-    for (n = 0; n < SEQ_BURST; n++) {
+    /* The sequencer's clock is the 40 MHz input divided by four, or by
+       five without FASTMODE, and an instruction takes one cycle: ten or
+       eight million a second. It earns instructions for the time that has
+       passed while it was able to run, and none for time spent paused or
+       waiting on the bus. */
+    if (dev->timed_seq) {
+        double now = aic_now_us();
+
+        if (dev->seq_idle)
+            dev->seq_credit = 0.0;
+        else
+            dev->seq_credit += (now - dev->seq_last) * ((dev->seqctl & FASTMODE) ? 10.0 : 8.0);
+        dev->seq_last = now;
+        dev->seq_idle = 0;
+        if (dev->seq_credit > SEQ_CREDIT_MAX)
+            dev->seq_credit = SEQ_CREDIT_MAX;
+        limit = (int) dev->seq_credit;
+        if ((limit < 1) && dev->must_step)
+            limit = 1;
+    }
+
+    for (n = 0; n < limit; n++) {
         if (dev->must_step)
             dev->must_step = 0;
-        else if (aic_paused(dev))
+        else if (aic_paused(dev)) {
+            stopped = 1;
             break;
+        }
 
         /* Asleep: nothing runs until one of the conditions it chose to be
            woken by is true. */
@@ -2590,6 +2690,7 @@ aic_seq_run(aic7880_t *dev)
                 dev->sleepctl &= ~(SLP1 | SLP0);
             else {
                 dev->asleep = 1;
+                stopped     = 1;
                 break;
             }
         }
@@ -2610,6 +2711,7 @@ aic_seq_run(aic7880_t *dev)
                                                          : "free",
                             dev->tgt_req ? " req" : "");
                 }
+                stopped = 1;
                 break;
             }
         } else
@@ -2621,8 +2723,17 @@ aic_seq_run(aic7880_t *dev)
         if (dev->seqctl & STEP) {
             /* Single step: one instruction, and PAUSE sets itself again. */
             dev->hcntrl |= PAUSE;
+            stopped = 1;
+            n++;
             break;
         }
+    }
+
+    if (dev->timed_seq) {
+        dev->seq_credit -= (double) n;
+        if (dev->seq_credit < 0.0)
+            dev->seq_credit = 0.0;
+        dev->seq_idle = (uint8_t) stopped;
     }
 
     dev->in_seq = 0;
@@ -2648,7 +2759,7 @@ aic_seq_timer(void *priv)
 
     /* Keep the clock running while there is anything the sequencer could
        still be woken by. */
-    if (!aic_paused(dev) || (dev->bus_state == BUS_BUSY) || dev->selecting || dev->qin_cnt || (dev->dfcntrl & (SCSIEN | HDMAEN)))
+    if (!aic_paused(dev) || (dev->bus_state == BUS_BUSY) || dev->selecting || dev->qin_cnt || (dev->dfcntrl & (SCSIEN | HDMAEN)) || aic_any_disconnected(dev))
         timer_on_auto(&dev->seq_timer, dev->asleep ? 50.0 : 10.0);
 }
 
@@ -2687,10 +2798,12 @@ aic_chip_reset(aic7880_t *dev)
     dev->selid                  = 0;
     dev->scamctl = dev->brdctl = dev->seectl = 0;
     /* The LED bits come up set, and SELWIDE as the WIDEPS# pin is strapped. */
-    dev->sblkctl   = DIAGLEDEN | DIAGLEDON | (dev->wide ? SELWIDE : 0);
-    dev->scsitest  = 0;
-    dev->sleepctl  = 0;
-    dev->must_step = 0;
+    dev->sblkctl    = DIAGLEDEN | DIAGLEDON | (dev->wide ? SELWIDE : 0);
+    dev->scsitest   = 0;
+    dev->sleepctl   = 0;
+    dev->must_step  = 0;
+    dev->seq_idle   = 1;
+    dev->seq_credit = 0.0;
 
     dev->seqctl   = PERRORDIS | FASTMODE;
     dev->pc       = 0;
@@ -3150,6 +3263,14 @@ aic_init(const device_t *info)
        a test asks for it. */
     dev->disconnects = device_get_config_int("disconnect");
 
+    /* At the chip's own pace, and the devices at theirs. The sequencer's
+       clock is on unless it is turned off, because every delay a driver
+       takes is a countdown in the sequencer and runs short without it;
+       device timing is off unless asked for. The part on a motherboard has
+       no settings and runs both as fast as the host can make them. */
+    dev->timed_seq = (dev->board == BOARD_7880) ? 0 : device_get_config_int("seq_timing");
+    dev->timed_dev = (dev->board == BOARD_7880) ? 0 : device_get_config_int("dev_timing");
+
     /* The card's own BIOS. Every one of these images is an AHA-2940
        Ultra/Ultra W BIOS whose PCI data structure names 9004:8178, as this
        card does; the PCI BIOS refuses to run one whose ID does not match.
@@ -3287,6 +3408,28 @@ static const device_config_t aic_card_config[] = {
             },
             { .files_no = 0 }
         },
+    },
+    {
+        .name           = "seq_timing",
+        .description    = "Sequencer timing",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "dev_timing",
+        .description    = "Device timing",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     {
         .name           = "disconnect",
