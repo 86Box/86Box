@@ -2807,11 +2807,13 @@ kbc_at_reset(void *priv)
 
     kbc_at_queue_reset(dev);
 
-    /* Also reset the attached device ports, so that keystrokes queued before the reset
-       are discarded instead of being sent to the output buffer afterwards. */
+    /* Discard whatever the attached devices had queued before the reset: those
+       keystrokes would otherwise be delivered to the guest afterwards. The devices
+       themselves are left alone, so that their scan enable state and self test are
+       not disturbed. */
     for (uint8_t i = 0; i < 2; i++) {
         if ((dev->ports[i] != NULL) && (dev->ports[i]->priv != NULL))
-            kbc_at_dev_reset((atkbc_dev_t *) dev->ports[i]->priv, 0);
+            kbc_at_dev_discard((atkbc_dev_t *) dev->ports[i]->priv);
     }
 
     dev->sc_or = 0;
