@@ -3278,9 +3278,10 @@ aic_init(const device_t *info)
     dev->pci_regs[DEVCONFIG + 2] = 0x00;
     dev->pci_regs[DEVCONFIG + 3] = 0x00;
 
-    /* A target is never obliged to disconnect, and the card's own BIOS
-       cannot follow one back through a reselection, so leave it off unless
-       a test asks for it. */
+    /* Targets give up the bus while they work, as real drives do, and come
+       back by reselection. A target is never obliged to, so it can be
+       turned off; the part on a motherboard has no settings and its
+       targets stay connected. */
     dev->disconnects = device_get_config_int("disconnect");
 
     /* At the chip's own pace, and the devices at theirs. The sequencer's
@@ -3456,7 +3457,7 @@ static const device_config_t aic_card_config[] = {
         .description    = "Targets disconnect and reselect",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 0,
+        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
