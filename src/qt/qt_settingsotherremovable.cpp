@@ -252,7 +252,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     rdisk_icon          = QIcon(":/settings/qt/icons/rdisk.ico");
     zip_icon            = QIcon(":/settings/qt/icons/zip.ico");
     jaz_icon            = QIcon(":/settings/qt/icons/jaz.ico");
-    syquest_icon            = QIcon(":/settings/qt/icons/syquest.ico");
+    syquest_icon        = QIcon(":/settings/qt/icons/syquest.ico");
 
     Harddrives::populateRemovableBuses(ui->comboBoxRDiskBus->model());
     if ((ui->comboBoxRDiskBus->model()->rowCount() - 3) > 0)
