@@ -73,6 +73,16 @@ serial_log(const char *fmt, ...)
 #    define serial_log(fmt, ...)
 #endif
 
+static uint8_t
+serial_data_mask(serial_t *dev)
+{
+    static const uint8_t masks[4] = {
+        0x1f, 0x3f, 0x7f, 0xff
+    };
+
+    return masks[dev->lcr & 0x03];
+}
+
 void
 serial_reset_port(serial_t *dev)
 {
@@ -89,6 +99,7 @@ serial_reset_port(serial_t *dev)
     dev->fifo_enabled                         = 0;
     dev->baud_cycles                          = 0;
     dev->out_new                              = 0xffff;
+    dev->pending_rx_error                     = 0;
 
     dev->txsr_empty = 1;
     dev->thr_empty  = 1;
@@ -174,8 +185,12 @@ serial_receive_timer(void *priv)
 
     if (dev->char_port.chardev.read) {
         uint8_t val;
-        if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.chardev.priv) > 0)
+        if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.chardev.priv) > 0) {
+            dev->pending_rx_error = dev->char_port.chardev.read_error
+                ? dev->char_port.chardev.read_error(dev->char_port.chardev.priv)
+                : 0;
             serial_write_fifo(dev, val);
+        }
     }
     if (dev->char_port.chardev.status) {
         uint8_t prev_msr = dev->msr;
@@ -203,6 +218,18 @@ serial_receive_timer(void *priv)
             fifo_write_evt((uint8_t) (dev->out_new & 0xff), dev->rcvr_fifo);
             dev->out_new = 0xffff;
 
+            if (dev->pending_rx_error & (CHAR_COM_ERR_PARITY | CHAR_COM_ERR_FRAMING | CHAR_COM_ERR_BREAK)) {
+                if (dev->pending_rx_error & CHAR_COM_ERR_PARITY)
+                    dev->lsr |= 0x04;
+                if (dev->pending_rx_error & CHAR_COM_ERR_FRAMING)
+                    dev->lsr |= 0x08;
+                if (dev->pending_rx_error & CHAR_COM_ERR_BREAK)
+                    dev->lsr |= 0x10;
+                dev->int_status |= SERIAL_INT_LSR;
+                serial_update_ints(dev);
+            }
+            dev->pending_rx_error = 0;
+
 #if 0
             pclog("serial_receive_timer(): lsr = %02X, ier = %02X, iir = %02X, int_status = %02X\n",
                   dev->lsr, dev->ier, dev->iir, dev->int_status);
@@ -220,13 +247,21 @@ serial_receive_timer(void *priv)
             if (dev->lsr & 0x01)
                 dev->lsr |= 0x02;
 
+            if (dev->pending_rx_error & CHAR_COM_ERR_PARITY)
+                dev->lsr |= 0x04;
+            if (dev->pending_rx_error & CHAR_COM_ERR_FRAMING)
+                dev->lsr |= 0x08;
+            if (dev->pending_rx_error & CHAR_COM_ERR_BREAK)
+                dev->lsr |= 0x10;
+            dev->pending_rx_error = 0;
+
             dev->dat = (uint8_t) (dev->out_new & 0xff);
             dev->out_new = 0xffff;
 
             /* Raise Data Ready interrupt. */
             dev->lsr |= 0x01;
             dev->int_status |= SERIAL_INT_RECEIVE;
-            if (dev->lsr & 0x02)
+            if (dev->lsr & 0x1e) /* OE | PE | FE | BI */
                 dev->int_status |= SERIAL_INT_LSR;
 
             serial_update_ints(dev);
@@ -241,9 +276,9 @@ write_fifo(serial_t *dev, uint8_t dat)
                (dev->type >= SERIAL_16550) && dev->fifo_enabled,
                ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ?
                fifo_get_count(dev->rcvr_fifo) : 0);
-
+               
     /* Do this here, because in non-FIFO mode, this is read directly. */
-    dev->out_new = (uint16_t) dat;
+    dev->out_new = (uint16_t) (dat & serial_data_mask(dev));
 }
 
 static void
@@ -282,6 +317,8 @@ serial_write_fifo(serial_t *dev, uint8_t dat)
 void
 serial_transmit(serial_t *dev, uint8_t val)
 {
+    val &= serial_data_mask(dev);
+
     if (dev->mctrl & 0x10)
         write_fifo(dev, val);
     else if (dev->sd && dev->sd->dev_write)
@@ -811,6 +848,8 @@ serial_read(uint16_t addr, void *priv)
             ret = dev->lsr;
             if (dev->lsr & 0x1f)
                 dev->lsr &= ~0x1e;
+            if (dev->type >= SERIAL_16550)
+                fifo_clear_overrun(dev->rcvr_fifo);
             dev->int_status &= ~SERIAL_INT_LSR;
             serial_update_ints(dev);
             break;

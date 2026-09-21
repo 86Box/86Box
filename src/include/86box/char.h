@@ -88,6 +88,12 @@ enum { /* device status */
 
 #define CHAR_RAW_STATUS(x) ((x) ^ CHAR_LPT_BUSY)
 
+enum { /* per-byte receive error flags */
+       CHAR_COM_ERR_PARITY  = 0x100000,
+       CHAR_COM_ERR_FRAMING = 0x200000,
+       CHAR_COM_ERR_BREAK   = 0x400000
+};
+
 enum { /* char_pipe modes (for config migration) */
        CHAR_PIPE_MODE_AUTO = 0,
        CHAR_PIPE_MODE_SERVER,
@@ -112,6 +118,8 @@ typedef struct _char_device_ {
     uint32_t (*status)(void *priv);
     void (*control)(uint32_t flags, void *priv);
     void (*port_config)(void *priv);
+
+    uint32_t (*read_error)(void *priv);
 } char_device_t;
 
 typedef struct {
@@ -147,6 +155,7 @@ extern char_port_t *char_attach(uint32_t flags,
                                 void (*control)(uint32_t flags, void *priv),
                                 void (*port_config)(void *priv),
                                 void *priv);
+extern void         char_set_read_error(char_port_t *port, uint32_t (*read_error)(void *priv));
 extern void         char_update_status(char_port_t *port);
 extern void        *char_log_open(char_port_t *port, char *dev_name);
 
