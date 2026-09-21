@@ -748,74 +748,58 @@ banshee_recalctimings(svga_t *svga)
     }
 }
 
+static uint32_t banshee_ext_inl(uint16_t addr, void *priv);
+static void     banshee_ext_outl(uint16_t addr, uint32_t val, void *priv);
+
 static void
 banshee_ext_out(uint16_t addr, uint8_t val, void *priv)
 {
-#if 0
-    banshee_t *banshee = (banshee_t *)priv;
-    svga_t *svga = &banshee->svga;
-#endif
+    uint32_t reg;
+    uint32_t shift;
 
 #if 0
     banshee_log("banshee_ext_out: addr=%04x val=%02x\n", addr, val);
 #endif
 
     switch (addr & 0xff) {
-        case 0xb0:
-        case 0xb1:
-        case 0xb2:
-        case 0xb3:
-        case 0xb4:
-        case 0xb5:
-        case 0xb6:
-        case 0xb7:
-        case 0xb8:
-        case 0xb9:
-        case 0xba:
-        case 0xbb:
-        case 0xbc:
-        case 0xbd:
-        case 0xbe:
-        case 0xbf:
-        case 0xc0:
-        case 0xc1:
-        case 0xc2:
-        case 0xc3:
-        case 0xc4:
-        case 0xc5:
-        case 0xc6:
-        case 0xc7:
-        case 0xc8:
-        case 0xc9:
-        case 0xca:
-        case 0xcb:
-        case 0xcc:
-        case 0xcd:
-        case 0xce:
-        case 0xcf:
-        case 0xd0:
-        case 0xd1:
-        case 0xd2:
-        case 0xd3:
-        case 0xd4:
-        case 0xd5:
-        case 0xd6:
-        case 0xd7:
-        case 0xd8:
-        case 0xd9:
-        case 0xda:
-        case 0xdb:
-        case 0xdc:
-        case 0xdd:
-        case 0xde:
-        case 0xdf:
+        case 0xb0 ... 0xdf:
             banshee_out((addr & 0xff) + 0x300, val, priv);
             break;
 
         default:
-            banshee_log("bad banshee_ext_out: addr=%04x val=%02x\n", addr, val);
+            /* Windows XP banshee.sys sets extended shift out bit with
+               an OR m8, imm8 - so byte accesses are in fact possible. */
+            shift = (addr & 3) << 3;
+            reg   = banshee_ext_inl(addr & 0xfc, priv);
+            banshee_ext_outl(addr & 0xfc, (reg & ~(0xff << shift)) | (val << shift), priv);
+            break;
     }
 }
+
+static void
+banshee_ext_outw(uint16_t addr, uint16_t val, void *priv)
+{
+    uint32_t reg;
+    uint32_t shift;
+
+#if 0
+    banshee_log("banshee_ext_outw: addr=%04x val=%04x\n", addr, val);
+#endif
+
+    switch (addr & 0xff) {
+        case 0xb0 ... 0xdf:
+            banshee_ext_out(addr, val & 0xff, priv);
+            banshee_ext_out(addr + 1, val >> 8, priv);
+            break;
+
+        default:
+            shift = (addr & 2) << 3;
+            reg   = banshee_ext_inl(addr & 0xfc, priv);
+            banshee_ext_outl(addr & 0xfc, (reg & ~(0xffff << shift)) | (val << shift), priv);
+            break;
+    }
+}
+
 static void
 banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 {
@@ -1045,82 +1029,40 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 static uint8_t
 banshee_ext_in(uint16_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
-#if 0
-    svga_t *svga = &banshee->svga;
-#endif
     uint8_t ret = 0xff;
 
     switch (addr & 0xff) {
-        case Init_status:
-        case Init_status + 1:
-        case Init_status + 2:
-        case Init_status + 3:
-            ret = (banshee_status(banshee) >> ((addr & 3) * 8)) & 0xff;
-#if 0
-            banshee_log("Read status reg! %04x(%08x):%08x\n", CS, cs, cpu_state.pc);
-#endif
-            break;
-
-        case 0xb0:
-        case 0xb1:
-        case 0xb2:
-        case 0xb3:
-        case 0xb4:
-        case 0xb5:
-        case 0xb6:
-        case 0xb7:
-        case 0xb8:
-        case 0xb9:
-        case 0xba:
-        case 0xbb:
-        case 0xbc:
-        case 0xbd:
-        case 0xbe:
-        case 0xbf:
-        case 0xc0:
-        case 0xc1:
-        case 0xc2:
-        case 0xc3:
-        case 0xc4:
-        case 0xc5:
-        case 0xc6:
-        case 0xc7:
-        case 0xc8:
-        case 0xc9:
-        case 0xca:
-        case 0xcb:
-        case 0xcc:
-        case 0xcd:
-        case 0xce:
-        case 0xcf:
-        case 0xd0:
-        case 0xd1:
-        case 0xd2:
-        case 0xd3:
-        case 0xd4:
-        case 0xd5:
-        case 0xd6:
-        case 0xd7:
-        case 0xd8:
-        case 0xd9:
-        case 0xda:
-        case 0xdb:
-        case 0xdc:
-        case 0xdd:
-        case 0xde:
-        case 0xdf:
+        case 0xb0 ... 0xdf:
             ret = banshee_in((addr & 0xff) + 0x300, priv);
             break;
 
         default:
-            banshee_log("bad banshee_ext_in: addr=%04x\n", addr);
+            ret = banshee_ext_inl(addr & 0xfc, priv) >> ((addr & 3) << 3);
             break;
     }
 
 #if 0
     banshee_log("banshee_ext_in: addr=%04x val=%02x\n", addr, ret);
 #endif
+
+    return ret;
+}
+
+static uint16_t
+banshee_ext_inw(uint16_t addr, void *priv)
+{
+    uint16_t ret;
+
+    switch (addr & 0xff) {
+        case 0xb0 ... 0xdf:
+            ret = banshee_ext_in(addr, priv);
+            ret |= banshee_ext_in(addr + 1, priv) << 8;
+            break;
+
+        default:
+            ret = banshee_ext_inl(addr & 0xfc, priv) >> ((addr & 2) << 3);
+            break;
+    }
 
     return ret;
 }
@@ -1243,6 +1185,10 @@ banshee_ext_inl(uint16_t addr, void *priv)
             break;
         case DAC_dacData:
             ret = svga->pallook[banshee->dacAddr];
+            break;
+
+        case Video_maxRgbDelta:
+            ret = voodoo->scrfilterThreshold;
             break;
 
         case Video_vidProcCfg:
@@ -1622,11 +1568,15 @@ banshee_reg_readl(uint32_t addr, void *priv)
 }
 
 static void
-banshee_reg_write(UNUSED(uint32_t addr), UNUSED(uint8_t val), UNUSED(void *priv))
+banshee_reg_write(uint32_t addr, uint8_t val, void *priv)
 {
+    banshee_t *banshee = (banshee_t *) priv;
+
 #if 0
     banshee_log("banshee_reg_writeb: addr=%08x val=%02x\n", addr, val);
 #endif
+    if (!(addr & 0x1f80000)) /*IO remap*/
+        banshee_ext_out(addr & 0xff, val, banshee);
 }
 
 static void
@@ -1641,6 +1591,11 @@ banshee_reg_writew(uint32_t addr, uint16_t val, void *priv)
     banshee_log("banshee_reg_writew: addr=%08x val=%04x\n", addr, val);
 #endif
     switch (addr & 0x1f00000) {
+        case 0x0000000: /*IO remap*/
+            if (!(addr & 0x80000))
+                banshee_ext_outw(addr & 0xff, val, banshee);
+            break;
+
         case 0x1000000:
         case 0x1100000:
         case 0x1200000:
@@ -3315,16 +3270,16 @@ banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             if (val & PCI_COMMAND_IO) {
                 io_removehandler(0x03a0, 0x0040, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
                 if (banshee->ioBaseAddr)
-                    io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
+                    io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, banshee_ext_inw, banshee_ext_inl, banshee_ext_out, banshee_ext_outw, banshee_ext_outl, banshee);
 
                 if (!(banshee->svga.miscout & 0x01))
                     io_sethandler(0x03a0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
                 io_sethandler(0x03c0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
                 if (banshee->ioBaseAddr)
-                    io_sethandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
+                    io_sethandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, banshee_ext_inw, banshee_ext_inl, banshee_ext_out, banshee_ext_outw, banshee_ext_outl, banshee);
             } else {
                 io_removehandler(0x03a0, 0x0040, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
-                io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
+                io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, banshee_ext_inw, banshee_ext_inl, banshee_ext_out, banshee_ext_outw, banshee_ext_outl, banshee);
             }
             banshee->pci_regs[PCI_REG_COMMAND] = val & 0x27;
             banshee_updatemapping(banshee);
@@ -3348,11 +3303,11 @@ banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
         case 0x19:
             if (banshee->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO)
-                io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
+                io_removehandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, banshee_ext_inw, banshee_ext_inl, banshee_ext_out, banshee_ext_outw, banshee_ext_outl, banshee);
             banshee->ioBaseAddr &= 0xffff00ff;
             banshee->ioBaseAddr |= val << 8;
             if ((banshee->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_IO) && banshee->ioBaseAddr)
-                io_sethandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, NULL, banshee_ext_inl, banshee_ext_out, NULL, banshee_ext_outl, banshee);
+                io_sethandler(banshee->ioBaseAddr, 0x0100, banshee_ext_in, banshee_ext_inw, banshee_ext_inl, banshee_ext_out, banshee_ext_outw, banshee_ext_outl, banshee);
             banshee_log("Banshee ioBaseAddr=%08x\n", banshee->ioBaseAddr);
             return;
 

@@ -624,6 +624,9 @@ extern int             cdrom_load(cdrom_t *dev, const char *fn, const int skip_i
 
 extern void            cdrom_global_init(void);
 extern void            cdrom_hard_reset(void);
+/* Forward declared: cdrom.h is included where scsi_device.h is not. */
+struct scsi_device_t;
+extern struct scsi_device_t *cdrom_get_lpt_device(const uint8_t port);
 extern void            cdrom_close(void);
 extern void            cdrom_insert(const uint8_t id);
 extern void            cdrom_exit(const uint8_t id);

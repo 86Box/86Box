@@ -87,20 +87,6 @@ Collection of ROMs for use with 86Box.
 # install base package
 %cmake_install
 
-# install icons
-for i in 16 20 24 32 40 48 64 72 128 256; do
-  mkdir -p $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
-  cp src/unix/assets/${i}x${i}/net.86box.86Box.png $RPM_BUILD_ROOT%{_datadir}/icons/hicolor/${i}x${i}/apps
-done
-
-# install desktop file
-desktop-file-install --dir=%{buildroot}%{_datadir}/applications src/unix/assets/net.86box.86Box.desktop
-
-# install metadata
-mkdir -p %{buildroot}%{_metainfodir}
-cp src/unix/assets/net.86box.86Box.metainfo.xml %{buildroot}%{_metainfodir}
-appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
-
 # install roms
 pushd roms-%{romver}
   mkdir -p %{buildroot}%{_datadir}/%{name}/roms

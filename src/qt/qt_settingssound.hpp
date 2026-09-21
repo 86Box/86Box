@@ -59,6 +59,13 @@ private:
 
     SettingsCompleter   *scMidiOut;
     SettingsCompleter   *scMidiIn;
+
+    int soundCardCurrent[4];
+    int mpu401Enabled;
+    int midiOutCurrent;
+    int midiInCurrent;
+
+    bool inMachineChange;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

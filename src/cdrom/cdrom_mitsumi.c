@@ -518,10 +518,11 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     if (dev->cdrom_dev->seek_pos > dev->cdrom_dev->cdrom_capacity) {
         return -2;
     }
-    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 3 : 2, (dev->mode & 0x40) ? 0xF8 : 0x10, (int *) &dev->readbuflen, 0);
+    uint8_t data_flags = (dev->smode == 2) ? 0x50 : 0x10;
+    ret = cdrom_readsector_raw(dev->cdrom_dev, dev->buf, dev->cdrom_dev->seek_pos, 0, (dev->smode == 2) ? 4 : 2, (dev->mode & 0x40) ? 0xF8 : data_flags, (int *) &dev->readbuflen, 0);
 
     mitsumi_cdrom_log("Mitsumi read sector @ %u, ret = %d, readlen = %u, blocklen = %u, mode = %02X, smode = %02X, dmalen = %04X\n",
-                       dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev), dev->mode, dev->smode, dev->dmalen);
+                      dev->cdrom_dev->seek_pos, ret, dev->readbuflen, mitsumi_dma_length(dev), dev->mode, dev->smode, dev->dmalen);
     if (ret <= 0)
         return -3;
     const uint32_t next_msf = cdrom_lba_to_msf_accurate(dev->cdrom_dev->seek_pos + 1);
@@ -537,10 +538,14 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     dev->buf_idx    = offset;
     available      -= offset;
     if (!(dev->mode & MODE_DATA)) {
-        if (dev->mode & 0x80)
-            available = MIN(available, COOKED_SECTOR_SIZE + 2);
-        else
-            available = MIN(available, COOKED_SECTOR_SIZE);
+        if (data_flags == 0x50)
+            available = MIN(available, 2056);
+        else {
+            if (dev->mode & 0x80)
+                available = MIN(available, COOKED_SECTOR_SIZE + 2);
+            else
+                available = MIN(available, COOKED_SECTOR_SIZE);
+        }
     }
     dev->real_count = available;
     dev->buf_count  = MIN(mitsumi_dma_length(dev), available);

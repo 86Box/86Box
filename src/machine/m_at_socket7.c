@@ -179,13 +179,9 @@ machine_at_rubyusb_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/rubyusb/1005DL0L.BIO",
-                                     "roms/machines/rubyusb/1005DL0L.BI1",
-                                     "roms/machines/rubyusb/1005DL0L.BI2",
-                                     "roms/machines/rubyusb/1005DL0L.BI3",
-                                     "roms/machines/rubyusb/1005DL0L.RCV",
-                                     /*NULL,*/
-                                     0x3a000, 128);
+    ret = bios_load_intel("roms/machines/rubyusb/1005DL0L.BIO",
+                          "roms/machines/rubyusb/1005DL0L.RCV",
+                          262144, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -314,16 +310,16 @@ int
 machine_at_cu430hx_init(const machine_t *model)
 {
     int         ret = 0;
-    const char *fn[5];
+    const char *fn[2];
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    for (int i = 0; i < 5; i++)
-        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
-    ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
+    for (int i = 0; i < 2; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i * 4);
+    ret = bios_load_intel(fn[0], fn[1], 262144, 1);
     device_context_restore();
 
     machine_at_common_init(model);
@@ -454,16 +450,16 @@ int
 machine_at_tc430hx_init(const machine_t *model)
 {
     int         ret = 0;
-    const char *fn[5];
+    const char *fn[2];
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    for (int i = 0; i < 5; i++)
-        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
-    ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
+    for (int i = 0; i < 2; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i * 4);
+    ret = bios_load_intel(fn[0], fn[1], 262144, 1);
     device_context_restore();
 
     machine_at_common_init(model);
@@ -616,12 +612,9 @@ machine_at_pcv90_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/pcv90/1010DD04.BIO",
-                                     "roms/machines/pcv90/1010DD04.BI1",
-                                     "roms/machines/pcv90/1010DD04.BI2",
-                                     "roms/machines/pcv90/1010DD04.BI3",
-                                     "roms/machines/pcv90/1010DD04.RCV",
-                                     0x3a000, 128);
+    ret = bios_load_intel("roms/machines/pcv90/1010DD04.BIO",
+                          "roms/machines/pcv90/1010DD04.RCV",
+                          262144, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -874,12 +867,9 @@ machine_at_dellhannibalp_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/dellhannibalp/1003DY0J.BIO",
-                                     "roms/machines/dellhannibalp/1003DY0J.BI1",
-                                     "roms/machines/dellhannibalp/1003DY0J.BI2",
-                                     "roms/machines/dellhannibalp/1003DY0J.BI3",
-                                     "roms/machines/dellhannibalp/1003DY0J.RCV",
-                                     0x3a000, 128);
+    ret = bios_load_intel("roms/machines/dellhannibalp/1003DY0J.BIO",
+                          "roms/machines/dellhannibalp/1003DY0J.RCV",
+                          262144, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -1022,12 +1012,9 @@ machine_at_gw2kte_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/gw2kte/1008CY1T.BIO",
-                                     "roms/machines/gw2kte/1008CY1T.BI1",
-                                     "roms/machines/gw2kte/1008CY1T.BI2",
-                                     "roms/machines/gw2kte/1008CY1T.BI3",
-                                     "roms/machines/gw2kte/1008CY1T.RCV",
-                                     0x3a000, 128);
+    ret = bios_load_intel("roms/machines/gw2kte/1008CY1T.BIO",
+                          "roms/machines/gw2kte/1008CY1T.RCV",
+                          262144, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -1180,12 +1167,9 @@ machine_at_pb680_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/pb680/1012DN0R.BIO",
-                                     "roms/machines/pb680/1012DN0R.BI1",
-                                     "roms/machines/pb680/1012DN0R.BI2",
-                                     "roms/machines/pb680/1012DN0R.BI3",
-                                     "roms/machines/pb680/1012DN0R.RCV",
-                                     0x3a000, 128);
+    ret = bios_load_intel("roms/machines/pb680/1012DN0R.BIO",
+                          "roms/machines/pb680/1012DN0R.RCV",
+                          262144, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -2076,16 +2060,16 @@ int
 machine_at_an430tx_init(const machine_t *model)
 {
     int ret = 0;
-    const char* fn[5];
+    const char* fn[2];
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    for (int i = 0; i < 5; i++)
-        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
-    ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 160);
+    for (int i = 0; i < 2; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i * 4);
+    ret = bios_load_intel(fn[0], fn[1], 262144, 1);
     device_context_restore();
 
     machine_at_common_init(model);
