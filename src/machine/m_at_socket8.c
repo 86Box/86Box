@@ -184,7 +184,7 @@ int
 machine_at_aurora_init(const machine_t *model)
 {
     int         ret = 0;
-    const char *fn[5];
+    const char *fn;
 
     /* No ROMs available */
     if (!device_available(model->device))
@@ -192,14 +192,14 @@ machine_at_aurora_init(const machine_t *model)
 
     device_context(model->device);
     int is_dell = !strcmp(device_get_config_bios("bios"), "dimensionxpspro");
-    for (uint8_t i = 0; i < 5; i++)
-        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
+
+    fn = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
 
     if (is_dell)
-        ret = bios_load_linear_inverted(fn[0], 0x000c0000, 262144, 0);
-    else {
-        ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
-    }
+        ret = bios_load_linear_inverted(fn, 0x000c0000, 262144, 0);
+    else
+        ret = bios_load_intel(fn, NULL, 262144, 1);
+
     device_context_restore();
 
     machine_at_common_init(model);
@@ -466,12 +466,10 @@ machine_at_ap440fx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/ap440fx/1011CT1_.BIO",
-                                     "roms/machines/ap440fx/1011CT1_.BI1",
-                                     "roms/machines/ap440fx/1011CT1_.BI2",
-                                     "roms/machines/ap440fx/1011CT1_.BI3",
-                                     "roms/machines/ap440fx/1011CT1_.RCV",
-                                     0x3a000, 128);
+    ret = bios_load_intel("roms/machines/ap440fx/1011CT1_.BIO",
+                          "roms/machines/ap440fx/1011CT1_.RCV",
+                          262144, 1);
+
 
     if (bios_only || !ret)
         return ret;
@@ -581,16 +579,16 @@ int
 machine_at_vs440fx_init(const machine_t *model)
 {
     int         ret = 0;
-    const char *fn[5];
+    const char *fn[2];
 
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
 
     device_context(model->device);
-    for (uint8_t i = 0; i < 5; i++)
-        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i);
-    ret = bios_load_linear_combined2(fn[0], fn[1], fn[2], fn[3], fn[4], 0x3a000, 128);
+    for (uint8_t i = 0; i < 2; i++)
+        fn[i] = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), i * 4);
+    ret = bios_load_intel(fn[0], fn[1], 262144, 1);
     device_context_restore();
 
     machine_at_common_init(model);

@@ -602,8 +602,8 @@ machine_at_ninja_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/ninja/1008AY0_.BIO",
-                                    "roms/machines/ninja/1008AY0_.BI1", 0x1c000, 128);
+    ret = bios_load_intel("roms/machines/ninja/1008AY0_.BIO", NULL,
+                      131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -700,8 +700,8 @@ machine_at_alfredo_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/alfredo/1010AQ0_.BIO",
-                                    "roms/machines/alfredo/1010AQ0_.BI1", 0x1c000, 128);
+    ret = bios_load_intel("roms/machines/alfredo/1010AQ0_.BIO", NULL,
+                  131072, 1);
 
     if (bios_only || !ret)
         return ret;
