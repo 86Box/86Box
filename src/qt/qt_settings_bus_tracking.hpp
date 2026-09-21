@@ -36,6 +36,7 @@ public:
     /* These return 0xff is none is free. */
     uint8_t next_free_mke_channel();
     uint8_t next_free_mfm_channel();
+    uint8_t next_free_sasi_channel();
     uint8_t next_free_esdi_channel();
     uint8_t next_free_xta_channel();
     uint8_t next_free_ide_channel();
@@ -45,6 +46,7 @@ public:
 
     int mke_bus_full();
     int mfm_bus_full();
+    int sasi_bus_full();
     int esdi_bus_full();
     int xta_bus_full();
     int ide_bus_full();
@@ -60,6 +62,8 @@ private:
     uint64_t mke_tracking { 0 };
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
     uint64_t mfm_tracking { 0 };
+    /* PC-9801-27: two SASI target units. */
+    uint64_t sasi_tracking { 0 };
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
     uint64_t esdi_tracking { 0 };
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */

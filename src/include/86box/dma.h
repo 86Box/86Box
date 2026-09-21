@@ -79,6 +79,8 @@ extern uint8_t dma_e;
 extern uint8_t dma_m;
 
 extern void dma_init(void);
+extern void dma_init_pc98(void);
+extern void dma_set_pc98_autoinc(uint8_t channel, uint8_t mode);
 extern void dma_init_ibm5140(void);
 extern void dma16_init(void);
 extern void ps2_dma_init(void);

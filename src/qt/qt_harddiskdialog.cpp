@@ -808,6 +808,13 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             max_heads     = 15;
             max_cylinders = 2047;
             break;
+        case HDD_BUS_SASI:
+            /* Host image geometry only; the PC-9801-27 wrapper
+             * supplies guest SASI CHS and sector length. */
+            max_sectors   = 255;
+            max_heads     = 255;
+            max_cylinders = 266305;
+            break;
         case HDD_BUS_XTA:
             max_sectors   = 63;
             max_heads     = 16;
@@ -855,6 +862,9 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
     switch (ui->comboBoxBus->currentData().toInt()) {
         case HDD_BUS_MFM:
             chanIdx = (Harddrives::busTrackClass->next_free_mfm_channel());
+            break;
+        case HDD_BUS_SASI:
+            chanIdx = (Harddrives::busTrackClass->next_free_sasi_channel());
             break;
         case HDD_BUS_XTA:
             chanIdx = (Harddrives::busTrackClass->next_free_xta_channel());

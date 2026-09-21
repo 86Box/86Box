@@ -36,21 +36,23 @@ void
 Harddrives::populateBuses(QAbstractItemModel *model)
 {
     model->removeRows(0, model->rowCount());
-    model->insertRows(0, 6);
+    model->insertRows(0, 7);
 
     model->setData(model->index(0, 0), "ST-506/ST-412 (MFM/RLL)");
-    model->setData(model->index(1, 0), "XTA");
-    model->setData(model->index(2, 0), "ESDI");
-    model->setData(model->index(3, 0), "IDE");
-    model->setData(model->index(4, 0), "ATAPI");
-    model->setData(model->index(5, 0), "SCSI");
+    model->setData(model->index(1, 0), "SASI");
+    model->setData(model->index(2, 0), "XTA");
+    model->setData(model->index(3, 0), "ESDI");
+    model->setData(model->index(4, 0), "IDE");
+    model->setData(model->index(5, 0), "ATAPI");
+    model->setData(model->index(6, 0), "SCSI");
 
     model->setData(model->index(0, 0), HDD_BUS_MFM, Qt::UserRole);
-    model->setData(model->index(1, 0), HDD_BUS_XTA, Qt::UserRole);
-    model->setData(model->index(2, 0), HDD_BUS_ESDI, Qt::UserRole);
-    model->setData(model->index(3, 0), HDD_BUS_IDE, Qt::UserRole);
-    model->setData(model->index(4, 0), HDD_BUS_ATAPI, Qt::UserRole);
-    model->setData(model->index(5, 0), HDD_BUS_SCSI, Qt::UserRole);
+    model->setData(model->index(1, 0), HDD_BUS_SASI, Qt::UserRole);
+    model->setData(model->index(2, 0), HDD_BUS_XTA, Qt::UserRole);
+    model->setData(model->index(3, 0), HDD_BUS_ESDI, Qt::UserRole);
+    model->setData(model->index(4, 0), HDD_BUS_IDE, Qt::UserRole);
+    model->setData(model->index(5, 0), HDD_BUS_ATAPI, Qt::UserRole);
+    model->setData(model->index(6, 0), HDD_BUS_SCSI, Qt::UserRole);
 }
 
 void
@@ -96,6 +98,7 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int
 
     switch (bus) {
         case HDD_BUS_MFM:
+        case HDD_BUS_SASI:
         case HDD_BUS_XTA:
         case HDD_BUS_ESDI:
         case HDD_BUS_IDE:
@@ -134,6 +137,10 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         case HDD_BUS_MFM:
             busRows = 2;
             busesToCheck.append(HDD_BUS_MFM);
+            break;
+        case HDD_BUS_SASI:
+            busRows = 2;
+            busesToCheck.append(HDD_BUS_SASI);
             break;
         case HDD_BUS_XTA:
             busRows = 2;
@@ -190,6 +197,8 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
         auto idx = model->index(i, 0);
         if (bus == TAPE_BUS_LPT)
             model->setData(idx, QString("LPT%1").arg(i + 1));
+        else if (bus == HDD_BUS_SASI)
+            model->setData(idx, QString("Unit %1").arg(i));
         else
             model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
         model->setData(idx, ((i >> shifter) << shifter) | (i & orer), Qt::UserRole);
@@ -214,6 +223,9 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
             break;
         case HDD_BUS_MFM:
             busName = QString("MFM/RLL (%1:%2)").arg(channel >> 1).arg(channel & 1);
+            break;
+        case HDD_BUS_SASI:
+            busName = QString("SASI (unit %1)").arg(channel);
             break;
         case HDD_BUS_XTA:
             busName = QString("XTA (%1:%2)").arg(channel >> 1).arg(channel & 1);

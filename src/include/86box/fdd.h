@@ -21,6 +21,8 @@
 #ifndef EMU_FDD_H
 #define EMU_FDD_H
 
+#include <86box/timer.h>
+
 #define FDD_NUM              4
 #define FLOPPY_IMAGE_HISTORY 10
 #define SEEK_RECALIBRATE     (-999)

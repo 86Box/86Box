@@ -53,6 +53,9 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "mfm") && !cdrom)
         return HDD_BUS_MFM;
 
+    if (!strcmp(str, "sasi") && !cdrom)
+        return HDD_BUS_SASI;
+
     if (!strcmp(str, "esdi") && !cdrom)
         return HDD_BUS_ESDI;
 
@@ -101,6 +104,11 @@ hdd_bus_to_string(int bus, int cdrom)
         case HDD_BUS_MFM:
             if (!cdrom)
                 s = "mfm";
+            break;
+
+        case HDD_BUS_SASI:
+            if (!cdrom)
+                s = "sasi";
             break;
 
         case HDD_BUS_XTA:

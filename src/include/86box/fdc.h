@@ -276,6 +276,7 @@ extern void    fdc_diskchange_interrupt(fdc_t *fdc, int drive);
 
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;
+extern const device_t fdc_pc98_device;
 extern const device_t fdc_xt_sec_device;
 extern const device_t fdc_xt_ter_device;
 extern const device_t fdc_xt_qua_device;

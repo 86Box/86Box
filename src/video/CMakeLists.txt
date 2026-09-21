@@ -84,6 +84,10 @@ add_library(vid OBJECT
     # PGC / IM1024 / WY700 high-resolution
     vid_pgc.c
     vid_im1024.c
+    # NEC PC-9801 dual GDC / GRCG / EGC
+    vid_upd7220.c
+    vid_pc98.c
+    vid_pc98_86box.c
     vid_wy700.c
 
     # EGA

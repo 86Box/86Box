@@ -69,7 +69,7 @@ machine_status_init(void)
     machine_status.cassette.write_active = false;
     machine_status.cassette.write_prot   = !!cassette_ui_writeprot;
 
-    for (size_t i = 0; i < HDD_BUS_USB; i++) {
+    for (size_t i = 0; i < HDD_BUS_MAX; i++) {
         machine_status.hdd[i].active       = false;
         machine_status.hdd[i].write_active = false;
     }

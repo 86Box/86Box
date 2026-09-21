@@ -278,6 +278,8 @@ pic_reset(void)
     int is_at     = IS_AT(machine);
     int is_zenith = machine_has_flags(machine, MACHINE_ZENITH);
     is_at         = is_at || (machines[machine].init == machine_xt_xi8088_init);
+    const int is_pc98 = machine_has_bus(machine, MACHINE_BUS_CBUS);
+    const int is_dual = is_at || is_pc98;
     const uint8_t board_flags = pic.flags & PIC_IBM5140;
 
     memset(&pic, 0, sizeof(pic_t));
@@ -288,8 +290,8 @@ pic_reset(void)
     pic.is_master = 1;
     pic.interrupt = pic2.interrupt = 0x17;
 
-    if (is_at)
-        pic.slaves[2] = &pic2;
+    if (is_dual)
+        pic.slaves[is_pc98 ? 7 : 2] = &pic2;
 
     if (tmr_inited)
         timer_on_auto(&pic_timer, 0.0);
@@ -297,8 +299,8 @@ pic_reset(void)
     timer_add(&pic_timer, pic_callback, &pic, 0);
     tmr_inited = 1;
 
-    update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
-    pic.at     = pic2.at     = is_at;
+    update_pending = is_dual ? pic_update_pending_at : pic_update_pending_xt;
+    pic.at     = pic2.at     = is_dual;
     pic.zenith = pic2.zenith = is_zenith;
 
     smi_irq_mask = smi_irq_status = 0x0000;
@@ -720,6 +722,38 @@ pic_toggle_latch(int is_ps2)
         pic_kbd_latch(0x01);
         pic_mouse_latch(0x01);
     }
+}
+
+
+/* PC-98 exposes the master PIC on even ports 00h-06h and the slave PIC on
+ * even ports 08h-1eh.  A0 of each 8259 is CPU A1; the remaining addresses are
+ * aliases caused by the PC-98 low-I/O decode. */
+static uint8_t
+pic_pc98_read(uint16_t addr, UNUSED(void *priv))
+{
+    pic_t *dev = (addr >= 0x0008) ? &pic2 : &pic;
+    return pic_read((addr >> 1) & 1, dev);
+}
+
+static void
+pic_pc98_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
+{
+    pic_t *dev = (addr >= 0x0008) ? &pic2 : &pic;
+    pic_write((addr >> 1) & 1, val, dev);
+}
+
+void
+pic_init_pc98(void)
+{
+    for (uint8_t irq = 0; irq < 8; irq++)
+        irq_vector_override[irq] = -1;
+
+    pic_reset_hard();
+    shadow = 0;
+
+    for (uint16_t port = 0x0000; port <= 0x001e; port += 2)
+        io_sethandler(port, 0x0001, pic_pc98_read, NULL, NULL,
+                      pic_pc98_write, NULL, NULL, NULL);
 }
 
 void

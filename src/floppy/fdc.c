@@ -2921,6 +2921,19 @@ const device_t fdc_ibm5140_device = {
     .reset         = fdc_reset
 };
 
+
+/* Native PC-98 on-board uPD765.  The motherboard removes the generic 3f0h
+ * decoder and exposes the controller at 90h/92h/94h instead. */
+const device_t fdc_pc98_device = {
+    .name          = "NEC PC-98 uPD765 FDC",
+    .internal_name = "fdc_pc98",
+    .flags         = DEVICE_CBUS | DEVICE_ONBOARD,
+    .local         = FDC_FLAG_NEC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset
+};
+
 const device_t fdc_xt_sec_device = {
     .name          = "PC/XT FDC (Secondary)",
     .internal_name = "fdc_xt_sec",

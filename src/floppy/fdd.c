@@ -36,6 +36,7 @@
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/fdd_fdi.h>
+#include <86box/fdd_d88.h>
 #include <86box/fdd_imd.h>
 #include <86box/fdd_img.h>
 #include <86box/fdd_pcjs.h>
@@ -157,6 +158,7 @@ static const struct
     { "BIN",  img_load,  img_close,  -1 },
     { "CQ",   img_load,  img_close,  -1 },
     { "CQM",  img_load,  img_close,  -1 },
+    { "D88",  d88_load,  d88_close,  -1 },
     { "DDI",  img_load,  img_close,  -1 },
     { "DSK",  img_load,  img_close,  -1 },
     { "FDI",  fdi_load,  fdi_close,  -1 },
@@ -980,9 +982,32 @@ fdd_reset(void)
     /* Reset boot status to POST on system reset */
     fdd_boot_status_reset();
 
+
+    /* Abort operation state owned by the pre-reset FDC.  fdd_notfound is a
+     * countdown consumed by fdd_poll(); if it survives timer/FDC teardown it
+     * can later call fdc_noidam() on the *new* controller and fabricate a
+     * Missing Address Mark.  Deferred operations have the same ownership
+     * problem.  Preserve physical media/head/motor state, but not commands in
+     * flight across a hard reset. */
+    fdd_notfound = 0;
+    memset(fdd_pending, 0, sizeof(fdd_pending));
+
     for (uint8_t i = 0; i < FDD_NUM; i++) {
         drives[i].id = i;
         timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
+
+
+        /* The image backend owns its rotational decoder and command state.
+         * Leaving that state live across destruction of the old uPD765 lets a
+         * post-reset READ ID finish the old command against the new FDC and
+         * report a fabricated Missing Address Mark (00/00/00/00 CHRN).  Stop
+         * every mounted backend, then force a real motor-off state.  The first
+         * PC-98 control-register write after reset supplies the new 0->1 edge
+         * and arms this freshly-created poll timer.  This is format-neutral:
+         * D88, FDI, 86F and raw images all enter through drives[].stop. */
+        if (drives[i].stop)
+            drives[i].stop(i);
+        motoron[i] = 0;
 
         /* Clear any pending seek state */
         fdd_seek_in_progress[i] = 0;

@@ -2825,7 +2825,13 @@ mem_reset(void)
         ram_size = 0;
     }
 
-    m = 1024UL * (size_t) mem_size;
+    /* PC-98 installed RAM excludes the 384 KiB device/ROM hole at
+     * A0000h-FFFFFh.  Reserve that address-space gap in the host block so
+     * physical 100000h and above have the same backing in mappings, page
+     * metadata and the CPU's fast read/write lookup caches. */
+    const size_t physical_ram_kb = (size_t)mem_size +
+                                   (IS_ARCH(machine, MACHINE_PC98) ? 384u : 0u);
+    m = 1024UL * physical_ram_kb;
 
     ram_size = m;
     /* Allocate 16 extra bytes of RAM to mitigate some dynarec recompiler memory access quirks. */
@@ -2870,13 +2876,13 @@ mem_reset(void)
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
 #ifdef USE_NEW_DYNAREC
-    byte_dirty_mask = calloc(1, (mem_size * 1024) / 8);
+    byte_dirty_mask = calloc(1, (physical_ram_kb * 1024) / 8);
 
-    byte_code_present_mask = calloc(1, (mem_size * 1024) / 8);
+    byte_code_present_mask = calloc(1, (physical_ram_kb * 1024) / 8);
 #endif
 
     for (uint32_t c = 0; c < pages_sz; c++) {
-        if ((c << 12) >= (mem_size << 10))
+        if ((c << 12) >= (physical_ram_kb << 10))
             pages[c].mem = page_ff;
         else {
 
@@ -2912,20 +2918,25 @@ mem_reset(void)
     /* Set the low RAM space as internal. */
     mem_init_ram_mapping(&ram_low_mapping, 0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024);
 
-    if (mem_size > 1024) {
-        if (cpu_16bitbus && !is6117 && (mem_size > 16256))
-            mem_init_ram_mapping(&ram_high_mapping, 0x100000, (16256 - 1024) * 1024);
-        else if (cpu_16bitbus && is6117 && (mem_size > 65408))
-            mem_init_ram_mapping(&ram_high_mapping, 0x100000, (65408 - 1024) * 1024);
-        else
-           mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);
-    }
+    if (IS_ARCH(machine, MACHINE_PC98)) {
+        if (mem_size > 640)
+            mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 640) * 1024);
+    } else {
+        if (mem_size > 1024) {
+            if (cpu_16bitbus && !is6117 && (mem_size > 16256))
+                mem_init_ram_mapping(&ram_high_mapping, 0x100000, (16256 - 1024) * 1024);
+            else if (cpu_16bitbus && is6117 && (mem_size > 65408))
+                mem_init_ram_mapping(&ram_high_mapping, 0x100000, (65408 - 1024) * 1024);
+            else
+               mem_init_ram_mapping(&ram_high_mapping, 0x100000, (mem_size - 1024) * 1024);
+        }
 
-    if (mem_size > 768) {
-        mem_add_ram_mapping(&ram_mid_mapping, 0xa0000, 0x60000);
+        if (mem_size > 768) {
+            mem_add_ram_mapping(&ram_mid_mapping, 0xa0000, 0x60000);
 
-        mem_add_ram_mapping(&ram_mid_mapping2, 0xa0000, 0x60000);
-        mem_mapping_disable(&ram_mid_mapping2);
+            mem_add_ram_mapping(&ram_mid_mapping2, 0xa0000, 0x60000);
+            mem_mapping_disable(&ram_mid_mapping2);
+        }
     }
 
     mem_mapping_add(&ram_remapped_mapping, mem_size * 1024, 256 * 1024,

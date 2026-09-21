@@ -38,6 +38,7 @@
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_mcga.h>
+#include <86box/vid_pc98.h>
 #include <86box/plat_unused.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -3606,6 +3607,54 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
 
+    /* NEC PC-9801VX: 80286, C-BUS, fixed dual-uPD7220 video. */
+    {
+        .name              = "[C-BUS] NEC PC-9801VX",
+        .internal_name     = "pc9801vx",
+        .type              = MACHINE_TYPE_286,
+        .chipset           = MACHINE_CHIPSET_PROPRIETARY,
+        .init              = machine_pc9801vx_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_286,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 8000000,
+            .max_bus     = 10000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC98,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_FDC,
+        .ram       = {
+            .min  = 640,
+            .max  = 16384,
+            .step = 128
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = &fdc_pc98_device,
+        .vid_device               = &pc9801_video_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "PC-9801VX", "PC98VX", "" }
+    },
     /* 286 AT machines */
     /* Has IBM AT KBC firmware. */
     {

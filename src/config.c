@@ -1620,6 +1620,14 @@ load_hard_disks(void)
                 max_tracks = 2047;
                 break;
 
+            case HDD_BUS_SASI:
+                /* Host-image CHS only.  The PC-9801-27 wrapper
+                 * supplies the guest-visible SASI geometry. */
+                max_spt    = 255;
+                max_hpc    = 255;
+                max_tracks = 266305;
+                break;
+
             case HDD_BUS_XTA:
                 max_spt    = 63;
                 max_hpc    = 16;

@@ -80,6 +80,7 @@ extern void pic_set_vector_override(uint8_t irq, int vector);
 extern void pic_kbd_latch(int enable);
 extern void pic_mouse_latch(int enable);
 extern void pic_init(void);
+extern void pic_init_pc98(void);
 extern void pic_init_pcjr(void);
 extern void pic_init_ibm5140(void (*wake)(void));
 extern uint8_t pic_ibm5140_diag_read(uint8_t selector);

@@ -1899,6 +1899,92 @@ dma_reset(void)
         dma_m = (dma_m & 0xf0) | 0x0f;
 }
 
+
+/* PC-98 puts the 8237 on the odd byte lane at 01h,03h,...,1fh.  CPU A1
+ * becomes the controller's A0, so physical port N maps to register N>>1. */
+static uint8_t
+dma_pc98_read(uint16_t addr, void *priv)
+{
+    return dma_read((addr >> 1) & 0x0f, priv);
+}
+
+static void
+dma_pc98_write(uint16_t addr, uint8_t val, void *priv)
+{
+    dma_write((addr >> 1) & 0x0f, val, priv);
+}
+
+void
+dma_init_pc98(void)
+{
+    dma_ibm5140 = dma_ibm5140_diag = 0;
+    dma_ps2.is_ps2 = 0;
+    dma_reset();
+
+    /* VX-class machines have 8-bit DMA page registers.  Port 439h can later
+     * force the 20-bit compatibility mask; reset permits the full 24 bits. */
+    dma_set_mask(0x00ffffff);
+
+    for (uint16_t port = 0x0001; port <= 0x001f; port += 2)
+        io_sethandler(port, 0x0001, dma_pc98_read, NULL, NULL,
+                      dma_pc98_write, NULL, NULL, NULL);
+}
+
+
+/* PC-9801VM/VX port 29h extends the 8237 page register on 286-class
+ * machines.  At a 64 KiB address wrap it can increment either nibble (or the
+ * full byte) of the selected channel's page register. */
+static uint8_t dma_pc98_autoinc_mask[4];
+
+void
+dma_set_pc98_autoinc(uint8_t channel, uint8_t mode)
+{
+    static const uint8_t masks[4] = { 0x00, 0x0f, 0xf0, 0xff };
+
+    if (channel < 4)
+        dma_pc98_autoinc_mask[channel] = masks[mode & 3];
+}
+
+static void
+dma_pc98_adjust_page(int channel, uint32_t old_ac)
+{
+    dma_t *dev;
+    uint8_t mask;
+    uint8_t page;
+    uint8_t add;
+    int wrapped;
+
+    if (channel < 0 || channel >= 4)
+        return;
+    mask = dma_pc98_autoinc_mask[channel];
+    if (!mask)
+        return;
+
+    dev = &dma[channel];
+    wrapped = (dev->mode & 0x20)
+            ? ((old_ac & 0xffff) == 0x0000 && (dev->ac & 0xffff) == 0xffff)
+            : ((old_ac & 0xffff) == 0xffff && (dev->ac & 0xffff) == 0x0000);
+    if (!wrapped)
+        return;
+
+    page = dev->page_l;
+    add = (dev->mode & 0x20) ? 0xff : 0x01;
+    page = (uint8_t)((page & (uint8_t)~mask) + ((page + add) & mask));
+    dev->page = dev->page_l = page;
+
+    /* The page register is an external latch.  Keep its complete read-back
+     * value, but present only address bits enabled by the current PC-98 DMA
+     * mask.  Updating only AC with the unmasked page recreated the V23
+     * first-byte corruption at every 64 KiB auto-increment boundary.  AB also
+     * carries the page latch in 86Box's combined-address representation, so it
+     * must follow the latch as well (notably for 8237 auto-init reloads). */
+    {
+        const uint32_t page_addr = (((uint32_t)page << 16) & dma_mask);
+        dev->ab = (dev->ab & 0x0000ffffu) | page_addr;
+        dev->ac = (dev->ac & 0x0000ffffu) | page_addr;
+    }
+}
+
 void
 dma_init(void)
 {
@@ -2516,6 +2602,7 @@ dma_channel_read_only_legacy(int channel)
 {
     dma_t   *dma_c = &dma[channel];
     uint16_t temp;
+    uint32_t old_ac;
 
     if (channel < 4) {
         if (dma_command[0] & 0x04)
@@ -2537,6 +2624,7 @@ dma_channel_read_only_legacy(int channel)
     if (!dma_at && !channel)
         is_nec ? refreshread_vx0() : refreshread();
 
+    old_ac = dma_c->ac;
     if (!dma_c->size) {
         temp = _dma_read(dma_c->ac, dma_c);
 
@@ -2574,6 +2662,8 @@ dma_channel_read_only_legacy(int channel)
                 dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac + 2) & 0x1ffff);
         }
     }
+
+    dma_pc98_adjust_page(channel, old_ac);
 
     dma_stat_rq |= (1 << channel);
 
@@ -2622,6 +2712,7 @@ dma_channel_read_legacy(int channel)
 {
     dma_t   *dma_c = &dma[channel];
     uint16_t temp;
+    uint32_t old_ac;
     int      tc = 0;
 
     if (channel < 4) {
@@ -2645,6 +2736,7 @@ dma_channel_read_legacy(int channel)
     if (!dma_at && !channel)
         is_nec ? refreshread_vx0() : refreshread();
 
+    old_ac = dma_c->ac;
     if (!dma_c->size) {
         temp = _dma_read(dma_c->ac, dma_c);
 
@@ -2682,6 +2774,8 @@ dma_channel_read_legacy(int channel)
                 dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac + 2) & 0x1ffff);
         }
     }
+
+    dma_pc98_adjust_page(channel, old_ac);
 
     dma_stat_rq |= (1 << channel);
 

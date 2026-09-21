@@ -35,6 +35,7 @@ static uint8_t  postcard_written[POSTCARDS_NUM];
 static uint8_t  postcard_ports_num = 1;
 static uint8_t  postcard_prev_codes[POSTCARDS_NUM];
 static uint8_t  postcard_dell_mode = 0;
+static uint8_t  postcard_pc98_mode = 0;
 static char     postcard_prev_diags[5] = { 0 };
 #define UISTR_LEN 32
 static char postcard_str[UISTR_LEN]; /* UI output string */
@@ -64,6 +65,20 @@ int postcard_do_log = 0;
 static void
 postcard_setui(void)
 {
+    if (postcard_pc98_mode) {
+        if (!postcard_written[0])
+            snprintf(postcard_str, sizeof(postcard_str), "PC98D: -- --");
+        else if (postcard_written[0] == 1)
+            snprintf(postcard_str, sizeof(postcard_str), "PC98D: %02X --", postcard_codes[0]);
+        else
+            snprintf(postcard_str, sizeof(postcard_str), "PC98D: %02X %02X",
+                     postcard_codes[0], postcard_prev_codes[0]);
+
+        ui_sb_bugui(postcard_str);
+        if (postcard_do_log)
+            postcard_log("[%04X:%08X] %s\n", CS, cpu_state.pc, postcard_str);
+        return;
+    }
     if (postcard_ports_num > 1) {
         char ps[2][POSTCARDS_NUM][3] = { { { 0 },
                                            { 0 },
@@ -159,6 +174,22 @@ postcard_write(uint16_t port, uint8_t val, UNUSED(void *priv))
     postcard_setui();
 }
 
+void
+postcard_pc98_diag_write(uint8_t val)
+{
+    if (!postcard_pc98_mode)
+        return;
+
+    if (postcard_written[0] && val == postcard_codes[0])
+        return;
+
+    postcard_prev_codes[0] = postcard_codes[0];
+    postcard_codes[0] = val;
+    if (postcard_written[0] < 2)
+        postcard_written[0]++;
+    postcard_setui();
+}
+
 static int
 postcard_cmp_diags(uint32_t val)
 {
@@ -192,8 +223,16 @@ static void *
 postcard_init(UNUSED(const device_t *info))
 {
     postcard_ports_num = 1;
+    postcard_pc98_mode = 0;
 
-    if (machine_has_bus(machine, MACHINE_BUS_MCA))
+    if (machine_has_bus(machine, MACHINE_BUS_CBUS)) {
+        /* NEC PC-98 does not have the AT convention of an 8-bit POST code
+         * latch on 80h.  80h is SASI data on these machines.  The motherboard
+         * calls postcard_pc98_diag_write() when its system-PPI C diagnostic/
+         * control latch changes, so no I/O handler is installed here. */
+        postcard_pc98_mode = 1;
+        postcard_port = 0;
+    } else if (machine_has_bus(machine, MACHINE_BUS_MCA))
         postcard_port = 0x680; /* MCA machines */
     else if (strstr(machines[machine].name, " PS/2 ") ||
              strstr(machine_getname(machine), " PS/1 "))
@@ -215,7 +254,10 @@ postcard_init(UNUSED(const device_t *info))
         postcard_port = 0x5080; /* ASUS ISA-486C */
     else
         postcard_port = 0x80; /* AT and clone machines */
-    postcard_log("POST card initializing on port %04Xh\n", postcard_port);
+    if (postcard_pc98_mode)
+        postcard_log("POST reporter: PC-98 diagnostic PPI-C observer enabled (no port-80h hook)\n");
+    else
+        postcard_log("POST card initializing on port %04Xh\n", postcard_port);
 
     postcard_reset();
 
