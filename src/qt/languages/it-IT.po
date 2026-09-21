@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-08-15 19:20+0200\n"
+"PO-Revision-Date: 2026-09-22 01:37+0200\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it_IT\n"
@@ -432,7 +432,7 @@ msgid "Dynamic recompiler"
 msgstr "Ricompilatore dinamico"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
-msgstr ""
+msgstr "Ambiente FPU accurato con il ricompilatore dinamico"
 
 msgid "CPU frame size"
 msgstr "Dimensione blocchi CPU"
@@ -1543,16 +1543,16 @@ msgid "ACP&I shutdown"
 msgstr "Arresto ACP&I"
 
 msgid "Power off"
-msgstr ""
+msgstr "Arresta"
 
 msgid "Power &off…"
-msgstr ""
+msgstr "&Arresta..."
 
 msgid "Power &off"
-msgstr ""
+msgstr "&Arresta"
 
 msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
-msgstr ""
+msgstr "L'arresto della macchina emulata potrebbe causare la perdita di dati. Sei sicuro di voler continuare?"
 
 msgid "Hard disk (%1)"
 msgstr "Disco rigido (%1)"
@@ -3088,13 +3088,13 @@ msgid "Model:"
 msgstr "Modello:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Marchio:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Revisione:"
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[HDD generico] Configurazione del dispositivo"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Impossibile inizializzare il renderizzatore Vulkan."
