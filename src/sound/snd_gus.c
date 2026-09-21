@@ -11,10 +11,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          win2kgamer
+ *          mr b0nk 500, <b0nk@b0nk.xyz>
  *
  *          Copyright 2010-2020 Sarah Walker.
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright      2026 win2kgamer
+ *          Copyright      2026 mr b0nk 500
  */
 
 /*
@@ -891,10 +893,10 @@ gus_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x10: /* Synthesizer Upper Address */
                     if (gus->type == GUS_INTERWAVE) {
                         gus->synth_upper[gus->voice] = val;
-                        gus->start[gus->voice]  = (gus->start[gus->voice] & 0x7FFFFFFF) | ((val & 0x03) << 31);
-                        gus->end[gus->voice]  = (gus->end[gus->voice] & 0x7FFFFFFF) | ((val & 0x03) << 31);
-                        gus->cur[gus->voice]  = (gus->cur[gus->voice] & 0x7FFFFFFF) | ((val & 0x03) << 31);
-                        gus->effects_addr[gus->voice] = (gus->effects_addr[gus->voice] & 0x7FFFFFFF) | ((val & 0x03) << 31);
+                        gus->start[gus->voice]  = (gus->start[gus->voice] & 0x7FFFFFFF) | ((uint64_t) (val & 0x03) << 31);
+                        gus->end[gus->voice]  = (gus->end[gus->voice] & 0x7FFFFFFF) | ((uint64_t) (val & 0x03) << 31);
+                        gus->cur[gus->voice]  = (gus->cur[gus->voice] & 0x7FFFFFFF) | ((uint64_t) (val & 0x03) << 31);
+                        gus->effects_addr[gus->voice] = (gus->effects_addr[gus->voice] & 0x7FFFFFFF) | ((uint64_t) (val & 0x03) << 31);
                     }
                     break;
                 case 0x11: /* Synthesizer Effects Address High */
