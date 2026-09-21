@@ -20,6 +20,9 @@ extern const device_t acc3221_device;
 
 /* Acer / ALi */
 extern const device_t ali5113_device;
+
+#define ALI5123_370 0x00100
+
 extern const device_t ali5123_device;
 
 /* Chips & Technologies */
@@ -195,6 +198,9 @@ extern const device_t w837x7_device;
 
 extern const device_t w83877_device;
 
+/* Reset the IN530's W83877TF through its board-level master reset path. */
+extern void w83877_in530_master_reset(void);
+
 #define W83977F             0x977100
 #define W83977TF            0x977300
 #define W83977EF            0x52f000
@@ -210,6 +216,9 @@ extern const device_t w83877_device;
 #define W83977_PHOENIX       0x00020    /* Unknown Phoenix Multikey KBC firmware. */
 
 #define W83977_KBC           0x000f0
+
+#define W83977_UART_FORCE_SEC 0x01000000
+#define W83977_LPT_FORCE_SEC  0x02000000
 
 extern const device_t w83977_device;
 

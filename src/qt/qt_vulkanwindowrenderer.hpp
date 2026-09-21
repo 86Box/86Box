@@ -64,8 +64,6 @@ protected:
     void exposeEvent(QExposeEvent *event) override;
 
 private:
-    QVulkanInstance instance;
-
     uint8_t* mappedPtr = nullptr;
     uint32_t imagePitch = 0;
 
@@ -137,6 +135,7 @@ private:
 
     PFN_vkGetPhysicalDeviceSurfaceCapabilitiesKHR fn_vkGetPhysicalDeviceSurfaceCapabilitiesKHR = nullptr;
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR fn_vkGetPhysicalDeviceSurfaceFormatsKHR = nullptr;
+    PFN_vkGetPhysicalDeviceSurfacePresentModesKHR fn_vkGetPhysicalDeviceSurfacePresentModesKHR = nullptr;
 
     PFN_vkCreateSwapchainKHR fn_vkCreateSwapchainKHR = nullptr;
     PFN_vkDestroySwapchainKHR fn_vkDestroySwapchainKHR = nullptr;

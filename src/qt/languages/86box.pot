@@ -60,16 +60,22 @@ msgstr ""
 msgid "&Qt (Software)"
 msgstr ""
 
-msgid "Open&GL (3.0 Core)"
+msgid "Open&GL"
 msgstr ""
 
-msgid "&VNC"
+msgid "&Vulkan"
+msgstr ""
+
+msgid "V&NC"
 msgstr ""
 
 msgid "Specify &dimensions…"
 msgstr ""
 
 msgid "Force &4:3 display ratio"
+msgstr ""
+
+msgid "Force &%1:%2 display ratio"
 msgstr ""
 
 msgid "&Window scale factor"
@@ -414,7 +420,10 @@ msgstr ""
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr ""
 
-msgid "Dynamic Recompiler"
+msgid "Dynamic recompiler"
+msgstr ""
+
+msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr ""
 
 msgid "CPU frame size"
@@ -447,6 +456,9 @@ msgstr ""
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr ""
 
+msgid "SCSI:"
+msgstr ""
+
 msgid "Voodoo:"
 msgstr ""
 
@@ -460,6 +472,21 @@ msgid "Mouse:"
 msgstr ""
 
 msgid "Mouse"
+msgstr ""
+
+msgid "&Mouse"
+msgstr ""
+
+msgid "Tablet:"
+msgstr ""
+
+msgid "Tablet"
+msgstr ""
+
+msgid "&Tablet"
+msgstr ""
+
+msgid "Tablet (&Crosshair)"
 msgstr ""
 
 msgid "Joystick:"
@@ -822,6 +849,9 @@ msgstr ""
 msgid "Input devices"
 msgstr ""
 
+msgid "Input &device"
+msgstr ""
+
 msgid "Sound"
 msgstr ""
 
@@ -829,6 +859,9 @@ msgid "Network"
 msgstr ""
 
 msgid "Ports (COM & LPT)"
+msgstr ""
+
+msgid "Port"
 msgstr ""
 
 msgid "Ports"
@@ -904,6 +937,9 @@ msgid "Press %1 to release mouse"
 msgstr ""
 
 msgid "Press %1 or middle button to release mouse"
+msgstr ""
+
+msgid "Press %1 or thumb button to release mouse"
 msgstr ""
 
 msgid "Bus"
@@ -1228,6 +1264,9 @@ msgstr ""
 msgid "Use regular expressions in search box"
 msgstr ""
 
+msgid "Delete virtual machines to Recycle Bin"
+msgstr ""
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] ""
@@ -1400,7 +1439,10 @@ msgstr ""
 msgid "&Delete"
 msgstr ""
 
-msgid "Do you really want to delete the virtual machine \"%1\" and all its files? This action cannot be undone!"
+msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
+msgstr ""
+
+msgid "This action cannot be undone!"
 msgstr ""
 
 msgid "Show &config file"
@@ -1440,6 +1482,18 @@ msgid "ACPI shutdown"
 msgstr ""
 
 msgid "ACP&I shutdown"
+msgstr ""
+
+msgid "Power off"
+msgstr ""
+
+msgid "Power &off…"
+msgstr ""
+
+msgid "Power &off"
+msgstr ""
+
+msgid "Powering off the emulated machine may cause data loss. Are you sure you want to continue?"
 msgstr ""
 
 msgid "Hard disk (%1)"
@@ -2216,6 +2270,9 @@ msgstr ""
 msgid "Host ID"
 msgstr ""
 
+msgid "Host"
+msgstr ""
+
 msgid "FDC Address"
 msgstr ""
 
@@ -2645,6 +2702,18 @@ msgstr ""
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
 msgstr ""
 
+msgid "IBM 8507 (1024x768, Monochrome)"
+msgstr ""
+
+msgid "IBM 8514 (1024x768, Color)"
+msgstr ""
+
+msgid "IBM 8503 (640x480, Monochrome)"
+msgstr ""
+
+msgid "IBM 8512/13 (640x480, Color)"
+msgstr ""
+
 msgid "Green"
 msgstr ""
 
@@ -2843,7 +2912,13 @@ msgstr ""
 msgid "[Generic] 1992 (3600 RPM)"
 msgstr ""
 
+msgid "[Generic] 1993 (4000 RPM)"
+msgstr ""
+
 msgid "[Generic] 1994 (4500 RPM)"
+msgstr ""
+
+msgid "[Generic] 1995 (5200 RPM)"
 msgstr ""
 
 msgid "[Generic] 1996 (5400 RPM)"
@@ -2856,6 +2931,9 @@ msgid "[Generic] 1998 (5400 RPM)"
 msgstr ""
 
 msgid "[Generic] 2000 (7200 RPM)"
+msgstr ""
+
+msgid "[Generic] 2004 (10000 RPM)"
 msgstr ""
 
 msgid "IBM 8514/A clone"
@@ -2897,6 +2975,9 @@ msgstr ""
 msgid "Ask for confirmation before quitting"
 msgstr ""
 
+msgid "Precache CHD files into memory"
+msgstr ""
+
 msgid "Options"
 msgstr ""
 
@@ -2906,7 +2987,34 @@ msgstr ""
 msgid "Model:"
 msgstr ""
 
+msgid "Brand:"
+msgstr ""
+
+msgid "Revision:"
+msgstr ""
+
+msgid "[Generic HDD] Device Configuration"
+msgstr ""
+
 msgid "Failed to initialize Vulkan renderer."
+msgstr ""
+
+msgid "Failed to create Vulkan 1.3 instance."
+msgstr ""
+
+msgid "No usable Vulkan physical devices found."
+msgstr ""
+
+msgid "No Vulkan-capable physical devices found."
+msgstr ""
+
+msgid "librashader not found. Shaders will not be available."
+msgstr ""
+
+msgid "Vulkan device lost."
+msgstr ""
+
+msgid "Vulkan surface lost."
 msgstr ""
 
 msgid "GLSL Error"
@@ -2928,6 +3036,9 @@ msgid "Shader Manager"
 msgstr ""
 
 msgid "Shader Configuration"
+msgstr ""
+
+msgid "GPU:"
 msgstr ""
 
 msgid "Add"
@@ -3201,6 +3312,12 @@ msgstr ""
 msgid "Fast forward"
 msgstr ""
 
+msgid "&Non-maskable interrupt"
+msgstr ""
+
+msgid "Non-maskable interrupt"
+msgstr ""
+
 msgid "To change the system directory, stop all running machines."
 msgstr ""
 
@@ -3229,6 +3346,9 @@ msgid "Unable to load CD-ROM image \"%s\"."
 msgstr ""
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
+msgstr ""
+
+msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
 msgstr ""
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
@@ -3373,4 +3493,10 @@ msgid "938 (Traditional Chinese)"
 msgstr ""
 
 msgid "Sample rate:"
+msgstr ""
+
+msgid "CGA lightpen"
+msgstr ""
+
+msgid "Luminance threshold (%)"
 msgstr ""

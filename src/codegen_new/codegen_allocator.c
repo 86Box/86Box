@@ -48,10 +48,11 @@ remove_from_block_list(mem_code_block_t* block)
             mem_code_block_tail = block->prev;
         }
     } else if (block->next) {
-        mem_code_block_head = block->next;
-        if (mem_code_block_head && mem_code_block_head->next) {
-            mem_code_block_head->next->prev = mem_code_block_head;
-        }
+        /* This node was head; its successor becomes head and must lose its
+           now-stale prev (it pointed at this node), or a later removal of
+           the new head takes the wrong branch below. */
+        mem_code_block_head       = block->next;
+        mem_code_block_head->prev = NULL;
     } else if (block == mem_code_block_head) {
         mem_code_block_head = mem_code_block_tail = NULL;
     }
@@ -86,10 +87,26 @@ static uint8_t    *mem_block_alloc = NULL;
 
 int codegen_allocator_usage = 0;
 
+/* Matches the per-arch direct-branch ranges the header comment above
+   documents (128MB on ARMv8, 2GB on x86) - same arch check already used
+   elsewhere in this codebase (cpu.h, 386_common.h). */
+#if defined(__aarch64__) || defined(_M_ARM64)
+#    define CODEGEN_ALLOCATOR_MAX_POOL_BYTES (128ull * 1024 * 1024)
+#else
+#    define CODEGEN_ALLOCATOR_MAX_POOL_BYTES (2ull * 1024 * 1024 * 1024)
+#endif
+
 void
 codegen_allocator_init(void)
 {
-    mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1);
+    _Static_assert((uint64_t) MEM_BLOCK_NR * MEM_BLOCK_SIZE <= CODEGEN_ALLOCATOR_MAX_POOL_BYTES,
+                    "MEM_BLOCK_NR * MEM_BLOCK_SIZE exceeds this architecture's direct-branch range");
+
+    uint8_t large = 0;
+    mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1, &large);
+
+    if (large)
+        pclog("Allocated %u bytes of large pages of recompiled code memory\n", MEM_BLOCK_NR * MEM_BLOCK_SIZE);
 
     for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
         mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;
@@ -115,10 +132,14 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
         } else {
             mem_code_block_t* mem_code_block = mem_code_block_head;
             while (mem_code_block) {
+                /* Capture next before deleting: codegen_delete_block() frees
+                   this node via remove_from_block_list(), which nulls its
+                   ->next, so reading it after would end the walk early. */
+                mem_code_block_t *next = mem_code_block->next;
                 if (code_block != mem_code_block->number) {
                     codegen_delete_block(&codeblock[mem_code_block->number]);
                 }
-                mem_code_block = mem_code_block->next;
+                mem_code_block = next;
             }
 
             if (mem_block_free_list)

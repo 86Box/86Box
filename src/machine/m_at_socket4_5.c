@@ -39,7 +39,7 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 
-/* OPTi 597 */
+/* OPTi 571 */
 int
 machine_at_pci56001_init(const machine_t *model)
 {

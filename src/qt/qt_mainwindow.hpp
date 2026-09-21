@@ -93,6 +93,7 @@ private slots:
     void on_actionToggle_OSD_triggered();
     void on_actionCtrl_Alt_Del_triggered();
     void on_actionCtrl_Alt_Esc_triggered();
+    void on_actionNon_maskable_interrupt_triggered();
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
@@ -118,6 +119,7 @@ private slots:
     void on_actionAbout_86Box_triggered();
     void on_actionAbout_Qt_triggered();
     void on_actionForce_4_3_display_ratio_triggered();
+    void on_actionForce_device_aspect_ratio_triggered();
     void on_actionRemember_size_and_position_triggered();
     void on_actionSpecify_dimensions_triggered();
     void on_actionHiDPI_scaling_triggered();
@@ -154,6 +156,9 @@ protected:
 
 private slots:
     void on_actionPen_triggered();
+    void on_actionMouse_triggered();
+    void on_actionTablet_triggered();
+    void on_actionTablet_Crosshair_triggered();
 
 private slots:
     void on_actionCursor_Puck_triggered();
@@ -175,8 +180,10 @@ private:
     Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
+    QMenu                         *dynarecMenu = nullptr;
 
     void updateShortcuts();
+    void refreshDisplayRatioActions();
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
@@ -214,6 +221,8 @@ private:
     bool isShowMessage  = false;
     bool isNonPause     = false;
     bool window_blocked = false;
+
+    bool skip_exit_confirmation = false;
 };
 
 #endif // QT_MAINWINDOW_HPP

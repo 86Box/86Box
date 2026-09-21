@@ -32,6 +32,7 @@ private slots:
     void on_comboBoxMachine_currentIndexChanged(int index);
     void on_comboBoxMachineType_currentIndexChanged(int index);
     void on_checkBoxFPUSoftfloat_stateChanged(int state);
+    void on_checkBoxDynamicRecompiler_stateChanged(int state);
 
     void on_radioButtonSmallerFrames_clicked();
 

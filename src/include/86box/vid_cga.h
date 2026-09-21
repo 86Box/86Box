@@ -18,6 +18,7 @@
  */
 #ifndef VIDEO_CGA_H
 #define VIDEO_CGA_H
+#include <stdbool.h>
 
 // Mode flags for the CGA.
 // Set by writing to 3D8
@@ -113,7 +114,17 @@ typedef struct cga_t {
     int snow_enabled;
     int rgb_type;
     int double_type;
+
+    uint32_t lp_latch_found_memaddr;
+    int      lp_latch_found_x; // in buffer32 coords.
+    int      lp_latch_found_y;
+    bool     lp_latch_found;
+
+    uint8_t monitor_used;
 } cga_t;
+
+struct bitmap_t;
+typedef struct bitmap_t bitmap_t;
 
 extern void    cga_init(cga_t *cga);
 extern void    cga_out(uint16_t addr, uint8_t val, void *priv);
@@ -125,6 +136,12 @@ extern void    cga_interpolate_init(void);
 extern void    cga_blit_memtoscreen(int x, int y, int w, int h, int double_type);
 extern void    cga_do_blit(int vid_xsize, int firstline, int lastline, int double_type);
 extern void    cga_poll(void *priv);
+extern bool    cga_is_in_lightpen(cga_t *cga, int x, int y);
+extern float   cga_sample_luma(bitmap_t* target_buffer, uint32_t x, uint32_t y);
+
+extern bool    cga_lightpen_enabled;
+extern float   cga_luma_threshold;
+
 
 //#ifdef EMU_DEVICE_H
 //extern const device_config_t cga_config[];

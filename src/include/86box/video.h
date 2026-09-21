@@ -71,6 +71,7 @@ typedef enum video_font_format_e
     FONT_FORMAT_PC1512_T1000 = 8,
     FONT_FORMAT_IM1024 = 9,
     FONT_FORMAT_PRAVETZ = 10,
+    FONT_FORMAT_IM1024_8X12 = 11,
 } video_font_format;
 
 #define VIDEO_FLAG_TYPE_CGA     0
@@ -89,6 +90,12 @@ typedef enum video_font_format_e
 #define FONT_KAMCL16_PATH            "roms/video/mda/kamcl16.bin"
 #define FONT_TULIP_DGA_PATH          "roms/video/mda/tulip-dga-bios.bin"
 
+typedef unsigned (*video_wait_states_cb_t)(uint32_t address,
+                                           int write,
+                                           unsigned size,
+                                           uint64_t cpu_cycle,
+                                           void *priv);
+
 typedef struct video_timings_t {
     int type;
     int write_b;
@@ -97,8 +104,11 @@ typedef struct video_timings_t {
     int read_b;
     int read_w;
     int read_l;
+    video_wait_states_cb_t wait_states;
+    void                  *wait_states_priv;
 } video_timings_t;
 
+// All bitmaps (including buffer32 and target_buffer) follow the 0xXXRRGGBB format, DWORD-wise.
 typedef struct bitmap_t {
     int       w;
     int       h;
@@ -127,6 +137,8 @@ typedef struct monitor_t {
     int                      mon_efscrnsz_y;
     int                      mon_unscaled_size_x;
     int                      mon_unscaled_size_y;
+    int                      mon_device_aspect_x;
+    int                      mon_device_aspect_y;
     double                   mon_res_x;
     double                   mon_res_y;
     int                      mon_bpp;
@@ -223,7 +235,8 @@ extern uint8_t      fontdat[2048][8];      /* IBM CGA font */
 extern uint8_t      fontdatm[2048][16];    /* IBM MDA font */
 extern uint8_t      fontdatw[512][32];     /* Wyse700 font */
 extern uint8_t      fontdat8x12[256][16];  /* MDSI Genius font */
-extern uint8_t      fontdat12x18[256][36]; /* IM1024 font */
+extern uint8_t      fontdat12x18[256][36]; /* IM1024 12x18 font */
+extern uint8_t      fontdat8x12im1024[256][12]; /* IM1024 8x12 font */
 extern dbcs_font_t *fontdatksc5601;        /* Korean KSC-5601 font */
 extern dbcs_font_t *fontdatksc5601_user;   /* Korean KSC-5601 user defined font */
 extern uint32_t    *video_6to8;
@@ -233,6 +246,7 @@ extern uint32_t    *video_15to32;
 extern uint32_t    *video_16to32;
 extern int          enable_overscan;
 extern int          force_43;
+extern int          force_device_aspect;
 extern int          vid_resize;
 extern int          herc_blend;
 extern int          vid_cga_contrast;
@@ -273,6 +287,10 @@ extern const device_t *video_get_video_from_old_internal_name(char *s);
 extern int         video_card_get_flags(int card);
 extern int         video_is_mda(void);
 extern int         video_is_cga(void);
+/* Query the active video implementation before a memory transfer so
+ * pin-level CPU cores can model READY without hardcoding a card. */
+extern unsigned    video_get_wait_states(uint32_t address, int write,
+                                         unsigned size, uint64_t cpu_cycle);
 extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int         video_get_type_monitor(int monitor_index);
 
@@ -286,6 +304,8 @@ extern void video_blit_complete_monitor(int monitor_index);
 extern void video_wait_for_blit_monitor(int monitor_index);
 extern void video_wait_for_buffer_monitor(int monitor_index);
 
+extern int video_6845_get_hsync_delay(const uint8_t *crtc, int hsync_width);
+
 extern bitmap_t *create_bitmap(int w, int h);
 extern void      destroy_bitmap(bitmap_t *b);
 extern void      cgapal_rebuild_monitor(int monitor_index);
@@ -297,6 +317,10 @@ extern void    video_monitor_close(int);
 extern void    video_init(void);
 extern void    video_close(void);
 extern void    video_reset_close(void);
+extern void    video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*lightpen_vsync)(void*), void (*lightpen_trigger_strobe)(void* priv, int x, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used));
+extern void    video_lightpen_hsync(void);
+extern void    video_lightpen_vsync(void);
+extern void    video_lightpen_check_trigger_strobe(int x_offset, int y, int x_offset_from_hsync, int firstline, double pix_clock, int monitor_used);
 extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
 extern void    video_post_reset(void);
@@ -310,6 +334,7 @@ extern void     video_load_font(char *fn, int format, int offset);
 extern uint32_t video_color_transform(uint32_t color);
 
 extern void     video_clamp_vram(uint64_t bios_flags, int *vram);
+extern void     video_clamp_vram_2(uint64_t bios_flags, int *vram);
 
 #define video_inform(type, video_timings_ptr) video_inform_monitor(type, video_timings_ptr, monitor_index_global)
 #define video_get_type()                      video_get_type_monitor(0)
@@ -420,6 +445,9 @@ extern const device_t gd5480_pci_device;
 /* IBM CGA */
 extern const device_t cga_device;
 
+/* IBM 3270 PC Display Adapter */
+extern const device_t ibm3270pc_vid_device;
+
 /* Pravetz CGA */
 extern const device_t cga_pravetz_device;
 
@@ -494,6 +522,7 @@ extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
 extern const device_t oti077_acer100t_device;
+extern const device_t oti077_pb400_device;
 extern const device_t oti077_pcs44c_device;
 extern const device_t oti077_device;
 
@@ -607,6 +636,10 @@ extern const device_t v6355d_device;
 extern const device_t tandy_1000_video_device;
 extern const device_t tandy_1000hx_video_device;
 extern const device_t tandy_1000sl_video_device;
+
+/* Hitachi HD44780 character LCD */
+extern const device_t hd44780_device;
+extern const device_t hd44780_cobalt3k_device;
 
 #endif
 

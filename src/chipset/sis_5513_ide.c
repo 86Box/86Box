@@ -21,6 +21,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/machine.h>
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/dma.h>
@@ -285,6 +286,10 @@ sis_5513_ide_write(int addr, uint8_t val, void *priv)
                    break;
                 case 0xd0:
                    dev->pci_conf[addr] = val;
+                   break;
+                case 0xd1:
+                   if (machines[machine].init == machine_at_in530_init)
+                       dev->pci_conf[addr] = val;
                    break;
             }
             sis_5513_ide_handler(dev);

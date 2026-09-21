@@ -328,6 +328,8 @@ opti495_recalc(opti495_t *dev)
         if ((dev->regs[0x22] & ((base >= 0xe0000) ? 0x20 : 0x40)) && (dev->regs[0x23] & (1 << i))) {
             shflags = MEM_READ_INTERNAL;
             shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+        } else if ((dev->regs[0x22] & 0x20) && (base >= 0xe0000) && (!(dev->regs[0x23] & (1 << i)))) {
+            shflags = MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL;
         } else {
             if (dev->regs[0x26] & 0x40) {
                 shflags = MEM_READ_EXTANY;
@@ -529,7 +531,8 @@ opti495_init(const device_t *info)
         dev->regs[0x29] = 0x10;
         dev->regs[0x2a] = 0x80;
         dev->regs[0x2b] = 0x10;
-        dev->ram_mode = opti493_ram_modes[(mem_size >> 10) - 1];
+        if (((mem_size >> 10) - 1) <= 63)
+            dev->ram_mode = opti493_ram_modes[(mem_size >> 10) - 1];
 
         mem_mapping_add(&dev->ram_mapping,
                    0x00000000,

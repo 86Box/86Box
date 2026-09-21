@@ -79,6 +79,12 @@ typedef struct {
     char            *temp;
 } plat_dir_t;
 
+/* Static initializer that puts a plat_dir_t in the "no directory open" state.
+   plat_dir_open() and plat_dir_close() test the handle against this value to
+   decide whether a previous handle needs to be closed, so a plain { 0 } is not
+   enough on platforms where the closed sentinel isn't zero (see macOS below). */
+#    define PLAT_DIR_INIT { .find = INVALID_HANDLE_VALUE }
+
 static inline int
 plat_dir_open(plat_dir_t *context, const char *path)
 {
@@ -254,6 +260,12 @@ typedef struct {
     } data;
     uint32_t dir_entrycount;
 } plat_dir_t;
+
+/* Static initializer that puts a plat_dir_t in the "no directory open" state.
+   Here the directory is held in a file descriptor whose unopened sentinel is -1,
+   so { 0 } would make plat_dir_open()/plat_dir_close() treat fd 0 (stdin, or
+   whatever has since been opened at that number) as a live handle and close it. */
+#    define PLAT_DIR_INIT { .find = -1 }
 
 static uint32_t
 plat_dir_fill_attributes(plat_dir_t *context, uint8_t *buf)
@@ -560,6 +572,12 @@ typedef struct {
     struct stat    stats;
     uint8_t        stats_valid;
 } plat_dir_t;
+
+/* Static initializer that puts a plat_dir_t in the "no directory open" state.
+   Here the directory is held in a DIR * whose unopened sentinel is NULL, so a
+   plain { 0 } is already correct; the macro exists for parity with the other
+   platforms. */
+#    define PLAT_DIR_INIT { 0 }
 
 static inline int
 plat_dir_open(plat_dir_t *context, const char *path)

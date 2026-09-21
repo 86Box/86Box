@@ -191,8 +191,6 @@ machine_elt_init(const machine_t *model)
      * indicate the correct display type */
     device_add(&kbc_xt_device);
 
-    device_add_params(model->nvr_device, (void *) model->nvr_params);
-
     io_sethandler(0x11b8, 1, sysstat_in, NULL, NULL, sysstat_out, NULL, NULL, cga);
 
     return ret;

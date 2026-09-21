@@ -1,0 +1,10 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@/libchdr
+
+Name: libchdr
+Description: Standalone library for reading MAME's CHDv1-v5 formats
+Version: @PROJECT_VERSION@
+Libs: -L${libdir} -lchdr @LIBS@
+Cflags: -I${includedir}
+

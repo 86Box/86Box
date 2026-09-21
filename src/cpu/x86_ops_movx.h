@@ -211,6 +211,43 @@ opMOVSX_l_b_a32(uint32_t fetchdat)
     PREFETCH_RUN(3, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, 0, 0, 1);
     return 0;
 }
+/* MOVSX r16, r/m16: source and destination are the same width, so the sign
+   extension is a no-op and this behaves as a plain 16-bit move. A valid
+   encoding real 386+ silicon executes; 66h-prefixed in 32-bit code. */
+static int
+opMOVSX_w_w_a16(uint32_t fetchdat)
+{
+    uint16_t temp;
+
+    fetch_ea_16(fetchdat);
+    if (cpu_mod != 3)
+        SEG_CHECK_READ(cpu_state.ea_seg);
+    temp = geteaw();
+    if (cpu_state.abrt)
+        return 1;
+    cpu_state.regs[cpu_reg].w = temp;
+
+    CLOCK_CYCLES(3);
+    PREFETCH_RUN(3, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, 0, 0, 0);
+    return 0;
+}
+static int
+opMOVSX_w_w_a32(uint32_t fetchdat)
+{
+    uint16_t temp;
+
+    fetch_ea_32(fetchdat);
+    if (cpu_mod != 3)
+        SEG_CHECK_READ(cpu_state.ea_seg);
+    temp = geteaw();
+    if (cpu_state.abrt)
+        return 1;
+    cpu_state.regs[cpu_reg].w = temp;
+
+    CLOCK_CYCLES(3);
+    PREFETCH_RUN(3, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, 0, 0, 1);
+    return 0;
+}
 static int
 opMOVSX_l_w_a16(uint32_t fetchdat)
 {

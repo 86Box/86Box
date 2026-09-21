@@ -6,6 +6,7 @@
 
 #include <initializer_list>
 
+class QImage;
 class QScreen;
 namespace util {
 static constexpr auto UUID_MIN_LENGTH = 36;
@@ -14,6 +15,8 @@ QString DlgFilter(std::initializer_list<QString> extensions, bool last = false);
 QString DlgFilter(QStringList extensions, bool last = false);
 /* Returns screen the widget is on */
 QScreen *screenOfWidget(QWidget *widget);
+/* Puts an image on the clipboard, offering PNG ahead of the other formats */
+void     copyImageToClipboard(const QImage &image);
 #ifdef Q_OS_WINDOWS
 bool isWindowsLightTheme(void);
 void setWin11RoundedCorners(WId hwnd, bool enable);

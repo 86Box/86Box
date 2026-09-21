@@ -279,6 +279,7 @@ ics2494_init(const device_t *info)
             ics2494->freq[3] = 36000000.0;
             ics2494->freq[4] = 50350000.0;
             ics2494->freq[5] = 56640000.0;
+            ics2494->freq[6] = 14318184.0;    /* External. */
             ics2494->freq[7] = 44900000.0;
             ics2494->freq[8] = 135000000.0;
             ics2494->freq[9] = 32000000.0;

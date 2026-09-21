@@ -50,6 +50,7 @@ typedef struct img_t {
     int      xdf_type; /* 0 = not XDF, 1-5 = one of the five XDF types */
     int      dmf;
     int      track;
+    int      physical_track;
     int      track_width;
     uint32_t base;
     uint8_t  gap2_size;
@@ -58,8 +59,11 @@ typedef struct img_t {
     uint16_t track_flags;
     uint8_t  sector_pos_side[256][256];
     uint16_t sector_pos[256][256];
+    uint16_t formatted_sector_count[256][2];
+    d86f_format_id_t formatted_sector_ids[256][2][256];
     uint8_t  current_sector_pos_side;
     uint16_t current_sector_pos;
+    uint8_t  first_sector_id[2][4];
     uint8_t *disk_data;
     uint8_t  is_cqm;
     uint8_t  disk_at_once;
@@ -85,6 +89,8 @@ static uint8_t   fdf_suppress_final_byte = 0; /* This is hard-coded to 0 -
                                                * images, change this to 1
                                                * and recompile.
                                                */
+
+static void img_seek(int drive, int track);
 
 
 const uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
@@ -149,7 +155,7 @@ const xdf_sector_t xdf_disk_layout[2][2][38] = {
 static const uint8_t maximum_sectors[8][6] = {
     { 26, 31, 38, 53, 64, 118 }, /*   128 */
     { 15, 19, 23, 32, 38,  73 }, /*   256 */
-    {  7, 10, 12, 17, 22,  41 }, /*   512 */
+    {  7, 11, 12, 17, 22,  41 }, /*   512 */
     {  3,  5,  6,  9, 11,  22 }, /*  1024 */
     {  2,  2,  3,  4,  5,  11 }, /*  2048 */
     {  1,  1,  1,  2,  2,   5 }, /*  4096 */
@@ -189,13 +195,12 @@ const int gap3_sizes[5][8][48] = {
     {
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [0][0] */
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-        },
+          0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [0][1] */
           0x54, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [0][2] */
-          0x00, 0x00, 0x6C, 0x48, 0x2A, 0x08, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF9,   /* [0][2] */
+          0xC6, 0x96, 0x6C, 0x48, 0x2A, 0x08, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x83, 0x26, 0x00, 0x00, 0x00, 0x00,   /* [0][3] */
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -246,7 +251,7 @@ const int gap3_sizes[5][8][48] = {
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x32, 0x0C, 0x00, 0x00, 0x00, 0x36,   /* [2][1] */
           0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x58, 0x50, 0x2E, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [2][2] */
+        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x58, 0x50, 0x28, 0x01, 0x00, 0x00, 0x00, 0x00,   /* [2][2] */
           0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x1C, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
         { 0x00, 0x00, 0x00, 0x00, 0xF0, 0x74, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [2][3] */
@@ -299,7 +304,7 @@ const int gap3_sizes[5][8][48] = {
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x36, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x92, 0x54,   /* [4][2] */
-          0x38, 0x23, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+          0x38, 0x1E, 0x02, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
         { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x74, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,   /* [4][3] */
           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -415,12 +420,25 @@ interleave(int sector, int skew, int track_spt)
     return adjusted_r;
 }
 
+/* Only the JX's 40-cylinder raw DD media leaves every other physical track blank. */
+static int
+img_is_pcjx_360(int drive, const img_t *dev)
+{
+    return fdd_is_pcjx_360(drive) && !dev->is_ioctl && !dev->is_cqm &&
+           !dev->disk_at_once && !dev->base && (dev->tracks == 40) &&
+           (dev->sides == 2) && ((dev->sectors == 8) || (dev->sectors == 9)) &&
+           (dev->sector_size == 2);
+}
+
 static void
 write_back(int drive)
 {
     img_t *dev   = img[drive];
     int    ssize = 128 << ((int) dev->sector_size);
     int    size;
+
+    if ((dev->track < 0) || (dev->track >= dev->tracks))
+        return;
 
     if (dev->is_ioctl) {
         for (int side = 0; side < dev->sides; side++) {
@@ -479,6 +497,10 @@ poll_read_data(int drive, UNUSED(int side), uint16_t pos)
 {
     const img_t *dev = img[drive];
 
+    if ((dev->current_sector_pos_side >= dev->sides) ||
+        ((uint32_t) dev->current_sector_pos + pos >= sizeof(dev->track_data[0])))
+        return 0xff;
+
     return (dev->track_data[dev->current_sector_pos_side][dev->current_sector_pos + pos]);
 }
 
@@ -487,6 +509,10 @@ poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
 {
     img_t *dev = img[drive];
 
+    if ((dev->current_sector_pos_side >= dev->sides) ||
+        ((uint32_t) dev->current_sector_pos + pos >= sizeof(dev->track_data[0])))
+        return;
+
     dev->track_data[dev->current_sector_pos_side][dev->current_sector_pos + pos] = data;
 }
 
@@ -494,12 +520,76 @@ static int
 format_conditions(int drive)
 {
     const img_t *dev  = img[drive];
-    int          temp = (fdc_get_format_sectors(img_fdc) == dev->sectors);
+    /* Allow bigger sector sizes because of HD_COPY. */
+    int          temp = (fdc_get_format_sectors(img_fdc) == 3) ||
+                        (fdc_get_format_sectors(img_fdc) == dev->sectors) ||
+                        (fdc_get_format_sectors(img_fdc) == (dev->sectors + 1));
 
     temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);
+    temp = temp && (dev->track >= 0) && (dev->track < dev->tracks);
 
     return temp;
+}
+
+static int
+format_track(int drive, int side, const d86f_format_id_t *ids,
+             uint16_t count, uint8_t fill)
+{
+    img_t   *dev = img[drive];
+    int      ssize;
+    uint8_t  seen[256][256] = { 0 };
+    d86f_format_id_t temp_ids[64] = { 0 };
+
+    if ((dev == NULL) || (side < 0) || (side >= dev->sides) ||
+        (dev->track < 0) || (dev->track >= dev->tracks) || (dev->track >= 256))
+        return 0;
+
+    if ((count != dev->sectors) && (count != (dev->sectors + 1)))
+        /* If count is 3, return OK - HD-COPY's data rate test format. */
+        return (count == 3) ? 1 : 0;
+
+    /*
+     * A raw sector dump has nowhere to store CHRN fields.  Keep a faithful
+     * in-memory layout while the image is mounted, and persist the sector
+     * contents.  Reject layouts the fixed-size backing store cannot represent
+     * instead of reporting a format that did not actually occur.
+     */
+    int i = 0;
+    for (uint16_t sector = 0; sector < count; sector++) {
+        const uint8_t h = ids[sector][1];
+        const uint8_t r = ids[sector][2];
+
+        /* Ignore sectors with ID equal to 0 or (count + 1). */
+        if ((r == 0) || (r == (dev->sectors + 1)))
+            continue;
+
+        memcpy(temp_ids[i], ids[sector], sizeof(d86f_format_id_t));
+
+        if ((ids[sector][3] != dev->sector_size) || seen[h][r])
+            return 0;
+        seen[h][r] = 1;
+
+        i++;
+    }
+
+    /* Are there enough matching sector ID's left? */
+    if (i != dev->sectors)
+        return 0;
+
+    count = MIN(count, dev->sectors);
+
+    ssize = 128 << dev->sector_size;
+    memcpy(dev->formatted_sector_ids[dev->track][side], temp_ids,
+           count * sizeof(d86f_format_id_t));
+    dev->formatted_sector_count[dev->track][side] = count;
+
+    for (uint16_t sector = 0; sector < count; sector++)
+        memset(&dev->track_data[side][sector * ssize], fill, ssize);
+
+    write_back(drive);
+    img_seek(drive, dev->physical_track);
+    return 1;
 }
 
 static void
@@ -532,11 +622,30 @@ img_seek(int drive, int track)
     if (dev->fp == NULL && !dev->is_ioctl)
         return;
 
-    if (!dev->track_width && fdd_doublestep_40(drive))
+    dev->physical_track = track;
+    const int pcjx_360 = img_is_pcjx_360(drive, dev);
+    if (pcjx_360)
+        track = ((track >= 0) && (track <= 78) && !(track & 1)) ? track / 2 : -1;
+    else if ((track >= 0) && !dev->track_width && fdd_is_525(drive) && fdd_doublestep_40(drive))
         track /= 2;
 
     dev->track = track;
-    d86f_set_cur_track(drive, track);
+    d86f_set_cur_track(drive, pcjx_360 ? dev->physical_track : track);
+
+    /* Retire both the flux and turbo views before any early return or I/O. */
+    d86f_reset_index_hole_pos(drive, 0);
+    d86f_reset_index_hole_pos(drive, 1);
+    d86f_destroy_linked_lists(drive, 0);
+    d86f_destroy_linked_lists(drive, 1);
+    d86f_zero_track(drive);
+    memset(dev->sector_pos_side, 0xff, sizeof(dev->sector_pos_side));
+    memset(dev->sector_pos, 0, sizeof(dev->sector_pos));
+    memset(dev->first_sector_id, 0, sizeof(dev->first_sector_id));
+    dev->current_sector_pos_side = 0xff;
+    dev->current_sector_pos = 0;
+
+    if ((track < 0) || (track >= dev->tracks))
+        return;
 
     is_t0 = (track == 0) ? 1 : 0;
 
@@ -567,23 +676,21 @@ img_seek(int drive, int track)
         }
     }
 
-    d86f_reset_index_hole_pos(drive, 0);
-    d86f_reset_index_hole_pos(drive, 1);
-
-    d86f_destroy_linked_lists(drive, 0);
-    d86f_destroy_linked_lists(drive, 1);
-
-    if (track > dev->tracks) {
-        d86f_zero_track(drive);
-        return;
-    }
-
     if (!dev->xdf_type || dev->is_cqm) {
         for (side = 0; side < dev->sides; side++) {
+            const uint16_t formatted_count =
+                ((track >= 0) && (track < 256))
+                    ? dev->formatted_sector_count[track][side]
+                    : 0;
+
             current_pos = d86f_prepare_pretrack(drive, side, 0);
 
             for (sector = 0; sector < dev->sectors; sector++) {
-                if (dev->is_cqm) {
+                if (formatted_count == dev->sectors) {
+                    memcpy(id, dev->formatted_sector_ids[track][side][sector],
+                           sizeof(d86f_format_id_t));
+                    sr = id[2];
+                } else if (dev->is_cqm) {
                     if (dev->interleave)
                         sr = interleave(sector, dev->skew, dev->sectors);
                     else {
@@ -598,16 +705,25 @@ img_seek(int drive, int track)
                     else
                         sr = dev->dmf ? (dmf_r[sector]) : (sector + 1);
                 }
-                id[0]                          = track;
-                id[1]                          = side;
-                id[2]                          = sr;
-                id[3]                          = dev->sector_size;
-                dev->sector_pos_side[side][sr] = side;
-                dev->sector_pos[side][sr]      = (sr - 1) * ssize;
-                current_pos                    = d86f_prepare_sector(drive, side, current_pos, id, &dev->track_data[side][(sr - 1) * ssize], ssize, dev->gap2_size, dev->gap3_size, 0);
+                if (formatted_count != dev->sectors) {
+                    id[0] = track;
+                    id[1] = side;
+                    id[2] = sr;
+                    id[3] = dev->sector_size;
+                }
 
-                if (sector == 0)
+                buf_pos = ((formatted_count == dev->sectors) ? sector : (sr - 1)) * ssize;
+                dev->sector_pos_side[id[1]][id[2]] = side;
+                dev->sector_pos[id[1]][id[2]]      = buf_pos;
+                current_pos = d86f_prepare_sector(
+                    drive, side, current_pos, id,
+                    &dev->track_data[side][buf_pos], ssize,
+                    dev->gap2_size, dev->gap3_size, 0);
+
+                if (sector == 0) {
+                    memcpy(dev->first_sector_id[side], id, sizeof(id));
                     d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+                }
             }
         }
     } else {
@@ -662,6 +778,27 @@ img_seek(int drive, int track)
             }
         }
     }
+}
+
+static void
+img_readaddress(int drive, int side, int density)
+{
+    const img_t *dev = img[drive];
+
+    /*
+     * The common turbo engine returns its saved ID rather than scanning flux.
+     * Supply the selected side's real ID, and never reuse it on a blank track.
+     */
+    if (fdd_get_turbo(drive) && fdd_is_pcjx_360(drive) && !dev->xdf_type) {
+        if ((dev->track < 0) || (dev->track >= dev->tracks) ||
+            (side < 0) || (side >= dev->sides)) {
+            fdc_noidam(img_fdc);
+            return;
+        }
+        const uint8_t *id = dev->first_sector_id[side];
+        d86f_initialize_last_sector_id(drive, id[0], id[1], id[2], id[3]);
+    }
+    d86f_readaddress(drive, side, density);
 }
 
 void
@@ -1073,12 +1210,48 @@ jump_if_fdf:
         } else if (size <= (640 * 1024)) { /*DD 640K*/
             dev->sectors = 8;
             dev->tracks  = 80;
-        } else if (size <= (720 * 1024)) { /*DD 720K*/
+        } else if (size <= (648 * 1024)) {
+            dev->sectors = 8;
+            dev->tracks  = 81;
+        } else if (size <= (656 * 1024)) {
+            dev->sectors = 8;
+            dev->tracks  = 82;
+        } else if (size <= (664 * 1024)) {
+            dev->sectors = 8;
+            dev->tracks  = 83;
+        } else if (size <= (672 * 1024)) {
+            dev->sectors = 8;
+            dev->tracks  = 84;
+        } else if (size <= (720 * 1024)) {
             dev->sectors = 9;
             dev->tracks  = 80;
+        } else if (size <= (729 * 1024)) {
+            dev->sectors = 9;
+            dev->tracks  = 81;
+        } else if (size <= (738 * 1024)) {
+            dev->sectors = 9;
+            dev->tracks  = 82;
+        } else if (size <= (747 * 1024)) {
+            dev->sectors = 9;
+            dev->tracks  = 83;
+        } else if (size <= (756 * 1024)) {
+            dev->sectors = 9;
+            dev->tracks  = 84;
         } else if (size <= (800 * 1024)) { /*DD*/
             dev->sectors = 10;
             dev->tracks  = 80;
+        } else if (size <= (810 * 1024)) {
+            dev->sectors = 10;
+            dev->tracks  = 81;
+        } else if (size <= (820 * 1024)) {
+            dev->sectors = 10;
+            dev->tracks  = 82;
+        } else if (size <= (830 * 1024)) {
+            dev->sectors = 10;
+            dev->tracks  = 83;
+        } else if (size <= (840 * 1024)) {
+            dev->sectors = 10;
+            dev->tracks  = 84;
         } else if (size <= (880 * 1024)) { /*DD*/
             dev->sectors = 11;
             dev->tracks  = 80;
@@ -1098,13 +1271,43 @@ jump_if_fdf:
             dev->sectors     = 8;
             dev->tracks      = 77;
             dev->sector_size = 3;
-        } else if (size <= 1474560) { /*HD 1.44MB*/
+        } else if (size <= 1310720) { /*HD 1.3MB*/
+            dev->sectors = 16;
+            dev->tracks  = 80;
+        } else if (size <= (1360 * 1024)) { /*HD 1.36MB*/
+            dev->sectors = 17;
+            dev->tracks  = 80;
+        } else if (size <= (1377 * 1024)) {
+            dev->sectors = 17;
+            dev->tracks  = 81;
+        } else if (size <= (1394 * 1024)) {
+            dev->sectors = 17;
+            dev->tracks  = 82;
+        } else if (size <= (1411 * 1024)) {
+            dev->sectors = 17;
+            dev->tracks  = 83;
+        } else if (size <= (1428 * 1024)) {
+            dev->sectors = 17;
+            dev->tracks  = 84;
+        } else if (size <= (1440 * 1024)) { /*HD 1.44MB*/
             dev->sectors = 18;
             dev->tracks  = 80;
-        } else if (size <= 1556480) { /*HD*/
+        } else if (size <= (1458 * 1024)) {
+            dev->sectors = 18;
+            dev->tracks  = 81;
+        } else if (size <= (1476 * 1024)) {
+            dev->sectors = 18;
+            dev->tracks  = 82;
+        } else if (size <= (1494 * 1024)) {
+            dev->sectors = 18;
+            dev->tracks  = 83;
+        } else if (size <= (1512 * 1024)) {
+            dev->sectors = 18;
+            dev->tracks  = 84;
+        } else if (size <= (1520 * 1024)) { /*HD*/
             dev->sectors = 19;
             dev->tracks  = 80;
-        } else if (size <= 1638400) { /*HD 1024 sector*/
+        } else if (size <= (1600 * 1024)) { /*HD 1024 sector*/
 #ifdef SYNTH_FORMAT
             dev->sectors     = 10;
             dev->sector_size = 3;
@@ -1113,16 +1316,28 @@ jump_if_fdf:
             dev->sectors     = 20;
 #endif
             dev->tracks      = 80;
-        } else if (size <= 1720320) { /*DMF (Windows 95) */
+        } else if (size <= (1620 * 1024)) {
+            dev->sectors = 20;
+            dev->tracks  = 81;
+        } else if (size <= (1640 * 1024)) {
+            dev->sectors = 20;
+            dev->tracks  = 82;
+        } else if (size <= (1660 * 1024)) {
+            dev->sectors = 20;
+            dev->tracks  = 83;
+        } else if (size <= (1680 * 1024)) { /*DMF (Windows 95) */
             dev->sectors = 21;
             dev->tracks  = 80;
-        } else if (size <= 1741824) {
+        } else if (size <= (1701 * 1024)) {
             dev->sectors = 21;
             dev->tracks  = 81;
-        } else if (size <= 1763328) {
+        } else if (size <= (1722 * 1024)) {
             dev->sectors = 21;
             dev->tracks  = 82;
-        } else if (size <= 1802240) { /*HD 1024 sector*/
+        } else if (size <= (1743 * 1024)) {
+            dev->sectors = 21;
+            dev->tracks  = 83;
+        } else if (size <= (1760 * 1024)) { /*HD 1024 sector*/
 #ifdef SYNTH_FORMAT
             dev->sectors     = 11;
             dev->sector_size = 3;
@@ -1131,6 +1346,9 @@ jump_if_fdf:
             dev->sectors     = 22;
 #endif
             dev->tracks      = 80;
+        } else if (size <= (1764 * 1024)) {
+            dev->sectors = 21;
+            dev->tracks  = 84;
         } else if (size == 1884160) { /*XDF (OS/2 Warp)*/
             dev->sectors = 23;
             dev->tracks  = 80;
@@ -1201,15 +1419,25 @@ jump_if_fdf:
     }
 
     for (uint8_t i = 0; i < 6; i++) {
-        if ((dev->sectors <= maximum_sectors[dev->sector_size][i]) || (dev->sectors == xdf_sectors[dev->sector_size][i])) {
+        if ((dev->sectors >= 15) && (dev->sectors <= 17) &&
+            (maximum_sectors[dev->sector_size][i] == 17) &&
+            !fdd_is_525(drive) && !fdd_supports_360_rpm(drive))
+            continue;
+        if (((dev->sectors >= 15) && (dev->sectors <= 17) &&
+             (maximum_sectors[dev->sector_size][i] == 22) &&
+             !fdd_is_525(drive) && !fdd_supports_360_rpm(drive)) ||
+            ((dev->sectors == 18) && (maximum_sectors[dev->sector_size][i] == 17) &&
+             fdd_is_525(drive)) ||
+            (dev->sectors <= maximum_sectors[dev->sector_size][i]) || (dev->sectors == xdf_sectors[dev->sector_size][i])) {
             bit_rate_300    = bit_rates_300[i];
             temp_rate       = rates[i];
             dev->disk_flags = holes[i] << 1;
             dev->xdf_type   = (dev->sectors == xdf_sectors[dev->sector_size][i]) ? xdf_types[dev->sector_size][i] : 0;
-            if ((bit_rate_300 == 500.0) && (dev->sectors == 21) && (dev->sector_size == 2) && (dev->tracks >= 80) && (dev->tracks <= 82) && (dev->sides == 2)) {
+            if ((bit_rate_300 == 500.0) && (dev->sectors == 21) && (dev->sector_size == 2) && (dev->tracks >= 80) &&
+                 (dev->tracks <= 82) && (dev->sides == 2))
                 /* This is a DMF floppy, set the flag so we know to interleave the sectors. */
                 dev->dmf = 1;
-            } else {
+            else {
                 if ((bit_rate_300 == 500.0) && (dev->sectors == 22) && (dev->sector_size == 2) && (dev->tracks >= 80) && (dev->tracks <= 82) && (dev->sides == 2)) {
                     /* This is marked specially because of the track flag (a RPM slow down is needed). */
                     dev->interleave = 2;
@@ -1275,6 +1503,7 @@ jump_if_fdf:
     d86f_handler[drive].side_flags        = side_flags;
     d86f_handler[drive].writeback         = write_back;
     d86f_handler[drive].set_sector        = set_sector;
+    d86f_handler[drive].format_track      = format_track;
     d86f_handler[drive].read_data         = poll_read_data;
     d86f_handler[drive].write_data        = poll_write_data;
     d86f_handler[drive].format_conditions = format_conditions;
@@ -1289,6 +1518,7 @@ jump_if_fdf:
     drives[drive].seek = img_seek;
 
     d86f_common_handlers(drive);
+    drives[drive].readaddress = img_readaddress;
 }
 
 void
@@ -1395,6 +1625,7 @@ img_load_raw_device(int drive, const char *device_path)
         .side_flags        = side_flags,
         .writeback         = write_back,
         .set_sector        = set_sector,
+        .format_track      = format_track,
         .read_data         = poll_read_data,
         .write_data        = poll_write_data,
         .format_conditions = format_conditions,
@@ -1410,4 +1641,5 @@ img_load_raw_device(int drive, const char *device_path)
     drives[drive].seek = img_seek;
 
     d86f_common_handlers(drive);
+    drives[drive].readaddress = img_readaddress;
 }

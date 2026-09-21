@@ -682,8 +682,10 @@ i450kx_reset(void *priv)
     dev->pb_pci_conf[0xb0] = 0x00;
     dev->pb_pci_conf[0xb1] = 0x00;
 #endif
-    dev->pb_pci_conf[0xb4] = 0xff;
-    dev->pb_pci_conf[0xb5] = 0x00;
+    /* CSCONFV captures the values the PB drives on A[12:5]# out of CONFVR at every
+       rising edge of RESET#. */
+    dev->pb_pci_conf[0xb4] = dev->pb_pci_conf[0xb0];
+    dev->pb_pci_conf[0xb5] = dev->pb_pci_conf[0xb1];
     dev->pb_pci_conf[0xb8] = 0x05;
     dev->pb_pci_conf[0xb9] = 0x00;
     dev->pb_pci_conf[0xba] = 0x00;
