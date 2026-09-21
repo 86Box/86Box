@@ -759,10 +759,10 @@ aic_cmd_execute(aic7880_t *dev, aic_cmd_t *c)
         c->data_len = 0;
 
     scsi_device_identify(sd, SCSI_LUN_USE_CDB);
-    aic_log("cmd %02x %02x %02x %02x %02x %02x (len %u) id %i lun %i -> data %u %s "
+    aic_log("[%.3f ms] cmd %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x (len %u) id %i lun %i tag %02x -> data %u %s "
             "status %02x\n",
-            c->cdb[0], c->cdb[1], c->cdb[2], c->cdb[3], c->cdb[4],
-            c->cdb[5], c->cdb_len, c->id, c->lun, c->data_len,
+            aic_now_us() / 1000.0, c->cdb[0], c->cdb[1], c->cdb[2], c->cdb[3], c->cdb[4],
+            c->cdb[5], c->cdb[6], c->cdb[7], c->cdb[8], c->cdb[9], c->cdb_len, c->id, c->lun, c->tagged ? c->tag : 0xff, c->data_len,
             c->data_in ? "in" : "out", c->status);
 }
 
@@ -1259,7 +1259,7 @@ aic_reselect_try(aic7880_t *dev)
     dev->selid     = (uint8_t) (c->id << 4);
     if (dev->scsiseq & ENAUTOATNI)
         dev->atn = 1;
-    aic_log("reselect %i lun %i\n", c->id, c->lun);
+    aic_log("[%.3f ms] reselect %i lun %i tag %02x\n", aic_now_us() / 1000.0, c->id, c->lun, c->tagged ? c->tag : 0xff);
     aic_set_sstat0(dev, SELDI);
 
     /* A reconnecting target identifies itself, and if the command was
@@ -1276,7 +1276,7 @@ aic_reselect_try(aic7880_t *dev)
 static void
 aic_scsi_reset_bus(aic7880_t *dev)
 {
-    aic_log("scsi bus reset\n");
+    aic_log("[%.3f ms] scsi bus reset\n", aic_now_us() / 1000.0);
     for (uint8_t i = 0; i < AIC_CMDS; i++) {
         if (dev->cmds[i].used)
             aic_cmd_free(dev, &dev->cmds[i]);
@@ -1407,6 +1407,11 @@ aic_dma_host(aic7880_t *dev)
             else
                 break;
             dma_bm_read(dev->haddr, buf, n, 4);
+            /* The small ones are the firmware's own traffic -- queue
+               entries, command blocks, scatter lists -- and worth a line. */
+            if (n <= 32) {
+                aic_log("  dma rd %08x +%u: %02x %02x %02x %02x %02x %02x %02x %02x\n", dev->haddr, n, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+            }
             for (uint32_t i = 0; i < n; i++)
                 aic_fifo_push(dev, buf[i]);
             dev->haddr += n;
@@ -1425,6 +1430,9 @@ aic_dma_host(aic7880_t *dev)
                 n = dev->hcnt;
             for (uint32_t i = 0; i < n; i++)
                 buf[i] = aic_fifo_pop(dev);
+            if (n <= 32) {
+                aic_log("  dma wr %08x +%u (hcnt %u): %02x %02x %02x %02x %02x %02x %02x %02x\n", dev->haddr, n, dev->hcnt, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6], buf[7]);
+            }
             dma_bm_write(dev->haddr, buf, n, 4);
             dev->haddr += n;
             dev->hcnt -= n;
@@ -1520,6 +1528,15 @@ aic_bitbucket(aic7880_t *dev)
 static void
 aic_pump(aic7880_t *dev)
 {
+    /* A selection that could not have the bus is still wanted. ENSELO
+       written while a target holds the bus -- most often one that has
+       just reselected, which the sequencer has yet to notice -- is not
+       thrown away: the chip waits for bus free, arbitrates, and selects
+       then. Dropping it loses the command the firmware had just taken
+       off its queue, and nothing ever asks for it again. */
+    if ((dev->scsiseq & ENSELO) && !dev->selecting && (dev->bus_state == BUS_FREE) && !(dev->sstat0 & SELDO))
+        aic_select_start(dev);
+
     aic_bitbucket(dev);
     aic_dma_scsi(dev);
     aic_dma_host(dev);
@@ -2235,7 +2252,7 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
             break;
         case INTSTAT:
             /* The sequencer writes its interrupt code here. */
-            aic_log("seq: intstat %02x at %03x\n", val, dev->pc);
+            aic_log("[%.3f ms] seq: intstat %02x at %03x\n", aic_now_us() / 1000.0, val, dev->pc);
 #ifdef ENABLE_AIC7880_LOG
             /* Anything but a plain command complete or the delay timer:
                say how it got here. */
@@ -2748,6 +2765,9 @@ aic_seq_timer(void *priv)
        happened. */
     dev->host_wait = 0;
     aic_tgt_req_due(dev);
+
+    if ((dev->scsiseq & ENSELO) && !dev->selecting && (dev->bus_state == BUS_FREE) && !(dev->sstat0 & SELDO))
+        aic_select_start(dev);
 
     aic_bitbucket(dev);
     aic_dma_host(dev);
