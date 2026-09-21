@@ -35,13 +35,14 @@
  *
  *          Not modelled: target mode (the chip answering selection as a
  *          target), SCAM, parity errors on either bus, external SCB SRAM,
- *          and the pace of the SCSI bus itself. Selection is timed, but
- *          only nominally: what the firmware cares about is that a target
- *          that is there is quick and one that is not is not. Two options
- *          ask for more than that. Sequencer timing runs the program at
- *          the clock rate the chip would have; device timing makes a
- *          target take as long over a command as 86Box says the device
- *          does. The data itself still crosses the bus at once.
+ *          and the pace of the SCSI bus itself. The sequencer runs at the
+ *          clock rate the chip would have, and targets give up the bus
+ *          while they work and come back by reselection, as real ones do.
+ *          Selection is timed only nominally: what the firmware cares
+ *          about is that a target that is there is quick and one that is
+ *          not is not. How long the device takes over a command is an
+ *          option, off unless asked for, because the seek is modelled and
+ *          the transfer is not. The data itself crosses the bus at once.
  *
  * Authors: Michael Pratte, <mpratte@makefox.group>
  *
@@ -364,7 +365,6 @@ typedef struct aic7880_t {
     uint8_t       bus;
     uint8_t       wide;
     uint8_t       board; /* info->local */
-    uint8_t       disconnects;
 
     nmc93cxx_eeprom_t *eeprom;
 
@@ -395,7 +395,6 @@ typedef struct aic7880_t {
     uint8_t  scsitest;
     uint8_t  sleepctl;
     uint8_t  must_step;  /* PAUSE was just released: one instruction runs whatever else is pending */
-    uint8_t  timed_seq;  /* the sequencer runs at its own clock rate, not as fast as the host allows */
     uint8_t  timed_dev;  /* a device takes as long over a command as 86Box says it does */
     uint8_t  seq_idle;   /* the sequencer was stopped or parked when last looked at */
     double   seq_last;   /* when its clock was last advanced, in microseconds */
@@ -896,7 +895,7 @@ aic_tgt_next(aic7880_t *dev)
         aic_cmd_execute(dev, c);
         /* A target with work to do and permission to go away takes it,
            once, so that reselection gets exercised. */
-        if (c->disc_ok && dev->disconnects && !c->waited && (c->data_len > 0)) {
+        if (c->disc_ok && !c->waited && (c->data_len > 0)) {
             /* SAVE DATA POINTERS, then DISCONNECT. A target sends both,
                in that order, and the sequencer needs the first: it is
                what tells the program to write the transfer's address and
@@ -2674,7 +2673,7 @@ aic_seq_run(aic7880_t *dev)
        eight million a second. It earns instructions for the time that has
        passed while it was able to run, and none for time spent paused or
        waiting on the bus. */
-    if (dev->timed_seq) {
+    {
         double now = aic_now_us();
 
         if (dev->seq_idle)
@@ -2746,12 +2745,10 @@ aic_seq_run(aic7880_t *dev)
         }
     }
 
-    if (dev->timed_seq) {
-        dev->seq_credit -= (double) n;
-        if (dev->seq_credit < 0.0)
-            dev->seq_credit = 0.0;
-        dev->seq_idle = (uint8_t) stopped;
-    }
+    dev->seq_credit -= (double) n;
+    if (dev->seq_credit < 0.0)
+        dev->seq_credit = 0.0;
+    dev->seq_idle = (uint8_t) stopped;
 
     dev->in_seq = 0;
 }
@@ -3278,18 +3275,10 @@ aic_init(const device_t *info)
     dev->pci_regs[DEVCONFIG + 2] = 0x00;
     dev->pci_regs[DEVCONFIG + 3] = 0x00;
 
-    /* Targets give up the bus while they work, as real drives do, and come
-       back by reselection. A target is never obliged to, so it can be
-       turned off; the part on a motherboard has no settings and its
-       targets stay connected. */
-    dev->disconnects = device_get_config_int("disconnect");
-
-    /* At the chip's own pace, and the devices at theirs. The sequencer's
-       clock is on unless it is turned off, because every delay a driver
-       takes is a countdown in the sequencer and runs short without it;
-       device timing is off unless asked for. The part on a motherboard has
-       no settings and runs both as fast as the host can make them. */
-    dev->timed_seq = (dev->board == BOARD_7880) ? 0 : device_get_config_int("seq_timing");
+    /* How long the device itself takes over a command, which is off unless
+       asked for: the seek and the rotation are modelled but the transfer is
+       not, so what it buys in fidelity it spends twice over in latency.
+       The part on a motherboard has no settings and does without. */
     dev->timed_dev = (dev->board == BOARD_7880) ? 0 : device_get_config_int("dev_timing");
 
     /* The card's own BIOS. Every one of these images is an AHA-2940
@@ -3431,33 +3420,11 @@ static const device_config_t aic_card_config[] = {
         },
     },
     {
-        .name           = "seq_timing",
-        .description    = "Sequencer timing",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
         .name           = "dev_timing",
         .description    = "Device timing",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "disconnect",
-        .description    = "Targets disconnect and reselect",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
