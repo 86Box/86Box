@@ -169,6 +169,10 @@ aic_log(const char *fmt, ...)
 #define SELID        0x19
 #define ONEBIT       0x08
 #define SCAMCTL      0x1a
+#define SLEEPCTL     0x1c
+#define SLEEPDIS     0x80
+#define SLP1         0x02 /* wake on DMADONE or PHASEMIS */
+#define SLP0         0x01 /* wake on SELDO or SELDI */
 #define SPIOCAP      0x1b
 #define BRDCTL       0x1d
 #define BRDDAT7      0x80
@@ -223,8 +227,8 @@ aic_log(const char *fmt, ...)
 #define FUNCTION1    0x6e
 #define STACK        0x6f
 
-#define SRAM2_BASE   0x70 /* more scratch, to 0x7f */
-
+#define DSVENDID     0x80 /* the PCI IDs again, where the sequencer can see them */
+#define DSDEVID      0x82
 #define DSCOMMAND0   0x84
 #define DSCOMMAND1   0x85
 #define DSPCISTATUS  0x86
@@ -261,6 +265,7 @@ aic_log(const char *fmt, ...)
 #define FIFOFLUSH    0x02
 #define FIFORESET    0x01
 #define DFSTATUS     0x94
+#define DFCACHETH    0x40
 #define FIFOQWDEMP   0x20
 #define MREQPEND     0x10
 #define HDONE        0x08
@@ -283,7 +288,10 @@ aic_log(const char *fmt, ...)
 #define SCB_SIZE     32
 #define SEQ_INSNS    512
 #define FIFO_SIZE    256
-#define QUEUE_SIZE   256
+/* Sixteen entries of four bits each: the queues live in what is left of
+   the internal SCB RAM, and only a board with external SCB RAM (RAMPSM),
+   which none of these has, gets 255 of eight. */
+#define QUEUE_SIZE 16
 
 /* PCI configuration, device specific. */
 #define DEVCONFIG 0x40
@@ -362,19 +370,23 @@ typedef struct aic7880_t {
     uint8_t  scsidatl;
     uint8_t  scsidath;
     uint8_t  datl_full; /* a byte written to SCSIDATL is waiting for REQ */
+    uint8_t  req_seen;  /* REQ as the SCSI cell last saw it, to find its leading edge */
+    uint8_t  req_wait;  /* sequencer instructions until the target raises REQ again */
+    uint8_t  in_dma;    /* the DMA engine, not programmed I/O, is doing the handshake */
     uint32_t stcnt;
     uint8_t  sstat0; /* latched: SELDO SELDI SELINGO */
     uint8_t  sstat1; /* latched: SELTO SCSIRSTI BUSFREE PHASECHG */
     uint8_t  simode0;
     uint8_t  simode1;
     uint32_t shaddr;
-    uint8_t  seltimer;
     uint8_t  selid;
     uint8_t  scamctl;
     uint8_t  brdctl;
     uint8_t  seectl;
     uint8_t  sblkctl;
     uint8_t  scsitest;
+    uint8_t  sleepctl;
+    uint8_t  must_step; /* PAUSE was just released: one instruction runs whatever else is pending */
 
     /* sequencer */
     uint8_t  seqctl;
@@ -414,6 +426,8 @@ typedef struct aic7880_t {
     uint8_t  fifo[FIFO_SIZE];
     uint16_t fifo_rd;
     uint16_t fifo_cnt;
+    uint8_t  fifo_flush; /* a flush, asked for or automatic, has not finished */
+    uint8_t  host_wait;  /* sequencer instructions until the host side may move */
 
     uint8_t  qin[QUEUE_SIZE];
     uint8_t  qin_rd;
@@ -423,7 +437,6 @@ typedef struct aic7880_t {
     uint16_t qout_cnt;
 
     uint8_t sram[0x40];
-    uint8_t sram2[0x10];
     uint8_t scb[SCB_COUNT][SCB_SIZE];
     uint8_t misc[0x40]; /* 0xc0 to 0xff: nothing on this part, but it holds what it is told */
 
@@ -484,7 +497,18 @@ aic_paused(const aic7880_t *dev)
 static void
 aic_update_irq(aic7880_t *dev)
 {
-    uint8_t fire = (dev->hcntrl & INTEN) && ((dev->intstat & INT_PEND) || (dev->hcntrl & SWINT));
+    uint8_t pend = dev->intstat & (SEQINT | SCSIINT | CMDCMPLT);
+    uint8_t fire;
+
+    /* A breakpoint always stops the sequencer and shows in INTSTAT, but
+       it reaches the pin only with BRKADRINTEN. The error sources that
+       share the bit always do. */
+    if ((dev->intstat & BRKADRINT) && ((dev->seqctl & BRKADRINTEN) || dev->error))
+        pend |= BRKADRINT;
+
+    /* INTEN gates everything, SWINT included, and so do bus mastering in
+       the PCI command register and POWRDN. */
+    fire = (dev->hcntrl & INTEN) && !(dev->hcntrl & POWRDN) && (dev->pci_regs[0x04] & 0x04) && (pend || (dev->hcntrl & SWINT));
 
     if (fire == dev->irq_level)
         return;
@@ -513,6 +537,9 @@ aic_scsi_int(aic7880_t *dev)
             aic_log("scsiint: sstat0 %02x&%02x sstat1 %02x&%02x at pc %03x\n",
                     dev->sstat0, dev->simode0, dev->sstat1, dev->simode1, dev->pc);
         }
+        /* A SCSI interrupt also takes PAUSEDIS away, so that the pause it
+           asks for cannot be refused. */
+        dev->seqctl &= ~PAUSEDIS;
         aic_raise(dev, SCSIINT);
     }
 }
@@ -540,9 +567,18 @@ static void
 aic_bus_changed(aic7880_t *dev)
 {
     uint8_t phase;
+    uint8_t req = (dev->bus_state == BUS_BUSY) && dev->tgt_req;
 
-    if ((dev->bus_state == BUS_BUSY) && dev->tgt_req) {
+    /* REQINIT goes up on the leading edge of REQ and comes down with the
+       ACK that answers it, or when CLRREQINIT says so: cleared by hand it
+       stays clear until the target asks again. PHASEMIS is the phase
+       comparison qualified by REQINIT, so it goes with it. */
+    if (req && !dev->req_seen)
         dev->sstat1 |= REQINIT;
+    else if (!req)
+        dev->sstat1 &= ~REQINIT;
+
+    if (dev->sstat1 & REQINIT) {
         phase = dev->tgt_phase;
         if ((dev->scsisigo & PHASE_MASK) != phase)
             aic_set_sstat1(dev, PHASEMIS | PHASECHG);
@@ -551,14 +587,18 @@ aic_bus_changed(aic7880_t *dev)
             aic_scsi_int(dev);
         }
     } else
-        dev->sstat1 &= ~(REQINIT | PHASEMIS);
+        dev->sstat1 &= ~PHASEMIS;
 
-    /* SPIORDY says a PIO byte may move: the target is asking, and either
-       it wants a byte we have or it is offering one. */
-    if ((dev->sxfrctl0 & SPIOEN) && (dev->bus_state == BUS_BUSY) && dev->tgt_req)
+    /* SPIORDY is a LATCH, set on the leading edge of REQ while automatic
+       PIO is on, and it is not REQ. The data book has it fall again when
+       SCSIDATL is read or written; the silicon was not seen to do that, and
+       the 1996 firmware, which polls it, writes CLRSPIORDY before every
+       byte rather than trust it to. So it stays up until it is cleared, and
+       a program that takes it for "the target is asking" sends its second
+       byte before the target wanted one. REQINIT is what says that. */
+    if (req && !dev->req_seen && (dev->sxfrctl0 & SPIOEN))
         aic_set_sstat0(dev, SPIORDY);
-    else
-        dev->sstat0 &= ~SPIORDY;
+    dev->req_seen = req;
 
     /* A byte already waiting in the PIO latch goes out on this REQ. */
     aic_pio_out(dev);
@@ -579,6 +619,10 @@ aic_bus_free(aic7880_t *dev)
     dev->cur       = NULL;
     dev->atn       = 0;
     dev->datl_full = 0;
+    dev->req_wait  = 0;
+    /* Bus free takes SCSISIGO, SELDO and SELDI with it. */
+    dev->scsisigo = 0;
+    dev->sstat0 &= ~(SELDO | SELDI);
     dev->msgin_len = dev->msgin_pos = 0;
     dev->msgout_len                 = 0;
     timer_stop(&dev->tgt_timer);
@@ -694,6 +738,48 @@ static void
 aic_tgt_schedule(aic7880_t *dev)
 {
     timer_on_auto(&dev->tgt_timer, 1.0);
+}
+
+/* How many sequencer instructions pass between ACK for one PIO byte and
+   the target's REQ for the next. A real target drops REQ when it sees ACK
+   and raises it again when ACK has gone, and the sequencer gets a few
+   instructions in meanwhile; a program that does not wait for that REQ
+   works on a bus that answers instantly and nowhere else. */
+#define AIC_REQ_INSNS 2
+
+/* And how many pass between HDMAEN going up and the host side's first
+   bytes. A program that reads DFDAT without waiting for HDONE reads what
+   has not arrived. */
+#define AIC_HOST_INSNS 4
+
+/* The target asks for the next byte of the phase it is already in. Under
+   the DMA engine the handshake is the hardware's own and costs nothing
+   here; under programmed I/O REQ is seen to fall first. */
+static void
+aic_tgt_req_again(aic7880_t *dev)
+{
+    if (dev->in_dma) {
+        dev->tgt_req = 1;
+        aic_bus_changed(dev);
+        return;
+    }
+    dev->tgt_req  = 0;
+    dev->req_wait = AIC_REQ_INSNS;
+    aic_bus_changed(dev);
+}
+
+/* That REQ arrives. The host is far too slow to get in ahead of it, so
+   any access from the host brings it forward. */
+static void
+aic_tgt_req_due(aic7880_t *dev)
+{
+    if (!dev->req_wait)
+        return;
+    dev->req_wait = 0;
+    if (dev->bus_state != BUS_BUSY)
+        return;
+    dev->tgt_req = 1;
+    aic_bus_changed(dev);
 }
 
 #ifdef ENABLE_AIC7880_LOG
@@ -901,16 +987,15 @@ aic_tgt_take(aic7880_t *dev, uint8_t val)
             break;
     }
 
-    dev->tgt_req = 0;
-    aic_bus_changed(dev);
-
-    /* The target considers what to do next. Data and command bytes come
-       back immediately; a finished phase takes a moment. */
+    /* The target considers what to do next. It asks for the rest of a
+       command or of its data straight away; a finished phase takes a
+       moment. */
     if (((dev->tgt_phase == P_COMMAND) && (c != NULL) && (c->cdb_pos < c->cdb_len)) || ((dev->tgt_phase == P_DATAOUT) && (c != NULL) && (c->data_pos < c->data_len)) || ((dev->tgt_phase == P_MESGOUT) && dev->atn)) {
-        dev->tgt_req = 1;
-        aic_bus_changed(dev);
+        aic_tgt_req_again(dev);
         return;
     }
+    dev->tgt_req = 0;
+    aic_bus_changed(dev);
     aic_tgt_schedule(dev);
 }
 
@@ -945,8 +1030,7 @@ aic_tgt_acked(aic7880_t *dev)
         case P_MESGIN:
             dev->msgin_pos++;
             if (dev->msgin_pos < dev->msgin_len) {
-                dev->tgt_req = 1;
-                aic_bus_changed(dev);
+                aic_tgt_req_again(dev);
                 return;
             }
             dev->msgin_len = dev->msgin_pos = 0;
@@ -971,8 +1055,7 @@ aic_tgt_acked(aic7880_t *dev)
             if ((c != NULL) && (c->data_pos < c->data_len))
                 c->data_pos++;
             if ((c != NULL) && (c->data_pos < c->data_len)) {
-                dev->tgt_req = 1;
-                aic_bus_changed(dev);
+                aic_tgt_req_again(dev);
                 return;
             }
             break;
@@ -1012,19 +1095,29 @@ aic_select_done(void *priv)
     scsi_device_t *sd;
     aic_cmd_t     *c;
 
-    dev->sstat0 &= ~SELINGO;
-
-    if (!dev->selecting)
+    if (!dev->selecting) {
+        dev->sstat0 &= ~SELINGO;
         return;
+    }
+
+    id = (dev->scsiid >> 4) & (dev->wide ? 0x0f : 0x07);
+    sd = &scsi_devices[dev->bus][id];
+
+    /* Nobody there, and the selection timer not running: the chip goes on
+       selecting for ever. CHIPRST leaves ENSTIMER clear, so a driver that
+       resets the part and does not put SXFRCTL1 back never sees SELTO. */
+    if ((dev->scsiseq & ENSELO) && !scsi_device_present(sd) && !(dev->sxfrctl1 & ENSTIMER)) {
+        aic_log("select %i: nobody, and no selection timer\n", id);
+        return;
+    }
+
+    dev->sstat0 &= ~SELINGO;
     dev->selecting = 0;
 
     if (!(dev->scsiseq & ENSELO)) {
         aic_bus_changed(dev);
         return;
     }
-
-    id = (dev->scsiid >> 4) & (dev->wide ? 0x0f : 0x07);
-    sd = &scsi_devices[dev->bus][id];
 
     if (!scsi_device_present(sd)) {
         aic_log("select %i: timeout\n", id);
@@ -1080,6 +1173,8 @@ aic_reselect_try(aic7880_t *dev)
     dev->cur       = c;
     dev->bus_state = BUS_BUSY;
     dev->selid     = (uint8_t) (c->id << 4);
+    if (dev->scsiseq & ENAUTOATNI)
+        dev->atn = 1;
     aic_log("reselect %i lun %i\n", c->id, c->lun);
     aic_set_sstat0(dev, SELDI);
 
@@ -1106,6 +1201,14 @@ aic_scsi_reset_bus(aic7880_t *dev)
     dev->bus_state = BUS_FREE;
     dev->tgt_req   = 0;
     dev->selecting = 0;
+    dev->req_wait  = 0;
+    dev->atn       = 0;
+    dev->datl_full = 0;
+    /* A reset clears SCSISIGO and everything in SCSISEQ but the bit that
+       is causing it. */
+    dev->scsisigo = 0;
+    dev->scsiseq &= SCSIRSTO;
+    dev->sstat0 &= ~(SELDO | SELDI | SELINGO);
     timer_stop(&dev->sel_timer);
     timer_stop(&dev->tgt_timer);
 
@@ -1122,6 +1225,7 @@ static void
 aic_fifo_reset(aic7880_t *dev)
 {
     dev->fifo_rd = dev->fifo_cnt = 0;
+    dev->fifo_flush              = 0;
 }
 
 static void
@@ -1146,17 +1250,65 @@ aic_fifo_pop(aic7880_t *dev)
     return val;
 }
 
+/* How many stored bytes start a burst from the FIFO to memory: DFTHRSH
+   selects three quadwords, half, three quarters or all of it. */
+static uint32_t
+aic_fifo_threshold(const aic7880_t *dev)
+{
+    static const uint16_t level[4] = { 24, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
+
+    return level[dev->dspcistatus >> 6];
+}
+
+/* The hardware flushes by itself when the SCSI side of a read is over:
+   the count ran out, or the target left the phase. */
+static void
+aic_fifo_autoflush(aic7880_t *dev)
+{
+    if (!(dev->dfcntrl & SCSIEN) || (dev->dfcntrl & DIRECTION) || (dev->sblkctl & AUTOFLUSHDIS))
+        return;
+    if (dev->fifo_cnt == 0)
+        return;
+    if ((dev->stcnt == 0) || (dev->bus_state != BUS_BUSY) || (dev->tgt_req && (dev->tgt_phase != (dev->scsisigo & PHASE_MASK))))
+        dev->fifo_flush = 1;
+}
+
+/* Whether the host side has a reason to ask for the bus. */
+static int
+aic_dma_host_wants(const aic7880_t *dev)
+{
+    if (!(dev->dfcntrl & HDMAEN) || (dev->hcnt == 0))
+        return 0;
+    if (dev->dfcntrl & DIRECTION)
+        return dev->fifo_cnt < FIFO_SIZE;
+    return dev->fifo_flush || (dev->fifo_cnt >= aic_fifo_threshold(dev));
+}
+
 /* The host side of the FIFO. HDMAEN with DIRECTION set fills it from
    memory at HADDR; without, it drains it to memory. HCNT counts down and
-   HDONE says it reached zero. Both sides move as much as they can each
-   time they are poked, which is what the firmware's wait loops expect. */
+   HDONE says it reached zero.
+
+   The FIFO is thirty-two QUADWORDS, not 256 bytes, and that shows. On
+   the way to memory nothing moves until the threshold is reached or a
+   flush says "that is all there is", and short of a flush only whole
+   quadwords go: eight bytes of completion status written in by the
+   sequencer sit there for ever without FIFOFLUSH. On the way in, the PCI
+   side has an eight byte latch that empties into the FIFO only when it
+   is full or HCNT has run out. And the engine takes a moment to start,
+   so the bytes are not there on the instruction after HDMAEN is set:
+   HDONE is what says they are. */
 static void
 aic_dma_host(aic7880_t *dev)
 {
     uint8_t  buf[64];
     uint32_t n;
 
-    if (!(dev->dfcntrl & HDMAEN))
+    aic_fifo_autoflush(dev);
+
+    if (!(dev->dfcntrl & HDMAEN) || dev->host_wait)
+        return;
+    /* No bus mastering, no transfer: MASTEREN in the command register. */
+    if (!(dev->pci_regs[0x04] & 0x04))
         return;
 
     if (dev->dfcntrl & DIRECTION) {
@@ -1166,16 +1318,23 @@ aic_dma_host(aic7880_t *dev)
                 n = sizeof(buf);
             if (n > dev->hcnt)
                 n = dev->hcnt;
+            else if (n >= 8)
+                n &= ~7U;
+            else
+                break;
             dma_bm_read(dev->haddr, buf, n, 4);
             for (uint32_t i = 0; i < n; i++)
                 aic_fifo_push(dev, buf[i]);
             dev->haddr += n;
             dev->hcnt -= n;
-            dev->shaddr = dev->haddr;
         }
-    } else {
+    } else if (aic_dma_host_wants(dev)) {
         while (dev->hcnt && dev->fifo_cnt) {
             n = dev->fifo_cnt;
+            if (!dev->fifo_flush)
+                n &= ~7U;
+            if (n == 0)
+                break;
             if (n > sizeof(buf))
                 n = sizeof(buf);
             if (n > dev->hcnt)
@@ -1185,9 +1344,11 @@ aic_dma_host(aic7880_t *dev)
             dma_bm_write(dev->haddr, buf, n, 4);
             dev->haddr += n;
             dev->hcnt -= n;
-            dev->shaddr = dev->haddr;
         }
     }
+
+    if (dev->fifo_cnt == 0)
+        dev->fifo_flush = 0;
 }
 
 /* The SCSI side. SCSIEN moves bytes between the FIFO and the bus in the
@@ -1196,15 +1357,25 @@ aic_dma_host(aic7880_t *dev)
 static void
 aic_dma_scsi(aic7880_t *dev)
 {
-    aic_cmd_t *c = dev->cur;
-    int        out;
+    int out;
 
     if (!(dev->dfcntrl & SCSIEN) || (dev->bus_state != BUS_BUSY))
         return;
 
     out = !!(dev->dfcntrl & DIRECTION);
 
-    while (dev->stcnt && dev->tgt_req) {
+    /* The engine does its own handshake, so a REQ the target has yet to
+       raise for programmed I/O is there for it at once. */
+    dev->in_dma = 1;
+    aic_tgt_req_due(dev);
+
+    /* STCNT counts bytes down and SHADDR counts them up, both on the SCSI
+       side: a byte sent counts when it is acknowledged, a byte received
+       when it reaches the data FIFO. HADDR runs ahead of SHADDR on a write
+       by whatever the host side has prefetched, which is why SHADDR and
+       not HADDR is where a transfer that stops early is resumed from.
+       With SWRAPEN the count runs on through zero and SWRAP says so. */
+    while ((dev->stcnt || (dev->sxfrctl1 & SWRAPEN)) && dev->tgt_req) {
         /* The transfer only runs while the target stays in the phase the
            sequencer set up for; anything else is a phase mismatch, which
            the firmware detects and unwinds. */
@@ -1228,17 +1399,36 @@ aic_dma_scsi(aic7880_t *dev)
             aic_fifo_push(dev, aic_tgt_byte(dev));
             aic_tgt_acked(dev);
         }
+        if (dev->stcnt == 0)
+            aic_set_sstat0(dev, SWRAP);
         dev->stcnt = (dev->stcnt - 1) & 0xffffff;
-        if (c != NULL)
-            (void) c;
+        dev->shaddr++;
     }
-
-    if (dev->stcnt == 0)
-        aic_set_sstat0(dev, SDONE);
+    dev->in_dma = 0;
 
     aic_dma_host(dev);
-    if (dev->hcnt == 0)
-        aic_set_sstat0(dev, DMADONE);
+}
+
+/* BITBUCKET: the SCSI cell takes whatever data the target has and throws
+   it away, or feeds it zeros, for as long as the target stays in the data
+   phase SCSISIGO names. It is how every driver gets past a target with
+   more to say than the host asked for: set the bit, wait for PHASEMIS.
+   Without it that wait never ends. */
+static void
+aic_bitbucket(aic7880_t *dev)
+{
+    if (!(dev->sxfrctl1 & BITBUCKET) || (dev->bus_state != BUS_BUSY))
+        return;
+
+    dev->in_dma = 1;
+    aic_tgt_req_due(dev);
+    while (dev->tgt_req && (dev->bus_state == BUS_BUSY) && (dev->tgt_phase == (dev->scsisigo & PHASE_MASK)) && ((dev->tgt_phase == P_DATAIN) || (dev->tgt_phase == P_DATAOUT))) {
+        if (dev->tgt_phase == P_DATAIN)
+            aic_tgt_acked(dev);
+        else
+            aic_tgt_take(dev, 0x00);
+    }
+    dev->in_dma = 0;
 }
 
 /* Everything that can move, moves. Called after any register write that
@@ -1246,6 +1436,7 @@ aic_dma_scsi(aic7880_t *dev)
 static void
 aic_pump(aic7880_t *dev)
 {
+    aic_bitbucket(dev);
     aic_dma_scsi(dev);
     aic_dma_host(dev);
     aic_reselect_try(dev);
@@ -1254,7 +1445,12 @@ aic_pump(aic7880_t *dev)
 
 /* ---- register file ------------------------------------------------------ */
 
-/* Reads and writes from the sequencer and from the host go through the
+/* There is no RAM at 0x70 to 0x7f on this part. Later ones have sixteen
+   more bytes of scratch there, and register lists written for the whole
+   family show it, but here a write goes nowhere and a read returns
+   nothing, and a program that parks a value there loses it.
+
+   Reads and writes from the sequencer and from the host go through the
    same file, but a few registers differ: the sequencer's indirect and
    stack registers mean nothing to the host, and the host may not touch
    the SCSI cell while the sequencer runs. The `seq' flag says which. */
@@ -1263,6 +1459,18 @@ aic_pump(aic7880_t *dev)
    SCBAUTO set every access to the SCB window uses that offset and steps
    it on. That is how a driver moves a whole SCB through one port, and
    the 1996 aic7xxx driver does exactly that rather than DMA them. */
+/* Automatic PIO runs the same two counters as the DMA engine. */
+static void
+aic_pio_counted(aic7880_t *dev)
+{
+    if (dev->stcnt || (dev->sxfrctl1 & SWRAPEN)) {
+        if (dev->stcnt == 0)
+            aic_set_sstat0(dev, SWRAP);
+        dev->stcnt = (dev->stcnt - 1) & 0xffffff;
+        dev->shaddr++;
+    }
+}
+
 /* The byte waiting in SCSIDATL goes out when PIO is enabled and the
    target is asking for one. */
 static void
@@ -1273,6 +1481,7 @@ aic_pio_out(aic7880_t *dev)
     if ((dev->bus_state != BUS_BUSY) || !dev->tgt_req || (dev->tgt_phase & IOI))
         return;
     dev->datl_full = 0;
+    aic_pio_counted(dev);
     aic_tgt_take(dev, dev->scsidatl);
 }
 
@@ -1289,15 +1498,28 @@ aic_scb_offset(aic7880_t *dev, uint8_t addr)
     return off;
 }
 
+/* The host is slow. By the time one of its accesses lands, anything that
+   was a few sequencer instructions away has long since happened. */
+static void
+aic_host_catch_up(aic7880_t *dev)
+{
+    aic_tgt_req_due(dev);
+    if (dev->host_wait) {
+        dev->host_wait = 0;
+        aic_pump(dev);
+    }
+}
+
 static uint8_t
 aic_read(aic7880_t *dev, uint8_t addr, int seq)
 {
     uint8_t ret = 0;
 
+    if (!seq)
+        aic_host_catch_up(dev);
+
     if ((addr >= SRAM_BASE) && (addr < 0x60))
         return dev->sram[addr - SRAM_BASE];
-    if ((addr >= SRAM2_BASE) && (addr < 0x80))
-        return dev->sram2[addr - SRAM2_BASE];
     if (addr >= SCB_BASE) {
         if (addr < (SCB_BASE + SCB_SIZE))
             return dev->scb[dev->scbptr & (SCB_COUNT - 1)][aic_scb_offset(dev, addr)];
@@ -1322,6 +1544,8 @@ aic_read(aic7880_t *dev, uint8_t addr, int seq)
                 ret |= SELI;
             if (dev->atn)
                 ret |= ATNI;
+            /* These are the pins, so what we drive ourselves shows too. */
+            ret |= dev->scsisigo & (SELI | BSYI | ACKI);
             return ret;
         case SCSIRATE:
             return dev->scsirate;
@@ -1333,8 +1557,10 @@ aic_read(aic7880_t *dev, uint8_t addr, int seq)
             if ((dev->bus_state == BUS_BUSY) && dev->tgt_req && (dev->tgt_phase & IOI)) {
                 ret = aic_tgt_byte(dev);
                 /* Without SPIOEN the read is only a look at the latch. */
-                if (dev->sxfrctl0 & SPIOEN)
+                if (dev->sxfrctl0 & SPIOEN) {
+                    aic_pio_counted(dev);
                     aic_tgt_acked(dev);
+                }
             } else
                 ret = dev->scsidatl;
             return ret;
@@ -1351,9 +1577,11 @@ aic_read(aic7880_t *dev, uint8_t addr, int seq)
                count, and the whole transfer, stand at zero right now. A
                reload of STCNT takes them away, which a latch would not. */
             ret = dev->sstat0 & ~(SDONE | DMADONE);
-            if (dev->stcnt == 0) {
+            /* SDONE wants the count at zero, no wrapping, and one of the
+               two transfer modes on. DMADONE is SDONE and HDONE. */
+            if ((dev->stcnt == 0) && !(dev->sxfrctl1 & SWRAPEN) && ((dev->dfcntrl & SDMAEN) || (dev->sxfrctl0 & SPIOEN))) {
                 ret |= SDONE;
-                if ((dev->hcnt == 0) && ((dev->dfcntrl & DIRECTION) || (dev->fifo_cnt == 0)))
+                if (dev->hcnt == 0)
                     ret |= DMADONE;
             }
             return ret;
@@ -1383,7 +1611,14 @@ aic_read(aic7880_t *dev, uint8_t addr, int seq)
         case SHADDR + 3:
             return (dev->shaddr >> 24) & 0xff;
         case SELTIMER:
-            return dev->seltimer;
+            /* With SCAMEN set, CLKOUT is a free-running clock with a
+               period of 102.4 microseconds for the driver to time the
+               SCAM protocol by. The divider stages are not modelled. */
+            if (dev->sxfrctl0 & SCAMEN)
+                return ((uint64_t) ((double) tsc * 4294967296.0 / (double) TIMER_USEC / 51.2) & 1) ? 0x80 : 0x00;
+            return 0;
+        case SLEEPCTL:
+            return dev->sleepctl;
         case SELID:
             return dev->selid;
         case SCAMCTL:
@@ -1415,10 +1650,7 @@ aic_read(aic7880_t *dev, uint8_t addr, int seq)
                 ret |= SEEDI;
             return ret;
         case SBLKCTL:
-            ret = dev->sblkctl & ~(SELBUSB | SELWIDE);
-            if (dev->wide)
-                ret |= SELWIDE;
-            return ret;
+            return dev->sblkctl;
         case SCSITEST:
             return dev->scsitest;
 
@@ -1478,10 +1710,31 @@ aic_read(aic7880_t *dev, uint8_t addr, int seq)
             dev->sp       = (dev->sp - 1) & 3;
             return ret;
 
+        case DSVENDID:
+        case DSVENDID + 1:
+        case DSDEVID:
+        case DSDEVID + 1:
+            /* The vendor and device ID, readable from device space. A
+               driver that has the register window but not the slot -- and
+               the sequencer, which has nothing else -- tells the parts of
+               the family apart here. */
+            return dev->pci_regs[addr - DSVENDID];
         case DSCOMMAND0:
-            return dev->dscommand0;
+            /* The low four bits are SERRESPEN, PERRESPEN, MWRICEN and
+               MASTEREN out of the PCI command register. */
+            ret = dev->dscommand0 & 0xf0;
+            if (dev->pci_regs[0x05] & 0x01)
+                ret |= 0x08;
+            if (dev->pci_regs[0x04] & 0x40)
+                ret |= 0x04;
+            if (dev->pci_regs[0x04] & 0x10)
+                ret |= 0x02;
+            if (dev->pci_regs[0x04] & 0x04)
+                ret |= 0x01;
+            return ret;
         case DSCOMMAND1:
-            return dev->dscommand1;
+            /* The latency timer, over HADDLDSEL. */
+            return (dev->pci_regs[0x0d] & 0xfc) | (dev->dscommand1 & 0x03);
         case DSPCISTATUS:
             return dev->dspcistatus;
         case HCNTRL:
@@ -1510,15 +1763,24 @@ aic_read(aic7880_t *dev, uint8_t addr, int seq)
         case ERROR:
             return dev->error;
         case DFCNTRL:
-            return dev->dfcntrl;
+            /* FIFOFLUSH reads as one for as long as a flush is pending. */
+            return (dev->dfcntrl & 0x7f) | (dev->fifo_flush ? FIFOFLUSH : 0);
         case DFSTATUS:
             ret = 0;
             if (dev->fifo_cnt == 0)
-                ret |= FIFOEMP | FIFOQWDEMP;
+                ret |= FIFOEMP;
+            /* Not one whole quadword: one to seven bytes do not count. */
+            if (dev->fifo_cnt < 8)
+                ret |= FIFOQWDEMP;
             if (dev->fifo_cnt >= FIFO_SIZE)
                 ret |= FIFOFULL;
-            if (dev->fifo_cnt >= 8)
+            if (dev->dfcntrl & DIRECTION) {
+                if ((uint32_t) (FIFO_SIZE - dev->fifo_cnt) >= aic_fifo_threshold(dev))
+                    ret |= DFTHRESH;
+            } else if (dev->fifo_cnt >= aic_fifo_threshold(dev))
                 ret |= DFTHRESH;
+            if (dev->host_wait && aic_dma_host_wants(dev))
+                ret |= MREQPEND;
             if (dev->hcnt == 0)
                 ret |= HDONE;
             return ret;
@@ -1568,12 +1830,11 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
 {
     uint8_t was;
 
+    if (!seq)
+        aic_host_catch_up(dev);
+
     if ((addr >= SRAM_BASE) && (addr < 0x60)) {
         dev->sram[addr - SRAM_BASE] = val;
-        return;
-    }
-    if ((addr >= SRAM2_BASE) && (addr < 0x80)) {
-        dev->sram2[addr - SRAM2_BASE] = val;
         return;
     }
     if (addr >= SCB_BASE) {
@@ -1600,18 +1861,34 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
             aic_pump(dev);
             break;
         case SXFRCTL0:
-            dev->sxfrctl0 = val & ~(CLRSTCNT | CLRCHN);
-            if (val & CLRSTCNT)
-                dev->stcnt = 0;
-            if (val & CLRCHN) {
-                aic_fifo_reset(dev);
-                dev->datl_full = 0;
+            was           = dev->sxfrctl0;
+            dev->sxfrctl0 = val & ~(CLRSTCNT | CLRCHN | 0x01);
+            /* Taking automatic PIO away takes SPIORDY with it, and turning
+               it on under a REQ that is already up counts as its edge. */
+            if (!(val & SPIOEN))
+                dev->sstat0 &= ~SPIORDY;
+            else if (!(was & SPIOEN))
+                dev->req_seen = 0;
+            /* CLRSTCNT zeroes both SCSI counters. CLRCHN is the SCSI cell's
+               own FIFO and its offset counter, neither of which exists
+               here; it leaves the counters and the data FIFO alone. */
+            if (val & CLRSTCNT) {
+                dev->stcnt  = 0;
+                dev->shaddr = 0;
             }
+            if (val & CLRCHN)
+                dev->datl_full = 0;
             aic_pio_out(dev);
             aic_bus_changed(dev);
             break;
         case SXFRCTL1:
+            was           = dev->sxfrctl1;
             dev->sxfrctl1 = val;
+            /* The timer switched on under a selection nobody is answering. */
+            if ((val & ENSTIMER) && !(was & ENSTIMER) && dev->selecting && !timer_is_on(&dev->sel_timer))
+                timer_on_auto(&dev->sel_timer, 100.0);
+            if (val & BITBUCKET)
+                aic_pump(dev);
             break;
         case SCSISIG: /* SCSISIGO */
             was           = dev->scsisigo;
@@ -1665,7 +1942,13 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
             aic_bus_changed(dev);
             break;
         case SSTAT1: /* CLRSINT1 */
+            /* RST cannot be cleared from under ourselves: while we hold the
+               line down the status comes straight back. */
+            if (dev->scsiseq & SCSIRSTO)
+                val &= ~SCSIRSTI;
             dev->sstat1 &= ~(val & 0xaf);
+            if (val & REQINIT)
+                dev->sstat1 &= ~PHASEMIS;
             if (val & CLRATNO) {
                 dev->atn = 0;
                 dev->scsisigo &= ~0x10;
@@ -1682,8 +1965,14 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
             break;
         case SCSIBUSL:
             break;
-        case SELTIMER:
-            dev->seltimer = val;
+        case SELTIMER: /* read only */
+            break;
+        case SLEEPCTL:
+            /* Only the sequencer can put itself to sleep, and not at all
+               with SLEEPDIS set. */
+            dev->sleepctl = val & SLEEPDIS;
+            if (seq && !(val & SLEEPDIS))
+                dev->sleepctl |= val & (SLP1 | SLP0);
             break;
         case SELID:
             dev->selid = val;
@@ -1702,7 +1991,7 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
                                   !!(val & SEEDO));
             break;
         case SBLKCTL:
-            dev->sblkctl = val;
+            dev->sblkctl = val & (DIAGLEDEN | DIAGLEDON | AUTOFLUSHDIS | SELWIDE);
             break;
         case SCSITEST:
             dev->scsitest = val;
@@ -1716,8 +2005,16 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
                         val, dev->pc, dev->intstat, dev->sstat0,
                         dev->sstat1);
             }
-            dev->seqctl = val;
-            if (val & SEQRESET) {
+            /* SEQRESET clears itself. It also does not reliably take in
+               the write that drops LOADRAM: a part that had just had its
+               store read back was seen to start from where the read-back
+               left the address, and every driver there is writes SEQADDR
+               to zero by hand afterwards. */
+            /* PAUSEDIS is the sequencer's own: the host cannot write it. */
+            if (!seq)
+                val = (val & ~PAUSEDIS) | (was & PAUSEDIS);
+            dev->seqctl = val & ~SEQRESET;
+            if ((val & SEQRESET) && !((was & LOADRAM) && !(val & LOADRAM))) {
                 dev->pc       = 0;
                 dev->sp       = 0;
                 dev->ram_byte = 0;
@@ -1726,8 +2023,7 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
                 dev->ram_byte = 0;
             if (!(val & LOADRAM) && (was & LOADRAM))
                 dev->ram_byte = 0;
-            if (val & STEP)
-                aic_seq_kick(dev);
+            aic_update_irq(dev);
             break;
         case SEQRAM:
             if (dev->seqctl & LOADRAM) {
@@ -1782,13 +2078,15 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
             break;
 
         case DSCOMMAND0:
-            dev->dscommand0 = val;
+            dev->dscommand0 = val & 0xf0;
             break;
         case DSCOMMAND1:
-            dev->dscommand1 = val;
+            dev->dscommand1 = val & 0x03;
             break;
         case DSPCISTATUS:
-            dev->dspcistatus = val;
+            /* Only the FIFO threshold select can be written. */
+            dev->dspcistatus = val & DFTHRSH_100;
+            aic_pump(dev);
             break;
         case HCNTRL:
             if (!seq && ((val ^ dev->hcntrl) & CHIPRST)) {
@@ -1809,26 +2107,35 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
                interrupt and must not look like one in INTSTAT, or the
                handler will think the firmware stopped in mid-transfer. */
             aic_update_irq(dev);
+            /* Any write that leaves PAUSE clear ends a sleep. */
+            if (!(val & PAUSE))
+                dev->sleepctl &= ~(SLP1 | SLP0);
             if (!(val & PAUSE) && (was & PAUSE)) {
+                /* Releasing PAUSE always gets one instruction executed,
+                   whatever else wants the sequencer stopped. Single step
+                   and resuming from a breakpoint both rest on that. */
+                dev->must_step = 1;
                 aic_seq_kick(dev);
                 /* Run it here and now: a host that re-pauses a microsecond
                    later would otherwise never let the timer fire, and the
                    sequencer would look stopped. */
-                if (!seq && !aic_paused(dev))
+                if (!seq)
                     aic_seq_run(dev);
             }
             break;
+        /* Loading the host address loads SHADDR with it, unless HADDLDSEL
+           has pointed these four addresses at the high half of a 64-bit
+           address, which is kept and never used. */
         case HADDR:
-            dev->haddr = (dev->haddr & 0xffffff00) | val;
-            break;
         case HADDR + 1:
-            dev->haddr = (dev->haddr & 0xffff00ff) | (val << 8);
-            break;
         case HADDR + 2:
-            dev->haddr = (dev->haddr & 0xff00ffff) | (val << 16);
-            break;
         case HADDR + 3:
-            dev->haddr = (dev->haddr & 0x00ffffff) | ((uint32_t) val << 24);
+            if (dev->dscommand1 & 0x03) {
+                dev->misc[addr - HADDR] = val;
+                break;
+            }
+            dev->haddr  = (dev->haddr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
+            dev->shaddr = (dev->shaddr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
             break;
         case HCNT:
             dev->hcnt = (dev->hcnt & 0xffff00) | val;
@@ -1845,7 +2152,15 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
         case INTSTAT:
             /* The sequencer writes its interrupt code here. */
             aic_log("seq: intstat %02x at %03x\n", val, dev->pc);
-            dev->intstat = val;
+            /* The low four bits are interrupts, and writing one sets it:
+               only CLRINT takes one away. A command complete the host has
+               not collected yet must survive the sequencer interrupt that
+               comes after it. The high four are the sequencer's reason
+               code, and go with SEQINT. */
+            if (val & SEQINT)
+                dev->intstat = (dev->intstat & INT_PEND) | val;
+            else
+                dev->intstat |= val & INT_PEND;
             aic_update_irq(dev);
             break;
         case ERROR: /* CLRINT */
@@ -1861,9 +2176,14 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
                 dev->intstat &= ~CMDCMPLT;
             if (val & CLRSEQINT)
                 dev->intstat &= ~SEQINT;
+            /* Not ILLOPCODE: only a chip reset gets rid of that. */
             if (val & CLRPARERR)
-                dev->error = 0;
+                dev->error &= ILLOPCODE;
             aic_update_irq(dev);
+            /* SCSIINT reads clear only once its cause has been dealt with;
+               with the cause still standing it comes straight back. */
+            if (val & CLRSCSIINT)
+                aic_scsi_int(dev);
             aic_seq_kick(dev);
             break;
         case DFCNTRL:
@@ -1871,9 +2191,15 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
             /* FIFORESET is a strobe and reads back clear. Firmware turns
                the engine off with a read-modify-write, and a reset bit
                that stuck would empty the FIFO it is about to read. */
-            dev->dfcntrl = val & ~FIFORESET;
+            dev->dfcntrl = val & ~(FIFORESET | FIFOFLUSH);
             if (val & FIFORESET)
                 aic_fifo_reset(dev);
+            /* A flush by hand: nothing to do on an empty FIFO, and nothing
+               on the way out to the SCSI bus. */
+            if ((val & FIFOFLUSH) && dev->fifo_cnt && !(val & DIRECTION))
+                dev->fifo_flush = 1;
+            if ((val & HDMAEN) && !(was & HDMAEN))
+                dev->host_wait = AIC_HOST_INSNS;
             aic_pump(dev);
             if ((was & (SCSIEN | HDMAEN)) && !(val & (SCSIEN | HDMAEN)))
                 aic_seq_kick(dev);
@@ -1901,7 +2227,7 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
         case QINFIFO:
             /* The host queues an SCB for the sequencer. */
             if (dev->qin_cnt < QUEUE_SIZE) {
-                dev->qin[(dev->qin_rd + dev->qin_cnt) % QUEUE_SIZE] = val;
+                dev->qin[(dev->qin_rd + dev->qin_cnt) % QUEUE_SIZE] = val & 0x0f;
                 dev->qin_cnt++;
             }
             aic_seq_kick(dev);
@@ -1909,7 +2235,7 @@ aic_write(aic7880_t *dev, uint8_t addr, uint8_t val, int seq)
         case QOUTFIFO:
             /* The sequencer posts a completion. */
             if (dev->qout_cnt < QUEUE_SIZE) {
-                dev->qout[(dev->qout_rd + dev->qout_cnt) % QUEUE_SIZE] = val;
+                dev->qout[(dev->qout_rd + dev->qout_cnt) % QUEUE_SIZE] = val & 0x0f;
                 dev->qout_cnt++;
             }
             break;
@@ -1968,6 +2294,7 @@ aic_seq_pop(aic7880_t *dev)
     return dev->stack[dev->sp & 3];
 }
 
+/* The arithmetic operations set both flags. */
 static void
 aic_seq_flags(aic7880_t *dev, uint8_t result, int carry)
 {
@@ -1976,6 +2303,20 @@ aic_seq_flags(aic7880_t *dev, uint8_t result, int carry)
         dev->flags |= ZERO;
     if (carry)
         dev->flags |= CARRY;
+}
+
+/* The logical operations and the rotate set ZERO and LEAVE CARRY ALONE.
+   Adaptec's own firmware proves it: the routine that turns an SCB number
+   into a host address puts a mov between an add and its adc, and an and
+   between two adcs, and the twenty-four bit sum it builds is only right if
+   the carry survives both.  Clearing it here instead makes every such
+   address computation land in the wrong page.  */
+static void
+aic_seq_flags_logic(aic7880_t *dev, uint8_t result)
+{
+    dev->flags &= CARRY;
+    if (result == 0)
+        dev->flags |= ZERO;
 }
 
 /* The shift control byte of a ROL: the low four bits are how far to
@@ -2036,6 +2377,15 @@ aic_seq_step(aic7880_t *dev)
     ret_bit = (insn >> 24) & 0x01;
     addr    = (insn >> 16) & 0x1ff;
 
+    /* An instruction's worth of time has gone by on the bus and in the
+       host block. */
+    if (dev->req_wait && (--dev->req_wait == 0)) {
+        dev->req_wait = 1;
+        aic_tgt_req_due(dev);
+    }
+    if (dev->host_wait && (--dev->host_wait == 0))
+        aic_pump(dev);
+
     if (AIC7880_LOG_SEQ) {
         aic_log("seq %03x: %08x op %x imm %02x src %02x dst %02x%s\n", dev->pc,
                 insn, opcode, imm, src, dest, ret_bit ? " ret" : "");
@@ -2073,14 +2423,17 @@ aic_seq_step(aic7880_t *dev)
                         break;
                     }
             }
-            aic_seq_flags(dev, res, carry);
+            if ((opcode == OP_ADD) || (opcode == OP_ADC))
+                aic_seq_flags(dev, res, carry);
+            else
+                aic_seq_flags_logic(dev, res);
             aic_write(dev, dest, res, 1);
             break;
 
         case OP_ROL:
             a   = aic_read(dev, src, 1);
             res = aic_rotate(a, imm);
-            aic_seq_flags(dev, res, 0);
+            aic_seq_flags_logic(dev, res);
             aic_write(dev, dest, res, 1);
             break;
 
@@ -2147,6 +2500,7 @@ aic_seq_step(aic7880_t *dev)
 
         default:
             dev->error |= ILLOPCODE;
+            dev->seqctl &= ~PAUSEDIS;
             aic_raise(dev, BRKADRINT);
             return;
     }
@@ -2156,7 +2510,7 @@ aic_seq_step(aic7880_t *dev)
     if (ret_bit && (opcode < OP_JMP))
         dev->pc = aic_seq_pop(dev);
 
-    if (!(dev->brkaddr & 0x8000) && (dev->seqctl & BRKADRINTEN) && (dev->pc == (dev->brkaddr & 0x1ff)))
+    if (!(dev->brkaddr & 0x8000) && (dev->pc == (dev->brkaddr & 0x1ff)))
         aic_raise(dev, BRKADRINT);
 }
 
@@ -2178,8 +2532,23 @@ aic_seq_run(aic7880_t *dev)
     dev->in_seq = 1;
 
     for (n = 0; n < SEQ_BURST; n++) {
-        if (aic_paused(dev))
+        if (dev->must_step)
+            dev->must_step = 0;
+        else if (aic_paused(dev))
             break;
+
+        /* Asleep: nothing runs until one of the conditions it chose to be
+           woken by is true. */
+        if (dev->sleepctl & (SLP1 | SLP0)) {
+            uint8_t s0 = aic_read(dev, SSTAT0, 1);
+
+            if (((dev->sleepctl & SLP0) && (s0 & (SELDO | SELDI))) || ((dev->sleepctl & SLP1) && ((s0 & DMADONE) || (dev->sstat1 & PHASEMIS))))
+                dev->sleepctl &= ~(SLP1 | SLP0);
+            else {
+                dev->asleep = 1;
+                break;
+            }
+        }
 
         if (dev->pc == last_pc) {
             /* A one-instruction loop is the firmware's way of waiting;
@@ -2206,8 +2575,8 @@ aic_seq_run(aic7880_t *dev)
         aic_seq_step(dev);
 
         if (dev->seqctl & STEP) {
-            /* Single step: stop and tell the host. */
-            aic_raise(dev, BRKADRINT);
+            /* Single step: one instruction, and PAUSE sets itself again. */
+            dev->hcntrl |= PAUSE;
             break;
         }
     }
@@ -2220,6 +2589,12 @@ aic_seq_timer(void *priv)
 {
     aic7880_t *dev = (aic7880_t *) priv;
 
+    /* Microseconds have passed: whatever was a few instructions away has
+       happened. */
+    dev->host_wait = 0;
+    aic_tgt_req_due(dev);
+
+    aic_bitbucket(dev);
     aic_dma_host(dev);
     aic_dma_scsi(dev);
     aic_reselect_try(dev);
@@ -2265,24 +2640,26 @@ aic_chip_reset(aic7880_t *dev)
     dev->sstat0 = dev->sstat1 = 0;
     dev->simode0 = dev->simode1 = 0;
     dev->shaddr                 = 0;
-    dev->seltimer               = 0;
     dev->selid                  = 0;
     dev->scamctl = dev->brdctl = dev->seectl = 0;
-    dev->sblkctl                             = 0;
-    dev->scsitest                            = 0;
+    /* The LED bits come up set, and SELWIDE as the WIDEPS# pin is strapped. */
+    dev->sblkctl   = DIAGLEDEN | DIAGLEDON | (dev->wide ? SELWIDE : 0);
+    dev->scsitest  = 0;
+    dev->sleepctl  = 0;
+    dev->must_step = 0;
 
-    dev->seqctl   = 0;
+    dev->seqctl   = PERRORDIS | FASTMODE;
     dev->pc       = 0;
     dev->ram_byte = 0;
     dev->accum = dev->sindex = dev->dindex = 0;
     dev->flags = dev->function1 = 0;
-    dev->brkaddr                = 0;
+    dev->brkaddr                = 0x8000; /* BRKDIS */
     dev->sp = dev->stack_rd = 0;
     memset(dev->stack, 0, sizeof(dev->stack));
 
     dev->dscommand0  = 0;
     dev->dscommand1  = 0;
-    dev->dspcistatus = DFTHRSH_100;
+    dev->dspcistatus = 0;
     /* CHIPRSTACK reads back in the same bit as CHIPRST, and says the
        part has not been touched since it was reset. */
     dev->hcntrl  = PAUSE | CHIPRST;
@@ -2300,7 +2677,6 @@ aic_chip_reset(aic7880_t *dev)
     dev->qin_cnt = dev->qout_cnt = 0;
 
     memset(dev->sram, 0, sizeof(dev->sram));
-    memset(dev->sram2, 0, sizeof(dev->sram2));
     memset(dev->scb, 0, sizeof(dev->scb));
     memset(dev->misc, 0, sizeof(dev->misc));
 
@@ -2311,6 +2687,8 @@ aic_chip_reset(aic7880_t *dev)
     dev->msgin_len = dev->msgin_pos = dev->msgout_len = 0;
     dev->datl_full                                    = 0;
     dev->asleep                                       = 0;
+    dev->req_seen = dev->req_wait = dev->in_dma = 0;
+    dev->host_wait                              = 0;
 
     aic_update_irq(dev);
 }
@@ -2578,6 +2956,7 @@ aic_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             aic_io_update(dev);
             aic_mem_update(dev);
             aic_bios_update(dev);
+            aic_update_irq(dev); /* MASTEREN gates the interrupt pin */
             break;
         case 0x05:
             dev->pci_regs[0x05] = val & 0x01;
@@ -2585,8 +2964,12 @@ aic_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x07:
             dev->pci_regs[0x07] &= (uint8_t) ~(val & 0xf9);
             break;
-        case 0x0c:
-        case 0x0d:
+        case 0x0c: /* cache line size, in words: bits 5 to 2 */
+            dev->pci_regs[addr] = val & 0x3c;
+            break;
+        case 0x0d: /* latency timer: the low two bits are wired to zero */
+            dev->pci_regs[addr] = val & 0xfc;
+            break;
         case 0x3c:
             dev->pci_regs[addr] = val;
             break;
@@ -2601,6 +2984,12 @@ aic_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0x15: /* BAR1: memory, 4 KiB window over the same registers */
+            /* Four KiB means the low twelve bits are wired to zero. With
+               all of this byte writable the BAR sized as 256 bytes, and a
+               BIOS that packs small BARs gave it an address that is not on
+               a page boundary, where the window cannot be mapped. */
+            val &= 0xf0;
+            fallthrough;
         case 0x16:
         case 0x17:
             dev->pci_regs[addr] = val;
@@ -2696,8 +3085,8 @@ aic_init(const device_t *info)
         dev->pci_regs[0x2f] = (devid >> 8) & 0xff;
     }
     dev->pci_regs[0x3d] = PCI_INTA;
-    dev->pci_regs[0x3e] = 0x04; /* min grant */
-    dev->pci_regs[0x3f] = 0x1a; /* max latency */
+    dev->pci_regs[0x3e] = 0x08; /* min grant */
+    dev->pci_regs[0x3f] = 0x08; /* max latency */
 
     /* DEVCONFIG: 64-bit disabled, the PCI error bits clear. */
     dev->pci_regs[DEVCONFIG]     = 0x00;
