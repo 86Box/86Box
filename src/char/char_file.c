@@ -111,6 +111,9 @@ char_file_write(uint8_t *buf, size_t len, void *priv)
         buf += write_count;
         len -= write_count;
     }
+
+    fflush(dev->file_out);
+
     return ret;
 }
 
