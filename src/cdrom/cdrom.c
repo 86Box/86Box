@@ -25,6 +25,9 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/config.h>
+/* lpt.h declares lpt_t only if timer.h has been seen first. */
+#include <86box/timer.h>
+#include <86box/lpt.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
@@ -3502,7 +3505,14 @@ cdrom_hard_reset(void)
             switch (dev->bus_type) {
                 case CDROM_BUS_ATAPI:
                 case CDROM_BUS_SCSI:
+                case CDROM_BUS_LPT:
                     scsi_cdrom_drive_reset(i);
+                    /*
+                     * The bridge is not a device the user picks: assigning the drive
+                     * to an LPT port is the whole configuration. It claims the port
+                     * with lpt_attach(), first claim wins.
+                     */
+                    device_add_inst(&lpt_bpck_device, dev->res + 1);
                     break;
 
                 default:

@@ -52,15 +52,15 @@ enum {
     RDISK_TYPE_GENERIC = 0,
     RDISK_TYPE_ZIP_100,
     RDISK_TYPE_ZIP_250,
+#if 0
+    RDISK_TYPE_ZIP_750,
+#endif
     RDISK_TYPE_JAZ_1GB,
     RDISK_TYPE_JAZ_2GB,
     RDISK_TYPE_SYJET_1_5GB,
     RDISK_TYPE_SPARQ_1GB,
-#if 0
-    RDISK_TYPE_ZIP_750,
     RDISK_TYPE_SUPERDISK_120,
     RDISK_TYPE_SUPERDISK_240,
-#endif
 };
 
 typedef struct rdisk_type_t {
@@ -72,15 +72,15 @@ typedef struct rdisk_type_t {
 static const rdisk_type_t rdisk_types[KNOWN_RDISK_TYPES] = {
     { ZIP_SECTORS,           512 },
     { ZIP_250_SECTORS,       512 },
+#if 0
+    { ZIP_750_SECTORS,       512 },
+#endif
     { JAZ_1GB_SECTORS,       512 },
     { JAZ_2GB_SECTORS,       512 },
     { SYJET_SECTORS,         512 },
     { SPARQ_SECTORS,         512 },
-#if 0
-    { ZIP_750_SECTORS,       512 },
     { SUPERDISK_SECTORS,     512 },
     { SUPERDISK_240_SECTORS, 512 },
-#endif
 };
 
 typedef struct rdisk_drive_type_t {
@@ -95,6 +95,9 @@ static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
     { "86BOX",    "REMOVABLE DISK",             "5.00", { 1, 1, 1, 1, 0, 0 /*, 0, 0, 0*/ }},
     { "IOMEGA",   "ZIP 100",                    "E.08", { 1, 0, 0, 0, 0, 0 /*, 0, 0, 0*/ }},
     { "IOMEGA",   "ZIP 250",                    "42.S", { 1, 1, 0, 0, 0, 0 /*, 1, 0, 0*/ }},
+#if 0
+    { "IOMEGA",   "ZIP 750",                    "42.S", { 1, 1, 1, 0, 0 }}, /* Guess */
+#endif
     { "IOMEGA",   "JAZ 1GB",                    "H.72", { 0, 0, 1, 0, 0, 0 /*, 0, 0, 0*/ }},
     { "IOMEGA",   "JAZ 2GB",                    "E.17", { 0, 0, 1, 1, 0, 0 /*, 0, 0, 1*/ }},
     /* Firmware revision "1.06" is a placeholder: the real SyJet's revision
@@ -104,11 +107,8 @@ static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
     /* Firmware revision "1.03" is likewise an unconfirmed placeholder - the
        SparQ's EIDE Technical Reference doesn't give a real example string. */
     { "SYQUEST",  "SparQ 1.0GB",                "1.03", { 0, 0, 0, 0, 0, 1 }},
-#if 0
-    { "IOMEGA",   "ZIP 750",                    "42.S", { 1, 1, 1, 0, 0 }}, /* Guess */
     { "IMATION",  "SUPERDISK 120 ATAPI",        "04"    { 0, 0, 0, 1, 0 }},
     { "IMATION",  "SUPERDISK  240       ATAPI", "04"    { 0, 0, 0, 1, 1 }},
-#endif
 };
 
 enum {
@@ -224,6 +224,9 @@ extern void rdisk_reset(scsi_common_t *sc);
 extern int  rdisk_is_empty(const uint8_t id);
 extern void rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert);
 extern void rdisk_close(void);
+#ifdef SCSI_DEVICE_H
+extern scsi_device_t *rdisk_get_lpt_device(const uint8_t port);
+#endif
 
 #ifdef __cplusplus
 }

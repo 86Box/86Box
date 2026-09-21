@@ -451,9 +451,24 @@ lpt_get_ctrl(const lpt_t *dev)
     return ret;
 }
 
+static void lpt_fifo_deliver(lpt_t *dev);
+
 static void
 lpt_write_fifo(lpt_t *dev, const uint8_t val, const uint8_t tag)
 {
+    /*
+     * Real ECP hardware holds the ISA cycle until the FIFO has room, so a host
+     * `rep outsb` cannot outrun it. Nothing here models that stall, and without
+     * this a full FIFO would silently discard the byte. Deliver one queued byte
+     * instead: the same thing the drain timer does, at the moment the stall
+     * would have happened. Narrowed to a device implementing the ECP forward
+     * path, so chardev and DMA behaviour are unchanged.
+     */
+    if (fifo_get_full(dev->fifo) && dev->ecp && dev->dt && dev->dt->priv &&
+        (dev->dt->ecp_write_data != NULL)) {
+        lpt_fifo_deliver(dev);
+    }
+
     if (!fifo_get_full(dev->fifo)) {
         fifo_write_evt_tagged(tag, val, dev->fifo);
 
@@ -480,6 +495,47 @@ lpt_strobe(lpt_t *dev, const uint8_t val)
         dev->dt->strobe(dev->strobe, val, dev->dt->priv);
 
     dev->strobe = val;
+}
+
+/* Hand one queued FIFO byte to the attached device. Called from the drain
+   timer and, when the FIFO is full, straight from the port write. */
+static void
+lpt_fifo_deliver(lpt_t *dev)
+{
+    uint8_t       tag = 0x00;
+    const uint8_t val = fifo_read_evt_tagged(&tag, dev->fifo);
+
+    lpt_log("FIFO: %02X, TAG = %02X\n", val, tag);
+
+    /*
+     * Tag 0x00 is an ECP ADDRESS cycle - the byte the host wrote to base+0
+     * while in an ECP mode. A device that offers ecp_write_addr is commanded
+     * through it; the EPAT bridge takes 0x80/0xC0/0xA0 there and will not
+     * move a byte of payload until it has seen one.
+     */
+    if ((tag == 0x00) && dev->output_enabled && dev->dt &&
+        dev->dt->priv && dev->ecp && dev->dt->ecp_write_addr) {
+        dev->dt->ecp_write_addr(val, dev->dt->priv);
+    }
+
+    if (tag == 0x01) {
+        /*
+         * In an ECP FIFO mode a device that offers ecp_write_data gets the
+         * byte there instead: its write_data() path is framed for SPP block
+         * transfers and cannot recognise an ECP payload byte arriving
+         * without that framing.
+         */
+        if (dev->output_enabled && dev->dt && dev->dt->priv &&
+            dev->ecp && ((dev->ecr & 0xe0) != 0x00) &&
+            dev->dt->ecp_write_data) {
+            dev->dt->ecp_write_data(val, dev->dt->priv);
+        } else if (dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv) {
+            dev->dt->write_data(val, dev->dt->priv);
+        }
+
+        lpt_strobe(dev, 1);
+        lpt_strobe(dev, 0);
+    }
 }
 
 static void
@@ -518,21 +574,8 @@ lpt_fifo_out_callback(void *priv)
             break;
 
         case LPT_STATE_WRITE_FIFO:
-            if (!fifo_get_empty(dev->fifo)) {
-                uint8_t tag = 0x00;
-                const uint8_t val = fifo_read_evt_tagged(&tag, dev->fifo);
-
-                lpt_log("FIFO: %02X, TAG = %02X\n", val, tag);
-
-                /* We do not currently support sending commands. */
-                if (tag == 0x01) {
-                    if (dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv)
-                        dev->dt->write_data(val, dev->dt->priv);
-
-                    lpt_strobe(dev, 1);
-                    lpt_strobe(dev, 0);
-                }
-            }
+            if (!fifo_get_empty(dev->fifo))
+                lpt_fifo_deliver(dev);
 
             if (((dev->ecr & 0xe0) != 0xc0) && (dev->ecr & 0x08)) {
                 if (fifo_get_empty(dev->fifo)) {
@@ -902,8 +945,22 @@ lpt_read(const uint16_t port, void *priv)
                 default:
                     break;
                 case 3:
-                    if (lpt_get_ctrl_raw(dev) & 0x20)
-                        ret = lpt_read_fifo(dev);
+                    if (lpt_get_ctrl_raw(dev) & 0x20) {
+                        /*
+                         * Real FIFO content first - that is the chardev
+                         * passthrough. An attached emulated device supplies a
+                         * byte on demand when the FIFO has none, which is the
+                         * only route it has: nothing fills the FIFO on its
+                         * behalf.
+                         */
+                        if (!fifo_get_empty(dev->fifo))
+                            ret = lpt_read_fifo(dev);
+                        else if ((dev->dt != NULL) &&
+                                 (dev->dt->ecp_read_data != NULL) &&
+                                 (dev->dt->priv != NULL)) {
+                            ret = dev->dt->ecp_read_data(dev->dt->priv);
+                        }
+                    }
                     break;
                 case 6:
                     /* TFIFO */
@@ -1322,6 +1379,27 @@ lpt_init(const device_t *info)
         lpt1 = dev;
 
     return dev;
+}
+
+void
+lpt_set_ecp_read_data(lpt_t *dev, uint8_t (*ecp_read_data)(void *priv))
+{
+    if ((dev != NULL) && (dev->dt != NULL))
+        dev->dt->ecp_read_data = ecp_read_data;
+}
+
+void
+lpt_set_ecp_write_data(lpt_t *dev, void (*ecp_write_data)(uint8_t val, void *priv))
+{
+    if ((dev != NULL) && (dev->dt != NULL))
+        dev->dt->ecp_write_data = ecp_write_data;
+}
+
+void
+lpt_set_ecp_write_addr(lpt_t *dev, void (*ecp_write_addr)(uint8_t val, void *priv))
+{
+    if ((dev != NULL) && (dev->dt != NULL))
+        dev->dt->ecp_write_addr = ecp_write_addr;
 }
 
 void
