@@ -324,6 +324,14 @@ scsi_cdrom_current_mode(const scsi_cdrom_t *dev)
 {
     if (dev->drv->bus_type == CDROM_BUS_SCSI)
         return 2;
+    else if (dev->drv->bus_type == CDROM_BUS_LPT)
+        /*
+         * A parallel-port bridge moves everything a byte at a time; there is
+         * no DMA to offer. Saying so matters: an unrecognised bus falls
+         * through to "no transfer" below, and the drive then completes every
+         * command with no data phase at all.
+         */
+        return 1;
     else if (dev->drv->bus_type == CDROM_BUS_ATAPI) {
         scsi_cdrom_log(dev->log, "ATAPI drive, setting to %s\n",
                        (dev->tf->features & 1) ? "DMA" : "PIO",
@@ -4453,6 +4461,22 @@ scsi_cdrom_identify(const ide_t *ide, UNUSED(const int ide_has_dma))
     }
 }
 
+/* Drives reached through a parallel-port bridge, indexed by LPT port. */
+static scsi_device_t lpt_cdrom_devices[PARALLEL_MAX];
+
+/*
+ * Hand a parallel-port bridge the drive assigned to its port, or NULL if none
+ * is. The bridge owns the wire protocol; the drive owns ATAPI.
+ */
+scsi_device_t *
+cdrom_get_lpt_device(const uint8_t port)
+{
+    if (port >= PARALLEL_MAX)
+        return NULL;
+
+    return (lpt_cdrom_devices[port].sc == NULL) ? NULL : &lpt_cdrom_devices[port];
+}
+
 void
 scsi_cdrom_drive_reset(const int c)
 {
@@ -4505,7 +4529,30 @@ scsi_cdrom_drive_reset(const int c)
     drv->sector_size = 2048;
     (void) scsi_cdrom_update_sector_flags(dev);
 
-    if (drv->bus_type == CDROM_BUS_SCSI) {
+    if (drv->bus_type == CDROM_BUS_LPT) {
+        /*
+         * Parallel-port drive, reached through a bridge. There is no bus to
+         * attach to: the bridge fetches the drive from lpt_cdrom_devices[] by
+         * its own port number, and drives it with the same entry points a
+         * SCSI drive uses.
+         */
+        if (dev->tf == NULL)
+            dev->tf              = (ide_tf_t *) calloc(1, sizeof(ide_tf_t));
+
+        dev->ms_page_flags       = scsi_cdrom_ms_page_flags;
+        dev->ms_pages_default    = scsi_cdrom_ms_pages_default;
+        dev->ms_pages_changeable = scsi_cdrom_ms_pages_changeable;
+
+        scsi_device_t *sd        = &lpt_cdrom_devices[drv->res & (PARALLEL_MAX - 1)];
+
+        sd->sc                   = (scsi_common_t *) dev;
+        sd->command              = scsi_cdrom_command;
+        sd->request_sense        = scsi_cdrom_request_sense_for_scsi;
+        sd->reset                = scsi_cdrom_reset;
+        sd->phase_data_out       = scsi_cdrom_phase_data_out;
+        sd->command_stop         = scsi_cdrom_command_stop;
+        sd->type                 = SCSI_REMOVABLE_CDROM;
+    } else if (drv->bus_type == CDROM_BUS_SCSI) {
         char *vendor               = cdrom_get_vendor(dev->drv->type);
 
         dev->ven_cmd               = NULL;
