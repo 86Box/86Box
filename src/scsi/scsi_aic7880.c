@@ -2520,6 +2520,13 @@ aic_seq_step(aic7880_t *dev)
    most of what this firmware does while it waits for the bus. */
 #define SEQ_BURST 200
 
+/* How many times round a one-instruction loop before it is taken for a
+   wait on the outside world. It has to be longer than the waits that
+   resolve by themselves within a few instructions -- REQ coming back
+   between PIO bytes, the host side of the FIFO starting up -- or every one
+   of those costs a timer period instead of a few instructions. */
+#define SEQ_PARK 16
+
 static void
 aic_seq_run(aic7880_t *dev)
 {
@@ -2553,7 +2560,7 @@ aic_seq_run(aic7880_t *dev)
         if (dev->pc == last_pc) {
             /* A one-instruction loop is the firmware's way of waiting;
                there is no point running it until the timer expires. */
-            if (++same > 2) {
+            if (++same > SEQ_PARK) {
                 dev->asleep = 1;
                 if (dev->pc != dev->last_park) {
                     dev->last_park = dev->pc;
