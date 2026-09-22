@@ -57,6 +57,7 @@ private:
     friend class SettingsFloppyCDROM;
     friend class SettingsOtherRemovable;
     friend class SettingsOtherPreipherals;
+    friend class DeviceConfig;
 };
 
 #endif // QT_SETTINGS_HPP

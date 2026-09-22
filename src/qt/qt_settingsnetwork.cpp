@@ -215,6 +215,14 @@ SettingsNetwork::~SettingsNetwork()
 }
 
 int
+SettingsNetwork::netCard(int i) const
+{
+    const QComboBox *cbox = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
+
+    return cbox ? cbox->currentData().toInt() : 0;
+}
+
+int
 SettingsNetwork::changed()
 {
     int has_changed = 0;
