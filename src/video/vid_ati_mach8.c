@@ -5815,12 +5815,22 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev, in
                 }
             }
 
-            if (((dev->_8514pal[0].r + dev->_8514pal[0].g + dev->_8514pal[0].b) >= 0x4e) ||
-                (dev->_8514pal[0].r >= 0x26) || (dev->_8514pal[0].g >= 0x26) ||
-                (dev->_8514pal[0].b >= 0x26))
-                temp |= 0x00;
-            else
-                temp |= 0x01;
+            {
+                /* SENSE compares whatever reaches the monitor connector. On the
+                   8514/Ultra add-on with the 8514 side off that is the VGA's
+                   pass-through video, and its POST ROM tests the DAC by
+                   programming the VGA's colour 0 (3C8h/3C9h). */
+                const rgb_t *pal0 = &dev->_8514pal[0];
+
+                if (ATI_8514A_ULTRA && !dev->on)
+                    pal0 = &svga->vgapal[0];
+
+                if (((pal0->r + pal0->g + pal0->b) >= 0x4e) ||
+                    (pal0->r >= 0x26) || (pal0->g >= 0x26) || (pal0->b >= 0x26))
+                    temp |= 0x00;
+                else
+                    temp |= 0x01;
+            }
 
             mach_log(mach->log, "Read: Display Status1=%02x.\n", temp);
             break;
@@ -6151,6 +6161,31 @@ mach_accel_in_call(uint16_t port, mach_t *mach, svga_t *svga, ibm8514_t *dev, in
     mach_log(mach->log, "%04X:%08X: Port NORMAL IN=%04x, temp=%04x, AX=%04x, ES=%04x, DI=%04x, len=%d.\n", CS, cpu_state.pc, port, temp, AX, ES, DI, len);
 
     return temp;
+}
+
+/* 8514/A ROM_PAGE_SEL (46E8h): bits 2:0 select which 2 KB page of the
+   on-board ROM appears in the upper half of the 4 KB BIOS window. Bit 3 is
+   the VGA enable bit of an ISA VGA sharing the port; the POST ROM always
+   keeps it set (writes 8/9/0Ah). Write-only on the ATI 38800. */
+static void
+ati8514_rom_page_out(uint16_t port, uint8_t val, void *priv)
+{
+    svga_t    *svga = (svga_t *) priv;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
+
+    if ((port == 0x46e8) && ((val & 0x07) != dev->rom_page)) {
+        dev->rom_page = val & 0x07;
+        ati8514_bios_rom_recalc(dev);
+        /* The window is rewritten in place, so anything the recompiler has
+           already translated out of the paged half has to go. */
+        mem_invalidate_range(dev->bios_addr + 0x0800, dev->bios_addr + 0x0fff);
+    }
+}
+
+static void
+ati8514_rom_page_outw(uint16_t port, uint16_t val, void *priv)
+{
+    ati8514_rom_page_out(port, val & 0xff, priv);
 }
 
 static void
@@ -7576,6 +7611,7 @@ ati8514_io_set(svga_t *svga)
     io_sethandler(0x26e8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0x2ee8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0x42e8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
+    io_sethandler(0x46e8, 0x0001, NULL, NULL, NULL, ati8514_rom_page_out, ati8514_rom_page_outw, NULL, svga);
     io_sethandler(0x4ae8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0x52e8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
     io_sethandler(0x56e8, 0x0002, ati8514_accel_inb, ati8514_accel_inw, ati8514_accel_inl, ati8514_accel_outb, ati8514_accel_outw, ati8514_accel_outl, svga);
@@ -8243,43 +8279,51 @@ mach_reset(void *priv)
     }
 }
 
+/* Assemble the 4 KB BIOS window into the two page buffer the mapping is
+   backed by. Buffer offset 0 is the start of the 4 KB page the window begins
+   in, which is what both the exec pointer and the read handlers index from.
+   ROM image layout (11301113140_ROM.BIN): 0000h unused (page 0), 0800h the
+   fixed 2 KB POST page (55AAh header), 1000h page 1, 1800h page 2. The POST
+   code addresses page n as if it followed the fixed page linearly (page n at
+   800h*n), and checks that the first byte of the page mapped at window+800h
+   equals the value written to 46E8h. */
+void
+ati8514_bios_rom_recalc(void *priv)
+{
+    ibm8514_t     *dev  = (ibm8514_t *) priv;
+    const uint32_t off  = dev->bios_addr & 0x0fff;
+    const uint32_t page = dev->rom_page ? ((dev->rom_page + 1) << 11) : 0x0000;
+
+    memcpy(dev->bios_rom.rom + off, dev->rom_image + 0x0800, 0x0800);
+
+    if (page < 0x2000)
+        memcpy(dev->bios_rom.rom + off + 0x0800, dev->rom_image + page, 0x0800);
+    else /* a page this dump does not have */
+        memset(dev->bios_rom.rom + off + 0x0800, 0xff, 0x0800);
+}
+
 uint8_t
 ati8514_bios_rom_readb(uint32_t addr, void *priv)
 {
     const ibm8514_t *dev = (ibm8514_t *) priv;
-    const rom_t  *rom = &dev->bios_rom;
-    uint8_t ret = 0xff;
 
-    addr &= rom->mask;
+    addr -= dev->bios_addr & 0x000ff000;
+    if (addr >= 0x2000)
+        return 0xff;
 
-    ret = rom->rom[addr];
-    return (ret);
+    return dev->bios_rom.rom[addr];
 }
 
 uint16_t
 ati8514_bios_rom_readw(uint32_t addr, void *priv)
 {
-    const ibm8514_t *dev = (ibm8514_t *) priv;
-    const rom_t  *rom = &dev->bios_rom;
-    uint16_t ret = 0xffff;
-
-    addr &= rom->mask;
-
-    ret = (*(uint16_t *) &(rom->rom[addr]));
-    return (ret);
+    return ati8514_bios_rom_readb(addr, priv) | (ati8514_bios_rom_readb(addr + 1, priv) << 8);
 }
 
 uint32_t
 ati8514_bios_rom_readl(uint32_t addr, void *priv)
 {
-    const ibm8514_t *dev = (ibm8514_t *) priv;
-    const rom_t  *rom = &dev->bios_rom;
-    uint32_t ret = 0xffffffff;
-
-    addr &= rom->mask;
-
-    ret = (*(uint32_t *) &(rom->rom[addr]));
-    return (ret);
+    return ati8514_bios_rom_readw(addr, priv) | (ati8514_bios_rom_readw(addr + 2, priv) << 16);
 }
 
 static void *
