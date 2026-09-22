@@ -15,6 +15,9 @@ public:
     ~SettingsStorageControllers();
 
     int  changed();
+    /* The SCSI card chosen in row i of the page, as the settings stand
+       now: what the EISA slot picker greys out against. */
+    int scsiCard(int i) const;
 
     void restore();
     void save(int soft);

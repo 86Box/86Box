@@ -219,6 +219,8 @@ extern int network_rx_on_tx_put_pkt(netcard_t *card, netpkt_t *pkt);
 /* 3Com Etherlink */
 extern const device_t threec501_device;
 extern const device_t threec503_device;
+extern const device_t threec592_device;
+extern const device_t threec597_device;
 
 /* Novell NE2000 and compatibles */
 extern const device_t ne1000_device;

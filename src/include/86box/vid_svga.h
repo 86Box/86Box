@@ -356,6 +356,7 @@ extern void     ati8514_out(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t  ati8514_in(uint16_t addr, void *priv);
 extern void     ati8514_recalctimings(svga_t *svga);
 extern uint8_t  ati8514_mca_read(const uint16_t port, void *priv);
+extern void     ati8514_bios_rom_recalc(void *priv);
 extern uint8_t  ati8514_bios_rom_readb(uint32_t addr, void *priv);
 extern uint16_t ati8514_bios_rom_readw(uint32_t addr, void *priv);
 extern uint32_t ati8514_bios_rom_readl(uint32_t addr, void *priv);

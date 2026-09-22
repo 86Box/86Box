@@ -246,6 +246,29 @@ pm2_cntrl_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
     dev->pm2_cntrl = val & 0x01;
 }
 
+/* DRAMC bits 7-6, Hole Enable (82437FX/82439HX/82437VX/82439TX data sheets):
+   "CPU cycles matching an enabled hole are passed on to PCI", and from there
+   to ISA. 01 = 512-640 KiB, 10 = 15-16 MiB. The register was stored and the
+   hole never made, so an ISA adapter with its aperture at 15 MiB -- which is
+   what the hole is FOR -- saw nothing but the machine's own RAM. */
+static void
+i4x0_dram_hole(uint8_t old_val, uint8_t new_val)
+{
+    static const uint32_t hole_base[4] = { 0, 0x00080000, 0x00f00000, 0 };
+    static const uint32_t hole_size[4] = { 0, 0x00020000, 0x00100000, 0 };
+    uint8_t               old_hen      = (old_val >> 6) & 3;
+    uint8_t               new_hen      = (new_val >> 6) & 3;
+    uint64_t              ram_top      = ((uint64_t) mem_size) << 10; /* mem_size is in KiB */
+
+    if (old_hen == new_hen)
+        return;
+
+    if (hole_size[old_hen] && (ram_top > hole_base[old_hen]))
+        mem_set_mem_state_both(hole_base[old_hen], hole_size[old_hen], MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    if (hole_size[new_hen] && (ram_top > hole_base[new_hen]))
+        mem_set_mem_state_both(hole_base[new_hen], hole_size[new_hen], MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+}
+
 static void
 i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
@@ -660,11 +683,19 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                     case INTEL_430FX:
                     case INTEL_430HX:
                     case INTEL_430VX:
-                        regs[0x57] = val & 0xcf;
-                        break;
+                        {
+                            uint8_t old_dramc = regs[0x57];
+                            regs[0x57]        = val & 0xcf;
+                            i4x0_dram_hole(old_dramc, regs[0x57]);
+                            break;
+                        }
                     case INTEL_430TX:
-                        regs[0x57] = val & 0xdf;
-                        break;
+                        {
+                            uint8_t old_dramc = regs[0x57];
+                            regs[0x57]        = val & 0xdf;
+                            i4x0_dram_hole(old_dramc, regs[0x57]);
+                            break;
+                        }
                     case INTEL_440FX:
                         regs[0x57] = val & 0x77;
                         break;
