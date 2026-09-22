@@ -798,6 +798,9 @@ extern int             machine_at_g486ip_init(const machine_t *);
 /* OPTi 499 */
 extern int             machine_at_cougar_init(const machine_t *);
 
+/* SiS 411 */
+extern int             machine_at_s1437_init(const machine_t *);
+
 /* SiS 460 */
 extern int             machine_at_spc7500p_init(const machine_t *);
 
@@ -857,7 +860,6 @@ extern int             machine_at_dtk486_init(const machine_t *);
 extern int             machine_at_ami471_init(const machine_t *);
 extern int             machine_at_px471_init(const machine_t *);
 extern int             machine_at_tg486g_init(const machine_t *);
-extern int             machine_at_s1437_init(const machine_t *);
 
 /* Symphony SL82C460 */
 extern int             machine_at_vs486f3vl_init(const machine_t *);
