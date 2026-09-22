@@ -56,6 +56,7 @@ const uint8_t scsi_disk_command_flags[0x100] = {
     [0x0a ... 0x0b] = IMPLEMENTED | CHECK_READY,
     [0x12]          = IMPLEMENTED | ALLOW_UA,
     [0x13]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
+    [0x1b]          = IMPLEMENTED | CHECK_READY | SCSI_ONLY,
     [0x15]          = IMPLEMENTED,
     [0x16 ... 0x17] = IMPLEMENTED | SCSI_ONLY,
     [0x1a]          = IMPLEMENTED,
@@ -1030,6 +1031,11 @@ scsi_disk_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_SCSI_RELEASE:
         case GPCMD_TEST_UNIT_READY:
         case GPCMD_FORMAT_UNIT:
+        /* A hard disk here is spinning from the moment it exists, so
+           START STOP UNIT has nothing to do but succeed. Firmware that
+           sends it -- the Adaptec 1.x BIOSes do, before the boot -- and
+           was told ILLEGAL REQUEST gave up on the drive. */
+        case GPCMD_START_STOP_UNIT:
             scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_disk_command_complete(dev);
             break;
