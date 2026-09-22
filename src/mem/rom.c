@@ -808,7 +808,7 @@ bios_load_intel_file(const char *fn1, char *next_fn,
     }
 
     /* Open the file. */
-    FILE *f = fopen((char *) fn, "rb");
+    FILE *f = rom_fopen((char *) fn, "rb");
     if (f == NULL) {
          rom_log("BIOS: File \"%s\" not found\n", (char *) fn);
          return 0;
@@ -992,7 +992,7 @@ bios_load_intel(const char *fn1, const char *fn2, const int sz, const int invert
     }
 
     if ((fn2 != NULL) && (strlen(fn2) > 0)) {
-        FILE *f = fopen(fn2, "rb");
+        FILE *f = rom_fopen(fn2, "rb");
         if (f == NULL) {
             rom_log("BIOS: File \"%s\" not found\n", fn2);
             return 0;
