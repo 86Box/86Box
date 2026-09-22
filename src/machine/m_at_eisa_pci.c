@@ -120,12 +120,16 @@ machine_at_54tdp_init(const machine_t *model)
        PIRQC the chip raised IRQ 11 while Windows 2000 had its handler on
        IRQ 10: every command on the on-board bus completed unnoticed and
        was reset after the driver's timeout, eight seconds at a time. */
-    pci_register_slot(0x08, PCI_CARD_SCSI, 4, 1, 2, 3);
-    pci_register_slot(0x09, PCI_CARD_VIDEO, 4, 1, 2, 3);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    /* The rest is what the BIOS itself reports through its PCI IRQ
+       routing table (INT 1Ah, B10Eh, as PCIREG prints it): the on-board
+       SCSI at 08h with INTA alone, and four slots at 09h to 0Ch -- slot 4
+       down to slot 1 -- each one a rotation of the last. There is no
+       device 0Dh on this board: a card put there had no routing at all. */
+    pci_register_slot(0x08, PCI_CARD_SCSI,   4, 0, 0, 0); /* Onboard */
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 4 */
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 3 */
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 2 */
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 1 */
 
     /* Four EISA slots. */
     eisa_init(4);
