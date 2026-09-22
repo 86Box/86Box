@@ -906,7 +906,7 @@ bios_load_intel_file(const char *fn1, char *next_fn,
     fseek(f, (long) next_offs + 0x00000001, SEEK_SET);
 
     /* Read it into the temp variable. */
-    fread(&temp, 4, 1, f);
+    (void) !fread(&temp, 4, 1, f);
 
     if (first) {
         /* Set total_size to it. */
@@ -959,17 +959,17 @@ bios_load_intel_file(const char *fn1, char *next_fn,
     /* Seek to the next offset. */
     fseek(f, (long) next_offs, SEEK_SET);
     /* Read the position. */
-    fread(&pos, 4, 1, f);
+    (void) !fread(&pos, 4, 1, f);
 
     /* Seek to the next offset. */
     fseek(f, (long) next_offs + 0x00000004, SEEK_SET);
     /* Read the size. */
-    fread(&size, 4, 1, f);
+    (void) !fread(&size, 4, 1, f);
 
     /* Seek to the next offset. */
     fseek(f, (long) next_offs + 0x00000008, SEEK_SET);
     /* Read the word. */
-    fread(&word, 2, 1, f);
+    (void) !fread(&word, 2, 1, f);
     /* Mark if there is a next file on the list. */
     *next = ((word & 0xff00) == 0x0000);
     /* Calculate the next offset. */
