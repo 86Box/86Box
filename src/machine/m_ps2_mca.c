@@ -1590,12 +1590,14 @@ mem_encoding_update(void)
         ps2_mca_log("PS/2 Model 80-111: 00080000- 0009FFFF enabled\n");
     }
 
+    /* The Type 1 planar does not shadow the ROM, so its split memory block is 128 KB larger
+       than on the later planars, which keep the top 128 KB of the first 1 MB mapped as ROM. */
     if (!(ps2.mem_regs[1] & 8)) {
         if (ps2.mem_regs[1] & 4) {
-            ps2.split_size = 384;
+            ps2.split_size = (ps2.planar_id == 0xfeff) ? 512 : 384;
             ps2.split_phys = 0x80000;
         } else {
-            ps2.split_size = 256;
+            ps2.split_size = (ps2.planar_id == 0xfeff) ? 384 : 256;
             ps2.split_phys = 0xa0000;
         }
 
@@ -1920,6 +1922,74 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
+}
+
+static void
+ps2_mca_board_model_80_type1_init(void)
+{
+    ps2_mca_board_common_init();
+
+    ps2.split_addr = mem_size * 1024;
+    mca_init(8);
+
+    ps2.planar_read  = model_80_read;
+    ps2.planar_write = model_80_write;
+
+    device_add(&ps2_nvr_device);
+
+    io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
+
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = 0xc0 | ((mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f));
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0xca : 0xc2; /* -ENSPLIT = 1 */
+
+    /* Note: Based on the information on ardent-tool.com website,
+       IBM PS/2 model 80 type 1 supports 1 or 2 MB memory card on
+       real machines, so memory encodings should be set as is. */
+    switch (mem_size / 1024) {
+        case 1: /* empty + 1 MB card */
+            ps2.option[1] = 0xfc; /* 11 11 11 00 = 0 1 */
+            break;
+        case 2: /* 1 MB card + 1 MB card */
+            ps2.option[1] = 0xf0; /* 11 11 00 00 = 1 1 */
+            break;
+        case 3: /* 1 MB card + 2 MB card */
+            ps2.option[1] = 0xf2; /* 11 11 00 10 = 1 2 */
+            break;
+        case 4: /* 2 MB card + 2 MB card */
+        default: /* 2 MB card + 2 MB card + expansions */
+            ps2.option[1] = 0xfa; /* 11 11 10 10 = 2 2 */
+            break;
+    }
+
+    mem_mapping_add(&ps2.split_mapping,
+                    (mem_size + 256) * 1024,
+                    256 * 1024,
+                    ps2_read_split_ram,
+                    ps2_read_split_ramw,
+                    ps2_read_split_raml,
+                    ps2_write_split_ram,
+                    ps2_write_split_ramw,
+                    ps2_write_split_raml,
+                    &ram[0xa0000],
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+    mem_mapping_disable(&ps2.split_mapping);
+
+    if (mem_size > 4096) {
+        /* Only 4 MB supported on planar, create a memory expansion card for the rest */
+        if (mem_size > 12288)
+            ps2_mca_mem_d071_init(8);
+        else {
+            ps2_mca_mem_fffc_init(8);
+        }
+    }
+
+    if (gfxcard[0] == VID_INTERNAL)
+        ps2.mb_vga = device_add(&ps1vga_mca_device);
+
+    ps2.split_size = 0;
 }
 
 static void
@@ -2444,6 +2514,30 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 
     ps2.planar_id = 0xf9ff;
     ps2_mca_board_model_70_type34_init(0, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_ps2_model_80_type1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_quad("roms/machines/ibmps2_m80/72X7550.BIN",
+                         "roms/machines/ibmps2_m80/72X7553.BIN",
+                         "roms/machines/ibmps2_m80/72X7556.BIN",
+                         "roms/machines/ibmps2_m80/72X7559.BIN",
+                         0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xfeff;
+    ps2_mca_board_model_80_type1_init();
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

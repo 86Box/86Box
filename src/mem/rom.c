@@ -585,6 +585,55 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
 }
 
 static int
+rom_load_interleaved_quad(const char *fn1, const char *fn2, const char *fn3,
+                          const char *fn4, uint32_t addr, int sz, int off, uint8_t *ptr)
+{
+    const char *fn[4] = { fn1, fn2, fn3, fn4 };
+    FILE       *fp[4] = { NULL, NULL, NULL, NULL };
+    int         ok    = 1;
+
+    for (int i = 0; i < 4; i++) {
+        if ((fp[i] = rom_fopen(fn[i], "rb")) == NULL) {
+            rom_log("ROM: image '%s' not found\n", fn[i]);
+            ok = 0;
+        }
+    }
+
+    if (!ok) {
+        for (int i = 0; i < 4; i++) {
+            if (fp[i] != NULL)
+                (void) fclose(fp[i]);
+        }
+
+        return 0;
+    }
+
+    /* Make sure we only look at the base-256K offset. */
+    if (addr >= 0x80000) {
+        addr = 0;
+    } else {
+        addr &= 0x07ffff;
+    }
+
+    if (ptr != NULL) {
+        for (int i = 0; i < 4; i++)
+            (void) fseek(fp[i], off, SEEK_SET);
+
+        for (int c = 0; c < sz; c += 4) {
+            ptr[addr + c]     = fgetc(fp[0]) & 0xff;
+            ptr[addr + c + 1] = fgetc(fp[1]) & 0xff;
+            ptr[addr + c + 2] = fgetc(fp[2]) & 0xff;
+            ptr[addr + c + 3] = fgetc(fp[3]) & 0xff;
+        }
+    }
+
+    for (int i = 0; i < 4; i++)
+        (void) fclose(fp[i]);
+
+    return 1;
+}
+
+static int
 bios_normalize(int n, int up)
 {
     /* 0x2000 -> 0x0000; 0x4000 -> 0x4000; 0x6000 -> 0x4000 */
@@ -748,6 +797,35 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
     }
 
     if (ret && !(flags & FLAG_AUX))
+        bios_add();
+
+    return ret;
+}
+
+int
+bios_load_quad(const char *fn1, const char *fn2, const char *fn3, const char *fn4,
+               uint32_t addr, int sz, int off)
+{
+    uint8_t  ret = 0;
+    uint8_t *ptr = NULL;
+
+    if (!bios_only)
+        ptr = rom_reset(addr, sz);
+    else
+        return (!fn1 || rom_present(fn1)) && (!fn2 || rom_present(fn2)) &&
+               (!fn3 || rom_present(fn3)) && (!fn4 || rom_present(fn4));
+
+    if ((addr + sz) > 0x00100000)
+        sz = 0x00100000 - addr;
+
+#ifdef ENABLE_ROM_LOG
+    rom_log("biosaddr = %08X\n", biosaddr);
+    rom_log("%sing %i bytes of quad BIOS starting with ptr[%08X] (ptr = %08X)\n", (bios_only) ? "Check" : "Load", sz, addr - biosaddr, ptr);
+#endif
+
+    ret = rom_load_interleaved_quad(fn1, fn2, fn3, fn4, addr - biosaddr, sz, off, ptr);
+
+    if (ret)
         bios_add();
 
     return ret;
