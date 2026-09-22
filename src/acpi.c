@@ -2416,7 +2416,8 @@ acpi_reset(void *priv)
        - Bit 2: 80-conductor cable on primary IDE channel (active low)
        Gigabyte GA-686BX:
        - Bit 1: CMOS battery low (active high) */
-    if (machines[machine].init == machine_at_al440lx_init)
+    if ((machines[machine].init == machine_at_al440lx_init) ||
+        (machines[machine].init == machine_at_se440bx2_init))
         /* ED = Normal, DD (2-3) - Maintenance, BD, FD (none) - Recovery. */
         dev->regs.gpireg[2] = 0xed;
     else if ((machines[machine].init == machine_at_in440ex_init) || (machines[machine].init == machine_at_in440exd_init))

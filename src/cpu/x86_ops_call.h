@@ -4,7 +4,7 @@
         old_pc       = cpu_state.pc;     \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
-        cgate16 = cgate32 = 0;           \
+        cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc); \
         else {                           \
@@ -17,7 +17,9 @@
             return 1;                    \
         }                                \
         oldss = ss;                      \
-        if (cgate32) {                   \
+        if (cgate_task) {                \
+            cgate_task = 0;              \
+        } else if (cgate32) {            \
             uint32_t old_esp = ESP;      \
             PUSH_L(old_cs);              \
             if (cpu_state.abrt) {        \
@@ -52,7 +54,7 @@
         old_pc       = cpu_state.pc;     \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
-        cgate16 = cgate32 = 0;           \
+        cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc); \
         else {                           \
@@ -65,7 +67,9 @@
             return 1;                    \
         }                                \
         oldss = ss;                      \
-        if (cgate16) {                   \
+        if (cgate_task) {                \
+            cgate_task = 0;              \
+        } else if (cgate16) {            \
             uint32_t old_esp = ESP;      \
             PUSH_W(old_cs);              \
             if (cpu_state.abrt) {        \
@@ -101,7 +105,7 @@
         oxpc         = cpu_state.pc;    \
         cpu_state.pc = new_pc;          \
         optype       = CALL;            \
-        cgate16 = cgate32 = 0;          \
+        cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                    \
             op_loadcscall(new_seg);        \
         else {                          \
@@ -114,7 +118,9 @@
             return 1;                   \
         }                               \
         oldss = ss;                     \
-        if (cgate32) {                  \
+        if (cgate_task) {               \
+            cgate_task = 0;             \
+        } else if (cgate32) {           \
             uint32_t old_esp = ESP;     \
             PUSH_L(old_cs);             \
             if (cpu_state.abrt) {       \
@@ -146,7 +152,7 @@
         oxpc         = cpu_state.pc;    \
         cpu_state.pc = new_pc;          \
         optype       = CALL;            \
-        cgate16 = cgate32 = 0;          \
+        cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                    \
             op_loadcscall(new_seg);        \
         else {                          \
@@ -159,7 +165,9 @@
             return 1;                   \
         }                               \
         oldss = ss;                     \
-        if (cgate16) {                  \
+        if (cgate_task) {               \
+            cgate_task = 0;             \
+        } else if (cgate16) {           \
             uint32_t old_esp = ESP;     \
             PUSH_W(old_cs);             \
             if (cpu_state.abrt) {       \

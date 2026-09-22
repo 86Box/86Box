@@ -37,6 +37,7 @@ extern uint8_t opcode2;
 
 extern int     cgate16;
 extern int     cgate32;
+extern int     cgate_task;
 
 extern int     intgatesize;
 

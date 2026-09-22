@@ -1230,13 +1230,16 @@ loadcscall(uint16_t seg)
                     }
                     break;
 
-                case 0x0100: /* 286 Task gate */
-                case 0x0900: /* 386 Task gate */
+                case 0x0100: /* 286 TSS */
+                case 0x0900: /* 386 TSS */
 #ifdef USE_NEW_DYNAREC
                     cpu_state.pc = old_pc;
 #else
                     cpu_state.pc = oxpc;
 #endif
+                    /* A task switch links the tasks through the TSS back-link and NT,
+                       it does not push a return address on the new task's stack. */
+                    cgate_task   = 1;
                     cpl_override = 1;
                     op_taskswitch286(seg, segdat, segdat[2] & 0x0800);
                     cpl_override = 0;
