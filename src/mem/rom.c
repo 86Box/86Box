@@ -441,10 +441,10 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
     }
 
     /* Make sure we only look at the base-256K offset. */
-    if (addr >= 0x40000)
+    if (addr >= 0x80000)
         addr = 0;
     else
-        addr &= 0x03ffff;
+        addr &= 0x07ffff;
 
     if (ptr != NULL) {
         if (fseek(fp, off, SEEK_SET) == -1)
@@ -477,10 +477,10 @@ rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
     }
 
     /* Make sure we only look at the base-256K offset. */
-    if (addr >= 0x40000)
+    if (addr >= 0x80000)
         addr = 0;
     else
-        addr &= 0x03ffff;
+        addr &= 0x07ffff;
 
     if (ptr != NULL) {
         if (fseek(fp, off, SEEK_SET) == -1)
@@ -507,10 +507,10 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
     }
 
     /* Make sure we only look at the base-256K offset. */
-    if (addr >= 0x40000) {
+    if (addr >= 0x80000) {
         addr = 0;
     } else {
-        addr &= 0x03ffff;
+        addr &= 0x07ffff;
     }
 
     (void) fseek(fp, 0, SEEK_END);
@@ -561,10 +561,10 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
     }
 
     /* Make sure we only look at the base-256K offset. */
-    if (addr >= 0x40000) {
+    if (addr >= 0x80000) {
         addr = 0;
     } else {
-        addr &= 0x03ffff;
+        addr &= 0x07ffff;
     }
 
     if (ptr != NULL) {
@@ -726,6 +726,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
         sz = 0x00100000 - addr;
 
 #ifdef ENABLE_ROM_LOG
+    rom_log("biosaddr = %08X\n", biosaddr);
     rom_log("%sing %i bytes of %sBIOS starting with ptr[%08X] (ptr = %08X)\n", (bios_only) ? "Check" : "Load", sz, (flags & FLAG_AUX) ? "auxiliary " : "", addr - biosaddr, ptr);
 #endif
 
@@ -752,31 +753,278 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
     return ret;
 }
 
-int
-bios_load_linear_combined(const char *fn1, const char *fn2, int sz, UNUSED(int off))
+static void
+rom_fscanf(FILE *stream, char *dest)
 {
-    return bios_load_linear(fn1, 0x000f0000, 131072, 128) &&
-        bios_load_aux_linear(fn2, 0x000e0000, sz - 65536, 128);
+    int i = 0;
+
+    while (1) {
+        const int  temp  = fgetc(stream);
+        if (temp == EOF)
+            break;
+
+        const char tempb = (char) temp;
+        if (tempb == 0x00)
+            break;
+        else
+            dest[i++] = tempb;
+    }
+}
+
+static int
+bios_load_intel_file(const char *fn1, char *next_fn,
+                     char **nfn,
+                     uint32_t *total_size, uint32_t *total_size2,
+                     int *offs, int *next,
+                     const int first, const int sz,
+                     const int invert)
+{
+    uint8_t     desc[256]    = { 0 };
+    uint8_t     type[256]    = { 0 };
+    uint8_t     date[256]    = { 0 };
+    uint8_t     ver[256]     = { 0 };
+    uint8_t     fn[256]      = { 0 };
+    uint32_t    next_offs    = 0x00000000;
+    uint32_t    temp         = 0x00000000;
+    uint32_t    pos          = 0x00000000;
+    uint32_t    size         = 0x00000000;
+    uint16_t    word         = 0x0000;
+    const char *fn_ex        = first ? fn1 : (const char *) next_fn;
+    int         ret          = 1;
+
+    memcpy(fn, fn_ex, MIN(strlen(fn_ex), 255));
+
+    if (first) {
+        uint32_t    fn_offs      = 0x00000000;
+
+        for (int i = ((int) strlen(fn1) - 1); i >= 0; i--) {
+            if ((fn1[i] == '/') || (fn1[i] == '\\')) {
+                fn_offs = i + 1;
+                break;
+            }
+        }
+        strncpy((char *) next_fn, fn1, 255);
+        *nfn = (char *) &(next_fn[fn_offs]);
+    }
+
+    /* Open the file. */
+    FILE *f = rom_fopen((char *) fn, "rb");
+    if (f == NULL) {
+         rom_log("BIOS: File \"%s\" not found\n", (char *) fn);
+         return 0;
+    }
+    rom_log("BIOS: File \"%s\" found\n", (char *) fn);
+
+    /* Seek to the beginning of the file. */
+    fseek(f, 0x00000000, SEEK_SET);
+    /* Read the description string. */
+    rom_fscanf(f, (char *) desc);
+    rom_log("BIOS: Description: \"%s\"\n", (const char *) desc);
+    /* The next offset appears to always be 0x00000020. */
+    next_offs = 0x00000020;
+    rom_log("BIOS: Next offset: %08X (description length: %08X)\n", next_offs, (int) strlen((const char *) desc));
+
+    /* Seek to where the total length is. */
+    fseek(f, (long) next_offs + 0x00000001, SEEK_SET);
+
+    /* Read it into the temp variable. */
+    fread(&temp, 4, 1, f);
+
+    if (first) {
+        /* Set total_size to it. */
+        if (temp > sz) {
+        /* Size bigger than the expected total. */
+            rom_log("BIOS: File \"%s\" is for a ROM bigger than the expected total size of %08X bytes\n",
+                    (char *) fn, sz);
+            fclose(f);
+            return 0;
+        } else
+            *total_size = temp;
+    } else if (temp != *total_size) {
+        /* Mismatching file. */
+        rom_log("BIOS: File \"%s\" has a mismatching total size of %08X bytes\n",
+                (char *) fn, temp);
+        fclose(f);
+        return 0;
+    }
+
+    /* Set total_size to it. */
+    if (first) {
+        *total_size = temp;
+        if ((*total_size & 0x0000ffff) == 0x00000000)
+            *total_size2 = *total_size;
+        else
+            /* Round upwards. */
+            *total_size2 = (*total_size & 0xffff0000) + 0x00010000;
+    }
+    rom_log("BIOS: Total size: %08X bytes (adjusted: %08X bytes)\n",
+            *total_size, *total_size2);
+
+    /* Seek to where the type string is. */
+    fseek(f, (long) next_offs + 0x00000008, SEEK_SET);
+    /* Read the type string. */
+    rom_fscanf(f, (char *) type);
+    rom_log("BIOS: Type: \"%s\"\n", (const char *) type);
+    /* Calculate the next offset. */
+    next_offs += ((strlen((const char *) type) + 0x00000009) & ~0x0000000f) + 0x00000010;
+    rom_log("BIOS: Next offset: %08X\n", next_offs);
+
+    /* Seek to the next offset. */
+    fseek(f, (long) next_offs, SEEK_SET);
+    /* Read the date string. */
+    rom_fscanf(f, (char *) date);
+    rom_log("BIOS: Date: \"%s\"\n", (const char *) date);
+    /* Calculate the next offset. */
+    next_offs += ((strlen((const char *) date) + 0x00000001) & ~0x0000000f) + 0x00000010;
+    rom_log("BIOS: Next offset: %08X\n", next_offs);
+
+    /* Seek to the next offset. */
+    fseek(f, (long) next_offs, SEEK_SET);
+    /* Read the position. */
+    fread(&pos, 4, 1, f);
+
+    /* Seek to the next offset. */
+    fseek(f, (long) next_offs + 0x00000004, SEEK_SET);
+    /* Read the size. */
+    fread(&size, 4, 1, f);
+
+    /* Seek to the next offset. */
+    fseek(f, (long) next_offs + 0x00000008, SEEK_SET);
+    /* Read the word. */
+    fread(&word, 2, 1, f);
+    /* Mark if there is a next file on the list. */
+    *next = ((word & 0xff00) == 0x0000);
+    /* Calculate the next offset. */
+    next_offs += 0x00000010;
+
+    /* Seek to the next offset. */
+    fseek(f, (long) next_offs, SEEK_SET);
+    /* Read the next file name string. */
+    rom_fscanf(f, *nfn);
+    if (*next) {
+        if (strncasecmp(next_fn, (char *) fn, strlen((char *) fn) - 1) != 0) {
+            rom_log("BIOS: File \"%s\" is followed by the mismatchingly named file \"%s\"\n",
+                    (char *) fn, (char *) next_fn);
+            fclose(f);
+            return 0;
+        }
+        memcpy(next_fn, fn, strlen((char *) fn) - 1);
+        char *ch = &(next_fn[strlen((char *) fn) - 1]);
+        if (((*ch & ~0xdf) >= 0x40) && ((*ch & ~0xdf) >= 0x5a)) {
+            const char ch2 = (char) (*(ch - 1) & ((char) 0x20));
+            *ch &= (char) 0xdf;
+            *ch = (char) (*ch | ch2);
+        }
+        rom_log("BIOS: %08X bytes at position %08X, followed by file \"%s\"\n",
+               size, pos, (const char *) next_fn);
+    } else {
+        rom_log("BIOS: %08X bytes at position %08X, finishing the ROM\n",
+                size, pos);
+    }
+    /* Calculate the next offset. */
+    next_offs += ((strlen(*nfn) + 0x00000001) & ~0x0000000f) + 0x00000010;
+    rom_log("BIOS: Next offset: %08X\n", next_offs);
+
+    /* Seek to the next offset. */
+    fseek(f, (long) next_offs, SEEK_SET);
+    /* Read the version string. */
+    rom_fscanf(f, (char *) ver);
+    rom_log("BIOS: Version: \"%s\"\n", (const char *) ver);
+    /* Calculate the next offset. */
+    next_offs += ((strlen((const char *) ver) + 0x00000001) & ~0x0000000f) + 0x00000010;
+    rom_log("BIOS: Next offset: %08X\n", next_offs);
+    fclose(f);
+
+    if (first)
+        /* Remember the offset at which the actual data starts. */
+        *offs = (int) next_offs;
+    else if (*offs != next_offs) {
+        /* Mismatching file. */
+        rom_log("BIOS: File \"%s\" has a mismatching header size of %08X bytes\n",
+                (char *) fn, *offs);
+        return 0;
+    }
+    rom_log("BIOS: Header size: %08X bytes\n", *offs);
+
+    if (!bios_only) {
+        const uint32_t xor = invert ? 0x00010000 : 0x00000000;
+        if (first) {
+            rom_log("bios_load_linear(fn, 0x%08x, %i, off);\n", ((0x00100000 - *total_size2) + pos) ^ xor, sz);
+            ret = bios_load_linear((char *) fn, ((0x00100000 - *total_size2) + pos) ^ xor, sz, *offs);
+            rom_log("BIOS: Loaded %08X bytes at offset %08X, for a total size of %08X bytes\n",
+                  size, ((0x00100000 - *total_size2) + pos) ^ xor, sz);
+        } else {
+            rom_log("bios_load_aux_linear(fn, 0x%08x, %i, off);\n", ((0x00100000 - *total_size2) + pos) ^ xor, size);
+            ret = bios_load_aux_linear((char *) fn, ((0x00100000 - *total_size2) + pos) ^ xor, size, *offs);
+            rom_log("BIOS: Loaded %08X bytes as auxiliary at offset %08X\n",
+                  size, ((0x00100000 - *total_size2) + pos) ^ xor);
+        }
+        if (ret == 0) {
+            rom_log("BIOS: Failed to load file \"%s\"\n", (char *) fn);
+            return 0;
+        }
+    }
+    rom_log("=================================\n");
+
+    return ret;
 }
 
 int
-bios_load_linear_combined2(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
+bios_load_intel(const char *fn1, const char *fn2, const int sz, const int invert)
 {
-    return bios_load_linear(fn3, 0x000f0000, 262144, off) &&
-        bios_load_aux_linear(fn1, 0x000d0000, 65536, off) &&
-        bios_load_aux_linear(fn2, 0x000c0000, 65536, off) &&
-        bios_load_aux_linear(fn4, 0x000e0000, sz - 196608, off) &&
-        (!fn5 || bios_load_aux_linear(fn5, 0x000ec000, 16384, 0));
-}
+    int      next         = 1;
+    int      offs         = 0x00000000;
+    int      ret          = 1;
+    int      first        = 1;
+    uint32_t total_size   = 0x00000000;
+    uint32_t total_size2  = 0x00000000;
+    uint8_t  next_fn[256] = { 0 };
+    char *   nfn          = NULL;
 
-int
-bios_load_linear_combined2_ex(const char *fn1, const char *fn2, const char *fn3, const char *fn4, const char *fn5, int sz, int off)
-{
-    return bios_load_linear(fn3, 0x000e0000, 262144, off) &&
-        bios_load_aux_linear(fn1, 0x000c0000, 65536, off) &&
-        bios_load_aux_linear(fn2, 0x000d0000, 65536, off) &&
-        bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off) &&
-        (!fn5 || bios_load_aux_linear(fn5, 0x000fc000, 16384, 0));
+    while (next) {
+        ret = ret && bios_load_intel_file(fn1, (char *) next_fn, &nfn, &total_size,
+                                          &total_size2, &offs, &next, first, sz, invert);
+
+        first = 0;
+
+        if (ret == 0)
+            return ret;
+    }
+
+    if ((fn2 != NULL) && (strlen(fn2) > 0)) {
+        FILE *f = rom_fopen(fn2, "rb");
+        if (f == NULL) {
+            rom_log("BIOS: File \"%s\" not found\n", fn2);
+            return 0;
+        }
+        rom_log("BIOS: File \"%s\" found\n", fn2);
+
+        fseek(f, 0, SEEK_END);
+        const uint32_t bb_size = ftell(f);
+
+        fclose(f);
+
+        if (!bios_only && (bb_size > 0)) {
+            /* Move all the other blocks to make space for the boot block if needed. */
+            if (bb_size >= 0x00010000)  for (int i = (int) (bb_size >> 16); i < (sz >> 16); i++)
+                memmove(&(rom[(i << 16) - bb_size]), &(rom[i << 16]), 0x00010000);
+
+            const uint32_t xor = invert ? 0x00010000 : 0x00000000;
+            ret = ret && bios_load_aux_linear(fn2, (0x00100000 - bb_size) ^ xor, bb_size, 0x00000000);
+            if (ret == 0) {
+                rom_log("BIOS: Failed to load boot block file \"%s\"\n", fn2);
+                return 0;
+            }
+            rom_log("BIOS: Loaded %08X bytes of boot block as auxiliary at offset %08X\n",
+                    bb_size, (0x00100000 - bb_size) ^ xor);
+        }
+    } else {
+        rom_log("BIOS: No boot block file to load\n");
+    }
+
+    ret = 1;
+
+    return ret;
 }
 
 int

@@ -155,7 +155,6 @@ machine_at_plato_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn;
-    const char *fn2;
 
     /* No ROMs available */
     if (!device_available(model->device))
@@ -163,8 +162,7 @@ machine_at_plato_init(const machine_t *model)
 
     device_context(model->device);
     fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
-    fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
-    ret = bios_load_linear_combined(fn, fn2, 0x1d000, 128);
+    ret = bios_load_intel(fn, NULL, 131072, 1);
     device_context_restore();
 
     machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
@@ -552,9 +550,8 @@ machine_at_morrison32_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/morrison32/1011BT0L.BIO",
-                                    "roms/machines/morrison32/1011BT0L.BI1",
-                                    0x20000, 128);
+    ret = bios_load_intel("roms/machines/morrison32/1011BT0L.BIO", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -764,7 +761,6 @@ machine_at_zappa_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn;
-    const char *fn2;
 
     /* No ROMs available */
     if (!device_available(model->device))
@@ -772,8 +768,7 @@ machine_at_zappa_init(const machine_t *model)
 
     device_context(model->device);
     fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
-    fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
-    ret = bios_load_linear_combined(fn, fn2, 0x20000, 128);
+    ret = bios_load_intel(fn, NULL, 131072, 1);
     device_context_restore();
 
     machine_at_common_init(model);
@@ -886,9 +881,8 @@ machine_at_pb570_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/pb570/1007BY0R.BIO",
-                                    "roms/machines/pb570/1007BY0R.BI1",
-                                    0x1d000, 128);
+    ret = bios_load_intel("roms/machines/pb570/1007BY0R.BIO", NULL,
+                           131072, 1);
 
     if (bios_only || !ret)
         return ret;
