@@ -18452,7 +18452,7 @@ const machine_t machines[] = {
             .max_multi   = 4.5
         },
         .bus_flags = MACHINE_PCIE | MACHINE_BUS_PS2,
-        .flags     = MACHINE_APM,
+        .flags     = MACHINE_SCSI | MACHINE_APM,
         .ram       = {
             .min  = 8192,
             .max  = 786432,
