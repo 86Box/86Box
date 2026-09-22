@@ -58,7 +58,7 @@ typedef struct dma_t {
     uint8_t  page_l;
     uint8_t  page_h;
     uint8_t  pad;
-    uint16_t cb;
+    uint32_t cb; /* 16 bits, or 24 with the EISA high count */
     uint16_t io_addr;
     uint16_t base;
     uint16_t transfer_mode;
@@ -118,6 +118,7 @@ void dma_set_force_xt(int enable);
 
 void dma_ext_mode_init(void);
 void dma_high_page_init(void);
+void dma_eisa_init(void);
 
 void dma_remove_sg(void);
 void dma_set_sg_base(uint8_t sg_base);
