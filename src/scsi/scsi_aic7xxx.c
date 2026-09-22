@@ -3566,7 +3566,9 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                the difference between a command that can run and one the
                firmware will hand back for ever. */
             if (!seq) {
+#ifdef ENABLE_AIC7XXX_LOG
                 const uint8_t *scb = dev->scb[val & (dev->chip->scb_pages - 1)];
+#endif
 
                 aic_log(dev->tag, "host: queue scb%u ctl %02x tcl %02x "
                                   "(id %u ch %c lun %u), sblkctl %02x qincnt %u\n",
