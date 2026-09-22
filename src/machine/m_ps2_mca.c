@@ -405,7 +405,7 @@ model_70_type2_read(uint16_t port)
 }
 
 static uint8_t
-model_70_type3_read(uint16_t port)
+model_70_type34_read(uint16_t port)
 {
     switch (port) {
         case 0x100:
@@ -894,7 +894,7 @@ model_70_type2_write(uint16_t port, uint8_t val)
 }
 
 static void
-model_70_type3_write(uint16_t port, uint8_t val)
+model_70_type34_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
@@ -1843,8 +1843,8 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
     ps2.split_addr = mem_size * 1024;
     mca_init(slots);
 
-    ps2.planar_read  = model_70_type3_read;
-    ps2.planar_write = model_70_type3_write;
+    ps2.planar_read  = model_70_type34_read;
+    ps2.planar_write = model_70_type34_write;
 
     device_add(&ps2_nvr_device);
 
@@ -1988,8 +1988,6 @@ ps2_mca_board_model_80_type1_init(void)
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
-
-    ps2.split_size = 0;
 }
 
 static void
@@ -2066,8 +2064,6 @@ ps2_mca_board_model_80_type2_init(void)
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
-
-    ps2.split_size = 0;
 }
 
 static void
@@ -2521,6 +2517,28 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 }
 
 int
+machine_ps2_model_70_type4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibmps2_m70_type4/64F3126.BIN",
+                                "roms/machines/ibmps2_m70_type4/64F3125.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xf9ff;
+    ps2_mca_board_model_70_type34_init(1, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
 machine_ps2_model_80_type1_init(const machine_t *model)
 {
     int ret;
@@ -2545,7 +2563,7 @@ machine_ps2_model_80_type1_init(const machine_t *model)
 }
 
 int
-machine_ps2_model_80_init(const machine_t *model)
+machine_ps2_model_80_type2_init(const machine_t *model)
 {
     int ret;
 
@@ -2567,7 +2585,7 @@ machine_ps2_model_80_init(const machine_t *model)
 }
 
 int
-machine_ps2_model_80_axx_init(const machine_t *model)
+machine_ps2_model_80_type3_init(const machine_t *model)
 {
     int ret;
 
@@ -2582,28 +2600,6 @@ machine_ps2_model_80_axx_init(const machine_t *model)
 
     ps2.planar_id = 0xfff9;
     ps2_mca_board_model_80_type3_init();
-
-    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
-
-    return ret;
-}
-
-int
-machine_ps2_model_70_type4_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved("roms/machines/ibmps2_m70_type4/64F3126.BIN",
-                                "roms/machines/ibmps2_m70_type4/64F3125.BIN",
-                                0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-        return ret;
-
-    machine_ps2_common_init(model);
-
-    ps2.planar_id = 0xf9ff;
-    ps2_mca_board_model_70_type34_init(1, 4);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
