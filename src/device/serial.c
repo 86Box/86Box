@@ -163,6 +163,19 @@ serial_clear_timeout(serial_t *dev)
     serial_update_ints(dev);
 }
 
+/* The receive timer polls the host character device, so it should run once
+   per character, not once per bit: at 115200 baud that is the difference
+   between 11520 and 115200 callbacks per second on the emulation thread.
+
+   bits is 0 until the guest programs the LCR, and arming a timer with 0 is
+   presumably why the multiplication was commented out, so assume a full
+   10-bit frame until the guest says otherwise. */
+static double
+serial_receive_period(const serial_t *dev)
+{
+    return (double) (dev->bits ? dev->bits : 10) * dev->transmit_period;
+}
+
 static void
 serial_receive_timer(void *priv)
 {
@@ -170,14 +183,21 @@ serial_receive_timer(void *priv)
 
     serial_log("serial_receive_timer()\n");
 
-    timer_on_auto(&dev->receive_timer, /* dev->bits * */ dev->transmit_period);
+    timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
 
-    if (dev->char_port.chardev.read) {
+    /* Only read when the receive shift register is free: it still holds the
+       previous byte until the code below moves it into the FIFO, so reading
+       unconditionally can overwrite input that was never delivered. */
+    if (dev->char_port.chardev.read && (dev->out_new == 0xffff)) {
         uint8_t val;
         if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.chardev.priv) > 0)
             serial_write_fifo(dev, val);
     }
-    if (dev->char_port.chardev.status) {
+
+    /* The modem status lines do not change thousands of times a second, and
+       querying them is not free on every host. */
+    dev->status_divider++;
+    if (dev->char_port.chardev.status && !(dev->status_divider & 0x3f)) {
         uint8_t prev_msr = dev->msr;
         uint32_t flags = dev->char_port.chardev.status(dev->char_port.chardev.priv);
         uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
@@ -408,7 +428,7 @@ static void
 serial_update_speed(serial_t *dev)
 {
     serial_log("serial_update_speed(%lf)\n", dev->transmit_period);
-    timer_on_auto(&dev->receive_timer, /* dev->bits * */ dev->transmit_period);
+    timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
 
     if (dev->transmit_enabled & 3)
         timer_on_auto(&dev->transmit_timer, dev->transmit_period);
