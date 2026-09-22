@@ -42,6 +42,7 @@ add_library(chipset OBJECT
     intel_420ex.c
     intel_4x0.c
     intel_i450kx.c
+    intel_pceb_esc.c
     intel_sio.c
     intel_piix.c
     isa486c.c
