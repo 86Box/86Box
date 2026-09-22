@@ -60,6 +60,13 @@ private:
     SettingsCompleter *scHD[4];
     SettingsCompleter *scCDInterface;
     SettingsCompleter *scSCSI[4];
+
+    int hdcCurrent[4];
+    int scsiCardCurrent[4];
+    int fdcCurrent[2];
+    int cdromInterfaceCurrent;
+
+    bool inMachineChange;
 };
 
 #endif // QT_SETTINGSSTORAGECONTROLLERS_HPP

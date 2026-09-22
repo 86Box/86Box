@@ -246,6 +246,11 @@ extern void         kbc_at_set_fast_reset(uint8_t new_fast_reset);
 extern void         kbc_at_port_handler(int num, int set, uint16_t port, void *priv);
 extern void         kbc_at_handler(int set, uint16_t port, void *priv);
 extern void         kbc_at_set_irq(int num, uint16_t irq, void *priv);
+extern void         kbc_at_set_p2_write_hook(void *priv,
+                                             void (*p2_write_hook)(void *priv,
+                                                                   uint8_t old_p2,
+                                                                   uint8_t new_p2),
+                                             void *p2_priv);
 
 extern void         kbc_at_dev_queue_reset(atkbc_dev_t *dev, uint8_t reset_main);
 extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);

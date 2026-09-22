@@ -229,6 +229,26 @@ else()
     install(TARGETS 86Box)
 endif()
 
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    include(GNUInstallDirs)
+
+    set(ASSETS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/unix/assets")
+
+    # Icons
+    foreach(ICON_SIZE 16 20 24 32 40 48 64 72 128 256)
+        install(FILES "${ASSETS_DIR}/${ICON_SIZE}x${ICON_SIZE}/net.86box.86Box.png"
+            DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/icons/hicolor/${ICON_SIZE}x${ICON_SIZE}/apps")
+    endforeach()
+
+    # Desktop entry
+    install(FILES "${ASSETS_DIR}/net.86box.86Box.desktop"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/applications")
+
+    # AppStream metadata
+    install(FILES "${ASSETS_DIR}/net.86box.86Box.metainfo.xml"
+        DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
+endif()
+
 
 # Install our dependencies if using vcpkg
 if(VCPKG_TOOLCHAIN)

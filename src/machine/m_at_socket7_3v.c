@@ -197,9 +197,8 @@ machine_at_holly_init(const machine_t *model) /* HP Pavilion Holly, 7070/7090/51
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/holly/1005CA2L.BIO",
-                                    "roms/machines/holly/1005CA2L.BI1",
-                                    0x20000, 128);
+    ret = bios_load_intel("roms/machines/holly/1005CA2L.BIO", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -446,9 +445,8 @@ machine_at_atlantis_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/atlantis/1007CL0_.BIO",
-                                    "roms/machines/atlantis/1007CL0_.BI1",
-                                    0x20000, 128);
+    ret = bios_load_intel("roms/machines/atlantis/1007CL0_.BIO", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -592,7 +590,6 @@ machine_at_thor_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn;
-    const char *fn2;
 
     /* No ROMs available */
     if (!device_available(model->device))
@@ -604,10 +601,8 @@ machine_at_thor_init(const machine_t *model)
     fn            = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
     if (is_mr)
         ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
-    else {
-        fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
-        ret = bios_load_linear_combined(fn, fn2, 0x20000, 128);
-    }
+    else
+        ret = bios_load_intel(fn, NULL, 131072, 1);
     device_context_restore();
 
     machine_at_common_init(model);
@@ -730,9 +725,8 @@ machine_at_endeavor_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/endeavor/1006cb0_.bio",
-                                    "roms/machines/endeavor/1006cb0_.bi1",
-                                    0x1d000, 128);
+    ret = bios_load_intel("roms/machines/endeavor/1006cb0_.bio", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -838,7 +832,6 @@ machine_at_monaco_init(const machine_t *model)
 {
     int         ret = 0;
     const char *fn;
-    const char *fn2;
 
     /* No ROMs available */
     if (!device_available(model->device))
@@ -846,8 +839,7 @@ machine_at_monaco_init(const machine_t *model)
 
     device_context(model->device);
     fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
-    fn2 = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 1);
-    ret = bios_load_linear_combined(fn, fn2, 0x20000, 128);
+    ret = bios_load_intel(fn, NULL, 131072, 1);
     device_context_restore();
 
     machine_at_common_init(model);
@@ -996,8 +988,8 @@ machine_at_pb640_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/pb640/1007CP0R.BIO",
-                                    "roms/machines/pb640/1007CP0R.BI1", 0x1d000, 128);
+    ret = bios_load_intel("roms/machines/pb640/1007CP0R.BIO", NULL,
+                          131072, 1);
 
     if (bios_only || !ret)
         return ret;
@@ -1411,12 +1403,9 @@ machine_at_gw2kma_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/gw2kma/1007DQ0T.BIO",
-                                     "roms/machines/gw2kma/1007DQ0T.BI1",
-                                     "roms/machines/gw2kma/1007DQ0T.BI2",
-                                     "roms/machines/gw2kma/1007DQ0T.BI3",
-                                     "roms/machines/gw2kma/1007DQ0T.RCV",
-                                     0x3a000, 128);
+    ret = bios_load_intel("roms/machines/gw2kma/1007DQ0T.BIO",
+                          "roms/machines/gw2kma/1007DQ0T.RCV",
+                          262144, 1);
 
     if (bios_only || !ret)
         return ret;

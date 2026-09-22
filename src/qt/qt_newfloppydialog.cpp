@@ -70,6 +70,8 @@ static const QStringList rdiskTypes = {
     "ZIP 250",
     "Jaz 1 GB",
     "Jaz 2 GB",
+    "SyJet 1.5 GB",
+    "SparQ 1.0 GB",
 #if 0
     "ZIP 750",
     "LS-120",

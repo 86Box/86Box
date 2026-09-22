@@ -81,14 +81,7 @@ extern uint32_t bios_readl(uint32_t addr, void *priv);
 
 extern int bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz,
                      int off, int flags);
-extern int bios_load_linear_combined(const char *fn1, const char *fn2,
-                                     int sz, int off);
-extern int bios_load_linear_combined2(const char *fn1, const char *fn2,
-                                      const char *fn3, const char *fn4, const char *fn5,
-                                      int sz, int off);
-extern int bios_load_linear_combined2_ex(const char *fn1, const char *fn2,
-                                         const char *fn3, const char *fn4, const char *fn5,
-                                         int sz, int off);
+extern int bios_load_intel(const char *fn1, const char *fn2, int sz, int invert);
 
 extern int rom_init(rom_t *rom, const char *fn, uint32_t address, int size,
                     int mask, int file_offset, uint32_t flags);

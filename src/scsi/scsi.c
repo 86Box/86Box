@@ -34,6 +34,7 @@
 #include <86box/rdisk.h>
 #include <86box/scsi_disk.h>
 #include <86box/scsi_aha154x.h>
+#include <86box/scsi_aic7880.h>
 #include <86box/scsi_buslogic.h>
 #include <86box/scsi_ncr5380.h>
 #include <86box/scsi_ncr53c8xx.h>
@@ -83,6 +84,8 @@ static SCSI_CARD scsi_cards[] = {
     { &buslogic_445s_device,     },
     { &buslogic_445c_device,     },
     /* PCI */
+    { &aha2940u_pci_device,      },
+    { &aha2940uw_pci_device,     },
     { &am53c974_pci_device,      },
     { &am53c974a_pci_device,     },
     { &buslogic_958d_pci_device, },
