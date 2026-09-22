@@ -167,6 +167,8 @@ extern const device_t sanyo_device;
 /* SiS */
 extern const device_t rabbit_device;
 extern const device_t sis_85c401_device;
+extern const device_t sis_85c411_device;
+extern void           sis_85c411_set_board_id(const char *mfg, uint16_t product, uint8_t rev);
 extern const device_t sis_85c460_device;
 extern const device_t sis_85c461_device;
 extern const device_t sis_85c471_device;

@@ -66,6 +66,7 @@ add_library(chipset OBJECT
     scamp.c
     scat.c
     sis_85c310.c
+    sis_85c411.c
     sis_85c4xx.c
     sis_85c496.c
     sis_85c50x.c

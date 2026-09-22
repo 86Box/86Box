@@ -277,6 +277,7 @@ enum {
     MACHINE_CHIPSET_SARC_RC2016A,
     MACHINE_CHIPSET_SIS_310,
     MACHINE_CHIPSET_SIS_401,
+    MACHINE_CHIPSET_SIS_411,
     MACHINE_CHIPSET_SIS_460,
     MACHINE_CHIPSET_SIS_461,
     MACHINE_CHIPSET_SIS_471,
@@ -856,6 +857,7 @@ extern int             machine_at_dtk486_init(const machine_t *);
 extern int             machine_at_ami471_init(const machine_t *);
 extern int             machine_at_px471_init(const machine_t *);
 extern int             machine_at_tg486g_init(const machine_t *);
+extern int             machine_at_s1437_init(const machine_t *);
 
 /* Symphony SL82C460 */
 extern int             machine_at_vs486f3vl_init(const machine_t *);

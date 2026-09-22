@@ -138,6 +138,7 @@ const machine_filter_t machine_chipsets[] = {
     { "SARC RC2016A",               MACHINE_CHIPSET_SARC_RC2016A        },
     { "SiS 310",                    MACHINE_CHIPSET_SIS_310             },
     { "SiS 401",                    MACHINE_CHIPSET_SIS_401             },
+    { "SiS 411",                    MACHINE_CHIPSET_SIS_411             },
     { "SiS 460",                    MACHINE_CHIPSET_SIS_460             },
     { "SiS 461",                    MACHINE_CHIPSET_SIS_461             },
     { "SiS 471",                    MACHINE_CHIPSET_SIS_471             },
@@ -9438,6 +9439,30 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
     /* Has Phoenix KBC firmware. */
+    /* Tyan S1437: SiS 85C405/406/411/420/431, eight EISA slots and two
+       VLB slots, four banks of 30-pin SIMMs to 256 MB, AMIKEY keyboard
+       controller, DS1387 clock with the 8 KB EISA configuration RAM. No
+       IDE or floppy on the board: those are cards. */
+    {
+        .name              = "[SiS 411] Tyan 486VL/EISA (S1437)",
+        .internal_name     = "s1437",
+        .type              = MACHINE_TYPE_SOCKET3,
+        .chipset           = MACHINE_CHIPSET_SIS_411,
+        .init              = machine_at_s1437_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET1,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 16000000,
+            .max_bus     = 50000000,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
         .bus_flags = MACHINE_EISA | MACHINE_BUS_VLB,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
