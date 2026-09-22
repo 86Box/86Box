@@ -980,6 +980,15 @@ load_sound(void)
         fm_driver = FM_DRV_NUKED;
     }
 
+    memset(sound_input_dev_name, '\0', sizeof(sound_input_dev_name));
+    p = ini_section_get_string(cat, "sound_input_dev_name", "");
+    if (strlen(p) > 511)
+        fatal("Configuration: Length of sound_input_dev_name is more than 511\n");
+    else
+        strncpy(sound_input_dev_name, p, 511);
+
+    sound_input_enabled = !!ini_section_get_int(cat, "sound_input_enabled", 0);
+
     p = ini_section_get_string(cat, "sound_output_device", "");
     strncpy(sound_output_device, p, sizeof(sound_output_device) - 1);
     sound_output_device[sizeof(sound_output_device) - 1] = '\0';
@@ -987,6 +996,10 @@ load_sound(void)
     sound_sample_rate = ini_section_get_int(cat, "sound_sample_rate", FREQ_48000);
     if (sound_sample_rate != FREQ_44100 && sound_sample_rate != FREQ_48000)
         sound_sample_rate = FREQ_48000;
+
+    sb_input_rate = ini_section_get_int(cat, "sound_input_rate", FREQ_44100);
+    if (sb_input_rate != FREQ_44100 && sb_input_rate != FREQ_48000)
+        sb_input_rate = FREQ_44100;
 }
 
 /* Load "Network" section. */
@@ -3592,10 +3605,25 @@ save_sound(void)
     else
         ini_section_set_string(cat, "sound_output_device", sound_output_device);
 
+    if (sound_input_dev_name[0] == '\0')
+        ini_section_delete_var(cat, "sound_input_dev_name");
+    else
+        ini_section_set_string(cat, "sound_input_dev_name", sound_input_dev_name);
+
+    if (sound_input_enabled)
+        ini_section_set_int(cat, "sound_input_enabled", sound_input_enabled);
+    else
+        ini_section_delete_var(cat, "sound_input_enabled");
+
     if (sound_sample_rate == FREQ_48000)
         ini_section_delete_var(cat, "sound_sample_rate");
     else
         ini_section_set_int(cat, "sound_sample_rate", sound_sample_rate);
+
+    if (sb_input_rate == FREQ_44100)
+        ini_section_delete_var(cat, "sound_input_rate");
+    else
+        ini_section_set_int(cat, "sound_input_rate", sb_input_rate);
 
     ini_delete_section_if_empty(config, cat);
 }
