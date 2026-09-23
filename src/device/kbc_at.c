@@ -475,6 +475,17 @@ kbc_ibf_process(atkbc_t *dev)
 }
 
 static void
+kbc_param_take(atkbc_t *dev)
+{
+    /* Command written, abort current command. */
+    if (dev->status & STAT_CD)
+        dev->state = STATE_MAIN_IBF;
+
+    dev->status &= ~STAT_IFULL;
+    kbc_at_process_cmd(dev);
+}
+
+static void
 kbc_scan_kbd_at(atkbc_t *dev)
 {
     if (!(dev->mem[0x20] & 0x10)) {
@@ -571,14 +582,8 @@ at_main_ibf:
             break;
         case STATE_KBC_PARAM:
             /* Keyboard controller command wants data, wait for said data. */
-            if (dev->status & STAT_IFULL) {
-                /* Command written, abort current command. */
-                if (dev->status & STAT_CD)
-                    dev->state = STATE_MAIN_IBF;
-
-                dev->status &= ~STAT_IFULL;
-                kbc_at_process_cmd(dev);
-            }
+            if (dev->status & STAT_IFULL)
+                kbc_param_take(dev);
             break;
         case STATE_SEND_KBD:
             if (!dev->ports[0]->wantcmd)
@@ -723,14 +728,8 @@ kbc_at_poll_ps2(atkbc_t *dev)
             break;
         case STATE_KBC_PARAM:
             /* Keyboard controller command wants data, wait for said data. */
-            if (dev->status & STAT_IFULL) {
-                /* Command written, abort current command. */
-                if (dev->status & STAT_CD)
-                    dev->state = STATE_MAIN_IBF;
-
-                dev->status &= ~STAT_IFULL;
-                kbc_at_process_cmd(dev);
-            }
+            if (dev->status & STAT_IFULL)
+                kbc_param_take(dev);
             break;
         case STATE_SEND_KBD:
             if (!dev->ports[0]->wantcmd)
@@ -2671,6 +2670,11 @@ kbc_at_port_1_write(uint16_t port, uint8_t val, void *priv)
 
     kbc_at_log("ATkbc: [%04X:%08X] write(%04X) = %02X\n", CS, cpu_state.pc, port, val);
 
+    /* The host may write the next byte before the pending parameter was consumed; take it
+       first instead of silently overwriting it, fix BIOS not waiting for IBF to clear. */
+    if ((dev->status & STAT_IFULL) && dev->wantdata && (dev->state == STATE_KBC_PARAM))
+        kbc_param_take(dev);
+
     dev->status &= ~STAT_CD;
 
     if (fast_a20 && dev->wantdata && (dev->command == 0xd1)) {
@@ -2702,6 +2706,11 @@ kbc_at_port_2_write(uint16_t port, uint8_t val, void *priv)
     uint8_t fast_a20 = (kbc_ven != KBC_VEN_SIEMENS);
 
     kbc_at_log("ATkbc: [%04X:%08X] write(%04X) = %02X\n", CS, cpu_state.pc, port, val);
+
+    /* The host may write the next byte before the pending parameter was consumed; take it
+       first instead of silently overwriting it, fix BIOS not waiting for IBF to clear. */
+    if ((dev->status & STAT_IFULL) && dev->wantdata && (dev->state == STATE_KBC_PARAM))
+        kbc_param_take(dev);
 
     dev->status |= STAT_CD;
 
