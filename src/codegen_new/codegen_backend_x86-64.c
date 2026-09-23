@@ -53,6 +53,13 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
     { REG_EDX, 0}
 };
 
+/* The Windows x64 frame: 0x38 bytes of block temporaries as before, then
+   XMM6 and XMM7 as the caller left them. 0x58 keeps RSP 16-byte aligned
+   after the eight pushes and the return address. */
+#define CODEGEN_WIN64_FRAME 0x58
+#define CODEGEN_XMM6_SAVE   0x38
+#define CODEGEN_XMM7_SAVE   0x48
+
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
 #    if _WIN64
   /*Windows x86-64 calling convention preserves XMM6-XMM15*/
@@ -326,7 +333,11 @@ codegen_backend_init(void)
     host_x86_CALL(block, (void *) x86gpf);
     codegen_exit_rout = &codeblock[block_current].data[block_pos];
 #ifdef _WIN64
-    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x38);
+    /* XMM6 and XMM7 hold guest FPU/MMX values in blocks, and the Windows
+       x64 ABI makes them the caller's: put back what the caller had. */
+    host_x86_MOVDQU_XREG_BASE_OFFSET(block, REG_XMM6, REG_RSP, CODEGEN_XMM6_SAVE);
+    host_x86_MOVDQU_XREG_BASE_OFFSET(block, REG_XMM7, REG_RSP, CODEGEN_XMM7_SAVE);
+    host_x86_ADD64_REG_IMM(block, REG_RSP, CODEGEN_WIN64_FRAME);
 #else
     host_x86_ADD64_REG_IMM(block, REG_RSP, 0x48);
 #endif
@@ -371,7 +382,9 @@ codegen_backend_prologue(codeblock_t *block)
     host_x86_PUSH(block, REG_R14);
     host_x86_PUSH(block, REG_R15);
 #ifdef _WIN64
-    host_x86_SUB64_REG_IMM(block, REG_RSP, 0x38);
+    host_x86_SUB64_REG_IMM(block, REG_RSP, CODEGEN_WIN64_FRAME);
+    host_x86_MOVDQU_BASE_OFFSET_XREG(block, REG_RSP, CODEGEN_XMM6_SAVE, REG_XMM6);
+    host_x86_MOVDQU_BASE_OFFSET_XREG(block, REG_RSP, CODEGEN_XMM7_SAVE, REG_XMM7);
 #else
     host_x86_SUB64_REG_IMM(block, REG_RSP, 0x48);
 #endif
@@ -389,7 +402,11 @@ void
 codegen_backend_epilogue(codeblock_t *block)
 {
 #ifdef _WIN64
-    host_x86_ADD64_REG_IMM(block, REG_RSP, 0x38);
+    /* XMM6 and XMM7 hold guest FPU/MMX values in blocks, and the Windows
+       x64 ABI makes them the caller's: put back what the caller had. */
+    host_x86_MOVDQU_XREG_BASE_OFFSET(block, REG_XMM6, REG_RSP, CODEGEN_XMM6_SAVE);
+    host_x86_MOVDQU_XREG_BASE_OFFSET(block, REG_XMM7, REG_RSP, CODEGEN_XMM7_SAVE);
+    host_x86_ADD64_REG_IMM(block, REG_RSP, CODEGEN_WIN64_FRAME);
 #else
     host_x86_ADD64_REG_IMM(block, REG_RSP, 0x48);
 #endif
