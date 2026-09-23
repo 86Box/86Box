@@ -35,6 +35,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/dma.h>
 #include <86box/eisa.h>
@@ -207,6 +208,11 @@ enum {
 #define RXF_BROADCAST  0x04
 #define RXF_ALL        0x08
 
+/* FifoDiagnostic. */
+#define FIFO_TX_OVERRUN  0x0400
+#define FIFO_RX_OVERRUN  0x0800
+#define FIFO_RX_UNDERRUN 0x2000
+
 /* MasterStatus. */
 #define MS_MASTER_ABORT    0x0001
 #define MS_TARGET_ABORT    0x0002
@@ -273,6 +279,10 @@ enum {
 #define RX_FRAME_MAX (NET_MAX_FRAME + 4)
 #define TX_FRAME_MAX (NET_MAX_FRAME + 4)
 
+/* The transmit FIFO can hold completed frames while the transmitter is
+   disabled; the largest transmit partition is half of 128 KB. */
+#define TX_PEND_MAX 65536
+
 /* How many complete frames the receive FIFO is allowed to queue. The
    byte accounting against the RAM partition is what really limits it;
    this is the ceiling on the bookkeeping. */
@@ -297,6 +307,8 @@ typedef struct tc59x_t {
     uint8_t  irq;       /* from ResourceConfig; 0 is disabled */
     uint8_t  irq_state; /* the PIC's level tracking */
     uint8_t  latch;     /* interruptLatch */
+    uint8_t  timer_running;
+    uint64_t timer_start; /* tsc when the interrupt signal last went up */
     uint8_t  irq_logged;
     uint16_t int_status; /* the sources, unfiltered */
     uint16_t int_enable;
@@ -307,6 +319,7 @@ typedef struct tc59x_t {
     uint8_t  card_enable;
     uint16_t address_config;
     uint16_t resource_config;
+    uint16_t product_id;
     uint16_t eeprom_command;
     uint16_t eeprom_data;
     uint16_t eeprom[64];
@@ -325,6 +338,7 @@ typedef struct tc59x_t {
     uint16_t reset_options;
 
     /* Window 4. */
+    uint16_t fifo_diag;
     uint16_t network_diagnostic;
     uint16_t physical_mgmt;
     uint16_t media_status;
@@ -356,16 +370,29 @@ typedef struct tc59x_t {
     uint32_t master_address;
     uint16_t master_len;
     uint16_t master_status;
+    uint8_t  upload_pending; /* an upload started with nothing received, waiting */
+
+    uint8_t link_up;
 
     /* The transmit side: one frame is assembled at a time, then sent. */
     uint8_t  tx_enabled;
     uint32_t tx_size; /* the transmit partition of the packet RAM */
     uint8_t  tx_fsh[4];
     uint8_t  tx_fsh_got;
-    uint16_t tx_length; /* txLength from the header */
+    uint16_t tx_length; /* txLength from the header, all thirteen bits */
     uint16_t tx_flags;  /* txIndicate and crcAppendDisable */
     uint8_t  tx_frame[TX_FRAME_MAX + 4];
-    uint16_t tx_got;
+    uint16_t tx_got;    /* bytes of it kept */
+    uint16_t tx_count;  /* bytes of it written, kept or not */
+    /* Completed frames waiting for the transmitter: each a six byte header
+       (length kept, length written, flags) and the kept bytes, in tx_pend;
+       the FIFO space they hold is tx_pend_fifo. A frame takes at least four
+       more bytes of FIFO than its record's data, so the store can never run
+       out before the FIFO does. */
+    uint8_t  tx_pend[(TX_PEND_MAX * 2) + TX_FRAME_MAX + 8];
+    uint32_t tx_pend_len;
+    uint32_t tx_pend_fifo;
+    uint8_t  tx_out[TX_FRAME_MAX + 64]; /* a frame on its way out, padded */
     uint8_t  tx_pad_left; /* bytes still expected to reach the dword boundary */
     uint8_t  tx_status[8];
     uint8_t  tx_status_count;
@@ -402,7 +429,7 @@ tc59x_eeprom_build(tc59x_t *dev)
     /* ProductId, byte swapped in the EEPROM so that the register reads as
        the two EISA identifier bytes in slot order: 59h 70h for TCM5970. */
     e[0x03] = (uint16_t) ((dev->id[3] << 8) | dev->id[2]);
-    e[0x04] = 0x2ca1; /* 22 May 1995 */
+    e[0x04] = 0xbeb6; /* 22 May 1995: day [4:0], month [8:5], year [15:9] */
     e[0x05] = 0x0001;
     e[0x06] = 0x4141;
     e[0x07] = 0x6d50; /* ManufacturerId: TCM, compressed and byte swapped */
@@ -434,13 +461,19 @@ tc59x_eeprom_build(tc59x_t *dev)
     e[0x17] = sum;
 }
 
-/* What the hardware loads from the EEPROM at reset: AddressConfig,
-   ResourceConfig, ProductId and InternalConfig (table on page 3-8). */
+/* What the hardware loads from the EEPROM: at a system reset AddressConfig,
+   ResourceConfig, ProductId and InternalConfig (table on page 3-8); at a
+   GlobalReset that reaches the autoinitialize logic only InternalConfig, the
+   configuration being "unaffected". */
 static void
-tc59x_eeprom_load(tc59x_t *dev)
+tc59x_eeprom_load(tc59x_t *dev, int system)
 {
-    dev->address_config  = dev->eeprom[0x08];
-    dev->resource_config = dev->eeprom[0x09];
+    if (system) {
+        dev->address_config  = dev->eeprom[0x08];
+        dev->resource_config = dev->eeprom[0x09] & 0xf000;
+        /* "The value in ProductId is read from EEPROM word 3 after reset." */
+        dev->product_id = dev->eeprom[0x03];
+    }
     dev->internal_config = ((uint32_t) dev->eeprom[0x13] << 16) | dev->eeprom[0x12];
 }
 
@@ -505,13 +538,50 @@ tc59x_irq_of(uint16_t resource_config)
    everything from losing the rest. */
 static uint16_t tc59x_int_status(const tc59x_t *dev);
 
+/* The processor's cycle count, brought up to date: under the recompiler it
+   otherwise moves only between blocks, and two reads of Timer either side of
+   a string move in the same block would see no time pass. */
+static uint64_t
+tc59x_now(void)
+{
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+    return tsc;
+}
+
+/* Timer: "an 8-bit counter that begins counting from zero upon the assertion
+   of the interrupt signal... The counter increments by one every 3.2 us.
+   When the counter reaches 0xff, it halts." Drivers use it at
+   initialization as a general-purpose timer, starting it with
+   RequestInterrupt, and divide by what they measure; one that never moves
+   is a divide by zero in the driver. */
+static uint8_t
+tc59x_timer_read(const tc59x_t *dev)
+{
+    /* TIMER_USEC is a microsecond in cycles in 32.32 fixed point; its whole
+       part alone runs the timer 1% fast at 33.33 MHz and 4% at 16.67. */
+    double per_tick = ((double) TIMER_USEC / 4294967296.0) * 3.2;
+    double ticks;
+
+    if (!dev->timer_running || (per_tick <= 0.0))
+        return 0;
+
+    ticks = (double) (tc59x_now() - dev->timer_start) / per_tick;
+    return (ticks >= 255.0) ? 0xff : (uint8_t) ticks;
+}
+
 static void
 tc59x_update_irq(tc59x_t *dev)
 {
     uint16_t live = dev->int_status & dev->ind_enable & dev->int_enable & INT_SOURCES;
 
-    if (live)
-        dev->latch = 1;
+    if (live && !dev->latch) {
+        dev->latch         = 1;
+        dev->timer_start   = tc59x_now();
+        dev->timer_running = 1;
+    }
 
     if (dev->irq == 0)
         return;
@@ -541,6 +611,24 @@ tc59x_lower(tc59x_t *dev, uint16_t bits)
     tc59x_update_irq(dev);
 }
 
+/* hostError stands for its causes, which FifoDiagnostic shows: txOverrun,
+   cleared by a TxReset, and rxUnderrun, cleared by an RxReset (or a
+   GlobalReset that reaches the FIFO logic). A reset of the other side, or
+   of the bus master alone, leaves it up (3-18, 4-18). */
+static void
+tc59x_host_error(tc59x_t *dev, uint16_t cause)
+{
+    dev->fifo_diag |= cause;
+    tc59x_raise(dev, INT_HOST_ERROR);
+}
+
+static void
+tc59x_host_error_check(tc59x_t *dev)
+{
+    if (!(dev->fifo_diag & (FIFO_TX_OVERRUN | FIFO_RX_UNDERRUN)))
+        tc59x_lower(dev, INT_HOST_ERROR);
+}
+
 static void
 tc59x_set_irq_line(tc59x_t *dev, uint8_t irq)
 {
@@ -554,26 +642,48 @@ tc59x_set_irq_line(tc59x_t *dev, uint8_t irq)
 
 /* ---- statistics ------------------------------------------------------------- */
 
-/* Each counter raises updateStats as it passes the half-way mark. */
-#define STAT_BUMP8(dev, field, half)                \
-    do {                                            \
-        if ((dev)->stats_enabled) {                 \
-            (dev)->field++;                         \
-            if ((dev)->field == (half))             \
-                tc59x_raise(dev, INT_UPDATE_STATS); \
-        }                                           \
-    } while (0)
+/* updateStats stands while any counter is past half way -- 0x08 for the
+   four bit ones, 0x80 for the bytes, 0x200 for the ten bit frame counts,
+   0x8000 for the byte counts -- and "reading all of the statistics will
+   acknowledge" it: it is the OR of them all, not an edge any one read
+   takes away. */
+static void
+tc59x_stats_indicate(tc59x_t *dev)
+{
+    if ((dev->carrier_lost >= 0x08) || (dev->sqe_errors >= 0x08) || (dev->multiple_coll >= 0x80) ||
+        (dev->single_coll >= 0x80) || (dev->late_coll >= 0x80) || (dev->rx_overruns >= 0x80) ||
+        (dev->frames_deferred >= 0x80) || (dev->bad_ssd >= 0x80) || (dev->frames_xmitted_ok >= 0x200) ||
+        (dev->frames_rcvd_ok >= 0x200) || (dev->bytes_rcvd_ok >= 0x8000) || (dev->bytes_xmitted_ok >= 0x8000))
+        tc59x_raise(dev, INT_UPDATE_STATS);
+    else
+        tc59x_lower(dev, INT_UPDATE_STATS);
+}
+
+/* "Writing a value to a statistics register adds that value": the same
+   arithmetic as counting, so the four bit counters "stick at 0x0f". */
+static void
+tc59x_stat_add8(tc59x_t *dev, uint8_t *counter, uint8_t n)
+{
+    *counter = (uint8_t) (*counter + n);
+    tc59x_stats_indicate(dev);
+}
+
+static void
+tc59x_stat_add4(tc59x_t *dev, uint8_t *counter, uint8_t n)
+{
+    unsigned v = *counter + n;
+
+    *counter = (uint8_t) ((v > 0x0f) ? 0x0f : v);
+    tc59x_stats_indicate(dev);
+}
 
 static void
 tc59x_stat_bytes(tc59x_t *dev, uint16_t *counter, uint16_t n)
 {
-    uint16_t before = *counter;
-
     if (!dev->stats_enabled)
         return;
-    *counter = (uint16_t) (before + n);
-    if ((before < 0x8000) && (*counter >= 0x8000))
-        tc59x_raise(dev, INT_UPDATE_STATS);
+    *counter = (uint16_t) (*counter + n);
+    tc59x_stats_indicate(dev);
 }
 
 static void
@@ -582,8 +692,7 @@ tc59x_stat_frames(tc59x_t *dev, uint16_t *counter)
     if (!dev->stats_enabled)
         return;
     *counter = (uint16_t) ((*counter + 1) & 0x3ff);
-    if (*counter == 0x200)
-        tc59x_raise(dev, INT_UPDATE_STATS);
+    tc59x_stats_indicate(dev);
 }
 
 /* ---- CRC -------------------------------------------------------------------- */
@@ -606,6 +715,8 @@ tc59x_crc32(const uint8_t *data, uint16_t len)
 }
 
 /* ---- receive ------------------------------------------------------------- */
+
+static void tc59x_dma_upload(tc59x_t *dev);
 
 static tc59x_rx_frame_t *
 tc59x_rx_top(tc59x_t *dev)
@@ -637,6 +748,8 @@ tc59x_rx_discard(tc59x_t *dev)
     dev->rx_head = (uint8_t) ((dev->rx_head + 1) % RX_QUEUE);
     dev->rx_count--;
     dev->rx_pad_read = 0;
+    /* "cleared as soon as the receive FIFO is no longer full". */
+    dev->fifo_diag &= (uint16_t) ~FIFO_RX_OVERRUN;
     tc59x_rx_indicate(dev);
 }
 
@@ -647,6 +760,7 @@ tc59x_rx_flush(tc59x_t *dev)
     dev->rx_count    = 0;
     dev->rx_used     = 0;
     dev->rx_pad_read = 0;
+    dev->fifo_diag &= (uint16_t) ~FIFO_RX_OVERRUN;
     tc59x_lower(dev, INT_RX_COMPLETE | INT_RX_EARLY);
 }
 
@@ -669,25 +783,31 @@ tc59x_rx_accept(const tc59x_t *dev, const uint8_t *dst)
     return 0;
 }
 
-/* A frame off the network, or one of the card's own looped back. The
-   return value is the queue's: one for a frame taken, whether it was kept
-   or thrown away, and zero only for one the card could not take yet,
+/* A frame into the receive FIFO. Through the MAC -- off the network, or
+   looped back at the MAC, the encoder/decoder or externally -- it meets the
+   address filter, the padding and the FCS handling. FIFO loopback "forces
+   data loopback from the transmit FIFO directly into the receive FIFO",
+   past all of that: the frame goes in as written, filter or no filter, and
+   drivers depend on it -- they calibrate with RxFilter cleared by an RxReset
+   and wait for rxBytes to equal what they sent, down to 32 bytes.
+
+   The return value is the queue's: one for a frame taken, whether it was
+   kept or thrown away, and zero only for one the card could not take yet,
    which is held at the head of the queue and offered again. Answering
    zero for a frame the filter rejects would park it there for ever, in
    front of everything that follows. */
 static int
-tc59x_rx(void *priv, uint8_t *buf, int io_len)
+tc59x_rx_frame(tc59x_t *dev, const uint8_t *buf, int io_len, int mac)
 {
-    tc59x_t          *dev = (tc59x_t *) priv;
     tc59x_rx_frame_t *f;
     uint16_t          len = (uint16_t) io_len;
     uint32_t          crc;
 
-    if (!dev->rx_enabled || (io_len < 14)) {
+    if (!dev->rx_enabled || (io_len < (mac ? 14 : 1))) {
         tc59x_log("3C59x: receiver off, %i byte frame dropped\n", io_len);
         return 1;
     }
-    if (!tc59x_rx_accept(dev, buf)) {
+    if (mac && !tc59x_rx_accept(dev, buf)) {
         tc59x_log("3C59x: filtered (%02x) %i bytes to %02x:%02x:%02x:%02x:%02x:%02x\n", dev->rx_filter, io_len,
                   buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]);
         return 1;
@@ -695,41 +815,71 @@ tc59x_rx(void *priv, uint8_t *buf, int io_len)
 
     if (len > NET_MAX_FRAME)
         len = NET_MAX_FRAME;
+    /* 86Box's network hands frames over as the host has them, and the
+       host's own stack does not pad: a 54 byte TCP acknowledgement comes
+       in at 54 bytes. On a wire every sender pads "to 60 bytes in length"
+       and "the adapter discards packets less than 60 bytes long, such as
+       from collisions" -- so pad here, as the other 86Box cards do,
+       rather than hand a driver a runt it will throw away. */
+    if (mac && (len < 60))
+        len = 60;
 
-    /* The FIFO is a partition of the packet RAM; a frame that does not
-       fit is the overrun the book describes: "frames received while this
-       bit is set are discarded". */
+    /* The FIFO is a partition of the packet RAM. A frame that does not fit
+       is held by the network and offered again, so it is not lost and not
+       an overrun statistic: RxOverruns "does not count frames that are
+       completely ignored because the receive FIFO was full at the start of
+       frame reception". rxOverrun in FifoDiagnostic says so meanwhile. */
     if ((dev->rx_count >= RX_QUEUE) || (dev->rx_used + len + 4 > dev->rx_size)) {
-        STAT_BUMP8(dev, rx_overruns, 0x80);
-        tc59x_log("3C59x: receive FIFO full, %u byte frame dropped\n", len);
+        dev->fifo_diag |= FIFO_RX_OVERRUN;
+        tc59x_log("3C59x: receive FIFO full, %u byte frame held\n", len);
         return 0;
     }
 
     f = &dev->rx_queue[(dev->rx_head + dev->rx_count) % RX_QUEUE];
-    memcpy(f->data, buf, len);
+    memcpy(f->data, buf, (io_len < len) ? io_len : len);
+    if (io_len < len)
+        memset(f->data + io_len, 0, len - io_len);
     f->len   = len;
     f->pos   = 0;
     f->error = 0;
-    if (dev->media_status & MEDIA_CRC_STRIP_DIS) {
-        crc              = tc59x_crc32(buf, len);
+    /* "the minimum oversized frame is 1,515 bytes, not counting the FCS"
+       unless allowLargePackets is set. */
+    if (mac && (len > 1514) && !(dev->mac_control & MAC_LARGE_PACKETS))
+        f->error |= RXE_OVERSIZED;
+    if (mac && (dev->media_status & MEDIA_CRC_STRIP_DIS)) {
+        crc = tc59x_crc32(f->data, len);
         f->data[len]     = (uint8_t) crc;
         f->data[len + 1] = (uint8_t) (crc >> 8);
         f->data[len + 2] = (uint8_t) (crc >> 16);
         f->data[len + 3] = (uint8_t) (crc >> 24);
         f->len += 4;
     }
-    if (f->len < 60)
-        f->error |= RXE_RUNT;
     dev->rx_used += f->len;
     dev->rx_count++;
 
-    tc59x_stat_frames(dev, &dev->frames_rcvd_ok);
-    tc59x_stat_bytes(dev, &dev->bytes_rcvd_ok, f->len);
+    /* The OK counters take only frames received without error (4-19), and
+       only frames the MAC received. */
+    if (mac && !f->error) {
+        tc59x_stat_frames(dev, &dev->frames_rcvd_ok);
+        tc59x_stat_bytes(dev, &dev->bytes_rcvd_ok, f->len);
+    }
 
     tc59x_log("3C59x: received %u bytes, %u queued, intstatus %04x enables %04x/%04x\n", f->len, dev->rx_count,
               tc59x_int_status(dev), dev->int_enable, dev->ind_enable);
     tc59x_rx_indicate(dev);
+
+    /* An upload started with the FIFO empty has been waiting for this. */
+    if (dev->upload_pending) {
+        dev->upload_pending = 0;
+        tc59x_dma_upload(dev);
+    }
     return 1;
+}
+
+static int
+tc59x_rx(void *priv, uint8_t *buf, int io_len)
+{
+    return tc59x_rx_frame((tc59x_t *) priv, buf, io_len, 1);
 }
 
 /* One byte out of RxData. Reading past the end of the top frame is
@@ -742,7 +892,7 @@ tc59x_rx_data_read(tc59x_t *dev)
     tc59x_rx_frame_t *f = tc59x_rx_top(dev);
 
     if (f == NULL) {
-        tc59x_raise(dev, INT_HOST_ERROR);
+        tc59x_host_error(dev, FIFO_RX_UNDERRUN);
         return 0;
     }
     if (f->pos < f->len)
@@ -751,7 +901,7 @@ tc59x_rx_data_read(tc59x_t *dev)
         dev->rx_pad_read++;
         return 0;
     }
-    tc59x_raise(dev, INT_HOST_ERROR);
+    tc59x_host_error(dev, FIFO_RX_UNDERRUN);
     return 0;
 }
 
@@ -798,11 +948,11 @@ tc59x_tx_status_pop(tc59x_t *dev)
 static uint16_t
 tc59x_tx_free(const tc59x_t *dev)
 {
-    uint32_t used = 4 + dev->tx_got;
+    uint32_t used = dev->tx_pend_fifo;
     uint32_t free;
 
-    if (dev->tx_fsh_got == 0)
-        used = 0;
+    if (dev->tx_fsh_got != 0)
+        used += 4 + dev->tx_count;
     free = (used > dev->tx_size) ? 0 : (dev->tx_size - used);
     if (free > 0xffff)
         free = 0xffff;
@@ -821,20 +971,31 @@ tc59x_tx_frame_reset(tc59x_t *dev)
 {
     dev->tx_fsh_got  = 0;
     dev->tx_got      = 0;
+    dev->tx_count    = 0;
     dev->tx_length   = 0;
     dev->tx_flags    = 0;
     dev->tx_pad_left = 0;
 }
 
-/* The frame is complete in the FIFO: on to the wire, or back to the
-   receiver if a loopback mode is set. */
+/* A frame leaves the FIFO: on to the wire, or back to the receiver if a
+   loopback mode is set. Only now is it counted and its status posted. */
 static void
-tc59x_tx_send(tc59x_t *dev)
+tc59x_tx_emit(tc59x_t *dev, const uint8_t *data, uint16_t kept, uint16_t written, uint16_t flags)
 {
-    uint16_t len = dev->tx_got;
+    uint8_t *frame = dev->tx_out;
+    uint16_t len   = kept;
     uint8_t  status;
 
-    if (dev->tx_flags & FSH_CRC_DISABLE) {
+    memcpy(frame, data, kept);
+
+    if (dev->network_diagnostic & 0x1000) { /* fifoLoopback: past the MAC */
+        tc59x_log("3C59x: %u bytes FIFO looped back\n", kept);
+        tc59x_rx_frame(dev, frame, kept, 0);
+        if (flags & FSH_TX_INDICATE)
+            tc59x_tx_status_push(dev, TXS_COMPLETE | TXS_INT_REQUESTED);
+        return;
+    }
+    if (flags & FSH_CRC_DISABLE) {
         /* The driver supplied the FCS; the wire here does not carry one. */
         if (len >= 4)
             len -= 4;
@@ -843,27 +1004,84 @@ tc59x_tx_send(tc59x_t *dev)
        arbitrary data bytes to the end of the frame's data field to pad the
        frame to 60 bytes in length." */
     while (len < 60)
-        dev->tx_frame[len++] = 0;
+        frame[len++] = 0;
 
     tc59x_log("3C59x: transmit %u bytes%s\n", len, (dev->network_diagnostic & DIAG_LOOPBACK) ? " (loopback)" : "");
 
-    if (dev->tx_enabled) {
-        if (dev->network_diagnostic & DIAG_LOOPBACK)
-            tc59x_rx(dev, dev->tx_frame, len);
-        else
-            network_tx(dev->card, dev->tx_frame, len);
-    }
+    if (written > kept) {
+        /* A large packet (up to 4,494 bytes) is legal on the card, but
+           86Box's network carries nothing longer than an Ethernet frame:
+           it goes nowhere, and otherwise completes as sent. */
+        tc59x_log("3C59x: %u byte frame is larger than the network carries\n", written);
+    } else if (dev->network_diagnostic & DIAG_LOOPBACK)
+        tc59x_rx_frame(dev, frame, len, 1);
+    else
+        network_tx(dev->card, frame, len);
 
     tc59x_stat_frames(dev, &dev->frames_xmitted_ok);
-    tc59x_stat_bytes(dev, &dev->bytes_xmitted_ok, len);
+    tc59x_stat_bytes(dev, &dev->bytes_xmitted_ok, (written > kept) ? written : len);
 
     /* "Status is not posted unless either an error occurred during frame
        transmission or the txIndicate bit in the frame start header was
        set." */
     status = TXS_COMPLETE;
-    if (dev->tx_flags & FSH_TX_INDICATE) {
+    if (flags & FSH_TX_INDICATE) {
         status |= TXS_INT_REQUESTED;
         tc59x_tx_status_push(dev, status);
+    }
+}
+
+/* Frames the transmitter was not enabled for: "they are not transmitted,
+   nor are they discarded. If the transmitter is again enabled, frames in
+   the transmit FIFO are transmitted." */
+static void
+tc59x_tx_drain(tc59x_t *dev)
+{
+    uint32_t pos = 0;
+
+    while (dev->tx_enabled && (pos < dev->tx_pend_len)) {
+        const uint8_t *r       = dev->tx_pend + pos;
+        uint16_t       kept    = (uint16_t) (r[0] | (r[1] << 8));
+        uint16_t       written = (uint16_t) (r[2] | (r[3] << 8));
+        uint16_t       flags   = (uint16_t) (r[4] | (r[5] << 8));
+
+        tc59x_tx_emit(dev, r + 6, kept, written, flags);
+        dev->tx_pend_fifo -= 4 + ((written + 3U) & ~3U);
+        pos += 6 + kept;
+    }
+    if (pos > 0) {
+        memmove(dev->tx_pend, dev->tx_pend + pos, dev->tx_pend_len - pos);
+        dev->tx_pend_len -= pos;
+    }
+    tc59x_tx_avail_check(dev);
+}
+
+static void
+tc59x_tx_pend_clear(tc59x_t *dev)
+{
+    dev->tx_pend_len  = 0;
+    dev->tx_pend_fifo = 0;
+}
+
+/* The frame is complete in the FIFO. */
+static void
+tc59x_tx_send(tc59x_t *dev)
+{
+    if (dev->tx_enabled && (dev->tx_pend_len == 0))
+        tc59x_tx_emit(dev, dev->tx_frame, dev->tx_got, dev->tx_count, dev->tx_flags);
+    else {
+        uint8_t *r = dev->tx_pend + dev->tx_pend_len;
+
+        r[0] = (uint8_t) dev->tx_got;
+        r[1] = (uint8_t) (dev->tx_got >> 8);
+        r[2] = (uint8_t) dev->tx_count;
+        r[3] = (uint8_t) (dev->tx_count >> 8);
+        r[4] = (uint8_t) dev->tx_flags;
+        r[5] = (uint8_t) (dev->tx_flags >> 8);
+        memcpy(r + 6, dev->tx_frame, dev->tx_got);
+        dev->tx_pend_len += 6 + dev->tx_got;
+        dev->tx_pend_fifo += 4 + ((dev->tx_count + 3U) & ~3U);
+        tc59x_log("3C59x: transmitter disabled, %u byte frame held in the FIFO\n", dev->tx_count);
     }
 
     tc59x_tx_frame_reset(dev);
@@ -888,25 +1106,26 @@ tc59x_tx_data_write(tc59x_t *dev, uint8_t val)
             dev->tx_length = fsh & FSH_LENGTH;
             dev->tx_flags  = fsh & (FSH_TX_INDICATE | FSH_CRC_DISABLE);
             dev->tx_got    = 0;
+            dev->tx_count  = 0;
             tc59x_log("3C59x: fsh %02x %02x %02x %02x: length %u flags %04x\n", dev->tx_fsh[0], dev->tx_fsh[1],
                       dev->tx_fsh[2], dev->tx_fsh[3], dev->tx_length, dev->tx_flags);
-            if (dev->tx_length > TX_FRAME_MAX) {
-                tc59x_log("3C59x: frame start header asks for %u bytes\n", dev->tx_length);
-                dev->tx_length = TX_FRAME_MAX;
-            }
+            /* txLength "must match the number of actual frame bytes":
+               the whole of it is counted, however much of it is kept. */
             if (dev->tx_length == 0)
                 tc59x_tx_frame_reset(dev);
         }
         return;
     }
-    if (dev->tx_got >= dev->tx_size) {
+    if (dev->tx_pend_fifo + 4 + dev->tx_count >= dev->tx_size) {
         /* "Writing bytes to the transmit FIFO when there is no space
            causes a transmit overrun condition". */
-        tc59x_raise(dev, INT_HOST_ERROR);
+        tc59x_host_error(dev, FIFO_TX_OVERRUN);
         return;
     }
-    dev->tx_frame[dev->tx_got++] = val;
-    if (dev->tx_got == dev->tx_length) {
+    if (dev->tx_got < TX_FRAME_MAX)
+        dev->tx_frame[dev->tx_got++] = val;
+    dev->tx_count++;
+    if (dev->tx_count == dev->tx_length) {
         /* Complete. Whatever the driver writes to reach the dword
            boundary is pad and is swallowed; TxDone would end it early.
            The pad count is set after the send, which starts the next
@@ -924,21 +1143,23 @@ tc59x_tx_data_write(tc59x_t *dev, uint8_t val)
 static void
 tc59x_tx_done(tc59x_t *dev)
 {
-    tc59x_log("3C59x: TxDone: fsh %u/4, %u/%u bytes, pad left %u\n", dev->tx_fsh_got, dev->tx_got, dev->tx_length, dev->tx_pad_left);
+    tc59x_log("3C59x: TxDone: fsh %u/4, %u/%u bytes, pad left %u\n", dev->tx_fsh_got, dev->tx_count, dev->tx_length, dev->tx_pad_left);
     dev->tx_pad_left = 0;
-    if ((dev->tx_fsh_got == 4) && (dev->tx_got > 0) && (dev->tx_got < dev->tx_length)) {
+    if ((dev->tx_fsh_got == 4) && (dev->tx_count > 0) && (dev->tx_count < dev->tx_length)) {
         /* A short frame against its own header: send what there is. */
-        dev->tx_length = dev->tx_got;
+        dev->tx_length = dev->tx_count;
         tc59x_tx_send(dev);
     }
 }
 
+/* fifoTxReset: the FIFO's contents, frames waiting included. The TxStatus
+   stack is the network side's (networkTxReset, 4-10). */
 static void
 tc59x_tx_flush(tc59x_t *dev)
 {
     tc59x_tx_frame_reset(dev);
-    dev->tx_status_count = 0;
-    tc59x_lower(dev, INT_TX_COMPLETE | INT_TX_AVAILABLE);
+    tc59x_tx_pend_clear(dev);
+    tc59x_lower(dev, INT_TX_AVAILABLE);
 }
 
 /* ---- bus master ----------------------------------------------------------- */
@@ -953,7 +1174,18 @@ tc59x_dma_upload(tc59x_t *dev)
     uint8_t           buf[64];
     uint16_t          n;
 
-    while (dev->master_len && (f != NULL) && (f->pos < f->len)) {
+    /* "the adapter paces the data transfers such that no receive FIFO
+       underrun occurs during bus master uploads", and with no data to
+       transfer it "will wait until data has been received" (A-2): the
+       upload stays in progress until a frame arrives. */
+    if (f == NULL) {
+        dev->upload_pending = 1;
+        dev->master_status |= MS_IN_PROGRESS;
+        return;
+    }
+    dev->master_status &= (uint16_t) ~MS_IN_PROGRESS;
+
+    while (dev->master_len && (f->pos < f->len)) {
         n = (uint16_t) (f->len - f->pos);
         if (n > dev->master_len)
             n = dev->master_len;
@@ -997,6 +1229,7 @@ tc59x_dma_download(tc59x_t *dev)
 static void
 tc59x_dma_reset(tc59x_t *dev)
 {
+    dev->upload_pending = 0;
     dev->master_address = 0;
     dev->master_len     = 0;
     dev->master_status  = 0;
@@ -1016,11 +1249,11 @@ tc59x_rx_reset(tc59x_t *dev, uint8_t mask)
     if (!(mask & 0x08)) { /* fifoRxReset */
         tc59x_rx_flush(dev);
         dev->rx_early_thresh = THRESH_OFF;
+        dev->fifo_diag &= (uint16_t) ~FIFO_RX_UNDERRUN;
     }
     if (!(mask & 0x40)) /* dmaRxReset */
         tc59x_dma_reset(dev);
-    dev->int_status &= (uint16_t) ~INT_HOST_ERROR;
-    tc59x_update_irq(dev);
+    tc59x_host_error_check(dev);
 }
 
 static void
@@ -1036,11 +1269,11 @@ tc59x_tx_reset(tc59x_t *dev, uint8_t mask)
         tc59x_tx_flush(dev);
         dev->tx_start_thresh = THRESH_OFF;
         dev->tx_avail_thresh = THRESH_OFF;
+        dev->fifo_diag &= (uint16_t) ~FIFO_TX_OVERRUN;
     }
     if (!(mask & 0x40)) /* dmaTxReset */
         tc59x_dma_reset(dev);
-    dev->int_status &= (uint16_t) ~INT_HOST_ERROR;
-    tc59x_update_irq(dev);
+    tc59x_host_error_check(dev);
 }
 
 /* GlobalReset with its mask, and what a system reset does with the mask at
@@ -1056,24 +1289,49 @@ tc59x_global_reset(tc59x_t *dev, uint8_t mask)
         dev->int_enable = 0;
         dev->ind_enable = 0;
         dev->latch      = 0;
-        dev->window     = 0;
+        dev->timer_running = 0;
+        /* The window is the host interface's. 4-25 says "the windowNumber
+           bit is reset after a hardware reset or a GlobalReset", but the
+           book's own EISA erratum 2 workaround -- GlobalReset 0x07BF, the
+           bus master alone, then Window 7 written without selecting it
+           again -- only works if a reset with hostReset masked leaves the
+           window where it was, and every 3Com driver from 1996 to 1999
+           that carries the workaround depends on exactly that. */
+        dev->window = 0;
         tc59x_update_irq(dev);
     }
-    if (!(mask & 0x10)) /* aismReset: the EEPROM is reloaded */
-        tc59x_eeprom_load(dev);
+    /* aismReset: the EEPROM is reloaded -- InternalConfig from it; "the
+       adapter's configuration is unaffected", so AddressConfig and
+       ResourceConfig keep what the EISA BIOS set. */
+    if (!(mask & 0x10)) {
+        dev->eeprom_command = 0;
+        dev->eeprom_data    = 0;
+        tc59x_eeprom_load(dev, 0);
+    }
 
-    dev->mac_control        = 0;
-    dev->media_status       = 0;
-    dev->network_diagnostic = 0;
-    dev->physical_mgmt      = 0;
-    dev->stats_enabled      = 0;
-    dev->eeprom_command     = 0;
-    dev->eeprom_data        = 0;
-    dev->rom_control        = 0;
-    dev->other_int          = 0;
-    dev->cmd_low            = 0;
-    memset(dev->station_addr, 0, sizeof(dev->station_addr));
-    memset(dev->station_mask, 0, sizeof(dev->station_mask));
+    /* THE MASK KEEPS A MODULE OUT OF THE RESET, and everything the card
+       holds belongs to one of them. The book names the host interface's
+       registers and the bus master's; the rest here is the network side --
+       the MAC and media control, the diagnostics, the statistics and the
+       station address the receive filter compares against -- or the bus
+       interface, by what each one is. Resetting them all regardless is what
+       lost the station address: el59x.sys issues GlobalReset 0xbf, the bus
+       master alone, as routine, and after the first one the card answered
+       to 00:00:00:00:00:00 and took nothing but broadcasts. */
+    if (!(mask & 0x04)) { /* networkReset */
+        dev->mac_control        = 0;
+        dev->media_status       = 0;
+        dev->network_diagnostic = 0;
+        dev->physical_mgmt      = 0;
+        dev->stats_enabled      = 0;
+        memset(dev->station_addr, 0, sizeof(dev->station_addr));
+        memset(dev->station_mask, 0, sizeof(dev->station_mask));
+    }
+    if (!(mask & 0x20)) { /* hostReset: the bus interface */
+        dev->rom_control = 0;
+        dev->other_int   = 0;
+        dev->cmd_low     = 0;
+    }
     tc59x_partition(dev);
 }
 
@@ -1083,6 +1341,9 @@ tc59x_reset(void *priv)
     tc59x_t *dev = (tc59x_t *) priv;
 
     tc59x_global_reset(dev, 0);
+    /* A system reset reloads the configuration too, which a GlobalReset
+       leaves alone. */
+    tc59x_eeprom_load(dev, 1);
     dev->card_enable = 0;
     tc59x_set_irq_line(dev, tc59x_irq_of(dev->resource_config));
 }
@@ -1105,7 +1366,7 @@ tc59x_eeprom_command(tc59x_t *dev, uint16_t val)
                 case 1: /* WriteAll */
                     if (dev->eeprom_write_enabled) {
                         for (uint8_t i = 0; i < 64; i++)
-                            dev->eeprom[i] = dev->eeprom_data;
+                            dev->eeprom[i] &= dev->eeprom_data; /* "can only clear bits to zero" */
                     }
                     dev->eeprom_write_enabled = 0;
                     break;
@@ -1176,6 +1437,7 @@ tc59x_command(tc59x_t *dev, uint16_t val)
         case CMD_TX_ENABLE:
             dev->tx_enabled = 1;
             dev->network_diagnostic |= DIAG_TX_ENABLED;
+            tc59x_tx_drain(dev);
             break;
         case CMD_TX_DISABLE:
             dev->tx_enabled = 0;
@@ -1190,20 +1452,25 @@ tc59x_command(tc59x_t *dev, uint16_t val)
         case CMD_ACK_INTERRUPT:
             if (param & INT_LATCH)
                 dev->latch = 0;
-            if (param & INT_TX_AVAILABLE) {
-                /* "the process of acknowledging the interrupt will change
-                   the value in TxAvailableThresh to 8188d". */
+            if ((param & INT_TX_AVAILABLE) && (dev->int_status & INT_TX_AVAILABLE)) {
+                /* "when a txAvailable interrupt is generated and
+                   acknowledged, the process of acknowledging the interrupt
+                   will change the value in TxAvailableThresh to 8188d" --
+                   and "attempting to acknowledge an indication that is not
+                   active has no effect". */
                 dev->tx_avail_thresh = THRESH_OFF;
             }
             dev->int_status &= (uint16_t) ~(param & (INT_TX_AVAILABLE | INT_RX_EARLY | INT_REQUESTED));
             tc59x_update_irq(dev);
             break;
         case CMD_SET_INTERRUPT_EN:
-            dev->int_enable = param & INT_SOURCES;
+            /* Bits 9:1 are the register's (4-23), bit 9 with no IntStatus
+               bit behind it; it is kept and reads back. */
+            dev->int_enable = param & 0x03fe;
             tc59x_update_irq(dev);
             break;
         case CMD_SET_INDICATION_EN:
-            dev->ind_enable = param & INT_SOURCES;
+            dev->ind_enable = param & 0x03fe;
             tc59x_update_irq(dev);
             break;
         case CMD_SET_RX_FILTER:
@@ -1222,6 +1489,9 @@ tc59x_command(tc59x_t *dev, uint16_t val)
             dev->tx_start_thresh = (uint16_t) (param << 2);
             break;
         case CMD_START_DMA:
+            /* "0 upload, 1 download, 1X reserved". */
+            if (param & 2)
+                break;
             if (param & 1)
                 tc59x_dma_download(dev);
             else
@@ -1251,6 +1521,8 @@ tc59x_int_status(const tc59x_t *dev)
 
     if (dev->latch)
         ret |= INT_LATCH;
+    if (dev->master_status & MS_IN_PROGRESS)
+        ret |= INT_BM_IN_PROGRESS;
     return ret;
 }
 
@@ -1268,7 +1540,7 @@ tc59x_stat16_read(tc59x_t *dev, uint16_t *counter, uint8_t high)
     ret                = (uint8_t) (*counter & 0xff);
     dev->stat_latch_hi = (uint8_t) (*counter >> 8);
     *counter           = 0;
-    tc59x_lower(dev, INT_UPDATE_STATS);
+    tc59x_stats_indicate(dev);
     return ret;
 }
 
@@ -1278,7 +1550,7 @@ tc59x_stat8_read(tc59x_t *dev, uint8_t *counter)
     uint8_t ret = *counter;
 
     *counter = 0;
-    tc59x_lower(dev, INT_UPDATE_STATS);
+    tc59x_stats_indicate(dev);
     return ret;
 }
 
@@ -1289,9 +1561,11 @@ tc59x_media_status(const tc59x_t *dev)
     uint8_t  xcvr = (uint8_t) ((dev->internal_config & IC_XCVR_MASK) >> IC_XCVR_SHIFT);
 
     ret |= dev->media_status & MEDIA_DC_CONVERTER;
-    /* "For all speeds, linkBeatDetect is forced on whenever
-       linkBeatEnable is cleared" -- and the cable here is always in. */
-    ret |= MEDIA_LINK_BEAT_DETECT;
+    /* "a real-time indication of the twisted-pair transceiver link beat
+       status", which is 86Box's link state; "for all speeds,
+       linkBeatDetect is forced on whenever linkBeatEnable is cleared". */
+    if (dev->link_up || !(dev->media_status & MEDIA_LINK_BEAT_ENABLE))
+        ret |= MEDIA_LINK_BEAT_DETECT;
     if ((xcvr == XCVR_100BASE_TX) || (xcvr == XCVR_100BASE_FX))
         ret |= MEDIA_DATA_RATE_100;
     if ((xcvr == XCVR_10BASE_T) || (xcvr == XCVR_10BASE_2))
@@ -1314,10 +1588,12 @@ tc59x_reg_read(tc59x_t *dev, uint8_t window, uint8_t off)
             switch (off) {
                 case W0_MANUFACTURER_ID:
                 case W0_MANUFACTURER_ID + 1:
+                    /* The same bytes the slot answers with at zC80h. */
+                    return dev->id[off & 3];
                 case W0_PRODUCT_ID:
                 case W0_PRODUCT_ID + 1:
-                    /* The same four bytes the slot answers with at zC80h. */
-                    return dev->id[off & 3];
+                    /* "read from EEPROM word 3 after reset". */
+                    return (uint8_t) (dev->product_id >> ((off & 1) * 8));
                 case W0_CONFIG_CONTROL:
                     return dev->card_enable;
                 case W0_CONFIG_CONTROL + 1:
@@ -1363,8 +1639,7 @@ tc59x_reg_read(tc59x_t *dev, uint8_t window, uint8_t off)
                 case W1_RX_STATUS + 1:
                     return (uint8_t) (tc59x_rx_status(dev) >> ((off & 1) * 8));
                 case W1_TIMER:
-                    /* Interrupt latency here is nil. */
-                    return 0;
+                    return tc59x_timer_read(dev);
                 case W1_TX_STATUS:
                     return dev->tx_status_count ? dev->tx_status[0] : 0;
                 case W1_TX_FREE:
@@ -1404,7 +1679,11 @@ tc59x_reg_read(tc59x_t *dev, uint8_t window, uint8_t off)
                     return (uint8_t) (dev->reset_options >> ((off & 1) * 8));
                 case W3_RX_FREE:
                 case W3_RX_FREE + 1:
-                    w = (uint16_t) ((dev->rx_size - dev->rx_used > 0xffff) ? 0xffff : (dev->rx_size - dev->rx_used));
+                    /* A repartition can leave more queued than the new
+                       partition holds: "if zero is returned, the receive
+                       buffer area is full". */
+                    l = (dev->rx_used >= dev->rx_size) ? 0 : (dev->rx_size - dev->rx_used);
+                    w = (uint16_t) ((l > 0xffff) ? 0xffff : l);
                     return (uint8_t) (w >> ((off & 1) * 8));
                 case W3_TX_FREE:
                 case W3_TX_FREE + 1:
@@ -1428,9 +1707,12 @@ tc59x_reg_read(tc59x_t *dev, uint8_t window, uint8_t off)
                     return (uint8_t) (dev->network_diagnostic >> ((off & 1) * 8));
                 case W4_PHYSICAL_MGMT:
                 case W4_PHYSICAL_MGMT + 1:
-                    /* No MII PHY answers: mgmtData reads back one, as an
-                       undriven line does. */
-                    w = (uint16_t) (dev->physical_mgmt | 0x0002);
+                    /* With mgmtDir set the card drives MDIO with what was
+                       written; otherwise no MII PHY answers and mgmtData
+                       reads back one, as an undriven line does. */
+                    w = dev->physical_mgmt;
+                    if (!(w & 0x0004))
+                        w |= 0x0002;
                     return (uint8_t) (w >> ((off & 1) * 8));
                 case W4_MEDIA_STATUS:
                 case W4_MEDIA_STATUS + 1:
@@ -1487,13 +1769,13 @@ tc59x_reg_read(tc59x_t *dev, uint8_t window, uint8_t off)
                     dev->upper_frames_ok   = (uint8_t) ((dev->upper_frames_ok & 0x03) | (((dev->frames_xmitted_ok >> 8) & 3) << 4));
                     w                      = dev->frames_xmitted_ok;
                     dev->frames_xmitted_ok = 0;
-                    tc59x_lower(dev, INT_UPDATE_STATS);
+                    tc59x_stats_indicate(dev);
                     return (uint8_t) (w & 0xff);
                 case W6_FRAMES_RCVD_OK:
                     dev->upper_frames_ok = (uint8_t) ((dev->upper_frames_ok & 0x30) | ((dev->frames_rcvd_ok >> 8) & 3));
                     w                    = dev->frames_rcvd_ok;
                     dev->frames_rcvd_ok  = 0;
-                    tc59x_lower(dev, INT_UPDATE_STATS);
+                    tc59x_stats_indicate(dev);
                     return (uint8_t) (w & 0xff);
                 case W6_FRAMES_DEFERRED:
                     return tc59x_stat8_read(dev, &dev->frames_deferred);
@@ -1547,10 +1829,10 @@ tc59x_reg_write(tc59x_t *dev, uint8_t window, uint8_t off, uint8_t val)
                     dev->address_config = (uint16_t) ((dev->address_config & 0x00ff) | ((val & 0x0f) << 8));
                     break;
                 case W0_RESOURCE_CONFIG:
-                    dev->resource_config = (uint16_t) ((dev->resource_config & 0xff00) | val);
+                    /* Bits 11:0 are zero (4-40): only the IRQ is there. */
                     break;
                 case W0_RESOURCE_CONFIG + 1:
-                    dev->resource_config = (uint16_t) ((dev->resource_config & 0x00ff) | (val << 8));
+                    dev->resource_config = (uint16_t) ((val << 8) & 0xf000);
                     tc59x_set_irq_line(dev, tc59x_irq_of(dev->resource_config));
                     tc59x_log("3C59x: IRQ %i\n", dev->irq);
                     break;
@@ -1589,8 +1871,14 @@ tc59x_reg_write(tc59x_t *dev, uint8_t window, uint8_t off, uint8_t val)
         case 3:
             switch (off) {
                 case W3_INTERNAL_CONFIG:
+                    /* ramSize, ramWidth and ramSpeed "are fixed for a
+                       particular adapter, and are not writable"; romSize
+                       [7:6] beside them is. */
+                    dev->internal_config = (dev->internal_config & ~0x000000c0U) | (val & 0xc0);
+                    break;
                 case W3_INTERNAL_CONFIG + 1:
-                    /* The low word is the hardware's and read only. */
+                    /* disableBadSsdDet [8]. */
+                    dev->internal_config = (dev->internal_config & ~0x00000100U) | ((uint32_t) (val & 0x01) << 8);
                     break;
                 case W3_INTERNAL_CONFIG + 2:
                     dev->internal_config = (dev->internal_config & 0xff00ffff) | ((uint32_t) (val & 0x73) << 16);
@@ -1611,8 +1899,11 @@ tc59x_reg_write(tc59x_t *dev, uint8_t window, uint8_t off, uint8_t val)
                 case W3_MAC_CONTROL + 1:
                     break;
                 case W3_RESET_OPTIONS:
-                    /* vcoConfig and forcedConfig are the writable bits;
-                       neither changes anything here. */
+                    break;
+                case W3_RESET_OPTIONS + 1:
+                    /* vcoConfig [8] and forcedConfig [12] are read/write
+                       (4-39); neither changes anything else here. */
+                    dev->reset_options = (uint16_t) ((dev->reset_options & ~0x1100) | ((val << 8) & 0x1100));
                     break;
                 default:
                     break;
@@ -1643,7 +1934,7 @@ tc59x_reg_write(tc59x_t *dev, uint8_t window, uint8_t off, uint8_t val)
                 case W4_MEDIA_STATUS + 1:
                     break;
                 case W4_BAD_SSD:
-                    dev->bad_ssd += val; /* "Writing a value to a statistics register adds that value" */
+                    tc59x_stat_add8(dev, &dev->bad_ssd, val);
                     break;
                 default:
                     break;
@@ -1653,43 +1944,49 @@ tc59x_reg_write(tc59x_t *dev, uint8_t window, uint8_t off, uint8_t val)
         case 6:
             switch (off) {
                 case W6_CARRIER_LOST:
-                    dev->carrier_lost += val;
+                    tc59x_stat_add4(dev, &dev->carrier_lost, val);
                     break;
                 case W6_SQE_ERRORS:
-                    dev->sqe_errors += val;
+                    tc59x_stat_add4(dev, &dev->sqe_errors, val);
                     break;
                 case W6_MULTIPLE_COLL:
-                    dev->multiple_coll += val;
+                    tc59x_stat_add8(dev, &dev->multiple_coll, val);
                     break;
                 case W6_SINGLE_COLL:
-                    dev->single_coll += val;
+                    tc59x_stat_add8(dev, &dev->single_coll, val);
                     break;
                 case W6_LATE_COLL:
-                    dev->late_coll += val;
+                    tc59x_stat_add8(dev, &dev->late_coll, val);
                     break;
                 case W6_RX_OVERRUNS:
-                    dev->rx_overruns += val;
+                    tc59x_stat_add8(dev, &dev->rx_overruns, val);
                     break;
                 case W6_FRAMES_XMITTED_OK:
-                    dev->frames_xmitted_ok += val;
+                    dev->frames_xmitted_ok = (uint16_t) ((dev->frames_xmitted_ok + val) & 0x3ff);
+                    tc59x_stats_indicate(dev);
                     break;
                 case W6_FRAMES_RCVD_OK:
-                    dev->frames_rcvd_ok += val;
+                    dev->frames_rcvd_ok = (uint16_t) ((dev->frames_rcvd_ok + val) & 0x3ff);
+                    tc59x_stats_indicate(dev);
                     break;
                 case W6_FRAMES_DEFERRED:
-                    dev->frames_deferred += val;
+                    tc59x_stat_add8(dev, &dev->frames_deferred, val);
                     break;
                 case W6_BYTES_RCVD_OK:
                     dev->bytes_rcvd_ok += val;
+                    tc59x_stats_indicate(dev);
                     break;
                 case W6_BYTES_RCVD_OK + 1:
                     dev->bytes_rcvd_ok += (uint16_t) (val << 8);
+                    tc59x_stats_indicate(dev);
                     break;
                 case W6_BYTES_XMITTED_OK:
                     dev->bytes_xmitted_ok += val;
+                    tc59x_stats_indicate(dev);
                     break;
                 case W6_BYTES_XMITTED_OK + 1:
                     dev->bytes_xmitted_ok += (uint16_t) (val << 8);
+                    tc59x_stats_indicate(dev);
                     break;
                 default:
                     break;
@@ -1846,6 +2143,15 @@ tc59x_writel(uint16_t port, uint32_t val, void *priv)
 
 /* ---- the device ------------------------------------------------------------- */
 
+static int
+tc59x_set_link_state(void *priv, uint32_t link_state)
+{
+    tc59x_t *dev = (tc59x_t *) priv;
+
+    dev->link_up = !(link_state & (NET_LINK_DOWN | NET_LINK_TEMP_DOWN));
+    return 0;
+}
+
 static void *
 tc59x_init(const device_t *info)
 {
@@ -1897,7 +2203,10 @@ tc59x_init(const device_t *info)
     }
     eisa_set_wide(dev->slot, tc59x_readw, tc59x_writew, tc59x_readl, tc59x_writel);
 
-    dev->card = network_attach(dev, dev->mac, tc59x_rx, NULL);
+    dev->link_up = 1;
+    dev->card    = network_attach(dev, dev->mac, tc59x_rx, tc59x_set_link_state);
+    if (dev->card->link_state & NET_LINK_DOWN)
+        dev->link_up = 0;
     if (dev->board == BOARD_3C597)
         dev->card->byte_period = NET_PERIOD_100M;
 
