@@ -126,6 +126,7 @@ extern const device_t piix4e_device;
 extern const device_t slc90e66_device;
 
 extern const device_t ioapic_device;
+extern const device_t ioapic_ami_device;
 
 /* VTech */
 extern const device_t laserxt_device;
