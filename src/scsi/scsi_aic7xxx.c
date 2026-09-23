@@ -1039,6 +1039,10 @@ aic_host_no_pause(uint8_t addr, int write)
 static void
 aic_hard_error(aic7xxx_t *dev, uint8_t bits, uint8_t addr, int write)
 {
+    /* Named in the log line only. */
+    (void) addr;
+    (void) write;
+
     /* Worth a line of its own, and worth naming what reached for what.
        Firmware that runs on the real part does not reach these, so one
        appearing here is this model's news rather than the firmware's --
@@ -1415,6 +1419,8 @@ aic_cmd_execute(aic7xxx_t *dev, aic_cmd_t *c)
     scsi_device_t *sd = &scsi_devices[c->bus][c->id];
     double         p;
 
+    (void) dev; /* for the log only */
+
     c->executed = 1;
 
     scsi_device_identify(sd, c->identified ? c->lun : SCSI_LUN_USE_CDB);
@@ -1452,6 +1458,8 @@ static void
 aic_cmd_finish_out(aic7xxx_t *dev, aic_cmd_t *c)
 {
     scsi_device_t *sd = &scsi_devices[c->bus][c->id];
+
+    (void) dev; /* for the log only */
 
     if (c->data_in || (c->data_len == 0) || (c->data == NULL))
         return;
@@ -2972,9 +2980,10 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                    IRQMS in HCNTRL, so report that rather than bit 7, which
                    this line used to read and which the configuration
                    utility writes as zero whatever the trigger. */
-                if (dev->irq != (val & 0x0f))
+                if (dev->irq != (val & 0x0f)) {
                     aic_log(dev->tag, "EISA IRQ %i, %s triggered\n", val & 0x0f,
                             (dev->hcntrl & IRQMS) ? "level" : "edge");
+                }
                 dev->irq = val & 0x0f;
             } else if (addr == HA_274_BIOSCTRL) {
                 dev->bios_ctl_set = 1;
@@ -5152,17 +5161,18 @@ aic_init(const device_t *info)
     if (AIC_BOARD_FDC(dev->board) && device_get_config_int("floppy"))
         dev->fdc = device_add(&fdc_at_device);
 
-    if (dev->twin)
+    if (dev->twin) {
         aic_log(dev->tag, "board %i, %s, channel A on bus %i, channel B on "
                           "bus %i, sblkctl %02x\n",
                 dev->board,
                 dev->wide ? "wide" : "narrow", dev->bus, dev->bus_b,
                 dev->sblkctl);
-    else
+    } else {
         aic_log(dev->tag, "board %i, %s, one channel on bus %i, sblkctl "
                           "%02x\n",
                 dev->board, dev->wide ? "wide" : "narrow",
                 dev->bus, dev->sblkctl);
+    }
 
     return dev;
 }
