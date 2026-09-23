@@ -76,7 +76,7 @@ static const device_config_t ibmpc_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "5700671 (10/19/81)",
+                .name          = "IBM BIOS - Revision 5700671 (10/19/81)",
                 .internal_name = "ibm5150_5700671",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -85,7 +85,7 @@ static const device_config_t ibmpc_config[] = {
                 .files         = { "roms/machines/ibmpc/BIOS_IBM5150_19OCT81_5700671_U33.BIN", "" }
             },
             {
-                .name          = "5700051 (04/24/81)",
+                .name          = "IBM BIOS - Revision 5700051 (04/24/81)",
                 .internal_name = "ibm5150_5700051",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -255,7 +255,7 @@ static const device_config_t ibmpc82_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "1501476 (10/27/82)",
+                .name          = "IBM BIOS - Revision 1501476 (10/27/82)",
                 .internal_name = "ibm5150_1501476",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -264,7 +264,7 @@ static const device_config_t ibmpc82_config[] = {
                 .files         = { "roms/machines/ibmpc82/BIOS_5150_27OCT82_1501476_U33.BIN", "" }
             },
             {
-                .name          = "5000024 (08/16/82)",
+                .name          = "IBM BIOS - Revision 5000024 (08/16/82)",
                 .internal_name = "ibm5150_5000024",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -434,7 +434,7 @@ static const device_config_t ibmxt_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "1501512 (11/08/82)",
+                .name          = "IBM BIOS - Revision 1501512 (11/08/82)",
                 .internal_name = "ibm5160_1501512_5000027",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -444,7 +444,7 @@ static const device_config_t ibmxt_config[] = {
                                    "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_5000027.BIN", "" }
             },
             {
-                .name          = "1501512 (11/08/82) (Alt)",
+                .name          = "IBM BIOS - Revision 1501512 (11/08/82) (Alt)",
                 .internal_name = "ibm5160_1501512_6359116",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -454,7 +454,7 @@ static const device_config_t ibmxt_config[] = {
                                    "roms/machines/ibmxt/BIOS_5160_08NOV82_U19_6359116.BIN", "" }
             },
             {
-                .name          = "5000026 (08/16/82)",
+                .name          = "IBM BIOS - Revision 5000026 (08/16/82)",
                 .internal_name = "ibm5160_5000026_5000027",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -644,7 +644,7 @@ static const device_config_t ibmxt_inboard386_config[] = {
   // clang-format off
     {
         .name           = "bios",
-        .description    = "BIOS",
+        .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
         .default_string = "ibm5160_050986",
         .default_int    = 0,
@@ -652,7 +652,7 @@ static const device_config_t ibmxt_inboard386_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
-                .name          = "1501512 (05/09/86)",
+                .name          = "IBM BIOS - Revision 1501512 (05/09/86)",
                 .internal_name = "ibm5160_050986",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -662,7 +662,7 @@ static const device_config_t ibmxt_inboard386_config[] = {
                                    "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
-                .name          = "5000026 (01/10/86)",
+                .name          = "IBM BIOS - Revision 5000026 (01/10/86)",
                 .internal_name = "ibm5160_011086",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -858,7 +858,7 @@ static const device_config_t ibmxt86_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "1501512 (05/09/86)",
+                .name          = "IBM BIOS - Revision 1501512 (05/09/86)",
                 .internal_name = "ibm5160_050986",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -868,7 +868,7 @@ static const device_config_t ibmxt86_config[] = {
                                    "roms/machines/ibmxt86/BIOS_5160_09MAY86_U19_62X0819_68X4370_27256_F000.BIN", "" }
             },
             {
-                .name          = "5000026 (01/10/86)",
+                .name          = "IBM BIOS - Revision 5000026 (01/10/86)",
                 .internal_name = "ibm5160_011086",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -878,7 +878,7 @@ static const device_config_t ibmxt86_config[] = {
                                    "roms/machines/ibmxt86/BIOS_5160_10JAN86_U19_62X0854_27256_F000.BIN", "" }
             },
             {
-                .name          = "1501512 (01/10/86) (Alt)",
+                .name          = "IBM BIOS - Revision 1501512 (01/10/86) (Alt)",
                 .internal_name = "ibm5160_011086_alt",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -1380,22 +1380,22 @@ static const device_config_t pc500_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "3.30",
-                .internal_name = "pc500_330",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 8192,
-                .files         = { "roms/machines/pc500/rom330.bin", "" }
-            },
-            {
-                .name          = "3.1",
+                .name          = "Multitech/Acer BIOS - Revision 3.1",
                 .internal_name = "pc500_310",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 8192,
                 .files         = { "roms/machines/pc500/rom310.bin", "" }
+            },
+            {
+                .name          = "Multitech/Acer BIOS - Revision 3.30",
+                .internal_name = "pc500_330",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 8192,
+                .files         = { "roms/machines/pc500/rom330.bin", "" }
             },
             { .files_no = 0 }
         }
@@ -1485,22 +1485,22 @@ static const device_config_t pc500plus_config[] = {
         .name       = "bios",
         .description    = "BIOS Version",
         .type           = CONFIG_BIOS,
-        .default_string = "pc500plus",
+        .default_string = "pc500plus_406",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .bios           = {
             {
-                .name          = "4.06",
-                .internal_name = "pc500plus_406",
+                .name          = "Multitech/Acer BIOS - Revision 4.03",
+                .internal_name = "pc500plus_403",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 16384,
-                .files         = { "roms/machines/pc500/rom406.bin", "" }
+                .files         = { "roms/machines/pc500/rom403.bin", "" }
             },
             {
-                .name          = "4.04",
+                .name          = "Multitech/Acer BIOS - Revision 4.04",
                 .internal_name = "pc500plus",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -1509,13 +1509,13 @@ static const device_config_t pc500plus_config[] = {
                 .files         = { "roms/machines/pc500/rom404.bin", "" }
             },
             {
-                .name          = "4.03",
-                .internal_name = "pc500plus_403",
+                .name          = "Multitech/Acer BIOS - Revision 4.06",
+                .internal_name = "pc500plus_406",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 16384,
-                .files         = { "roms/machines/pc500/rom403.bin", "" }
+                .files         = { "roms/machines/pc500/rom406.bin", "" }
             },
             { .files_no = 0 }
         },
@@ -1608,22 +1608,22 @@ static const device_config_t pc700_config[] = {
         .spinner        = { 0 },
         .bios           = {
             {
-                .name           = "3.30",
-                .internal_name  = "pc700",
-                .bios_type      = BIOS_NORMAL,
-                .files_no       = 1,
-                .local          = 0,
-                .size           = 8192,
-                .files          = { "roms/machines/pc700/multitech pc-700 3.30.bin", "" }
-            },
-            {
-                .name           = "3.1",
+                .name           = "Multitech/Acer BIOS - Revision 3.1",
                 .internal_name  = "pc700_31",
                 .bios_type      = BIOS_NORMAL,
                 .files_no       = 1,
                 .local          = 0,
                 .size           = 8192,
                 .files          = { "roms/machines/pc700/multitech pc-700 3.1.bin", "" }
+            },
+            {
+                .name           = "Multitech/Acer BIOS - Revision 3.30",
+                .internal_name  = "pc700",
+                .bios_type      = BIOS_NORMAL,
+                .files_no       = 1,
+                .local          = 0,
+                .size           = 8192,
+                .files          = { "roms/machines/pc700/multitech pc-700 3.30.bin", "" }
             },
             { .files_no = 0 }
         },
