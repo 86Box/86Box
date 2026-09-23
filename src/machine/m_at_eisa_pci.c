@@ -62,7 +62,7 @@ static const device_config_t at_54tdp_config[] = {
        kept: this decides the starting point and nothing else. */
     {
         .name           = "auto_eisa_config",
-        .description    = "Initialise EISA configuration store",
+        .description    = "Initialize EISA configuration store",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
