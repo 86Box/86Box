@@ -35,6 +35,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/dma.h>
 #include <86box/eisa.h>
@@ -297,6 +298,8 @@ typedef struct tc59x_t {
     uint8_t  irq;       /* from ResourceConfig; 0 is disabled */
     uint8_t  irq_state; /* the PIC's level tracking */
     uint8_t  latch;     /* interruptLatch */
+    uint8_t  timer_running;
+    uint64_t timer_start; /* tsc when the interrupt signal last went up */
     uint8_t  irq_logged;
     uint16_t int_status; /* the sources, unfiltered */
     uint16_t int_enable;
@@ -505,13 +508,49 @@ tc59x_irq_of(uint16_t resource_config)
    everything from losing the rest. */
 static uint16_t tc59x_int_status(const tc59x_t *dev);
 
+/* The processor's cycle count, brought up to date: under the recompiler it
+   otherwise moves only between blocks, and two reads of Timer either side of
+   a string move in the same block would see no time pass. */
+static uint64_t
+tc59x_now(void)
+{
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+    return tsc;
+}
+
+/* Timer: "an 8-bit counter that begins counting from zero upon the assertion
+   of the interrupt signal... The counter increments by one every 3.2 us.
+   When the counter reaches 0xff, it halts." Drivers use it at
+   initialization as a general-purpose timer, starting it with
+   RequestInterrupt, and divide by what they measure; one that never moves
+   is a divide by zero in the driver. */
+static uint8_t
+tc59x_timer_read(const tc59x_t *dev)
+{
+    uint64_t per_usec = TIMER_USEC >> 32;
+    uint64_t ticks;
+
+    if (!dev->timer_running || (per_usec == 0))
+        return 0;
+
+    /* 3.2 us is 32 tenths of a microsecond. */
+    ticks = ((tc59x_now() - dev->timer_start) * 10) / (per_usec * 32);
+    return (ticks > 0xff) ? 0xff : (uint8_t) ticks;
+}
+
 static void
 tc59x_update_irq(tc59x_t *dev)
 {
     uint16_t live = dev->int_status & dev->ind_enable & dev->int_enable & INT_SOURCES;
 
-    if (live)
-        dev->latch = 1;
+    if (live && !dev->latch) {
+        dev->latch         = 1;
+        dev->timer_start   = tc59x_now();
+        dev->timer_running = 1;
+    }
 
     if (dev->irq == 0)
         return;
@@ -1057,6 +1096,7 @@ tc59x_global_reset(tc59x_t *dev, uint8_t mask)
         dev->ind_enable = 0;
         dev->latch      = 0;
         dev->window     = 0;
+        dev->timer_running = 0;
         tc59x_update_irq(dev);
     }
     if (!(mask & 0x10)) /* aismReset: the EEPROM is reloaded */
@@ -1363,8 +1403,7 @@ tc59x_reg_read(tc59x_t *dev, uint8_t window, uint8_t off)
                 case W1_RX_STATUS + 1:
                     return (uint8_t) (tc59x_rx_status(dev) >> ((off & 1) * 8));
                 case W1_TIMER:
-                    /* Interrupt latency here is nil. */
-                    return 0;
+                    return tc59x_timer_read(dev);
                 case W1_TX_STATUS:
                     return dev->tx_status_count ? dev->tx_status[0] : 0;
                 case W1_TX_FREE:
