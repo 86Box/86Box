@@ -17592,7 +17592,7 @@ const machine_t machines[] = {
     {
         .name              = "[i430HX] AIR 54TDP",
         .internal_name     = "54tdp",
-        .type              = MACHINE_TYPE_SOCKET7,
+        .type              = MACHINE_TYPE_SOCKET7_3V,
         .chipset           = MACHINE_CHIPSET_INTEL_430HX,
         .init              = machine_at_54tdp_init,
         .p1_handler        = machine_generic_p1_handler,
