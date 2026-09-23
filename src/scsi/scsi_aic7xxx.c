@@ -235,13 +235,13 @@ aic_log(const char *tag, const char *fmt, ...)
    2740W/2742W and 2744W -- and the second digit says whether the board
    carries a floppy controller (an N82077 on Hino's). Same EISA ID
    (ADP7771) and the same option ROM throughout. */
-#define BOARD_2740        4  /* one narrow channel */
-#define BOARD_2742        5  /* one narrow channel, floppy controller */
-#define BOARD_2740T       6  /* two narrow channels */
-#define BOARD_2742T       7  /* two narrow channels, floppy controller */
-#define BOARD_2740W       8  /* one wide channel */
-#define BOARD_2742W       9  /* one wide channel, floppy controller */
-#define BOARD_2744W       10 /* one wide differential channel */
+#define BOARD_2740        6  /* one narrow channel */
+#define BOARD_2742        7  /* one narrow channel, floppy controller */
+#define BOARD_2740T       8  /* two narrow channels */
+#define BOARD_2742T       9  /* two narrow channels, floppy controller */
+#define BOARD_2740W       10 /* one wide channel */
+#define BOARD_2742W       11 /* one wide channel, floppy controller */
+#define BOARD_2744W       12 /* one wide differential channel */
 #define AIC_BOARD_EISA(b) ((b) >= BOARD_2740)
 #define AIC_BOARD_TWIN(b) (((b) == BOARD_2740T) || ((b) == BOARD_2742T))
 #define AIC_BOARD_WIDE(b) (((b) == BOARD_2740W) || ((b) == BOARD_2742W) || ((b) == BOARD_2744W))
