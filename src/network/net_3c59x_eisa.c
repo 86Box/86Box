@@ -1099,21 +1099,35 @@ tc59x_global_reset(tc59x_t *dev, uint8_t mask)
         dev->timer_running = 0;
         tc59x_update_irq(dev);
     }
-    if (!(mask & 0x10)) /* aismReset: the EEPROM is reloaded */
+    if (!(mask & 0x10)) { /* aismReset: the EEPROM is reloaded */
+        dev->eeprom_command = 0;
+        dev->eeprom_data    = 0;
         tc59x_eeprom_load(dev);
+    }
 
-    dev->mac_control        = 0;
-    dev->media_status       = 0;
-    dev->network_diagnostic = 0;
-    dev->physical_mgmt      = 0;
-    dev->stats_enabled      = 0;
-    dev->eeprom_command     = 0;
-    dev->eeprom_data        = 0;
-    dev->rom_control        = 0;
-    dev->other_int          = 0;
-    dev->cmd_low            = 0;
-    memset(dev->station_addr, 0, sizeof(dev->station_addr));
-    memset(dev->station_mask, 0, sizeof(dev->station_mask));
+    /* THE MASK KEEPS A MODULE OUT OF THE RESET, and everything the card
+       holds belongs to one of them. The book names the host interface's
+       registers and the bus master's; the rest here is the network side --
+       the MAC and media control, the diagnostics, the statistics and the
+       station address the receive filter compares against -- or the bus
+       interface, by what each one is. Resetting them all regardless is what
+       lost the station address: el59x.sys issues GlobalReset 0xbf, the bus
+       master alone, as routine, and after the first one the card answered
+       to 00:00:00:00:00:00 and took nothing but broadcasts. */
+    if (!(mask & 0x04)) { /* networkReset */
+        dev->mac_control        = 0;
+        dev->media_status       = 0;
+        dev->network_diagnostic = 0;
+        dev->physical_mgmt      = 0;
+        dev->stats_enabled      = 0;
+        memset(dev->station_addr, 0, sizeof(dev->station_addr));
+        memset(dev->station_mask, 0, sizeof(dev->station_mask));
+    }
+    if (!(mask & 0x20)) { /* hostReset: the bus interface */
+        dev->rom_control = 0;
+        dev->other_int   = 0;
+        dev->cmd_low     = 0;
+    }
     tc59x_partition(dev);
 }
 
