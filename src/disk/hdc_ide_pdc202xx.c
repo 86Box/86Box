@@ -113,6 +113,7 @@
 
 typedef struct pdc_t {
     uint8_t     card;      /* which of the two */
+    int         ch_base;   /* IDE channels 0-1, or 2-3 where those are taken */
     uint8_t     pci_slot;
     uint8_t     irq_state;
     uint8_t     cable80;   /* what the cable sense answers */
@@ -647,8 +648,8 @@ pdc_mem_handler(pdc_t *dev)
 static void
 pdc_ide_handler(pdc_t *dev)
 {
-    ide_pri_disable();
-    ide_sec_disable();
+    ide_handlers(dev->ch_base, 0);
+    ide_handlers(dev->ch_base + 1, 0);
 
     dev->tf_base[0]  = (dev->pci_regs[0x11] << 8) | (dev->pci_regs[0x10] & 0xf8);
     dev->ctl_base[0] = ((dev->pci_regs[0x15] << 8) | (dev->pci_regs[0x14] & 0xfc)) + 2;
@@ -659,15 +660,15 @@ pdc_ide_handler(pdc_t *dev)
         return;
 
     if (dev->tf_base[0] != 0x0000) {
-        ide_set_base(0, dev->tf_base[0]);
-        ide_set_side(0, dev->ctl_base[0]);
-        ide_pri_enable();
+        ide_set_base(dev->ch_base, dev->tf_base[0]);
+        ide_set_side(dev->ch_base, dev->ctl_base[0]);
+        ide_handlers(dev->ch_base, 1);
     }
 
     if (dev->tf_base[1] != 0x0000) {
-        ide_set_base(1, dev->tf_base[1]);
-        ide_set_side(1, dev->ctl_base[1]);
-        ide_sec_enable();
+        ide_set_base(dev->ch_base + 1, dev->tf_base[1]);
+        ide_set_side(dev->ch_base + 1, dev->ctl_base[1]);
+        ide_handlers(dev->ch_base + 1, 1);
     }
 }
 
@@ -951,11 +952,24 @@ pdc_init(const device_t *info)
              rom_size - 1, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&dev->bios_rom.mapping);
 
-    dev->bm[0] = device_add_inst(&sff8038i_device, 1);
-    dev->bm[1] = device_add_inst(&sff8038i_device, 2);
+    /* THE PRIMARY AND SECONDARY WHERE THEY ARE FREE, the tertiary and
+       quaternary where they are not. A board with its own IDE (PIIX, VIA,
+       ALi...) or another controller has already claimed the first two by
+       now, and with them bus master instances 1 and 2; the card then takes
+       the next two, as any add-in PCI IDE controller does. Where nothing
+       has, the card is the machine's IDE, as it always was. */
+    dev->ch_base = (ide_board_claimed(0) || ide_board_claimed(1)) ? 2 : 0;
+    if (dev->ch_base)
+        device_add(&ide_pci_ter_qua_2ch_device);
+    dev->bm[0] = device_add_inst(&sff8038i_device, dev->ch_base + 1);
+    dev->bm[1] = device_add_inst(&sff8038i_device, dev->ch_base + 2);
+    /* The SFF core adds the primary and secondary itself, but only for
+       the first bus master in the machine. */
+    if (!dev->ch_base && !ide_board_claimed(0))
+        device_add(&ide_pci_2ch_device);
 
-    ide_set_bus_master(0, pdc_bm_dma_0, pdc_set_irq_0, dev);
-    ide_set_bus_master(1, pdc_bm_dma_1, pdc_set_irq_1, dev);
+    ide_set_bus_master(dev->ch_base, pdc_bm_dma_0, pdc_set_irq_0, dev);
+    ide_set_bus_master(dev->ch_base + 1, pdc_bm_dma_1, pdc_set_irq_1, dev);
 
     /* The sixteen kilobyte memory window, through which Promise's driver
        does its register work on this generation. */
