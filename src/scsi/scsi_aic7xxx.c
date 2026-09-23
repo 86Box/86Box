@@ -16,9 +16,9 @@
  *          couple of counts, and that is the table of aic_chip_t below
  *          rather than a thread of conditionals through the whole file.
  *
- *          The boards: the AIC-7770 on the EISA AHA-2740, and the AIC-7870
- *          and AIC-7880 as the chip on a motherboard and as the AHA-2940
- *          Ultra and Ultra Wide cards.
+ *          The boards: the AIC-7770 on the EISA AHA-2740, the AIC-7870 on
+ *          the AHA-2940 and 2940W, and the AIC-7880 as the chip on a
+ *          motherboard and as the AHA-2940 Ultra and Ultra Wide cards.
  *
  *          HOW THIS PART IS MODELLED.
  *
@@ -227,7 +227,9 @@ aic_log(const char *tag, const char *fmt, ...)
 #define BOARD_7880   0 /* the chip on a motherboard */
 #define BOARD_2940U  1 /* AHA-2940 Ultra, narrow */
 #define BOARD_2940UW 2 /* AHA-2940 Ultra Wide */
-#define BOARD_2944UW 3 /* AHA-2944 Ultra Wide, differential */
+#define BOARD_2940   3 /* AHA-2940, narrow, on an AIC-7870 */
+#define BOARD_2940W  4 /* AHA-2940W, the same card strapped wide */
+#define BOARD_2944UW 5 /* AHA-2944 Ultra Wide, differential */
 /* The AIC-7770 cards. The configuration utility's overlay knows four
    hardware types by the chip's straps -- AHA-2740/2742, 2740T/2742T,
    2740W/2742W and 2744W -- and the second digit says whether the board
@@ -477,8 +479,8 @@ static const aic_chip_t aic_chip_7770 = {
     .bad_addr_err       = ILLSADDR,
 };
 
-/* The AIC-7870 and AIC-7880, which keep everything the older part had and
-   add to it. */
+/* The AIC-7880, which keeps everything the older part had and adds to
+   it. */
 static const aic_chip_t aic_chip_788x = {
     .name           = "AIC-7880",
     .scb_pages      = SCB_COUNT,
@@ -504,6 +506,35 @@ static const aic_chip_t aic_chip_788x = {
     .bad_addr_err     = ILLOPCODE,
     /* Off, for the same reason bad_addr_err differs: ILLHADDR's rule is
        the AIC-7770 book's, and this part's is not to hand. */
+    .host_pause_checked = 0,
+};
+
+/* The AIC-7870: the AIC-7880 without Ultra. Its data book has bit 5 of
+   SXFRCTL0 "Not Used. Always reads 0." where the later part keeps FAST20,
+   so a transfer can never be clocked at the Ultra rate. Every driver
+   takes the two for one family and goes by the device ID for the rest:
+   Linux's feature table makes the AIC-7880 the AIC-7870 plus AHC_ULTRA
+   and nothing else. */
+static const aic_chip_t aic_chip_7870 = {
+    .name          = "AIC-7870",
+    .scb_pages     = SCB_COUNT,
+    .q_depth       = QUEUE_SIZE,
+    .scbptr_mask   = 0xff,
+    .sblkctl_mask  = DIAGLEDEN | DIAGLEDON | AUTOFLUSHDIS | SELWIDE,
+    .sxfrctl0_mask = (uint8_t) ~FAST20,
+    .sxfrctl1_mask = 0xff,
+    .simode0_mask  = 0xff,
+    .scsitest_mask = 0xff,
+    .clrint_mask   = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
+    .aux_regs      = 1,
+    .fifo_addr_hi  = 1,
+    .selid_writable = 1,
+    .twin_capable  = 0,
+    .seqctl_reset  = PERRORDIS | FASTMODE,
+    .sblkctl_reset = DIAGLEDEN | DIAGLEDON,
+    .own_reset_seen = 1,
+    .faildis_honoured = 0,
+    .bad_addr_err  = ILLOPCODE,
     .host_pause_checked = 0,
 };
 
@@ -4337,11 +4368,51 @@ aic_seeprom_onboard(uint16_t *nvr)
     nvr[127] = sum;
 }
 
+/* The AHA-2940's, from the defaults table in its own BIOS v1.23 (a copy
+   sits at 0A8Dh in the expanded image). One thirty-two word block with
+   the sum of the first thirty-one in the last and no signature, the same
+   layout as the part on the 54TDP. Targets 0 to 7 are included in the
+   BIOS scan, synchronous at the fastest non-Ultra rate and allowed to
+   disconnect; 8 to 15 add wide, and only a 2940W reaches them. Adapter
+   control is automatic termination, both halves terminated, parity and
+   a bus reset at start -- no Ultra, which the part has not got.
+
+   Every one of the three BIOSes tells the two cards apart by the SELWIDE
+   strap in SBLKCTL alone, and on a wide one sets the wide bit on all
+   sixteen targets and the target count to sixteen before it saves. That
+   is what a 2940W carries. */
+static void
+aic_seeprom_2940(uint16_t *nvr, int wide)
+{
+    uint16_t sum = 0;
+
+    for (uint16_t i = 0; i < 128; i++)
+        nvr[i] = 0xffff;
+
+    for (uint8_t i = 0; i < 16; i++)
+        nvr[i] = (wide || (i >= 8)) ? 0x0238 : 0x0218;
+
+    nvr[16] = 0x18b6; /* bios_control */
+    nvr[17] = 0x005d; /* adapter_control */
+    nvr[18] = 0x2807; /* bus release time, and our SCSI ID is seven */
+    nvr[19] = wide ? 0x0010 : 0x0008; /* how many targets */
+    nvr[20] = 0xff00;
+    nvr[30] = 0x00ff;
+
+    for (uint8_t i = 0; i < 31; i++)
+        sum = (uint16_t) (sum + nvr[i]);
+    nvr[31] = sum;
+}
+
 static void
 aic_seeprom_build(const aic7xxx_t *dev, uint16_t *nvr)
 {
     if (dev->board == BOARD_7880) {
         aic_seeprom_onboard(nvr);
+        return;
+    }
+    if ((dev->board == BOARD_2940) || (dev->board == BOARD_2940W)) {
+        aic_seeprom_2940(nvr, dev->wide);
         return;
     }
 
@@ -4877,6 +4948,10 @@ aic_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 #define AHA2940UW_V125_ROM "roms/scsi/adaptec/aha2940uw_v125.bin"
 #define AHA2940UW_V134_ROM "roms/scsi/adaptec/aha2940uw_v134.bin"
 #define AHA2940UW_V220_ROM "roms/scsi/adaptec/aha2940uw_v220.bin"
+#define AHA2940_V111_ROM   "roms/scsi/adaptec/aha2940_v111.bin"
+#define AHA2940_V116_ROM   "roms/scsi/adaptec/aha2940_v116.bin"
+#define AHA2940_V123_ROM   "roms/scsi/adaptec/aha2940_v123.bin"
+=======
 #define AHA2944UW_V220_ROM "roms/scsi/adaptec/aha2944uw_v220.bin"
 #define AHA2740_V210_ROM   "roms/scsi/adaptec/aha2740_v210.bin"
 #define AHA2740W_V211_ROM  "roms/scsi/adaptec/aha2740w.bin"
@@ -4900,7 +4975,7 @@ aic_init(const device_t *info)
     uint16_t                 devid;
 
     dev->board = info->local & 0xff;
-    dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || AIC_BOARD_WIDE(dev->board);
+    dev->wide  = (dev->board == BOARD_2940UW) || dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
     /* An AHA-2740 is one narrow bus. Other members of the family strap the
        same chip for two buses or for one wide one, and on the AIC-7770
        those are exclusive: the wide connection takes channel B's data
@@ -4937,14 +5012,19 @@ aic_init(const device_t *info)
 
     dev->eisa = AIC_BOARD_EISA(dev->board);
     /* Which part this board is built on, before anything asks. */
-    dev->chip = dev->eisa ? &aic_chip_7770 : &aic_chip_788x;
+    if (dev->eisa)
+        dev->chip = &aic_chip_7770;
+    else if ((dev->board == BOARD_2940) || (dev->board == BOARD_2940W))
+        dev->chip = &aic_chip_7870;
+    else
+        dev->chip = &aic_chip_788x;
     dev->bus  = scsi_get_bus();
     /* What every line of this board's log will say it is. Set before
        anything else can log, and before the slot is known, so it names
        the part and the bus -- which is what tells two boards of the same
        part apart. */
     snprintf(dev->tag, sizeof(dev->tag), "%s/%u: ",
-             dev->eisa ? "7770" : "7880", dev->bus);
+             dev->chip->name + 4, dev->bus);
     /* Channel B is a bus of its own, and the configuration utility gives it
        its own SCSICONF: !ADP7771.CFG declares IOPORT(3) as a word, so the
        firmware writes 5Ah and 5Bh together and the board comes up with both
@@ -4963,9 +5043,11 @@ aic_init(const device_t *info)
        the option ROM's PCI data structure matches. */
     if (dev->board == BOARD_7880)
         devid = 0x8078;
+    else if ((dev->board == BOARD_2940) || (dev->board == BOARD_2940W))
+        devid = 0x7178;
     else if (dev->board == BOARD_2944UW)
         devid = 0x8478;
-    else
+   else
         devid = 0x8178;
 
     dev->pci_regs[0x00] = 0x04;
@@ -4987,8 +5069,10 @@ aic_init(const device_t *info)
        reads this before anything else and walks past a card whose
        subsystem ID is set but does not begin with 78 (or 75). The bare
        chip on a motherboard leaves it at zero, which the same driver
-       takes as "go by the device ID". */
-    if (dev->board != BOARD_7880) {
+       takes as "go by the device ID". So does the older AHA-2940:
+       read off a real one, 2Ch to 2Fh are all zero; the 2940W is the same
+       card strapped wide. */
+    if ((dev->board != BOARD_7880) && (dev->board != BOARD_2940) && (dev->board != BOARD_2940W)) {
         dev->pci_regs[0x2c] = 0x04;
         dev->pci_regs[0x2d] = 0x90;
         dev->pci_regs[0x2e] = (devid >> 8) & 0xff;
@@ -5004,11 +5088,9 @@ aic_init(const device_t *info)
     dev->pci_regs[DEVCONFIG + 2] = 0x00;
     dev->pci_regs[DEVCONFIG + 3] = 0x00;
 
-    /* How long the device itself takes over a command, which is off unless
-       asked for: the seek and the rotation are modelled but the transfer is
-       not, so what it buys in fidelity it spends twice over in latency.
-       The part on a motherboard has no settings and does without. */
-    dev->timed_dev = (dev->board == BOARD_7880) ? 0 : device_get_config_int("dev_timing");
+    /* How long the device itself takes over a command: the seek and the
+       rotation 86Box models for the drive, on every board. */
+    dev->timed_dev = 1;
 
     if (dev->eisa) {
         uint8_t id[4];
@@ -5088,7 +5170,8 @@ aic_init(const device_t *info)
 
     /* The card's own BIOS. Every one of these images is an AHA-2940
        Ultra/Ultra W BIOS whose PCI data structure names 9004:8178, as this
-       card does; the PCI BIOS refuses to run one whose ID does not match.
+       card does, or an AHA-2940 BIOS naming 9004:7178; the PCI BIOS
+       refuses to run one whose ID does not match.
        The images are shorter than the 64 KiB window the BAR asks for, and
        what is not covered by the file reads back as 0xff. */
     if ((dev->board != BOARD_7880) && !dev->eisa && device_get_config_int("bios")) {
@@ -5255,17 +5338,6 @@ static const device_config_t aic7770_config[] = {
         },
         .bios           = { { 0 } }
     },
-    {
-        .name           = "dev_timing",
-        .description    = "Model device access times",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -5326,17 +5398,6 @@ static const device_config_t aic7770_fdc_config[] = {
             { .description = "Slot 4", .value = 4 },
             { .description = ""                   }
         },
-        .bios           = { { 0 } }
-    },
-    {
-        .name           = "dev_timing",
-        .description    = "Model device access times",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
@@ -5424,16 +5485,62 @@ static const device_config_t aic_card_config[] = {
             { .files_no = 0 }
         },
     },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+static const device_config_t aha2940_config[] = {
+    // clang-format off
     {
-        .name           = "dev_timing",
-        .description    = "Device timing",
+        .name           = "bios",
+        .description    = "Enable BIOS",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
-        .default_int    = 1,
+        .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_rev",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v1_23",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Version 1.11",
+                .internal_name = "v1_11",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { AHA2940_V111_ROM, "" }
+            },
+            {
+                .name          = "Version 1.16",
+                .internal_name = "v1_16",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { AHA2940_V116_ROM, "" }
+            },
+            {
+                .name          = "Version 1.23",
+                .internal_name = "v1_23",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { AHA2940_V123_ROM, "" }
+            },
+            { .files_no = 0 }
+        },
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -5601,6 +5708,34 @@ const device_t aha2744w_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aic7770_config
+};
+
+const device_t aha2940_pci_device = {
+    .name          = "Adaptec AHA-2940",
+    .internal_name = "aha2940",
+    .flags         = DEVICE_PCI,
+    .local         = BOARD_2940,
+    .init          = aic_init,
+    .close         = aic_close,
+    .reset         = aic_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = aha2940_config
+};
+
+const device_t aha2940w_pci_device = {
+    .name          = "Adaptec AHA-2940W",
+    .internal_name = "aha2940w",
+    .flags         = DEVICE_PCI,
+    .local         = BOARD_2940W,
+    .init          = aic_init,
+    .close         = aic_close,
+    .reset         = aic_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = aha2940_config
 };
 
 const device_t aha2940u_pci_device = {
