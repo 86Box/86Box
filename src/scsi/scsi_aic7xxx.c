@@ -4951,7 +4951,6 @@ aic_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 #define AHA2940_V111_ROM   "roms/scsi/adaptec/aha2940_v111.bin"
 #define AHA2940_V116_ROM   "roms/scsi/adaptec/aha2940_v116.bin"
 #define AHA2940_V123_ROM   "roms/scsi/adaptec/aha2940_v123.bin"
-=======
 #define AHA2944UW_V220_ROM "roms/scsi/adaptec/aha2944uw_v220.bin"
 #define AHA2740_V210_ROM   "roms/scsi/adaptec/aha2740_v210.bin"
 #define AHA2740W_V211_ROM  "roms/scsi/adaptec/aha2740w.bin"
@@ -4975,7 +4974,7 @@ aic_init(const device_t *info)
     uint16_t                 devid;
 
     dev->board = info->local & 0xff;
-    dev->wide  = (dev->board == BOARD_2940UW) || dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
+    dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
     /* An AHA-2740 is one narrow bus. Other members of the family strap the
        same chip for two buses or for one wide one, and on the AIC-7770
        those are exclusive: the wide connection takes channel B's data
