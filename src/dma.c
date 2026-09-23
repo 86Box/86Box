@@ -1817,13 +1817,20 @@ dma_reset_legacy(void)
 
     dma_remove_sg();
     dma_sg_base = 0x0400;
-    dma_sg_count_mask = 0x0000fffe;
     memset(dma_chain_mode, 0x00, sizeof(dma_chain_mode));
     dma_chain_int = 0x00;
     dma_stop_en   = 0x00;
-    dma_eisa      = 0;
 
     dma_mask = 0x00ffffff;
+
+    /* A reset clears the registers, not the controller's kind. The power-on
+       reset comes after the chipset has said what it has, so an EISA
+       controller must come out of it an EISA controller again: full-width
+       addresses, and the advanced paths its extensions live on. */
+    if (dma_eisa) {
+        dma_advanced = 1;
+        dma_mask     = 0xffffffff;
+    }
 
     dma_at = is286;
 }
@@ -2065,6 +2072,10 @@ dma_init(void)
 {
     dma_ibm5140 = dma_ibm5140_diag = 0;
     dma_ps2.is_ps2 = 0;
+    /* What kind of controller this is, which only a new machine changes; an
+       EISA chipset sets it again after this. */
+    dma_eisa          = 0;
+    dma_sg_count_mask = 0x0000fffe;
     dma_reset();
 
     io_sethandler(0x0000, 16,
@@ -2291,6 +2302,13 @@ dma_retreat(dma_t *dma_c)
 
         dma_c->page = dma_c->page_l = (dma_c->ac >> 16) & 0xff;
         dma_c->page_h               = (dma_c->ac >> 24) & 0xff;
+    } else if (dma_eisa) {
+        /* An EISA controller's address counter is the whole address: it
+           carries into the page bits, and a transfer crosses 64 KB (128 KB
+           on the 16-bit channels) with no wrap. Operating systems rely on
+           it -- Windows NT's EISA HAL does not split transfers at those
+           boundaries, and a wrap drops the rest of the buffer 64 KB low. */
+        dma_c->ac = (dma_c->ac - as) & dma_mask;
     } else if (as == 2)
         dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac - as) & 0x1ffff);
     else
@@ -2307,6 +2325,9 @@ dma_advance(dma_t *dma_c)
 
         dma_c->page = dma_c->page_l = (dma_c->ac >> 16) & 0xff;
         dma_c->page_h               = (dma_c->ac >> 24) & 0xff;
+    } else if (dma_eisa) {
+        /* No 64 KB wrap on EISA; see dma_retreat(). */
+        dma_c->ac = (dma_c->ac + as) & dma_mask;
     } else if (as == 2)
         dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac + as) & 0x1ffff);
     else
