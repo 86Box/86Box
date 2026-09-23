@@ -112,6 +112,8 @@ char  floppyfns[FDD_NUM][MAX_IMAGE_PATH_LEN];
 char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];
+static pc_timer_t fdd_ready_timer[FDD_NUM];
+static uint8_t    fdd_ready_spinup[FDD_NUM];
 pc_timer_t fdd_seek_timer[FDD_NUM];
 int        fdd_seek_in_progress[FDD_NUM] = { 0, 0, 0, 0 };
 
@@ -130,6 +132,43 @@ DRIVE drives[FDD_NUM];
 uint64_t motoron[FDD_NUM];
 
 fdc_t *fdd_fdc;
+
+static void
+fdd_ready_spinup_complete(void *priv)
+{
+    const DRIVE *drive = (const DRIVE *)priv;
+
+    if (drive && drive->id < FDD_NUM)
+        fdd_ready_spinup[drive->id] = 0;
+}
+
+static void
+fdd_ready_cancel(int drive)
+{
+    if ((drive < 0) || (drive >= FDD_NUM))
+        return;
+
+    timer_disable(&fdd_ready_timer[drive]);
+    fdd_ready_spinup[drive] = 0;
+}
+
+static void
+fdd_ready_start_spinup(int drive)
+{
+    if ((drive < 0) || (drive >= FDD_NUM) || !motoron[drive] || drive_empty[drive] ||
+        !fdd_get_flags(drive)) {
+        fdd_ready_cancel(drive);
+        return;
+    }
+
+    const int rpm = fdd_getrpm(drive);
+    const uint64_t spinup_us = (rpm > 0) ? (120000000ULL / (uint64_t)rpm) : 400000ULL;
+
+    /* The PC-98 READY input rises after two index rotations on a newly
+     * inserted disk, including an image swap while the motor is already on. */
+    fdd_ready_spinup[drive] = 1;
+    timer_set_delay_u64(&fdd_ready_timer[drive], spinup_us * TIMER_USEC);
+}
 
 d86f_handler_t d86f_handler[FDD_NUM];
 
@@ -665,6 +704,13 @@ fdd_get_flags(int drive)
 }
 
 int
+fdd_is_ready(int drive)
+{
+    return (drive >= 0) && (drive < FDD_NUM) && fdd_get_flags(drive) &&
+           motoron[drive] && !drive_empty[drive] && !fdd_ready_spinup[drive];
+}
+
+int
 fdd_is_525(int drive)
 {
     return fdd_get_flags(drive) & FLAG_525;
@@ -786,12 +832,14 @@ fdd_load(int drive, char *fn)
 
         if (floppyfns[drive][0] == '\0') {
             drive_empty[drive] = 1;
+            fdd_ready_cancel(drive);
             fdd_set_head(drive, 0);
             ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
             return;
         }
 
         drive_empty[drive] = 0;
+        fdd_ready_start_spinup(drive);
 
         fdd_forced_seek(drive, 0);
         fdd_changed[drive] = 1;
@@ -818,6 +866,7 @@ fdd_load(int drive, char *fn)
                 d86f_setup(drive);
                 loaders[c].load(drive, floppyfns[drive] + offs);
                 drive_empty[drive] = 0;
+                fdd_ready_start_spinup(drive);
                 fdd_forced_seek(drive, 0);
                 fdd_changed[drive] = 1;
                 ui_sb_update_icon_wp(SB_FLOPPY | drive, ui_writeprot[drive]);
@@ -827,6 +876,7 @@ fdd_load(int drive, char *fn)
         }
     }
     drive_empty[drive] = 1;
+    fdd_ready_cancel(drive);
     fdd_set_head(drive, 0);
     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
     ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
@@ -840,6 +890,14 @@ fdd_close(int drive)
         fdd_tape_eject();
         return;
     }
+
+    /* A media swap can happen while the head is seeking.  Cancel both the
+     * seek callback and its deferred sector operation before closing the
+     * current backend, or that old request can run against the replacement
+     * disk when the timer expires. */
+    timer_disable(&fdd_seek_timer[drive]);
+    fdd_seek_in_progress[drive] = 0;
+    memset(&fdd_pending[drive], 0, sizeof(fdd_pending[drive]));
 
     d86f_stop(drive); /* Call this first of all to make sure the 86F poll is back to idle state. */
 
@@ -862,6 +920,7 @@ fdd_close(int drive)
         loaders[driveloaders[drive]].close(drive);
 
     drive_empty[drive] = 1;
+    fdd_ready_cancel(drive);
     fdd_set_head(drive, 0);
     floppyfns[drive][0] = 0;
     d86f_destroy(drive);
@@ -917,10 +976,15 @@ fdd_set_motor_enable(int drive, int motor_enable)
 
     if (motor_enable && !motoron[drive]) {
         timer_set_delay_u64(&fdd_poll_time[drive], fdd_byteperiod(drive));
+        motoron[drive] = 1;
+        fdd_ready_start_spinup(drive);
     } else if (!motor_enable && motoron[drive]) {
         timer_disable(&fdd_poll_time[drive]);
+        motoron[drive] = 0;
+        fdd_ready_cancel(drive);
+    } else {
+        motoron[drive] = motor_enable;
     }
-    motoron[drive] = motor_enable;
 }
 
 static void
@@ -994,8 +1058,15 @@ fdd_reset(void)
 
     for (uint8_t i = 0; i < FDD_NUM; i++) {
         drives[i].id = i;
+        /* Remove any prior list nodes before timer_add() clears these timer
+         * structs.  This also aborts an outstanding seek timer. */
+        timer_disable(&fdd_poll_time[i]);
+        timer_disable(&fdd_ready_timer[i]);
+        timer_disable(&fdd_seek_timer[i]);
         timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
-
+        timer_add(&fdd_ready_timer[i], fdd_ready_spinup_complete, &drives[i], 0);
+        timer_disable(&fdd_ready_timer[i]);
+        fdd_ready_spinup[i] = 0;
 
         /* The image backend owns its rotational decoder and command state.
          * Leaving that state live across destruction of the old uPD765 lets a

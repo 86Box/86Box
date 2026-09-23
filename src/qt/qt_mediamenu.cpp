@@ -516,6 +516,12 @@ MediaMenu::floppySelectImage(int i, bool wp)
 void
 MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 {
+    /* fdd_load/fdd_close manipulate the global timer queue and backend
+     * callbacks.  The UI runs on another thread, so pause at a CPU boundary
+     * while replacing media to serialize these operations with timer_process(). */
+    const int was_paused = dopause;
+    plat_pause(1);
+
     auto previous_image = QFileInfo(floppyfns[i]);
     fdd_close(i);
     ui_writeprot[i] = wp ? 1 : 0;
@@ -531,6 +537,9 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString(filenameBytes));
     } else
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
+
+    plat_pause(was_paused);
+
     ui_sb_update_icon_state(SB_FLOPPY | i, drive_empty[i]);
     ui_sb_update_icon_wp(SB_FLOPPY | i, ui_writeprot[i]);
     floppyUpdateMenu(i);
@@ -541,8 +550,14 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 void
 MediaMenu::floppyEject(int i)
 {
+    const int was_paused = dopause;
+    plat_pause(1);
+
     mhm.addImageToHistory(i, ui::MediaType::Floppy, floppyfns[i], QString());
     fdd_close(i);
+
+    plat_pause(was_paused);
+
     ui_sb_update_icon_state(SB_FLOPPY | i, 1);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);

@@ -34,6 +34,24 @@
 namespace ymfm
 {
 
+// YM2608 OPNA application manual, write-wait table (master-clock cycles):
+// FM $21-$9E needs 83 cycles and $A0-$B6 needs 47; SSG and ADPCM data
+// writes need no wait.  The BUSY bit is only the FM register-load flag.
+static uint32_t opna_fm_busy_cycles(uint16_t address, uint8_t prescale)
+{
+	if ((address < 0x20) || ((address >= 0x100) && (address <= 0x110)))
+		return 0;
+
+	const uint8_t reg = address & 0xff;
+	if ((reg >= 0x21) && (reg <= 0x9e))
+		return 83;
+	if ((reg >= 0xa0) && (reg <= 0xb6))
+		return 47;
+
+	// Keep ymfm's conservative delay for undocumented FM addresses.
+	return 32 * prescale;
+}
+
 //*********************************************************
 //  OPN/OPNA REGISTERS
 //*********************************************************
@@ -826,8 +844,9 @@ void ym2203::write_data(uint8_t data)
 		m_fm.write(m_address, data);
 	}
 
-	// mark busy for a bit
-	m_fm.intf().ymfm_set_busy_end(32 * m_fm.clock_prescale());
+    // SSG writes do not use the FM BUSY handshake.
+	if (m_address >= 0x10)
+		m_fm.intf().ymfm_set_busy_end(32 * m_fm.clock_prescale());
 }
 
 
@@ -1203,8 +1222,11 @@ void ym2608::write_data(uint8_t data)
 		m_fm.write(m_address, data);
 	}
 
-	// mark busy for a bit
-	m_fm.intf().ymfm_set_busy_end(32 * m_fm.clock_prescale());
+	// Only FM register loads assert BUSY; SSG, ADPCM-A/B and flag-control
+	// writes have no FM wait interval.
+	const uint32_t busy_cycles = opna_fm_busy_cycles(m_address, m_fm.clock_prescale());
+	if (busy_cycles)
+		m_fm.intf().ymfm_set_busy_end(busy_cycles);
 }
 
 
@@ -1253,8 +1275,9 @@ void ym2608::write_data_hi(uint8_t data)
 		m_fm.write(m_address, data);
 	}
 
-	// mark busy for a bit
-	m_fm.intf().ymfm_set_busy_end(32 * m_fm.clock_prescale());
+	const uint32_t busy_cycles = opna_fm_busy_cycles(m_address, m_fm.clock_prescale());
+	if (busy_cycles)
+		m_fm.intf().ymfm_set_busy_end(busy_cycles);
 }
 
 

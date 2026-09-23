@@ -66,7 +66,9 @@ typedef struct pc98_video_t {
     uint8_t font_lr;
     uint8_t kac;
 
-    uint8_t palette[4];
+    uint8_t palette[4];      /* digital palette register readback */
+    uint8_t palette_index;
+    uint8_t analog_palette[16][3]; /* indexed RGB, 4 bits per component */
     uint8_t txt_scroll[6];
     uint8_t memsw[16];      /* A3FE2-A3FFF memory-switch bytes */
     uint8_t video_ff[8];

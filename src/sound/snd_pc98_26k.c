@@ -73,7 +73,29 @@ static const char *const pc98_26k_rom_odd[] = {
     "roms/pc9801_26/26k_wyka02_00.bin",
     NULL
 };
-
+/*
+ * YM2203 PSG Port A bits 7:6 reflect PC-9801-26K SW3/SW4.
+ *
+ * Config ordering:
+ *   0 = INT5
+ *   1 = INT6
+ *   2 = INT41
+ *   3 = INT0
+ *
+ * PSG encoding:
+ *   00 = INT0
+ *   01 = INT6
+ *   10 = INT41
+ *   11 = INT5
+ */
+static const uint8_t pc98_26k_irq_pa_bits[4] = {
+    0x00, /* INT0  */
+    0x40, /* INT6  */
+    0x80, /* INT41 */
+    0xc0 /* INT5  */
+    
+    
+};
 /*
  * PC-98 C-BUS interrupt levels, in 86Box's flattened IRQ numbering.  The
  * board's JP6A1/JP6A3 pair selects one of these four.
@@ -95,6 +117,8 @@ typedef struct pc98_26k_t {
     int         has_rom;
     uint16_t    base;
     int         irq;
+    int         irq_sel;
+    uint8_t     opn_addr;
     int         irq_state;
     uint8_t     joy_sel;
     uint8_t     int_level;
@@ -119,23 +143,32 @@ static uint8_t
 pc98_26k_in(uint16_t port, void *priv)
 {
     pc98_26k_t *dev = (pc98_26k_t *) priv;
-
+    const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
+    uint8_t val = 0xFF;
     /* Only the even byte lane is decoded: 188h and 18Ah. */
     if (port & 1u)
         return 0xffu;
 
-    return pc98_opn_read(dev->opn, (uint32_t) ((port - dev->base) >> 1));
+    val = pc98_opn_read(dev->opn, index);
+    if ((index == 1) && (dev->opn_addr == 0x0e)) {
+        val &= 0x3f; // return irq selector on ssg port a. required by music drivers and games.
+        val |= pc98_26k_irq_pa_bits[dev->irq_sel];
+    }
+    return val;
 }
 
 static void
 pc98_26k_out(uint16_t port, uint8_t val, void *priv)
 {
     pc98_26k_t *dev = (pc98_26k_t *) priv;
-
+    const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
     if (port & 1u)
         return;
-
-    pc98_opn_write(dev->opn, (uint32_t) ((port - dev->base) >> 1), val);
+    if (index == 0)
+    {
+        dev->opn_addr = val;
+    }
+    pc98_opn_write(dev->opn, index , val);
 }
 
 static void

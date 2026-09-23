@@ -36,6 +36,11 @@
 #define PC98_VX_YLL03_PATH  "roms/machines/pc9801/nec_d27c256d-15_cpu_extboard_yll03.bin"
 #define PC98_VX_YLL04_PATH  "roms/machines/pc9801/nec_d27c256d-15_cpu_extboard_yll04.bin"
 
+#define PC98_DEFAULT_ACTIVE_END 400u
+#define PC98_DEFAULT_TOTAL_LINES 440u
+#define PC98_DEFAULT_VSYNC_LINES 3u
+#define PC98_HBLANK_US 10u
+
 typedef struct pc98_86box_t pc98_86box_t;
 
 typedef struct pc98_plane_map_t {
@@ -47,7 +52,10 @@ struct pc98_86box_t {
     pc98_video_t core;
     pc_timer_t scan_timer;
     uint32_t frame_no;
+    uint16_t raster_line;
+    uint16_t gdc_clock_fraction;
     uint8_t in_vsync;
+    uint8_t raster_phase;
     uint8_t need_resize;
     uint8_t display_on;   /* last presented state of video FF 7 */
     uint8_t logged_state;
@@ -394,6 +402,18 @@ static uint32_t pc98_rgb(unsigned pen)
     return makecol((uint8_t)r, (uint8_t)g, (uint8_t)b);
 }
 
+static uint32_t pc98_graphics_rgb(const pc98_video_t *v, unsigned pen)
+{
+    if (v->ex_video_ff[0]) {
+        const uint8_t *rgb = v->analog_palette[pen & 0x0fu];
+        return makecol((uint8_t)(rgb[0] * 0x11u),
+                       (uint8_t)(rgb[1] * 0x11u),
+                       (uint8_t)(rgb[2] * 0x11u));
+    }
+
+    return pc98_rgb(pen);
+}
+
 /* NP2/W's text palette is not the 0xAA digital graphics palette.
  * Its pal_maketext() uses the eight degpal1[] entries, and degpal1[] is
  * generated with each asserted B/R/G bit at full 0xFF intensity.  Keep this
@@ -490,7 +510,7 @@ static void pc98_render_graphics(pc98_86box_t *d)
                                (((pr >> bit) & 1u) << 1) |
                                (((pg >> bit) & 1u) << 2) |
                                (((pi >> bit) & 1u) << 3);
-                buffer32->line[y][x] = pc98_rgb(pen);
+                buffer32->line[y][x] = pc98_graphics_rgb(v, pen);
             }
         }
     }
@@ -523,6 +543,7 @@ static void pc98_render_text(pc98_86box_t *d)
     for (unsigned row = 0; row < rows; row++) {
         uint32_t base = (area.sad + row * pitch) & 0x0fffu;
         unsigned last_underline = 0;
+        uint16_t last_pcg = 0xffffu;
 
         for (unsigned col = 0; col < pitch; ) {
             uint32_t ta = (base + col * widthmul) & 0x0fffu;
@@ -531,15 +552,35 @@ static void pc98_render_text(pc98_86box_t *d)
             uint8_t hi = (uint8_t)(tw >> 8);
             uint16_t code = lo;
             unsigned halves = 1;
+            unsigned pcg_half = 0;
 
             if (hi) {
                 code = (uint16_t)(((uint16_t)(lo & 0x7fu) << 8) | (hi & 0x7fu));
-                /* 56xx/57xx are programmable gaiji strips and 08xx selects
-                 * the single-cell 8x16 area.  Normal Kanji occupy two cells. */
-                if ((code & 0x7e00u) == 0x5600u || (code & 0x7c00u) == 0x0800u)
+                /* 56xx/57xx programmable gaiji are stored as 16-pixel strips,
+                 * but software commonly writes the same code into two adjacent
+                 * text cells with LR clear in both.  The second occurrence is
+                 * the right half.  Treating every 56xx/57xx cell as left-half
+                 * only is what made symbols such as the return-key glyph show
+                 * the first 8 pixels twice.  This matches the real-PC-98/MAME
+                 * pairing rule while keeping the attribute address per cell. */
+                if ((code & 0x7e00u) == 0x5600u) {
+                    if (last_pcg == code) {
+                        pcg_half = 1;
+                        last_pcg = 0xffffu;
+                    } else {
+                        pcg_half = 0;
+                        last_pcg = code;
+                    }
                     halves = 1;
-                else
+                } else if ((code & 0x7c00u) == 0x0800u) {
+                    halves = 1;
+                    last_pcg = 0xffffu;
+                } else {
                     halves = 2;
+                    last_pcg = 0xffffu;
+                }
+            } else {
+                last_pcg = 0xffffu;
             }
 
             for (unsigned half = 0; half < halves && col + half < pitch; half++) {
@@ -561,8 +602,11 @@ static void pc98_render_text(pc98_86box_t *d)
 
                     if (!hidden) {
                         if (hi) {
-                            if (sy < 16u)
-                                bits = v->font_rom[pc98_font_offset(v, code, sy, half, lr)];
+                            if (sy < 16u) {
+                                const unsigned glyph_half =
+                                    ((code & 0x7e00u) == 0x5600u) ? pcg_half : half;
+                                bits = v->font_rom[pc98_font_offset(v, code, sy, glyph_half, lr)];
+                            }
                         } else if (semigraphics) {
                             bits = pc98_semigraphics_bits(lo, sy, char_size);
                         } else if (sy < char_size) {
@@ -619,16 +663,63 @@ static pc98_86box_t *pc98_active = NULL;
 
 static int pc98_present_frame(pc98_86box_t *d);
 
-/* Put the raster into active display and schedule the next VRTC edge.
- *
- * The raster is independent of the CPU reset state, and on real hardware it is
- * already free-running when the CPU leaves reset.  A freshly created device
- * should therefore not sit a whole 16.7 ms frame away from its first VRTC: the
- * VX firmware polls GDC retrace while bringing the CRT path up, and a
- * full-frame cold-start delay can make that wait time out. */
+/* PC-9801VX 640x400 timing is about 24.827 kHz horizontal and 56.424 Hz
+ * vertical (440 lines per frame). The 640 active dots at a 21.053 MHz dot
+ * clock leave roughly 10 us of horizontal blanking in each 40.278 us line. */
+static uint64_t pc98_active_line_delay(void)
+{
+    const uint64_t line = (TIMER_USEC * 40278u) / 1000u;
+    return line - TIMER_USEC * PC98_HBLANK_US;
+}
+
+static void pc98_gdc_advance(pc98_86box_t *d, uint32_t clocks)
+{
+    upd7220_advance(&d->core.text_gdc, clocks);
+    upd7220_advance(&d->core.graph_gdc, clocks);
+}
+
+static uint32_t pc98_gdc_clock_scale(void)
+{
+    /* VX BIOS data 54Dh bit 2 selects 5 MHz instead of 2.5 MHz. */
+    return (mem_readb_phys(0x54du) & 0x04u) ? 2u : 1u;
+}
+
+static void pc98_begin_vsync(pc98_86box_t *d)
+{
+    d->in_vsync = 1;
+    upd7220_set_retrace(&d->core.text_gdc, 0, 1);
+    upd7220_set_retrace(&d->core.graph_gdc, 0, 1);
+    picint(1u << 2); /* VRTC interrupt; motherboard port 64h clears it. */
+}
+
+static void pc98_raster_limits(const pc98_86box_t *d, uint16_t *total_lines,
+                               uint16_t *active_end, uint16_t *vsync_start)
+{
+    const upd7220_t *g = &d->core.graph_gdc;
+    unsigned total = (unsigned)g->vs + g->vbp + g->al + g->vfp;
+    unsigned active = (unsigned)g->vbp + g->al;
+
+    if (!g->al || !g->vs || total <= active || total > 1024u) {
+        total = PC98_DEFAULT_TOTAL_LINES;
+        active = PC98_DEFAULT_ACTIVE_END;
+        *vsync_start = (uint16_t)(total - PC98_DEFAULT_VSYNC_LINES);
+    } else {
+        *vsync_start = (uint16_t)(total - g->vs);
+    }
+
+    *total_lines = (uint16_t)total;
+    *active_end = (uint16_t)active;
+}
+
+/* Start the free-running raster close to its first vertical retrace. A short
+ * initial wait lets VX firmware observe VRTC without delaying boot by a full
+ * frame. raster_phase: 0=first VRTC, 1=active line, 2=horizontal blank. */
 static void pc98_arm_raster(pc98_86box_t *d, unsigned first_vsync_us)
 {
     d->in_vsync = 0;
+    d->raster_line = 0;
+    d->gdc_clock_fraction = 0;
+    d->raster_phase = 0;
     upd7220_set_retrace(&d->core.text_gdc, 0, 0);
     upd7220_set_retrace(&d->core.graph_gdc, 0, 0);
     timer_set_delay_u64(&d->scan_timer, TIMER_USEC * (uint64_t)first_vsync_us);
@@ -641,35 +732,64 @@ static void pc98_scan_tick(void *priv)
     if (d != pc98_active)
         return;
 
-    /* VRTC must remain asserted for guest-visible time.  The previous code
-     * raised and lowered VSYNC in the same callback, making status-bit polling
-     * loops unable to ever observe a vertical retrace. */
-    if (d->in_vsync) {
+    if (d->raster_phase == 0) {
+        uint16_t total_lines;
+        uint16_t active_end;
+        uint16_t vsync_start;
+        pc98_raster_limits(d, &total_lines, &active_end, &vsync_start);
+        (void)total_lines;
+        (void)active_end;
+        d->raster_line = vsync_start;
+        pc98_begin_vsync(d);
+        d->raster_phase = 1;
+        timer_advance_u64(&d->scan_timer, pc98_active_line_delay());
+        return;
+    }
+
+    if (d->raster_phase == 1) {
+        /* HBLANK is status bit 6 on both GDCs. Games use this short pulse to
+         * pace raster effects and line-at-a-time animation. */
+        d->raster_phase = 2;
+        upd7220_set_retrace(&d->core.text_gdc, 1, d->in_vsync);
+        upd7220_set_retrace(&d->core.graph_gdc, 1, d->in_vsync);
+        pc98_gdc_advance(d, 25u * pc98_gdc_clock_scale());
+        timer_advance_u64(&d->scan_timer, TIMER_USEC * PC98_HBLANK_US);
+        return;
+    }
+
+    /* End HBLANK, advance one scanline and account for the remainder of the
+     * line at the selected 2.5/5 MHz clock. The fractional accumulator
+     * avoids drifting GDC busy time against the 40.278 us horizontal period. */
+    d->raster_phase = 1;
+    upd7220_set_retrace(&d->core.text_gdc, 0, d->in_vsync);
+    upd7220_set_retrace(&d->core.graph_gdc, 0, d->in_vsync);
+    const uint32_t clock_scale = pc98_gdc_clock_scale();
+    uint32_t clocks = 75u * clock_scale;
+    d->gdc_clock_fraction = (uint16_t)(d->gdc_clock_fraction + 695u * clock_scale);
+    if (d->gdc_clock_fraction >= 1000u) {
+        d->gdc_clock_fraction = (uint16_t)(d->gdc_clock_fraction - 1000u);
+        clocks++;
+    }
+    pc98_gdc_advance(d, clocks);
+
+    uint16_t total_lines;
+    uint16_t active_end;
+    uint16_t vsync_start;
+    pc98_raster_limits(d, &total_lines, &active_end, &vsync_start);
+
+    if (++d->raster_line >= total_lines) {
+        d->raster_line = 0;
+        d->in_vsync = 0;
         upd7220_set_retrace(&d->core.text_gdc, 0, 0);
         upd7220_set_retrace(&d->core.graph_gdc, 0, 0);
-        d->in_vsync = 0;
-        timer_advance_u64(&d->scan_timer, TIMER_USEC * 15667u);
-        return;
+    } else {
+        if (d->raster_line == active_end)
+            pc98_present_frame(d);
+        if (d->raster_line == vsync_start)
+            pc98_begin_vsync(d);
     }
 
-    if (!pc98_present_frame(d)) {
-        /* The renderer has no buffer yet.  Re-arm and try again next frame
-         * rather than writing through a null pointer. */
-        timer_advance_u64(&d->scan_timer, TIMER_USEC * 16667u);
-        return;
-    }
-
-    upd7220_advance(&d->core.text_gdc, 100000u);
-    upd7220_advance(&d->core.graph_gdc, 100000u);
-
-    upd7220_set_retrace(&d->core.text_gdc, 0, 1);
-    upd7220_set_retrace(&d->core.graph_gdc, 0, 1);
-    d->in_vsync = 1;
-    picint(1u << 2); /* VRTC interrupt; motherboard port 64h clears it. */
-
-    /* Hold VSYNC high for about 1 ms, then spend the rest of the ~60 Hz frame
-     * in active display.  This is deliberately coarse but guest-observable. */
-    timer_advance_u64(&d->scan_timer, TIMER_USEC * 1000u);
+    timer_advance_u64(&d->scan_timer, pc98_active_line_delay());
 }
 
 /* Compose and present one frame.  Returns 0 if there is nowhere to draw. */

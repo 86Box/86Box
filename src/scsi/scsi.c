@@ -41,6 +41,7 @@
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_qlogic.h>
 #include <86box/scsi_spock.h>
+#include <86box/scsi_pc98.h>
 
 int scsi_card_current[SCSI_CARD_MAX] = { 0, 0, 0, 0 };
 double scsi_bus_speed[SCSI_BUS_MAX] = { 0.0, 0.0, 0.0, 0.0 };
@@ -102,6 +103,8 @@ static SCSI_CARD scsi_cards[] = {
     { &qla1280_device,           },
     { &qla12160a_device,         },
     { &dc390_pci_device,         },
+    /* NEC PC-98 C-BUS */
+    { &scsi_pc9801_55_device,    },
     { NULL,                      },
   // clang-format on
 };

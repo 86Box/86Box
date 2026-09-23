@@ -144,12 +144,6 @@ enum {
     PC98_RTC_TIME_READ = 3
 };
 
-/* PC-98 installed-memory sizes exclude the A0000h-FFFFFh device/ROM hole.
- * mem_reset() reserves that gap in the main block, so high RAM can use the
- * normal 86Box mapping and page-cache machinery at its physical offset. */
-static uint8_t *pc98_ext_ram;
-static void *pc98_ext_ram_owner;
-
 /* Boot diagnostics for the extended-memory sizing loop.
  *
  * The VX ITF measures memory above 1 MiB from protected mode by walking two
@@ -227,58 +221,24 @@ static void pc98_find_walk_descriptors(void)
 static unsigned pc98_dma_logged = 0;
 static int pc98_firmware_memsize_logged = 0;
 
-static void pc98_configure_ram_map(void *owner)
+static void pc98_configure_ram_map(void)
 {
-    pc98_ext_ram = NULL;
-    pc98_ext_ram_owner = NULL;
+    /* 86Box already models the conventional A0000h-FFFFFh hole.  PC-98
+     * installed-memory sizes exclude that 384 KiB aperture, so recover the
+     * hidden backing at the top of installed RAM using the core mechanism
+     * used by AT/PS2 chipsets instead of changing mem.c globally. */
+    mem_remap_top(384);
 
-    if (mem_size <= 640) {
-        if (ram_high_mapping.size)
-            mem_mapping_disable(&ram_high_mapping);
-        /* Nothing answers above 1 MiB, so the IPL's sizing loop fails on its
-         * first pass and stores zero at 0000:0401.  This is the expected
-         * result of a 640 KB machine configuration, not a fault. */
+    const unsigned ext_kb = (mem_size > 640) ? (unsigned)(mem_size - 640) : 0u;
+    if (ext_kb)
+        pclog("[PC98] RAM map: 640KB conventional + %uKB extended "
+              "(384KB hole remapped at top; configured %dKB total)\n",
+              ext_kb, mem_size);
+    else
         pclog("[PC98] RAM map: 640KB conventional only, no extended RAM "
-              "(configured %dKB) - the IPL will report no expansion memory\n",
-              mem_size);
-        return;
-    }
-
-    const uint32_t ext_size = (uint32_t)(mem_size - 640) * 1024u;
-
-    /* mem_reset() reserves the PC-98 384 KiB device/ROM hole in the main RAM
-     * allocation, so physical address 100000h has matching page metadata and
-     * fast-lookup backing.  A separate allocation here looks mapped through
-     * the slow handlers, but the 286 REP SCASW verifier reads through the RAM
-     * page cache and sees the unrelated main block instead. */
-    pc98_ext_ram = ram + 0x00100000u;
-    pc98_ext_ram_owner = owner;
-
-    /* mem_reset() has already created ram_high_mapping for configurations
-     * above 1 MiB.  For 768K/896K PC-98 configurations it has not, so add
-     * the mapping here.  Keeping the standard ram_high_mapping object is
-     * intentional: mem_addr_is_ram() and other 86Box core code already
-     * recognize that object as system RAM. */
-    if (!ram_high_mapping.size) {
-        mem_mapping_add(&ram_high_mapping, 0x00100000u, ext_size,
-                        mem_read_ram, mem_read_ramw, mem_read_raml,
-                        mem_write_ram, mem_write_ramw, mem_write_raml,
-                        pc98_ext_ram, MEM_MAPPING_INTERNAL, NULL);
-    } else {
-        mem_mapping_set_handler(&ram_high_mapping,
-                                mem_read_ram, mem_read_ramw, mem_read_raml,
-                                mem_write_ram, mem_write_ramw, mem_write_raml);
-        mem_mapping_set_exec(&ram_high_mapping, pc98_ext_ram);
-        mem_mapping_set_p(&ram_high_mapping, NULL);
-        mem_mapping_set_addr(&ram_high_mapping, 0x00100000u, ext_size);
-    }
-
-    mem_set_mem_state_both(0x00100000u, ext_size,
-                           MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-
-    pclog("[PC98] RAM map: 640KB conventional + %uKB extended (configured %dKB total)\n",
-          ext_size >> 10, mem_size);
+              "(configured %dKB)\n", mem_size);
 }
+
 
 typedef struct pc98_mb_t {
     pc98_ppi8255_t ppi_sys;
@@ -302,6 +262,14 @@ typedef struct pc98_mb_t {
     uint8_t motor_640;
     uint8_t motor_on;
     uint8_t fdc_bank_1mb;
+    /* The generic 86Box uPD765 has one mutable IRQ/DMA route, while a PC-98
+     * exposes that one controller through two identities.  Media commands are
+     * asynchronous, so once one identity starts such a command its physical
+     * route must stay pinned until the result phase is drained.  Otherwise a
+     * later BEh/control/probe access through the other identity can move an
+     * in-flight CAh transfer from DMA3/IRQ10 to DMA2/IRQ11 (or vice versa). */
+    uint8_t fdc_route_lock;
+    uint8_t fdc_route_lock_bank; /* 0=640KB/CAh, 1=1MB/92h */
     uint8_t dmae_640;
     uint8_t fdc_xfer_ch;
     uint8_t fdc_xfer_pending;
@@ -367,6 +335,7 @@ typedef struct pc98_mb_t {
     uint8_t kbd_wp;
     uint8_t kbd_count;
     uint8_t host_down[512];
+    uint8_t kbd_code_users[128];
 } pc98_mb_t;
 
 /* Translate the normalized 86Box host scan index (Set-1 position for
@@ -380,6 +349,21 @@ static uint8_t pc98_translate_scan(uint16_t scan)
     if (scan >= 0x3b && scan <= 0x44) return (uint8_t)(0x62 + scan - 0x3b); /* F1..F10 */
 
     switch (scan) {
+    case 0x02a: /* left Shift */
+    case 0x036: /* right Shift */
+        return 0x70;
+    case 0x01d: /* left Ctrl */
+    case 0x11d: /* right Ctrl */
+        return 0x74;
+    case 0x038: /* left Alt / PC-98 GRPH */
+    case 0x138: /* right Alt / PC-98 GRPH */
+        return 0x73;
+    case 0x03a: /* Caps Lock */
+        return 0x71;
+    case 0x045: /* PC-98 VF3 */
+        return 0x54;
+    case 0x046: /* PC-98 VF4 */
+        return 0x55;
     case 0x01: return 0x00; /* ESC */
     case 0x0d: return 0x0c; /* ^ / = position */
     case 0x0e: return 0x0e; /* backspace */
@@ -452,7 +436,14 @@ static void pc98_keyboard_host(uint16_t scan, int down, void *priv)
     if (code == 0xff)
         return;
 
-    pc98_kbd_queue(d, (uint8_t)(code | (down ? 0x00 : 0x80)));
+    /* Left/right modifiers share one physical PC-98 key. Keep that guest key
+     * held until both corresponding host keys have been released. */
+    if (down) {
+        if (d->kbd_code_users[code]++ == 0)
+            pc98_kbd_queue(d, code);
+    } else if (d->kbd_code_users[code] && --d->kbd_code_users[code] == 0) {
+        pc98_kbd_queue(d, (uint8_t)(code | 0x80));
+    }
 }
 
 static void pc98_kbd_tx(void *opaque, uint8_t value)
@@ -463,6 +454,7 @@ static void pc98_kbd_tx(void *opaque, uint8_t value)
     if (value == 0xff) {
         d->kbd_rp = d->kbd_wp = d->kbd_count = 0;
         memset(d->host_down, 0, sizeof(d->host_down));
+        memset(d->kbd_code_users, 0, sizeof(d->kbd_code_users));
     }
 }
 
@@ -1056,6 +1048,8 @@ static int pc98_fdc_cmd_has_drivesel(uint8_t cmd)
     }
 }
 
+static unsigned pc98_fdc_logged;
+
 /* PC-9801VM/VX normal-mode floppy routing, from NEC/ASCII PC-9800
  * hardware documentation: the 1 MB interface uses slave IR3 (IRQ 11 in
  * 86Box's flattened numbering) and DMA channel 2; the 640 KB interface uses
@@ -1066,30 +1060,50 @@ static int pc98_fdc_cmd_has_drivesel(uint8_t cmd)
  * routes.  Route strictly from the active normal-mode I/O identity.  Do not
  * infer the channel from whichever 8237 channel happens to contain a nonzero
  * address: the IPL legitimately programs/probes both interfaces during POST. */
+static unsigned pc98_fdc_core_bank(const pc98_mb_t *d)
+{
+    return d->fdc_route_lock ? (unsigned)d->fdc_route_lock_bank
+                             : (unsigned)d->fdc_bank_1mb;
+}
+
+static void pc98_fdc_apply_core_route(pc98_mb_t *d)
+{
+    const unsigned bank = pc98_fdc_core_bank(d);
+
+    if (!d->fdc)
+        return;
+    fdc_set_irq(d->fdc, bank ? 11 : 10);
+    fdc_set_dma_ch(d->fdc, bank ? 2 : 3);
+}
+
 static void pc98_fdc_route(pc98_mb_t *d, int port_1mb)
 {
+    /* Record which identity the guest most recently selected, but do not let
+     * that selection steal the physical IRQ/DMA lines from an asynchronous
+     * command which is already in flight on the other identity. */
     d->fdc_bank_1mb = (uint8_t)!!port_1mb;
-    fdc_set_irq(d->fdc, port_1mb ? 11 : 10);
-    fdc_set_dma_ch(d->fdc, port_1mb ? 2 : 3);
+    pc98_fdc_apply_core_route(d);
 }
 
 /* Switch register read back at 94h (1MB) or CCh (640KB).  TYP0/TYP1 describe
  * the installed drive pairs; the VX's internal pair is 1MB/640KB dual-mode and
- * there is no external pair.  Only the 640KB identity exposes READY. */
+ * there is no external pair.  Only the 640KB identity exposes READY.  The two
+ * internal drives share that READY input, wired so either ready drive asserts
+ * it; it is not an installed-drive or media-change bit. */
 static uint8_t pc98_fdc_switch_value(pc98_mb_t *d, int port_640)
 {
     uint8_t v = PC98_FDC_SW_FIXED | PC98_FDC_SW_TYP0;
 
     if (port_640) {
-        /* CCh D4 is the READY input for the drive currently selected by the
-         * shared uPD765.  It is not a pair-wide "some drive has media" bit.
-         * Reporting drive 0's READY while the BIOS is probing an empty or
-         * absent drive 1 makes the firmware retry READ ID over and over. */
-        const unsigned drive = d && d->fdc ? (unsigned)(d->fdc->drive & 3u) : 0u;
-
         v |= PC98_FDC_SW_640;
-        if (drive < 4u && fdd_get_flags((int)drive) && !drive_empty[drive])
-            v |= PC98_FDC_SW_RDY;
+        if (d && d->fdc) {
+            for (unsigned drive = 0; drive < 2u; drive++) {
+                if (fdd_is_ready((int)drive)) {
+                    v |= PC98_FDC_SW_RDY;
+                    break;
+                }
+            }
+        }
     }
     return v;
 }
@@ -1121,11 +1135,43 @@ static void pc98_fdc_forget_results(pc98_mb_t *d);
  * DMAE clear in CCh while the booted code reads through 92h - and every read
  * then came back with ST1 bit 4 set, overrun, having moved no bytes at all.
  *
- * The gate therefore follows whichever bank is currently selected. */
+ * The gate therefore follows the physical route which owns the active command.
+ * When no asynchronous command is in flight this is just the currently
+ * selected identity. */
 static void pc98_fdc_apply_dma_gate(pc98_mb_t *d)
 {
-    if (d->fdc)
-        d->fdc->dma = d->fdc_bank_1mb ? 1 : d->dmae_640;
+    if (d->fdc) {
+        const unsigned bank = pc98_fdc_core_bank(d);
+        d->fdc->dma = bank ? 1 : d->dmae_640;
+    }
+}
+
+static void pc98_fdc_lock_route(pc98_mb_t *d, unsigned bank)
+{
+    d->fdc_route_lock = 1u;
+    d->fdc_route_lock_bank = (uint8_t)!!bank;
+    pc98_fdc_apply_core_route(d);
+    pc98_fdc_apply_dma_gate(d);
+
+    if (pc98_fdc_logged < 200u)
+        pclog("[PC98] FDC route lock: %s -> IRQ%d/DMA%d\n",
+              bank ? "1MB/92h" : "640KB/CAh",
+              bank ? 11 : 10, bank ? 2 : 3);
+}
+
+static void pc98_fdc_unlock_route(pc98_mb_t *d)
+{
+    if (!d->fdc_route_lock)
+        return;
+
+    d->fdc_route_lock = 0u;
+    pc98_fdc_apply_core_route(d);
+    pc98_fdc_apply_dma_gate(d);
+
+    if (pc98_fdc_logged < 200u)
+        pclog("[PC98] FDC route unlock: selected=%s -> IRQ%d/DMA%d\n",
+              d->fdc_bank_1mb ? "1MB/92h" : "640KB/CAh",
+              d->fdc_bank_1mb ? 11 : 10, d->fdc_bank_1mb ? 2 : 3);
 }
 
 static void pc98_fdc_motor_update(pc98_mb_t *d)
@@ -1164,6 +1210,13 @@ static void pc98_fdc_apply_ctrl(pc98_mb_t *d, uint8_t old, uint8_t val,
     }
 
     pc98_fdc_motor_update(d);
+
+    /* Asserting RESET aborts any in-flight command on the one physical 765.
+     * Drop its route pin before selecting the identity which drives the reset
+     * line; otherwise a stale CAh transfer can leave the core stuck on DMA3
+     * across the reset edge (or vice versa). */
+    if (((old ^ val) & PC98_FDC_1MB_RST) && in_reset)
+        d->fdc_route_lock = 0u;
 
     /* Select the bank before touching /RESET: releasing it can schedule the
      * post-reset interrupt straight away, so routing afterwards is too late. */
@@ -1339,7 +1392,7 @@ static void pc98_fdc_complete_seek(pc98_mb_t *d, unsigned bank)
           st0, pcn, bank ? 11 : 10);
 }
 
-static void pc98_fdc_complete_empty_read_id(pc98_mb_t *d, unsigned bank,
+static void pc98_fdc_complete_not_ready_read_id(pc98_mb_t *d, unsigned bank,
                                                 uint8_t drvsel)
 {
     const unsigned drive = drvsel & 3u;
@@ -1359,7 +1412,7 @@ static void pc98_fdc_complete_empty_read_id(pc98_mb_t *d, unsigned bank,
     d->fdc->head = head;
     pc98_fdc_queue_cmd_result(d, bank, res, sizeof(res));
 
-    pclog("[PC98] READ ID empty drive %u on %s bank: "
+    pclog("[PC98] READ ID not-ready drive %u on %s bank: "
           "ST0=%02X (NOT READY) -> IRQ%d\n",
           drive, bank ? "1MB/92h" : "640KB/CAh", res[0],
           bank ? 11 : 10);
@@ -1383,6 +1436,8 @@ static void pc98_fdc_forget_results(pc98_mb_t *d)
     d->wrapper_readid_bank = 0;
     d->fdc_in_params = 0;
     d->fdc_cmd = 0;
+    d->fdc_route_lock = 0;
+    d->fdc_route_lock_bank = 0;
     d->fdc_xfer_ch = 0;
     d->fdc_xfer_pending = 0;
     d->fdc_xfer_addr = 0;
@@ -1534,7 +1589,7 @@ static void pc98_fdc_trace(const char *what, uint16_t port, uint8_t val)
 
 static void pc98_fdc_report_transfer(pc98_mb_t *d)
 {
-    const int ch = d->fdc_bank_1mb ? 2 : 3;
+    const int ch = pc98_fdc_core_bank(d) ? 2 : 3;
 
     /* By the time the IPL starts its first floppy transfer it has returned
      * from the protected-mode sizing pass and committed the result to the
@@ -1569,8 +1624,15 @@ static void pc98_fdc_report_transfer(pc98_mb_t *d)
     d->fdc_xfer_pending = 1;
 
     if (pc98_dma_logged < 200u)
-        pclog("[PC98] DMA setup: ch2 addr %06X, ch3 addr %06X, using ch%d\n",
-              (unsigned)dma[2].ac, (unsigned)dma[3].ac, ch);
+        pclog("[PC98] DMA setup: ch2 addr %06X, ch3 addr %06X, using ch%d "
+              "mode=%02X count=%04X masked=%u enabled=%u fdc_dma=%u "
+              "writable=%u\n",
+              (unsigned)dma[2].ac, (unsigned)dma[3].ac, ch,
+              dma_mode(ch), (unsigned)dma[ch].cc,
+              (unsigned)!!(dma_m & (1u << ch)),
+              (unsigned)!!(dma_e & (1u << ch)),
+              (unsigned)d->fdc->dma,
+              (unsigned)dma_channel_writable(ch));
 }
 
 static uint8_t fdc_in(uint16_t port, void *priv)
@@ -1626,6 +1688,10 @@ static uint8_t fdc_in(uint16_t port, void *priv)
             !d->sis_res_n[bank] && !d->cmd_res_n[bank]) {
             pc98_fdc_log_result(d, port);
             d->trace_res_n = 0;
+            /* The asynchronous physical command has ended only now.  It is
+             * safe for later accesses through the other PC-98 identity to
+             * reclaim the shared core's IRQ/DMA route. */
+            pc98_fdc_unlock_route(d);
         }
         return v;
     }
@@ -1700,6 +1766,18 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
 
             d->fdc_cmd = val & 0x1fu;
 
+            /* Generic media commands finish asynchronously.  Pin the shared
+             * 765's physical IRQ/DMA route to the identity which issued the
+             * command until its result phase is completely drained.  Without
+             * this, a BEh switch, an opposite-bank control access, or the
+             * PC-9801-27 SASI ROM probing 92h can retarget a CAh command from
+             * DMA3/IRQ10 to DMA2/IRQ11 while the floppy image layer is still
+             * working.  READ ID is delayed until its drive parameter tells us
+             * whether the wrapper will synthesize NOT READY instead. */
+            if (d->fdc_cmd != 0x0au &&
+                pc98_fdc_cmd_owns_interrupt(d->fdc_cmd))
+                pc98_fdc_lock_route(d, bank);
+
             /* READ DATA / WRITE DATA / READ DELETED / WRITE DELETED all move
              * bytes through the 8237.  The DMA channel is fixed by the active
              * PC-98 FDD interface identity (1 MB -> DMA2, 640 KB -> DMA3);
@@ -1757,8 +1835,8 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
             pc98_fdc_density_for_drive(
                 d, !!(d->fdc_mode & PC98_FDC_MODE_FDE), drive);
 
-            if (drive < 4u && drive_empty[drive]) {
-                pc98_fdc_complete_empty_read_id(d, bank, drvsel);
+            if (drive >= FDD_NUM || !fdd_is_ready((int)drive)) {
+                pc98_fdc_complete_not_ready_read_id(d, bank, drvsel);
                 pc98_fdc_log_cmd(d, port);
                 d->trace_cmd_n = 0;
                 return;
@@ -1766,7 +1844,9 @@ static void fdc_out(uint16_t port, uint8_t val, void *priv)
 
             /* There is media: let 86Box's real floppy image layer discover
              * the actual C/H/R/N ID.  We delayed the command byte only long
-             * enough to learn which drive the parameter selected. */
+             * enough to learn which drive the parameter selected.  From here
+             * on READ ID is asynchronous too, so pin its originating route. */
+            pc98_fdc_lock_route(d, bank);
             fdc_write(5, original_cmd, d->fdc);
             fdc_write(5, drvsel, d->fdc);
             d->fdc_in_params = ((fdc_read(4, d->fdc) & 0xd0u) == 0x90u);
@@ -1898,6 +1978,7 @@ static void nmi_ff_out(uint16_t port, uint8_t val, void *priv)
     ((pc98_mb_t *)priv)->nmi_ff = (uint8_t)((port - 0x50u) >> 1);
 }
 
+
 static int pc98_a20_enabled(void)
 {
     /* rammask is the authoritative address-line state.  In particular, the
@@ -1924,9 +2005,9 @@ static void a20_out(uint16_t port, uint8_t val, void *priv)
 {
     (void)priv;
 
-    /* PC-9801VX 80286 A20 control: the reset state is a 20-bit address
-     * mask and any write to F2h opens the full 24-bit address bus.  F6h is
-     * a later 32-bit-machine control and is deliberately not decoded here. */
+    /* PC-9801VX 80286 A20 control: reset masks address line A20; any
+     * write to F2h opens A20 again.  F6h is a later 32-bit-machine control
+     * and is deliberately not decoded here. */
     (void)val;
     if (port == 0xf2) {
         mem_a20_alt = 2;
@@ -1955,7 +2036,7 @@ static void a20_out(uint16_t port, uint8_t val, void *priv)
  * motherboard or machine reset here would destroy all three. */
 static void pc98_cpu_reset_out(uint16_t port, uint8_t val, void *priv)
 {
-    const pc98_mb_t *d = (const pc98_mb_t *)priv;
+    pc98_mb_t *d = (pc98_mb_t *)priv;
     (void)port;
     (void)val;
 
@@ -1978,14 +2059,21 @@ static void pc98_cpu_reset_out(uint16_t port, uint8_t val, void *priv)
         const unsigned base_high = ram[0x8044u];
         const unsigned kb = (base_high >= 0x10u)
                           ? ((base_high - 0x10u) / 2u) * 128u : 0u;
-        uint16_t first_begin, first_end, second_begin, second_end;
-        uint16_t low_begin, low_second;
-        memcpy(&low_begin, ram + 0x000000u, sizeof(low_begin));
-        memcpy(&low_second, ram + 0x010000u, sizeof(low_second));
-        memcpy(&first_begin, ram + 0x100000u, sizeof(first_begin));
-        memcpy(&first_end, ram + 0x10fffeu, sizeof(first_end));
-        memcpy(&second_begin, ram + 0x110000u, sizeof(second_begin));
-        memcpy(&second_end, ram + 0x11fffeu, sizeof(second_end));
+
+        /* These are PHYSICAL addresses, not offsets in the host `ram`
+         * allocation.  With the generic mem_remap_top() layout a perfectly
+         * valid guest address at/above 1 MiB can be backed by ram+A0000h, and
+         * with a 640 KiB configuration ram[100000h] is outright out of
+         * bounds.  The old diagnostic memcpy()s therefore caused a host
+         * access violation exactly when the IPL issued its first F0h reset
+         * while probing high memory.  Read through the memory bus instead. */
+        const uint16_t first_begin  = mem_readw_phys(0x100000u);
+        const uint16_t first_end    = mem_readw_phys(0x10fffeu);
+        const uint16_t second_begin = mem_readw_phys(0x110000u);
+        const uint16_t second_end   = mem_readw_phys(0x11fffeu);
+        const uint16_t low_begin    = mem_readw_phys(0x000000u);
+        const uint16_t low_second   = mem_readw_phys(0x010000u);
+
         if (base_high == 0x11u) {
             pclog("[PC98] CPU reset 1 (A20 wrap test)\n");
         } else {
@@ -2008,19 +2096,37 @@ static void pc98_cpu_reset_out(uint16_t port, uint8_t val, void *priv)
         pc98_find_walk_descriptors();
     }
 
-    /* This is the firmware's protected-mode escape, not a front-panel soft
-     * reset.  Let the CPU core perform the reset first.  The generic PC-98
-     * soft-reset path deliberately restores the power-on 20-bit A20 mask so
-     * an emulator/UI soft reset passes the firmware's ADDRESS 20 test.  F0h
-     * is different: the shutdown trampoline must resume with extended memory
-     * reachable, so reopen the full 24-bit bus after reset_common() returns
-     * and before the next instruction fetch. */
+    /* The CPU reset can interrupt an FDC command without resetting the
+     * motherboard wrapper.  Drop its queued results and route pin so the new
+     * BIOS session chooses IRQ/DMA from the interface it actually accesses. */
+    pc98_fdc_forget_results(d);
+    pc98_fdc_route(d, !!(d->fdc_mode & PC98_FDC_MODE_PE));
+    pc98_fdc_apply_dma_gate(d);
+
+    /* F0h starts a new firmware pass without rebuilding the motherboard.
+     * Reset the bounded trace counters so a warm boot still captures the
+     * command and result phases which follow the reset. */
+    pc98_fdc_logged = 0;
+    pc98_dma_logged = 0;
+    pc98_firmware_memsize_logged = 0;
+
+    /* F0h resets the CPU and returns the PC-98 address bus to its reset
+     * compatibility state.  Reassert the board state here as well as in the
+     * common 286 reset path, because softresetx86() may be suppressed by the
+     * generic soft-reset guard.  F2h later unmasks addresses at/above 1 MiB. */
     softresetx86();
 
-    mem_a20_key   = 0;
-    mem_a20_alt   = 2;
-    mem_a20_state = 0;
+    mem_a20_key = 0;
+    mem_a20_alt = 0;
+    mem_a20_chipset = 0;
     mem_a20_recalc();
+    rammask = 0x000fffffU;
+
+    /* The 286 reset-vector fetch still has to reach FFFFF0h with the external
+     * address bus masked.  This one-shot bypass affects only that fetch; the
+     * 20-bit compatibility mask remains active for firmware execution. */
+    mem_a20_reset_vector_bypass_once();
+    flushmmucache();
 }
 
 static void pc98_install_io(pc98_mb_t *d)
@@ -2075,6 +2181,7 @@ static void pc98_install_io(pc98_mb_t *d)
 static void pc98_mb_reset(void *priv)
 {
     pc98_mb_t *d = (pc98_mb_t *)priv;
+
     /* Reset leaves both control registers with RESET deasserted, and BEh
      * selecting the 1MB port identity and 1MB drive mode, which is how a VX
      * comes up. */
@@ -2099,6 +2206,7 @@ static void pc98_mb_reset(void *priv)
     d->rs_irq_mask = d->rs_irq_pending = 0;
     d->kbd_rp = d->kbd_wp = d->kbd_count = 0;
     memset(d->host_down, 0, sizeof(d->host_down));
+    memset(d->kbd_code_users, 0, sizeof(d->kbd_code_users));
     memset(d->dma_autoinc, 0, sizeof(d->dma_autoinc));
     d->dma_autoinc_latch = 0;
     for (uint8_t ch = 0; ch < 4; ch++)
@@ -2126,14 +2234,6 @@ static void pc98_mb_reset(void *priv)
     pc98_i8251_set_dsr(&d->usart_kbd, 1);
     pc98_i8251_set_cts(&d->usart_rs, 1);
     pc98_i8251_set_dsr(&d->usart_rs, 1);
-    /* Deliberately NOT calling mem_a20_recalc() here: the PC-98 reset path in
-     * src/cpu/x86.c has already installed the 20-bit power-on rammask and the
-     * one-shot reset-vector bypass, and a recalc would replace it with the
-     * generic 0xEFFFFF AT-style mask before the first instruction is fetched.
-     * These three assignments only line the software bits up with it. */
-    mem_a20_key = 0;
-    mem_a20_alt = 0;
-    mem_a20_state = 0;
 }
 
 static void pc98_mb_speed_changed(void *priv)
@@ -2152,12 +2252,6 @@ static void pc98_mb_close(void *priv)
     if (ram != NULL && phys_ip < (uint32_t)mem_size * 1024u)
         pc98_hexdump("CS:IP bytes", phys_ip, 16u);
     keyboard_set_input_handler(NULL, NULL);
-    if (pc98_ext_ram_owner == d) {
-        if (ram_high_mapping.size)
-            mem_mapping_disable(&ram_high_mapping);
-        pc98_ext_ram = NULL;
-        pc98_ext_ram_owner = NULL;
-    }
     timer_disable(&d->seek_irq_timer[0]);
     timer_disable(&d->seek_irq_timer[1]);
     free(d);
@@ -2179,7 +2273,7 @@ static void *pc98_mb_init(const device_t *info)
     pc98_fdc_logged = 0;
     pc98_dma_logged = 0;
     pc98_firmware_memsize_logged = 0;
-    pc98_configure_ram_map(d);
+    pc98_configure_ram_map();
 
     d->video_dev = (void *)info->local;
     d->video = pc9801_video_get_core(d->video_dev);

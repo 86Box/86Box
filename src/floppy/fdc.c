@@ -178,6 +178,20 @@ fdc_card_get_from_internal_name(char *s)
 void
 fdc_card_init(void)
 {
+    /* PC-98 machines instantiate their native floppy controller in the
+     * motherboard init path.  The selectable cards below are PC/XT/AT
+     * controllers; adding one here leaves two FDCs bound to the same global
+     * floppy backends (fdd_set_fdc points at the most recently added chip),
+     * so media events from the native 1MB/640KB interface can be delivered to
+     * the unrelated expansion controller.  Ignore a stale generic-card
+     * selection on PC-98 rather than creating a phantom second controller. */
+    if (IS_ARCH(machine, MACHINE_PC98)) {
+        if ((fdc_current[0] > FDC_INTERNAL) && fdc_cards[fdc_current[0]].device)
+            pclog("[PC98] ignoring generic FDC card %s; native PC-98 FDC owns the floppy drives\n",
+                  fdc_cards[fdc_current[0]].device->internal_name);
+        return;
+    }
+
     if ((fdc_current[0] > FDC_INTERNAL) && fdc_cards[fdc_current[0]].device)
         device_add_inst(fdc_cards[fdc_current[0]].device, 0);
 }
@@ -1294,7 +1308,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         if (command_has_drivesel[fdc->command & 0x1F]) {
                             if (fdc->flags & FDC_FLAG_PCJR)
                                 fdc->drive = 0;
-                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX))
+                            /* PC-98 has no IBM DOR drive-select bits; its
+                             * uPD765 command byte is the physical unit select. */
+                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX | FDC_FLAG_PC98))
                                 fdc->drive = fdc->params[0] & 3;
                             else
                                 fdc->drive = fdc->dor & 3;
@@ -1418,7 +1434,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                     return;
                                 }
-                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && ((dma_mode(2) & 0x0C) == 0x00)) {
+                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && ((dma_mode(fdc->dma_ch) & 0x0C) == 0x00)) {
                                     /* DMA is in verify mode, treat this like a VERIFY command. */
                                     fdc_log("Verify-mode read!\n");
                                     fdc->deleted |= 2;
@@ -1971,6 +1987,9 @@ fdc_callback(void *priv)
             return;
         case 0x04: /* Sense drive status */
             fdc->res[10] = (fdc->params[0] & 7) | 0x20;
+            if ((fdc->flags & FDC_FLAG_PC98) &&
+                !fdd_is_ready(real_drive(fdc, fdc->drive)))
+                fdc->res[10] &= ~0x20;
             if (fdd_is_double_sided(real_drive(fdc, fdc->drive)))
                 fdc->res[10] |= 0x08;
             if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en) {
@@ -2928,7 +2947,7 @@ const device_t fdc_pc98_device = {
     .name          = "NEC PC-98 uPD765 FDC",
     .internal_name = "fdc_pc98",
     .flags         = DEVICE_CBUS | DEVICE_ONBOARD,
-    .local         = FDC_FLAG_NEC,
+    .local         = FDC_FLAG_NEC | FDC_FLAG_PC98,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset

@@ -136,6 +136,7 @@ extern int fdd_is_post_complete(void);
 
 extern int      motorspin;
 extern uint64_t motoron[FDD_NUM];
+extern int      fdd_is_ready(int drive);
 
 extern int swwp;
 extern int disable_write;

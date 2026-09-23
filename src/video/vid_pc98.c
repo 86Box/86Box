@@ -337,6 +337,8 @@ void pc98_video_reset(pc98_video_t *v)
     v->font_lr = 0;
     v->kac = 0;
     memset(v->palette, 0, sizeof(v->palette));
+    v->palette_index = 0;
+    memset(v->analog_palette, 0, sizeof(v->analog_palette));
     memset(v->txt_scroll, 0, sizeof(v->txt_scroll));
     memset(v->video_ff, 0, sizeof(v->video_ff));
     memset(v->ex_video_ff, 0, sizeof(v->ex_video_ff));
@@ -703,10 +705,14 @@ uint8_t pc98_video_in8(pc98_video_t *v, uint16_t port)
     case 0x00a2: return upd7220_read(&v->graph_gdc, 1);
     case 0x00a4: return v->display_page & 1;
     case 0x00a6: return v->cpu_page & 1;
-    case 0x00a8: return v->palette[0];
-    case 0x00aa: return v->palette[1];
-    case 0x00ac: return v->palette[2];
-    case 0x00ae: return v->palette[3];
+    case 0x00a8:
+        return v->ex_video_ff[0] ? v->palette_index : v->palette[0];
+    case 0x00aa:
+        return v->ex_video_ff[0] ? v->analog_palette[v->palette_index][1] : v->palette[1];
+    case 0x00ac:
+        return v->ex_video_ff[0] ? v->analog_palette[v->palette_index][0] : v->palette[2];
+    case 0x00ae:
+        return v->ex_video_ff[0] ? v->analog_palette[v->palette_index][2] : v->palette[3];
     case 0x00a9:
         if (v->font_rom) return v->font_rom[pc98_font_window_offset(v)];
         return 0xff;
@@ -754,10 +760,22 @@ void pc98_video_out8(pc98_video_t *v, uint16_t port, uint8_t data)
         return;
     case 0x00a4: v->display_page = data & 1; return;
     case 0x00a6: v->cpu_page = data & 1; return;
-    case 0x00a8: v->palette[0] = data; return;
-    case 0x00aa: v->palette[1] = data; return;
-    case 0x00ac: v->palette[2] = data; return;
-    case 0x00ae: v->palette[3] = data; return;
+    case 0x00a8:
+        if (v->ex_video_ff[0]) v->palette_index = data & 0x0f;
+        else v->palette[0] = data;
+        return;
+    case 0x00aa:
+        if (v->ex_video_ff[0]) v->analog_palette[v->palette_index][1] = data & 0x0f;
+        else v->palette[1] = data;
+        return;
+    case 0x00ac:
+        if (v->ex_video_ff[0]) v->analog_palette[v->palette_index][0] = data & 0x0f;
+        else v->palette[2] = data;
+        return;
+    case 0x00ae:
+        if (v->ex_video_ff[0]) v->analog_palette[v->palette_index][2] = data & 0x0f;
+        else v->palette[3] = data;
+        return;
     case 0x00a9:
         if (v->font_rom) {
             int writable = 0;

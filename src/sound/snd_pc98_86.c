@@ -88,7 +88,9 @@ typedef struct pc98_86_t {
 
     uint16_t base;
     int      irq;
+    int      irq_sel;
     int      irq_state;
+    uint8_t  opna_addr[2];
     int      fm_irq;
     int      pcm_irq;
 
@@ -112,6 +114,27 @@ typedef struct pc98_86_t {
     double     dac_period_us;
 } pc98_86_t;
 
+/*
+ * YM2608 PSG Port A bits 7:6 reflect PC-9801-86 SW3/SW4.
+ *
+ * Config ordering:
+ *   0 = INT5
+ *   1 = INT6
+ *   2 = INT41
+ *   3 = INT0
+ *
+ * PSG encoding:
+ *   00 = INT0
+ *   01 = INT6
+ *   10 = INT41
+ *   11 = INT5
+ */
+static const uint8_t pc98_86_irq_pa_bits[4] = {
+    0xc0, /* INT5  */
+    0x40, /* INT6  */
+    0x80, /* INT41 */
+    0x00  /* INT0  */
+};
 /*
  * PC-98 C-BUS interrupt levels, in 86Box's flattened IRQ numbering, in the
  * order of the board's DSW3/DSW4 pair.
@@ -266,20 +289,38 @@ static uint8_t
 pc98_86_opna_in(uint16_t port, void *priv)
 {
     pc98_86_t *dev = (pc98_86_t *) priv;
-
+    uint8_t val = 0xFF;
+    const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
     if (port & 1u)
         return 0xffu;
-    return pc98_opn_read(dev->opn, (uint32_t) ((port - dev->base) >> 1));
+
+
+    val = pc98_opn_read(dev->opn, index);
+
+    if ((index == 1) && (dev->opna_addr[0] == 0x0e)) {
+        val &= 0x3f; // return irq selector on ssg port a. required by music drivers and games.
+        val |= pc98_86_irq_pa_bits[dev->irq_sel];
+    }
+
+    return val;
 }
 
 static void
 pc98_86_opna_out(uint16_t port, uint8_t val, void *priv)
 {
     pc98_86_t *dev = (pc98_86_t *) priv;
-
+    const uint32_t index = (uint32_t) ((port - dev->base) >> 1);
     if (port & 1u)
         return;
-    pc98_opn_write(dev->opn, (uint32_t) ((port - dev->base) >> 1), val);
+
+    if (index == 0)
+    {
+        dev->opna_addr[0] = val;
+    } else if (index == 2)
+    {
+        dev->opna_addr[1] = val;
+    }
+    pc98_opn_write(dev->opn, index, val);
 }
 
 static uint8_t
@@ -450,6 +491,11 @@ pc98_86_reset(void *priv)
 
     pc98_opn_reset(dev->opn);
 
+    /* Start this board in the YM2608's six-channel OPNA mode.  Keep the
+     * reset timer IRQ enables (bits 4:0) while setting the six-channel bit. */
+    pc98_opn_write(dev->opn, 0u, 0x29u);
+    pc98_opn_write(dev->opn, 1u, 0x9fu);
+
     dev->head = dev->tail = dev->count = 0u;
     dev->pcm_ctrl = dev->pcm_mode = 0u;
     dev->pcm_clk                  = 0u;
@@ -475,8 +521,8 @@ pc98_86_init(UNUSED(const device_t *info))
         return NULL;
 
     dev->base = device_get_config_int("base") ? 0x0288u : 0x0188u;
-    dev->irq  = pc98_86_int_irq[device_get_config_int("irq") & 3];
-
+    dev->irq_sel  = device_get_config_int("irq") & 3;
+    dev->irq  = pc98_86_int_irq[dev->irq_sel];
     dev->opn = pc98_opn_create(PC98_OPN_YM2608, PC98_86_CLOCK, pc98_86_fm_irq,
                                dev);
     if (!dev->opn) {

@@ -61,14 +61,15 @@ public:
         , m_priv(priv)
     {
         m_clock_us  = 1000000.0 / (double) m_clock;
-        m_rateratio = (uint32_t) ((SOUND_FREQ << RSM_FRAC) /
-                                  m_chip.sample_rate(m_clock));
+        update_rateratio();
         std::memset(m_samples, 0, sizeof(m_samples));
         std::memset(m_oldsamples, 0, sizeof(m_oldsamples));
+        std::memset(m_buffer, 0, sizeof(m_buffer));
         std::memset(m_ram, 0, sizeof(m_ram));
 
         timer_add(&m_timers[0], pc98_opn_chip::timer0, this, 0);
         timer_add(&m_timers[1], pc98_opn_chip::timer1, this, 0);
+        timer_add(&m_busy_timer, pc98_opn_chip::busy_timer_expired, this, 0);
     }
 
     /*
@@ -84,23 +85,30 @@ public:
     {
         timer_disable(&m_timers[0]);
         timer_disable(&m_timers[1]);
+        timer_disable(&m_busy_timer);
     }
 
     void
     reset() override
     {
+        m_busy = false;
+        timer_disable(&m_busy_timer);
+        m_buffer_pos = 0;
+        std::memset(m_buffer, 0, sizeof(m_buffer));
         m_chip.reset();
     }
 
     uint8_t
     read(uint32_t addr) override
     {
+        update_to((uint32_t) sound_pos_global);
         return m_chip.read(addr);
     }
 
     void
     write(uint32_t addr, uint8_t data) override
     {
+        update_to((uint32_t) sound_pos_global);
         m_chip.write(addr, data);
     }
 
@@ -119,6 +127,61 @@ public:
     void
     generate(int32_t *buf, uint32_t frames) override
     {
+        update_rateratio();
+        /*
+         * sound_poll() calls handlers at the end of the output buffer.  YM
+         * writes have already advanced the chip to sound_pos_global, so
+         * finish the tail, mix the buffered samples, and begin the next
+         * output buffer at position zero.
+         */
+        update_to(frames);
+        const uint32_t mix_frames = (frames < SOUNDBUFLEN) ? frames : SOUNDBUFLEN;
+        for (uint32_t i = 0; i < mix_frames; i++) {
+            buf[i * 2]     += m_buffer[i * 2];
+            buf[i * 2 + 1] += m_buffer[i * 2 + 1];
+        }
+
+        m_buffer_pos = 0;
+        std::memset(m_buffer, 0, sizeof(m_buffer));
+    }
+
+    void
+    update_rateratio()
+    {
+        const uint32_t output_rate = (sound_sample_rate > 0)
+                                   ? (uint32_t)sound_sample_rate
+                                   : SOUND_FREQ;
+        const uint32_t chip_rate = m_chip.sample_rate(m_clock);
+
+        m_rateratio = (chip_rate != 0)
+                    ? (uint32_t)(((uint64_t)output_rate << RSM_FRAC) / chip_rate)
+                    : (1u << RSM_FRAC);
+        if (!m_rateratio)
+            m_rateratio = 1;
+    }
+
+    void
+    update_to(uint32_t position)
+    {
+        if (position > SOUNDBUFLEN)
+            position = SOUNDBUFLEN;
+
+        /* A sound buffer is retired by generate() before the global cursor
+         * wraps, so a backwards cursor here can only be a reset/reconfigure. */
+        if (position < m_buffer_pos) {
+            m_buffer_pos = 0;
+            std::memset(m_buffer, 0, sizeof(m_buffer));
+        }
+
+        if (position > m_buffer_pos) {
+            generate_samples(&m_buffer[m_buffer_pos * 2], position - m_buffer_pos);
+            m_buffer_pos = position;
+        }
+    }
+
+    void
+    generate_samples(int32_t *buf, uint32_t frames)
+    {
         for (uint32_t i = 0; i < frames; i++) {
             while (m_samplecnt >= m_rateratio) {
                 m_oldsamples[0] = m_samples[0];
@@ -134,8 +197,8 @@ public:
                                           m_samples[1] * (int64_t) m_samplecnt) /
                                          m_rateratio);
 
-            buf[i * 2]     += l;
-            buf[i * 2 + 1] += r;
+            buf[i * 2]     = l;
+            buf[i * 2 + 1] = r;
 
             m_samplecnt += 1 << RSM_FRAC;
         }
@@ -160,6 +223,22 @@ public:
     {
         if (m_irq)
             m_irq(m_priv, asserted ? 1 : 0);
+    }
+
+    void
+    ymfm_set_busy_end(uint32_t clocks) override
+    {
+        m_busy = (clocks != 0);
+        if (m_busy)
+            timer_on_auto(&m_busy_timer, m_clock_us * (double) clocks);
+        else
+            timer_disable(&m_busy_timer);
+    }
+
+    bool
+    ymfm_is_busy() override
+    {
+        return m_busy;
     }
 
     uint8_t
@@ -209,7 +288,7 @@ private:
              * so both sides get the same value.
              */
             const int32_t ssg = out.data[1] + out.data[2] + out.data[3];
-            const int32_t mix = out.data[0] + (ssg / 2);
+            const int32_t mix = out.data[0] + (ssg >> 3);
             m_samples[0] = m_samples[1] = mix;
         } else {
             /*
@@ -217,8 +296,8 @@ private:
              * mono SSG, which feeds both sides.
              */
             const int32_t ssg = out.data[2] / 2;
-            m_samples[0]      = out.data[0] + ssg;
-            m_samples[1]      = out.data[1 % ChipType::OUTPUTS] + ssg;
+            m_samples[0]      = out.data[0] + (ssg >> 2);
+            m_samples[1]      = out.data[1 % ChipType::OUTPUTS] + (ssg >> 2);
         }
     }
 
@@ -236,13 +315,23 @@ private:
         self->m_engine->engine_timer_expired(1);
     }
 
+    static void
+    busy_timer_expired(void *priv)
+    {
+        pc98_opn_chip *self = (pc98_opn_chip *) priv;
+        self->m_busy = false;
+    }
+
     ChipType m_chip;
     uint32_t m_clock;
     double   m_clock_us    = 0.0;
+    bool     m_busy        = false;
     uint32_t m_rateratio   = 1u << RSM_FRAC;
     uint32_t m_samplecnt   = 0u;
     int32_t  m_samples[2]  = { 0, 0 };
     int32_t  m_oldsamples[2] = { 0, 0 };
+    int32_t  m_buffer[SOUNDBUFLEN * 2] {};
+    uint32_t m_buffer_pos = 0;
 
     void (*m_irq)(void *, int) = nullptr;
     void *m_priv               = nullptr;
@@ -252,6 +341,7 @@ private:
     uint8_t        m_ram[PC98_OPNA_RAM_SIZE];
 
     pc_timer_t m_timers[2] {};
+    pc_timer_t m_busy_timer {};
 };
 
 } /* namespace */

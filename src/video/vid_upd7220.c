@@ -305,12 +305,13 @@ static void draw_line(upd7220_t *g)
 
     for (uint32_t i = 0; i < n; i++) {
         draw_dot(g, i);
-        if (i + 1 == n) break;
         if (base & 1)
             g->figs.dir = (uint8_t)((d < 0) ? ((base + 1) & 7) : base);
         else
             g->figs.dir = (uint8_t)((d < 0) ? base : ((base + 1) & 7));
         d += (d < 0) ? d1 : d2;
+        /* FIGD advances EAD after every generated pixel, including the final
+         * one. Software commonly chains vectors from that updated address. */
         next_pixel(g, g->figs.dir);
     }
 }
@@ -331,18 +332,18 @@ static void draw_rect(upd7220_t *g)
 
 static void draw_arc(upd7220_t *g)
 {
-    int32_t err = -sext14(g->figs.d);
-    int32_t d = sext14(g->figs.d) + 1;
+    int32_t radius = g->figs.d;
+    int32_t err = -radius;
+    int32_t d = radius + 1;
     unsigned oct = g->figs.dir & 7;
     uint32_t n = (uint32_t)g->figs.dc + 1;
 
     for (uint32_t i = 0; i < n; i++) {
         if (i >= g->figs.dm) draw_dot(g, i);
-        if (i + 1 == n) break;
         if (err < 0) g->figs.dir = (uint8_t)((oct & 1) ? ((oct + 1) & 7) : oct);
         else         g->figs.dir = (uint8_t)((oct & 1) ? oct : ((oct + 1) & 7));
         err += (err < 0) ? ((int32_t)(i + 1) << 1)
-                         : ((int32_t)(i - (uint32_t)--d + 1) << 1);
+                         : (((int32_t)i - --d + 1) << 1);
         next_pixel(g, g->figs.dir);
     }
 }

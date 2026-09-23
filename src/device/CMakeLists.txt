@@ -61,6 +61,9 @@ add_library(dev OBJECT
     mouse_serial.c
     mouse_upc.c
     nec_mate_unk.c
+    # Generic Intel 8251/8255 cores used by PC-98
+    pc98_i8251.c
+    pc98_ppi8255.c
     novell_cardkey.c
     pci_bridge.c
     phoenix_486_jumper.c

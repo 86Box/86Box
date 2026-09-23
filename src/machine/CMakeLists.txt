@@ -34,8 +34,6 @@ add_library(mch OBJECT
     m_xt_ibm5550.c
     # NEC PC-9801 motherboard support
     m_pc98.c
-    pc98_ppi8255.c
-    pc98_i8251.c
     pc98_rom.c
     m_tandy.c
     m_v86p.c
