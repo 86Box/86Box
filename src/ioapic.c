@@ -28,7 +28,7 @@
 #include <86box/plat_unused.h>
 
 typedef struct ioapic_t {
-    uint8_t dummy;
+    uint8_t trigger; /* the POST code that means "about to boot" */
 } ioapic_t;
 
 #ifdef ENABLE_IOAPIC_LOG
@@ -50,12 +50,14 @@ ioapic_log(const char *fmt, ...)
 #endif
 
 static void
-ioapic_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
+ioapic_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
-    uint32_t pcmp;
+    const ioapic_t *dev = (ioapic_t *) priv;
+    uint32_t        pcmp;
 
-    /* target POST FF, issued by Award before jumping to the bootloader */
-    if (val != 0xff)
+    /* Target the last POST code before the jump to the bootloader: FF on
+       Award, 00 on AMI (checkpoint 00, "passing control to INT 19h"). */
+    if (val != dev->trigger)
         return;
 
     ioapic_log("IOAPIC: Caught POST %02X\n", val);
@@ -93,20 +95,22 @@ ioapic_close(void *priv)
     ioapic_t *dev = (ioapic_t *) priv;
 
     io_removehandler(0x80, 1,
-                     NULL, NULL, NULL, ioapic_write, NULL, NULL, NULL);
+                     NULL, NULL, NULL, ioapic_write, NULL, NULL, dev);
 
     free(dev);
 }
 
 static void *
-ioapic_init(UNUSED(const device_t *info))
+ioapic_init(const device_t *info)
 {
     ioapic_t *dev = (ioapic_t *) calloc(1, sizeof(ioapic_t));
+
+    dev->trigger = info->local;
 
     ioapic_reset(dev);
 
     io_sethandler(0x80, 1,
-                  NULL, NULL, NULL, ioapic_write, NULL, NULL, NULL);
+                  NULL, NULL, NULL, ioapic_write, NULL, NULL, dev);
 
     return dev;
 }
@@ -115,7 +119,21 @@ const device_t ioapic_device = {
     .name          = "I/O Advanced Programmable Interrupt Controller",
     .internal_name = "ioapic",
     .flags         = DEVICE_ISA16,
-    .local         = 0,
+    .local         = 0xff,
+    .init          = ioapic_init,
+    .close         = ioapic_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ioapic_ami_device = {
+    .name          = "I/O Advanced Programmable Interrupt Controller (AMI)",
+    .internal_name = "ioapic_ami",
+    .flags         = DEVICE_ISA16,
+    .local         = 0x00,
     .init          = ioapic_init,
     .close         = ioapic_close,
     .reset         = NULL,

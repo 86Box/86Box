@@ -229,22 +229,23 @@ aic_log(const char *tag, const char *fmt, ...)
 #define BOARD_2940UW 2 /* AHA-2940 Ultra Wide */
 #define BOARD_2940   3 /* AHA-2940, narrow, on an AIC-7870 */
 #define BOARD_2940W  4 /* AHA-2940W, the same card strapped wide */
+#define BOARD_2944UW 5 /* AHA-2944 Ultra Wide, differential */
 /* The AIC-7770 cards. The configuration utility's overlay knows four
    hardware types by the chip's straps -- AHA-2740/2742, 2740T/2742T,
    2740W/2742W and 2744W -- and the second digit says whether the board
    carries a floppy controller (an N82077 on Hino's). Same EISA ID
    (ADP7771) and the same option ROM throughout. */
-#define BOARD_2740        5 /* one narrow channel */
-#define BOARD_2742        6 /* one narrow channel, floppy controller */
-#define BOARD_2740T       7 /* two narrow channels */
-#define BOARD_2742T       8 /* two narrow channels, floppy controller */
-#define BOARD_2740W       9 /* one wide channel */
-#define BOARD_2742W      10 /* one wide channel, floppy controller */
-#define BOARD_2744W      11 /* one wide differential channel */
+#define BOARD_2740        4  /* one narrow channel */
+#define BOARD_2742        5  /* one narrow channel, floppy controller */
+#define BOARD_2740T       6  /* two narrow channels */
+#define BOARD_2742T       7  /* two narrow channels, floppy controller */
+#define BOARD_2740W       8  /* one wide channel */
+#define BOARD_2742W       9  /* one wide channel, floppy controller */
+#define BOARD_2744W       10 /* one wide differential channel */
 #define AIC_BOARD_EISA(b) ((b) >= BOARD_2740)
 #define AIC_BOARD_TWIN(b) (((b) == BOARD_2740T) || ((b) == BOARD_2742T))
 #define AIC_BOARD_WIDE(b) (((b) == BOARD_2740W) || ((b) == BOARD_2742W) || ((b) == BOARD_2744W))
-#define AIC_BOARD_DIFF(b) ((b) == BOARD_2744W)
+#define AIC_BOARD_DIFF(b) (((b) == BOARD_2744W) || ((b) == BOARD_2944UW))
 #define AIC_BOARD_FDC(b)  (((b) == BOARD_2742) || ((b) == BOARD_2742T) || ((b) == BOARD_2742W))
 
 #define SRAM_BASE         0x20 /* scratch RAM, to 0x5f */
@@ -1069,6 +1070,10 @@ aic_host_no_pause(uint8_t addr, int write)
 static void
 aic_hard_error(aic7xxx_t *dev, uint8_t bits, uint8_t addr, int write)
 {
+    /* Named in the log line only. */
+    (void) addr;
+    (void) write;
+
     /* Worth a line of its own, and worth naming what reached for what.
        Firmware that runs on the real part does not reach these, so one
        appearing here is this model's news rather than the firmware's --
@@ -1445,6 +1450,8 @@ aic_cmd_execute(aic7xxx_t *dev, aic_cmd_t *c)
     scsi_device_t *sd = &scsi_devices[c->bus][c->id];
     double         p;
 
+    (void) dev; /* for the log only */
+
     c->executed = 1;
 
     scsi_device_identify(sd, c->identified ? c->lun : SCSI_LUN_USE_CDB);
@@ -1482,6 +1489,8 @@ static void
 aic_cmd_finish_out(aic7xxx_t *dev, aic_cmd_t *c)
 {
     scsi_device_t *sd = &scsi_devices[c->bus][c->id];
+
+    (void) dev; /* for the log only */
 
     if (c->data_in || (c->data_len == 0) || (c->data == NULL))
         return;
@@ -3002,9 +3011,10 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                    IRQMS in HCNTRL, so report that rather than bit 7, which
                    this line used to read and which the configuration
                    utility writes as zero whatever the trigger. */
-                if (dev->irq != (val & 0x0f))
+                if (dev->irq != (val & 0x0f)) {
                     aic_log(dev->tag, "EISA IRQ %i, %s triggered\n", val & 0x0f,
                             (dev->hcntrl & IRQMS) ? "level" : "edge");
+                }
                 dev->irq = val & 0x0f;
             } else if (addr == HA_274_BIOSCTRL) {
                 dev->bios_ctl_set = 1;
@@ -4941,6 +4951,8 @@ aic_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 #define AHA2940_V111_ROM   "roms/scsi/adaptec/aha2940_v111.bin"
 #define AHA2940_V116_ROM   "roms/scsi/adaptec/aha2940_v116.bin"
 #define AHA2940_V123_ROM   "roms/scsi/adaptec/aha2940_v123.bin"
+=======
+#define AHA2944UW_V220_ROM "roms/scsi/adaptec/aha2944uw_v220.bin"
 #define AHA2740_V210_ROM   "roms/scsi/adaptec/aha2740_v210.bin"
 #define AHA2740W_V211_ROM  "roms/scsi/adaptec/aha2740w.bin"
 #define AHA2742A_V211_ROM  "roms/scsi/adaptec/aha2742a.bin"
@@ -4963,7 +4975,7 @@ aic_init(const device_t *info)
     uint16_t                 devid;
 
     dev->board = info->local & 0xff;
-    dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
+    dev->wide  = (dev->board == BOARD_2940UW) || dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
     /* An AHA-2740 is one narrow bus. Other members of the family strap the
        same chip for two buses or for one wide one, and on the AIC-7770
        those are exclusive: the wide connection takes channel B's data
@@ -5033,7 +5045,9 @@ aic_init(const device_t *info)
         devid = 0x8078;
     else if ((dev->board == BOARD_2940) || (dev->board == BOARD_2940W))
         devid = 0x7178;
-    else
+    else if (dev->board == BOARD_2944UW)
+        devid = 0x8478;
+   else
         devid = 0x8178;
 
     dev->pci_regs[0x00] = 0x04;
@@ -5230,17 +5244,18 @@ aic_init(const device_t *info)
     if (AIC_BOARD_FDC(dev->board) && device_get_config_int("floppy"))
         dev->fdc = device_add(&fdc_at_device);
 
-    if (dev->twin)
+    if (dev->twin) {
         aic_log(dev->tag, "board %i, %s, channel A on bus %i, channel B on "
                           "bus %i, sblkctl %02x\n",
                 dev->board,
                 dev->wide ? "wide" : "narrow", dev->bus, dev->bus_b,
                 dev->sblkctl);
-    else
+    } else {
         aic_log(dev->tag, "board %i, %s, one channel on bus %i, sblkctl "
                           "%02x\n",
                 dev->board, dev->wide ? "wide" : "narrow",
                 dev->bus, dev->sblkctl);
+    }
 
     return dev;
 }
@@ -5531,6 +5546,56 @@ static const device_config_t aha2940_config[] = {
     // clang-format on
 };
 
+static const device_config_t aha2944uw_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "Enable BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_rev",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "v2_20_0",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "Version 2.20.0",
+                .internal_name = "v2_20_0",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { AHA2944UW_V220_ROM, "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    {
+        .name           = "dev_timing",
+        .description    = "Device timing",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
 /* The bare chip, as found on a motherboard. It is not in the card list:
    a machine that has one adds it itself. */
 const device_t aic7880_pci_device = {
@@ -5699,4 +5764,18 @@ const device_t aha2940uw_pci_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = aic_card_config
+};
+
+const device_t aha2944uw_pci_device = {
+    .name          = "Adaptec AHA-2944 Ultra Wide (differential)",
+    .internal_name = "aha2944uw",
+    .flags         = DEVICE_PCI,
+    .local         = BOARD_2944UW,
+    .init          = aic_init,
+    .close         = aic_close,
+    .reset         = aic_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = aha2944uw_config
 };

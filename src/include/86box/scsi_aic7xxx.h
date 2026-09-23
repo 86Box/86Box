@@ -23,6 +23,7 @@ extern const device_t aha2940_pci_device;
 extern const device_t aha2940w_pci_device;
 extern const device_t aha2940u_pci_device;
 extern const device_t aha2940uw_pci_device;
+extern const device_t aha2944uw_pci_device;
 extern const device_t aha2740_device;
 extern const device_t aha2742_device;
 extern const device_t aha2740t_device;
