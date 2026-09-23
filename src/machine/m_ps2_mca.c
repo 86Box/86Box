@@ -2397,8 +2397,8 @@ ps2_mca_board_model_p70_type1_init(void)
                     NULL);
     mem_mapping_disable(&ps2.split_mapping);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        ps2.mb_vga = device_add(&ps1vga_mca_device);
+    ps2.mb_vga = device_add(&ps1vga_mca_device);
+    device_add(&ibm_plasma_vga_device);
 }
 
 static void
@@ -2439,8 +2439,8 @@ ps2_mca_board_model_p70_type2_init(void)
                     NULL);
     mem_mapping_disable(&ps2.split_mapping);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        ps2.mb_vga = device_add(&ps1vga_mca_device);
+    ps2.mb_vga = device_add(&ps1vga_mca_device);
+    device_add(&ibm_plasma_vga_device);
 }
 
 static void
