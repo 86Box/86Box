@@ -15,6 +15,9 @@ public:
     ~SettingsStorageControllers();
 
     int  changed();
+    /* The SCSI card chosen in row i of the page, as the settings stand
+       now: what the EISA slot picker greys out against. */
+    int scsiCard(int i) const;
 
     void restore();
     void save(int soft);
@@ -60,6 +63,13 @@ private:
     SettingsCompleter *scHD[4];
     SettingsCompleter *scCDInterface;
     SettingsCompleter *scSCSI[4];
+
+    int hdcCurrent[4];
+    int scsiCardCurrent[4];
+    int fdcCurrent[2];
+    int cdromInterfaceCurrent;
+
+    bool inMachineChange;
 };
 
 #endif // QT_SETTINGSSTORAGECONTROLLERS_HPP

@@ -23,6 +23,7 @@ list(APPEND net_sources
     net_dp8390.c
     net_3c501.c
     net_3c503.c
+    net_3c59x_eisa.c
     net_ne2000.c
     net_pcnet.c
     net_wd8003.c

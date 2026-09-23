@@ -59,7 +59,7 @@ typedef struct flash_t {
 
     uint32_t program_addr;
 
-    mem_mapping_t mapping[4];
+    mem_mapping_t mapping[2];
     mem_mapping_t mapping_h[64];
 } flash_t;
 
@@ -433,8 +433,8 @@ flash_add_mappings(flash_t *dev)
 
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
-        if ((max == 2) || (i >= 2))
-            mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
+        if ((max == 2) || (i >= (max - 2)))
+            mem_mapping_add(&(dev->mapping[i & 1]), base, 0x10000,
                             flash_read, flash_readw, flash_readl,
                             flash_write, flash_writew, flash_writel,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);

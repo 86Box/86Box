@@ -35,6 +35,13 @@ private slots:
     void on_comboBoxSoundCard4_currentIndexChanged(int index);
     void on_pushButtonConfigureSoundCard4_clicked();
 
+    void on_checkBoxSoundInput_stateChanged(int state);
+
+private:
+    void updateSoundInputEnabled();
+
+private slots:
+
     void on_comboBoxMidiOut_currentIndexChanged(int index);
     void on_pushButtonConfigureMidiOut_clicked();
 
@@ -59,6 +66,13 @@ private:
 
     SettingsCompleter   *scMidiOut;
     SettingsCompleter   *scMidiIn;
+
+    int soundCardCurrent[4];
+    int mpu401Enabled;
+    int midiOutCurrent;
+    int midiInCurrent;
+
+    bool inMachineChange;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

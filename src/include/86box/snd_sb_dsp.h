@@ -169,7 +169,22 @@ typedef struct sb_dsp_t {
 
     int     record_pos_read;
     int     record_pos_write;
-    int16_t record_buffer[0xFFFF];
+    int     record_pos_write_mic;
+    int     record_phase_mic;
+    int     record_denom_mic;
+    int     record_rate_mic;
+    int32_t record_prev_l_mic;
+    int32_t record_prev_r_mic;
+    int     record_prev_valid_mic;
+    int     record_aa_active_mic;
+    double  record_aa_b0_mic;
+    double  record_aa_b1_mic;
+    double  record_aa_b2_mic;
+    double  record_aa_a1_mic;
+    double  record_aa_a2_mic;
+    double  record_aa_z1_mic[2];
+    double  record_aa_z2_mic[2];
+    int16_t record_buffer[0x10000];
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 

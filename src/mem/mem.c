@@ -2299,6 +2299,28 @@ mem_mapping_access_allowed(uint32_t flags, uint16_t access)
     return ret;
 }
 
+/* One granule of one mapping, put where an access of each kind will find it. */
+static void
+mem_mapping_apply_granule(mem_mapping_t *map, uint64_t c, int n)
+{
+    uint8_t wp = _mem_wp[c >> MEM_GRANULARITY_BITS];
+
+    if (map->exec && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].x))
+        _mem_exec[c >> MEM_GRANULARITY_BITS] = map->exec + (c - map->base);
+    if (!wp && (map->write_b || map->write_w || map->write_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+        write_mapping[c >> MEM_GRANULARITY_BITS] = map;
+    if ((map->read_b || map->read_w || map->read_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+        read_mapping[c >> MEM_GRANULARITY_BITS] = map;
+
+    n |= STATE_BUS;
+    wp = _mem_wp_bus[c >> MEM_GRANULARITY_BITS];
+
+    if (!wp && (map->write_b || map->write_w || map->write_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].w))
+        write_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+    if ((map->read_b || map->read_w || map->read_l) && mem_mapping_access_allowed(map->flags, _mem_state[c >> MEM_GRANULARITY_BITS].states[n].r))
+        read_mapping_bus[c >> MEM_GRANULARITY_BITS] = map;
+}
+
 void
 mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
 {
@@ -2420,6 +2442,32 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
             }
         }
         map = map->next;
+    }
+
+    /* THE ALIASES OF THE RANGE WERE CLEARED ABOVE, and the walk put back only
+       what aliases with it. Whatever else lives under an alias -- the
+       machine's RAM sixteen megabytes above an ISA adapter's linear
+       aperture, say -- was cleared and never restored, and that memory
+       vanished the moment the adapter's aperture was switched on. Put back
+       every mapping that does not itself alias, wherever an alias of the
+       range crosses it. */
+    if (o_e != 0x00000000ULL) {
+        for (o_c = o_a; o_c <= o_e; o_c += o_a) {
+            uint64_t a_base = base + o_c;
+            uint64_t a_end  = base + size + o_c;
+
+            for (map = base_mapping; map != NULL; map = map->next) {
+                if (!map->enable || (base_ignore & map->base_ignore))
+                    continue;
+                uint64_t m_base = (uint64_t) map->base;
+                uint64_t m_end  = (uint64_t) map->base + (uint64_t) map->size;
+                uint64_t start  = (m_base > a_base) ? m_base : a_base;
+                uint64_t end    = (m_end < a_end) ? m_end : a_end;
+
+                for (c = start; c < end; c += MEM_GRANULARITY_SIZE)
+                    mem_mapping_apply_granule(map, c, !!in_smm);
+            }
+        }
     }
 
     flushmmucache_nopc();

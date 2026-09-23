@@ -25,6 +25,28 @@ typedef struct lpt_device_s {
     uint8_t       (*read_ctrl)(void *priv);
     void          (*epp_write_data)(uint8_t is_addr, uint8_t val, void *priv);
     void          (*epp_request_read)(uint8_t is_addr, void *priv);
+    /*
+     * ECP reverse transfer. The ECP FIFO is filled only by the chardev
+     * passthrough, so an emulated device had no way to supply bytes and an
+     * ECP read from one returned 0xFF forever. A device that sets this
+     * supplies a byte on demand when the FIFO is empty.
+     */
+    uint8_t       (*ecp_read_data)(void *priv);
+    /*
+     * ECP forward transfer. The FIFO drain hands bytes to write_data(),
+     * but a device that frames SPP block writes separately cannot tell an
+     * ECP byte from a stray one there. A device that sets this receives
+     * ECP payload on its own path.
+     */
+    void          (*ecp_write_data)(uint8_t val, void *priv);
+    /*
+     * ECP forward ADDRESS cycle - a write to base+0 while the ECR is in an
+     * ECP mode, which the standard calls the address/command FIFO. The EPAT
+     * bridge is commanded this way: 0x80 arms a block read, 0xC0 a block
+     * write, 0xA0 the last byte of a read. Without it an emulated device
+     * cannot tell a framed block from stray payload.
+     */
+    void          (*ecp_write_addr)(uint8_t val, void *priv);
 
     void *        priv;
 } lpt_device_t;
@@ -107,9 +129,11 @@ extern const device_t      lpt_adlipt_device;
 extern const device_t      lpt_opl3_device;
 extern const device_t      lpt_cms_device;
 extern const device_t      lpt_tnd_device;
+extern const device_t      lpt_epat_device;
 
 extern const device_t      lpt_hasp_savquest_device;
 
+extern const device_t      lpt_bpck_device;
 extern const device_t      lpt_ditto_device;
 
 extern const device_t      lpt_loopback_device;
@@ -159,6 +183,12 @@ extern void *              lpt_attach_ex(int     port,
 extern void                lpt_devices_close(int soft);
 extern void                lpt_devices_reset(void);
 
+extern void                lpt_set_ecp_read_data(lpt_t *dev,
+                                                 uint8_t (*ecp_read_data)(void *priv));
+extern void                lpt_set_ecp_write_data(lpt_t *dev,
+                                                  void (*ecp_write_data)(uint8_t val, void *priv));
+extern void                lpt_set_ecp_write_addr(lpt_t *dev,
+                                                  void (*ecp_write_addr)(uint8_t val, void *priv));
 extern void                lpt_set_next_inst(int ni);
 
 extern int                 lpt_get_3bc_used(void);

@@ -21,6 +21,44 @@
 
 #define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalone MPU401 */
 
+typedef struct _sound_backend_ {
+    const char *name;
+    const char *internal_name;
+
+    void        (*give_buffer)(void *priv, void *src, const void *buf, int size, int gain);
+    void *      (*init_source)(void *priv, int sample_rate, int buffer_size);
+    void        (*close_source)(void *priv, void *src);
+    const char *(*get_output_devices)(void);
+    void       *(*init)(void);
+    void        (*close)(void *priv);
+} sound_backend_t;
+
+extern sound_backend_t       sound_cur_backend;
+
+#ifdef AUDIO4
+extern const sound_backend_t sound_backend_audio4;
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
+extern const sound_backend_t sound_backend_openal;
+#endif
+#if !defined(AUDIO4) && !defined(SNDIO)
+extern const sound_backend_t sound_backend_xaudio2;
+#endif
+#ifdef SNDIO
+extern const sound_backend_t sound_backend_sndio;
+#endif
+
+extern void                  sound_backend_give_buffer(void *src, const void *buf,
+                                                       int size, int gain);
+extern void                  sound_backend_close_source(void *src);
+extern void *                sound_backend_init_source(int sample_rate, int buffer_size);
+extern const char *          sound_backend_get_output_devices(void);
+extern void                  sound_backend_close(void);
+extern void                  sound_backend_init(void);
+
+extern void            sound_source_close_all(void);
+extern void            sound_source_reopen_all(void);
+
 extern int  sound_gain;
 extern char sound_output_device[512]; /* selected audio output device name, empty = system default */
 
@@ -80,6 +118,13 @@ extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),
                               void *priv);
 
+extern void sound_in_add_handler(void (*put_buffer)(int16_t *buffer,
+                                                     int len, void *priv),
+                                 void *priv);
+
+extern void sound_in_start_input(void);
+extern void sound_in_stop_input(void);
+
 extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),
                               void *priv);
@@ -113,6 +158,7 @@ extern int sound_card_available(int card);
 extern const device_t *sound_card_getdevice(int card);
 #endif
 extern int         sound_card_has_config(int card);
+extern int         sound_card_has_input(int card);
 extern const char *sound_card_get_internal_name(int card);
 extern int         sound_card_get_from_internal_name(const char *s);
 extern void        sound_card_init(void);
@@ -138,11 +184,21 @@ extern void sound_hdd_thread_init(void);
 extern void sound_hdd_thread_end(void);
 
 extern const char *sound_get_output_devices(void); /* returns double-null-terminated list, or NULL */
+extern const char *sound_get_input_devices(void);  /* returns double-null-terminated list, or NULL */
+extern void        al_capture_open(void);
+extern void        al_capture_close(void);
+extern int         al_capture_get_rate(void);
 extern int         sound_get_device_sample_rate(const char *device_name);   /* probe native rate, 0 = unknown */
 extern int         sound_get_device_supported_rates(const char *device_name, /* probe supported rates into rates_out; returns count */
                                                     int *rates_out, int max_rates);
 extern void        closeal(void);
 extern void        inital(void);
+extern void        sound_reopen_input(void);
+extern void        sound_reopen_output(void);
+extern int         al_capture_available(void);
+extern void        al_capture_start(void);
+extern void        al_capture_stop(void);
+extern void        al_capture_get_data(int16_t *buf, size_t *len);
 
 #ifdef bool
 extern bool        fast_forward;

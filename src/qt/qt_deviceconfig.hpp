@@ -32,6 +32,7 @@ private:
     int                machine_cfg_changed;
 
     void               ProcessConfig(void *dc, const void *c, bool is_dep);
+    void               GreyOutTakenEisaSlots(class QComboBox *cbox, int instance);
 
 private slots:
     void on_comboIndexChanged(int index);
