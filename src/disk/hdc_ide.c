@@ -3092,6 +3092,14 @@ ide_clear_bus_master(int board)
     }
 }
 
+/* Whether an IDE board is already in use, so that an add-in controller can
+   take the primary and secondary channels only where nothing else has. */
+int
+ide_board_claimed(int board)
+{
+    return (board >= 0) && (board < IDE_BUS_MAX) && (ide_boards[board] != NULL) && ide_boards[board]->inited;
+}
+
 /*
    This so drives can be forced to ATA-3 (no DMA) for machines that hide the
    on-board PCI IDE controller (eg. Packard Bell PB640 and ASUS P/I-P54TP4XE),

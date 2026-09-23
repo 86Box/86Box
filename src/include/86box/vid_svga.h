@@ -324,6 +324,10 @@ typedef struct svga_t {
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
 
+    /* Plasma display panel attached to this core, if any. The filter has no priv of its
+       own in the renderer signature, so it finds its state through this back-pointer. */
+    void *  plasma;
+
     void *  dev8514;
     void *  ext8514;
     void *  clock_gen8514;

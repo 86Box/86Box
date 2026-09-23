@@ -62,7 +62,7 @@ static const device_config_t at_54tdp_config[] = {
        kept: this decides the starting point and nothing else. */
     {
         .name           = "auto_eisa_config",
-        .description    = "Initialise EISA configuration store",
+        .description    = "Initialize EISA configuration store",
         .type           = CONFIG_BINARY,
         .default_string = NULL,
         .default_int    = 1,
@@ -120,12 +120,16 @@ machine_at_54tdp_init(const machine_t *model)
        PIRQC the chip raised IRQ 11 while Windows 2000 had its handler on
        IRQ 10: every command on the on-board bus completed unnoticed and
        was reset after the driver's timeout, eight seconds at a time. */
-    pci_register_slot(0x08, PCI_CARD_SCSI, 4, 1, 2, 3);
-    pci_register_slot(0x09, PCI_CARD_VIDEO, 4, 1, 2, 3);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0d, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    /* The rest is what the BIOS itself reports through its PCI IRQ
+       routing table (INT 1Ah, B10Eh, as PCIREG prints it): the on-board
+       SCSI at 08h with INTA alone, and four slots at 09h to 0Ch -- slot 4
+       down to slot 1 -- each one a rotation of the last. There is no
+       device 0Dh on this board: a card put there had no routing at all. */
+    pci_register_slot(0x08, PCI_CARD_SCSI,   4, 0, 0, 0); /* Onboard */
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1); /* Slot 4 */
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2); /* Slot 3 */
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 4, 1, 2, 3); /* Slot 2 */
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 1, 2, 3, 4); /* Slot 1 */
 
     /* Four EISA slots. */
     eisa_init(4);
@@ -151,8 +155,9 @@ machine_at_54tdp_init(const machine_t *model)
        APIC here. An operating system that believes the table and routes
        its interrupts through the APIC therefore loses them -- the mouse
        first, because nothing else needs IRQ 12. Blanking the table is what
-       the other dual-capable Socket 7 boards do. */
-    device_add(&ioapic_device);
+       the other dual-capable Socket 7 boards do. The firmware is AMI, whose
+       last POST code before booting is 00, not Award's FF. */
+    device_add(&ioapic_ami_device);
 
     /* The firmware lives in a Winbond W29C011A, and some of what setup
        stores goes back into it rather than into CMOS. Without a flash part
