@@ -1038,7 +1038,13 @@ picinterrupt(void)
         pic.interrupt = 0x07;
     }
 
-    if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
+    /* The PS/2 watchdog's gate falls when IRQ 0 is acknowledged. Only the
+       watchdog's: on an EISA board the second timer is the ESC's (or the
+       SiS 85C411's) fail-safe timer, whose gate is tied high, and dropping
+       it on every tick of the system timer stopped the fail-safe counter
+       from ever reaching terminal count -- no fail-safe NMI, and every
+       EISA BIOS that tests for one said so at POST. */
+    if ((pic.interrupt == 0) && (pit_ps2_watchdog != NULL) && (pit_devs[1].data == pit_ps2_watchdog))
         pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
 
     /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */

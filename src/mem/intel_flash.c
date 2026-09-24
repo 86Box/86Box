@@ -27,6 +27,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
+#include <86box/flash.h>
 
 #define FLAG_X00     16
 #define FLAG_MICRON   8
@@ -169,6 +170,9 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
 
+    if (!flash_bios_write_selected(addr))
+        return;
+
     if ((biosmask == 0x3ffff) || (biosmask == 0x7ffff))
         bb_mask &= 0xffffc000;
 
@@ -229,6 +233,9 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     if ((biosmask == 0x3ffff) || (biosmask == 0x7ffff))
         bb_mask &= 0xffffc000;
