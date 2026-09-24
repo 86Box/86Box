@@ -36,6 +36,7 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
@@ -126,13 +127,13 @@ typedef struct mach64_t {
 
     uint8_t pci_slot;
     uint8_t irq_state;
+    int     isa_irq;        /* ISA/VLB interrupt jumper; 0 = not fitted */
+    int     isa_irq_raised;
 
     uint8_t on_board;
 
     uint8_t pci_regs[256];
     uint8_t int_line;
-
-    uint32_t bus_cntl;   /* BUS_CNTL */
 
     int bank_r[2];
     int bank_w[2];
@@ -146,7 +147,7 @@ typedef struct mach64_t {
     uint32_t context_mask;
 
     uint32_t crtc_gen_cntl;
-    uint8_t  crtc_int_cntl;
+    uint32_t crtc_int_cntl;
     uint32_t crtc_h_sync_strt_wid;
     uint32_t crtc_h_total_disp;
     uint32_t crtc_v_sync_strt_wid;
@@ -191,6 +192,8 @@ typedef struct mach64_t {
     uint32_t host_cntl;
 
     uint32_t mem_cntl;
+    uint32_t bus_cntl;   /* BUS_CNTL */
+    uint32_t crtc_vline; /* CRTC_VLINE, 10:0 */
 
     uint32_t ovr_clr;
     uint32_t ovr_wid_left_right;

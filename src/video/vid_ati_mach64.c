@@ -194,25 +194,103 @@ mach64_in(uint16_t addr, void *priv)
     return svga_in(addr, svga);
 }
 
+/* CRTC_PIX_WIDTH 4 bpp (CRTC_GEN_CNTL bits 10:8): two pixels in each byte,
+   the high nibble first, or the low one first when CRTC_BYTE_PIX_ORDER
+   (bit 11) is set (RRG 3-20). The accelerator CRTC reads memory linearly;
+   the VGA planar shifter takes no part. */
+static void
+mach64_render_4bpp(svga_t *svga)
+{
+    const mach64_t *mach64   = (mach64_t *) svga->priv;
+    const int       lo_first = !!(mach64->crtc_gen_cntl & (1 << 11));
+    uint32_t       *p;
+
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
+        return;
+
+    if (!svga->changedvram[svga->memaddr >> 12] && !svga->changedvram[(svga->memaddr >> 12) + 1] && !svga->fullchange)
+        return;
+
+    p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
+
+    if (svga->firstline_draw == 2000)
+        svga->firstline_draw = svga->displine;
+    svga->lastline_draw = svga->displine;
+
+    for (int x = 0; x < svga->hdisp; x += 2) {
+        uint8_t dat = svga->vram[svga->memaddr & svga->vram_display_mask];
+
+        p[x]     = svga->map8[(lo_first ? (dat & 0x0f) : (dat >> 4)) & svga->dac_mask];
+        p[x + 1] = svga->map8[(lo_first ? (dat >> 4) : (dat & 0x0f)) & svga->dac_mask];
+        svga->memaddr++;
+    }
+    svga->memaddr &= svga->vram_display_mask;
+}
+
+/* The accelerator CRTC's border (RRG 3-72 to 3-74): OVR_WID_LEFT (3:0)
+   and OVR_WID_RIGHT (19:16) characters, OVR_WID_TOP (7:0) and
+   OVR_WID_BOTTOM (23:16) lines, in OVR_CLR -- the palette entry
+   OVR_CLR_8 (7:0) at 4 and 8 bpp, OVR_CLR_B/G/R (15:8, 23:16, 31:24)
+   above that. Outside it the display is blank. */
+static void
+mach64_update_overscan(mach64_t *mach64)
+{
+    svga_t *svga = &mach64->svga;
+
+    if (((mach64->crtc_gen_cntl >> 24) & 3) != 3) {
+        svga->border_override = 0;
+        svga->overscan_color  = svga->pallook[svga->attrregs[0x11]];
+        return;
+    }
+
+    if (svga->bpp <= 8)
+        svga->overscan_color = svga->pallook[mach64->ovr_clr & 0xff];
+    else
+        svga->overscan_color = makecol32((mach64->ovr_clr >> 24) & 0xff, (mach64->ovr_clr >> 16) & 0xff, (mach64->ovr_clr >> 8) & 0xff);
+}
+
 void
 mach64_recalctimings(svga_t *svga)
 {
-    const mach64_t *mach64 = (mach64_t *) svga->priv;
+    mach64_t *mach64 = (mach64_t *) svga->priv;
 
     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3) {
-        svga->char_width = 8;
-        svga->vtotal     = (mach64->crtc_v_total_disp & 2047) + 1;
-        svga->dispend    = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
+        /* CRTC_INTERLACE_EN (CRTC_GEN_CNTL bit 1): the vertical registers
+           count the lines of the whole frame, and each field scans half of
+           them -- ATI's 800x600 89 Hz interlaced mode programs V_DISP 257h
+           and V_TOTAL 2BCh (Programmer's Guide C-3). */
+        const int ilace = !!(mach64->crtc_gen_cntl & 2);
+
+        /* CRTC_PIX_BY_2_EN (bit 5): the CRTC advances two pixels on each
+           pixel clock, so a character of 8 pixels takes 4 clocks. */
+        svga->char_width = (mach64->crtc_gen_cntl & 0x20) ? 4 : 8;
+        svga->interlace  = ilace;
+        svga->vtotal     = ((mach64->crtc_v_total_disp & 2047) + 1) >> ilace;
+        svga->dispend    = (((mach64->crtc_v_total_disp >> 16) & 2047) + 1) >> ilace;
         svga->htotal     = (mach64->crtc_h_total_disp & 255) + 1;
         svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
-        svga->hblankstart              = (mach64->crtc_h_sync_strt_wid & 255) +
-                                         ((mach64->crtc_h_sync_strt_wid >> 8) & 7);
+        /* CRTC_H_SYNC_STRT (7:0) is in characters; CRTC_H_SYNC_DLY (10:8)
+           delays the sync by pixels within that character (RRG 3-22), finer
+           than the character counter this blanking runs on. */
+        svga->hblankstart              = mach64->crtc_h_sync_strt_wid & 255;
         svga->hblank_end_val           = (svga->hblankstart +
                                          ((mach64->crtc_h_sync_strt_wid >> 16) & 31) - 1) & 63;
-        svga->vsyncstart               = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
+        svga->vsyncstart               = ((mach64->crtc_v_sync_strt_wid & 2047) + 1) >> ilace;
         svga->rowoffset                = (mach64->crtc_off_pitch >> 22);
-        svga->clock                    = (cpuclock * (double) (1ULL << 32)) / ics2595_getclock(svga->clock_gen);
-        svga->memaddr_latch            = (mach64->crtc_off_pitch & 0x1fffff) * 2;
+        {
+            double freq = ics2595_getclock(svga->clock_gen);
+
+            /* CLOCK_DIV (bits 5:4): divide by 1, 2 or 4 (RRG 3-4). A clock
+               entry nothing has programmed is 0 Hz: keep the last timing. */
+            if ((mach64->type == MACH64_GX) && (((mach64->clock_cntl >> 4) & 3) < 3))
+                freq /= (double) (1 << ((mach64->clock_cntl >> 4) & 3));
+            if (freq > 0.0)
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / freq;
+        }
+        /* CRTC_OFFSET is 19:0, in qwords (RRG 3-23). */
+        svga->memaddr_latch            = (mach64->crtc_off_pitch & 0xfffff) * 2;
         svga->linedbl = svga->rowcount = 0;
         svga->split                    = 0xffffff;
         svga->vblankstart              = svga->dispend;
@@ -228,8 +306,7 @@ mach64_recalctimings(svga_t *svga)
 
         switch ((mach64->crtc_gen_cntl >> 8) & 7) {
             case BPP_4:
-                if (mach64->type != MACH64_GX)
-                    svga->render = svga_render_4bpp_highres;
+                svga->render = mach64_render_4bpp;
                 svga->hdisp <<= 3;
                 svga->bpp = 4;
                 break;
@@ -272,11 +349,40 @@ mach64_recalctimings(svga_t *svga)
         }
 
         svga->vram_display_mask = mach64->vram_mask;
+
+        svga->border_override         = 1;
+        svga->border_left             = (mach64->ovr_wid_left_right & 0x0f) * 8;
+        svga->border_top              = mach64->ovr_wid_top_bottom & 0xff;
+        svga->monitor->mon_overscan_x = svga->border_left + ((mach64->ovr_wid_left_right >> 16) & 0x0f) * 8;
+        svga->monitor->mon_overscan_y = svga->border_top + ((mach64->ovr_wid_top_bottom >> 16) & 0xff);
     } else {
         svga->vram_display_mask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
         svga->lut_map           = 0;
         svga->bpp               = 8;
+
+        /* ATI extended modes: start address bits 16 (ATI30 bit 6) and 17
+           (ATI23 bit 4), the 256-colour mode (ATI30 bit 5) and interlace
+           (ATI3E bit 1) (VGA Register Guide 5-8, 5-15, 5-27). */
+        if (mach64->regs[0x30] & 0x40)
+            svga->memaddr_latch |= 0x10000;
+        if (mach64->regs[0x23] & 0x10)
+            svga->memaddr_latch |= 0x20000;
+        if ((mach64->regs[0x30] & 0x20) && ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) &&
+            (svga->render != svga_render_blank) && !(svga->gdcreg[5] & 0x40)) {
+            svga->map8   = svga->pallook;
+            svga->render = svga->lowres ? svga_render_8bpp_lowres : svga_render_8bpp_highres;
+        }
+        svga->interlace = !!(mach64->regs[0x3e] & 0x02);
+        if (svga->interlace)
+            svga->dispend >>= 1;
     }
+
+    mach64_update_overscan(mach64);
+
+    /* CRTC_DISPLAY_DIS (CRTC_GEN_CNTL bit 6) holds the blanking signal
+       active, whichever CRTC mode is running (RRG 3-20). */
+    if (mach64->crtc_gen_cntl & 0x40)
+        svga->render = svga_render_blank;
 }
 
 /* The VLB card's EEPROM as ATI's INSTALL utility (mach64 driver CD, release
@@ -451,16 +557,80 @@ mach64_updatemapping(mach64_t *mach64)
     }
 }
 
+/* CRTC_INT_CNTL (RRG 3-21): each interrupt's status bit sits one above its
+   enable bit, and writing 1 to a status bit acknowledges it. The GX has the
+   vertical blank (enable 1, status 2) and the vertical line (3, 4); the CT
+   and later add the snapshot, I2C, capture, overlay and one-shot ones. */
+static uint32_t
+mach64_crtc_int_en(const mach64_t *mach64)
+{
+    return (mach64->type == MACH64_GX) ? 0x0000000a : 0x0055028a;
+}
+
+/* The line of the frame the CRTC is on: in an interlaced mode each field
+   scans every other one (CRTC_CRNT_VLINE, RRG 3-25). */
+static uint32_t
+mach64_crnt_vline(const mach64_t *mach64)
+{
+    const svga_t *svga = &mach64->svga;
+
+    if (svga->interlace)
+        return ((svga->vc << 1) | (svga->oddeven & 1)) & 0x7ff;
+    return svga->vc & 0x7ff;
+}
+
+static uint32_t
+mach64_crtc_int_cntl_read(const mach64_t *mach64)
+{
+    uint32_t ret = mach64->crtc_int_cntl & ~0x61;
+
+    if (!mach64->svga.dispon)
+        ret |= 0x01; /* CRTC_VBLANK */
+    if (mach64_crnt_vline(mach64) & 1)
+        ret |= 0x20; /* CRTC_VLINE_SYNC: odd scan line */
+    if (mach64->svga.interlace && (mach64->svga.oddeven & 1))
+        ret |= 0x40; /* CRTC_FRAME: odd frame */
+    return ret;
+}
+
 static void
 mach64_update_irqs(mach64_t *mach64)
 {
-    if (!mach64->pci)
-        return;
+    const uint32_t crtc_en = mach64->crtc_int_cntl & mach64_crtc_int_en(mach64);
+    /* BUS_CNTL: FIFO error 20/21, host data error 22/23 (RRG 3-2). */
+    const uint32_t bus_en  = mach64->bus_cntl & 0x00500000;
+    const int      pending = !!((mach64->crtc_int_cntl & (crtc_en << 1)) || (mach64->bus_cntl & (bus_en << 1)));
 
-    if ((mach64->crtc_int_cntl & 0xaa0024) & ((mach64->crtc_int_cntl << 1) & 0xaa0024))
-        pci_set_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+    if (mach64->pci) {
+        if (pending)
+            pci_set_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+        else
+            pci_clear_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+        return;
+    }
+
+    /* ISA and VLB boards take their interrupt from a jumper: 2, 3, 5 or 10
+       on ISA, 2, 3 or 5 on the VLB (mach64 User's Guide, Reference). */
+    if (!mach64->isa_irq || (pending == mach64->isa_irq_raised))
+        return;
+    if (pending)
+        picint(1 << mach64->isa_irq);
     else
-        pci_clear_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
+        picintc(1 << mach64->isa_irq);
+    mach64->isa_irq_raised = pending;
+}
+
+/* CRTC_VLINE_INT (CRTC_INT_CNTL bit 4) sets when the CRTC reaches the line
+   in CRTC_VLINE (RRG 3-25). */
+static void
+mach64_line_callback(svga_t *svga)
+{
+    mach64_t *mach64 = (mach64_t *) svga->priv;
+
+    if (mach64_crnt_vline(mach64) != (mach64->crtc_vline & 0x7ff))
+        return;
+    mach64->crtc_int_cntl |= 0x10;
+    mach64_update_irqs(mach64);
 }
 
 
@@ -500,6 +670,17 @@ pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
 
 
 
+/* CRTC_VBLANK_INT (CRTC_INT_CNTL bit 2) sets as the display ends. */
+static void
+mach64gx_vblank_start(svga_t *svga)
+{
+    mach64_t *mach64 = (mach64_t *) svga->priv;
+
+    mach64->crtc_int_cntl |= 4;
+    mach64_update_irqs(mach64);
+    mach64_update_overscan(mach64);
+}
+
 #define OVERLAY_EN (1 << 30)
 static void
 mach64_vblank_start(svga_t *svga)
@@ -509,6 +690,7 @@ mach64_vblank_start(svga_t *svga)
 
     mach64->crtc_int_cntl |= 4;
     mach64_update_irqs(mach64);
+    mach64_update_overscan(mach64);
 
     svga->overlay.x = (mach64->overlay_y_x_start >> 16) & 0x7ff;
     svga->overlay.y = mach64->overlay_y_x_start & 0x7ff;
@@ -616,17 +798,24 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 case 0x0c ... 0x0f:
                     READ8(addr, mach64->crtc_v_sync_strt_wid);
                     break;
-                case 0x12 ... 0x13:
-                    READ8(addr - 2, mach64->svga.vc);
+                case 0x10 ... 0x11:
+                    READ8(addr, mach64->crtc_vline); /* CRTC_VLINE, 10:0 RW (RRG 3-25) */
                     break;
+                case 0x12 ... 0x13: {
+                    uint32_t vline = mach64_crnt_vline(mach64);
+
+                    READ8(addr - 2, vline);
+                    break;
+                }
                 case 0x14 ... 0x17:
                     READ8(addr, mach64->crtc_off_pitch);
                     break;
-                case 0x18:
-                    ret = mach64->crtc_int_cntl & ~1;
-                    if (mach64->svga.cgastat & 8)
-                        ret |= 1;
+                case 0x18 ... 0x1b: {
+                    uint32_t cntl = mach64_crtc_int_cntl_read(mach64);
+
+                    READ8(addr, cntl);
                     break;
+                }
                 case 0x1c ... 0x1f:
                     READ8(addr, mach64->crtc_gen_cntl);
                     break;
@@ -1062,9 +1251,7 @@ mach64_ext_readl(uint32_t addr, void *priv)
         } else
             switch (addr & 0x3fc) {
             case 0x18:
-                    ret = mach64->crtc_int_cntl & ~1;
-                    if (mach64->svga.cgastat & 8)
-                        ret |= 1;
+                    ret = mach64_crtc_int_cntl_read(mach64);
                     break;
             case 0xb4:
                     ret = (mach64->bank_w[0] >> 15) | ((mach64->bank_w[1] >> 15) << 16);
@@ -1088,6 +1275,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
+
 
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         svga->mapping.write_b(addr, val, svga->mapping.priv);
@@ -1189,17 +1377,25 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     svga_recalctimings(&mach64->svga);
                     svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
+                case 0x10 ... 0x11:
+                    WRITE8(addr, mach64->crtc_vline, val); /* CRTC_VLINE */
+                    mach64->crtc_vline &= 0x7ff;
+                    break;
                 case 0x14 ... 0x17:
                     WRITE8(addr, mach64->crtc_off_pitch, val);
                     svga_recalctimings(&mach64->svga);
                     svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
-                case 0x18:
-                    mach64->crtc_int_cntl = (mach64->crtc_int_cntl & 0x75) | (val & ~0x75);
-                    if (val & 4)
-                        mach64->crtc_int_cntl &= ~4;
+                case 0x18 ... 0x1b: {
+                    const uint32_t en   = mach64_crtc_int_en(mach64);
+                    const uint32_t lane = 0xffu << ((addr & 3) * 8);
+                    const uint32_t v    = (uint32_t) val << ((addr & 3) * 8);
+
+                    mach64->crtc_int_cntl = (mach64->crtc_int_cntl & ~(en & lane)) | (v & en);
+                    mach64->crtc_int_cntl &= ~(v & (en << 1)); /* the acknowledges */
                     mach64_update_irqs(mach64);
                     break;
+                }
                 case 0x1c ... 0x1f:
                     WRITE8(addr, mach64->crtc_gen_cntl, val);
                     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3)
@@ -1224,12 +1420,15 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     break;
                 case 0x40 ... 0x43:
                     WRITE8(addr, mach64->ovr_clr, val);
+                    mach64_update_overscan(mach64);
                     break;
                 case 0x44 ... 0x47:
                     WRITE8(addr, mach64->ovr_wid_left_right, val);
+                    svga_recalctimings(svga);
                     break;
                 case 0x48 ... 0x4b:
                     WRITE8(addr, mach64->ovr_wid_top_bottom, val);
+                    svga_recalctimings(svga);
                     break;
                 case 0x60 ... 0x63:
                     WRITE8(addr, mach64->cur_clr0, val);
@@ -2401,6 +2600,7 @@ mach64_common_init(const device_t *info)
     mach64->pci_regs[PCI_REG_ROM_BAR_BYTE3] = 0x00;
 
     svga->clock_gen         = device_add(&ics2595_device);
+    svga->line_callback     = mach64_line_callback;
     svga->translate_address = mach64_vga_translate;
 
     if (mach64->type >= MACH64_VT)
@@ -2436,6 +2636,10 @@ mach64gx_init(const device_t *info)
 
     svga->dac_hwcursor.cur_ysize = 64;
     svga->dac_hwcursor.cur_xsize = 64;
+    svga->vblank_start           = mach64gx_vblank_start;
+
+    if (!(info->flags & DEVICE_PCI))
+        mach64->isa_irq = device_get_config_int("irq");
 
     if (info->flags & DEVICE_ISA16)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_isa);
