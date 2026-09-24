@@ -39,7 +39,6 @@
 #include <86box/scsi_cdrom.h>
 #include <86box/log.h>
 
-#define ENABLE_LPT_BPCK_LOG 1
 #ifdef ENABLE_LPT_BPCK_LOG
 static void
 bpck_log(const char *fmt, ...)
@@ -204,6 +203,7 @@ static const uint16_t bpck_ee_default[64] = {
     0x3236, 0x3037, 0x3730, 0x0C08, 0x07CD, 0x0C08, 0x07CD, 0x0000,
 };
 
+#ifdef ENABLE_LPT_BPCK_LOG
 static const char *bpck_proto_name[] = { "SPP 4-bit", "PS/2 8-bit", "EPP" };
 
 static const char *
@@ -217,6 +217,7 @@ bpck_state(const bpck_t *dev)
 
     return buf;
 }
+#endif
 
 /* The ATAPI engine, defined below: the task file is served out of it. */
 static uint8_t bpck_reg_read(bpck_t *dev, const uint8_t addr);

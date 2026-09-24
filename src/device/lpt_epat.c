@@ -38,7 +38,6 @@
 #include <86box/plat_unused.h>
 #include <86box/log.h>
 
-#define ENABLE_EPAT_LOG 1
 #ifdef ENABLE_EPAT_LOG
 int epat_do_log = ENABLE_EPAT_LOG;
 

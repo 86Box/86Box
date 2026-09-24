@@ -3505,6 +3505,9 @@ cdrom_hard_reset(void)
             switch (dev->bus_type) {
                 case CDROM_BUS_ATAPI:
                 case CDROM_BUS_SCSI:
+                    scsi_cdrom_drive_reset(i);
+                    break;
+
                 case CDROM_BUS_LPT:
                     scsi_cdrom_drive_reset(i);
                     /*
