@@ -191,18 +191,6 @@ static const device_config_t d823_config[] = {
             { .files_no = 0 }
         }
     },
-    /* See the 54TDP's: the starting point of the EISA configuration store. */
-    {
-        .name           = "auto_eisa_config",
-        .description    = "Initialize EISA configuration store",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 1,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -282,7 +270,14 @@ machine_at_d823_init(const machine_t *model)
     esc_set_board_id("SNI", 0xee11, 0);
 
     /* 128 KB of flash with a boot block at the top: switch 1 of S500 runs
-       a "second, non-erasable rudimentary BIOS" from it. */
+       a "second, non-erasable rudimentary BIOS" from it. The part is the
+       28F001BX-T, the first of the devices Siemens's FLASHBIO knows. It is
+       also where the EISA configuration lives: the firmware keeps it in the
+       second 4 KB parameter block, at FFFFD000h, erasing and programming it
+       itself with the BIOS write enable in ESC register 43h bit 3. It never
+       touches the ESC's configuration RAM (no access to 0C00h), so this
+       board has no EISA configuration store option; the CMOS is the plain
+       128-byte AT one, with the EISA status in byte 33h. */
     device_add(&intel_flash_bxt_device);
 
     return ret;
