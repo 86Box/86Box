@@ -2392,14 +2392,20 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return mach64->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
         case PCI_REG_STATUS_H:
             return 1 << 1; /*Medium DEVSEL timing*/
-        case PCI_REG_REVISION: /*Revision ID*/
+        case PCI_REG_REVISION:
+            /* The ASIC ID, CONFIG_CHIP_ID 31:24 (VT/RAGE RRG 7-2, 4-17). */
             if (mach64->type == MACH64_GX)
                 return 0;
-            return 0x40;
+            return mach64->config_chip_id >> 24;
         case PCI_REG_PROG_IF:
             return 0; /*Programming interface*/
         case PCI_REG_SUBCLASS:
-            return 0x01; /*Supports VGA interface, XGA compatible*/
+            /* VGA-compatible display controller; CFG_CHIP_CLASS "00h -
+               (80h when VGA disabled)" (VT/RAGE RRG 4-17). ATI's M64DIAG
+               looks for 03h/00h, or 80h with the VGA off. */
+            if ((mach64->type != MACH64_GX) && (mach64->config_cntl & (1 << 19)))
+                return 0x80;
+            return 0x00;
         case PCI_REG_CLASS:
             return 0x03;
         case PCI_REG_BAR0_BYTE0:
@@ -2467,7 +2473,9 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
 
     switch (addr) {
         case PCI_REG_COMMAND:
-            mach64->pci_regs[PCI_REG_COMMAND] = val & 0x27;
+            /* I/O and memory enables; the VT and VT2 have no bus master,
+               "Always 0" (VT/RAGE RRG 7-1). */
+            mach64->pci_regs[PCI_REG_COMMAND] = val & (((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2)) ? 0x23 : 0x27);
             if (val & PCI_COMMAND_IO)
                 mach64_io_map(mach64);
             else
