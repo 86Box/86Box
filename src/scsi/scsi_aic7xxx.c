@@ -6001,7 +6001,7 @@ static const device_config_t aha2944uw_config[] = {
 /* The bare chip, as found on a motherboard. It is not in the card list:
    a machine that has one adds it itself. */
 const device_t aic7880_pci_device = {
-    .name          = "Adaptec AIC-7880 Ultra SCSI (on-board)",
+    .name          = "Adaptec AIC-7880 (on-board)",
     .internal_name = "aic7880_onboard",
     .flags         = DEVICE_PCI | DEVICE_ONBOARD,
     .local         = BOARD_7880,
@@ -6141,7 +6141,7 @@ const device_t aha2940w_pci_device = {
 };
 
 const device_t aha2940u_pci_device = {
-    .name          = "Adaptec AHA-2940 Ultra",
+    .name          = "Adaptec AHA-2940U",
     .internal_name = "aha2940u",
     .flags         = DEVICE_PCI,
     .local         = BOARD_2940U,
@@ -6155,7 +6155,7 @@ const device_t aha2940u_pci_device = {
 };
 
 const device_t aha2940uw_pci_device = {
-    .name          = "Adaptec AHA-2940 Ultra Wide",
+    .name          = "Adaptec AHA-2940UW",
     .internal_name = "aha2940uw",
     .flags         = DEVICE_PCI,
     .local         = BOARD_2940UW,
@@ -6169,7 +6169,7 @@ const device_t aha2940uw_pci_device = {
 };
 
 const device_t aha2944uw_pci_device = {
-    .name          = "Adaptec AHA-2944 Ultra Wide (differential)",
+    .name          = "Adaptec AHA-2944UW",
     .internal_name = "aha2944uw",
     .flags         = DEVICE_PCI,
     .local         = BOARD_2944UW,
