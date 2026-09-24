@@ -75,6 +75,14 @@ mach64_update_vga_banks(mach64_t *mach64)
     svga->read_bank  = rpage * size;
 }
 
+/* ATIX bits 7:6 carry the index offset, which must match the one GDC 51h
+   set (VGA Register Guide 5-4); anything else addresses no register. */
+static int
+mach64_ati_index_ok(const mach64_t *mach64)
+{
+    return ((mach64->index >> 6) & 3) == ((mach64->ati_io[1] >> 6) & 3);
+}
+
 void
 mach64_out(uint16_t addr, uint8_t val, void *priv)
 {
@@ -90,6 +98,10 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
             mach64->index = val;
             break;
         case 0x1cf:
+            if (!mach64_ati_index_ok(mach64))
+                break;
+            if (((mach64->index & 0x3f) == 0x28) || ((mach64->index & 0x3f) == 0x29))
+                break; /* the vertical line counter, read only (5-12, 5-13) */
             mach64->regs[mach64->index & 0x3f] = val;
             switch (mach64->index & 0x3f) {
                 case 0x32: /* ATI32: CPU paging */
@@ -119,6 +131,16 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
                 svga_out(addr, val, svga);
             return;
         case 0x3cf:
+            /* GDC 50h and 51h are the ATI extended registers' I/O address
+               A7:A0, and offset 01:00 over A11:A8 (VGA Register Guide
+               5-1), write only; a GX takes them whole, they are not GR0
+               and GR1. They are kept, not decoded: every BIOS writes the
+               default (1CEh, offset 2), and whether a GX latches them
+               depends on its revision (GX-2 has the address fixed). */
+            if ((mach64->type == MACH64_GX) && ((svga->gdcaddr == 0x50) || (svga->gdcaddr == 0x51))) {
+                mach64->ati_io[svga->gdcaddr & 1] = val;
+                return;
+            }
             if (svga->gdcaddr == 6) {
                 uint8_t old_val = svga->gdcreg[6];
                 svga->gdcreg[6] = val;
@@ -172,10 +194,14 @@ mach64_in(uint16_t addr, void *priv)
         case 0x1ce:
             return mach64->index;
         case 0x1cf:
-            /* ATI28: bits 9:8 of the vertical line counter, read only
-               (VGA Register Guide 5-12). */
+            if (!mach64_ati_index_ok(mach64))
+                return 0xff;
+            /* ATI28 and ATI29: the vertical line counter, bits 9:8 and
+               7:0, read only (VGA Register Guide 5-12, 5-13). */
             if ((mach64->index & 0x3f) == 0x28)
                 return (svga->vc >> 8) & 3;
+            if ((mach64->index & 0x3f) == 0x29)
+                return svga->vc & 0xff;
             return mach64->regs[mach64->index & 0x3f];
         case 0x3C6 ... 0x3C9:
             if (!mach64_vga_dac_decoded(mach64))
@@ -183,6 +209,10 @@ mach64_in(uint16_t addr, void *priv)
             if (mach64->type == MACH64_GX)
                 return ati68860_ramdac_in((addr & 3) | ((mach64->dac_cntl & 3) << 2), 0, svga->ramdac, svga);
             return svga_in(addr, svga);
+        case 0x3cf:
+            if ((mach64->type == MACH64_GX) && ((svga->gdcaddr == 0x50) || (svga->gdcaddr == 0x51)))
+                return 0xff; /* write only */
+            break;
         case 0x3D4:
             return svga->crtcreg;
         case 0x3D5:
@@ -2707,6 +2737,8 @@ mach64_common_init(const device_t *info)
     svga = &mach64->svga;
 
     mach64->type = info->local & 0xff;
+    mach64->ati_io[0] = 0xce; /* 1CEh, offset 2 (VGA Register Guide 5-1) */
+    mach64->ati_io[1] = 0x81;
     mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
     mach64->vram_mask = (mach64->vram_size << 20) - 1;
     mach64->io_base = 0; /* PCI 40h select: 0 = 2ECh */

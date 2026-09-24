@@ -120,6 +120,7 @@ typedef struct mach64_t {
 
     uint8_t regs[256];
     int     index;
+    uint8_t ati_io[2]; /* GDC 50h and 51h: extended register address and offset */
 
     int type;
     int pci;
