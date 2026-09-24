@@ -22,6 +22,9 @@
 #include "vid_ati_mach64.h"
 
 video_timings_t timing_mach64_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
+/* In an 8-bit slot every access is an 8-bit ISA cycle, a word two of them:
+   the figures of the 8-bit VGA and EGA here. */
+video_timings_t timing_mach64_isa8 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 video_timings_t timing_mach64_vlb = { .type = VIDEO_BUS, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
@@ -583,13 +586,15 @@ mach64_updatemapping(mach64_t *mach64)
      */
     if (mach64->config_cntl & 4) {
         if ((svga->mapping.read_b != mach64_read) || (svga->mapping.priv != mach64)) {
-            mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+            mem_mapping_set_handler(&svga->mapping, mach64_read, mach64->isa_8bit ? NULL : mach64_readw, mach64->isa_8bit ? NULL : mach64_readl,
+                                    mach64_write, mach64->isa_8bit ? NULL : mach64_writew, mach64->isa_8bit ? NULL : mach64_writel);
             mem_mapping_set_p(&svga->mapping, mach64);
         }
         mach64_mapping_on(&mach64->mmio_mapping);
     } else {
         if ((svga->mapping.read_b != svga_read) || (svga->mapping.priv != svga)) {
-            mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+            mem_mapping_set_handler(&svga->mapping, svga_read, mach64->isa_8bit ? NULL : svga_readw, mach64->isa_8bit ? NULL : svga_readl,
+                                    svga_write, mach64->isa_8bit ? NULL : svga_writew, mach64->isa_8bit ? NULL : svga_writel);
             mem_mapping_set_p(&svga->mapping, svga);
         }
         mach64_mapping_off(&mach64->mmio_mapping);
@@ -2366,7 +2371,8 @@ mach64_io_unmap(mach64_t *mach64)
     io_removehandler(0x03a0, 0x0040, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     for (uint8_t c = 0; c < 32; c++) // *0x400
-        io_removehandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
+        io_removehandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64->isa_8bit ? NULL : mach64_ext_inw, mach64->isa_8bit ? NULL : mach64_ext_inl,
+                         mach64_ext_outb, mach64->isa_8bit ? NULL : mach64_ext_outw, mach64->isa_8bit ? NULL : mach64_ext_outl, mach64);
 
     if (mach64->type == MACH64_GX)
         io_removehandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
@@ -2405,7 +2411,8 @@ mach64_io_map(mach64_t *mach64)
     if (!mach64->use_block_decoded_io) {
 
         for (uint8_t c = 0; c < 32; c++) // *0x400
-            io_sethandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
+            io_sethandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64->isa_8bit ? NULL : mach64_ext_inw, mach64->isa_8bit ? NULL : mach64_ext_inl,
+                          mach64_ext_outb, mach64->isa_8bit ? NULL : mach64_ext_outw, mach64->isa_8bit ? NULL : mach64_ext_outl, mach64);
     }
 
     /* The ATI extended VGA registers are the GX/CX's; "the mach64CT and
@@ -2793,6 +2800,11 @@ mach64_common_init(const device_t *info)
     svga = &mach64->svga;
 
     mach64->type = info->local & 0xff;
+    /* The ISA card in an 8-bit slot: the bus splits every word into two
+       byte cycles, which is what a device with byte handlers alone gets from
+       the I/O and memory cores. The card itself is unchanged. */
+    if (info->flags & DEVICE_ISA16)
+        mach64->isa_8bit = (device_get_config_int("bus_width") == 8);
     mach64->ati_io[0] = 0xce; /* 1CEh, offset 2 (VGA Register Guide 5-1) */
     mach64->ati_io[1] = 0x81;
     mach64->vram_size = (mach64->type == MACH64_CT || mach64->type == MACH64_VT || mach64->type == MACH64_VT3) ? 2 : ((info->local & (1 << 20)) ? 4 : device_get_config_int("memory"));
@@ -2822,9 +2834,14 @@ mach64_common_init(const device_t *info)
         mem_mapping_add(&mach64->mmio_mapping, 0xbfc00, 0x400, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     else
         mem_mapping_add(&mach64->mmio_mapping, 0xbf800, 0x800, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    if (mach64->isa_8bit)
+        mem_mapping_set_handler(&mach64->mmio_mapping, mach64_ext_readb, NULL, NULL, mach64_ext_writeb, NULL, NULL);
     mem_mapping_disable(&mach64->mmio_mapping);
 
     mach64_io_map(mach64);
+    /* The VGA window's handlers are the card's from the start, not the SVGA
+       core's defaults until the BIOS first touches GDC 6. */
+    mach64_updatemapping(mach64);
 
     if (info->flags & DEVICE_PCI)
         pci_add_card((info->local & MACH64_FLAG_ONBOARD) ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
@@ -2877,7 +2894,7 @@ mach64gx_init(const device_t *info)
         mach64->isa_irq = device_get_config_int("irq");
 
     if (info->flags & DEVICE_ISA16)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_isa);
+        video_inform(VIDEO_FLAG_TYPE_SPECIAL, mach64->isa_8bit ? &timing_mach64_isa8 : &timing_mach64_isa);
     else if (info->flags & DEVICE_PCI)
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
     else
@@ -2922,6 +2939,8 @@ mach64gx_init(const device_t *info)
         mach64->config_stat0 |= 0; /*ISA 16-bit*/
         ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        if (mach64->isa_8bit)
+            mem_mapping_set_handler(&mach64->bios_rom.mapping, rom_read, NULL, NULL, NULL, NULL, NULL);
     }
 
     *reset_state[monitor_index_global] = *mach64;
@@ -3176,6 +3195,21 @@ static const device_config_t mach64gx_vram_config[] = {
 };
 
 static const device_config_t mach64gx_vram_isa_config[] = {
+    {
+        .name           = "bus_width",
+        .description    = "Bus width",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 16,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "8-bit",  .value = 8  },
+            { .description = "16-bit", .value = 16 },
+            { .description = ""                    }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "memory",
         .description    = "Memory size",

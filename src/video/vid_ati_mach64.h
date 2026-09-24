@@ -129,6 +129,7 @@ typedef struct mach64_t {
     uint8_t pci_slot;
     uint8_t irq_state;
     int     isa_irq;        /* ISA/VLB interrupt jumper; 0 = not fitted */
+    int     isa_8bit;       /* ISA card in an 8-bit slot: byte cycles only */
     int     isa_irq_raised;
 
     uint8_t on_board;
