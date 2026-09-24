@@ -4973,6 +4973,10 @@ aic_init(const device_t *info)
     char                     fn[1024] = { 0 };
     uint16_t                 devid;
 
+    /* A SCSI controller however it got here -- the board's own, an EISA
+       card or a PCI one: the status bar's disk and CD-ROM icons look for it. */
+    other_scsi_present++;
+
     dev->board = info->local & 0xff;
     dev->wide  = (dev->board == BOARD_2940UW) || (dev->board == BOARD_2944UW) || (dev->board == BOARD_7880) || (dev->board == BOARD_2940W) || AIC_BOARD_WIDE(dev->board);
     /* An AHA-2740 is one narrow bus. Other members of the family strap the

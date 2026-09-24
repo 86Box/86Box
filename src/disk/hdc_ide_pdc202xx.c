@@ -959,6 +959,9 @@ pdc_init(const device_t *info)
        the next two, as any add-in PCI IDE controller does. Where nothing
        has, the card is the machine's IDE, as it always was. */
     dev->ch_base = (ide_board_claimed(0) || ide_board_claimed(1)) ? 2 : 0;
+    /* An IDE controller whose name is not "ide...": the status bar's disk
+       and ATAPI icons look for this, as for a sound card's IDE port. */
+    other_ide_present++;
     if (dev->ch_base)
         device_add(&ide_pci_ter_qua_2ch_device);
     dev->bm[0] = device_add_inst(&sff8038i_device, dev->ch_base + 1);
