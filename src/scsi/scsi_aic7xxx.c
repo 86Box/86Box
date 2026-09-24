@@ -427,14 +427,15 @@ typedef struct aic_chip_t {
     uint8_t     aux_regs;       /* 1Ah to 1Eh: SCAM, PIO capability, the
                                    board GAL and the serial EEPROM */
     uint8_t fifo_addr_hi;       /* a second byte of data FIFO address */
+    uint8_t fifo_word;          /* bytes in one FIFO location: DWORDEMP
+                                   on the 7770 is the two dword pointers
+                                   equal, FIFOQWDEMP on the later parts
+                                   the two quadword pointers */
     uint8_t selid_writable;     /* SELID is read only on the older part */
     uint8_t twin_capable;       /* a second SCSI channel to strap */
     uint8_t seqctl_reset;       /* what SEQCTL comes up holding */
     uint8_t sblkctl_reset;      /* and SBLKCTL, before the board's straps */
     uint8_t own_reset_seen;     /* the part reports the bus reset it drives */
-    uint8_t faildis_honoured;   /* FAILDIS suppresses the hard-error
-                                   interrupt, and the interrupt takes
-                                   PAUSEDIS away with it */
     uint8_t bad_addr_err;       /* what an address that decodes to nothing
                                    records in ERROR */
     uint8_t host_pause_checked; /* the host reaching a register that
@@ -461,6 +462,7 @@ static const aic_chip_t aic_chip_7770 = {
     .clrint_mask    = CLRBRKADRINT | CLRCMDINT | CLRSEQINT,
     .aux_regs       = 0,
     .fifo_addr_hi   = 0,
+    .fifo_word      = 4,
     .selid_writable = 0,
     .twin_capable   = 1,
     /* PERRORDIS is the one bit here whose reset value the data book gives
@@ -477,10 +479,8 @@ static const aic_chip_t aic_chip_7770 = {
        finishes it. The card's own BIOS settles it -- it enables
        ENSCSIRST, asserts SCSIRSTO, starts the sequencer and waits. */
     .own_reset_seen = 0,
-    /* "If set, disables the Illegal Opcode or Address interrupt feature."
-       And an address that decodes to no register is ILLSADDR, not a bad
+    /* An address that decodes to no register is ILLSADDR, not a bad
        opcode. */
-    .faildis_honoured   = 1,
     .host_pause_checked = 1,
     .bad_addr_err       = ILLSADDR,
 };
@@ -500,6 +500,7 @@ static const aic_chip_t aic_chip_788x = {
     .clrint_mask    = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
     .aux_regs       = 1,
     .fifo_addr_hi   = 1,
+    .fifo_word      = 8,
     .selid_writable = 1,
     .twin_capable   = 0,
     .seqctl_reset   = PERRORDIS | FASTMODE,
@@ -508,7 +509,6 @@ static const aic_chip_t aic_chip_788x = {
        itself, and everything waiting on that data stops. */
     .sblkctl_reset    = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen   = 1,
-    .faildis_honoured = 0,
     .bad_addr_err     = ILLOPCODE,
     /* Off, for the same reason bad_addr_err differs: ILLHADDR's rule is
        the AIC-7770 book's, and this part's is not to hand. */
@@ -534,12 +534,12 @@ static const aic_chip_t aic_chip_7870 = {
     .clrint_mask   = CLRPARERR | CLRBRKADRINT | CLRSCSIINT | CLRCMDINT | CLRSEQINT,
     .aux_regs      = 1,
     .fifo_addr_hi  = 1,
+    .fifo_word     = 8,
     .selid_writable = 1,
     .twin_capable  = 0,
     .seqctl_reset  = PERRORDIS | FASTMODE,
     .sblkctl_reset = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen = 1,
-    .faildis_honoured = 0,
     .bad_addr_err  = ILLOPCODE,
     .host_pause_checked = 0,
 };
@@ -785,9 +785,11 @@ typedef struct aic7xxx_t {
     uint8_t  qin[QUEUE_SIZE];
     uint8_t  qin_rd;
     uint16_t qin_cnt;
+    uint8_t  qin_last; /* what QINFIFO last gave: an empty read gives it again */
     uint8_t  qout[QUEUE_SIZE];
     uint8_t  qout_rd;
     uint16_t qout_cnt;
+    uint8_t  qout_last; /* what QOUTFIFO last gave, likewise */
 
     uint8_t sram[0x40];
     uint8_t scb[SCB_COUNT][SCB_SIZE];
@@ -1045,9 +1047,32 @@ aic_raise(aic7xxx_t *dev, uint8_t bits)
 
 /* The faults the book gathers behind BRKADRINT: "This register reports
    errors that are catastrophic in nature. These errors will cause
-   BRKADRINT to be set and the sequencer to be paused." Whether FAILDIS
-   may suppress the interrupt is the AIC-7770's rule and comes from the
-   chip descriptor, the later parts not being documented to share it. */
+   BRKADRINT to be set and the sequencer to be paused."
+
+   ERROR records what was detected whatever FAILDIS says; FAILDIS turns off
+   only the interrupt. The AIC-7770 book: "If set, disables the Illegal
+   Opcode or Address interrupt feature", and its interrupt summary makes
+   FAILDIS=0 the enable condition of every one of those rows. The AIC-7870
+   book says the same of its own list: BRKADRINT is set "When ILLOPCODE
+   becomes active (FAILDIS=0)", and "This feature may be disabled by
+   setting FAILDIS". So the later parts honour it too.
+
+   PAUSEDIS goes with the interrupt, not with the detection: "SCSI
+   interrupts, an Illegal Opcode interrupt, a Sequencer RAM Parity Error
+   interrupt, and an Illegal Address interrupt, reset this bit" (the 7870:
+   "an illegal opcode interrupt ... resets this bit"). Taking it away for a
+   fault FAILDIS had silenced let a host PAUSE land inside the sequencer's
+   critical section. */
+static void
+aic_fail(aic7xxx_t *dev, uint8_t bits)
+{
+    dev->error |= bits;
+    if (dev->seqctl & FAILDIS)
+        return;
+    dev->seqctl &= ~PAUSEDIS;
+    aic_raise(dev, BRKADRINT);
+}
+
 /* Which registers the host may reach while the sequencer is running.
    The register summary states the rule once for the whole map -- "When
    the host must access these registers the Sequencer must be paused,
@@ -1117,13 +1142,7 @@ aic_hard_error(aic7xxx_t *dev, uint8_t bits, uint8_t addr, int write)
                 (dev->err_logs >= 256) ? " [1 in 100000]" : "");
     }
     dev->err_logs++;
-    dev->error |= bits;
-    if (dev->chip->faildis_honoured) {
-        dev->seqctl &= ~PAUSEDIS;
-        if (dev->seqctl & FAILDIS)
-            return;
-    }
-    aic_raise(dev, BRKADRINT);
+    aic_fail(dev, bits);
 }
 
 /* SCSIINT is the one interrupt the sequencer does not raise itself: the
@@ -2237,7 +2256,9 @@ aic_fifo_pop(aic7xxx_t *dev)
 static uint32_t
 aic_fifo_threshold(const aic7xxx_t *dev)
 {
-    static const uint16_t level[4] = { 24, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
+    /* Sixteen bytes at the lowest setting: "4 double words" in the
+       AIC-7770 book, "16 Bytes" in the AIC-7870's table. */
+    static const uint16_t level[4] = { 16, FIFO_SIZE / 2, (FIFO_SIZE * 3) / 4, FIFO_SIZE };
 
     /* Register 86h, whichever part this is. On the AIC-7770 it is BUSSPD,
        and the data book is explicit that "in EISA mode, STBON(3:0) and
@@ -2540,11 +2561,24 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
 
     /* "Illegal Host Address. This bit is set when the Host accesses a
        register, which is unavailable to the Host, while the Sequencer is
-       not paused." Setting it pauses the sequencer, which makes the next
-       access legal -- so this reports the first one and then stops, which
-       is what wanted to be reported anyway. */
-    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 0))
+       not paused." Unavailable is the word: the register file is the
+       sequencer's while it runs -- "All registers are available to the
+       Host computer and to the Sequencer ... but not at the same time" --
+       and the host gets nothing back, as it does from any location that
+       decodes to no register. The error is recorded, and with FAILDIS
+       clear it pauses the sequencer, so the next access is legal.
+
+       Software depends on the nothing. ASPI7DOS and Windows 98's AIC-7770
+       driver both probe a running chip by reading SCSISEQ, SXFRCTL0 and
+       SXFRCTL1 unpaused: three zeros mean the BIOS's firmware has the
+       part, and only then do they look at SCB 0 for the BIOS's mark and
+       leave that SCB to it. Answered with the live values, ASPI7DOS took
+       the BIOS's every completion as its own, and the BIOS's INT 13h
+       waited fifteen seconds for each one. */
+    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 0)) {
         aic_hard_error(dev, ILLHADDR, addr, 0);
+        return 0x00;
+    }
 
     if ((addr >= SRAM_BASE) && (addr < 0x60))
         return dev->sram[addr - SRAM_BASE];
@@ -2850,13 +2884,16 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                hardware's way of turning a target ID into a bit mask. */
             return (uint8_t) (1 << ((dev->function1 >> 4) & 0x07));
         case STACK:
-            /* Two reads per entry, low byte first. */
+            /* Two reads per entry, low byte first, "starting from the
+               last location pushed on the stack": that is the slot below
+               the pointer, which names the next free one. Eight reads
+               bring the pointer back round to where it was. */
             if (dev->stack_rd == 0) {
                 dev->stack_rd = 1;
-                return dev->stack[dev->sp & 3] & 0xff;
+                return dev->stack[(dev->sp - 1) & 3] & 0xff;
             }
             dev->stack_rd = 0;
-            ret           = (dev->stack[dev->sp & 3] >> 8) & 0xff;
+            ret           = (dev->stack[(dev->sp - 1) & 3] >> 8) & 0xff;
             dev->sp       = (dev->sp - 1) & 3;
             return ret;
 
@@ -2929,8 +2966,9 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
             ret = 0;
             if (dev->fifo_cnt == 0)
                 ret |= FIFOEMP;
-            /* Not one whole quadword: one to seven bytes do not count. */
-            if (dev->fifo_cnt < 8)
+            /* Not one whole word: the read and write pointers are on
+               the same location, whatever bytes are in it. */
+            if (dev->fifo_cnt < dev->chip->fifo_word)
                 ret |= FIFOQWDEMP;
             if (dev->fifo_cnt >= FIFO_SIZE)
                 ret |= FIFOFULL;
@@ -2963,29 +3001,40 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case SCBCNT:
             return dev->scbcnt;
         case QINFIFO:
-            /* The sequencer takes the next queued SCB. An empty one does
-               not shift -- "reads when QINCNT=0 are ignored" -- and what
-               comes back instead the book does not say, so neither queue
-               is wrong here. They differ on purpose: an SCB number is
-               what these carry, and FFh is the one a driver reads as no
-               SCB at all, which is the useful answer on the queue a
-               driver reads and a meaningless one on the queue only the
-               sequencer reads. */
+            /* The sequencer takes the next queued SCB. "Reads when
+               QINCNT=0 are ignored": an ignored read does not shift the
+               queue, and what it shows is what its output already holds --
+               the SCB it gave last, or 00h, the reset value, before it has
+               given any. */
             if (dev->qin_cnt == 0)
-                return 0;
-            ret         = dev->qin[dev->qin_rd];
-            dev->qin_rd = (dev->qin_rd + 1) % dev->chip->q_depth;
+                return dev->qin_last;
+            ret           = dev->qin[dev->qin_rd];
+            dev->qin_rd   = (dev->qin_rd + 1) % dev->chip->q_depth;
             dev->qin_cnt--;
+            dev->qin_last = ret;
             return ret;
         case QINCNT:
             return (uint8_t) dev->qin_cnt;
         case QOUTFIFO:
-            /* The host takes the next completion. */
+            /* The host takes the next completion. "Reads when QOUTCNT=0
+               are ignored", the same as the inbound queue: the read shows
+               the SCB it gave last and does not shift. It used to answer
+               FFh -- bits the AIC-7770 has as reserved, and no value the
+               part holds -- and the AHA-2740 BIOS depends on the real
+               answer. With ASPI7DOS loaded both field IRQ 11, and
+               ASPI7DOS's handler runs first: it pops every completion,
+               and for the BIOS's own SCB 0 it chains on to the BIOS. The
+               BIOS's handler then reads QOUTFIFO, now empty, expecting
+               its own 0; given anything else it writes the value back for
+               its owner and leaves the command pending. Every INT 13h to
+               the disk sat out the BIOS's fifteen second timeout and
+               failed, and Windows 98 Setup found no hard disk. */
             if (dev->qout_cnt == 0)
-                return 0xff;
-            ret          = dev->qout[dev->qout_rd];
-            dev->qout_rd = (dev->qout_rd + 1) % dev->chip->q_depth;
+                return dev->qout_last;
+            ret            = dev->qout[dev->qout_rd];
+            dev->qout_rd   = (dev->qout_rd + 1) % dev->chip->q_depth;
             dev->qout_cnt--;
+            dev->qout_last = ret;
             return ret;
         case QOUTCNT:
             return (uint8_t) dev->qout_cnt;
@@ -3018,8 +3067,11 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
         aic_host_catch_up(dev);
     }
 
-    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 1))
+    /* And a write to an unavailable register goes nowhere; see aic_read. */
+    if (!seq && dev->chip->host_pause_checked && !aic_paused(dev) && !aic_host_no_pause(addr, 1)) {
         aic_hard_error(dev, ILLHADDR, addr, 1);
+        return;
+    }
 
     if ((addr >= SRAM_BASE) && (addr < 0x60)) {
         dev->sram[addr - SRAM_BASE] = val;
@@ -3553,7 +3605,14 @@ aic_write(aic7xxx_t *dev, uint8_t addr, uint8_t val, int seq)
                 aic_log(dev->tag, "host: CLRINT %02x (intstat %02x) at pc %03x\n", val,
                         dev->intstat, dev->pc);
             }
-            if (val & CLRBRKADRINT)
+            /* A breakpoint's BRKADRINT clears here; a hard error's does
+               not. "If this condition occurs BRKADRINT may only be
+               cleared by setting CHIPRST" (the AIC-7770 book, Hardware
+               Failure Detect), and the AIC-7870's CLRBRKADRINT points at
+               "causes of BRKADRINT being active which may have to be
+               cleared prior to clearing the BRKADRINT bit". So it stays
+               for as long as ERROR holds a cause. */
+            if ((val & CLRBRKADRINT) && (dev->error == 0))
                 dev->intstat &= ~BRKADRINT;
             /* There is no CLRSCSIINT on an AIC-7770: the data book has
                bit 2 of CLRINT not used, and the SCSI interrupt goes away
@@ -4165,16 +4224,8 @@ aic_seq_step(aic7xxx_t *dev)
 
     if (dev->pc >= SEQ_INSNS) {
         /* An address that decodes to nothing. What the part records for
-           it, whether the interrupt takes PAUSEDIS with it and whether
-           FAILDIS can turn it off are all the AIC-7770 data book's, and
-           are not evidence about the later parts. */
-        dev->error |= dev->chip->bad_addr_err;
-        if (dev->chip->faildis_honoured) {
-            dev->seqctl &= ~PAUSEDIS;
-            if (dev->seqctl & FAILDIS)
-                return;
-        }
-        aic_raise(dev, BRKADRINT);
+           it is the descriptor's; the rest is every part's. */
+        aic_fail(dev, dev->chip->bad_addr_err);
         return;
     }
 
@@ -4354,6 +4405,10 @@ aic_seq_step(aic7xxx_t *dev)
                those together correctly is inference, not evidence. */
             a = aic_seq_rd(dev, src);
             aic_seq_wr(dev, SINDEX, (uint8_t) (a | imm));
+            /* "Flags affected: Z" for every one of the four, from the OR
+               that loads SINDEX; JC and JNC "do not alter the carry
+               flag", and neither do the others. */
+            aic_seq_flags_logic(dev, (uint8_t) (a | imm));
             taken = 1;
             if (opcode == OP_JC)
                 taken = !!(dev->flags & CARRY);
@@ -4399,11 +4454,7 @@ aic_seq_step(aic7xxx_t *dev)
                register, an Illegal Opcode is detected, ...". It is the
                AIC-7770's book, so take it from the descriptor -- the part
                whose bad address is ILLSADDR is the part it describes. */
-            dev->error |= ILLOPCODE | (dev->chip->bad_addr_err & ILLSADDR);
-            dev->seqctl &= ~PAUSEDIS;
-            if (dev->chip->faildis_honoured && (dev->seqctl & FAILDIS))
-                return;
-            aic_raise(dev, BRKADRINT);
+            aic_fail(dev, ILLOPCODE | (dev->chip->bad_addr_err & ILLSADDR));
             return;
     }
 
@@ -4618,6 +4669,23 @@ aic_seq_kick(aic7xxx_t *dev)
 
 /* ---- reset -------------------------------------------------------------- */
 
+/* Scratch, the SCB array and the registers kept with them are RAM, and a
+   chip reset does not touch RAM: CHIPRST "put[s] the device in a reset
+   state for a maximum of 3 input clocks", and the scratch area is where
+   the firmware keeps "configuration data which describes the system
+   setup". What an option ROM leaves there is still there when a driver
+   resets the part and reads it -- ASPI7DOS learns from it which disks the
+   AHA-2740 BIOS already owns, and with it cleared took the BIOS's SCB for
+   its own and swallowed every one of the BIOS's completions. Power-on and
+   the machine's reset are what start RAM from nothing here. */
+static void
+aic_ram_clear(aic7xxx_t *dev)
+{
+    memset(dev->sram, 0, sizeof(dev->sram));
+    memset(dev->scb, 0, sizeof(dev->scb));
+    memset(dev->misc, 0, sizeof(dev->misc));
+}
+
 static void
 aic_chip_reset(aic7xxx_t *dev)
 {
@@ -4687,6 +4755,9 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->dscommand0  = 0;
     dev->dscommand1  = 0;
     dev->dspcistatus = 0;
+    /* "This signal is cleared by RESDRV or CHIPRESET": the board comes
+       out of a chip reset disabled, and the driver enables it again. */
+    dev->bctl        = 0;
     /* HCNTRL comes up with PAUSE and CHIPRESETACK both set -- the data
        book gives (1) as the reset value of each -- and the acknowledgement
        "will remain set until explicitly cleared by a write to this
@@ -4705,19 +4776,16 @@ aic_chip_reset(aic7xxx_t *dev)
     aic_fifo_reset(dev);
     dev->qin_rd = dev->qout_rd = 0;
     dev->qin_cnt = dev->qout_cnt = 0;
-
-    memset(dev->sram, 0, sizeof(dev->sram));
+    dev->qin_last = dev->qout_last = 0;
 
     /* The configuration chip is mapped over the top of scratch on an EISA
-       board, so what it holds outlives a chip reset. */
+       board, so what it holds is there after a chip reset whatever scratch
+       held. */
     if (dev->eisa) {
         memcpy(&dev->sram[SCSICONF - SRAM_BASE], dev->eisa_conf,
                sizeof(dev->eisa_conf));
         dev->sram[HA_274_BIOSGLOBAL - SRAM_BASE] = dev->eisa_global;
     }
-
-    memset(dev->scb, 0, sizeof(dev->scb));
-    memset(dev->misc, 0, sizeof(dev->misc));
 
     dev->bus_state = BUS_FREE;
     dev->atn = dev->selecting = 0;
@@ -5360,6 +5428,7 @@ aic_reset(void *priv)
 {
     aic7xxx_t *dev = (aic7xxx_t *) priv;
 
+    aic_ram_clear(dev);
     aic_chip_reset(dev);
 }
 
@@ -5627,6 +5696,7 @@ aic_init(const device_t *info)
     timer_add(&dev->tgt_timer, aic_tgt_timer, dev, 0);
     timer_add(&dev->req_timer, aic_tgt_req_timer, dev, 0);
 
+    aic_ram_clear(dev);
     aic_chip_reset(dev);
 
     /* The on-board part takes the slot the machine reserves for it: on
