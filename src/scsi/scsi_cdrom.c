@@ -275,7 +275,8 @@ scsi_cdrom_log(void *priv, const char *format, ...)
 static void
 scsi_cdrom_set_callback(const scsi_cdrom_t *dev)
 {
-    if (dev && dev->drv && (dev->drv->bus_type != CDROM_BUS_SCSI))
+    if (dev && dev->drv && (dev->drv->bus_type != CDROM_BUS_SCSI) &&
+        (dev->drv->bus_type != CDROM_BUS_LPT))
         ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
 }
 
