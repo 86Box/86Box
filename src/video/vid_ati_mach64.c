@@ -545,6 +545,11 @@ mach64_updatemapping(mach64_t *mach64)
         return;
     }
 
+    /* The 128K and 64K windows at A0000 share one mapping over A0000-BFFFF:
+       svga_decode_addr and mach64_decode_addr turn away whatever GDC 6 does
+       not open, on every access. M64DIAG flips GDC 6 between the two around
+       each access to the registers at B000:FC00, and a remap per flip ran
+       the machine at a few percent. */
     switch (svga->gdcreg[6] & 0xc) {
         case 0x0: /*128k at A0000*/
             mach64_mapping_set(&svga->mapping, 0xa0000, 0x20000);
@@ -552,7 +557,7 @@ mach64_updatemapping(mach64_t *mach64)
             svga->banked_mask = ((mach64->type == MACH64_GX) && (mach64->regs[0x3d] & 0x04)) ? 0x1ffff : 0xffff;
             break;
         case 0x4: /*64k at A0000*/
-            mach64_mapping_set(&svga->mapping, 0xa0000, 0x10000);
+            mach64_mapping_set(&svga->mapping, 0xa0000, 0x20000);
             svga->banked_mask = 0xffff;
             if (xga_active && (svga->xga != NULL))
                 xga->on = 0;
