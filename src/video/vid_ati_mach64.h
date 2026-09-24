@@ -132,6 +132,8 @@ typedef struct mach64_t {
     uint8_t pci_regs[256];
     uint8_t int_line;
 
+    uint32_t bus_cntl;   /* BUS_CNTL */
+
     int bank_r[2];
     int bank_w[2];
 
@@ -470,6 +472,15 @@ extern mach64_t* reset_state[2];
 
 
 
+
+/* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M (RRG 3-67). */
+static inline uint32_t
+mach64_mem_bndry(const mach64_t *mach64)
+{
+    const uint32_t n = (mach64->mem_cntl >> 16) & 3;
+
+    return n ? (0x20000u << n) : 0;
+}
 
 #define READ8(addr, var)                \
     switch ((addr) &3) {                \
