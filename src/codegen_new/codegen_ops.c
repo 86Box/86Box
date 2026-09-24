@@ -27,7 +27,7 @@
 #include "codegen_ops_shift.h"
 #include "codegen_ops_stack.h"
 
-#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
 #    define ARM64_ROP_PREFETCH ropPREFETCH
 #    define ARM64_ROP_FEMMS    ropFEMMS
 #else
