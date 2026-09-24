@@ -384,15 +384,16 @@ mach64_recalctimings(svga_t *svga)
         svga->render = svga_render_blank;
 }
 
-/* The VLB card's EEPROM as ATI's INSTALL utility (mach64 driver CD, release
+/* A GX card's EEPROM as ATI's INSTALL utility (mach64 driver CD, release
    435) leaves it when it first sets the card up, taken word for word from
-   the nvr file it wrote: the ATI88800CX EEPROM data structure (BIOS Kit
-   BIO-888GX0-02, appendix B) with a write count of 0, checksum 0BEh in
-   word 1 (the bytes of all the words sum to 0), table revision 2 in word
-   3, word 9 = 0040h, and no aperture location, monitor, refresh rates or
-   CRT tables chosen. Written when the card has no file, instead of an
-   erased part: an erased one reads aperture location 4095 MB. */
-static const uint16_t mach64_vlb_eeprom_default[256] = {
+   the nvr files it wrote for the VLB and the PCI card, which are the same:
+   the ATI88800CX EEPROM data structure (BIOS Kit BIO-888GX0-02, appendix
+   B) with a write count of 0, checksum 0BEh in word 1 (the bytes of all
+   the words sum to 0), table revision 2 in word 3, word 9 = 0040h, and no
+   aperture location, monitor, refresh rates or CRT tables chosen. Written
+   when the card has no file, instead of an erased part, which INSTALL and
+   M64DIAG report as invalid and which reads aperture location 4095 MB. */
+static const uint16_t mach64_gx_eeprom_default[256] = {
     [1] = 0x00be,
     [3] = 0x0002,
     [9] = 0x0040,
@@ -2669,13 +2670,14 @@ mach64gx_init(const device_t *info)
     mach64->mem_cntl = 0x00000400; /* MEM_CYC_LNTH default 2, MEM_SIZE 512K (RRG 3-67) */
     if (info->flags & DEVICE_PCI) {
         mach64->config_stat0 |= 7; /*PCI*/
-        ati_eeprom_load(&mach64->eeprom, "mach64_pci.nvr", 1);
+        ati_eeprom_load_default(&mach64->eeprom, "mach64_pci.nvr", 1,
+                                mach64_gx_eeprom_default, sizeof(mach64_gx_eeprom_default) / sizeof(mach64_gx_eeprom_default[0]));
         rom_init(&mach64->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&mach64->bios_rom.mapping);
     } else if (info->flags & DEVICE_VLB) {
         mach64->config_stat0 |= 6; /*VLB*/
         ati_eeprom_load_default(&mach64->eeprom, (info->local & MACH64_FLAG_DRAM) ? "mach64_xpression_vlb.nvr" : "mach64_vlb.nvr", 1,
-                                mach64_vlb_eeprom_default, sizeof(mach64_vlb_eeprom_default) / sizeof(mach64_vlb_eeprom_default[0]));
+                                mach64_gx_eeprom_default, sizeof(mach64_gx_eeprom_default) / sizeof(mach64_gx_eeprom_default[0]));
         if (info->local & MACH64_FLAG_DRAM)
             rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
                      0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL); /* Graphics Xpression */
