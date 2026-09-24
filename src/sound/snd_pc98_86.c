@@ -25,7 +25,9 @@
 
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/io.h>
+#include <86box/keyboard.h>
 #include <86box/mem.h>
 #include <86box/pic.h>
 #include <86box/plat_unused.h>
@@ -91,6 +93,12 @@ typedef struct pc98_86_t {
     int      irq_sel;
     int      irq_state;
     uint8_t  opna_addr[2];
+    uint8_t  board_probe_stage;
+    uint8_t  joy_select;
+    uint8_t  joy_axis_state;
+    uint8_t  joy_alias_addr;
+    uint8_t  joy_alias_dir;
+    uint8_t  joy_alias_select;
     int      fm_irq;
     int      pcm_irq;
 
@@ -193,6 +201,13 @@ pc98_86_fifo_pop(pc98_86_t *dev)
     return v;
 }
 
+static int16_t
+pc98_86_pcm8_to_s16(uint8_t sample)
+{
+    /* The PC-9801-86 PCM FIFO carries signed two's-complement 8-bit audio. */
+    return (int16_t) ((int16_t) (int8_t) sample * 256);
+}
+
 /*
  * One DAC tick.  The mode register's bits 6:4 say how many bytes a frame
  * takes and which side each goes to; an unlisted combination means no PCM
@@ -203,14 +218,14 @@ pc98_86_dac_transfer(pc98_86_t *dev)
 {
     switch (dev->pcm_mode & PC98_86_MODE_OUT) {
         case 0x70u: /* 8-bit stereo */
-            dev->dac_l = (int16_t) (pc98_86_fifo_pop(dev) << 8);
-            dev->dac_r = (int16_t) (pc98_86_fifo_pop(dev) << 8);
+            dev->dac_l = pc98_86_pcm8_to_s16(pc98_86_fifo_pop(dev));
+            dev->dac_r = pc98_86_pcm8_to_s16(pc98_86_fifo_pop(dev));
             break;
         case 0x60u: /* 8-bit left */
-            dev->dac_l = (int16_t) (pc98_86_fifo_pop(dev) << 8);
+            dev->dac_l = pc98_86_pcm8_to_s16(pc98_86_fifo_pop(dev));
             break;
         case 0x50u: /* 8-bit right */
-            dev->dac_r = (int16_t) (pc98_86_fifo_pop(dev) << 8);
+            dev->dac_r = pc98_86_pcm8_to_s16(pc98_86_fifo_pop(dev));
             break;
         case 0x30u: { /* 16-bit stereo, high byte first */
             int16_t l = (int16_t) (pc98_86_fifo_pop(dev) << 8);
@@ -285,6 +300,148 @@ pc98_86_set_rate(pc98_86_t *dev, uint8_t ctrl)
 /* I/O                                                                 */
 /* ------------------------------------------------------------------ */
 
+/*
+ * The PC-9801-86 exposes its joystick through YM2608 PSG Port A. The card
+ * only returns connector 1 when Port B's joystick select is exactly 10b in
+ * bits 7:6; otherwise those pins are electrically idle.
+ */
+#define PC98_86_JOY_AXIS_ON  18000
+#define PC98_86_JOY_AXIS_OFF 14000
+
+static uint8_t
+pc98_86_joystick_axis(int value, uint8_t old, uint8_t negative, uint8_t positive)
+{
+    if (old & negative) {
+        if (value <= -PC98_86_JOY_AXIS_OFF)
+            return negative;
+        if (value >= PC98_86_JOY_AXIS_ON)
+            return positive;
+        return 0;
+    }
+
+    if (old & positive) {
+        if (value >= PC98_86_JOY_AXIS_OFF)
+            return positive;
+        if (value <= -PC98_86_JOY_AXIS_ON)
+            return negative;
+        return 0;
+    }
+
+    if (value <= -PC98_86_JOY_AXIS_ON)
+        return negative;
+    if (value >= PC98_86_JOY_AXIS_ON)
+        return positive;
+    return 0;
+}
+
+static uint8_t
+pc98_86_joystick_read(pc98_86_t *dev, uint8_t select)
+{
+    const joystick_state_t *js = &joystick_state[0][0];
+    uint8_t value = 0x3fu;
+    uint8_t axis_state = 0;
+
+    /* The -86 exposes connector 1 only, selected by Port B bits 7:6 = 10b. */
+    if ((select & 0xc0u) != 0x80u) {
+        dev->joy_axis_state = 0;
+        return value;
+    }
+
+    if (JOYSTICK_PRESENT(0, 0)) {
+        axis_state = pc98_86_joystick_axis(js->axis[1],
+                                           dev->joy_axis_state & 0x03u,
+                                           0x01u, 0x02u);
+        axis_state |= pc98_86_joystick_axis(js->axis[0],
+                                            dev->joy_axis_state & 0x0cu,
+                                            0x04u, 0x08u);
+
+        if (axis_state & 0x01u)
+            value &= (uint8_t) ~0x01u; /* up */
+        if (axis_state & 0x02u)
+            value &= (uint8_t) ~0x02u; /* down */
+        if (axis_state & 0x04u)
+            value &= (uint8_t) ~0x04u; /* left */
+        if (axis_state & 0x08u)
+            value &= (uint8_t) ~0x08u; /* right */
+        if (js->button[0])
+            value &= (uint8_t) ~0x10u; /* button 1 */
+        if (js->button[1])
+            value &= (uint8_t) ~0x20u; /* button 2 */
+
+        /* POV hats often have no useful X/Y axes; use the first mapped hat
+         * as another digital source, with the same octants as 86Box's other
+         * joystick devices. */
+        if ((joystick_type[0] != JS_TYPE_NONE) &&
+            (joystick_get_pov_count(joystick_type[0]) > 0) &&
+            (js->pov[0] >= 0)) {
+            const int pov = js->pov[0];
+            if (pov > 315 || pov < 45) value &= (uint8_t) ~0x01u;
+            if (pov >= 45 && pov < 135) value &= (uint8_t) ~0x08u;
+            if (pov >= 135 && pov < 225) value &= (uint8_t) ~0x02u;
+            if (pov >= 225 && pov < 315) value &= (uint8_t) ~0x04u;
+        }
+    }
+    dev->joy_axis_state = axis_state;
+
+    /* A keyboard-only setup can still drive games that poll this port. */
+    if (keyboard_recv(0x148u) || keyboard_recv(0x048u))
+        value &= (uint8_t) ~0x01u; /* up */
+    if (keyboard_recv(0x150u) || keyboard_recv(0x050u))
+        value &= (uint8_t) ~0x02u; /* down */
+    if (keyboard_recv(0x14bu) || keyboard_recv(0x04bu))
+        value &= (uint8_t) ~0x04u; /* left */
+    if (keyboard_recv(0x14du) || keyboard_recv(0x04du))
+        value &= (uint8_t) ~0x08u; /* right */
+    if (keyboard_recv(0x02cu))
+        value &= (uint8_t) ~0x10u; /* Z: button 1 */
+    if (keyboard_recv(0x02du))
+        value &= (uint8_t) ~0x20u; /* X: button 2 */
+
+    return value;
+}
+
+/*
+ * Some games hardcode the -86's factory 188h joystick access even when the
+ * board's OPNA has been moved to 288h. Decode only the PSG Port-B select and
+ * Port-A read sequence at 188h in that configuration.
+ */
+static uint8_t
+pc98_86_joystick_alias_in(uint16_t port, void *priv)
+{
+    pc98_86_t *dev = (pc98_86_t *) priv;
+    const uint32_t index = (uint32_t) ((port - 0x0188u) >> 1);
+
+    if (port & 1u)
+        return 0xffu;
+
+    if ((index == 1u) && (dev->joy_alias_addr == 0x0eu)) {
+        uint8_t val = pc98_86_joystick_read(dev, dev->joy_alias_select);
+        val |= pc98_86_irq_pa_bits[dev->irq_sel];
+        return val;
+    }
+
+    return 0xffu;
+}
+
+static void
+pc98_86_joystick_alias_out(uint16_t port, uint8_t val, void *priv)
+{
+    pc98_86_t *dev = (pc98_86_t *) priv;
+    const uint32_t index = (uint32_t) ((port - 0x0188u) >> 1);
+
+    if (port & 1u)
+        return;
+
+    if (index == 0u) {
+        dev->joy_alias_addr = val;
+    } else if (index == 1u) {
+        if (dev->joy_alias_addr == 0x07u)
+            dev->joy_alias_dir = val;
+        else if ((dev->joy_alias_addr == 0x0fu) && (dev->joy_alias_dir & 0x80u))
+            dev->joy_alias_select = val;
+    }
+}
+
 static uint8_t
 pc98_86_opna_in(uint16_t port, void *priv)
 {
@@ -294,11 +451,34 @@ pc98_86_opna_in(uint16_t port, void *priv)
     if (port & 1u)
         return 0xffu;
 
+    /* KAJA's PMD86/PMDB2 check selects YM2608 register FFh, reads its 01h
+     * ID, then checks the two adjacent upper-bank ports. Match only that
+     * ordered detector sequence at the card boundary; ordinary YMFM reads
+     * continue through unchanged. */
+    if (dev->board_probe_stage == 2u) {
+        dev->board_probe_stage = 0u;
+        if (index == 2u) {
+            dev->board_probe_stage = 3u;
+            return 0xffu;
+        }
+    } else if (dev->board_probe_stage == 3u) {
+        dev->board_probe_stage = 0u;
+        if (index == 3u)
+            return 0xffu;
+    } else if ((dev->board_probe_stage == 1u) && (index != 1u)) {
+        dev->board_probe_stage = 0u;
+    }
+
+    if ((index == 1u) && (dev->opna_addr[0] == 0x0eu))
+        pc98_opn_set_port_a(dev->opn, pc98_86_joystick_read(dev, dev->joy_select));
 
     val = pc98_opn_read(dev->opn, index);
 
-    if ((index == 1) && (dev->opna_addr[0] == 0x0e)) {
-        val &= 0x3f; // return irq selector on ssg port a. required by music drivers and games.
+    if ((index == 1u) && (dev->board_probe_stage == 1u))
+        dev->board_probe_stage = (val == 0x01u) ? 2u : 0u;
+
+    if ((index == 1u) && (dev->opna_addr[0] == 0x0eu)) {
+        val &= 0x3fu;
         val |= pc98_86_irq_pa_bits[dev->irq_sel];
     }
 
@@ -313,14 +493,18 @@ pc98_86_opna_out(uint16_t port, uint8_t val, void *priv)
     if (port & 1u)
         return;
 
-    if (index == 0)
-    {
+    if (index == 0) {
         dev->opna_addr[0] = val;
-    } else if (index == 2)
-    {
-        dev->opna_addr[1] = val;
+        dev->board_probe_stage = (val == 0xffu) ? 1u : 0u;
+    } else {
+        dev->board_probe_stage = 0u;
+        if (index == 2u)
+            dev->opna_addr[1] = val;
     }
     pc98_opn_write(dev->opn, index, val);
+
+    if ((index == 1u) && (dev->opna_addr[0] == 0x0fu))
+        dev->joy_select = pc98_opn_get_port_b(dev->opn);
 }
 
 static uint8_t
@@ -376,8 +560,13 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa466u:
-            /* Volume, one nibble per line, the line in bits 7:5. */
-            dev->vol[(val >> 5) & 7u] = (uint8_t) (val & 0x0fu);
+            /* The PCM output is mixer line 5; its four-bit level is active
+             * low. Keep the other line latches for their shared register
+             * behavior, but only line 5 affects this board's PCM DAC. */
+            if ((val & 0xe0u) == 0xa0u)
+                dev->vol[5] = (uint8_t) ((~val) & 0x0fu);
+            else
+                dev->vol[(val >> 5) & 7u] = (uint8_t) (val & 0x0fu);
             break;
 
         case 0xa468u:
@@ -428,7 +617,7 @@ pc98_86_pcm_out(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 0xa66eu:
-            dev->pcm_mute = val;
+            dev->pcm_mute = (uint8_t) (val & 1u);
             break;
 
         default:
@@ -440,6 +629,7 @@ static void
 pc98_86_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     pc98_86_t *dev = (pc98_86_t *) priv;
+    const int pcm_volume = dev->vol[5];
 
     pc98_opn_generate(dev->opn, buffer, len);
 
@@ -450,8 +640,8 @@ pc98_86_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         return;
 
     for (uint16_t i = 0; i < len; i++) {
-        buffer[i * 2]     += dev->dac_l;
-        buffer[i * 2 + 1] += dev->dac_r;
+        buffer[i * 2]     += (dev->dac_l * pcm_volume) / 15;
+        buffer[i * 2 + 1] += (dev->dac_r * pcm_volume) / 15;
     }
 }
 
@@ -499,11 +689,17 @@ pc98_86_reset(void *priv)
     dev->head = dev->tail = dev->count = 0u;
     dev->pcm_ctrl = dev->pcm_mode = 0u;
     dev->pcm_clk                  = 0u;
-    dev->pcm_mute                 = 0x01u;
+    dev->pcm_mute                 = 0x00u;
     dev->irq_rate                 = 0u;
     dev->dac_l = dev->dac_r = 0;
     dev->initialised        = 0;
     dev->id_mask            = 0u;
+    dev->board_probe_stage  = 0u;
+    dev->joy_select = 0u;
+    dev->joy_axis_state = 0u;
+    dev->joy_alias_addr = 0u;
+    dev->joy_alias_dir = 0u;
+    dev->joy_alias_select = 0u;
     dev->fm_irq = dev->pcm_irq = 0;
     memset(dev->vol, 0x0f, sizeof(dev->vol));
 
@@ -552,6 +748,9 @@ pc98_86_init(UNUSED(const device_t *info))
     /* OPNA: 188h, 18Ah, 18Ch, 18Eh. */
     io_sethandler(dev->base, 8, pc98_86_opna_in, NULL, NULL, pc98_86_opna_out,
                   NULL, NULL, dev);
+    if (dev->base == 0x0288u)
+        io_sethandler(0x0188u, 4, pc98_86_joystick_alias_in, NULL, NULL,
+                      pc98_86_joystick_alias_out, NULL, NULL, dev);
 
     /* PCM engine.  A462h/A464h belong to the PC-9801-73's volume chip and
      * are deliberately left undecoded here. */
@@ -590,6 +789,9 @@ pc98_86_close(void *priv)
 
     io_removehandler(dev->base, 8, pc98_86_opna_in, NULL, NULL,
                      pc98_86_opna_out, NULL, NULL, dev);
+    if (dev->base == 0x0288u)
+        io_removehandler(0x0188u, 4, pc98_86_joystick_alias_in, NULL, NULL,
+                         pc98_86_joystick_alias_out, NULL, NULL, dev);
     io_removehandler(0xa460, 1, pc98_86_pcm_in, NULL, NULL, pc98_86_pcm_out,
                      NULL, NULL, dev);
     for (uint16_t p = 0xa466; p <= 0xa46c; p += 2)

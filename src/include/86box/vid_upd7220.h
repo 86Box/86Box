@@ -109,6 +109,7 @@ typedef struct upd7220_t {
 
     /* current data-transfer mode */
     uint8_t bitmap_mod;
+    uint8_t wg;
     uint8_t transfer_type;
     uint32_t transfer_words_left;
 

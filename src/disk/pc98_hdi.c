@@ -40,6 +40,7 @@
 #include <string.h>
 
 #include <86box/pc98_hdi.h>
+#include <86box/plat.h>
 
 #define NHD_SIGNATURE "T98HDDIMAGE.R0"
 
@@ -177,9 +178,9 @@ pc98_hdi_open(pc98_hdi_t *img, const char *path)
     if (!maybe_hdi && !maybe_nhd)
         return 0;
 
-    img->f = fopen(path, "r+b");
+    img->f = plat_fopen(path, "r+b");
     if (!img->f) {
-        img->f = fopen(path, "rb");
+        img->f = plat_fopen(path, "rb");
         if (!img->f)
             return 0;
         img->read_only = 1;
@@ -308,18 +309,64 @@ pc98_hdi_write_256(pc98_hdi_t *img, uint32_t lba, uint32_t count,
 }
 
 
-/* Legacy SASI accessors retained for callers of the earlier patch.
- * PC-9801-27 sees a byte-linear 256-byte LBA stream: a 512-byte HDI/NHD
- * container sector contributes two consecutive SASI blocks.  bios_spt and
- * bios_heads describe guest geometry and must not create holes in a logical
- * image container. */
+uint32_t
+pc98_hdi_sasi_blocks(const pc98_hdi_t *img, uint32_t bios_spt)
+{
+    if (!img || !img->spt || !bios_spt)
+        return 0u;
+
+    if (img->sector_size == PC98_HDI_BLOCK_SIZE)
+        return img->blocks;
+    if (img->sector_size != 512u ||
+        (img->blocks % img->spt) != 0u ||
+        ((uint64_t) img->spt * img->sector_size) <
+            ((uint64_t) bios_spt * PC98_HDI_BLOCK_SIZE))
+        return 0u;
+
+    /* The board ROM converts CHS with 33 logical sectors per track.  On a
+     * 17x512 image those 33 blocks occupy the first 8448 bytes of each
+     * 8704-byte physical track; the last 256 bytes are not a SASI block. */
+    const uint64_t tracks = img->blocks / img->spt;
+    const uint64_t blocks = tracks * bios_spt;
+    return blocks <= UINT32_MAX ? (uint32_t) blocks : 0u;
+}
+
 int
 pc98_hdi_sasi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count,
                    uint32_t bios_spt, uint32_t bios_heads, uint8_t *buf)
 {
-    (void) bios_spt;
     (void) bios_heads;
-    return pc98_hdi_read_256(img, lba, count, buf);
+
+    if (!img || !img->f)
+        return 0;
+    if (img->sector_size == PC98_HDI_BLOCK_SIZE)
+        return pc98_hdi_read_256(img, lba, count, buf);
+
+    const uint32_t blocks = pc98_hdi_sasi_blocks(img, bios_spt);
+    if (!blocks || !count || lba >= blocks || count > blocks - lba)
+        return 0;
+
+    while (count) {
+        const uint32_t track = lba / bios_spt;
+        const uint32_t slot = lba % bios_spt;
+        uint32_t chunk = bios_spt - slot;
+        if (chunk > count)
+            chunk = count;
+
+        const uint64_t off = (uint64_t) img->base +
+                             (uint64_t) track * img->spt * img->sector_size +
+                             (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
+        const uint64_t end = off + (uint64_t) chunk * PC98_HDI_BLOCK_SIZE;
+        if (end > 0x7fffffffull || fseek(img->f, (long) off, SEEK_SET) != 0 ||
+            fread(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
+            return 0;
+
+        lba += chunk;
+        count -= chunk;
+        buf += (size_t) chunk * PC98_HDI_BLOCK_SIZE;
+    }
+
+    return 1;
 }
 
 int
@@ -327,7 +374,36 @@ pc98_hdi_sasi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
                     uint32_t bios_spt, uint32_t bios_heads,
                     const uint8_t *buf)
 {
-    (void) bios_spt;
     (void) bios_heads;
-    return pc98_hdi_write_256(img, lba, count, buf);
+
+    if (!img || !img->f || img->read_only)
+        return 0;
+    if (img->sector_size == PC98_HDI_BLOCK_SIZE)
+        return pc98_hdi_write_256(img, lba, count, buf);
+
+    const uint32_t blocks = pc98_hdi_sasi_blocks(img, bios_spt);
+    if (!blocks || !count || lba >= blocks || count > blocks - lba)
+        return 0;
+
+    while (count) {
+        const uint32_t track = lba / bios_spt;
+        const uint32_t slot = lba % bios_spt;
+        uint32_t chunk = bios_spt - slot;
+        if (chunk > count)
+            chunk = count;
+
+        const uint64_t off = (uint64_t) img->base +
+                             (uint64_t) track * img->spt * img->sector_size +
+                             (uint64_t) slot * PC98_HDI_BLOCK_SIZE;
+        const uint64_t end = off + (uint64_t) chunk * PC98_HDI_BLOCK_SIZE;
+        if (end > 0x7fffffffull || fseek(img->f, (long) off, SEEK_SET) != 0 ||
+            fwrite(buf, PC98_HDI_BLOCK_SIZE, chunk, img->f) != chunk)
+            return 0;
+
+        lba += chunk;
+        count -= chunk;
+        buf += (size_t) chunk * PC98_HDI_BLOCK_SIZE;
+    }
+
+    return fflush(img->f) == 0;
 }

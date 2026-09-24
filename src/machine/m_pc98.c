@@ -116,9 +116,9 @@
 /* 86Box CPU core: 80286 software reset that leaves RAM and devices alone. */
 extern void softresetx86(void);
 
-/* A compact keyboard FIFO is sufficient because the USART itself supplies the
- * one-byte receive holding register and the guest drains it through IRQ1. */
-#define PC98_KBD_FIFO 64
+/* Start with a small keyboard FIFO and grow it if the guest stops draining
+ * the USART. Dropping a queued break byte would leave that guest key held. */
+#define PC98_KBD_FIFO_INITIAL 64u
 
 /* NEC uPD4990A-compatible serial RTC as wired in PC-9801VM/VX-class
  * systems.  Port 20h supplies C0/C1/C2, STB, CLK and DATA IN; DATA OUT
@@ -330,10 +330,10 @@ typedef struct pc98_mb_t {
      * unaffected by 8255 mode words and by an 80286 software reset. */
     uint8_t sys_port_c;
 
-    uint8_t kbd_fifo[PC98_KBD_FIFO];
-    uint8_t kbd_rp;
-    uint8_t kbd_wp;
-    uint8_t kbd_count;
+    uint8_t *kbd_fifo;
+    size_t kbd_rp;
+    size_t kbd_count;
+    size_t kbd_capacity;
     uint8_t host_down[512];
     uint8_t kbd_code_users[128];
 } pc98_mb_t;
@@ -368,8 +368,8 @@ static uint8_t pc98_translate_scan(uint16_t scan)
     case 0x0d: return 0x0c; /* ^ / = position */
     case 0x0e: return 0x0e; /* backspace */
     case 0x0f: return 0x0f; /* tab */
-    case 0x1a: return 0x1b; /* [ */
-    case 0x1b: return 0x28; /* ] */
+    case 0x1a: return 0x1a; /* [ */
+    case 0x1b: return 0x1b; /* ] */
     case 0x1c: return 0x1c; /* return */
     case 0x27: return 0x26; /* ; */
     case 0x28: return 0x27; /* : / quote position */
@@ -377,45 +377,79 @@ static uint8_t pc98_translate_scan(uint16_t scan)
     case 0x2b: return 0x28;
     case 0x37: return 0x45; /* keypad * */
     case 0x39: return 0x34; /* space */
-    case 0x47: return 0x3e; /* home/clear */
-    case 0x48: return 0x3a; /* up */
-    case 0x49: return 0x37; /* roll up */
+    case 0x47: return 0x42; /* keypad 7 */
+    case 0x48: return 0x43; /* keypad 8 */
+    case 0x49: return 0x44; /* keypad 9 */
     case 0x4a: return 0x40; /* keypad - */
-    case 0x4b: return 0x3b; /* left */
+    case 0x4b: return 0x46; /* keypad 4 */
     case 0x4c: return 0x47; /* keypad 5 */
-    case 0x4d: return 0x3c; /* right */
+    case 0x4d: return 0x48; /* keypad 6 */
     case 0x4e: return 0x49; /* keypad + */
-    case 0x4f: return 0x3d; /* end/down-ish */
-    case 0x50: return 0x3d; /* down */
-    case 0x51: return 0x36; /* roll down */
-    case 0x52: return 0x38; /* insert */
-    case 0x53: return 0x39; /* delete */
-    case 0x147: return 0x3e;
-    case 0x148: return 0x3a;
-    case 0x14b: return 0x3b;
-    case 0x14d: return 0x3c;
-    case 0x150: return 0x3d;
-    case 0x152: return 0x38;
-    case 0x153: return 0x39;
+    case 0x4f: return 0x4a; /* keypad 1 */
+    case 0x50: return 0x4b; /* keypad 2 */
+    case 0x51: return 0x4c; /* keypad 3 */
+    case 0x52: return 0x4e; /* keypad 0 */
+    case 0x53: return 0x50; /* keypad . */
+    case 0x56: return 0x33; /* PC-98 RO key position */
+    case 0x57: return 0x52; /* F11 / VF1 */
+    case 0x58: return 0x53; /* F12 / VF2 */
+    case 0x11c: return 0x1c; /* keypad Enter shares main Enter */
+    case 0x135: return 0x41; /* keypad / */
+    case 0x100: return 0x60; /* Pause / STOP via E1 1D */
+    case 0x137: return 0x61; /* Print Screen / COPY */
+    case 0x145: return 0x60; /* Pause / STOP */
+    case 0x147: return 0x3e; /* Home / HOME CLR */
+    case 0x148: return 0x3a; /* Up */
+    case 0x149: return 0x37; /* Page Up / ROLL DOWN */
+    case 0x14b: return 0x3b; /* Left */
+    case 0x14d: return 0x3c; /* Right */
+    case 0x14f: return 0x3f; /* End / HELP */
+    case 0x150: return 0x3d; /* Down */
+    case 0x151: return 0x36; /* Page Down / ROLL UP */
+    case 0x152: return 0x38; /* Insert */
+    case 0x153: return 0x39; /* Delete */
     default: return 0xff;
     }
 }
 
 static void pc98_kbd_pump(pc98_mb_t *d)
 {
-    if (!d->kbd_count || (d->usart_kbd.status & PC98_I8251_ST_RXRDY))
+    if (!d->kbd_count || !(d->usart_kbd.command & 0x04) ||
+        (d->usart_kbd.status & PC98_I8251_ST_RXRDY))
         return;
     pc98_i8251_receive(&d->usart_kbd, d->kbd_fifo[d->kbd_rp], 0, 0);
-    d->kbd_rp = (uint8_t)((d->kbd_rp + 1) % PC98_KBD_FIFO);
+    d->kbd_rp = (d->kbd_rp + 1) % d->kbd_capacity;
     d->kbd_count--;
+    if (!d->kbd_count)
+        d->kbd_rp = 0;
 }
 
 static void pc98_kbd_queue(pc98_mb_t *d, uint8_t value)
 {
-    if (d->kbd_count == PC98_KBD_FIFO)
-        return;
-    d->kbd_fifo[d->kbd_wp] = value;
-    d->kbd_wp = (uint8_t)((d->kbd_wp + 1) % PC98_KBD_FIFO);
+    if (d->kbd_count == d->kbd_capacity) {
+        size_t capacity = d->kbd_capacity ? d->kbd_capacity * 2 : PC98_KBD_FIFO_INITIAL;
+        uint8_t *fifo;
+
+        if (capacity <= d->kbd_capacity) {
+            fatal("PC-98 keyboard FIFO capacity overflow\n");
+            return;
+        }
+
+        fifo = (uint8_t *)malloc(capacity);
+        if (!fifo) {
+            fatal("PC-98 keyboard FIFO allocation failed\n");
+            return;
+        }
+
+        for (size_t i = 0; i < d->kbd_count; i++)
+            fifo[i] = d->kbd_fifo[(d->kbd_rp + i) % d->kbd_capacity];
+        free(d->kbd_fifo);
+        d->kbd_fifo = fifo;
+        d->kbd_capacity = capacity;
+        d->kbd_rp = 0;
+    }
+
+    d->kbd_fifo[(d->kbd_rp + d->kbd_count) % d->kbd_capacity] = value;
     d->kbd_count++;
     pc98_kbd_pump(d);
 }
@@ -452,7 +486,7 @@ static void pc98_kbd_tx(void *opaque, uint8_t value)
     /* The standard pre-119 keyboard meaningfully requires reset only; later
      * 9xh command families are keyboard-model specific. */
     if (value == 0xff) {
-        d->kbd_rp = d->kbd_wp = d->kbd_count = 0;
+        d->kbd_rp = d->kbd_count = 0;
         memset(d->host_down, 0, sizeof(d->host_down));
         memset(d->kbd_code_users, 0, sizeof(d->kbd_code_users));
     }
@@ -830,7 +864,10 @@ static uint8_t usart_kbd_in(uint16_t port, void *priv)
 }
 static void usart_kbd_out(uint16_t port, uint8_t val, void *priv)
 {
-    pc98_i8251_write(&((pc98_mb_t *)priv)->usart_kbd, (port >> 1) & 1, val);
+    pc98_mb_t *d = (pc98_mb_t *)priv;
+    pc98_i8251_write(&d->usart_kbd, (port >> 1) & 1, val);
+    if (port & 2)
+        pc98_kbd_pump(d);
 }
 
 static unsigned pc98_pit_reg(uint16_t port)
@@ -2204,7 +2241,7 @@ static void pc98_mb_reset(void *priv)
     d->rtc_ctrl = 0;
     pc98_rtc_reset(&d->rtc);
     d->rs_irq_mask = d->rs_irq_pending = 0;
-    d->kbd_rp = d->kbd_wp = d->kbd_count = 0;
+    d->kbd_rp = d->kbd_count = 0;
     memset(d->host_down, 0, sizeof(d->host_down));
     memset(d->kbd_code_users, 0, sizeof(d->kbd_code_users));
     memset(d->dma_autoinc, 0, sizeof(d->dma_autoinc));
@@ -2254,6 +2291,7 @@ static void pc98_mb_close(void *priv)
     keyboard_set_input_handler(NULL, NULL);
     timer_disable(&d->seek_irq_timer[0]);
     timer_disable(&d->seek_irq_timer[1]);
+    free(d->kbd_fifo);
     free(d);
 }
 

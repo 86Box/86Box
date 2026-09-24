@@ -256,7 +256,10 @@ static void egc_write_vram(pc98_video_t *v, uint16_t off, uint16_t data, uint16_
         return;
     }
 
-    if (e->first) mask = mask_first_bits(mask, forward, dst_off);
+    if (e->first) {
+        mask = mask_first_bits(mask, forward, dst_off);
+        e->start = 1;
+    }
 
     unsigned transfer_bits = (mem_mask == 0xffff) ? 16u : 8u;
     if (e->count < (int32_t)transfer_bits) {

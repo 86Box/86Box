@@ -412,6 +412,8 @@ static void begin_command(upd7220_t *g, uint8_t cr)
     g->param_ptr = 0;
     g->command_active = 1;
     memset(g->pr, 0, sizeof(g->pr));
+    if ((cr & 0xe4) == CMD_WDAT)
+        g->bitmap_mod = cr & 3;
     set_busy(g, command_cost(cr));
 
     if (cr == CMD_RESET || cr == CMD_RESET2 || cr == CMD_RESET3) {
@@ -556,6 +558,7 @@ static void accept_param(upd7220_t *g, uint8_t data)
         }
         if (g->param_ptr == 3) {
             g->mask = (uint16_t)(1u << ((g->pr[2] >> 4) & 15));
+            g->wg = (uint8_t)((g->pr[2] >> 3) & 1u);
             param_complete(g);
         }
         return;
@@ -613,6 +616,14 @@ static void accept_param(upd7220_t *g, uint8_t data)
                 w = (uint16_t)g->pr[0] << 8;
             else
                 w = g->pr[0];
+
+            /* A uPD7220 in graphics mode expands data bit 0 over the
+             * selected transfer lane.  The uPD7220A CURS write-gate bit
+             * disables that legacy behavior and permits raw bitmap data. */
+            if (((g->mode & 0x22) == 0x02) && !g->wg) {
+                const uint16_t lane = transfer_mask(type, 0xffff);
+                w = (g->pr[0] & 1u) ? lane : 0;
+            }
 
             g->pattern = (uint16_t)((g->pattern & 0xff00) | g->pr[0]);
             if (need == 2) g->pattern = (uint16_t)((g->pattern & 0x00ff) | ((uint16_t)g->pr[1] << 8));

@@ -92,10 +92,18 @@ public:
     reset() override
     {
         m_busy = false;
+        timer_disable(&m_timers[0]);
+        timer_disable(&m_timers[1]);
         timer_disable(&m_busy_timer);
         m_buffer_pos = 0;
+        m_samplecnt = 0;
+        std::memset(m_samples, 0, sizeof(m_samples));
+        std::memset(m_oldsamples, 0, sizeof(m_oldsamples));
         std::memset(m_buffer, 0, sizeof(m_buffer));
+        update_rateratio();
         m_chip.reset();
+        port_a = 0xffu;
+        port_b = 0x00u;
     }
 
     uint8_t
@@ -209,13 +217,22 @@ public:
     void
     ymfm_set_timer(uint32_t tnum, int32_t duration_in_clocks) override
     {
+        /* ymfm sets bit 15 when its first timer interval includes a phase
+         * subtraction. Keep the timer number separate from that flag; a
+         * corrected interval that is already due must expire into the FM
+         * engine instead of being treated as a timer-cancel request. */
+        const bool phase_corrected = (tnum & 0x8000u) != 0;
+        tnum &= 0x7fffu;
         if (tnum > 1)
             return;
 
-        if (duration_in_clocks < 0)
+        if ((duration_in_clocks < 0) && !phase_corrected) {
             timer_stop(&m_timers[tnum]);
-        else
+        } else if (duration_in_clocks <= 0) {
+            m_engine->engine_timer_expired(tnum);
+        } else {
             timer_on_auto(&m_timers[tnum], m_clock_us * (double) duration_in_clocks);
+        }
     }
 
     void
@@ -245,6 +262,13 @@ public:
     ymfm_external_read(ymfm::access_class type, uint32_t address) override
     {
         switch (type) {
+            case ymfm::ACCESS_IO:
+                if (address == 0u)
+                    return port_a;
+                if (address == 1u)
+                    return port_b;
+                return 0xffu;
+
             case ymfm::ACCESS_ADPCM_A:
                 /* The rhythm samples.  Silence, not garbage, when the ROM
                  * was not supplied. */
@@ -264,6 +288,14 @@ public:
     ymfm_external_write(ymfm::access_class type, uint32_t address,
                         uint8_t data) override
     {
+        if (type == ymfm::ACCESS_IO) {
+            if (address == 0u)
+                port_a = data;
+            else if (address == 1u)
+                port_b = data;
+            return;
+        }
+
         /* Only the ADPCM-B RAM is writable; the rhythm ROM is not. */
         if (type == ymfm::ACCESS_ADPCM_B)
             m_ram[address & (PC98_OPNA_RAM_SIZE - 1u)] = data;

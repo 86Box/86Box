@@ -487,66 +487,74 @@ static int pc98_attribute_blink_off(const pc98_86box_t *d)
 static void pc98_render_graphics(pc98_86box_t *d)
 {
     pc98_video_t *v = &d->core;
-    upd7220_partition_t area;
-    unsigned pitch;
-    unsigned lines;
+    const upd7220_t *g = &v->graph_gdc;
+    const unsigned lr = g->lr ? g->lr : 1u;
+    const unsigned zoom = (unsigned)g->disp + 1u;
+    const unsigned interlace = ((g->mode & 0x09u) == 0x09u) ? 1u : 0u;
+    const unsigned active_lines = g->al ? ((unsigned)g->al << interlace) : 400u;
+    unsigned back_y = 0;
 
-    if (!v->graph_gdc.de) return;
-    upd7220_get_graphics_partition(&v->graph_gdc, 0, &area);
-    pitch = v->graph_gdc.pitch ? v->graph_gdc.pitch : 40u;
-    lines = area.len ? area.len : 400u;
-    if (lines > 400u) lines = 400u;
+    if (!g->de) return;
 
-    for (unsigned y = 0; y < lines; y++) {
-        uint32_t wa = (area.sad + y * pitch) & 0x3fffu;
-        for (unsigned w = 0; w < pitch && w < 40u; w++, wa = (wa + 1u) & 0x3fffu) {
-            uint16_t pb = v->gvram[v->display_page & 1][PC98_PLANE_B][wa];
-            uint16_t pr = v->gvram[v->display_page & 1][PC98_PLANE_R][wa];
-            uint16_t pg = v->gvram[v->display_page & 1][PC98_PLANE_G][wa];
-            uint16_t pi = v->gvram[v->display_page & 1][PC98_PLANE_E][wa];
-            for (unsigned bit = 0; bit < 16; bit++) {
-                unsigned x = w * 16u + bit;
-                unsigned pen = ((pb >> bit) & 1u) |
-                               (((pr >> bit) & 1u) << 1) |
-                               (((pg >> bit) & 1u) << 2) |
-                               (((pi >> bit) & 1u) << 3);
-                buffer32->line[y][x] = pc98_graphics_rgb(v, pen);
+    /* Each of the four GDC areas has its own start address, length, memory
+     * increment and pitch mode.  The PC-98 graphics GDC is in bitmap mode, so
+     * each area's length is scanned as lines and its IM bit halves the pitch. */
+    for (unsigned part = 0; part < 4u; part++) {
+        upd7220_partition_t area;
+        upd7220_get_graphics_partition(g, part, &area);
+
+        unsigned pitch = g->pitch >> area.im;
+        if (!pitch) pitch = 40u;
+        unsigned width_words = g->aw ? (g->aw >> area.im) : 40u;
+        if (width_words > 40u) width_words = 40u;
+
+        unsigned lines = area.len ? area.len : 0x400u;
+        if (interlace) lines <<= 1;
+
+        for (unsigned y = 0; y < lines; y++) {
+            const uint32_t line_addr = (area.sad & 0x3ffffu) + (y / lr) * pitch;
+            for (unsigned z = 0; z < zoom; z++) {
+                /* VBP is blanking before the active picture, not an offset
+                 * into the 400-line frame buffer. */
+                const unsigned dst_y = back_y + y * zoom + z;
+                if (dst_y >= 400u || dst_y >= active_lines)
+                    continue;
+
+                for (unsigned w = 0; w < width_words; w++) {
+                    const uint32_t wa = (line_addr + (area.wd + 1u) * (w % pitch)) & 0x3fffu;
+                    const uint16_t pb = v->gvram[v->display_page & 1][PC98_PLANE_B][wa];
+                    const uint16_t pr = v->gvram[v->display_page & 1][PC98_PLANE_R][wa];
+                    const uint16_t pg = v->gvram[v->display_page & 1][PC98_PLANE_G][wa];
+                    const uint16_t pi = v->gvram[v->display_page & 1][PC98_PLANE_E][wa];
+                    for (unsigned bit = 0; bit < 16; bit++) {
+                        const unsigned x = w * 16u + bit;
+                        if (x >= 640u) break;
+                        const unsigned pen = ((pb >> bit) & 1u) |
+                                             (((pr >> bit) & 1u) << 1) |
+                                             (((pg >> bit) & 1u) << 2) |
+                                             (((pi >> bit) & 1u) << 3);
+                        buffer32->line[dst_y][x] = pc98_graphics_rgb(v, pen);
+                    }
+                }
             }
         }
+
+        back_y += lines * zoom;
     }
 }
 
-static void pc98_render_text(pc98_86box_t *d)
+static void pc98_render_text_scanline(pc98_86box_t *d, uint32_t base,
+                                      unsigned pitch, unsigned widthmul,
+                                      unsigned lr, unsigned char_size,
+                                      unsigned sy, unsigned y,
+                                      int cursor_on, int blink_off)
 {
     pc98_video_t *v = &d->core;
-    upd7220_partition_t area;
-    unsigned pitch, lr, rows, widthmul;
-    unsigned char_size;
-    int cursor_on;
-    int blink_off;
+    unsigned last_underline = 0;
+    uint16_t last_pcg = 0xffffu;
 
-    if (!v->text_gdc.de || !v->font_rom) return;
-    upd7220_get_text_partition(&v->text_gdc, 0, &area);
-    pitch = v->text_gdc.pitch ? v->text_gdc.pitch : 80u;
-    if (pitch > 80u) pitch = 80u;
-    lr = v->text_gdc.lr ? v->text_gdc.lr : 16u;
-    if (lr > 32u) lr = 32u;
-    rows = area.len ? (area.len / lr) : (400u / lr);
-    if (!rows || rows > 50u) rows = 400u / lr;
-    widthmul = v->video_ff[2] ? 2u : 1u;
-    char_size = v->video_ff[3] ? 16u : 8u;
-    if (!v->video_ff[3] && lr >= 16u)
-        char_size = 16u;
-    cursor_on = pc98_cursor_phase(d);
-    blink_off = pc98_attribute_blink_off(d);
-
-    for (unsigned row = 0; row < rows; row++) {
-        uint32_t base = (area.sad + row * pitch) & 0x0fffu;
-        unsigned last_underline = 0;
-        uint16_t last_pcg = 0xffffu;
-
-        for (unsigned col = 0; col < pitch; ) {
-            uint32_t ta = (base + col * widthmul) & 0x0fffu;
+    for (unsigned col = 0; col < pitch; ) {
+            const uint32_t ta = (base + col * widthmul) & 0x0fffu;
             uint16_t tw = v->tvram[ta];
             uint8_t lo = (uint8_t)tw;
             uint8_t hi = (uint8_t)(tw >> 8);
@@ -597,51 +605,105 @@ static void pc98_render_text(pc98_86box_t *d)
                     (((v->text_gdc.ead & 0x0fffu) == ta) ||
                      (halves == 2u && ((v->text_gdc.ead + 1u) & 0x0fffu) == ta));
 
-                for (unsigned sy = 0; sy < lr && row * lr + sy < 400u; sy++) {
-                    uint8_t bits = 0;
+                uint8_t bits = 0;
 
-                    if (!hidden) {
-                        if (hi) {
-                            if (sy < 16u) {
-                                const unsigned glyph_half =
-                                    ((code & 0x7e00u) == 0x5600u) ? pcg_half : half;
-                                bits = v->font_rom[pc98_font_offset(v, code, sy, glyph_half, lr)];
-                            }
-                        } else if (semigraphics) {
-                            bits = pc98_semigraphics_bits(lo, sy, char_size);
-                        } else if (sy < char_size) {
-                            bits = v->font_rom[pc98_font_offset(v, code, sy, 0, lr)];
+                if (!hidden) {
+                    if (hi) {
+                        if (sy < 16u) {
+                            const unsigned glyph_half =
+                                ((code & 0x7e00u) == 0x5600u) ? pcg_half : half;
+                            bits = v->font_rom[pc98_font_offset(v, code, sy, glyph_half, lr)];
                         }
+                    } else if (semigraphics) {
+                        bits = pc98_semigraphics_bits(lo, sy, char_size);
+                    } else if (sy < char_size) {
+                        bits = v->font_rom[pc98_font_offset(v, code, sy, 0, lr)];
                     }
+                }
 
-                    if (sy == lr - 1u) {
-                        if (underline) bits = 0x0fu;
-                        if (last_underline) bits |= 0xf0u;
-                    }
-                    if (vline)
-                        bits |= 0x08u;
+                if (sy == lr - 1u) {
+                    if (underline) bits = 0x0fu;
+                    if (last_underline) bits |= 0xf0u;
+                }
+                if (vline)
+                    bits |= 0x08u;
 
-                    if (cursor_here && sy >= v->text_gdc.ctop && sy <= v->text_gdc.cbot)
-                        bits ^= 0xffu;
-                    if (blink)
-                        bits = 0;
-                    if (reverse)
-                        bits ^= 0xffu;
+                if (cursor_here && sy >= v->text_gdc.ctop && sy <= v->text_gdc.cbot)
+                    bits ^= 0xffu;
+                if (blink)
+                    bits = 0;
+                if (reverse)
+                    bits ^= 0xffu;
 
-                    for (unsigned sx = 0; sx < 8u; sx++) {
-                        if (!(bits & (0x80u >> sx))) continue;
-                        unsigned x = ((col + half) * 8u + sx) * widthmul;
-                        unsigned y = row * lr + sy;
-                        if (x >= 640u) continue;
-                        buffer32->line[y][x] = pc98_text_rgb(color);
-                        if (widthmul == 2u && x + 1u < 640u)
-                            buffer32->line[y][x + 1u] = pc98_text_rgb(color);
-                    }
+                for (unsigned sx = 0; sx < 8u; sx++) {
+                    if (!(bits & (0x80u >> sx))) continue;
+                    const unsigned x = ((col + half) * 8u + sx) * widthmul;
+                    if (x >= 640u) continue;
+                    buffer32->line[y][x] = pc98_text_rgb(color);
+                    if (widthmul == 2u && x + 1u < 640u)
+                        buffer32->line[y][x + 1u] = pc98_text_rgb(color);
                 }
                 last_underline = underline;
             }
             col += halves;
+    }
+}
+
+static void pc98_render_text(pc98_86box_t *d)
+{
+    pc98_video_t *v = &d->core;
+    const upd7220_t *g = &v->text_gdc;
+    unsigned pitch, lr, widthmul, char_size;
+    const int cursor_on = pc98_cursor_phase(d);
+    const int blink_off = pc98_attribute_blink_off(d);
+    unsigned row_start = 0;
+
+    if (!g->de || !v->font_rom) return;
+    pitch = g->pitch ? g->pitch : 80u;
+    if (pitch > 80u) pitch = 80u;
+    lr = g->lr ? g->lr : 16u;
+    if (lr > 32u) lr = 32u;
+    widthmul = v->video_ff[2] ? 2u : 1u;
+    char_size = v->video_ff[3] ? 16u : 8u;
+    if (!v->video_ff[3] && lr >= 16u)
+        char_size = 16u;
+
+    /* 76h is a four-bit scanline offset (0..15); 78h is the two's-complement
+     * top text row and 7Ah stores the scroll-window height minus one. */
+    const unsigned scroll = v->txt_scroll[3] & 0x0fu;
+    const unsigned scroll_start = (32u - v->txt_scroll[4]) & 0x1fu;
+    unsigned scroll_rows = (unsigned)v->txt_scroll[5] + 1u;
+    if (scroll_rows > 32u) scroll_rows = 32u;
+
+    for (unsigned part = 0; part < 4u; part++) {
+        upd7220_partition_t area;
+        upd7220_get_text_partition(g, part, &area);
+        /* A zero LEN field denotes 1024 rows on the GDC. */
+        const unsigned rows = area.len ? area.len : 0x400u;
+        for (unsigned row = 0; row < rows; row++) {
+            const unsigned display_row = row_start + row;
+            if (display_row * lr >= 400u)
+                break;
+
+            for (unsigned sy = 0; sy < lr; sy++) {
+                const unsigned y = display_row * lr + sy;
+                if (y >= 400u) break;
+
+                const int in_scroll = scroll && display_row >= scroll_start &&
+                                      display_row - scroll_start < scroll_rows;
+                const unsigned source_offset = in_scroll ? (sy + scroll) : sy;
+                const unsigned source_row = row + source_offset / lr;
+                const unsigned source_sy = source_offset % lr;
+                const uint32_t source_base = (area.sad + source_row * pitch) & 0x0fffu;
+
+                pc98_render_text_scanline(d, source_base, pitch, widthmul,
+                                          lr, char_size, source_sy, y,
+                                          cursor_on, blink_off);
+            }
         }
+        /* The next partition begins immediately after this one's LEN rows;
+         * its SAD is its own VRAM base, not an offset from partition zero. */
+        row_start += rows;
     }
 }
 

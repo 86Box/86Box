@@ -17,16 +17,26 @@
  */
 #include <inttypes.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/mem.h>
 #include <86box/pic.h>
 #include <86box/dma.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_pc98.h>
+#include <86box/rom.h>
+
+#define PC98_55L_ROM_LOW              "roms/scsi/nec/pc9801_55l/eta1b_00.bin"
+#define PC98_55L_ROM_HIGH             "roms/scsi/nec/pc9801_55l/eta3b_00.bin"
+#define PC98_55U_ROM_LOW              "roms/scsi/nec/pc9801_55u/eta1b_00.bin"
+#define PC98_55U_ROM_HIGH             "roms/scsi/nec/pc9801_55u/eta3b_00.bin"
+#define PC98_55_ROM_SIZE              0x2000
+#define PC98_55_ROM_WINDOW_SIZE       0x1000
 
 #define PC98_55_REG_OWN_ID             0x00
 #define PC98_55_REG_CDB1               0x03
@@ -77,6 +87,7 @@
 
 #define PC98_55_IRQ_ENABLE             0x04
 #define PC98_55_BUS_RESET              0x02
+#define PC98_55_ROM_BANK               0x01
 #define PC98_55_DMA_OUT_TO_MEMORY      0x01
 #define PC98_55_DMA_IN_FROM_MEMORY     0x02
 
@@ -94,6 +105,8 @@ typedef struct pc98_55_t {
     uint8_t  irq;
     uint8_t  irq_pending;
     uint8_t  irq_line;
+    uint8_t  last_aux_status;
+    uint8_t  aux_status_valid;
     uint8_t  selected;
     uint8_t  transfer_active;
     uint8_t  transfer_direction;
@@ -110,14 +123,20 @@ typedef struct pc98_55_t {
     uint32_t transfer_position;
     uint8_t  bus;
     uint16_t io_base;
+    uint32_t rom_addr;
+    rom_t   *bios;
 } pc98_55_t;
 
 static uint32_t pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int use_dma);
 static void     pc98_55_finish_data(pc98_55_t *dev);
+static uint32_t pc98_55_get_count(const pc98_55_t *dev);
+static int      pc98_55_missing_rom_reported;
 
 static void pc98_55_irq(pc98_55_t *dev, int set)
 {
     const int line = set && (dev->memory_bank & PC98_55_IRQ_ENABLE);
+    const int previous_pending = dev->irq_pending;
+    const int previous_line    = dev->irq_line;
 
     if (line && !dev->irq_line) {
         picint(1u << dev->irq);
@@ -127,6 +146,10 @@ static void pc98_55_irq(pc98_55_t *dev, int set)
         dev->irq_line = 0;
     }
     dev->irq_pending = set ? 1 : 0;
+    if ((previous_pending != dev->irq_pending) || (previous_line != dev->irq_line))
+        always_log("[PC98-55] IRQ%d pending=%u line=%u enable=%u\n", dev->irq,
+                   dev->irq_pending, dev->irq_line,
+                   !!(dev->memory_bank & PC98_55_IRQ_ENABLE));
 }
 
 static void pc98_55_raise(pc98_55_t *dev, uint8_t csr)
@@ -135,6 +158,8 @@ static void pc98_55_raise(pc98_55_t *dev, uint8_t csr)
     dev->regs[PC98_55_REG_SCSI_STATUS] = csr;
     dev->regs[PC98_55_REG_COMMAND_PHASE] = dev->phase;
     dev->transfer_active = 0;
+    always_log("[PC98-55] controller status=%02X phase=%02X target=%u selected=%u count=%06X\n",
+               csr, dev->phase, dev->target_id, dev->selected, pc98_55_get_count(dev));
     pc98_55_irq(dev, 1);
 }
 
@@ -172,6 +197,8 @@ static void pc98_55_disconnect(pc98_55_t *dev)
     dev->transfer_active = 0;
     dev->pending_phase = 0;
     dev->phase = PC98_55_PHASE_COMPLETE;
+    always_log("[PC98-55] disconnect target=%u target_status=%02X\n", dev->target_id,
+               target ? target->status : 0xff);
     pc98_55_raise(dev, PC98_55_CSR_SELECT_XFER_DONE);
 }
 
@@ -215,12 +242,25 @@ static int pc98_55_cdb_length(const pc98_55_t *dev, uint8_t opcode)
 static void pc98_55_command_complete(pc98_55_t *dev, int auto_dma)
 {
     scsi_device_t *target = pc98_55_target(dev);
+    char           cdb_text[12 * 3 + 1] = { 0 };
+    size_t         cdb_used = 0;
+    int            cdb_len;
 
     if (!target) {
+        always_log("[PC98-55] command has no selected target; timeout\n");
         dev->phase = PC98_55_PHASE_COMPLETE;
         pc98_55_raise(dev, PC98_55_CSR_TIMEOUT);
         return;
     }
+
+    cdb_len = pc98_55_cdb_length(dev, dev->cdb[0]);
+    if (cdb_len > 0) {
+        for (int i = 0; i < cdb_len; i++)
+            cdb_used += (size_t) snprintf(cdb_text + cdb_used, sizeof(cdb_text) - cdb_used,
+                                          (i == 0) ? "%02X" : " %02X", dev->cdb[i]);
+    }
+    always_log("[PC98-55] SCSI command target=%u lun=%u CDB=[%s] auto_dma=%d\n",
+               dev->target_id, dev->regs[PC98_55_REG_TARGET_LUN] & 7, cdb_text, auto_dma);
 
     scsi_device_command_phase0(target, dev->cdb);
     dev->transfer_position  = 0;
@@ -233,6 +273,9 @@ static void pc98_55_command_complete(pc98_55_t *dev, int auto_dma)
         dev->phase = (target->phase == SCSI_PHASE_DATA_IN) ? PC98_55_PHASE_DATA_IN : PC98_55_PHASE_DATA_OUT;
     } else
         dev->phase = PC98_55_PHASE_STATUS;
+
+    always_log("[PC98-55] target result=%02X phase=%02X buffer=%d\n", target->status,
+               dev->phase, target->buffer_length);
 
     if (dev->phase == PC98_55_PHASE_STATUS)
         pc98_55_finish_data(dev);
@@ -256,12 +299,18 @@ static uint32_t pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int us
 
     if (!target || !target->sc || !target->sc->temp_buffer ||
         (target->buffer_length <= 0) ||
-        ((dev->phase != PC98_55_PHASE_DATA_IN) && (dev->phase != PC98_55_PHASE_DATA_OUT)))
+        ((dev->phase != PC98_55_PHASE_DATA_IN) && (dev->phase != PC98_55_PHASE_DATA_OUT))) {
+        always_log("[PC98-55] transfer unavailable: target=%u phase=%02X buffer=%d\n",
+                   dev->target_id, dev->phase, target ? target->buffer_length : 0);
         return 0;
+    }
 
     buffer = target->sc->temp_buffer;
-    if (dev->transfer_position >= (uint32_t) target->buffer_length)
+    if (dev->transfer_position >= (uint32_t) target->buffer_length) {
+        always_log("[PC98-55] transfer already at end: position=%u length=%d\n",
+                   dev->transfer_position, target->buffer_length);
         return 0;
+    }
 
     if (requested > ((uint32_t) target->buffer_length - dev->transfer_position))
         requested = (uint32_t) target->buffer_length - dev->transfer_position;
@@ -270,11 +319,17 @@ static uint32_t pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int us
         dev->transfer_remaining = requested;
         dev->transfer_direction  = (dev->phase == PC98_55_PHASE_DATA_IN);
         dev->transfer_active     = (requested != 0);
+        always_log("[PC98-55] PIO transfer begin direction=%s requested=%u position=%u\n",
+                   dev->transfer_direction ? "device-to-host" : "host-to-device",
+                   requested, dev->transfer_position);
         if (dev->transfer_active && dev->transfer_direction)
             dev->data_reg = buffer[dev->transfer_position];
         return 0;
     }
 
+    always_log("[PC98-55] DMA transfer begin direction=%s channel=%u requested=%u position=%u\n",
+               (dev->phase == PC98_55_PHASE_DATA_IN) ? "device-to-host" : "host-to-device",
+               dev->dma_channel, requested, dev->transfer_position);
     dma_set_drq(dev->dma_channel, 1);
     while (moved < requested) {
         int result;
@@ -296,6 +351,8 @@ static uint32_t pc98_55_transfer_data(pc98_55_t *dev, uint32_t requested, int us
             break;
     }
     dma_set_drq(dev->dma_channel, 0);
+    always_log("[PC98-55] DMA transfer end moved=%u requested=%u position=%u remaining=%u\n",
+               moved, requested, dev->transfer_position, requested - moved);
     return moved;
 }
 
@@ -309,6 +366,7 @@ static void pc98_55_finish_data(pc98_55_t *dev)
     if (dev->phase == PC98_55_PHASE_STATUS) {
         scsi_device_command_phase1(target);
         dev->target_data_finished = 1;
+        always_log("[PC98-55] target status phase complete: status=%02X\n", target->status);
         return;
     }
 
@@ -319,6 +377,8 @@ static void pc98_55_finish_data(pc98_55_t *dev)
         scsi_device_command_phase1(target);
         dev->target_data_finished = 1;
         pc98_55_schedule_phase(dev, PC98_55_PHASE_STATUS);
+        always_log("[PC98-55] target data phase complete: transferred=%u status=%02X\n",
+                   dev->transfer_position, target->status);
     }
 }
 
@@ -329,6 +389,8 @@ static void pc98_55_start_transfer(pc98_55_t *dev, uint8_t command)
     int            dma    = ((dev->regs[0x01] & 0x80) && (dev->board_dma_status & 1));
 
     dev->transfer_special = (command & 0x80) ? 1 : 0;
+    always_log("[PC98-55] transfer command=%02X phase=%02X count=%06X dma=%d special=%u\n",
+               command, dev->phase, count, dma, dev->transfer_special);
 
     if ((dev->phase == PC98_55_PHASE_STATUS) || (dev->phase == PC98_55_PHASE_MESSAGE_IN)) {
         if (!count || dev->transfer_special)
@@ -399,6 +461,8 @@ static void pc98_55_transfer_byte_done(pc98_55_t *dev)
     if (((dev->phase == PC98_55_PHASE_DATA_IN) || (dev->phase == PC98_55_PHASE_DATA_OUT)) &&
         target && (target->buffer_length > 0) &&
         (dev->transfer_position >= (uint32_t) target->buffer_length)) {
+        always_log("[PC98-55] PIO transfer reached target buffer end at %u bytes\n",
+                   dev->transfer_position);
         pc98_55_finish_data(dev);
         pc98_55_raise(dev, PC98_55_CSR_XFER_DONE | dev->phase);
         return;
@@ -407,6 +471,8 @@ static void pc98_55_transfer_byte_done(pc98_55_t *dev)
     if (dev->transfer_remaining)
         return;
 
+    always_log("[PC98-55] PIO transfer command completed: phase=%02X position=%u\n",
+               dev->phase, dev->transfer_position);
     dev->transfer_active = 0;
     switch (dev->phase) {
         case PC98_55_PHASE_DATA_IN:
@@ -431,8 +497,11 @@ static void pc98_55_data_write(pc98_55_t *dev, uint8_t value)
     scsi_device_t *target = pc98_55_target(dev);
 
     dev->data_reg = value;
-    if (!dev->transfer_active)
+    if (!dev->transfer_active) {
+        always_log("[PC98-55] ignored data write=%02X without active transfer (phase=%02X)\n",
+                   value, dev->phase);
         return;
+    }
 
     switch (dev->phase) {
         case PC98_55_PHASE_DATA_OUT:
@@ -442,6 +511,8 @@ static void pc98_55_data_write(pc98_55_t *dev, uint8_t value)
             pc98_55_transfer_byte_done(dev);
             break;
         case PC98_55_PHASE_MESSAGE_OUT:
+            if (dev->message_out_pos < sizeof(dev->message_out))
+                always_log("[PC98-55] message-out byte[%u]=%02X\n", dev->message_out_pos, value);
             if (dev->message_out_pos < sizeof(dev->message_out))
                 dev->message_out[dev->message_out_pos++] = value;
             if (dev->transfer_remaining)
@@ -466,6 +537,7 @@ static void pc98_55_data_write(pc98_55_t *dev, uint8_t value)
             }
             break;
         case PC98_55_PHASE_COMMAND:
+            always_log("[PC98-55] CDB byte[%u]=%02X\n", dev->cdb_pos, value);
             if (dev->cdb_pos < sizeof(dev->cdb))
                 dev->cdb[dev->cdb_pos++] = value;
             if (dev->transfer_remaining)
@@ -508,6 +580,8 @@ static uint8_t pc98_55_data_read(pc98_55_t *dev)
             break;
         case PC98_55_PHASE_STATUS:
         case PC98_55_PHASE_MESSAGE_IN:
+            always_log("[PC98-55] PIO control byte read phase=%02X value=%02X\n",
+                       dev->phase, value);
             pc98_55_transfer_byte_done(dev);
             break;
         default:
@@ -519,6 +593,7 @@ static uint8_t pc98_55_data_read(pc98_55_t *dev)
 
 static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
 {
+    always_log("[PC98-55] controller reset reset_targets=%d bus=%u\n", reset_targets, dev->bus);
     pc98_55_irq(dev, 0);
     dev->selected = 0;
     dev->transfer_active = 0;
@@ -532,6 +607,7 @@ static void pc98_55_reset_controller(pc98_55_t *dev, int reset_targets)
     if (reset_targets) {
         for (uint8_t id = 0; id < SCSI_ID_MAX; id++)
             scsi_device_reset(&scsi_devices[dev->bus][id]);
+        always_log("[PC98-55] reset all targets on bus %u\n", dev->bus);
     }
 }
 
@@ -541,6 +617,9 @@ static void pc98_55_select(pc98_55_t *dev, uint8_t command)
     const uint8_t  destination = dev->regs[PC98_55_REG_DESTINATION_ID];
     int            cdb_len;
 
+    always_log("[PC98-55] select command=%02X host_id=%u target_id=%u lun=%u\n",
+               command, dev->source_id, destination & 7,
+               dev->regs[PC98_55_REG_TARGET_LUN] & 7);
     pc98_55_irq(dev, 0);
     dev->target_id = destination & 7;
     dev->selected = 0;
@@ -553,6 +632,7 @@ static void pc98_55_select(pc98_55_t *dev, uint8_t command)
              &scsi_devices[dev->bus][dev->target_id];
 
     if (!target || !scsi_device_present(target)) {
+        always_log("[PC98-55] target %u absent on bus %u\n", dev->target_id, dev->bus);
         dev->phase = PC98_55_PHASE_COMPLETE;
         pc98_55_raise(dev, (command == PC98_55_CMD_SELECT_ATN || command == PC98_55_CMD_SELECT) ?
                       PC98_55_CSR_TIMEOUT : PC98_55_CSR_SEL_ABORT);
@@ -582,6 +662,8 @@ static void pc98_55_select(pc98_55_t *dev, uint8_t command)
 
 static void pc98_55_command_write(pc98_55_t *dev, uint8_t command)
 {
+    always_log("[PC98-55] WD command=%02X phase=%02X target=%u count=%06X\n",
+               command, dev->phase, dev->target_id, pc98_55_get_count(dev));
     switch (command & 0x7f) {
         case PC98_55_CMD_RESET:
             /* WD chip reset does not assert the board's separate SCSI bus reset. */
@@ -642,11 +724,19 @@ static uint8_t pc98_55_read_reg(pc98_55_t *dev, uint8_t reg)
             status |= PC98_55_ASR_INT;
         if (dev->transfer_active)
             status |= PC98_55_ASR_DBR;
+        if (!dev->aux_status_valid || (dev->last_aux_status != status)) {
+            always_log("[PC98-55] AUX status=%02X (IRQ pending=%u, data ready=%u)\n",
+                       status, !!(status & PC98_55_ASR_INT), !!(status & PC98_55_ASR_DBR));
+            dev->last_aux_status = status;
+            dev->aux_status_valid = 1;
+        }
         return status;
     }
 
     if (reg == PC98_55_REG_SCSI_STATUS) {
         const uint8_t value = dev->scsi_status;
+        always_log("[PC98-55] SCSI status read/ack=%02X pending_phase=%02X\n",
+                   value, dev->pending_phase);
         pc98_55_irq(dev, 0);
         pc98_55_advance_pending(dev);
         return value;
@@ -692,7 +782,13 @@ static void pc98_55_write_reg(pc98_55_t *dev, uint8_t reg, uint8_t value)
     if (reg == PC98_55_REG_MEMORY_BANK) {
         const uint8_t previous = dev->memory_bank;
         dev->memory_bank = value;
+        always_log("[PC98-55] board control=%02X (ROM bank=%u IRQ enable=%u bus reset=%u)\n",
+                   value, !!(value & PC98_55_ROM_BANK),
+                   !!(value & PC98_55_IRQ_ENABLE), !!(value & PC98_55_BUS_RESET));
         pc98_55_irq(dev, dev->irq_pending);
+        if ((previous ^ value) & PC98_55_ROM_BANK)
+            mem_mapping_set_exec(&dev->bios->mapping,
+                                 dev->bios->rom + ((value & PC98_55_ROM_BANK) ? PC98_55_ROM_WINDOW_SIZE : 0));
         if ((value & PC98_55_BUS_RESET) && !(previous & PC98_55_BUS_RESET))
             pc98_55_reset_controller(dev, 1);
         return;
@@ -707,13 +803,26 @@ static uint8_t pc98_55_in(uint16_t port, void *priv)
     pc98_55_t *dev = (pc98_55_t *) priv;
 
     switch ((port - dev->io_base) & 0x07) {
-        case 0:
-            return pc98_55_read_reg(dev, PC98_55_REG_AUX_STATUS);
-        case 2:
-            return pc98_55_read_reg(dev, dev->address);
+        case 0: {
+            const uint8_t value = pc98_55_read_reg(dev, PC98_55_REG_AUX_STATUS);
+            return value;
+        }
+        case 2: {
+            const uint8_t reg = dev->address;
+            const int     bulk_data = (reg == PC98_55_REG_DATA) && dev->transfer_active &&
+                                      (dev->phase == PC98_55_PHASE_DATA_IN);
+            const uint8_t value = pc98_55_read_reg(dev, reg);
+            if (!bulk_data && (reg != PC98_55_REG_AUX_STATUS))
+                always_log("[PC98-55] I/O read port=%04X reg=%02X value=%02X phase=%02X\n",
+                           port, reg, value, dev->phase);
+            return value;
+        }
         case 4:
+            always_log("[PC98-55] DMA gate read port=%04X value=%02X\n", port,
+                       dev->board_dma_status);
             return dev->board_dma_status;
         default:
+            always_log("[PC98-55] unmapped I/O read port=%04X\n", port);
             return 0xff;
     }
 }
@@ -725,8 +834,14 @@ static void pc98_55_out(uint16_t port, uint8_t value, void *priv)
     switch ((port - dev->io_base) & 0x07) {
         case 0:
             dev->address = value & 0x3f;
+            always_log("[PC98-55] I/O register select port=%04X address=%02X\n", port,
+                       dev->address);
             break;
         case 2:
+            if ((dev->address != PC98_55_REG_DATA) &&
+                (dev->address != PC98_55_REG_AUX_STATUS))
+                always_log("[PC98-55] I/O write port=%04X reg=%02X value=%02X phase=%02X\n",
+                           port, dev->address, value, dev->phase);
             pc98_55_write_reg(dev, dev->address, value);
             if ((dev->address != PC98_55_REG_COMMAND) &&
                 (dev->address != PC98_55_REG_DATA) &&
@@ -741,16 +856,67 @@ static void pc98_55_out(uint16_t port, uint8_t value, void *priv)
                 dev->board_dma_status = 1;
             else if (value == 0x02)
                 dev->board_dma_status = 0;
+            always_log("[PC98-55] DMA gate write port=%04X value=%02X enabled=%u\n",
+                       port, value, dev->board_dma_status);
             break;
         default:
+            always_log("[PC98-55] unmapped I/O write port=%04X value=%02X\n", port, value);
             break;
     }
+}
+
+static uint8_t pc98_55_rom_readb(uint32_t addr, void *priv)
+{
+    const pc98_55_t *dev = (const pc98_55_t *) priv;
+    const uint32_t   bank = (dev->memory_bank & PC98_55_ROM_BANK) ? PC98_55_ROM_WINDOW_SIZE : 0;
+    const uint32_t   offset = (addr - dev->rom_addr) & (PC98_55_ROM_WINDOW_SIZE - 1);
+
+    return dev->bios->rom[bank + offset];
+}
+
+static uint16_t pc98_55_rom_readw(uint32_t addr, void *priv)
+{
+    return (uint16_t) (pc98_55_rom_readb(addr, priv) |
+                       ((uint16_t) pc98_55_rom_readb(addr + 1, priv) << 8));
+}
+
+static uint32_t pc98_55_rom_readl(uint32_t addr, void *priv)
+{
+    return (uint32_t) pc98_55_rom_readb(addr, priv) |
+           ((uint32_t) pc98_55_rom_readb(addr + 1, priv) << 8) |
+           ((uint32_t) pc98_55_rom_readb(addr + 2, priv) << 16) |
+           ((uint32_t) pc98_55_rom_readb(addr + 3, priv) << 24);
+}
+
+static int pc98_55_rom_pair_present(const char *low, const char *high)
+{
+    return low && high && rom_present(low) && rom_present(high);
+}
+
+static int pc98_55_available(void)
+{
+    const int available = pc98_55_rom_pair_present(PC98_55L_ROM_LOW, PC98_55L_ROM_HIGH) ||
+                          pc98_55_rom_pair_present(PC98_55U_ROM_LOW, PC98_55U_ROM_HIGH);
+
+    if (available) {
+        if (pc98_55_missing_rom_reported)
+            always_log("[PC98-55] required ROM pair is now available\n");
+        pc98_55_missing_rom_reported = 0;
+    } else if (!pc98_55_missing_rom_reported) {
+        always_log("[PC98-55] SCSI option hidden: install eta1b_00.bin and eta3b_00.bin under roms/scsi/nec/pc9801_55l/ (or pc9801_55u/)\n");
+        pc98_55_missing_rom_reported = 1;
+    }
+
+    return available;
 }
 
 static void *pc98_55_init(const device_t *info)
 {
     pc98_55_t *dev = (pc98_55_t *) calloc(1, sizeof(pc98_55_t));
-    uint16_t   base;
+    const char *bios_ver;
+    const char *bios_low;
+    const char *bios_high;
+    uint16_t    base;
 
     if (!dev)
         return NULL;
@@ -760,8 +926,66 @@ static void *pc98_55_init(const device_t *info)
     dev->source_id  = (uint8_t) device_get_config_int("scsi_id");
     dev->dma_channel = (uint8_t) device_get_config_int("dma");
     dev->io_base     = base;
-    dev->bus         = scsi_get_bus();
-    if ((dev->bus == 0xff) || (dev->irq >= 16) || (dev->source_id >= 8) || (dev->dma_channel >= 8)) {
+    dev->rom_addr    = device_get_config_hex20("bios_addr");
+    if ((dev->irq >= 16) || (dev->source_id >= 8) || (dev->dma_channel >= 8)) {
+        always_log("[PC98-55] init rejected invalid config: IRQ=%u host_id=%u DMA=%u\n",
+                   dev->irq, dev->source_id, dev->dma_channel);
+        free(dev);
+        return NULL;
+    }
+
+    dev->bios = (rom_t *) calloc(1, sizeof(rom_t));
+    if (dev->bios == NULL) {
+        free(dev);
+        return NULL;
+    }
+
+    bios_ver  = device_get_config_bios("bios_ver");
+    bios_low  = device_get_bios_file(info, bios_ver, 0);
+    bios_high = device_get_bios_file(info, bios_ver, 1);
+    /* Use a complete installed variant when the saved selection is missing. */
+    if (!pc98_55_rom_pair_present(bios_low, bios_high)) {
+        if (pc98_55_rom_pair_present(PC98_55L_ROM_LOW, PC98_55L_ROM_HIGH)) {
+            bios_low  = PC98_55L_ROM_LOW;
+            bios_high = PC98_55L_ROM_HIGH;
+        } else if (pc98_55_rom_pair_present(PC98_55U_ROM_LOW, PC98_55U_ROM_HIGH)) {
+            bios_low  = PC98_55U_ROM_LOW;
+            bios_high = PC98_55U_ROM_HIGH;
+        }
+    }
+    /* Each 32 KiB dump repeats a 4 KiB lane. Interleave eta1b on even bytes
+       and eta3b on odd bytes to form the board's 8 KiB banked ROM image. */
+    if (!pc98_55_rom_pair_present(bios_low, bios_high) ||
+        (rom_init_interleaved(dev->bios, bios_low, bios_high, dev->rom_addr,
+                              PC98_55_ROM_SIZE, PC98_55_ROM_SIZE - 1, 0,
+                              MEM_MAPPING_EXTERNAL) != 0)) {
+        always_log("[PC98-55] init failed to load ROM pair: low=%s high=%s\n",
+                   bios_low ? bios_low : "(missing)", bios_high ? bios_high : "(missing)");
+        free(dev->bios);
+        free(dev);
+        return NULL;
+    }
+    always_log("[PC98-55] ROM pair loaded: low=%s high=%s map=%05X size=%04X window=%04X\n",
+               bios_low, bios_high, dev->rom_addr, PC98_55_ROM_SIZE,
+               PC98_55_ROM_WINDOW_SIZE);
+
+    /* The board exposes one 4 KiB bank at a time from its 8 KiB ROM. */
+    mem_mapping_set_addr(&dev->bios->mapping, dev->rom_addr, PC98_55_ROM_WINDOW_SIZE);
+    mem_mapping_set_handler(&dev->bios->mapping, pc98_55_rom_readb, pc98_55_rom_readw,
+                            pc98_55_rom_readl, NULL, NULL, NULL);
+    mem_mapping_set_p(&dev->bios->mapping, dev);
+    mem_mapping_set_exec(&dev->bios->mapping, dev->bios->rom);
+
+    dev->bus = scsi_get_bus();
+    if (dev->bus == 0xff) {
+        always_log("[PC98-55] init failed: no free SCSI bus\n");
+        mem_mapping_disable(&dev->bios->mapping);
+        mem_mapping_set_handler(&dev->bios->mapping, NULL, NULL, NULL, NULL, NULL, NULL);
+        mem_mapping_set_exec(&dev->bios->mapping, NULL);
+        mem_mapping_set_p(&dev->bios->mapping, NULL);
+        free(dev->bios->rom);
+        dev->bios->rom = NULL;
+        /* The memory-map node stays linked for the lifetime of the emulator. */
         free(dev);
         return NULL;
     }
@@ -777,7 +1001,10 @@ static void *pc98_55_init(const device_t *info)
     for (uint8_t id = 0; id < SCSI_ID_MAX; id++)
         scsi_device_reset(&scsi_devices[dev->bus][id]);
 
-    (void) info;
+    always_log("[PC98-55] initialized: bus=%u I/O=%04X IRQ=%u DMA=%u host_id=%u ROM=%05X\n",
+               dev->bus, dev->io_base, dev->irq, dev->dma_channel, dev->source_id,
+               dev->rom_addr);
+
     return dev;
 }
 
@@ -786,14 +1013,72 @@ static void pc98_55_close(void *priv)
     pc98_55_t *dev = (pc98_55_t *) priv;
 
     if (dev) {
+        always_log("[PC98-55] closing bus=%u I/O=%04X\n", dev->bus, dev->io_base);
         io_removehandler(dev->io_base, 6, pc98_55_in, NULL, NULL, pc98_55_out, NULL, NULL, dev);
         pc98_55_irq(dev, 0);
+        mem_mapping_disable(&dev->bios->mapping);
+        mem_mapping_set_handler(&dev->bios->mapping, NULL, NULL, NULL, NULL, NULL, NULL);
+        mem_mapping_set_exec(&dev->bios->mapping, NULL);
+        mem_mapping_set_p(&dev->bios->mapping, NULL);
+        free(dev->bios->rom);
+        dev->bios->rom = NULL;
+        /* The memory-map node stays linked for the lifetime of the emulator. */
         free(dev);
     }
 }
 
 // clang-format off
 static const device_config_t pc98_55_config[] = {
+    {
+        .name           = "bios_ver",
+        .description    = "Board ROM (8 KiB, two chips required)",
+        .type           = CONFIG_BIOS,
+        .default_string = "pc9801_55l",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "PC-9801-55L",
+                .internal_name = "pc9801_55l",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = PC98_55_ROM_SIZE,
+                .files         = { PC98_55L_ROM_LOW, PC98_55L_ROM_HIGH, "" }
+            },
+            {
+                .name          = "PC-9801-55U",
+                .internal_name = "pc9801_55u",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 2,
+                .local         = 0,
+                .size          = PC98_55_ROM_SIZE,
+                .files         = { PC98_55U_ROM_LOW, PC98_55U_ROM_HIGH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "bios_addr",
+        .description    = "BIOS address",
+        .type           = CONFIG_HEX20,
+        .default_string = NULL,
+        .default_int    = 0xdc000,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "C800H", .value = 0xc8000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = "D000H", .value = 0xd0000 },
+            { .description = "D400H", .value = 0xd4000 },
+            { .description = "D800H", .value = 0xd8000 },
+            { .description = "DC00H", .value = 0xdc000 },
+            { .description = "" }
+        },
+        .bios           = { { 0 } }
+    },
     {
         .name           = "base",
         .description    = "I/O base",
@@ -879,7 +1164,7 @@ const device_t scsi_pc9801_55_device = {
     .init          = pc98_55_init,
     .close         = pc98_55_close,
     .reset         = NULL,
-    .available     = NULL,
+    .available     = pc98_55_available,
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pc98_55_config

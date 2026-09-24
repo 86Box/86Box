@@ -62,20 +62,22 @@ int pc98_hdi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count, uint8_t *buf);
 int pc98_hdi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
                    const uint8_t *buf);
 
-/* Byte-linear 256-byte view used when CT=0 is explicitly selected over a
- * container whose host storage sectors are 512 bytes. */
+/* Byte-linear 256-byte view of an image payload.  PC-9801-27 callers should
+ * use the SASI accessors below so 512-byte physical-track padding is skipped. */
 int pc98_hdi_read_256(pc98_hdi_t *img, uint32_t lba, uint32_t count,
                       uint8_t *buf);
 int pc98_hdi_write_256(pc98_hdi_t *img, uint32_t lba, uint32_t count,
                        const uint8_t *buf);
 
-/* PC-9801-27 logical access. On 512-byte media, 33 logical blocks occupy
- * 17 physical sectors and the last high half is skipped. */
+/* PC-9801-27 logical access uses 256-byte blocks and 33 blocks per track.
+ * A 512-byte container with 17 physical sectors per track stores 33 logical
+ * blocks per track; the upper half of its last sector is padding. */
 int pc98_hdi_sasi_read(pc98_hdi_t *img, uint32_t lba, uint32_t count,
                        uint32_t bios_spt, uint32_t bios_heads, uint8_t *buf);
 int pc98_hdi_sasi_write(pc98_hdi_t *img, uint32_t lba, uint32_t count,
                         uint32_t bios_spt, uint32_t bios_heads,
                         const uint8_t *buf);
+uint32_t pc98_hdi_sasi_blocks(const pc98_hdi_t *img, uint32_t bios_spt);
 
 /*
  * Header sanity check, exposed for the tests.  A header is accepted only

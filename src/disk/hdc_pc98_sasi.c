@@ -16,8 +16,8 @@
  *
  *          PC-98 native containers (.hdi, .nhd) are opened through
  *          src/disk/pc98_hdi.c.  The PC-9801-27 presents 256-byte SASI
- *          logical blocks.  A 512-byte host container is only backing
- *          granularity and is exposed as two consecutive 256-byte blocks.
+ *          logical blocks.  On 17x512 containers, the ROM's 33-block track
+ *          leaves the upper half of physical sector 16 as padding.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -78,12 +78,8 @@ typedef struct pc98_sasi_dev_t {
     uint32_t    unit_capacity[PC98_SASI_MAX_UNITS];
     uint32_t    rom_addr;
     int8_t      unit_hdd[PC98_SASI_MAX_UNITS]; /* index into hdd[], -1 = none */
-    /*
-     * A PC-98 native container is opened here instead, at its own 256-byte
-     * block size.  86Box's image layer cannot represent one: it is
-     * 512-byte-sector throughout and hdd_image_load() rejects an HDI whose
-     * header says 256, which is what every SASI-era image says.
-     */
+    /* Native HDI/NHD access preserves the container's 256- or 512-byte
+     * sectors.  86Box's generic image layer rejects 256-byte HDI sectors. */
     pc98_hdi_t  unit_img[PC98_SASI_MAX_UNITS];
 } pc98_sasi_dev_t;
 
@@ -134,6 +130,22 @@ sasi_log_bytes(const char *tag, unsigned unit, uint32_t lba,
           (unsigned) count, (unsigned) len, (unsigned) file_off, hex);
 }
 
+static uint32_t
+sasi_hdi_file_offset(const pc98_hdi_t *img, uint32_t lba)
+{
+    uint64_t off = (uint64_t) img->base +
+                   (uint64_t) lba * PC98_SASI_BLOCK_SIZE;
+
+    if (img->sector_size == 512u) {
+        const uint32_t bios_spt = PC98_SASI_TRACK_BLOCKS_256;
+        off = (uint64_t) img->base +
+              (uint64_t) (lba / bios_spt) * img->spt * img->sector_size +
+              (uint64_t) (lba % bios_spt) * PC98_SASI_BLOCK_SIZE;
+    }
+
+    return (uint32_t) off;
+}
+
 static int
 sasi_read_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
              uint8_t *buf)
@@ -147,10 +159,12 @@ sasi_read_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
 
     if (unit < PC98_SASI_MAX_UNITS && dev->unit_img[unit].f) {
         pc98_hdi_t *img = &dev->unit_img[unit];
-        const int ok = pc98_hdi_read_256(img, lba, count, buf);
+        const int ok = pc98_hdi_sasi_read(img, lba, count,
+                                          PC98_SASI_TRACK_BLOCKS_256,
+                                          img->hpc, buf);
         if (ok)
             sasi_log_bytes("READ-HDI", unit, lba, count,
-                           img->base + lba * PC98_SASI_BLOCK_SIZE, buf,
+                           sasi_hdi_file_offset(img, lba), buf,
                            count * PC98_SASI_BLOCK_SIZE);
         return ok;
     }
@@ -186,10 +200,12 @@ sasi_write_cb(void *priv, unsigned unit, uint32_t lba, uint32_t count,
 
     if (unit < PC98_SASI_MAX_UNITS && dev->unit_img[unit].f) {
         pc98_hdi_t *img = &dev->unit_img[unit];
-        const int ok = pc98_hdi_write_256(img, lba, count, buf);
+        const int ok = pc98_hdi_sasi_write(img, lba, count,
+                                           PC98_SASI_TRACK_BLOCKS_256,
+                                           img->hpc, buf);
         if (ok)
             sasi_log_bytes("WRITE-HDI", unit, lba, count,
-                           img->base + lba * PC98_SASI_BLOCK_SIZE, buf,
+                           sasi_hdi_file_offset(img, lba), buf,
                            count * PC98_SASI_BLOCK_SIZE);
         return ok;
     }
@@ -495,10 +511,10 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
 
         if (dev->unit_img[u].f) {
             const pc98_hdi_t *img = &dev->unit_img[u];
-            const uint64_t bytes = (uint64_t) img->blocks * img->sector_size;
-            if (bytes / PC98_SASI_BLOCK_SIZE > 0xffffffffu)
+            logical_blocks = pc98_hdi_sasi_blocks(
+                img, PC98_SASI_TRACK_BLOCKS_256);
+            if (!logical_blocks)
                 continue;
-            logical_blocks = (uint32_t) (bytes / PC98_SASI_BLOCK_SIZE);
             container_sector_size = img->sector_size;
             image_spt = img->spt;
             image_heads = img->hpc;
@@ -507,9 +523,10 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
         } else if (dev->unit_hdd[u] >= 0) {
             const uint64_t sectors512 =
                 (uint64_t) hdd_image_get_last_sector((uint8_t) dev->unit_hdd[u]) + 1u;
-            if (sectors512 * 2u > 0xffffffffu)
+            const uint64_t blocks256 = sectors512 * 2u;
+            if (blocks256 > 0xffffffffu)
                 continue;
-            logical_blocks = (uint32_t) (sectors512 * 2u);
+            logical_blocks = (uint32_t) blocks256;
         } else {
             continue;
         }
@@ -557,8 +574,8 @@ sasi_attach_drives(pc98_sasi_dev_t *dev)
              image_spt != pc98_sasi_geometry[dip].sectors ||
              image_cylinders < pc98_sasi_geometry[dip].user_cylinders)) {
             pclog("[PC98] SASI unit %u: container geometry %u/%u/%u @ %u-byte "
-                  "differs from drive profile %u/%u/%u @ 256-byte; keeping "
-                  "media attached as a flat 256-byte logical stream\n", u,
+                  "differs from drive profile %u/%u/%u @ 256-byte; exposing "
+                  "the container through 256-byte SASI blocks\n", u,
                   image_cylinders, image_heads, image_spt, container_sector_size,
                   pc98_sasi_geometry[dip].user_cylinders,
                   pc98_sasi_geometry[dip].heads,
