@@ -282,6 +282,13 @@ typedef struct mach64_t {
         int      clr_cmp_src;
 
         int err;
+        int inc;           /* Bresenham terms, sign-extended from 18 bits */
+        int dec;
+        uint32_t poly_offset; /* polygon boundary source, in bits */
+        int rot0;          /* packed 24 bpp component at the start of a row */
+        int rot;
+        int skip_byte;
+        int row_ended;     /* for HOST_BYTE_ALIGN */
         int poly_draw;
     } accel;
 
@@ -402,6 +409,7 @@ enum {
     SRC_PATT_ROT_EN = 2,
     SRC_LINEAR_EN   = 4,
     SRC_BYTE_ALIGN  = 8,
+    SRC_LINE_X_DIR  = 16,
     SRC_8x8x8_BRUSH = 32,
 
     SRC_8x8x8_BRUSH_LOADED = 1 << 12
@@ -412,6 +420,7 @@ enum {
 };
 
 #define WIDTH_1BIT 3
+#define WIDTH_4BIT 4
 
 extern int mach64_width[8];
 
@@ -424,7 +433,9 @@ enum {
     DST_Y_TILE     = 0x10,
     DST_LAST_PEL   = 0x20,
     DST_POLYGON_EN = 0x40,
-    DST_24_ROT_EN  = 0x80
+    DST_24_ROT_EN  = 0x80,
+    DST_BRES_SIGN  = 0x800,
+    DST_POLYGON_RTEDGE_DIS = 0x1000 /* CT */
 };
 
 enum {

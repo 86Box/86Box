@@ -27,7 +27,8 @@ video_timings_t timing_mach64_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w 
 
 mach64_t *reset_state[2] = { NULL, NULL };
 
-int mach64_width[8] = { WIDTH_1BIT, 0, 0, 1, 1, 2, 2, 0 };
+/* DP_*_PIX_WIDTH: 0 mono, 1 4 bpp, 2 8 bpp, 3 15 bpp, 4 16 bpp, 6 32 bpp (RRG 3-39). */
+int mach64_width[8] = { WIDTH_1BIT, WIDTH_4BIT, 0, 1, 1, 2, 2, 0 };
 
 #ifdef ENABLE_MACH64_LOG
 int mach64_do_log = ENABLE_MACH64_LOG;
@@ -759,14 +760,15 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->dst_off_pitch);
                     break;
-                case 0x104 ... 0x105:
+                /* DST_Y_X: Y in 14:0, X in 28:16 (RRG 3-55). */
+                case 0x104 ... 0x105: /* DST_X */
+                case 0x11c ... 0x11d: /* DST_X_WIDTH's X */
+                    mach64_wait_fifo_idle(mach64);
+                    READ8(addr + 2, mach64->dst_y_x);
+                    break;
+                case 0x108 ... 0x109: /* DST_Y */
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->dst_y_x);
-                    break;
-                case 0x108 ... 0x109:
-                case 0x11c ... 0x11d:
-                    mach64_wait_fifo_idle(mach64);
-                    READ8(addr + 2, mach64->dst_y_x); // optimise
                     break;
                 case 0x10c ... 0x10f:
                     mach64_wait_fifo_idle(mach64);
@@ -815,13 +817,13 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->src_off_pitch);
                     break;
-                case 0x184 ... 0x185:
-                    mach64_wait_fifo_idle(mach64);
-                    READ8(addr, mach64->src_y_x);
-                    break;
-                case 0x188 ... 0x189:
+                case 0x184 ... 0x185: /* SRC_X: SRC_Y_X 28:16 (RRG 3-99) */
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr + 2, mach64->src_y_x);
+                    break;
+                case 0x188 ... 0x189: /* SRC_Y: 14:0 */
+                    mach64_wait_fifo_idle(mach64);
+                    READ8(addr, mach64->src_y_x);
                     break;
                 case 0x18c ... 0x18f:
                     mach64_wait_fifo_idle(mach64);
@@ -839,13 +841,13 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr, mach64->src_height1_width1);
                     break;
-                case 0x19c ... 0x19d:
-                    mach64_wait_fifo_idle(mach64);
-                    READ8(addr, mach64->src_y_x_start);
-                    break;
-                case 0x1a0 ... 0x1a1:
+                case 0x19c ... 0x19d: /* SRC_X_START: SRC_Y_X_START 28:16 (RRG 3-100) */
                     mach64_wait_fifo_idle(mach64);
                     READ8(addr + 2, mach64->src_y_x_start);
+                    break;
+                case 0x1a0 ... 0x1a1: /* SRC_Y_START: SRC_Y_X_START 14:0 */
+                    mach64_wait_fifo_idle(mach64);
+                    READ8(addr, mach64->src_y_x_start);
                     break;
                 case 0x1a4 ... 0x1a7:
                     mach64_wait_fifo_idle(mach64);
@@ -948,12 +950,16 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr, mach64->clr_cmp_cntl);
                     break;
                 case 0x310 ... 0x311:
+                    /* FIFO_STAT: a '1' for each filled entry of the 16-deep
+                       command FIFO (RRG 3-56). */
                     if (!mach64->blitter_busy)
                         mach64_wake_fifo_thread(mach64);
+                    {
+                        int      n    = FIFO_ENTRIES;
+                        uint32_t bits = (n >= 16) ? 0xffff : ((1u << n) - 1);
 
-                    ret = 0;
-                    if (FIFO_FULL)
-                        ret = 0xff;
+                        ret = (addr & 1) ? (bits >> 8) : (bits & 0xff);
+                    }
                     break;
                 case 0x320 ... 0x323:
                     mach64_wait_fifo_idle(mach64);
@@ -972,12 +978,28 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr - 3, mach64->pat_cntl);
                     break;
                 case 0x338:
+                    /* GUI_ACTIVE: the FIFO, or an operation still running --
+                       one waiting on host data included (RRG 3-61). */
                     if (!mach64->blitter_busy)
                         mach64_wake_fifo_thread(mach64);
-                    ret = FIFO_EMPTY ? 0 : 1;
+                    ret = (!FIFO_EMPTY || mach64->blitter_busy || mach64->accel.busy) ? 1 : 0;
                     break;
+                case 0x339: {
+                    /* DSTX/DSTY against the scissors, bits 8-11. */
+                    int x  = ((int) (mach64->dst_y_x << 3)) >> 19;
+                    int y  = ((int) (mach64->dst_y_x << 17)) >> 17;
+                    int sl = ((int) (mach64->sc_left_right << 19)) >> 19;
+                    int sr = ((int) (mach64->sc_left_right << 3)) >> 19;
+                    int st = ((int) (mach64->sc_top_bottom << 17)) >> 17;
+                    int sb = ((int) (mach64->sc_top_bottom << 1)) >> 17;
+
+                    mach64_wait_fifo_idle(mach64);
+                    ret = ((x < sl) ? 1 : 0) | ((x > sr) ? 2 : 0) | ((y < st) ? 4 : 0) | ((y > sb) ? 8 : 0);
+                    break;
+                }
                 case 0x33a:
-                    ret = FIFO_EMPTY ? 32 : 31;
+                    /* The CT's FIFO count; nothing there on the GX (RRG 3-61). */
+                    ret = (mach64->type >= MACH64_CT) ? (FIFO_EMPTY ? 32 : 31) : 0;
                     break;
                 default:
                     ret = 0;
@@ -1322,6 +1344,11 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                 case 0xe8 ... 0xeb:
                     break; /* CONFIG_STAT1 is read-only */
                 case 0xd0 ... 0xd3:
+                    /* GEN_GUI_EN (bit 8): "0 = Resets draw engine" (RRG 3-57). */
+                    if (((addr & 3) == 1) && (mach64->gen_test_cntl & 0x100) && !(val & 0x01)) {
+                        mach64_wait_fifo_idle(mach64);
+                        mach64->accel.busy = 0;
+                    }
                     WRITE8(addr, mach64->gen_test_cntl, val);
                     /* GEN_EE_CHIP_SEL (bit 2) is the EEPROM's chip select and
                        GEN_EE_CLOCK (bit 1) its clock; the part sees either only
