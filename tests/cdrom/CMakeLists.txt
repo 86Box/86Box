@@ -1,4 +1,17 @@
 if(BUILD_TESTING)
+    add_executable(mke_cdrom_tests
+        cdrom_mke_test.cpp
+        ../../src/cdrom/cdrom_mke.c
+        ../../src/utils/fifo8.c
+    )
+    target_include_directories(mke_cdrom_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    target_link_libraries(mke_cdrom_tests PRIVATE GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(mke_cdrom_tests)
+
     add_executable(mitsumi_cdrom_tests
         cdrom_mitsumi_test.cpp
     )
