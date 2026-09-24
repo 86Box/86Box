@@ -454,8 +454,11 @@ mach64_update_rom(mach64_t *mach64)
         mem_mapping_set_addr(&mach64->bios_rom.mapping, 0xc0000, 0x8000);
 }
 
-/* CFG_MEM_AP_LOC (CONFIG_CNTL 13:4) reads back where the aperture is: in
-   4M units, or 16M on the VT and VT2. The I/O and MMIO reads agree. On
+/* CFG_MEM_AP_LOC (CONFIG_CNTL 13:4) reads back where the aperture is, in
+   4M units on every chip: the VT's is on a 16M boundary, so "for VT, bits
+   5:0 = 00" (VT/RAGE RRG 4-16), and its BIOS reads the field as bits 13:4
+   times 4M (113-34004-104, C000:4D49), as ATI's M64DIAG does. The I/O and
+   MMIO reads agree. On
    the CT and later CFG_MEM_AP_SIZE (1:0) is fixed at 2, "2 x 8M
    apertures", the other values being reserved (RRG 3-9, CT column); "in
    PCI systems the aperture size is always set to 2x8 MB ... read-only"
@@ -463,9 +466,7 @@ mach64_update_rom(mach64_t *mach64)
 static void
 mach64_sync_ap_loc(mach64_t *mach64)
 {
-    const int shift = ((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2)) ? 24 : 22;
-
-    mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | (((mach64->linear_base >> shift) << 4) & 0x3ff0);
+    mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | (((mach64->linear_base >> 22) << 4) & 0x3ff0);
     if (mach64->type != MACH64_GX)
         mach64->config_cntl = (mach64->config_cntl & ~3) | 2;
 }
