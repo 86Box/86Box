@@ -228,6 +228,20 @@ mach64_recalctimings(svga_t *svga)
     }
 }
 
+/* The VLB card's EEPROM as ATI's INSTALL utility (mach64 driver CD, release
+   435) leaves it when it first sets the card up, taken word for word from
+   the nvr file it wrote: the ATI88800CX EEPROM data structure (BIOS Kit
+   BIO-888GX0-02, appendix B) with a write count of 0, checksum 0BEh in
+   word 1 (the bytes of all the words sum to 0), table revision 2 in word
+   3, word 9 = 0040h, and no aperture location, monitor, refresh rates or
+   CRT tables chosen. Written when the card has no file, instead of an
+   erased part: an erased one reads aperture location 4095 MB. */
+static const uint16_t mach64_vlb_eeprom_default[256] = {
+    [1] = 0x00be,
+    [3] = 0x0002,
+    [9] = 0x0040,
+};
+
 void
 mach64_updatemapping(mach64_t *mach64)
 {
@@ -1161,7 +1175,17 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     break;
                 case 0xd0 ... 0xd3:
                     WRITE8(addr, mach64->gen_test_cntl, val);
-                    ati_eeprom_write(&mach64->eeprom, mach64->gen_test_cntl & 0x10, mach64->gen_test_cntl & 2, mach64->gen_test_cntl & 1);
+                    /* GEN_EE_CHIP_SEL (bit 2) is the EEPROM's chip select and
+                       GEN_EE_CLOCK (bit 1) its clock; the part sees either only
+                       while GEN_EE_EN (bit 4) enables the interface, its pins
+                       being shared with the display (Register Reference Guide,
+                       GEN_TEST_CNTL). Bit 4 was taken for the chip select. */
+                    {
+                        int ee_en = !!(mach64->gen_test_cntl & 0x10);
+
+                        ati_eeprom_write(&mach64->eeprom, ee_en && (mach64->gen_test_cntl & 0x04),
+                                         ee_en && (mach64->gen_test_cntl & 0x02), mach64->gen_test_cntl & 0x01);
+                    }
                     mach64->gen_test_cntl  = (mach64->gen_test_cntl & ~8) | (ati_eeprom_read(&mach64->eeprom) ? 8 : 0);
                     if (mach64->type == MACH64_GX)
                         svga->dac_hwcursor.ena = !!(mach64->gen_test_cntl & 0x80);
@@ -2223,7 +2247,8 @@ mach64gx_init(const device_t *info)
         mem_mapping_disable(&mach64->bios_rom.mapping);
     } else if (info->flags & DEVICE_VLB) {
         mach64->config_stat0 |= 6; /*VLB, 256Kx16 DRAM*/
-        ati_eeprom_load(&mach64->eeprom, "mach64_vlb.nvr", 1);
+        ati_eeprom_load_default(&mach64->eeprom, "mach64_vlb.nvr", 1,
+                                mach64_vlb_eeprom_default, sizeof(mach64_vlb_eeprom_default) / sizeof(mach64_vlb_eeprom_default[0]));
         rom_init(&mach64->bios_rom, BIOS_VLB_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     } else if (info->flags & DEVICE_ISA16) {
         mach64->config_stat0 |= 0; /*ISA 16-bit, 256k16 DRAM*/
