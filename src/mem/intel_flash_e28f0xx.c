@@ -202,6 +202,9 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
 
+    if (!flash_bios_write_selected(addr))
+        return;
+
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
         return;
@@ -285,6 +288,9 @@ static void
 flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)

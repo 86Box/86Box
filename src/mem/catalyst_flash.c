@@ -28,6 +28,7 @@
 #include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/flash.h>
 
 #define FLAG_WORD    4
 #define FLAG_BXB     2
@@ -138,6 +139,9 @@ static void
 flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *dev = (flash_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     addr &= biosmask;
 
