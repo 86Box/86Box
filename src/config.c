@@ -4424,6 +4424,12 @@ save_floppy_and_cdrom_drives(void)
             ini_section_set_string(cat, temp, tmp2);
         }
 
+        sprintf(temp, "cdrom_%02i_lpt_port", c + 1);
+        if (cdrom[c].bus_type != CDROM_BUS_LPT)
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].res);
+
         sprintf(temp, "cdrom_%02i_image_path", c + 1);
         if ((cdrom[c].bus_type == 0) || (strlen(cdrom[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
