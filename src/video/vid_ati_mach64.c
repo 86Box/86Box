@@ -355,14 +355,17 @@ mach64_recalctimings(svga_t *svga)
         svga->monitor->mon_overscan_x = svga->border_left + ((mach64->ovr_wid_left_right >> 16) & 0x0f) * 8;
         svga->monitor->mon_overscan_y = svga->border_top + ((mach64->ovr_wid_top_bottom >> 16) & 0xff);
     } else {
-        svga->vram_display_mask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
+        svga->vram_display_mask = ((mach64->type == MACH64_GX) && (mach64->regs[0x36] & 0x01)) ? mach64->vram_mask : 0x3ffff;
         svga->lut_map           = 0;
         svga->bpp               = 8;
 
         /* ATI extended modes: start address bits 16 (ATI30 bit 6) and 17
            (ATI23 bit 4), the 256-colour mode (ATI30 bit 5) and interlace
-           (ATI3E bit 1) (VGA Register Guide 5-8, 5-15, 5-27). */
-        if (mach64->regs[0x30] & 0x40)
+           (ATI3E bit 1) (VGA Register Guide 5-8, 5-15, 5-27). The CT and
+           later have none of these registers (VT/RAGE RRG 9-14). */
+        if (mach64->type != MACH64_GX)
+            svga->interlace = 0;
+        else if (mach64->regs[0x30] & 0x40)
             svga->memaddr_latch |= 0x10000;
         if (mach64->regs[0x23] & 0x10)
             svga->memaddr_latch |= 0x20000;
@@ -371,7 +374,8 @@ mach64_recalctimings(svga_t *svga)
             svga->map8   = svga->pallook;
             svga->render = svga->lowres ? svga_render_8bpp_lowres : svga_render_8bpp_highres;
         }
-        svga->interlace = !!(mach64->regs[0x3e] & 0x02);
+        if (mach64->type == MACH64_GX)
+            svga->interlace = !!(mach64->regs[0x3e] & 0x02);
         if (svga->interlace)
             svga->dispend >>= 1;
     }
@@ -481,7 +485,7 @@ mach64_updatemapping(mach64_t *mach64)
         case 0x0: /*128k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
             /* ATI3D bit 2 pages all 128K at once (VGA Register Guide 5-26). */
-            svga->banked_mask = (mach64->regs[0x3d] & 0x04) ? 0x1ffff : 0xffff;
+            svga->banked_mask = ((mach64->type == MACH64_GX) && (mach64->regs[0x3d] & 0x04)) ? 0x1ffff : 0xffff;
             break;
         case 0x4: /*64k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
@@ -644,10 +648,12 @@ pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
     switch (addr & 3) {
         case 0: /*Clock sel*/
             break;
-        case 1: /*Addr*/
-            mach64->pll_addr = (val >> 2) & 0xf;
+        case 1: /*PLL_WR_EN (bit 9), PLL_ADDR (15:10)*/
+            mach64->pll_addr = (val >> 2) & 0x3f;
             break;
-        case 2: /*Data*/
+        case 2: /*PLL_DATA: written only with PLL_WR_EN, "read-only" otherwise (RRG-G02700 4-38)*/
+            if (!(mach64->clock_cntl & 0x200))
+                break;
             mach64->pll_regs[mach64->pll_addr] = val;
             mach64_log("pll_write %02x,%02x\n", mach64->pll_addr, val);
 
@@ -883,7 +889,12 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     READ8(addr, mach64->scratch_reg1);
                     break;
                 case 0x90 ... 0x93:
-                    READ8(addr, mach64->clock_cntl);
+                    /* PLL_DATA (23:16) reads the register PLL_ADDR selects
+                       (RRG-G02700 B-1). */
+                    if ((mach64->type != MACH64_GX) && ((addr & 3) == 2))
+                        ret = mach64->pll_regs[mach64->pll_addr];
+                    else
+                        READ8(addr, mach64->clock_cntl);
                     break;
                 case 0xb0 ... 0xb3:
                     READ8(addr, mach64->mem_cntl);
@@ -1982,7 +1993,7 @@ mach64_vga_translate(uint32_t addr, void *priv)
     const svga_t   *svga   = (svga_t *) priv;
     const mach64_t *mach64 = (mach64_t *) svga->priv;
 
-    if ((mach64->mem_cntl & (1 << 18)) && (addr >= mach64_mem_bndry(mach64)))
+    if (mach64_mem_bndry_en(mach64) && (addr >= mach64_mem_bndry(mach64)))
         return 0xffffffff;
     return addr;
 }
@@ -2155,7 +2166,8 @@ mach64_io_unmap(mach64_t *mach64)
     for (uint8_t c = 0; c < 32; c++) // *0x400
         io_removehandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
 
-    io_removehandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
+    if (mach64->type == MACH64_GX)
+        io_removehandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     if (mach64->block_decoded_io && mach64->block_decoded_io < 0x10000)
         io_removehandler(mach64->block_decoded_io, 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
@@ -2194,7 +2206,11 @@ mach64_io_map(mach64_t *mach64)
             io_sethandler((c << 10) + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
     }
 
-    io_sethandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
+    /* The ATI extended VGA registers are the GX/CX's; "the mach64CT and
+       mach64ET do not contain the set of VGA extended registers" (VT/RAGE
+       RRG 9-14), the small apertures page their memory instead. */
+    if (mach64->type == MACH64_GX)
+        io_sethandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     if (mach64->use_block_decoded_io && mach64->block_decoded_io && mach64->block_decoded_io < 0x10000)
         io_sethandler(mach64->block_decoded_io, 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);

@@ -667,7 +667,7 @@ mach64_below_bndry(const mach64_t *mach64, uint32_t addr, int width)
 {
     uint32_t byte;
 
-    if (!(mach64->mem_cntl & (1 << 18)))
+    if (!mach64_mem_bndry_en(mach64))
         return 0;
     switch (width) {
         case 0:

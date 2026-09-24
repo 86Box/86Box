@@ -325,7 +325,7 @@ typedef struct mach64_t {
     int      use_block_decoded_io;
 
     int     pll_addr;
-    uint8_t pll_regs[16];
+    uint8_t pll_regs[64];
     double  pll_freq[4];
 
     uint32_t config_stat0;
@@ -487,7 +487,16 @@ extern mach64_t* reset_state[2];
 
 
 
-/* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M (RRG 3-67). */
+/* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M, enabled by
+   MEM_BNDRY_EN (bit 18), on the GX and CT (RRG 3-67). The VT's MEM_CNTL
+   has no boundary: those bits are its refresh rate and DLL reset
+   (VT/RAGE RRG 4-10). */
+static inline int
+mach64_mem_bndry_en(const mach64_t *mach64)
+{
+    return (mach64->type <= MACH64_CT) && (mach64->mem_cntl & (1 << 18));
+}
+
 static inline uint32_t
 mach64_mem_bndry(const mach64_t *mach64)
 {
