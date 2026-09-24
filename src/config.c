@@ -1960,9 +1960,7 @@ load_floppy_and_cdrom_drives(void)
         cdrom[c].mke_channel = cdrom[c].ide_channel = cdrom[c].scsi_device_id = c & 3;
 
         if (cdrom[c].bus_type == CDROM_BUS_MKE) {
-            char *type = cdrom_get_internal_name(cdrom_get_type(c));
-
-            if (strstr(type, "cr56") == NULL)
+            if (cdrom_drive_types[cdrom_get_type(c)].bus_type != BUS_TYPE_MKE)
                 cdrom_set_type(c, cdrom_get_from_internal_name("cr563_075"));
 
             sprintf(temp, "cdrom_%02i_mke_channel", c + 1);

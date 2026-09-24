@@ -1888,8 +1888,24 @@ dma_page_read(uint16_t addr, UNUSED(void *priv))
         else
             addr = convert[addr & 0x07];
 
-        if (addr < 8)
-            ret = (dma_eisa && dma[addr].ext_addr) ? ((dma[addr].ac >> 16) & 0xff) : dma[addr].page_l;
+        if (addr < 8) {
+            ret = dma[addr].page_l;
+            /* In extended address mode the Current Low Page is the third
+               byte of the address counter, carried into as it counts. On a
+               channel counting in words it is still an eight-bit register:
+               "the least significant bit of the Low Page register is ignored
+               when the address is driven out onto the bus" (82374EB 6.x,
+               Extended Mode Register), not when it is read, and bit 16 of
+               the counter there is address register bit 15. Phoenix's POST
+               writes FFh to every page register and reads it back (test 06,
+               F000:1E12 on the Siemens-Nixdorf D823), and FEh from channel 5
+               stopped the board with a beep code. */
+            if (dma_eisa && dma[addr].ext_addr) {
+                ret = (dma[addr].ac >> 16) & 0xff;
+                if (dma_addr_shifted(&dma[addr]))
+                    ret = (ret & 0xfe) | (dma[addr].page_l & 0x01);
+            }
+        }
     }
 
     dma_log("DMA: [R] %04X = %02X\n", addr, ret);
