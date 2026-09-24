@@ -956,8 +956,9 @@ mach64_vblank_start(svga_t *svga)
     svga->overlay.x = (mach64->overlay_y_x_start >> 16) & 0x7ff;
     svga->overlay.y = mach64->overlay_y_x_start & 0x7ff;
 
-    svga->overlay.cur_xsize = ((mach64->overlay_y_x_end >> 16) & 0x7ff) - svga->overlay.x;
-    svga->overlay.cur_ysize = (mach64->overlay_y_x_end & 0x7ff) - svga->overlay.y;
+    /* "The start and end coordinates are inclusive" (VT/RAGE RRG 5-7). */
+    svga->overlay.cur_xsize = ((mach64->overlay_y_x_end >> 16) & 0x7ff) - svga->overlay.x + 1;
+    svga->overlay.cur_ysize = (mach64->overlay_y_x_end & 0x7ff) - svga->overlay.y + 1;
 
     if (mach64->type >= MACH64_VT3) {
         svga->overlay.addr  = mach64->scaler_buf_offset[0] & 0x3fffff;
