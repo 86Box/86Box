@@ -105,6 +105,9 @@ extern const device_t i440gx_device;
 extern const device_t i440zx_device;
 extern const device_t i450kx_device;
 
+extern const device_t pceb_device;
+extern const device_t esc_device;
+
 extern const device_t sio_device;
 extern const device_t sio_zb_device;
 
@@ -123,6 +126,7 @@ extern const device_t piix4e_device;
 extern const device_t slc90e66_device;
 
 extern const device_t ioapic_device;
+extern const device_t ioapic_ami_device;
 
 /* VTech */
 extern const device_t laserxt_device;
@@ -164,6 +168,8 @@ extern const device_t sanyo_device;
 /* SiS */
 extern const device_t rabbit_device;
 extern const device_t sis_85c401_device;
+extern const device_t sis_85c411_device;
+extern void           sis_85c411_set_board_id(const char *mfg, uint16_t product, uint8_t rev);
 extern const device_t sis_85c460_device;
 extern const device_t sis_85c461_device;
 extern const device_t sis_85c471_device;

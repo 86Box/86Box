@@ -54,6 +54,15 @@ static uint8_t  dma_ibm5140;
 static uint8_t  dma_ibm5140_diag;
 static uint8_t  dma_buffer[65536];
 static uint16_t dma_sg_base;
+/* How much of a scatter-gather descriptor is the byte count: sixteen bits
+   on the PCI-ISA bridges, twenty-four on an EISA one. */
+static uint32_t dma_sg_count_mask = 0x0000fffe;
+/* EISA buffer chaining and the ring buffer stop registers. */
+static uint8_t  dma_chain_mode[8];
+static uint8_t  dma_chain_int;
+static uint8_t  dma_stop[8][3];
+static uint8_t  dma_stop_en; /* bit 7 of each extended mode register */
+static uint8_t  dma_eisa;
 static uint16_t dma16_buffer[65536];
 static uint32_t dma_mask;
 
@@ -532,11 +541,11 @@ dma_sg_next_addr(dma_t *dev)
     dma_bm_read(dev->ptr_cur + 4, (uint8_t *) &(dev->count), 4, ts);
     dma_log("DMA S/G DWORDs: %08X %08X\n", dev->addr, dev->count);
     dev->eot = dev->count >> 31;
-    dev->count &= 0xfffe;
-    dev->cb = (uint16_t) dev->count;
+    dev->count &= dma_sg_count_mask;
+    dev->cb = dev->count;
     dev->cc = dev->count;
     if (!dev->count)
-        dev->count = 65536;
+        dev->count = (dma_sg_count_mask & 0x00ff0000) ? 16777216 : 65536;
     if (ts == 2)
         dev->addr &= 0xfffffffe;
     dev->ab   = dev->addr & dma_mask;
@@ -555,7 +564,7 @@ dma_block_transfer(int channel)
         bit16 = !!(dma_transfer_size(&(dma[channel])) == 2);
 
     dma_req_is_soft = 1;
-    for (uint16_t i = 0; i <= dma[channel].cb; i++) {
+    for (uint32_t i = 0; (i <= dma[channel].cb) && (i < 65536); i++) {
         if ((dma[channel].mode & 0x8c) == 0x84) {
             if (bit16)
                 dma_channel_write(channel, dma16_buffer[i]);
@@ -583,10 +592,10 @@ dma_mem_to_mem_transfer(void)
 
     dma_req_is_soft = 1;
 
-    for (i = 0; i <= dma[0].cb; i++)
+    for (i = 0; (i <= (int) dma[0].cb) && (i < 65536); i++)
         dma_buffer[i] = dma_channel_read(0);
 
-    for (i = 0; i <= dma[1].cb; i++)
+    for (i = 0; (i <= (int) dma[1].cb) && (i < 65536); i++)
         dma_channel_write(1, dma_buffer[i]);
 
     dma_req_is_soft = 0;
@@ -834,6 +843,12 @@ dma_ext_mode_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 
     dma[channel].ext_mode = val & 0x7c;
 
+    /* Only an EISA controller has stop registers for this to turn on. */
+    if (dma_eisa && (val & 0x80))
+        dma_stop_en |= (1 << channel);
+    else
+        dma_stop_en &= ~(1 << channel);
+
     switch ((val >> 2) & 0x03) {
         case 0x00:
             dma[channel].transfer_mode = 0x0101;
@@ -864,6 +879,8 @@ dma_sg_int_status_read(UNUSED(uint16_t addr), UNUSED(void *priv))
         if (i != 4)
             ret |= (!!(dma[i].sg_status & 8)) << i;
     }
+
+    ret |= dma_chain_int;
 
     return ret;
 }
@@ -1800,8 +1817,20 @@ dma_reset_legacy(void)
 
     dma_remove_sg();
     dma_sg_base = 0x0400;
+    memset(dma_chain_mode, 0x00, sizeof(dma_chain_mode));
+    dma_chain_int = 0x00;
+    dma_stop_en   = 0x00;
 
     dma_mask = 0x00ffffff;
+
+    /* A reset clears the registers, not the controller's kind. The power-on
+       reset comes after the chipset has said what it has, so an EISA
+       controller must come out of it an EISA controller again: full-width
+       addresses, and the advanced paths its extensions live on. */
+    if (dma_eisa) {
+        dma_advanced = 1;
+        dma_mask     = 0xffffffff;
+    }
 
     dma_at = is286;
 }
@@ -1872,6 +1901,145 @@ dma_high_page_init(void)
                   dma_high_page_read, NULL, NULL, dma_high_page_write, NULL, NULL, NULL);
 }
 
+/* EISA gives every channel a third byte of count, at 0401h/0403h/0405h/
+   0407h for channels 0 to 3 and 04C6h/04CAh/04CEh for 5 to 7. Writing the
+   ordinary count registers clears it, which the masks there already do, so
+   software that knows nothing of it keeps getting sixteen bit counts. */
+static int
+dma_high_count_channel(uint16_t addr)
+{
+    if ((addr & 0xfff9) == 0x0401)
+        return (addr >> 1) & 3;
+    if ((addr == 0x04c6) || (addr == 0x04ca) || (addr == 0x04ce))
+        return 4 | ((addr >> 2) & 3);
+    return -1;
+}
+
+static uint8_t
+dma_high_count_read(uint16_t addr, UNUSED(void *priv))
+{
+    int channel = dma_high_count_channel(addr);
+
+    if (channel < 0)
+        return 0xff;
+
+    return (uint8_t) ((dma[channel].cc >> 16) & 0xff);
+}
+
+static void
+dma_high_count_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
+{
+    int channel = dma_high_count_channel(addr);
+
+    if (channel < 0)
+        return;
+
+    dma[channel].cb = (dma[channel].cb & 0x00ffff) | ((uint32_t) val << 16);
+    dma[channel].cc = (int) dma[channel].cb;
+}
+
+/* 040Ah and 04D4h, written: the chaining mode of one channel, chosen by
+   the low two bits the way the 8237's own mode register chooses. */
+static void
+dma_chain_mode_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
+{
+    int channel = (val & 3) | ((addr == 0x04d4) ? 4 : 0);
+
+    dma_chain_mode[channel] = val & 0x1c;
+
+    /* Programming the next buffer, or giving chaining up, is what answers
+       the interrupt. */
+    if ((val & 0x08) || !(val & 0x04)) {
+        dma_chain_int &= ~(1 << channel);
+        if (!dma_chain_int)
+            picintc(1 << 13);
+    }
+}
+
+/* 04D4h, read: which channels have chaining on. */
+static uint8_t
+dma_chain_status_read(UNUSED(uint16_t addr), UNUSED(void *priv))
+{
+    uint8_t ret = 0x00;
+
+    for (uint8_t i = 0; i < 8; i++)
+        if ((i != 4) && (dma_chain_mode[i] & 0x04))
+            ret |= (1 << i);
+
+    return ret;
+}
+
+/* 040Ch, read: which channels signal an expired buffer with TC rather than
+   IRQ13. */
+static uint8_t
+dma_chain_bec_read(UNUSED(uint16_t addr), UNUSED(void *priv))
+{
+    uint8_t ret = 0x00;
+
+    for (uint8_t i = 0; i < 8; i++)
+        if ((i != 4) && (dma_chain_mode[i] & 0x10))
+            ret |= (1 << i);
+
+    return ret;
+}
+
+/* 04E0h-04FEh: three bytes of stop address a channel, four ports apart,
+   with nothing at channel 4's. The bottom two bits are not kept. */
+static uint8_t
+dma_stop_read(uint16_t addr, UNUSED(void *priv))
+{
+    int channel = (addr >> 2) & 7;
+    int byte    = addr & 3;
+
+    if ((channel == 4) || (byte == 3))
+        return 0xff;
+
+    return dma_stop[channel][byte];
+}
+
+static void
+dma_stop_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
+{
+    int channel = (addr >> 2) & 7;
+    int byte    = addr & 3;
+
+    if ((channel == 4) || (byte == 3))
+        return;
+
+    dma_stop[channel][byte] = byte ? val : (val & 0xfc);
+}
+
+/* What an EISA DMA controller has over the PCI-ISA bridges' one: the high
+   count registers, the high page registers of the sixteen bit channels
+   (0489h-048Bh, which the eight ports above stop short of), and twenty-four
+   bit counts in scatter-gather descriptors. */
+void
+dma_eisa_init(void)
+{
+    for (uint16_t port = 0x0401; port <= 0x0407; port += 2)
+        io_sethandler(port, 1, dma_high_count_read, NULL, NULL,
+                      dma_high_count_write, NULL, NULL, NULL);
+    for (uint16_t port = 0x04c6; port <= 0x04ce; port += 4)
+        io_sethandler(port, 1, dma_high_count_read, NULL, NULL,
+                      dma_high_count_write, NULL, NULL, NULL);
+
+    io_sethandler(0x0488, 8,
+                  dma_high_page_read, NULL, NULL, dma_high_page_write, NULL, NULL, NULL);
+
+    /* 040Ah reads through the scatter-gather interrupt status handler,
+       which is at the same place and reports chaining interrupts as well. */
+    io_sethandler(0x040a, 1, NULL, NULL, NULL,
+                  dma_chain_mode_write, NULL, NULL, NULL);
+    io_sethandler(0x04d4, 1, dma_chain_status_read, NULL, NULL,
+                  dma_chain_mode_write, NULL, NULL, NULL);
+    io_sethandler(0x040c, 1, dma_chain_bec_read, NULL, NULL,
+                  NULL, NULL, NULL, NULL);
+    io_sethandler(0x04e0, 32, dma_stop_read, NULL, NULL,
+                  dma_stop_write, NULL, NULL, NULL);
+
+    dma_sg_count_mask = 0x00fffffe;
+    dma_eisa          = 1;
+}
 
 void
 dma_reset(void)
@@ -1904,6 +2072,10 @@ dma_init(void)
 {
     dma_ibm5140 = dma_ibm5140_diag = 0;
     dma_ps2.is_ps2 = 0;
+    /* What kind of controller this is, which only a new machine changes; an
+       EISA chipset sets it again after this. */
+    dma_eisa          = 0;
+    dma_sg_count_mask = 0x0000fffe;
     dma_reset();
 
     io_sethandler(0x0000, 16,
@@ -2130,6 +2302,13 @@ dma_retreat(dma_t *dma_c)
 
         dma_c->page = dma_c->page_l = (dma_c->ac >> 16) & 0xff;
         dma_c->page_h               = (dma_c->ac >> 24) & 0xff;
+    } else if (dma_eisa) {
+        /* An EISA controller's address counter is the whole address: it
+           carries into the page bits, and a transfer crosses 64 KB (128 KB
+           on the 16-bit channels) with no wrap. Operating systems rely on
+           it -- Windows NT's EISA HAL does not split transfers at those
+           boundaries, and a wrap drops the rest of the buffer 64 KB low. */
+        dma_c->ac = (dma_c->ac - as) & dma_mask;
     } else if (as == 2)
         dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac - as) & 0x1ffff);
     else
@@ -2146,6 +2325,9 @@ dma_advance(dma_t *dma_c)
 
         dma_c->page = dma_c->page_l = (dma_c->ac >> 16) & 0xff;
         dma_c->page_h               = (dma_c->ac >> 24) & 0xff;
+    } else if (dma_eisa) {
+        /* No 64 KB wrap on EISA; see dma_retreat(). */
+        dma_c->ac = (dma_c->ac + as) & dma_mask;
     } else if (as == 2)
         dma_c->ac = ((dma_c->ac & 0xfffe0000) & dma_mask) | ((dma_c->ac + as) & 0x1ffff);
     else
@@ -2155,6 +2337,51 @@ dma_advance(dma_t *dma_c)
 
 static int dma_channel_readable_legacy(int channel);
 static int dma_channel_writable_legacy(int channel);
+/* The ring buffer stop: a channel whose stop register is switched on halts
+   when its address reaches the one in it, which is how the far end of a
+   ring is kept from being overrun. The bottom two bits are not compared. */
+static void
+dma_stop_check(int channel)
+{
+    uint32_t stop;
+
+    if (!(dma_stop_en & (1 << channel)))
+        return;
+
+    stop = dma_stop[channel][0] | (dma_stop[channel][1] << 8) | (dma_stop[channel][2] << 16);
+
+    if ((dma[channel].ac & 0x00fffffc) == (stop & 0x00fffffc))
+        dma_m |= (1 << channel);
+}
+
+/* EISA buffer chaining. With it on, the base registers hold the next buffer
+   rather than a copy of this one, so reaching terminal count means moving on
+   to it instead of stopping. The CPU is told, by IRQ13 or by TC as bit 4
+   chose, so it can program the buffer after that. Returns whether the
+   channel carries on. */
+static int
+dma_chain_tc(int channel)
+{
+    if (!(dma_chain_mode[channel] & 0x04))
+        return 0;
+
+    if (!(dma_chain_mode[channel] & 0x08)) {
+        /* Nobody said the next buffer was ready, so the chain ends here and
+           the channel masks itself the ordinary way. */
+        dma_chain_mode[channel] &= ~0x04;
+        return 0;
+    }
+
+    dma_chain_mode[channel] &= ~0x08;
+
+    if (!(dma_chain_mode[channel] & 0x10)) {
+        dma_chain_int |= (1 << channel);
+        picint(1 << 13);
+    }
+
+    return 1;
+}
+
 static int dma_channel_read_only_legacy(int channel);
 static int dma_channel_advance_legacy(int channel);
 static int dma_channel_read_legacy(int channel);
@@ -2589,13 +2816,15 @@ dma_channel_advance_legacy(int channel)
     int      tc = 0;
 
     if (dma_stat_adv_pend & (1 << channel)) {
+        dma_stop_check(channel);
+
         dma_c->cc--;
         if (dma_c->cc < 0) {
             if (dma_advanced && (dma_c->sg_status & 1) && !(dma_c->sg_status & 6))
                 dma_sg_next_addr(dma_c);
             else {
                 tc = 1;
-                if (dma_c->mode & 0x10) { /*Auto-init*/
+                if ((dma_c->mode & 0x10) || dma_chain_tc(channel)) { /*Auto-init, or the next link*/
                     dma_c->cc = dma_c->cb;
                     dma_c->ac = dma_c->ab;
                 } else
@@ -2685,13 +2914,15 @@ dma_channel_read_legacy(int channel)
 
     dma_stat_rq |= (1 << channel);
 
+    dma_stop_check(channel);
+
     dma_c->cc--;
     if (dma_c->cc < 0) {
         if (dma_advanced && (dma_c->sg_status & 1) && !(dma_c->sg_status & 6))
             dma_sg_next_addr(dma_c);
         else {
             tc = 1;
-            if (dma_c->mode & 0x10) { /*Auto-init*/
+            if ((dma_c->mode & 0x10) || dma_chain_tc(channel)) { /*Auto-init, or the next link*/
                 dma_c->cc = dma_c->cb;
                 dma_c->ac = dma_c->ab;
             } else
@@ -2778,12 +3009,14 @@ dma_channel_write_legacy(int channel, uint16_t val)
 
     dma_stat_adv_pend &= ~(1 << channel);
 
+    dma_stop_check(channel);
+
     dma_c->cc--;
     if (dma_c->cc < 0) {
         if (dma_advanced && (dma_c->sg_status & 1) && !(dma_c->sg_status & 6))
             dma_sg_next_addr(dma_c);
         else {
-            if (dma_c->mode & 0x10) { /*Auto-init*/
+            if ((dma_c->mode & 0x10) || dma_chain_tc(channel)) { /*Auto-init, or the next link*/
                 dma_c->cc = dma_c->cb;
                 dma_c->ac = dma_c->ab;
             } else

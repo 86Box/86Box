@@ -2414,7 +2414,7 @@ gus_poll_wave(void *priv)
     for (uint8_t d = 0; d < 32; d++) {
         uint8_t mulaw = (gus->type == GUS_INTERWAVE && gus->iw_enhanced && (gus->synth_mode[d] & 0x40)) ? 1 : 0;
         if (!(gus->ctrl[d] & 3) && (gus->type != GUS_INTERWAVE || !gus->iw_enhanced || !(gus->synth_mode[d] & 0x02))) {
-            uint16_t tempfreq = gus->freq[d];
+            int16_t tempfreq = gus->freq[d];
             if (gus->ctrl[d] & 4) {
                 addr = gus->cur[d] >> 9;
                 if (gus->type == GUS_INTERWAVE && gus->iw_enhanced)
@@ -2422,9 +2422,12 @@ gus_poll_wave(void *priv)
                 else
                     addr = (addr & 0xC0000) | ((addr << 1) & 0x3FFFE);
                 if (gus->type == GUS_INTERWAVE && gus->iw_enhanced && (gus->synth_global & 0x02)) {
-                    if (gus->lfo_freq[d] & 0x80)
-                        tempfreq -= (gus->lfo_freq[d] & 0x7f);
-                    else
+                    if (gus->lfo_freq[d] & 0x80) {
+                        if ((tempfreq - (gus->lfo_freq[d] & 0x7f)) < 1)
+                            tempfreq = 1;
+                        else
+                            tempfreq -= (gus->lfo_freq[d] & 0x7f);
+                    } else
                         tempfreq += (gus->lfo_freq[d] & 0x7f);
                 }
                 if (!(tempfreq >> 10)) {
@@ -2464,9 +2467,12 @@ gus_poll_wave(void *priv)
                     v = 0x0000;
             } else {
                 if (gus->type == GUS_INTERWAVE && gus->iw_enhanced && (gus->synth_global & 0x02)) {
-                    if (gus->lfo_freq[d] & 0x80)
-                        tempfreq -= (gus->lfo_freq[d] & 0x7f);
-                    else
+                    if (gus->lfo_freq[d] & 0x80) {
+                        if ((tempfreq - (gus->lfo_freq[d] & 0x7f)) < 1)
+                            tempfreq = 1;
+                        else
+                            tempfreq -= (gus->lfo_freq[d] & 0x7f);
+                    } else
                         tempfreq += (gus->lfo_freq[d] & 0x7f);
                 }
                 if (!(tempfreq >> 10)) {
@@ -2527,7 +2533,7 @@ gus_poll_wave(void *priv)
             else
                 v = (int16_t) (float) (v) *24.0 * vol16bit[(temp_rcur >> 10) & 4095];
 
-            if (gus->type == GUS_INTERWAVE && (gus->synth_mode[gus->voice] & 0x20)) {
+            if (gus->type == GUS_INTERWAVE && (gus->synth_mode[d] & 0x20)) {
                 gus->out_l += (v * vol16bit[gus->pan_l[d]]);
                 gus->out_r += (v * vol16bit[gus->pan_r[d]]);
 

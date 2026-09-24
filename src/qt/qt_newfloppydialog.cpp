@@ -68,15 +68,15 @@ static const QStringList floppyTypes = {
 static const QStringList rdiskTypes = {
     "ZIP 100",
     "ZIP 250",
+#if 0
+    "ZIP 750",
+#endif
     "Jaz 1 GB",
     "Jaz 2 GB",
     "SyJet 1.5 GB",
     "SparQ 1.0 GB",
-#if 0
-    "ZIP 750",
     "LS-120",
     "LS-240",
-#endif
 };
 
 static const QStringList moTypes = {

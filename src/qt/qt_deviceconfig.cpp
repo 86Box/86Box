@@ -31,6 +31,8 @@
 #include <QLabel>
 #include <QDir>
 #include <QSettings>
+#include <QSet>
+#include <QStandardItemModel>
 #include <QStringBuilder>
 #include <QCollator>
 
@@ -43,12 +45,18 @@ extern "C" {
 #include <86box/mem.h>
 #include <86box/random.h>
 #include <86box/rom.h>
+#include <86box/timer.h>
+#include <86box/thread.h>
+#include <86box/network.h>
+#include <86box/scsi.h>
 }
 
 #include "qt_filefield.hpp"
 #include "qt_models_common.hpp"
 #include "qt_util.hpp"
 #include "qt_preferences.hpp"
+#include "qt_settingsnetwork.hpp"
+#include "qt_settingsstoragecontrollers.hpp"
 #ifdef Q_OS_WINDOWS
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
@@ -136,6 +144,71 @@ const _device_config_ *cfg_bios           = nullptr;
 const _device_config_ *cfg_in530_bootlogo = nullptr;
 
 int bios_rows = 0;
+
+/* The slot another EISA card is set to, read the way that card's init
+   will read it: from its own section of the configuration, or from its
+   default when it has never been configured. */
+static int
+EisaSlotOf(const _device_ *dev, int instance)
+{
+    device_context_t ctx;
+    int              def = 1;
+
+    for (const _device_config_ *c = dev->config; (c != nullptr) && (c->type != CONFIG_END); ++c) {
+        if (!strcmp(c->name, "slot")) {
+            def = c->default_int;
+            break;
+        }
+    }
+    device_set_context(&ctx, dev, instance);
+    return config_get_int(ctx.name, const_cast<char *>("slot"), def);
+}
+
+/* One card to a slot. The other EISA cards the settings currently hold,
+   SCSI and network, each have a slot; those choices are greyed out here,
+   the way a SCSI ID already taken is greyed out for a disk. The card being
+   configured keeps whatever it has, so a clash left over from an older
+   configuration shows as the selected, disabled entry and must be moved. */
+void
+DeviceConfig::GreyOutTakenEisaSlots(QComboBox *cbox, int instance)
+{
+    auto     *settings = qobject_cast<Settings *>(parentWidget());
+    auto     *model    = qobject_cast<QStandardItemModel *>(cbox->model());
+    QSet<int> taken;
+
+    if ((settings == nullptr) || (model == nullptr))
+        return;
+
+    if (settings->storageControllers != nullptr) {
+        for (int i = 0; i < SCSI_CARD_MAX; ++i) {
+            const _device_ *dev = scsi_card_getdevice(settings->storageControllers->scsiCard(i));
+
+            if ((dev == nullptr) || !(dev->flags & DEVICE_EISA))
+                continue;
+            if ((dev == cfg_dev) && ((i + 1) == instance))
+                continue;
+            taken.insert(EisaSlotOf(dev, i + 1));
+        }
+    }
+    if (settings->network != nullptr) {
+        for (int i = 0; i < NET_CARD_MAX; ++i) {
+            const _device_ *dev = network_card_getdevice(settings->network->netCard(i));
+
+            if ((dev == nullptr) || !(dev->flags & DEVICE_EISA))
+                continue;
+            if ((dev == cfg_dev) && ((i + 1) == instance))
+                continue;
+            taken.insert(EisaSlotOf(dev, i + 1));
+        }
+    }
+
+    for (int row = 0; row < model->rowCount(); ++row) {
+        auto *item = model->item(row);
+
+        if ((item != nullptr) && taken.contains(item->data(Qt::UserRole).toInt()))
+            item->setEnabled(false);
+    }
+}
 
 void
 DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
@@ -264,6 +337,8 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     cbox->setCurrentIndex(currentIndex);
                     if (rows < 2)
                         cbox->setEnabled(false);
+                    if (!strcmp(config->name, "slot") && (cfg_dev != nullptr) && (cfg_dev->flags & DEVICE_EISA))
+                        GreyOutTakenEisaSlots(cbox, device_context->instance);
                     if (!strcmp(config->name, "memory") || !strcmp(config->name, "framebuffer_memory")) {
                         cbox_memory   = cbox;
                         cfg_memory    = config;

@@ -34,7 +34,8 @@
 #include <86box/rdisk.h>
 #include <86box/scsi_disk.h>
 #include <86box/scsi_aha154x.h>
-#include <86box/scsi_aic7880.h>
+#include <86box/scsi_aha1740.h>
+#include <86box/scsi_aic7xxx.h>
 #include <86box/scsi_buslogic.h>
 #include <86box/scsi_ncr5380.h>
 #include <86box/scsi_ncr53c8xx.h>
@@ -52,7 +53,7 @@ typedef const struct {
 } SCSI_CARD;
 
 static SCSI_CARD scsi_cards[] = {
-  // clang-format off
+    // clang-format off
     { &device_none,              },
     /* ISA */
     { &scsi_lcs6821n_device,     },
@@ -72,6 +73,18 @@ static SCSI_CARD scsi_cards[] = {
     { &buslogic_542bh_device,    },
     { &buslogic_545s_device,     },
     { &buslogic_545c_device,     },
+    /* EISA */
+    { &aha1740_device,           },
+    { &aha1740a_device,          },
+    { &aha1742a_device,          },
+    { &aha1744_device,           },
+    { &aha2740_device,           },
+    { &aha2742_device,           },
+    { &aha2740t_device,           },
+    { &aha2742t_device,           },
+    { &aha2740w_device,           },
+    { &aha2742w_device,           },
+    { &aha2744w_device,           },
     /* MCA */
     { &aha1640_device,           },
     { &buslogic_640a_device,     },
@@ -84,8 +97,11 @@ static SCSI_CARD scsi_cards[] = {
     { &buslogic_445s_device,     },
     { &buslogic_445c_device,     },
     /* PCI */
+    { &aha2940_pci_device,       },
+    { &aha2940w_pci_device,      },
     { &aha2940u_pci_device,      },
     { &aha2940uw_pci_device,     },
+    { &aha2944uw_pci_device,     },
     { &am53c974_pci_device,      },
     { &am53c974a_pci_device,     },
     { &buslogic_958d_pci_device, },
@@ -103,7 +119,7 @@ static SCSI_CARD scsi_cards[] = {
     { &qla12160a_device,         },
     { &dc390_pci_device,         },
     { NULL,                      },
-  // clang-format on
+    // clang-format on
 };
 
 void

@@ -677,3 +677,28 @@ host_x86_UNPCKLPS_XREG_XREG(codeblock_t *block, int dst_reg, int src_reg)
 }
 
 #endif
+
+/* MOVDQU [base_reg + offset], src_reg: a whole XMM register to the stack
+   frame (the Windows x64 prologue saving XMM6/XMM7). */
+void
+host_x86_MOVDQU_BASE_OFFSET_XREG(codeblock_t *block, int base_reg, int offset, int src_reg)
+{
+    if ((offset < -128) || (offset > 127) || (base_reg != REG_RSP) || (src_reg & 8))
+        fatal("host_x86_MOVDQU_BASE_OFFSET_XREG - base %i offset %i reg %i\n", base_reg, offset, src_reg);
+
+    codegen_alloc_bytes(block, 6);
+    codegen_addbyte3(block, 0xf3, 0x0f, 0x7f);
+    codegen_addbyte3(block, 0x44 | (src_reg << 3), 0x24, offset); /*MOVDQU [RSP+offset], src_reg*/
+}
+
+/* MOVDQU dst_reg, [base_reg + offset]: and back. */
+void
+host_x86_MOVDQU_XREG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset)
+{
+    if ((offset < -128) || (offset > 127) || (base_reg != REG_RSP) || (dst_reg & 8))
+        fatal("host_x86_MOVDQU_XREG_BASE_OFFSET - base %i offset %i reg %i\n", base_reg, offset, dst_reg);
+
+    codegen_alloc_bytes(block, 6);
+    codegen_addbyte3(block, 0xf3, 0x0f, 0x6f);
+    codegen_addbyte3(block, 0x44 | (dst_reg << 3), 0x24, offset); /*MOVDQU dst_reg, [RSP+offset]*/
+}

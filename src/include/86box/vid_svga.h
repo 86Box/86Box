@@ -324,6 +324,10 @@ typedef struct svga_t {
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
 
+    /* Plasma display panel attached to this core, if any. The filter has no priv of its
+       own in the renderer signature, so it finds its state through this back-pointer. */
+    void *  plasma;
+
     void *  dev8514;
     void *  ext8514;
     void *  clock_gen8514;
@@ -356,6 +360,7 @@ extern void     ati8514_out(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t  ati8514_in(uint16_t addr, void *priv);
 extern void     ati8514_recalctimings(svga_t *svga);
 extern uint8_t  ati8514_mca_read(const uint16_t port, void *priv);
+extern void     ati8514_bios_rom_recalc(void *priv);
 extern uint8_t  ati8514_bios_rom_readb(uint32_t addr, void *priv);
 extern uint16_t ati8514_bios_rom_readw(uint32_t addr, void *priv);
 extern uint32_t ati8514_bios_rom_readl(uint32_t addr, void *priv);

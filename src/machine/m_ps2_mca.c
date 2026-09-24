@@ -405,7 +405,7 @@ model_70_type2_read(uint16_t port)
 }
 
 static uint8_t
-model_70_type3_read(uint16_t port)
+model_70_type34_read(uint16_t port)
 {
     switch (port) {
         case 0x100:
@@ -445,6 +445,114 @@ model_80_read(uint16_t port)
             return ps2.option[1];
         case 0x104:
             return ps2.option[2];
+        case 0x105:
+            return ps2.option[3];
+        case 0x106:
+            return ps2.subaddr_lo;
+        case 0x107:
+            return ps2.subaddr_hi;
+
+        default:
+            break;
+    }
+    return 0xff;
+}
+
+/* The P70 planar has four memory connectors on the planar, with one presence-detect nibble per
+   connector, plus a connector 4 status view in POS register 4 bits 3 and 2. The type 1 planar
+   has no connector-pair selector and takes connector 4 from 0x104 bits 2 and 3. */
+static uint8_t
+model_p70_type1_pos3_read(void)
+{
+    return model_70_type1_pd();
+}
+
+/* POS 4 on the type 1 planar: connector 4 status in bits 3 and 2. */
+static uint8_t
+model_p70_type1_pos4_read(void)
+{
+    uint8_t ret = 0xf7; /* Reserved bits and "-card present" read as 1. */
+    int     mb  = (mem_size / 1024) - 6; /* Connector 4 covers the 6 MB and 7 MB blocks. */
+
+    if (mb > 2)
+        mb = 2;
+
+    if (mb >= 1)
+        ret &= ~0x04;
+    if (mb >= 2)
+        ret |= 0x08;
+    return ret;
+}
+
+/* POS 3 on the type 2 planar: the selector bit picks which connector pair's presence-detect
+   nibbles is returned, connectors 1 and 2 or connectors 3 and 4. */
+static uint8_t
+model_p70_type2_pos3_read(void)
+{
+    if (ps2.option[1] & 0x04)
+        return (model_70_type2_pd(3) << 4) | model_70_type2_pd(4);
+    else
+        return (model_70_type2_pd(1) << 4) | model_70_type2_pd(2);
+}
+
+/* POS 4 on the type 2 planar: connector 4 status in bits 3 and 2. */
+static uint8_t
+model_p70_type2_pos4_read(void)
+{
+    uint8_t ret = 0xf7; /* Reserved bits and "-card present" read as 1. */
+    int     mb  = (mem_size / 1024) - 6; /* Connector 4 covers the 6 MB and 7 MB blocks. */
+
+    if (mb > 2)
+        mb = 2;
+
+    if (mb >= 1)
+        ret &= ~0x04;
+    if (mb >= 2)
+        ret |= 0x08;
+    return ret;
+}
+
+static uint8_t
+model_p70_type1_read(uint16_t port)
+{
+    switch (port) {
+        case 0x100:
+            return ps2.planar_id & 0xff;
+        case 0x101:
+            return ps2.planar_id >> 8;
+        case 0x102:
+            return ps2.option[0];
+        case 0x103:
+            return model_p70_type1_pos3_read();
+        case 0x104:
+            return model_p70_type1_pos4_read();
+        case 0x105:
+            return ps2.option[3];
+        case 0x106:
+            return ps2.subaddr_lo;
+        case 0x107:
+            return ps2.subaddr_hi;
+
+        default:
+            break;
+    }
+    return 0xff;
+}
+
+static uint8_t
+model_p70_type2_read(uint16_t port)
+{
+    switch (port) {
+        case 0x100:
+            return ps2.planar_id & 0xff;
+        case 0x101:
+            return ps2.planar_id >> 8;
+        case 0x102:
+            return ps2.option[0];
+        case 0x103:
+            return model_p70_type2_pos3_read();
+        case 0x104:
+            return model_p70_type2_pos4_read();
         case 0x105:
             return ps2.option[3];
         case 0x106:
@@ -894,7 +1002,7 @@ model_70_type2_write(uint16_t port, uint8_t val)
 }
 
 static void
-model_70_type3_write(uint16_t port, uint8_t val)
+model_70_type34_write(uint16_t port, uint8_t val)
 {
     switch (port) {
         case 0x102:
@@ -991,6 +1099,113 @@ model_80_write(uint16_t port, uint8_t val)
             } else {
                 ps2.option[2] = val;
             }
+            break;
+        case 0x105:
+            ps2.option[3] = val;
+            break;
+        case 0x106:
+            ps2.subaddr_lo = val;
+            break;
+        case 0x107:
+            ps2.subaddr_hi = val;
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void
+model_p70_type1_write(uint16_t port, uint8_t val)
+{
+    switch (port) {
+        case 0x102:
+            lpt_port_remove(ps2.lpt);
+            serial_remove(ps2.uart);
+            if (val & 0x04) {
+                if (val & 0x08)
+                    serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
+                else
+                    serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
+            }
+            if (val & 0x10) {
+                switch ((val >> 5) & 3) {
+                    case 0:
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
+                        break;
+                    case 1:
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
+                        break;
+                    case 2:
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            ps2.option[0] = val;
+            break;
+        case 0x103:
+            ps2.option[1] = val;
+            break;
+        case 0x104:
+            /* Bit 2 and 3 hold connector 4 status. */
+            ps2.option[2] = (ps2.option[2] & 0x0c) | (val & 0xf3);
+            break;
+        case 0x105:
+            ps2.option[3] = val;
+            break;
+        case 0x106:
+            ps2.subaddr_lo = val;
+            break;
+        case 0x107:
+            ps2.subaddr_hi = val;
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void
+model_p70_type2_write(uint16_t port, uint8_t val)
+{
+    switch (port) {
+        case 0x102:
+            lpt_port_remove(ps2.lpt);
+            serial_remove(ps2.uart);
+            if (val & 0x04) {
+                if (val & 0x08)
+                    serial_setup(ps2.uart, COM1_ADDR, COM1_IRQ);
+                else
+                    serial_setup(ps2.uart, COM2_ADDR, COM2_IRQ);
+            }
+            if (val & 0x10) {
+                switch ((val >> 5) & 3) {
+                    case 0:
+                        lpt_port_setup(ps2.lpt, LPT_MDA_ADDR);
+                        break;
+                    case 1:
+                        lpt_port_setup(ps2.lpt, LPT1_ADDR);
+                        break;
+                    case 2:
+                        lpt_port_setup(ps2.lpt, LPT2_ADDR);
+                        break;
+
+                    default:
+                        break;
+                }
+            }
+            ps2.option[0] = val;
+            break;
+        case 0x103:
+            /* Bit 2 selects whether connector 1 and 2 or connector 3 and 4 data is returned. */
+            ps2.option[1] = (ps2.option[1] & 0xfb) | (val & 0x04);
+            break;
+        case 0x104:
+            /* Holds the memory speed configuration on these boards. */
+            ps2.option[2] = val;
             break;
         case 0x105:
             ps2.option[3] = val;
@@ -1590,12 +1805,14 @@ mem_encoding_update(void)
         ps2_mca_log("PS/2 Model 80-111: 00080000- 0009FFFF enabled\n");
     }
 
+    /* The Type 1 planar does not shadow the ROM, so its split memory block is 128 KB larger
+       than on the later planars, which keep the top 128 KB of the first 1 MB mapped as ROM. */
     if (!(ps2.mem_regs[1] & 8)) {
         if (ps2.mem_regs[1] & 4) {
-            ps2.split_size = 384;
+            ps2.split_size = (ps2.planar_id == 0xfeff) ? 512 : 384;
             ps2.split_phys = 0x80000;
         } else {
-            ps2.split_size = 256;
+            ps2.split_size = (ps2.planar_id == 0xfeff) ? 384 : 256;
             ps2.split_phys = 0xa0000;
         }
 
@@ -1841,8 +2058,8 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
     ps2.split_addr = mem_size * 1024;
     mca_init(slots);
 
-    ps2.planar_read  = model_70_type3_read;
-    ps2.planar_write = model_70_type3_write;
+    ps2.planar_read  = model_70_type34_read;
+    ps2.planar_write = model_70_type34_write;
 
     device_add(&ps2_nvr_device);
 
@@ -1912,6 +2129,72 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
     if (mem_size > 8192) {
         /* Only 8 MB supported on planar, create a memory expansion card for the rest */
         if (mem_size > 16384)
+            ps2_mca_mem_d071_init(8);
+        else {
+            ps2_mca_mem_fffc_init(8);
+        }
+    }
+
+    if (gfxcard[0] == VID_INTERNAL)
+        ps2.mb_vga = device_add(&ps1vga_mca_device);
+}
+
+static void
+ps2_mca_board_model_80_type1_init(void)
+{
+    ps2_mca_board_common_init();
+
+    ps2.split_addr = mem_size * 1024;
+    mca_init(8);
+
+    ps2.planar_read  = model_80_read;
+    ps2.planar_write = model_80_write;
+
+    device_add(&ps2_nvr_device);
+
+    io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
+
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = 0xc0 | ((mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f));
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0xca : 0xc2; /* -ENSPLIT = 1 */
+
+    /* Note: Based on the information on ardent-tool.com website,
+       IBM PS/2 model 80 type 1 supports 1 or 2 MB memory card on
+       real machines, so memory encodings should be set as is. */
+    switch (mem_size / 1024) {
+        case 1: /* empty + 1 MB card */
+            ps2.option[1] = 0xfc; /* 11 11 11 00 = 0 1 */
+            break;
+        case 2: /* 1 MB card + 1 MB card */
+            ps2.option[1] = 0xf0; /* 11 11 00 00 = 1 1 */
+            break;
+        case 3: /* 1 MB card + 2 MB card */
+            ps2.option[1] = 0xf2; /* 11 11 00 10 = 1 2 */
+            break;
+        case 4: /* 2 MB card + 2 MB card */
+        default: /* 2 MB card + 2 MB card + expansions */
+            ps2.option[1] = 0xfa; /* 11 11 10 10 = 2 2 */
+            break;
+    }
+
+    mem_mapping_add(&ps2.split_mapping,
+                    (mem_size + 256) * 1024,
+                    256 * 1024,
+                    ps2_read_split_ram,
+                    ps2_read_split_ramw,
+                    ps2_read_split_raml,
+                    ps2_write_split_ram,
+                    ps2_write_split_ramw,
+                    ps2_write_split_raml,
+                    &ram[0xa0000],
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+    mem_mapping_disable(&ps2.split_mapping);
+
+    if (mem_size > 4096) {
+        /* Only 4 MB supported on planar, create a memory expansion card for the rest */
+        if (mem_size > 12288)
             ps2_mca_mem_d071_init(8);
         else {
             ps2_mca_mem_fffc_init(8);
@@ -1996,8 +2279,6 @@ ps2_mca_board_model_80_type2_init(void)
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
-
-    ps2.split_size = 0;
 }
 
 static void
@@ -2080,6 +2361,86 @@ ps2_mca_board_model_80_type3_init(void)
 
     if (gfxcard[0] == VID_INTERNAL)
         ps2.mb_vga = device_add(&ps1vga_mca_device);
+}
+
+static void
+ps2_mca_board_model_p70_type1_init(void)
+{
+    ps2_mca_board_common_init();
+
+    ps2.split_addr = mem_size * 1024;
+    mca_init(4);
+
+    ps2.planar_read  = model_p70_type1_read;
+    ps2.planar_write = model_p70_type1_write;
+
+    device_add(&ps2_nvr_device);
+
+    io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
+
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = 0xc0 | ((mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f));
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+
+    mem_mapping_add(&ps2.split_mapping,
+                    (mem_size + 256) * 1024,
+                    256 * 1024,
+                    ps2_read_split_ram,
+                    ps2_read_split_ramw,
+                    ps2_read_split_raml,
+                    ps2_write_split_ram,
+                    ps2_write_split_ramw,
+                    ps2_write_split_raml,
+                    &ram[0xa0000],
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+    mem_mapping_disable(&ps2.split_mapping);
+
+    ps2.mb_vga = device_add(&ps1vga_mca_device);
+    device_add(&ibm_plasma_vga_device);
+}
+
+static void
+ps2_mca_board_model_p70_type2_init(void)
+{
+    ps2_mca_board_common_init();
+
+    ps2.split_addr = mem_size * 1024;
+    mca_init(4);
+
+    ps2.planar_read  = model_p70_type2_read;
+    ps2.planar_write = model_p70_type2_write;
+
+    device_add(&ps2_nvr_device);
+
+    io_sethandler(0x00e0, 0x0002, mem_encoding_read, NULL, NULL, mem_encoding_write, NULL, NULL, NULL);
+
+    /* The split-memory block cannot be used with 16 MB or more of system memory, so disable it
+       (-ENSPLIT = 1) and use the lowest valid split address instead of the wrapped SPA bits. */
+    ps2.mem_regs[0] = 0xc0 | ((mem_size >= 16384) ? 0x01 : ((mem_size / 1024) & 0x0f));
+    ps2.mem_regs[1] = (mem_size >= 16384) ? 0x0a : 0x02; /* -ENSPLIT = 1 */
+
+    /* POS register 3 is a read/write port on these boards: bit 2 selects the connector whose
+       presence-detect nibbles are returned, and the value is built in model_p70_type2_read() */
+    ps2.option[1] = 0x00;
+
+    mem_mapping_add(&ps2.split_mapping,
+                    (mem_size + 256) * 1024,
+                    256 * 1024,
+                    ps2_read_split_ram,
+                    ps2_read_split_ramw,
+                    ps2_read_split_raml,
+                    ps2_write_split_ram,
+                    ps2_write_split_ramw,
+                    ps2_write_split_raml,
+                    &ram[0xa0000],
+                    MEM_MAPPING_INTERNAL,
+                    NULL);
+    mem_mapping_disable(&ps2.split_mapping);
+
+    ps2.mb_vga = device_add(&ps1vga_mca_device);
+    device_add(&ibm_plasma_vga_device);
 }
 
 static void
@@ -2451,7 +2812,53 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 }
 
 int
-machine_ps2_model_80_init(const machine_t *model)
+machine_ps2_model_70_type4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibmps2_m70_type4/64F3126.BIN",
+                                "roms/machines/ibmps2_m70_type4/64F3125.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xf9ff;
+    ps2_mca_board_model_70_type34_init(1, 4);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_ps2_model_80_type1_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_quad("roms/machines/ibmps2_m80/72X7550.BIN",
+                         "roms/machines/ibmps2_m80/72X7553.BIN",
+                         "roms/machines/ibmps2_m80/72X7556.BIN",
+                         "roms/machines/ibmps2_m80/72X7559.BIN",
+                         0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xfeff;
+    ps2_mca_board_model_80_type1_init();
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_ps2_model_80_type2_init(const machine_t *model)
 {
     int ret;
 
@@ -2473,7 +2880,7 @@ machine_ps2_model_80_init(const machine_t *model)
 }
 
 int
-machine_ps2_model_80_axx_init(const machine_t *model)
+machine_ps2_model_80_type3_init(const machine_t *model)
 {
     int ret;
 
@@ -2495,12 +2902,12 @@ machine_ps2_model_80_axx_init(const machine_t *model)
 }
 
 int
-machine_ps2_model_70_type4_init(const machine_t *model)
+machine_ps2_model_p70_type1_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/ibmps2_m70_type4/64F3126.BIN",
-                                "roms/machines/ibmps2_m70_type4/64F3125.BIN",
+    ret = bios_load_interleaved("roms/machines/ibmps2_p70/38F5957.BIN",
+                                "roms/machines/ibmps2_p70/38F5958.BIN",
                                 0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -2508,8 +2915,29 @@ machine_ps2_model_70_type4_init(const machine_t *model)
 
     machine_ps2_common_init(model);
 
-    ps2.planar_id = 0xf9ff;
-    ps2_mca_board_model_70_type34_init(1, 4);
+    ps2.planar_id = 0xffaf;
+    ps2_mca_board_model_p70_type1_init();
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    return ret;
+}
+
+int
+machine_ps2_model_p70_type2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ibmps2_p70/56F7439.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xf4ff;
+    ps2_mca_board_model_p70_type2_init();
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 

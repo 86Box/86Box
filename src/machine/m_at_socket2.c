@@ -25,6 +25,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/eisa.h>
 #include <86box/keyboard.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
@@ -291,6 +292,37 @@ machine_at_cougar_init(const machine_t *model)
 
     device_add(&opti499_device);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+/* SiS 411 */
+int
+machine_at_s1437_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/s1437/tyan_vl_eisa_v20.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    /* Eight slots. The board's own configuration file calls the last
+       two ISA, which is about bus mastering rather than the connector:
+       all eight are the long kind. */
+    eisa_init(8);
+
+    device_add(&sis_85c411_device);
+    /* "TYN0001", from the configuration file the board shipped with. */
+    sis_85c411_set_board_id("TYN", 0x0001, 0);
 
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
 
