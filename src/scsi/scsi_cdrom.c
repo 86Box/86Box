@@ -4553,6 +4553,8 @@ scsi_cdrom_drive_reset(const int c)
         sd->phase_data_out       = scsi_cdrom_phase_data_out;
         sd->command_stop         = scsi_cdrom_command_stop;
         sd->type                 = SCSI_REMOVABLE_CDROM;
+
+        valid                    = 1;
     } else if (drv->bus_type == CDROM_BUS_SCSI) {
         char *vendor               = cdrom_get_vendor(dev->drv->type);
 
