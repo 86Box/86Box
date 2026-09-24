@@ -52,12 +52,15 @@
 #    undef CLAMP
 #endif
 
-#define BIOS_ROM_PATH     "roms/video/mach64/bios.bin"
-#define BIOS_ISA_ROM_PATH "roms/video/mach64/M64-1994.VBI"
-#define BIOS_VLB_ROM_PATH "roms/video/mach64/mach64_vlb_vram.bin"
-#define BIOS_ROMCT_PATH   "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
-#define BIOS_ROMVT_PATH   "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
-#define BIOS_ROMVT2_PATH  "roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_ROM_PATH                 "roms/video/mach64/bios.bin"
+#define BIOS_ISA_ROM_PATH             "roms/video/mach64/M64-1994.VBI"
+#define BIOS_VLB_ROM_PATH             "roms/video/mach64/mach64_vlb_vram.bin"
+#define BIOS_XPRESSION_VLB_27802_PATH "roms/video/mach64/xpression_vlb_113-27802-101.bin"
+#define BIOS_XPRESSION_VLB_27804_PATH "roms/video/mach64/xpression_vlb_113-27804-101.bin"
+#define BIOS_XPRESSION_VLB_27803_PATH "roms/video/mach64/xpression_vlb_113-27803-102.bin"
+#define BIOS_ROMCT_PATH               "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
+#define BIOS_ROMVT_PATH               "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
+#define BIOS_ROMVT2_PATH              "roms/video/mach64/atimach64vt2pci.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -99,6 +102,7 @@ enum {
 };
 
 #define MACH64_FLAG_ONBOARD (1 << 19)
+#define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
 
 typedef struct mach64_t {

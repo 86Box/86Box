@@ -2239,19 +2239,35 @@ mach64gx_init(const device_t *info)
     mach64->pci_id         = 'X' | ('G' << 8);
     mach64->config_chip_id = 0x000000d7;
     mach64->dac_cntl       = 5 << 16;             /*ATI 68860 RAMDAC*/
-    mach64->config_stat0   = (5 << 9) | (3 << 3); /*ATI 68860, 256Kx16 DRAM*/
+    /* CFG_MEM_TYPE (CONFIG_STAT0 bits 5:3, RRG 3-10) is the board's memory:
+       1 VRAM (256Kx4, x8, x16) on the Graphics Pro Turbo, 3 DRAM (256Kx16)
+       on the Graphics Xpression (mach64 User's Guide). The BIOS takes each
+       mode's memory requirement from the VRAM or the DRAM column of its
+       table by it. */
+    mach64->config_stat0   = (5 << 9) | (((info->local & MACH64_FLAG_DRAM) ? 3 : 1) << 3); /*ATI 68860*/
+    /* The board's straps (RRG 3-11): VGA and the chip enabled, the ROM at
+       C0000. VLB: local bus DAC writes enabled. ISA: no 4 GB aperture. */
+    mach64->config_stat0  |= (1u << 23) | (1u << 25) | (1u << 27);
+    if (info->flags & DEVICE_VLB)
+        mach64->config_stat0 |= (1u << 29);
+    else if (!(info->flags & DEVICE_PCI))
+        mach64->config_stat0 |= (1u << 31);
     if (info->flags & DEVICE_PCI) {
-        mach64->config_stat0 |= 7; /*PCI, 256Kx16 DRAM*/
+        mach64->config_stat0 |= 7; /*PCI*/
         ati_eeprom_load(&mach64->eeprom, "mach64_pci.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&mach64->bios_rom.mapping);
     } else if (info->flags & DEVICE_VLB) {
-        mach64->config_stat0 |= 6; /*VLB, 256Kx16 DRAM*/
-        ati_eeprom_load_default(&mach64->eeprom, "mach64_vlb.nvr", 1,
+        mach64->config_stat0 |= 6; /*VLB*/
+        ati_eeprom_load_default(&mach64->eeprom, (info->local & MACH64_FLAG_DRAM) ? "mach64_xpression_vlb.nvr" : "mach64_vlb.nvr", 1,
                                 mach64_vlb_eeprom_default, sizeof(mach64_vlb_eeprom_default) / sizeof(mach64_vlb_eeprom_default[0]));
-        rom_init(&mach64->bios_rom, BIOS_VLB_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        if (info->local & MACH64_FLAG_DRAM)
+            rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
+                     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL); /* Graphics Xpression */
+        else
+            rom_init(&mach64->bios_rom, BIOS_VLB_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     } else if (info->flags & DEVICE_ISA16) {
-        mach64->config_stat0 |= 0; /*ISA 16-bit, 256k16 DRAM*/
+        mach64->config_stat0 |= 0; /*ISA 16-bit*/
         ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
         rom_init(&mach64->bios_rom, BIOS_ISA_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     }
@@ -2397,6 +2413,12 @@ mach64gx_isa_available(void)
     return rom_present(BIOS_ISA_ROM_PATH);
 }
 int
+mach64gx_xpression_vlb_available(void)
+{
+    return rom_present(BIOS_XPRESSION_VLB_27803_PATH);
+}
+
+int
 mach64gx_vlb_available(void)
 {
     return rom_present(BIOS_VLB_ROM_PATH);
@@ -2461,6 +2483,161 @@ mach64_force_redraw(void *priv)
 }
 
 // clang-format off
+/* The Graphics Pro Turbo (ISA and VLB BIOSes): 2 or 4 MB VRAM, and the
+   interrupt jumper: 2, 3 or 5 on the VLB, and 10 as well on ISA, where
+   IRQ 2 is IRQ 9 on an AT (mach64 User's Guide). Left unfitted, as ATI
+   reserved it for future use. */
+static const device_config_t mach64gx_vram_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0  },
+            { .description = "IRQ 2",    .value = 9  },
+            { .description = "IRQ 3",    .value = 3  },
+            { .description = "IRQ 5",    .value = 5  },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+static const device_config_t mach64gx_vram_isa_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0  },
+            { .description = "IRQ 2",    .value = 9  },
+            { .description = "IRQ 3",    .value = 3  },
+            { .description = "IRQ 5",    .value = 5  },
+            { .description = "IRQ 10",   .value = 10 },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+/* The Graphics Xpression VLB: 1 or 2 MB DRAM, and its BIOS revisions. */
+static const device_config_t mach64gx_xpression_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1 MB", .value = 1 },
+            { .description = "2 MB", .value = 2 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "113_27803_102",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "113-27803-102 (1995/03/16)",
+                .internal_name = "113_27803_102",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_XPRESSION_VLB_27803_PATH, "" }
+            },
+            {
+                .name          = "113-27804-101 (1995/01/20)",
+                .internal_name = "113_27804_101",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_XPRESSION_VLB_27804_PATH, "" }
+            },
+            {
+                .name          = "113-27802-101 (1994/08/24)",
+                .internal_name = "113_27802_101",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 32768,
+                .files         = { BIOS_XPRESSION_VLB_27802_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "irq",
+        .description    = "IRQ",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Disabled", .value = 0  },
+            { .description = "IRQ 2",    .value = 9  },
+            { .description = "IRQ 3",    .value = 3  },
+            { .description = "IRQ 5",    .value = 5  },
+            { .description = ""                      }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+/* PCI: a BIOS for more than one board; DRAM, as before. */
 static const device_config_t mach64gx_config[] = {
     {
         .name           = "memory",
@@ -2502,7 +2679,7 @@ static const device_config_t mach64vt2_config[] = {
 // clang-format on
 
 const device_t mach64gx_isa_device = {
-    .name          = "ATI Mach64GX ISA",
+    .name          = "ATI Graphics Pro Turbo (Mach64GX) ISA",
     .internal_name = "mach64gx_isa",
     .flags         = DEVICE_ISA16,
     .local         = MACH64_GX,
@@ -2512,11 +2689,11 @@ const device_t mach64gx_isa_device = {
     .available     = mach64gx_isa_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
-    .config        = mach64gx_config
+    .config        = mach64gx_vram_isa_config
 };
 
 const device_t mach64gx_vlb_device = {
-    .name          = "ATI Mach64GX VLB",
+    .name          = "ATI Graphics Pro Turbo (Mach64GX) VLB",
     .internal_name = "mach64gx_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX,
@@ -2526,14 +2703,28 @@ const device_t mach64gx_vlb_device = {
     .available     = mach64gx_vlb_available,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
-    .config        = mach64gx_config
+    .config        = mach64gx_vram_config
+};
+
+const device_t mach64gx_xpression_vlb_device = {
+    .name          = "ATI Graphics Xpression (Mach64GX) VLB",
+    .internal_name = "mach64gx_xpression_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = MACH64_GX | MACH64_FLAG_DRAM,
+    .init          = mach64gx_init,
+    .close         = mach64_close,
+    .reset         = NULL,
+    .available     = mach64gx_xpression_vlb_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gx_xpression_config
 };
 
 const device_t mach64gx_pci_device = {
     .name          = "ATI Mach64GX PCI",
     .internal_name = "mach64gx_pci",
     .flags         = DEVICE_PCI,
-    .local         = MACH64_GX,
+    .local         = MACH64_GX | MACH64_FLAG_DRAM,
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = NULL,
