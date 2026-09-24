@@ -896,6 +896,7 @@ mach64_line_callback(svga_t *svga)
 #define PLL_REF_DIV   0x2
 #define VCLK_POST_DIV 0x6
 #define VCLK0_FB_DIV  0x7
+#define PLL_XCLK_CNTL 0xb
 
 static void
 pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
@@ -913,10 +914,26 @@ pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
             mach64_log("pll_write %02x,%02x\n", mach64->pll_addr, val);
 
             for (uint8_t c = 0; c < 4; c++) {
-                double m = (double) mach64->pll_regs[PLL_REF_DIV];
-                double n = (double) mach64->pll_regs[VCLK0_FB_DIV + c];
-                double r = 14318184.0;
-                double p = (double) (1 << ((mach64->pll_regs[VCLK_POST_DIV] >> (c * 2)) & 3));
+                /* From the VT-B (the VT3 here), PLL register 0Bh bits 7:4 are
+                   VCLK0-3_XDIV: each picks the post dividers 3, 6 and 12 over
+                   1, 2, 4 and 8, index 5 being unused. The VT RRG (B-3) has the
+                   VT-A's 0Bh, which has no such bits; every driver for the
+                   later chips programs them the same way (xf86-video-mach64
+                   aticlock.c, atidsp.c; XFree86 3.3.6 mach64init.c; Haiku). */
+                static const uint8_t vtb_post_div[8] = { 1, 2, 4, 8, 3, 0, 6, 12 };
+                int                  idx = (mach64->pll_regs[VCLK_POST_DIV] >> (c * 2)) & 3;
+                double               m   = (double) mach64->pll_regs[PLL_REF_DIV];
+                double               n   = (double) mach64->pll_regs[VCLK0_FB_DIV + c];
+                double               r   = 14318184.0;
+                double               p;
+
+                if (mach64->type >= MACH64_VT3)
+                    idx |= ((mach64->pll_regs[PLL_XCLK_CNTL] >> (4 + c)) & 1) << 2;
+                p = (double) vtb_post_div[idx];
+                if ((p == 0.0) || (m == 0.0)) {
+                    mach64->pll_freq[c] = 0.0; /* no clock: the last timing stays */
+                    continue;
+                }
 
                 mach64_log("PLLfreq %i = %g  %g m=%02x n=%02x p=%02x\n", c, (2.0 * r * n) / (m * p), p, mach64->pll_regs[PLL_REF_DIV], mach64->pll_regs[VCLK0_FB_DIV + c], mach64->pll_regs[VCLK_POST_DIV]);
                 mach64->pll_freq[c] = (2.0 * r * n) / (m * p);
