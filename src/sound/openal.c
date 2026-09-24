@@ -32,9 +32,22 @@
 #include <86box/midi.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/plat.h>
 #include <86box/thread.h>
 
-ALuint                    buffers[I_MAX][4]; /* front and back buffers */
+#define BUFFERS 8
+
+typedef struct {
+    uint32_t last_time;
+    float    filtered_speed;
+    float    current_ratio;
+    int      starved;
+} drc_state_t;
+
+static ALuint             buffers[I_MAX][BUFFERS]; /* buffer pool */
+static ALuint             free_buffers[I_MAX][BUFFERS];
+static int                free_buf_count[I_MAX] = { 0 };
+static drc_state_t        drc[I_MAX];
 static ALuint             source[I_MAX];     /* audio sources */
 
 static int                initialized       = 0;
@@ -272,11 +285,20 @@ closeal(void)
         return;
 
     alSourceStopv(sources, source);
+
+    for (int i = (sources - 1); i >= 0; i--) {
+        ALint queued = 0;
+        alGetSourcei(source[i], AL_BUFFERS_QUEUED, &queued);
+        while (queued > 0) {
+            ALuint b;
+            alSourceUnqueueBuffers(source[i], 1, &b);
+            queued--;
+        }
+        alDeleteBuffers(BUFFERS, buffers[i]);
+        free_buf_count[i] = 0;
+    }
+
     alDeleteSources(sources, source);
-
-    for (int i = (sources - 1); i >= 0; i--)
-        alDeleteBuffers(4, buffers[i]);
-
     alutExit();
 
     initialized = 0;
@@ -403,7 +425,7 @@ inital(void)
     }
 
     for (int i = 0; i < sources; i++)
-       alGenBuffers(4, buffers[i]);
+       alGenBuffers(BUFFERS, buffers[i]);
 
     // Create sources: 0=main, 1=music, 2=wt, 3=cd, 4=fdd, 5=hdd, 6=midi(optional)
     if (init_midi)
@@ -440,6 +462,16 @@ inital(void)
     for (int i = 0; i < sources; i++) {
         alSourceQueueBuffers(source[i], 4, buffers[i]);
         alSourcePlay(source[i]);
+
+        free_buf_count[i] = 0;
+        for (int c = 4; c < BUFFERS; c++) {
+            free_buffers[i][free_buf_count[i]++] = buffers[i][c];
+        }
+
+        drc[i].last_time      = 0;
+        drc[i].filtered_speed = 1.0f;
+        drc[i].current_ratio  = 1.0f;
+        drc[i].starved        = 0;
     }
 
     if (sound_is_float) {
@@ -458,29 +490,123 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
 {
     int    processed;
     int    state;
-    ALuint buffer;
 
     if (!initialized || fast_forward)
         return;
 
-    alGetSourcei(source[src], AL_SOURCE_STATE, &state);
+    const double gain = (sound_muted) ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
+    alListenerf(AL_GAIN, (float) gain);
 
-    if (state == 0x1014) {
+    /* Reclaim ALL processed buffers back into the free pool */
+    alGetSourcei(source[src], AL_BUFFERS_PROCESSED, &processed);
+    while (processed > 0) {
+        ALuint b;
+        alSourceUnqueueBuffers(source[src], 1, &b);
+        if (free_buf_count[src] < BUFFERS) {
+            free_buffers[src][free_buf_count[src]++] = b;
+        }
+        processed--;
+    }
+
+    int queued = 0;
+    alGetSourcei(source[src], AL_BUFFERS_QUEUED, &queued);
+
+    alGetSourcei(source[src], AL_SOURCE_STATE, &state);
+    if (state == 0x1014 || queued == 0) {
+        drc[src].starved = 1;
+    }
+
+    if (free_buf_count[src] > 0) {
+        ALuint b = free_buffers[src][--free_buf_count[src]];
+
+        if (drc[src].starved) {
+            /* Fade in first 64 samples to eliminate clicks on resume */
+            int frames = size >> 1;
+            int ramp_len = frames < 64 ? frames : 64;
+            if (sound_is_float) {
+                float *f = (float *) malloc(size * sizeof(float));
+                if (f) {
+                    memcpy(f, buf, size * sizeof(float));
+                    for (int i = 0; i < ramp_len; i++) {
+                        float ramp = (float) i / (float) ramp_len;
+                        f[i * 2]     *= ramp;
+                        f[i * 2 + 1] *= ramp;
+                    }
+                    alBufferData(b, AL_FORMAT_STEREO_FLOAT32, f, size * (int) sizeof(float), (int) src_freqs[src]);
+                    free(f);
+                } else {
+                    alBufferData(b, AL_FORMAT_STEREO_FLOAT32, buf, size * (int) sizeof(float), (int) src_freqs[src]);
+                }
+            } else {
+                int16_t *s = (int16_t *) malloc(size * sizeof(int16_t));
+                if (s) {
+                    memcpy(s, buf, size * sizeof(int16_t));
+                    for (int i = 0; i < ramp_len; i++) {
+                        float ramp = (float) i / (float) ramp_len;
+                        s[i * 2]     = (int16_t) ((float) s[i * 2] * ramp);
+                        s[i * 2 + 1] = (int16_t) ((float) s[i * 2 + 1] * ramp);
+                    }
+                    alBufferData(b, AL_FORMAT_STEREO16, s, size * (int) sizeof(int16_t), (int) src_freqs[src]);
+                    free(s);
+                } else {
+                    alBufferData(b, AL_FORMAT_STEREO16, buf, size * (int) sizeof(int16_t), (int) src_freqs[src]);
+                }
+            }
+            drc[src].starved = 0;
+        } else {
+            if (sound_is_float)
+                alBufferData(b, AL_FORMAT_STEREO_FLOAT32, buf, size * (int) sizeof(float), (int) src_freqs[src]);
+            else
+                alBufferData(b, AL_FORMAT_STEREO16, buf, size * (int) sizeof(int16_t), (int) src_freqs[src]);
+        }
+
+        alSourceQueueBuffers(source[src], 1, &b);
+        queued++;
+    }
+
+    /* Start playback if stopped and buffers are queued */
+    alGetSourcei(source[src], AL_SOURCE_STATE, &state);
+    if (state != AL_PLAYING && queued > 0) {
         alSourcePlay(source[src]);
     }
 
-    alGetSourcei(source[src], AL_BUFFERS_PROCESSED, &processed);
-    if (processed >= 1) {
-        const double gain = (sound_muted) ? 0.0 : pow(10.0, (double) sound_gain / 20.0);
-        alListenerf(AL_GAIN, (float) gain);
+    /* Dynamic Rate Control for emulated audio sources (excludes physical drive audio) */
+    if (src != I_FDD && src != I_HDD && src_freqs[src] > 0) {
+        uint32_t now = plat_get_ticks();
+        int frames = size >> 1;
+        float buf_duration_ms = (float) frames * 1000.0f / (float) src_freqs[src];
 
-        alSourceUnqueueBuffers(source[src], 1, &buffer);
+        if (drc[src].last_time != 0) {
+            uint32_t delta = now - drc[src].last_time;
+            if (delta >= 5 && delta <= 500) {
+                float instant_speed = buf_duration_ms / (float) delta;
+                if (instant_speed > 1.25f)
+                    instant_speed = 1.25f;
+                else if (instant_speed < 0.25f)
+                    instant_speed = 0.25f;
 
-        if (sound_is_float)
-            alBufferData(buffer, AL_FORMAT_STEREO_FLOAT32, buf, size * (int) sizeof(float), (int) src_freqs[src]);
-        else
-            alBufferData(buffer, AL_FORMAT_STEREO16, buf, size * (int) sizeof(int16_t), (int) src_freqs[src]);
+                drc[src].filtered_speed = 0.05f * instant_speed + 0.95f * drc[src].filtered_speed;
 
-        alSourceQueueBuffers(source[src], 1, &buffer);
+                /* Proportional feedback on queue depth (target ~4 buffers / 80ms) */
+                const int target_buffers = 4;
+                float error = (float) (queued - target_buffers);
+                float target_pitch = drc[src].filtered_speed + 0.04f * error;
+
+                if (target_pitch < 0.25f)
+                    target_pitch = 0.25f;
+                else if (target_pitch > 1.25f)
+                    target_pitch = 1.25f;
+
+                drc[src].current_ratio = 0.10f * target_pitch + 0.90f * drc[src].current_ratio;
+                alSourcef(source[src], AL_PITCH, drc[src].current_ratio);
+            } else if (delta > 500) {
+                /* Stall / pause: reset tracking to nominal */
+                drc[src].filtered_speed = 1.0f;
+                drc[src].current_ratio  = 1.0f;
+                drc[src].starved        = 1;
+                alSourcef(source[src], AL_PITCH, 1.0f);
+            }
+        }
+        drc[src].last_time = now;
     }
 }
