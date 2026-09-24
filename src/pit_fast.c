@@ -719,6 +719,8 @@ pitf_close(void *priv)
 
     if (dev == pit_devs[1].data)
         pit_devs[1].data = NULL;
+    if (dev == pit_ps2_watchdog)
+        pit_ps2_watchdog = NULL;
 
     if (dev != NULL)
         free(dev);

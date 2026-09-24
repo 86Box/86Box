@@ -519,6 +519,8 @@ pit_close(void *priv)
 
     if (dev == pit_devs[1].data)
         pit_devs[1].data = NULL;
+    if (dev == pit_ps2_watchdog)
+        pit_ps2_watchdog = NULL;
 
     if (dev != NULL)
         free(dev);
@@ -694,7 +696,8 @@ pit_ps2_init(int type)
             break;
     }
 
-    ps2_pit->data = pit;
+    ps2_pit->data    = pit;
+    pit_ps2_watchdog = pit;
 
     ps2_pit->set_gate(ps2_pit->data, 0, 0);
     for (int i = 0; i < 3; i++) {
@@ -1629,6 +1632,8 @@ pit_close(void *priv)
 
     if (dev == pit_devs[1].data)
         pit_devs[1].data = NULL;
+    if (dev == pit_ps2_watchdog)
+        pit_ps2_watchdog = NULL;
 
     if (dev != NULL)
         free(dev);
@@ -1808,7 +1813,8 @@ pit_ps2_init(int type)
             break;
     }
 
-    ps2_pit->data = pit;
+    ps2_pit->data    = pit;
+    pit_ps2_watchdog = pit;
 
     ps2_pit->set_gate(ps2_pit->data, 0, 0);
     for (int i = 0; i < 3; i++) {
@@ -1972,6 +1978,8 @@ pit_set_clock(uint32_t clock)
 
     device_speed_changed();
 }
+
+void *pit_ps2_watchdog = NULL;
 
 static void
 pit_ctr_set_clock_div(void *data, int counter_id, int div)

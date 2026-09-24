@@ -156,6 +156,10 @@ extern void pit_ctr_set_using_timer(void *data, int counter_id, int using_timer)
 
 extern pit_t *pit_common_init(int type, void (*out0)(int new_out, int old_out, void *priv), void (*out1)(int new_out, int old_out, void *priv));
 extern pit_t *pit_ps2_init(int type);
+/* The PS/2's watchdog, when that is what the second timer is: acknowledging
+   IRQ 0 drops its gate. NULL on every other machine, where the second timer
+   is something else -- the EISA fail-safe timer, for one. */
+extern void  *pit_ps2_watchdog;
 extern void   pit_reset(pit_t *dev);
 
 extern void pit_irq0_timer_ps2(int new_out, int old_out, void *priv);
